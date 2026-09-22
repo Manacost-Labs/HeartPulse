@@ -203,3 +203,24 @@ in composition and UI include independent card-media, filters and cosmetics
 work. Retained those newer implementations, current dependencies and notes.
 The resolved application tree is unchanged. Boosty analytics, card period,
 history storage and constructed-card route tests pass.
+
+`feat/card-stat-periods-history`: the first twelve commits are the same rebased
+card-history/synergy/trinket work, including `340efb7/774f946`,
+`e594925/8eb69ec`, `461f29c/b6cbd0c`, `fdaac71/85e6936`,
+`34fe1b3/93ac9e5` and `c893cc5/4f6f74b`. The final `30cf7db` explicitly records
+unfinished origin migration. Retained current domain implementations, same-origin
+image proxies, `hearthpulse.net` canonical URLs and the removal of external task
+tracking. Preserved its two architecture proposals as historical documents,
+aligned the environment example with the current runtime default, retained the
+optional systemd template and updated behavioral fixtures. The obsolete
+`api/class-matchups.js` remains deleted. Its recursive string-scan test assumes
+that retired API directory and forbids legitimate compatibility allowlists, so it
+is preserved in archive history instead of the active suite; current route and
+client tests verify behavior. Documentation impact: both archived proposals,
+this plan, the BG patch runbook and `CHANGELOG.md`. No service settings applied.
+TypeScript caught an auto-merged assertion for the obsolete `arena-synergies`
+admin section. `55284cf` explicitly removed that section during the admin
+redesign, so retained its current state-machine test instead of restoring the
+removed UI. Targeted behavioral tests and documentation lint pass. Application
+sources are identical to the previously built tree; only examples, fixtures and
+historical documentation change in this increment.

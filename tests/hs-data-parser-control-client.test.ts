@@ -13,7 +13,7 @@ const fetchImpl: typeof fetch = async (input, init = {}) => {
 };
 
 const client = createHsDataParserControlClient({
-  baseUrl: 'https://api.hs-manacost.ru/',
+  baseUrl: 'https://api.kolodahearthstone.com/',
   apiKey: 'server-secret',
   fetchImpl,
 });
@@ -25,10 +25,10 @@ await client.updateSections({
   updatedBy: 'admin-1',
 });
 
-assert.equal(requests[0]?.url, 'https://api.hs-manacost.ru/admin/parser-control');
+assert.equal(requests[0]?.url, 'https://api.kolodahearthstone.com/admin/parser-control');
 assert.equal(new Headers(requests[0]?.init.headers).get('x-api-key'), 'server-secret');
 assert.equal(new Headers(requests[0]?.init.headers).get('x-request-id'), null);
-assert.equal(requests[1]?.url, 'https://api.hs-manacost.ru/admin/parser-control/sections');
+assert.equal(requests[1]?.url, 'https://api.kolodahearthstone.com/admin/parser-control/sections');
 assert.deepEqual(JSON.parse(String(requests[1]?.init.body)), {
   expectedRevision: 2,
   sections: [
@@ -40,7 +40,7 @@ assert.deepEqual(JSON.parse(String(requests[1]?.init.body)), {
 
 const correlatedRequests: Array<{ url: string; init: RequestInit }> = [];
 const correlatedClient = createHsDataParserControlClient({
-  baseUrl: 'https://api.hs-manacost.ru',
+  baseUrl: 'https://api.kolodahearthstone.com',
   apiKey: 'server-secret',
   fetchImpl: async (input, init = {}) => {
     correlatedRequests.push({ url: String(input), init });
@@ -84,7 +84,7 @@ try {
 
 let calledWithoutKey = false;
 const unconfigured = createHsDataParserControlClient({
-  baseUrl: 'https://api.hs-manacost.ru',
+  baseUrl: 'https://api.kolodahearthstone.com',
   apiKey: '',
   fetchImpl: async () => {
     calledWithoutKey = true;
@@ -99,7 +99,7 @@ await assert.rejects(
 assert.equal(calledWithoutKey, false, 'an unconfigured BFF must not make an unauthenticated upstream request');
 
 const conflictClient = createHsDataParserControlClient({
-  baseUrl: 'https://api.hs-manacost.ru',
+  baseUrl: 'https://api.kolodahearthstone.com',
   apiKey: 'server-secret',
   fetchImpl: async () => new Response(JSON.stringify({
     detail: {
