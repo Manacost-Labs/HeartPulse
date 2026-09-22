@@ -37,8 +37,8 @@ const ENTITY_SITEMAP_SEGMENTS = [
     path: '/sitemaps/standard-cards.xml',
     label: 'standard card sitemap',
     minimumUrls: 500,
-    pathPattern: /^\/standard\/cards\/standard\/[A-Za-z0-9_]{2,80}\/$/,
-    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    pathPattern: /^\/standard\/cards\/standard\/(?:[A-Za-z0-9_]{2,80}|blizzard%3A[1-9][0-9]{0,18})\/$/,
+    identityFromPath: pathname => decodeURIComponent(pathname.split('/').filter(Boolean).at(-1)),
     identityFragment: 'card',
   },
   {
@@ -46,8 +46,8 @@ const ENTITY_SITEMAP_SEGMENTS = [
     path: '/sitemaps/wild-cards.xml',
     label: 'wild card sitemap',
     minimumUrls: 500,
-    pathPattern: /^\/standard\/cards\/wild\/[A-Za-z0-9_]{2,80}\/$/,
-    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    pathPattern: /^\/standard\/cards\/wild\/(?:[A-Za-z0-9_]{2,80}|blizzard%3A[1-9][0-9]{0,18})\/$/,
+    identityFromPath: pathname => decodeURIComponent(pathname.split('/').filter(Boolean).at(-1)),
     identityFragment: 'card',
   },
   {

@@ -23,6 +23,19 @@ async function expectPolicy(
 
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 
+for (const format of ['standard', 'wild']) {
+  for (const segment of ['blizzard:12345', 'blizzard%3A12345', 'blizzard%3a12345']) {
+    await expectPolicy(`/standard/cards/${format}/${segment}/`, {
+      routeId: 'standard-card-detail', robots: INDEX_ROBOTS,
+      canonicalUrl: `${ORIGIN}/standard/cards/${format}/blizzard%3A12345/`, known: true,
+    });
+  }
+  for (const segment of ['blizzard%253A12345', 'blizzard%3A0', '%ZZ', 'blizzard%3A12%2F34']) {
+    const policy = await resolvePublicUrlPolicy(`/standard/cards/${format}/${segment}/`);
+    assert.notEqual(policy.routeId, 'standard-card-detail');
+  }
+}
+
 await expectPolicy('/', {
   routeId: 'home',
   robots: INDEX_ROBOTS,

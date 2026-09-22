@@ -84,7 +84,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
   tests; State: Complete
 - Step 5: Card URL contract. Dependency: 0; Acceptance and verification: Links,
   canonical, sitemap and monitor agree for ordinary IDs and encoded
-  `blizzard:<dbf>` IDs; State: Pending
+  `blizzard:<dbf>` IDs; State: Complete
 - Step 6: Domain extraction. Dependency: 1–5; Acceptance and verification: Complete
   account, cards, Arena and BG slices separate routes/UI, services/loaders,
   repositories and pure model; hotspots and ratchets shrink; State: Pending
@@ -280,3 +280,22 @@ local LCP was at most 164 ms and CLS below 0.028. Screenshots were inspected.
 The Battlegrounds file cap is now 4,101 lines and the tier-list function cap is
 229 lines, with no new source-debt or import exceptions. Next: card URL
 round-trip, canonical, sitemap and production-monitor consistency.
+
+## Step 5 working contract
+
+Documentation impact: `docs/specs/constructed-card-urls.md`,
+`docs/architecture/module-boundaries.md`, this plan and `CHANGELOG.md`.
+The client domain owns URL parsing and generation. Server renderers, sitemap
+projections and monitoring retain their runtime adapters and share the tested
+contract: decode exactly once, validate the identity, encode the segment, and
+use a trailing slash in canonical URLs. No visual redesign is introduced.
+
+Step 5 verification: the initial URL-policy, server-canonical and local monitor
+regressions failed against the previous implementation; all now pass. TypeScript,
+Vite/server build, byte budgets, architecture, test registry, documentation,
+clean-code and changed React review pass. Semgrep reports zero findings.
+Chrome DevTools reviewed the encoded Blizzard detail at 1440, 390 and 320 pixels:
+correct public heading/canonical, no overflow or broken images. The local fixture
+uses the actual format metadata shape. External analytics requests are blocked
+by the isolated browser allowlist; application requests use controlled responses.
+No production endpoint was contacted. Evidence: `/tmp/hp-card-url-browser.json`.

@@ -1640,3 +1640,8 @@
 - Hardened Telegram OIDC state handling by keeping several recent auth states and clearing only the matched state.
 - Checked page integrity and performance for the main public routes.
 - Cleared stale swap usage on the server.
+
+### Card URL consistency
+
+- Card links, canonical metadata, sitemap and monitoring now agree on encoded
+  Blizzard IDs. Invalid and double-encoded identities cannot crash navigation.

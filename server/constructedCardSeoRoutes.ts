@@ -509,7 +509,7 @@ export function renderConstructedCardSeoDocument(options: {
 }): string {
   const card = projectPublicConstructedCardSeoData(options.card, options.canonicalOrigin);
   const origin = canonicalOrigin(options.canonicalOrigin);
-  const canonical = `${origin}/standard/cards/${options.format}/${card.id}/`;
+  const canonical = `${origin}/standard/cards/${options.format}/${encodeURIComponent(card.id)}/`;
   const image = safeImageUrl(card.image, origin);
   const title = `${card.name} — карта Hearthstone (${FORMAT_LABELS[options.format]}, ${card.id}) | HearthPulse`;
   const description = descriptionForCard(card, options.format);

@@ -1,3 +1,4 @@
+import { constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -395,16 +396,9 @@ function plainText(value: string | null | undefined): string {
   return element.value.trim();
 }
 
-function routeState(path: string): { page: 'list' | 'detail'; format: CardFormat; cardId: string | null } {
-  const normalized = decodeURIComponent(path).replace(/\?.*$/, '').replace(/\/+$/, '');
-  const match = normalized.match(/^\/standard\/cards\/(standard|wild)\/((?:[a-zA-Z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18}))$/);
-  if (match) return { page: 'detail', format: match[1] as CardFormat, cardId: match[2] };
-  const listMatch = normalized.match(/^\/standard\/cards\/(standard|wild)$/);
-  return { page: 'list', format: listMatch?.[1] as CardFormat || 'standard', cardId: null };
-}
 
 function cardPath(format: CardFormat, card: CardRecord): string {
-  return `/standard/cards/${format}/${encodeURIComponent(card.card_id)}`;
+  return constructedCardPath(format, card.card_id);
 }
 
 function currentConstructedCardPeriod(): ConstructedCardPeriod {
@@ -1037,7 +1031,7 @@ function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }
           const itemId = String(item?.card_id || item?.id || '').trim();
           const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
           const image = constructedGeneratedPoolCardImage(item);
-          const internalUrl = item?.can_open && itemId ? `/standard/cards/${format}/${encodeURIComponent(itemId)}` : '';
+          const internalUrl = item?.can_open && itemId ? constructedCardPath(format, itemId) : '';
           const href = internalUrl
             ? constructedCardStatsUrl(internalUrl, { period, rank, statsFormat: format, defaultStatsFormat: format })
             : item?.url || undefined;
@@ -1384,7 +1378,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     void applyDocumentPageMeta({
       title: `${name} — карта Hearthstone (${formatLabel}, ${resolvedCardId}) | HearthPulse`,
       description: description.slice(0, 300),
-      pathname: `/standard/cards/${format}/${encodeURIComponent(resolvedCardId)}`,
+      pathname: constructedCardPath(format, resolvedCardId),
       search: '',
       image: publicResourceUrl(card.images?.card),
     });

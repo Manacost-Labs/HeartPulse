@@ -1200,6 +1200,37 @@
         "server/**",
         "other frontend module internals"
       ]
+    },
+    {
+      "name": "frontend-constructed-cards",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Owns constructed card routes and public presentation.",
+      "paths": [
+        "src/modules/constructedCards"
+      ],
+      "publicEntrypoints": [
+        "src/modules/constructedCards/public.ts"
+      ],
+      "frontendRoutes": [
+        "/standard/cards/:format/:cardId"
+      ],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/specs/constructed-card-urls.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/constructed-card-urls.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
     }
   ],
   "legacyAreas": [

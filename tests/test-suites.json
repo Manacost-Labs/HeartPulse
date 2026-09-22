@@ -72,6 +72,7 @@
         "tests/constructed-card-service-contracts.test.ts",
         "tests/constructed-card-translations.test.ts",
         "tests/constructed-card-ui-status.test.ts",
+        "tests/constructed-card-urls.test.ts",
         "tests/constructed-deck-code.test.ts",
         "tests/contest-admin-translations-request.test.ts",
         "tests/contest-selection.test.ts",

@@ -2,8 +2,15 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import {
   createConstructedCardSeoRouter,
+  renderConstructedCardSeoDocument,
   extractConstructedCardFrontendAssets,
 } from '../server/constructedCardSeoRoutes.js';
+
+const encodedCardHtml = renderConstructedCardSeoDocument({
+  card: { card_id: 'blizzard:12345', name: { ru: 'Проверка ID' }, card_type: { slug: 'MINION' } },
+  format: 'standard',
+});
+assert.match(encodedCardHtml, /href="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/blizzard%3A12345\/"/);
 
 const privateSentinels = [
   'QA_PRIVATE_STATS_97_77',

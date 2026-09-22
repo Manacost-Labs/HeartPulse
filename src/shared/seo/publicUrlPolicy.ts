@@ -42,7 +42,6 @@ export type ResolvedPublicUrlPolicy = {
   canonicalUrl: string | null;
   normalizedPathname: string;
 };
-
 export type DocumentPageMeta = {
   title: string;
   description: string;
@@ -132,7 +131,8 @@ function indexPolicyWeight(indexPolicy: PublicIndexPolicy): number {
 
 function canonicalPath(pathname: string, trailingSlashPolicy: PublicRouteInventory['canonicalTrailingSlash']): string {
   if (pathname === '/') return '/';
-  return trailingSlashPolicy === 'always' ? `${pathname}/` : pathname;
+  const encoded = pathname.split('/').map(part => encodeURIComponent(decodePathPart(part) ?? part)).join('/');
+  return trailingSlashPolicy === 'always' ? `${encoded}/` : encoded;
 }
 
 export async function resolvePublicUrlPolicy(

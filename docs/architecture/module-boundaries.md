@@ -315,3 +315,8 @@ contract.
 - `Documentation impact` is resolved; source, tests and docs agree.
 - Focused tests, type checking, architecture lint and the production build pass.
 - Runtime-visible changes receive the required browser or endpoint review.
+
+Constructed card client routes belong to `src/modules/constructedCards`.
+Its public contract validates identities and generates encoded links; shared
+SEO policy only normalizes generic URL segments. Express and monitoring keep
+runtime-specific adapters, checked against the same card URL specification.

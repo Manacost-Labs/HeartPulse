@@ -241,7 +241,8 @@
     "test:battleground-hero-cache": "tsx tests/battleground-hero-cache.test.ts",
     "test:arena-classes-data": "tsx tests/arena-classes-data.test.ts",
     "test:account-blocking": "node --test tests/account-blocking-integration.test.mjs",
-    "test:auth-persistence": "node --test tests/auth-persistence-integration.test.mjs"
+    "test:auth-persistence": "node --test tests/auth-persistence-integration.test.mjs",
+    "test:constructed-card-urls": "tsx tests/constructed-card-urls.test.ts"
   },
   "dependencies": {
     "@firestone-hs/deckstrings": "^2.2.8",

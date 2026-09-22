@@ -1,3 +1,4 @@
+import { constructedCardPath } from '../modules/constructedCards/public';
 import { useId } from 'react';
 import { cachedCardImage } from './cosmeticsCardImage';
 
@@ -29,7 +30,7 @@ export function RelatedCardGallery({
       </header>
       <div className="cosmetics-related-gallery">
         {items.map(card => {
-          const href = `/standard/cards/wild/${encodeURIComponent(card.cardId)}`;
+          const href = constructedCardPath('wild', card.cardId);
           return (
             <a
               key={card.cardId}

@@ -556,6 +556,22 @@
         "docs/specs/arena-classes-data.md",
         "docs/architecture/module-boundaries.md"
       ]
+    },
+    {
+      "id": "client.constructedCards",
+      "runtime": "client",
+      "root": "src/modules/constructedCards",
+      "purpose": "Owns constructed card routes and public presentation.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/constructedCards/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:constructed-card-urls"
+      ],
+      "docs": [
+        "docs/specs/constructed-card-urls.md",
+        "docs/architecture/module-boundaries.md"
+      ]
     }
   ],
   "migrationAreas": [
