@@ -2,6 +2,24 @@
   "version": 1,
   "modules": [
     {
+      "name": "backend-browser-identity",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own the unmounted Manacost OIDC provider and encrypted persistence foundation; existing authentication remains unchanged.",
+      "paths": ["server/modules/browserIdentity"],
+      "publicEntrypoints": ["server/modules/browserIdentity/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": ["server/modules/browserIdentity/configuration.ts"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": ["sqlite:browser_identity_models", "sqlite:browser_identity_revoked_grants"],
+      "externalServices": [],
+      "tests": ["tests/browser-identity-storage.test.ts", "tests/browser-identity-provider.test.ts"],
+      "allowedDependencies": ["Node.js crypto/sqlite", "oidc-provider"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
       "name": "backend-application-auth",
       "status": "modular",
       "owner": "identity-platform",
