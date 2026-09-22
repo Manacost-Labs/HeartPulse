@@ -378,3 +378,25 @@ one existing QA-source contract still expected ten footer links. It now expects
 twelve, consistent with the rendered footer and preserved 44px checks. A focused
 rerun verifies that correction. Project Semgrep, the selected manual-auth
 `codex-semgrep` scan and both Gitleaks scans report no findings.
+
+## Consolidation completed locally
+
+The last draft merge is `d9175fc`. All 278 unit/integration/contract files have
+passing evidence, including the corrected QA-source contract. The integration
+preflight passes against current `origin/main`. Frontend/server and Storybook
+builds, browser E2E, architecture, docs, clean-code, budget, security, property,
+Knip and Sentry checks are recorded above.
+
+After rechecking every snapshot, restored only the archived changed paths and
+removed only the exact archived untracked files in 11 original worktrees. No
+new edits were present. Ignored runtime state and directories containing it
+remain intact. Detached 45 integrated worktrees at their original commits and
+deleted 47 integrated branch refs with expected-SHA checks. Together with the
+initial 79 redundant refs, 126 old branch names have been removed. Detailed
+receipts are in `integrated-cleanup.json` beside the verified private bundles.
+
+Only local `main`, consolidation and migration branches remain. The next
+authorized operation is a local fast-forward of `main` to this verified
+consolidation, followed by rebasing the parked migration and restoring its
+recorded stash. No push, deployment, service activation or announcement has
+been performed.
