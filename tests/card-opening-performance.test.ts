@@ -21,7 +21,8 @@ assert.match(detailPrefetchSource, /DETAIL_PREFETCH_LIMIT\s*=\s*24/,
   'the client detail cache must remain bounded');
 assert.match(detailPrefetchSource, /statsAccess \? 'paid' : 'public'/,
   'public and subscriber payloads must never share a client cache key');
-assert.match(cardsSource, /prefetchConstructedCardList\(/,
+const catalogWarmSource = readFileSync(new URL('../src/modules/constructedCards/useCatalogWarm.ts', import.meta.url), 'utf8');
+assert.match(catalogWarmSource, /await prefetch\(constructedCardCatalogUrl\(/,
   'the catalog must warm adjacent rank, period and format slices while idle');
 assert.match(cardsSource, /loading && data \?/,
   'filter refreshes must retain the visible catalog instead of replacing it with a blocking loader');

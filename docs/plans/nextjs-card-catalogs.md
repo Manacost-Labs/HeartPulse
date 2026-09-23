@@ -42,7 +42,7 @@ refreshed for this phase. Review locally; do not spawn agents.
 
 - [x] Establish typed catalog URL state and navigation regression tests.
 - [x] Add allowlisted public catalog seeds and credential-free server loading.
-- [ ] Integrate catalog hydration, controls, history and route ownership.
+- [x] Integrate catalog hydration, controls, history and route ownership.
 - [ ] Verify the complete card section with real Express/SQLite, production
       Next, provider fixtures and Chrome DevTools at desktop/mobile widths.
 - [ ] Migrate and verify the next public page batch.
@@ -64,3 +64,14 @@ query bounds, reset and campaign-parameter preservation.
 Catalog seed checks pass: explicit public-field allowlist, rejection of invalid
 identity/format/pagination/status, valid empty results, strict domain and Next
 TypeScript. Authenticated behavior remains on the existing Express APIs.
+
+The production Next integration, Vite/Next builds, strict types, all 322
+registered files, Storybook contracts/build, architecture and changed-source
+clean-code gates pass. Chrome confirms catalog search, table/gallery, page
+reload, detail/return, history and subscription/block behavior. The next
+public batch is FAQ/privacy/terms, extracting a shared shell for later sections.
+
+Baseline findings outside this change: the full clean-code command reports
+existing Home.tsx and publicApi/cards.ts size caps; changed-source scope passes.
+React Doctor against the task base reports advisory legacy complexity/state
+findings, with no errors. No suppressions or widened budgets were added.

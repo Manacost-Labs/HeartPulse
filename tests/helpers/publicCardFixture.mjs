@@ -3,6 +3,7 @@ import express from 'express';
 import { once } from 'node:events';
 import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { startCredentialBackend } from './credentialBackend.mjs';
 
 export async function listenLocal(server) {
@@ -20,11 +21,15 @@ export async function publicCardFixture() {
     dbf: i === 0 ? 12345 : 20000 + i, name: { ru: `Публичная карта ${i + 1}`, en: `Public Card ${i + 1}` },
     text: { ru: 'Боевой клич: возьмите карту.' }, flavor: { ru: 'Контрольная карточка для локальной проверки.' },
     class: 'MAGE', card_type: { slug: 'MINION', name_ru: 'Существо' }, rarity: 'COMMON', mana_cost: 2,
-    attack: 2, health: 3, card_set: 'CORE', collectible: true, mechanics: [], referenced_tags: [],
+    attack: 2, health: 3, card_set: 'CORE', collectible: true, mechanics: ['BATTLECRY'], referenced_tags: [],
     images: { card: '/arena-logo-icon.webp' }, formats: [{ slug: 'standard' }, { slug: 'wild' }],
   }));
   const source = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://fixture');
+    if (url.pathname.startsWith('/fixture-assets/')) {
+      response.setHeader('Content-Type', 'image/webp');
+      response.end(readFileSync(resolve('public/arena-logo-icon.webp'))); return;
+    }
     response.setHeader('Content-Type', 'application/json');
     if (url.pathname === '/api/v1/constructed-cards') {
       if (unavailable) { response.writeHead(503).end('{"error":"Fixture outage"}'); return; }
@@ -41,7 +46,7 @@ export async function publicCardFixture() {
   });
   const externalOrigin = await listenLocal(source);
   let backend;
-  try { backend = await startCredentialBackend({ externalOrigin, frontend: true }); }
+  try { backend = await startCredentialBackend({ externalOrigin, frontend: true, cardImages: true }); }
   catch (error) { await closeLocal(source); throw error; }
   const app = express();
   app.use(express.static(resolve('dist')));

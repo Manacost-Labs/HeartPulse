@@ -9,6 +9,10 @@ Standard/Wild format. Invalid controls use existing defaults; text filters are
 bounded to the API's 120-character limit and page size is 60 or 120.
 Serialization preserves unrelated campaign parameters and removes cleared or
 default controls. Server rendering and browser history use this same model.
+Discrete control changes create history entries; typing replaces the current
+entry and debounces network reads. Card links and return navigation carry the
+catalog query, including page and view. Modified clicks retain native link
+behavior. Existing canonical and query-index policies also apply in Next.
 
 ## Card identity
 
@@ -35,7 +39,9 @@ The Next pilot uses the same parser in its request proxy. It overwrites internal
 identity headers before metadata and page rendering; incoming headers are never
 trusted. Missing trailing slashes redirect with HTTP 308 and preserve the query.
 Only authoritative missing cards return 404; upstream failure is a retryable
-error. Standard/Wild list URLs and sitemap ownership remain with Express.
+error. The optional routing flag transfers catalog lists and details together
+to Next.
+Sitemaps and all APIs retain Express ownership.
 
 Nginx uses its once-decoded URI to recognize Blizzard IDs, then emits `%3A` in
 the canonical redirect. Invalid card segments retain their original encoding

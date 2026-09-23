@@ -9,5 +9,12 @@ globalThis.fetch = (input, init) => {
   if (url.hostname === 'api.kolodahearthstone.com') {
     return nativeFetch(new URL(url.pathname + url.search, target), init);
   }
+  if (process.env.CODEX_TEST_CARD_IMAGES === '1' && url.hostname === 'art.hearthstonejson.com') {
+    return nativeFetch(new URL('/fixture-assets' + url.pathname, target), init).then(response => {
+      // Preserve the logical destination for the real proxy's final-origin check.
+      Object.defineProperty(response, 'url', { value: url.href });
+      return response;
+    });
+  }
   return Promise.reject(new Error(`External request blocked in integration fixture: ${url.hostname}`));
 };

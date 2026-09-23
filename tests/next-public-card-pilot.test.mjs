@@ -10,6 +10,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     let response = await fetch(runtime.origin + path);
     assert.equal(response.status, 500, 'an upstream outage must not turn into a cacheable 404');
     assert.match(response.headers.get('cache-control'), /no-store/);
+    assert.equal((await fetch(runtime.origin + '/standard/cards/')).status, 500, 'catalog outage is not an empty successful page');
     runtime.setUnavailable(false);
     response = await fetch(runtime.origin + path);
     assert.equal(response.status, 200, runtime.output());
@@ -20,6 +21,28 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.match(html, /application\/ld\+json/);
     assert.match(html, /"identifier":"blizzard:12345"/);
     assert.doesNotMatch(html, /"deckWinrate":53|card-reader@example|manacost_auth_token/);
+    for (const catalogPath of ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/']) {
+      const catalog = await fetch(runtime.origin + catalogPath);
+      assert.equal(catalog.status, 200, runtime.output());
+      assert.match(catalog.headers.get('cache-control'), /no-store/);
+      const catalogHtml = await catalog.text();
+      assert.match(catalogHtml, /<h1>Карты<\/h1>/);
+      assert.match(catalogHtml, /Публичная карта 1/);
+      assert.match(catalogHtml, /application\/ld\+json/);
+      assert.ok(catalogHtml.includes(`rel="canonical" href="https://hearthpulse.net${catalogPath}"`));
+      assert.doesNotMatch(catalogHtml, /deckWinrate[^<]{0,10}:53|card-reader@example/);
+    }
+    const filtered = await fetch(runtime.origin + '/standard/cards/wild/?query=Public+Card+2&class=MAGE&mana=2&view=table&page=2&perPage=60&period=7d&rank=diamond');
+    const filteredHtml = await filtered.text();
+    assert.equal(filtered.status, 200);
+    assert.match(filteredHtml, /value="Public Card 2"/);
+    assert.match(filteredHtml, /constructed-cards__table/);
+    assert.match(filteredHtml, /name="robots" content="noindex, follow/);
+    assert.match(filteredHtml, /Страница <!-- -->2/);
+    const empty = await fetch(runtime.origin + '/standard/cards/?query=ABSENT_SEARCH');
+    assert.equal(empty.status, 200);
+    assert.match(await empty.text(), /Карты не найдены/);
+    assert.equal((await fetch(runtime.origin + '/standard/cards/invalid/')).status, 404);
     for (const userAgent of ['Mozilla/5.0', 'Googlebot']) {
       for (const id of ['ABSENT_CARD', 'blizzard%253A12345']) {
         const missing = await fetch(`${runtime.origin}/standard/cards/wild/${id}/`, { headers: { 'User-Agent': userAgent, 'x-hearthpulse-card-id': 'blizzard:12345', 'x-hearthpulse-card-format': 'standard' } });
@@ -51,6 +74,8 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal(subscribed.statsAccess, true); assert.equal(subscribed.card.stats.deckWinrate, 53);
     const privateRequest = await fetch(runtime.origin + path, { headers: cookie });
     assert.doesNotMatch(await privateRequest.text(), /"deckWinrate":53|card-reader@example/);
+    const privateCatalog = await fetch(runtime.origin + '/standard/cards/wild/?sort=winrate', { headers: cookie });
+    assert.doesNotMatch(await privateCatalog.text(), /deckWinrate[^<]{0,10}:53|card-reader@example/);
     runtime.backend.database.prepare('UPDATE users SET blocked_at = ? WHERE id = ?').run(new Date().toISOString(), 'card-reader');
     const blocked = await (await fetch(runtime.origin + api, { headers: cookie })).json();
     assert.equal(blocked.statsAccess, false); assert.equal(blocked.card.stats, null);

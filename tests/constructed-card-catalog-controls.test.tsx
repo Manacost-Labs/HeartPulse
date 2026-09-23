@@ -63,7 +63,8 @@ assert.doesNotMatch(
 
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
 const standardCardsCss = readFileSync(new URL('../src/features/StandardCards.css', import.meta.url), 'utf8');
-assert.match(standardCardsSource, /SEARCH_REQUEST_DEBOUNCE_MS\s*=\s*250/,
+const catalogDataSource = readFileSync(new URL('../src/modules/constructedCards/useCatalogData.ts', import.meta.url), 'utf8');
+assert.match(catalogDataSource, /SEARCH_REQUEST_DEBOUNCE_MS\s*=\s*250/,
   'catalog search must debounce remote requests instead of firing for every keystroke');
 assert.match(standardCardsSource, /loading && !data/,
   'the first load may show a loading state while later refreshes keep the current cards visible');

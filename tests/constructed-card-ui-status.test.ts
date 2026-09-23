@@ -52,7 +52,7 @@ assert.equal(
 );
 
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
-const catalogModelSource = readFileSync(new URL('../src/features/constructedCardCatalogModel.ts', import.meta.url), 'utf8');
+const catalogModelSource = readFileSync(new URL('../src/modules/constructedCards/model/catalogQuery.ts', import.meta.url), 'utf8');
 const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCardDetailPrefetch.ts', import.meta.url), 'utf8');
 const cardHistorySource = readFileSync(new URL('../src/features/useConstructedCardHistory.ts', import.meta.url), 'utf8');
 assert.match(standardCardsSource, /warning:\s*typeof payload\.warning/,

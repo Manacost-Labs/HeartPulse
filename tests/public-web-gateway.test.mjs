@@ -14,12 +14,12 @@ async function close(server) {
 }
 
 test('route ownership preserves default and assigns only the pilot namespace', () => {
-  for (const path of ['/standard/cards/standard/CARD_1/', '/standard/cards/wild/blizzard%3A12345', '/_next/static/app.js']) {
+  for (const path of ['/standard/cards', '/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/cards/invalid/', '/standard/cards/wild/bad/extra/', '/standard/cards/standard/CARD_1/', '/standard/cards/wild/blizzard%3A12345', '/_next/static/app.js']) {
     assert.equal(publicWebOwner(path), 'legacy');
     assert.equal(publicWebOwner(path, true), 'next');
     assert.equal(publicWebOwner(path, true, 'POST'), 'legacy');
   }
-  for (const path of ['/', '/standard/cards/standard/', '/api/auth/me', '/profile/', '/sitemap.xml', '/assets/app.js']) {
+  for (const path of ['/', '/standard/cards-extra/', '/api/auth/me', '/profile/', '/sitemap.xml', '/assets/app.js']) {
     assert.equal(publicWebOwner(path, true), 'legacy');
   }
 });

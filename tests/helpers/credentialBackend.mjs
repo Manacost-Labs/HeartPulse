@@ -97,6 +97,7 @@ export async function startCredentialBackend(options = {}) {
       PATH: process.env.PATH,
       NODE_ENV: 'test',
       ...(options.externalOrigin ? { CODEX_TEST_EXTERNAL_ORIGIN: options.externalOrigin, KOLODAHS_API_BASE_URL: `${options.externalOrigin}/api/v1` } : {}),
+      ...(options.cardImages ? { CODEX_TEST_CARD_IMAGES: '1' } : {}),
       BACKGROUND_JOBS_ENABLED: '0',
       APP_URL: origin,
       APP_ROOT_DIR: directory,

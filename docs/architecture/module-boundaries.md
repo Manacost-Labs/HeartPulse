@@ -5,6 +5,9 @@
 The constructed-cards client module owns catalog URL state and API query
 construction. Its legacy feature entry re-exports the public module contract
 for existing callers; server and browser adapters share the same pure model.
+The module also owns catalog URL/history synchronization, debounced request
+lifecycle and bounded idle warming through injected transport ports. The legacy
+feature composes the same presentation for Vite and the Next server seed.
 
 The Battlegrounds module owns hero-tier cache lifetimes and mounted-consumer
 retry scheduling and the React subscription hook. The legacy route injects

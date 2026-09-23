@@ -1,5 +1,6 @@
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
 import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, type PublicCardSeed, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { useCatalogLocation, useCatalogData, useCatalogWarm, catalogLocationUrl, type CardCatalogPayload, type PublicCardCatalogSeed } from '../modules/constructedCards/public';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -40,11 +41,8 @@ import {
 } from './constructedCardListPrefetch';
 export { prefetchInitialConstructedCardCatalog } from './constructedCardListPrefetch';
 import {
-  adjacentConstructedCardCatalogContexts,
-  constructedCardCatalogUrl,
-  EMPTY_CONSTRUCTED_CARD_FILTERS,
-  type ConstructedCardCatalogFilters,
   type ConstructedCardFormat,
+  type ConstructedCardCatalogFilters as Filters,
 } from './constructedCardCatalogModel';
 import DeckListView, {
   type DeckListCard,
@@ -215,36 +213,11 @@ type Facets = {
   rarities: string[];
 };
 
-type FacetCount = { value: string; count: number };
-type FacetCounts = { classes: FacetCount[]; sets: FacetCount[]; mechanics: FacetCount[]; types: FacetCount[]; rarities: FacetCount[] };
-type CardCoverage = { totalCards: number; cardsWithStats: number; cardsWithoutStats: number; totalSets: number };
-
-type ListPayload = {
-  format: CardFormat;
-  rank: ConstructedCardRank;
-  rankLabel?: string;
-  rankRange?: string;
-  period: ConstructedCardPeriodDescriptor;
-  updatedAt: string | null;
-  sourceUrl: string;
-  statsAccess: boolean;
-  cards: CardRecord[];
-  facets: Facets;
-  facetCounts?: FacetCounts;
-  mechanicTranslations?: Record<string, string>;
-  mechanicOverrides?: Record<string, string>;
-  coverage?: CardCoverage;
-  warning?: string | null;
-  dataStatus: 'fresh' | 'stale';
-  partial: false;
-  datasetVersion: string;
-  pagination: { page: number; perPage: number; total: number; totalPages: number };
-};
-
-type Filters = ConstructedCardCatalogFilters;
+type ListPayload = CardCatalogPayload<CardRecord>;
 
 type StandardCardsProps = {
   initialCard?: PublicCardSeed;
+  initialCatalog?: PublicCardCatalogSeed;
   initialSearch?: string;
   currentPath: string;
   navigatePath: (path: string) => void;
@@ -255,10 +228,7 @@ type StandardCardsProps = {
 };
 
 const EMPTY_FACETS: Facets = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
-const EMPTY_FILTERS = EMPTY_CONSTRUCTED_CARD_FILTERS;
-const SEARCH_REQUEST_DEBOUNCE_MS = 250;
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
-const FILTER_PREFETCH_DELAY_MS = 900;
 const warmedCardImages = new Set<string>();
 function preloadImage(url: string | null | undefined): void {
   const source = String(url ?? '').trim();
@@ -405,13 +375,8 @@ function navigateWithConstructedCardContext(
   statsFormat?: CardFormat,
   defaultStatsFormat?: CardFormat,
 ): void {
-  navigatePath(pathname);
-  if (typeof window === 'undefined') return;
-  window.history.replaceState(
-    window.history.state,
-    '',
-    constructedCardStatsUrl(pathname, { period, rank, statsFormat, defaultStatsFormat }),
-  );
+  navigatePath(constructedCardStatsUrl(pathname, { period, rank, statsFormat, defaultStatsFormat },
+    typeof window === 'undefined' ? '' : window.location.search));
 }
 
 function StatsRows({ stats, compact = false }: { stats: CardStats | null; compact?: boolean }) {
@@ -478,7 +443,7 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
     </aside>
   );
 }
-function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
+function CardGallery({ cards, search, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
   const prefetchTimer = useRef<number | null>(null);
   const { galleryRef, immediateImageCount } = useCardGalleryImageLoading(cards);
@@ -517,7 +482,7 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
               data-rarity={String(card.rarity || 'COMMON').toLowerCase()}
             >
               <a
-                href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format })}
+                href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format }, search)}
                 className="constructed-cards__gallery-card-link"
                 onMouseEnter={event => {
                   showTooltip(card, event.currentTarget);
@@ -533,7 +498,7 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
                   warmCard(card, fullImage);
                 }}
                 onBlur={() => setHovered(null)}
-                onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
+                onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
               >
                 <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={index < immediateImageCount} />
                 <span className="constructed-cards__gallery-name">{name}</span>
@@ -582,7 +547,7 @@ function sortAria(sort: string, column: string, direction: Filters['direction'])
   return direction === 'asc' ? 'ascending' : 'descending';
 }
 
-function CardTable({ cards, format, period, rank, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
+function CardTable({ cards, search, format, period, rank, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const prefetchTimer = useRef<number | null>(null);
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
@@ -620,7 +585,7 @@ function CardTable({ cards, format, period, rank, sort, direction, navigatePath,
             {cards.map((card, index) => (
               <tr key={card.card_id}>
                 <th scope="row"><a
-                  href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format })}
+                  href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format }, search)}
                   aria-label={`Открыть карту ${cardName(card)}`}
                   onMouseEnter={event => {
                     showPreview(card, event.currentTarget);
@@ -636,7 +601,7 @@ function CardTable({ cards, format, period, rank, sort, direction, navigatePath,
                     warmCard(card);
                   }}
                   onBlur={() => setPreview(null)}
-                  onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
+                  onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
                 ><HsReplayDataDeckCard card={card} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
@@ -666,167 +631,21 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
   );
 }
 
-function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
-  const [format, setFormat] = useState<CardFormat>(initialFormat);
-  const [period, setPeriod] = useConstructedCardPeriod();
-  const [rank, setRank] = useConstructedCardRank();
-  const [view, setView] = useState<ViewMode>('gallery');
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(60);
+function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCatalog' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
+  const { state, update, updateFilter, reset, clearSearch } = useCatalogLocation(initialFormat, initialSearch);
+  const { format, period, rank, view, filters, perPage } = state;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [data, setData] = useState<ListPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-  const [requestQuery, setRequestQuery] = useState('');
-
+  const { data, loading, error: failure, requestQuery, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList });
+  useCatalogWarm(state, Boolean(data) && !loading && requestQuery === filters.query.trim(), statsAccess, prefetchConstructedCardList);
+  const error = failure ? constructedCardRequestError('list', failure.status, '') : null;
   useEffect(() => {
-    const timeout = window.setTimeout(
-      () => setRequestQuery(filters.query.trim()),
-      SEARCH_REQUEST_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(timeout);
-  }, [filters.query]);
-
-  useEffect(() => {
-    setFormat(initialFormat);
-    setPage(1);
-  }, [initialFormat]);
-
-  useEffect(() => {
-    if (statsAccess || !STATISTIC_SORTS.has(filters.sort)) return;
-    setFilters(current => ({ ...current, sort: 'set', direction: 'asc' }));
-    setPage(1);
-  }, [filters.sort, statsAccess]);
-
-  const requestKey = useMemo(() => JSON.stringify({ format, period, rank, page, perPage, reloadToken, statsAccess, ...filters, query: requestQuery }), [filters, format, page, perPage, period, rank, reloadToken, requestQuery, statsAccess]);
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const url = constructedCardCatalogUrl({
-          format,
-          period,
-          rank,
-          page,
-          perPage,
-          filters,
-          query: requestQuery,
-        });
-        const result = await loadConstructedCardList<ListPayload>(url, statsAccess, {
-          bust: reloadToken > 0,
-        });
-        if (!result.ok) {
-          const failure = new Error((result.payload as any)?.error || 'Не удалось загрузить карты') as Error & { status?: number };
-          failure.status = result.status;
-          throw failure;
-        }
-        if (active) setData(result.payload);
-      } catch (loadError) {
-        if (active) setError(constructedCardRequestError(
-          'list',
-          Number((loadError as { status?: number })?.status ?? 0),
-          loadError instanceof Error ? loadError.message : '',
-        ));
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    void load();
-    return () => { active = false; };
-  }, [requestKey]);
-
-  useEffect(() => {
-    if (!data || loading || document.visibilityState === 'hidden') return undefined;
-    const connection = (navigator as Navigator & {
-      connection?: { saveData?: boolean; effectiveType?: string };
-    }).connection;
-    if (connection?.saveData || connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') {
-      return undefined;
-    }
-
-    let cancelled = false;
-    let idleHandle: number | null = null;
-    const timeout = window.setTimeout(() => {
-      const warm = async () => {
-        const candidates = adjacentConstructedCardCatalogContexts({
-          format,
-          period,
-          rank,
-        });
-        await candidates.reduce<Promise<void>>((chain, candidate) => chain.then(() => {
-          if (cancelled || document.visibilityState === 'hidden') return undefined;
-          return prefetchConstructedCardList(constructedCardCatalogUrl({
-            ...candidate,
-            page: 1,
-            perPage,
-            filters,
-            query: requestQuery,
-          }), statsAccess);
-        }), Promise.resolve());
-      };
-      if ('requestIdleCallback' in window) {
-        idleHandle = window.requestIdleCallback(() => { void warm(); }, { timeout: 2_000 });
-      } else {
-        void warm();
-      }
-    }, FILTER_PREFETCH_DELAY_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeout);
-      if (idleHandle !== null && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
-    };
-  }, [data, filters, format, loading, perPage, period, rank, requestQuery, statsAccess]);
-
-  const updateFilter = (key: keyof Filters, value: string) => {
-    setFilters(current => ({ ...current, [key]: value }));
-    setPage(1);
-  };
-  const changeFormat = (next: CardFormat) => {
-    setFormat(next);
-    setPage(1);
-    navigateWithConstructedCardContext(navigatePath, `/standard/cards/${next}`, period, rank);
-  };
-  const changePeriod = (next: ConstructedCardPeriod) => {
-    setPeriod(next);
-    setPage(1);
-    if (typeof window !== 'undefined') {
-      window.history.replaceState(
-        window.history.state,
-        '',
-        constructedCardPeriodUrl(window.location.pathname, next, window.location.search),
-      );
-    }
-  };
-  const changeRank = (next: ConstructedCardRank) => {
-    setRank(next);
-    setPage(1);
-    if (typeof window !== 'undefined') {
-      window.history.replaceState(
-        window.history.state,
-        '',
-        constructedCardStatsUrl(
-          window.location.pathname,
-          { period, rank: next },
-          window.location.search,
-        ),
-      );
-    }
-  };
-  const reset = () => {
-    setFilters(EMPTY_FILTERS);
-    setRequestQuery('');
-    changePeriod('1d');
-  };
-  const clearSearch = () => {
-    setFilters(current => ({ ...current, query: '' }));
-    setRequestQuery('');
-    setPage(1);
-  };
+    if (!statsAccessLoading && !statsAccess && STATISTIC_SORTS.has(filters.sort)) update({ filters: { ...filters, sort: 'set', direction: 'asc' }, page: 1 }, true);
+  }, [statsAccess, statsAccessLoading, filters, update]);
+  const setPage = (page: number) => update({ page });
+  const setView = (view: ViewMode) => update({ view });
+  const changePeriod = (period: ConstructedCardPeriod) => update({ period, page: 1 });
+  const changeRank = (rank: ConstructedCardRank) => update({ rank, page: 1 });
+  const changeFormat = (format: CardFormat) => navigatePath(catalogLocationUrl(`/standard/cards/${format}`, { ...state, format, page: 1 }, window.location.search));
   const facets = data?.facets ?? EMPTY_FACETS;
   const sets = [...facets.sets].sort(compareConstructedSets);
   const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
@@ -905,7 +724,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
           <FilterSelect
             label="На странице"
             value={String(perPage)}
-            onChange={value => { setPerPage(Number(value)); setPage(1); }}
+            onChange={value => update({ perPage: Number(value), page: 1 })}
             options={[{ value: '60', label: '60 карт' }, { value: '120', label: '120 карт' }]}
           />
           <button type="button" className="constructed-cards__direction" onClick={() => updateFilter('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label="Изменить направление сортировки">
@@ -944,8 +763,8 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
       {hasStatsAccess && data?.warning && !dataNotice && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
 
       {loading && !data ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
-        : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button>}</section>
-          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
+        : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={retry}><RefreshCw size={16} /> Повторить</button>}</section>
+          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery search={catalogLocationUrl('', state)} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={catalogLocationUrl('', state)} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );
@@ -1422,7 +1241,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
   return (
     <article className="constructed-cards constructed-card-detail">
-      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}`, { period, rank })} onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
+      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}`, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
       <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button>
       {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
 

@@ -8,11 +8,12 @@ import { HeaderProfileButton } from '../../../src/app/shell/HeaderProfileButton'
 import GlobalUtilityHeader from '../../../src/components/GlobalUtilityHeader';
 import SiteFooter from '../../../src/components/SiteFooter';
 import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, MISC_TABS, TABS } from '../../../src/app/routing/navigationRoutes';
-import type { PublicCardSeed } from '../../../src/modules/constructedCards/public';
+import type { PublicCardSeed, PublicCardCatalogSeed } from '../../../src/modules/constructedCards/public';
 import { useCardAccess } from './useCardAccess';
 
 const navigate = (path: string) => { window.location.assign(path); };
-export function LegacyCardPage({ card, pathname, initialSearch }: { card: PublicCardSeed; pathname: string; initialSearch: string }) {
+type Props = { pathname: string; initialSearch: string } & ({ card: PublicCardSeed; catalog?: never } | { catalog: PublicCardCatalogSeed; card?: never });
+export function LegacyCardPage({ card, catalog, pathname, initialSearch }: Props) {
   const access = useCardAccess();
   const [menu, setMenu] = useState(false);
   const [mobileGroup, setMobileGroup] = useState<'constructors' | 'misc' | null>(null);
@@ -39,7 +40,7 @@ export function LegacyCardPage({ card, pathname, initialSearch }: { card: Public
         <GlobalUtilityHeader accessStatus={access.admin || access.subscription} onNavigate={navigate} pagePath={pathname} auth={Boolean(access.user)} />
         <main id="main-content" tabIndex={-1} className="arena-main relative flex flex-col items-center arena-main-wide">
           <div className="arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 arena-content-wide arena-content-open">
-            <StandardCards currentPath={pathname} initialCard={card} initialSearch={initialSearch} navigatePath={navigate}
+            <StandardCards currentPath={pathname} initialCard={card} initialCatalog={catalog} initialSearch={initialSearch} navigatePath={navigate}
               statsAccess={access.statsAccess} statsAccessLoading={access.checking} authUser={access.user} onRefreshSubscription={access.refresh} />
           </div>
         </main>

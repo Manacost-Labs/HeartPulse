@@ -11,3 +11,6 @@ export type { ConstructedCardCatalogFilters, ConstructedCardCatalogContext, Cons
 export { catalogLocation, catalogLocationUrl } from './model/catalogLocation';
 export type { CatalogLocation } from './model/catalogLocation';
 export type { CardCatalogPayload, PublicCatalogCard, PublicCardCatalogSeed } from './model/catalogPayload';
+export { useCatalogLocation } from './useCatalogLocation';
+export { useCatalogData } from './useCatalogData';
+export { useCatalogWarm } from './useCatalogWarm';
