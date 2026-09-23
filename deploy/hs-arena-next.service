@@ -11,7 +11,7 @@ WorkingDirectory=/var/www/koloda/data/www/hs-arena.ru/current
 Environment=NODE_ENV=production
 Environment=NEXT_TELEMETRY_DISABLED=1
 Environment=LEGACY_WEB_ORIGIN=http://127.0.0.1:3101
-ExecStart=/usr/bin/node node_modules/next/dist/bin/next start apps/public-web --hostname 127.0.0.1 --port 4320
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start apps/public-web --hostname 127.0.0.1 --port 4321
 Restart=always
 RestartSec=5
 PrivateTmp=true

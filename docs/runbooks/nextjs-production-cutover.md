@@ -22,9 +22,9 @@ previous release if either service fails. Before changing Nginx, confirm:
 
 ```bash
 curl -fsS http://127.0.0.1:3101/health/ready
-curl -fsS http://127.0.0.1:4320/health/next/
+curl -fsS http://127.0.0.1:4321/health/next/
 curl -fsS -o /dev/null -w '%{http_code}\n' \
-  http://127.0.0.1:4320/standard/cards/standard/
+  http://127.0.0.1:4321/standard/cards/standard/
 ```
 
 Keep the current Nginx route map on the legacy frontend until those checks

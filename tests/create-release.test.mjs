@@ -12,7 +12,7 @@ assert.match(releaseValidation, /npm run build:next && npm run lint:next/, 'the 
 const nextService = readFileSync(join(repository, 'deploy/hs-arena-next.service'), 'utf8');
 assert.match(nextService, /WorkingDirectory=\/var\/www\/koloda\/data\/www\/hs-arena\.ru\/current/);
 assert.match(nextService, /Environment=LEGACY_WEB_ORIGIN=http:\/\/127\.0\.0\.1:3101/);
-assert.match(nextService, /ExecStart=\/usr\/bin\/node node_modules\/next\/dist\/bin\/next start apps\/public-web --hostname 127\.0\.0\.1 --port 4320/);
+assert.match(nextService, /ExecStart=\/usr\/bin\/node node_modules\/next\/dist\/bin\/next start apps\/public-web --hostname 127\.0\.0\.1 --port 4321/);
 const root = mkdtempSync(join(tmpdir(), 'hs-arena-release-test-'));
 const workspace = join(root, 'workspace');
 const output = join(root, 'artifact');
