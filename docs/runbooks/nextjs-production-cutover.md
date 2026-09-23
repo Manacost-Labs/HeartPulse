@@ -34,6 +34,9 @@ pass. APIs and identity callbacks must continue to reach Express directly.
 
 Save the installed origin route snippet, then install the reviewed
 `deploy/nginx/arena-html-routing.conf`, run `sudo nginx -t`, and reload Nginx.
+The snippet preserves canonical slash redirects, forwards card catalogs and
+details plus FAQ, privacy and terms to port 4321, and forwards `/_next/` build
+assets to the same process. Other HTML and API routes remain on Express/Vite.
 Verify the canonical public host on desktop and mobile: both card catalogs,
 a card detail sampled from the live sitemap, a confirmed unknown card, FAQ,
 privacy, terms, `_next/static` assets, console/network errors and the

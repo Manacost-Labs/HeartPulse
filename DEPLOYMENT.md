@@ -45,7 +45,9 @@ allowlisted release artifact. The first deployment starts Next on
 both services, checks `/health/ready` and `/health/next/`, and rolls back a
 candidate that fails either check. See
 [the Next.js production cutover runbook](docs/runbooks/nextjs-production-cutover.md)
-for the staged routing change and rollback procedure.
+for the staged routing change and rollback procedure. The origin route snippet
+forwards card catalogs and details, FAQ, privacy, terms and `/_next/` assets to
+Next on port 4321; all other HTML and API routes retain their previous owners.
 
 The production job runs a read-only helper contract preflight immediately
 after checkout and before downloading the artifact. It compares the reviewed

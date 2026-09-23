@@ -476,7 +476,11 @@ for (const route of inventory.routes) {
       'public profile HTML must use the SPA shell while its data stays behind the API serializer');
     continue;
   }
-  if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail'
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms'].includes(path)) {
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
+    continue;
+  }
+  if (route.id === 'bg-hero-detail'
     || route.id === 'bg-library-detail' || route.id === 'cosmetics-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);
@@ -490,10 +494,10 @@ for (const route of inventory.routes) {
 }
 
 const standardCardsListing = firstMatchingRegexLocation('/standard/cards/standard/');
-assert.match(standardCardsListing?.body || '', /try_files\s+\$uri\/index\.html\s+@arena_spa_noindex;/,
-  'constructed-card format listings must use the fail-closed SPA fallback');
-assert.doesNotMatch(standardCardsListing?.body || '', /proxy_pass/,
-  'constructed-card format listings must not be sent through the detail resolver');
+assert.match(standardCardsListing?.body || '', /proxy_pass http:\/\/127\.0\.0\.1:4321;/,
+  'constructed-card format listings must use Next');
+assert.match(routingSource, /location \^~ \/_next\/\s*\{[^}]*proxy_pass http:\/\/127\.0\.0\.1:4321;/s,
+  'Next static assets must reach the matching runtime');
 const spaFallback = locations.find(location => location.pattern === '@arena_spa_noindex');
 assert.match(spaFallback?.body || '', /X-Robots-Tag\s+"noindex, follow"\s+always;/,
   'the SPA fallback must be noindex until a materialized document exists');
@@ -654,6 +658,21 @@ async function startCardSeoUpstream() {
       },
       body: '<p>referral-upstream-404</p>',
     }],
+    ['/standard/cards/standard/', {
+      status: 200,
+      headers: { 'Cache-Control': 'public, max-age=60' },
+      body: '<!doctype html><title>Next card catalog</title>',
+    }],
+    ['/faq/', {
+      status: 200,
+      headers: { 'Cache-Control': 'public, max-age=60' },
+      body: '<!doctype html><title>Next FAQ</title>',
+    }],
+    ['/_next/static/test.js', {
+      status: 200,
+      headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
+      body: 'window.nextRuntime = true;',
+    }],
     ['/standard/cards/standard/CARD_OK/', {
       status: 200,
       headers: {
@@ -669,6 +688,11 @@ async function startCardSeoUpstream() {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
       body: '<!doctype html><title>Missing card</title><p>card-upstream-404</p>',
+    }],
+    ['/standard/cards/standard/blizzard%253A12345/', {
+      status: 404,
+      headers: { 'X-Robots-Tag': 'noindex, nofollow' },
+      body: '<!doctype html><title>Invalid card</title>',
     }],
     ['/standard/cards/standard/OUTAGE_1/', {
       status: 503,
@@ -839,7 +863,8 @@ async function runNginxContractCheck() {
     const testRouting = join(root, 'arena-html-routing.conf');
     writeFileSync(testRouting, routingSource
       .replaceAll('/etc/nginx/snippets/arena-security-headers.conf', securitySnippet)
-      .replaceAll('http://127.0.0.1:3101', `http://127.0.0.1:${upstream.port}`));
+      .replaceAll('http://127.0.0.1:3101', `http://127.0.0.1:${upstream.port}`)
+      .replaceAll('http://127.0.0.1:4321', `http://127.0.0.1:${upstream.port}`));
     const testMap = join(root, 'arena-seo-map.conf');
     writeFileSync(testMap, mapSource);
     const testEdgeRegionMap = join(root, 'arena-edge-region-map.conf');
@@ -896,7 +921,6 @@ http {
       'materialized indexable route must not inherit fallback noindex');
 
     for (const shellPath of [
-      '/standard/cards/standard/',
       '/library/minions/',
       '/library/anomalies/example-76521/',
       '/library/archive/minions/example-76521/',
@@ -907,6 +931,16 @@ http {
       assert.match(shell.body, /<title>SPA<\/title>/, `${shellPath} fallback shell`);
       assert.equal(shell.headers['x-robots-tag'], 'noindex, follow', `${shellPath} fail-closed robots policy`);
       assert.match(shell.headers['cache-control'] || '', /no-store/, `${shellPath} fallback cache policy`);
+    }
+
+    for (const [path, expected] of [
+      ['/standard/cards/standard/', /Next card catalog/],
+      ['/faq/', /Next FAQ/],
+      ['/_next/static/test.js', /nextRuntime/],
+    ]) {
+      const nextResponse = await requestNginx(port, path);
+      assert.equal(nextResponse.status, 200, `${path} must reach Next`);
+      assert.match(nextResponse.body, expected);
     }
 
     const authState = await requestNginx(port, '/?login');

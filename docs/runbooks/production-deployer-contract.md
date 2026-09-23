@@ -62,10 +62,10 @@ host must be updated through the controlled installation above; retry the
 workflow only after the read-only check passes from the exact reviewed source.
 
 For the reviewed HearthPulse origin Nginx transition, the workflow passes
-`--allow-nginx-contract-hash=70adb850426051798a493974e5a69fb59ef28c51f003b4c6b4e4ba40300ae85c`.
+`--allow-nginx-contract-hash=7b086b9e5c9edf37f448ed5ab1025e0d4187227a7c31493b001bb1769186a6bc`.
 The root gate compares this value with the validated release manifest before
 granting the deployer its one-release transition flag. A later, different
-Nginx contract stays blocked. Install the three changed origin Nginx files from
+Nginx contract stays blocked. Install the changed origin Nginx files from
 the clean reviewed `main` checkout, verify `nginx -t`, and compare N/N-1 route
 behavior before pushing the release. The installed gate must pass `--check`
 before the workflow reaches the artifact. If Nginx validation or the live route
