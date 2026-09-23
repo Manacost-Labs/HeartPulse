@@ -1,7 +1,7 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Generated application and component-workshop artifacts"
 paths = [
   '''^build/''',
@@ -9,3 +9,13 @@ paths = [
   '''^apps/public-web/\.next/''',
   '''^storybook-static/''',
 ]
+
+# This exact value is the public SHA-256 of src/styles/tokens.css in the
+# design-reference registry. Keep every other token in this file detectable.
+[[allowlists]]
+description = "Public source fingerprint in the design registry"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^config/quality-guard\.json$''']
+regexTarget = "line"
+regexes = ['''"src/styles/tokens\.css": "fa20c3d18cb98aa57c29561b3c2e030b132c3dc104e1abaae09ed8676b98b7e6"''']
