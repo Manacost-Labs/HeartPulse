@@ -22,7 +22,7 @@ import '../battlegrounds-parchment.css';
 
 type LibraryKind = BgLibraryCatalogKind;
 type PoolMode = 'current' | 'archive';
-const BG_LIBRARY_API_VERSION = 'bg-library-20260704-2';
+const BG_LIBRARY_API_VERSION = 'bg-library-20260923-pool-3661';
 
 interface LibraryCard {
   id?: number;

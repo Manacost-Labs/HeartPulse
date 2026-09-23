@@ -302,10 +302,10 @@ for (const [label, rosterBridge] of [
   });
 }
 
-test('Battlegrounds builder cache version changes with the live hero synchronization', async () => {
+test('Battlegrounds builder cache version includes the current pool and live hero synchronization', async () => {
   const battlegrounds = await source('src/features/Battlegrounds.tsx');
 
-  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260923-aberrations-v1'/);
+  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260923-pool-3661-v2'/);
   assert.equal(
     [...battlegrounds.matchAll(/battlegroundHeroRosterBridgeV1\.install\(window, \{ publicResourceUrl \}\)/g)].length,
     2,
