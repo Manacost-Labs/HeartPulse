@@ -60,6 +60,7 @@
   const raceNames = {
     NONE: "Нейтральные",
     ALL: "Все типы",
+    ABERRATION: "Аберрации",
     BEAST: "Звери",
     DEMON: "Демоны",
     DRAGON: "Драконы",
@@ -539,10 +540,11 @@
     { value: "ACCESSORY", label: "Аксессуары" }
   ];
 
-  const raceOrder = ["ALL", "NONE", "BEAST", "DEMON", "DRAGON", "ELEMENTAL", "MECHANICAL", "MURLOC", "NAGA", "PIRATE", "QUILBOAR", "UNDEAD"];
+  const raceOrder = ["ALL", "NONE", "ABERRATION", "BEAST", "DEMON", "DRAGON", "ELEMENTAL", "MECHANICAL", "MURLOC", "NAGA", "PIRATE", "QUILBOAR", "UNDEAD"];
   const raceIcons = {
     ALL: "/bg-legacy/assset/общее.webp",
     NONE: "/bg-legacy/assset/общее.webp",
+    ABERRATION: "/bg-legacy/assset/aberration.webp",
     BEAST: "/bg-legacy/assset/зверь.webp",
     DEMON: "/bg-legacy/assset/демоны.webp",
     DRAGON: "/bg-legacy/assset/драконы.webp",

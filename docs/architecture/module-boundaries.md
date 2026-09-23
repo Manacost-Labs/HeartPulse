@@ -7,6 +7,8 @@ retry scheduling and the React subscription hook. The legacy route injects
 live API and local snapshot loaders;
 it retains source normalization and rendering while consuming the module's
 public resource contract. Disposing a view stops its timers and callbacks.
+The module also owns minion-type icons keyed by API slug and Russian name;
+library and hero-detail consumers use those public dictionaries.
 
 `src/modules/arenaClasses` owns validated class statistics, account-scoped
 browser caching, request lifecycle and ranking presentation. The legacy Arena
