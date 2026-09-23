@@ -496,6 +496,10 @@ for (const route of inventory.routes) {
 const standardCardsListing = firstMatchingRegexLocation('/standard/cards/standard/');
 assert.match(standardCardsListing?.body || '', /proxy_pass http:\/\/127\.0\.0\.1:4321;/,
   'constructed-card format listings must use Next');
+assert.match(mapSource, /map\s+\$status\s+\$arena_next_html_robots_header\s*\{/,
+  'Next HTML errors need a status-dependent robots policy');
+assert.match(standardCardsListing?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+  'Next HTML errors must emit their robots policy as a response header');
 assert.match(routingSource, /location \^~ \/_next\/\s*\{[^}]*proxy_pass http:\/\/127\.0\.0\.1:4321;/s,
   'Next static assets must reach the matching runtime');
 const spaFallback = locations.find(location => location.pattern === '@arena_spa_noindex');
@@ -684,7 +688,6 @@ async function startCardSeoUpstream() {
     ['/standard/cards/standard/MISSING_1/', {
       status: 404,
       headers: {
-        'X-Robots-Tag': 'noindex, nofollow',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
       body: '<!doctype html><title>Missing card</title><p>card-upstream-404</p>',
@@ -697,7 +700,6 @@ async function startCardSeoUpstream() {
     ['/standard/cards/standard/OUTAGE_1/', {
       status: 503,
       headers: {
-        'X-Robots-Tag': 'noindex, nofollow',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Retry-After': '300',
       },
@@ -941,6 +943,10 @@ http {
       const nextResponse = await requestNginx(port, path);
       assert.equal(nextResponse.status, 200, `${path} must reach Next`);
       assert.match(nextResponse.body, expected);
+      if (path !== '/_next/static/test.js') {
+        assert.equal(nextResponse.headers['x-robots-tag'], undefined,
+          `${path} must stay indexable on success`);
+      }
     }
 
     const authState = await requestNginx(port, '/?login');

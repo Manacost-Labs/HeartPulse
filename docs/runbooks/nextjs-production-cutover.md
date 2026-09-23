@@ -32,20 +32,24 @@ pass. APIs and identity callbacks must continue to reach Express directly.
 
 ## Switch and roll back routing
 
-Save the installed origin route snippet, then install the reviewed
-`deploy/nginx/arena-html-routing.conf`, run `sudo nginx -t`, and reload Nginx.
+Save the installed origin route snippet and SEO map, then install the reviewed
+`deploy/nginx/arena-html-routing.conf` and `deploy/nginx/arena-seo-map.conf`,
+run `sudo nginx -t`, and reload Nginx.
 The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus FAQ, privacy and terms to port 4321, and forwards `/_next/` build
-assets to the same process. Other HTML and API routes remain on Express/Vite.
+assets to the same process. The SEO map adds a `noindex, nofollow` response
+header to Next HTML errors without changing successful responses. Other HTML
+and API routes remain on Express/Vite.
 Verify the canonical public host on desktop and mobile: both card catalogs,
-a card detail sampled from the live sitemap, a confirmed unknown card, FAQ,
+a card detail sampled from the live sitemap, a confirmed unknown card (404
+with an `X-Robots-Tag: noindex` header), FAQ,
 privacy, terms, `_next/static` assets, console/network errors and the
 subscription gate. Confirm canonical metadata and that API requests still
 reach Express. The CI release monitor must pass for the exact deployed SHA.
 
-If a routed page fails, restore the saved Nginx snippet, run `sudo nginx -t`
-and reload before changing application releases. The legacy HTML remains in
-the same immutable artifact, so restoring the snippet immediately returns
+If a routed page fails, restore the saved Nginx snippet and SEO map, run
+`sudo nginx -t` and reload before changing application releases. The legacy
+HTML remains in the same immutable artifact, so restoring both files returns
 these routes to Vite/Express. Retain the previous application release and the
 encrypted data backup for the normal release rollback procedure in
 [DEPLOYMENT.md](../../DEPLOYMENT.md).
