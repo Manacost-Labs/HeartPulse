@@ -32,6 +32,12 @@ representative responsive browser matrix also runs in a separate
 release-blocking observatory job. Both hosted jobs must pass before the
 production runner can download the immutable artifact.
 
+The September 2026 origin Nginx update uses the reviewed contract hash and
+controlled gate procedure in
+[the deploy-helper runbook](docs/runbooks/production-deployer-contract.md).
+The immutable release still serves the Vite frontend; the local Next.js pilot
+does not enter the release artifact or receive production traffic yet.
+
 The production job runs a read-only helper contract preflight immediately
 after checkout and before downloading the artifact. It compares the reviewed
 gate and deployer versions, checksums, ownership, modes, capability manifest

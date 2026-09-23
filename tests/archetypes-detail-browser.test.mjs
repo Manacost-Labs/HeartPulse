@@ -94,7 +94,8 @@ try {
 
   await page.setViewport({ width: 1440, height: 1050, deviceScaleFactor: 1 });
   await page.goto(`${origin}/tests/fixtures/archetypes-detail.html`, { waitUntil: 'networkidle0' });
-  await page.waitForSelector('.archetype-mulligan-table');
+  // A clean install can spend more than Puppeteer's default 30 seconds compiling this fixture.
+  await page.waitForSelector('.archetype-mulligan-table', { timeout: 60_000 });
 
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Берн Маг');
   assert.equal(await page.$$eval('.archetype-mulligan-table tbody tr', rows => rows.length), 8);

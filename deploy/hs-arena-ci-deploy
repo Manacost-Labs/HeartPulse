@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GATE_VERSION=1.2.0
+GATE_VERSION=1.2.1
 GATE_CAPABILITY=require-deployer-capability-v1
 DEPLOYER_MANIFEST_FORMAT=hs-arena-deployer-capabilities-v1
 
@@ -24,8 +24,17 @@ if [[ "${1:-}" == --require-capability=* ]]; then
   shift
 fi
 
-if [[ $# -ne 2 || ! "$REQUIRED_CAPABILITY" =~ ^[a-z0-9][a-z0-9._-]+$ ]]; then
-  echo "Usage: hs-arena-ci-deploy --require-capability=NAME /runner/temp/release EXPECTED_SHA" >&2
+APPROVED_NGINX_CONTRACT_HASH=''
+NGINX_CONTRACT_APPROVAL_REQUESTED=0
+if [[ "${1:-}" == --allow-nginx-contract-hash=* ]]; then
+  NGINX_CONTRACT_APPROVAL_REQUESTED=1
+  APPROVED_NGINX_CONTRACT_HASH=${1#--allow-nginx-contract-hash=}
+  shift
+fi
+
+if [[ $# -ne 2 || ! "$REQUIRED_CAPABILITY" =~ ^[a-z0-9][a-z0-9._-]+$ \
+  || ( "$NGINX_CONTRACT_APPROVAL_REQUESTED" == 1 && ! "$APPROVED_NGINX_CONTRACT_HASH" =~ ^[a-f0-9]{64}$ ) ]]; then
+  echo "Usage: hs-arena-ci-deploy --require-capability=NAME [--allow-nginx-contract-hash=SHA256] /runner/temp/release EXPECTED_SHA" >&2
   exit 2
 fi
 
@@ -208,5 +217,17 @@ MANIFEST_SHA=$(node -e '
   exit 2
 }
 
-"$DEPLOYER_PATH" "$ARTIFACT"
+if [[ "$NGINX_CONTRACT_APPROVAL_REQUESTED" == 1 ]]; then
+  CANDIDATE_NGINX_CONTRACT_HASH=$(node -e '
+    const manifest = require(process.argv[1]);
+    process.stdout.write(manifest.nginxContract?.hash || "");
+  ' "$ARTIFACT/release.json")
+  [[ "$CANDIDATE_NGINX_CONTRACT_HASH" == "$APPROVED_NGINX_CONTRACT_HASH" ]] || {
+    echo "release nginx contract hash differs from the reviewed transition" >&2
+    exit 2
+  }
+  ALLOW_NGINX_CONTRACT_CHANGE=1 "$DEPLOYER_PATH" "$ARTIFACT"
+else
+  ALLOW_NGINX_CONTRACT_CHANGE=0 "$DEPLOYER_PATH" "$ARTIFACT"
+fi
 bash -c "$STATIC_SYNC_COMMAND"

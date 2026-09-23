@@ -17,6 +17,7 @@ import test from 'node:test';
 
 const gate = path.resolve('deploy/hs-arena-ci-deploy');
 const sha = 'a'.repeat(40);
+const reviewedNginxHash = '70adb850426051798a493974e5a69fb59ef28c51f003b4c6b4e4ba40300ae85c';
 
 function hash(file) {
   return createHash('sha256').update(readFileSync(file)).digest('hex');
@@ -41,6 +42,7 @@ function fixture() {
   const deployer = path.join(root, 'deployer');
   const deployerCapabilities = path.join(root, 'deployer.capabilities');
   const marker = path.join(root, 'deployed');
+  const nginxTransitionMarker = path.join(root, 'nginx-transition');
   const staticSync = path.join(root, 'static-sync');
   const staticSyncMarker = path.join(root, 'static-synced');
   mkdirSync(artifact, { recursive: true });
@@ -48,6 +50,7 @@ function fixture() {
   writeFileSync(path.join(artifact, 'release.json'), JSON.stringify({
     schemaVersion: 2,
     sha,
+    nginxContract: { hash: reviewedNginxHash },
     checksums: {
       'critical.txt': hash(path.join(artifact, 'critical.txt')),
     },
@@ -63,6 +66,7 @@ function fixture() {
     '  exit 0',
     'fi',
     `printf '%s' \"$1\" > ${JSON.stringify(marker)}`,
+    `printf '%s' \"${'${ALLOW_NGINX_CONTRACT_CHANGE:-0}'}\" > ${JSON.stringify(nginxTransitionMarker)}`,
     '',
   ].join('\n'));
   chmodSync(deployer, 0o755);
@@ -73,6 +77,7 @@ function fixture() {
     deployer,
     deployerCapabilities,
     marker,
+    nginxTransitionMarker,
     staticSync,
     staticSyncMarker,
   };
@@ -83,13 +88,15 @@ function fixture() {
   return input;
 }
 
-function run(input, expectedSha = sha) {
-  return spawnSync('bash', [
+function run(input, expectedSha = sha, approvedNginxHash = '') {
+  const args = [
     gate,
     '--require-capability=scraper-runtime-probe-v1',
+    ...(approvedNginxHash ? [`--allow-nginx-contract-hash=${approvedNginxHash}`] : []),
     input.artifact,
     expectedSha,
-  ], {
+  ];
+  return spawnSync('bash', args, {
     encoding: 'utf8',
     env: {
       ...process.env,
@@ -117,9 +124,35 @@ test('deploys only a read-only artifact with the exact validated SHA and checksu
     const result = run(input);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(readFileSync(input.marker, 'utf8'), path.resolve(input.artifact));
+    assert.equal(readFileSync(input.nginxTransitionMarker, 'utf8'), '0');
     assert.equal(readFileSync(input.staticSyncMarker, 'utf8'), 'synced');
   } finally {
     rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('authorizes only the reviewed nginx contract hash for one release', () => {
+  const input = fixture();
+  try {
+    const allowed = run(input, sha, reviewedNginxHash);
+    assert.equal(allowed.status, 0, allowed.stderr);
+    assert.equal(readFileSync(input.nginxTransitionMarker, 'utf8'), '1');
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('rejects a different or malformed nginx contract approval before deployment', () => {
+  for (const hash of ['b'.repeat(64), 'not-a-hash', ' ']) {
+    const input = fixture();
+    try {
+      const result = run(input, sha, hash);
+      assert.notEqual(result.status, 0);
+      assert.equal(existsSync(input.marker), false);
+      assert.equal(existsSync(input.staticSyncMarker), false);
+    } finally {
+      rmSync(input.root, { recursive: true, force: true });
+    }
   }
 });
 

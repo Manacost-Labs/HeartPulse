@@ -17,7 +17,7 @@ deploy/install-hs-arena-deployer.sh --check
 
 The check requires these source contracts:
 
-- `deploy/hs-arena-ci-deploy` reports `hs-arena-ci-deploy 1.2.0` and
+- `deploy/hs-arena-ci-deploy` reports `hs-arena-ci-deploy 1.2.1` and
   `require-deployer-capability-v1`;
 - `scripts/deploy-release.sh` reports `hs-arena-deploy-release 1.1.0` and
   `scraper-runtime-probe-v1`;
@@ -60,3 +60,13 @@ to `/usr/local/sbin/hs-arena-ci-deploy *`.
 checkout and before `actions/download-artifact`. A failed preflight means the
 host must be updated through the controlled installation above; retry the
 workflow only after the read-only check passes from the exact reviewed source.
+
+For the reviewed HearthPulse origin Nginx transition, the workflow passes
+`--allow-nginx-contract-hash=70adb850426051798a493974e5a69fb59ef28c51f003b4c6b4e4ba40300ae85c`.
+The root gate compares this value with the validated release manifest before
+granting the deployer its one-release transition flag. A later, different
+Nginx contract stays blocked. Install the three changed origin Nginx files from
+the clean reviewed `main` checkout, verify `nginx -t`, and compare N/N-1 route
+behavior before pushing the release. The installed gate must pass `--check`
+before the workflow reaches the artifact. If Nginx validation or the live route
+smoke check fails, restore the saved previous files before retrying deployment.
