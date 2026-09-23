@@ -75,3 +75,8 @@ Baseline findings outside this change: the full clean-code command reports
 existing Home.tsx and publicApi/cards.ts size caps; changed-source scope passes.
 React Doctor against the task base reports advisory legacy complexity/state
 findings, with no errors. No suppressions or widened budgets were added.
+
+Integrated origin/main `28a4697`, preserving the new aberration icons alongside
+the existing hero cache/roster module. Updated the public-export contract test
+to include both icon maps; documentation remains accurate in the combined
+architecture and Battlegrounds specifications.

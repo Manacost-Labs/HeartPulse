@@ -83,6 +83,8 @@ const RUNTIME_CONTRACT_NAMES = [
   'battlegroundFullCardImage',
   'battlegroundHeroCardImage',
   'battlegroundHeroRosterBridgeV1',
+  'battlegroundMinionIconByRussianName',
+  'battlegroundMinionIconBySlug',
   'createBattlegroundHeroTierResource',
   'preferredBattlegroundGoldenBuddyImage',
   'preferredBattlegroundHeroImage',
@@ -153,7 +155,7 @@ function assertConsumerImports(
       const destination = statement.importClause.isTypeOnly || element.isTypeOnly
         ? importedTypeNames
         : importedRuntimeNames;
-      destination.push(element.name.text);
+      destination.push(element.propertyName?.text ?? element.name.text);
     }
   }
 
@@ -206,7 +208,12 @@ assert.deepEqual(battlegroundPublicEdges, [
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'runtime',
   },
-], 'the canonical module graph must contain only the two intended edges to the public entry');
+  {
+    source: 'src/features/BgLibrary.tsx',
+    target: 'src/modules/battlegrounds/public.ts',
+    kind: 'runtime',
+  },
+], 'the canonical module graph must contain only the intended hero and library edges to the public entry');
 
 function statsHeroes(count: number): unknown {
   return {
