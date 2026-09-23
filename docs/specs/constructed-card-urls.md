@@ -19,6 +19,22 @@ monitor follow this contract. Monitoring validates canonical encoded paths,
 but compares decoded identities with JSON-LD identifiers. It never compares an
 encoded URL segment directly with a card ID.
 
+The Next pilot uses the same parser in its request proxy. It overwrites internal
+identity headers before metadata and page rendering; incoming headers are never
+trusted. Missing trailing slashes redirect with HTTP 308 and preserve the query.
+Only authoritative missing cards return 404; upstream failure is a retryable
+error. Standard/Wild list URLs and sitemap ownership remain with Express.
+
+Nginx uses its once-decoded URI to recognize Blizzard IDs, then emits `%3A` in
+the canonical redirect. Invalid card segments retain their original encoding
+through host/scheme redirects; `%253A` must not become `%3A` and resolve to a
+different identity. Detail locations forward valid IDs to the authoritative
+Express resolver with status and cache headers preserved.
+
 Verification: `test:constructed-card-urls`, `test:public-url-policy`,
-`test:constructed-card-seo-routes` and `test:production-monitor` cover ordinary
+`test:constructed-card-seo-routes`, `test:next-pilot` and
+`test:production-monitor` cover ordinary
 and Blizzard identities, metadata, sitemap locations and local HTTP crawling.
+`test:nginx-routing` and `test:nginx-canonical-hosts` exercise temporary Nginx
+instances for alias redirects, query preservation, upstream forwarding and
+double-encoding rejection.

@@ -458,7 +458,10 @@ for (const route of inventory.routes) {
 
   expectRegexAction(path, 'return 301', `${route.id} non-canonical route`);
   const redirect = firstMatchingRegexLocation(path);
-  assert.match(redirect?.body || '', /\$uri\/\$is_args\$args;/,
+  const redirectPath = path.startsWith('/standard/cards/')
+    ? /\$arena_canonical_edge_path\$is_args\$args;/
+    : /\$uri\/\$is_args\$args;/;
+  assert.match(redirect?.body || '', redirectPath,
     `${route.id} must add the slash and preserve query in one redirect`);
   if (route.id === 'archetype-detail' || route.id === 'wild-archetype-decks') {
     expectRegexAction(`${path}/`, 'try_files /archetypes/index.html /index.html =404;', `${route.id} canonical route`);
@@ -727,6 +730,9 @@ async function startCardSeoUpstream() {
       body: '<!doctype html><title>BG catalog outage</title><p>bg-card-upstream-503</p>',
     }],
   ]);
+  for (const segment of ['blizzard:12345', 'blizzard%3A12345', 'blizzard%3a12345']) {
+    responses.set(`/standard/cards/standard/${segment}/`, responses.get('/standard/cards/standard/CARD_OK/'));
+  }
   const server = createHttpServer((incomingRequest, response) => {
     const pathname = new URL(incomingRequest.url || '/', 'http://arena.test').pathname;
     const fixture = responses.get(pathname);
@@ -996,6 +1002,19 @@ http {
       'index, follow, max-image-preview:large',
       'valid card robots policy must pass through nginx',
     );
+
+    for (const segment of ['blizzard:12345', 'blizzard%3A12345', 'blizzard%3a12345']) {
+      const redirect = await requestNginx(port, `/standard/cards/standard/${segment}?period=7d`);
+      assert.equal(redirect.status, 301);
+      const target = new URL(redirect.headers.location);
+      assert.equal(target.pathname, '/standard/cards/standard/blizzard%3A12345/');
+      assert.equal(target.search, '?period=7d');
+      const detail = await requestNginx(port, `/standard/cards/standard/${segment}/`);
+      assert.equal(detail.status, 200);
+      assert.match(detail.body, /card-upstream-200/, 'Blizzard details reach the authoritative resolver');
+    }
+    const doubleEncoded = await requestNginx(port, '/standard/cards/standard/blizzard%253A12345/');
+    assert.equal(doubleEncoded.status, 404, 'double-encoded identity cannot become a valid card');
 
     const missingCard = await requestNginx(port, '/standard/cards/standard/MISSING_1/');
     assert.equal(missingCard.status, 404, 'missing card SSR status must pass through nginx');

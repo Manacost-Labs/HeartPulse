@@ -7,7 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const PROJECT_ROOT = resolve(dirname(SCRIPT_PATH), '..');
-const FRONTEND_SOURCE = /^src\/(?!vendor\/).+\.(?:[cm]?[jt]sx?)$/;
+const FRONTEND_SOURCE = /^(?:src\/(?!vendor\/)|apps\/public-web\/(?!\.next\/)).+\.(?:[cm]?[jt]sx?)$/;
 
 function runGit(args, cwd = PROJECT_ROOT) {
   return spawnSync('git', args, {
@@ -65,8 +65,8 @@ function gitLines(args, cwd = PROJECT_ROOT) {
 }
 
 export function changedFrontendFiles(base, cwd = PROJECT_ROOT) {
-  const tracked = gitLines(['diff', '--name-only', '--diff-filter=ACMR', base, '--', 'src'], cwd);
-  const untracked = gitLines(['ls-files', '--others', '--exclude-standard', '--', 'src'], cwd);
+  const tracked = gitLines(['diff', '--name-only', '--diff-filter=ACMR', base, '--', 'src', 'apps/public-web'], cwd);
+  const untracked = gitLines(['ls-files', '--others', '--exclude-standard', '--', 'src', 'apps/public-web'], cwd);
   return [...new Set([...tracked, ...untracked].filter(isFrontendSource))].sort();
 }
 

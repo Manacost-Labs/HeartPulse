@@ -1,0 +1,12 @@
+import { NAVIGATION_ROUTES } from './navigationDefinitions';
+export const TABS = NAVIGATION_ROUTES.map(route => ({ ...route, slug: route.path }));
+export type TabId = (typeof TABS)[number]['id'];
+const group = (name: (typeof TABS)[number]['group']) => TABS.filter(route => route.group === name);
+export const TOP_LEVEL_TABS = group('top').filter(route => route.id !== 'faq');
+export const STANDARD_TABS = group('standard');
+export const ARENA_TABS = group('arena');
+export const BG_PRIMARY_TABS = group('bg-primary');
+export const BG_BUILDER_TABS = group('bg-builder');
+export const MISC_TABS = group('misc');
+export const ADMIN_TABS = group('admin');
+export const ADMIN_ONLY_TAB_IDS = new Set<TabId>(TABS.filter(route => 'adminOnly' in route && route.adminOnly).map(route => route.id));

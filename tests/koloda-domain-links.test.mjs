@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { canonicalArticleUrl } from '../shared/articleImageSrc.ts';
 
 const server = readFileSync('server/index.ts', 'utf8');
 const analytics = readFileSync('server/adminBoostyAnalyticsRoutes.ts', 'utf8');
@@ -18,11 +19,13 @@ assert.match(
   /https:\/\/kolodahearthstone\.com\/wp-json\/koloda\/v1\/articles\/query/,
   'analytics must query the canonical .com endpoint',
 );
-assert.match(
-  deferredRoutes,
-  /href:\s*'https:\/\/kolodahearthstone\.com\/'/,
-  'the public network menu must link directly to .com',
-);
+for (const host of ['kolodahearthstone.ru', 'kolodahearthstone.com']) {
+  assert.equal(
+    canonicalArticleUrl(`https://${host}/article/?ref=cards#comments`),
+    'https://kolodahearthstone.com/article/?ref=cards#comments',
+    'public article links use the canonical host while retaining path, query and fragment',
+  );
+}
 assert.match(
   server,
   /url:\s*canonicalArticleUrl\(/,

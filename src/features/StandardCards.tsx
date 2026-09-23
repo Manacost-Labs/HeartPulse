@@ -1,4 +1,5 @@
-import { ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
+import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, type PublicCardSeed, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -71,11 +72,9 @@ import {
 } from './constructedCardRequestState';
 import {
   CONSTRUCTED_CARD_RANK_OPTIONS,
-  constructedCardPeriodFromSearch,
   constructedCardPeriodLabel,
   constructedCardPeriodOptions,
   constructedCardPeriodUrl,
-  constructedCardRankFromSearch,
   constructedCardRankLabel,
   constructedCardStatsFormatFromSearch,
   constructedCardStatsFormatLabel,
@@ -245,6 +244,8 @@ type ListPayload = {
 type Filters = ConstructedCardCatalogFilters;
 
 type StandardCardsProps = {
+  initialCard?: PublicCardSeed;
+  initialSearch?: string;
   currentPath: string;
   navigatePath: (path: string) => void;
   statsAccess: boolean;
@@ -389,24 +390,11 @@ function patchVersion(value: unknown): string {
   return String(value ?? '').trim().replace(/^patch\s+/i, '') || 'без номера';
 }
 
-function plainText(value: string | null | undefined): string {
-  if (!value) return '';
-  const element = document.createElement('textarea');
-  element.innerHTML = value.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '');
-  return element.value.trim();
-}
+
 
 
 function cardPath(format: CardFormat, card: CardRecord): string {
   return constructedCardPath(format, card.card_id);
-}
-
-function currentConstructedCardPeriod(): ConstructedCardPeriod {
-  return typeof window === 'undefined' ? '1d' : constructedCardPeriodFromSearch(window.location.search);
-}
-
-function currentConstructedCardRank(): ConstructedCardRank {
-  return typeof window === 'undefined' ? 'legend' : constructedCardRankFromSearch(window.location.search);
 }
 
 function navigateWithConstructedCardContext(
@@ -424,32 +412,6 @@ function navigateWithConstructedCardContext(
     '',
     constructedCardStatsUrl(pathname, { period, rank, statsFormat, defaultStatsFormat }),
   );
-}
-
-function useConstructedCardPeriod(): [
-  ConstructedCardPeriod,
-  (period: ConstructedCardPeriod) => void,
-] {
-  const [period, setPeriod] = useState<ConstructedCardPeriod>(currentConstructedCardPeriod);
-  useEffect(() => {
-    const syncFromLocation = () => setPeriod(currentConstructedCardPeriod());
-    window.addEventListener('popstate', syncFromLocation);
-    return () => window.removeEventListener('popstate', syncFromLocation);
-  }, []);
-  return [period, setPeriod];
-}
-
-function useConstructedCardRank(): [
-  ConstructedCardRank,
-  (rank: ConstructedCardRank) => void,
-] {
-  const [rank, setRank] = useState<ConstructedCardRank>(currentConstructedCardRank);
-  useEffect(() => {
-    const syncFromLocation = () => setRank(currentConstructedCardRank());
-    window.addEventListener('popstate', syncFromLocation);
-    return () => window.removeEventListener('popstate', syncFromLocation);
-  }, []);
-  return [rank, setRank];
 }
 
 function StatsRows({ stats, compact = false }: { stats: CardStats | null; compact?: boolean }) {
@@ -704,7 +666,7 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
   );
 }
 
-function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
+function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
   const [format, setFormat] = useState<CardFormat>(initialFormat);
   const [period, setPeriod] = useConstructedCardPeriod();
   const [rank, setRank] = useConstructedCardRank();
@@ -1277,19 +1239,17 @@ const cardIdentityFacts = (card: CardRecord, format: CardFormat) => [
   { label: 'ID карты', value: <><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</> },
 ];
 
-function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
-  const [period, setPeriod] = useConstructedCardPeriod();
-  const [rank, setRank] = useConstructedCardRank();
+function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
+  const [period, setPeriod] = useConstructedCardPeriod(initialSearch);
+  const [rank, setRank] = useConstructedCardRank(initialSearch);
   const [statsFormat, setStatsFormat] = useState<CardFormat>(() => (
-    typeof window === 'undefined'
-      ? format
-      : constructedCardStatsFormatFromSearch(window.location.search, format)
+    constructedCardStatsFormatFromSearch(initialSearch ?? (typeof window === 'undefined' ? '' : window.location.search), format)
   ));
   const [periodLabel, setPeriodLabel] = useState(() => constructedCardPeriodLabel(period));
   const [currentPatch, setCurrentPatch] = useState<string | null>(null);
-  const [card, setCard] = useState<CardRecord | null>(null);
+  const [card, setCard] = useState<CardRecord | null>(initialCard ?? null);
   const [serverStatsAccess, setServerStatsAccess] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCard);
   const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
   const [dataState, setDataState] = useState<{
     dataStatus: 'fresh' | 'stale';
@@ -1318,7 +1278,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      setLoading(true); setError(null); setCard(null);
+      setLoading(!initialCard); setError(null);
       try {
         const response = await loadConstructedCardDetail({
           cardId,
@@ -1376,7 +1336,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     };
     void load();
     return () => { cancelled = true; };
-  }, [cardId, format, period, rank, reloadToken, statsAccess, statsFormat]);
+  }, [cardId, format, period, rank, reloadToken, statsAccess, statsFormat, initialCard]);
   useEffect(() => {
     if (!card) return undefined;
     const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
@@ -1554,6 +1514,6 @@ export default function StandardCards(props: StandardCardsProps) {
   const { currentPath, navigatePath } = props;
   const route = routeState(currentPath);
   return route.page === 'detail' && route.cardId
-    ? <DetailPage format={route.format} cardId={route.cardId} {...props} />
+    ? <DetailPage key={`${route.format}:${route.cardId}`} format={route.format} cardId={route.cardId} {...props} />
     : <CardsListPage initialFormat={route.format} {...props} />;
 }

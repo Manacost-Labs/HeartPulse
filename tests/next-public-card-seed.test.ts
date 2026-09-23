@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { publicCardSeed } from '../apps/public-web/lib/publicCardSeed';
+const seed = publicCardSeed({ card: { id: 'CARD_1', name: '<script>test</script>', image: 'https://hearthpulse.net/arena-logo-icon.webp', stats: { private: 53 } }, account: 'PRIVATE_ACCOUNT', decks: ['PRIVATE_DECK'] }, 'CARD_1');
+assert.equal(seed.card_id, 'CARD_1');
+assert.equal(seed.images.card, '/arena-logo-icon.webp');
+assert.equal(seed.stats, null);
+assert.doesNotMatch(JSON.stringify(seed), /PRIVATE_|"private"/);
+assert.throws(() => publicCardSeed({ card: { id: 'OTHER_CARD', name: 'Карта' } }, 'CARD_1'), /Invalid/);
+assert.throws(() => publicCardSeed({ card: { id: 'CARD_1', name: {} } }, 'CARD_1'), /Invalid/);
+console.log('public SSR input allowlisting passed');

@@ -25,6 +25,42 @@ Block metadata streaming for this bounded pilot so absence and metadata resolve
 before status/HTML are sent. There is no `loading.tsx` boundary. Test HTTP status
 with browser and bot user agents; a streamed 200 is not an acceptable 404.
 
+## Runtime boundaries
+
+The server loader calls only the allowlisted public Express read model, with
+no credentials, no redirect following, no cache and a bounded deadline. React's
+request-local cache deduplicates page and metadata reads. The hydration seed
+contains public facts and `stats: null`; account and subscription reads start
+in the browser. Paid statistics remain guarded by the existing Express policy.
+Unavailable data produces a retryable HTTP 500, while authoritative absence
+produces HTTP 404. Neither response is a public cache entry. Retry refreshes
+the server component before resetting the error boundary.
+
+Next's proxy derives the validated card identity from the request pathname and
+overwrites internal identity headers. Both metadata and the page use those
+values: runtime tests found inconsistent encoded/decoded params between the
+two entry points. Client-supplied headers cannot select a different card.
+Trailing-slash redirects preserve query parameters; canonical URLs exclude them.
+
+The adapter reuses `StandardCards`, public navigation, profile presentation,
+menu focus/scroll behavior and the footer. Pure navigation metadata is separate
+from legacy route loaders so Next does not import the entire SPA. The card
+module owns statistics query policy and its hooks. Entity-to-text conversion
+uses the same DOM-independent implementation on the server and in the browser.
+
+## Bundling compatibility
+
+Build and development use Webpack. An extension alias resolves existing `.js`
+imports to their TypeScript sources. One exact vendored HSReplay UMD file uses
+`javascript/auto` so it receives its own CommonJS wrapper. Without that rule,
+its `module.exports` replaced Next page exports after the first successful
+request. The production integration test renders multiple identities and
+aliases in one process, covering that regression. No dependency is patched.
+
+The Next project is typechecked separately; `lint:domains` enables strict mode
+for the completed account, Arena, BG and card slices. Existing global strictness
+and architecture exceptions are not relaxed.
+
 ## Sources
 
 - [Official Vite migration guide](https://nextjs.org/docs/app/guides/migrating/from-vite)

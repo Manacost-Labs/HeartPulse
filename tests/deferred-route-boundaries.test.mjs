@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const profileButtonSource = readFileSync(new URL('../src/app/shell/HeaderProfileButton.tsx', import.meta.url), 'utf8');
 const routeManifestSource = readFileSync(new URL('../src/app/routing/routeManifest.ts', import.meta.url), 'utf8');
 const routeModulesSource = readFileSync(new URL('../src/app/routing/routeModules.tsx', import.meta.url), 'utf8');
 const applicationNavigationSource = readFileSync(
@@ -27,11 +28,6 @@ assert.doesNotMatch(
   routeManifestSource,
   /module\.GalleryTab/,
   'the gallery must not download the unrelated DeferredRoutes module',
-);
-assert.match(
-  routeManifestSource,
-  /path:\s*'\/gallery'[\s\S]*?loadGalleryModule\)/,
-  'navigation intent must preload the dedicated gallery chunk',
 );
 assert.match(
   routeManifestSource,
@@ -65,14 +61,16 @@ assert.doesNotMatch(
 );
 assert.match(
   appSource,
-  /import\s*\{[^}]*\bAuthAvatar\b[^}]*\}\s*from '\.\/modules\/identity\/public'/,
+  /import\s*\{[^}]*\bHeaderProfileButton\b[^}]*\}\s*from '\.\/app\/shell\/HeaderProfileButton'/,
   'the primary authenticated navigation must render its small avatar without an extra request or fallback flash',
 );
 assert.doesNotMatch(
-  appSource,
+  `${appSource}\n${profileButtonSource}`,
   /LazyAuthAvatar|import\(['"][^'"]*AuthAvatar['"]\)/,
   'the primary authenticated navigation must not introduce a granular avatar chunk',
 );
+assert.match(profileButtonSource, /import\s*\{[^}]*\bAuthAvatar\b[^}]*\}\s*from '\.\.\/\.\.\/modules\/identity\/public'/,
+  'the shared profile presentation keeps its eager avatar in both application shells');
 assert.doesNotMatch(authAvatarSource, /import ['"].*\.css['"]/,
   'the browser-independent application shell import must not execute a CSS loader in Node');
 assert.match(initialStyles, /@import "\.\/modules\/identity\/public\.css"/,

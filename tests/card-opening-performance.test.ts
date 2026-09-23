@@ -9,7 +9,7 @@ const lightboxSource = readFileSync(new URL('../src/features/ConstructedCardLigh
 const deferredSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
 const routeModulesSource = readFileSync(new URL('../src/app/routing/routeModules.tsx', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-const publicNavigationSource = readFileSync(new URL('../src/app/shell/PublicNavigation.tsx', import.meta.url), 'utf8');
+const publicNavigationSource = readFileSync(new URL('../src/app/shell/NavigationItems.tsx', import.meta.url), 'utf8');
 
 assert.match(cardsSource, /prefetchConstructedCardDetail\(/,
   'card catalog links must warm their detail response before navigation');

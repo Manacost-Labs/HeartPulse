@@ -222,6 +222,9 @@ test('Semgrep scope includes authored JS/TS and excludes generated or vendored s
   assert.equal(isSemgrepSource('src/App.tsx'), true);
   assert.equal(isSemgrepSource('server/index.ts'), true);
   assert.equal(isSemgrepSource('scripts/check.mjs'), true);
+  assert.equal(isSemgrepSource('apps/public-web/app/page.tsx'), true);
+  assert.equal(isSemgrepSource('apps/public-web/proxy.ts'), true);
+  assert.equal(isSemgrepSource('apps/public-web/.next/server/app.js'), false);
   assert.equal(isSemgrepSource('src/vendor/library.js'), false);
   assert.equal(isSemgrepSource('tests/fixture.ts'), false);
   assert.equal(isSemgrepSource('dist/app.js'), false);

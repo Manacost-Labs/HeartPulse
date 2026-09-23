@@ -7,6 +7,9 @@
     }
   ],
   "fileEnvironment": {
+    "tests/battleground-accessories-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/hsreplay-tierlist.test.ts": {
       "TIERLIST_TEST_SKIP_HANDLER": "1"
     }
@@ -93,6 +96,7 @@
         "tests/hsguru-deck-info.test.ts",
         "tests/hsreplay-strategy-source.test.ts",
         "tests/hsreplay-tierlist.test.ts",
+        "tests/html-plain-text.test.ts",
         "tests/initial-asset-audit.test.mjs",
         "tests/json-body.test.ts",
         "tests/local-smtp.test.ts",
@@ -104,6 +108,7 @@
         "tests/module-boundary-inventory.test.mjs",
         "tests/module-boundary-path-policy.test.mjs",
         "tests/newsletter-template-design-contract.test.ts",
+        "tests/next-public-card-seed.test.ts",
         "tests/not-found-page.test.tsx",
         "tests/page-tour-registry.test.ts",
         "tests/page-tour.test.ts",
@@ -140,6 +145,7 @@
     {
       "id": "integration",
       "files": [
+        "tests/account-blocking-integration.test.mjs",
         "tests/admin-archetype-translation-routes.test.ts",
         "tests/admin-archetypes-routes.test.ts",
         "tests/admin-arena-draft-advice-routes.test.ts",
@@ -172,7 +178,6 @@
         "tests/article-cover-routes.test.ts",
         "tests/article-routes.test.ts",
         "tests/auth-credential-routes.test.ts",
-        "tests/account-blocking-integration.test.mjs",
         "tests/auth-persistence-integration.test.mjs",
         "tests/auth-profile-routes.test.ts",
         "tests/auth-verification-routes.test.ts",
@@ -218,6 +223,7 @@
         "tests/legendary-routes.test.ts",
         "tests/metrics.test.ts",
         "tests/newsletter-unsubscribe-routes.test.ts",
+        "tests/next-public-card-pilot.test.mjs",
         "tests/observability.test.ts",
         "tests/operational-routes.test.ts",
         "tests/parser-control-normalization.test.ts",

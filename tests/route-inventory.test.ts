@@ -136,11 +136,15 @@ assert.equal(
   '^[a-z0-9][a-z0-9-]{0,119}$',
   'archetype detail slugs must use the parser-compatible bounded contract',
 );
-assert.equal(
-  byId.get('standard-card-detail')?.pathParameters?.cardId?.pattern,
-  '^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$',
-  'constructed card detail IDs must use the same bounded public resolver contract',
-);
+const cardIdPattern = byId.get('standard-card-detail')?.pathParameters?.cardId?.pattern;
+assert.ok(cardIdPattern, 'card detail inventory declares its bounded segment contract');
+const cardIdMatcher = new RegExp(cardIdPattern);
+for (const id of ['EX1_001', 'blizzard:12345', 'blizzard%3A12345', 'blizzard%3a12345']) {
+  assert.ok(cardIdMatcher.test(id), `card detail inventory accepts ${id}`);
+}
+for (const id of ['A', 'blizzard:0', 'blizzard%253A12345', 'blizzard:12/34', 'A'.repeat(81)]) {
+  assert.equal(cardIdMatcher.test(id), false, `card detail inventory rejects ${id}`);
+}
 assert.equal(byId.get('bg-hero-detail')?.pathParameters?.dbfId?.pattern, '^[1-9][0-9]*$',
   'hero detail dbfId must be a positive integer');
 assert.deepEqual(

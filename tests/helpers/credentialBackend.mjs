@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -79,10 +79,11 @@ function controlledSmtp() {
 }
 
 /** Runs the current backend entry point with only temporary state and local SMTP. */
-export async function startCredentialBackend() {
+export async function startCredentialBackend(options = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'hearthpulse-auth-integration-'));
   const dataDirectory = join(directory, 'data');
   mkdirSync(dataDirectory);
+  if (options.frontend) symlinkSync(resolve('dist'), join(directory, 'dist'), 'dir');
   const smtp = controlledSmtp();
   const smtpPort = await listen(smtp.server);
   const reservation = createServer();
@@ -90,11 +91,12 @@ export async function startCredentialBackend() {
   await new Promise(resolve => reservation.close(resolve));
   const origin = `http://127.0.0.1:${port}`;
   const databasePath = join(directory, 'users.sqlite');
-  const child = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], {
+  const child = spawn(process.execPath, ['--import', 'tsx', ...(options.externalOrigin ? ['--import', './tests/helpers/controlledExternalFetch.mjs'] : []), 'server/index.ts'], {
     cwd: process.cwd(),
     env: {
       PATH: process.env.PATH,
       NODE_ENV: 'test',
+      ...(options.externalOrigin ? { CODEX_TEST_EXTERNAL_ORIGIN: options.externalOrigin, KOLODAHS_API_BASE_URL: `${options.externalOrigin}/api/v1` } : {}),
       BACKGROUND_JOBS_ENABLED: '0',
       APP_URL: origin,
       APP_ROOT_DIR: directory,
@@ -138,7 +140,7 @@ export async function startCredentialBackend() {
     assert.ok(ready, `Backend did not start: ${output}`);
     database = new DatabaseSync(databasePath);
     return {
-      database, smtp, close,
+      database, smtp, close, origin, output: () => output,
       request(path, body, headers = {}) {
         return fetch(`${origin}${path}`, {
           method: body === undefined ? 'GET' : 'POST',

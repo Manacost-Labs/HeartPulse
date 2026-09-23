@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const PROJECT_ROOT = resolve(dirname(SCRIPT_PATH), '..');
 const SEMGREP_VERSION = '1.171.0';
-const SEMGREP_SOURCE = /^(?:src\/(?!vendor\/)|server\/|scripts\/).+\.(?:[cm]?[jt]sx?)$/;
+const SEMGREP_SOURCE = /^(?:src\/(?!vendor\/)|server\/|scripts\/|apps\/public-web\/(?!\.next\/)).+\.(?:[cm]?[jt]sx?)$/;
 
 function runGit(args, cwd = PROJECT_ROOT) {
   return spawnSync('git', args, {
@@ -56,7 +56,7 @@ function gitLines(args, cwd = PROJECT_ROOT) {
 }
 
 export function changedSemgrepFiles(base, cwd = PROJECT_ROOT) {
-  const roots = ['src', 'server', 'scripts'];
+  const roots = ['src', 'server', 'scripts', 'apps/public-web'];
   const tracked = gitLines(['diff', '--name-only', '--diff-filter=ACMR', base, '--', ...roots], cwd);
   const untracked = gitLines(['ls-files', '--others', '--exclude-standard', '--', ...roots], cwd);
   return [...new Set([...tracked, ...untracked].filter(isSemgrepSource))].sort();

@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { LogIn, UserCircle } from 'lucide-react';
+import { usePublicMenuFocus } from './app/shell/usePublicMenuFocus';
+import { HeaderProfileButton } from './app/shell/HeaderProfileButton';
 import { PublicNavigation } from './app/shell/PublicNavigation';
 import { RouteLoadingSurface } from './app/shell/RouteLoadingSurface';
 import { getCanonicalRedirectUrl } from './config/domain';
@@ -48,7 +49,6 @@ import {
   useApplicationNavigation,
 } from './app/routing/public';
 import {
-  AuthAvatar,
   canAccessAdminWorkspace,
   canManageContests,
   fetchCurrentAuthUser,
@@ -345,53 +345,7 @@ function clearAuthSessionHint(): void {
 
 
 
-function HeaderProfileButton({ user, checking = false }: { user: AuthUser | null; checking?: boolean }) {
-  const label = user || checking ? 'Профиль' : 'Войти';
-  const hint = checking && !user
-    ? 'Проверяем доступ'
-    : user
-      ? (user.name && user.name !== 'Пользователь Манакост' ? user.name : 'Личный кабинет')
-      : 'Личный кабинет';
 
-  if (checking && !user) {
-    return (
-      <span className="arena-sidebar-profile-content">
-        <span className="arena-sidebar-profile-icon">
-          <UserCircle size={18} className="opacity-85" />
-        </span>
-        <span className="arena-sidebar-profile-copy">
-          <span className="arena-sidebar-profile-label">{label}</span>
-          <span className="arena-sidebar-profile-hint">{hint}</span>
-        </span>
-      </span>
-    );
-  }
-
-  if (!user) {
-    return (
-      <span className="arena-sidebar-profile-content">
-        <span className="arena-sidebar-profile-icon">
-          <LogIn size={18} className="opacity-85" />
-        </span>
-        <span className="arena-sidebar-profile-copy">
-          <span className="arena-sidebar-profile-label">{label}</span>
-          <span className="arena-sidebar-profile-hint">{hint}</span>
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span className="arena-sidebar-profile-content">
-      <span className="arena-sidebar-profile-avatar">
-        <AuthAvatar user={user} size={34} />
-      </span>
-      <span className="arena-sidebar-profile-copy">
-        <span className="arena-sidebar-profile-label">{label}</span>
-        <span className="arena-sidebar-profile-hint">{hint}</span>
-      </span>
-    </span>
-  );
-}
 
 
 
@@ -1065,37 +1019,10 @@ export default function App() {
           onRefreshSubscription={() => fetchAppSubscription(true)}
         />;
   usePageScrollLock(!isAdminMode && mobileMenuOpen);
-  useEffect(() => {
-    if (!mobileMenuOpen) return undefined;
-    const menu = mobileMenuRef.current;
-    if (!menu) return undefined;
-    const focusable: HTMLElement[] = Array.from(menu.querySelectorAll<HTMLElement>('a[href],button:not(:disabled)'));
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    first?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        mobileMenuToggleRef.current?.focus();
-        setMobileMenuOpen(false);
-      }
-      if (event.key !== 'Tab' || !first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [mobileMenuOpen]);
+  usePublicMenuFocus(mobileMenuOpen, mobileMenuRef, mobileMenuToggleRef, setMobileMenuOpen);
 
   const mobileNavigationProfile = useMemo(() => (
-    <>
-      {appAuthUser ? <AuthAvatar user={appAuthUser} size={28} /> : appAuthChecking && appHasAuthHint ? <UserCircle size={18} className="flex-shrink-0" /> : <LogIn size={18} className="flex-shrink-0" />}
-      <span>{appAuthUser || (appAuthChecking && appHasAuthHint) ? 'Профиль' : 'Войти'}</span>
-    </>
+    <HeaderProfileButton user={appAuthUser} checking={appAuthChecking && appHasAuthHint} variant="mobile" />
   ), [appAuthChecking, appAuthUser, appHasAuthHint]);
   const sidebarNavigationProfile = useMemo(
     () => <HeaderProfileButton user={appAuthUser} checking={appAuthChecking && appHasAuthHint} />,

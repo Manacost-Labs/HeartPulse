@@ -114,7 +114,7 @@ try {
   assert.deepEqual(manifest.nginxContract.files.map(file => file.source), nginxContractFiles);
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.roles),
-    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin'], ['edge']],
+    [['origin'], ['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin'], ['edge']],
   );
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.installPath),

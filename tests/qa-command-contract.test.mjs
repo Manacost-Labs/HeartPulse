@@ -16,6 +16,10 @@ assert.equal(
 );
 
 const verifySteps = scripts['verify:ci'].split(' && ');
+for (const build of ['npm run build', 'npm run build:next']) {
+  assert.ok(verifySteps.includes(build) && verifySteps.indexOf(build) < verifySteps.indexOf('npm test'),
+    `verify:ci must produce ${build} artifacts before the real-backend pilot tests`);
+}
 assert.equal(
   verifySteps.filter(step => step === 'npm run build').length,
   1,

@@ -27,5 +27,10 @@
   "ignoreBinaries": [
     "codex",
     "openssl"
-  ]
+  ],
+  "postcss": {
+    "config": [
+      "apps/public-web/postcss.config.mjs"
+    ]
+  }
 }

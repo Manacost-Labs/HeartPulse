@@ -131,6 +131,21 @@ http {
 
     const hosts = ['arena.hs-manacost.ru', 'www.arena.hs-manacost.ru', 'hs-arena.ru', 'www.hs-arena.ru'];
     let hostIndex = 0;
+    for (const segment of ['blizzard:12345', 'blizzard%3A12345', 'blizzard%3a12345']) {
+      const response = await requestRedirect(port, 'www.arena.hs-manacost.ru',
+        `/standard/cards/standard/${segment}?period=7d&rank=diamond`);
+      assert.equal(response.status, 301);
+      const location = new URL(response.location);
+      assert.equal(location.pathname, '/standard/cards/standard/blizzard%3A12345/',
+        'Blizzard identity reaches its encoded canonical URL in one hop');
+      assert.equal(location.search, '?period=7d&rank=diamond');
+    }
+    for (const invalid of ['blizzard%253A12345', 'blizzard%3A0']) {
+      const path = `/standard/cards/standard/${invalid}`;
+      const response = await requestRedirect(port, 'www.arena.hs-manacost.ru', path);
+      assert.equal(new URL(response.location).pathname, path, 'invalid identity must not be decoded into a valid card');
+    }
+
     for (const route of inventory.routes) {
       const pathname = route.kind === 'fallback' ? '/definitely-unknown' : substituteRouteParameters(route);
       const query = '?utm_source=contract&value=1';

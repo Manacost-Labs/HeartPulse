@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "strict": true },
+  "include": [
+    "src/modules/arenaClasses/**/*.ts", "src/modules/arenaClasses/**/*.tsx",
+    "src/modules/constructedCards/**/*.ts", "src/modules/constructedCards/**/*.tsx",
+    "src/modules/battlegrounds/model/heroTierResource.ts", "src/modules/battlegrounds/useHeroTierData.ts",
+    "server/modules/accountCredentials/**/*.ts", "server/modules/applicationAuth/**/*.ts",
+    "server/modules/constructedCards/publicCard*.ts", "apps/public-web/lib/publicCardSeed.ts"
+  ],
+  "exclude": ["node_modules", "**/*.stories.tsx", "apps/public-web/.next"]
+}

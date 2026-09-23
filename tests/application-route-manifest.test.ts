@@ -1,3 +1,5 @@
+import { loadGalleryModule } from '../src/app/routing/routeManifest';
+import { TABS as NAVIGATION_TABS } from '../src/app/routing/navigationRoutes';
 import assert from 'node:assert/strict';
 import {
   PRELOADABLE_ROUTE_IDS,
@@ -135,3 +137,7 @@ assert.equal(
 );
 
 console.log(`application route manifest assertions passed (${ROUTE_MANIFEST.length} surfaces)`);
+
+assert.equal(routeModuleLoaderForPreload('gallery'), loadGalleryModule, 'gallery intent retains its dedicated loader');
+assert.deepEqual(NAVIGATION_TABS, TABS.map(({ loader: _loader, preload: _preload, ...metadata }) => metadata));
+assert.ok(NAVIGATION_TABS.every(route => !('loader' in route)), 'navigation data does not carry application loaders');

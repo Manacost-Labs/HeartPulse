@@ -10,6 +10,10 @@ owns canonical trailing-slash URLs, sitemap inclusion and metadata. Neither
 page reads session, profile or subscription data. Changing the text requires
 review by the project owner; this document describes rendering behavior only.
 
+The shared Nginx canonical-path map includes both legal routes, so legacy-host
+and scheme redirects add their canonical slash in the same hop and retain the
+query string. The temporary Nginx contract test checks this against inventory.
+
 Verify route resolution, prerender parity and both Storybook states on desktop
 and narrow screens after a content or layout change.
 

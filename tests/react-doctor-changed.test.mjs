@@ -39,6 +39,8 @@ test('base ref priority is deterministic for local, PR and push runs', () => {
 test('frontend scope includes authored JS/TS and excludes styles, server code and vendored code', () => {
   assert.equal(isFrontendSource('src/App.tsx'), true);
   assert.equal(isFrontendSource('src/model/data.ts'), true);
+  assert.equal(isFrontendSource('apps/public-web/app/page.tsx'), true);
+  assert.equal(isFrontendSource('apps/public-web/.next/server/app.js'), false);
   assert.equal(isFrontendSource('src/vendor/library.js'), false);
   assert.equal(isFrontendSource('src/App.css'), false);
   assert.equal(isFrontendSource('server/index.ts'), false);
@@ -72,8 +74,10 @@ test('changed-file discovery handles a controlled React fixture without historic
 
     writeFileSync(join(cwd, 'src', 'App.tsx'), 'export function App() { return <main><button>Save</button></main>; }\n');
     writeFileSync(join(cwd, 'server', 'index.ts'), 'export const server = false;\n');
+    mkdirSync(join(cwd, 'apps/public-web/app'), { recursive: true });
+    writeFileSync(join(cwd, 'apps/public-web/app/page.tsx'), 'export default function Page() { return <main />; }\n');
 
-    assert.deepEqual(changedFrontendFiles('HEAD', cwd), ['src/App.tsx']);
+    assert.deepEqual(changedFrontendFiles('HEAD', cwd), ['apps/public-web/app/page.tsx', 'src/App.tsx']);
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

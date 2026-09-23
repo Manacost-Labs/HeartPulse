@@ -23,5 +23,14 @@ The Vite route remains the composition adapter for its existing controls,
 formatting, media and entitlement UI. This preserves appearance while the
 public server-loading boundary can move to Next.js independently.
 
+Next card details use this projection for server HTML and an explicit public
+hydration seed. The adapter rejects mismatched identities or missing names and
+copies only public fields; statistics are always null in that seed. Browser
+hydration reads account/subscription state and interactive statistics from the
+existing same-origin APIs. Query filters are seeded from the initial request so
+server and browser markup agree. SSR errors are retryable; a provider failure
+must never be misreported as a missing card.
+
 Checks: `test:public-card-read-model`, `test:constructed-card-seo-routes`,
-`test:constructed-card-urls`, Storybook public identity states and browser QA.
+`test:constructed-card-urls`, `test:next-public-card-seed`, `test:next-pilot`,
+Storybook public identity/profile states and browser QA.

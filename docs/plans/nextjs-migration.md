@@ -93,7 +93,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
   switch and rollback; legacy default remains functional; State: Complete
 - Step 8: Public card pilot. Dependency: 7; Acceptance and verification: Existing
   React presentation reused; indexable server HTML, canonical/sitemap, redirects
-  and HTTP 404 verified; no private data in public cache; State: Pending
+  and HTTP 404 verified; no private data in public cache; State: Complete
 - Step 9: End-to-end handoff. Dependency: 8; Acceptance and verification: Real
   backend with test DB covers registration, blocking, subscription, catalog and
   API recovery; desktop/mobile browser, SEO, console/network/accessibility
@@ -113,11 +113,20 @@ modules without adding `any`, suppressions or architectural exceptions.
   orders `[0, 1]` and `[1, 0]`. The failed-delivery test passes (HTTP 503, no
   account or pending code created). Full local evidence:
   `/tmp/hearthpulse-auth-race-red.log` (2 failed, 1 passed).
-- Blocking: browser-to-user resolution already filters `blockedAt` in one
-  application-auth adapter. Access-token, refresh, issuance and tracker paths
-  still need independent verification; do not assume they share that filter.
-- Arena demo fallback, BG fallback lifetime and card URL consistency: verify
-  each current implementation and add a behavioral reproduction before changes.
+- Blocking: the initial browser gate did not cover all application-token paths.
+  The common current-account policy now guards approval, exchange, access,
+  refresh and tracker ingestion. Six real-backend cases verify denial and
+  observed token-family revocation, including the unblock case.
+- Arena: null/error responses reached demonstration percentages. The extracted
+  resource now distinguishes loading, fresh, empty, error and stale real cache;
+  deterministic tests and Storybook/browser review cover all five states.
+- BG: the module-wide fallback had no expiry. The extracted resource bounds it
+  to 30 seconds, retries while mounted and replaces it with live data; live
+  data has a five-minute TTL and concurrent requests are deduplicated.
+- Card URLs: encoded Blizzard identities disagreed across consumers. Domain
+  parsing, generated links, SEO, sitemap and monitoring now round-trip the same
+  identity. Final temporary-Nginx tests reproduced and fixed the remaining
+  edge redirect/detail-location mismatch without applying live configuration.
 - The current upstream already removed required external task/design tracking.
   No duplicate policy change is necessary.
 
@@ -340,3 +349,50 @@ checks pass. npm reports zero dependency vulnerabilities. Semgrep has zero
 findings and Gitleaks finds no source/history leaks; generated `.next` artifacts
 are excluded alongside existing Vite/Storybook build outputs. The existing
 4320 listener was preserved; local Next smoke tests use the free port 4330.
+
+## Final integration follow-ups
+
+Documentation impact: this plan, `docs/specs/constructed-card-urls.md`,
+`docs/specs/legal-pages.md` and `CHANGELOG.md`. The complete test registry exposed
+older merged-branch expectations: the release origin-role fixture, the relocated
+URL inventory and a removed network-menu literal. Restore these checks against
+their actual owners and behavior. Include the existing BG test's TypeScript
+loader in the common runner, as in its dedicated npm command.
+
+The temporary Nginx contract test also found missing legal-page slash rules.
+Extend its real HTTP coverage to encoded Blizzard IDs and retain invalid
+double-encoded paths unchanged at the host redirect boundary. This changes
+repository configuration only; production activation remains out of scope.
+
+Step 8 verification: Vite/server and production Next builds pass, with the
+existing byte budgets unchanged. Root, Next and strict-domain typechecks pass.
+The real-backend pilot test covers public-only SSR, account/subscription/block
+boundaries, repeated rendering, recovery, encoded aliases, forged headers,
+redirect queries, sitemap, bot and browser 404s. Chrome DevTools reviewed cards
+at 1440/390/320 pixels with one heading, correct canonical, no overflow, broken
+images, application console errors or failed requests. The local run observed
+zero CLS; timing is a local fixture signal, not a production performance claim.
+Retry after provider failure, keyboard menu loop/Escape, scroll restoration and
+lightbox open/close pass. A subscriber sees 53% fixture statistics; blocking
+removes account/statistics access. Axe reports zero violations.
+
+Profile stories pass interactions at three widths; final built-Storybook review
+has no console errors. Screenshots were inspected. CI browser QA passes public,
+subscriber and mobile views, all 16 admin sections, responsive layout, keyboard
+and lightboxes. Semgrep includes Next and reports zero findings; Gitleaks finds
+no source/history leaks. React Doctor has no errors and retains two advisory
+state-count warnings in existing card components; no suppression was added.
+Knip, property tests, Sentry privacy, agent-tooling, architecture, source-size,
+clean-code, test registry and docs checks pass. Source caps are now 9,703 lines
+for server composition, 1,322 for App and 1,519 for StandardCards; App/DetailPage
+function caps are 825/270. Navigation metadata is keyed by stable IDs when
+binding legacy loaders, and its reusable presentation does not import loaders.
+
+Browser evidence: `/tmp/hp-next-browser.json`,
+`/tmp/hp-next-interactive.json`, `/tmp/hp-next-profile-browser.json` and
+`/tmp/hs-arena-qa-1000`. The temporary Nginx tests pass all 47 route templates,
+including encoded aliases, invalid IDs, legal routes and query preservation.
+The final all-suite run passes all 322 registered files; the interactive
+production email test remains explicitly excluded. Clean local-main integration
+is the remaining step 9 gate. Deployment and external announcements remain
+excluded.
