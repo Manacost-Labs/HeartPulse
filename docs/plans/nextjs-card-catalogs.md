@@ -46,7 +46,7 @@ refreshed for this phase. Review locally; do not spawn agents.
 - [x] Verify the complete card section with real Express/SQLite, production
       Next, provider fixtures and Chrome DevTools at desktop/mobile widths.
 - [x] Migrate and verify the next public page batch.
-- [ ] Review, complete gates, commit each verified increment and integrate
+- [x] Review, complete gates, commit each verified increment and integrate
       locally after a clean integration preflight.
 
 ## Baseline
@@ -106,3 +106,9 @@ build repeated search, view/page persistence, refresh, history, detail return,
 Fixture-only local LCP was 104 ms and CLS was zero; these are not production
 performance measurements. No production services or external announcements
 were changed.
+
+The clean integration preflight passed against origin/main `28a4697` with no
+dirty sibling worktrees. Local main was fast-forwarded to the verified code
+commit `4f09a4e`; the task branch is retained for review. This completion record
+is integrated as a final documentation commit. No remote push or deployment
+was performed; production activation remains a separate step.
