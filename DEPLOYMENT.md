@@ -38,8 +38,9 @@ The September 2026 origin Nginx update uses the reviewed contract hash and
 controlled gate procedure in
 [the deploy-helper runbook](docs/runbooks/production-deployer-contract.md).
 The immutable release now contains the validated Next.js build alongside the
-Vite frontend. The first deployment starts Next on `127.0.0.1:4321` while
-public HTML still uses the legacy routes. Install the versioned
+Vite frontend. CI includes the hidden `.next` directory when uploading that
+allowlisted release artifact. The first deployment starts Next on
+`127.0.0.1:4321` while public HTML still uses the legacy routes. Install
 `deploy/hs-arena-next.service` before that deployment; the deployer restarts
 both services, checks `/health/ready` and `/health/next/`, and rolls back a
 candidate that fails either check. See

@@ -69,6 +69,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 6
+          # release:create allowlists shipped files; .next must survive artifact upload.
+          include-hidden-files: true
 
   browser-observatory:
     name: Full browser observatory

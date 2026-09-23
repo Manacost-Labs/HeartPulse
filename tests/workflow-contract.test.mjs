@@ -62,6 +62,8 @@ assert.match(
 );
 assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
 assert.match(ciWorkflow, /actions\/upload-artifact@v7/);
+assert.match(ciWorkflow, /name: Upload immutable production release[\s\S]*?include-hidden-files:\s*true/,
+  'the immutable artifact must include the hidden Next build directory');
 assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);
 assert.match(ciWorkflow, /if-no-files-found:\s*error/);
 assert.match(ciWorkflow, /retention-days:\s*7/);
