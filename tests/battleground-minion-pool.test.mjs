@@ -38,6 +38,7 @@ test('builders use all canonical pool pages, remove rotated cards and preserve d
   assert.equal(result.cards[1].text, 'Текст карты.');
   assert.equal(result.cards[1].englishName, 'English NEW_DUO');
   assert.equal(result.cards[1].artUrl, '/art/NEW_DUO.jpg');
+  assert.ok(calls.filter(url => url.startsWith('/api/bg/library/cards?')).every(url => new URL(url, 'http://test').searchParams.get('v') === 'bg-pool-36.6.1'));
   assert.ok(calls.some(url => url.includes('in_pool=1') && new URL(url, 'http://test').searchParams.get('page') === '2'));
 });
 

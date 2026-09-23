@@ -406,7 +406,7 @@
   }
 
   async function loadCurrentMinionRecords() {
-    const loadPage = (page) => loadPoolJson(`/api/bg/library/cards?card_type=minion&in_pool=1&per_page=200&page=${page}`);
+    const loadPage = (page) => loadPoolJson(`/api/bg/library/cards?card_type=minion&in_pool=1&per_page=200&page=${page}&v=bg-pool-36.6.1`);
     const first = await loadPage(1);
     const pages = Number(first?.pagination?.total_pages);
     if (!Number.isInteger(pages) || pages < 1 || pages > 10) throw new Error("Неполный каталог существ");

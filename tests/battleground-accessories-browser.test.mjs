@@ -226,5 +226,5 @@ test('shared Battlegrounds runtime rejects a suspiciously partial current hero p
 test('Battlegrounds builder cache version includes the current minion pool update', async () => {
   const battlegrounds = await source('src/features/Battlegrounds.tsx');
 
-  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260923-pool-3661'/);
+  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260923-pool-3661-v2'/);
 });
