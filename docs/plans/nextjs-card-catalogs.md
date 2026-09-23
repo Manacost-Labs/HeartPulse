@@ -23,7 +23,7 @@ Production activation and external announcements remain outside this phase.
 - `docs/architecture/module-boundaries.md`: catalog model/hook ownership.
 - `docs/runbooks/nextjs-public-web.md`: route ownership and verification.
 - `CHANGELOG.md`: completed card migration and subsequent page batch.
-- Owning public-page specs when subsequent routes change ownership.
+- `docs/specs/legal-pages.md`: Next support-page rendering and shared content.
 
 ## Workflow and selected skills
 
@@ -43,9 +43,9 @@ refreshed for this phase. Review locally; do not spawn agents.
 - [x] Establish typed catalog URL state and navigation regression tests.
 - [x] Add allowlisted public catalog seeds and credential-free server loading.
 - [x] Integrate catalog hydration, controls, history and route ownership.
-- [ ] Verify the complete card section with real Express/SQLite, production
+- [x] Verify the complete card section with real Express/SQLite, production
       Next, provider fixtures and Chrome DevTools at desktop/mobile widths.
-- [ ] Migrate and verify the next public page batch.
+- [x] Migrate and verify the next public page batch.
 - [ ] Review, complete gates, commit each verified increment and integrate
       locally after a clean integration preflight.
 
@@ -80,3 +80,29 @@ Integrated origin/main `28a4697`, preserving the new aberration icons alongside
 the existing hero cache/roster module. Updated the public-export contract test
 to include both icon maps; documentation remains accurate in the combined
 architecture and Battlegrounds specifications.
+
+## Final page-batch verification
+
+FAQ, privacy and terms now reuse their existing content in Next and share
+`PublicPageShell` with cards. `PUBLIC_PAGES_NEXT_ENABLED` controls them
+independently; both rollout flags remain off by default. Public catalog seeds
+also preserve the existing cropped table thumbnails. The access hook was
+renamed to `usePublicAccess` to reflect its shared composition role.
+
+The final registry run passed all 322 registered files (one production email
+test remains explicitly excluded). Root/Next/strict-domain TypeScript,
+Vite/Next/Storybook builds, Storybook contracts, docs, architecture, dependency
+checks and changed-source clean-code pass. Semgrep reports zero findings and
+parser errors. React Doctor reports no errors; its remaining warnings cover
+legacy complexity, deliberate serial warming, server metadata exports and
+invalid-origin configuration throwing before a public fetch.
+
+Chrome DevTools verified all three support pages at 1440, 390 and 320 pixels,
+legal cross-links and the mobile menu. Five new Storybook states completed
+desktop/mobile interaction plays in isolated pages. Public pages had no
+horizontal overflow, failed resources or WCAG A/AA violations. The final card
+build repeated search, view/page persistence, refresh, history, detail return,
+120-card mobile gallery and subscribed/blocked access checks successfully.
+Fixture-only local LCP was 104 ms and CLS was zero; these are not production
+performance measurements. No production services or external announcements
+were changed.

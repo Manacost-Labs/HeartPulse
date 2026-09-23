@@ -3,12 +3,20 @@
 `/privacy` and `/terms` are public, indexable routes. The footer links to both;
 each page links to the other. `src/modules/legalPages/content.json` owns their displayed
 revision date and content. The lazy `client.legalPages` module and static
-prerender consume that same source, including contact and privacy links.
+prerender consume that same source, including contact and privacy links. The
+Next routes also reuse the same module, so no separate legal copy is maintained.
 
 The application routing manifest owns navigation and loading. SEO inventory
 owns canonical trailing-slash URLs, sitemap inclusion and metadata. Neither
 page reads session, profile or subscription data. Changing the text requires
 review by the project owner; this document describes rendering behavior only.
+
+The optional Next owner for `/faq/`, `/privacy/` and `/terms/` is controlled by
+`PUBLIC_PAGES_NEXT_ENABLED`, independently of the card section flag. It emits
+the complete public content and existing metadata on the server. The shared
+navigation shell may fetch account/subscription state after hydration; neither
+the document content nor server HTML depends on those requests. Rollback uses
+the existing Vite routes and requires no content or data migration.
 
 The shared Nginx canonical-path map includes both legal routes, so legacy-host
 and scheme redirects add their canonical slash in the same hop and retain the

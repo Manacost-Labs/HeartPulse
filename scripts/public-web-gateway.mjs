@@ -12,14 +12,14 @@ function upstream(value) {
 }
 
 /** A loopback staging gateway. The production edge retains rate limits and TLS. */
-export function createPublicWebGateway({ legacyOrigin, nextOrigin, enabled = false }) {
+export function createPublicWebGateway({ legacyOrigin, nextOrigin, enabled = false, pagesEnabled = false }) {
   const legacy = upstream(legacyOrigin);
   const next = upstream(nextOrigin);
   return http.createServer((request, response) => {
     let pathname;
     try { pathname = new URL(request.url, 'http://gateway.local').pathname; }
     catch { response.writeHead(400).end(); return; }
-    const target = publicWebOwner(pathname, enabled, request.method) === 'next' ? next : legacy;
+    const target = publicWebOwner(pathname, enabled, request.method, pagesEnabled) === 'next' ? next : legacy;
     const transport = target.protocol === 'https:' ? https : http;
     const proxy = transport.request(target, {
       method: request.method, path: request.url,
@@ -44,6 +44,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     legacyOrigin: process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001',
     nextOrigin: process.env.NEXT_WEB_ORIGIN ?? 'http://127.0.0.1:4320',
     enabled: process.env.PUBLIC_CARDS_NEXT_ENABLED === '1',
+    pagesEnabled: process.env.PUBLIC_PAGES_NEXT_ENABLED === '1',
   });
   server.listen(Number(process.env.PUBLIC_WEB_PORT ?? 4317), '127.0.0.1');
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => server.close());

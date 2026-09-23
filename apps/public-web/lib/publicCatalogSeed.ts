@@ -22,7 +22,7 @@ function publicCatalogCard(value: unknown, format: CardFormat): PublicCatalogCar
     card_type: { slug: text(type.slug), name_ru: text(type.name_ru) },
     rarity: text(card.rarity), mana_cost: number(card.mana_cost), attack: number(card.attack), health: number(card.health),
     durability: number(card.durability), armor: number(card.armor), artist: text(card.artist),
-    images: { card: text(record(card.images).card) }, stats: null,
+    images: { card: text(record(card.images).card), crop: text(record(card.images).crop) }, stats: null,
     multi_class: strings(card.multi_class), mechanics: strings(card.mechanics), referenced_tags: strings(card.referenced_tags),
     minion_type: text(card.minion_type), spell_school: text(card.spell_school),
   };

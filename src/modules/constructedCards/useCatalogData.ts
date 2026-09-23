@@ -15,7 +15,7 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
   const [loading, setLoading] = useState(!seed);
   const [error, setError] = useState<{ status: number } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [requestQuery, setRequestQuery] = useState(state.filters.query.trim());
+  const [requestQuery, setRequestQuery] = useState(() => state.filters.query.trim());
   const firstRequest = useRef(true);
   const url = constructedCardCatalogUrl({ ...state, query: requestQuery });
   useEffect(() => {
@@ -36,7 +36,7 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
     }).catch(() => { if (active) setError({ status: 0 }); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [url, statsAccess, reloadToken, load]);
+  }, [url, statsAccess, reloadToken, load, seed]);
   // A previous paid response must disappear as soon as access is lost.
   const visibleData = !statsAccess && data?.statsAccess ? null : data;
   return { data: visibleData, loading, error, requestQuery, retry: () => setReloadToken(value => value + 1) };

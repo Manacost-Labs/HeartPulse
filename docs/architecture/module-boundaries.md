@@ -340,8 +340,10 @@ read model. The frontend module exposes the identity presentation independently
 of request state; the legacy feature composes it with existing interactive UI.
 
 `apps/public-web` is a second composition root. Its server-only loader receives
-the public Express projection; its client adapter composes existing card UI and
-the app shell. It imports no database, credentials, Redis or background jobs.
+the public Express projection; its client adapters compose existing card, FAQ
+and legal UI with `src/app/shell/PublicPageShell.tsx`. This common shell owns
+navigation layout and focus/scroll behavior; domains retain their page content.
+The composition root imports no database, credentials, Redis or background jobs.
 Public navigation metadata lives independently of legacy route loaders, while
 both shells reuse profile and mobile-menu focus behavior. Statistics query
 policy/hooks and the public seed type belong to the card module. HTML entity

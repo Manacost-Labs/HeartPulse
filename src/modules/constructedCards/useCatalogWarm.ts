@@ -9,6 +9,7 @@ export function useCatalogWarm(state: CatalogLocation, ready: boolean, statsAcce
     if (!ready || document.visibilityState === 'hidden' || connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType ?? '')) return;
     let cancelled = false; let idle: number | null = null;
     const warm = async () => {
+      // Keep speculative requests serial so warming cannot compete with navigation in a burst.
       for (const candidate of adjacentConstructedCardCatalogContexts(state)) {
         if (cancelled || document.visibilityState === 'hidden') return;
         await prefetch(constructedCardCatalogUrl({ ...state, ...candidate, page: 1, query: state.filters.query }), statsAccess);

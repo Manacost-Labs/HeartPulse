@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchCurrentAuthUser, canAccessAdminWorkspace, canManageContests, type AuthUser } from '../../../src/modules/identity/public';
 import { hasSubscriptionEntitlement, type SubscriptionStatus } from '../../../src/modules/subscriptions/public';
 
-export function useCardAccess() {
+export function usePublicAccess() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [checking, setChecking] = useState(true);

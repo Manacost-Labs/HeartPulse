@@ -1,7 +1,12 @@
 import '../src/features/StandardCards.styles';
 import type { Preview } from '@storybook/react-vite';
+import { sb } from 'storybook/test';
+
+sb.mock(import('../src/features/constructedCardListPrefetch.ts'), { spy: true });
+sb.mock(import('../src/features/constructedCardDetailPrefetch.ts'), { spy: true });
 
 import '../src/index.css';
+import '../src/parchment-theme.css';
 import '../src/route-parchment.css';
 import './preview.css';
 import { installFieldFocusMode } from '../src/app/shell/installFieldFocusMode';
@@ -36,7 +41,7 @@ const preview: Preview = {
     },
   },
   decorators: [
-    Story => (
+    (Story, context) => context.parameters.fullPage ? <Story /> : (
       <main className="storybook-manacost-surface arena-app-shell">
         <Story />
       </main>

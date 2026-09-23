@@ -16,12 +16,17 @@ described
 4. Run `LEGACY_WEB_ORIGIN=http://127.0.0.1:3001 npm run dev:public-gateway`,
 replacing
    3001 with the test backend port. Gateway port is 4317 by default. Routes are
-   legacy because `PUBLIC_CARDS_NEXT_ENABLED` defaults to off.
+   legacy because both rollout flags default to off.
 5. Restart the gateway with `PUBLIC_CARDS_NEXT_ENABLED=1` to assign the whole
    `/standard/cards/` namespace
    (catalogs, details and invalid descendants) to Next. `NEXT_WEB_ORIGIN`
 defaults to `http://127.0.0.1:4320`.
-6. To roll back, restart the gateway without the flag (or set it to `0`). No
+6. Independently enable `PUBLIC_PAGES_NEXT_ENABLED=1` for `/faq/`, `/privacy/`
+   and `/terms/`. These routes render their existing public content and metadata
+   in Next, sharing the card section's navigation shell. Account and subscription
+   state is requested only in the browser through the existing Express APIs.
+7. To roll back either group, restart the gateway without its flag (or set it
+   to `0`). No
 data
    migration, cookie change or application rebuild is needed. Keep the legacy
    build available throughout the pilot.
@@ -45,7 +50,8 @@ Next and the gateway. It closes its processes and database on completion. The
 helper can build missing artifacts; rebuild explicitly after changing sources.
 Never rebuild `.next` underneath a running QA server; restart it after building.
 
-The production-build test covers catalog search, filters, pagination, empty
+The production-build test covers FAQ/legal HTML and canonicals, catalog search,
+filters, pagination, empty
 results, invalid formats, unavailable-source recovery, public HTML and
 JSON-LD, ordinary/Blizzard aliases, forged identity headers, bot/browser 404s,
 query-preserving redirects, sitemap, and anonymous/subscribed/blocked API reads.

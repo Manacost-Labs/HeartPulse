@@ -3,7 +3,7 @@ import test from 'node:test';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 test('Next card pilot uses real backend membership, SSR, access policy and recovery', { timeout: 90000 }, async () => {
-  const runtime = await startPublicCardPilot();
+  const runtime = await startPublicCardPilot({ pagesEnabled: true });
   try {
     const path = '/standard/cards/standard/blizzard%3A12345/';
     runtime.setUnavailable(true);
@@ -82,5 +82,15 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const sitemap = await fetch(`${runtime.origin}/sitemaps/standard-cards.xml`);
     assert.equal(sitemap.status, 200);
     assert.match(await sitemap.text(), /standard\/cards\/standard\/blizzard%3A12345\//);
+    for (const [page, heading] of [['faq', 'Частые вопросы'], ['privacy', 'Политика конфиденциальности'], ['terms', 'Условия использования']]) {
+      const support = await fetch(`${runtime.origin}/${page}/`, { headers: cookie });
+      assert.equal(support.status, 200);
+      const supportHtml = await support.text();
+      assert.ok(supportHtml.includes(heading));
+      assert.match(supportHtml, /\/_next\/static\//);
+      assert.ok(supportHtml.includes(`rel="canonical" href="https://hearthpulse.net/${page}/"`));
+      assert.equal((supportHtml.match(/<main\b/g) || []).length, 1);
+      assert.doesNotMatch(supportHtml, /card-reader@example/);
+    }
   } finally { await runtime.close(); }
 });

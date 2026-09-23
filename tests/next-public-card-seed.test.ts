@@ -12,7 +12,7 @@ console.log('public SSR input allowlisting passed');
 
 const catalog = {
   format: 'wild', rank: 'legend', period: { id: '1d', label: 'Последний день', patch: null, timeRange: 'LAST_1_DAY' },
-  cards: [{ card_id: 'CARD_1', name: { ru: 'Карта' }, class: 'MAGE', card_type: { slug: 'MINION' }, images: { card: '/arena-logo-icon.webp' }, mechanics: ['BATTLECRY'], stats: { deckWinrate: 53 }, decks: ['PRIVATE_DECK'] }],
+  cards: [{ card_id: 'CARD_1', name: { ru: 'Карта' }, class: 'MAGE', card_type: { slug: 'MINION' }, images: { card: '/arena-logo-icon.webp', crop: '/card-format-standard.webp' }, mechanics: ['BATTLECRY'], stats: { deckWinrate: 53 }, decks: ['PRIVATE_DECK'] }],
   facets: { classes: ['MAGE'], sets: ['CORE'], mechanics: ['BATTLECRY'], types: ['MINION'], rarities: ['COMMON'] },
   pagination: { page: 1, perPage: 60, total: 1, totalPages: 1 },
   statsAccess: true, account: 'PRIVATE_ACCOUNT', datasetVersion: 'fixture', dataStatus: 'fresh',
@@ -21,6 +21,7 @@ const publicCatalog = publicCatalogSeed(catalog, 'wild');
 assert.equal(publicCatalog.statsAccess, false);
 assert.equal(publicCatalog.cards[0].stats, null);
 assert.equal(publicCatalog.cards[0].card_id, 'CARD_1');
+assert.equal(publicCatalog.cards[0].images.crop, '/card-format-standard.webp', 'SSR table thumbnails preserve the public crop');
 assert.deepEqual(publicCatalog.cards[0].mechanics, ['BATTLECRY']);
 assert.doesNotMatch(JSON.stringify(publicCatalog), /PRIVATE_|deckWinrate/);
 assert.throws(() => publicCatalogSeed({ ...catalog, format: 'standard' }, 'wild'), /Invalid/);
