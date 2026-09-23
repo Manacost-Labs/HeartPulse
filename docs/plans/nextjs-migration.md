@@ -97,7 +97,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
 - Step 9: End-to-end handoff. Dependency: 8; Acceptance and verification: Real
   backend with test DB covers registration, blocking, subscription, catalog and
   API recovery; desktop/mobile browser, SEO, console/network/accessibility
-  checked; State: Pending
+  checked; State: Complete
 
 Step 6 is split into separate account, cards, Arena and BG commits. Step 7 and
 step 8 are split further if configuration, routing and page behavior cannot be
@@ -393,6 +393,41 @@ Browser evidence: `/tmp/hp-next-browser.json`,
 `/tmp/hs-arena-qa-1000`. The temporary Nginx tests pass all 47 route templates,
 including encoded aliases, invalid IDs, legal routes and query preservation.
 The final all-suite run passes all 322 registered files; the interactive
-production email test remains explicitly excluded. Clean local-main integration
-is the remaining step 9 gate. Deployment and external announcements remain
-excluded.
+production email test remains explicitly excluded. Deployment and external
+announcements remain excluded.
+
+## Completion on 2026-09-23
+
+All planned increments are complete. Implementation commit `790eb99` was
+fast-forwarded into local `main` after a clean integration preflight. That
+preflight fetched `origin/main` at
+`e1ad451cc6723d1a1aeda2dbfc2bf9d4f35b9f23`, confirmed ancestry and reported zero
+dirty paths or dirty sibling worktrees. This final documentation commit records
+the verified handoff and follows the same local integration gate.
+
+The full registry passes 322 files, including controlled SMTP races, every
+blocked credential path, subscription access, public catalog SSR/recovery,
+legacy browser scenarios, and temporary Nginx routing. Vite/server, Next and
+Storybook production builds pass. Server-build and host-loss recovery smoke
+checks pass. Both application shells retain keyboard navigation and responsive
+layout; the final profile and navigation Storybook states pass at
+1440/390/320 pixels without overflow, broken images or application errors.
+Final navigation evidence: `/tmp/hp-next-nav-browser.json`.
+
+Review checked the public allowlist, per-request read deduplication, overwritten
+identity headers, server-side paid-data enforcement, 404/error semantics,
+encoded Nginx redirects and legacy rollback. Simplification removed unused
+imports and separated reusable navigation items from route composition. No
+architecture exception, explicit `any` or TypeScript suppression was added.
+
+The pilot is intentionally limited to Standard/Wild card details. Catalog lists,
+other frontend sections, APIs, sitemap, account storage and background jobs
+retain legacy ownership. Further frontend migration and global strict typing
+are follow-up increments; their current boundaries and rollout procedure are
+recorded in the pilot ADR and runbook. No push, production activation, external
+announcement or live-data mutation was performed.
+
+Consolidated history and ignored worktree data remain preserved by the branch
+consolidation backups. The completed migration branch can be removed after its
+final documentation commit reaches local `main`; keep its checkout detached
+for reproducible local previews.
