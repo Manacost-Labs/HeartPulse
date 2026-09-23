@@ -40,7 +40,7 @@ refreshed for this phase. Review locally; do not spawn agents.
 
 ## Increments
 
-- [ ] Establish typed catalog URL state and navigation regression tests.
+- [x] Establish typed catalog URL state and navigation regression tests.
 - [ ] Add allowlisted public catalog seeds and credential-free server loading.
 - [ ] Integrate catalog hydration, controls, history and route ownership.
 - [ ] Verify the complete card section with real Express/SQLite, production
@@ -56,3 +56,7 @@ with `npm ci`. Another active Battlegrounds worktree edits `CHANGELOG.md`;
 coordinate that shared document before editing it. Domain files are disjoint.
 Next's official App Router page contract confirms asynchronous `searchParams`
 and request-time `fetch(..., { cache: 'no-store' })` for catalog SSR.
+
+Catalog model checks: existing catalog-query tests, strict domain TypeScript and
+architecture gates pass. URL tests cover every control, malformed values,
+query bounds, reset and campaign-parameter preservation.

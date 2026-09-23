@@ -2,6 +2,10 @@
 
 ## Purpose
 
+The constructed-cards client module owns catalog URL state and API query
+construction. Its legacy feature entry re-exports the public module contract
+for existing callers; server and browser adapters share the same pure model.
+
 The Battlegrounds module owns hero-tier cache lifetimes and mounted-consumer
 retry scheduling and the React subscription hook. The legacy route injects
 live API and local snapshot loaders;

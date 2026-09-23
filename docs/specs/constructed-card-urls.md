@@ -1,5 +1,17 @@
 # Constructed card URL contract
 
+## Catalog state
+
+The constructed-cards module owns parsing and serialization of catalog query
+state: search, class/set/mana/attack/health/mechanic/type/rarity filters, sort,
+direction, period/rank, page, page size and gallery/table view. The path owns
+Standard/Wild format. Invalid controls use existing defaults; text filters are
+bounded to the API's 120-character limit and page size is 60 or 120.
+Serialization preserves unrelated campaign parameters and removes cleared or
+default controls. Server rendering and browser history use this same model.
+
+## Card identity
+
 Constructed card identity is either an ASCII game ID (`[A-Za-z0-9_]{2,80}`)
 or `blizzard:<dbf>`, where DBF starts with a nonzero digit and has at most
 19 digits. Standard and Wild retain their existing URL namespaces.
