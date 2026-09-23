@@ -393,23 +393,70 @@
     return response.json();
   }
 
+  async function loadPoolJson(url) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      return await loadJson(url, {
+        headers: { Accept: "application/json" }, credentials: "same-origin", signal: controller.signal
+      });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  async function loadCurrentMinionRecords() {
+    const loadPage = (page) => loadPoolJson(`/api/bg/library/cards?card_type=minion&in_pool=1&per_page=200&page=${page}`);
+    const first = await loadPage(1);
+    const pages = Number(first?.pagination?.total_pages);
+    if (!Number.isInteger(pages) || pages < 1 || pages > 10) throw new Error("Неполный каталог существ");
+    const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, index) => loadPage(index + 2)));
+    const records = [first, ...rest].flatMap(payload => Array.isArray(payload?.data) ? payload.data : []);
+    if (!records.length || records.length !== Number(first.pagination.total)
+      || new Set(records.map(card => card.card_id)).size !== records.length
+      || records.some(card => !card.card_id || !card.name?.ru || card.in_pool !== true
+        || card.card_type?.slug !== "minion" || !(card.tavern_tier >= 1 && card.tavern_tier <= 7))) {
+      throw new Error("Неполный каталог существ");
+    }
+    return records;
+  }
+
+  function currentMinionRecord(card, legacy, locale) {
+    const english = locale.toLowerCase().startsWith("en");
+    const notes = String(card.text_ru || "");
+    const russianText = notes.split(/\n(?:Механики:|EN:)/)[0].trim();
+    const englishText = notes.split(/\nEN:\s*/)[1] || "";
+    const type = card.creature_type?.slug;
+    const race = type === "mech" ? "MECHANICAL" : String(type || "NONE").toUpperCase();
+    return {
+      id: card.card_id, dbfId: card.dbf,
+      name: (english ? card.name.en : card.name.ru) || legacy?.name || card.name.ru,
+      englishName: card.name.en || legacy?.englishName || "",
+      text: legacy?.text || (english ? englishText : russianText),
+      techLevel: Number(card.tavern_tier), attack: card.attack, health: card.health,
+      races: Array.isArray(legacy?.races) && legacy.races.length ? legacy.races : [race], duosOnly: card.duos_only === true,
+      artUrl: legacy?.artUrl || card.images?.art || card.images?.card || ""
+    };
+  }
+
+  // HearthstoneJSON metadata may precede a server-side pool rotation. Membership
+  // comes only from the synchronized catalog; legacy data supplies dual races.
   async function loadBattlegroundsLibrary(options = {}) {
     const locale = options.locale || "ruRU";
     const includeEnglish = options.includeEnglish ? "&includeEnglish=1" : "";
-    const apiUrl = `/api/battlegrounds-library?locale=${encodeURIComponent(locale)}${includeEnglish}`;
-
     try {
-      const payload = await loadJson(apiUrl, {
-        headers: { Accept: "application/json" }
-      });
-      if (Array.isArray(payload.cards) && payload.cards.length) {
-        return payload;
-      }
+      const [records, legacy] = await Promise.all([
+        loadCurrentMinionRecords(),
+        loadPoolJson(`/api/battlegrounds-library?locale=${encodeURIComponent(locale)}${includeEnglish}`).catch(() => null)
+      ]);
+      const metadata = Array.isArray(legacy?.cards) ? legacy.cards.filter(card => card?.id) : [];
+      const byId = new Map(metadata.map(card => [String(card.id), card]));
+      const cards = records.map(card => currentMinionRecord(card, byId.get(card.card_id), locale));
+      return { source: "synchronized-library", locale, count: cards.length, cards };
     } catch (error) {
-      console.warn("Не удалось загрузить свежую библиотеку HearthstoneJSON, использую локальный файл.", error);
+      console.warn("Не удалось обновить пул существ, используется резервный список.", error);
+      return loadJson(options.fallbackUrl || "/bg-legacy/bgs-library.json?v=36.6.1", { cache: "force-cache" });
     }
-
-    return loadJson(options.fallbackUrl || "/bg-legacy/bgs-library.json", { cache: "force-cache" });
   }
 
   async function exportCardSheet(items, options = {}) {

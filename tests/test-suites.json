@@ -31,6 +31,7 @@
         "tests/article-access.test.ts",
         "tests/article-image-src.test.ts",
         "tests/auth-sessions.test.ts",
+        "tests/battleground-minion-pool.test.mjs",
         "tests/battleground-card-variants.test.ts",
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-strategy-audit.test.ts",

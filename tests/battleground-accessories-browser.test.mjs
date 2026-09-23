@@ -223,8 +223,8 @@ test('shared Battlegrounds runtime rejects a suspiciously partial current hero p
   assert.equal(runtimeWindow.tierData, fallback);
 });
 
-test('Battlegrounds builder cache version includes the aberration filter update', async () => {
+test('Battlegrounds builder cache version includes the current minion pool update', async () => {
   const battlegrounds = await source('src/features/Battlegrounds.tsx');
 
-  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260923-aberrations-v1'/);
+  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260923-pool-3661'/);
 });
