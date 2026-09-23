@@ -10,3 +10,4 @@ export { adjacentConstructedCardCatalogContexts, constructedCardCatalogUrl, EMPT
 export type { ConstructedCardCatalogFilters, ConstructedCardCatalogContext, ConstructedCardFormat } from './model/catalogQuery';
 export { catalogLocation, catalogLocationUrl } from './model/catalogLocation';
 export type { CatalogLocation } from './model/catalogLocation';
+export type { CardCatalogPayload, PublicCatalogCard, PublicCardCatalogSeed } from './model/catalogPayload';

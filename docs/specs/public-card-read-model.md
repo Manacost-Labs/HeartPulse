@@ -34,3 +34,15 @@ must never be misreported as a missing card.
 Checks: `test:public-card-read-model`, `test:constructed-card-seo-routes`,
 `test:constructed-card-urls`, `test:next-public-card-seed`, `test:next-pilot`,
 Storybook public identity/profile states and browser QA.
+
+## Catalog server seed
+
+The Next catalog loader calls the existing list API without cookies or
+Authorization, with `credentials: omit`, no shared fetch cache, a deadline and
+redirects disabled. The constructed-cards URL model supplies the query.
+Its explicit projection validates format, period/rank and bounded pagination,
+then copies public card identities, facts, images, facets and translations.
+Every card has `stats: null` and the envelope has `statsAccess: false`, even
+if a malformed upstream response contains private fields. Empty search results
+remain a valid page. Invalid payloads and upstream failures are retryable server
+errors, never a successful empty catalog or a card 404.

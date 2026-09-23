@@ -41,7 +41,7 @@ refreshed for this phase. Review locally; do not spawn agents.
 ## Increments
 
 - [x] Establish typed catalog URL state and navigation regression tests.
-- [ ] Add allowlisted public catalog seeds and credential-free server loading.
+- [x] Add allowlisted public catalog seeds and credential-free server loading.
 - [ ] Integrate catalog hydration, controls, history and route ownership.
 - [ ] Verify the complete card section with real Express/SQLite, production
       Next, provider fixtures and Chrome DevTools at desktop/mobile widths.
@@ -60,3 +60,7 @@ and request-time `fetch(..., { cache: 'no-store' })` for catalog SSR.
 Catalog model checks: existing catalog-query tests, strict domain TypeScript and
 architecture gates pass. URL tests cover every control, malformed values,
 query bounds, reset and campaign-parameter preservation.
+
+Catalog seed checks pass: explicit public-field allowlist, rejection of invalid
+identity/format/pagination/status, valid empty results, strict domain and Next
+TypeScript. Authenticated behavior remains on the existing Express APIs.
