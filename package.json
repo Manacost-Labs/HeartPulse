@@ -262,7 +262,7 @@
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "compression": "^1.8.1",
-    "concurrently": "^9.2.3",
+    "concurrently": "^10.0.5",
     "dotenv": "^17.3.1",
     "entities": "8.1.0",
     "express": "^4.21.2",
