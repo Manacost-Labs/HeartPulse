@@ -19,7 +19,7 @@ The check requires these source contracts:
 
 - `deploy/hs-arena-ci-deploy` reports `hs-arena-ci-deploy 1.2.1` and
   `require-deployer-capability-v1`;
-- `scripts/deploy-release.sh` reports `hs-arena-deploy-release 1.1.0` and
+- `scripts/deploy-release.sh` reports `hs-arena-deploy-release 1.1.1` and
   `scraper-runtime-probe-v1`;
 - `/usr/local/libexec/hs-arena/deploy-release.capabilities` binds the installed
   deployer path, version, SHA-256 checksum and capabilities.

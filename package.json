@@ -212,7 +212,7 @@
     "test:server-build": "node scripts/server-build-smoke.mjs",
     "test:recovery-runtime": "node scripts/recovery-runtime-smoke.mjs",
     "test": "node scripts/test-suite-runner.mjs --all",
-    "verify:release": "npm run lint && npm run lint:architecture && npm run quality:clean-code:changed && npm run test:discovery && npm run build-storybook && npm run quality:knip && npm run lint:react-changed && npm test && npm run build && npm run test:server-build && npm run test:recovery-runtime && npm run budget && npm run lint:docs",
+    "verify:release": "npm run lint && npm run lint:architecture && npm run quality:clean-code:changed && npm run test:discovery && npm run build-storybook && npm run quality:knip && npm run lint:react-changed && npm test && npm run build && npm run build:next && npm run lint:next && npm run test:server-build && npm run test:recovery-runtime && npm run budget && npm run lint:docs",
     "verify:ci": "npm run lint && npm run lint:domains && npm run lint:architecture && npm run quality:clean-code:changed && npm run test:discovery && npm run build-storybook && npm run quality:knip && npm run lint:react-changed && npm run build && npm run build:next && npm run lint:next && npm test && npm run test:server-build && npm run test:recovery-runtime && npm run budget && node scripts/browser-qa-ci.mjs && npm run lint:docs",
     "scrape": "tsx server/scraper.ts",
     "qa:screens": "node scripts/screenshot-qa.mjs",

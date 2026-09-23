@@ -37,8 +37,14 @@ wrapper can miss Puppeteer's startup timeout on a cold runner.
 The September 2026 origin Nginx update uses the reviewed contract hash and
 controlled gate procedure in
 [the deploy-helper runbook](docs/runbooks/production-deployer-contract.md).
-The immutable release still serves the Vite frontend; the local Next.js pilot
-does not enter the release artifact or receive production traffic yet.
+The immutable release now contains the validated Next.js build alongside the
+Vite frontend. The first deployment starts Next on `127.0.0.1:4320` while
+public HTML still uses the legacy routes. Install the versioned
+`deploy/hs-arena-next.service` before that deployment; the deployer restarts
+both services, checks `/health/ready` and `/health/next/`, and rolls back a
+candidate that fails either check. See
+[the Next.js production cutover runbook](docs/runbooks/nextjs-production-cutover.md)
+for the staged routing change and rollback procedure.
 
 The production job runs a read-only helper contract preflight immediately
 after checkout and before downloading the artifact. It compares the reviewed

@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const releaseValidation = JSON.parse(readFileSync(join(repository, 'package.json'), 'utf8')).scripts['verify:release'];
+assert.match(releaseValidation, /npm run build:next && npm run lint:next/, 'the production artifact must include a validated Next build');
+const nextService = readFileSync(join(repository, 'deploy/hs-arena-next.service'), 'utf8');
+assert.match(nextService, /WorkingDirectory=\/var\/www\/koloda\/data\/www\/hs-arena\.ru\/current/);
+assert.match(nextService, /Environment=LEGACY_WEB_ORIGIN=http:\/\/127\.0\.0\.1:3101/);
+assert.match(nextService, /ExecStart=\/usr\/bin\/node node_modules\/next\/dist\/bin\/next start apps\/public-web --hostname 127\.0\.0\.1 --port 4320/);
 const root = mkdtempSync(join(tmpdir(), 'hs-arena-release-test-'));
 const workspace = join(root, 'workspace');
 const output = join(root, 'artifact');
@@ -31,6 +37,7 @@ const nginxContractFiles = [
   'deploy/nginx/hearthpulse-identity-origin-ca.crt',
 ];
 const systemdFiles = [
+  'deploy/hs-arena-next.service',
   'deploy/systemd/hs-arena-card-image-sync.service',
   'deploy/systemd/hs-arena-card-image-sync.timer',
   'deploy/systemd/arena-geodns-monitor.service',
@@ -58,7 +65,7 @@ try {
     assert.match(unit, new RegExp(`^ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena\\.ru/current/scripts/${script}\\.sh$`, 'm'));
   }
 
-  for (const directory of ['build/server', 'dist/assets', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd']) {
+  for (const directory of ['build/server', 'dist/assets', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd', 'apps/public-web/.next/cache']) {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
@@ -71,6 +78,10 @@ try {
   writeFileSync(join(workspace, 'dist/sitemap.xml'), '<?xml version="1.0"?><sitemapindex/>\n');
   writeFileSync(join(workspace, 'dist/sitemaps/static.xml'), '<?xml version="1.0"?><urlset/>\n');
   writeFileSync(join(workspace, 'public/asset.txt'), 'asset\n');
+  writeFileSync(join(workspace, 'apps/public-web/.next/BUILD_ID'), 'next-build-id');
+  writeFileSync(join(workspace, 'apps/public-web/.next/routes-manifest.json'), '{}');
+  writeFileSync(join(workspace, 'apps/public-web/.next/cache/build-cache'), 'discard');
+  writeFileSync(join(workspace, 'apps/public-web/next.config.mjs'), 'export default {};\n');
   writeFileSync(join(workspace, 'server/gen_legendary_image.py'), '# fixture\n');
   for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-backup.sh', 'replicate-backup.sh']) {
     writeFileSync(join(workspace, 'scripts', script), '#!/usr/bin/env bash\nexit 0\n', { mode: 0o755 });
@@ -102,6 +113,12 @@ try {
   const manifest = JSON.parse(readFileSync(join(output, 'release.json'), 'utf8'));
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.sha, 'abcdef1');
+  assert.equal(readFileSync(join(output, 'apps/public-web/.next/BUILD_ID'), 'utf8'), 'next-build-id');
+  assert.equal(readFileSync(join(output, 'apps/public-web/next.config.mjs'), 'utf8'), 'export default {};\n');
+  assert.equal(existsSync(join(output, 'apps/public-web/.next/cache')), false);
+  assert.match(manifest.checksums['apps/public-web/.next/BUILD_ID'], /^[a-f0-9]{64}$/);
+  assert.match(manifest.checksums['apps/public-web/next.config.mjs'], /^[a-f0-9]{64}$/);
+  assert.deepEqual(manifest.nextWeb, { buildId: 'next-build-id', fileCount: 2 });
   assert.match(readFileSync(join(output, 'dist/index.html'), 'utf8'), /src="\/assets\/index-stable\.js"/);
   assert.equal(
     readFileSync(join(output, 'dist/runtime-config.js'), 'utf8'),

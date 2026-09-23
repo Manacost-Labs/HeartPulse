@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEPLOYER_VERSION=1.1.0
+DEPLOYER_VERSION=1.1.1
 SCRAPER_RUNTIME_CAPABILITY=scraper-runtime-probe-v1
 
 case "${1:-}" in
@@ -47,6 +47,8 @@ READY_ATTEMPTS=${READY_ATTEMPTS:-20}
 READY_DELAY_SECONDS=${READY_DELAY_SECONDS:-1}
 RESTART_COMMAND=${RESTART_COMMAND:-sudo systemctl restart hs-arena.service}
 READINESS_COMMAND=${READINESS_COMMAND:-curl -fsS --max-time 5 http://127.0.0.1:3101/health/ready >/dev/null}
+NEXT_RESTART_COMMAND=${NEXT_RESTART_COMMAND:-sudo systemctl restart hs-arena-next.service}
+NEXT_READINESS_COMMAND=${NEXT_READINESS_COMMAND:-curl -fsS --max-time 5 http://127.0.0.1:4320/health/next/ >/dev/null}
 SKIP_DEPENDENCIES=${SKIP_DEPENDENCIES:-0}
 SKIP_IMMUTABLE_PERMISSIONS=${SKIP_IMMUTABLE_PERMISSIONS:-0}
 ASSET_RETENTION_DAYS=${ASSET_RETENTION_DAYS:-35}
@@ -104,6 +106,43 @@ read_browser_runtime_config
 
 [[ -f "$SOURCE_RELEASE/release.json" ]] || { echo "release.json is missing" >&2; exit 2; }
 RELEASE_SHA=$("$NODE_BIN" -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.test(m.sha||'')) process.exit(2); process.stdout.write(m.sha)" "$SOURCE_RELEASE/release.json")
+if ! NEXT_WEB_PRESENT=$("$NODE_BIN" -e '
+  const { createHash } = require("node:crypto");
+  const { existsSync, lstatSync, readFileSync, readdirSync } = require("node:fs");
+  const { join, relative } = require("node:path");
+  const root = process.argv[1];
+  const manifest = JSON.parse(readFileSync(join(root, "release.json"), "utf8"));
+  const nextRoot = join(root, "apps/public-web/.next");
+  if (!existsSync(nextRoot) && !manifest.nextWeb) { process.stdout.write("0"); process.exit(0); }
+  if (!existsSync(nextRoot) || !manifest.nextWeb) process.exit(2);
+  const configPath = join(root, "apps/public-web/next.config.mjs");
+  if (!existsSync(configPath) || !lstatSync(nextRoot).isDirectory() || !lstatSync(configPath).isFile()) process.exit(2);
+  const files = [];
+  function visit(directory) {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile() && !lstatSync(path).isSymbolicLink()) files.push(relative(root, path));
+      else process.exit(2);
+    }
+  }
+  visit(nextRoot);
+  files.sort();
+  const expected = Object.keys(manifest.checksums || {}).filter(file => file.startsWith("apps/public-web/.next/")).sort();
+  const buildId = readFileSync(join(nextRoot, "BUILD_ID"), "utf8").trim();
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(buildId)
+    || manifest.nextWeb.buildId !== buildId
+    || manifest.nextWeb.fileCount !== files.length
+    || JSON.stringify(expected) !== JSON.stringify(files)) process.exit(2);
+  for (const file of ["apps/public-web/next.config.mjs", ...files]) {
+    const actual = createHash("sha256").update(readFileSync(join(root, file))).digest("hex");
+    if (manifest.checksums[file] !== actual) process.exit(2);
+  }
+  process.stdout.write("1");
+' "$SOURCE_RELEASE"); then
+  echo "Next public web artifact checksum is missing or invalid" >&2
+  exit 2
+fi
 [[ -f "$SOURCE_RELEASE/build/server/index.js" ]] || { echo "compiled server is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/build/server/scraper.js" ]] || { echo "compiled scraper is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/build/server/scraperBrowserRuntime.js" ]] || { echo "compiled scraper browser runtime is missing" >&2; exit 2; }
@@ -190,6 +229,10 @@ fi
 SOURCE_CURRENT_RELEASE=''
 if [[ -L "$CURRENT_LINK" ]]; then
   SOURCE_CURRENT_RELEASE=$(readlink -f "$CURRENT_LINK" || true)
+fi
+if [[ "$NEXT_WEB_PRESENT" == "0" && -f "$SOURCE_CURRENT_RELEASE/apps/public-web/.next/BUILD_ID" ]]; then
+  echo "candidate release would remove the active Next public web runtime" >&2
+  exit 2
 fi
 
 NGINX_TRANSITION_REASON=''
@@ -350,11 +393,19 @@ NEXT_LINK="${CURRENT_LINK}.next.$$"
 ln -s "$TARGET_RELEASE" "$NEXT_LINK"
 mv -Tf "$NEXT_LINK" "$CURRENT_LINK"
 
-restart_service() { bash -c "$RESTART_COMMAND"; }
+restart_service() {
+  bash -c "$RESTART_COMMAND" || return
+  if [[ -f "$CURRENT_LINK/apps/public-web/.next/BUILD_ID" ]]; then
+    bash -c "$NEXT_RESTART_COMMAND"
+  fi
+}
 wait_until_ready() {
   local attempt
   for ((attempt=1; attempt<=READY_ATTEMPTS; attempt+=1)); do
-    if bash -c "$READINESS_COMMAND"; then return 0; fi
+    if bash -c "$READINESS_COMMAND" &&
+      { [[ ! -f "$CURRENT_LINK/apps/public-web/.next/BUILD_ID" ]] || bash -c "$NEXT_READINESS_COMMAND"; }; then
+      return 0
+    fi
     sleep "$READY_DELAY_SECONDS"
   done
   return 1

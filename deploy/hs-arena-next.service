@@ -1,0 +1,23 @@
+[Unit]
+Description=HearthPulse Next.js public web
+After=network-online.target hs-arena.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=koloda
+Group=koloda
+WorkingDirectory=/var/www/koloda/data/www/hs-arena.ru/current
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+Environment=LEGACY_WEB_ORIGIN=http://127.0.0.1:3101
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start apps/public-web --hostname 127.0.0.1 --port 4320
+Restart=always
+RestartSec=5
+PrivateTmp=true
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,6 @@
-import { cpSync, createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { basename, join, resolve } from 'node:path';
+import { basename, join, relative, resolve } from 'node:path';
 
 const outputArg = process.argv.find(argument => argument.startsWith('--output='));
 const shaArg = process.argv.find(argument => argument.startsWith('--sha='));
@@ -28,6 +28,7 @@ const nginxContractDefinitions = [
 ];
 const nginxContractFiles = nginxContractDefinitions.map(file => file.source);
 const systemdFiles = [
+  'deploy/hs-arena-next.service',
   'deploy/systemd/hs-arena-card-image-sync.service',
   'deploy/systemd/hs-arena-card-image-sync.timer',
   'deploy/systemd/arena-geodns-monitor.service',
@@ -58,6 +59,8 @@ for (const required of [
   'dist/runtime-config.js',
   'dist/sitemap.xml',
   'dist/sitemaps/static.xml',
+  'apps/public-web/.next/BUILD_ID',
+  'apps/public-web/next.config.mjs',
   'package.json',
   'package-lock.json',
   'scripts/verify-nginx-contract.mjs',
@@ -70,6 +73,14 @@ for (const required of [
 
 mkdirSync(output, { recursive: false });
 for (const directory of ['build', 'dist', 'public']) cpSync(directory, join(output, directory), { recursive: true });
+mkdirSync(join(output, 'apps', 'public-web'), { recursive: true });
+cpSync('apps/public-web/next.config.mjs', join(output, 'apps', 'public-web', 'next.config.mjs'));
+const nextBuildSource = resolve('apps/public-web/.next');
+const nextBuildCache = join(nextBuildSource, 'cache');
+cpSync(nextBuildSource, join(output, 'apps', 'public-web', '.next'), {
+  recursive: true,
+  filter: source => source !== nextBuildCache,
+});
 
 const indexPath = join(output, 'dist', 'index.html');
 const indexHtml = readFileSync(indexPath, 'utf8');
@@ -113,6 +124,15 @@ async function sha256(file) {
   return hash.digest('hex');
 }
 
+function listFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = join(directory, entry.name);
+    return entry.isDirectory() ? listFiles(path) : [relative(output, path)];
+  });
+}
+
+const nextBuildFiles = listFiles(join(output, 'apps', 'public-web', '.next')).sort();
+
 const criticalFiles = [
   'build/server/index.js',
   'build/server/scraper.js',
@@ -121,6 +141,7 @@ const criticalFiles = [
   'dist/index.html',
   'dist/sitemap.xml',
   'dist/sitemaps/static.xml',
+  'apps/public-web/next.config.mjs',
   'package-lock.json',
   'scripts/backup-shared-data.sh',
   'scripts/verify-backup.sh',
@@ -130,6 +151,7 @@ const criticalFiles = [
   ...nginxContractFiles,
   ...systemdFiles,
   ...operationalFiles,
+  ...nextBuildFiles,
 ];
 const checksums = Object.fromEntries(await Promise.all(
   criticalFiles.map(async file => [file, await sha256(join(output, file))]),
@@ -155,6 +177,10 @@ const manifest = {
   node: process.version,
   packageLockHash,
   checksums,
+  nextWeb: {
+    buildId: readFileSync(join(output, 'apps/public-web/.next/BUILD_ID'), 'utf8').trim(),
+    fileCount: nextBuildFiles.length,
+  },
   nginxContract: {
     schemaVersion: 1,
     hash: nginxContractHash,

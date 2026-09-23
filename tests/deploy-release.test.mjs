@@ -73,6 +73,7 @@ function fakeRelease(sha, {
     '',
   ].join('\n'),
   browserRuntimeContents = 'export async function verifyScraperBrowserRuntime() {}\n',
+  nextBuildId = null,
 } = {}) {
   const directory = join(root, `artifact-${sha}`);
   const nginxSource = 'deploy/nginx/arena-test.conf';
@@ -90,6 +91,11 @@ function fakeRelease(sha, {
   writeFileSync(join(directory, 'dist', 'assets', `asset-${sha}.js`), sha);
   writeFileSync(join(directory, 'package.json'), '{}');
   writeFileSync(join(directory, 'package-lock.json'), '{}');
+  if (nextBuildId !== null) {
+    mkdirSync(join(directory, 'apps', 'public-web', '.next'), { recursive: true });
+    writeFileSync(join(directory, 'apps', 'public-web', '.next', 'BUILD_ID'), nextBuildId);
+    writeFileSync(join(directory, 'apps', 'public-web', 'next.config.mjs'), 'export default {};\n');
+  }
   writeFileSync(join(directory, nginxSource), nginxContents);
   copyFileSync(verifier, join(directory, verifierSource));
   const files = [{
@@ -115,7 +121,12 @@ function fakeRelease(sha, {
     checksums: {
       ...Object.fromEntries(files.map(file => [file.source, file.sha256])),
       [verifierSource]: sha256(readFileSync(join(directory, verifierSource))),
+      ...(nextBuildId === null ? {} : {
+        'apps/public-web/.next/BUILD_ID': sha256(nextBuildId),
+        'apps/public-web/next.config.mjs': sha256('export default {};\n'),
+      }),
     },
+    ...(nextBuildId === null ? {} : { nextWeb: { buildId: nextBuildId, fileCount: 1 } }),
     nginxContract: {
       schemaVersion: 1,
       hash: contractHash(files),
@@ -136,6 +147,8 @@ function deploy(artifact, readiness, options = {}) {
       READY_DELAY_SECONDS: '0',
       READINESS_COMMAND: readiness ? 'true' : 'false',
       RESTART_COMMAND: options.restartCommand || 'true',
+      NEXT_RESTART_COMMAND: options.nextRestartCommand || 'true',
+      NEXT_READINESS_COMMAND: options.nextReady === false ? 'false' : 'true',
       SKIP_DEPENDENCIES: '1',
       SKIP_IMMUTABLE_PERMISSIONS: '1',
       WORKSPACE: workspace,
@@ -376,6 +389,33 @@ try {
     resolve(appBase, readlinkSync(join(appBase, 'current'))),
     resolve(appBase, 'releases', legacyCandidateSha),
   );
+
+  const nextSha = 'abcdef0';
+  const nextRestartMarker = join(root, 'next-restarted');
+  const nextCandidate = deploy(fakeRelease(nextSha, { nextBuildId: 'next-fixture', nginxContents: changedContents }), true, {
+    nextRestartCommand: `touch "${nextRestartMarker}"`,
+  });
+  assert.equal(nextCandidate.status, 0, nextCandidate.stderr || nextCandidate.stdout);
+  assert.equal(existsSync(nextRestartMarker), true, 'Next must restart with the new release');
+  const failedNextSha = 'abcdef1';
+  const failedNext = deploy(fakeRelease(failedNextSha, { nextBuildId: 'failed-next', nginxContents: changedContents }), true, { nextReady: false });
+  assert.notEqual(failedNext.status, 0, 'unhealthy Next must fail the deployment');
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), resolve(appBase, 'releases', nextSha));
+  const tamperedNextArtifact = fakeRelease('abcdef2', { nextBuildId: 'next-build', nginxContents: changedContents });
+  writeFileSync(join(tamperedNextArtifact, 'apps/public-web/.next/BUILD_ID'), 'tampered');
+  const tamperedNext = assertPreflightFailureIsReadOnly({ artifact: tamperedNextArtifact, message: 'tampered Next build' });
+  assert.match(tamperedNext.stderr, /Next public web artifact checksum/i);
+  const linkedNextArtifact = fakeRelease('abcdef4', { nextBuildId: 'linked-next', nginxContents: changedContents });
+  const linkedConfig = join(linkedNextArtifact, 'apps/public-web/next.config.mjs');
+  unlinkSync(linkedConfig);
+  symlinkSync('/etc/hosts', linkedConfig);
+  const linkedNext = assertPreflightFailureIsReadOnly({ artifact: linkedNextArtifact, message: 'linked Next config' });
+  assert.match(linkedNext.stderr, /Next public web artifact checksum/i);
+  const missingNext = assertPreflightFailureIsReadOnly({
+    artifact: fakeRelease('abcdef3', { nginxContents: changedContents }),
+    message: 'candidate removes Next after activation',
+  });
+  assert.match(missingNext.stderr, /remove the active Next public web runtime/i);
 
   console.log('deployment switch, rollback and nginx preflight tests passed');
 } finally {
