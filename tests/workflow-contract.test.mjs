@@ -45,6 +45,11 @@ assert.match(
   ciWorkflow,
   /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*15/,
 );
+assert.match(
+  ciWorkflow,
+  /browser-observatory:[\s\S]*?env:\s+PUPPETEER_SKIP_DOWNLOAD:\s*'true'\s+CHROMIUM_PATH:\s*'\/usr\/bin\/google-chrome'/,
+  'hosted browser QA must use the installed Chrome binary instead of the slow Chromium wrapper',
+);
 assert.doesNotMatch(
   ciWorkflow,
   /browser-observatory:[\s\S]*?continue-on-error:\s*true[\s\S]*?deploy-production:/,

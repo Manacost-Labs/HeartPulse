@@ -31,6 +31,8 @@ server recovery smoke tests, performance budgets and documentation lint. The
 representative responsive browser matrix also runs in a separate
 release-blocking observatory job. Both hosted jobs must pass before the
 production runner can download the immutable artifact.
+The hosted observatory pins `/usr/bin/google-chrome`; its generic Chromium
+wrapper can miss Puppeteer's startup timeout on a cold runner.
 
 The September 2026 origin Nginx update uses the reviewed contract hash and
 controlled gate procedure in
