@@ -323,6 +323,8 @@ The backup includes the complete shared data/upload directory, a consistent
 SQLite `.backup` of `/var/lib/manacost-ecosystem/users.sqlite`, and the KHA/VIP
 profile ledger. Card caches are included so a restore does not depend on an
 upstream service being available.
+The systemd units invoke these scripts through `/bin/bash` because an installed
+immutable release may have read-only script permissions without the execute bit.
 
 Install the root-only configuration and timers after deploying a release that
 contains the backup scripts:
@@ -360,7 +362,7 @@ and refuses to overwrite a populated target:
 
 ```bash
 sudo HS_ARENA_BACKUP_PASSPHRASE_FILE=/etc/hs-arena/backup-passphrase \
-  current/scripts/restore-backup.sh \
+  /bin/bash current/scripts/restore-backup.sh \
   /var/backups/hs-arena/hs-arena-YYYYMMDDTHHMMSSZ.tar.gz.gpg \
   /var/lib/hs-arena-recovery
 ```

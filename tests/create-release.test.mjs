@@ -49,6 +49,15 @@ const operationalFiles = [
 ];
 
 try {
+  for (const [unitName, script] of [
+    ['backup', 'backup-shared-data'],
+    ['backup-verify', 'verify-backup'],
+    ['backup-replicate', 'replicate-backup'],
+  ]) {
+    const unit = readFileSync(join(repository, `deploy/hs-arena-${unitName}.service`), 'utf8');
+    assert.match(unit, new RegExp(`^ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena\\.ru/current/scripts/${script}\\.sh$`, 'm'));
+  }
+
   for (const directory of ['build/server', 'dist/assets', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd']) {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
