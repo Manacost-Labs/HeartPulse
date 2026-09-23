@@ -832,7 +832,7 @@
       "name": "frontend-battlegrounds",
       "status": "modular",
       "owner": "web-platform",
-      "purpose": "Owns hero catalog contracts, expiring tier data and recovery, portrait policy, roster normalization and the legacy-builder bridge.",
+      "purpose": "Owns hero catalog contracts, expiring tier data and recovery, portrait policy, roster normalization and the legacy-builder bridge, and shared minion type icon mappings.",
       "paths": [
         "src/modules/battlegrounds"
       ],
@@ -845,7 +845,8 @@
         "docs/architecture/module-boundaries.md",
         "docs/architecture/modularization-plan.md",
         "docs/runbooks/battlegrounds-patch-refresh.md",
-        "docs/specs/battleground-hero-cache.md"
+        "docs/specs/battleground-hero-cache.md",
+        "docs/specs/battleground-aberrations.md"
       ],
       "jobs": [],
       "cacheNamespaces": [
@@ -857,11 +858,14 @@
         "tests/battleground-hero-contracts.test.ts",
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-accessories-browser.test.mjs",
-        "tests/battleground-hero-cache.test.ts"
+        "tests/battleground-hero-cache.test.ts",
+        "src/features/BgLibrary.stories.tsx"
       ],
       "allowedDependencies": [],
       "forbiddenImports": [
-        "other module internals"
+        "other module internals",
+        "server/**",
+        "other frontend module internals"
       ]
     },
     {

@@ -18,3 +18,5 @@ export { battlegroundHeroRosterBridgeV1 } from './legacy/heroRosterBridge';
 export { createBattlegroundHeroTierResource } from './model/heroTierResource';
 export type { BattlegroundHeroTierData } from './model/heroTierResource';
 export { useBattlegroundHeroTierData } from './useHeroTierData';
+
+export { battlegroundMinionIconByRussianName, battlegroundMinionIconBySlug } from './model/minionTypeIcons';

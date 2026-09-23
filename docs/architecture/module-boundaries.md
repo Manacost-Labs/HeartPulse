@@ -1,5 +1,11 @@
 # Module boundaries
 
+## Battlegrounds minion type icons
+
+`src/modules/battlegrounds/public.ts` exposes the Russian-name and slug icon
+mappings owned by the Battlegrounds module. The library and card detail views
+consume this contract so new minion types keep consistent icons.
+
 ## Purpose
 
 The constructed-cards client module owns catalog URL state and API query
