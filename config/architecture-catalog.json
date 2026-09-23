@@ -387,6 +387,24 @@
       "tests": ["tests/seo-registry.test.ts"],
       "allowedDependencies": ["React"],
       "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
+      "name": "frontend-battlegrounds",
+      "status": "modular",
+      "owner": "battlegrounds-experience",
+      "purpose": "Own shared Battlegrounds minion type icon mappings for library and detail views.",
+      "paths": ["src/modules/battlegrounds"],
+      "publicEntrypoints": ["src/modules/battlegrounds/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": ["docs/specs/battleground-aberrations.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["src/features/BgLibrary.stories.tsx", "tests/battleground-accessories-browser.test.mjs"],
+      "allowedDependencies": [],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
     }
   ],
   "legacyAreas": [

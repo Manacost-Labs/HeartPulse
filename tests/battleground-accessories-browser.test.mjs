@@ -223,8 +223,8 @@ test('shared Battlegrounds runtime rejects a suspiciously partial current hero p
   assert.equal(runtimeWindow.tierData, fallback);
 });
 
-test('Battlegrounds builder cache version changes with the live hero synchronization', async () => {
+test('Battlegrounds builder cache version includes the aberration filter update', async () => {
   const battlegrounds = await source('src/features/Battlegrounds.tsx');
 
-  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260811-live-heroes'/);
+  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260923-aberrations-v1'/);
 });

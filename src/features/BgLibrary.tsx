@@ -1,3 +1,4 @@
+import { battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
@@ -303,19 +304,6 @@ const HIDDEN_MECHANIC_KEYS = new Set([
   'secret',
 ]);
 
-const RACE_ICON_BY_SLUG: Record<string, string> = {
-  all: '/bg-legacy/assset/общее.webp',
-  beast: '/bg-legacy/assset/зверь.webp',
-  demon: '/bg-legacy/assset/демоны.webp',
-  dragon: '/bg-legacy/assset/драконы.webp',
-  elemental: '/bg-legacy/assset/элементали.webp',
-  mech: '/bg-legacy/assset/механизмы.webp',
-  murloc: '/bg-legacy/assset/мурлоки.webp',
-  naga: '/bg-legacy/assset/наги.webp',
-  pirate: '/bg-legacy/assset/пираты.webp',
-  quilboar: '/bg-legacy/assset/свинобразы.webp',
-  undead: '/bg-legacy/assset/нежить.webp',
-};
 
 function tavernIcon(tier: number | string): string {
   return `/bg-legacy/assset/tier${tier}.png`;

@@ -1,3 +1,4 @@
+import { battlegroundMinionIconByRussianName as BG_DETAIL_RACE_ICON_BY_RU, battlegroundMinionIconBySlug as BG_DETAIL_RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
@@ -641,6 +642,7 @@ async function bgHeroDetailFallback(dbfId: string): Promise<BattlegroundHeroDeta
   };
 }
 const BG_RACE_NAMES: Record<string, string> = {
+  ABERRATION: 'Аберрации',
   ALL: 'Все типы',
   NONE: 'Без типа',
   BEAST: 'Звери',
@@ -656,6 +658,7 @@ const BG_RACE_NAMES: Record<string, string> = {
 };
 
 const BG_RACE_ICON: Record<string, string> = {
+  ABERRATION: '/bg-legacy/assset/aberration.webp',
   ALL: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
   NONE: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
   BEAST: '/api/public-resource/bg/assset/%D0%B7%D0%B2%D0%B5%D1%80%D1%8C.webp',
@@ -670,7 +673,7 @@ const BG_RACE_ICON: Record<string, string> = {
   UNDEAD: '/api/public-resource/bg/assset/%D0%BD%D0%B5%D0%B6%D0%B8%D1%82%D1%8C.webp',
 };
 
-const BG_RACE_ORDER = ['ALL', 'NONE', 'BEAST', 'DEMON', 'DRAGON', 'ELEMENTAL', 'MECHANICAL', 'MURLOC', 'NAGA', 'PIRATE', 'QUILBOAR', 'UNDEAD'];
+const BG_RACE_ORDER = ['ALL', 'NONE', 'ABERRATION', 'BEAST', 'DEMON', 'DRAGON', 'ELEMENTAL', 'MECHANICAL', 'MURLOC', 'NAGA', 'PIRATE', 'QUILBOAR', 'UNDEAD'];
 const BG_TAVERN_ICON_BASE = '/api/public-resource/bg/assset';
 
 function bgItemTitle(item: any): string {
@@ -1389,41 +1392,7 @@ function BattlegroundHeroLedgerInlineUnused({
   );
 }
 
-const BG_DETAIL_RACE_ICON_BY_RU: Record<string, string> = {
-  Механизмы: '/bg-legacy/assset/механизмы.webp',
-  Механизм: '/bg-legacy/assset/механизмы.webp',
-  Мурлоки: '/bg-legacy/assset/мурлоки.webp',
-  Мурлок: '/bg-legacy/assset/мурлоки.webp',
-  Звери: '/bg-legacy/assset/зверь.webp',
-  Зверь: '/bg-legacy/assset/зверь.webp',
-  Демоны: '/bg-legacy/assset/демоны.webp',
-  Демон: '/bg-legacy/assset/демоны.webp',
-  Драконы: '/bg-legacy/assset/драконы.webp',
-  Дракон: '/bg-legacy/assset/драконы.webp',
-  Нежить: '/bg-legacy/assset/нежить.webp',
-  Нага: '/bg-legacy/assset/наги.webp',
-  Наги: '/bg-legacy/assset/наги.webp',
-  Элементали: '/bg-legacy/assset/элементали.webp',
-  Элементаль: '/bg-legacy/assset/элементали.webp',
-  Пираты: '/bg-legacy/assset/пираты.webp',
-  Пират: '/bg-legacy/assset/пираты.webp',
-  Свинобраз: '/bg-legacy/assset/свинобразы.webp',
-  Свинобразы: '/bg-legacy/assset/свинобразы.webp',
-};
 
-const BG_DETAIL_RACE_ICON_BY_SLUG: Record<string, string> = {
-  mech: '/bg-legacy/assset/механизмы.webp',
-  mechanical: '/bg-legacy/assset/механизмы.webp',
-  murloc: '/bg-legacy/assset/мурлоки.webp',
-  beast: '/bg-legacy/assset/зверь.webp',
-  demon: '/bg-legacy/assset/демоны.webp',
-  dragon: '/bg-legacy/assset/драконы.webp',
-  undead: '/bg-legacy/assset/нежить.webp',
-  naga: '/bg-legacy/assset/наги.webp',
-  elemental: '/bg-legacy/assset/элементали.webp',
-  pirate: '/bg-legacy/assset/пираты.webp',
-  quilboar: '/bg-legacy/assset/свинобразы.webp',
-};
 
 const BG_TAVERN_BAR_COLORS = ['#e7c45d', '#74b3dc', '#7cc687', '#d98b54', '#b785d8', '#5fb7b0', '#f0d17a'];
 const BG_DETAIL_DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
@@ -4086,7 +4055,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   </section>
 </main>`;
 
-const BG_STRATEGY_BUILDER_VERSION = '20260811-live-heroes';
+const BG_STRATEGY_BUILDER_VERSION = '20260923-aberrations-v1';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
 const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 
