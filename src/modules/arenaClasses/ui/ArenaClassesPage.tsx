@@ -43,7 +43,7 @@ export function ArenaClassesResults({ onNavigate, state, onRetry }: {
           { label: 'Статьи о Арене →', href: '/articles', tab: 'articles' },
         ].map(link => <a key={link.href} href={link.href}
           onClick={event => { event.preventDefault(); onNavigate(link.tab); }}
-          className="inline-flex min-h-11 items-center px-4 py-2 rounded-lg text-sm font-hs transition-all hover:brightness-110"
+          className="inline-flex min-h-11 items-center px-4 py-2 rounded-lg text-sm font-hs transition-[filter] hover:brightness-110"
           style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a', color: '#4a3018', textDecoration: 'none' }}>
           {link.label}
         </a>)}

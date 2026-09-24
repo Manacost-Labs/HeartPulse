@@ -157,6 +157,15 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal(loginHome.status, 200, runtime.output());
     assert.match(await loginHome.text(), /name="robots" content="noindex, nofollow"/);
 
+    const classes = await fetch(`${runtime.origin}/classes/`, { headers: cookie });
+    assert.equal(classes.status, 200, runtime.output());
+    const classesHtml = await classes.text();
+    assert.match(classesHtml, /<h1>Классы<\/h1>/);
+    assert.match(classesHtml, /Винрейт классов на Арене Hearthstone/);
+    assert.match(classesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/classes\/"/);
+    assert.equal((classesHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(classesHtml, /arena-class-rank|card-reader@example|manacost_auth_token/);
+
     const emptyContests = await fetch(`${runtime.origin}/contests/`);
     assert.equal(emptyContests.status, 200, runtime.output());
     assert.match(await emptyContests.text(), /Сейчас активных конкурсов нет/);

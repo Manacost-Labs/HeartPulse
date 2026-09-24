@@ -157,6 +157,11 @@ with Vite retirement.
 
 ### 3. Move read-only game-data route families
 
+Progress (2026-09-24): `/classes/` has a Next route with an anonymous
+server-rendered teaser and the existing account-scoped statistics client.
+Its public Nginx owner remains legacy until direct-port and browser checks
+pass on a deployed release.
+
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed
 (`/standard/matchups/`, `/standard/meta/`, `/standard/archetypes/`,
 `/standard/vicious-gold/`, `/standard/fun-decks/`) and Battlegrounds

@@ -4,6 +4,9 @@ The `/classes` view displays only validated responses from `/api/winrates` or
 previously validated responses cached for the same account and source. Static
 example percentages belong exclusively to Storybook fixtures. The existing
 server subscription checks and browser permission gate remain authoritative.
+The Next.js route server-renders only the public heading and description;
+account identity, subscription state and class percentages are never embedded
+in shared HTML. The browser loads statistics only after entitlement succeeds.
 
 The view distinguishes initial loading, real results, an empty dataset, a
 failed request with no usable data and stale real data. A stale notice means
@@ -27,8 +30,8 @@ data, stale fallback, account isolation, cache expiry, authorization rejection,
 the retry action at desktop and mobile widths.
 
 The module now also owns the page presentation shared by Vite and Next.js.
-Its lazy JavaScript chunk is capped at 10,000 bytes; the measured migration
-build is 9,682 bytes. The remaining Arena route stays capped at 73,675 bytes.
+Its lazy JavaScript chunk is capped at 10,000 bytes. The remaining Arena route
+stays capped at 73,675 bytes.
 Vite uses explicit chunk ownership so the module cannot absorb a shared React runtime
 and enter the initial dependency graph. The
 [Rollup chunk contract](https://rollupjs.org/configuration-options/#output-onlyexplicitmanualchunks)

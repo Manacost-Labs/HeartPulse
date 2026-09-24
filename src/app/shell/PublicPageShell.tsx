@@ -10,8 +10,8 @@ import type { AuthUser } from '../../modules/identity/public';
 import type { SubscriptionStatus } from '../../modules/subscriptions/public';
 
 type Access = { user: AuthUser | null; checking: boolean; admin: boolean; contestAdmin: boolean; subscription: SubscriptionStatus | null };
-export function PublicPageShell({ children, activeTab, pathname, access, navigate, editorial = false, wide = false }: {
-  children: ReactNode; activeTab: TabId; pathname: string; access: Access; navigate: (path: string) => void; editorial?: boolean; wide?: boolean;
+export function PublicPageShell({ children, activeTab, pathname, access, navigate, editorial = false, wide = false, updatedAtLabel = 'Нет данных' }: {
+  children: ReactNode; activeTab: TabId; pathname: string; access: Access; navigate: (path: string) => void; editorial?: boolean; wide?: boolean; updatedAtLabel?: string;
 }) {
   const [menu, setMenu] = useState(false);
   const [mobileGroup, setMobileGroup] = useState<'constructors' | 'misc' | null>(null);
@@ -27,7 +27,7 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
       <PublicNavigation activeTab={activeTab} mobileMenuOpen={menu} mobileNavGroup={mobileGroup} sidebarNavGroup={sidebarGroup}
         visibleArenaTabs={ARENA_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
         visibleMiscTabs={MISC_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
-        appIsContestAdmin={access.contestAdmin} wantsLogin={false} updatedAtLabel="Нет данных" mobileMenuRef={menuRef}
+        appIsContestAdmin={access.contestAdmin} wantsLogin={false} updatedAtLabel={updatedAtLabel} mobileMenuRef={menuRef}
         mobileMenuToggleRef={toggleRef} mobileProfile={<HeaderProfileButton user={access.user} checking={access.checking} variant="mobile" />} sidebarProfile={profile} profileLabel={access.user || access.checking ? 'Открыть профиль' : 'Войти'}
         onNavigate={tab => navigate(TABS.find(item => item.id === tab)?.slug ?? '/')}
         onNavigateLogin={() => navigate('/?login')} onWarm={() => undefined}
