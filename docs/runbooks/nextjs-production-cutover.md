@@ -56,7 +56,8 @@ Save the installed origin route snippet and SEO map, then install the reviewed
 run `sudo nginx -t`, and reload Nginx.
 The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus gallery, FAQ, privacy, terms, developer API documentation, articles,
-contests and home to port 4321, and forwards `/_next/` build assets to the same process.
+contests and home to port 4321, and forwards `/_next/` build assets to the
+same process.
 The SEO map keeps filtered article pages `noindex, follow`, the home login
 query `noindex, nofollow`, and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
