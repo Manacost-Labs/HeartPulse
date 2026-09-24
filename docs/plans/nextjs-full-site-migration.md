@@ -1,9 +1,10 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: proposed plan, 2026-09-24. The completed card pilot and its production
+Status: execution in progress, 2026-09-24. Cards, FAQ, privacy, terms and
+gallery are live on Next.js. The remaining route checklist is the
+[coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
-`../runbooks/nextjs-production-cutover.md`. This plan starts from that deployed
-state; it does not authorize another cutover by itself.
+`../runbooks/nextjs-production-cutover.md`.
 
 ## Goal and boundary
 
@@ -24,13 +25,13 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 ## Verified starting point
 
 - `apps/public-web/app` contains Next routes for the card catalog and detail,
-  FAQ, privacy and terms. `apps/public-web/routeOwnership.mjs` limits the local
-  pilot to these paths. Production Nginx sends those pages and `/_next/` to the
-  Next service on port 4321.
-- `npm run agent:context -- root` reports 47 public route patterns. The Nginx
-  contract additionally has explicit `/admin/`, `/deck-builder/` and
-  `/archetypes/` handling; the route inventory and effective Nginx map must be
-  reconciled before using a route count as a completion metric.
+  gallery, FAQ, privacy and terms. Production Nginx sends these seven
+  inventory patterns and `/_next/` to the Next service on port 4321.
+- `npm run agent:context -- root` reports 47 public route patterns: seven live
+  on Next, 36 other active HTML patterns and four redirect/removed/fallback
+  contracts. The [coverage ledger](nextjs-route-coverage.md) names every one.
+  Nginx also has explicit `/deck-builder/` and `/archetypes/` pages outside
+  that inventory; `/admin/` is listed but has a separate exact edge rule.
 - `src/app/routing/routeManifest.ts` and `src/shared/seo/publicRouteInventory.json`
   describe the legacy application surfaces and public URL policy. The current
   Vite application starts at `index.html`/`src/main.tsx` and composes routes in
@@ -41,6 +42,8 @@ Nginx remains the public edge and routes each URL to exactly one owner.
   SPA fallback from `dist`. Storybook currently uses `@storybook/react-vite`.
   These are independent Vite retirement blockers even after all pages render
   in Next.
+- The public shell links to `/profile/`, which currently returns 404. Decide
+  its account destination and fix that path or link before final URL closure.
 
 ## Non-negotiable migration contract
 
@@ -65,11 +68,12 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 
 ### 0. Close the inventory and record the baseline
 
-Build one route matrix from the public URL inventory, `routeManifest.ts`, the
-effective Nginx config and access logs. Include `/admin/`, `/deck-builder/`,
-`/archetypes/`, callbacks, removed URLs, redirects and unknown paths. For each
-HTML route record its current owner, authenticated state, data source, SEO
-policy, static asset dependencies, Next destination and focused test. Record
+Use the [47-entry ledger](nextjs-route-coverage.md) as the initial matrix,
+then reconcile it with `routeManifest.ts`, the **effective** Nginx config and
+access logs. Include `/admin/`, `/deck-builder/`, `/archetypes/`, the broken
+`/profile/` link, callbacks, removed URLs, redirects and unknown paths. For
+each HTML route record its current owner, authenticated state, data source,
+SEO policy, static asset dependencies, Next destination and focused test. Record
 representative desktop/mobile screenshots and HTTP status/header fixtures for
 public, signed-out, signed-in and forbidden states. Resolve the three explicit
 Nginx routes missing from the 47-pattern count before declaring scope closed.
@@ -97,14 +101,20 @@ Verify `npm run build:next`, `npm run lint:next`, focused shell tests and
 Storybook/browser review at 1440, 390 and 320 pixels. Update
 `docs/architecture/module-boundaries.md` if ownership changes.
 
+Progress: the gallery already reuses the public shell. Shared session,
+navigation and error adapters still need proof against gated and editable
+pages before this foundation is considered complete.
+
 ### 2. Move low-risk public and editorial pages
 
-Move `/`, `/articles/`, `/gallery/`, `/guides-archive/` and its detail pages,
-`/contests/` and `/developers/api/` in small vertical slices. FAQ, privacy and
-terms already use Next: treat them as regression controls. For each slice,
-implement the route, data/error states and metadata, then switch only its
-Nginx owner. Preserve deep links, sitemap membership, redirects and links
-between Next and legacy pages.
+Move `/articles/`, `/developers/api/`, `/contests/` and `/` in separate public
+slices. Gallery, FAQ, privacy and terms already use Next: treat them as
+regression controls. Move `/guides-archive/` and
+`/guides-archive/:guideSlug/` only after the request-scoped entitlement
+adapter can distinguish public teaser, subscribed content, expired access and
+missing guide. For each slice, implement the route, data/error states and
+metadata, then switch only its Nginx owner. Preserve deep links, sitemap
+membership, redirects and links between Next and legacy pages.
 
 **Done when:** Each switched page has the same public behavior on direct load,
 refresh and client navigation; canonical/robots metadata and 404s match the
@@ -112,12 +122,10 @@ baseline. Verify route and editorial tests, Next build, production monitor and
 real-browser console/network/accessibility checks. Update the owning
 `docs/specs/` contracts and `CHANGELOG.md` for shipped behavior.
 
-Progress (2026-09-24): `/gallery/` is the first editorial slice. Its Next
-route server-renders the anonymous `/api/gallery` projection with request-time
-fetching, retains the existing shell and gallery interactions, and reproduces
-the legacy canonical, robots and social-preview metadata. The API and media
-URLs remain owned by Express. The exact `/gallery/` Nginx route is prepared;
-activation and live verification remain the release step.
+Progress (2026-09-24): `/gallery/` is live in production. Its Next route
+server-renders the anonymous `/api/gallery` projection with request-time
+fetching; Express still owns the API and media URLs. CI, the route monitor and
+desktop/mobile browser checks passed for the deployed cutover.
 
 ### 3. Move read-only game-data route families
 
@@ -126,8 +134,10 @@ Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed
 `/standard/vicious-gold/`, `/standard/fun-decks/`) and Battlegrounds
 (`/heroes/`, `/library/`, `/cosmetics/`, `/battlegrounds/tier-list/`) with
 their inventory-listed detail/format/archive variants. Split by domain and
-then by list/detail where needed; do not bundle all game-data pages into one
-commit. Keep loading, empty, stale, error and retry states distinct. Use
+then by list/detail where needed: Arena first, constructed listings before
+their archetype and legacy-meta details, then Battlegrounds listings before
+heroes, cosmetics and library details. Do not bundle all game-data pages into
+one commit. Keep loading, empty, stale, error and retry states distinct. Use
 existing Express read models and module policies rather than server-importing
 client hooks. Sample live sitemap detail IDs and authoritative missing IDs.
 
@@ -144,7 +154,9 @@ Move `/battlegrounds/strategies/`, `/battlegrounds/tier-builder/`,
 port each interaction inside a client-only domain boundary; do not execute
 browser globals during server render. Preserve saved state, deep links,
 exports/imports and any legacy redirects. Keep old static assets available
-until access logs and page checks show they are no longer needed.
+until access logs and page checks show they are no longer needed. The
+`/archetypes/wild/` inventory route and the `/archetypes/` root must both be
+covered; neither can rely on a broad SPA fallback.
 
 **Done when:** Creation/edit/export flows and direct links work in a real
 browser on desktop and mobile without hydration or console errors. Verify
@@ -154,8 +166,10 @@ focused builder tests, Next build and representative browser flows.
 
 Move public profiles (`/id/`, `/profiles/`), `/connect/`, account/login
 overlays, subscription gates and `/admin/` after the shared session adapter is
-proven. Preserve OAuth/identity callback ownership in Express. Server-side
-decisions about private data use the existing account/entitlement endpoints;
+proven. Resolve the `/profile/` link that currently returns 404, and keep
+`/?login` query and robots behavior. Preserve OAuth/identity callback
+ownership in Express. Server-side decisions about private data use the
+existing account/entitlement endpoints;
 client navigation must revalidate changed sessions and blocked accounts.
 Admin pages must not leak privileged data in HTML, hydration state or cache.
 Keep this work in separate identity, subscription and admin commits.
@@ -171,29 +185,71 @@ each owner. Update permission specs and operational runbooks.
 Route all remaining GET/HEAD HTML, including unknown paths, to Next. Keep
 Express-only locations for APIs, callbacks, uploads, sitemaps, health, metrics,
 redirects and data/image endpoints. Compare the effective Nginx map with the
-route matrix, not just the checked-in snippet. Run production canaries and
-monitor exact release SHA, HTTP 200/301/404/500 distribution, login and paid
-access, console/network failures and Core Web Vitals. Roll back the affected
-Nginx owner rule if a family regresses.
+route matrix, not just the checked-in snippet. Replace the Vite-produced
+internal `/404.html` document with a Next 404 for unknown HTML and an
+independent emergency error response for technical paths. Preserve the Yandex
+verification file as a static asset. Record the selected HTML owner in bounded
+origin access logs before the final switch so Vite traffic can be measured.
+Run production canaries and monitor exact release SHA, HTTP 200/301/404/500
+distribution, login, paid access, console/network failures and Core Web Vitals.
+Roll back the affected Nginx owner rule if a family regresses.
 
-**Done when:** Every active HTML route is owned by Next and the legacy Vite
-artifact receives zero HTML requests over an agreed observation window; all
+**Done when:** Every active HTML route is owned by Next and origin access logs
+show zero HTML served from the Vite artifact for seven consecutive days; all
 required browser and release checks pass. Keep the legacy artifact available
-for one rollback window before removing it from the build.
+for one rollback window before removing it from the build, and retain old
+hashed assets through the existing 35-day carry-forward window.
 
 ### 7. Remove Vite from tooling and releases
 
 Replace Vite-dependent Storybook framework/types with a verified non-Vite
-builder (evaluate `@storybook/react-webpack5` with the existing MCP addon and
-stories first). Replace `import.meta.env`/`VITE_*` in authored client code with
-explicit Next-safe configuration; preserve opt-in Sentry privacy defaults.
+builder (evaluate `@storybook/react-webpack5` and the Next.js Webpack
+framework with the existing MCP addon and stories first). Replace
+`import.meta.env`/`VITE_*` in authored client code with explicit Next-safe
+configuration; preserve opt-in Sentry privacy defaults.
 Move required `public/` assets into a Next/Nginx serving contract without URL
-changes. Replace Vite `index.html`, `vite.config.ts`, `src/vite-env.d.ts`,
-`scripts/prerender.js`, `dist` assumptions, preview/dev scripts, CI gates,
+changes. Replace Vite `index.html`, `src/main.tsx`, `vite.config.ts`,
+`src/vite-env.d.ts`, `scripts/prerender.js`, `dist` assumptions, preview/dev
+scripts, CI gates,
 release manifest/checksums and deploy rollback checks. Remove direct Vite,
 `@vitejs/plugin-react`, `@tailwindcss/vite` and `@storybook/react-vite`
 dependencies only after the replacement checks pass; update the lockfile.
 Do not delete still-requested `/assets/` URLs or historical rollback artifacts.
+
+Retire each Vite dependency at its actual owner, in this order:
+
+1. Make `package.json` development, build and preview scripts start Next plus
+   Express. Keep `apps/public-web/postcss.config.mjs` as the Tailwind pipeline;
+   remove the separate Vite plugin only after Storybook no longer needs it.
+2. Replace `.storybook/main.ts` and its framework types, verify every story
+   and the local Storybook MCP, then update the Storybook contract test. The
+   non-Vite builder must work with existing addons and React components before
+   `@storybook/react-vite` is removed.
+3. Replace Vite environment reads in `src/telemetry/sentry.ts`,
+   `src/telemetry/webVitals.ts`, `src/components/AppErrorBoundary.tsx` and
+   `src/app/shell/installFieldFocusMode.ts`. Preserve the current privacy,
+   disabled-by-default telemetry and runtime-config behavior.
+4. Replace `scripts/prerender.js` and `test:prerender-seo` with Next route and
+   metadata/status tests. Move bundle checks from `dist/.vite/manifest.json`
+   in `scripts/check-budgets.js` to the Next build output. Update local browser
+   QA scripts and their error-overlay checks to run against Next.
+5. Move URLs currently served from Vite `dist` into a reviewed Next/Nginx
+   asset contract. Update `deploy/nginx/arena-html-routing.conf`,
+   `arena-cdn-public-static.conf`, `deploy/activate-arena-static.sh`,
+   `deploy/monitor-arena-geodns.sh` and `deploy/nginx-paths.conf.example` as
+   their real dependencies require. Retain old hashed `/assets/` files for the
+   CDN and rollback window; preserve the Yandex verification URL.
+6. Make release creation, checksums, the CI artifact, the deployer and rollback
+   accept a Next-only HTML artifact. Remove their `dist/index.html` requirement
+   only after the deployed N and N-1 releases are compatible with the new
+   Nginx contract. Validate the real origin and edge role files before rollout.
+7. Remove `index.html`, `src/main.tsx`, `vite.config.ts`,
+   `src/vite-env.d.ts`, direct Vite packages and obsolete scripts. Drain and
+   delete `src/App.tsx` only after its remaining route behavior has a module
+   owner. Regenerate `package-lock.json`. Audit
+   active source, scripts, tests, CI and package-lock for remaining Vite
+   references; keep historical documents and immutable old releases only as
+   records or rollback artifacts.
 
 **Done when:** `npm run dev`, `npm run build`, Storybook/MCP, release creation,
 deployment and rollback use Next plus Express without a Vite build. No active
@@ -204,15 +260,29 @@ verify:release`, `npm run test:storybook`, `npm run build-storybook`,
 and Nginx contract tests, followed by a production monitor and browser smoke
 check. Update `DEPLOYMENT.md`, `README.md`, `docs/runbooks/nextjs-public-web.md`,
 `docs/runbooks/nextjs-production-cutover.md` and the release/rollback runbook.
+`npm ls vite --all` and a lockfile inspection must show no active Vite package;
+production must serve zero HTML or current assets from a Vite `dist` artifact.
 
 ## Release discipline and risks
 
 Each slice uses its own `codex/` branch/worktree, session preflight, focused
-red/green tests, changed-file Semgrep, browser QA for visible changes, one
-verified commit and integration preflight. Fast-forward-safe integration to
-`main` is the only production trigger; verify the deployed SHA. Full registry,
+red/green tests, changed-file Semgrep, browser QA for visible changes, commits
+after each verified step and integration preflight. Fast-forward-safe
+integration to `main` is the only production trigger; verify the deployed
+SHA. Full registry,
 Next/Storybook builds and release checks run at phase checkpoints. Record the
-route owner and a one-rule rollback path for every production switch.
+route owner and a one-rule rollback path for every production switch. Commit
+the page/data contract before its edge switch. Deploy the Next page behind the
+old Nginx owner, verify its direct response, then install the reviewed Nginx
+rule and release its exact versioned contract hash. Keep the old owner usable
+until this sequence passes.
+
+For each row in the [coverage ledger](nextjs-route-coverage.md), record one
+evidence line: direct URL and refresh status, canonical and robots policy,
+public/private payload boundary, relevant 301/404/5xx behavior, desktop and
+mobile browser result, owning test, deployed SHA and rollback rule. Check
+representative signed-out, subscribed, expired, blocked and admin states where
+the route has an entitlement. Test a real missing ID for each detail family.
 
 The highest risks are private-data caching across sessions, OAuth/cookie
 regressions, dynamic routes accidentally returning 200 for missing content,
@@ -222,10 +292,12 @@ rollback no longer needs them. The gates above target these specific failures.
 status/metadata behavior and the vendored UMD dependency are proven under any
 replacement build path.
 
-Final acceptance is **all HTML on Next, Express contracts preserved, no Vite
-runtime/build/Storybook requirement, clean release rollback, and the route
-matrix plus production monitor passing for the deployed SHA**. An Express
-replacement would be a separate, larger backend migration with its own spec.
+Final acceptance is **all active HTML on Next, Express contracts preserved,
+all 47 inventory entries and the two extra admin-tool pages accounted for,
+unknown HTML returning a real Next 404, no Vite runtime/build/Storybook
+requirement, clean release rollback, and the route matrix plus production
+monitor passing for the deployed SHA**. Replacing Express would be a separate
+backend migration with its own spec.
 
 ## Documentation impact during execution
 
@@ -242,3 +314,4 @@ the active owner after every release.
 - [Next.js migration from Vite](https://nextjs.org/docs/app/guides/migrating/from-vite)
 - [Next.js self-hosting](https://nextjs.org/docs/app/guides/self-hosting)
 - [Storybook React with Webpack](https://storybook.js.org/docs/get-started/frameworks/react-webpack5)
+- [Storybook Next.js framework](https://storybook.js.org/docs/get-started/frameworks/nextjs)
