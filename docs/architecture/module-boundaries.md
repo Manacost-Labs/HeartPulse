@@ -4,10 +4,10 @@
 
 `src/modules/articles/public.ts` owns the public article listing, filters,
 vote controls and subscription-aware article links. The Vite route loads the
-module and its temporary legacy stylesheet directly. Arena pages remain in
-`DeferredRoutes.tsx` during the renderer migration. Request handling stays in
-the existing Express article API;
-the client module contains only presentation and its narrow API adapter.
+module and a route-owned bridge for three legacy stylesheets. Arena pages
+remain in `DeferredRoutes.tsx` during the renderer migration. Request handling
+stays in the existing Express article API; the client module contains only
+presentation and its narrow API adapter.
 Generic breadcrumbs and section banners are shared UI primitives under
 `src/shared/ui/EditorialRouteChrome.tsx`.
 

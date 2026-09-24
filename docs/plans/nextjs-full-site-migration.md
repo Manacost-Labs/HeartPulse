@@ -139,6 +139,9 @@ Progress (2026-09-24): `/articles/` now has a request-time Next route with an
 anonymous Express projection. The article UI moved into its own module;
 personal votes and VIP access stay behind the existing Express API. Production
 Nginx remains on the legacy owner until the Next release is verified directly.
+The Vite compatibility route owns a combined legacy stylesheet. Its temporary
+startup gzip ceiling is 80 KiB after CI measured 81,904 bytes of hashed-chunk
+variance; the ceiling will be removed with Vite.
 
 ### 3. Move read-only game-data route families
 

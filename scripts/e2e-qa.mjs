@@ -1973,7 +1973,7 @@ async function inspectLayout(page, { mobile }) {
       || shell.classList.contains('arena-app-battlegrounds')
     ));
     const routeParchmentLoaded = [...document.styleSheets]
-      .some(sheet => sheet.href?.includes('/assets/route-parchment-'));
+      .some(sheet => /\/assets\/(?:route-parchment|articlesLegacy)-/.test(sheet.href || ''));
     const content = document.querySelector('.arena-content-open');
     const contentStyle = content ? getComputedStyle(content) : null;
     const workspace = document.querySelector('.arena-workspace');

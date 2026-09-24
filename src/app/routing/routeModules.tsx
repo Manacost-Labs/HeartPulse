@@ -40,7 +40,7 @@ export const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule()
   .then(module => ({ default: module.Legendaries })));
 export const LazyArticlesTab = React.lazy(() => Promise.all([
   import('../../modules/articles/public'),
-  import('../../features/DeferredRoutes.css'),
+  import('./articlesLegacy.css'),
 ]).then(([module]) => ({ default: module.ArticlesTab })));
 export const LazyGalleryTab = React.lazy(loadGalleryModule);
 export const LazyBgLibrary = React.lazy(loadBgLibraryModule);
