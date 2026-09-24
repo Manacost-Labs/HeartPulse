@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createArenaTierListClient } from '../src/modules/arenaTierList/model/client';
+import { companionIdsFromLegendaries, loadArenaCompanionIds } from '../src/modules/arenaTierList/model/companionIds';
 
 const now = Date.parse('2026-09-24T12:00:00Z');
 const dataset = {
@@ -62,4 +63,14 @@ response = () => Promise.resolve(++attempts === 1
   ? new Response(null, { status: 304 }) : Response.json(dataset));
 assert.equal((await load()).status, 'ready');
 assert.equal(attempts, 2, 'a 304 without a usable cache retries without a conditional header');
+const legendaryGroups = { groups: [
+  { keyCard: { cardId: 'KEY_A' }, cards: [{ cardId: 'KEY_A' }, { cardId: 'COMP_A' }] },
+  { keyCard: { cardId: 'COMP_A' }, cards: [{ cardId: 'COMP_A' }, { cardId: 'COMP_B' }] },
+] };
+assert.deepEqual([...companionIdsFromLegendaries(legendaryGroups)], ['COMP_B']);
+assert.deepEqual([...companionIdsFromLegendaries({ groups: 'invalid' })], []);
+const protectedCompanions = await loadArenaCompanionIds(() => Promise.resolve(new Response(null, { status: 403 })));
+assert.deepEqual([...protectedCompanions], [], 'protected data never falls back to a public companion list');
+const loadedCompanions = await loadArenaCompanionIds(() => Promise.resolve(Response.json(legendaryGroups)));
+assert.deepEqual([...loadedCompanions], ['COMP_B']);
 console.log('Arena tier-list client access, cache and refresh contract passed');

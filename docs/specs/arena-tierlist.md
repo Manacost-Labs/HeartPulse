@@ -24,6 +24,9 @@ route passes production direct-port and browser checks.
 The new React hook keeps the previous source visible while another source
 loads, drops data immediately when the account or entitlement changes, and
 ignores responses from requests aborted by navigation or a newer selection.
+When HearthArena or Firestone is selected, the client fetches the protected
+legendary groups and hides companion cards; group key cards are never treated
+as companions, even when they appear in another group's card list.
 
 The legacy browser cache key is `tl_ru_cards_v3_<source>`; the new subscriber
 client uses `arena-tierlist:v4:<account>:<source>`. Both have a 60-second fresh
