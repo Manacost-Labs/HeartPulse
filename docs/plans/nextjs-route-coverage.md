@@ -112,9 +112,9 @@ headers still belong in the final route matrix and regression checks.
   operations tabs need separate permission and direct-load checks.
 - `/?login` is a login overlay state, not another path. Preserve its query
   policy and login/logout behavior on the Next-owned home page.
-- `/profile/` is linked from the public shell but currently returns 404 in
-  production. Resolve the intended account destination or correct the links
-  before retiring the legacy shell; do not silently count it as a live page.
+- The Next public shell sends its account control to `/?login`, which the
+  legacy account route serves during migration. `/profile/` still returns 404
+  and is not counted as a live page.
 - `/404.html` is an internal Nginx error document generated from `dist` today.
   Replace that dependency when Next owns unknown HTML, while keeping an
   independent emergency error response for technical paths.

@@ -30,7 +30,7 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
         appIsContestAdmin={access.contestAdmin} wantsLogin={false} updatedAtLabel="Нет данных" mobileMenuRef={menuRef}
         mobileMenuToggleRef={toggleRef} mobileProfile={<HeaderProfileButton user={access.user} checking={access.checking} variant="mobile" />} sidebarProfile={profile} profileLabel={access.user || access.checking ? 'Открыть профиль' : 'Войти'}
         onNavigate={tab => navigate(TABS.find(item => item.id === tab)?.slug ?? '/')}
-        onNavigateLogin={() => navigate('/profile/')} onWarm={() => undefined}
+        onNavigateLogin={() => navigate('/?login')} onWarm={() => undefined}
         onToggleMobileMenu={() => setMenu(value => !value)} onCloseMobileMenu={() => setMenu(false)}
         onToggleMobileNavGroup={value => setMobileGroup(current => current === value ? null : value)}
         onToggleSidebarNavGroup={value => setSidebarGroup(current => current === value ? null : value)} />
