@@ -1,6 +1,7 @@
 export { TIERLIST_SOURCES } from './model/types';
 export { TIERLIST_CACHE_TTL_MS, tierlistBaseUrl, tierlistCacheKey } from './model/urls';
 export { createArenaTierListClient } from './model/client';
+export { useArenaTierList } from './useArenaTierList';
 export type { ArenaTierListState } from './model/state';
 export type {
   CardData,

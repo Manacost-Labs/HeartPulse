@@ -36,7 +36,9 @@ assert.equal((await client.load('user-1', 'hsreplay', { onCache: () => { cached 
 assert.equal(cached, true);
 assert.equal((calls.at(-1)?.options?.headers as Record<string, string>)['If-None-Match'], '"one"');
 response = () => Promise.reject(new Error('offline'));
-assert.equal((await load()).status, 'stale');
+const offline = await load();
+assert.equal(offline.status, 'stale');
+assert.equal(offline.data?.warning, 'stale');
 assert.equal((await load('other-user')).status, 'error', 'a different account cannot see cached subscriber data');
 assert.equal((await load('user-1', 'firestone')).status, 'error', 'sources have separate caches');
 response = () => Promise.resolve(new Response(null, { status: 403 }));

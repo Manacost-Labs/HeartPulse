@@ -1334,7 +1334,9 @@
         "tests/arena-tierlist-client.test.ts",
         "tests/hsreplay-tierlist.test.ts"
       ],
-      "allowedDependencies": [],
+      "allowedDependencies": [
+        "React"
+      ],
       "forbiddenImports": [
         "server/**",
         "other frontend module internals"

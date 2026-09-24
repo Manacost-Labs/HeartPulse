@@ -57,7 +57,8 @@ export function createArenaTierListClient({ request, storage, now = Date.now }: 
         write(key, { data: confirmed, ts: now(), etag: response.headers.get('ETag') ?? cached?.etag ?? null });
         return arenaTierListState(confirmed, stale);
       } catch {
-        return cached ? arenaTierListState(cached.data, true) : { status: 'error', data: null };
+        return cached ? arenaTierListState({ ...cached.data, warning: 'stale' }, true)
+          : { status: 'error', data: null };
       }
     },
   };
