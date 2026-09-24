@@ -761,6 +761,45 @@
       ]
     },
     {
+      "name": "frontend-articles",
+      "status": "modular",
+      "owner": "editorial",
+      "purpose": "Own public article cards, filters, voting presentation and subscription-aware links.",
+      "paths": [
+        "src/modules/articles"
+      ],
+      "publicEntrypoints": [
+        "src/modules/articles/public.ts"
+      ],
+      "frontendRoutes": [
+        "/articles"
+      ],
+      "backendRoutes": [],
+      "contracts": [
+        "src/modules/articles/model/types.ts"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [
+        "same-origin article API"
+      ],
+      "tests": [
+        "tests/article-access.test.ts",
+        "tests/routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "client.identity",
+        "client.subscriptions",
+        "shared UI",
+        "React"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
+    },
+    {
       "name": "frontend-developer-api",
       "status": "modular",
       "owner": "developer-platform",
@@ -1335,40 +1374,6 @@
       ],
       "migrationTarget": "frontend Battlegrounds route modules",
       "exitCriteria": "Battlegrounds.tsx is replaced by thin route composition over data-owned and tool-owned module entrypoints."
-    },
-    {
-      "name": "legacy-frontend-articles",
-      "status": "legacy",
-      "owner": "editorial",
-      "purpose": "Own the public articles route that is still served through the shared deferred-route host.",
-      "paths": [],
-      "publicEntrypoints": [
-        "src/features/DeferredRoutes.tsx"
-      ],
-      "frontendRoutes": [
-        "/articles"
-      ],
-      "backendRoutes": [],
-      "contracts": [],
-      "jobs": [],
-      "cacheNamespaces": [],
-      "dataStores": [],
-      "externalServices": [
-        "same-origin public article API"
-      ],
-      "tests": [
-        "tests/routes.test.ts",
-        "tests/article-access.test.ts"
-      ],
-      "allowedDependencies": [
-        "shared deferred-route host",
-        "article presentation dependencies"
-      ],
-      "forbiddenImports": [
-        "Battlegrounds and administrator domain internals"
-      ],
-      "migrationTarget": "frontend-articles",
-      "exitCriteria": "The /articles route resolves through a cataloged frontend-articles public entrypoint and no longer depends on DeferredRoutes.tsx."
     },
     {
       "name": "legacy-frontend-battlegrounds-data",

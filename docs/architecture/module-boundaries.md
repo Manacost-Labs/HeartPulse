@@ -1,5 +1,15 @@
 # Module boundaries
 
+## Editorial articles
+
+`src/modules/articles/public.ts` owns the public article listing, filters,
+vote controls and subscription-aware article links. The Vite route still
+re-exports its component from `DeferredRoutes.tsx` during the renderer
+migration. Request handling stays in the existing Express article API;
+the client module contains only presentation and its narrow API adapter.
+Generic breadcrumbs and section banners are shared UI primitives under
+`src/shared/ui/EditorialRouteChrome.tsx`.
+
 ## Battlegrounds minion type icons
 
 `src/modules/battlegrounds/public.ts` exposes the Russian-name and slug icon

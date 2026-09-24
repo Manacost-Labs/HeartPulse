@@ -160,6 +160,26 @@
       ]
     },
     {
+      "id": "client.articles",
+      "runtime": "client",
+      "root": "src/modules/articles",
+      "purpose": "Owns public article listing, voting presentation and subscription-aware article links.",
+      "owner": "editorial",
+      "publicEntry": "src/modules/articles/public.ts",
+      "dependencies": [
+        "client.identity",
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:article-access",
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/plans/nextjs-full-site-migration.md"
+      ]
+    },
+    {
       "id": "client.developerApi",
       "runtime": "client",
       "root": "src/modules/developerApi",
@@ -593,6 +613,7 @@
         "client.accountRoute",
         "client.adminWorkspace",
         "client.applicationConnect",
+        "client.articles",
         "client.battlegrounds",
         "client.developerApi",
         "client.identity",
@@ -694,6 +715,7 @@
       "owner": "web-platform",
       "targetModules": [
         "client.adminWorkspace",
+        "client.articles",
         "client.identity",
         "client.subscriptions"
       ],
