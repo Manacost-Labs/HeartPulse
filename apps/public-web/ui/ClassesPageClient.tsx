@@ -31,6 +31,7 @@ export function ClassesPageClient() {
     <ArenaClassesPage onNavigate={navigateTab}>
       <PaywallGate active={!access.checking && !allowed}
         title="Подтвердите подписку Манакоста для доступа к классам"
+        headingLevel="h2"
         authUser={access.user} subscriptionStatus={access.subscription}
         subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}>
         <ArenaClassesResults onNavigate={navigateTab} state={state} onRetry={retry} />

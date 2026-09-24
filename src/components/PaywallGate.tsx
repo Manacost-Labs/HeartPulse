@@ -21,6 +21,7 @@ export type PaywallGateProps = {
   benefits?: string[];
   actionLabel?: string;
   providerButtons?: boolean;
+  headingLevel?: 'h1' | 'h2';
 };
 
 export type PaywallAccessState = Pick<
@@ -54,7 +55,9 @@ export default function PaywallGate({
   benefits,
   actionLabel,
   providerButtons = false,
+  headingLevel = 'h1',
 }: PaywallGateProps) {
+  const Heading = headingLevel;
   const preview = children ?? <SubscriptionLockedPreview title={previewTitle || title} />;
   if (!active) return <>{preview}</>;
   if (presentation === 'inline') {
@@ -123,9 +126,9 @@ export default function PaywallGate({
             <p className="arena-paywall__eyebrow" style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Раздел для подписчиков
             </p>
-            <h1 className="arena-paywall__title" id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
+            <Heading className="arena-paywall__title" id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
               {subscriptionPaywallHeading(title)}
-            </h1>
+            </Heading>
             <p className="arena-paywall__description" id="paywall-gate-description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
               {variant === 'standard'
                 ? 'Тариф «Алмаз» открывает статистику традиционного режима, актуальную мету и готовые сборки.'
