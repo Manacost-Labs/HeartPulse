@@ -73,6 +73,7 @@ assert.ok(chromiumPath, 'Chromium/Chrome executable is required');
 const browserLaunchOptions = {
   executablePath: chromiumPath,
   headless: true,
+  timeout: 60_000,
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 };
 assert.ok(browserLaunchOptions.args.includes('--disable-dev-shm-usage'),

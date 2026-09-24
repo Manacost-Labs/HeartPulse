@@ -1858,7 +1858,8 @@ async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, 
       const labelText = document.querySelector('.page-tour__progress-row')?.getAttribute('aria-label') || '';
       return labelText.startsWith(`Шаг ${expectedIndex} из `);
     }, { timeout: 10_000 }, index + 1);
-    await new Promise(resolve => setTimeout(resolve, 120));
+    // Position correction runs after 520 ms; allow its 180 ms spotlight transition to finish.
+    await new Promise(resolve => setTimeout(resolve, 750));
 
     const state = await page.evaluate(isMobile => {
       const dialog = document.querySelector('.page-tour__dialog');
