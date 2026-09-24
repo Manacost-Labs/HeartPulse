@@ -7,7 +7,7 @@ import {
 import type { ResolvedPublicUrlPolicy } from '../../shared/seo/publicUrlPolicy';
 
 export const loadDeferredRoutesModule = () => import('../../features/DeferredRoutes');
-export const loadHomeModule = () => import('../../features/Home');
+export const loadHomeModule = () => import('../../modules/home/public');
 export const loadLegalPageModule = () => import('./legalPageRoute');
 export const loadFAQPageModule = () => import('../../features/FAQPage');
 export const loadDeveloperApiModule = () => import('../../modules/developerApi/public');

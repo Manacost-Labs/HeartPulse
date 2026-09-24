@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const homeSource = readFileSync(new URL('../src/features/Home.tsx', import.meta.url), 'utf8');
+const homeSource = readFileSync(new URL('../src/modules/home/ui/Home.tsx', import.meta.url), 'utf8');
 
 assert.match(
   homeSource,

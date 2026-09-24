@@ -78,7 +78,7 @@
     "src/features/FunDecksPage.tsx#FunDeckCard": 143,
     "src/features/FunDecksPage.tsx#FunDecksPage": 239,
     "src/features/GuidesArchive.tsx#GuidesArchiveList": 132,
-    "src/features/Home.tsx#HomeTab": 148,
+    "src/modules/home/ui/Home.tsx#HomeTab": 148,
     "src/features/HsReplayDeckList.tsx#HsReplayDeckList": 136,
     "src/features/pageTour/PageTour.tsx#PageTour": 341,
     "src/features/StandardCards.tsx#CardsListPage": 284,

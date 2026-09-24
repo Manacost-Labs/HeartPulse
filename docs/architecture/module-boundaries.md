@@ -1,5 +1,12 @@
 # Module boundaries
 
+## Public home
+
+`src/modules/home/public.ts` owns the home summary presentation, article
+teasers and navigation sections. The Vite route loads this contract while
+the Next home route is being built. Data fetching and authentication stay at
+their current application boundaries until the route cutover.
+
 ## Editorial articles
 
 `src/modules/articles/public.ts` owns the public article listing, filters,

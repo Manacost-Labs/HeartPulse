@@ -339,9 +339,9 @@ test('production migration scopes conservatively include shell and global route 
   const platformArea = inventory.migrationAreas.find(area => area.id === 'client.platformLegacy');
 
   assert.equal(
-    resolveModuleOrPathSelector(inventory, 'src/features/Home.tsx', REPOSITORY_ROOT)
-      .migrationAreaId,
-    'client.featureLegacy',
+    resolveModuleOrPathSelector(inventory, 'src/modules/home/ui/Home.tsx', REPOSITORY_ROOT)
+      .moduleId,
+    'client.home',
   );
   assert.equal(
     resolveModuleOrPathSelector(inventory, 'src/features/FAQPage.tsx', REPOSITORY_ROOT)

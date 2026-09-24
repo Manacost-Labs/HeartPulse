@@ -108,6 +108,10 @@ pages before this foundation is considered complete.
 
 ### 2. Move low-risk public and editorial pages
 
+The home presentation now has a public module contract shared with the legacy
+route. Its server data adapter and Next route remain to be built before Nginx
+ownership changes.
+
 Move `/articles/`, `/developers/api/`, `/contests/` and `/` in separate public
 slices. Gallery, FAQ, privacy and terms already use Next: treat them as
 regression controls. Move `/guides-archive/` and

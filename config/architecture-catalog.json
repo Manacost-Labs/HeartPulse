@@ -878,6 +878,24 @@
       ]
     },
     {
+      "name": "frontend-home",
+      "status": "modular",
+      "owner": "product-shell",
+      "purpose": "Own the public home summary presentation, article teasers and navigation sections.",
+      "paths": ["src/modules/home"],
+      "publicEntrypoints": ["src/modules/home/public.ts"],
+      "frontendRoutes": ["/"],
+      "backendRoutes": [],
+      "contracts": ["src/modules/home/model/homeSummary.ts"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/home-progressive-loading.test.ts", "tests/routes.test.ts"],
+      "allowedDependencies": ["React", "lucide-react"],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
       "name": "frontend-search-landing",
       "status": "modular",
       "owner": "search-experience",

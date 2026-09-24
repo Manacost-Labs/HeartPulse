@@ -202,6 +202,23 @@
       ]
     },
     {
+      "id": "client.home",
+      "runtime": "client",
+      "root": "src/modules/home",
+      "purpose": "Owns the public home summary, article teasers and navigation sections.",
+      "owner": "product-shell",
+      "publicEntry": "src/modules/home/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:routes",
+        "npm run test:seo-registry"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/plans/nextjs-full-site-migration.md"
+      ]
+    },
+    {
       "id": "client.developerApi",
       "runtime": "client",
       "root": "src/modules/developerApi",
@@ -739,6 +756,7 @@
         "client.adminWorkspace",
         "client.articles",
         "client.contests",
+        "client.home",
         "client.identity",
         "client.subscriptions"
       ],
@@ -753,7 +771,6 @@
       "safeStarts": [
         "src/features/ContestAdminDashboard.tsx",
         "src/features/DeferredRoutes.tsx",
-        "src/features/Home.tsx",
         "src/features/StandardCards.tsx"
       ],
       "routeScope": {
