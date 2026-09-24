@@ -484,7 +484,7 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -685,6 +685,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'public, max-age=60' },
       body: '<!doctype html><title>Next developer API</title>',
     }],
+    ['/articles/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next articles</title>',
+    }],
     ['/gallery/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -778,8 +783,11 @@ async function startCardSeoUpstream() {
     responses.set(`/standard/cards/standard/${segment}/`, responses.get('/standard/cards/standard/CARD_OK/'));
   }
   const server = createHttpServer((incomingRequest, response) => {
-    const pathname = new URL(incomingRequest.url || '/', 'http://arena.test').pathname;
-    const fixture = responses.get(pathname);
+    const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
+    const pathname = incomingUrl.pathname;
+    const fixture = pathname === '/articles/' && incomingUrl.searchParams.has('fail')
+      ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next articles unavailable</p>' }
+      : responses.get(pathname);
     if (!fixture) {
       response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
       response.end(`unexpected upstream path: ${pathname}`);
@@ -957,6 +965,7 @@ http {
       ['/standard/cards/standard/', /Next card catalog/],
       ['/faq/', /Next FAQ/],
       ['/developers/api/', /Next developer API/],
+      ['/articles/', /Next articles/],
       ['/gallery/', /Next gallery/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
@@ -981,6 +990,9 @@ http {
     assert.equal(authState.headers['x-robots-tag'], 'noindex, nofollow', 'auth state robots header');
     const facetedState = await requestNginx(port, '/articles/?search=meta');
     assert.equal(facetedState.headers['x-robots-tag'], 'noindex, follow', 'faceted state robots header');
+    const failedArticles = await requestNginx(port, '/articles/?fail=1');
+    assert.equal(failedArticles.status, 503, 'article upstream errors must retain their status');
+    assert.equal(failedArticles.headers['x-robots-tag'], 'noindex, nofollow', 'article errors must not be indexed');
 
     const adminRedirectResponse = await requestNginx(port, '/admin');
     assert.equal(adminRedirectResponse.status, 301, 'admin slash redirect');

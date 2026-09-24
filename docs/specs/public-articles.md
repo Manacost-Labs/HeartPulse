@@ -1,8 +1,7 @@
 # Public articles page
 
-The Next.js App Router implementation of `/articles/` is staged behind the
-legacy Nginx owner until the direct-port release check passes. Express remains
-the authority for
+The Next.js App Router owns `/articles/` after the direct-port release check
+and Nginx cutover. Express remains the authority for
 `GET /api/articles`, article votes and signed VIP access links.
 
 The initial HTML uses a request-time, anonymous `GET /api/articles` without
