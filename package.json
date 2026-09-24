@@ -257,6 +257,10 @@
     "quality:config": "python3 scripts/quality/quality-guard.py --check-config",
     "quality:plan": "python3 scripts/quality/quality-guard.py --plan",
     "quality:verify": "python3 scripts/quality/quality-guard.py",
+    "quality:retrieval-eval": "context-economy --project . retrieval-eval --manifest config/retrieval-eval.json",
+    "quality:cache-stats": "context-economy --project . cache-stats",
+    "quality:pilot-report": "context-economy --project . pilot-report",
+    "quality:usage-report": "context-economy --project . report --end-to-end",
     "design:verify": "python3 scripts/quality/quality-guard.py --family design"
   },
   "dependencies": {
