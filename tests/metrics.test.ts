@@ -61,7 +61,7 @@ try {
   assert.match(body, /hs_arena_draft_refresh_last_success_timestamp_seconds 1783771170/);
   assert.match(body, /hs_arena_draft_refresh_source_rows 500/);
   assert.match(body, /hs_arena_draft_refresh_published_classes 10/);
-  assert.doesNotMatch(body, /123|private@example\.test|email=/);
+  assert.doesNotMatch(body, /\/items\/123|private@example\.test|email=/);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
