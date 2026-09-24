@@ -476,6 +476,14 @@ for (const route of inventory.routes) {
       'public profile HTML must use the SPA shell while its data stays behind the API serializer');
     continue;
   }
+  if (route.id === 'gallery') {
+    const gallery = locations.find(location => location.modifier === '=' && location.pattern === '/gallery/');
+    assert.match(gallery?.body || '', /proxy_pass http:\/\/127\.0\.0\.1:4321;/,
+      'canonical gallery HTML must use Next');
+    assert.match(gallery?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+      'gallery errors must be noindex');
+    continue;
+  }
   if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
@@ -671,6 +679,11 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'public, max-age=60' },
       body: '<!doctype html><title>Next FAQ</title>',
+    }],
+    ['/gallery/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next gallery</title>',
     }],
     ['/_next/static/test.js', {
       status: 200,
@@ -938,6 +951,7 @@ http {
     for (const [path, expected] of [
       ['/standard/cards/standard/', /Next card catalog/],
       ['/faq/', /Next FAQ/],
+      ['/gallery/', /Next gallery/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
       const nextResponse = await requestNginx(port, path);
@@ -948,6 +962,14 @@ http {
           `${path} must stay indexable on success`);
       }
     }
+
+    const galleryRedirect = await requestNginx(port, '/gallery');
+    assert.equal(galleryRedirect.status, 301, 'gallery must retain its canonical slash redirect');
+    assert.match(galleryRedirect.headers.location || '', /\/gallery\/$/);
+    const galleryQuery = await requestNginx(port, '/gallery/?from=qa');
+    assert.match(galleryQuery.body, /Next gallery/, 'gallery query must keep the Next owner');
+    assert.match(galleryQuery.headers['cache-control'] || '', /no-store/,
+      'request-time gallery HTML must not be cached at the edge');
 
     const authState = await requestNginx(port, '/?login');
     assert.equal(authState.headers['x-robots-tag'], 'noindex, nofollow', 'auth state robots header');

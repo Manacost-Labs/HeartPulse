@@ -116,8 +116,8 @@ Progress (2026-09-24): `/gallery/` is the first editorial slice. Its Next
 route server-renders the anonymous `/api/gallery` projection with request-time
 fetching, retains the existing shell and gallery interactions, and reproduces
 the legacy canonical, robots and social-preview metadata. The API and media
-URLs remain owned by Express. Production ownership still requires the
-separate Nginx route cutover and live verification.
+URLs remain owned by Express. The exact `/gallery/` Nginx route is prepared;
+activation and live verification remain the release step.
 
 ### 3. Move read-only game-data route families
 
