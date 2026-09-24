@@ -176,7 +176,8 @@
       ],
       "docs": [
         "docs/architecture/module-boundaries.md",
-        "docs/plans/nextjs-full-site-migration.md"
+        "docs/plans/nextjs-full-site-migration.md",
+        "docs/specs/public-articles.md"
       ]
     },
     {

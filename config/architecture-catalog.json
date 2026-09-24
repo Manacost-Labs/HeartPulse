@@ -776,7 +776,8 @@
       ],
       "backendRoutes": [],
       "contracts": [
-        "src/modules/articles/model/types.ts"
+        "src/modules/articles/model/types.ts",
+        "docs/specs/public-articles.md"
       ],
       "jobs": [],
       "cacheNamespaces": [],

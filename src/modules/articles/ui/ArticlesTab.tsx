@@ -125,60 +125,46 @@ function ArticleCard({
 
   return (
     <article
-      className={`article-card-modern anim-scale-in rounded-2xl overflow-hidden flex flex-col cursor-pointer transition-all duration-200 ${isFeatured ? 'article-card-featured' : ''}`}
+      className={`article-card-modern anim-scale-in rounded-2xl overflow-hidden flex flex-col transition-all duration-200 ${isFeatured ? 'article-card-featured' : ''}`}
       style={{
         animationDelay: `${idx * 0.06}s`,
       }}
-      onClick={openArticle}
     >
-      <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
-        {!imgErr ? (
-          <img src={articleImageSrc(article.image)} alt={article.title} loading="lazy"
-            onError={() => setImgErr(true)}
-            className="w-full h-full object-contain" />
-        ) : (
-          <div className="article-image-fallback w-full h-full flex items-center justify-center">
-            <BookOpen size={36} aria-hidden="true" />
+      <button type="button" onClick={() => void openArticle()}
+        aria-label={`Читать статью: ${article.title}`}
+        className="flex flex-col flex-grow w-full text-left bg-transparent border-0 p-0 cursor-pointer">
+        <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
+          {!imgErr ? (
+            <img src={articleImageSrc(article.image)} alt={article.title} loading="lazy"
+              onError={() => setImgErr(true)} className="w-full h-full object-contain" />
+          ) : (
+            <div className="article-image-fallback w-full h-full flex items-center justify-center">
+              <BookOpen size={36} aria-hidden="true" />
+            </div>
+          )}
+          {article.tag && (
+            <span className="article-tag absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold">
+              {article.tag}
+            </span>
+          )}
+        </div>
+        <div className="article-body-modern p-4 flex flex-col flex-grow gap-3">
+          <h3 className="font-hs text-base leading-snug">{article.title}</h3>
+          <div className="article-meta-modern flex items-center justify-between mt-auto pt-2">
+            <span className="text-xs">{formatArticleDate(article.date)}</span>
+            <span className="article-read-link text-xs font-bold">{readLabel}</span>
           </div>
-        )}
-        {article.tag && (
-          <span className="article-tag absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold">
-            {article.tag}
-          </span>
-        )}
-      </div>
-      <div className="article-body-modern p-4 flex flex-col flex-grow gap-3">
-        <h3 className="font-hs text-base leading-snug">
-          {article.title}
-        </h3>
-        <div className="article-meta-modern flex items-center justify-between mt-auto pt-2">
-          <span className="text-xs">
-            {formatArticleDate(article.date)}
-          </span>
-          <span className="article-read-link text-xs font-bold">{readLabel}</span>
         </div>
-        <div className="article-vote-row flex items-center gap-2 pt-1" onClick={event => event.stopPropagation()}>
-          <button
-            type="button"
-            className={`article-vote-button ${article.userVote === 'like' ? 'is-active' : ''}`}
-            disabled={voting}
-            onClick={() => onVote(article, 'like')}
-            aria-label="Поставить лайк статье"
-          >
-            <ThumbsUp size={15} />
-            <span>{article.likes ?? 0}</span>
-          </button>
-          <button
-            type="button"
-            className={`article-vote-button ${article.userVote === 'dislike' ? 'is-active' : ''}`}
-            disabled={voting}
-            onClick={() => onVote(article, 'dislike')}
-            aria-label="Поставить дизлайк статье"
-          >
-            <ThumbsDown size={15} />
-            <span>{article.dislikes ?? 0}</span>
-          </button>
-        </div>
+      </button>
+      <div className="article-vote-row flex items-center gap-2 px-4 pb-4 pt-1">
+        <button type="button" className={`article-vote-button ${article.userVote === 'like' ? 'is-active' : ''}`}
+          disabled={voting} onClick={() => onVote(article, 'like')} aria-label="Поставить лайк статье">
+          <ThumbsUp size={15} /><span>{article.likes ?? 0}</span>
+        </button>
+        <button type="button" className={`article-vote-button ${article.userVote === 'dislike' ? 'is-active' : ''}`}
+          disabled={voting} onClick={() => onVote(article, 'dislike')} aria-label="Поставить дизлайк статье">
+          <ThumbsDown size={15} /><span>{article.dislikes ?? 0}</span>
+        </button>
       </div>
     </article>
   );
@@ -205,19 +191,19 @@ function ArticlesToolbar({ articleSearch, articleTag, articleTags, setArticleSea
 
 function filterArticles(articles: Article[], votes: Record<string, Pick<Article, 'likes' | 'dislikes' | 'userVote'>>, tag: string, search: string) {
   const query = search.trim().toLowerCase();
-  return articles
-    .map(article => ({ ...article, ...(votes[article.id] ?? {}) }))
-    .filter(article => {
-      if (tag !== '__all__' && (article.tag?.trim() || '') !== tag) return false;
-      if (!query) return true;
-      return [article.title, article.tag, article.date]
-        .filter(Boolean).join(' ').toLowerCase().includes(query);
-    })
-    .sort((a, b) => {
-      const left = Date.parse(a.date || '');
-      const right = Date.parse(b.date || '');
-      return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
-    });
+  const visible: Article[] = [];
+  for (const base of articles) {
+    const article = { ...base, ...(votes[base.id] ?? {}) };
+    if (tag !== '__all__' && (article.tag?.trim() || '') !== tag) continue;
+    if (query && ![article.title, article.tag, article.date]
+      .filter(Boolean).join(' ').toLowerCase().includes(query)) continue;
+    visible.push(article);
+  }
+  return visible.sort((a, b) => {
+    const left = Date.parse(a.date || '');
+    const right = Date.parse(b.date || '');
+    return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
+  });
 }
 
 export function ArticlesTab({

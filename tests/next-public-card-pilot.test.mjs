@@ -125,5 +125,24 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.match(developerApiHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/developers\/api\/"/);
     assert.equal((developerApiHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(developerApiHtml, /card-reader@example/);
+
+    const emptyArticles = await fetch(`${runtime.origin}/articles/`);
+    assert.equal(emptyArticles.status, 200, runtime.output());
+    assert.match(await emptyArticles.text(), /Статьи скоро появятся/);
+
+    writeFileSync(join(runtime.backend.dataDirectory, 'articles.json'), JSON.stringify({
+      articles: [{ id: 'qa-public-article', title: 'Публичная статья Next', date: '2026-09-24',
+        image: '/arena-logo-icon.webp', excerpt: 'Контрольный материал', tag: 'Арена',
+        mode: 'general', url: 'https://example.com/article' }], updatedAt: '2026-09-24T00:00:00.000Z',
+    }));
+    const articles = await fetch(`${runtime.origin}/articles/`, { headers: cookie });
+    assert.equal(articles.status, 200, runtime.output());
+    const articlesHtml = await articles.text();
+    assert.match(articlesHtml, /Публичная статья Next/);
+    assert.match(articlesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/articles\/"/);
+    assert.equal((articlesHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(articlesHtml, /card-reader@example|manacost_auth_token/);
+    const facetedArticles = await fetch(`${runtime.origin}/articles/?search=meta`);
+    assert.match(await facetedArticles.text(), /name="robots" content="noindex, follow"/);
   } finally { await runtime.close(); }
 });
