@@ -55,8 +55,9 @@ the application shell retains only the displayed update timestamp.
 `src/modules/arenaTierList` owns the shared Arena tier-list source and card-data
 contract plus an account-scoped browser client and React loading hook with
 response validation, ETag refresh and stale fallback. Legacy route composition
-consumes the source and card types; its presentation and page-level loading
-remain in the legacy route until their separate extraction.
+consumes the source and card types. The staged Next route temporarily composes
+the existing Arena presentation through a client adapter; its presentation
+will move into the module before the legacy route is removed.
 
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical

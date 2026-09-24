@@ -166,6 +166,14 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal((classesHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(classesHtml, /arena-class-rank|card-reader@example|manacost_auth_token/);
 
+    const tierlist = await fetch(`${runtime.origin}/tierlist/`, { headers: cookie });
+    assert.equal(tierlist.status, 200, runtime.output());
+    const tierlistHtml = await tierlist.text();
+    assert.match(tierlistHtml, /<h1>Тир-лист карт Арены Hearthstone<\/h1>/);
+    assert.match(tierlistHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/tierlist\/"/);
+    assert.equal((tierlistHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(tierlistHtml, /CARD_1|card-reader@example|manacost_auth_token/);
+
     const emptyContests = await fetch(`${runtime.origin}/contests/`);
     assert.equal(emptyContests.status, 200, runtime.output());
     assert.match(await emptyContests.text(), /Сейчас активных конкурсов нет/);

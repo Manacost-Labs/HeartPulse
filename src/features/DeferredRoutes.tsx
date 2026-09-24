@@ -1613,6 +1613,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
       <PaywallGate
         active={paywallActive}
         title="Подтвердите подписку Манакоста для доступа к тир-листу"
+        headingLevel="h2"
         authUser={authUser}
         subscriptionStatus={subscriptionStatus}
         subscriptionLoading={subscriptionLoading}
