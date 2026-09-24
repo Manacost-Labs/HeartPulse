@@ -100,7 +100,8 @@ const budgets = {
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 73_675),
-  arenaClassesJs: 7_642,
+  // Includes the shared page presentation until the Vite route is retired.
+  arenaClassesJs: 10_000,
   loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 29_850),
   publicProfilePageJs: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_JS_BYTES || 3_400),
   profileIdentityHeroJs: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_JS_BYTES || 1_150),

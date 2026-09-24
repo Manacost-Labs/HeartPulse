@@ -22,7 +22,7 @@ import {
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import { ArenaTierListSearchIntro } from '../modules/searchLanding/public';
-import { ArenaClassesBoard, useArenaClasses } from '../modules/arenaClasses/public';
+import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '../modules/arenaClasses/public';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -852,45 +852,20 @@ export function Winrates(props: WinratesProps & { onUpdatedAt: (value: string | 
   return <WinratesView {...props} state={state} onRetry={retry} />;
 }
 
-export function WinratesView({ onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, state, onRetry }: WinratesProps & {
-  state: React.ComponentProps<typeof ArenaClassesBoard>['state'];
+export function WinratesView(props: WinratesProps & {
+  state: React.ComponentProps<typeof ArenaClassesResults>['state'];
   onRetry: () => void;
 }) {
-  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
-
-  return (
-    <div className="arena-classes-page">
-      <SectionBanner title="Классы" subtitle="Статистика побед на Арене — текущий патч" />
-      <Breadcrumbs items={[
-        { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Классы', href: '/classes' },
-      ]} />
-      <section aria-label="Описание раздела">
-        <p className="text-[#6b4c2a] text-sm leading-relaxed mb-5 px-1"
-          style={{ borderLeft: '3px solid #c4a46a', paddingLeft: '12px' }}>
-          Винрейт классов на Арене Hearthstone показывает процент побед каждого из 11 классов.
-          Данные основаны на миллионах реальных партий и обновляются автоматически каждые 6 часов.
-          Рейтинг помогает выбрать лучший класс для драфта на текущем патче.
-        </p>
-      </section>
-      <PaywallGate
-        active={paywallActive}
-        title="Подтвердите подписку Манакоста для доступа к классам"
-        authUser={authUser}
-        subscriptionStatus={subscriptionStatus}
-        subscriptionLoading={subscriptionLoading}
-        onRefreshSubscription={onRefreshSubscription}
-      >
-      <ArenaClassesBoard state={state} onRetry={onRetry} />
-      <InternalLinks links={[
-        { label: 'Тир-лист карт →', href: '/tierlist', onClick: () => onNavigate('tierlist') },
-        { label: 'Легендарки →', href: '/legendaries', onClick: () => onNavigate('legendaries') },
-        { label: 'Статьи о Арене →', href: '/articles', onClick: () => onNavigate('articles') },
-      ]} />
-      </PaywallGate>
-      <FAQSection />
-    </div>
-  );
+  const locked = !props.subscriptionLoading && !hasSubscriptionEntitlement(props.subscriptionStatus, 'arena');
+  return <ArenaClassesPage onNavigate={props.onNavigate}>
+    <PaywallGate active={locked}
+      title="Подтвердите подписку Манакоста для доступа к классам"
+      authUser={props.authUser} subscriptionStatus={props.subscriptionStatus}
+      subscriptionLoading={props.subscriptionLoading} onRefreshSubscription={props.onRefreshSubscription}>
+      <ArenaClassesResults onNavigate={props.onNavigate} state={props.state} onRetry={props.onRetry} />
+    </PaywallGate>
+    <FAQSection />
+  </ArenaClassesPage>;
 }
 
 // ─── Class tabs ───────────────────────────────────────────────────────────────

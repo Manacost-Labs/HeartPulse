@@ -26,9 +26,10 @@ data, stale fallback, account isolation, cache expiry, authorization rejection,
 304 recovery and invalid responses. Storybook covers each rendered state and
 the retry action at desktop and mobile widths.
 
-The module ships as its own 7,642-byte lazy JavaScript chunk. The remaining
-Arena route is 73,675 bytes; both values are enforced separately. Vite uses
-explicit chunk ownership so the module cannot absorb a shared React runtime
+The module now also owns the page presentation shared by Vite and Next.js.
+Its lazy JavaScript chunk is capped at 10,000 bytes; the measured migration
+build is 9,682 bytes. The remaining Arena route stays capped at 73,675 bytes.
+Vite uses explicit chunk ownership so the module cannot absorb a shared React runtime
 and enter the initial dependency graph. The
 [Rollup chunk contract](https://rollupjs.org/configuration-options/#output-onlyexplicitmanualchunks)
 applies to the function form of `manualChunks`.
