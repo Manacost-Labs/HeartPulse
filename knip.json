@@ -26,6 +26,7 @@
   ],
   "ignoreBinaries": [
     "codex",
+    "context-economy",
     "openssl"
   ],
   "postcss": {
