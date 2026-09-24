@@ -13,6 +13,8 @@ the first release containing `apps/public-web/.next`:
 sudo install -m 644 deploy/hs-arena-next.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemd-analyze verify /etc/systemd/system/hs-arena-next.service
+sudo systemctl enable hs-arena-next.service
+systemctl is-enabled hs-arena-next.service
 ```
 
 The CI release includes the Next build without its build cache and checksums
@@ -25,7 +27,14 @@ curl -fsS http://127.0.0.1:3101/health/ready
 curl -fsS http://127.0.0.1:4321/health/next/
 curl -fsS -o /dev/null -w '%{http_code}\n' \
   http://127.0.0.1:4321/standard/cards/standard/
+systemctl is-active hs-arena-next.service
 ```
+
+Enable the unit before the first release, but let the deployer start it after
+the `.next` artifact exists. On a host that already has a valid release, use
+`sudo systemctl enable --now hs-arena-next.service` to restore both boot-time
+and current availability. Verify `is-enabled`, `is-active` and the public card
+URL after a host reboot: a manual `start` alone does not survive one.
 
 Keep the current Nginx route map on the legacy frontend until those checks
 pass. APIs and identity callbacks must continue to reach Express directly.

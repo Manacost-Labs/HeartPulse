@@ -43,7 +43,9 @@ allowlisted release artifact. The first deployment starts Next on
 `127.0.0.1:4321` while public HTML still uses the legacy routes. Install
 `deploy/hs-arena-next.service` before that deployment; the deployer restarts
 both services, checks `/health/ready` and `/health/next/`, and rolls back a
-candidate that fails either check. See
+candidate that fails either check. Enable the Next unit for boot-time startup
+before the first release (`sudo systemctl enable hs-arena-next.service`), then
+verify it is enabled and active after deployment and after a host reboot. See
 [the Next.js production cutover runbook](docs/runbooks/nextjs-production-cutover.md)
 for the staged routing change and rollback procedure. The origin route snippet
 forwards card catalogs and details, FAQ, privacy, terms and `/_next/` assets to
