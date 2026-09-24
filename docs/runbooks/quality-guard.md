@@ -49,8 +49,10 @@ corpus should be widened before reusing code.
 For a real task chosen for the pilot, start before preparation with a unique
 task ID: `context-economy --project "$PWD" meter-start --task-id ID
 --current-session --from-task-start`. The current-session option resolves the
-exact local Codex JSONL identified by `CODEX_SESSION_ID`; other clients must
-pass an exact `--session` path. Omit `--from-task-start` if preparation already
+exact local Codex JSONL identified by `CODEX_SESSION_ID` or Claude Code JSONL
+identified by `CLAUDE_CODE_SESSION_ID` inside Claude Code. Other clients must
+pass an exact `--session` path and `--session-format claude` for Claude logs.
+Omit `--from-task-start` if preparation already
 began and do not label that interval complete. Attach helper sessions before
 they work, and bind CLI helpers with `--meter-task-id ID` when used.
 
