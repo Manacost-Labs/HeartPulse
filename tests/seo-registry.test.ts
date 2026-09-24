@@ -124,7 +124,7 @@ assert.match(battlegroundsLibrarySource, /shortTitle} BG Hearthstone \| HearthPu
 assert.doesNotMatch(battlegroundsLibrarySource, /BG Hearthstone \| HS-Manacost/);
 
 const paywallGateSource = readFileSync(new URL('../src/components/PaywallGate.tsx', import.meta.url), 'utf8');
-assert.match(paywallGateSource, /headingLevel = 'h1'/);
+assert.match(paywallGateSource, /headingLevel: Heading = 'h1'/);
 assert.match(paywallGateSource, /<Heading[^>]*id="paywall-gate-title"/);
 assert.match(paywallGateSource, /subscriptionPaywallHeading\(title\)/);
 assert.doesNotMatch(paywallGateSource, /<h1 style=\{\{ margin: 0/);

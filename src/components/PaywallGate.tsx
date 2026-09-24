@@ -55,9 +55,8 @@ export default function PaywallGate({
   benefits,
   actionLabel,
   providerButtons = false,
-  headingLevel = 'h1',
+  headingLevel: Heading = 'h1',
 }: PaywallGateProps) {
-  const Heading = headingLevel;
   const preview = children ?? <SubscriptionLockedPreview title={previewTitle || title} />;
   if (!active) return <>{preview}</>;
   if (presentation === 'inline') {
@@ -76,7 +75,6 @@ export default function PaywallGate({
       />
     );
   }
-
   return (
     <div className="arena-paywall" style={{ position: 'relative', minHeight: 760, paddingBottom: 48 }}>
       <div
