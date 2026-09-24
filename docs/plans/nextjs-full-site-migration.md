@@ -160,9 +160,9 @@ with Vite retirement.
 Progress (2026-09-24): `/classes/` has a Next route with an anonymous
 server-rendered teaser and the existing account-scoped statistics client.
 After direct-port and browser checks on the deployed release, Nginx serves
-this page from Next.js. `/tierlist/` now has a Next route with account-gated
+this page from Next.js. `/tierlist/` also has a Next route with account-gated
 client data loading and an anonymous server-rendered page. Its public Nginx
-owner remains legacy until a deployed direct-port check. `/legendaries/`
+owner switches to Next.js after the deployed direct-port check; `/legendaries/`
 remains entirely in legacy.
 
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed

@@ -485,7 +485,7 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -706,6 +706,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next classes</title>',
     }],
+    ['/tierlist/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next tierlist</title>',
+    }],
     ['/gallery/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -801,7 +806,7 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/', '/articles/', '/contests/', '/classes/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = ['/', '/articles/', '/contests/', '/classes/', '/tierlist/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -960,7 +965,7 @@ http {
     assert.match(routeRedirect.headers.location || '', /\/tierlist\/$/, 'slash redirect target');
     const materializedRoute = await requestNginx(port, '/tierlist/');
     assert.equal(materializedRoute.status, 200, 'canonical public route');
-    assert.match(materializedRoute.body, /<title>Tierlist<\/title>/, 'materialized route document');
+    assert.match(materializedRoute.body, /<title>Next tierlist<\/title>/, 'tier-list route must reach Next');
     assert.equal(materializedRoute.headers['x-robots-tag'], undefined,
       'materialized indexable route must not inherit fallback noindex');
 
@@ -985,6 +990,7 @@ http {
       ['/articles/', /Next articles/],
       ['/contests/', /Next contests/],
       ['/classes/', /Next classes/],
+      ['/tierlist/', /Next tierlist/],
       ['/gallery/', /Next gallery/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
@@ -1022,6 +1028,9 @@ http {
     const failedClasses = await requestNginx(port, '/classes/?fail=1');
     assert.equal(failedClasses.status, 503, 'Arena class upstream errors must retain their status');
     assert.equal(failedClasses.headers['x-robots-tag'], 'noindex, nofollow', 'Arena class errors must not be indexed');
+    const failedTierlist = await requestNginx(port, '/tierlist/?fail=1');
+    assert.equal(failedTierlist.status, 503, 'Arena tier-list upstream errors must retain their status');
+    assert.equal(failedTierlist.headers['x-robots-tag'], 'noindex, nofollow', 'Arena tier-list errors must not be indexed');
 
     const adminRedirectResponse = await requestNginx(port, '/admin');
     assert.equal(adminRedirectResponse.status, 301, 'admin slash redirect');
