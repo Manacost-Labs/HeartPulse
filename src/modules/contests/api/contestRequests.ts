@@ -1,4 +1,5 @@
 import type { Contest } from '../model/types';
+import { contestsFromResponse } from '../model/contestProjection';
 
 function responseError(value: unknown, fallback: string): string {
   if (value && typeof value === 'object' && 'error' in value && typeof value.error === 'string') {
@@ -13,8 +14,7 @@ export async function requestContests(): Promise<Contest[]> {
   });
   const data: unknown = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(responseError(data, 'Не удалось загрузить конкурсы'));
-  if (!data || typeof data !== 'object' || !('contests' in data) || !Array.isArray(data.contests)) return [];
-  return data.contests as Contest[];
+  return contestsFromResponse(data, true);
 }
 
 export async function requestContestJoin(contestId: string): Promise<void> {

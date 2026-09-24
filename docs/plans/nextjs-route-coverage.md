@@ -18,12 +18,15 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-cards-format` — `/standard/cards/:format`
 - `standard-card-detail` — `/standard/cards/:format/:cardId`
 
-## Public and editorial HTML (4)
+## Next route built; Nginx cutover pending (1 inventory entry)
+
+- `contests` — `/contests`
+
+## Public and editorial HTML (3)
 
 - `home` — `/`
 - `guides-archive` — `/guides-archive` (subscription gate)
 - `guides-archive-detail` — `/guides-archive/:guideSlug` (teaser and gate)
-- `contests` — `/contests`
 
 Migrate the ungated pages first. The guide archive and each valid guide slug
 need a request-scoped entitlement decision, a public teaser and authoritative

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { Gift } from 'lucide-react';
 import type { AuthUser } from '../../identity/public';
@@ -103,14 +105,16 @@ export function ContestsPage({
   subscriptionStatus,
   subscriptionLoading,
   onRefreshSubscription,
+  initialContests,
 }: {
   authUser: AuthUser | null;
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
+  initialContests?: Contest[];
 }) {
-  const [contests, setContests] = useState<Contest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [contests, setContests] = useState<Contest[]>(initialContests ?? []);
+  const [loading, setLoading] = useState(!initialContests);
   const [joiningId, setJoiningId] = useState('');
   const [message, setMessage] = useState<PageMessage | null>(null);
 
@@ -125,7 +129,7 @@ export function ContestsPage({
     }
   }, []);
 
-  useEffect(() => { void loadContests(); }, [loadContests, authUser?.id]);
+  useEffect(() => { if (!initialContests || authUser?.id) void loadContests(); }, [loadContests, authUser?.id, initialContests]);
 
   const joinContest = async (contestId: string) => {
     setJoiningId(contestId);

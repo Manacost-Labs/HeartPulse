@@ -144,5 +144,24 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.doesNotMatch(articlesHtml, /card-reader@example|manacost_auth_token/);
     const facetedArticles = await fetch(`${runtime.origin}/articles/?search=meta`);
     assert.match(await facetedArticles.text(), /name="robots" content="noindex, follow"/);
+
+    const emptyContests = await fetch(`${runtime.origin}/contests/`);
+    assert.equal(emptyContests.status, 200, runtime.output());
+    assert.match(await emptyContests.text(), /Сейчас активных конкурсов нет/);
+    const now = new Date().toISOString();
+    runtime.backend.database.prepare(`INSERT INTO contests
+      (id, title, description, prize, image_url, starts_at, ends_at, status,
+       winners_json, created_by, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      'qa-next-contest', 'Проверочный конкурс Next', 'Публичное описание', 'Приз', '',
+      null, null, 'active', '[]', 'card-reader', now, now,
+    );
+    const contests = await fetch(`${runtime.origin}/contests/`, { headers: cookie });
+    assert.equal(contests.status, 200, runtime.output());
+    const contestsHtml = await contests.text();
+    assert.match(contestsHtml, /Проверочный конкурс Next/);
+    assert.match(contestsHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/contests\/"/);
+    assert.equal((contestsHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(contestsHtml, /createdBy|card-reader@example|manacost_auth_token/);
   } finally { await runtime.close(); }
 });

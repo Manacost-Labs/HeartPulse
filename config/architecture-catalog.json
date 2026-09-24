@@ -816,7 +816,8 @@
       ],
       "backendRoutes": [],
       "contracts": [
-        "src/modules/contests/model/types.ts"
+        "src/modules/contests/model/types.ts",
+        "docs/specs/public-contests.md"
       ],
       "jobs": [],
       "cacheNamespaces": [],
