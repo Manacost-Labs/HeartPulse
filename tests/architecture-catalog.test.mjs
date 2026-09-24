@@ -227,7 +227,7 @@ test('repository catalog is valid and covers every current module directory', ()
   );
   assert.deepEqual(
     findRouteOwners(catalog, 'FRONTEND', '/articles').map(entry => entry.name),
-    ['legacy-frontend-articles'],
+    ['frontend-articles'],
   );
   assert.deepEqual(
     findRouteOwners(catalog, 'FRONTEND', '/heroes/123').map(entry => entry.name),
