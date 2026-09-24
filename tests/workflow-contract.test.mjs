@@ -100,7 +100,7 @@ assert.match(
 assert.doesNotMatch(productionJob, /uses:\s*[^\s@]+@v\d+/);
 assert.match(
   ciWorkflow,
-  /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=da0aea15c6cba9b273e3495f8aa611a46a07ac7b7e61a2e455b0016a01d3dcf3 "\$artifact" "\$GITHUB_SHA"/,
+  /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=2b7f98bb302d286e499225b9d1c027215c4a968f3726cdc14f3c542b1df0a59f "\$artifact" "\$GITHUB_SHA"/,
   'production must fail closed unless the installed privileged deployer advertises the browser smoke capability',
 );
 assert.doesNotMatch(
