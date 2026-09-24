@@ -43,6 +43,13 @@ pass. APIs and identity callbacks must continue to reach Express directly.
 
 ## Switch and roll back routing
 
+For each new HTML route, first deploy the Next implementation behind the
+unchanged Nginx map and confirm its direct port-4321 response. Then install the
+reviewed route snippet, validate and reload Nginx, and release the matching
+versioned Nginx contract. The CI deploy helper must allow that exact contract
+hash; its workflow test pins the same value. This order keeps the old route
+working until the new renderer is available.
+
 Save the installed origin route snippet and SEO map, then install the reviewed
 `deploy/nginx/arena-html-routing.conf` and `deploy/nginx/arena-seo-map.conf`,
 run `sudo nginx -t`, and reload Nginx.
