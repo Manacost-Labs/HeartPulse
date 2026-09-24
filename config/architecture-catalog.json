@@ -1304,6 +1304,24 @@
       ]
     },
     {
+      "name": "frontend-arena-legendaries",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Owns the Arena legendary-group data contract shared by legacy and Next route composition.",
+      "paths": ["src/modules/arenaLegendaries"],
+      "publicEntrypoints": ["src/modules/arenaLegendaries/public.ts"],
+      "frontendRoutes": ["/legendaries"],
+      "backendRoutes": [],
+      "contracts": ["docs/specs/arena-legendaries.md"],
+      "jobs": [],
+      "cacheNamespaces": ["leg_ru_cards_v4_<source>"],
+      "dataStores": ["browser:localStorage"],
+      "externalServices": [],
+      "tests": ["tests/legendary-routes.test.ts"],
+      "allowedDependencies": ["React"],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
       "name": "frontend-arena-tier-list",
       "status": "modular",
       "owner": "web-platform",

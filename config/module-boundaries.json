@@ -620,6 +620,20 @@
       ]
     },
     {
+      "id": "client.arenaLegendaries",
+      "runtime": "client",
+      "root": "src/modules/arenaLegendaries",
+      "purpose": "Owns the Arena legendary-group data contract shared by legacy and Next route composition.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/arenaLegendaries/public.ts",
+      "dependencies": [],
+      "focusedTests": ["npm run test:legendary-routes"],
+      "docs": [
+        "docs/specs/arena-legendaries.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "client.arenaTierList",
       "runtime": "client",
       "root": "src/modules/arenaTierList",

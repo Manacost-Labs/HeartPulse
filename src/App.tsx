@@ -2,6 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
+import type { LegendariesData, LegendarySource } from './modules/arenaLegendaries/public';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { usePublicMenuFocus } from './app/shell/usePublicMenuFocus';
 import { HeaderProfileButton } from './app/shell/HeaderProfileButton';
@@ -77,58 +78,6 @@ interface ClassData {
   textDark?: boolean;
   games?: number;
 }
-
-type LegendarySource = 'hsreplay' | 'firestone';
-
-interface LegendaryCard {
-  cardId: string;
-  name: string;
-  cost?: number;
-  type?: string;
-  rarity?: string;
-  classKey?: string;
-  source?: TierlistSource;
-  statsContext?: 'tierlist' | 'legendary';
-  winrate?: number;
-  deckWinrate?: number | null;
-  pickRate?: number | null;
-  playedWinrate?: number | null;
-  inDecks?: number | null;
-  arenaScore?: number | null;
-  offerRate?: number | null;
-  discardRate?: number | null;
-  drawnWinrate?: number | null;
-  mulliganWinrate?: number | null;
-  keptRate?: number | null;
-  avgCopies?: number | null;
-  totalGames?: number | null;
-  count?: number;
-  imageHa?: string;
-  imageRu?: string | null;
-}
-interface LegendaryGroup {
-  keyCard: LegendaryCard;
-  cards: LegendaryCard[];
-  winRate: number | null;
-  pickRate?: number | null;
-  offerRate?: number | null;
-  score?: number | null;
-  byClass?: Record<string, {
-    winRate: number | null;
-    pickRate: number | null;
-    offerRate: number | null;
-    score: number | null;
-  }>;
-  classKey: string;
-}
-interface LegendariesData {
-  groups: LegendaryGroup[];
-  updatedAt: string | null;
-  source: string;
-  warning?: string;
-}
-
-
 
 
 interface HomeSummaryCard {
