@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "public-profile-link",
+      "query": "canonical numeric public profile link",
+      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/publicResourceUrl.ts"],
+      "expected_path": "src/modules/identity/model/publicProfilePath.ts"
+    },
+    {
+      "id": "client-route-meta",
+      "query": "preserve initial server metadata during client route change",
+      "source": ["src/app/routing/routeResolution.ts", "src/modules/identity/model/publicProfilePath.ts"],
+      "expected_path": "src/app/routing/routeResolution.ts"
+    },
+    {
+      "id": "sentry-privacy",
+      "query": "remove private text from browser error reports",
+      "source": ["src/telemetry/sentryPrivacy.ts", "src/telemetry/webVitals.ts"],
+      "expected_path": "src/telemetry/sentryPrivacy.ts"
+    },
+    {
+      "id": "web-vitals-sampling",
+      "query": "sample browser performance metrics using probability",
+      "source": ["src/telemetry/webVitals.ts", "src/telemetry/sentryPrivacy.ts"],
+      "expected_path": "src/telemetry/webVitals.ts"
+    },
+    {
+      "id": "device-authorization",
+      "query": "validate device authorization payload client name scopes and expiry",
+      "source": ["src/modules/applicationConnect/schema/deviceAuthorization.ts", "src/modules/applicationConnect/applicationConnectModel.ts"],
+      "expected_path": "src/modules/applicationConnect/schema/deviceAuthorization.ts"
+    },
+    {
+      "id": "public-image-url",
+      "query": "build public resource image URL",
+      "source": ["src/publicResourceUrl.ts", "src/modules/identity/model/publicProfilePath.ts"],
+      "expected_path": "src/publicResourceUrl.ts"
+    },
+    {
+      "id": "absent-billing-refund",
+      "query": "refund a completed subscription invoice",
+      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/app/routing/routeResolution.ts"],
+      "expected_path": null
+    }
+  ]
+}

@@ -9,6 +9,7 @@ asset-archive/
 screenshot/
 *.bak*
 *.log
+.artifacts/pilot/
 .env
 .env.*
 !.env.example

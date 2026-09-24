@@ -61,6 +61,11 @@ The repository includes project-scoped tools for safer implementation:
   `npm run agent:context -- <module-id-or-path-or-root>` to load a module,
   canonical shared root, checked migration area or the governed project overview, including
   routes, safe starts, focused tests, documentation and current debt.
+- For nontrivial code reuse, search bounded project source with `context-economy
+  retrieve` before expanding reads. The project labels and exact commands are
+  in `docs/runbooks/quality-guard.md`; OpenRouter fallback needs an explicit
+  evidence gap and opt-in. For a task enrolled in the real-task pilot, begin
+  the meter before preparation and record the accepted outcome after checks.
 - Run CodeGraph reads through `npm run agent:codegraph -- <read-command>`.
   The wrapper synchronizes a worktree-local index, or reuses the `main` index
   only when both worktrees are clean and point at the same commit. Do not call
