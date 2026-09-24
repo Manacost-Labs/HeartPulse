@@ -4,7 +4,7 @@ import { projectPublicConstructedCardSeoData } from '../server/constructedCardSe
 import { once } from 'node:events';
 import { createConstructedCardReader, createPublicCardRouter, type ConstructedCardCollection } from '../server/modules/constructedCards/public';
 
-const card = { card_id: 'blizzard:12345', name: { ru: 'Публичная карта' }, class: 'MAGE', dbf: 12345,
+const card = { card_id: 'blizzard:12345', name: { ru: 'Публичная карта' }, class: 'MAGE', card_set: 'BE', dbf: 12345,
   stats: { secret: 'PRIVATE_STATS' }, decks: [{ deckCode: 'PRIVATE_DECK' }], subscription: 'PRIVATE_ACCOUNT' };
 let collection: ConstructedCardCollection = {
   cards: [card], updatedAt: null, sourceUrl: '', cacheSource: 'fresh', dataStatus: 'fresh', partial: false,
@@ -30,6 +30,7 @@ try {
     const body = await response.text();
     assert.doesNotMatch(body, /PRIVATE_|subscription|deckCode|stats/);
     assert.equal(JSON.parse(body).card.id, card.card_id);
+    assert.equal(JSON.parse(body).card.set, 'Власть Темной империи');
   }
   const calls = detailCalls;
   assert.equal((await fetch(`${origin}/api/public/constructed-cards/wild/ABSENT_CARD`)).status, 404);

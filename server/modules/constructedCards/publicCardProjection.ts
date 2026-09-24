@@ -50,6 +50,7 @@ const TYPE_LABELS: Record<string, string> = {
   ENCHANTMENT: 'Эффект',
 };
 const SET_LABELS: Record<string, string> = {
+  BE: 'Власть Темной империи',
   ESCAPEFROM_VIOLET_HOLD: 'Побег из Аметистовой крепости',
   CATACLYSM: 'Катаклизм',
   TIME_TRAVEL: 'Сквозь потоки времени',
