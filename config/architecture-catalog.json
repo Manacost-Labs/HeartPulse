@@ -1323,13 +1323,15 @@
       ],
       "jobs": [],
       "cacheNamespaces": [
-        "tl_ru_cards_v3_<source>"
+        "tl_ru_cards_v3_<source>",
+        "arena-tierlist:v4:<account>:<source>"
       ],
       "dataStores": [
         "browser:localStorage"
       ],
       "externalServices": [],
       "tests": [
+        "tests/arena-tierlist-client.test.ts",
         "tests/hsreplay-tierlist.test.ts"
       ],
       "allowedDependencies": [],

@@ -628,6 +628,7 @@
       "publicEntry": "src/modules/arenaTierList/public.ts",
       "dependencies": [],
       "focusedTests": [
+        "npm run test:arena-tierlist-client",
         "npm run test:tierlist"
       ],
       "docs": [

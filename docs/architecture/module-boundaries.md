@@ -53,8 +53,9 @@ route composes this module with its existing permission gate and page chrome;
 the application shell retains only the displayed update timestamp.
 
 `src/modules/arenaTierList` owns the shared Arena tier-list source and card-data
-contract. Both legacy route composition and the Next.js migration consume its
-public entry point; presentation and loading still live in the legacy route
+contract plus an account-scoped browser client with response validation, ETag
+refresh and stale fallback. Legacy route composition consumes the source and
+card types; presentation and page-level loading remain in the legacy route
 until their separate extraction.
 
 Application authorization owns protocol contracts and token policy separately

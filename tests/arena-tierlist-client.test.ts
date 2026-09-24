@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import { createArenaTierListClient } from '../src/modules/arenaTierList/model/client';
+
+const now = Date.parse('2026-09-24T12:00:00Z');
+const dataset = {
+  sections: [{ id: 'mage', name: 'Маг', color: '#123456', textDark: false,
+    tiers: [{ tier: 'S', label: 'Лучшие', description: '', cards: [{
+      name: 'Карта', score: 95, rarity: 'common', cardId: 'CARD_1', classKey: 'mage',
+    }] }], totalCards: 1 }],
+  cards: { CARD_1: { imageHa: 'https://example.test/card.png', imageRu: null } },
+  updatedAt: new Date(now).toISOString(), source: 'hsreplay',
+};
+const entries = new Map<string, string>();
+const storage = {
+  getItem: (key: string) => entries.get(key) ?? null,
+  setItem: (key: string, value: string) => { entries.set(key, value); },
+  removeItem: (key: string) => { entries.delete(key); },
+};
+let clock = now;
+let calls: Array<{ url: string; options?: RequestInit }> = [];
+let response = () => Promise.resolve(Response.json(dataset, { headers: { ETag: '"one"' } }));
+const client = createArenaTierListClient({ storage, now: () => clock,
+  request: (url, options) => { calls.push({ url: String(url), options }); return response(); },
+});
+const load = (account = 'user-1', source: 'hsreplay' | 'firestone' = 'hsreplay', bust = false) =>
+  client.load(account, source, { bust });
+
+assert.equal((await load('')).status, 'error');
+assert.equal(calls.length, 0, 'missing account must never call the protected API');
+assert.equal((await load()).status, 'ready');
+assert.match(calls[0].url, /^\/api\/tierlist\?source=hsreplay&v=ru_cards_v3$/);
+assert.equal(entries.size, 1);
+let cached = false;
+response = () => Promise.resolve(new Response(null, { status: 304 }));
+assert.equal((await client.load('user-1', 'hsreplay', { onCache: () => { cached = true; } })).status, 'ready');
+assert.equal(cached, true);
+assert.equal((calls.at(-1)?.options?.headers as Record<string, string>)['If-None-Match'], '"one"');
+response = () => Promise.reject(new Error('offline'));
+assert.equal((await load()).status, 'stale');
+assert.equal((await load('other-user')).status, 'error', 'a different account cannot see cached subscriber data');
+assert.equal((await load('user-1', 'firestone')).status, 'error', 'sources have separate caches');
+response = () => Promise.resolve(new Response(null, { status: 403 }));
+assert.equal((await load()).status, 'error');
+assert.equal(entries.size, 0, 'access revocation clears protected cache');
+response = () => Promise.resolve(Response.json({ ...dataset, source: 'initial' }));
+assert.equal((await load()).status, 'error', 'synthetic data must not enter the cache');
+response = () => Promise.resolve(Response.json({ ...dataset, sections: [{ id: 'mage', tiers: 'broken' }] }));
+assert.equal((await load()).status, 'error', 'malformed sections must not enter the cache');
+response = () => Promise.resolve(Response.json(dataset));
+assert.equal((await load()).status, 'ready');
+calls = [];
+assert.equal((await load('user-1', 'hsreplay', true)).status, 'ready');
+assert.match(calls[0].url, /&t=\d+$/);
+assert.equal(calls[0].options?.cache, 'no-store');
+clock += 60_001;
+response = () => Promise.reject(new Error('offline'));
+assert.equal((await load()).status, 'error', 'expired cache must not hide a failed refresh');
+let attempts = 0;
+response = () => Promise.resolve(++attempts === 1
+  ? new Response(null, { status: 304 }) : Response.json(dataset));
+assert.equal((await load()).status, 'ready');
+assert.equal(attempts, 2, 'a 304 without a usable cache retries without a conditional header');
+console.log('Arena tier-list client access, cache and refresh contract passed');

@@ -240,6 +240,7 @@
     "test:game-data-audit": "tsx --test tests/game-data-audit-model.test.ts tests/game-data-audit-repository.test.ts tests/game-data-audit-codex.test.ts tests/game-data-audit-store.test.ts && node --test tests/game-data-audit-contract.test.mjs",
     "test:battleground-hero-cache": "tsx tests/battleground-hero-cache.test.ts",
     "test:arena-classes-data": "tsx tests/arena-classes-data.test.ts",
+    "test:arena-tierlist-client": "tsx tests/arena-tierlist-client.test.ts",
     "test:account-blocking": "node --test tests/account-blocking-integration.test.mjs",
     "test:auth-persistence": "node --test tests/auth-persistence-integration.test.mjs",
     "test:constructed-card-urls": "tsx tests/constructed-card-urls.test.ts",
