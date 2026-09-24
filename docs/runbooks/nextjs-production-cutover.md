@@ -1,7 +1,8 @@
 # Next.js production cutover
 
 The public card catalog, card details, gallery, FAQ, privacy, terms, articles,
-contests and home pages are owned by Next.js. Express continues to own APIs,
+contests, Arena classes and home pages are owned by Next.js. Express continues
+to own APIs,
 authentication, subscriptions and data access; remaining HTML stays on the
 legacy frontend.
 
@@ -56,8 +57,8 @@ Save the installed origin route snippet and SEO map, then install the reviewed
 run `sudo nginx -t`, and reload Nginx.
 The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus gallery, FAQ, privacy, terms, developer API documentation, articles,
-contests and home to port 4321, and forwards `/_next/` build assets to the
-same process.
+contests, Arena classes and home to port 4321, and forwards `/_next/` build
+assets to the same process.
 The SEO map keeps filtered article pages `noindex, follow`, the home login
 query `noindex, nofollow`, and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
@@ -66,7 +67,8 @@ Verify the canonical public host on desktop and mobile: both card catalogs,
 a card detail sampled from the live sitemap, a confirmed unknown card (404
 with an `X-Robots-Tag: noindex` header), gallery image loading and downloads,
 FAQ, privacy, terms, developer API documentation, articles, filtered article
-queries, contests, home and `/?login`, `_next/static` assets,
+queries, contests, Arena classes (guest paywall and subscribed statistics),
+home and `/?login`, `_next/static` assets,
 console/network errors and the
 subscription gate. Confirm canonical metadata and that API requests still
 reach Express. The CI release monitor must pass for the exact deployed SHA.
