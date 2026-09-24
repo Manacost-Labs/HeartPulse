@@ -3,7 +3,6 @@ import '../route-parchment.css';
 import {
   CircleDollarSign,
   Database,
-  Gift,
   Image as ImageIcon,
   LayoutDashboard,
   Link2,
@@ -82,6 +81,7 @@ import {
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
 import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
+export { ContestsPage } from '../modules/contests/public';
 
 const AdminWorkspaceShell = React.lazy(loadAdminWorkspaceShell);
 const ContestAdminDashboard = React.lazy(() => import('./ContestAdminDashboard').then(module => ({ default: module.ContestAdminDashboard })));
@@ -170,188 +170,6 @@ function contestStatusLabel(status: string): string {
 
 function parseWinnerIds(value: string): string[] {
   return Array.from(new Set(value.split(/[\n,;]/).map(item => item.trim()).filter(Boolean)));
-}
-
-const ContestCard: React.FC<{
-  contest: Contest;
-  authUser: AuthUser | null;
-  subscriptionStatus: SubscriptionStatus | null;
-  subscriptionLoading: boolean;
-  joining?: boolean;
-  onJoin: (contestId: string) => void | Promise<void>;
-}> = ({
-  contest,
-  authUser,
-  subscriptionStatus,
-  subscriptionLoading,
-  joining,
-  onJoin,
-}) => {
-  const joined = contest.entry?.status === 'approved';
-  const completed = contest.status === 'completed';
-  const planned = contest.status === 'planned';
-  const hasSubscription = Boolean(subscriptionStatus?.hasAccess);
-  const buttonLabel = joined
-    ? 'Участие подтверждено'
-    : completed
-      ? 'Конкурс завершен'
-      : planned
-        ? 'Ожидает старта'
-        : joining || subscriptionLoading
-          ? 'Проверяем подписку...'
-          : hasSubscription
-            ? 'Участвовать'
-            : 'Нужна подписка';
-  return (
-    <article className="contest-card">
-      {contest.imageUrl ? (
-        <img className="contest-card-image" src={contest.imageUrl} alt="" loading="lazy" />
-      ) : (
-        <div className="contest-card-image contest-card-image-empty"><Gift size={38} /></div>
-      )}
-      <div className="contest-card-body">
-        <div className="contest-card-kicker">
-          <span>{contestStatusLabel(contest.status)}</span>
-          {contest.prize && <span>{contest.prize}</span>}
-        </div>
-        <h3>{contest.title}</h3>
-        <p>{contest.description || 'Подписчики Манакоста могут подать заявку на участие.'}</p>
-        <div className="contest-card-meta">
-          {contest.endsAt && <span>Итоги: {formatDate(contest.endsAt)}</span>}
-          {contest.entry && <span>Заявка: {contestStatusLabel(contest.entry.status)}</span>}
-        </div>
-        {completed && contest.winners.length > 0 && (
-          <div className="contest-winners">
-            <strong>ID победителей</strong>
-            <div>{contest.winners.map(id => <code key={id}>{id}</code>)}</div>
-          </div>
-        )}
-        {!authUser ? (
-          <a className="contest-primary-button" href="/?login">Войдите для участия</a>
-        ) : (
-          <button
-            type="button"
-            className="contest-primary-button"
-            disabled={joined || completed || planned || joining || subscriptionLoading}
-            onClick={() => onJoin(contest.id)}
-          >
-            {buttonLabel}
-          </button>
-        )}
-      </div>
-    </article>
-  );
-};
-
-export function ContestsPage({
-  authUser,
-  subscriptionStatus,
-  subscriptionLoading,
-  onRefreshSubscription,
-}: {
-  authUser: AuthUser | null;
-  subscriptionStatus: SubscriptionStatus | null;
-  subscriptionLoading: boolean;
-  onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
-}) {
-  const [contests, setContests] = useState<Contest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [joiningId, setJoiningId] = useState('');
-  const [message, setMessage] = useState<AdminMessage | null>(null);
-
-  const loadContests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/contests', { headers: authJsonHeaders() });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить конкурсы');
-      setContests(Array.isArray(data.contests) ? data.contests : []);
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void loadContests(); }, [loadContests, authUser?.id]);
-
-  const joinContest = async (contestId: string) => {
-    setJoiningId(contestId);
-    setMessage(null);
-    try {
-      const status = subscriptionStatus?.hasAccess ? subscriptionStatus : await onRefreshSubscription();
-      if (!status?.hasAccess) {
-        throw new Error(status?.message || 'Участие в конкурсах доступно подписчикам Манакоста.');
-      }
-      const res = await fetch(`/api/contests/${encodeURIComponent(contestId)}/join`, {
-        method: 'POST',
-        headers: authJsonHeaders(),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось подать заявку');
-      setMessage({ type: 'ok', text: 'Заявка одобрена. Вы участвуете в конкурсе.' });
-      void onRefreshSubscription();
-      await loadContests();
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    } finally {
-      setJoiningId('');
-    }
-  };
-
-  return (
-    <section className="contests-page">
-      <div className="contest-hero">
-        <div>
-          <p className="contest-eyebrow">Manacost</p>
-          <h1>Конкурсы</h1>
-          <p>
-            Здесь будут проходить розыгрыши для подписчиков: игровая валюта, бонусы и другие призы.
-            Нажмите “Участвовать”, система проверит подписку и подтвердит заявку автоматически.
-          </p>
-        </div>
-        <div className="contest-access-card">
-          <span>Статус доступа</span>
-          <strong>{subscriptionLoading ? 'Проверяем...' : subscriptionStatus?.hasAccess ? 'Подписка активна' : authUser ? 'Нужна подписка' : 'Нужен вход'}</strong>
-          <button type="button" onClick={() => void onRefreshSubscription()} disabled={!authUser || subscriptionLoading}>
-            Обновить
-          </button>
-        </div>
-      </div>
-
-      {message && <div className={`contest-message contest-message-${message.type}`}>{message.text}</div>}
-
-      <div className="contest-steps">
-        <div><strong>1</strong><span>Выберите конкурс</span></div>
-        <div><strong>2</strong><span>Система проверит подписку</span></div>
-        <div><strong>3</strong><span>После завершения появятся ID победителей</span></div>
-      </div>
-
-      {loading ? (
-        <RouteFallback minHeight={260} />
-      ) : contests.length ? (
-        <div className="contest-grid">
-          {contests.map(contest => (
-            <ContestCard
-              key={contest.id}
-              contest={contest}
-              authUser={authUser}
-              subscriptionStatus={subscriptionStatus}
-              subscriptionLoading={subscriptionLoading}
-              joining={joiningId === contest.id}
-              onJoin={joinContest}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="contest-empty">
-          <Gift size={34} />
-          <strong>Сейчас активных конкурсов нет</strong>
-          <span>Когда конкурс будет создан, он появится на этой странице.</span>
-        </div>
-      )}
-    </section>
-  );
 }
 
 const ADMIN_NAV_ITEMS: ReadonlyArray<{

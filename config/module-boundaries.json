@@ -181,6 +181,26 @@
       ]
     },
     {
+      "id": "client.contests",
+      "runtime": "client",
+      "root": "src/modules/contests",
+      "purpose": "Owns the public contests listing and participation UI.",
+      "owner": "community",
+      "publicEntry": "src/modules/contests/public.ts",
+      "dependencies": [
+        "client.identity",
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:contest-routes",
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/plans/nextjs-full-site-migration.md"
+      ]
+    },
+    {
       "id": "client.developerApi",
       "runtime": "client",
       "root": "src/modules/developerApi",
@@ -717,6 +737,7 @@
       "targetModules": [
         "client.adminWorkspace",
         "client.articles",
+        "client.contests",
         "client.identity",
         "client.subscriptions"
       ],

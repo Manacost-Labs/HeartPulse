@@ -801,6 +801,45 @@
       ]
     },
     {
+      "name": "frontend-contests",
+      "status": "modular",
+      "owner": "community",
+      "purpose": "Own public contest listing and participation UI.",
+      "paths": [
+        "src/modules/contests"
+      ],
+      "publicEntrypoints": [
+        "src/modules/contests/public.ts"
+      ],
+      "frontendRoutes": [
+        "/contests"
+      ],
+      "backendRoutes": [],
+      "contracts": [
+        "src/modules/contests/model/types.ts"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [
+        "same-origin contest API"
+      ],
+      "tests": [
+        "tests/contest-routes.test.ts",
+        "tests/routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "client.identity",
+        "client.subscriptions",
+        "shared UI",
+        "React"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
+    },
+    {
       "name": "frontend-developer-api",
       "status": "modular",
       "owner": "developer-platform",

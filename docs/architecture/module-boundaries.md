@@ -11,6 +11,14 @@ presentation and its narrow API adapter.
 Generic breadcrumbs and section banners are shared UI primitives under
 `src/shared/ui/EditorialRouteChrome.tsx`.
 
+## Public contests
+
+`src/modules/contests/public.ts` owns the public contest list and participation
+UI. The legacy route re-exports this component from `src/features/Contests.tsx`;
+the administrator workspace stays in that feature until its separate migration.
+The module calls the existing Express contest API and depends only on the
+identity and subscription public contracts for participation state.
+
 ## Battlegrounds minion type icons
 
 `src/modules/battlegrounds/public.ts` exposes the Russian-name and slug icon
