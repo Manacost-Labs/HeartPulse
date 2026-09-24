@@ -4,7 +4,7 @@ import { canonicalArticleUrl } from '../shared/articleImageSrc.ts';
 
 const server = readFileSync('server/index.ts', 'utf8');
 const analytics = readFileSync('server/adminBoostyAnalyticsRoutes.ts', 'utf8');
-const deferredRoutes = readFileSync('src/features/DeferredRoutes.tsx', 'utf8');
+const articleCard = readFileSync('src/modules/articles/ui/ArticleCard.tsx', 'utf8');
 const articleImageSource = readFileSync('shared/articleImageSrc.ts', 'utf8');
 const app = readFileSync('src/App.tsx', 'utf8');
 const legendaryImageGenerator = readFileSync('server/gen_legendary_image.py', 'utf8');
@@ -44,7 +44,7 @@ for (const host of ['kolodahearthstone.com', 'kolodahearthstone.ru']) {
     `${host} must remain accepted by the server during migration`,
   );
   assert.match(
-    deferredRoutes,
+    articleCard,
     new RegExp(`['"]${host.replaceAll('.', '\\.')}['"]`),
     `${host} must remain accepted by the browser during migration`,
   );
@@ -52,7 +52,7 @@ for (const host of ['kolodahearthstone.com', 'kolodahearthstone.ru']) {
 
 for (const [label, source] of [
   ['server proxy allowlist', server],
-  ['browser proxy allowlist', deferredRoutes],
+  ['browser proxy allowlist', articleCard],
   ['shared image helper', articleImageSource],
 ]) {
   assert.doesNotMatch(
