@@ -19,10 +19,15 @@ profiles while it still owns the `hs-arena-production` concurrency lock:
   readiness, crawl/SSR contracts, constructed-card envelopes and critical
   HTML routes. A ready application may report `dataStatus=degraded`; freshness
   is deliberately not a release rollback signal.
+
 - `freshness` runs after the release check and is non-blocking for the frontend
   release. It fails unless the required datasets are fresh and non-empty, so
   LKG remains visible as degraded evidence rather than a false green result.
 - `full` is the default scheduled profile and combines both sets of checks.
+
+Constructed-card probes accept canonical game IDs and temporary
+`blizzard:<dbf>` IDs used by announced cards. The selected list ID must
+resolve to a public detail page in the same format.
 
 The browser observatory is release-blocking. `deploy-production` depends on
 both release validation and browser QA, and the exact-SHA post-deploy checks

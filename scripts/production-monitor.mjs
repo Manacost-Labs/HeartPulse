@@ -756,7 +756,7 @@ async function checkConstructedCards(baseUrl, fetchImpl, timeoutMs, signal) {
     validateConstructedCardEnvelope(listResponse, list, `constructed cards ${format} list`);
     ensure(list?.partial === false, `constructed cards ${format} catalog is partial`);
     const knownId = String(list?.cards?.[0]?.card_id || '');
-    ensure(/^[A-Za-z0-9_]{2,80}$/.test(knownId), `constructed cards ${format} catalog has no monitorable card`);
+    ensure(/^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/.test(knownId), `constructed cards ${format} catalog has no monitorable card`);
     checks.push({ label: `constructed cards ${format} list`, attempts: 1, status: 200, durationMs: Date.now() - listStartedAt });
 
     const detailStartedAt = Date.now();

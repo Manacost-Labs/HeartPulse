@@ -14,6 +14,7 @@ let mismatchEnvelopeFormat = null;
 let seoFailure = null;
 let compressedSitemapEtag = false;
 let healthBodyDelayMs = 0;
+let fallbackConstructedId = false;
 
 const EXTERNAL_TEST_TIMEOUT = Symbol('external test timeout');
 
@@ -147,6 +148,7 @@ const server = http.createServer((req, res) => {
   }
   if (requestUrl.pathname === '/api/constructed-cards') {
     const format = requestUrl.searchParams.get('format') || 'standard';
+    const cardId = fallbackConstructedId ? `blizzard:${format === 'wild' ? 67890 : 12345}` : `${format.toUpperCase()}_CARD_1`;
     const datasetVersion = `ccc1-sha256:${format === 'wild' ? '2'.repeat(64) : '1'.repeat(64)}`;
     res.writeHead(200, cardHeaders(format));
     res.end(JSON.stringify({
@@ -154,13 +156,14 @@ const server = http.createServer((req, res) => {
       datasetVersion,
       dataStatus: format === 'wild' && mismatchEnvelopeFormat !== format ? 'stale' : 'fresh',
       partial: false,
-      cards: [{ card_id: `${format.toUpperCase()}_CARD_1` }],
+      cards: [{ card_id: cardId }],
     }));
     return;
   }
-  if (/^\/api\/constructed-cards\/(?:STANDARD|WILD)_CARD_1$/.test(requestUrl.pathname)) {
+  if (/^\/api\/constructed-cards\/(?:STANDARD|WILD)_CARD_1$/.test(requestUrl.pathname)
+    || /^\/api\/constructed-cards\/blizzard%3A\d+$/.test(requestUrl.pathname)) {
     const format = requestUrl.searchParams.get('format') || 'standard';
-    const cardId = requestUrl.pathname.split('/').pop();
+    const cardId = decodeURIComponent(requestUrl.pathname.split('/').pop());
     const datasetVersion = `ccc1-sha256:${format === 'wild' ? '2'.repeat(64) : '1'.repeat(64)}`;
     res.writeHead(200, cardHeaders(format));
     res.end(JSON.stringify({
@@ -372,6 +375,18 @@ try {
   assert.equal(releaseReport.status, 'ok');
   assert.equal(releaseReport.profile, 'release');
   assert.ok(!releaseReport.checks.some(check => check.label === 'data freshness'));
+
+  fallbackConstructedId = true;
+  const fallbackReleaseReport = await runProductionMonitor({
+    baseUrl,
+    profile: 'release',
+    expectedRelease: 'abcdef1234567890',
+    attempts: 1,
+    retryDelayMs: 0,
+    timeoutMs: 2_000,
+  });
+  assert.equal(fallbackReleaseReport.status, 'ok');
+  fallbackConstructedId = false;
 
   await assert.rejects(
     runProductionMonitor({
