@@ -145,6 +145,18 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const facetedArticles = await fetch(`${runtime.origin}/articles/?search=meta`);
     assert.match(await facetedArticles.text(), /name="robots" content="noindex, follow"/);
 
+    const home = await fetch(`${runtime.origin}/`, { headers: cookie });
+    assert.equal(home.status, 200, runtime.output());
+    const homeHtml = await home.text();
+    assert.match(homeHtml, /Мета/);
+    assert.match(homeHtml, /Публичная статья Next/);
+    assert.match(homeHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/"/);
+    assert.equal((homeHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(homeHtml, /card-reader@example|manacost_auth_token/);
+    const loginHome = await fetch(`${runtime.origin}/?login`, { headers: cookie });
+    assert.equal(loginHome.status, 200, runtime.output());
+    assert.match(await loginHome.text(), /name="robots" content="noindex, nofollow"/);
+
     const emptyContests = await fetch(`${runtime.origin}/contests/`);
     assert.equal(emptyContests.status, 200, runtime.output());
     assert.match(await emptyContests.text(), /Сейчас активных конкурсов нет/);

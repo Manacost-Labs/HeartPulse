@@ -886,7 +886,7 @@
       "publicEntrypoints": ["src/modules/home/public.ts"],
       "frontendRoutes": ["/"],
       "backendRoutes": [],
-      "contracts": ["src/modules/home/model/homeSummary.ts"],
+      "contracts": ["src/modules/home/model/homeSummary.ts", "docs/specs/public-home.md"],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],

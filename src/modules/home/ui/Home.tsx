@@ -19,13 +19,17 @@ function HomeSectionFallback({ announce = false, label }: { announce?: boolean; 
 
 const HOME_SECTION_PRELOAD_MARGIN = '720px 0px';
 
-function DeferredHomeSection({ children, label }: React.PropsWithChildren<{ label: string }>) {
+function DeferredHomeSection({ children, label, eager = false }: React.PropsWithChildren<{ label: string; eager?: boolean }>) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [nearViewport, setNearViewport] = useState(() => typeof IntersectionObserver === 'undefined');
+  const [nearViewport, setNearViewport] = useState(eager);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || nearViewport) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setNearViewport(true);
+      return undefined;
+    }
     const observer = new IntersectionObserver(entries => {
       if (!entries.some(entry => entry.isIntersecting)) return;
       setNearViewport(true);
@@ -68,13 +72,14 @@ class HomeSectionBoundary extends React.Component<
   }
 }
 
-export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, faq }: {
+export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, faq, serverArticles = false }: {
   homeSummaryData: HomeSummaryData | null;
   loadingHomeSummary: boolean;
   articles: HomeArticle[];
   loadingArticles: boolean;
   onNavigate: (tab: string) => void;
   faq: React.ReactNode;
+  serverArticles?: boolean;
 }) {
   return (
     <div className="home-modern home-workbench">
@@ -87,7 +92,7 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
-      <DeferredHomeSection label="Последние статьи">
+      <DeferredHomeSection label="Последние статьи" eager={serverArticles}>
         <React.Suspense fallback={<HomeSectionFallback announce label="Последние статьи" />}>
           <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
         </React.Suspense>

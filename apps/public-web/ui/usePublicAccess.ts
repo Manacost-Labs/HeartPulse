@@ -7,6 +7,17 @@ export function usePublicAccess() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [checking, setChecking] = useState(true);
+  const onAuthChange = useCallback((current: AuthUser | null) => {
+    setUser(current);
+    setChecking(false);
+    setSubscription(null);
+    if (current) {
+      void fetch('/api/subscription/status', { credentials: 'same-origin' })
+        .then(response => response.ok ? response.json() as Promise<SubscriptionStatus> : null)
+        .then(setSubscription)
+        .catch(() => setSubscription(null));
+    }
+  }, []);
   const refresh = useCallback(async () => {
     const response = await fetch('/api/subscription/refresh', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Request': '1' } });
     const value: SubscriptionStatus | null = response.ok ? await response.json() : null;
@@ -29,5 +40,5 @@ export function usePublicAccess() {
     return () => controller.abort();
   }, []);
   const admin = canAccessAdminWorkspace(user);
-  return { user, subscription, checking, refresh, contestAdmin: canManageContests(user), statsAccess: admin || hasSubscriptionEntitlement(subscription, 'standard'), admin };
+  return { user, subscription, checking, refresh, onAuthChange, contestAdmin: canManageContests(user), statsAccess: admin || hasSubscriptionEntitlement(subscription, 'standard'), admin };
 }

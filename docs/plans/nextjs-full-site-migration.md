@@ -2,7 +2,8 @@
 
 Status: execution in progress, 2026-09-24. Cards, FAQ, privacy, terms,
 gallery, developer API documentation, articles and contests are live on Next.js.
-The remaining route checklist is the
+Home has a Next route awaiting direct-port validation and Nginx cutover. The
+remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
 `../runbooks/nextjs-production-cutover.md`.
@@ -109,8 +110,8 @@ pages before this foundation is considered complete.
 ### 2. Move low-risk public and editorial pages
 
 The home presentation now has a public module contract shared with the legacy
-route. Its server data adapter and Next route remain to be built before Nginx
-ownership changes.
+route. Its request-time Next route uses anonymous Express data and preserves
+`/?login`; Nginx ownership changes only after direct-port and browser checks.
 
 Move `/articles/`, `/developers/api/`, `/contests/` and `/` in separate public
 slices. Gallery, FAQ, privacy and terms already use Next: treat them as

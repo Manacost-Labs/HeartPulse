@@ -19,9 +19,12 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-cards-format` — `/standard/cards/:format`
 - `standard-card-detail` — `/standard/cards/:format/:cardId`
 
-## Public and editorial HTML (3)
+## Next route built; Nginx cutover pending (1 inventory entry)
 
 - `home` — `/`
+
+## Public and editorial HTML (2)
+
 - `guides-archive` — `/guides-archive` (subscription gate)
 - `guides-archive-detail` — `/guides-archive/:guideSlug` (teaser and gate)
 
