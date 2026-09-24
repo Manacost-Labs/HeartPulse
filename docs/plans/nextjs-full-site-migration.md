@@ -148,8 +148,8 @@ Progress (2026-09-24): `/contests/` now has a request-time Next route with an
 anonymous public projection. The public UI is separated from the administrator
 workspace; participation and subscription checks remain on Express. Production
 Nginx keeps the legacy owner until the Next release passes direct-port checks.
-The 80 KiB Vite startup gzip cap also covers contest chunk-hash variance;
-the uncompressed startup bundle remains 261,026 bytes and the cap disappears
+The 82,112-byte Vite startup gzip cap also covers contest chunk-hash variance;
+the measured uncompressed startup bundle is 261,064 bytes and the cap disappears
 with Vite retirement.
 
 ### 3. Move read-only game-data route families
