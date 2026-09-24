@@ -57,6 +57,9 @@ import {
 } from './modules/identity/public';
 import {
   TIERLIST_SOURCES,
+  TIERLIST_CACHE_TTL_MS,
+  tierlistBaseUrl,
+  tierlistCacheKey,
   type TierlistData,
   type TierlistSource,
 } from './modules/arenaTierList/public';
@@ -345,7 +348,6 @@ const RouteFallback = RouteLoadingSurface;
 
 // ─── Persistent cache with TTL (survives tab close, expires with data) ────────
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 h — matches server scrape interval
-const TIERLIST_CACHE_TTL_MS = 60 * 1000;
 
 
 function cacheGet<T>(key: string, maxAgeMs: number = CACHE_TTL_MS): T | null {
@@ -398,14 +400,6 @@ async function fetchWithETag(url: string, cacheKey: string): Promise<{ data: any
     cacheSet(cacheKey, data);
     return { data, fresh: true };
   } catch { return null; }
-}
-
-function tierlistCacheKey(src: TierlistSource): string {
-  return `tl_ru_cards_v3_${src}`;
-}
-
-function tierlistBaseUrl(src: TierlistSource): string {
-  return `/api/tierlist?source=${src}&v=ru_cards_v3`;
 }
 
 async function fetchTierlistSnapshot(src: TierlistSource, bust = false): Promise<TierlistData | null> {

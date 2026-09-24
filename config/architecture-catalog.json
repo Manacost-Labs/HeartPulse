@@ -1322,8 +1322,12 @@
         "docs/specs/arena-tierlist.md"
       ],
       "jobs": [],
-      "cacheNamespaces": [],
-      "dataStores": [],
+      "cacheNamespaces": [
+        "tl_ru_cards_v3_<source>"
+      ],
+      "dataStores": [
+        "browser:localStorage"
+      ],
       "externalServices": [],
       "tests": [
         "tests/hsreplay-tierlist.test.ts"

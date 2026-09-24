@@ -16,3 +16,7 @@ The shared TypeScript contract is exported from
 `src/modules/arenaTierList/public.ts`. The legacy route still owns data loading
 and rendering while the Next.js route is being built. Public Nginx ownership
 must remain on legacy until the Next route passes direct-port and browser checks.
+
+The browser cache key is `tl_ru_cards_v3_<source>` with a 60-second fresh TTL.
+The API URL includes `v=ru_cards_v3`; an explicit refresh adds `t=<timestamp>`
+to bypass the server cache while preserving the selected source.
