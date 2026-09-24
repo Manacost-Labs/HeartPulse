@@ -484,7 +484,7 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -690,6 +690,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next articles</title>',
     }],
+    ['/contests/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next contests</title>',
+    }],
     ['/gallery/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -785,8 +790,8 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = pathname === '/articles/' && incomingUrl.searchParams.has('fail')
-      ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next articles unavailable</p>' }
+    const fixture = ['/articles/', '/contests/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
       response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -966,6 +971,7 @@ http {
       ['/faq/', /Next FAQ/],
       ['/developers/api/', /Next developer API/],
       ['/articles/', /Next articles/],
+      ['/contests/', /Next contests/],
       ['/gallery/', /Next gallery/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
@@ -993,6 +999,9 @@ http {
     const failedArticles = await requestNginx(port, '/articles/?fail=1');
     assert.equal(failedArticles.status, 503, 'article upstream errors must retain their status');
     assert.equal(failedArticles.headers['x-robots-tag'], 'noindex, nofollow', 'article errors must not be indexed');
+    const failedContests = await requestNginx(port, '/contests/?fail=1');
+    assert.equal(failedContests.status, 503, 'contest upstream errors must retain their status');
+    assert.equal(failedContests.headers['x-robots-tag'], 'noindex, nofollow', 'contest errors must not be indexed');
 
     const adminRedirectResponse = await requestNginx(port, '/admin');
     assert.equal(adminRedirectResponse.status, 301, 'admin slash redirect');

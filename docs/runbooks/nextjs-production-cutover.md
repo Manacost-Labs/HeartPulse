@@ -54,16 +54,16 @@ Save the installed origin route snippet and SEO map, then install the reviewed
 `deploy/nginx/arena-html-routing.conf` and `deploy/nginx/arena-seo-map.conf`,
 run `sudo nginx -t`, and reload Nginx.
 The snippet preserves canonical slash redirects, forwards card catalogs and
-details plus gallery, FAQ, privacy, terms, developer API documentation and
-articles to port 4321, and forwards `/_next/` build assets to the same process.
+details plus gallery, FAQ, privacy, terms, developer API documentation, articles
+and contests to port 4321, and forwards `/_next/` build assets to the same process.
 The SEO map keeps filtered article pages `noindex, follow` and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
 ordinary successful responses. Other HTML and API routes remain on Express/Vite.
 Verify the canonical public host on desktop and mobile: both card catalogs,
 a card detail sampled from the live sitemap, a confirmed unknown card (404
 with an `X-Robots-Tag: noindex` header), gallery image loading and downloads,
-FAQ, privacy, terms, developer API documentation, articles and filtered
-article queries, `_next/static` assets,
+FAQ, privacy, terms, developer API documentation, articles, filtered article
+queries and contests, `_next/static` assets,
 console/network errors and the
 subscription gate. Confirm canonical metadata and that API requests still
 reach Express. The CI release monitor must pass for the exact deployed SHA.

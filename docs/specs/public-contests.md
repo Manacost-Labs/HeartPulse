@@ -1,7 +1,7 @@
 # Public contests page
 
-The Next.js `/contests/` route is prepared behind the legacy production Nginx
-owner. Express remains the authority for `GET /api/contests`, subscription
+The Next.js `/contests/` route owns public HTML. Express remains the authority
+for `GET /api/contests`, subscription
 status and contest joins.
 
 The server renders only an anonymous, request-time contest projection. It does

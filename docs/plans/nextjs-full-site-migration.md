@@ -1,9 +1,8 @@
 # Full-site Next.js migration and Vite retirement
 
 Status: execution in progress, 2026-09-24. Cards, FAQ, privacy, terms,
-gallery, developer API documentation and articles are live on Next.js. Contests
-have a Next route awaiting direct-port validation and Nginx cutover. The
-remaining route checklist is the
+gallery, developer API documentation, articles and contests are live on Next.js.
+The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
 `../runbooks/nextjs-production-cutover.md`.
@@ -147,7 +146,7 @@ hashed-chunk variance; the ceiling will be removed with Vite.
 Progress (2026-09-24): `/contests/` now has a request-time Next route with an
 anonymous public projection. The public UI is separated from the administrator
 workspace; participation and subscription checks remain on Express. Production
-Nginx keeps the legacy owner until the Next release passes direct-port checks.
+Nginx routes the page to Next after direct-port and browser checks.
 The 82,112-byte Vite startup gzip cap also covers contest chunk-hash variance;
 the measured uncompressed startup bundle is 261,064 bytes and the cap disappears
 with Vite retirement.
