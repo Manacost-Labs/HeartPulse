@@ -6,21 +6,21 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (7 inventory entries)
+## Already served by Next.js (8 inventory entries)
 
 - `faq` — `/faq`
 - `privacy` — `/privacy`
 - `terms` — `/terms`
 - `gallery` — `/gallery`
+- `developer-api` — `/developers/api`
 - `standard-cards` — `/standard/cards`
 - `standard-cards-format` — `/standard/cards/:format`
 - `standard-card-detail` — `/standard/cards/:format/:cardId`
 
-## Public and editorial HTML (6)
+## Public and editorial HTML (5)
 
 - `home` — `/`
 - `articles` — `/articles`
-- `developer-api` — `/developers/api`
 - `guides-archive` — `/guides-archive` (subscription gate)
 - `guides-archive-detail` — `/guides-archive/:guideSlug` (teaser and gate)
 - `contests` — `/contests`

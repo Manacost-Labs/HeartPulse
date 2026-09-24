@@ -484,7 +484,7 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -679,6 +679,11 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'public, max-age=60' },
       body: '<!doctype html><title>Next FAQ</title>',
+    }],
+    ['/developers/api/', {
+      status: 200,
+      headers: { 'Cache-Control': 'public, max-age=60' },
+      body: '<!doctype html><title>Next developer API</title>',
     }],
     ['/gallery/', {
       status: 200,
@@ -951,6 +956,7 @@ http {
     for (const [path, expected] of [
       ['/standard/cards/standard/', /Next card catalog/],
       ['/faq/', /Next FAQ/],
+      ['/developers/api/', /Next developer API/],
       ['/gallery/', /Next gallery/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {

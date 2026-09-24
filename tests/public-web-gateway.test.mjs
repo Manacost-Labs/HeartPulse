@@ -48,8 +48,8 @@ test('switch and rollback retain paths, query, cookies, bodies and response cook
   } finally { await close(legacy); await close(next); }
 });
 
-test('support pages roll out independently of cards', () => {
-  for (const page of ['faq', 'privacy', 'terms']) {
+test('static public pages roll out independently of cards', () => {
+  for (const page of ['faq', 'privacy', 'terms', 'developers/api']) {
     assert.equal(publicWebOwner(`/${page}/`, true), 'legacy');
     assert.equal(publicWebOwner(`/${page}/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/${page}/`, false, 'POST', true), 'legacy');

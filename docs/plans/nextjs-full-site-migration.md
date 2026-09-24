@@ -1,7 +1,8 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-24. Cards, FAQ, privacy, terms and
-gallery are live on Next.js. The remaining route checklist is the
+Status: execution in progress, 2026-09-24. Cards, FAQ, privacy, terms,
+gallery and developer API documentation are live on Next.js. The remaining
+route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
 `../runbooks/nextjs-production-cutover.md`.
@@ -126,6 +127,12 @@ Progress (2026-09-24): `/gallery/` is live in production. Its Next route
 server-renders the anonymous `/api/gallery` projection with request-time
 fetching; Express still owns the API and media URLs. CI, the route monitor and
 desktop/mobile browser checks passed for the deployed cutover.
+
+Progress (2026-09-24): `/developers/api/` now has a static Next route using the
+existing developer API module and public shell. The Nginx owner and local
+gateway both route it to Next; API endpoints remain on Express. Direct-load
+metadata, desktop/mobile layout, console and network behavior were checked
+before integration.
 
 ### 3. Move read-only game-data route families
 

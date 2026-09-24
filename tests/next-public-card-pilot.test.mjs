@@ -117,5 +117,13 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal((galleryHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(galleryHtml, /card-reader@example/);
     assert.equal((await fetch(`${runtime.origin}/api/gallery/qa-gallery/thumb`)).status, 200);
+
+    const developerApi = await fetch(`${runtime.origin}/developers/api/`);
+    assert.equal(developerApi.status, 200, runtime.output());
+    const developerApiHtml = await developerApi.text();
+    assert.match(developerApiHtml, /<h1>Manacost Public API<\/h1>/);
+    assert.match(developerApiHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/developers\/api\/"/);
+    assert.equal((developerApiHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(developerApiHtml, /card-reader@example/);
   } finally { await runtime.close(); }
 });
