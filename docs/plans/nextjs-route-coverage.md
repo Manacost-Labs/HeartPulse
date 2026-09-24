@@ -6,8 +6,9 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (10 inventory entries)
+## Already served by Next.js (11 inventory entries)
 
+- `home` — `/`
 - `faq` — `/faq`
 - `privacy` — `/privacy`
 - `terms` — `/terms`
@@ -18,10 +19,6 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-cards` — `/standard/cards`
 - `standard-cards-format` — `/standard/cards/:format`
 - `standard-card-detail` — `/standard/cards/:format/:cardId`
-
-## Next route built; Nginx cutover pending (1 inventory entry)
-
-- `home` — `/`
 
 ## Public and editorial HTML (2)
 
@@ -113,11 +110,10 @@ headers still belong in the final route matrix and regression checks.
   with `noindex` and authenticated browser checks.
 - `/admin/` is already counted above, but its exact Nginx rule and internal
   operations tabs need separate permission and direct-load checks.
-- `/?login` is a login overlay state, not another path. Preserve its query
-  policy and login/logout behavior on the Next-owned home page.
-- The Next public shell sends its account control to `/?login`, which the
-  legacy account route serves during migration. `/profile/` still returns 404
-  and is not counted as a live page.
+- `/?login` is a login overlay state, not another path. The Next-owned home
+  page preserves its query policy and login/logout behavior. The Next public
+  shell sends its account control there. `/profile/` still returns 404 and is
+  not counted as a live page.
 - `/404.html` is an internal Nginx error document generated from `dist` today.
   Replace that dependency when Next owns unknown HTML, while keeping an
   independent emergency error response for technical paths.

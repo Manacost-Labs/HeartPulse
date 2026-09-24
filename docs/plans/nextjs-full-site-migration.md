@@ -1,9 +1,8 @@
 # Full-site Next.js migration and Vite retirement
 
 Status: execution in progress, 2026-09-24. Cards, FAQ, privacy, terms,
-gallery, developer API documentation, articles and contests are live on Next.js.
-Home has a Next route awaiting direct-port validation and Nginx cutover. The
-remaining route checklist is the
+gallery, developer API documentation, articles, contests and home are live on
+Next.js. The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
 `../runbooks/nextjs-production-cutover.md`.

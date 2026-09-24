@@ -107,4 +107,13 @@ for (const endpoint of ['api', 'health', 'metrics']) {
     `/${endpoint} must combine crawl blocking with an X-Robots-Tag response`);
 }
 
+const homeLocation = htmlRouting.match(/location\s+=\s+\/\s*\{([^}]*)\}/)?.[1];
+assert.ok(homeLocation, 'home must have an exact Nginx location');
+assert.match(homeLocation, /proxy_pass\s+http:\/\/127\.0\.0\.1:4321;/,
+  'home and its login query must be served by Next.js');
+assert.match(homeLocation, /X-Robots-Tag\s+\$arena_next_home_robots_header\s+always;/,
+  'home must preserve login-query and error robots headers');
+assert.match(seoMap, /map\s+\$arena_next_html_robots_header\s+\$arena_next_home_robots_header\s*\{[^}]*default\s+\$arena_auth_query_robots;[^}]*"noindex, nofollow"\s+"noindex, nofollow";/,
+  'home login queries and Next errors must stay noindex');
+
 console.log(`robots policy contract passed (${groups.length} crawler groups)`);
