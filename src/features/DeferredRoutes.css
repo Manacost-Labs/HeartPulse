@@ -867,7 +867,11 @@
 
   .article-vote-row {
     border-top: 1px solid rgba(148, 163, 184, 0.16);
+    padding-bottom: 1rem;
   }
+
+  .articles-personal-error { border-color: #f59e0b; }
+  .articles-personal-retry { margin-left: 0.5rem; }
 
   .article-vote-button {
     min-width: 64px;

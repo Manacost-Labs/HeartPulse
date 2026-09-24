@@ -41,8 +41,8 @@ assert.match(
 );
 assert.match(
   routeModulesSource,
-  /LazyArticlesTab = React\.lazy\(\(\) => loadDeferredRoutesModule\(\)[\s\S]*?module\.ArticlesTab/,
-  'the Articles named export must reuse the shared DeferredRoutes loader',
+  /LazyArticlesTab = React\.lazy\(\(\) => Promise\.all\(\[[\s\S]*?modules\/articles\/public[\s\S]*?features\/DeferredRoutes\.css[\s\S]*?module\.ArticlesTab/,
+  'the Articles route must load its own module and legacy styles without the Arena bundle',
 );
 assert.match(
   routeModulesSource,

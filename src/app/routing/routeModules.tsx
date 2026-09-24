@@ -38,8 +38,10 @@ export const LazyTierList = React.lazy(() => loadDeferredRoutesModule()
   .then(module => ({ default: module.TierList })));
 export const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule()
   .then(module => ({ default: module.Legendaries })));
-export const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule()
-  .then(module => ({ default: module.ArticlesTab })));
+export const LazyArticlesTab = React.lazy(() => Promise.all([
+  import('../../modules/articles/public'),
+  import('../../features/DeferredRoutes.css'),
+]).then(([module]) => ({ default: module.ArticlesTab })));
 export const LazyGalleryTab = React.lazy(loadGalleryModule);
 export const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 export const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);

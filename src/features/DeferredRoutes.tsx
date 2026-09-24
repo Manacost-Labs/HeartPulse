@@ -2689,5 +2689,3 @@ function InternalLinks({ links }: { links: { label: string; href: string; onClic
     </section>
   );
 }
-
-export { ArticlesTab } from '../modules/articles/public';

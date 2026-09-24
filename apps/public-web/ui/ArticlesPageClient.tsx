@@ -34,9 +34,9 @@ export function ArticlesPageClient({ initialData }: { initialData: ArticlesData 
   }, [access.checking, userId, initialData, retry]);
 
   return <PublicPageShell activeTab="articles" pathname="/articles/" access={access} navigate={navigate} editorial>
-    {personalError && <div role="status" className="mb-4 rounded-lg border border-amber-500 p-3">
+    {personalError && <div role="status" className="articles-personal-error mb-4 rounded-lg border p-3">
       Не удалось обновить ваши голоса. Показаны общедоступные данные.
-      <button type="button" className="ml-2 underline" onClick={() => setRetry(value => value + 1)}>Повторить</button>
+      <button type="button" className="articles-personal-retry underline" onClick={() => setRetry(value => value + 1)}>Повторить</button>
     </div>}
     <ArticlesTab data={data} loading={false} onNavigate={tab => navigate(tab === 'home' ? '/' : `/${tab}/`)}
       authUser={access.user} subscriptionStatus={access.subscription} subscriptionLoading={access.checking} />

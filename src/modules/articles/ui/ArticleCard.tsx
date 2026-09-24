@@ -155,7 +155,7 @@ export function ArticleCard({
           </div>
         </div>
       </button>
-      <div className="article-vote-row flex items-center gap-2 px-4 pb-4 pt-1">
+      <div className="article-vote-row flex items-center gap-2 px-4 pt-1">
         <button type="button" className={`article-vote-button ${article.userVote === 'like' ? 'is-active' : ''}`}
           disabled={voting} onClick={() => onVote(article, 'like')} aria-label="Поставить лайк статье">
           <ThumbsUp size={15} /><span>{article.likes ?? 0}</span>
