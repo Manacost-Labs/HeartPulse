@@ -141,7 +141,7 @@ export async function startCredentialBackend(options = {}) {
     assert.ok(ready, `Backend did not start: ${output}`);
     database = new DatabaseSync(databasePath);
     return {
-      database, smtp, close, origin, output: () => output,
+      database, dataDirectory, smtp, close, origin, output: () => output,
       request(path, body, headers = {}) {
         return fetch(`${origin}${path}`, {
           method: body === undefined ? 'GET' : 'POST',

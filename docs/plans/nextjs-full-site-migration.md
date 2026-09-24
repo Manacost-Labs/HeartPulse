@@ -112,6 +112,13 @@ baseline. Verify route and editorial tests, Next build, production monitor and
 real-browser console/network/accessibility checks. Update the owning
 `docs/specs/` contracts and `CHANGELOG.md` for shipped behavior.
 
+Progress (2026-09-24): `/gallery/` is the first editorial slice. Its Next
+route server-renders the anonymous `/api/gallery` projection with request-time
+fetching, retains the existing shell and gallery interactions, and reproduces
+the legacy canonical, robots and social-preview metadata. The API and media
+URLs remain owned by Express. Production ownership still requires the
+separate Nginx route cutover and live verification.
+
 ### 3. Move read-only game-data route families
 
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed

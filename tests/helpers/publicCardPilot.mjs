@@ -6,7 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { createPublicWebGateway } from '../../scripts/public-web-gateway.mjs';
 import { publicCardFixture, listenLocal, closeLocal } from './publicCardFixture.mjs';
 
-export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false } = {}) {
+export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false, galleryEnabled = false } = {}) {
   for (const [artifact, script] of [['dist/index.html', 'build'], ['apps/public-web/.next/BUILD_ID', 'build:next']]) {
     if (existsSync(artifact)) continue;
     const built = spawnSync('npm', ['run', script], { encoding: 'utf8', timeout: 90000 });
@@ -40,7 +40,7 @@ export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false }
       await delay(50);
     }
     if (!ready) throw new Error(`Next did not start: ${output}`);
-    gateway = createPublicWebGateway({ legacyOrigin: fixture.legacyOrigin, nextOrigin, enabled: true, pagesEnabled });
+    gateway = createPublicWebGateway({ legacyOrigin: fixture.legacyOrigin, nextOrigin, enabled: true, pagesEnabled, galleryEnabled });
     let origin;
     if (gatewayPort) {
       gateway.listen(gatewayPort, '127.0.0.1'); await once(gateway, 'listening');

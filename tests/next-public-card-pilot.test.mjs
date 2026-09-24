@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 test('Next card pilot uses real backend membership, SSR, access policy and recovery', { timeout: 90000 }, async () => {
-  const runtime = await startPublicCardPilot({ pagesEnabled: true });
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
     const path = '/standard/cards/standard/blizzard%3A12345/';
     runtime.setUnavailable(true);
@@ -92,5 +94,28 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
       assert.equal((supportHtml.match(/<main\b/g) || []).length, 1);
       assert.doesNotMatch(supportHtml, /card-reader@example/);
     }
+    const galleryImage = 'qa-gallery.webp';
+    const uploadDirectory = join(runtime.backend.dataDirectory, 'uploads', 'gallery');
+    mkdirSync(uploadDirectory, { recursive: true });
+    copyFileSync(resolve('public/arena-logo-icon.webp'), join(uploadDirectory, galleryImage));
+    writeFileSync(join(runtime.backend.dataDirectory, 'gallery.json'), JSON.stringify({
+      items: [{ id: 'qa-gallery', title: 'Контрольный арт', description: 'Проверка серверной галереи',
+        tag: 'Тест', source: 'HearthPulse', width: 128, height: 128, bytes: 2048,
+        format: 'webp', originalFile: galleryImage, previewFile: galleryImage,
+        thumbFile: galleryImage, createdAt: '2026-09-24T00:00:00.000Z', updatedAt: '2026-09-24T00:00:00.000Z' }],
+      updatedAt: '2026-09-24T00:00:00.000Z',
+    }));
+    const gallery = await fetch(`${runtime.origin}/gallery/`, { headers: cookie });
+    assert.equal(gallery.status, 200, runtime.output());
+    const galleryHtml = await gallery.text();
+    assert.match(galleryHtml, /Контрольный арт/);
+    assert.match(galleryHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/gallery\/"/);
+    assert.match(galleryHtml, /property="og:title" content="Галерея артов Hearthstone \| HS-Arena"/);
+    assert.match(galleryHtml, /property="og:image" content="https:\/\/hearthpulse.net\/assets\/og-preview.png"/);
+    assert.match(galleryHtml, /name="twitter:card" content="summary_large_image"/);
+    assert.match(galleryHtml, /\/api\/gallery\/qa-gallery\/thumb/);
+    assert.equal((galleryHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(galleryHtml, /card-reader@example/);
+    assert.equal((await fetch(`${runtime.origin}/api/gallery/qa-gallery/thumb`)).status, 200);
   } finally { await runtime.close(); }
 });

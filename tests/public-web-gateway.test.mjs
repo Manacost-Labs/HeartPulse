@@ -57,3 +57,12 @@ test('support pages roll out independently of cards', () => {
   assert.equal(publicWebOwner('/standard/cards/', false, 'GET', true), 'legacy');
   assert.equal(publicWebOwner('/_next/static/app.js', false, 'GET', true), 'next');
 });
+
+test('gallery can roll out without moving API or other editorial routes', () => {
+  assert.equal(publicWebOwner('/gallery/', false, 'GET', false, true), 'next');
+  assert.equal(publicWebOwner('/gallery', false, 'HEAD', false, true), 'next');
+  assert.equal(publicWebOwner('/gallery/', false, 'POST', false, true), 'legacy');
+  assert.equal(publicWebOwner('/gallery-extra/', false, 'GET', false, true), 'legacy');
+  assert.equal(publicWebOwner('/api/gallery', false, 'GET', false, true), 'legacy');
+  assert.equal(publicWebOwner('/articles/', false, 'GET', false, true), 'legacy');
+});

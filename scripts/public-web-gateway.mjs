@@ -12,14 +12,14 @@ function upstream(value) {
 }
 
 /** A loopback staging gateway. The production edge retains rate limits and TLS. */
-export function createPublicWebGateway({ legacyOrigin, nextOrigin, enabled = false, pagesEnabled = false }) {
+export function createPublicWebGateway({ legacyOrigin, nextOrigin, enabled = false, pagesEnabled = false, galleryEnabled = false }) {
   const legacy = upstream(legacyOrigin);
   const next = upstream(nextOrigin);
   return http.createServer((request, response) => {
     let pathname;
     try { pathname = new URL(request.url, 'http://gateway.local').pathname; }
     catch { response.writeHead(400).end(); return; }
-    const target = publicWebOwner(pathname, enabled, request.method, pagesEnabled) === 'next' ? next : legacy;
+    const target = publicWebOwner(pathname, enabled, request.method, pagesEnabled, galleryEnabled) === 'next' ? next : legacy;
     const transport = target.protocol === 'https:' ? https : http;
     const proxy = transport.request(target, {
       method: request.method, path: request.url,
