@@ -1304,6 +1304,37 @@
       ]
     },
     {
+      "name": "frontend-arena-tier-list",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Owns the Arena tier-list source and card-data contract shared by legacy and Next route composition.",
+      "paths": [
+        "src/modules/arenaTierList"
+      ],
+      "publicEntrypoints": [
+        "src/modules/arenaTierList/public.ts"
+      ],
+      "frontendRoutes": [
+        "/tierlist"
+      ],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/specs/arena-tierlist.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/hsreplay-tierlist.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
+    },
+    {
       "name": "frontend-constructed-cards",
       "status": "modular",
       "owner": "web-platform",

@@ -15,6 +15,16 @@ import PaywallGate from '../components/PaywallGate';
 import FAQSection from '../components/FAQSection';
 import { canAccessAdminWorkspace, type AuthUser } from '../modules/identity/public';
 import {
+  TIERLIST_SOURCES,
+  type CardData,
+  type CardLookup,
+  type ClassSection,
+  type TierCard,
+  type TierSection,
+  type TierlistData,
+  type TierlistSource,
+} from '../modules/arenaTierList/public';
+import {
   hasSubscriptionEntitlement,
   type SubscriptionEntitlementKey,
   type SubscriptionStatus,
@@ -43,68 +53,8 @@ interface ClassMatchupsData {
   warning?: string;
 }
 
-type TierlistSource = 'hsreplay' | 'heartharena' | 'firestone';
 type LegendarySource = 'hsreplay' | 'firestone';
 type TierlistViewMode = 'gallery' | 'table';
-const TIERLIST_SOURCES: readonly TierlistSource[] = ['hsreplay', 'heartharena', 'firestone'];
-
-/** Per-card enrichment data (images, stats) stored globally in tierlist.json */
-interface CardLookup {
-  cost?: number;
-  attack?: number;
-  health?: number;
-  type?: string;
-  imageHa: string;       // HearthArena CDN — Russian
-  imageRu: string | null; // Blizzard API    — Russian (premium)
-  // Authoritative rarity from cards_ru.json (optional, overrides TierCard.rarity when present)
-  rarityDb?: string;
-}
-
-/** Minimal card entry inside a tier */
-interface TierCard {
-  name:     string;
-  score:    number;
-  rarity:   string;
-  cardId:   string;
-  classKey: string;   // 'any' = neutral, else class-specific
-  source?:  TierlistSource;
-  statsContext?: 'tierlist' | 'legendary';
-  winrate?: number;   // HSReplay deck winrate (%)
-  deckWinrate?: number | null;
-  pickRate?: number | null;
-  playedWinrate?: number | null;
-  inDecks?: number | null;
-  totalGames?: number | null;
-  arenaScore?: number | null;
-  offerRate?: number | null;
-  discardRate?: number | null;
-  drawnWinrate?: number | null;
-  mulliganWinrate?: number | null;
-  keptRate?: number | null;
-  avgCopies?: number | null;
-}
-
-/** One tier inside a class section */
-interface TierSection {
-  tier:        string;  // S/A/B/C/D/E/F
-  label:       string;  // Отлично/Хорошо/…
-  description: string;
-  cards:       TierCard[];
-}
-
-/** One class section (12 total: dk, dh, druid, … neutral) */
-interface ClassSection {
-  id:         string;
-  name:       string;
-  color:      string;
-  textDark:   boolean;
-  classPosition?: string;
-  tiers:      TierSection[];
-  totalCards: number;
-}
-
-/** Merged card for display: TierCard + CardLookup */
-interface CardData extends TierCard, Partial<CardLookup> {}
 
 // ─── Class icons (from /public/class_icon/) ───────────────────────────────────
 
@@ -186,21 +136,6 @@ interface LegendariesData {
 
 
 
-interface TierlistData {
-  sections:  ClassSection[];
-  cards:     Record<string, CardLookup>;
-  classPositions?: Record<string, string>;
-  updatedAt: string | null;
-  source:    string;
-  warning?: string;
-  data_phase?: string;
-  provisional?: boolean;
-  accepted_rows?: number;
-  baseline_rows?: number;
-  coverage_ratio?: number;
-  minimum_sample?: number;
-  patch_window?: string | Record<string, unknown>;
-}
 
 interface ArenaDeckCard {
   cardId: string;

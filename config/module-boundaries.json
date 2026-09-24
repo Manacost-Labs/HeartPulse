@@ -620,6 +620,22 @@
       ]
     },
     {
+      "id": "client.arenaTierList",
+      "runtime": "client",
+      "root": "src/modules/arenaTierList",
+      "purpose": "Owns the Arena tier-list source and card-data contract shared by legacy and Next route composition.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/arenaTierList/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:tierlist"
+      ],
+      "docs": [
+        "docs/specs/arena-tierlist.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "client.constructedCards",
       "runtime": "client",
       "root": "src/modules/constructedCards",

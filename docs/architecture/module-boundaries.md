@@ -52,6 +52,11 @@ browser caching, request lifecycle and ranking presentation. The legacy Arena
 route composes this module with its existing permission gate and page chrome;
 the application shell retains only the displayed update timestamp.
 
+`src/modules/arenaTierList` owns the shared Arena tier-list source and card-data
+contract. Both legacy route composition and the Next.js migration consume its
+public entry point; presentation and loading still live in the legacy route
+until their separate extraction.
+
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical
 current-account resolver; the module rechecks eligibility when approving,
