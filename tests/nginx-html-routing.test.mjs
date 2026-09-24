@@ -449,7 +449,8 @@ for (const route of inventory.routes) {
   }
   if (route.id === 'home') {
     const root = locations.find(location => location.modifier === '=' && location.pattern === '/');
-    assert.match(root?.body || '', /try_files\s+\/index\.html\s+=404;/, 'home document');
+    assert.match(root?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:4321;/,
+      'home document must come from Next.js');
     continue;
   }
   if (route.id === 'admin-panel') continue;
@@ -584,6 +585,11 @@ function requestNginx(port, path, method = 'GET') {
 
 async function startCardSeoUpstream() {
   const responses = new Map([
+    ['/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next home</title>',
+    }],
     ['/api', {
       status: 200,
       headers: { 'Cache-Control': 'private, max-age=17' },
@@ -790,7 +796,7 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/articles/', '/contests/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = ['/', '/articles/', '/contests/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -941,7 +947,7 @@ http {
 
     const home = await requestNginx(port, '/');
     assert.equal(home.status, 200, 'canonical home must resolve');
-    assert.match(home.body, /<title>SPA<\/title>/, 'home must return the SPA document');
+    assert.match(home.body, /<title>Next home<\/title>/, 'home must return the Next document');
     assert.equal(home.headers['x-robots-tag'], undefined, 'ordinary home must remain indexable');
 
     const routeRedirect = await requestNginx(port, '/tierlist');
@@ -967,6 +973,7 @@ http {
     }
 
     for (const [path, expected] of [
+      ['/', /Next home/],
       ['/standard/cards/standard/', /Next card catalog/],
       ['/faq/', /Next FAQ/],
       ['/developers/api/', /Next developer API/],
@@ -993,7 +1000,11 @@ http {
       'request-time gallery HTML must not be cached at the edge');
 
     const authState = await requestNginx(port, '/?login');
+    assert.match(authState.body, /Next home/, 'login state must reach Next');
     assert.equal(authState.headers['x-robots-tag'], 'noindex, nofollow', 'auth state robots header');
+    const failedHome = await requestNginx(port, '/?fail=1');
+    assert.equal(failedHome.status, 503, 'home upstream errors must retain their status');
+    assert.equal(failedHome.headers['x-robots-tag'], 'noindex, nofollow', 'home errors must not be indexed');
     const facetedState = await requestNginx(port, '/articles/?search=meta');
     assert.equal(facetedState.headers['x-robots-tag'], 'noindex, follow', 'faceted state robots header');
     const failedArticles = await requestNginx(port, '/articles/?fail=1');
