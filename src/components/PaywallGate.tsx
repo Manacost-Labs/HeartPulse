@@ -223,7 +223,6 @@ function InlineSubscriptionPaywall({
       benefits: ['Все сборки и коды колод', 'Матчапы на ранге Легенда', 'Муллиган и история показателей'],
       actionLabel: 'Открыть статистику архетипа',
     };
-
   return (
     <section
       className={`arena-inline-paywall arena-inline-paywall--${surface}${providerButtons ? ' arena-inline-paywall--providers' : ''}`}
