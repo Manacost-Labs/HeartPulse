@@ -161,10 +161,13 @@ paths, queries, cookies, client addresses and account data. The existing
 After the final route cutover, count the renderer classes by UTC day:
 
 ```bash
-sudo zcat -f /var/www/httpd-logs/arena-html-owner.log* |
+sudo sh -c 'zcat -f /var/www/httpd-logs/arena-html-owner.log*' |
   jq -r 'select(.event == "html_renderer") | [.time[0:10], .owner] | @tsv' |
   sort | uniq -c
 ```
+
+The root shell must expand the log glob because the log directory does not
+allow unprivileged users to list its entries.
 
 The seven-day window starts when the origin config is installed, not when a
 commit is pushed. Require `next` traffic on every day and investigate every

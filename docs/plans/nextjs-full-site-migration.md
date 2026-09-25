@@ -8,9 +8,11 @@ and the cosmetics catalog and details, plus both Battleground builders and the
 device-connection page, both public-profile URL patterns, the administrator
 document and unknown-page responses. Three more entries are redirect or
 removed-URL status contracts. All 47 inventory entries now have their intended
-HTML owner or explicit non-HTML status behavior. Vite retirement remains.
-The remaining route checklist is the
-[coverage ledger](nextjs-route-coverage.md). The card pilot and production
+HTML owner or explicit non-HTML status behavior. Vite retirement remains. The
+origin HTML-owner meter began recording at 2026-09-25 16:23:38 UTC; its
+seven-day zero-Vite gate cannot be evaluated before 2026-10-02 16:23:38 UTC.
+[The coverage ledger](nextjs-route-coverage.md) records every route. The card
+pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
 `../runbooks/nextjs-production-cutover.md`.
 
@@ -91,9 +93,9 @@ alone does not close a ledger row.
 3. Completed: `/battlegrounds/strategies` and `/battlegrounds/tier-builder`
    preserve saved state, imports/exports, client interactions and legacy assets
    after the public Nginx owner switch.
-4. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
-   Check direct load, editing, authentication and `noindex`; record the latter
-   two explicit Nginx pages in the reconciled inventory.
+4. Completed: `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
+   Direct load, editing, authentication and `noindex` were checked; the latter
+   two explicit Nginx pages are recorded in the reconciled inventory.
    `/deck-builder/` is completed with a server-side full-admin check, a
    browser recheck, the existing editable draft and an exact Next Nginx rule.
    The three `/archetypes/` page patterns use Next with the same full-admin
