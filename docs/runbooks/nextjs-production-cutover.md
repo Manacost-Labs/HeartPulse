@@ -3,6 +3,7 @@
 The public card catalog, card details, gallery, FAQ, privacy, terms, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
+details, the guide archive and details, the Battlegrounds hero catalog, and
 home pages are owned by Next.js.
 Express continues
 to own APIs,
@@ -68,14 +69,17 @@ The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus gallery, FAQ, privacy, terms, developer API documentation, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
-its detail/legacy-meta URLs, the guides archive and guide details, and home
+its detail/legacy-meta URLs, the guides archive and guide details, the
+Battlegrounds hero catalog, and home
 to port 4321, and forwards
 `/_next/` build
 assets to the same process.
 The SEO map keeps filtered article pages `noindex, follow`, the home login
 query `noindex, nofollow`, and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
-ordinary successful responses. Other HTML and API routes remain on Express/Vite.
+ordinary successful responses. Hero details remain on Express until their
+Next implementation preserves retryable catalog-outage responses; other HTML
+and API routes remain on Express/Vite.
 Verify the canonical public host on desktop and mobile: both card catalogs,
 a card detail sampled from the live sitemap, a confirmed unknown card (404
 with an `X-Robots-Tag: noindex` header), gallery image loading and downloads,

@@ -485,6 +485,14 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
+  if (route.id === 'bg-heroes') {
+    const heroes = locations.find(location => location.modifier === '=' && location.pattern === '/heroes/');
+    assert.match(heroes?.body || '', /proxy_pass http:\/\/127\.0\.0\.1:4321;/,
+      'heroes listing HTML must use Next');
+    assert.match(heroes?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+      'heroes listing errors must be noindex');
+    continue;
+  }
   if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/vicious-gold', '/standard/archetypes'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
@@ -770,6 +778,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next gallery</title>',
     }],
+    ['/heroes/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next heroes</title>',
+    }],
     ['/_next/static/test.js', {
       status: 200,
       headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
@@ -1053,6 +1066,7 @@ http {
       ['/standard/vicious-gold/', /Next Vicious Gold/],
       ['/standard/archetypes/', /Next archetypes/],
       ['/gallery/', /Next gallery/],
+      ['/heroes/', /Next heroes/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
       const nextResponse = await requestNginx(port, path);
@@ -1084,6 +1098,13 @@ http {
     assert.match(galleryQuery.body, /Next gallery/, 'gallery query must keep the Next owner');
     assert.match(galleryQuery.headers['cache-control'] || '', /no-store/,
       'request-time gallery HTML must not be cached at the edge');
+    const heroesRedirect = await requestNginx(port, '/heroes');
+    assert.equal(heroesRedirect.status, 301, 'heroes listing must retain its canonical slash redirect');
+    assert.match(heroesRedirect.headers.location || '', /\/heroes\/$/);
+    const heroesQuery = await requestNginx(port, '/heroes/?from=qa');
+    assert.match(heroesQuery.body, /Next heroes/, 'heroes listing query must keep the Next owner');
+    assert.match(heroesQuery.headers['cache-control'] || '', /no-store/,
+      'heroes listing HTML must not be cached at the edge');
 
     const authState = await requestNginx(port, '/?login');
     assert.match(authState.body, /Next home/, 'login state must reach Next');

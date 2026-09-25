@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (23 inventory entries)
+## Already served by Next.js (24 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -33,16 +33,15 @@ have been checked together. A route count alone is not a completion signal.
   `/standard/archetypes/:format/:archetypeSlug`
 - `standard-meta-legacy-detail` —
   `/standard/meta/:format/:archetypeSlug`
+- `bg-heroes` — `/heroes`
 
-## Battlegrounds and cosmetics data HTML (13)
+## Battlegrounds and cosmetics data HTML (12)
 
 - `cosmetics` — `/cosmetics`
 - `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
-- `bg-heroes` — `/heroes` (Next route staged; Nginx legacy until deployed
-  browser verification)
 - `bg-hero-detail` — `/heroes/:dbfId` (Next route staged; public identity and
-  real 404; Nginx legacy until deployed browser verification)
+  real 404; Nginx remains on Express until retryable 503 behavior is preserved)
 - `bg-library` — `/library` (Next route staged; Nginx legacy until deployed
   browser verification)
 - `bg-library-archive-root` — `/library/archive` (Next route staged; Nginx legacy)

@@ -1,9 +1,10 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-25. Twenty-three of the 47 inventory
+Status: execution in progress, 2026-09-25. Twenty-four of the 47 inventory
 entries are served by Next.js, including public/editorial pages, Arena and
-constructed catalogs, the guide archive and archetype details. Battlegrounds
-heroes and library pages are staged behind the existing public route owner.
+constructed catalogs, the guide archive, archetype details and the Battlegrounds
+hero catalog. Hero details and library pages are staged behind the existing
+public route owner.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -197,12 +198,13 @@ teaser supplies a title and excerpt for request-time HTML, while the existing
 full-content API remains behind the guides-archive entitlement. Missing guides
 return 404 and numeric old links canonicalize to their resolved slugs. Nginx
 ownership switched after a deployed browser check.
-The `/heroes/` Battlegrounds list is staged in Next.js. Guests receive a
+The `/heroes/` Battlegrounds list uses Next.js. Guests receive a
 public description; the existing hero statistics client mounts only after
 `battlegrounds` entitlement or administrator access is verified. Detail hero
 URLs now have a staged Next.js implementation with anonymous identity,
 protected statistics and real missing-ID responses. Public Nginx ownership
-remains legacy until deployed browser checks.
+remains with Express until the staged detail route preserves retryable 503
+responses on catalog outages.
 The `/library/` listing is staged with a public HTML description. Its existing
 card filters and statistics mount only after Battlegrounds entitlement or
 administrator access is verified.
