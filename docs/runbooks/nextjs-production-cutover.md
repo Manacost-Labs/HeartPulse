@@ -24,7 +24,9 @@ systemctl is-enabled hs-arena-next.service
 The CI release includes the Next build without its build cache and checksums
 all shipped Next files. The root deployer restarts the API and Next from the
 same `current` symlink, waits for both health endpoints, and restores the
-previous release if either service fails. Before changing Nginx, confirm:
+previous release if either service fails. Next embeds the release SHA in client
+incident reports from `RELEASE_SHA` or `GITHUB_SHA`, matching the legacy
+release marker. Before changing Nginx, confirm:
 
 ```bash
 curl -fsS http://127.0.0.1:3101/health/ready

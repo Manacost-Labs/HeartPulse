@@ -190,6 +190,13 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal((matchupsHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(matchupsHtml, /Control Warrior|card-reader@example|manacost_auth_token/);
 
+    const meta = await fetch(`${runtime.origin}/standard/meta/`, { headers: cookie });
+    assert.equal(meta.status, 200, runtime.output());
+    const metaHtml = await meta.text();
+    assert.match(metaHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/standard\/meta\/"/);
+    assert.equal((metaHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(metaHtml, /deckCode|card-reader@example|manacost_auth_token/);
+
     const emptyContests = await fetch(`${runtime.origin}/contests/`);
     assert.equal(emptyContests.status, 200, runtime.output());
     assert.match(await emptyContests.text(), /Сейчас активных конкурсов нет/);

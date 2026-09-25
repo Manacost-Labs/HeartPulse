@@ -205,7 +205,11 @@ async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || 'Сервер временно недоступен');
+  if (!response.ok) {
+    const error = new Error(payload.error || 'Сервер временно недоступен');
+    if (response.status === 401 || response.status === 403) error.name = 'MetaAccessDenied';
+    throw error;
+  }
   return payload as T;
 }
 
@@ -453,6 +457,7 @@ function StandardMetaContent({
       .catch(cause => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return;
         if (currentRequest === requestId.current) {
+          if (cause instanceof Error && cause.name === 'MetaAccessDenied') setData(EMPTY_DATA);
           setRequestError({ key: requestKey, message: datasetContractErrorMessage(cause) });
         }
       })
@@ -786,12 +791,15 @@ function StandardMetaContent({
 export default function StandardMetaPage({
   hasFullAccess = true,
   paywall = DEFAULT_PAYWALL_ACCESS,
+  embedded = false,
 }: {
   hasFullAccess?: boolean;
   paywall?: PaywallAccessState;
+  embedded?: boolean;
 }) {
+  const Root = embedded ? 'section' : 'main';
   return (
-    <main className="standard-meta" id="main-content">
+    <Root className="standard-meta" id={embedded ? undefined : 'main-content'}>
       <RecoverableSurfaceBoundary
         scope="standard-meta"
         title="Раздел меты временно недоступен"
@@ -799,6 +807,6 @@ export default function StandardMetaPage({
       >
         <StandardMetaContent hasFullAccess={hasFullAccess} paywall={paywall} />
       </RecoverableSurfaceBoundary>
-    </main>
+    </Root>
   );
 }
