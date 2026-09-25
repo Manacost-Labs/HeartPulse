@@ -94,13 +94,20 @@ loading the workspace. Keep the document and errors `noindex, nofollow` and
 `no-store`, and leave `/api/admin/` on Express. Check guest, administrator,
 blocked-account and mobile-menu states before opening the route. If it fails,
 restore the saved Nginx route snippet and reload after `nginx -t`.
+Unknown HTML errors use the global Next 404 shell through Nginx's internal
+`/404.html` handler. The handler preserves HTTP 404 and noindex, and passes a
+Next outage through as 503 instead of pretending that the page is missing.
+The old `dist/404.html` is no longer read by the edge. Check an unknown URL,
+an unknown static resource and HEAD after the rule is installed; missing
+hashed assets retain a cheap status-only 404 so stale URLs cannot fan out
+into full Next renders. Keep the previous snippet for immediate rollback.
 Their rules hide upstream `X-Robots-Tag` before setting one edge error header;
 this avoids duplicate headers on retryable 503 pages. For these details,
 sample a live ID, missing ID and canonical redirect. The focused fixture
 test covers upstream 503, `Retry-After`, HEAD and no-store. Include a long
 Cyrillic slug from the live minion sitemap in direct-port and public checks;
 URL encoding must not make a valid card look missing.
-Other HTML and API routes remain on Express/Vite. Check each of the nine
+Remaining legacy HTML and API routes retain their owners. Check each of the nine
 current and seven archive detail kinds with a real DBF ID through the public
 host, plus an absent ID and an unsupported archive kind. Confirm the upstream
 public projections contain no paid statistics before opening the Nginx owner.

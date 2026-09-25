@@ -127,8 +127,10 @@ function expectRegexAction(pathname, directive, message) {
     `${message}: first matching regex for ${pathname} must contain ${directive}; got ${match?.pattern || 'none'}`);
 }
 
-assert.match(routingSource, /error_page\s+404\s+=404\s+\/404\.html;/,
-  'unknown HTML must preserve an HTTP 404 while rendering the error document');
+assert.match(routingSource, /error_page\s+404\s+=\s+\/404\.html;/,
+  'unknown HTML must use the Next error document and preserve its status');
+assert.match(routingSource, /location\s+=\s+\/404\.html\s*\{[^}]*proxy_pass\s+http:\/\/127\.0\.0\.1:4321;/,
+  'unknown HTML error document must come from Next');
 assert.match(routingSource, /location\s+\/\s*\{[\s\S]*?return\s+404;/,
   'the final prefix location must return a real 404');
 assert.doesNotMatch(routingSource, /location\s+\/\s*\{[\s\S]*?try_files[^}]*\/index\.html/,
@@ -676,6 +678,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next admin</title><p>next-admin-guard</p>',
     }],
+    ['/404.html', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next 404</title><h1>Страница не найдена</h1>',
+    }],
     ['/api', {
       status: 200,
       headers: { 'Cache-Control': 'private, max-age=17' },
@@ -1065,10 +1072,13 @@ async function startCardSeoUpstream() {
   for (const segment of ['blizzard:12345', 'blizzard%3A12345', 'blizzard%3a12345']) {
     responses.set(`/standard/cards/standard/${segment}/`, responses.get('/standard/cards/standard/CARD_OK/'));
   }
+  let errorDocumentStatus = 404;
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/', '/admin/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
+      ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
+      : ['/', '/admin/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1093,7 +1103,7 @@ async function startCardSeoUpstream() {
   const address = server.address();
   assert.notEqual(address, null, 'card SEO mock upstream must bind a port');
   assert.equal(typeof address, 'object', 'card SEO mock upstream must use a TCP port');
-  return { server, port: address.port };
+  return { server, port: address.port, setErrorDocumentStatus: status => { errorDocumentStatus = status; } };
 }
 
 function stopHttpServer(server) {
@@ -1159,7 +1169,7 @@ async function runNginxContractCheck() {
     mkdirSync(join(www, 'assets'), { recursive: true });
     mkdirSync(join(www, 'tierlist'), { recursive: true });
     writeFileSync(join(www, 'index.html'), '<!doctype html><title>SPA</title>');
-    writeFileSync(join(www, '404.html'), '<!doctype html><title>404</title>');
+    writeFileSync(join(www, '404.html'), '<!doctype html><title>Vite 404 must not serve</title>');
     writeFileSync(join(www, 'assets', 'app.js'), 'window.arena = true;');
     writeFileSync(join(www, 'tierlist', 'index.html'), '<!doctype html><title>Tierlist</title>');
     copyFileSync(
@@ -1650,7 +1660,20 @@ http {
     }
     const missingPage = await requestNginx(port, '/definitely-unknown');
     assert.equal(missingPage.status, 404, 'unknown HTML must be a real 404');
-    assert.match(missingPage.body, /<title>404<\/title>/, '404 document body');
+    assert.match(missingPage.body, /<title>Next 404<\/title>/, 'Next 404 document body');
+    assert.doesNotMatch(missingPage.body, /Vite 404 must not serve/, 'Vite 404 artifact must be ignored');
+    const directErrorDocument = await requestNginx(port, '/404.html');
+    assert.equal(directErrorDocument.status, 404, 'direct error document URL must remain a real 404');
+    assert.match(directErrorDocument.body, /<title>Next 404<\/title>/, 'direct error document uses Next');
+    for (const missingAssetPath of ['/assets/missing.js', '/wallpaper/missing.webp']) {
+      const missingAsset = await requestNginx(port, missingAssetPath);
+      assert.equal(missingAsset.status, 404, `${missingAssetPath} must be a real 404`);
+      assert.doesNotMatch(missingAsset.body, /Next 404/, `${missingAssetPath} must not render a dynamic HTML page`);
+    }
+    upstream.setErrorDocumentStatus(503);
+    const failedMissingPage = await requestNginx(port, '/definitely-unknown');
+    assert.equal(failedMissingPage.status, 503, 'Next 404 outage must not be disguised as a missing page');
+    upstream.setErrorDocumentStatus(404);
     for (const headFixture of [
       { path: '/tierlist', status: 301 },
       { path: '/standard/matchups', status: 301 },

@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (42 inventory entries)
+## Already served by Next.js (43 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -54,6 +54,7 @@ have been checked together. A route count alone is not a completion signal.
 - `public-profile` — `/id/:publicProfileId`
 - `legacy-public-profile` — `/profiles/:legacyPublicProfileId`
 - `admin-panel` — `/admin`
+- `unknown-path` — `/:path*`; real 404 from the public Next shell.
 
 Both Battleground builders retain saved state, imports, exports and legacy
 script assets through Next's client-side controls. The public Nginx owner
@@ -77,15 +78,14 @@ to Next and prevents private or stale upstream caching.
 The `/connect` browser flow remains on the existing Express authorization API;
 its Next-owned HTML contains no device code or account data before hydration.
 
-## Redirect, removed and fallback contracts (4)
+## Resolved redirect and removed contracts (3)
 
-- `referral-redirect` — `/r/:slug`; retain its authoritative redirect owner.
-- `removed-decks` — `/decks/:path*`; preserve the existing removed-URL status.
-- `removed-jobs` — `/jobs/:path*`; preserve the existing removed-URL status.
-- `unknown-path` — `/:path*`; Next must return a real 404 for unknown HTML.
+- `referral-redirect` — `/r/:slug`; Express retains 302 and missing-slug 404.
+- `removed-decks` — `/decks/:path*`; the edge retains HTTP 410.
+- `removed-jobs` — `/jobs/:path*`; the edge retains HTTP 410.
 
-These entries are not four active pages. Their status, location and robots
-headers still belong in the final route matrix and regression checks.
+These entries are status contracts rather than active HTML pages. Their
+status, location and robots headers remain in regression checks.
 
 ## HTML surfaces outside the 47-entry inventory
 

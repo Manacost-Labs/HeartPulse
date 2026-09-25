@@ -1,11 +1,14 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-25. Forty-one of the 47 inventory
+Status: execution in progress, 2026-09-25. Forty-three of the 47 inventory
 entries are served by Next.js, including public/editorial pages, Arena and
 constructed catalogs, the guide archive, archetype details and the Battlegrounds
 hero catalog, library listings, hero details, all supported library card details
 and the cosmetics catalog and details, plus both Battleground builders and the
-device-connection page and both public-profile URL patterns.
+device-connection page, both public-profile URL patterns, the administrator
+document and unknown-page responses. Three more entries are redirect or
+removed-URL status contracts, leaving `/archetypes/wild` as the only
+unresolved inventory HTML route.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -73,8 +76,8 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 ## Remaining execution queue (2026-09-25)
 
 The [coverage ledger](nextjs-route-coverage.md) is the exhaustive route list;
-the following queue turns its 6 remaining entries and two additional HTML
-pages into independently releasable slices. Each slice ends with a focused
+the following queue records the last inventory HTML route and two additional
+HTML pages alongside completed slices. Each slice ends with a focused
 HTTP/permission test, Next build, direct-port browser review, a commit, a
 separate Nginx owner switch, and verification of the deployed SHA. A Next route
 alone does not close a ledger row.
@@ -98,15 +101,11 @@ alone does not close a ledger row.
    boundary, rechecks access in the browser and keeps private user data out of
    HTML. The exact Nginx rule preserves its slash redirect, noindex and
    no-store contract; administrator tabs stay on the existing protected APIs.
-7. Close `/r/:slug`, `/decks/:path*`, `/jobs/:path*` and unknown `/:path*`.
-   Preserve redirect and removed statuses, return a real Next 404 for unknown
-   HTML, and replace the Vite-generated `/404.html`. These are contracts,
-   not four new content pages.
-
-   The global Next 404 now reuses the public navigation and error design;
-   card details keep their own missing-card message. The edge still serves
-   `/404.html` from the Vite artifact until the separate fallback switch is
-   deployed and checked.
+7. Completed: `/r/:slug` stays an Express 302 or missing-slug 404;
+   `/decks/:path*` and `/jobs/:path*` stay edge 410 responses. Unknown
+   `/:path*` is a real Next 404 with public navigation and error design;
+   card details keep their specific missing-card message. The edge no longer
+   reads the Vite-generated `/404.html`.
 
 After slice 7, reconcile the effective Nginx rules, route manifest, sitemap,
 SEO inventory and sampled access logs. The gate for beginning Vite removal is
