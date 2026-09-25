@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (38 inventory entries)
+## Already served by Next.js (39 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -50,14 +50,14 @@ have been checked together. A route count alone is not a completion signal.
 - `bg-tier-list` — `/battlegrounds/tier-list`
 - `bg-strategies` — `/battlegrounds/strategies`
 - `bg-tier-builder` — `/battlegrounds/tier-builder`
-
-Their saved state, imports, exports and legacy script assets remain available
-through Next's client-side controls. The public Nginx owner now routes both
-builders and their invalid descendants to Next.
-
-## Identity, connection and admin HTML (5)
-
 - `application-connect` — `/connect`
+
+Both Battleground builders retain saved state, imports, exports and legacy
+script assets through Next's client-side controls. The public Nginx owner
+routes both builders and their invalid descendants to Next.
+
+## Identity and admin HTML (4)
+
 - `public-profile` — `/id/:publicProfileId`
 - `legacy-public-profile` — `/profiles/:legacyPublicProfileId`
 - `admin-panel` — `/admin`
@@ -66,8 +66,8 @@ builders and their invalid descendants to Next.
 Keep `/identity/` callbacks and session authority in Express. Public profile
 data must come from the existing serializer; admin and account state must not
 leak into shared HTML, hydration payloads or caches.
-The Next `/connect` page and guest/member browser contract are staged; its
-public Nginx owner remains the legacy snapshot until deployed direct-port review.
+The `/connect` browser flow remains on the existing Express authorization API;
+its Next-owned HTML contains no device code or account data before hydration.
 
 ## Redirect, removed and fallback contracts (4)
 

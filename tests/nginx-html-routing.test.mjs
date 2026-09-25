@@ -453,6 +453,16 @@ for (const route of inventory.routes) {
       'home document must come from Next.js');
     continue;
   }
+  if (route.id === 'application-connect') {
+    expectRegexAction(path, 'return 301', 'connect non-canonical route');
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', 'connect Next route');
+    const resolver = firstMatchingRegexLocation(`${path}/`);
+    assert.match(resolver?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/);
+    assert.match(resolver?.body || '', /Cache-Control\s+"no-cache, no-store, must-revalidate"\s+always;/);
+    assert.match(resolver?.body || '', /proxy_hide_header X-Robots-Tag;/);
+    assert.match(resolver?.body || '', /proxy_intercept_errors\s+off;/);
+    continue;
+  }
   if (route.id === 'admin-panel') continue;
   if (route.id === 'deck-builder') continue;
   if (route.id === 'archetypes') continue;
@@ -748,6 +758,16 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'public, max-age=60' },
       body: '<!doctype html><title>Next FAQ</title>',
+    }],
+    ['/connect/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next connect</title>',
+    }],
+    ['/connect/unknown/', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next connect missing</title>',
     }],
     ['/developers/api/', {
       status: 200,
@@ -1157,6 +1177,18 @@ http {
     assert.equal(home.status, 200, 'canonical home must resolve');
     assert.match(home.body, /<title>Next home<\/title>/, 'home must return the Next document');
     assert.equal(home.headers['x-robots-tag'], undefined, 'ordinary home must remain indexable');
+
+    const connectRedirect = await requestNginx(port, '/connect?user_code=ABCD-2345');
+    assert.equal(connectRedirect.status, 301);
+    assert.match(connectRedirect.headers.location || '', /\/connect\/\?user_code=ABCD-2345$/);
+    const connect = await requestNginx(port, '/connect/?user_code=ABCD-2345');
+    assert.equal(connect.status, 200);
+    assert.match(connect.body, /<title>Next connect<\/title>/);
+    assert.equal(connect.headers['x-robots-tag'], 'noindex, nofollow');
+    assert.match(connect.headers['cache-control'] || '', /no-store/);
+    const connectMissing = await requestNginx(port, '/connect/unknown/');
+    assert.equal(connectMissing.status, 404);
+    assert.equal(connectMissing.headers['x-robots-tag'], 'noindex, nofollow');
 
     const routeRedirect = await requestNginx(port, '/tierlist');
     assert.equal(routeRedirect.status, 301, 'known public route must normalize its slash');

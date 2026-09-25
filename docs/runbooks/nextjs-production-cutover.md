@@ -73,7 +73,8 @@ contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
 its detail/legacy-meta URLs, the guides archive and guide details, the
 Battlegrounds hero catalog and details, library listings and all supported
-current/archive card details, cosmetics catalogs and details, and home
+current/archive card details, cosmetics catalogs and details, the Battlegrounds
+tier list and builders, the device-connection page, and home
 to port 4321, and forwards
 `/_next/` build
 assets to the same process.
@@ -82,6 +83,8 @@ query `noindex, nofollow`, and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
 ordinary successful responses. Hero and all supported library detail HTML goes
 to Next, while Express remains the public projection and paid-data authority.
+The `/connect/` HTML remains `noindex, nofollow` and `no-store` on every
+response; Express still owns the session and device-approval API.
 Their rules hide upstream `X-Robots-Tag` before setting one edge error header;
 this avoids duplicate headers on retryable 503 pages. For these details,
 sample a live ID, missing ID and canonical redirect. The focused fixture
