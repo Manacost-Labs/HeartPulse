@@ -3733,7 +3733,7 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
 
 
 const BG_STRATEGY_BUILDER_HTML = String.raw`
-<main class="builder-layout bg-strategy-builder-legacy">
+<div class="builder-layout bg-strategy-builder-legacy">
   <section class="builder-sidebar builder-sidebar-wide">
     <div class="builder-controls">
       <div class="filter-block comp-import-block" data-tour-id="bg-strategy-builder-presets">
@@ -3862,7 +3862,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
       </aside>
     </div>
   </section>
-</main>`;
+</div>`;
 
 const BG_STRATEGY_BUILDER_VERSION = '20260923-pool-3661-v2';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
@@ -3945,7 +3945,7 @@ function BattlegroundStrategyBuilderEmbed() {
 }
 
 const BG_TIER_BUILDER_HTML = String.raw`
-<main class="builder-layout bg-tier-builder-legacy">
+<div class="builder-layout bg-tier-builder-legacy">
   <section class="builder-sidebar builder-sidebar-wide">
     <div class="builder-controls">
       <label class="control-field" data-tour-id="bg-tier-builder-search">
@@ -4018,7 +4018,7 @@ const BG_TIER_BUILDER_HTML = String.raw`
 
     <div id="tier-builder-rows" class="tier-builder-rows"></div>
   </section>
-</main>`;
+</div>`;
 
 function BattlegroundTierBuilderEmbed() {
   const mountId = useRef(`bg-tier-builder-${Math.random().toString(36).slice(2)}`);

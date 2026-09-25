@@ -21,7 +21,7 @@ export function BattlegroundsTierListSearchIntro() {
 export function BattlegroundsStrategyBuilderSearchIntro() {
   return (
     <header className="mb-4 rounded-lg border border-[#6b4c2a]/40 bg-[#f4e3b9] px-4 py-4 text-center text-[#3d2a1e] shadow-sm">
-      <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8b6c42]">Поля сражений</p>
+      <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#674929]">Поля сражений</p>
       <h1 className="mt-2 font-hs text-3xl sm:text-4xl">Конструктор стратегий БГ Hearthstone</h1>
       <p className="mx-auto mt-2 max-w-3xl text-sm text-[#6b4c2a]">
         Соберите собственный план из существ, заклинаний и аксессуаров. Конструктор не ранжирует стратегии:

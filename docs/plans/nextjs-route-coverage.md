@@ -55,6 +55,8 @@ have been checked together. A route count alone is not a completion signal.
 - `bg-tier-builder` — `/battlegrounds/tier-builder`
 
 Preserve saved state, imports, exports and the assets used by legacy scripts.
+Both Next routes and their anonymous/subscriber browser contract are staged;
+public Nginx still serves the legacy HTML until deployed direct-port review.
 
 ## Identity, connection and admin HTML (5)
 

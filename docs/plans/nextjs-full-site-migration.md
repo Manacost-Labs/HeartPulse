@@ -86,6 +86,8 @@ alone does not close a ledger row.
    switched after deployed direct-port review.
 3. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.
    Verify saved state, imports/exports, client interactions and legacy assets.
+   Both Next routes are staged; public Nginx ownership remains to be switched
+   after deployed direct-port review.
 4. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
    Check direct load, editing, authentication and `noindex`; record the latter
    two explicit Nginx pages in the reconciled inventory.
