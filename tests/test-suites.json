@@ -74,6 +74,7 @@
         "tests/constructed-card-list-prefetch.test.ts",
         "tests/constructed-card-media.test.ts",
         "tests/constructed-card-periods.test.ts",
+        "tests/constructed-archetype-catalog-url.test.ts",
         "tests/constructed-card-resilience.test.ts",
         "tests/constructed-card-service-contracts.test.ts",
         "tests/constructed-card-translations.test.ts",
