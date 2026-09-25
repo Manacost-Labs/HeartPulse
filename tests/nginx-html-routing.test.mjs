@@ -14,6 +14,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { gunzipSync } from 'node:zlib';
 
 const projectRoot = resolve(new URL('..', import.meta.url).pathname);
 const inventory = JSON.parse(readFileSync(
@@ -86,6 +87,11 @@ function parseLocationBlocks(source) {
 }
 
 const locations = parseLocationBlocks(routingSource);
+const nextAssetsLocation = locations.find(location => location.modifier === '^~' && location.pattern === '/_next/');
+assert.ok(nextAssetsLocation, 'Next build assets must have a dedicated route');
+assert.match(nextAssetsLocation.body, /gzip on;/, 'Next build assets must be compressed');
+assert.match(nextAssetsLocation.body, /gzip_types[^;]*application\/javascript[^;]*text\/css/,
+  'Next JavaScript and CSS must be compressed');
 const regexLocations = locations
   .filter(location => location.modifier === '~' || location.modifier === '~*')
   .map(location => ({
@@ -680,11 +686,15 @@ function requestNginx(port, path, method = 'GET', extraHeaders = {}) {
     }, response => {
       const chunks = [];
       response.on('data', chunk => chunks.push(chunk));
-      response.on('end', () => resolveRequest({
-        status: response.statusCode,
-        headers: response.headers,
-        body: Buffer.concat(chunks).toString('utf8'),
-      }));
+      response.on('end', () => {
+        const rawBody = Buffer.concat(chunks);
+        resolveRequest({
+          status: response.statusCode,
+          headers: response.headers,
+          body: rawBody.toString('utf8'),
+          rawBody,
+        });
+      });
     });
     pending.once('error', rejectRequest);
     pending.end();
@@ -1002,8 +1012,11 @@ async function startCardSeoUpstream() {
     }]),
     ['/_next/static/test.js', {
       status: 200,
-      headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
-      body: 'window.nextRuntime = true;',
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Type': 'application/javascript',
+      },
+      body: 'window.nextRuntime = true;'.repeat(80),
     }],
     ['/standard/cards/standard/CARD_OK/', {
       status: 200,
@@ -1399,6 +1412,13 @@ http {
           `${path} must stay indexable on success`);
       }
     }
+    const compressedNextAsset = await requestNginx(port, '/_next/static/test.js', 'GET', {
+      'Accept-Encoding': 'gzip',
+    });
+    assert.equal(compressedNextAsset.status, 200);
+    assert.equal(compressedNextAsset.headers['content-encoding'], 'gzip');
+    assert.match(compressedNextAsset.headers.vary || '', /Accept-Encoding/i);
+    assert.match(gunzipSync(compressedNextAsset.rawBody).toString('utf8'), /nextRuntime/);
     for (const path of ['/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/']) {
       const detail = await requestNginx(port, path);
       assert.equal(detail.status, 200, `${path} must reach Next`);
