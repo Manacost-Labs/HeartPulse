@@ -69,6 +69,60 @@ Nginx remains the public edge and routes each URL to exactly one owner.
    integration preflight. Commit each independently verified slice. Retain the
    previous release and rollback procedure when Vite is finally removed.
 
+## Remaining execution queue (2026-09-25)
+
+The [coverage ledger](nextjs-route-coverage.md) is the exhaustive route list;
+the following queue turns its 19 remaining entries and two additional HTML
+pages into independently releasable slices. Each slice ends with a focused
+HTTP/permission test, Next build, direct-port browser review, a commit, a
+separate Nginx owner switch, and verification of the deployed SHA. A Next route
+alone does not close a ledger row.
+
+1. Finish `/heroes/:dbfId` and `/library/:kind/:slugAndDbfId` for minions
+   and spells. Preserve public identity, paid statistics, canonical redirects,
+   true 404 and retryable 503 before switching each edge owner.
+2. Add `/library/:additionalKind/:slugAndDbfId` and
+   `/library/archive/:kind/:slugAndDbfId`. Reuse the detail contract; check
+   every supported kind plus unsupported and missing URLs.
+3. Move `/cosmetics`, `/cosmetics/:kind` and
+   `/cosmetics/:kind/:cardId`. Match public data, permissions, images, SEO,
+   filters, 404 and 5xx responses.
+4. Move `/battlegrounds/tier-list`. Keep public teaser and paid data separate;
+   verify source/filter state and empty/error views after refresh.
+5. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.
+   Verify saved state, imports/exports, client interactions and legacy assets.
+6. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
+   Check direct load, editing, authentication and `noindex`; record the latter
+   two explicit Nginx pages in the reconciled inventory.
+7. Move `/connect`, `/id/:publicProfileId` and
+   `/profiles/:legacyPublicProfileId`. Keep identity and serializer APIs as
+   authority; check signed-out, linked, missing and legacy states. Fix the
+   broken `/profile/` shell link.
+8. Move `/admin`. Check permission at the server boundary and verify guest,
+   forbidden and administrator responses and operations tabs. No privileged
+   data may enter shared HTML.
+9. Close `/r/:slug`, `/decks/:path*`, `/jobs/:path*` and unknown `/:path*`.
+   Preserve redirect and removed statuses, return a real Next 404 for unknown
+   HTML, and replace the Vite-generated `/404.html`. These are contracts,
+   not four new content pages.
+
+After slice 9, reconcile the effective Nginx rules, route manifest, sitemap,
+SEO inventory and sampled access logs. The gate for beginning Vite removal is
+**47 of 47 ledger entries resolved, both extra admin tools resolved, and zero
+new HTML served from Vite for seven consecutive days**. Keep `/api/`,
+`/identity/`, health, metrics, sitemaps and media on their established owners.
+Preserve the Yandex verification URL as a static-asset contract.
+
+Retire Vite in four independently committed tooling slices: (a) replace
+development/preview and Storybook's Vite framework, (b) replace Vite env reads,
+prerender/SEO and bundle-budget checks, (c) make release, Nginx, CDN and
+rollback artifacts Next-only while retaining old hashed assets for their
+carry-forward window, then (d) remove the Vite entry/config/dependencies and
+prove `npm ls vite --all` plus active source/config searches are clear. The
+final gate is `npm run dev`, `npm run build`, Storybook, release creation,
+deployment and rollback working without a Vite artifact; production HTML and
+current assets must no longer depend on `dist`.
+
 ## Ordered work
 
 ### 0. Close the inventory and record the baseline
