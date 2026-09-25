@@ -166,6 +166,12 @@
       #3a030d;
   }
 
+  /* Text-only route banners should reveal the page content on mobile. */
+  .section-banner-modern {
+    min-height: 11rem;
+    align-content: center;
+  }
+
   :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::before {
     top: auto;
     bottom: 0;
