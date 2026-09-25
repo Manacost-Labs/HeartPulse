@@ -94,6 +94,9 @@ alone does not close a ledger row.
 4. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
    Check direct load, editing, authentication and `noindex`; record the latter
    two explicit Nginx pages in the reconciled inventory.
+   The Next `/deck-builder/` document is staged with a server-side full-admin
+   check, a browser recheck and the existing editable draft. Its exact Nginx
+   rule remains on the legacy shell until the separate owner switch.
 5. Completed: `/connect` and both public-profile URL patterns use Next-owned
    HTML while Express keeps the device approval, session and public-profile
    serializer APIs. Fix the broken `/profile/` shell link.

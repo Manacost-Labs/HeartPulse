@@ -1,0 +1,14 @@
+.deck-builder-access-card {
+  width: min(100%, 620px);
+  margin: 2rem auto;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  text-align: center;
+  border: 2px solid #9d6e34;
+  border-radius: 0.75rem;
+  background: #fff4d5;
+  color: #412918;
+}
+
+.deck-builder-access-card h1 { margin: 0 0 0.75rem; font-size: clamp(1.5rem, 5vw, 2.25rem); }
+.deck-builder-access-card p { margin: 0 0 1.25rem; }
+.deck-builder-access-card a { color: #7c2525; font-weight: 800; text-underline-offset: 0.2em; }

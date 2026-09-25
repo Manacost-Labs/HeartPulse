@@ -112,6 +112,10 @@ Rules:
 - render unknown Next HTML with a real HTTP 404, `noindex, nofollow`, the
   public navigation and the generic missing-page actions; card details may
   keep their more specific missing-card message;
+- keep `/deck-builder/` private and `noindex, nofollow`: only a full
+  administrator may load the editor, and the browser must recheck that role
+  before importing it. The draft stays in browser storage; `/api/admin/`
+  mutations remain authorized by Express;
 - keep domain data fetching and permission decisions out of routing files;
 - preserve optimistic surface selection for nested detail URLs while the
   public URL policy performs authoritative validation.

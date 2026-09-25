@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 const sessionCookieNames = ['__Host-manacost_auth_token', 'manacost_auth_token'] as const;
 
 /** Checks the existing Express session without serializing user data into HTML. */
-export async function canOpenAdminPage(): Promise<boolean> {
+export async function canOpenAdminPage(requiredAccess: 'contest' | 'workspace' = 'contest'): Promise<boolean> {
   const cookieStore = await cookies();
   const sessionCookies = sessionCookieNames.flatMap(name => {
     const value = cookieStore.get(name)?.value;
@@ -29,5 +29,6 @@ export async function canOpenAdminPage(): Promise<boolean> {
   if (!payload || typeof payload !== 'object') throw new Error('Invalid admin session response');
   const access = payload as { user?: unknown; adminAllowed?: unknown; contestAdminAllowed?: unknown };
   return Boolean(access.user && typeof access.user === 'object'
-    && (access.adminAllowed === true || access.contestAdminAllowed === true));
+    && (access.adminAllowed === true
+      || (requiredAccess === 'contest' && access.contestAdminAllowed === true)));
 }

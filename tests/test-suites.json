@@ -351,6 +351,7 @@
         "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-cosmetics-browser.test.mjs",
         "tests/next-connect-browser.test.mjs",
+        "tests/next-deck-builder-browser.test.mjs",
         "tests/next-public-profiles-browser.test.mjs",
         "tests/next-bg-library-details-browser.test.mjs",
         "tests/next-archetype-details-browser.test.mjs",

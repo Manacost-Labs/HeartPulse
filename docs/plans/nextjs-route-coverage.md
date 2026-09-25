@@ -92,15 +92,16 @@ status, location and robots headers remain in regression checks.
 - `/deck-builder/` and `/archetypes/` are separate admin tools with explicit
   Nginx document and slash-redirect rules. Migrate each to an App Router page
   with `noindex` and authenticated browser checks.
+  The `/deck-builder/` App Router page is built and browser-tested but stays
+  open here until its exact edge rule serves Next in production.
 - `/admin/` is already counted above, but its exact Nginx rule and internal
   operations tabs need separate permission and direct-load checks.
 - `/?login` is a login overlay state, not another path. The Next-owned home
   page preserves its query policy and login/logout behavior. The Next public
   shell sends its account control there. `/profile/` still returns 404 and is
   not counted as a live page.
-- `/404.html` is an internal Nginx error document generated from `dist` today.
-  Replace that dependency when Next owns unknown HTML, while keeping an
-  independent emergency error response for technical paths.
+- `/404.html` is an internal Nginx error document served by Next. Missing
+  technical assets retain an independent, cheap status-only 404.
 - The Yandex verification HTML file is a technical static asset, not an app
   page. Preserve its URL without relying on the Vite build.
 
