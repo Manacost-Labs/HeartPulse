@@ -1,8 +1,8 @@
 # Next.js production cutover
 
 The public card catalog, card details, gallery, FAQ, privacy, terms, articles,
-contests, Arena classes, Arena tier list, Arena legendary groups and home pages
-are owned by Next.js.
+contests, Arena classes, Arena tier list, Arena legendary groups, Standard
+matchups and home pages are owned by Next.js.
 Express continues
 to own APIs,
 authentication, subscriptions and data access; remaining HTML stays on the
@@ -59,8 +59,8 @@ Save the installed origin route snippet and SEO map, then install the reviewed
 run `sudo nginx -t`, and reload Nginx.
 The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus gallery, FAQ, privacy, terms, developer API documentation, articles,
-contests, Arena classes, Arena tier list, Arena legendary groups and home to
-port 4321, and forwards
+contests, Arena classes, Arena tier list, Arena legendary groups, Standard
+matchups and home to port 4321, and forwards
 `/_next/` build
 assets to the same process.
 The SEO map keeps filtered article pages `noindex, follow`, the home login

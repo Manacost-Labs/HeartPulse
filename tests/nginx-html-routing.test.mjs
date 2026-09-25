@@ -485,7 +485,7 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -716,6 +716,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next legendaries</title>',
     }],
+    ['/standard/matchups/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next matchups</title>',
+    }],
     ['/gallery/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -811,7 +816,7 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/', '/articles/', '/contests/', '/classes/', '/tierlist/', '/legendaries/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = ['/', '/articles/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -997,6 +1002,7 @@ http {
       ['/classes/', /Next classes/],
       ['/tierlist/', /Next tierlist/],
       ['/legendaries/', /Next legendaries/],
+      ['/standard/matchups/', /Next matchups/],
       ['/gallery/', /Next gallery/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
@@ -1040,6 +1046,9 @@ http {
     const failedLegendaries = await requestNginx(port, '/legendaries/?fail=1');
     assert.equal(failedLegendaries.status, 503, 'Arena legendaries upstream errors must retain their status');
     assert.equal(failedLegendaries.headers['x-robots-tag'], 'noindex, nofollow', 'Arena legendaries errors must not be indexed');
+    const failedMatchups = await requestNginx(port, '/standard/matchups/?fail=1');
+    assert.equal(failedMatchups.status, 503, 'Standard matchups upstream errors must retain their status');
+    assert.equal(failedMatchups.headers['x-robots-tag'], 'noindex, nofollow', 'Standard matchups errors must not be indexed');
 
     const adminRedirectResponse = await requestNginx(port, '/admin');
     assert.equal(adminRedirectResponse.status, 301, 'admin slash redirect');
@@ -1248,6 +1257,7 @@ http {
     assert.match(missingPage.body, /<title>404<\/title>/, '404 document body');
     for (const headFixture of [
       { path: '/tierlist', status: 301 },
+      { path: '/standard/matchups', status: 301 },
       { path: '/heroes/76521/', status: 200, robots: 'index, follow, max-image-preview:large' },
       { path: '/heroes/999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/heroes/888888/', status: 503, robots: 'noindex, nofollow' },
