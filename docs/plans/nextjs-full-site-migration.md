@@ -163,9 +163,9 @@ After direct-port and browser checks on the deployed release, Nginx serves
 this page from Next.js. `/tierlist/` also has a Next route with account-gated
 client data loading and an anonymous server-rendered page. Its public Nginx
 owner switches to Next.js after the deployed direct-port check. `/legendaries/`
-now has a staged Next route with the same anonymous teaser and an account-scoped
-client data loader; public Nginx still serves its legacy route until deployment
-and direct-port/browser verification.
+now has a Next route with the same anonymous teaser and an account-scoped
+client data loader. After deployed direct-port and browser checks, public Nginx
+serves it from Next.js.
 
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed
 (`/standard/matchups/`, `/standard/meta/`, `/standard/archetypes/`,
