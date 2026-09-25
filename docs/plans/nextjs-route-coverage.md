@@ -31,7 +31,8 @@ have been checked together. A route count alone is not a completion signal.
 
 - `guides-archive` — `/guides-archive` (Next route staged; subscription gate;
   Nginx legacy until deployed browser verification)
-- `guides-archive-detail` — `/guides-archive/:guideSlug` (teaser and gate)
+- `guides-archive-detail` — `/guides-archive/:guideSlug` (Next route staged;
+  public teaser and gate; Nginx legacy)
 
 Migrate the ungated pages first. The guide archive and each valid guide slug
 need a request-scoped entitlement decision, a public teaser and authoritative

@@ -62,6 +62,9 @@ test('static public pages roll out independently of cards', () => {
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'POST', true), 'legacy');
     assert.equal(publicWebOwner(`/standard/${family}/invalid/detail/`, false, 'GET', true), 'next');
   }
+  assert.equal(publicWebOwner('/guides-archive/arena-100-percent/', false, 'GET', true), 'next');
+  assert.equal(publicWebOwner('/guides-archive/missing/', false, 'GET', true), 'next');
+  assert.equal(publicWebOwner('/guides-archive/arena-100-percent/', false, 'POST', true), 'legacy');
   assert.equal(publicWebOwner('/_next/static/app.js', false, 'GET', true), 'next');
 });
 

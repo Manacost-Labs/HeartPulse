@@ -188,6 +188,11 @@ The guides archive listing is staged separately in Next.js. Its public title
 and description render without a session; the existing protected list API is
 called only after a guides-archive entitlement or administrator role is
 verified. Its public Nginx owner remains legacy until deployed browser checks.
+Individual guide pages are also staged in Next.js. A new anonymous Express
+teaser supplies a title and excerpt for request-time HTML, while the existing
+full-content API remains behind the guides-archive entitlement. Missing guides
+return 404 and numeric old links canonicalize to their resolved slugs. Nginx
+ownership still awaits a deployed browser check.
 It preserves the current public dataset API and client-side three-deck preview.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or

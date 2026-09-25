@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 78,
-    "routeRegistrations": 223,
+    "routeRegistrations": 224,
     "middlewareRegistrations": 120,
     "explicitGuardRouteRegistrations": 59,
     "unresolvedPaths": 0
@@ -1986,6 +1986,18 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/guides-archive/teaser/:slug",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "publicGuideTeaserRoute(...)",
+      "guardSignals": [],
+      "source": "server/guidesArchiveRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/guides-archive",
       "pathKind": "string",
       "receiver": "router",
@@ -1997,7 +2009,7 @@
         "dependencies.accessGuard"
       ],
       "source": "server/guidesArchiveRoutes.ts",
-      "sourceOrder": 0
+      "sourceOrder": 1
     },
     {
       "kind": "route",
@@ -2013,7 +2025,7 @@
         "dependencies.accessGuard"
       ],
       "source": "server/guidesArchiveRoutes.ts",
-      "sourceOrder": 1
+      "sourceOrder": 2
     },
     {
       "kind": "route",

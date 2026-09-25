@@ -38,25 +38,62 @@ function excerptText(value: unknown, maxLength = 220): string {
   return `${text.slice(0, maxLength).replace(/\s+\S*$/, '')}…`;
 }
 
-export function createGuidesArchiveRouter(dependencies: GuidesArchiveRouterDependencies): Router {
-  const router = Router();
-  const sanitizer = createOldGuideSanitizer(dependencies.publicUrl);
-  const cacheHeader = dependencies.cacheHeader ?? 'public, max-age=3600, stale-while-revalidate=600';
-  const logError = dependencies.logError ?? ((message: string, error: unknown) => console.error(message, error));
+type GuideSanitizer = ReturnType<typeof createOldGuideSanitizer>;
 
-  const rowToListItem = (row: any) => ({
+function guideListItem(row: Record<string, unknown>, sanitizer: GuideSanitizer) {
+  return {
     id: Number(row.id),
     slug: String(row.slug),
     title: String(row.title ?? ''),
     description: excerptText(row.description || row.body_text || row.body_html, 220),
     image: sanitizer.normalizeAssetUrl(row.image) || null,
-    publishedAt: row.published_iso || (row.published_at ? new Date(Number(row.published_at) * 1000).toISOString() : null),
-    menuName: row.menu_name || null,
-    menuCode: row.menu_code || null,
-    kind: row.kind || null,
-    kindSlug: row.kind_slug || null,
+    publishedAt: row.published_iso ? String(row.published_iso) : (row.published_at ? new Date(Number(row.published_at) * 1000).toISOString() : null),
+    menuName: row.menu_name ? String(row.menu_name) : null,
+    menuCode: row.menu_code ? String(row.menu_code) : null,
+    kind: row.kind ? String(row.kind) : null,
+    kindSlug: row.kind_slug ? String(row.kind_slug) : null,
     oldUrl: sanitizer.normalizeLink(row.old_url),
-  });
+  };
+}
+
+function publicGuideTeaserRoute(dependencies: GuidesArchiveRouterDependencies, sanitizer: GuideSanitizer,
+  logError: (message: string, error: unknown) => void): RequestHandler {
+  return (request, response) => {
+    const key = String(request.params.slug ?? '').trim();
+    if (!key || key.length > 160 || /[\x00-\x1f]/.test(key)) {
+      return response.status(400).json({ error: 'Некорректный адрес гайда' });
+    }
+    try {
+      const row = dependencies.getDatabase().prepare(`
+        SELECT id, slug, old_url, published_at, published_iso, title, description,
+               image, menu_name, menu_code, kind, kind_slug, body_text, body_html
+        FROM guides
+        WHERE slug = ? OR CAST(id AS TEXT) = ?
+        LIMIT 1
+      `).get(key, key);
+      if (!row) return response.status(404).json({ error: 'Гайд не найден' });
+      const item = guideListItem(row, sanitizer);
+      response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+      return response.json({
+        slug: item.slug, title: item.title, description: item.description,
+        image: item.image, publishedAt: item.publishedAt,
+        kind: item.kind, kindSlug: item.kindSlug, menuName: item.menuName,
+      });
+    } catch (error: unknown) {
+      logError('[guides-archive] teaser failed:', error instanceof Error ? error.message : error);
+      return response.status(500).json({ error: 'Не удалось загрузить превью гайда' });
+    }
+  };
+}
+
+export function createGuidesArchiveRouter(dependencies: GuidesArchiveRouterDependencies): Router {
+  const router = Router();
+  const sanitizer = createOldGuideSanitizer(dependencies.publicUrl);
+  const cacheHeader = dependencies.cacheHeader ?? 'public, max-age=3600, stale-while-revalidate=600';
+  const logError = dependencies.logError ?? ((message: string, error: unknown) => console.error(message, error));
+  const rowToListItem = (row: any) => guideListItem(row, sanitizer);
+
+  router.get('/guides-archive/teaser/:slug', publicGuideTeaserRoute(dependencies, sanitizer, logError));
 
   router.get('/guides-archive', dependencies.accessGuard, (request, response) => {
     response.set('Cache-Control', cacheHeader);

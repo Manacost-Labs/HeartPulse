@@ -85,6 +85,16 @@ try {
   const unauthorized = await request('/guides-archive');
   assert.equal(unauthorized.response.status, 401);
 
+  const publicTeaser = await request('/guides-archive/teaser/arena-100-percent');
+  assert.equal(publicTeaser.response.status, 200);
+  assert.match(publicTeaser.response.headers.get('cache-control') || '', /^public,/);
+  assert.equal(publicTeaser.body.title, 'Арена 100% побед');
+  assert.equal(publicTeaser.body.description, 'Подробное описание');
+  for (const field of ['bodyHtml', 'bodyText', 'contentHtml', 'keywords', 'oldUrl', 'sourceUrl']) {
+    assert.equal(Object.hasOwn(publicTeaser.body, field), false, `${field} must stay private`);
+  }
+  assert.equal((await request('/guides-archive/teaser/missing')).response.status, 404);
+
   const headers = { 'X-Test-Access': 'yes' };
   const list = await request('/guides-archive?page=-5&limit=999', { headers });
   assert.equal(list.response.status, 200);
@@ -130,6 +140,9 @@ try {
   const failedDetail = await fetch(`${origin(failingServer)}/guides-archive/example`);
   assert.equal(failedDetail.status, 500);
   assert.deepEqual(await failedDetail.json(), { error: 'Не удалось загрузить гайд' });
+
+  const failedTeaser = await fetch(`${origin(failingServer)}/guides-archive/teaser/example`);
+  assert.equal(failedTeaser.status, 500);
 } finally {
   await Promise.all([server, failingServer].map(instance => new Promise<void>((resolve, reject) => (
     instance.close(error => error ? reject(error) : resolve())
