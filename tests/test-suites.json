@@ -35,6 +35,7 @@
         "tests/architecture-catalog.test.mjs",
         "tests/arena-class-statistics-normalizer.test.ts",
         "tests/arena-classes-data.test.ts",
+        "tests/arena-legendaries-client.test.ts",
         "tests/arena-tierlist-client.test.ts",
         "tests/arena-draft-advisor.test.ts",
         "tests/arena-draft-assistant-ui.test.ts",

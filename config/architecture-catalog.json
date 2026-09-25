@@ -1314,10 +1314,16 @@
       "backendRoutes": [],
       "contracts": ["docs/specs/arena-legendaries.md"],
       "jobs": [],
-      "cacheNamespaces": ["leg_ru_cards_v4_<source>"],
+      "cacheNamespaces": [
+        "leg_ru_cards_v4_<source>",
+        "arena-legendaries:v4:<account>:<source>"
+      ],
       "dataStores": ["browser:localStorage"],
       "externalServices": [],
-      "tests": ["tests/legendary-routes.test.ts"],
+      "tests": [
+        "tests/arena-legendaries-client.test.ts",
+        "tests/legendary-routes.test.ts"
+      ],
       "allowedDependencies": ["React"],
       "forbiddenImports": ["server/**", "other frontend module internals"]
     },

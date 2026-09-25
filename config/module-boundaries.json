@@ -627,7 +627,10 @@
       "owner": "web-platform",
       "publicEntry": "src/modules/arenaLegendaries/public.ts",
       "dependencies": [],
-      "focusedTests": ["npm run test:legendary-routes"],
+      "focusedTests": [
+        "npm run test:arena-legendaries-client",
+        "npm run test:legendary-routes"
+      ],
       "docs": [
         "docs/specs/arena-legendaries.md",
         "docs/architecture/module-boundaries.md"

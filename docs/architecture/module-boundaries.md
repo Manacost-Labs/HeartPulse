@@ -61,8 +61,8 @@ its presentation will move into the module before the legacy route is removed.
 
 `src/modules/arenaLegendaries` owns the Arena legendary-group response types
 shared by the existing route and its forthcoming Next.js page. The client
-request, account-scoped cache and presentation will move into this module in
-separate verified steps.
+request, response validation and account-scoped cache live here. React loading
+and presentation will move into this module in separate verified steps.
 
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical
