@@ -344,6 +344,7 @@
         "tests/modal-surface-browser.test.mjs",
         "tests/next-admin-entitlements-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",
+        "tests/next-not-found-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",

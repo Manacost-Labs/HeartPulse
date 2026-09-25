@@ -103,6 +103,11 @@ alone does not close a ledger row.
    HTML, and replace the Vite-generated `/404.html`. These are contracts,
    not four new content pages.
 
+   The global Next 404 now reuses the public navigation and error design;
+   card details keep their own missing-card message. The edge still serves
+   `/404.html` from the Vite artifact until the separate fallback switch is
+   deployed and checked.
+
 After slice 7, reconcile the effective Nginx rules, route manifest, sitemap,
 SEO inventory and sampled access logs. The gate for beginning Vite removal is
 **47 of 47 ledger entries resolved, both extra admin tools resolved, and zero
