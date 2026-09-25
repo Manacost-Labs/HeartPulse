@@ -65,6 +65,10 @@ request, response validation, account-scoped cache and React loading live here.
 The staged Next page temporarily composes the legacy presentation through a
 client adapter; presentation will move into this module before Vite retirement.
 
+`src/modules/standardMatchups` owns the Standard matchup response contract
+shared by the legacy route and its forthcoming Next.js page. The protected
+client request and interactive presentation will move in separate steps.
+
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical
 current-account resolver; the module rechecks eligibility when approving,

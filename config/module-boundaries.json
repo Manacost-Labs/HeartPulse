@@ -654,6 +654,20 @@
       ]
     },
     {
+      "id": "client.standardMatchups",
+      "runtime": "client",
+      "root": "src/modules/standardMatchups",
+      "purpose": "Owns the Standard matchup response contract shared by legacy and Next route composition.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/standardMatchups/public.ts",
+      "dependencies": [],
+      "focusedTests": ["npm run test:standard-matchup-routes"],
+      "docs": [
+        "docs/specs/standard-matchups.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "client.constructedCards",
       "runtime": "client",
       "root": "src/modules/constructedCards",

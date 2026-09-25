@@ -1367,6 +1367,27 @@
       ]
     },
     {
+      "name": "frontend-standard-matchups",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Owns the Standard matchup response contract shared by legacy and Next route composition.",
+      "paths": ["src/modules/standardMatchups"],
+      "publicEntrypoints": ["src/modules/standardMatchups/public.ts"],
+      "frontendRoutes": ["/standard/matchups"],
+      "backendRoutes": [],
+      "contracts": ["docs/specs/standard-matchups.md"],
+      "jobs": [],
+      "cacheNamespaces": ["standard_matchups_ru_v7_<format>"],
+      "dataStores": ["browser:localStorage"],
+      "externalServices": [],
+      "tests": [
+        "tests/standard-matchup-routes.test.ts",
+        "tests/standard-matchups-controls-ui.test.ts"
+      ],
+      "allowedDependencies": ["React"],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
       "name": "frontend-constructed-cards",
       "status": "modular",
       "owner": "web-platform",

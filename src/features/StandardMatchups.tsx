@@ -4,43 +4,12 @@ import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide
 import '../route-parchment.css';
 import './StandardMatchups.css';
 import { type ActiveMatrixMatchup, useCloseMatrixMatchup, useTooltipViewportPosition } from './standardMatchupsTooltip';
+import type {
+  StandardMatchupsCell, StandardMatchupsData, StandardMatchupsFormat, StandardMatchupsRow,
+} from '../modules/standardMatchups/public';
 
-type StandardMatchupsFormat = 'standard' | 'wild';
 type StandardMatchupsView = 'overview' | 'matrix';
 type StandardMatchupsFilter = 'all' | 'strong' | 'even' | 'weak';
-
-interface StandardMatchupsColumn {
-  name: string;
-  label?: string;
-  popularity: string | null;
-}
-
-interface StandardMatchupsCell {
-  opponent: string;
-  opponentLabel?: string;
-  winrate: number | null;
-}
-
-interface StandardMatchupsRow {
-  archetype: string;
-  archetypeLabel?: string;
-  winrate: number | null;
-  cells: StandardMatchupsCell[];
-}
-
-interface StandardMatchupsData {
-  format: StandardMatchupsFormat;
-  formatLabel: string;
-  rank: 'legend';
-  rankLabel: string;
-  source: string;
-  sourceId?: string;
-  sourceUrl?: string;
-  updatedAt: string | null;
-  columns: StandardMatchupsColumn[];
-  rows: StandardMatchupsRow[];
-  warning?: string;
-}
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
