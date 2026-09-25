@@ -23,7 +23,9 @@ const heroDetail = { ...hero, health: null, character: null, actor: null, artist
 const coinDetail = { ...coin, text: { ru: null, en: null },
   images: { ...coin.images, golden: null, wiki: null }, generatedBy: [], related: [] };
 const petDetail = { ...pet, pet: { id: 1, name: 'Семейство' },
-  images: { ...pet.images, endScreen: null }, gallery: [], variants: [pet] };
+  images: { ...pet.images,
+    endScreen: 'https://hearthstone.wiki.gg/wiki/Special:Redirect/file/Pet_EndScreen.png' },
+  gallery: [], variants: [pet] };
 
 async function listen(server) {
   server.listen(0, '127.0.0.1');
@@ -45,7 +47,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
     const path = url.pathname;
     if (path.startsWith('/api/cosmetics/')) catalogRequests.push(`${path}${url.search}`);
     if (/^\/api\/cosmetics\/(heroes|coins|pets)\/[^/]+$/.test(path)) detailCookies.push(request.headers.cookie ?? '');
-    if (path.startsWith('/api/card-image/')) {
+    if (path.startsWith('/api/card-image/') || path.startsWith('/api/public-resource/wiki/')) {
       response.setHeader('Content-Type', 'image/webp');
       response.end(readFileSync('public/arena-logo-icon.webp'));
       return;
@@ -168,6 +170,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
           canonical: document.querySelector('link[rel=canonical]')?.href,
           heading: document.querySelector('h1')?.textContent?.trim(),
           detail: Boolean(document.querySelector('.cosmetics-detail')),
+          endScreen: document.querySelector('.cosmetics-end-screen')?.getAttribute('src') ?? null,
           main: document.querySelectorAll('main').length,
           overflow: document.documentElement.scrollWidth > innerWidth,
           violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
@@ -176,6 +179,10 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
         assert.equal(state.canonical, `https://hearthpulse.net${path}`);
         assert.equal(state.heading, heading);
         assert.equal(state.detail, true);
+        if (path.includes('/pets/')) {
+          assert.equal(state.endScreen,
+            '/api/public-resource/wiki/wiki/Special:Redirect/file/Pet_EndScreen.png');
+        }
         assert.equal(state.main, 1);
         assert.equal(state.overflow, false);
         assert.deepEqual(state.violations, []);

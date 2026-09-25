@@ -73,7 +73,7 @@ contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
 its detail/legacy-meta URLs, the guides archive and guide details, the
 Battlegrounds hero catalog and details, library listings and all supported
-current/archive card details, and home
+current/archive card details, cosmetics catalogs and details, and home
 to port 4321, and forwards
 `/_next/` build
 assets to the same process.

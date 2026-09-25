@@ -3,8 +3,8 @@
 ## Objective
 
 Required images, audio, video, and public JSON used to render
-`arena.hs-manacost.ru` must be requested by the browser from
-`arena.hs-manacost.ru`. Upstream services may still be contacted by the Arena
+`hearthpulse.net` must be requested by the browser from
+`hearthpulse.net`. Upstream services may still be contacted by the HearthPulse
 origin on a cache miss.
 
 External navigation links and optional analytics are outside this contract.
@@ -39,7 +39,8 @@ The following required sources must resolve through the same-origin route:
 - `bg.kolodahearthstone.ru` Battlegrounds UI assets;
 - `art.hearthstonejson.com` card art;
 - `api.hearthstonejson.com` public card JSON;
-- `hearthstone.wiki.gg` gallery media;
+- `hearthstone.wiki.gg` gallery media, including bounded
+  `/wiki/Special:Redirect/file/` image URLs that resolve to `/images/`;
 - required static HSReplay art used by the bundled deck renderer.
 
 ## Verification

@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (32 inventory entries)
+## Already served by Next.js (35 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -44,13 +44,12 @@ have been checked together. A route count alone is not a completion signal.
   `/library/:additionalKind/:slugAndDbfId` for all seven supported kinds
 - `bg-library-archive-detail` —
   `/library/archive/:kind/:slugAndDbfId` for all seven supported kinds
-
-## Battlegrounds and cosmetics data HTML (4)
-
-- `cosmetics` — `/cosmetics` (Next route staged; Nginx remains legacy)
-- `cosmetics-kind` — `/cosmetics/:kind` (Next route staged; Nginx remains legacy)
+- `cosmetics` — `/cosmetics`
+- `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
-  (Next route staged; Nginx remains legacy)
+
+## Remaining Battlegrounds data HTML (1)
+
 - `bg-tier-list` — `/battlegrounds/tier-list`
 
 Match static, archive and detail routes in that order so a broad dynamic

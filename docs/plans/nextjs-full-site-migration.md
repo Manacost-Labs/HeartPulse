@@ -1,9 +1,10 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-25. Thirty-two of the 47 inventory
+Status: execution in progress, 2026-09-25. Thirty-five of the 47 inventory
 entries are served by Next.js, including public/editorial pages, Arena and
 constructed catalogs, the guide archive, archetype details and the Battlegrounds
-hero catalog, library listings, hero details and all supported library card details.
+hero catalog, library listings, hero details, all supported library card details
+and the cosmetics catalog and details.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -71,16 +72,15 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 ## Remaining execution queue (2026-09-25)
 
 The [coverage ledger](nextjs-route-coverage.md) is the exhaustive route list;
-the following queue turns its 15 remaining entries and two additional HTML
+the following queue turns its 12 remaining entries and two additional HTML
 pages into independently releasable slices. Each slice ends with a focused
 HTTP/permission test, Next build, direct-port browser review, a commit, a
 separate Nginx owner switch, and verification of the deployed SHA. A Next route
 alone does not close a ledger row.
 
-1. Move `/cosmetics`, `/cosmetics/:kind` and
-   `/cosmetics/:kind/:cardId`. Match public data, permissions, images, SEO,
-   filters, 404 and 5xx responses. Listings and details are staged in Next.js;
-   the public Nginx owner switch remains.
+1. Completed: `/cosmetics`, `/cosmetics/:kind` and
+   `/cosmetics/:kind/:cardId` retain public data, images, SEO, filters and
+   404/503 responses on Next.js after the Nginx owner switch.
 2. Move `/battlegrounds/tier-list`. Keep public teaser and paid data separate;
    verify source/filter state and empty/error views after refresh.
 3. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.

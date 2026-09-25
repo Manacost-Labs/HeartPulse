@@ -10,6 +10,11 @@ assert.equal(
   '/api/public-resource/wiki/images/thumb/a/ab/Card.jpg/800px-Card.jpg',
 );
 assert.equal(
+  publicResourceUrl('https://hearthstone.wiki.gg/wiki/Special:Redirect/file/Pet_EndScreen.png'),
+  '/api/public-resource/wiki/wiki/Special:Redirect/file/Pet_EndScreen.png',
+  'wiki file redirects must use same-origin delivery before reaching the image',
+);
+assert.equal(
   publicResourceUrl('https://hearthstone.wiki.gg/wiki/Card'),
   'https://hearthstone.wiki.gg/wiki/Card',
   'ordinary external navigation links must not be converted into media requests',

@@ -66,6 +66,11 @@ app.use('/api', createPublicResourceRouter({
       Object.defineProperty(response, 'url', { value: url });
       return response;
     }
+    if (pathname === '/wiki/Special:Redirect/file/Pet_EndScreen.png') {
+      return new Response(null, { status: 301, headers: {
+        location: 'https://hearthstone.wiki.gg/images/Pet_EndScreen.png?rev=1',
+      } });
+    }
     if (pathname.endsWith('/gzip.json')) {
       const response = await fetch(`${compressedOrigin}/gzip.json`, init);
       Object.defineProperty(response, 'url', { value: url });
@@ -210,7 +215,14 @@ try {
   const rejectedLargeResource = await fetch(`${baseUrl}/db/uploads/too-large.png`);
   assert.equal(rejectedLargeResource.status, 502);
 
-  assert.equal(upstreamCalls.length, 10, 'rejected source and path must not reach the network');
+  const wikiRedirect = await fetch(`${baseUrl}/wiki/wiki/Special:Redirect/file/Pet_EndScreen.png`);
+  assert.equal(wikiRedirect.status, 206);
+  assert.deepEqual(upstreamCalls.slice(-2).map(call => call.url), [
+    'https://hearthstone.wiki.gg/wiki/Special:Redirect/file/Pet_EndScreen.png',
+    'https://hearthstone.wiki.gg/images/Pet_EndScreen.png?rev=1',
+  ]);
+
+  assert.equal(upstreamCalls.length, 12, 'rejected source and path must not reach the network');
 } finally {
   await Promise.all([
     new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())),

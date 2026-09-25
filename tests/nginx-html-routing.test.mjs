@@ -500,6 +500,13 @@ for (const route of inventory.routes) {
       `${route.id} errors must be noindex`);
     continue;
   }
+  if (['cosmetics', 'cosmetics-kind'].includes(route.id)) {
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
+    const listing = firstMatchingRegexLocation(`${path}/`);
+    assert.match(listing?.body || '', /add_header X-Robots-Tag \$arena_next_articles_robots_header always;/,
+      `${route.id} filters and errors must retain their robots policy`);
+    continue;
+  }
   if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/vicious-gold', '/standard/archetypes'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
@@ -521,12 +528,16 @@ for (const route of inventory.routes) {
     continue;
   }
   if (route.id === 'cosmetics-detail') {
-    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);
     assert.doesNotMatch(resolver?.body || '', /try_files\s+[^;]*\/index\.html/,
       `${route.id} must not fall back to a static listing shell`);
+    assert.match(resolver?.body || '', /proxy_hide_header X-Robots-Tag;/,
+      `${route.id} must avoid duplicate upstream robots headers`);
+    assert.match(resolver?.body || '', /add_header X-Robots-Tag \$arena_next_articles_robots_header always;/,
+      `${route.id} errors must remain noindex`);
     assert.match(resolver?.body || '', /proxy_intercept_errors\s+off;/,
-      `${route.id} authoritative 404/503 HTML and headers must pass through nginx`);
+      `${route.id} 404/503 HTML and Retry-After must pass through nginx`);
     continue;
   }
   expectRegexAction(`${path}/`, '@arena_spa_noindex;', `${route.id} canonical route`);
@@ -810,6 +821,31 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next heroes</title>',
     }],
+    ...['/cosmetics/', '/cosmetics/heroes/', '/cosmetics/coins/', '/cosmetics/pets/'].map(path => [path, {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: `<title>Next ${path}</title>`,
+    }]),
+    ['/cosmetics/heroes/HERO_QA_001/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'index, follow' },
+      body: '<title>Next cosmetic detail</title>',
+    }],
+    ['/cosmetics/heroes/MISSING/', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow' },
+      body: '<title>Missing cosmetic detail</title>',
+    }],
+    ['/cosmetics/heroes/UNAVAILABLE/', {
+      status: 503,
+      headers: { 'Cache-Control': 'private, no-store', 'Retry-After': '300' },
+      body: '<title>Cosmetic detail unavailable</title>',
+    }],
+    ...['/cosmetics/unknown/', '/cosmetics/unknown/ID/', '/cosmetics/heroes/ID/extra/'].map(path => [path, {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<title>Invalid cosmetics path</title>',
+    }]),
     ...['/library/', '/library/minions/', '/library/archive/', '/library/archive/minions/'].map(path => [path, {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -1143,6 +1179,34 @@ http {
       assert.match(detail.body, /Next (?:archetype|legacy meta) detail/);
       assert.equal(detail.headers['x-robots-tag'], 'noindex, follow');
     }
+    for (const path of ['/cosmetics/', '/cosmetics/heroes/', '/cosmetics/coins/', '/cosmetics/pets/']) {
+      const listing = await requestNginx(port, path);
+      assert.equal(listing.status, 200, `${path} must reach Next`);
+      assert.match(listing.body, /Next \/cosmetics\//);
+      assert.equal(listing.headers['x-robots-tag'], undefined);
+    }
+    const cosmeticsFilter = await requestNginx(port, '/cosmetics/heroes/?class=mage');
+    assert.equal(cosmeticsFilter.status, 200);
+    assert.equal(cosmeticsFilter.headers['x-robots-tag'], 'noindex, follow');
+    const cosmeticsDetail = await requestNginx(port, '/cosmetics/heroes/HERO_QA_001/');
+    assert.equal(cosmeticsDetail.status, 200);
+    assert.match(cosmeticsDetail.body, /Next cosmetic detail/);
+    assert.equal(cosmeticsDetail.headers['x-robots-tag'], undefined);
+    const cosmeticsMissing = await requestNginx(port, '/cosmetics/heroes/MISSING/');
+    assert.equal(cosmeticsMissing.status, 404);
+    assert.equal(cosmeticsMissing.headers['x-robots-tag'], 'noindex, nofollow');
+    const cosmeticsOutage = await requestNginx(port, '/cosmetics/heroes/UNAVAILABLE/');
+    assert.equal(cosmeticsOutage.status, 503);
+    assert.equal(cosmeticsOutage.headers['retry-after'], '300');
+    assert.equal(cosmeticsOutage.headers['x-robots-tag'], 'noindex, nofollow');
+    for (const path of ['/cosmetics/unknown/', '/cosmetics/unknown/ID/', '/cosmetics/heroes/ID/extra/']) {
+      const invalid = await requestNginx(port, path);
+      assert.equal(invalid.status, 404, `${path} must remain a Next 404`);
+      assert.equal(invalid.headers['x-robots-tag'], 'noindex, nofollow');
+    }
+    const cosmeticsRedirect = await requestNginx(port, '/cosmetics/heroes/HERO_QA_001');
+    assert.equal(cosmeticsRedirect.status, 301);
+    assert.match(cosmeticsRedirect.headers.location || '', /\/cosmetics\/heroes\/HERO_QA_001\/$/);
     const guideFilter = await requestNginx(port, '/guides-archive/?q=arena');
     assert.equal(guideFilter.headers['x-robots-tag'], 'noindex, follow');
     for (const path of ['/guides-archive/guide-1/?fail=1', '/standard/archetypes/standard/tempo-mage/?fail=1', '/library/?fail=1', '/library/archive/minions/?fail=1']) {

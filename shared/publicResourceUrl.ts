@@ -22,7 +22,7 @@ export const PUBLIC_RESOURCE_SOURCES = {
   },
   wiki: {
     origin: 'https://hearthstone.wiki.gg',
-    allowedPathPrefixes: ['/images/'],
+    allowedPathPrefixes: ['/images/', '/wiki/Special:Redirect/file/'],
   },
   hsreplay: {
     origin: 'https://static.hsreplay.net',
