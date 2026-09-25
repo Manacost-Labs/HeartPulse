@@ -18,7 +18,9 @@ host="\${@: -2:1}"
 record_type="\${@: -1}"
 if [[ "$record_type" == A ]]; then
   [[ "$host" != www.hearthpulse.net ]] || printf 'hearthpulse.net.\\n'
-  printf '%s\\n' 162.19.220.14 194.67.92.242 186.246.28.244
+  printf '%s\\n' 162.19.220.14 194.67.92.242
+  [[ "\${FAKE_QUARANTINE:-}" != novosibirsk ]] || exit 0
+  printf '%s\\n' 186.246.28.244
   [[ -z "\${FAKE_EXTRA_A:-}" ]] || printf '%s\\n' "$FAKE_EXTRA_A"
 elif [[ -n "\${FAKE_AAAA:-}" ]]; then
   printf '%s\\n' "$FAKE_AAAA"
@@ -27,6 +29,9 @@ fi
 
 installFixture('curl', `#!/usr/bin/env bash
 set -euo pipefail
+if [[ -n "\${FAKE_FAIL_NOVOSIBIRSK:-}" && "$*" == *186.246.28.244* ]]; then
+  exit 28
+fi
 url="\${@: -1}"
 if [[ "$*" == *" --head "* ]]; then
   status=200
@@ -74,6 +79,26 @@ try {
   const healthy = runMonitor();
   assert.equal(healthy.status, 0, healthy.stderr || healthy.stdout);
   assert.match(healthy.stdout, /checks passed/);
+
+  const quarantined = runMonitor({
+    FAKE_QUARANTINE: 'novosibirsk',
+    FAKE_FAIL_NOVOSIBIRSK: '1',
+    HEARTHPULSE_MONITOR_QUARANTINED_REGION: 'novosibirsk',
+  });
+  assert.equal(quarantined.status, 0, quarantined.stderr || quarantined.stdout);
+  assert.match(quarantined.stdout, /quarantined region: novosibirsk/);
+
+  const unconfiguredQuarantine = runMonitor({ FAKE_QUARANTINE: 'novosibirsk' });
+  assert.notEqual(unconfiguredQuarantine.status, 0);
+  assert.match(unconfiguredQuarantine.stderr, /unsafe IPv4 set/);
+
+  const advertisedBadEdge = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGION: 'novosibirsk' });
+  assert.notEqual(advertisedBadEdge.status, 0);
+  assert.match(advertisedBadEdge.stderr, /unsafe IPv4 set/);
+
+  const unknownRegion = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGION: 'unknown' });
+  assert.notEqual(unknownRegion.status, 0);
+  assert.match(unknownRegion.stderr, /unsupported quarantined region/);
 
   const extraIpv4 = runMonitor({ FAKE_EXTRA_A: '203.0.113.10' });
   assert.notEqual(extraIpv4.status, 0);

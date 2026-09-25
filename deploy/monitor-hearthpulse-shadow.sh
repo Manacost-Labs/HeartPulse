@@ -7,7 +7,18 @@ cdn_domain="${HEARTHPULSE_MONITOR_CDN_DOMAIN:-cdn.hearthpulse.net}"
 legacy_domain="${HEARTHPULSE_MONITOR_LEGACY_DOMAIN:-arena.hs-manacost.ru}"
 legacy_cdn_domain="${HEARTHPULSE_MONITOR_LEGACY_CDN_DOMAIN:-cdn.arena.hs-manacost.ru}"
 known_card_path="${HEARTHPULSE_MONITOR_CARD_PATH:-/api/card-image/DINO_410/full.webp}"
-edges=("limburg:162.19.220.14" "moscow:194.67.92.242" "novosibirsk:186.246.28.244")
+all_edges=("limburg:162.19.220.14" "moscow:194.67.92.242" "novosibirsk:186.246.28.244")
+quarantined_region="${HEARTHPULSE_MONITOR_QUARANTINED_REGION:-}"
+edges=()
+if [[ -n "$quarantined_region" ]]; then
+	case "$quarantined_region" in
+	limburg | moscow | novosibirsk) ;;
+	*) printf 'FAIL: unsupported quarantined region: %s\n' "$quarantined_region" >&2; exit 2 ;;
+	esac
+fi
+for edge_entry in "${all_edges[@]}"; do
+	[[ "${edge_entry%%:*}" == "$quarantined_region" ]] || edges+=("$edge_entry")
+done
 expected_ipv4="$(printf '%s\n' "${edges[@]#*:}" | sort -u)"
 
 failures=0
@@ -116,4 +127,7 @@ for edge_entry in "${edges[@]}"; do
 done
 
 if ((failures > 0)); then exit 1; fi
+if [[ -n "$quarantined_region" ]]; then
+	printf 'HearthPulse quarantined region: %s\n' "$quarantined_region"
+fi
 printf 'HearthPulse canonical DNS, TLS, regional application, legacy redirects and CDN checks passed at %s\n' "$(date -u +%FT%TZ)"
