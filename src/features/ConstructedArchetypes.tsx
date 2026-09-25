@@ -191,6 +191,15 @@ function replaceCatalogUrl(nextFormat: ArchetypeFormat, nextClass: ArchetypeClas
   window.history.replaceState(window.history.state, '', `/standard/archetypes?${params.toString()}`);
 }
 
+function readInitialCatalogFilters(search: string): { format: ArchetypeFormat; classFilter: ArchetypeClassFilter } {
+  const params = new URLSearchParams(search);
+  const classParam = params.get('class');
+  return {
+    format: params.get('format') === 'wild' ? 'wild' : 'standard',
+    classFilter: CLASS_FILTERS.some(item => item.id === classParam) ? classParam as ArchetypeClassFilter : 'all',
+  };
+}
+
 function formatNumber(value: number | null, suffix = '', maximumFractionDigits = 1): string {
   if (value === null || !Number.isFinite(value)) return '—';
   return `${value.toLocaleString('ru-RU', { maximumFractionDigits })}${suffix}`;
@@ -321,18 +330,16 @@ function TrendChart({
   );
 }
 
-function ArchetypeCatalogPage({
-  navigatePath,
-  hasFullAccess,
-}: {
+type ArchetypeCatalogProps = {
   navigatePath: (path: string) => void;
   hasFullAccess: boolean;
-}) {
-  const initialFormat = new URLSearchParams(window.location.search).get('format') === 'wild' ? 'wild' : 'standard';
-  const initialClassParam = new URLSearchParams(window.location.search).get('class');
-  const initialClass = CLASS_FILTERS.some(item => item.id === initialClassParam)
-    ? initialClassParam as ArchetypeClassFilter
-    : 'all';
+  initialSearch: string;
+  embedded: boolean;
+};
+
+function ArchetypeCatalogPage({ navigatePath, hasFullAccess, initialSearch, embedded }: ArchetypeCatalogProps) {
+  const Root = embedded ? 'section' : 'main';
+  const { format: initialFormat, classFilter: initialClass } = readInitialCatalogFilters(initialSearch);
   const [format, setFormat] = useState<ArchetypeFormat>(initialFormat);
   const [classFilter, setClassFilter] = useState<ArchetypeClassFilter>(initialClass);
   const [query, setQuery] = useState('');
@@ -402,7 +409,7 @@ function ArchetypeCatalogPage({
   const activeClassLabel = CLASS_FILTERS.find(item => item.id === classFilter)?.label ?? 'Все классы';
 
   return (
-    <main className="archetypes-page" id="main-content" tabIndex={-1}>
+    <Root className="archetypes-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
       <section className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Архетипы</h1>
@@ -533,7 +540,7 @@ function ArchetypeCatalogPage({
           </div>
         </section>
       )}
-    </main>
+    </Root>
   );
 }
 
@@ -745,13 +752,17 @@ function ArchetypeDetailPage({
 }
 
 export default function ConstructedArchetypes({
-  currentPath = window.location.pathname,
+  currentPath = typeof window === 'undefined' ? '/standard/archetypes/' : window.location.pathname,
   navigatePath = path => window.location.assign(path),
+  initialSearch = typeof window === 'undefined' ? '' : window.location.search,
+  embedded = false,
   hasFullAccess = true,
   paywall = DEFAULT_PAYWALL_ACCESS,
 }: {
   currentPath?: string;
   navigatePath?: (path: string) => void;
+  initialSearch?: string;
+  embedded?: boolean;
   hasFullAccess?: boolean;
   paywall?: PaywallAccessState;
 }) {
@@ -766,7 +777,7 @@ export default function ConstructedArchetypes({
         paywall={paywall}
       />
     )
-    : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} />;
+    : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} initialSearch={initialSearch} embedded={embedded} />;
   return (
     <RecoverableSurfaceBoundary scope="constructed-archetypes">
       {content}

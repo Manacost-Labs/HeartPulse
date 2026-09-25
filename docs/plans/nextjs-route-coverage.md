@@ -38,7 +38,8 @@ need a request-scoped entitlement decision, a public teaser and authoritative
 
 ## Constructed data HTML (3)
 
-- `constructed-archetypes` — `/standard/archetypes`
+- `constructed-archetypes` — `/standard/archetypes` (Next route staged; Nginx
+  remains legacy until deployed browser verification)
 - `constructed-archetype-detail` —
   `/standard/archetypes/:format/:archetypeSlug`
 - `standard-meta-legacy-detail` —
