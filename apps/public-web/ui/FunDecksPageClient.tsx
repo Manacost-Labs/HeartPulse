@@ -9,7 +9,7 @@ const navigate = (path: string) => window.location.assign(path);
 
 export function FunDecksPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && hasSubscriptionEntitlement(access.subscription, 'standard');
+  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'standard'));
   const pageKey = `${access.user?.id ?? 'guest'}:${allowed ? 'full' : 'teaser'}`;
   return <PublicPageShell activeTab="fun-decks" pathname="/standard/fun-decks/"
     access={access} navigate={navigate} wide>

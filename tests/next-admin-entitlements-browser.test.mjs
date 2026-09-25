@@ -38,6 +38,27 @@ test('Next subscribers pages preserve administrator API access without a subscri
       assert.ok(requests > 0, `${path} must request its protected API for an administrator`);
       await page.close();
     }
+    const funDecks = await context.newPage();
+    await funDecks.setCookie({ name, value, url: runtime.origin });
+    await funDecks.setRequestInterception(true);
+    funDecks.on('request', request => {
+      if (new URL(request.url()).pathname !== '/api/fun-decks') { request.continue(); return; }
+      const decks = Array.from({ length: 4 }, (_, index) => ({
+        title: `Test deck ${index + 1}`, deckCode: `test-${index + 1}`,
+        format: 'standard', className: 'mage', streamer: null, funScore: 0.8,
+        maxMetaSimilarity: 0.2, nearestArchetype: null, winRate: 0.5,
+        games: 100, reasons: [], url: null, firstSeenAt: null, lastSeenAt: null,
+      }));
+      void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        fetchedAt: null, stats: { total: 4, standard: 4, wild: 0 },
+        methodology: { detectorVersion: null, minFunScore: 0.55, maxMetaSimilarity: 0.42 }, decks,
+      }) });
+    });
+    await funDecks.goto(`${runtime.origin}/standard/fun-decks/`, { waitUntil: 'networkidle2' });
+    await funDecks.waitForSelector('.fun-deck-card');
+    assert.equal(await funDecks.$$eval('.fun-deck-card', cards => cards.length), 4,
+      'administrator must see the full fun-decks collection without a subscription');
+    await funDecks.close();
     await context.close();
   } finally {
     if (browser) await browser.close();
