@@ -479,12 +479,12 @@ for (const route of inventory.routes) {
     continue;
   }
   if (route.id === 'public-profile' || route.id === 'legacy-public-profile') {
-    expectRegexAction(`${path}/`, 'try_files /index.html =404;', `${route.id} canonical route`);
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} canonical route`);
     const profileShell = firstMatchingRegexLocation(`${path}/`);
-    assert.match(profileShell?.body || '', /X-Robots-Tag\s+"noindex, follow"\s+always;/,
+    assert.match(profileShell?.body || '', /X-Robots-Tag\s+\$arena_next_profile_robots_header\s+always;/,
       'public profiles must stay out of search indexes');
-    assert.doesNotMatch(profileShell?.body || '', /proxy_pass/,
-      'public profile HTML must use the SPA shell while its data stays behind the API serializer');
+    assert.match(profileShell?.body || '', /proxy_hide_header X-Robots-Tag;/);
+    assert.match(profileShell?.body || '', /proxy_intercept_errors\s+off;/);
     continue;
   }
   if (route.id === 'gallery') {
@@ -591,7 +591,9 @@ assert.match(spaFallback?.body || '', /try_files\s+\/index\.html\s+=404;/,
   'the SPA fallback itself must fail closed when the application shell is missing');
 
 expectRegexAction('/id/2147483647', 'return 301', 'maximum public profile ID');
-expectRegexAction('/id/2147483647/', 'try_files /index.html =404;', 'maximum canonical public profile ID');
+expectRegexAction('/id/2147483647/', 'proxy_pass http://127.0.0.1:4321;', 'maximum canonical public profile ID');
+expectRegexAction('/id/0/', 'proxy_pass http://127.0.0.1:4321;', 'invalid profile ID must reach Next 404');
+expectRegexAction('/profiles/p_short/', 'proxy_pass http://127.0.0.1:4321;', 'invalid legacy profile ID must reach Next 404');
 
 for (const invalidPath of [
   '/articlesevil',
@@ -768,6 +770,37 @@ async function startCardSeoUpstream() {
       status: 404,
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next connect missing</title>',
+    }],
+    ['/id/1/', {
+      status: 200,
+      headers: { 'X-Robots-Tag': 'index, follow', 'Cache-Control': 'public, max-age=60' },
+      body: '<!doctype html><title>Next profile</title>',
+    }],
+    ['/id/999/', {
+      status: 404,
+      headers: { 'X-Robots-Tag': 'index, follow' },
+      body: '<!doctype html><title>Next profile missing</title>',
+    }],
+    ['/id/503/', {
+      status: 503,
+      headers: { 'X-Robots-Tag': 'index, follow', 'Retry-After': '300' },
+      body: '<!doctype html><title>Next profile unavailable</title>',
+    }],
+    ['/id/0/', {
+      status: 404,
+      body: '<!doctype html><title>Next invalid profile</title>',
+    }],
+    ['/id/1/unknown/', {
+      status: 404,
+      body: '<!doctype html><title>Next profile descendant missing</title>',
+    }],
+    ['/profiles/p_AbCdEfGhIjKlMnOpQrStUv/', {
+      status: 200,
+      body: '<!doctype html><title>Next legacy profile</title>',
+    }],
+    ['/profiles/p_short/', {
+      status: 404,
+      body: '<!doctype html><title>Next invalid legacy profile</title>',
     }],
     ['/developers/api/', {
       status: 200,
@@ -1189,6 +1222,35 @@ http {
     const connectMissing = await requestNginx(port, '/connect/unknown/');
     assert.equal(connectMissing.status, 404);
     assert.equal(connectMissing.headers['x-robots-tag'], 'noindex, nofollow');
+
+    const profileRedirect = await requestNginx(port, '/id/1?from=qa');
+    assert.equal(profileRedirect.status, 301);
+    assert.match(profileRedirect.headers.location || '', /\/id\/1\/\?from=qa$/);
+    const profile = await requestNginx(port, '/id/1/');
+    assert.equal(profile.status, 200);
+    assert.match(profile.body, /<title>Next profile<\/title>/);
+    assert.equal(profile.headers['x-robots-tag'], 'noindex, follow');
+    assert.match(profile.headers['cache-control'] || '', /no-store/);
+    const missingProfile = await requestNginx(port, '/id/999/');
+    assert.equal(missingProfile.status, 404);
+    assert.equal(missingProfile.headers['x-robots-tag'], 'noindex, nofollow');
+    const unavailableProfile = await requestNginx(port, '/id/503/');
+    assert.equal(unavailableProfile.status, 503);
+    assert.equal(unavailableProfile.headers['x-robots-tag'], 'noindex, nofollow');
+    assert.equal(unavailableProfile.headers['retry-after'], '300');
+    assert.match(unavailableProfile.headers['cache-control'] || '', /no-store/);
+    for (const path of ['/id/0/', '/id/1/unknown/', '/profiles/p_short/']) {
+      const invalidProfile = await requestNginx(port, path);
+      assert.equal(invalidProfile.status, 404, path);
+      assert.equal(invalidProfile.headers['x-robots-tag'], 'noindex, nofollow', path);
+    }
+    const legacyProfile = await requestNginx(port, '/profiles/p_AbCdEfGhIjKlMnOpQrStUv/');
+    assert.equal(legacyProfile.status, 200);
+    assert.match(legacyProfile.body, /<title>Next legacy profile<\/title>/);
+    assert.equal(legacyProfile.headers['x-robots-tag'], 'noindex, follow');
+    const legacyRedirect = await requestNginx(port, '/profiles/p_AbCdEfGhIjKlMnOpQrStUv?from=qa');
+    assert.equal(legacyRedirect.status, 301);
+    assert.match(legacyRedirect.headers.location || '', /\/profiles\/p_AbCdEfGhIjKlMnOpQrStUv\/\?from=qa$/);
 
     const routeRedirect = await requestNginx(port, '/tierlist');
     assert.equal(routeRedirect.status, 301, 'known public route must normalize its slash');

@@ -4,8 +4,8 @@ The public card catalog, card details, gallery, FAQ, privacy, terms, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
 details, the guide archive and details, the Battlegrounds hero catalog and
-details, library listings and all supported current/archive card details, and
-home pages are
+details, library listings and all supported current/archive card details, both
+public-profile URL patterns, and home pages are
 owned by Next.js.
 Express continues
 to own APIs,
@@ -84,7 +84,12 @@ query `noindex, nofollow`, and adds a
 ordinary successful responses. Hero and all supported library detail HTML goes
 to Next, while Express remains the public projection and paid-data authority.
 The `/connect/` HTML remains `noindex, nofollow` and `no-store` on every
-response; Express still owns the session and device-approval API.
+response; Express still owns the session and device-approval API. Public
+`/id/:id/` and legacy `/profiles/:id/` HTML use the Express public-profile
+projection through Next. Check a live profile, the legacy alias, a missing ID,
+an invalid ID, the slash redirect and the numeric canonical. Successful
+profiles retain `noindex, follow`; errors are `noindex, nofollow`, and the
+entire profile namespace remains `no-store`.
 Their rules hide upstream `X-Robots-Tag` before setting one edge error header;
 this avoids duplicate headers on retryable 503 pages. For these details,
 sample a live ID, missing ID and canonical redirect. The focused fixture

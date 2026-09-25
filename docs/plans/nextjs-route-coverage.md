@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (39 inventory entries)
+## Already served by Next.js (41 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -51,25 +51,25 @@ have been checked together. A route count alone is not a completion signal.
 - `bg-strategies` — `/battlegrounds/strategies`
 - `bg-tier-builder` — `/battlegrounds/tier-builder`
 - `application-connect` — `/connect`
+- `public-profile` — `/id/:publicProfileId`
+- `legacy-public-profile` — `/profiles/:legacyPublicProfileId`
 
 Both Battleground builders retain saved state, imports, exports and legacy
 script assets through Next's client-side controls. The public Nginx owner
 routes both builders and their invalid descendants to Next.
 
-## Identity and admin HTML (4)
+## Identity and admin HTML (2)
 
-- `public-profile` — `/id/:publicProfileId`
-- `legacy-public-profile` — `/profiles/:legacyPublicProfileId`
 - `admin-panel` — `/admin`
 - `wild-archetype-decks` — `/archetypes/wild`
 
 Keep `/identity/` callbacks and session authority in Express. Public profile
 data must come from the existing serializer; admin and account state must not
 leak into shared HTML, hydration payloads or caches.
-Both public-profile patterns now have staged Next routes with server-rendered
-public projection, numeric canonical, noindex/follow, real 404s and browser
-checks. They remain in this section until the Nginx owner changes and the
-production direct-load checks pass.
+Both public-profile patterns use the Express public projection, numeric
+canonical, noindex/follow for valid profiles and real Next 404s for invalid
+or missing IDs. The edge routes the entire `/id` and `/profiles` namespaces
+to Next and prevents private or stale upstream caching.
 The `/connect` browser flow remains on the existing Express authorization API;
 its Next-owned HTML contains no device code or account data before hydration.
 

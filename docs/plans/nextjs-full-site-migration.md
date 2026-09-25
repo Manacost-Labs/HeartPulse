@@ -1,12 +1,11 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-25. Thirty-nine of the 47 inventory
+Status: execution in progress, 2026-09-25. Forty-one of the 47 inventory
 entries are served by Next.js, including public/editorial pages, Arena and
 constructed catalogs, the guide archive, archetype details and the Battlegrounds
 hero catalog, library listings, hero details, all supported library card details
 and the cosmetics catalog and details, plus both Battleground builders and the
-device-connection page. The two public-profile patterns are staged in Next.js
-and await the Nginx ownership switch and production browser verification.
+device-connection page and both public-profile URL patterns.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -74,7 +73,7 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 ## Remaining execution queue (2026-09-25)
 
 The [coverage ledger](nextjs-route-coverage.md) is the exhaustive route list;
-the following queue turns its 8 remaining entries and two additional HTML
+the following queue turns its 6 remaining entries and two additional HTML
 pages into independently releasable slices. Each slice ends with a focused
 HTTP/permission test, Next build, direct-port browser review, a commit, a
 separate Nginx owner switch, and verification of the deployed SHA. A Next route
@@ -92,11 +91,9 @@ alone does not close a ledger row.
 4. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
    Check direct load, editing, authentication and `noindex`; record the latter
    two explicit Nginx pages in the reconciled inventory.
-5. `/connect` now uses Next-owned HTML while Express keeps the device approval
-   and session API. Move `/id/:publicProfileId` and
-   `/profiles/:legacyPublicProfileId`. Keep the serializer API as
-   authority; check signed-out, linked, missing and legacy states. Fix the
-   broken `/profile/` shell link.
+5. Completed: `/connect` and both public-profile URL patterns use Next-owned
+   HTML while Express keeps the device approval, session and public-profile
+   serializer APIs. Fix the broken `/profile/` shell link.
 6. Move `/admin`. Check permission at the server boundary and verify guest,
    forbidden and administrator responses and operations tabs. No privileged
    data may enter shared HTML.

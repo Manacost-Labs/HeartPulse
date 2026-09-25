@@ -4,6 +4,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pathname.startsWith('/_next/') || /^\/health\/next\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && pathname === '/') return 'next';
   if (pagesEnabled && /^\/connect(?:\/.*)?$/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/(?:id|profiles)(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/cosmetics(?:\/[^/]+){0,2}\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/tier-list(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/(?:strategies|tier-builder)(?:\/.*)?$/.test(pathname)) return 'next';
