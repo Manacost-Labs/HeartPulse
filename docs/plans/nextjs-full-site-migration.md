@@ -1,15 +1,14 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-25. Forty-three of the 47 inventory
+Status: execution in progress, 2026-09-25. Forty-four of the 47 inventory
 entries are served by Next.js, including public/editorial pages, Arena and
 constructed catalogs, the guide archive, archetype details and the Battlegrounds
 hero catalog, library listings, hero details, all supported library card details
 and the cosmetics catalog and details, plus both Battleground builders and the
 device-connection page, both public-profile URL patterns, the administrator
 document and unknown-page responses. Three more entries are redirect or
-removed-URL status contracts. `/archetypes/wild` remains the only
-unresolved inventory HTML route at the public edge; its Next page is staged
-and awaits the separate Nginx owner switch.
+removed-URL status contracts. All 47 inventory entries now have their intended
+HTML owner or explicit non-HTML status behavior. Vite retirement remains.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -97,10 +96,9 @@ alone does not close a ledger row.
    two explicit Nginx pages in the reconciled inventory.
    `/deck-builder/` is completed with a server-side full-admin check, a
    browser recheck, the existing editable draft and an exact Next Nginx rule.
-   The three `/archetypes/` page patterns are implemented in Next with the
-   same full-admin boundary. The Wild catalog loads deck codes through the
-   existing protected API; Nginx still owns the legacy document until the
-   staged build is deployed and the route switch is verified.
+   The three `/archetypes/` page patterns use Next with the same full-admin
+   boundary. The Wild catalog loads deck codes through the existing protected
+   API, and Nginx owns only the redirects and private proxy rules.
 5. Completed: `/connect` and both public-profile URL patterns use Next-owned
    HTML while Express keeps the device approval, session and public-profile
    serializer APIs. Fix the broken `/profile/` shell link.

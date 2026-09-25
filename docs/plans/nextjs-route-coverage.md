@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (43 inventory entries)
+## Already served by Next.js (44 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -55,17 +55,17 @@ have been checked together. A route count alone is not a completion signal.
 - `legacy-public-profile` — `/profiles/:legacyPublicProfileId`
 - `admin-panel` — `/admin`
 - `unknown-path` — `/:path*`; real 404 from the public Next shell.
+- `wild-archetype-decks` — `/archetypes/wild`
 
 Both Battleground builders retain saved state, imports, exports and legacy
 script assets through Next's client-side controls. The public Nginx owner
 routes both builders and their invalid descendants to Next.
 
-## Remaining identity and admin HTML (1)
+## Identity and admin HTML
 
-- `wild-archetype-decks` — `/archetypes/wild`
-
-The Next implementation for this last page is staged. Its public Nginx owner
-is still legacy until the separate cutover commit is deployed.
+The `/archetypes/wild/` App Router document uses the existing full-admin
+session authority. Its catalog and deck list load only after a browser recheck;
+the Nginx route keeps its query-preserving slash redirect and no-store/noindex.
 
 The `/admin/` App Router document now serves through its exact Nginx rule.
 The guest, administrator and blocked-account states use the existing Express
@@ -95,8 +95,8 @@ status, location and robots headers remain in regression checks.
 - `/deck-builder/` is a separate admin tool with an exact Next-owned Nginx
   document rule, full-administrator permission check and `noindex`/`no-store`.
 - `/archetypes/` and numeric detail pages are separate admin tools. Their
-  App Router pages are staged with `noindex`, a full-admin server check and a
-  browser recheck; their Nginx document rules still await cutover.
+  App Router pages have `noindex`, a full-admin server check and a browser
+  recheck; exact and numeric Nginx document rules point to Next.
 - `/admin/` is already counted above, but its exact Nginx rule and internal
   operations tabs need separate permission and direct-load checks.
 - `/?login` is a login overlay state, not another path. The Next-owned home

@@ -101,6 +101,12 @@ on Express and retain `no-store`/noindex for successful and failed HTML.
 Verify guest, contest-only, full-admin and blocked sessions, draft persistence,
 code import, both formats, desktop and mobile layout. Restore the saved route
 snippet if the owner switch fails.
+The `/archetypes/` catalog, numeric details and `/archetypes/wild/` now use
+Next behind the full-administrator session check. Slash redirects preserve
+queries, and all successful or failed HTML remains no-store/noindex. The Wild
+selection query and deck-builder code link must survive direct navigation;
+keep `/api/admin/archetypes` on Express. Check guest, contest-only and full
+administrator sessions at mobile and desktop widths before completing cutover.
 Unknown HTML errors use the global Next 404 shell through Nginx's internal
 `/404.html` handler. The handler preserves HTTP 404 and noindex, and passes a
 Next outage through as 503 instead of pretending that the page is missing.

@@ -411,6 +411,25 @@ assert.match(deckBuilderDocument?.body || '', /Cache-Control\s+"no-cache, no-sto
 assert.match(deckBuilderDocument?.body || '', /proxy_intercept_errors\s+off;/,
   'deck-builder errors must preserve their upstream status');
 
+const archetypesRedirect = locations.find(location => location.modifier === '=' && location.pattern === '/archetypes');
+const archetypesDocument = locations.find(location => location.modifier === '=' && location.pattern === '/archetypes/');
+const archetypesDetailRedirect = locations.find(location => location.pattern === '^/archetypes/(?:[1-9][0-9]*|wild)$');
+const archetypesDetailDocument = locations.find(location => location.pattern === '^/archetypes/(?:[1-9][0-9]*|wild)/$');
+for (const location of [archetypesRedirect, archetypesDocument, archetypesDetailRedirect, archetypesDetailDocument]) {
+  assert.match(location?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
+    'private archetype routes must remain noindex');
+  assert.match(location?.body || '', /Cache-Control\s+"no-cache, no-store, must-revalidate"\s+always;/,
+    'private archetype routes must never be cached');
+}
+for (const location of [archetypesDocument, archetypesDetailDocument]) {
+  assert.match(location?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:4321;/,
+    'archetype documents must use Next');
+  assert.match(location?.body || '', /proxy_set_header\s+Cookie\s+\$http_cookie;/,
+    'archetype documents must forward the administrator session');
+  assert.match(location?.body || '', /proxy_intercept_errors\s+off;/,
+    'archetype errors must preserve their upstream status');
+}
+
 const authQueryPolicy = inventory.queryPolicies.find(policy => policy.id === 'auth-state');
 const adminQueryPolicy = inventory.queryPolicies.find(policy => policy.id === 'admin-state');
 assert.match(mapSource, /map\s+\$request_uri\s+\$arena_auth_query_robots\s*\{/,
@@ -489,7 +508,7 @@ for (const route of inventory.routes) {
   assert.match(redirect?.body || '', redirectPath,
     `${route.id} must add the slash and preserve query in one redirect`);
   if (route.id === 'archetype-detail' || route.id === 'wild-archetype-decks') {
-    expectRegexAction(`${path}/`, 'try_files /archetypes/index.html /index.html =404;', `${route.id} canonical route`);
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} canonical route`);
     continue;
   }
   if (route.id === 'public-profile' || route.id === 'legacy-public-profile') {
@@ -689,6 +708,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next deck builder</title><p>next-deck-builder-guard</p>',
     }],
+    ...['/archetypes/', '/archetypes/856/', '/archetypes/wild/'].map(path => [path, {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next archetypes</title><p>next-archetypes-guard</p>',
+    }]),
     ['/404.html', {
       status: 404,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -1089,7 +1113,7 @@ async function startCardSeoUpstream() {
     const pathname = incomingUrl.pathname;
     const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
       ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
-      : ['/', '/admin/', '/deck-builder/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1103,7 +1127,7 @@ async function startCardSeoUpstream() {
         'X-Upstream-Edge-Region': String(incomingRequest.headers['x-arena-edge-region'] || ''),
       } : {}),
       ...fixture.headers,
-      ...(['/admin/', '/deck-builder/'].includes(pathname)
+      ...(['/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/'].includes(pathname)
         ? { 'X-Fixture-Cookie-Forwarded': incomingRequest.headers.cookie === 'session=local' ? 'yes' : 'no' }
         : {}),
     });
@@ -1498,6 +1522,24 @@ http {
     assert.equal(failedDeckBuilder.status, 503, 'deck-builder upstream errors retain status');
     assert.equal(failedDeckBuilder.headers['x-robots-tag'], 'noindex, nofollow', 'deck-builder error robots');
     assert.match(failedDeckBuilder.headers['cache-control'] || '', /no-store/, 'deck-builder error cache');
+
+    for (const path of ['/archetypes/', '/archetypes/856/', '/archetypes/wild/']) {
+      const canonical = path.slice(0, -1);
+      const redirected = await requestNginx(port, `${canonical}?archetype=Wild%20Mage`);
+      assert.equal(redirected.status, 301, `${path} slash redirect`);
+      assert.equal(new URL(redirected.headers.location).pathname, path);
+      assert.equal(new URL(redirected.headers.location).searchParams.get('archetype'), 'Wild Mage');
+      const page = await requestNginx(port, path, 'GET', { Cookie: 'session=local' });
+      assert.equal(page.status, 200, `${path} document`);
+      assert.equal(page.headers['x-robots-tag'], 'noindex, nofollow', `${path} robots`);
+      assert.match(page.headers['cache-control'] || '', /no-store/, `${path} cache`);
+      assert.match(page.body, /next-archetypes-guard/, `${path} Next owner`);
+      assert.equal(page.headers['x-fixture-cookie-forwarded'], 'yes', `${path} session cookie`);
+      const failed = await requestNginx(port, `${path}?fail=1`);
+      assert.equal(failed.status, 503, `${path} upstream error`);
+      assert.equal(failed.headers['x-robots-tag'], 'noindex, nofollow', `${path} error robots`);
+      assert.match(failed.headers['cache-control'] || '', /no-store/, `${path} error cache`);
+    }
 
     for (const encodedProfilePath of ['/id/%31', '/id/%31/']) {
       const encodedProfile = await requestNginx(port, encodedProfilePath);
