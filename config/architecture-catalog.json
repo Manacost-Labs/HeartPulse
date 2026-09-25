@@ -443,7 +443,7 @@
       "name": "backend-battleground-library",
       "status": "modular",
       "owner": "web-platform",
-      "purpose": "Publish anonymous minion and spell card projections without private statistics.",
+      "purpose": "Publish anonymous Battlegrounds card identity across base, auxiliary and archive libraries without private statistics.",
       "paths": [
         "server/modules/battlegroundLibrary"
       ],
@@ -455,6 +455,14 @@
         {
           "method": "GET",
           "path": "/api/bg/library/public/:kind/:dbfId"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bg/library/public/archive/:kind/:dbfId"
+        },
+        {
+          "method": "GET",
+          "path": "/api/bg/library/public/extra/:pool/:kind/:dbfId"
         }
       ],
       "contracts": [
@@ -463,8 +471,11 @@
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": [],
+      "externalServices": [
+        "api.kolodahearthstone.com auxiliary Battleground card catalog"
+      ],
       "tests": [
+        "tests/battleground-library-auxiliary-public.test.ts",
         "tests/battleground-library-seo-routes.test.ts"
       ],
       "allowedDependencies": [

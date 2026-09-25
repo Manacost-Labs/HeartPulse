@@ -29,3 +29,14 @@ catalogs as the existing detail HTML. It returns a canonical path and public
 card fields, 404 for invalid or absent IDs, and retryable 503 when the catalog
 cannot be verified. Cookies and authorization do not affect its response;
 private statistics are never included.
+
+The staged `/api/bg/library/public/archive/:kind/:dbfId` endpoint projects
+only out-of-pool minions and spells with an archive canonical path. The staged
+`/api/bg/library/public/extra/:pool/:kind/:dbfId` endpoint accepts the seven
+additional current categories and the five supported archive categories. It
+queries the established catalog with an exact DBF filter, rejects a mismatched
+identity or pool, and returns only bounded public identity, rules text, safe
+image and canonical path. Unsupported kinds and missing cards return 404;
+catalog failures return non-cacheable 503 with `Retry-After`. These endpoints
+prepare the Next.js detail routes; public HTML remains on the legacy owner
+until its separately verified switch.

@@ -5,6 +5,10 @@ The domain-independent entity JSON-LD graph builder lives in
 Battleground detail pages compose their own public entity data through it,
 keeping canonical and breadcrumb structure consistent across renderers.
 
+`server/modules/battlegroundLibrary` owns anonymous card-detail projections
+for base, additional and archive categories. The public routes expose bounded
+identity fields; paid statistics remain behind the existing authorization API.
+
 ## Public home
 
 `src/modules/home/public.ts` owns the home summary presentation, article

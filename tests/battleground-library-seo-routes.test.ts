@@ -174,6 +174,11 @@ try {
   assert.equal(projection.card.dbfId, 98582);
   assert.equal(projection.card.kind, 'minion');
   assert.equal(projection.canonicalPath, '/library/minions/баюбот-alert-x-98582/');
+  const archivedProjection = await fetch(`${app.origin}/api/bg/library/public/archive/minion/98583`);
+  assert.equal(archivedProjection.status, 200);
+  assert.equal((await archivedProjection.json()).canonicalPath,
+    '/library/archive/minions/старый-механизм-98583/');
+  assert.equal((await fetch(`${app.origin}/api/bg/library/public/archive/minion/98582`)).status, 404);
   for (const path of ['/api/bg/library/public/minion/999999',
     '/api/bg/library/public/minion/0', '/api/bg/library/public/unknown/98582']) {
     assert.equal((await fetch(`${app.origin}${path}`)).status, 404);

@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 80,
-    "routeRegistrations": 226,
-    "middlewareRegistrations": 121,
+    "sourceFiles": 81,
+    "routeRegistrations": 228,
+    "middlewareRegistrations": 122,
     "explicitGuardRouteRegistrations": 59,
     "unresolvedPaths": 0
   },
@@ -1069,6 +1069,19 @@
       "sourceOrder": 0
     },
     {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "createBattlegroundLibraryAuxiliaryPublicRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/battlegroundLibrarySeoRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
       "kind": "route",
       "method": "GET",
       "path": "/library/minions/:slugAndDbfId/",
@@ -1078,7 +1091,7 @@
       "handler": "handlerFor(...)",
       "guardSignals": [],
       "source": "server/battlegroundLibrarySeoRoutes.ts",
-      "sourceOrder": 1
+      "sourceOrder": 2
     },
     {
       "kind": "route",
@@ -1090,7 +1103,7 @@
       "handler": "handlerFor(...)",
       "guardSignals": [],
       "source": "server/battlegroundLibrarySeoRoutes.ts",
-      "sourceOrder": 2
+      "sourceOrder": 3
     },
     {
       "kind": "route",
@@ -3520,14 +3533,38 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/api/bg/library/public/:kind/:dbfId",
+      "path": "/api/bg/library/public/extra/:pool/:kind/:dbfId",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
       "handler": "<inline-handler>",
       "guardSignals": [],
+      "source": "server/modules/battlegroundLibrary/auxiliaryPublicRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/bg/library/public/:kind/:dbfId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "serve(...)",
+      "guardSignals": [],
       "source": "server/modules/battlegroundLibrary/publicRoutes.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/bg/library/public/archive/:kind/:dbfId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "serve(...)",
+      "guardSignals": [],
+      "source": "server/modules/battlegroundLibrary/publicRoutes.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "middleware",

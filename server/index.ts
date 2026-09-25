@@ -7581,7 +7581,7 @@ app.use(createBattlegroundHeroSeoRouter({
 }));
 
 app.use(createBattlegroundLibrarySeoRouter({
-  frontendAssets: constructedCardFrontendAssets,
+  frontendAssets: constructedCardFrontendAssets, auxiliaryCatalogBaseUrl: KOLODAHS_API_BASE_URL,
   onError: error => console.error(
     '[battleground-library-seo] catalog failed:',
     error instanceof Error ? error.message : error,

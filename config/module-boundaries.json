@@ -375,7 +375,7 @@
       "id": "server.battlegroundLibrary",
       "runtime": "server",
       "root": "server/modules/battlegroundLibrary",
-      "purpose": "Owns the anonymous Battlegrounds minion and spell card projection HTTP contract.",
+      "purpose": "Owns anonymous Battlegrounds card-detail projections for base, auxiliary and archive libraries.",
       "owner": "web-platform",
       "publicEntry": "server/modules/battlegroundLibrary/public.ts",
       "dependencies": [],

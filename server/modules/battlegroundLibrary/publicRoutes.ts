@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 
 type Kind = 'minion' | 'spell';
-type PublicCard = { dbfId: number; kind: Kind; nameRu: string };
+type PublicCard = { dbfId: number; kind: Kind; nameRu: string; inPool: boolean };
 
 type Dependencies<Card extends PublicCard> = {
   loadCatalog: (kind: Kind) => Promise<Card[]>;
@@ -18,7 +18,7 @@ export function canonicalBattlegroundCardSlug(value: string): string {
 /** Publishes the existing anonymous catalog projection for Next detail HTML. */
 export function createBattlegroundLibraryPublicRouter<Card extends PublicCard>(dependencies: Dependencies<Card>): Router {
   const router = Router({ caseSensitive: true, strict: true });
-  router.get('/api/bg/library/public/:kind/:dbfId', async (request, response) => {
+  const serve = (archive: boolean): RequestHandler => async (request, response) => {
     const { kind, dbfId } = request.params;
     const id = Number(dbfId);
     response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -28,16 +28,20 @@ export function createBattlegroundLibraryPublicRouter<Card extends PublicCard>(d
       return response.status(404).json({ error: 'Card not found' });
     }
     try {
-      const card = (await dependencies.loadCatalog(kind)).find(candidate => candidate.dbfId === id);
+      const card = (await dependencies.loadCatalog(kind)).find(candidate =>
+        candidate.dbfId === id && (!archive || !candidate.inPool));
       if (!card) return response.status(404).json({ error: 'Card not found' });
       const kindPath = kind === 'minion' ? 'minions' : 'spells';
-      const canonicalPath = `/library/${kindPath}/${canonicalBattlegroundCardSlug(card.nameRu)}-${id}/`;
+      const prefix = archive ? '/library/archive' : '/library';
+      const canonicalPath = `${prefix}/${kindPath}/${canonicalBattlegroundCardSlug(card.nameRu)}-${id}/`;
       return response.json({ card, canonicalPath });
     } catch (error) {
       try { dependencies.onError?.(error); } catch { /* Diagnostics cannot replace the retryable response. */ }
       response.set('Retry-After', String(dependencies.retryAfterSeconds));
       return response.status(503).json({ error: 'Card catalog temporarily unavailable' });
     }
-  });
+  };
+  router.get('/api/bg/library/public/:kind/:dbfId', serve(false));
+  router.get('/api/bg/library/public/archive/:kind/:dbfId', serve(true));
   return router;
 }

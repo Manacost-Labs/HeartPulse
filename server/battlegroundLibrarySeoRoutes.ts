@@ -2,7 +2,8 @@ import { Router, type Request, type RequestHandler, type Response } from 'expres
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
-import { canonicalBattlegroundCardSlug, createBattlegroundLibraryPublicRouter } from './modules/battlegroundLibrary/public.js';
+import { canonicalBattlegroundCardSlug, createBattlegroundLibraryAuxiliaryPublicRouter,
+  createBattlegroundLibraryPublicRouter } from './modules/battlegroundLibrary/public.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -41,6 +42,7 @@ export type BattlegroundLibrarySeoRouterDependencies = {
   retryAfterSeconds?: number;
   now?: () => number;
   onError?: (error: unknown) => void;
+  auxiliaryCatalogBaseUrl?: string;
 };
 
 const CATALOG_ORIGIN = 'http://127.0.0.1:3108';
@@ -549,6 +551,12 @@ export function createBattlegroundLibrarySeoRouter(
 
   router.use(createBattlegroundLibraryPublicRouter({
     loadCatalog, retryAfterSeconds, onError: dependencies.onError,
+  }));
+  router.use(createBattlegroundLibraryAuxiliaryPublicRouter({
+    fetchImpl, retryAfterSeconds, onError: dependencies.onError,
+    apiBaseUrl: dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1',
+    publicImageUrl: value => sameOriginPublicResourceUrl(value, origin)
+      ?? `${origin}/assets/og-preview.png`,
   }));
 
   const handlerFor = (kind: BattlegroundLibraryKind): RequestHandler => async (request, response) => {
