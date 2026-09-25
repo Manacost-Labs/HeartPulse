@@ -67,7 +67,8 @@ client adapter; presentation will move into this module before Vite retirement.
 
 `src/modules/standardMatchups` owns the Standard matchup response contract
 shared by the legacy route and its forthcoming Next.js page. The protected
-client request and interactive presentation will move in separate steps.
+account-scoped browser client also lives here, with response validation and
+ETag refresh. React loading and interactive presentation move in later steps.
 
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical

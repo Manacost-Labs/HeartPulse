@@ -1377,10 +1377,14 @@
       "backendRoutes": [],
       "contracts": ["docs/specs/standard-matchups.md"],
       "jobs": [],
-      "cacheNamespaces": ["standard_matchups_ru_v7_<format>"],
+      "cacheNamespaces": [
+        "standard_matchups_ru_v7_<format>",
+        "standard-matchups:v8:<account>:<format>"
+      ],
       "dataStores": ["browser:localStorage"],
       "externalServices": [],
       "tests": [
+        "tests/standard-matchups-client.test.ts",
         "tests/standard-matchup-routes.test.ts",
         "tests/standard-matchups-controls-ui.test.ts"
       ],

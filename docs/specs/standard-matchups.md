@@ -13,6 +13,11 @@ account and format, cleared after access denial, and hidden immediately when
 the account or entitlement changes. The current Vite route has a six-hour
 format-scoped browser cache; migration must not expose that cache across users.
 
+The new browser client validates format, rank, columns and rows before caching.
+It uses a six-hour account-and-format key, ETag refresh and an unconditional
+retry for a 304 response without a usable cache. A transient error may show a
+stale matrix only to the same account; a 401 or 403 clears that cache entry.
+
 The shared response type is owned by `src/modules/standardMatchups`. The
 public Nginx owner remains legacy until the Next implementation passes
 direct-port, browser and routing checks.

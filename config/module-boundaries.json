@@ -661,7 +661,10 @@
       "owner": "web-platform",
       "publicEntry": "src/modules/standardMatchups/public.ts",
       "dependencies": [],
-      "focusedTests": ["npm run test:standard-matchup-routes"],
+      "focusedTests": [
+        "npm run test:standard-matchups-client",
+        "npm run test:standard-matchup-routes"
+      ],
       "docs": [
         "docs/specs/standard-matchups.md",
         "docs/architecture/module-boundaries.md"
