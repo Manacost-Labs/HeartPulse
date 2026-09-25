@@ -51,12 +51,13 @@ test('switch and rollback retain paths, query, cookies, bodies and response cook
 test('static public pages roll out independently of cards', () => {
   assert.equal(publicWebOwner('/', false, 'GET', true), 'next');
   assert.equal(publicWebOwner('/', false, 'POST', true), 'legacy');
-  for (const page of ['faq', 'privacy', 'terms', 'developers/api', 'articles', 'guides-archive', 'classes', 'tierlist', 'legendaries', 'standard/matchups', 'standard/meta', 'standard/fun-decks', 'standard/vicious-gold', 'standard/archetypes']) {
+  for (const page of ['faq', 'privacy', 'terms', 'developers/api', 'articles', 'guides-archive', 'heroes', 'classes', 'tierlist', 'legendaries', 'standard/matchups', 'standard/meta', 'standard/fun-decks', 'standard/vicious-gold', 'standard/archetypes']) {
     assert.equal(publicWebOwner(`/${page}/`, true), 'legacy');
     assert.equal(publicWebOwner(`/${page}/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/${page}/`, false, 'POST', true), 'legacy');
   }
   assert.equal(publicWebOwner('/standard/cards/', false, 'GET', true), 'legacy');
+  assert.equal(publicWebOwner('/heroes/123/', false, 'GET', true), 'legacy');
   for (const family of ['archetypes', 'meta']) {
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'POST', true), 'legacy');

@@ -193,6 +193,10 @@ teaser supplies a title and excerpt for request-time HTML, while the existing
 full-content API remains behind the guides-archive entitlement. Missing guides
 return 404 and numeric old links canonicalize to their resolved slugs. Nginx
 ownership still awaits a deployed browser check.
+The `/heroes/` Battlegrounds list is staged in Next.js. Guests receive a
+public description; the existing hero statistics client mounts only after
+`battlegrounds` entitlement or administrator access is verified. Detail hero
+URLs and the public Nginx owner remain legacy until their separate checks.
 It preserves the current public dataset API and client-side three-deck preview.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or

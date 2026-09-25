@@ -55,7 +55,8 @@ gates and real missing-entity responses.
 - `cosmetics` — `/cosmetics`
 - `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
-- `bg-heroes` — `/heroes`
+- `bg-heroes` — `/heroes` (Next route staged; Nginx legacy until deployed
+  browser verification)
 - `bg-hero-detail` — `/heroes/:dbfId`
 - `bg-library` — `/library`
 - `bg-library-archive-root` — `/library/archive`
