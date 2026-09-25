@@ -52,10 +52,12 @@ export function readWildArchetypes(payload: unknown): WildArchetype[] {
 /** Drops malformed deck codes before they can become builder deep links. */
 export function readWildDecks(payload: unknown, fallbackTitle: string): WildDeck[] {
   if (!record(payload) || !Array.isArray(payload.decks)) throw new Error('Некорректный список колод');
+  const seenCodes = new Set<string>();
   return payload.decks.slice(0, 100).flatMap((value: unknown) => {
     if (!record(value)) return [];
     const deckCode = text(value.deck_code, 500);
-    if (!deckCode || !/^[A-Za-z0-9+/=]{20,500}$/.test(deckCode)) return [];
+    if (!deckCode || !/^[A-Za-z0-9+/=]{20,500}$/.test(deckCode) || seenCodes.has(deckCode)) return [];
+    seenCodes.add(deckCode);
     return [{
       title: text(value.title, 160) ?? fallbackTitle,
       deckCode,

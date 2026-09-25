@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
 import { usePublicAccess } from './usePublicAccess';
 
@@ -17,10 +18,13 @@ const loadWildCatalog = (signal: AbortSignal) =>
   requestAdminJson('/api/admin/archetypes?format=wild', signal);
 const loadWildDecks = (archetype: string, signal: AbortSignal) =>
   requestAdminJson(`/api/admin/archetypes/wild/decks?archetype=${encodeURIComponent(archetype)}`, signal);
+const renderWildLink = (href: string, label: string, className?: string) =>
+  <Link href={href} className={className} prefetch={false}>{label}</Link>;
 
-export function AdminArchetypesPageClient({ serverAllowed, currentPath }: {
+export function AdminArchetypesPageClient({ serverAllowed, currentPath, initialArchetype = '' }: {
   serverAllowed: boolean;
   currentPath: string;
+  initialArchetype?: string;
 }) {
   const access = usePublicAccess();
   const allowed = serverAllowed && !access.checking && access.admin;
@@ -28,7 +32,8 @@ export function AdminArchetypesPageClient({ serverAllowed, currentPath }: {
     access={access} navigate={navigate} wide>
     {allowed
       ? currentPath === '/archetypes/wild/'
-        ? <WildArchetypes loadCatalog={loadWildCatalog} loadDecks={loadWildDecks} />
+        ? <WildArchetypes loadCatalog={loadWildCatalog} loadDecks={loadWildDecks}
+          initialArchetype={initialArchetype} renderLink={renderWildLink} />
         : <StandardArchetypes isAdmin currentPath={currentPath} />
       : <section className="archetypes-access-card" aria-labelledby="archetypes-access-title"
         aria-live={access.checking ? 'polite' : undefined}>
@@ -36,7 +41,7 @@ export function AdminArchetypesPageClient({ serverAllowed, currentPath }: {
           ? 'Проверка доступа…' : 'Архетипы недоступны'}</h1>
         {serverAllowed && access.checking
           ? <p>Проверяем права администратора.</p>
-          : <><p>Раздел доступен только администраторам.</p><a href="/?login">Войти в профиль</a></>}
+          : <><p>Раздел доступен только администраторам.</p><Link href="/?login" prefetch={false}>Войти в профиль</Link></>}
       </section>}
   </PublicPageShell>;
 }

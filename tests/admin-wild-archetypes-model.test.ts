@@ -14,6 +14,7 @@ assert.throws(() => readWildArchetypes({ items: null }), /каталог/i);
 const deckCode = 'AAECAf0EBpGxA8W4A5KBA6iKBLqRBM2eBgzAAbAClgX0xgX7yQXz8QWQgwaGgwY=';
 const decks = readWildDecks({ decks: [
   { title: 'Wild Mage', deck_code: deckCode, win_rate: 58.2, games: 423 },
+  { title: 'Duplicate code', deck_code: deckCode, win_rate: 58.2, games: 423 },
   { title: 'Unsafe', deck_code: 'javascript:alert(1)' },
   { title: 'No code', deck_code: '' },
 ] }, 'Маг Вольного формата');

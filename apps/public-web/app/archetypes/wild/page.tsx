@@ -6,7 +6,10 @@ import '../route.css';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Архетипы Вольного формата — HearthPulse', robots: { index: false, follow: false } };
 
-export default async function Page() {
-  return <AdminArchetypesPageClient serverAllowed={await canOpenAdminPage('workspace')}
-    currentPath="/archetypes/wild/" />;
+export default async function Page({ searchParams }: { searchParams: Promise<{ archetype?: string | string[] }> }) {
+  const [serverAllowed, query] = await Promise.all([canOpenAdminPage('workspace'), searchParams]);
+  const initialArchetype = serverAllowed && typeof query.archetype === 'string'
+    ? query.archetype.slice(0, 120) : '';
+  return <AdminArchetypesPageClient serverAllowed={serverAllowed}
+    currentPath="/archetypes/wild/" initialArchetype={initialArchetype} />;
 }
