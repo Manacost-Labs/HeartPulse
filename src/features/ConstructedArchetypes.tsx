@@ -24,21 +24,13 @@ import {
   AsyncSurfaceState,
   RecoverableSurfaceBoundary,
 } from './recovery/RecoverableSurface';
-
-type ArchetypeFormat = 'standard' | 'wild';
-type ArchetypeClass =
-  | 'deathknight'
-  | 'demonhunter'
-  | 'druid'
-  | 'hunter'
-  | 'mage'
-  | 'paladin'
-  | 'priest'
-  | 'rogue'
-  | 'shaman'
-  | 'warlock'
-  | 'warrior';
-type ArchetypeClassFilter = 'all' | ArchetypeClass;
+import {
+  readInitialCatalogFilters,
+  replaceCatalogUrl,
+  type ArchetypeClass,
+  type ArchetypeClassFilter,
+  type ArchetypeFormat,
+} from './constructedArchetypeCatalogUrl';
 
 type ArchetypeBuild = {
   deckCode: string;
@@ -185,21 +177,6 @@ function classIcon(classKey: ArchetypeClass | null): string {
   return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
 }
 
-function replaceCatalogUrl(nextFormat: ArchetypeFormat, nextClass: ArchetypeClassFilter): void {
-  const params = new URLSearchParams({ format: nextFormat });
-  if (nextClass !== 'all') params.set('class', nextClass);
-  window.history.replaceState(window.history.state, '', `/standard/archetypes?${params.toString()}`);
-}
-
-function readInitialCatalogFilters(search: string): { format: ArchetypeFormat; classFilter: ArchetypeClassFilter } {
-  const params = new URLSearchParams(search);
-  const classParam = params.get('class');
-  return {
-    format: params.get('format') === 'wild' ? 'wild' : 'standard',
-    classFilter: CLASS_FILTERS.some(item => item.id === classParam) ? classParam as ArchetypeClassFilter : 'all',
-  };
-}
-
 function formatNumber(value: number | null, suffix = '', maximumFractionDigits = 1): string {
   if (value === null || !Number.isFinite(value)) return '—';
   return `${value.toLocaleString('ru-RU', { maximumFractionDigits })}${suffix}`;
@@ -339,7 +316,7 @@ type ArchetypeCatalogProps = {
 
 function ArchetypeCatalogPage({ navigatePath, hasFullAccess, initialSearch, embedded }: ArchetypeCatalogProps) {
   const Root = embedded ? 'section' : 'main';
-  const { format: initialFormat, classFilter: initialClass } = readInitialCatalogFilters(initialSearch);
+  const { format: initialFormat, classFilter: initialClass } = readInitialCatalogFilters(initialSearch, CLASS_FILTERS);
   const [format, setFormat] = useState<ArchetypeFormat>(initialFormat);
   const [classFilter, setClassFilter] = useState<ArchetypeClassFilter>(initialClass);
   const [query, setQuery] = useState('');
