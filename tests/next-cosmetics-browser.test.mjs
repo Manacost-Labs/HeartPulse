@@ -18,6 +18,12 @@ const coin = { cardId: 'COIN_QA_001', dbf: 456, name: { ru: 'Контрольн�
   textRu: null, images: { card: '/arena-logo-icon.webp', crop: '/arena-logo-icon.webp' } };
 const pet = { cardId: 'PET_QA_001', dbf: 789, variantId: 1, name: 'Контрольный питомец', level: 1,
   images: { card: '/arena-logo-icon.webp' } };
+const heroDetail = { ...hero, health: null, character: null, actor: null, artist: null,
+  categories: [], images: { ...hero.images, fullArt: null }, gallery: [], sounds: [], sourceUrl: null };
+const coinDetail = { ...coin, text: { ru: null, en: null },
+  images: { ...coin.images, golden: null, wiki: null }, generatedBy: [], related: [] };
+const petDetail = { ...pet, pet: { id: 1, name: 'Семейство' },
+  images: { ...pet.images, endScreen: null }, gallery: [], variants: [pet] };
 
 async function listen(server) {
   server.listen(0, '127.0.0.1');
@@ -30,13 +36,15 @@ async function close(server) {
   await new Promise(resolve => server.close(resolve));
 }
 
-test('Next cosmetics listings preserve public cards, query metadata and mobile layout', async () => {
+test('Next cosmetics catalogs and details preserve status, metadata, media and mobile layout', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
   const catalogRequests = [];
+  const detailCookies = [];
   const legacy = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://fixture');
     const path = url.pathname;
     if (path.startsWith('/api/cosmetics/')) catalogRequests.push(`${path}${url.search}`);
+    if (/^\/api\/cosmetics\/(heroes|coins|pets)\/[^/]+$/.test(path)) detailCookies.push(request.headers.cookie ?? '');
     if (path.startsWith('/api/card-image/')) {
       response.setHeader('Content-Type', 'image/webp');
       response.end(readFileSync('public/arena-logo-icon.webp'));
@@ -55,8 +63,15 @@ test('Next cosmetics listings preserve public cards, query metadata and mobile l
       : path === '/api/cosmetics/heroes' ? { items: [hero], pagination, updatedAt: null, source: 'fixture' }
         : path === '/api/cosmetics/coins' ? { items: [coin], generatedBy: [], related: [], pagination, updatedAt: null, source: 'fixture' }
           : path === '/api/cosmetics/pets' ? { items: [{ petId: 1, name: 'Семейство', variants: [pet] }], pagination, updatedAt: null, source: 'fixture' }
+            : path === '/api/cosmetics/heroes/HERO_QA_001' ? heroDetail
+              : path === '/api/cosmetics/coins/COIN_QA_001' ? coinDetail
+                : path === '/api/cosmetics/pets/PET_QA_001' ? petDetail
             : null;
     response.setHeader('Content-Type', 'application/json');
+    if (path.endsWith('/UNAVAILABLE')) {
+      response.writeHead(502).end(JSON.stringify({ error: 'unavailable' }));
+      return;
+    }
     response.writeHead(payload ? 200 : 404).end(JSON.stringify(payload ?? { error: 'missing' }));
   });
   const legacyOrigin = await listen(legacy);
@@ -95,7 +110,7 @@ test('Next cosmetics listings preserve public cards, query metadata and mobile l
       ['/cosmetics/coins/', 'Косметические монеты', 'Fixture Coin'],
       ['/cosmetics/pets/', 'Питомцы', 'Контрольный питомец'],
     ];
-    for (const width of [1440, 390]) {
+    for (const width of [1440, 390, 320]) {
       const page = await browser.newPage();
       await page.setViewport({ width, height: 900 });
       const errors = []; const failed = []; const httpErrors = []; const mediaRequests = [];
@@ -138,6 +153,36 @@ test('Next cosmetics listings preserve public cards, query metadata and mobile l
           await page.screenshot({ path: `${process.env.COSMETICS_SCREENSHOT_DIR}/cosmetics-${width}.png`, fullPage: true });
         }
       }
+      for (const [path, heading] of [
+        ['/cosmetics/heroes/HERO_QA_001/', 'Контрольный герой'],
+        ['/cosmetics/coins/COIN_QA_001/', 'Fixture Coin'],
+        ['/cosmetics/pets/PET_QA_001/', 'Контрольный питомец'],
+      ]) {
+        const html = await (await fetch(`${origin}${path}`)).text();
+        assert.match(html, new RegExp(`<h1>${heading}</h1>`), `server HTML for ${path}`);
+        assert.match(html, /data-server-entity-jsonld/);
+        const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
+        assert.equal(response.status(), 200, `${path} at ${width}px`);
+        await page.evaluate(axe);
+        const state = await page.evaluate(async () => ({
+          canonical: document.querySelector('link[rel=canonical]')?.href,
+          heading: document.querySelector('h1')?.textContent?.trim(),
+          detail: Boolean(document.querySelector('.cosmetics-detail')),
+          main: document.querySelectorAll('main').length,
+          overflow: document.documentElement.scrollWidth > innerWidth,
+          violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
+            .violations.map(violation => violation.id),
+        }));
+        assert.equal(state.canonical, `https://hearthpulse.net${path}`);
+        assert.equal(state.heading, heading);
+        assert.equal(state.detail, true);
+        assert.equal(state.main, 1);
+        assert.equal(state.overflow, false);
+        assert.deepEqual(state.violations, []);
+        if (process.env.COSMETICS_SCREENSHOT_DIR && path.includes('/heroes/')) {
+          await page.screenshot({ path: `${process.env.COSMETICS_SCREENSHOT_DIR}/cosmetics-detail-${width}.png`, fullPage: true });
+        }
+      }
       assert.deepEqual([...new Set(httpErrors)], []);
       assert.deepEqual([...new Set(errors)], []);
       assert.deepEqual(failed, []);
@@ -145,6 +190,20 @@ test('Next cosmetics listings preserve public cards, query metadata and mobile l
       await page.close();
     }
     assert.equal((await fetch(`${origin}/cosmetics/unknown/`)).status, 404);
+    const authenticatedRequest = await fetch(`${origin}/cosmetics/heroes/HERO_QA_001/`, {
+      headers: { Cookie: 'session=browser-fixture' },
+    });
+    assert.equal(authenticatedRequest.status, 200);
+    assert.ok(detailCookies.length > 0);
+    assert.deepEqual([...new Set(detailCookies)], [''], 'public detail fetch must not forward browser cookies');
+    const missing = await fetch(`${origin}/cosmetics/heroes/MISSING/`);
+    assert.equal(missing.status, 404);
+    assert.match(await missing.text(), /Косметика не найдена/);
+    const unavailable = await fetch(`${origin}/cosmetics/heroes/UNAVAILABLE/`);
+    assert.equal(unavailable.status, 503);
+    assert.equal(unavailable.headers.get('retry-after'), '300');
+    assert.match(unavailable.headers.get('x-robots-tag') ?? '', /noindex/);
+    assert.equal((await fetch(`${origin}/cosmetics/heroes/bad%2Fid/`)).status, 404);
     assert.ok(catalogRequests.some(path => path === '/api/cosmetics/heroes?class=mage'));
   } finally {
     if (browser) await browser.close();

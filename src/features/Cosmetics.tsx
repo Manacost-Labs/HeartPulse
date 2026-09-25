@@ -108,6 +108,7 @@ type CosmeticsProps = {
   currentPath: string;
   navigatePath: (path: string) => void;
   initialSearch?: string;
+  initialDetail?: DetailPayload;
 };
 
 function cosmeticMediaSource(source: string | null | undefined) {
@@ -136,7 +137,7 @@ type CatalogRequestState = {
   error: string | null;
 };
 
-type DetailPayload = HeroDetail | CoinDetail | PetDetail;
+export type DetailPayload = HeroDetail | CoinDetail | PetDetail;
 
 type DetailRequestState = {
   requestKey: string;
@@ -836,21 +837,24 @@ function DetailView({
   kind,
   cardId,
   navigatePath,
+  initialDetail,
 }: {
   kind: CosmeticKind;
   cardId: string;
   navigatePath: (path: string) => void;
+  initialDetail?: DetailPayload;
 }) {
   const requestKey = `${kind}:${cardId}`;
   const [requestState, setRequestState] = useState<DetailRequestState>({
-    requestKey: '',
-    detail: null,
+    requestKey: initialDetail ? requestKey : '',
+    detail: initialDetail ?? null,
     error: null,
   });
   const currentRequest = requestState.requestKey === requestKey ? requestState : null;
   const detail = currentRequest?.detail ?? null;
   const error = currentRequest?.error ?? null;
   useEffect(() => {
+    if (initialDetail) return;
     const controller = new AbortController();
     fetchCosmetics<DetailPayload>(
       `/api/cosmetics/${kind}/${encodeURIComponent(cardId)}`,
@@ -867,10 +871,10 @@ function DetailView({
         }
       });
     return () => controller.abort();
-  }, [kind, cardId, requestKey]);
+  }, [kind, cardId, requestKey, initialDetail]);
 
   useEffect(() => {
-    if (!detail) return;
+    if (!detail || initialDetail) return;
     const displayName = kind === 'heroes'
       ? (detail as HeroDetail).name.ru
       : kind === 'coins'
@@ -891,7 +895,7 @@ function DetailView({
       pathname: `/cosmetics/${kind}/${cardId}`,
       image,
     });
-  }, [kind, cardId, detail]);
+  }, [kind, cardId, detail, initialDetail]);
 
   if (error) return <div className="cosmetics-error" role="alert">{error}</div>;
   if (!detail) return <LoadingGrid />;
@@ -914,7 +918,7 @@ function DetailView({
   );
 }
 
-export default function Cosmetics({ currentPath, navigatePath, initialSearch }: CosmeticsProps) {
+export default function Cosmetics({ currentPath, navigatePath, initialSearch, initialDetail }: CosmeticsProps) {
   const route = routeState(currentPath);
   const meta = KIND_META[route.kind];
   const search = initialSearch ?? (typeof window === 'undefined' ? '' : window.location.search);
@@ -930,7 +934,7 @@ export default function Cosmetics({ currentPath, navigatePath, initialSearch }: 
       <CatalogTabs active={route.kind} navigatePath={navigatePath} />
       <section className="cosmetics-surface" aria-label="Каталог косметики Hearthstone">
         {route.cardId
-          ? <DetailView kind={route.kind} cardId={route.cardId} navigatePath={navigatePath} />
+          ? <DetailView kind={route.kind} cardId={route.cardId} navigatePath={navigatePath} initialDetail={initialDetail} />
           : <CatalogView key={route.kind} kind={route.kind} navigatePath={navigatePath} initialSearch={search} />}
       </section>
     </div>

@@ -1,5 +1,13 @@
 export type CosmeticKind = 'heroes' | 'coins' | 'pets';
 
+const kinds = new Set<CosmeticKind>(['heroes', 'coins', 'pets']);
+const cardIdPattern = /^[A-Za-z0-9_-]{1,100}$/;
+
+export function cosmeticsDetailPath(kind: string, cardId: string): string | null {
+  if (!kinds.has(kind as CosmeticKind) || !cardIdPattern.test(cardId)) return null;
+  return `/cosmetics/${kind}/${cardId}/`;
+}
+
 const descriptions: Record<CosmeticKind, { heading: string; description: string }> = {
   heroes: {
     heading: 'Скины героев',

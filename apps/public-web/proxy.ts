@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { cosmeticsDetailPath } from '../../src/modules/cosmetics/public';
 import { constructedCardRoute } from '../../src/modules/constructedCards/public';
 import { publicBattlegroundHero } from './lib/publicBattlegroundHeroData';
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';
 import { encodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
   PUBLIC_BG_PROJECTION_HEADER } from './lib/publicBattlegroundProjectionHeader';
+import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
 
 type BattlegroundDetailProbe =
   | { type: 'hero'; dbfId: string; apiPath: string }
@@ -70,6 +72,30 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
   }
 }
 
+async function checkCosmeticsDetail(pathname: string, headers: Headers, method: string): Promise<Response | null> {
+  const match = pathname.match(/^\/cosmetics\/([^/]+)\/([^/]+)\/?$/u);
+  if (!match || !cosmeticsDetailPath(match[1], match[2])) return null;
+  try {
+    const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
+    if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/') {
+      throw new Error('Invalid legacy origin');
+    }
+    const response = await fetch(new URL(`/api/cosmetics/${match[1]}/${match[2]}`, origin), {
+      cache: 'no-store', credentials: 'omit', redirect: 'error',
+      signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
+    });
+    await response.body?.cancel();
+    if (response.status === 404) {
+      headers.set(MISSING_COSMETICS_DETAIL_HEADER, '1');
+      return null;
+    }
+    if (!response.ok) return unavailableResponse(response.headers.get('retry-after'), method);
+    return null;
+  } catch {
+    return unavailableResponse(null, method);
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const route = constructedCardRoute(request.nextUrl.pathname);
   const headers = new Headers(request.headers);
@@ -77,6 +103,7 @@ export async function proxy(request: NextRequest) {
   headers.delete('x-hearthpulse-card-id');
   headers.delete('x-hearthpulse-card-format');
   headers.delete(PUBLIC_BG_PROJECTION_HEADER);
+  headers.delete(MISSING_COSMETICS_DETAIL_HEADER);
   if (route.page === 'detail' && route.cardId) {
     headers.set('x-hearthpulse-card-id', route.cardId);
     headers.set('x-hearthpulse-card-format', route.format);
@@ -87,7 +114,9 @@ export async function proxy(request: NextRequest) {
       const unavailable = await checkBattlegroundDetail(probe, headers, request.method);
       if (unavailable) return unavailable;
     }
+    const cosmeticsUnavailable = await checkCosmeticsDetail(request.nextUrl.pathname, headers, request.method);
+    if (cosmeticsUnavailable) return cosmeticsUnavailable;
   }
   return NextResponse.next({ request: { headers } });
 }
-export const config = { matcher: ['/standard/cards/:path*', '/heroes/:path*', '/library/:path*'] };
+export const config = { matcher: ['/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*'] };

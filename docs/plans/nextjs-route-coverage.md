@@ -50,6 +50,7 @@ have been checked together. A route count alone is not a completion signal.
 - `cosmetics` — `/cosmetics` (Next route staged; Nginx remains legacy)
 - `cosmetics-kind` — `/cosmetics/:kind` (Next route staged; Nginx remains legacy)
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
+  (Next route staged; Nginx remains legacy)
 - `bg-tier-list` — `/battlegrounds/tier-list`
 
 Match static, archive and detail routes in that order so a broad dynamic
