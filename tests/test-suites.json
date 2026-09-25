@@ -336,6 +336,7 @@
         "tests/hsreplay-deck-mobile-browser.test.mjs",
         "tests/mobile-layout-diagnostics.test.mjs",
         "tests/modal-surface-browser.test.mjs",
+        "tests/next-admin-entitlements-browser.test.mjs",
         "tests/page-headers-browser.test.mjs",
         "tests/production-observer-browser.test.mjs",
         "tests/soft-paywall-browser.test.mjs",

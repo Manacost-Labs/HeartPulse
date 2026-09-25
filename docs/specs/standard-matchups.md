@@ -27,5 +27,8 @@ running; Vite retains the existing source until its route is retired.
 The shared response type is owned by `src/modules/standardMatchups`. The
 public Nginx owner is Next.js after direct-port, browser and routing checks.
 The Next route renders only a public description and access gate before
-entitlement verification. Authorized clients use the controlled matchup view;
+entitlement or administrator verification. Authorized clients use the
+controlled matchup view;
 the legacy mount-time fetch and format-only cache stay disabled there.
+Verified administrators can use the protected matrix without a Standard
+entitlement, matching the Express API authorization rule.

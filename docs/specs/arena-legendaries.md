@@ -23,4 +23,5 @@ account identity or Arena entitlement changes.
 The production HTML route is served by Next.js after direct-port, browser and
 Nginx cutover checks pass. The Next route serves the public description and
 access gate in its initial HTML. Only a client with a verified Arena entitlement
-requests groups.
+or administrator access requests groups, matching the server authorization
+rule.

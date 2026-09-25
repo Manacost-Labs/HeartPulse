@@ -9,7 +9,7 @@ const navigate = (path: string) => window.location.assign(path);
 
 export function StandardMetaPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && hasSubscriptionEntitlement(access.subscription, 'standard');
+  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'standard'));
   const pageKey = `${access.user?.id ?? 'guest'}:${allowed ? 'full' : 'teaser'}`;
   return <PublicPageShell activeTab="standard-meta" pathname="/standard/meta/"
     access={access} navigate={navigate} wide>

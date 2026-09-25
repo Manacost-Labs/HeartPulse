@@ -18,7 +18,7 @@ const ignoreUpdatedAt = (_value: string | null) => undefined;
 
 export function ClassesPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && hasSubscriptionEntitlement(access.subscription, 'arena');
+  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'arena'));
   const { state, retry } = useArenaClasses(access.user?.id, allowed, ignoreUpdatedAt);
   const updatedAtLabel = state.data?.updatedAt
     ? new Date(state.data.updatedAt).toLocaleString('ru-RU', {

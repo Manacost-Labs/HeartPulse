@@ -6,7 +6,8 @@ example percentages belong exclusively to Storybook fixtures. The existing
 server subscription checks and browser permission gate remain authoritative.
 The Next.js route server-renders only the public heading and description;
 account identity, subscription state and class percentages are never embedded
-in shared HTML. The browser loads statistics only after entitlement succeeds.
+in shared HTML. The browser loads statistics only after entitlement or
+administrator access succeeds.
 
 The view distinguishes initial loading, real results, an empty dataset, a
 failed request with no usable data and stale real data. A stale notice means
@@ -36,3 +37,7 @@ Vite uses explicit chunk ownership so the module cannot absorb a shared React ru
 and enter the initial dependency graph. The
 [Rollup chunk contract](https://rollupjs.org/configuration-options/#output-onlyexplicitmanualchunks)
 applies to the function form of `manualChunks`.
+
+The Next page also permits a verified administrator without an Arena
+entitlement, matching the protected Express API. Anonymous visitors do not
+request the protected statistics endpoint.

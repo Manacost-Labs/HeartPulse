@@ -33,3 +33,5 @@ client uses `arena-tierlist:v4:<account>:<source>`. Both have a 60-second fresh
 TTL.
 The API URL includes `v=ru_cards_v3`; an explicit refresh adds `t=<timestamp>`
 to bypass the server cache while preserving the selected source.
+Verified administrators can request the protected API without an Arena
+entitlement, matching the server authorization rule.

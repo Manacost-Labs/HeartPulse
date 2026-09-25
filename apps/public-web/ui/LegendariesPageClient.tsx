@@ -18,7 +18,7 @@ const navigateTab = (tab: string) => {
 
 export function LegendariesPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && hasSubscriptionEntitlement(access.subscription, 'arena');
+  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'arena'));
   const legendaries = useArenaLegendaries(access.user?.id, allowed);
   const data = legendaries.state.data ?? EMPTY_DATA;
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');

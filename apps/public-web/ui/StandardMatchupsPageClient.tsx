@@ -12,7 +12,7 @@ const navigate = (path: string) => window.location.assign(path);
 
 export function StandardMatchupsPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && hasSubscriptionEntitlement(access.subscription, 'standard');
+  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'standard'));
   const matchups = useStandardMatchups(access.user?.id, allowed);
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
   useEffect(() => {

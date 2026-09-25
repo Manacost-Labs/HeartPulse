@@ -21,7 +21,7 @@ const navigateTab = (tab: string) => {
 
 export function TierListPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && hasSubscriptionEntitlement(access.subscription, 'arena');
+  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'arena'));
   const tierlist = useArenaTierList(access.user?.id, allowed);
   const companionIds = useArenaCompanionIds(access.user?.id, allowed && tierlist.source !== 'hsreplay');
   const data = tierlist.state.data ?? { ...EMPTY_DATA, source: tierlist.source };
