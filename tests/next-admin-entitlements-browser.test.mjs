@@ -27,6 +27,7 @@ test('Next subscribers pages preserve administrator API access without a subscri
       ['/standard/archetypes/', '/api/constructed-archetypes'],
       ['/guides-archive/', '/api/guides-archive'],
       ['/heroes/', '/api/bg/heroes'],
+      ['/library/', '/api/bg/library/meta'],
     ]) {
       const page = await context.newPage();
       await page.setCookie({ name, value, url: runtime.origin });

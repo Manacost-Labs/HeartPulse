@@ -59,7 +59,8 @@ gates and real missing-entity responses.
   browser verification)
 - `bg-hero-detail` — `/heroes/:dbfId` (Next route staged; public identity and
   real 404; Nginx legacy until deployed browser verification)
-- `bg-library` — `/library`
+- `bg-library` — `/library` (Next route staged; Nginx legacy until deployed
+  browser verification)
 - `bg-library-archive-root` — `/library/archive`
 - `bg-library-kind` — `/library/:kind`
 - `bg-library-archive` — `/library/archive/:kind`
