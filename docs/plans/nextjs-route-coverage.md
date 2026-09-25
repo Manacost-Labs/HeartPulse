@@ -63,6 +63,10 @@ routes both builders and their invalid descendants to Next.
 - `admin-panel` — `/admin`
 - `wild-archetype-decks` — `/archetypes/wild`
 
+The `/admin` App Router implementation is prepared and validated locally, but
+this ledger entry remains open until its exact Nginx rule serves Next in
+production and the deployed permission flow is checked.
+
 Keep `/identity/` callbacks and session authority in Express. Public profile
 data must come from the existing serializer; admin and account state must not
 leak into shared HTML, hydration payloads or caches.

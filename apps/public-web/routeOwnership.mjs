@@ -3,6 +3,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if ((!enabled && !pagesEnabled && !galleryEnabled) || !['GET', 'HEAD'].includes(method)) return 'legacy';
   if (pathname.startsWith('/_next/') || /^\/health\/next\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && pathname === '/') return 'next';
+  if (pagesEnabled && /^\/admin(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/connect(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/(?:id|profiles)(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/cosmetics(?:\/[^/]+){0,2}\/?$/.test(pathname)) return 'next';

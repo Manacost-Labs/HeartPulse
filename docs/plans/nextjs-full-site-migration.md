@@ -96,7 +96,8 @@ alone does not close a ledger row.
    serializer APIs. Fix the broken `/profile/` shell link.
 6. Move `/admin`. Check permission at the server boundary and verify guest,
    forbidden and administrator responses and operations tabs. No privileged
-   data may enter shared HTML.
+   data may enter shared HTML. The Next route and browser permission checks are
+   prepared; the exact Nginx owner switch remains a separate release gate.
 7. Close `/r/:slug`, `/decks/:path*`, `/jobs/:path*` and unknown `/:path*`.
    Preserve redirect and removed statuses, return a real Next 404 for unknown
    HTML, and replace the Vite-generated `/404.html`. These are contracts,

@@ -34,6 +34,12 @@ Manacost admin workflow and access boundary.
 - Load the shell and its CSS only for the authenticated admin workspace so the
   public contests route does not pay for administrator presentation.
 
+During the Next.js migration, `/admin/` checks the existing Express session
+server-side and renders no user fields into HTML. The browser rechecks access
+before loading the existing workspace shell; all admin data and mutations
+remain behind the existing Express API permissions. The document is private,
+uncached and `noindex, nofollow`.
+
 ## Non-goals
 
 - No changes to authentication, authorization or administrator roles.
