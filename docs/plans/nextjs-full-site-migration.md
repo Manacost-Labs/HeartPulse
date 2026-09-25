@@ -94,10 +94,10 @@ alone does not close a ledger row.
 5. Completed: `/connect` and both public-profile URL patterns use Next-owned
    HTML while Express keeps the device approval, session and public-profile
    serializer APIs. Fix the broken `/profile/` shell link.
-6. Move `/admin`. Check permission at the server boundary and verify guest,
-   forbidden and administrator responses and operations tabs. No privileged
-   data may enter shared HTML. The Next route and browser permission checks are
-   prepared; the exact Nginx owner switch remains a separate release gate.
+6. Completed: `/admin` checks the existing Express session at the Next server
+   boundary, rechecks access in the browser and keeps private user data out of
+   HTML. The exact Nginx rule preserves its slash redirect, noindex and
+   no-store contract; administrator tabs stay on the existing protected APIs.
 7. Close `/r/:slug`, `/decks/:path*`, `/jobs/:path*` and unknown `/:path*`.
    Preserve redirect and removed statuses, return a real Next 404 for unknown
    HTML, and replace the Vite-generated `/404.html`. These are contracts,

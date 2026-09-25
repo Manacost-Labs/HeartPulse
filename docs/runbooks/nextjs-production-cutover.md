@@ -5,12 +5,9 @@ contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
 details, the guide archive and details, the Battlegrounds hero catalog and
 details, library listings and all supported current/archive card details, both
-public-profile URL patterns, and home pages are
-owned by Next.js.
-Express continues
-to own APIs,
-authentication, subscriptions and data access; remaining HTML stays on the
-legacy frontend.
+public-profile URL patterns, the administrator workspace, and home pages are
+owned by Next.js. Express continues to own APIs, authentication, subscriptions
+and data access; remaining HTML stays on the legacy frontend.
 
 ## Stage the runtime
 
@@ -90,6 +87,13 @@ projection through Next. Check a live profile, the legacy alias, a missing ID,
 an invalid ID, the slash redirect and the numeric canonical. Successful
 profiles retain `noindex, follow`; errors are `noindex, nofollow`, and the
 entire profile namespace remains `no-store`.
+The exact `/admin/` document also uses Next, while `/admin` retains its
+query-preserving 301. The Next server checks the existing Express session and
+renders no private user fields into HTML; the browser rechecks access before
+loading the workspace. Keep the document and errors `noindex, nofollow` and
+`no-store`, and leave `/api/admin/` on Express. Check guest, administrator,
+blocked-account and mobile-menu states before opening the route. If it fails,
+restore the saved Nginx route snippet and reload after `nginx -t`.
 Their rules hide upstream `X-Robots-Tag` before setting one edge error header;
 this avoids duplicate headers on retryable 503 pages. For these details,
 sample a live ID, missing ID and canonical redirect. The focused fixture

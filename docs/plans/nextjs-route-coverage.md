@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (41 inventory entries)
+## Already served by Next.js (42 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -53,19 +53,19 @@ have been checked together. A route count alone is not a completion signal.
 - `application-connect` — `/connect`
 - `public-profile` — `/id/:publicProfileId`
 - `legacy-public-profile` — `/profiles/:legacyPublicProfileId`
+- `admin-panel` — `/admin`
 
 Both Battleground builders retain saved state, imports, exports and legacy
 script assets through Next's client-side controls. The public Nginx owner
 routes both builders and their invalid descendants to Next.
 
-## Identity and admin HTML (2)
+## Remaining identity and admin HTML (1)
 
-- `admin-panel` — `/admin`
 - `wild-archetype-decks` — `/archetypes/wild`
 
-The `/admin` App Router implementation is prepared and validated locally, but
-this ledger entry remains open until its exact Nginx rule serves Next in
-production and the deployed permission flow is checked.
+The `/admin/` App Router document now serves through its exact Nginx rule.
+The guest, administrator and blocked-account states use the existing Express
+session authority; successful and failed HTML remains private and noindex.
 
 Keep `/identity/` callbacks and session authority in Express. Public profile
 data must come from the existing serializer; admin and account state must not

@@ -383,8 +383,14 @@ for (const location of [adminRedirect, adminDocument]) {
 }
 assert.match(adminRedirect?.body || '', /return\s+301\s+\/admin\/\$is_args\$args;/,
   'admin slash normalization must preserve the query string in one redirect');
-assert.match(adminDocument?.body || '', /try_files\s+\/admin\/index\.html\s+\/index\.html\s+=404;/,
-  'canonical admin route must be allowed to use the SPA shell');
+assert.match(adminDocument?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:4321;/,
+  'canonical admin route must use Next');
+assert.match(adminDocument?.body || '', /proxy_set_header\s+Cookie\s+\$http_cookie;/,
+  'canonical admin route must forward the session cookie');
+assert.match(adminDocument?.body || '', /Cache-Control\s+"no-cache, no-store, must-revalidate"\s+always;/,
+  'admin HTML must never be cached');
+assert.match(adminDocument?.body || '', /proxy_intercept_errors\s+off;/,
+  'admin errors must preserve their upstream status');
 
 const deckBuilderRedirect = locations.find(location => location.modifier === '=' && location.pattern === '/deck-builder');
 const deckBuilderDocument = locations.find(location => location.modifier === '=' && location.pattern === '/deck-builder/');
@@ -636,14 +642,14 @@ async function reserveAvailablePort() {
   return address.port;
 }
 
-function requestNginx(port, path, method = 'GET') {
+function requestNginx(port, path, method = 'GET', extraHeaders = {}) {
   return new Promise((resolveRequest, rejectRequest) => {
     const pending = request({
       host: '127.0.0.1',
       port,
       path,
       method,
-      headers: { Host: 'arena.test' },
+      headers: { Host: 'arena.test', ...extraHeaders },
     }, response => {
       const chunks = [];
       response.on('data', chunk => chunks.push(chunk));
@@ -664,6 +670,11 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next home</title>',
+    }],
+    ['/admin/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next admin</title><p>next-admin-guard</p>',
     }],
     ['/api', {
       status: 200,
@@ -1057,7 +1068,7 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = ['/', '/admin/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1071,6 +1082,7 @@ async function startCardSeoUpstream() {
         'X-Upstream-Edge-Region': String(incomingRequest.headers['x-arena-edge-region'] || ''),
       } : {}),
       ...fixture.headers,
+      ...(pathname === '/admin/' ? { 'X-Fixture-Cookie-Forwarded': incomingRequest.headers.cookie === 'session=local' ? 'yes' : 'no' } : {}),
     });
     response.end(fixture.body);
   });
@@ -1436,9 +1448,16 @@ http {
     const adminRedirectResponse = await requestNginx(port, '/admin');
     assert.equal(adminRedirectResponse.status, 301, 'admin slash redirect');
     assert.equal(adminRedirectResponse.headers['x-robots-tag'], 'noindex, nofollow', 'admin redirect robots');
-    const adminResponse = await requestNginx(port, '/admin/');
+    const adminResponse = await requestNginx(port, '/admin/', 'GET', { Cookie: 'session=local' });
     assert.equal(adminResponse.status, 200, 'admin document');
     assert.equal(adminResponse.headers['x-robots-tag'], 'noindex, nofollow', 'admin document robots');
+    assert.match(adminResponse.headers['cache-control'] || '', /no-store/, 'admin document cache');
+    assert.match(adminResponse.body, /next-admin-guard/, 'admin document owner');
+    assert.equal(adminResponse.headers['x-fixture-cookie-forwarded'], 'yes', 'admin session cookie');
+    const failedAdmin = await requestNginx(port, '/admin/?fail=1');
+    assert.equal(failedAdmin.status, 503, 'admin upstream errors must retain status');
+    assert.equal(failedAdmin.headers['x-robots-tag'], 'noindex, nofollow', 'admin error robots');
+    assert.match(failedAdmin.headers['cache-control'] || '', /no-store/, 'admin error cache');
 
     const deckBuilderRedirectResponse = await requestNginx(port, '/deck-builder');
     assert.equal(deckBuilderRedirectResponse.status, 301, 'deck-builder slash redirect');
