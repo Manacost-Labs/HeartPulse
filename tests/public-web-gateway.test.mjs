@@ -68,7 +68,8 @@ test('static public pages roll out independently of cards', () => {
     assert.equal(publicWebOwner(path, false, 'GET', true), 'next');
   }
   assert.equal(publicWebOwner('/library/archive/dark-gifts/', false, 'GET', true), 'legacy');
-  assert.equal(publicWebOwner('/library/minions/example-123/', false, 'GET', true), 'legacy');
+  assert.equal(publicWebOwner('/library/minions/example-123/', false, 'GET', true), 'next');
+  assert.equal(publicWebOwner('/library/spells/example-123/', false, 'POST', true), 'legacy');
   for (const family of ['archetypes', 'meta']) {
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'POST', true), 'legacy');

@@ -67,7 +67,8 @@ gates and real missing-entity responses.
   Next; public Nginx owner remains legacy)
 - `bg-library-archive` — `/library/archive/:kind` (all seven allowed archive
   categories staged in Next; public Nginx owner remains legacy)
-- `bg-library-detail` — `/library/:kind/:slugAndDbfId`
+- `bg-library-detail` — `/library/:kind/:slugAndDbfId` (minion and spell
+  details staged in Next; public Nginx owner remains Express)
 - `bg-library-additional-detail` —
   `/library/:additionalKind/:slugAndDbfId`
 - `bg-library-archive-detail` —

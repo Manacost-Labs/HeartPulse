@@ -205,8 +205,10 @@ card filters and statistics mount only after Battlegrounds entitlement or
 administrator access is verified.
 All inventory-listed `/library/:kind/` and `/library/archive/:kind/` categories
 are staged, including anomaly, quest, reward, prize and trinket variants.
-Unsupported archive categories return 404. All card details remain with the
-legacy renderer until their own URL and data contracts are checked.
+Unsupported archive categories return 404. Minion and spell card details are
+staged with anonymous identity, canonical links and real missing-card 404s.
+Additional and archive card details remain with the legacy renderer until
+their own URL and data contracts are checked.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or
 administrator access is verified. Nginx switched after direct-port and browser
