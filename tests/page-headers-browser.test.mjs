@@ -48,9 +48,22 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
         }), false, `${width}px case ${index}: enlarged title must remain visible`);
         await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
       }
-      for (const key of ['width', 'height', 'x', 'y']) {
+      for (const key of ['width', 'x', 'y']) {
         const values = dimensions.map(d => d[key]);
         assert.ok(Math.max(...values) - Math.min(...values) <= 1, `${width}px ${key}: ${values.join(', ')}`);
+      }
+      const artworkHeights = dimensions.slice(0, 6).map(d => d.height);
+      assert.ok(Math.max(...artworkHeights) - Math.min(...artworkHeights) <= 1,
+        `${width}px artwork heights: ${artworkHeights.join(', ')}`);
+      if (width <= 720) {
+        for (const [index, dimension] of dimensions.entries()) {
+          if (index < 6) continue;
+          assert.ok(dimension.height >= 176 && dimension.height < artworkHeights[0],
+            `${width}px text banner ${index}: ${dimension.height}px must fit content below artwork height`);
+        }
+      } else {
+        assert.ok(Math.max(...dimensions.map(d => d.height)) - Math.min(...dimensions.map(d => d.height)) <= 1,
+          `${width}px desktop banner heights must still align`);
       }
       assert.equal(new Set(dimensions.map(d => d.font)).size, 1, `${width}px: heading scale differs`);
     }

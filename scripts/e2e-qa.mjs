@@ -2027,6 +2027,7 @@ async function inspectLayout(page, { mobile }) {
       bannerPosition: bannerStyle?.position || null,
       bannerOverflow: bannerStyle?.overflow || null,
       bannerHeight: banner?.getBoundingClientRect().height || 0,
+      textOnlyBanner: banner?.classList.contains('section-banner-modern') || false,
       suspiciousOverlays,
       mobile: isMobile,
     };
@@ -2099,9 +2100,15 @@ function assertLayout(path, layout) {
     failures.push(`${path}: banner decoration is not contained (${layout.bannerOverflow})`);
   }
   if (layout.bannerHeight) {
-    const expectedHeight = layout.mobile ? 360 : 320;
-    if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
-      failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
+    if (layout.mobile && layout.textOnlyBanner) {
+      if (layout.bannerHeight < 176 || layout.bannerHeight >= 360) {
+        failures.push(`${path}: text-only mobile banner height changed (${layout.bannerHeight}px)`);
+      }
+    } else {
+      const expectedHeight = layout.mobile ? 360 : 320;
+      if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
+        failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
+      }
     }
   }
   if (layout.suspiciousOverlays.length) {
