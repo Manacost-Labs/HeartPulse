@@ -82,7 +82,9 @@ alone does not close a ledger row.
    `/cosmetics/:kind/:cardId` retain public data, images, SEO, filters and
    404/503 responses on Next.js after the Nginx owner switch.
 2. Move `/battlegrounds/tier-list`. Keep public teaser and paid data separate;
-   verify source/filter state and empty/error views after refresh.
+   verify source/filter state and empty/error views after refresh. The Next
+   route and browser contract are staged; public Nginx ownership remains to be
+   switched after deployed direct-port review.
 3. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.
    Verify saved state, imports/exports, client interactions and legacy assets.
 4. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.

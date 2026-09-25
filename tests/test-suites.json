@@ -345,6 +345,7 @@
         "tests/next-admin-entitlements-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
+        "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-cosmetics-browser.test.mjs",
         "tests/next-bg-library-details-browser.test.mjs",
         "tests/next-archetype-details-browser.test.mjs",

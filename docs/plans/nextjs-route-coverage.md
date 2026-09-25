@@ -52,6 +52,9 @@ have been checked together. A route count alone is not a completion signal.
 
 - `bg-tier-list` — `/battlegrounds/tier-list`
 
+Next page and anonymous/subscriber browser contract are staged. Nginx still
+serves the legacy HTML until the deployed direct-port review and owner switch.
+
 Match static, archive and detail routes in that order so a broad dynamic
 segment cannot swallow a more specific page. Sample live and absent entity IDs.
 
