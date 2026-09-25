@@ -2435,6 +2435,15 @@ function BattlegroundHeroTopCompositions({ rows }: { rows: any[] }) {
   );
 }
 
+function bgHeroDetailPortrait(libraryHero: any, dbfId: string): string {
+  return preferredBattlegroundHeroImage({
+    cardId: libraryHero?.card_id,
+    dbfId,
+    libraryImage: libraryHero?.images?.hero === BG_FALLBACK_ICON ? '' : libraryHero?.images?.hero,
+    fallback: BG_FALLBACK_ICON,
+  });
+}
+
 function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNavigate: (path: string) => void }) {
   const [state, setState] = useState<{ payload: BattlegroundHeroDetailPayload | null; loading: boolean; error: string }>({
     payload: null,
@@ -2487,12 +2496,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
     if (!hero) return;
     const libraryHero = payload?.libraryHero || {};
     const heroName = libraryHero?.name?.ru || hero.hero || 'Герой';
-    const heroImage = preferredBattlegroundHeroImage({
-      cardId: libraryHero?.card_id,
-      dbfId,
-      libraryImage: libraryHero?.images?.hero === BG_FALLBACK_ICON ? '' : libraryHero?.images?.hero,
-      fallback: BG_FALLBACK_ICON,
-    });
+    const heroImage = bgHeroDetailPortrait(libraryHero, dbfId);
     const heroPower = libraryHero?.hero_power?.card;
     const heroPowerName = heroPower?.name?.ru || heroPower?.name_ru || '';
     const rawDescription = heroPower?.text?.ru || heroPower?.text_ru || libraryHero?.character?.description || '';
@@ -2526,15 +2530,8 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
   const libraryHero = payload.libraryHero || {};
   const cards = payload.cards || {};
   const heroName = libraryHero?.name?.ru || hero.hero || 'Герой';
-  const heroImage = preferredBattlegroundHeroImage({
-    cardId: libraryHero?.card_id,
-    dbfId,
-    libraryImage: libraryHero?.images?.hero === BG_FALLBACK_ICON ? '' : libraryHero?.images?.hero,
-    fallback: BG_FALLBACK_ICON,
-  });
-  const fullArt = libraryHero?.images?.full_art && libraryHero.images.full_art !== BG_FALLBACK_ICON
-    ? libraryHero.images.full_art
-    : heroImage;
+  const heroImage = bgHeroDetailPortrait(libraryHero, dbfId);
+  const fullArt = libraryHero?.images?.full_art === BG_FALLBACK_ICON ? heroImage : libraryHero?.images?.full_art || heroImage;
   const heroPower = libraryHero?.hero_power?.card;
   const buddy = libraryHero?.buddy?.card;
   const goldenBuddy = libraryHero?.buddy?.golden;
