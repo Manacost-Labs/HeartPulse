@@ -18,9 +18,9 @@ host="\${@: -2:1}"
 record_type="\${@: -1}"
 if [[ "$record_type" == A ]]; then
   [[ "$host" != www.hearthpulse.net ]] || printf 'hearthpulse.net.\\n'
-  printf '%s\\n' 162.19.220.14 194.67.92.242
-  [[ "\${FAKE_QUARANTINE:-}" != novosibirsk ]] || exit 0
-  printf '%s\\n' 186.246.28.244
+  printf '%s\\n' 162.19.220.14
+  [[ ",\${FAKE_QUARANTINE:-}," == *,moscow,* ]] || printf '%s\\n' 194.67.92.242
+  [[ ",\${FAKE_QUARANTINE:-}," == *,novosibirsk,* ]] || printf '%s\\n' 186.246.28.244
   [[ -z "\${FAKE_EXTRA_A:-}" ]] || printf '%s\\n' "$FAKE_EXTRA_A"
 elif [[ -n "\${FAKE_AAAA:-}" ]]; then
   printf '%s\\n' "$FAKE_AAAA"
@@ -30,6 +30,9 @@ fi
 installFixture('curl', `#!/usr/bin/env bash
 set -euo pipefail
 if [[ -n "\${FAKE_FAIL_NOVOSIBIRSK:-}" && "$*" == *186.246.28.244* ]]; then
+  exit 28
+fi
+if [[ -n "\${FAKE_FAIL_MOSCOW:-}" && "$*" == *194.67.92.242* ]]; then
   exit 28
 fi
 url="\${@: -1}"
@@ -88,7 +91,24 @@ try {
     HEARTHPULSE_MONITOR_QUARANTINED_REGION: 'novosibirsk',
   });
   assert.equal(quarantined.status, 0, quarantined.stderr || quarantined.stdout);
-  assert.match(quarantined.stdout, /quarantined region: novosibirsk/);
+  assert.match(quarantined.stdout, /quarantined regions: novosibirsk/);
+
+  const twoQuarantined = runMonitor({
+    FAKE_QUARANTINE: 'moscow,novosibirsk',
+    FAKE_FAIL_MOSCOW: '1',
+    FAKE_FAIL_NOVOSIBIRSK: '1',
+    HEARTHPULSE_MONITOR_QUARANTINED_REGIONS: 'moscow,novosibirsk',
+  });
+  assert.equal(twoQuarantined.status, 0, twoQuarantined.stderr || twoQuarantined.stdout);
+  assert.match(twoQuarantined.stdout, /quarantined regions: moscow,novosibirsk/);
+
+  const unexpectedSecondEdge = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGIONS: 'moscow,novosibirsk' });
+  assert.notEqual(unexpectedSecondEdge.status, 0);
+  assert.match(unexpectedSecondEdge.stderr, /unsafe IPv4 set/);
+
+  const duplicateRegion = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGIONS: 'moscow,moscow' });
+  assert.notEqual(duplicateRegion.status, 0);
+  assert.match(duplicateRegion.stderr, /unsupported quarantined regions/);
 
   const unconfiguredQuarantine = runMonitor({ FAKE_QUARANTINE: 'novosibirsk' });
   assert.notEqual(unconfiguredQuarantine.status, 0);
