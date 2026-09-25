@@ -4,7 +4,8 @@ The public card catalog, card details, gallery, FAQ, privacy, terms, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
 details, the guide archive and details, the Battlegrounds hero catalog and
-details, library listings and base minion/spell details, and home pages are
+details, library listings and all supported current/archive card details, and
+home pages are
 owned by Next.js.
 Express continues
 to own APIs,
@@ -71,15 +72,15 @@ details plus gallery, FAQ, privacy, terms, developer API documentation, articles
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
 its detail/legacy-meta URLs, the guides archive and guide details, the
-Battlegrounds hero catalog and details, library listings and base minion/spell
-details, and home
+Battlegrounds hero catalog and details, library listings and all supported
+current/archive card details, and home
 to port 4321, and forwards
 `/_next/` build
 assets to the same process.
 The SEO map keeps filtered article pages `noindex, follow`, the home login
 query `noindex, nofollow`, and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
-ordinary successful responses. Hero and base minion/spell detail HTML now goes
+ordinary successful responses. Hero and all supported library detail HTML goes
 to Next, while Express remains the public projection and paid-data authority.
 Their rules hide upstream `X-Robots-Tag` before setting one edge error header;
 this avoids duplicate headers on retryable 503 pages. For these details,
@@ -87,7 +88,10 @@ sample a live ID, missing ID and canonical redirect. The focused fixture
 test covers upstream 503, `Retry-After`, HEAD and no-store. Include a long
 Cyrillic slug from the live minion sitemap in direct-port and public checks;
 URL encoding must not make a valid card look missing.
-Other HTML and API routes remain on Express/Vite.
+Other HTML and API routes remain on Express/Vite. Check each of the nine
+current and seven archive detail kinds with a real DBF ID through the public
+host, plus an absent ID and an unsupported archive kind. Confirm the upstream
+public projections contain no paid statistics before opening the Nginx owner.
 Verify the canonical public host on desktop and mobile: both card catalogs,
 a card detail sampled from the live sitemap, a confirmed unknown card (404
 with an `X-Robots-Tag: noindex` header), gallery image loading and downloads,

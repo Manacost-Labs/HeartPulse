@@ -508,7 +508,8 @@ for (const route of inventory.routes) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
-  if (route.id === 'bg-hero-detail' || route.id === 'bg-library-detail') {
+  if (['bg-hero-detail', 'bg-library-detail', 'bg-library-additional-detail',
+    'bg-library-archive-detail'].includes(route.id)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);
     assert.match(resolver?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
@@ -533,9 +534,11 @@ for (const route of inventory.routes) {
 
 for (const kind of ['minions', 'spells', 'anomalies', 'dark-gifts', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped']) {
   expectRegexAction(`/library/${kind}/`, 'proxy_pass http://127.0.0.1:4321;', `${kind} library listing`);
+  expectRegexAction(`/library/${kind}/sample-123/`, 'proxy_pass http://127.0.0.1:4321;', `${kind} library detail`);
 }
 for (const kind of ['minions', 'spells', 'anomalies', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets']) {
   expectRegexAction(`/library/archive/${kind}/`, 'proxy_pass http://127.0.0.1:4321;', `${kind} archive listing`);
+  expectRegexAction(`/library/archive/${kind}/sample-123/`, 'proxy_pass http://127.0.0.1:4321;', `${kind} archive detail`);
 }
 
 const standardCardsListing = firstMatchingRegexLocation('/standard/cards/standard/');
@@ -878,6 +881,26 @@ async function startCardSeoUpstream() {
       },
       body: '<!doctype html><title>BG card OK</title><p>bg-card-upstream-200</p>',
     }],
+    ['/library/anomalies/example-76521/', {
+      status: 200,
+      headers: { 'X-Robots-Tag': 'index, follow, max-image-preview:large' },
+      body: '<!doctype html><title>BG anomaly OK</title><p>bg-anomaly-upstream-200</p>',
+    }],
+    ['/library/archive/minions/example-76521/', {
+      status: 200,
+      headers: { 'X-Robots-Tag': 'index, follow, max-image-preview:large' },
+      body: '<!doctype html><title>BG archive OK</title><p>bg-archive-upstream-200</p>',
+    }],
+    ['/library/anomalies/missing-999999/', {
+      status: 404,
+      headers: { 'X-Robots-Tag': 'noindex, nofollow' },
+      body: '<!doctype html><title>Missing BG anomaly</title>',
+    }],
+    ['/library/archive/spells/outage-888888/', {
+      status: 503,
+      headers: { 'X-Robots-Tag': 'noindex, nofollow', 'Retry-After': '300' },
+      body: '<!doctype html><title>BG archive outage</title>',
+    }],
     ['/library/minions/missing-999999/', {
       status: 404,
       headers: {
@@ -1065,13 +1088,21 @@ http {
     assert.equal(materializedRoute.headers['x-robots-tag'], undefined,
       'materialized indexable route must not inherit fallback noindex');
 
-    for (const shellPath of ['/library/anomalies/example-76521/', '/library/archive/minions/example-76521/']) {
-      const shell = await requestNginx(port, shellPath);
-      assert.equal(shell.status, 200, `${shellPath} must retain client navigation before its SSR resolver exists`);
-      assert.match(shell.body, /<title>SPA<\/title>/, `${shellPath} fallback shell`);
-      assert.equal(shell.headers['x-robots-tag'], 'noindex, follow', `${shellPath} fail-closed robots policy`);
-      assert.match(shell.headers['cache-control'] || '', /no-store/, `${shellPath} fallback cache policy`);
+    for (const detailPath of ['/library/anomalies/example-76521/', '/library/archive/minions/example-76521/']) {
+      const detail = await requestNginx(port, detailPath);
+      assert.equal(detail.status, 200, `${detailPath} must resolve through Next`);
+      assert.match(detail.body, /bg-(?:anomaly|archive)-upstream-200/, `${detailPath} Next response`);
+      assert.equal(detail.headers['x-robots-tag'], undefined, `${detailPath} remains indexable`);
     }
+    const missingAnomaly = await requestNginx(port, '/library/anomalies/missing-999999/');
+    assert.equal(missingAnomaly.status, 404, 'missing additional detail remains a real 404');
+    assert.equal(missingAnomaly.headers['x-robots-tag'], 'noindex, nofollow');
+    const archiveOutage = await requestNginx(port, '/library/archive/spells/outage-888888/');
+    assert.equal(archiveOutage.status, 503, 'archive catalog failure remains retryable');
+    assert.equal(archiveOutage.headers['retry-after'], '300');
+    assert.equal(archiveOutage.headers['x-robots-tag'], 'noindex, nofollow');
+    const unsupportedArchive = await requestNginx(port, '/library/archive/dark-gifts/example-76521/');
+    assert.equal(unsupportedArchive.status, 404, 'unsupported archive kind stays unavailable');
 
     for (const [path, expected] of [
       ['/', /Next home/],
@@ -1381,6 +1412,11 @@ http {
       { path: '/heroes/999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/heroes/888888/', status: 503, robots: 'noindex, nofollow' },
       { path: '/library/minions/example-76521/', status: 200 },
+      { path: '/library/anomalies/example-76521/', status: 200 },
+      { path: '/library/archive/minions/example-76521/', status: 200 },
+      { path: '/library/anomalies/missing-999999/', status: 404, robots: 'noindex, nofollow' },
+      { path: '/library/archive/spells/outage-888888/', status: 503, robots: 'noindex, nofollow' },
+      { path: '/library/archive/dark-gifts/example-76521/', status: 404, robots: 'noindex, nofollow' },
       { path: '/library/minions/missing-999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/library/spells/outage-888888/', status: 503, robots: 'noindex, nofollow' },
       { path: '/decks/legacy', status: 410, robots: 'noindex, nofollow' },

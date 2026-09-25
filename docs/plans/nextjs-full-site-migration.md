@@ -1,9 +1,9 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-25. Thirty of the 47 inventory
+Status: execution in progress, 2026-09-25. Thirty-two of the 47 inventory
 entries are served by Next.js, including public/editorial pages, Arena and
 constructed catalogs, the guide archive, archetype details and the Battlegrounds
-hero catalog, library listings, hero details and base minion/spell details.
+hero catalog, library listings, hero details and all supported library card details.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -71,40 +71,35 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 ## Remaining execution queue (2026-09-25)
 
 The [coverage ledger](nextjs-route-coverage.md) is the exhaustive route list;
-the following queue turns its 17 remaining entries and two additional HTML
+the following queue turns its 15 remaining entries and two additional HTML
 pages into independently releasable slices. Each slice ends with a focused
 HTTP/permission test, Next build, direct-port browser review, a commit, a
 separate Nginx owner switch, and verification of the deployed SHA. A Next route
 alone does not close a ledger row.
 
-1. Add `/library/:additionalKind/:slugAndDbfId` and
-   `/library/archive/:kind/:slugAndDbfId`. Reuse the detail contract; check
-   every supported kind plus unsupported and missing URLs.
-   The anonymous base-archive and auxiliary-card projections and Next detail
-   pages are staged; their deployed browser review and Nginx owner switch remain.
-2. Move `/cosmetics`, `/cosmetics/:kind` and
+1. Move `/cosmetics`, `/cosmetics/:kind` and
    `/cosmetics/:kind/:cardId`. Match public data, permissions, images, SEO,
    filters, 404 and 5xx responses.
-3. Move `/battlegrounds/tier-list`. Keep public teaser and paid data separate;
+2. Move `/battlegrounds/tier-list`. Keep public teaser and paid data separate;
    verify source/filter state and empty/error views after refresh.
-4. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.
+3. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.
    Verify saved state, imports/exports, client interactions and legacy assets.
-5. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
+4. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
    Check direct load, editing, authentication and `noindex`; record the latter
    two explicit Nginx pages in the reconciled inventory.
-6. Move `/connect`, `/id/:publicProfileId` and
+5. Move `/connect`, `/id/:publicProfileId` and
    `/profiles/:legacyPublicProfileId`. Keep identity and serializer APIs as
    authority; check signed-out, linked, missing and legacy states. Fix the
    broken `/profile/` shell link.
-7. Move `/admin`. Check permission at the server boundary and verify guest,
+6. Move `/admin`. Check permission at the server boundary and verify guest,
    forbidden and administrator responses and operations tabs. No privileged
    data may enter shared HTML.
-8. Close `/r/:slug`, `/decks/:path*`, `/jobs/:path*` and unknown `/:path*`.
+7. Close `/r/:slug`, `/decks/:path*`, `/jobs/:path*` and unknown `/:path*`.
    Preserve redirect and removed statuses, return a real Next 404 for unknown
    HTML, and replace the Vite-generated `/404.html`. These are contracts,
    not four new content pages.
 
-After slice 8, reconcile the effective Nginx rules, route manifest, sitemap,
+After slice 7, reconcile the effective Nginx rules, route manifest, sitemap,
 SEO inventory and sampled access logs. The gate for beginning Vite removal is
 **47 of 47 ledger entries resolved, both extra admin tools resolved, and zero
 new HTML served from Vite for seven consecutive days**. Keep `/api/`,

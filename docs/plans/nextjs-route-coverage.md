@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (30 inventory entries)
+## Already served by Next.js (32 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -40,18 +40,16 @@ have been checked together. A route count alone is not a completion signal.
 - `bg-library-archive-root` — `/library/archive`
 - `bg-library-archive` — `/library/archive/:kind`
 - `bg-library-detail` — `/library/:kind/:slugAndDbfId` for minions and spells
+- `bg-library-additional-detail` —
+  `/library/:additionalKind/:slugAndDbfId` for all seven supported kinds
+- `bg-library-archive-detail` —
+  `/library/archive/:kind/:slugAndDbfId` for all seven supported kinds
 
-## Battlegrounds and cosmetics data HTML (6)
+## Battlegrounds and cosmetics data HTML (4)
 
 - `cosmetics` — `/cosmetics`
 - `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
-- `bg-library-additional-detail` —
-  `/library/:additionalKind/:slugAndDbfId` (Next route staged with a public
-  projection; Nginx still serves the legacy renderer)
-- `bg-library-archive-detail` —
-  `/library/archive/:kind/:slugAndDbfId` (Next route staged for all seven
-  supported kinds; Nginx still serves the legacy renderer)
 - `bg-tier-list` — `/battlegrounds/tier-list`
 
 Match static, archive and detail routes in that order so a broad dynamic
