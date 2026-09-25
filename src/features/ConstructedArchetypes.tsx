@@ -89,7 +89,7 @@ type HistoryPoint = {
   climbingSpeed: number | null;
 };
 
-type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
+export type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
   item: ArchetypeItem;
   history: HistoryPoint[];
   analysis: ConstructedAnalysis | null;
@@ -544,29 +544,29 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, initialSearch, embe
   );
 }
 
-function ArchetypeDetailPage({
-  format,
-  slug,
-  navigatePath,
-  hasFullAccess,
-  paywall,
-}: {
+type ArchetypeDetailProps = {
   format: ArchetypeFormat;
   slug: string;
   navigatePath: (path: string) => void;
   hasFullAccess: boolean;
   paywall: PaywallAccessState;
-}) {
-  const [detail, setDetail] = useState<ArchetypeDetail | null>(null);
+  initialDetail: ArchetypeDetail | null;
+  embedded: boolean;
+};
+
+function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded }: ArchetypeDetailProps) {
+  const Root = embedded ? 'section' : 'main';
+  const [detail, setDetail] = useState<ArchetypeDetail | null>(initialDetail);
   const [revision, setRevision] = useState(0);
   const [visibleBuilds, setVisibleBuilds] = useState(6);
   const requestKey = `${format}:${slug}:${revision}:${hasFullAccess ? 'full' : 'teaser'}`;
-  const [resolvedRequestKey, setResolvedRequestKey] = useState('');
+  const [resolvedRequestKey, setResolvedRequestKey] = useState(initialDetail && !hasFullAccess ? `${format}:${slug}:0:teaser` : '');
   const [requestError, setRequestError] = useState<{ key: string; message: string } | null>(null);
   const loading = resolvedRequestKey !== requestKey;
   const error = requestError?.key === requestKey ? requestError.message : '';
 
   useEffect(() => {
+    if (initialDetail && !hasFullAccess && revision === 0) return;
     const controller = new AbortController();
     const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
     void apiJson<ArchetypeDetail>(`${endpoint}/${format}/${slug}`, controller.signal)
@@ -586,19 +586,19 @@ function ArchetypeDetailPage({
         if (!controller.signal.aborted) setResolvedRequestKey(requestKey);
       });
     return () => controller.abort();
-  }, [format, slug, revision, hasFullAccess, requestKey]);
+  }, [format, slug, revision, hasFullAccess, requestKey, initialDetail]);
 
   if (loading) {
-    return <main className="archetypes-page archetype-detail-page" id="main-content" tabIndex={-1}><LoadingState detail /></main>;
+    return <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}><LoadingState detail /></Root>;
   }
   if (error || !detail) {
     return (
-      <main className="archetypes-page archetype-detail-page" id="main-content" tabIndex={-1}>
+      <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
         <button type="button" className="archetype-back" onClick={() => navigatePath('/standard/archetypes')}>
           <ArrowLeft size={18} /> Все архетипы
         </button>
         <ErrorState message={error || 'Архетип не найден'} onRetry={() => setRevision(value => value + 1)} />
-      </main>
+      </Root>
     );
   }
 
@@ -609,7 +609,7 @@ function ArchetypeDetailPage({
   const heroArt = archetypeHeroArt(item.slug, detail.analysis);
 
   return (
-    <main className="archetypes-page archetype-detail-page" id="main-content" tabIndex={-1}>
+    <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
       <nav className="archetype-breadcrumb" aria-label="Навигационная цепочка">
         <a href="/standard/archetypes" onClick={event => { event.preventDefault(); navigatePath('/standard/archetypes'); }}>
           <ArrowLeft size={17} /> Архетипы
@@ -747,7 +747,7 @@ function ArchetypeDetailPage({
           <p>Статистика архетипа относится к текущему патчу и учитывает архетипы от {detail.minimumGames} игр. Сборки используют выборку HSGuru за последние 30 дней, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
         </div>
       </section>
-    </main>
+    </Root>
   );
 }
 
@@ -755,6 +755,7 @@ export default function ConstructedArchetypes({
   currentPath = typeof window === 'undefined' ? '/standard/archetypes/' : window.location.pathname,
   navigatePath = path => window.location.assign(path),
   initialSearch = typeof window === 'undefined' ? '' : window.location.search,
+  initialDetail = null,
   embedded = false,
   hasFullAccess = true,
   paywall = DEFAULT_PAYWALL_ACCESS,
@@ -762,6 +763,7 @@ export default function ConstructedArchetypes({
   currentPath?: string;
   navigatePath?: (path: string) => void;
   initialSearch?: string;
+  initialDetail?: ArchetypeDetail | null;
   embedded?: boolean;
   hasFullAccess?: boolean;
   paywall?: PaywallAccessState;
@@ -775,6 +777,8 @@ export default function ConstructedArchetypes({
         navigatePath={navigatePath}
         hasFullAccess={hasFullAccess}
         paywall={paywall}
+        initialDetail={initialDetail}
+        embedded={embedded}
       />
     )
     : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} initialSearch={initialSearch} embedded={embedded} />;

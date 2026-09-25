@@ -4,6 +4,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pathname.startsWith('/_next/') || /^\/health\/next\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && pathname === '/') return 'next';
   if (pagesEnabled && /^\/(?:faq|privacy|terms|developers\/api|articles|contests|classes|tierlist|legendaries|standard\/(?:matchups|meta|fun-decks|vicious-gold|archetypes))\/?$/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/standard\/(?:archetypes|meta)\/.+/.test(pathname)) return 'next';
   if (galleryEnabled && /^\/gallery\/?$/.test(pathname)) return 'next';
   // Include invalid card descendants so the enabled owner provides the real 404.
   return enabled && /^\/standard\/cards(?:\/.*)?$/.test(pathname) ? 'next' : 'legacy';

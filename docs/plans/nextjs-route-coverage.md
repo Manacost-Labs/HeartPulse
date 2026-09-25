@@ -41,9 +41,9 @@ need a request-scoped entitlement decision, a public teaser and authoritative
 - `constructed-archetypes` — `/standard/archetypes` (Next route staged; Nginx
   remains legacy until deployed browser verification)
 - `constructed-archetype-detail` —
-  `/standard/archetypes/:format/:archetypeSlug`
+  `/standard/archetypes/:format/:archetypeSlug` (Next route staged; Nginx legacy)
 - `standard-meta-legacy-detail` —
-  `/standard/meta/:format/:archetypeSlug`
+  `/standard/meta/:format/:archetypeSlug` (Next route staged; Nginx legacy)
 
 Preserve legacy detail URLs, format validation, query filters, entitlement
 gates and real missing-entity responses.

@@ -180,6 +180,10 @@ The `/standard/archetypes/` catalog is staged in Next.js with its existing
 guest teaser, subscriber and administrator access, and query filters. Its
 detail URLs and public Nginx owner remain on the legacy route until separate
 deployment and browser verification.
+Both archetype detail URL families are staged in Next.js using anonymous
+teaser data for server HTML, request-time 404 checks and account-scoped full
+data after hydration. Their public Nginx owner remains legacy until deployed
+browser verification.
 It preserves the current public dataset API and client-side three-deck preview.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or
