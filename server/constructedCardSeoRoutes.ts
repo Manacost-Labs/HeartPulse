@@ -12,7 +12,7 @@ import {
   type ConstructedRelatedCard,
   type ConstructedRelatedCardGroup,
 } from '../src/features/constructedRelatedCards.js';
-import { buildEntityStructuredData } from './entitySeoStructuredData.js';
+import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 
 type JsonRecord = Record<string, unknown>;
 export function projectPublicConstructedCardSeoData(card: JsonRecord, origin?: string): PublicConstructedCardSeoData {

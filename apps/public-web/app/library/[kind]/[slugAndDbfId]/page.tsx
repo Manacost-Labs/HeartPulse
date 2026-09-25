@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import '../../../../../../src/route-parchment.css';
 import '../../../../../../src/features/TraditionalModeBanner.css';
+import { buildEntityStructuredData } from '../../../../../../shared/entitySeoStructuredData';
 import { loadPublicBattlegroundLibraryCard } from '../../../../lib/publicBattlegroundLibraryCard';
 import { BattlegroundLibraryDetailPageClient } from '../../../../ui/BattlegroundLibraryDetailPageClient';
 
@@ -41,5 +42,30 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 }
 
 export default async function Page(props: Props) {
-  return <BattlegroundLibraryDetailPageClient card={await resolveCard(props)} />;
+  const card = await resolveCard(props);
+  const origin = 'https://hearthpulse.net';
+  const canonical = new URL(card.canonicalPath, origin).href;
+  const title = `${card.name} — ${card.typeName.toLowerCase()} Полей сражений | HearthPulse`;
+  const description = card.text
+    ? `${card.name} — ${card.typeName.toLowerCase()} Hearthstone Battlegrounds. ${card.text}`.slice(0, 300)
+    : `${card.name} — карта режима «Поля сражений» в Hearthstone.`;
+  const structured = buildEntityStructuredData({
+    canonical, title, description, origin, image: card.image, entityFragment: 'card',
+    entity: {
+      name: card.name, identifier: card.dbfId, image: card.image, description, inLanguage: 'ru',
+      isPartOf: { '@type': 'VideoGame', name: 'Hearthstone: Поля сражений' },
+    },
+    breadcrumbs: [
+      { name: 'Главная', item: `${origin}/` },
+      { name: 'Библиотека Полей сражений', item: `${origin}/library/` },
+      { name: card.kind === 'minion' ? 'Существа' : 'Заклинания',
+        item: `${origin}/library/${card.kind === 'minion' ? 'minions' : 'spells'}/` },
+      { name: card.name, item: canonical },
+    ],
+  });
+  return <>
+    <script type="application/ld+json" data-server-entity-jsonld data-entity-path={card.canonicalPath}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} />
+    <BattlegroundLibraryDetailPageClient card={card} />
+  </>;
 }

@@ -106,7 +106,12 @@ test('Next Battleground card detail keeps public identity and real missing-card 
     assert.equal(redirect.headers.get('location'), encodeURI('/library/minions/баюбот-98582/') + '?utm_source=qa');
     const cyrillic = await fetch(`${origin}/library/minions/электрический-синтезатор-100026/`);
     assert.equal(cyrillic.status, 200, 'long Cyrillic canonical slugs stay reachable');
-    assert.match(await cyrillic.text(), /Электрический синтезатор/);
+    const cyrillicHtml = await cyrillic.text();
+    assert.match(cyrillicHtml, /Электрический синтезатор/);
+    const cardJsonLd = [...cyrillicHtml.matchAll(/<script\b(?=[^>]*type="application\/ld\+json")(?=[^>]*data-server-entity-jsonld)[^>]*>([\s\S]*?)<\/script>/g)];
+    assert.equal(cardJsonLd.length, 1, 'card HTML contains one server entity JSON-LD script');
+    assert.ok(JSON.parse(cardJsonLd[0][1])['@graph'].some(node => node.identifier === 100026
+      && node.url === encodeURI('https://hearthpulse.net/library/minions/электрический-синтезатор-100026/')));
     const outage = await fetch(`${origin}/library/minions/outage-888888/`, { redirect: 'manual' });
     assert.equal(outage.status, 503);
     assert.equal(outage.headers.get('retry-after'), '120');

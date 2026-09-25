@@ -1,7 +1,7 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
-import { buildEntityStructuredData } from './entitySeoStructuredData.js';
+import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
 import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 export type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';

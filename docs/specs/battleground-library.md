@@ -13,14 +13,16 @@ additional categories carry local Next metadata. Unsupported archive
 categories and unknown kinds return 404. Each
 guest page shows its category description without protected API requests;
 subscribers and administrators retain the existing `BgLibrary` filters.
-Minion and spell detail pages are also served by Next.js. Server HTML contains
-only the anonymous card identity, safe image and rules text; the existing
+Minion and spell detail pages are staged in Next.js. Server HTML contains
+only the anonymous card identity, safe image, rules text and indexable entity
+JSON-LD with the canonical URL; the existing
 `BgLibrary` detail client mounts after entitlement or administrator checks.
 Unknown card IDs return 404, and a noncanonical slug redirects to the
 canonical card URL. Catalog outages return non-cacheable 503 HTML with
 `Retry-After` and `noindex, nofollow`. Additional and archive card details stay
 with the legacy renderer. Public Nginx traffic for the listing, categories and
-base minion/spell details goes to Next.js.
+base minion/spell details is split: listings and categories go to Next.js;
+base details remain on Express until a verified owner switch.
 
 The anonymous `/api/bg/library/public/:kind/:dbfId` endpoint projects only
 public minion and spell identity from the same verified active and archive

@@ -99,7 +99,12 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
       'x-hearthpulse-bg-public-projection': `v1:${Buffer.from('{"hero":{}}').toString('base64url')}`,
     } });
     assert.equal(spoofed.status, 200);
-    assert.match(await spoofed.text(), /А\. Ф\. Ка/);
+    const spoofedHtml = await spoofed.text();
+    assert.match(spoofedHtml, /А\. Ф\. Ка/);
+    const heroJsonLd = [...spoofedHtml.matchAll(/<script\b(?=[^>]*type="application\/ld\+json")(?=[^>]*data-server-entity-jsonld)[^>]*>([\s\S]*?)<\/script>/g)];
+    assert.equal(heroJsonLd.length, 1, 'hero HTML contains one server entity JSON-LD script');
+    assert.ok(JSON.parse(heroJsonLd[0][1])['@graph'].some(node => node.identifier === 57944
+      && node.url === 'https://hearthpulse.net/heroes/57944/'));
     assert.equal(publicCalls - callsBeforeSpoof, 1, 'a valid page uses one anonymous projection request');
     const missing = await page.goto(`${origin}/heroes/999999/`, { waitUntil: 'networkidle2' });
     assert.equal(missing.status(), 404);

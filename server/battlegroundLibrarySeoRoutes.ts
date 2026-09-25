@@ -1,7 +1,7 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
-import { buildEntityStructuredData } from './entitySeoStructuredData.js';
+import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { canonicalBattlegroundCardSlug, createBattlegroundLibraryPublicRouter } from './modules/battlegroundLibrary/public.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 

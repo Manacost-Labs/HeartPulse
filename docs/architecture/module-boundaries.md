@@ -1,5 +1,10 @@
 # Module boundaries
 
+The domain-independent entity JSON-LD graph builder lives in
+`shared/entitySeoStructuredData.ts`. Express SEO routes and staged Next.js
+Battleground detail pages compose their own public entity data through it,
+keeping canonical and breadcrumb structure consistent across renderers.
+
 ## Public home
 
 `src/modules/home/public.ts` owns the home summary presentation, article
