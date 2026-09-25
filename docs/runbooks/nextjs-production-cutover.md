@@ -75,10 +75,12 @@ tier list and builders, the device-connection page, and home
 to port 4321, and forwards
 `/_next/` build
 assets to the same process.
-The `/_next/` location compresses JavaScript and CSS when clients request
-gzip; after a release, verify a large `/_next/static/` asset responds with
-`Content-Encoding: gzip` and `Vary: Accept-Encoding`. Keep this compression
-on the public asset route only, not on private HTML responses.
+The origin `/_next/` location and the public HearthPulse edge compress
+JavaScript and CSS when clients request gzip. The edge removes upstream
+`Accept-Encoding` so host rewriting sees plain responses, then compresses
+assets for browsers. After an edge rollout, verify a large public
+`/_next/static/` asset responds with `Content-Encoding: gzip` and
+`Vary: Accept-Encoding`.
 The SEO map keeps filtered article pages `noindex, follow`, the home login
 query `noindex, nofollow`, and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
