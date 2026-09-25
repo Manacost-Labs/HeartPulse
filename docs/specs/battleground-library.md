@@ -6,11 +6,13 @@ subscription gate; the existing `BgLibrary` client mounts only after the
 `battlegrounds` entitlement or administrator role is verified. Guest HTML and
 browser requests must not include the protected `/api/bg/library/*` data.
 
-The minion and spell listings, `/library/archive/`, and the minion and spell
-archive listings are staged in Next.js with their existing SEO registry
-metadata. Each guest page shows its category description and no protected API
-requests; a subscriber or administrator sees the existing `BgLibrary` filters.
-Other categories and all card details stay with the legacy renderer until
-their filters, card data, missing-entity status and SEO contract move. Public
-Nginx traffic for every staged library route remains legacy until deployment
-and browser checks pass.
+All nine allowed `/library/:kind/` categories, `/library/archive/`, and all
+seven allowed `/library/archive/:kind/` categories are staged in Next.js.
+Minion and spell listings retain their existing SEO registry metadata; the
+additional categories carry local Next metadata until their public owner
+changes. Unsupported archive categories and unknown kinds return 404. Each
+guest page shows its category description without protected API requests;
+subscribers and administrators retain the existing `BgLibrary` filters.
+All card details stay with the legacy renderer until their data, missing-entity
+status and SEO contracts move. Public Nginx traffic for every staged library
+route remains legacy until deployment and browser checks pass.
