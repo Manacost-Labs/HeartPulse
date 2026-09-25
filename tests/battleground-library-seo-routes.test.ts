@@ -163,6 +163,22 @@ async function startApp(fetchImpl: typeof fetch, options: {
 
 const app = await startApp(catalogFetch);
 try {
+  const publicCard = await fetch(`${app.origin}/api/bg/library/public/minion/98582`, {
+    headers: { Cookie: 'session=private', Authorization: 'Bearer ignored' },
+  });
+  assert.equal(publicCard.status, 200);
+  assert.match(publicCard.headers.get('cache-control') || '', /no-store/);
+  const publicJson = await publicCard.text();
+  assertNoPrivateData(publicJson, 'public card projection');
+  const projection = JSON.parse(publicJson);
+  assert.equal(projection.card.dbfId, 98582);
+  assert.equal(projection.card.kind, 'minion');
+  assert.equal(projection.canonicalPath, '/library/minions/баюбот-alert-x-98582/');
+  for (const path of ['/api/bg/library/public/minion/999999',
+    '/api/bg/library/public/minion/0', '/api/bg/library/public/unknown/98582']) {
+    assert.equal((await fetch(`${app.origin}${path}`)).status, 404);
+  }
+
   const path = '/library/minions/баюбот-alert-x-98582/';
   const existing = await fetch(`${app.origin}${path}`);
   assert.equal(existing.status, 200);
@@ -360,6 +376,11 @@ async function assertUnavailable(
     assert.match(html, /<h1>Каталог карт временно недоступен<\/h1>/);
     assert.doesNotMatch(html, /<link rel="canonical"|<script type="module"/i);
     assertNoPrivateData(html, `${label} response`);
+
+    const publicCard = await fetch(`${unavailableApp.origin}/api/bg/library/public/minion/98582`);
+    assert.equal(publicCard.status, 503);
+    assert.equal(publicCard.headers.get('retry-after'), expectedRetryAfter);
+    assertNoPrivateData(await publicCard.text(), `${label} public projection`);
 
     const head = await fetch(`${unavailableApp.origin}/library/minions/баюбот-alert-x-98582/`, { method: 'HEAD' });
     assert.equal(head.status, 503);

@@ -16,3 +16,10 @@ subscribers and administrators retain the existing `BgLibrary` filters.
 All card details stay with the legacy renderer until their data, missing-entity
 status and SEO contracts move. Public Nginx traffic for every staged library
 route remains legacy until deployment and browser checks pass.
+
+The anonymous `/api/bg/library/public/:kind/:dbfId` endpoint projects only
+public minion and spell identity from the same verified active and archive
+catalogs as the existing detail HTML. It returns a canonical path and public
+card fields, 404 for invalid or absent IDs, and retryable 503 when the catalog
+cannot be verified. Cookies and authorization do not affect its response;
+private statistics are never included.

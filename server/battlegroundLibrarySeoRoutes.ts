@@ -553,6 +553,26 @@ export function createBattlegroundLibrarySeoRouter(
     return pending;
   };
 
+  router.get('/api/bg/library/public/:kind/:dbfId', async (request, response) => {
+    const kind = request.params.kind;
+    const dbfId = request.params.dbfId;
+    response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.set('X-Robots-Tag', NOINDEX_ROBOTS);
+    if ((kind !== 'minion' && kind !== 'spell') || !isPositiveDbfId(dbfId)) {
+      return response.status(404).json({ error: 'Card not found' });
+    }
+    try {
+      const card = (await loadCatalog(kind)).find(candidate => candidate.dbfId === Number(dbfId));
+      if (!card) return response.status(404).json({ error: 'Card not found' });
+      const canonicalPath = `/library/${kindPath(kind)}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}/`;
+      return response.json({ card, canonicalPath });
+    } catch (error) {
+      try { dependencies.onError?.(error); } catch { /* Diagnostics are best-effort. */ }
+      response.set('Retry-After', String(retryAfterSeconds));
+      return response.status(503).json({ error: 'Card catalog temporarily unavailable' });
+    }
+  });
+
   const handlerFor = (kind: BattlegroundLibraryKind): RequestHandler => async (request, response) => {
     const detail = parseDetailParameter(request.params.slugAndDbfId);
     if (!detail) {
