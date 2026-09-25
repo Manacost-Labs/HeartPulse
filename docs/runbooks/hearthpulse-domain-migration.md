@@ -19,7 +19,7 @@ Cookies нельзя перенести между разными registrable do
 
 ## DNS и регионы
 
-Зона Cloudflare остаётся DNS-only с TTL 120:
+Целевой набор зоны Cloudflare остаётся DNS-only с TTL 120:
 
 - apex: `162.19.220.14`, `194.67.92.242`, `186.246.28.244`;
 - `cdn`: тот же набор A;
@@ -31,15 +31,18 @@ Cookies нельзя перенести между разными registrable do
 
 С 25 сентября 2026 года Новосибирск временно исключён из A-записей apex и CDN:
 у edge повторялись тайм-ауты TLS-handshake к upstream на статике и страницах.
-После повторных `no live upstreams` на московском edge Москва также исключена.
-Рабочий набор сейчас — только Limburg (`162.19.220.14`); `www` наследует его
-через CNAME. Это аварийная мера, а не целевая одноузловая архитектура.
+После повторных `no live upstreams` на московском edge Москва также временно
+исключалась. После восстановления обратных туннелей и проверки параллельной
+загрузки страниц, CSS, JS и изображений Москва возвращена в A-записи apex и
+CDN 25 сентября 2026 года. Рабочий набор сейчас — Limburg (`162.19.220.14`)
+и Москва (`194.67.92.242`); `www` наследует его через CNAME. Новосибирск
+остаётся в карантине до отдельной проверки.
 Снимок записей до изменения находится в root-only файле
 `/var/backups/hs-arena/hearthpulse-dns-before-novosibirsk-withdrawal-20260925-1209.json`.
 Снимок перед выводом Москвы находится в
 `/var/backups/hs-arena/hearthpulse-dns-before-moscow-withdrawal-20260925-1230.json`.
 Обычный трёхузловой DNS-контракт сохраняется в мониторе по умолчанию. На время
-карантина задайте `HEARTHPULSE_MONITOR_QUARANTINED_REGIONS=moscow,novosibirsk`
+карантина задайте `HEARTHPULSE_MONITOR_QUARANTINED_REGIONS=novosibirsk`
 в `/etc/hs-arena/hearthpulse-shadow-monitor.env` (root-only): монитор требует
 точный DNS-набор и проверяет оставшийся edge. Старый одиночный флаг
 `HEARTHPULSE_MONITOR_QUARANTINED_REGION` поддерживается при поэтапном возврате.
