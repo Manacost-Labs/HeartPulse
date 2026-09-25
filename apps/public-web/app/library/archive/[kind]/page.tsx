@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 
 async function listingFor(params: Props['params']) {
   const { kind } = await params;
-  if (kind !== 'minions' && kind !== 'spells') notFound();
   const listing = battlegroundLibraryListing(`/library/archive/${kind}`);
   if (!listing) notFound();
   return listing;

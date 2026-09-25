@@ -6,9 +6,21 @@ const headings: Record<string, string> = {
   '/library': 'Библиотека Полей Сражений',
   '/library/minions': 'Существа Полей сражений',
   '/library/spells': 'Заклинания Полей сражений',
+  '/library/anomalies': 'Аномалии Полей сражений',
+  '/library/dark-gifts': 'Темные дары Полей сражений',
+  '/library/quests': 'Квесты Полей сражений',
+  '/library/rewards': 'Награды Полей сражений',
+  '/library/darkmoon-prizes': 'Призы Ярмарки Новолуния',
+  '/library/trinkets': 'Аксессуары Полей сражений',
+  '/library/timewarped': 'Хрономальные карты Полей сражений',
   '/library/archive': 'Архив Полей сражений',
   '/library/archive/minions': 'Архив существ Полей сражений',
   '/library/archive/spells': 'Архив заклинаний Полей сражений',
+  '/library/archive/anomalies': 'Архив аномалий Полей сражений',
+  '/library/archive/quests': 'Архив квестов Полей сражений',
+  '/library/archive/rewards': 'Архив наград Полей сражений',
+  '/library/archive/darkmoon-prizes': 'Архив призов Ярмарки Новолуния',
+  '/library/archive/trinkets': 'Архив аксессуаров Полей сражений',
 };
 
 export type LibrarySearch = Promise<Record<string, string | string[] | undefined>>;

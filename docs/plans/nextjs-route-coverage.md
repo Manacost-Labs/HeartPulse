@@ -63,10 +63,10 @@ gates and real missing-entity responses.
 - `bg-library` — `/library` (Next route staged; Nginx legacy until deployed
   browser verification)
 - `bg-library-archive-root` — `/library/archive` (Next route staged; Nginx legacy)
-- `bg-library-kind` — `/library/:kind` (`minions` and `spells` staged in Next;
-  remaining category values legacy)
-- `bg-library-archive` — `/library/archive/:kind` (`minions` and `spells`
-  staged in Next; remaining archive values legacy)
+- `bg-library-kind` — `/library/:kind` (all nine allowed categories staged in
+  Next; public Nginx owner remains legacy)
+- `bg-library-archive` — `/library/archive/:kind` (all seven allowed archive
+  categories staged in Next; public Nginx owner remains legacy)
 - `bg-library-detail` — `/library/:kind/:slugAndDbfId`
 - `bg-library-additional-detail` —
   `/library/:additionalKind/:slugAndDbfId`

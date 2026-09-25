@@ -29,7 +29,9 @@ test('Next subscribers pages preserve administrator API access without a subscri
       ['/heroes/', '/api/bg/heroes'],
       ['/library/', '/api/bg/library/meta'],
       ['/library/minions/', '/api/bg/library/meta'],
+      ['/library/anomalies/', '/api/bg/library/extra/anomaly'],
       ['/library/archive/spells/', '/api/bg/library/meta'],
+      ['/library/archive/trinkets/', '/api/bg/library/extra/trinket'],
     ]) {
       const page = await context.newPage();
       await page.setCookie({ name, value, url: runtime.origin });
