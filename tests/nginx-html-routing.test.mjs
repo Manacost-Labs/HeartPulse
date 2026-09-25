@@ -493,6 +493,13 @@ for (const route of inventory.routes) {
       'heroes listing errors must be noindex');
     continue;
   }
+  if (['bg-library', 'bg-library-kind', 'bg-library-archive-root', 'bg-library-archive'].includes(route.id)) {
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
+    const listing = firstMatchingRegexLocation(`${path}/`);
+    assert.match(listing?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+      `${route.id} errors must be noindex`);
+    continue;
+  }
   if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/vicious-gold', '/standard/archetypes'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
@@ -512,6 +519,13 @@ for (const route of inventory.routes) {
     continue;
   }
   expectRegexAction(`${path}/`, '@arena_spa_noindex;', `${route.id} canonical route`);
+}
+
+for (const kind of ['minions', 'spells', 'anomalies', 'dark-gifts', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped']) {
+  expectRegexAction(`/library/${kind}/`, 'proxy_pass http://127.0.0.1:4321;', `${kind} library listing`);
+}
+for (const kind of ['minions', 'spells', 'anomalies', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets']) {
+  expectRegexAction(`/library/archive/${kind}/`, 'proxy_pass http://127.0.0.1:4321;', `${kind} archive listing`);
 }
 
 const standardCardsListing = firstMatchingRegexLocation('/standard/cards/standard/');
@@ -783,6 +797,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next heroes</title>',
     }],
+    ...['/library/', '/library/minions/', '/library/archive/', '/library/archive/minions/'].map(path => [path, {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: `<title>Next ${path}</title>`,
+    }]),
     ['/_next/static/test.js', {
       status: 200,
       headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
@@ -873,7 +892,7 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = ['/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1036,11 +1055,7 @@ http {
     assert.equal(materializedRoute.headers['x-robots-tag'], undefined,
       'materialized indexable route must not inherit fallback noindex');
 
-    for (const shellPath of [
-      '/library/minions/',
-      '/library/anomalies/example-76521/',
-      '/library/archive/minions/example-76521/',
-    ]) {
+    for (const shellPath of ['/library/anomalies/example-76521/', '/library/archive/minions/example-76521/']) {
       const shell = await requestNginx(port, shellPath);
       assert.equal(shell.status, 200, `${shellPath} must retain client navigation before its SSR resolver exists`);
       assert.match(shell.body, /<title>SPA<\/title>/, `${shellPath} fallback shell`);
@@ -1067,6 +1082,10 @@ http {
       ['/standard/archetypes/', /Next archetypes/],
       ['/gallery/', /Next gallery/],
       ['/heroes/', /Next heroes/],
+      ['/library/', /Next \/library\//],
+      ['/library/minions/', /Next \/library\/minions\//],
+      ['/library/archive/', /Next \/library\/archive\//],
+      ['/library/archive/minions/', /Next \/library\/archive\/minions\//],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
       const nextResponse = await requestNginx(port, path);
@@ -1085,7 +1104,7 @@ http {
     }
     const guideFilter = await requestNginx(port, '/guides-archive/?q=arena');
     assert.equal(guideFilter.headers['x-robots-tag'], 'noindex, follow');
-    for (const path of ['/guides-archive/guide-1/?fail=1', '/standard/archetypes/standard/tempo-mage/?fail=1']) {
+    for (const path of ['/guides-archive/guide-1/?fail=1', '/standard/archetypes/standard/tempo-mage/?fail=1', '/library/?fail=1', '/library/archive/minions/?fail=1']) {
       const failed = await requestNginx(port, path);
       assert.equal(failed.status, 503);
       assert.equal(failed.headers['x-robots-tag'], 'noindex, nofollow');

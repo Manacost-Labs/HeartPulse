@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (24 inventory entries)
+## Already served by Next.js (28 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -34,21 +34,18 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-meta-legacy-detail` —
   `/standard/meta/:format/:archetypeSlug`
 - `bg-heroes` — `/heroes`
+- `bg-library` — `/library`
+- `bg-library-kind` — `/library/:kind`
+- `bg-library-archive-root` — `/library/archive`
+- `bg-library-archive` — `/library/archive/:kind`
 
-## Battlegrounds and cosmetics data HTML (12)
+## Battlegrounds and cosmetics data HTML (8)
 
 - `cosmetics` — `/cosmetics`
 - `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
 - `bg-hero-detail` — `/heroes/:dbfId` (Next route staged; public identity and
   real 404; Nginx remains on Express until retryable 503 behavior is preserved)
-- `bg-library` — `/library` (Next route staged; Nginx legacy until deployed
-  browser verification)
-- `bg-library-archive-root` — `/library/archive` (Next route staged; Nginx legacy)
-- `bg-library-kind` — `/library/:kind` (all nine allowed categories staged in
-  Next; public Nginx owner remains legacy)
-- `bg-library-archive` — `/library/archive/:kind` (all seven allowed archive
-  categories staged in Next; public Nginx owner remains legacy)
 - `bg-library-detail` — `/library/:kind/:slugAndDbfId` (minion and spell
   details staged in Next; public Nginx owner remains Express)
 - `bg-library-additional-detail` —
