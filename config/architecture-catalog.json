@@ -888,6 +888,24 @@
       ]
     },
     {
+      "name": "frontend-cosmetics",
+      "status": "modular",
+      "owner": "cosmetics-data",
+      "purpose": "Own public cosmetics catalog request and filter contracts shared by renderers.",
+      "paths": ["src/modules/cosmetics"],
+      "publicEntrypoints": ["src/modules/cosmetics/public.ts"],
+      "frontendRoutes": ["/cosmetics", "/cosmetics/:kind"],
+      "backendRoutes": [],
+      "contracts": ["src/modules/cosmetics/public.ts", "docs/specs/cosmetics-library.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/next-cosmetics-listing.test.ts", "tests/next-cosmetics-listings-browser.test.mjs"],
+      "allowedDependencies": [],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
       "name": "frontend-developer-api",
       "status": "modular",
       "owner": "developer-platform",

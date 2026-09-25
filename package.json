@@ -92,7 +92,7 @@
     "test:referral-routes": "tsx tests/referral-routes.test.ts",
     "test:gallery-routes": "tsx tests/gallery-routes.test.ts",
     "test:favicon": "node tests/favicon-assets.test.mjs",
-    "test:cosmetics": "tsx tests/cosmetics-model.test.ts && tsx tests/cosmetics-routes.test.ts && tsx tests/cosmetics-seo-routes.test.ts && tsx tests/cosmetics-ui-contract.test.ts",
+    "test:cosmetics": "tsx tests/cosmetics-model.test.ts && tsx tests/cosmetics-routes.test.ts && tsx tests/cosmetics-seo-routes.test.ts && tsx tests/cosmetics-ui-contract.test.ts && tsx tests/next-cosmetics-listing.test.ts",
     "test:public-resources": "tsx tests/public-resource-routes.test.ts && tsx tests/public-resource-url.test.ts && tsx tests/article-image-src.test.ts && node tests/public-resource-browser-contract.test.mjs",
     "test:cdn-delivery": "tsx tests/public-asset-delivery.test.ts",
     "test:card-image-delivery-config": "tsx tests/card-image-delivery-config.test.ts",

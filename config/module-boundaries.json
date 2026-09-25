@@ -202,6 +202,22 @@
       ]
     },
     {
+      "id": "client.cosmetics",
+      "runtime": "client",
+      "root": "src/modules/cosmetics",
+      "purpose": "Owns public cosmetics catalog request and filter contracts shared by renderers.",
+      "owner": "cosmetics-data",
+      "publicEntry": "src/modules/cosmetics/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:cosmetics"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/cosmetics-library.md"
+      ]
+    },
+    {
       "id": "client.home",
       "runtime": "client",
       "root": "src/modules/home",
@@ -824,6 +840,7 @@
         "client.adminWorkspace",
         "client.articles",
         "client.contests",
+        "client.cosmetics",
         "client.home",
         "client.identity",
         "client.subscriptions"

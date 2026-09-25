@@ -47,8 +47,8 @@ have been checked together. A route count alone is not a completion signal.
 
 ## Battlegrounds and cosmetics data HTML (4)
 
-- `cosmetics` — `/cosmetics`
-- `cosmetics-kind` — `/cosmetics/:kind`
+- `cosmetics` — `/cosmetics` (Next route staged; Nginx remains legacy)
+- `cosmetics-kind` — `/cosmetics/:kind` (Next route staged; Nginx remains legacy)
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
 - `bg-tier-list` — `/battlegrounds/tier-list`
 

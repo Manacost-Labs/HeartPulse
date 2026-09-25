@@ -79,7 +79,8 @@ alone does not close a ledger row.
 
 1. Move `/cosmetics`, `/cosmetics/:kind` and
    `/cosmetics/:kind/:cardId`. Match public data, permissions, images, SEO,
-   filters, 404 and 5xx responses.
+   filters, 404 and 5xx responses. The listing routes are staged in Next.js;
+   detail routes and the public Nginx owner switch remain.
 2. Move `/battlegrounds/tier-list`. Keep public teaser and paid data separate;
    verify source/filter state and empty/error views after refresh.
 3. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.

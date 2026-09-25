@@ -18,6 +18,13 @@ teasers and navigation sections. The Vite route loads this contract while
 the Next home route is being built. Data fetching and authentication stay at
 their current application boundaries until the route cutover.
 
+## Cosmetics catalog
+
+`src/modules/cosmetics/public.ts` owns the public catalog filter and request
+contract used by the legacy React view and staged Next.js listing routes.
+`src/features/Cosmetics.tsx` remains the transitional presentation owner;
+Express still owns `/api/cosmetics/*` and the Next composition owns only HTML.
+
 ## Editorial articles
 
 `src/modules/articles/public.ts` owns the public article listing, filters,

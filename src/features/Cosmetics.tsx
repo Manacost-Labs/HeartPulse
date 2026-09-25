@@ -27,6 +27,7 @@ import {
 import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { cosmeticsCatalogRequest, type CosmeticKind } from '../modules/cosmetics/public';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { cachedCardImage } from './cosmeticsCardImage';
 import {
@@ -34,8 +35,6 @@ import {
   type RelatedCard,
 } from './CosmeticsRelatedCardGallery';
 import './Cosmetics.css';
-
-type CosmeticKind = 'heroes' | 'coins' | 'pets';
 
 export type HeroSummary = {
   cardId: string;
@@ -108,6 +107,7 @@ type PetDetail = PetVariant & {
 type CosmeticsProps = {
   currentPath: string;
   navigatePath: (path: string) => void;
+  initialSearch?: string;
 };
 
 function cosmeticMediaSource(source: string | null | undefined) {
@@ -253,8 +253,8 @@ function useReducedMotion() {
   return useSyncExternalStore(subscribeReducedMotion, getReducedMotionSnapshot, () => false);
 }
 
-function initializeCatalogControls(): CatalogControls {
-  const params = new URLSearchParams(window.location.search);
+function initializeCatalogControls(search: string): CatalogControls {
+  const params = new URLSearchParams(search);
   return {
     filters: {
       q: params.get('search') || '',
@@ -517,32 +517,21 @@ function EmptyState() {
 function CatalogView({
   kind,
   navigatePath,
+  initialSearch,
 }: {
   kind: CosmeticKind;
   navigatePath: (path: string) => void;
+  initialSearch: string;
 }) {
   const [controls, dispatchControls] = useReducer(
     catalogControlsReducer,
-    undefined,
+    initialSearch,
     initializeCatalogControls,
   );
   const { filters, page } = controls;
   const deferredQuery = useDeferredValue(filters.q);
-  const request = useMemo(() => {
-    const params = new URLSearchParams();
-    if (kind === 'heroes') {
-      if (deferredQuery) params.set('search', deferredQuery);
-      if (filters.classSlug) params.set('class', filters.classSlug);
-      if (filters.rarity) params.set('rarity', filters.rarity);
-      if (filters.category) params.set('category', filters.category);
-    }
-    if (page > 1) params.set('page', String(page));
-    const query = params.toString();
-    return {
-      query,
-      url: `/api/cosmetics/${kind}${query ? `?${query}` : ''}`,
-    };
-  }, [kind, deferredQuery, filters.classSlug, filters.rarity, filters.category, page]);
+  const request = useMemo(() => cosmeticsCatalogRequest(kind, deferredQuery, filters, page),
+    [kind, deferredQuery, filters.classSlug, filters.rarity, filters.category, page]);
   const [requestState, setRequestState] = useState<CatalogRequestState>({
     requestUrl: '',
     payload: null,
@@ -925,9 +914,10 @@ function DetailView({
   );
 }
 
-export default function Cosmetics({ currentPath, navigatePath }: CosmeticsProps) {
+export default function Cosmetics({ currentPath, navigatePath, initialSearch }: CosmeticsProps) {
   const route = routeState(currentPath);
   const meta = KIND_META[route.kind];
+  const search = initialSearch ?? (typeof window === 'undefined' ? '' : window.location.search);
   return (
     <div className="route-parchment-page cosmetics-page">
       {!route.cardId && (
@@ -941,7 +931,7 @@ export default function Cosmetics({ currentPath, navigatePath }: CosmeticsProps)
       <section className="cosmetics-surface" aria-label="Каталог косметики Hearthstone">
         {route.cardId
           ? <DetailView kind={route.kind} cardId={route.cardId} navigatePath={navigatePath} />
-          : <CatalogView key={route.kind} kind={route.kind} navigatePath={navigatePath} />}
+          : <CatalogView key={route.kind} kind={route.kind} navigatePath={navigatePath} initialSearch={search} />}
       </section>
     </div>
   );

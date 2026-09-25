@@ -57,7 +57,14 @@ test('static public pages roll out independently of cards', () => {
     assert.equal(publicWebOwner(`/${page}/`, false, 'POST', true), 'legacy');
   }
   assert.equal(publicWebOwner('/standard/cards/', false, 'GET', true), 'legacy');
+  assert.equal(publicWebOwner('/fonts/google/inter-cyrillic.woff2', false, 'GET', true), 'legacy');
   assert.equal(publicWebOwner('/heroes/123/', false, 'GET', true), 'next');
+  for (const path of ['/cosmetics/', '/cosmetics/heroes/', '/cosmetics/coins/',
+    '/cosmetics/pets/', '/cosmetics/unknown/']) {
+    assert.equal(publicWebOwner(path, false, 'GET', true), 'next', path);
+    assert.equal(publicWebOwner(path, false, 'POST', true), 'legacy', path);
+  }
+  assert.equal(publicWebOwner('/cosmetics/heroes/TEST_CARD/', false, 'GET', true), 'legacy');
   for (const path of ['/library/minions/', '/library/spells/', '/library/anomalies/',
     '/library/dark-gifts/', '/library/quests/', '/library/rewards/',
     '/library/darkmoon-prizes/', '/library/trinkets/', '/library/timewarped/',
