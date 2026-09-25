@@ -1,10 +1,10 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-25. Thirty-five of the 47 inventory
+Status: execution in progress, 2026-09-25. Thirty-eight of the 47 inventory
 entries are served by Next.js, including public/editorial pages, Arena and
 constructed catalogs, the guide archive, archetype details and the Battlegrounds
 hero catalog, library listings, hero details, all supported library card details
-and the cosmetics catalog and details.
+and the cosmetics catalog and details, plus both Battleground builders.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
