@@ -11,6 +11,10 @@ legacy frontend.
 
 ## Stage the runtime
 
+Until the Vite retirement step, Storybook relies on Vite's automatic
+`public/` asset serving and copying. Do not add that directory to Storybook
+`staticDirs`: copying it twice can race and fail the release validation build.
+
 From a clean reviewed `main` checkout, install the service before publishing
 the first release containing `apps/public-web/.next`:
 

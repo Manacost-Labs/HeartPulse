@@ -15,7 +15,7 @@ const config: StorybookConfig = {
     },
   ],
   framework: '@storybook/react-vite',
-  staticDirs: ['../public'],
+  // Vite already serves and copies public/; a second copy can race during builds.
   docs: {
     autodocs: 'tag',
   },

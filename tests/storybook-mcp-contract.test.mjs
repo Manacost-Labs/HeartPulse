@@ -48,7 +48,7 @@ test('Storybook uses the React Vite framework and official MCP addon', () => {
   assert.match(main, /['"]@storybook\/addon-docs['"]/);
   assert.match(main, /['"]@storybook\/addon-a11y['"]/);
   assert.match(main, /['"]@storybook\/addon-mcp['"]/);
-  assert.match(main, /staticDirs:\s*\[['"]\.\.\/public['"]\]/);
+  assert.doesNotMatch(main, /staticDirs:/, 'Vite already serves and copies public/ for Storybook');
   assert.match(main, /test:\s*false/);
   assert.match(preview, /import ['"]\.\.\/src\/index\.css['"]/);
 });
