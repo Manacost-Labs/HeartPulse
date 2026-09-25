@@ -171,10 +171,10 @@ Progress (2026-09-25): `/standard/matchups/` has a Next route with an
 anonymous teaser, a subscription-gated controlled view and an account-scoped
 client cache. After direct-port and browser checks on the deployed release,
 Nginx serves the page from Next.js.
-`/standard/meta/` also has a staged Next route. It serves a public teaser,
-loads full statistics only after entitlement verification, and clears full
-data when the API revokes access. Its Nginx owner remains legacy pending
-direct-port and browser checks.
+`/standard/meta/` also serves a public teaser from Next.js, loads full
+statistics only after entitlement verification, and clears full data when the
+API revokes access. Its Nginx owner switched after direct-port and browser
+checks on the deployed release.
 
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed
 (`/standard/matchups/`, `/standard/meta/`, `/standard/archetypes/`,

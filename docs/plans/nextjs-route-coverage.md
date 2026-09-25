@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (15 inventory entries)
+## Already served by Next.js (16 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -23,9 +23,6 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-cards-format` — `/standard/cards/:format`
 - `standard-card-detail` — `/standard/cards/:format/:cardId`
 - `standard-matchups` — `/standard/matchups`
-
-## Next route built; Nginx cutover pending (1 inventory entry)
-
 - `standard-meta` — `/standard/meta`
 
 ## Public and editorial HTML (2)
