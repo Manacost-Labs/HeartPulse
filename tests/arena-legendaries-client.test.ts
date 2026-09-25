@@ -32,7 +32,7 @@ assert.equal((await client.load('user-1', 'hsreplay', { onCache: () => { cacheSh
 assert.equal(cacheShown, true);
 assert.equal((calls.at(-1)?.options?.headers as Record<string, string>)['If-None-Match'], '"one"');
 response = () => Promise.resolve(new Response(null, { status: 403 }));
-assert.equal((await load()).status, 'error');
+assert.equal((await load()).status, 'denied');
 assert.equal(entries.size, 0, 'access denial clears protected cache');
 response = () => Promise.resolve(Response.json({ ...dataset, source: 'initial' }));
 assert.equal((await load()).status, 'error', 'synthetic state is rejected');

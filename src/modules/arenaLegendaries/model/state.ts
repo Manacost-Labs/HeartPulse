@@ -1,7 +1,7 @@
 import type { LegendariesData } from './types';
 
 export type ArenaLegendariesState = {
-  status: 'ready' | 'empty' | 'stale' | 'error';
+  status: 'ready' | 'empty' | 'stale' | 'error' | 'denied';
   data: LegendariesData | null;
 };
 

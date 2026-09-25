@@ -43,7 +43,7 @@ assert.equal(offline.data?.warning, 'stale');
 assert.equal((await load('other-user')).status, 'error', 'a different account cannot see cached subscriber data');
 assert.equal((await load('user-1', 'firestone')).status, 'error', 'sources have separate caches');
 response = () => Promise.resolve(new Response(null, { status: 403 }));
-assert.equal((await load()).status, 'error');
+assert.equal((await load()).status, 'denied');
 assert.equal(entries.size, 0, 'access revocation clears protected cache');
 response = () => Promise.resolve(Response.json({ ...dataset, source: 'initial' }));
 assert.equal((await load()).status, 'error', 'synthetic data must not enter the cache');

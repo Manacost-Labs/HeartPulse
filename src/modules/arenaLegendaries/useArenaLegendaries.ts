@@ -56,6 +56,6 @@ export function useArenaLegendaries(accountId: string | undefined, enabled: bool
   return { source, state, changeSource, retry,
     loading: state.status === 'loading' && !state.data,
     switching: state.status === 'loading' && Boolean(state.data),
-    error: state.status === 'error',
+    error: state.status === 'error' || state.status === 'denied',
   };
 }

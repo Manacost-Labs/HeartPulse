@@ -1,7 +1,7 @@
 import { TIERLIST_SOURCES, type TierlistData, type TierlistSource } from './types';
 
 export type ArenaTierListState = {
-  status: 'ready' | 'empty' | 'stale' | 'error';
+  status: 'ready' | 'empty' | 'stale' | 'error' | 'denied';
   data: TierlistData | null;
 };
 

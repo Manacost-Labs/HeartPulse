@@ -56,6 +56,6 @@ export function useArenaTierList(accountId: string | undefined, enabled: boolean
   return { source, state, changeSource, retry,
     loading: state.status === 'loading' && !state.data,
     switching: state.status === 'loading' && Boolean(state.data),
-    error: state.status === 'error',
+    error: state.status === 'error' || state.status === 'denied',
   };
 }
