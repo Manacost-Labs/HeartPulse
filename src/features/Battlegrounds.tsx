@@ -2435,7 +2435,10 @@ function BattlegroundHeroTopCompositions({ rows }: { rows: any[] }) {
   );
 }
 
-function bgHeroDetailPortrait(libraryHero: any, dbfId: string): string {
+function bgHeroDetailPortrait(
+  libraryHero: { card_id?: unknown; images?: { hero?: unknown } } | null | undefined,
+  dbfId: string,
+): string {
   return preferredBattlegroundHeroImage({
     cardId: libraryHero?.card_id,
     dbfId,
