@@ -89,11 +89,11 @@ status, location and robots headers remain in regression checks.
 
 ## HTML surfaces outside the 47-entry inventory
 
-- `/deck-builder/` and `/archetypes/` are separate admin tools with explicit
-  Nginx document and slash-redirect rules. Migrate each to an App Router page
-  with `noindex` and authenticated browser checks.
-  The `/deck-builder/` App Router page is built and browser-tested but stays
-  open here until its exact edge rule serves Next in production.
+- `/deck-builder/` is a separate admin tool with an exact Next-owned Nginx
+  document rule, full-administrator permission check and `noindex`/`no-store`.
+- `/archetypes/` is a separate admin tool with explicit Nginx document and
+  slash-redirect rules. Migrate it to an App Router page with `noindex` and
+  authenticated browser checks.
 - `/admin/` is already counted above, but its exact Nginx rule and internal
   operations tabs need separate permission and direct-load checks.
 - `/?login` is a login overlay state, not another path. The Next-owned home

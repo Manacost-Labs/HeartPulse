@@ -402,8 +402,14 @@ for (const location of [deckBuilderRedirect, deckBuilderDocument]) {
 }
 assert.match(deckBuilderRedirect?.body || '', /return\s+301\s+\/deck-builder\/\$is_args\$args;/,
   'deck-builder slash normalization must preserve the query string in one redirect');
-assert.match(deckBuilderDocument?.body || '', /try_files\s+\/deck-builder\/index\.html\s+\/index\.html\s+=404;/,
-  'canonical deck-builder route must serve its prerendered document');
+assert.match(deckBuilderDocument?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:4321;/,
+  'canonical deck-builder route must use Next');
+assert.match(deckBuilderDocument?.body || '', /proxy_set_header\s+Cookie\s+\$http_cookie;/,
+  'canonical deck-builder route must forward the administrator session');
+assert.match(deckBuilderDocument?.body || '', /Cache-Control\s+"no-cache, no-store, must-revalidate"\s+always;/,
+  'deck-builder HTML must never be cached');
+assert.match(deckBuilderDocument?.body || '', /proxy_intercept_errors\s+off;/,
+  'deck-builder errors must preserve their upstream status');
 
 const authQueryPolicy = inventory.queryPolicies.find(policy => policy.id === 'auth-state');
 const adminQueryPolicy = inventory.queryPolicies.find(policy => policy.id === 'admin-state');
@@ -677,6 +683,11 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next admin</title><p>next-admin-guard</p>',
+    }],
+    ['/deck-builder/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next deck builder</title><p>next-deck-builder-guard</p>',
     }],
     ['/404.html', {
       status: 404,
@@ -1078,7 +1089,7 @@ async function startCardSeoUpstream() {
     const pathname = incomingUrl.pathname;
     const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
       ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
-      : ['/', '/admin/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      : ['/', '/admin/', '/deck-builder/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1092,7 +1103,9 @@ async function startCardSeoUpstream() {
         'X-Upstream-Edge-Region': String(incomingRequest.headers['x-arena-edge-region'] || ''),
       } : {}),
       ...fixture.headers,
-      ...(pathname === '/admin/' ? { 'X-Fixture-Cookie-Forwarded': incomingRequest.headers.cookie === 'session=local' ? 'yes' : 'no' } : {}),
+      ...(['/admin/', '/deck-builder/'].includes(pathname)
+        ? { 'X-Fixture-Cookie-Forwarded': incomingRequest.headers.cookie === 'session=local' ? 'yes' : 'no' }
+        : {}),
     });
     response.end(fixture.body);
   });
@@ -1469,12 +1482,22 @@ http {
     assert.equal(failedAdmin.headers['x-robots-tag'], 'noindex, nofollow', 'admin error robots');
     assert.match(failedAdmin.headers['cache-control'] || '', /no-store/, 'admin error cache');
 
-    const deckBuilderRedirectResponse = await requestNginx(port, '/deck-builder');
+    const deckBuilderRedirectResponse = await requestNginx(port, '/deck-builder?code=AAECA123');
     assert.equal(deckBuilderRedirectResponse.status, 301, 'deck-builder slash redirect');
     assert.equal(deckBuilderRedirectResponse.headers['x-robots-tag'], 'noindex, nofollow', 'deck-builder redirect robots');
-    const deckBuilderResponse = await requestNginx(port, '/deck-builder/');
+    const deckBuilderRedirectUrl = new URL(deckBuilderRedirectResponse.headers.location);
+    assert.equal(`${deckBuilderRedirectUrl.pathname}${deckBuilderRedirectUrl.search}`, '/deck-builder/?code=AAECA123',
+      'deck-builder slash redirect must preserve an imported code');
+    const deckBuilderResponse = await requestNginx(port, '/deck-builder/', 'GET', { Cookie: 'session=local' });
     assert.equal(deckBuilderResponse.status, 200, 'deck-builder document');
     assert.equal(deckBuilderResponse.headers['x-robots-tag'], 'noindex, nofollow', 'deck-builder document robots');
+    assert.match(deckBuilderResponse.headers['cache-control'] || '', /no-store/, 'deck-builder document cache');
+    assert.match(deckBuilderResponse.body, /next-deck-builder-guard/, 'deck-builder document owner');
+    assert.equal(deckBuilderResponse.headers['x-fixture-cookie-forwarded'], 'yes', 'deck-builder session cookie');
+    const failedDeckBuilder = await requestNginx(port, '/deck-builder/?fail=1');
+    assert.equal(failedDeckBuilder.status, 503, 'deck-builder upstream errors retain status');
+    assert.equal(failedDeckBuilder.headers['x-robots-tag'], 'noindex, nofollow', 'deck-builder error robots');
+    assert.match(failedDeckBuilder.headers['cache-control'] || '', /no-store/, 'deck-builder error cache');
 
     for (const encodedProfilePath of ['/id/%31', '/id/%31/']) {
       const encodedProfile = await requestNginx(port, encodedProfilePath);

@@ -94,11 +94,13 @@ loading the workspace. Keep the document and errors `noindex, nofollow` and
 `no-store`, and leave `/api/admin/` on Express. Check guest, administrator,
 blocked-account and mobile-menu states before opening the route. If it fails,
 restore the saved Nginx route snippet and reload after `nginx -t`.
-The `/deck-builder/` Next route is staged behind the full-administrator
-session check; its exact Nginx rule still serves the legacy shell. Before
-switching, verify guest, contest-only, full-admin and blocked sessions,
-draft persistence, code import, both formats, desktop and mobile layout.
-Keep `/api/admin/deck-builder/` on Express and retain `no-store`/noindex.
+The `/deck-builder/` document uses Next behind the full-administrator session
+check, while `/deck-builder` retains its query-preserving 301. The browser
+rechecks access before importing the editor. Keep `/api/admin/deck-builder/`
+on Express and retain `no-store`/noindex for successful and failed HTML.
+Verify guest, contest-only, full-admin and blocked sessions, draft persistence,
+code import, both formats, desktop and mobile layout. Restore the saved route
+snippet if the owner switch fails.
 Unknown HTML errors use the global Next 404 shell through Nginx's internal
 `/404.html` handler. The handler preserves HTTP 404 and noindex, and passes a
 Next outage through as 503 instead of pretending that the page is missing.
