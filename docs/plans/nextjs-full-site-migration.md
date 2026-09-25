@@ -1,8 +1,10 @@
 # Full-site Next.js migration and Vite retirement
 
-Status: execution in progress, 2026-09-24. Cards, FAQ, privacy, terms,
-gallery, developer API documentation, articles, contests and home are live on
-Next.js. The remaining route checklist is the
+Status: execution in progress, 2026-09-25. Twenty-three of the 47 inventory
+entries are served by Next.js, including public/editorial pages, Arena and
+constructed catalogs, the guide archive and archetype details. Battlegrounds
+heroes and library pages are staged behind the existing public route owner.
+The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
 `../runbooks/nextjs-production-cutover.md`.
@@ -28,9 +30,10 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 - `apps/public-web/app` contains Next routes for the card catalog and detail,
   gallery, FAQ, privacy and terms. Production Nginx sends these seven
   inventory patterns and `/_next/` to the Next service on port 4321.
-- `npm run agent:context -- root` reports 47 public route patterns: seven live
-  on Next, 36 other active HTML patterns and four redirect/removed/fallback
-  contracts. The [coverage ledger](nextjs-route-coverage.md) names every one.
+- At the 2026-09-24 baseline, `npm run agent:context -- root` reported 47
+  public route patterns: seven live on Next, 36 other active HTML patterns and
+  four redirect/removed/fallback contracts. The
+  [coverage ledger](nextjs-route-coverage.md) tracks their current owners.
   Nginx also has explicit `/deck-builder/` and `/archetypes/` pages outside
   that inventory; `/admin/` is listed but has a separate exact edge rule.
 - `src/app/routing/routeManifest.ts` and `src/shared/seo/publicRouteInventory.json`

@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (19 inventory entries)
+## Already served by Next.js (23 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -27,29 +27,12 @@ have been checked together. A route count alone is not a completion signal.
 - `fun-decks` — `/standard/fun-decks`
 - `standard-vicious-gold` — `/standard/vicious-gold`
 - `constructed-archetypes` — `/standard/archetypes`
-
-## Public and editorial HTML (2)
-
-- `guides-archive` — `/guides-archive` (Next owns public HTML after deployed
-  browser verification; subscription gate remains)
-- `guides-archive-detail` — `/guides-archive/:guideSlug` (Next owns public
-  teaser and gate after deployed browser verification)
-
-Migrate the ungated pages first. The guide archive and each valid guide slug
-need a request-scoped entitlement decision, a public teaser and authoritative
-404 behavior before their Nginx owner changes.
-
-## Constructed data HTML (2)
-
+- `guides-archive` — `/guides-archive`
+- `guides-archive-detail` — `/guides-archive/:guideSlug`
 - `constructed-archetype-detail` —
-  `/standard/archetypes/:format/:archetypeSlug` (Next owns public HTML after
-  deployed browser verification)
+  `/standard/archetypes/:format/:archetypeSlug`
 - `standard-meta-legacy-detail` —
-  `/standard/meta/:format/:archetypeSlug` (Next owns public HTML after deployed
-  browser verification)
-
-Preserve legacy detail URLs, format validation, query filters, entitlement
-gates and real missing-entity responses.
+  `/standard/meta/:format/:archetypeSlug`
 
 ## Battlegrounds and cosmetics data HTML (13)
 
