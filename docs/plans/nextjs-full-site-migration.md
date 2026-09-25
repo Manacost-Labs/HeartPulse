@@ -184,6 +184,10 @@ Both archetype detail URL families are staged in Next.js using anonymous
 teaser data for server HTML, request-time 404 checks and account-scoped full
 data after hydration. Their public Nginx owner remains legacy until deployed
 browser verification.
+The guides archive listing is staged separately in Next.js. Its public title
+and description render without a session; the existing protected list API is
+called only after a guides-archive entitlement or administrator role is
+verified. Its public Nginx owner remains legacy until deployed browser checks.
 It preserves the current public dataset API and client-side three-deck preview.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or
