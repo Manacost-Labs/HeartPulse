@@ -177,10 +177,10 @@ API revokes access. Its Nginx owner switched after direct-port and browser
 checks on the deployed release.
 `/standard/fun-decks/` also uses Next.js after direct-port and browser checks.
 It preserves the current public dataset API and client-side three-deck preview.
-`/standard/vicious-gold/` has a staged Next route with a public description.
-Its protected summary and builds requests begin only after standard entitlement
-or administrator access is verified. Nginx remains on legacy until the Next
-release passes direct-port and browser checks.
+`/standard/vicious-gold/` serves a public description from Next.js. Its
+protected summary and builds requests begin only after standard entitlement or
+administrator access is verified. Nginx switched after direct-port and browser
+checks on the deployed release.
 
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed
 (`/standard/matchups/`, `/standard/meta/`, `/standard/archetypes/`,

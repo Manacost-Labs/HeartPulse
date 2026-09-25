@@ -19,10 +19,11 @@ wording and does not cover an individual archetype page.
 - Show an honest inline loading or unavailable state for build actions; retain
   copy and deck composition behavior after enrichment.
 - Preserve subscription checks and `Cache-Control: no-store` on both API responses.
-- The staged Next.js HTML route renders a public description without protected
+- The Next.js HTML route renders a public description without protected
   statistics. Its client mounts the existing statistics view only after the
   `standard` entitlement or administrator access is verified; account changes
-  remount the view. Both protected APIs remain on Express.
+  remount the view. Its public Nginx owner is Next.js; both protected APIs
+  remain on Express.
 - Refresh the catalog tour with page-specific controls and add a distinct tour
   for archetype detail pages, including the teaser/paywall variant.
 - Tours remain concise, keyboard accessible, mobile-safe and manually

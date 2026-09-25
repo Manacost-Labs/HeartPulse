@@ -132,7 +132,7 @@ jobs:
         shell: bash
         run: |
           artifact="$RUNNER_TEMP/hs-arena-release-$GITHUB_SHA"
-          sudo /usr/local/sbin/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=eb1231ecdfadda5a882700447cc2a669bd1e3dce3aeb72a3bf27a245e942e416 "$artifact" "$GITHUB_SHA"
+          sudo /usr/local/sbin/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=9605cd6bce9a7d2c61960360f1a79032aff6a5e6f0323a7b5876707e0eeb1745 "$artifact" "$GITHUB_SHA"
 
       - name: Verify exact release availability
         env:

@@ -485,7 +485,7 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/vicious-gold'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -731,6 +731,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next fun decks</title>',
     }],
+    ['/standard/vicious-gold/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next Vicious Gold</title>',
+    }],
     ['/gallery/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -826,7 +831,7 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/', '/articles/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = ['/', '/articles/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1015,6 +1020,7 @@ http {
       ['/standard/matchups/', /Next matchups/],
       ['/standard/meta/', /Next meta/],
       ['/standard/fun-decks/', /Next fun decks/],
+      ['/standard/vicious-gold/', /Next Vicious Gold/],
       ['/gallery/', /Next gallery/],
       ['/_next/static/test.js', /nextRuntime/],
     ]) {
@@ -1067,6 +1073,9 @@ http {
     const failedFunDecks = await requestNginx(port, '/standard/fun-decks/?fail=1');
     assert.equal(failedFunDecks.status, 503, 'Fun decks upstream errors must retain their status');
     assert.equal(failedFunDecks.headers['x-robots-tag'], 'noindex, nofollow', 'Fun decks errors must not be indexed');
+    const failedGold = await requestNginx(port, '/standard/vicious-gold/?fail=1');
+    assert.equal(failedGold.status, 503, 'Vicious Gold upstream errors must retain their status');
+    assert.equal(failedGold.headers['x-robots-tag'], 'noindex, nofollow', 'Vicious Gold errors must not be indexed');
 
     const adminRedirectResponse = await requestNginx(port, '/admin');
     assert.equal(adminRedirectResponse.status, 301, 'admin slash redirect');
@@ -1278,6 +1287,7 @@ http {
       { path: '/standard/matchups', status: 301 },
       { path: '/standard/meta', status: 301 },
       { path: '/standard/fun-decks', status: 301 },
+      { path: '/standard/vicious-gold', status: 301 },
       { path: '/heroes/76521/', status: 200, robots: 'index, follow, max-image-preview:large' },
       { path: '/heroes/999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/heroes/888888/', status: 503, robots: 'noindex, nofollow' },
