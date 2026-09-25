@@ -167,6 +167,11 @@ now has a Next route with the same anonymous teaser and an account-scoped
 client data loader. After deployed direct-port and browser checks, public Nginx
 serves it from Next.js.
 
+Progress (2026-09-25): `/standard/matchups/` has a staged Next route with an
+anonymous teaser, a subscription-gated controlled view and an account-scoped
+client cache. The production Nginx owner remains legacy until the Next release
+passes direct-port and browser checks.
+
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed
 (`/standard/matchups/`, `/standard/meta/`, `/standard/archetypes/`,
 `/standard/vicious-gold/`, `/standard/fun-decks/`) and Battlegrounds

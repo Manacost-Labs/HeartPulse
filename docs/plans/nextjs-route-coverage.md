@@ -23,6 +23,10 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-cards-format` — `/standard/cards/:format`
 - `standard-card-detail` — `/standard/cards/:format/:cardId`
 
+## Next route built; Nginx cutover pending (1 inventory entry)
+
+- `standard-matchups` — `/standard/matchups`
+
 ## Public and editorial HTML (2)
 
 - `guides-archive` — `/guides-archive` (subscription gate)
@@ -32,9 +36,8 @@ Migrate the ungated pages first. The guide archive and each valid guide slug
 need a request-scoped entitlement decision, a public teaser and authoritative
 404 behavior before their Nginx owner changes.
 
-## Constructed data HTML (7)
+## Constructed data HTML (6)
 
-- `standard-matchups` — `/standard/matchups`
 - `standard-meta` — `/standard/meta`
 - `fun-decks` — `/standard/fun-decks`
 - `constructed-archetypes` — `/standard/archetypes`
