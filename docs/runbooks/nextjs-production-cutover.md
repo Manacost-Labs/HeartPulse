@@ -84,7 +84,9 @@ to Next, while Express remains the public projection and paid-data authority.
 Their rules hide upstream `X-Robots-Tag` before setting one edge error header;
 this avoids duplicate headers on retryable 503 pages. For these details,
 sample a live ID, missing ID and canonical redirect. The focused fixture
-test covers upstream 503, `Retry-After`, HEAD and no-store.
+test covers upstream 503, `Retry-After`, HEAD and no-store. Include a long
+Cyrillic slug from the live minion sitemap in direct-port and public checks;
+URL encoding must not make a valid card look missing.
 Other HTML and API routes remain on Express/Vite.
 Verify the canonical public host on desktop and mobile: both card catalogs,
 a card detail sampled from the live sitemap, a confirmed unknown card (404

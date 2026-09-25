@@ -23,6 +23,11 @@ test('Next Battleground card detail keeps public identity and real missing-card 
     const pathname = new URL(request.url, 'http://fixture').pathname;
     response.setHeader('Content-Type', 'application/json');
     if (pathname === '/api/bg/library/public/minion/98582') { response.end(JSON.stringify(card)); return; }
+    if (pathname === '/api/bg/library/public/minion/100026') {
+      response.end(JSON.stringify({ card: { ...card.card, dbfId: 100026,
+        nameRu: 'Электрический синтезатор' },
+      canonicalPath: '/library/minions/электрический-синтезатор-100026/' })); return;
+    }
     if (pathname === '/api/bg/library/public/minion/98583') {
       response.end(JSON.stringify({ card: { ...card.card, dbfId: 98583, textRu: 'А'.repeat(7000) },
         canonicalPath: '/library/minions/long-98583/' })); return;
@@ -99,6 +104,9 @@ test('Next Battleground card detail keeps public identity and real missing-card 
     const redirect = await fetch(`${origin}/library/minions/wrong-98582/?utm_source=qa`, { redirect: 'manual' });
     assert.equal(redirect.status, 308);
     assert.equal(redirect.headers.get('location'), encodeURI('/library/minions/баюбот-98582/') + '?utm_source=qa');
+    const cyrillic = await fetch(`${origin}/library/minions/электрический-синтезатор-100026/`);
+    assert.equal(cyrillic.status, 200, 'long Cyrillic canonical slugs stay reachable');
+    assert.match(await cyrillic.text(), /Электрический синтезатор/);
     const outage = await fetch(`${origin}/library/minions/outage-888888/`, { redirect: 'manual' });
     assert.equal(outage.status, 503);
     assert.equal(outage.headers.get('retry-after'), '120');

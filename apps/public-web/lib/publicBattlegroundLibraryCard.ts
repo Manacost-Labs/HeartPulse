@@ -8,8 +8,11 @@ import { decodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
 /** Loads an anonymous card projection without forwarding a browser session. */
 export const loadPublicBattlegroundLibraryCard = cache(async (kind: string, slugAndDbfId: string) => {
   if (kind !== 'minions' && kind !== 'spells') return null;
-  if (slugAndDbfId.length > 180) return null;
-  const match = slugAndDbfId.match(/^(.+)-([1-9][0-9]*)$/u);
+  if (slugAndDbfId.length > 600) return null;
+  let decodedSlugAndDbfId: string;
+  try { decodedSlugAndDbfId = decodeURIComponent(slugAndDbfId); } catch { return null; }
+  if (decodedSlugAndDbfId.length > 180) return null;
+  const match = decodedSlugAndDbfId.match(/^(.+)-([1-9][0-9]*)$/u);
   if (!match || match[1].length > 80 || !Number.isSafeInteger(Number(match[2]))) return null;
   const projection = (await headers()).get(PUBLIC_BG_PROJECTION_HEADER);
   if (projection === MISSING_PUBLIC_BG_PROJECTION) return null;
