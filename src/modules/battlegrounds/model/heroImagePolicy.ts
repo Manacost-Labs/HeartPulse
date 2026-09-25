@@ -1,5 +1,9 @@
 const HERO_IMAGE_CACHE_VERSION = 'bg-heroes-20260806b';
 const BATTLEGROUND_IMAGE_ORIGIN = 'https://api.kolodahearthstone.com';
+const HERO_CARD_ID_BY_DBF_ID: Record<number, string> = {
+  134502: 'BG36_HERO_000', // Drest'agath
+  134504: 'BG36_HERO_002', // Kith'ix
+};
 
 export function battlegroundHeroCardImage(cardId: unknown): string {
   const normalized = String(cardId || '').trim();
@@ -9,6 +13,7 @@ export function battlegroundHeroCardImage(cardId: unknown): string {
 
 type BattlegroundHeroImageCandidates = {
   cardId?: unknown;
+  dbfId?: unknown;
   apiImage?: unknown;
   apiNestedImage?: unknown;
   legacyImage?: unknown;
@@ -76,6 +81,7 @@ export function preferredBattlegroundGoldenBuddyImage(
  */
 export function preferredBattlegroundHeroImage({
   cardId,
+  dbfId,
   apiImage,
   apiNestedImage,
   legacyImage,
@@ -87,5 +93,6 @@ export function preferredBattlegroundHeroImage({
     || imageUrl(libraryImage)
     || imageUrl(legacyImage)
     || battlegroundHeroCardImage(cardId)
+    || battlegroundHeroCardImage(HERO_CARD_ID_BY_DBF_ID[Number(dbfId)])
     || fallback;
 }

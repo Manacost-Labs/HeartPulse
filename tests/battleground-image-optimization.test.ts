@@ -76,6 +76,14 @@ assert.equal(
   'new heroes must retain the dedicated hero portrait supplied by the statistics API',
 );
 
+for (const [dbfId, cardId] of [[134502, 'BG36_HERO_000'], [134504, 'BG36_HERO_002']] as const) {
+  assert.equal(
+    preferredBattlegroundHeroImage({ dbfId, fallback: '/arena-logo-icon.webp' }),
+    `/api/card-image/${cardId}/full.webp?v=bg-heroes-20260806b`,
+    `new hero ${dbfId} must show its portrait even before the library feed includes it`,
+  );
+}
+
 assert.equal(
   preferredBattlegroundHeroImage({
     cardId: 'TB_BaconShop_HERO_17',

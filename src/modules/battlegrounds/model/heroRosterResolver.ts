@@ -101,6 +101,7 @@ function normalizeCurrentHeroTiers(
     const libraryImages = record(libraryHero?.images);
     const image = publicResourceUrl(preferredBattlegroundHeroImage({
       cardId,
+      dbfId,
       apiImage: hero.image,
       apiNestedImage: heroImages.hero,
       libraryImage: libraryImages.hero,

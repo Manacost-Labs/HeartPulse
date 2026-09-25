@@ -417,6 +417,7 @@ function groupBgHeroesFromApi(
       averagePlace: hero?.avg_placement ? String(hero.avg_placement).replace('.', ',') : undefined,
       image: preferredBattlegroundHeroImage({
         cardId: libraryHero?.card_id,
+        dbfId,
         apiImage: hero?.image,
         apiNestedImage: hero?.images?.hero,
         legacyImage: bgHeroImageFromMap(dbfId, imageByDbfId),
@@ -513,7 +514,7 @@ function bgScheduleHeroPrefetch(
   };
 }
 
-function bgHeroLibraryForDetail(libraryHero: any): any {
+function bgHeroLibraryForDetail(libraryHero: any, dbfId: number): any {
   const skinGroups = Array.isArray(libraryHero?.wiki?.hero_skins) ? libraryHero.wiki.hero_skins : [];
   const skins = skinGroups.flatMap((group: any) => Array.isArray(group?.cards) ? group.cards : [])
     .flatMap((skin: any) => {
@@ -529,7 +530,12 @@ function bgHeroLibraryForDetail(libraryHero: any): any {
   const buddyCard = libraryHero?.buddy?.card;
   const goldenBuddy = libraryHero?.buddy?.golden || buddyCard?.golden || null;
   const goldenBuddyImage = preferredBattlegroundGoldenBuddyImage(buddyCard, goldenBuddy);
-  const heroImage = battlegroundHeroCardImage(libraryHero?.card_id) || libraryHero?.images?.hero || BG_FALLBACK_ICON;
+  const heroImage = battlegroundHeroCardImage(libraryHero?.card_id) || preferredBattlegroundHeroImage({
+    cardId: libraryHero?.card_id,
+    dbfId,
+    libraryImage: libraryHero?.images?.hero,
+    fallback: BG_FALLBACK_ICON,
+  });
   return {
     ...libraryHero,
     images: {
@@ -561,8 +567,7 @@ function bgHeroLibraryForDetail(libraryHero: any): any {
 
 async function bgHeroDetailFallback(dbfId: string): Promise<BattlegroundHeroDetailPayload> {
   const libraryByDbfId = await bgLoadHeroLibrary();
-  const libraryHeroRaw = libraryByDbfId.get(Number(dbfId));
-  if (!libraryHeroRaw) throw new Error('Герой не найден в русской библиотеке');
+  const libraryHeroRaw = libraryByDbfId.get(Number(dbfId)) || {};
 
   const cardId = String(libraryHeroRaw?.card_id || '');
   const mode: BattlegroundHeroMode = cardId.startsWith('BGDUO_') ? 'duos' : 'solo';
@@ -597,7 +602,7 @@ async function bgHeroDetailFallback(dbfId: string): Promise<BattlegroundHeroDeta
       tavern_up: [],
       hero_power: [],
     },
-    libraryHero: bgHeroLibraryForDetail(libraryHeroRaw),
+    libraryHero: bgHeroLibraryForDetail(libraryHeroRaw, Number(dbfId)),
     cards: {},
     fetched_at: payload?.fetched_at || '',
   };
@@ -2482,7 +2487,12 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
     if (!hero) return;
     const libraryHero = payload?.libraryHero || {};
     const heroName = libraryHero?.name?.ru || hero.hero || 'Герой';
-    const heroImage = libraryHero?.images?.hero || bgHeroImageFromMap(hero.dbfId, {}) || BG_FALLBACK_ICON;
+    const heroImage = preferredBattlegroundHeroImage({
+      cardId: libraryHero?.card_id,
+      dbfId,
+      libraryImage: libraryHero?.images?.hero === BG_FALLBACK_ICON ? '' : libraryHero?.images?.hero,
+      fallback: BG_FALLBACK_ICON,
+    });
     const heroPower = libraryHero?.hero_power?.card;
     const heroPowerName = heroPower?.name?.ru || heroPower?.name_ru || '';
     const rawDescription = heroPower?.text?.ru || heroPower?.text_ru || libraryHero?.character?.description || '';
@@ -2516,8 +2526,15 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
   const libraryHero = payload.libraryHero || {};
   const cards = payload.cards || {};
   const heroName = libraryHero?.name?.ru || hero.hero || 'Герой';
-  const heroImage = libraryHero?.images?.hero || bgHeroImageFromMap(hero.dbfId, {}) || BG_FALLBACK_ICON;
-  const fullArt = libraryHero?.images?.full_art || heroImage;
+  const heroImage = preferredBattlegroundHeroImage({
+    cardId: libraryHero?.card_id,
+    dbfId,
+    libraryImage: libraryHero?.images?.hero === BG_FALLBACK_ICON ? '' : libraryHero?.images?.hero,
+    fallback: BG_FALLBACK_ICON,
+  });
+  const fullArt = libraryHero?.images?.full_art && libraryHero.images.full_art !== BG_FALLBACK_ICON
+    ? libraryHero.images.full_art
+    : heroImage;
   const heroPower = libraryHero?.hero_power?.card;
   const buddy = libraryHero?.buddy?.card;
   const goldenBuddy = libraryHero?.buddy?.golden;
