@@ -61,9 +61,11 @@ gates and real missing-entity responses.
   real 404; Nginx legacy until deployed browser verification)
 - `bg-library` — `/library` (Next route staged; Nginx legacy until deployed
   browser verification)
-- `bg-library-archive-root` — `/library/archive`
-- `bg-library-kind` — `/library/:kind`
-- `bg-library-archive` — `/library/archive/:kind`
+- `bg-library-archive-root` — `/library/archive` (Next route staged; Nginx legacy)
+- `bg-library-kind` — `/library/:kind` (`minions` and `spells` staged in Next;
+  remaining category values legacy)
+- `bg-library-archive` — `/library/archive/:kind` (`minions` and `spells`
+  staged in Next; remaining archive values legacy)
 - `bg-library-detail` — `/library/:kind/:slugAndDbfId`
 - `bg-library-additional-detail` —
   `/library/:additionalKind/:slugAndDbfId`

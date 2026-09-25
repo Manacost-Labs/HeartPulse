@@ -7,6 +7,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pagesEnabled && /^\/standard\/(?:archetypes|meta)\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/guides-archive\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/heroes\/.+/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/library\/(?:minions|spells|archive(?:\/(?:minions|spells))?)\/?$/.test(pathname)) return 'next';
   if (galleryEnabled && /^\/gallery\/?$/.test(pathname)) return 'next';
   // Include invalid card descendants so the enabled owner provides the real 404.
   return enabled && /^\/standard\/cards(?:\/.*)?$/.test(pathname) ? 'next' : 'legacy';

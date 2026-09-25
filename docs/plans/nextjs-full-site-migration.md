@@ -201,7 +201,11 @@ protected statistics and real missing-ID responses. Public Nginx ownership
 remains legacy until deployed browser checks.
 The `/library/` listing is staged with a public HTML description. Its existing
 card filters and statistics mount only after Battlegrounds entitlement or
-administrator access is verified; category and detail URLs remain legacy.
+administrator access is verified.
+The `/library/minions/`, `/library/spells/`, `/library/archive/`,
+`/library/archive/minions/` and `/library/archive/spells/` listings are also
+staged. Other categories and all card details remain with the legacy renderer
+until their own URL and data contracts are checked.
 It preserves the current public dataset API and client-side three-deck preview.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or
