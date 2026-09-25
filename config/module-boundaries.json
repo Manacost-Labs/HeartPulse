@@ -372,6 +372,22 @@
       ]
     },
     {
+      "id": "server.battlegroundLibrary",
+      "runtime": "server",
+      "root": "server/modules/battlegroundLibrary",
+      "purpose": "Owns the anonymous Battlegrounds minion and spell card projection HTTP contract.",
+      "owner": "web-platform",
+      "publicEntry": "server/modules/battlegroundLibrary/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:battleground-library-seo-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/battleground-library.md"
+      ]
+    },
+    {
       "id": "server.publicApi",
       "runtime": "server",
       "root": "server/modules/publicApi",
@@ -894,6 +910,7 @@
       "targetModules": [
         "server.applicationAuth",
         "server.arena",
+        "server.battlegroundLibrary",
         "server.constructedCards",
         "server.ecosystem",
         "server.identity",
@@ -967,6 +984,7 @@
       "targetModules": [
         "server.applicationAuth",
         "server.arena",
+        "server.battlegroundLibrary",
         "server.constructedCards",
         "server.ecosystem",
         "server.identity",

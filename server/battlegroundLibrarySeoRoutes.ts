@@ -2,6 +2,8 @@ import { Router, type Request, type RequestHandler, type Response } from 'expres
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from './entitySeoStructuredData.js';
+import { canonicalBattlegroundCardSlug, createBattlegroundLibraryPublicRouter } from './modules/battlegroundLibrary/public.js';
+export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
 type JsonRecord = Record<string, unknown>;
 export type BattlegroundLibraryKind = 'minion' | 'spell';
@@ -121,14 +123,6 @@ function isPositiveDbfId(value: unknown): boolean {
 
 function cleanSearch(value: unknown): string {
   return String(value ?? '').toLowerCase().replace(/ё/g, 'е').trim();
-}
-
-export function canonicalBattlegroundCardSlug(value: string): string {
-  return cleanSearch(value)
-    .replace(/['’]/g, '')
-    .replace(/[^a-zа-я0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80) || 'card';
 }
 
 function publicName(card: JsonRecord): { ru: string; en: string | null } | null {
@@ -553,25 +547,9 @@ export function createBattlegroundLibrarySeoRouter(
     return pending;
   };
 
-  router.get('/api/bg/library/public/:kind/:dbfId', async (request, response) => {
-    const kind = request.params.kind;
-    const dbfId = request.params.dbfId;
-    response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    response.set('X-Robots-Tag', NOINDEX_ROBOTS);
-    if ((kind !== 'minion' && kind !== 'spell') || !isPositiveDbfId(dbfId)) {
-      return response.status(404).json({ error: 'Card not found' });
-    }
-    try {
-      const card = (await loadCatalog(kind)).find(candidate => candidate.dbfId === Number(dbfId));
-      if (!card) return response.status(404).json({ error: 'Card not found' });
-      const canonicalPath = `/library/${kindPath(kind)}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}/`;
-      return response.json({ card, canonicalPath });
-    } catch (error) {
-      try { dependencies.onError?.(error); } catch { /* Diagnostics are best-effort. */ }
-      response.set('Retry-After', String(retryAfterSeconds));
-      return response.status(503).json({ error: 'Card catalog temporarily unavailable' });
-    }
-  });
+  router.use(createBattlegroundLibraryPublicRouter({
+    loadCatalog, retryAfterSeconds, onError: dependencies.onError,
+  }));
 
   const handlerFor = (kind: BattlegroundLibraryKind): RequestHandler => async (request, response) => {
     const detail = parseDetailParameter(request.params.slugAndDbfId);

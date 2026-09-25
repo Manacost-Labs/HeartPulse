@@ -440,6 +440,42 @@
       ]
     },
     {
+      "name": "backend-battleground-library",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Publish anonymous minion and spell card projections without private statistics.",
+      "paths": [
+        "server/modules/battlegroundLibrary"
+      ],
+      "publicEntrypoints": [
+        "server/modules/battlegroundLibrary/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        {
+          "method": "GET",
+          "path": "/api/bg/library/public/:kind/:dbfId"
+        }
+      ],
+      "contracts": [
+        "server/modules/battlegroundLibrary/public.ts"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/battleground-library-seo-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
+    },
+    {
       "name": "backend-ecosystem",
       "status": "modular",
       "owner": "identity-platform",

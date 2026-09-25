@@ -232,6 +232,10 @@ database queries.
 
 ### `server/modules/<domain>`
 
+`battlegroundLibrary` owns the anonymous minion/spell projection route. The
+legacy catalog loader is injected, so this module cannot access protected
+statistics or process-wide session state.
+
 - `routes/` validates the HTTP boundary, applies authorization and serializes
   the response.
 - `service/` implements use cases and domain orchestration without Express
