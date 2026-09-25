@@ -69,7 +69,8 @@ client adapter; presentation will move into this module before Vite retirement.
 shared by the legacy route and its forthcoming Next.js page. The protected
 account-scoped browser client also lives here, with response validation and
 ETag refresh. React loading is account- and format-scoped. Interactive
-presentation moves in a later step.
+presentation temporarily stays in `src/features/StandardMatchups.tsx` and
+accepts the new controlled client without invoking its legacy browser cache.
 
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical

@@ -251,6 +251,7 @@
         "tests/sqlite-connection.test.ts",
         "tests/standard-matchup-routes.test.ts",
         "tests/standard-matchups-client.test.ts",
+        "tests/standard-matchups-tooltip.test.ts",
         "tests/standard-meta-routes.test.ts",
         "tests/subscription-routes.test.ts",
         "tests/telegram-identity-repository.test.ts",

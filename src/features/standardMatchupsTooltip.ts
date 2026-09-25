@@ -11,6 +11,28 @@ export interface ActiveMatrixMatchup {
   placement: 'above' | 'below';
 }
 
+export function activeMatrixMatchupAt(
+  anchor: HTMLButtonElement,
+  row: ActiveMatrixMatchup['row'],
+  cell: ActiveMatrixMatchup['cell'],
+  rowLabel: string,
+  opponentLabel: string,
+): ActiveMatrixMatchup {
+  const rect = anchor.getBoundingClientRect();
+  const tooltipWidth = Math.min(360, Math.max(280, window.innerWidth - 24));
+  const estimatedHeight = 258;
+  const left = Math.min(
+    Math.max(12, rect.left + (rect.width / 2) - (tooltipWidth / 2)),
+    Math.max(12, window.innerWidth - tooltipWidth - 12),
+  );
+  const hasRoomBelow = rect.bottom + estimatedHeight + 16 <= window.innerHeight;
+  return {
+    row, cell, rowLabel, opponentLabel, anchor, left,
+    top: hasRoomBelow ? rect.bottom + 10 : rect.top - 10,
+    placement: hasRoomBelow ? 'below' : 'above',
+  };
+}
+
 export function useTooltipViewportPosition(
   activeMatchup: ActiveMatrixMatchup | null,
   tooltipRef: React.RefObject<HTMLDivElement | null>,

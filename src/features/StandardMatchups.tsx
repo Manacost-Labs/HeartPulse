@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import '../route-parchment.css';
 import './StandardMatchups.css';
-import { type ActiveMatrixMatchup, useCloseMatrixMatchup, useTooltipViewportPosition } from './standardMatchupsTooltip';
+import { activeMatrixMatchupAt, type ActiveMatrixMatchup, useCloseMatrixMatchup,
+  useTooltipViewportPosition } from './standardMatchupsTooltip';
 import type {
   StandardMatchupsCell, StandardMatchupsData, StandardMatchupsFormat, StandardMatchupsRow,
 } from '../modules/standardMatchups/public';
@@ -234,8 +235,17 @@ function standardMatchupAssessment(value: number | null): {
   };
 }
 
-function StandardMatchupsPage() {
-  const [format, setFormat] = useState<StandardMatchupsFormat>('standard');
+export type StandardMatchupsExternal = {
+  format: StandardMatchupsFormat;
+  changeFormat: (format: StandardMatchupsFormat) => void;
+  data: StandardMatchupsData | null;
+  loading: boolean;
+  error: boolean;
+  retry: () => void;
+};
+
+function StandardMatchupsPage({ external }: { external?: StandardMatchupsExternal }) {
+  const [legacyFormat, setFormat] = useState<StandardMatchupsFormat>('standard');
   const [view, setView] = useState<StandardMatchupsView>('overview');
   const [matchupFilter, setMatchupFilter] = useState<StandardMatchupsFilter>('all');
   const [matchupSearch, setMatchupSearch] = useState('');
@@ -244,8 +254,8 @@ function StandardMatchupsPage() {
   const [datasets, setDatasets] = useState<Partial<Record<StandardMatchupsFormat, StandardMatchupsData>>>({
     standard: EMPTY_STANDARD_MATCHUPS,
   });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [legacyLoading, setLoading] = useState(true);
+  const [legacyError, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const matrixScrollRef = useRef<HTMLDivElement | null>(null);
   const matrixTopScrollRef = useRef<HTMLDivElement | null>(null);
@@ -254,9 +264,15 @@ function StandardMatchupsPage() {
   const [activeMatrixMatchup, setActiveMatrixMatchup] = useState<ActiveMatrixMatchup | null>(null);
   const deferredMatchupSearch = useDeferredValue(matchupSearch.trim().toLocaleLowerCase('ru-RU'));
   const deferredMatrixSearch = useDeferredValue(matrixSearch.trim().toLocaleLowerCase('ru-RU'));
-  const data = datasets[format] ?? emptyMatchups(format);
+  const format = external?.format ?? legacyFormat;
+  const loading = external?.loading ?? legacyLoading;
+  const error = external?.error ?? legacyError;
+  const data = external ? external.data ?? emptyMatchups(format)
+    : datasets[format] ?? emptyMatchups(format);
+  const externalMode = Boolean(external);
 
   useEffect(() => {
+    if (externalMode) return;
     let cancelled = false;
     const load = async () => {
       const cacheKey = `standard_matchups_ru_v7_${format}`;
@@ -302,7 +318,7 @@ function StandardMatchupsPage() {
     return () => {
       cancelled = true;
     };
-  }, [format, reloadToken]);
+  }, [format, reloadToken, externalMode]);
 
   useEffect(() => {
     setSelectedArchetype('');
@@ -342,26 +358,7 @@ function StandardMatchupsPage() {
     rowLabel: string,
     opponentLabel: string,
   ) => {
-    const anchor = event.currentTarget;
-    const rect = anchor.getBoundingClientRect();
-    const tooltipWidth = Math.min(360, Math.max(280, window.innerWidth - 24));
-    const estimatedHeight = 258;
-    const left = Math.min(
-      Math.max(12, rect.left + (rect.width / 2) - (tooltipWidth / 2)),
-      Math.max(12, window.innerWidth - tooltipWidth - 12),
-    );
-    const hasRoomBelow = rect.bottom + estimatedHeight + 16 <= window.innerHeight;
-
-    setActiveMatrixMatchup({
-      row,
-      cell,
-      rowLabel,
-      opponentLabel,
-      anchor,
-      left,
-      top: hasRoomBelow ? rect.bottom + 10 : rect.top - 10,
-      placement: hasRoomBelow ? 'below' : 'above',
-    });
+    setActiveMatrixMatchup(activeMatrixMatchupAt(event.currentTarget, row, cell, rowLabel, opponentLabel));
   }, []);
 
   useTooltipViewportPosition(activeMatrixMatchup, matchupTooltipRef, adjustedTooltipAnchorRef, setActiveMatrixMatchup);
@@ -543,7 +540,7 @@ function StandardMatchupsPage() {
               <button
                 key={value}
                 type="button"
-                onClick={() => setFormat(value)}
+                onClick={() => external ? external.changeFormat(value) : setFormat(value)}
                 aria-pressed={format === value}
                 aria-label={`Показать матчапы: ${label}`}
               >
@@ -603,7 +600,7 @@ function StandardMatchupsPage() {
             <div className="standard-matchups__error flex flex-wrap items-center gap-2 text-[#8b2f2f] text-sm mb-4 px-3 py-2 rounded-lg bg-[#8b2f2f]/10 border border-[#8b2f2f]/20" role="alert">
               <AlertTriangle size={15} />
               <span>Не удалось загрузить формат «{formatLabel}».</span>
-              <button type="button" onClick={() => setReloadToken(value => value + 1)}>Повторить</button>
+              <button type="button" onClick={() => external ? external.retry() : setReloadToken(value => value + 1)}>Повторить</button>
             </div>
           )}
 

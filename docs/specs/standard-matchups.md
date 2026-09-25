@@ -19,6 +19,9 @@ retry for a 304 response without a usable cache. A transient error may show a
 stale matrix only to the same account; a 401 or 403 clears that cache entry.
 The React loader discards prior-account data immediately, isolates the two
 formats in view state, and ignores responses from aborted or superseded loads.
+The legacy page can now accept a controlled data source. In Next.js this
+prevents its old format-only localStorage cache and mount-time fetch from
+running; Vite retains the existing source until its route is retired.
 
 The shared response type is owned by `src/modules/standardMatchups`. The
 public Nginx owner remains legacy until the Next implementation passes
