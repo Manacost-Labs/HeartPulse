@@ -56,6 +56,8 @@ if [[ "$*" == *" --head "* ]]; then
   printf '\\r\\n'
 elif [[ "$url" == */api/subscription/status ]]; then
   printf 404
+elif [[ -n "\${FAKE_FAIL_FANOUT:-}" && "$url" == https://hearthpulse.net/articles/ ]]; then
+  printf 502
 elif [[ "$url" == */robots.txt ]]; then
   printf 'Sitemap: https://hearthpulse.net/sitemap.xml\\n'
 else
@@ -99,6 +101,10 @@ try {
   const unknownRegion = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGION: 'unknown' });
   assert.notEqual(unknownRegion.status, 0);
   assert.match(unknownRegion.stderr, /unsupported quarantined region/);
+
+  const brokenConcurrentPage = runMonitor({ FAKE_FAIL_FANOUT: '1' });
+  assert.notEqual(brokenConcurrentPage.status, 0);
+  assert.match(brokenConcurrentPage.stderr, /parallel application \/articles\/ returned HTTP 502/);
 
   const extraIpv4 = runMonitor({ FAKE_EXTRA_A: '203.0.113.10' });
   assert.notEqual(extraIpv4.status, 0);

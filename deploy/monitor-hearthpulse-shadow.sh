@@ -73,6 +73,10 @@ for host in "$application_domain" "$www_domain" "$cdn_domain"; do
 		fail "$host DNS unexpectedly exposed IPv6: $ipv6_answers"
 done
 
+fanout_dir="$(mktemp -d)"
+trap 'rm -rf "$fanout_dir"' EXIT
+fanout_paths=(/ /articles/ /standard/cards/ /favicon.ico "$known_card_path")
+
 for edge_entry in "${edges[@]}"; do
 	region="${edge_entry%%:*}"
 	edge="${edge_entry#*:}"
@@ -124,6 +128,23 @@ for edge_entry in "${edges[@]}"; do
 	[[ "$legacy_cdn_status" == 301 ]] || fail "$region $edge legacy CDN returned HTTP ${legacy_cdn_status:-unavailable}"
 	[[ "$legacy_cdn_location" == "https://cdn.hearthpulse.net$known_card_path?migration=1" ]] ||
 		fail "$region $edge legacy CDN redirect target is unsafe: ${legacy_cdn_location:-missing}"
+
+	# Reverse tunnels may stall only when a browser opens several resources at once.
+	fanout_pids=()
+	for index in "${!fanout_paths[@]}"; do
+		resolved_status "$application_domain" "$edge" "${fanout_paths[$index]}" \
+			>"$fanout_dir/$region-$index" 2>/dev/null &
+		fanout_pids+=("$!")
+	done
+	for index in "${!fanout_paths[@]}"; do
+		if wait "${fanout_pids[$index]}"; then
+			fanout_status="$(<"$fanout_dir/$region-$index")"
+		else
+			fanout_status=000
+		fi
+		[[ "$fanout_status" == 200 ]] ||
+			fail "$region $edge parallel application ${fanout_paths[$index]} returned HTTP $fanout_status"
+	done
 done
 
 if ((failures > 0)); then exit 1; fi
