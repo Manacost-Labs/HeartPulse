@@ -174,6 +174,14 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal((tierlistHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(tierlistHtml, /CARD_1|card-reader@example|manacost_auth_token/);
 
+    const legendaries = await fetch(`${runtime.origin}/legendaries/`, { headers: cookie });
+    assert.equal(legendaries.status, 200, runtime.output());
+    const legendariesHtml = await legendaries.text();
+    assert.match(legendariesHtml, /<h1>Легендарки<\/h1>/);
+    assert.match(legendariesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/legendaries\/"/);
+    assert.equal((legendariesHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(legendariesHtml, /CARD_1|card-reader@example|manacost_auth_token/);
+
     const emptyContests = await fetch(`${runtime.origin}/contests/`);
     assert.equal(emptyContests.status, 200, runtime.output());
     assert.match(await emptyContests.text(), /Сейчас активных конкурсов нет/);

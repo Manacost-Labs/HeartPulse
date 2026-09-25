@@ -21,3 +21,5 @@ ignores aborted responses, and drops the prior account's data immediately when
 account identity or Arena entitlement changes.
 The production HTML route remains on the legacy renderer until Next.js direct
 port, browser and Nginx cutover checks pass.
+The staged Next route serves the public description and access gate in its
+initial HTML. Only a client with a verified Arena entitlement requests groups.

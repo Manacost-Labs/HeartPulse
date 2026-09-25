@@ -51,7 +51,7 @@ test('switch and rollback retain paths, query, cookies, bodies and response cook
 test('static public pages roll out independently of cards', () => {
   assert.equal(publicWebOwner('/', false, 'GET', true), 'next');
   assert.equal(publicWebOwner('/', false, 'POST', true), 'legacy');
-  for (const page of ['faq', 'privacy', 'terms', 'developers/api', 'articles', 'classes', 'tierlist']) {
+  for (const page of ['faq', 'privacy', 'terms', 'developers/api', 'articles', 'classes', 'tierlist', 'legendaries']) {
     assert.equal(publicWebOwner(`/${page}/`, true), 'legacy');
     assert.equal(publicWebOwner(`/${page}/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/${page}/`, false, 'POST', true), 'legacy');

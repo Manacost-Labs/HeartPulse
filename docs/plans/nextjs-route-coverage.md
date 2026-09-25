@@ -22,6 +22,10 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-cards-format` — `/standard/cards/:format`
 - `standard-card-detail` — `/standard/cards/:format/:cardId`
 
+## Next route built; Nginx cutover pending (1 inventory entry)
+
+- `legendaries` — `/legendaries`
+
 ## Public and editorial HTML (2)
 
 - `guides-archive` — `/guides-archive` (subscription gate)
@@ -30,13 +34,6 @@ have been checked together. A route count alone is not a completion signal.
 Migrate the ungated pages first. The guide archive and each valid guide slug
 need a request-scoped entitlement decision, a public teaser and authoritative
 404 behavior before their Nginx owner changes.
-
-## Arena data HTML (1)
-
-- `legendaries` — `/legendaries`
-
-Keep public statistics separate from subscribed values and test signed-out,
-active, expired and blocked states for each page.
 
 ## Constructed data HTML (7)
 
