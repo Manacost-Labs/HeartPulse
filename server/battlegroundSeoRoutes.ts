@@ -2,20 +2,11 @@ import { Router, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from './entitySeoStructuredData.js';
+import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
+import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
+export type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 
 type JsonRecord = Record<string, unknown>;
-
-export type PublicBattlegroundHero = {
-  dbfId: number;
-  cardId: string | null;
-  name: string;
-  image: string | null;
-  heroPower: {
-    name: string;
-    text: string | null;
-    image: string | null;
-  } | null;
-};
 
 export type BattlegroundHeroSeoRouterDependencies = {
   fetchImpl?: typeof fetch;
@@ -78,12 +69,6 @@ function normalizeCanonicalOrigin(value: string | undefined): string {
 function safeImageUrl(value: string | null, origin: string): string {
   const fallback = `${origin}/assets/og-preview.png`;
   return sameOriginPublicResourceUrl(value, origin, fallback) ?? fallback;
-}
-
-function isPositiveDbfId(value: unknown): boolean {
-  const raw = String(value ?? '');
-  const parsed = Number(raw);
-  return /^[1-9][0-9]*$/.test(raw) && Number.isSafeInteger(parsed) && parsed > 0;
 }
 
 export function projectPublicBattlegroundHero(value: unknown): PublicBattlegroundHero | null {
@@ -421,28 +406,11 @@ export function createBattlegroundHeroSeoRouter(
     return hero ?? null;
   };
 
-  router.get('/api/bg/heroes/public/:dbfId', async (request, response) => {
-    const dbfId = String(request.params.dbfId ?? '');
-    response.set('X-Robots-Tag', NOINDEX_ROBOTS);
-    response.set('Cache-Control', 'public, max-age=60');
-    if (!isPositiveDbfId(dbfId)) return response.status(404).json({ error: 'Hero not found' });
-    try {
-      const hero = await loadHero(dbfId);
-      if (!hero) return response.status(404).json({ error: 'Hero not found' });
-      return response.json({ hero: {
-        dbfId: hero.dbfId, cardId: hero.cardId, name: hero.name,
-        image: safeImageUrl(hero.image, origin),
-        heroPower: hero.heroPower ? {
-          name: hero.heroPower.name, text: hero.heroPower.text,
-          image: safeImageUrl(hero.heroPower.image, origin),
-        } : null,
-      } });
-    } catch (error) {
-      try { dependencies.onError?.(error); } catch { /* diagnostics are best-effort */ }
-      response.set('Cache-Control', 'no-store');
-      response.set('Retry-After', String(retryAfterSeconds));
-      return response.status(503).json({ error: 'Hero catalog temporarily unavailable' });
-    }
+  registerPublicBattlegroundHeroRoute(router, {
+    loadHero,
+    imageUrl: value => safeImageUrl(value, origin),
+    retryAfterSeconds,
+    onError: dependencies.onError,
   });
 
   const handler: RequestHandler = async (request, response) => {
