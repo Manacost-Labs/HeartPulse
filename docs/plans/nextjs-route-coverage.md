@@ -66,6 +66,10 @@ routes both builders and their invalid descendants to Next.
 Keep `/identity/` callbacks and session authority in Express. Public profile
 data must come from the existing serializer; admin and account state must not
 leak into shared HTML, hydration payloads or caches.
+Both public-profile patterns now have staged Next routes with server-rendered
+public projection, numeric canonical, noindex/follow, real 404s and browser
+checks. They remain in this section until the Nginx owner changes and the
+production direct-load checks pass.
 The `/connect` browser flow remains on the existing Express authorization API;
 its Next-owned HTML contains no device code or account data before hydration.
 
