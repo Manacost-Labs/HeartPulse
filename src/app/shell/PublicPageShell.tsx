@@ -6,6 +6,7 @@ import { HeaderProfileButton } from './HeaderProfileButton';
 import GlobalUtilityHeader from '../../components/GlobalUtilityHeader';
 import SiteFooter from '../../components/SiteFooter';
 import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, MISC_TABS, TABS, type TabId } from '../routing/navigationRoutes';
+import { BG_TAB_IDS } from '../routing/routeManifest';
 import type { AuthUser } from '../../modules/identity/public';
 import type { SubscriptionStatus } from '../../modules/subscriptions/public';
 
@@ -21,7 +22,8 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
   usePublicMenuFocus(menu, menuRef, toggleRef, setMenu);
   usePageScrollLock(menu);
   const profile = <HeaderProfileButton user={access.user} checking={access.checking} />;
-  return <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell arena-app-${editorial ? 'editorial' : 'game-data'} arena-app-${activeTab}`}>
+  const surface = editorial ? 'editorial' : BG_TAB_IDS.has(activeTab) ? 'battlegrounds' : 'game-data';
+  return <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell arena-app-${surface} arena-app-${activeTab}`}>
     <a className="arena-skip-link" href="#main-content">К основному содержимому</a>
     <div className="arena-layout-shell">
       <PublicNavigation activeTab={activeTab} mobileMenuOpen={menu} mobileNavGroup={mobileGroup} sidebarNavGroup={sidebarGroup}
