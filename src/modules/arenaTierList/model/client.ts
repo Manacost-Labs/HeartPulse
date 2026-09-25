@@ -9,13 +9,13 @@ type Dependencies = { request: typeof fetch; storage?: StoragePort; now?: () => 
 /** Cache protected snapshots per account and source; never reuse them after an access denial. */
 export function createArenaTierListClient({ request, storage, now = Date.now }: Dependencies) {
   const remove = (key: string) => { try { storage?.removeItem(key); } catch { /* Optional storage. */ } };
-  const read = (key: string): Cached | null => {
+  const read = (key: string, source: TierlistSource): Cached | null => {
     try {
       const raw = storage?.getItem(key);
       if (!raw) return null;
       const entry: unknown = JSON.parse(raw);
       if (!entry || typeof entry !== 'object' || !('data' in entry) || !('ts' in entry)) return null;
-      const data = parseArenaTierList(entry.data);
+      const data = parseArenaTierList(entry.data, source);
       if (!data || typeof entry.ts !== 'number' || !Number.isFinite(entry.ts)
         || now() < entry.ts || now() - entry.ts > TIERLIST_CACHE_TTL_MS) {
         remove(key);
@@ -33,7 +33,7 @@ export function createArenaTierListClient({ request, storage, now = Date.now }: 
     } = {}): Promise<ArenaTierListState> {
       if (!accountId) return { status: 'error', data: null };
       const key = `arena-tierlist:v4:${encodeURIComponent(accountId)}:${source}`;
-      const cached = read(key);
+      const cached = read(key, source);
       if (cached && !options.bust) options.onCache?.(arenaTierListState(cached.data));
       const baseUrl = tierlistBaseUrl(source);
       const url = options.bust ? `${baseUrl}&t=${now()}` : baseUrl;
@@ -50,7 +50,7 @@ export function createArenaTierListClient({ request, storage, now = Date.now }: 
           return { status: 'denied', data: null };
         }
         if (!response.ok && response.status !== 304) throw new Error('Arena tier-list request failed');
-        const data = response.status === 304 ? cached?.data : parseArenaTierList(await response.json());
+        const data = response.status === 304 ? cached?.data : parseArenaTierList(await response.json(), source);
         if (!data) throw new Error('Invalid Arena tier-list response');
         const stale = /stale|fallback/.test(response.headers.get('X-Data-Cache') ?? '');
         const confirmed = stale ? { ...data, warning: 'stale' } : data;

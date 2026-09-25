@@ -1,4 +1,4 @@
-import { TIERLIST_SOURCES, type TierlistData, type TierlistSource } from './types';
+import type { TierlistData, TierlistSource } from './types';
 
 export type ArenaTierListState = {
   status: 'ready' | 'empty' | 'stale' | 'error' | 'denied';
@@ -8,10 +8,16 @@ export type ArenaTierListState = {
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-/** Keep malformed or synthetic responses out of subscriber browser storage. */
-export function parseArenaTierList(value: unknown): TierlistData | null {
+const apiSourceLabels: Record<TierlistSource, string> = {
+  hsreplay: 'hsreplay.net',
+  heartharena: 'heartharena.com',
+  firestone: 'firestoneapp.com',
+};
+
+/** Keep malformed or mismatched provider responses out of subscriber browser storage. */
+export function parseArenaTierList(value: unknown, source: TierlistSource): TierlistData | null {
   if (!object(value) || !Array.isArray(value.sections) || !object(value.cards)
-    || !TIERLIST_SOURCES.includes(value.source as TierlistSource)
+    || (value.source !== source && value.source !== apiSourceLabels[source])
     || (value.updatedAt !== null && (typeof value.updatedAt !== 'string'
       || !Number.isFinite(Date.parse(value.updatedAt))))) return null;
   for (const section of value.sections) {
@@ -21,8 +27,9 @@ export function parseArenaTierList(value: unknown): TierlistData | null {
       if (!object(tier) || typeof tier.tier !== 'string' || !Array.isArray(tier.cards)) return null;
       for (const card of tier.cards) {
         if (!object(card) || typeof card.cardId !== 'string' || !card.cardId
-          || typeof card.name !== 'string' || typeof card.score !== 'number'
-          || !Number.isFinite(card.score)) return null;
+          || typeof card.name !== 'string'
+          || (card.score !== null && (typeof card.score !== 'number'
+            || !Number.isFinite(card.score)))) return null;
       }
     }
   }

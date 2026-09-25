@@ -21,6 +21,14 @@ non-authorization error may retain the same account's stale data. The Next route
 reuses the legacy presentation with the new account-gated hook. Public Nginx
 serves the Next route after production direct-port and browser checks.
 
+The request uses short source IDs (`hsreplay`, `heartharena`, `firestone`), while
+the protected response identifies its provider as `hsreplay.net`,
+`heartharena.com`, or `firestoneapp.com`. Validation accepts the matching
+provider label and the older short ID in account-scoped browser caches; a
+label from another provider is rejected.
+HSReplay cards without an ArenaSmith score carry `score: null`; they remain in
+the list, while non-finite and non-numeric scores are rejected.
+
 The new React hook keeps the previous source visible while another source
 loads, drops data immediately when the account or entitlement changes, and
 ignores responses from requests aborted by navigation or a newer selection.

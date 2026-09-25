@@ -7,9 +7,12 @@ const dataset = {
   sections: [{ id: 'mage', name: 'Маг', color: '#123456', textDark: false,
     tiers: [{ tier: 'S', label: 'Лучшие', description: '', cards: [{
       name: 'Карта', score: 95, rarity: 'common', cardId: 'CARD_1', classKey: 'mage',
-    }] }], totalCards: 1 }],
-  cards: { CARD_1: { imageHa: 'https://example.test/card.png', imageRu: null } },
-  updatedAt: new Date(now).toISOString(), source: 'hsreplay',
+    }, {
+      name: 'Карта без оценки', score: null, rarity: 'common', cardId: 'CARD_2', classKey: 'mage',
+    }] }], totalCards: 2 }],
+  cards: { CARD_1: { imageHa: 'https://example.test/card.png', imageRu: null },
+    CARD_2: { imageHa: 'https://example.test/card2.png', imageRu: null } },
+  updatedAt: new Date(now).toISOString(), source: 'hsreplay.net',
 };
 const entries = new Map<string, string>();
 const storage = {
@@ -47,6 +50,8 @@ assert.equal((await load()).status, 'denied');
 assert.equal(entries.size, 0, 'access revocation clears protected cache');
 response = () => Promise.resolve(Response.json({ ...dataset, source: 'initial' }));
 assert.equal((await load()).status, 'error', 'synthetic data must not enter the cache');
+response = () => Promise.resolve(Response.json({ ...dataset, source: 'heartharena.com' }));
+assert.equal((await load()).status, 'error', 'a different provider cannot enter the selected source cache');
 response = () => Promise.resolve(Response.json({ ...dataset, sections: [{ id: 'mage', tiers: 'broken' }] }));
 assert.equal((await load()).status, 'error', 'malformed sections must not enter the cache');
 response = () => Promise.resolve(Response.json(dataset));

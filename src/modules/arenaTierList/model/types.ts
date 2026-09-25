@@ -14,7 +14,7 @@ export interface CardLookup {
 
 export interface TierCard {
   name: string;
-  score: number;
+  score: number | null;
   rarity: string;
   cardId: string;
   classKey: string;
