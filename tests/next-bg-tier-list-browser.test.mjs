@@ -15,6 +15,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
   const tierRequests = [];
   let tierStatus = 200;
   let malformedAuthResponsesRemaining = 0;
+  let failedSubscriptionResponsesRemaining = 0;
   const reservation = http.createServer();
   const nextOrigin = await listenLocal(reservation); await closeLocal(reservation);
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
@@ -52,7 +53,10 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
             ? { id: 'tier-reader', email: 'tier@example.test', name: 'Игрок', role: 'user' } : null });
         }
       } else if (url.pathname === '/api/subscription/status') {
-        void respond(200, { hasAccess: true, entitlements: { battlegrounds: true } });
+        if (failedSubscriptionResponsesRemaining > 0) {
+          failedSubscriptionResponsesRemaining -= 1;
+          void respond(503, { error: 'temporarily unavailable' });
+        } else void respond(200, { hasAccess: true, entitlements: { battlegrounds: true } });
       } else if (url.pathname === '/api/bg/tier-lists') {
         tierRequests.push(url.search);
         void respond(signedIn ? tierStatus : 401, !signedIn ? { error: 'guest' }
@@ -120,6 +124,12 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     await page.reload({ waitUntil: 'networkidle2' });
     assert.ok(await page.$('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]'));
     assert.match(await page.$eval('main', node => node.textContent), /Всего: 0/);
+    failedSubscriptionResponsesRemaining = 1;
+    await page.reload({ waitUntil: 'networkidle2' });
+    assert.equal(failedSubscriptionResponsesRemaining, 0);
+    assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
+      'a temporary subscription API failure must not appear as a revoked entitlement');
+    await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
     tierStatus = 503;
     await page.reload({ waitUntil: 'networkidle2' });
     await page.waitForFunction(() => document.querySelector('main')?.textContent.includes('Данные временно недоступны'));

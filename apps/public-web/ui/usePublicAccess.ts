@@ -43,6 +43,9 @@ export function usePublicAccess() {
         setSubscription(null);
         if (current) {
           const response = await fetch('/api/subscription/status', { credentials: 'same-origin', signal: controller.signal });
+          if (response.status === 429 || response.status >= 500) {
+            throw new Error('Subscription status is temporarily unavailable');
+          }
           const value: SubscriptionStatus | null = response.ok ? await response.json() : null;
           if (!controller.signal.aborted) setSubscription(value);
         }
