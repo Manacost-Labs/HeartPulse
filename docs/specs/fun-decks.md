@@ -9,5 +9,5 @@ That preview is a product presentation rule, not an API access boundary.
 
 The Next page uses the existing feature and public API. It remounts the feature
 when the account or entitlement changes so a previous account's expanded view
-does not remain on screen. The Nginx owner remains legacy until the deployed
-Next route passes direct-port and browser checks.
+does not remain on screen. The public Nginx owner is Next.js after direct-port
+and browser checks.
