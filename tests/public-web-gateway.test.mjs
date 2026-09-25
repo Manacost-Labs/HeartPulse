@@ -59,6 +59,10 @@ test('static public pages roll out independently of cards', () => {
   assert.equal(publicWebOwner('/standard/cards/', false, 'GET', true), 'legacy');
   assert.equal(publicWebOwner('/fonts/google/inter-cyrillic.woff2', false, 'GET', true), 'legacy');
   assert.equal(publicWebOwner('/heroes/123/', false, 'GET', true), 'next');
+  for (const path of ['/battlegrounds/tier-list/', '/battlegrounds/tier-list/unknown/']) {
+    assert.equal(publicWebOwner(path, false, 'GET', true), 'next', path);
+    assert.equal(publicWebOwner(path, false, 'POST', true), 'legacy', path);
+  }
   for (const path of ['/cosmetics/', '/cosmetics/heroes/', '/cosmetics/coins/',
     '/cosmetics/pets/', '/cosmetics/unknown/']) {
     assert.equal(publicWebOwner(path, false, 'GET', true), 'next', path);
