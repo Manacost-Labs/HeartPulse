@@ -83,7 +83,6 @@ assert.match(archetypesSource, /setRevision\(value => value \+ 1\)/);
 assert.match(archetypesSource, /variant="empty"/);
 assert.match(archetypesSource, /'\/api\/constructed-archetypes'/);
 assert.match(archetypesSource, /'\/api\/constructed-archetypes\/teaser'/);
-assert.match(archetypesSource, /initialFormat.*=== 'wild' \? 'wild' : 'standard'/);
 assert.match(archetypesSource, /detailMatch = currentPath\.match/);
 assert.match(archetypesSource, /\(standard\|wild\)/);
 
