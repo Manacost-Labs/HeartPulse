@@ -1,6 +1,7 @@
 export {
   fetchCurrentAuthUser,
 } from './api/authSessionApi';
+export { hasAuthSessionHint, markAuthSessionHint, clearAuthSessionHint } from './model/authSessionHint';
 export {
   canAccessAdminWorkspace,
   canManageContests,

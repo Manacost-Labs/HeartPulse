@@ -14,6 +14,7 @@ const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8')
 test('Next BG tier list keeps its public teaser separate from subscriber data and restores URL state', async () => {
   const tierRequests = [];
   let tierStatus = 200;
+  let malformedAuthResponsesRemaining = 0;
   const reservation = http.createServer();
   const nextOrigin = await listenLocal(reservation); await closeLocal(reservation);
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
@@ -43,8 +44,13 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
       const respond = (status, payload) => request.respond({ status, contentType: 'application/json',
         body: JSON.stringify(payload) });
       if (url.pathname === '/api/auth/me') {
-        void respond(200, { user: signedIn
-          ? { id: 'tier-reader', email: 'tier@example.test', name: 'Игрок', role: 'user' } : null });
+        if (signedIn && malformedAuthResponsesRemaining > 0) {
+          malformedAuthResponsesRemaining -= 1;
+          void respond(200, { malformed: true });
+        } else {
+          void respond(200, { user: signedIn
+            ? { id: 'tier-reader', email: 'tier@example.test', name: 'Игрок', role: 'user' } : null });
+        }
       } else if (url.pathname === '/api/subscription/status') {
         void respond(200, { hasAccess: true, entitlements: { battlegrounds: true } });
       } else if (url.pathname === '/api/bg/tier-lists') {
@@ -88,15 +94,22 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
       assert.deepEqual(state.violations, []);
     }
     assert.deepEqual(tierRequests, [], 'anonymous visitors do not request subscriber statistics');
+    await page.evaluate(() => localStorage.setItem('hs_arena_auth_cookie_hint', '1'));
     await page.setCookie({ name: 'tier_reader', value: '1', url: nextOrigin });
+    malformedAuthResponsesRemaining = 3;
     const member = await page.goto(`${nextOrigin}/battlegrounds/tier-list/?list=strategies&source=hsreplay`,
       { waitUntil: 'networkidle2' });
     assert.equal(member.status(), 200);
+    for (let attempt = 0; malformedAuthResponsesRemaining > 0 && attempt < 30; attempt += 1) await delay(100);
+    assert.equal(malformedAuthResponsesRemaining, 0, 'all three bounded auth attempts must fail');
+    await delay(100);
+    assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
+      'a remembered session must stay pending after a transient auth failure');
     assert.equal(await page.$eval('meta[name="robots"]', node => node.content), 'noindex, follow');
     assert.equal(await page.$eval('link[rel="canonical"]', node => node.href),
       'https://hearthpulse.net/battlegrounds/tier-list/');
     const strategy = await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]',
-      { timeout: 5000 }).catch(() => null);
+      { timeout: 12000 }).catch(() => null);
     assert.ok(strategy, JSON.stringify({ tierRequests,
       main: await page.$eval('main', node => node.textContent.slice(0, 450)) }));
     assert.ok(tierRequests.some(query => query.includes('list=strategies') && query.includes('source=hsreplay')));
