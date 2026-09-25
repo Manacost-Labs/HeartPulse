@@ -16,5 +16,8 @@ Its browser client validates protected responses, scopes its six-hour cache by
 account and source, refreshes with ETags, clears the cache after an access
 denial, and shows a stale snapshot only for the same account during a transient
 failure. A 304 response without a usable cache triggers an unconditional retry.
+The React loader keeps the previous source visible during a source switch,
+ignores aborted responses, and drops the prior account's data immediately when
+account identity or Arena entitlement changes.
 The production HTML route remains on the legacy renderer until Next.js direct
 port, browser and Nginx cutover checks pass.
