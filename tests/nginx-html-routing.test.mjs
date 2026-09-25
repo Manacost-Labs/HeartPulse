@@ -508,8 +508,18 @@ for (const route of inventory.routes) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
-  if (route.id === 'bg-hero-detail'
-    || route.id === 'bg-library-detail' || route.id === 'cosmetics-detail') {
+  if (route.id === 'bg-hero-detail' || route.id === 'bg-library-detail') {
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
+    const resolver = firstMatchingRegexLocation(`${path}/`);
+    assert.match(resolver?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+      `${route.id} errors must remain noindex`);
+    assert.match(resolver?.body || '', /proxy_hide_header X-Robots-Tag;/,
+      `${route.id} must avoid duplicate upstream robots headers`);
+    assert.match(resolver?.body || '', /proxy_intercept_errors\s+off;/,
+      `${route.id} 404/503 HTML and Retry-After must pass through nginx`);
+    continue;
+  }
+  if (route.id === 'cosmetics-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);
     assert.doesNotMatch(resolver?.body || '', /try_files\s+[^;]*\/index\.html/,
@@ -1288,11 +1298,8 @@ http {
     const validHero = await requestNginx(port, '/heroes/76521/');
     assert.equal(validHero.status, 200, 'valid hero SSR status must pass through nginx');
     assert.match(validHero.body, /hero-upstream-200/, 'valid hero SSR body must pass through nginx');
-    assert.equal(
-      validHero.headers['x-robots-tag'],
-      'index, follow, max-image-preview:large',
-      'valid hero robots policy must pass through nginx',
-    );
+    assert.equal(validHero.headers['x-robots-tag'], undefined,
+      'valid hero uses Next metadata without a duplicate robots header');
 
     const missingHero = await requestNginx(port, '/heroes/999999/');
     assert.equal(missingHero.status, 404, 'missing hero SSR status must pass through nginx');
@@ -1322,11 +1329,8 @@ http {
     const validBgCard = await requestNginx(port, '/library/minions/example-76521/');
     assert.equal(validBgCard.status, 200, 'valid BG card SSR status must pass through nginx');
     assert.match(validBgCard.body, /bg-card-upstream-200/, 'valid BG card SSR body must pass through nginx');
-    assert.equal(
-      validBgCard.headers['x-robots-tag'],
-      'index, follow, max-image-preview:large',
-      'valid BG card robots policy must pass through nginx',
-    );
+    assert.equal(validBgCard.headers['x-robots-tag'], undefined,
+      'valid BG card uses Next metadata without a duplicate robots header');
 
     const missingBgCard = await requestNginx(port, '/library/minions/missing-999999/');
     assert.equal(missingBgCard.status, 404, 'missing BG card SSR status must pass through nginx');
@@ -1373,10 +1377,10 @@ http {
       { path: '/standard/fun-decks', status: 301 },
       { path: '/standard/vicious-gold', status: 301 },
       { path: '/standard/archetypes', status: 301 },
-      { path: '/heroes/76521/', status: 200, robots: 'index, follow, max-image-preview:large' },
+      { path: '/heroes/76521/', status: 200 },
       { path: '/heroes/999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/heroes/888888/', status: 503, robots: 'noindex, nofollow' },
-      { path: '/library/minions/example-76521/', status: 200, robots: 'index, follow, max-image-preview:large' },
+      { path: '/library/minions/example-76521/', status: 200 },
       { path: '/library/minions/missing-999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/library/spells/outage-888888/', status: 503, robots: 'noindex, nofollow' },
       { path: '/decks/legacy', status: 410, robots: 'noindex, nofollow' },
