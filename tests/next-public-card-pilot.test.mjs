@@ -205,6 +205,14 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal((funDecksHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(funDecksHtml, /deckCode|card-reader@example|manacost_auth_token/);
 
+    const viciousGold = await fetch(`${runtime.origin}/standard/vicious-gold/`);
+    assert.equal(viciousGold.status, 200, runtime.output());
+    const viciousGoldHtml = await viciousGold.text();
+    assert.match(viciousGoldHtml, /<h1>Vicious Syndicate Gold<\/h1>/);
+    assert.match(viciousGoldHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/standard\/vicious-gold\/"/);
+    assert.equal((viciousGoldHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(viciousGoldHtml, /deckCode|card-reader@example|manacost_auth_token/);
+
     const emptyContests = await fetch(`${runtime.origin}/contests/`);
     assert.equal(emptyContests.status, 200, runtime.output());
     assert.match(await emptyContests.text(), /Сейчас активных конкурсов нет/);
