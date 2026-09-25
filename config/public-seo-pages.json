@@ -191,48 +191,6 @@
       "description": "Заклинания Hearthstone Battlegrounds: актуальный пул, изображения, фильтры, статистика и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
-    "/library/anomalies": {
-      "policyRouteId": "bg-library-kind",
-      "title": "Аномалии Полей сражений | HearthPulse",
-      "description": "Аномалии Hearthstone Battlegrounds: эффекты и карты, доступные в актуальном пуле Полей сражений.",
-      "sitemap": true
-    },
-    "/library/dark-gifts": {
-      "policyRouteId": "bg-library-kind",
-      "title": "Темные дары Полей сражений | HearthPulse",
-      "description": "Темные дары Hearthstone Battlegrounds: русские описания эффектов и изображения карт сезонного набора.",
-      "sitemap": true
-    },
-    "/library/quests": {
-      "policyRouteId": "bg-library-kind",
-      "title": "Квесты Полей сражений | HearthPulse",
-      "description": "Квесты Hearthstone Battlegrounds: условия выполнения, русские описания и карты актуального пула.",
-      "sitemap": true
-    },
-    "/library/rewards": {
-      "policyRouteId": "bg-library-kind",
-      "title": "Награды квестов Полей сражений | HearthPulse",
-      "description": "Награды квестов Hearthstone Battlegrounds: эффекты, изображения и карты актуального пула.",
-      "sitemap": true
-    },
-    "/library/darkmoon-prizes": {
-      "policyRouteId": "bg-library-kind",
-      "title": "Призы Ярмарки Новолуния | HearthPulse",
-      "description": "Призы Ярмарки Новолуния в Hearthstone Battlegrounds: русские тексты и карты актуального пула.",
-      "sitemap": true
-    },
-    "/library/trinkets": {
-      "policyRouteId": "bg-library-kind",
-      "title": "Аксессуары Полей сражений | HearthPulse",
-      "description": "Малые и большие аксессуары Hearthstone Battlegrounds: эффекты, группы и изображения карт.",
-      "sitemap": true
-    },
-    "/library/timewarped": {
-      "policyRouteId": "bg-library-kind",
-      "title": "Хрономальные карты Полей сражений | HearthPulse",
-      "description": "Хрономальные карты Timewarped Tavern в Hearthstone Battlegrounds: существа, заклинания и силы героев.",
-      "sitemap": true
-    },
     "/library/archive": {
       "policyRouteId": "bg-library-archive-root",
       "title": "Архив карт БГ Hearthstone | HearthPulse",
@@ -249,36 +207,6 @@
       "policyRouteId": "bg-library-archive",
       "title": "Архив заклинаний БГ Hearthstone | HearthPulse",
       "description": "Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.",
-      "sitemap": true
-    },
-    "/library/archive/anomalies": {
-      "policyRouteId": "bg-library-archive",
-      "title": "Архив аномалий Полей сражений | HearthPulse",
-      "description": "Архив аномалий Hearthstone Battlegrounds: эффекты, которые больше не входят в активный пул.",
-      "sitemap": true
-    },
-    "/library/archive/quests": {
-      "policyRouteId": "bg-library-archive",
-      "title": "Архив квестов Полей сражений | HearthPulse",
-      "description": "Архив квестов Hearthstone Battlegrounds: задания прошлых сезонов, условия и описания.",
-      "sitemap": true
-    },
-    "/library/archive/rewards": {
-      "policyRouteId": "bg-library-archive",
-      "title": "Архив наград Полей сражений | HearthPulse",
-      "description": "Архив наград квестов Hearthstone Battlegrounds: карты и эффекты прошлых сезонов.",
-      "sitemap": true
-    },
-    "/library/archive/darkmoon-prizes": {
-      "policyRouteId": "bg-library-archive",
-      "title": "Архив призов Ярмарки Новолуния | HearthPulse",
-      "description": "Архив призов Ярмарки Новолуния в Hearthstone Battlegrounds: старые карты и русские описания.",
-      "sitemap": true
-    },
-    "/library/archive/trinkets": {
-      "policyRouteId": "bg-library-archive",
-      "title": "Архив аксессуаров Полей сражений | HearthPulse",
-      "description": "Архив аксессуаров Hearthstone Battlegrounds: малые и большие аксессуары прошлых сезонов.",
       "sitemap": true
     },
     "/battlegrounds/tier-list": {

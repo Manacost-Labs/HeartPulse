@@ -23,12 +23,32 @@ const headings: Record<string, string> = {
   '/library/archive/trinkets': 'Архив аксессуаров Полей сражений',
 };
 
+// These routes remain outside the legacy prerender registry until Nginx owns
+// their Next pages; that registry is also the Vite materialization contract.
+const stagedDescriptions: Record<string, string> = {
+  '/library/anomalies': 'Аномалии Hearthstone Battlegrounds: эффекты и карты, доступные в актуальном пуле Полей сражений.',
+  '/library/dark-gifts': 'Темные дары Hearthstone Battlegrounds: русские описания эффектов и изображения карт сезонного набора.',
+  '/library/quests': 'Квесты Hearthstone Battlegrounds: условия выполнения, русские описания и карты актуального пула.',
+  '/library/rewards': 'Награды квестов Hearthstone Battlegrounds: эффекты, изображения и карты актуального пула.',
+  '/library/darkmoon-prizes': 'Призы Ярмарки Новолуния в Hearthstone Battlegrounds: русские тексты и карты актуального пула.',
+  '/library/trinkets': 'Малые и большие аксессуары Hearthstone Battlegrounds: эффекты, группы и изображения карт.',
+  '/library/timewarped': 'Хрономальные карты Timewarped Tavern в Hearthstone Battlegrounds: существа, заклинания и силы героев.',
+  '/library/archive/anomalies': 'Архив аномалий Hearthstone Battlegrounds: эффекты, которые больше не входят в активный пул.',
+  '/library/archive/quests': 'Архив квестов Hearthstone Battlegrounds: задания прошлых сезонов, условия и описания.',
+  '/library/archive/rewards': 'Архив наград квестов Hearthstone Battlegrounds: карты и эффекты прошлых сезонов.',
+  '/library/archive/darkmoon-prizes': 'Архив призов Ярмарки Новолуния в Hearthstone Battlegrounds: старые карты и русские описания.',
+  '/library/archive/trinkets': 'Архив аксессуаров Hearthstone Battlegrounds: малые и большие аксессуары прошлых сезонов.',
+};
+
 export type LibrarySearch = Promise<Record<string, string | string[] | undefined>>;
 
 export function battlegroundLibraryListing(path: string) {
   const normalized = path.replace(/\/+$/, '');
-  const seo = seoPageForExactPath(normalized);
   const heading = headings[normalized];
+  const stagedDescription = stagedDescriptions[normalized];
+  const seo = seoPageForExactPath(normalized) ?? (heading && stagedDescription
+    ? { title: `${heading} | HearthPulse`, description: stagedDescription }
+    : null);
   return seo && heading ? { pathname: `${normalized}/`, heading, description: seo.description, seo } : null;
 }
 
