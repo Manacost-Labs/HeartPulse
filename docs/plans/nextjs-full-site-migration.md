@@ -178,22 +178,22 @@ checks on the deployed release.
 `/standard/fun-decks/` also uses Next.js after direct-port and browser checks.
 The `/standard/archetypes/` catalog is served by Next.js after deployed
 direct-port and browser verification. Its guest teaser, subscriber and
-administrator access, and query filters remain intact. Detail URLs stay on
-the legacy route until their separate deployment and browser verification.
+administrator access, and query filters remain intact. Detail URLs use Next.js
+after separate deployment and browser verification.
 It preserves the current public dataset API and client-side three-deck preview.
 Both archetype detail URL families are staged in Next.js using anonymous
 teaser data for server HTML, request-time 404 checks and account-scoped full
-data after hydration. Their public Nginx owner remains legacy until deployed
-browser verification.
-The guides archive listing is staged separately in Next.js. Its public title
+data after hydration. Their public Nginx owner switched after deployed browser
+verification.
+The guides archive listing uses Next.js. Its public title
 and description render without a session; the existing protected list API is
 called only after a guides-archive entitlement or administrator role is
-verified. Its public Nginx owner remains legacy until deployed browser checks.
-Individual guide pages are also staged in Next.js. A new anonymous Express
+verified. Its public Nginx owner switched after deployed browser checks.
+Individual guide pages also use Next.js. A new anonymous Express
 teaser supplies a title and excerpt for request-time HTML, while the existing
 full-content API remains behind the guides-archive entitlement. Missing guides
 return 404 and numeric old links canonicalize to their resolved slugs. Nginx
-ownership still awaits a deployed browser check.
+ownership switched after a deployed browser check.
 The `/heroes/` Battlegrounds list is staged in Next.js. Guests receive a
 public description; the existing hero statistics client mounts only after
 `battlegrounds` entitlement or administrator access is verified. Detail hero

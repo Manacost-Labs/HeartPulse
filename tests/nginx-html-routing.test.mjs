@@ -489,6 +489,10 @@ for (const route of inventory.routes) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
+  if (['guides-archive', 'guides-archive-detail', 'constructed-archetype-detail', 'standard-meta-legacy-detail'].includes(route.id)) {
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
+    continue;
+  }
   if (route.id === 'bg-hero-detail'
     || route.id === 'bg-library-detail' || route.id === 'cosmetics-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
@@ -741,6 +745,26 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next archetypes</title>',
     }],
+    ['/standard/archetypes/standard/tempo-mage/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next archetype detail</title>',
+    }],
+    ['/standard/meta/standard/tempo-mage/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next legacy meta detail</title>',
+    }],
+    ['/guides-archive/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next guides archive</title>',
+    }],
+    ['/guides-archive/guide-1/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next guide detail</title>',
+    }],
     ['/gallery/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -836,7 +860,7 @@ async function startCardSeoUpstream() {
   const server = createHttpServer((incomingRequest, response) => {
     const incomingUrl = new URL(incomingRequest.url || '/', 'http://arena.test');
     const pathname = incomingUrl.pathname;
-    const fixture = ['/', '/articles/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+    const fixture = ['/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1003,7 +1027,6 @@ http {
       '/library/minions/',
       '/library/anomalies/example-76521/',
       '/library/archive/minions/example-76521/',
-      '/guides-archive/guide-1/',
     ]) {
       const shell = await requestNginx(port, shellPath);
       assert.equal(shell.status, 200, `${shellPath} must retain client navigation before its SSR resolver exists`);
@@ -1018,6 +1041,8 @@ http {
       ['/faq/', /Next FAQ/],
       ['/developers/api/', /Next developer API/],
       ['/articles/', /Next articles/],
+      ['/guides-archive/', /Next guides archive/],
+      ['/guides-archive/guide-1/', /Next guide detail/],
       ['/contests/', /Next contests/],
       ['/classes/', /Next classes/],
       ['/tierlist/', /Next tierlist/],
@@ -1037,6 +1062,19 @@ http {
         assert.equal(nextResponse.headers['x-robots-tag'], undefined,
           `${path} must stay indexable on success`);
       }
+    }
+    for (const path of ['/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/']) {
+      const detail = await requestNginx(port, path);
+      assert.equal(detail.status, 200, `${path} must reach Next`);
+      assert.match(detail.body, /Next (?:archetype|legacy meta) detail/);
+      assert.equal(detail.headers['x-robots-tag'], 'noindex, follow');
+    }
+    const guideFilter = await requestNginx(port, '/guides-archive/?q=arena');
+    assert.equal(guideFilter.headers['x-robots-tag'], 'noindex, follow');
+    for (const path of ['/guides-archive/guide-1/?fail=1', '/standard/archetypes/standard/tempo-mage/?fail=1']) {
+      const failed = await requestNginx(port, path);
+      assert.equal(failed.status, 503);
+      assert.equal(failed.headers['x-robots-tag'], 'noindex, nofollow');
     }
 
     const galleryRedirect = await requestNginx(port, '/gallery');

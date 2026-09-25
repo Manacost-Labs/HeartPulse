@@ -19,5 +19,4 @@ administrator access is verified.
 Missing guide IDs/slugs return an actual 404. Numeric legacy IDs remain valid
 deep links and use the resolved slug as canonical. Guest HTML is indexable and
 contains the public title and description, but no full article text. Nginx
-still serves both guide routes from the legacy release until deployed browser
-verification.
+serves both guide routes from Next.js after deployed browser verification.

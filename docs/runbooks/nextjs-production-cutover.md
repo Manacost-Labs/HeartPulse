@@ -68,7 +68,8 @@ The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus gallery, FAQ, privacy, terms, developer API documentation, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
-home to port 4321, and forwards
+its detail/legacy-meta URLs, the guides archive and guide details, and home
+to port 4321, and forwards
 `/_next/` build
 assets to the same process.
 The SEO map keeps filtered article pages `noindex, follow`, the home login
