@@ -549,16 +549,12 @@ export function createBattlegroundLibrarySeoRouter(
     return pending;
   };
 
-  router.use(createBattlegroundLibraryPublicRouter({
-    loadCatalog, retryAfterSeconds, onError: dependencies.onError,
-  }));
+  router.use(createBattlegroundLibraryPublicRouter({ loadCatalog, retryAfterSeconds, onError: dependencies.onError }));
   router.use(createBattlegroundLibraryAuxiliaryPublicRouter({
     fetchImpl, retryAfterSeconds, onError: dependencies.onError,
     apiBaseUrl: dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1',
-    publicImageUrl: value => sameOriginPublicResourceUrl(value, origin)
-      ?? `${origin}/assets/og-preview.png`,
+    publicImageUrl: value => sameOriginPublicResourceUrl(value, origin) ?? `${origin}/assets/og-preview.png`,
   }));
-
   const handlerFor = (kind: BattlegroundLibraryKind): RequestHandler => async (request, response) => {
     const detail = parseDetailParameter(request.params.slugAndDbfId);
     if (!detail) {
