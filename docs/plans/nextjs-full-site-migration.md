@@ -180,6 +180,7 @@ The `/standard/archetypes/` catalog is served by Next.js after deployed
 direct-port and browser verification. Its guest teaser, subscriber and
 administrator access, and query filters remain intact. Detail URLs stay on
 the legacy route until their separate deployment and browser verification.
+It preserves the current public dataset API and client-side three-deck preview.
 Both archetype detail URL families are staged in Next.js using anonymous
 teaser data for server HTML, request-time 404 checks and account-scoped full
 data after hydration. Their public Nginx owner remains legacy until deployed
@@ -206,7 +207,6 @@ The `/library/minions/`, `/library/spells/`, `/library/archive/`,
 `/library/archive/minions/` and `/library/archive/spells/` listings are also
 staged. Other categories and all card details remain with the legacy renderer
 until their own URL and data contracts are checked.
-It preserves the current public dataset API and client-side three-deck preview.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or
 administrator access is verified. Nginx switched after direct-port and browser
