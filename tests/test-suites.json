@@ -233,6 +233,7 @@
         "tests/legendary-routes.test.ts",
         "tests/metrics.test.ts",
         "tests/newsletter-unsubscribe-routes.test.ts",
+        "tests/next-heroes-banner-preload.test.mjs",
         "tests/next-public-card-pilot.test.mjs",
         "tests/observability.test.ts",
         "tests/operational-routes.test.ts",

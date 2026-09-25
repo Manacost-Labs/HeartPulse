@@ -32,5 +32,8 @@ export async function generateMetadata({ searchParams }: { searchParams: Search 
 }
 
 export default function Page() {
-  return <BattlegroundHeroesPageClient />;
+  return <>
+    <link rel="preload" href="/wallpaper/profile-hero-hth.webp" as="image" fetchPriority="high" />
+    <BattlegroundHeroesPageClient />
+  </>;
 }
