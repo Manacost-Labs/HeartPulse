@@ -137,6 +137,17 @@ function assertNoPrivateData(html: string, label: string): void {
 
 try {
   const existing = await fetch(`${origin}/heroes/57944/`);
+  const publicProjection = await fetch(`${origin}/api/bg/heroes/public/57944`);
+  assert.equal(publicProjection.status, 200);
+  assert.equal(publicProjection.headers.get('cache-control'), 'public, max-age=60');
+  const projection = await publicProjection.json();
+  assert.equal(projection.hero.dbfId, 57944);
+  assert.match(projection.hero.name, /А\. Ф\. Ка/);
+  assertNoPrivateData(JSON.stringify(projection), 'public hero API');
+  const missingProjection = await fetch(`${origin}/api/bg/heroes/public/999999`);
+  assert.equal(missingProjection.status, 404);
+  const invalidProjection = await fetch(`${origin}/api/bg/heroes/public/57944-extra`);
+  assert.equal(invalidProjection.status, 404);
   assert.equal(existing.status, 200);
   assert.match(existing.headers.get('content-type') || '', /^text\/html; charset=utf-8/i);
   assert.equal(
@@ -279,6 +290,10 @@ async function assertUnavailable(
   const unavailableAddress = unavailableServer.address();
   assert.ok(unavailableAddress && typeof unavailableAddress === 'object');
   try {
+    const unavailableProjection = await fetch(`http://127.0.0.1:${unavailableAddress.port}/api/bg/heroes/public/57944`);
+    assert.equal(unavailableProjection.status, 503, `${label} projection must be retryable`);
+    assert.equal(unavailableProjection.headers.get('retry-after'), expectedRetryAfter);
+    assert.equal(unavailableProjection.headers.get('cache-control'), 'no-store');
     const unavailable = await fetch(`http://127.0.0.1:${unavailableAddress.port}/heroes/57944/`);
     assert.equal(unavailable.status, 503, `${label} must be retryable instead of a false 404`);
     assert.equal(unavailable.headers.get('retry-after'), expectedRetryAfter);

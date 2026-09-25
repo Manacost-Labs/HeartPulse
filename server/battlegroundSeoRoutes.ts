@@ -387,6 +387,64 @@ export function createBattlegroundHeroSeoRouter(
   const catalogTimeoutMs = Math.max(1, Math.min(25_000, Math.floor(dependencies.catalogTimeoutMs ?? 20_000)));
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
 
+  const loadHero = async (dbfId: string): Promise<PublicBattlegroundHero | null> => {
+    const controller = new AbortController();
+    const fetchCatalog = async (url: string): Promise<PublicBattlegroundHero[]> => {
+      const upstream = await fetchImpl(url, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundHeroSEO' },
+      });
+      if (!upstream.ok) throw new Error(`Battleground hero catalog HTTP ${upstream.status}`);
+      return parseCatalog(await upstream.json());
+    };
+    const soloHeroes = await withDeadline(fetchCatalog(CATALOG_URL), catalogTimeoutMs, controller);
+    let hero = soloHeroes.find(candidate => String(candidate.dbfId) === dbfId);
+    if (!hero) {
+      const duoHeroes = await withDeadline(fetchCatalog(DUOS_CATALOG_URL), catalogTimeoutMs, controller);
+      hero = duoHeroes.find(candidate => String(candidate.dbfId) === dbfId);
+      if (hero) {
+        try {
+          const libraryUrl = new URL(HERO_LIBRARY_URL);
+          libraryUrl.searchParams.set('dbf', dbfId);
+          const libraryResponse = await withDeadline(fetchImpl(libraryUrl, {
+            signal: controller.signal,
+            headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundHeroSEO' },
+          }), catalogTimeoutMs, controller);
+          if (libraryResponse.ok) hero = mergeLibraryHero(hero, await libraryResponse.json());
+        } catch (libraryError) {
+          try { dependencies.onError?.(libraryError); } catch {
+            // Optional localization diagnostics must not replace a valid hero page.
+          }
+        }
+      }
+    }
+    return hero ?? null;
+  };
+
+  router.get('/api/bg/heroes/public/:dbfId', async (request, response) => {
+    const dbfId = String(request.params.dbfId ?? '');
+    response.set('X-Robots-Tag', NOINDEX_ROBOTS);
+    response.set('Cache-Control', 'public, max-age=60');
+    if (!isPositiveDbfId(dbfId)) return response.status(404).json({ error: 'Hero not found' });
+    try {
+      const hero = await loadHero(dbfId);
+      if (!hero) return response.status(404).json({ error: 'Hero not found' });
+      return response.json({ hero: {
+        dbfId: hero.dbfId, cardId: hero.cardId, name: hero.name,
+        image: safeImageUrl(hero.image, origin),
+        heroPower: hero.heroPower ? {
+          name: hero.heroPower.name, text: hero.heroPower.text,
+          image: safeImageUrl(hero.heroPower.image, origin),
+        } : null,
+      } });
+    } catch (error) {
+      try { dependencies.onError?.(error); } catch { /* diagnostics are best-effort */ }
+      response.set('Cache-Control', 'no-store');
+      response.set('Retry-After', String(retryAfterSeconds));
+      return response.status(503).json({ error: 'Hero catalog temporarily unavailable' });
+    }
+  });
+
   const handler: RequestHandler = async (request, response) => {
     const dbfId = String(request.params.dbfId ?? '');
     if (!/^[1-9][0-9]*$/.test(dbfId)) {
@@ -399,45 +457,8 @@ export function createBattlegroundHeroSeoRouter(
       }));
     }
 
-    const controller = new AbortController();
     try {
-      const fetchCatalog = async (url: string): Promise<PublicBattlegroundHero[]> => {
-        const upstream = await fetchImpl(url, {
-          signal: controller.signal,
-          headers: {
-            Accept: 'application/json',
-            'User-Agent': 'HearthPulse/BattlegroundHeroSEO',
-          },
-        });
-        if (!upstream.ok) throw new Error(`Battleground hero catalog HTTP ${upstream.status}`);
-        return parseCatalog(await upstream.json());
-      };
-      const soloHeroes = await withDeadline(fetchCatalog(CATALOG_URL), catalogTimeoutMs, controller);
-      let hero = soloHeroes.find(candidate => String(candidate.dbfId) === dbfId);
-      if (!hero) {
-        const duoHeroes = await withDeadline(fetchCatalog(DUOS_CATALOG_URL), catalogTimeoutMs, controller);
-        hero = duoHeroes.find(candidate => String(candidate.dbfId) === dbfId);
-        if (hero) {
-          try {
-            const libraryUrl = new URL(HERO_LIBRARY_URL);
-            libraryUrl.searchParams.set('dbf', dbfId);
-            const libraryResponse = await withDeadline(fetchImpl(libraryUrl, {
-              signal: controller.signal,
-              headers: {
-                Accept: 'application/json',
-                'User-Agent': 'HearthPulse/BattlegroundHeroSEO',
-              },
-            }), catalogTimeoutMs, controller);
-            if (libraryResponse.ok) hero = mergeLibraryHero(hero, await libraryResponse.json());
-          } catch (libraryError) {
-            try {
-              dependencies.onError?.(libraryError);
-            } catch {
-              // Optional localization diagnostics must not replace a valid hero page.
-            }
-          }
-        }
-      }
+      const hero = await loadHero(dbfId);
       if (!hero) {
         return sendHtml(response, 404, NOINDEX_ROBOTS, renderNoindexDocument({
           title: 'Герой не найден | HearthPulse',

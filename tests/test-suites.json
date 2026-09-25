@@ -339,6 +339,7 @@
         "tests/mobile-layout-diagnostics.test.mjs",
         "tests/modal-surface-browser.test.mjs",
         "tests/next-admin-entitlements-browser.test.mjs",
+        "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-archetype-details-browser.test.mjs",
         "tests/next-guide-detail-browser.test.mjs",
         "tests/page-headers-browser.test.mjs",

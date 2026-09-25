@@ -196,7 +196,9 @@ ownership still awaits a deployed browser check.
 The `/heroes/` Battlegrounds list is staged in Next.js. Guests receive a
 public description; the existing hero statistics client mounts only after
 `battlegrounds` entitlement or administrator access is verified. Detail hero
-URLs and the public Nginx owner remain legacy until their separate checks.
+URLs now have a staged Next.js implementation with anonymous identity,
+protected statistics and real missing-ID responses. Public Nginx ownership
+remains legacy until deployed browser checks.
 It preserves the current public dataset API and client-side three-deck preview.
 `/standard/vicious-gold/` serves a public description from Next.js. Its
 protected summary and builds requests begin only after standard entitlement or

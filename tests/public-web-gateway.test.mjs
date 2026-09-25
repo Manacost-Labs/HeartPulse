@@ -57,7 +57,7 @@ test('static public pages roll out independently of cards', () => {
     assert.equal(publicWebOwner(`/${page}/`, false, 'POST', true), 'legacy');
   }
   assert.equal(publicWebOwner('/standard/cards/', false, 'GET', true), 'legacy');
-  assert.equal(publicWebOwner('/heroes/123/', false, 'GET', true), 'legacy');
+  assert.equal(publicWebOwner('/heroes/123/', false, 'GET', true), 'next');
   for (const family of ['archetypes', 'meta']) {
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'POST', true), 'legacy');
