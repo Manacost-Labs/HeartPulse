@@ -72,7 +72,7 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 ## Remaining execution queue (2026-09-25)
 
 The [coverage ledger](nextjs-route-coverage.md) is the exhaustive route list;
-the following queue turns its 11 remaining entries and two additional HTML
+the following queue turns its 9 remaining entries and two additional HTML
 pages into independently releasable slices. Each slice ends with a focused
 HTTP/permission test, Next build, direct-port browser review, a commit, a
 separate Nginx owner switch, and verification of the deployed SHA. A Next route
@@ -84,10 +84,9 @@ alone does not close a ledger row.
 2. Completed: `/battlegrounds/tier-list` keeps its public teaser and paid data
    separate; source/filter state and empty/error views survive refresh. Nginx
    switched after deployed direct-port review.
-3. Move `/battlegrounds/strategies` and `/battlegrounds/tier-builder`.
-   Verify saved state, imports/exports, client interactions and legacy assets.
-   Both Next routes are staged; public Nginx ownership remains to be switched
-   after deployed direct-port review.
+3. Completed: `/battlegrounds/strategies` and `/battlegrounds/tier-builder`
+   preserve saved state, imports/exports, client interactions and legacy assets
+   after the public Nginx owner switch.
 4. Move `/archetypes/wild`, `/archetypes/` and `/deck-builder/`.
    Check direct load, editing, authentication and `noindex`; record the latter
    two explicit Nginx pages in the reconciled inventory.

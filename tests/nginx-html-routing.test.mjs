@@ -540,6 +540,19 @@ for (const route of inventory.routes) {
       `${route.id} 404/503 HTML and Retry-After must pass through nginx`);
     continue;
   }
+  if (['bg-strategies', 'bg-tier-builder'].includes(route.id)) {
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
+    const resolver = firstMatchingRegexLocation(`${path}/`);
+    assert.doesNotMatch(resolver?.body || '', /try_files\s+[^;]*\/index\.html/,
+      `${route.id} must not fall back to a static legacy shell`);
+    assert.match(resolver?.body || '', /proxy_hide_header X-Robots-Tag;/,
+      `${route.id} must avoid duplicate upstream robots headers`);
+    assert.match(resolver?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+      `${route.id} errors must remain noindex`);
+    assert.match(resolver?.body || '', /proxy_intercept_errors\s+off;/,
+      `${route.id} 404 HTML must pass through nginx`);
+    continue;
+  }
   expectRegexAction(`${path}/`, '@arena_spa_noindex;', `${route.id} canonical route`);
 }
 
@@ -770,6 +783,26 @@ async function startCardSeoUpstream() {
       status: 404,
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next BG tier list missing</title>',
+    }],
+    ['/battlegrounds/strategies/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next BG strategies</title>',
+    }],
+    ['/battlegrounds/tier-builder/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next BG tier builder</title>',
+    }],
+    ['/battlegrounds/strategies/not-a-page/', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next BG strategy missing</title>',
+    }],
+    ['/battlegrounds/tier-builder/not-a-page/', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next BG tier builder missing</title>',
     }],
     ['/legendaries/', {
       status: 200,
@@ -1147,6 +1180,22 @@ http {
     const bgTierMissing = await requestNginx(port, '/battlegrounds/tier-list/not-a-page/');
     assert.equal(bgTierMissing.status, 404);
     assert.equal(bgTierMissing.headers['x-robots-tag'], 'noindex, nofollow');
+
+    for (const [path, title] of [
+      ['/battlegrounds/strategies', 'Next BG strategies'],
+      ['/battlegrounds/tier-builder', 'Next BG tier builder'],
+    ]) {
+      const canonical = await requestNginx(port, `${path}/`);
+      assert.equal(canonical.status, 200, path);
+      assert.match(canonical.body, new RegExp(`<title>${title}<\\/title>`));
+      assert.equal(canonical.headers['x-robots-tag'], undefined, path);
+      const redirect = await requestNginx(port, path);
+      assert.equal(redirect.status, 301, path);
+      assert.equal(redirect.headers.location?.endsWith(`${path}/`), true, path);
+      const missing = await requestNginx(port, `${path}/not-a-page/`);
+      assert.equal(missing.status, 404, path);
+      assert.equal(missing.headers['x-robots-tag'], 'noindex, nofollow', path);
+    }
 
     for (const detailPath of ['/library/anomalies/example-76521/', '/library/archive/minions/example-76521/']) {
       const detail = await requestNginx(port, detailPath);

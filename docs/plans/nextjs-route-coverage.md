@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (36 inventory entries)
+## Already served by Next.js (38 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -48,15 +48,12 @@ have been checked together. A route count alone is not a completion signal.
 - `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
 - `bg-tier-list` — `/battlegrounds/tier-list`
-
-## Interactive Battlegrounds HTML (2)
-
 - `bg-strategies` — `/battlegrounds/strategies`
 - `bg-tier-builder` — `/battlegrounds/tier-builder`
 
-Preserve saved state, imports, exports and the assets used by legacy scripts.
-Both Next routes and their anonymous/subscriber browser contract are staged;
-public Nginx still serves the legacy HTML until deployed direct-port review.
+Their saved state, imports, exports and legacy script assets remain available
+through Next's client-side controls. The public Nginx owner now routes both
+builders and their invalid descendants to Next.
 
 ## Identity, connection and admin HTML (5)
 
