@@ -80,8 +80,8 @@ alone does not close a ledger row.
 1. Add `/library/:additionalKind/:slugAndDbfId` and
    `/library/archive/:kind/:slugAndDbfId`. Reuse the detail contract; check
    every supported kind plus unsupported and missing URLs.
-   The anonymous base-archive and auxiliary-card projections are staged in
-   Express; Next detail pages and their Nginx owner switch remain.
+   The anonymous base-archive and auxiliary-card projections and Next detail
+   pages are staged; their deployed browser review and Nginx owner switch remain.
 2. Move `/cosmetics`, `/cosmetics/:kind` and
    `/cosmetics/:kind/:cardId`. Match public data, permissions, images, SEO,
    filters, 404 and 5xx responses.

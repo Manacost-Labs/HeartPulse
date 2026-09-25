@@ -8,6 +8,8 @@ keeping canonical and breadcrumb structure consistent across renderers.
 `server/modules/battlegroundLibrary` owns anonymous card-detail projections
 for base, additional and archive categories. The public routes expose bounded
 identity fields; paid statistics remain behind the existing authorization API.
+`apps/public-web/lib/battlegroundLibraryDetailRoute.tsx` composes their shared
+Next.js metadata, canonical redirects and JSON-LD for current and archive URLs.
 
 ## Public home
 

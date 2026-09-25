@@ -37,6 +37,9 @@ additional current categories and the five supported archive categories. It
 queries the established catalog with an exact DBF filter, rejects a mismatched
 identity or pool, and returns only bounded public identity, rules text, safe
 image and canonical path. Unsupported kinds and missing cards return 404;
-catalog failures return non-cacheable 503 with `Retry-After`. These endpoints
-prepare the Next.js detail routes; public HTML remains on the legacy owner
-until its separately verified switch.
+catalog failures return non-cacheable 503 with `Retry-After`. The staged Next.js
+additional and archive detail routes consume these projections, render public
+identity and entity JSON-LD, and load protected statistics only after an
+entitlement or administrator check. Unsupported kinds and missing IDs produce
+real 404 HTML; upstream outages produce retryable 503 HTML. Public Nginx HTML
+remains on the legacy owner until its separately verified switch.

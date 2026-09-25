@@ -47,9 +47,11 @@ have been checked together. A route count alone is not a completion signal.
 - `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
 - `bg-library-additional-detail` —
-  `/library/:additionalKind/:slugAndDbfId`
+  `/library/:additionalKind/:slugAndDbfId` (Next route staged with a public
+  projection; Nginx still serves the legacy renderer)
 - `bg-library-archive-detail` —
-  `/library/archive/:kind/:slugAndDbfId`
+  `/library/archive/:kind/:slugAndDbfId` (Next route staged for all seven
+  supported kinds; Nginx still serves the legacy renderer)
 - `bg-tier-list` — `/battlegrounds/tier-list`
 
 Match static, archive and detail routes in that order so a broad dynamic

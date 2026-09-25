@@ -70,6 +70,15 @@ test('static public pages roll out independently of cards', () => {
   assert.equal(publicWebOwner('/library/archive/dark-gifts/', false, 'GET', true), 'legacy');
   assert.equal(publicWebOwner('/library/minions/example-123/', false, 'GET', true), 'next');
   assert.equal(publicWebOwner('/library/spells/example-123/', false, 'POST', true), 'legacy');
+  for (const path of ['/library/anomalies/example-123/', '/library/dark-gifts/example-123/',
+    '/library/quests/example-123/', '/library/rewards/example-123/',
+    '/library/darkmoon-prizes/example-123/', '/library/trinkets/example-123/',
+    '/library/timewarped/example-123/', '/library/archive/minions/example-123/',
+    '/library/archive/spells/example-123/', '/library/archive/anomalies/example-123/',
+    '/library/archive/quests/example-123/', '/library/archive/rewards/example-123/',
+    '/library/archive/darkmoon-prizes/example-123/', '/library/archive/trinkets/example-123/']) {
+    assert.equal(publicWebOwner(path, false, 'GET', true), 'next', path);
+  }
   for (const family of ['archetypes', 'meta']) {
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/standard/${family}/wild/thief-priest/`, false, 'POST', true), 'legacy');

@@ -2,23 +2,24 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { constructedCardRoute } from '../../src/modules/constructedCards/public';
 import { publicBattlegroundHero } from './lib/publicBattlegroundHeroData';
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
+import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';
 import { encodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
   PUBLIC_BG_PROJECTION_HEADER } from './lib/publicBattlegroundProjectionHeader';
 
 type BattlegroundDetailProbe =
   | { type: 'hero'; dbfId: string; apiPath: string }
-  | { type: 'card'; dbfId: string; kindPath: 'minions' | 'spells'; apiPath: string };
+  | { type: 'card'; dbfId: string; kindPath: string; pool: BattlegroundLibraryPool; apiPath: string };
 
 function battlegroundDetailProbe(pathname: string): BattlegroundDetailProbe | null {
   const hero = pathname.match(/^\/heroes\/([1-9][0-9]*)\/?$/u);
   if (hero && Number.isSafeInteger(Number(hero[1]))) {
     return { type: 'hero', dbfId: hero[1], apiPath: `/api/bg/heroes/public/${hero[1]}` };
   }
-  const card = pathname.match(/^\/library\/(minions|spells)\/[^/]+-([1-9][0-9]*)\/?$/u);
-  if (card && pathname.length <= 600 && Number.isSafeInteger(Number(card[2]))) {
-    const kindPath = card[1] as 'minions' | 'spells';
-    return { type: 'card', dbfId: card[2], kindPath,
-      apiPath: `/api/bg/library/public/${kindPath === 'minions' ? 'minion' : 'spell'}/${card[2]}` };
+  const card = pathname.match(/^\/library\/(archive\/)?([^/]+)\/[^/]+-([1-9][0-9]*)\/?$/u);
+  if (card && pathname.length <= 600 && Number.isSafeInteger(Number(card[3]))) {
+    const pool = card[1] ? 'archive' : 'current';
+    const apiPath = battlegroundLibraryDetailApiPath(card[2], pool, card[3]);
+    if (apiPath) return { type: 'card', dbfId: card[3], kindPath: card[2], pool, apiPath };
   }
   return null;
 }
@@ -55,7 +56,7 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
     if (probe.type === 'hero') {
       projection = { hero: publicBattlegroundHero(value, probe.dbfId) };
     } else {
-      const card = publicBattlegroundLibraryCard(value, probe.kindPath, probe.dbfId);
+      const card = publicBattlegroundLibraryCard(value, probe.kindPath, probe.dbfId, probe.pool);
       projection = { card: { dbfId: card.dbfId, kind: card.kind, nameRu: card.name,
         typeName: card.typeName, textRu: card.text, images: { card: card.image } },
       canonicalPath: card.canonicalPath };
