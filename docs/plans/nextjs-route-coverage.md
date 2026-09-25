@@ -44,10 +44,12 @@ have been checked together. A route count alone is not a completion signal.
 - `cosmetics` — `/cosmetics`
 - `cosmetics-kind` — `/cosmetics/:kind`
 - `cosmetics-detail` — `/cosmetics/:kind/:cardId`
-- `bg-hero-detail` — `/heroes/:dbfId` (Next route staged; public identity and
-  real 404; Nginx remains on Express until retryable 503 behavior is preserved)
+- `bg-hero-detail` — `/heroes/:dbfId` (Next route staged with public identity,
+  real 404 and retryable 503; Nginx remains on Express pending deployed
+  direct-port and browser checks)
 - `bg-library-detail` — `/library/:kind/:slugAndDbfId` (minion and spell
-  details staged in Next; public Nginx owner remains Express)
+  details staged in Next with 404/503; public Nginx owner remains Express
+  pending deployed direct-port and browser checks)
 - `bg-library-additional-detail` —
   `/library/:additionalKind/:slugAndDbfId`
 - `bg-library-archive-detail` —

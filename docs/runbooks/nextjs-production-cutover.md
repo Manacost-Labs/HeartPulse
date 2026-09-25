@@ -78,8 +78,11 @@ The SEO map keeps filtered article pages `noindex, follow`, the home login
 query `noindex, nofollow`, and adds a
 `noindex, nofollow` response header to Next HTML errors without changing
 ordinary successful responses. Hero and base library card details remain on
-Express until their Next implementations preserve retryable catalog-outage
-responses; other HTML and API routes remain on Express/Vite.
+Express until their staged Next 200/404/503 responses pass deployed
+direct-port and browser checks and their own reviewed Nginx owner switch.
+For these detail routes, sample a live ID, missing ID and canonical redirect;
+the focused fixture test covers upstream 503, `Retry-After`, HEAD and no-store.
+Other HTML and API routes remain on Express/Vite.
 Verify the canonical public host on desktop and mobile: both card catalogs,
 a card detail sampled from the live sitemap, a confirmed unknown card (404
 with an `X-Robots-Tag: noindex` header), gallery image loading and downloads,

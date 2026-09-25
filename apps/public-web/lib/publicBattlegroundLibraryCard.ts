@@ -1,6 +1,9 @@
 import 'server-only';
 import { cache } from 'react';
+import { headers } from 'next/headers';
 import { publicBattlegroundLibraryCard } from './publicBattlegroundLibraryCardData';
+import { decodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
+  PUBLIC_BG_PROJECTION_HEADER } from './publicBattlegroundProjectionHeader';
 
 /** Loads an anonymous card projection without forwarding a browser session. */
 export const loadPublicBattlegroundLibraryCard = cache(async (kind: string, slugAndDbfId: string) => {
@@ -8,6 +11,10 @@ export const loadPublicBattlegroundLibraryCard = cache(async (kind: string, slug
   if (slugAndDbfId.length > 180) return null;
   const match = slugAndDbfId.match(/^(.+)-([1-9][0-9]*)$/u);
   if (!match || match[1].length > 80 || !Number.isSafeInteger(Number(match[2]))) return null;
+  const projection = (await headers()).get(PUBLIC_BG_PROJECTION_HEADER);
+  if (projection === MISSING_PUBLIC_BG_PROJECTION) return null;
+  if (projection) return publicBattlegroundLibraryCard(
+    decodePublicBattlegroundProjection(projection), kind, match[2]);
   const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
   if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/') {
     throw new Error('Invalid legacy origin');

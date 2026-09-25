@@ -257,8 +257,9 @@ public description; the existing hero statistics client mounts only after
 `battlegrounds` entitlement or administrator access is verified. Detail hero
 URLs now have a staged Next.js implementation with anonymous identity,
 protected statistics and real missing-ID responses. Public Nginx ownership
-remains with Express until the staged detail route preserves retryable 503
-responses on catalog outages.
+remains with Express until the staged detail route, now preserving retryable
+503 responses on catalog outages, passes deployed direct-port and browser
+checks.
 The `/library/` listing uses Next.js with a public HTML description. Its existing
 card filters and statistics mount only after Battlegrounds entitlement or
 administrator access is verified.
@@ -266,7 +267,8 @@ All inventory-listed `/library/:kind/` and `/library/archive/:kind/` categories
 use Next.js, including anomaly, quest, reward, prize and trinket variants.
 Unsupported archive categories return 404. Minion and spell card details are
 staged with anonymous identity, canonical links and real missing-card 404s;
-their public owner remains Express until retryable 503 behavior is preserved.
+their staged route also preserves retryable 503 behavior. Their public owner
+remains Express pending deployed direct-port and browser checks.
 Additional and archive card details remain with the legacy renderer until
 their own URL and data contracts are checked.
 `/standard/vicious-gold/` serves a public description from Next.js. Its

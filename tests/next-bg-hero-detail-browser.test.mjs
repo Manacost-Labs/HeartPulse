@@ -21,10 +21,16 @@ const hero = { hero: {
 } };
 
 test('Next hero detail renders a safe teaser and real 404 without guest statistics requests', async () => {
+  let publicCalls = 0;
   const legacy = http.createServer((request, response) => {
     const pathname = new URL(request.url, 'http://fixture').pathname;
     response.setHeader('Content-Type', 'application/json');
-    if (pathname === '/api/bg/heroes/public/57944') { response.end(JSON.stringify(hero)); return; }
+    if (pathname === '/api/bg/heroes/public/57944') {
+      publicCalls += 1; response.end(JSON.stringify(hero)); return;
+    }
+    if (pathname === '/api/bg/heroes/public/888888') {
+      response.writeHead(503, { 'Retry-After': '45' }).end('{"error":"unavailable"}'); return;
+    }
     if (pathname.startsWith('/api/bg/heroes/public/')) { response.writeHead(404).end('{"error":"missing"}'); return; }
     if (pathname === '/api/auth/me') { response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return; }
     if (pathname.startsWith('/api/')) { response.writeHead(401).end('{"error":"guest"}'); return; }
@@ -88,10 +94,23 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
       assert.equal(state.html.includes('PRIVATE_HERO_STATISTICS'), false);
     }
     assert.deepEqual(errors, []); assert.deepEqual(failed, []); assert.deepEqual(protectedCalls, []);
+    const callsBeforeSpoof = publicCalls;
+    const spoofed = await fetch(`${origin}/heroes/57944/`, { headers: {
+      'x-hearthpulse-bg-public-projection': `v1:${Buffer.from('{"hero":{}}').toString('base64url')}`,
+    } });
+    assert.equal(spoofed.status, 200);
+    assert.match(await spoofed.text(), /А\. Ф\. Ка/);
+    assert.equal(publicCalls - callsBeforeSpoof, 1, 'a valid page uses one anonymous projection request');
     const missing = await page.goto(`${origin}/heroes/999999/`, { waitUntil: 'networkidle2' });
     assert.equal(missing.status(), 404);
     assert.equal(await page.$eval('meta[name="robots"]', node => node.content), 'noindex, nofollow');
     assert.equal(await page.$('link[rel="canonical"]'), null);
+    const outage = await fetch(`${origin}/heroes/888888/`, { redirect: 'manual' });
+    assert.equal(outage.status, 503);
+    assert.equal(outage.headers.get('retry-after'), '45');
+    assert.equal(outage.headers.get('x-robots-tag'), 'noindex, nofollow');
+    assert.match(outage.headers.get('cache-control') ?? '', /no-store/);
+    assert.match(await outage.text(), /временно недоступн/i);
     await page.close();
   } finally {
     if (browser) await browser.close();

@@ -23,6 +23,13 @@ test('Next Battleground card detail keeps public identity and real missing-card 
     const pathname = new URL(request.url, 'http://fixture').pathname;
     response.setHeader('Content-Type', 'application/json');
     if (pathname === '/api/bg/library/public/minion/98582') { response.end(JSON.stringify(card)); return; }
+    if (pathname === '/api/bg/library/public/minion/98583') {
+      response.end(JSON.stringify({ card: { ...card.card, dbfId: 98583, textRu: 'А'.repeat(7000) },
+        canonicalPath: '/library/minions/long-98583/' })); return;
+    }
+    if (pathname === '/api/bg/library/public/minion/888888') {
+      response.writeHead(503, { 'Retry-After': '120' }).end('{"error":"unavailable"}'); return;
+    }
     if (pathname.startsWith('/api/bg/library/public/')) { response.writeHead(404).end('{"error":"missing"}'); return; }
     if (pathname === '/api/auth/me') { response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return; }
     if (pathname.startsWith('/api/')) { response.writeHead(401).end('{"error":"guest"}'); return; }
@@ -92,6 +99,23 @@ test('Next Battleground card detail keeps public identity and real missing-card 
     const redirect = await fetch(`${origin}/library/minions/wrong-98582/?utm_source=qa`, { redirect: 'manual' });
     assert.equal(redirect.status, 308);
     assert.equal(redirect.headers.get('location'), encodeURI('/library/minions/баюбот-98582/') + '?utm_source=qa');
+    const outage = await fetch(`${origin}/library/minions/outage-888888/`, { redirect: 'manual' });
+    assert.equal(outage.status, 503);
+    assert.equal(outage.headers.get('retry-after'), '120');
+    assert.equal(outage.headers.get('x-robots-tag'), 'noindex, nofollow');
+    assert.match(outage.headers.get('cache-control') ?? '', /no-store/);
+    assert.match(await outage.text(), /временно недоступн/i);
+    const headOutage = await fetch(`${origin}/library/minions/outage-888888/`, { method: 'HEAD' });
+    assert.equal(headOutage.status, 503);
+    assert.equal(headOutage.headers.get('retry-after'), '120');
+    assert.equal(await headOutage.text(), '');
+    const oversized = await fetch(`${origin}/library/minions/long-98583/`);
+    assert.equal(oversized.status, 503, 'an oversized projection cannot race a second API fetch');
+    assert.equal(oversized.headers.get('retry-after'), '300');
+    const outagePage = await page.goto(`${origin}/library/minions/outage-888888/`, { waitUntil: 'networkidle2' });
+    assert.equal(outagePage.status(), 503);
+    assert.equal(await page.$eval('h1', node => node.textContent), 'Данные временно недоступны');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.close();
   } finally {
     if (browser) await browser.close();
