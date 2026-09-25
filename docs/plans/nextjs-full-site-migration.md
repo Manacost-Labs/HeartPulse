@@ -175,6 +175,9 @@ Nginx serves the page from Next.js.
 statistics only after entitlement verification, and clears full data when the
 API revokes access. Its Nginx owner switched after direct-port and browser
 checks on the deployed release.
+`/standard/fun-decks/` also has a staged Next route. It preserves the current
+public dataset API and client-side three-deck preview; production routing
+remains legacy until direct-port and browser checks pass.
 
 Move Arena (`/classes/`, `/tierlist/`, `/legendaries/`), constructed
 (`/standard/matchups/`, `/standard/meta/`, `/standard/archetypes/`,
