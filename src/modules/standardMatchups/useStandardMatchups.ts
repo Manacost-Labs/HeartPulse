@@ -56,6 +56,6 @@ export function useStandardMatchups(accountId: string | undefined, enabled: bool
     ? view : { status: 'loading' as const, data: null };
   return { format, state, changeFormat, retry,
     loading: state.status === 'loading' && !state.data,
-    error: state.status === 'error',
+    error: state.status === 'error' || state.status === 'denied',
   };
 }

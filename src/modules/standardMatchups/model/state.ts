@@ -1,7 +1,7 @@
 import type { StandardMatchupsData, StandardMatchupsFormat } from './types';
 
 export type StandardMatchupsState = {
-  status: 'ready' | 'empty' | 'stale' | 'error';
+  status: 'ready' | 'empty' | 'stale' | 'error' | 'denied';
   data: StandardMatchupsData | null;
 };
 

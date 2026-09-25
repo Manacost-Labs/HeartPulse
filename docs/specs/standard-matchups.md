@@ -16,7 +16,8 @@ format-scoped browser cache; migration must not expose that cache across users.
 The new browser client validates format, rank, columns and rows before caching.
 It uses a six-hour account-and-format key, ETag refresh and an unconditional
 retry for a 304 response without a usable cache. A transient error may show a
-stale matrix only to the same account; a 401 or 403 clears that cache entry.
+stale matrix only to the same account; a 401 or 403 clears that cache entry
+and the matrix already displayed in the browser.
 The React loader discards prior-account data immediately, isolates the two
 formats in view state, and ignores responses from aborted or superseded loads.
 The legacy page can now accept a controlled data source. In Next.js this

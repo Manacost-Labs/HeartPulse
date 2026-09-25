@@ -33,7 +33,7 @@ assert.equal((await client.load('reader-1', 'standard', { onCache: () => { cache
 assert.equal(cacheShown, true);
 assert.equal((calls.at(-1)?.options?.headers as Record<string, string>)['If-None-Match'], '"first"');
 response = () => Promise.resolve(new Response(null, { status: 403 }));
-assert.equal((await load()).status, 'error');
+assert.equal((await load()).status, 'denied');
 assert.equal(entries.size, 0, 'access denial clears the account cache');
 response = () => Promise.resolve(Response.json({ ...dataset, format: 'wild' }));
 assert.equal((await load()).status, 'error', 'wrong-format responses are rejected');

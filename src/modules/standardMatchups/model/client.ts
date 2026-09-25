@@ -48,7 +48,7 @@ export function createStandardMatchupsClient({ request, storage, now = Date.now 
         }
         if (response.status === 401 || response.status === 403) {
           remove(key);
-          return { status: 'error', data: null };
+          return { status: 'denied', data: null };
         }
         if (!response.ok && response.status !== 304) throw new Error('Standard matchups request failed');
         const data = response.status === 304 ? cached?.data
