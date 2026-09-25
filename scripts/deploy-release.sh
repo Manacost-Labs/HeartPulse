@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEPLOYER_VERSION=1.1.1
+DEPLOYER_VERSION=1.1.2
 SCRAPER_RUNTIME_CAPABILITY=scraper-runtime-probe-v1
 
 case "${1:-}" in
@@ -297,6 +297,22 @@ if [[ "$NEW_RELEASE" == "1" ]]; then
     mkdir -p "$RELEASE_WORK/dist/assets"
     cp -an "$SOURCE_CURRENT_RELEASE/dist/assets/." "$RELEASE_WORK/dist/assets/"
     find "$RELEASE_WORK/dist/assets" -type f -mtime "+$ASSET_RETENTION_DAYS" -delete
+  fi
+
+  # Preserve hashed Next CSS/JS for HTML already open in a browser when the
+  # runtime switches releases. Read retained releases so the first deployment
+  # of this policy also restores assets lost across earlier switches.
+  if [[ "$NEXT_WEB_PRESENT" == "1" ]]; then
+    NEXT_STATIC_DIR="$RELEASE_WORK/apps/public-web/.next/static"
+    for prior_static in "$RELEASES_DIR"/*/apps/public-web/.next/static; do
+      if [[ -d "$prior_static" ]]; then
+        mkdir -p "$NEXT_STATIC_DIR"
+        cp -an "$prior_static/." "$NEXT_STATIC_DIR/"
+      fi
+    done
+    if [[ -d "$NEXT_STATIC_DIR" ]]; then
+      find "$NEXT_STATIC_DIR" -type f -mtime "+$ASSET_RETENTION_DAYS" -delete
+    fi
   fi
 
   # A root-managed runtime file lets operations enable or disable public CDN

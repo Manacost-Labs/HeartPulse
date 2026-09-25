@@ -94,6 +94,8 @@ function fakeRelease(sha, {
   if (nextBuildId !== null) {
     mkdirSync(join(directory, 'apps', 'public-web', '.next'), { recursive: true });
     writeFileSync(join(directory, 'apps', 'public-web', '.next', 'BUILD_ID'), nextBuildId);
+    mkdirSync(join(directory, 'apps', 'public-web', '.next', 'static', 'css'), { recursive: true });
+    writeFileSync(join(directory, 'apps', 'public-web', '.next', 'static', 'css', `asset-${sha}.css`), sha);
     writeFileSync(join(directory, 'apps', 'public-web', 'next.config.mjs'), 'export default {};\n');
   }
   writeFileSync(join(directory, nginxSource), nginxContents);
@@ -123,10 +125,11 @@ function fakeRelease(sha, {
       [verifierSource]: sha256(readFileSync(join(directory, verifierSource))),
       ...(nextBuildId === null ? {} : {
         'apps/public-web/.next/BUILD_ID': sha256(nextBuildId),
+        [`apps/public-web/.next/static/css/asset-${sha}.css`]: sha256(sha),
         'apps/public-web/next.config.mjs': sha256('export default {};\n'),
       }),
     },
-    ...(nextBuildId === null ? {} : { nextWeb: { buildId: nextBuildId, fileCount: 1 } }),
+    ...(nextBuildId === null ? {} : { nextWeb: { buildId: nextBuildId, fileCount: 2 } }),
     nginxContract: {
       schemaVersion: 1,
       hash: contractHash(files),
@@ -397,10 +400,33 @@ try {
   });
   assert.equal(nextCandidate.status, 0, nextCandidate.stderr || nextCandidate.stdout);
   assert.equal(existsSync(nextRestartMarker), true, 'Next must restart with the new release');
+  const oldStatic = join(resolve(appBase, readlinkSync(join(appBase, 'previous'))),
+    'apps', 'public-web', '.next', 'static', 'css');
+  mkdirSync(oldStatic, { recursive: true });
+  writeFileSync(join(oldStatic, 'previous-only.css'), 'previous');
+  const historicalStatic = join(appBase, 'releases', 'historical',
+    'apps', 'public-web', '.next', 'static', 'css');
+  mkdirSync(historicalStatic, { recursive: true });
+  writeFileSync(join(historicalStatic, 'historical-only.css'), 'historical');
+  const staleNextAsset = join(appBase, 'releases', nextSha, 'apps', 'public-web', '.next', 'static', 'css', 'stale.css');
+  writeFileSync(staleNextAsset, 'stale');
+  utimesSync(staleNextAsset, staleDate, staleDate);
+  const nextSuccessorSha = 'abcdef5';
+  const nextSuccessor = deploy(fakeRelease(nextSuccessorSha, { nextBuildId: 'next-successor', nginxContents: changedContents }), true);
+  assert.equal(nextSuccessor.status, 0, nextSuccessor.stderr || nextSuccessor.stdout);
+  const successorStatic = join(appBase, 'releases', nextSuccessorSha, 'apps', 'public-web', '.next', 'static', 'css');
+  assert.equal(readFileSync(join(successorStatic, `asset-${nextSha}.css`), 'utf8'), nextSha,
+    'an open page must still load its previous Next CSS after a release switch');
+  assert.equal(readFileSync(join(successorStatic, 'previous-only.css'), 'utf8'), 'previous',
+    'the first fixed release must restore assets from the previous release too');
+  assert.equal(readFileSync(join(successorStatic, 'historical-only.css'), 'utf8'), 'historical',
+    'open tabs from older retained releases must still load their assets');
+  assert.equal(readFileSync(join(successorStatic, `asset-${nextSuccessorSha}.css`), 'utf8'), nextSuccessorSha);
+  assert.equal(existsSync(join(successorStatic, 'stale.css')), false);
   const failedNextSha = 'abcdef1';
   const failedNext = deploy(fakeRelease(failedNextSha, { nextBuildId: 'failed-next', nginxContents: changedContents }), true, { nextReady: false });
   assert.notEqual(failedNext.status, 0, 'unhealthy Next must fail the deployment');
-  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), resolve(appBase, 'releases', nextSha));
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), resolve(appBase, 'releases', nextSuccessorSha));
   const tamperedNextArtifact = fakeRelease('abcdef2', { nextBuildId: 'next-build', nginxContents: changedContents });
   writeFileSync(join(tamperedNextArtifact, 'apps/public-web/.next/BUILD_ID'), 'tampered');
   const tamperedNext = assertPreflightFailureIsReadOnly({ artifact: tamperedNextArtifact, message: 'tampered Next build' });

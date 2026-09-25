@@ -31,7 +31,11 @@ all shipped Next files. The root deployer restarts the API and Next from the
 same `current` symlink, waits for both health endpoints, and restores the
 previous release if either service fails. Next embeds the release SHA in client
 incident reports from `RELEASE_SHA` or `GITHUB_SHA`, matching the legacy
-release marker. Before changing Nginx, confirm:
+release marker. After validating the candidate artifact, the deployer carries
+forward content-hashed `/_next/static/` files from retained releases for 35 days.
+This keeps CSS and JavaScript available to browser tabs
+opened before a release switch; check a previous release asset URL after
+deployment when investigating missing styles. Before changing Nginx, confirm:
 
 ```bash
 curl -fsS http://127.0.0.1:3101/health/ready
