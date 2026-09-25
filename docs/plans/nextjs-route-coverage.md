@@ -66,6 +66,8 @@ builders and their invalid descendants to Next.
 Keep `/identity/` callbacks and session authority in Express. Public profile
 data must come from the existing serializer; admin and account state must not
 leak into shared HTML, hydration payloads or caches.
+The Next `/connect` page and guest/member browser contract are staged; its
+public Nginx owner remains the legacy snapshot until deployed direct-port review.
 
 ## Redirect, removed and fallback contracts (4)
 

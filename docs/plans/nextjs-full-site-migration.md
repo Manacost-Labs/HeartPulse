@@ -94,6 +94,8 @@ alone does not close a ledger row.
    `/profiles/:legacyPublicProfileId`. Keep identity and serializer APIs as
    authority; check signed-out, linked, missing and legacy states. Fix the
    broken `/profile/` shell link.
+   The Next `/connect` route is staged with the existing device-approval flow;
+   its Nginx owner switch remains after deployed direct-port review.
 6. Move `/admin`. Check permission at the server boundary and verify guest,
    forbidden and administrator responses and operations tabs. No privileged
    data may enter shared HTML.
