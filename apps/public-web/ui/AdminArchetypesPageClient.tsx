@@ -6,7 +6,9 @@ import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
 import { usePublicAccess } from './usePublicAccess';
 
 const StandardArchetypes = dynamic(() => import('../../../src/features/Archetypes'), { ssr: false });
-const WildArchetypes = dynamic(() => import('../../../src/modules/adminWorkspace/public').then(module => module.WildArchetypesPage), { ssr: false });
+const WildArchetypes = dynamic(() => import('../../../src/modules/adminWorkspace/public')
+  .then(module => module.loadWildArchetypesPage())
+  .then(module => module.WildArchetypesPage), { ssr: false });
 const navigate = (path: string) => { window.location.assign(path); };
 async function requestAdminJson(url: string, signal: AbortSignal): Promise<unknown> {
   const response = await fetch(url, { credentials: 'same-origin', signal });

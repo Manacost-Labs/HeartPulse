@@ -4,7 +4,10 @@ export {
   type AdminWorkspaceShellMessage,
   type AdminWorkspaceShellProps,
 } from './ui/AdminWorkspaceShell';
-export { WildArchetypesPage } from './ui/WildArchetypesPage';
+/** Loads the private Wild catalog only for the Next page that renders it. */
+export function loadWildArchetypesPage() {
+  return import('./ui/WildArchetypesPage');
+}
 
 let adminWorkspaceShellPromise:
   | Promise<typeof import('./AdminWorkspaceShell.lazy')>
