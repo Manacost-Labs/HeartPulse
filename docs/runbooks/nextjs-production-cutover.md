@@ -2,8 +2,8 @@
 
 The public card catalog, card details, gallery, FAQ, privacy, terms, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
-matchups, Standard meta, fun decks, Vicious Gold and home pages are owned by
-Next.js.
+matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
+home pages are owned by Next.js.
 Express continues
 to own APIs,
 authentication, subscriptions and data access; remaining HTML stays on the
@@ -67,8 +67,8 @@ run `sudo nginx -t`, and reload Nginx.
 The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus gallery, FAQ, privacy, terms, developer API documentation, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
-matchups, Standard meta, fun decks, Vicious Gold and home to port 4321, and
-forwards
+matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
+home to port 4321, and forwards
 `/_next/` build
 assets to the same process.
 The SEO map keeps filtered article pages `noindex, follow`, the home login

@@ -6,7 +6,7 @@ It names every entry in `src/shared/seo/publicRouteInventory.json` at the
 Nginx owner, direct-load status, metadata, permissions and browser behavior
 have been checked together. A route count alone is not a completion signal.
 
-## Already served by Next.js (18 inventory entries)
+## Already served by Next.js (19 inventory entries)
 
 - `home` — `/`
 - `faq` — `/faq`
@@ -26,6 +26,7 @@ have been checked together. A route count alone is not a completion signal.
 - `standard-meta` — `/standard/meta`
 - `fun-decks` — `/standard/fun-decks`
 - `standard-vicious-gold` — `/standard/vicious-gold`
+- `constructed-archetypes` — `/standard/archetypes`
 
 ## Public and editorial HTML (2)
 
@@ -38,10 +39,8 @@ Migrate the ungated pages first. The guide archive and each valid guide slug
 need a request-scoped entitlement decision, a public teaser and authoritative
 404 behavior before their Nginx owner changes.
 
-## Constructed data HTML (3)
+## Constructed data HTML (2)
 
-- `constructed-archetypes` — `/standard/archetypes` (Next route staged; Nginx
-  remains legacy until deployed browser verification)
 - `constructed-archetype-detail` —
   `/standard/archetypes/:format/:archetypeSlug` (Next route staged; Nginx legacy)
 - `standard-meta-legacy-detail` —

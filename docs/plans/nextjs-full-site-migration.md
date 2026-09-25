@@ -176,10 +176,10 @@ statistics only after entitlement verification, and clears full data when the
 API revokes access. Its Nginx owner switched after direct-port and browser
 checks on the deployed release.
 `/standard/fun-decks/` also uses Next.js after direct-port and browser checks.
-The `/standard/archetypes/` catalog is staged in Next.js with its existing
-guest teaser, subscriber and administrator access, and query filters. Its
-detail URLs and public Nginx owner remain on the legacy route until separate
-deployment and browser verification.
+The `/standard/archetypes/` catalog is served by Next.js after deployed
+direct-port and browser verification. Its guest teaser, subscriber and
+administrator access, and query filters remain intact. Detail URLs stay on
+the legacy route until their separate deployment and browser verification.
 Both archetype detail URL families are staged in Next.js using anonymous
 teaser data for server HTML, request-time 404 checks and account-scoped full
 data after hydration. Their public Nginx owner remains legacy until deployed
