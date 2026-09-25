@@ -7,8 +7,9 @@ hero catalog, library listings, hero details, all supported library card details
 and the cosmetics catalog and details, plus both Battleground builders and the
 device-connection page, both public-profile URL patterns, the administrator
 document and unknown-page responses. Three more entries are redirect or
-removed-URL status contracts, leaving `/archetypes/wild` as the only
-unresolved inventory HTML route.
+removed-URL status contracts. `/archetypes/wild` remains the only
+unresolved inventory HTML route at the public edge; its Next page is staged
+and awaits the separate Nginx owner switch.
 The remaining route checklist is the
 [coverage ledger](nextjs-route-coverage.md). The card pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -96,6 +97,10 @@ alone does not close a ledger row.
    two explicit Nginx pages in the reconciled inventory.
    `/deck-builder/` is completed with a server-side full-admin check, a
    browser recheck, the existing editable draft and an exact Next Nginx rule.
+   The three `/archetypes/` page patterns are implemented in Next with the
+   same full-admin boundary. The Wild catalog loads deck codes through the
+   existing protected API; Nginx still owns the legacy document until the
+   staged build is deployed and the route switch is verified.
 5. Completed: `/connect` and both public-profile URL patterns use Next-owned
    HTML while Express keeps the device approval, session and public-profile
    serializer APIs. Fix the broken `/profile/` shell link.

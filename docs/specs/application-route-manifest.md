@@ -116,6 +116,11 @@ Rules:
   administrator may load the editor, and the browser must recheck that role
   before importing it. The draft stays in browser storage; `/api/admin/`
   mutations remain authorized by Express;
+- keep `/archetypes/`, `/archetypes/:numericId/` and `/archetypes/wild/`
+  private, `noindex, nofollow` and uncached. Only full administrators can load
+  either catalog or detail data. The Wild selection query identifies an
+  archetype, while deck codes open `/deck-builder/?code=...`; Express remains
+  the authority for archetype and deck data;
 - keep domain data fetching and permission decisions out of routing files;
 - preserve optimistic surface selection for nested detail URLs while the
   public URL policy performs authoritative validation.

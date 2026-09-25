@@ -64,6 +64,9 @@ routes both builders and their invalid descendants to Next.
 
 - `wild-archetype-decks` — `/archetypes/wild`
 
+The Next implementation for this last page is staged. Its public Nginx owner
+is still legacy until the separate cutover commit is deployed.
+
 The `/admin/` App Router document now serves through its exact Nginx rule.
 The guest, administrator and blocked-account states use the existing Express
 session authority; successful and failed HTML remains private and noindex.
@@ -91,9 +94,9 @@ status, location and robots headers remain in regression checks.
 
 - `/deck-builder/` is a separate admin tool with an exact Next-owned Nginx
   document rule, full-administrator permission check and `noindex`/`no-store`.
-- `/archetypes/` is a separate admin tool with explicit Nginx document and
-  slash-redirect rules. Migrate it to an App Router page with `noindex` and
-  authenticated browser checks.
+- `/archetypes/` and numeric detail pages are separate admin tools. Their
+  App Router pages are staged with `noindex`, a full-admin server check and a
+  browser recheck; their Nginx document rules still await cutover.
 - `/admin/` is already counted above, but its exact Nginx rule and internal
   operations tabs need separate permission and direct-load checks.
 - `/?login` is a login overlay state, not another path. The Next-owned home

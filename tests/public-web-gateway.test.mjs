@@ -62,6 +62,11 @@ test('static public pages roll out independently of cards', () => {
     assert.equal(publicWebOwner(path, false, 'POST', true), 'legacy', path);
   }
   assert.equal(publicWebOwner('/api/admin/deck-builder/resolve', false, 'GET', true), 'legacy');
+  for (const path of ['/archetypes', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/archetypes/unknown/']) {
+    assert.equal(publicWebOwner(path, false, 'GET', true), 'next', path);
+    assert.equal(publicWebOwner(path, false, 'POST', true), 'legacy', path);
+  }
+  assert.equal(publicWebOwner('/api/admin/archetypes', false, 'GET', true), 'legacy');
   for (const path of ['/connect', '/connect/', '/connect/unknown/']) {
     assert.equal(publicWebOwner(path, false, 'GET', true), 'next', path);
     assert.equal(publicWebOwner(path, false, 'POST', true), 'legacy', path);

@@ -4,6 +4,7 @@ export {
   type AdminWorkspaceShellMessage,
   type AdminWorkspaceShellProps,
 } from './ui/AdminWorkspaceShell';
+export { WildArchetypesPage } from './ui/WildArchetypesPage';
 
 let adminWorkspaceShellPromise:
   | Promise<typeof import('./AdminWorkspaceShell.lazy')>

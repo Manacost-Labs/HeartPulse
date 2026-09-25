@@ -5,6 +5,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pagesEnabled && pathname === '/') return 'next';
   if (pagesEnabled && /^\/admin(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/deck-builder(?:\/.*)?$/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/archetypes(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/connect(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/(?:id|profiles)(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/cosmetics(?:\/[^/]+){0,2}\/?$/.test(pathname)) return 'next';
