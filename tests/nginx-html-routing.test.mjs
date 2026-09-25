@@ -39,6 +39,15 @@ const edgeCachePathSource = readFileSync(
   'utf8',
 );
 const routingSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-html-routing.conf'), 'utf8');
+const htmlOwnerFormat = mapSource.match(/log_format arena_html_owner escape=json[\s\S]*?;/)?.[0];
+assert.ok(htmlOwnerFormat, 'origin must define a structured HTML owner log');
+assert.doesNotMatch(htmlOwnerFormat,
+  /\$(?:uri|request_uri|args|http_cookie|http_authorization|http_referer|remote_addr|http_x_forwarded_for)/,
+  'HTML ownership evidence must not contain URLs, client addresses, cookies or authorization values');
+assert.match(mapSource, /map "\$request_method:\$status:\$sent_http_content_type" \$arena_html_owner_loggable/,
+  'only successful HTML requests should enter the ownership log');
+assert.match(routingSource, /access_log \/var\/www\/httpd-logs\/arena-html-owner\.log arena_html_owner/,
+  'the canonical origin must emit ownership evidence');
 const edgeStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
   'utf8',
@@ -1233,12 +1242,15 @@ async function runNginxContractCheck() {
       'add_header X-Frame-Options "SAMEORIGIN" always;',
     ].join('\n'));
     const testRouting = join(root, 'arena-html-routing.conf');
+    const ownerLog = join(root, 'html-owner.log');
     writeFileSync(testRouting, routingSource
       .replaceAll('/etc/nginx/snippets/arena-security-headers.conf', securitySnippet)
       .replaceAll('http://127.0.0.1:3101', `http://127.0.0.1:${upstream.port}`)
-      .replaceAll('http://127.0.0.1:4321', `http://127.0.0.1:${upstream.port}`));
+      .replaceAll('http://127.0.0.1:4321', `http://127.0.0.1:${upstream.port}`)
+      .replaceAll('/var/www/httpd-logs/arena-html-owner.log', ownerLog)
+      .replace('buffer=32k flush=5s ', ''));
     const testMap = join(root, 'arena-seo-map.conf');
-    writeFileSync(testMap, mapSource);
+    writeFileSync(testMap, mapSource.replaceAll(':4321', `:${upstream.port}`));
     const testEdgeRegionMap = join(root, 'arena-edge-region-map.conf');
     writeFileSync(testEdgeRegionMap, edgeRegionMapSource);
 
@@ -1259,6 +1271,10 @@ http {
         set $root_path ${www};
         root $root_path;
         include ${testRouting};
+        location = /_html_owner_fixture {
+            default_type text/html;
+            return 200 "<title>Static fixture</title>";
+        }
     }
 }
 `);
@@ -1419,6 +1435,19 @@ http {
     assert.equal(compressedNextAsset.headers['content-encoding'], 'gzip');
     assert.match(compressedNextAsset.headers.vary || '', /Accept-Encoding/i);
     assert.match(gunzipSync(compressedNextAsset.rawBody).toString('utf8'), /nextRuntime/);
+    assert.equal((await requestNginx(port, '/tierlist/?token=private-query', 'GET', {
+      Cookie: 'session=private-cookie',
+    })).status, 200);
+    assert.equal((await requestNginx(port, '/_html_owner_fixture')).status, 200);
+    const ownerLogText = readFileSync(ownerLog, 'utf8');
+    const ownerEvents = ownerLogText.trim().split('\n').map(line => JSON.parse(line));
+    assert.ok(ownerEvents.some(event => event.owner === 'next' && event.status === 200));
+    assert.ok(ownerEvents.some(event => event.owner === 'legacy_static' && event.status === 200));
+    assert.ok(ownerEvents.every(event => event.event === 'html_renderer' && /^[a-f0-9]{32}$/.test(event.request_id)));
+    assert.doesNotMatch(ownerLogText, /private-query|private-cookie|\/tierlist\//);
+    await requestNginx(port, '/_next/static/test.js');
+    assert.equal(readFileSync(ownerLog, 'utf8').trim().split('\n').length, ownerEvents.length,
+      'JavaScript responses must not enter the HTML ownership log');
     for (const path of ['/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/']) {
       const detail = await requestNginx(port, path);
       assert.equal(detail.status, 200, `${path} must reach Next`);

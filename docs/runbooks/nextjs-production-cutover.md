@@ -148,3 +148,26 @@ HTML remains in the same immutable artifact, so restoring both files returns
 these routes to Vite/Express. Retain the previous application release and the
 encrypted data backup for the normal release rollback procedure in
 [DEPLOYMENT.md](../../DEPLOYMENT.md).
+
+## Prove the Vite HTML drain
+
+The origin records successful GET/HEAD `text/html` responses in
+`/var/www/httpd-logs/arena-html-owner.log`. Each JSON line contains only a
+timestamp, random request ID, status and renderer class: `next`,
+`legacy_static` (HTML served without an upstream), or `other`. It excludes
+paths, queries, cookies, client addresses and account data. The existing
+`httpd-logs` logrotate rule caps files at 100 MB and retains seven archives.
+
+After the final route cutover, count the renderer classes by UTC day:
+
+```bash
+sudo zcat -f /var/www/httpd-logs/arena-html-owner.log* |
+  jq -r 'select(.event == "html_renderer") | [.time[0:10], .owner] | @tsv' |
+  sort | uniq -c
+```
+
+The seven-day window starts when the origin config is installed, not when a
+commit is pushed. Require `next` traffic on every day and investigate every
+`legacy_static` or `other` count before claiming that Vite delivered no HTML.
+Keep the legacy artifact through the rollback window and old hashed assets
+through their 35-day carry-forward window.
