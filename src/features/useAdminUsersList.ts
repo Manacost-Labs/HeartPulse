@@ -22,7 +22,7 @@ export function useAdminUsersList(enabled: boolean, onError: (text: string) => v
   const pageCount = Math.max(1, Math.ceil(total / ADMIN_USERS_PAGE_SIZE));
   // A message sink whose identity changes every render; reading it through a ref keeps it out of the fetch deps.
   const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
   useEffect(() => {
     if (!enabled) {

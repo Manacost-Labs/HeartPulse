@@ -12,8 +12,9 @@ export type AdminSegmentBarProps = {
 
 // aria-disabled keeps the pressed chip focusable while the list reloads.
 /** Segment and tag filters for the people list; counts come from GET /api/admin/crm/segments. */
+const format = (count: number) => count.toLocaleString('ru-RU');
+
 export function AdminSegmentBar({ data, segment, tag, disabled = false, onChange }: AdminSegmentBarProps) {
-  const format = (count: number) => count.toLocaleString('ru-RU');
   return (
     <div className="admin-crm-segments">
       <div role="group" aria-label="Сегменты пользователей" className="admin-crm-segment-row">

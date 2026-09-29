@@ -83,10 +83,10 @@ export function NotesSection({ idPrefix, card, busy, onAdd, onDelete }: NotesSec
   const [draft, setDraft] = useState('');
   return (
     <Section id={`${idPrefix}-notes`} title="Заметки">
-      <form className="admin-crm-note-form" onSubmit={event => {
+      <form className="admin-crm-note-form" onSubmit={async event => {
         event.preventDefault();
         const body = draft.trim();
-        if (body) void onAdd(body).then(saved => { if (saved) setDraft(''); });
+        if (body && await onAdd(body)) setDraft('');
       }}>
         <label className="admin-crm-sr-only" htmlFor={`${idPrefix}-note-input`}>Новая заметка</label>
         <textarea id={`${idPrefix}-note-input`} value={draft} maxLength={2000} placeholder="Видна только администраторам" onChange={event => setDraft(event.target.value)} />

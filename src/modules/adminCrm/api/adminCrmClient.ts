@@ -43,9 +43,11 @@ async function request<T>(path: string, init: RequestInit = {}, signal?: AbortSi
     headers: JSON_HEADERS,
     signal,
   });
-  const payload = await response.json().catch(() => ({})) as { error?: string };
-  if (!response.ok) throw new Error(payload.error || `Ошибка ${response.status}`);
-  return payload as T;
+  if (!response.ok) {
+    const failure = await response.json().catch(() => ({})) as { error?: string };
+    throw new Error(failure.error || `Ошибка ${response.status}`);
+  }
+  return await response.json() as T;
 }
 
 const personPath = (userId: string) => `/crm/people/${encodeURIComponent(userId)}`;

@@ -743,7 +743,8 @@
         "src/modules/adminCrm"
       ],
       "publicEntrypoints": [
-        "src/modules/adminCrm/public.ts"
+        "src/modules/adminCrm/public.ts",
+        "src/modules/adminCrm/AdminClientCard.lazy.ts"
       ],
       "frontendRoutes": [],
       "backendRoutes": [

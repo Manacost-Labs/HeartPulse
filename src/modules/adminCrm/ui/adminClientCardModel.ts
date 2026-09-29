@@ -73,7 +73,7 @@ export function daysUntil(value: string | null | undefined, now = Date.now()): n
   return Number.isFinite(time) ? Math.ceil((time - now) / 86_400_000) : null;
 }
 
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+const upperFirst = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export type TimelineTone = 'good' | 'bad' | 'neutral';
 export type TimelineEvent = { key: string; at: string; title: string; detail: string; tone: TimelineTone };
@@ -106,7 +106,7 @@ export function buildPersonTimeline(card: AdminCrmPerson): TimelineEvent[] {
     events.push({
       key: `audit-${entry.id}`,
       at: entry.createdAt,
-      title: capitalize(auditActionLabel(entry.action, entry.details)),
+      title: upperFirst(auditActionLabel(entry.action, entry.details)),
       detail: `администратор ${entry.actorName}`,
       tone: 'neutral',
     });

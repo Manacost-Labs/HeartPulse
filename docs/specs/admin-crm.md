@@ -35,16 +35,18 @@ segments.
 All segments are evaluated at request time in SQL. "Now" is the database clock
 in UTC.
 
-| id | Label | Rule |
-| --- | --- | --- |
-| `all` | Все | every user |
-| `paying` | Платят сейчас | cached provider access (`subscriptions.has_access = 1`) |
-| `manual` | Ручной доступ | active manual grant (no expiry or expiry in the future) |
-| `expiring` | Истекает ≤ 7 дней | active manual grant that expires within 7 days |
-| `lapsed` | Потеряли доступ | no provider or manual access now, but a `subscription_checks` row with access in the last 30 days |
-| `new` | Новые за 7 дней | `users.created_at` within 7 days |
-| `blocked` | Заблокированы | `users.blocked_at` is set |
-| `admins` | Администраторы | `users.role = 'admin'` |
+- `all` (Все): every user.
+- `paying` (Платят сейчас): cached provider access,
+  `subscriptions.has_access = 1`.
+- `manual` (Ручной доступ): an active manual grant, without expiry or
+  expiring in the future.
+- `expiring` (Истекает ≤ 7 дней): an active manual grant that expires within
+  7 days.
+- `lapsed` (Потеряли доступ): no provider or manual access now, but a
+  `subscription_checks` row with access in the last 30 days.
+- `new` (Новые за 7 дней): `users.created_at` within 7 days.
+- `blocked` (Заблокированы): `users.blocked_at` is set.
+- `admins` (Администраторы): `users.role = 'admin'`.
 
 `tag` filters to users that carry the exact normalised tag. Unknown segment
 ids return `400`.
@@ -63,19 +65,30 @@ ids return `400`.
   identities: Array<{ provider, username, createdAt, verifiedAt }>,
   access: {
     hasAccess: boolean,          // provider or manual access now
-    source: string,              // cached provider source ('boosty', 'telegram', ...); an active manual grant adds 'manual-access' ('none' becomes 'manual-access')
+    source: string,              // cached provider source, see below
     message: string,
     checkedAt: string,
-    manual: null | { active, grantedBy, grantedAt, expiresAt, revokedBy, revokedAt, note },
+    manual: null | {
+      active, grantedBy, grantedAt, expiresAt, revokedBy, revokedAt, note,
+    },
   },
-  accessHistory: Array<{ at, source, hasAccess }>,  // per-provider flips, newest first, max 50
+  // per-provider flips, newest first, max 50
+  accessHistory: Array<{ at, source, hasAccess }>,
   contests: Array<{ contestId, title, status, createdAt }>,
-  mailing: null | { consentStatus, consentedAt, unsubscribedAt, delivered, failed, lastDeliveredAt },
+  mailing: null | {
+    consentStatus, consentedAt, unsubscribedAt, delivered, failed,
+    lastDeliveredAt,
+  },
   notes: Array<{ id, body, authorId, authorName, createdAt }>,
   tags: string[],
-  audit: Array<{ id, action, actorId, actorName, details, createdAt }>,  // max 50
+  // max 50
+  audit: Array<{ id, action, actorId, actorName, details, createdAt }>,
 }
 ```
+
+`access.source` is the cached provider source (`boosty`, `telegram`, ...).
+An active manual grant appends `manual-access`; when there is no provider
+source it is reported as `manual-access` alone.
 
 `accessHistory` is derived from `subscription_checks`, which receives one row
 per provider (boosty, telegram, patreon) on every refresh cycle. Changes are

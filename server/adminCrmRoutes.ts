@@ -29,14 +29,13 @@ export class AdminCrmInputError extends Error {}
 /** Trims, lower-cases and deduplicates tags; drops empty and over-long values. */
 export function normalizeAdminTags(input: unknown): string[] {
   if (!Array.isArray(input)) throw new AdminCrmInputError('Теги должны быть массивом строк');
-  const tags: string[] = [];
+  const tags = new Set<string>();
   for (const value of input) {
     const tag = String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
-    if (!tag || tag.length > ADMIN_TAG_MAX_LENGTH || tags.includes(tag)) continue;
-    tags.push(tag);
+    if (tag && tag.length <= ADMIN_TAG_MAX_LENGTH) tags.add(tag);
   }
-  if (tags.length > ADMIN_TAGS_PER_USER) throw new AdminCrmInputError(`Можно указать не больше ${ADMIN_TAGS_PER_USER} тегов`);
-  return tags;
+  if (tags.size > ADMIN_TAGS_PER_USER) throw new AdminCrmInputError(`Можно указать не больше ${ADMIN_TAGS_PER_USER} тегов`);
+  return [...tags];
 }
 
 const str = (value: unknown) => (value === null || value === undefined ? '' : String(value));
@@ -134,11 +133,13 @@ export function createAdminCrmRouter(dependencies: AdminCrmDependencies): Router
       if (!userExists(userId)) return response.status(404).json({ error: 'Пользователь не найден' });
       const before = tagsFor(repository, userId);
       const timestamp = new Date().toISOString();
+      const wanted = new Set(tags);
+      const existing = new Set(before);
       for (const tag of before) {
-        if (!tags.includes(tag)) repository.run('DELETE FROM admin_user_tags WHERE user_id = ? AND tag = ?', userId, tag);
+        if (!wanted.has(tag)) repository.run('DELETE FROM admin_user_tags WHERE user_id = ? AND tag = ?', userId, tag);
       }
       for (const tag of tags) {
-        if (!before.includes(tag)) {
+        if (!existing.has(tag)) {
           repository.run('INSERT INTO admin_user_tags (user_id, tag, created_by, created_at) VALUES (?, ?, ?, ?)', userId, tag, admin.id, timestamp);
         }
       }

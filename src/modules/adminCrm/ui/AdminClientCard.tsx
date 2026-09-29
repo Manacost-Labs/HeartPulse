@@ -27,7 +27,7 @@ const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]), texta
 function useModalSheet(sheetRef: React.RefObject<HTMLElement | null>, initialFocusRef: React.RefObject<HTMLElement | null>, onClose: () => void) {
   // Read through a ref so a new callback identity never re-runs the focus and scroll-lock setup.
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
@@ -109,6 +109,8 @@ export function AdminClientCard({ userId, client = adminCrmClient, onClose, onMa
     .catch(() => undefined);
 
   // Portalled to <body> so route transitions that transform an ancestor cannot re-anchor the fixed sheet.
+  // The card only opens from a click, so there is no server render; the guard keeps SSR safe regardless.
+  if (typeof document === 'undefined') return null;
   return createPortal(
     <div className="admin-crm-sheet-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
       <aside ref={sheetRef} className="admin-crm-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-busy={state.status === 'loading'}>

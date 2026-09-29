@@ -1,16 +1,18 @@
-import React, { useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
 import { ContestAdminUserRow, type AdminUserPatch, type AdminUserSearchResult } from './ContestAdminUserRow';
 import { ADMIN_INPUT } from './contestAdminUi';
 import {
-  AdminClientCard,
   AdminSegmentBar,
+  loadAdminClientCard,
   type AdminCrmSegmentId,
   type AdminCrmSegments,
 } from '../modules/adminCrm/public';
 
 export type { AdminUserPatch, AdminUserSearchResult } from './ContestAdminUserRow';
+
+const AdminClientCard = React.lazy(loadAdminClientCard);
 
 type ContestAdminUsersProps = {
   currentUserId?: string;
@@ -160,12 +162,14 @@ export function ContestAdminUsers({
         )}
       </section>
       {personId && (
-        <AdminClientCard
-          userId={personId}
-          onClose={closePerson}
-          onChanged={onPersonChanged}
-          onManageAccess={personUser ? () => { setPersonId(''); prepareAccessDialog(personUser); } : undefined}
-        />
+        <Suspense fallback={null}>
+          <AdminClientCard
+            userId={personId}
+            onClose={closePerson}
+            onChanged={onPersonChanged}
+            onManageAccess={personUser ? () => { setPersonId(''); prepareAccessDialog(personUser); } : undefined}
+          />
+        </Suspense>
       )}
       {accessTarget && (
         <div className="admin-access-dialog-backdrop" role="presentation" onMouseDown={event => {
