@@ -4,7 +4,10 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import test from 'node:test';
 
 const repositoryRoot = resolve(import.meta.dirname, '..');
-const specifierPattern = /(?:\bfrom\s*|\bimport\s*\(\s*(?:\/\*[\s\S]*?\*\/\s*)*|\bimport\s+)['"]([^'"]+)['"]/g;
+// Kept free of nested quantifiers: comments inside `import(...)` are removed
+// in a second, linear pass instead of inside the matching expression.
+const staticSpecifierPattern = /(?:\bfrom\s*|\bimport\s+)['"]([^'"]+)['"]/g;
+const dynamicImportPattern = /\bimport\s*\(([^)]*)\)/g;
 
 function sourceFiles(directory, pattern) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
@@ -16,7 +19,11 @@ function sourceFiles(directory, pattern) {
 }
 
 function imports(file) {
-  return [...readFileSync(file, 'utf8').matchAll(specifierPattern)].map(match => match[1]);
+  const source = readFileSync(file, 'utf8');
+  const dynamic = [...source.matchAll(dynamicImportPattern)]
+    .map(match => match[1].replace(/\/\*[\s\S]*?\*\//g, '').trim().match(/^['"]([^'"]+)['"]$/)?.[1])
+    .filter(Boolean);
+  return [...[...source.matchAll(staticSpecifierPattern)].map(match => match[1]), ...dynamic];
 }
 
 function repositoryPath(file, specifier) {
