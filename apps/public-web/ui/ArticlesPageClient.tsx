@@ -5,8 +5,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { ArticlesTab, type ArticlesData } from '@/src/modules/articles/public';
 import { articlesData } from '@/apps/public-web/lib/articlesData';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => { window.location.assign(path); };
+import { navigate } from './navigation';
 
 export function ArticlesPageClient({ initialData }: { initialData: ArticlesData }) {
   const access = usePublicAccess();

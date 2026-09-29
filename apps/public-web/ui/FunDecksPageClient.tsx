@@ -4,8 +4,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import FunDecksPage from '@/src/features/FunDecksPage';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => window.location.assign(path);
+import { navigate } from './navigation';
 
 export function FunDecksPageClient() {
   const access = usePublicAccess();

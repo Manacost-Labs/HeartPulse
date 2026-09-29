@@ -6,9 +6,9 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { BattlegroundsTierListSearchIntro } from '@/src/modules/searchLanding/public';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
 const pathname = '/battlegrounds/tier-list/';
-const navigate = (path: string) => window.location.assign(path);
 const BattlegroundTierList = dynamic(() => import('@/src/features/Battlegrounds')
   .then(module => module.BattlegroundTierList), { ssr: false });
 

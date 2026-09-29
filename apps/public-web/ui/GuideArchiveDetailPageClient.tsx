@@ -6,8 +6,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import type { PublicGuideTeaser } from '@/apps/public-web/lib/publicGuideTeaserData';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => window.location.assign(path);
+import { navigate } from './navigation';
 
 export function GuideArchiveDetailPageClient({ pathname, teaser }: { pathname: string; teaser: PublicGuideTeaser }) {
   const access = usePublicAccess();

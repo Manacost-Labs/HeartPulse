@@ -3,9 +3,9 @@
 import dynamic from 'next/dynamic';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
 const DeckBuilder = dynamic(() => import('@/src/features/DeckBuilder'), { ssr: false });
-const navigate = (path: string) => { window.location.assign(path); };
 
 export function DeckBuilderPageClient({ serverAllowed }: { serverAllowed: boolean }) {
   const access = usePublicAccess();

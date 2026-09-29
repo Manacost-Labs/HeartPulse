@@ -3,8 +3,8 @@ import StandardCards from '@/src/features/StandardCards';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import type { PublicCardSeed, PublicCardCatalogSeed } from '@/src/modules/constructedCards/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
-const navigate = (path: string) => { window.location.assign(path); };
 type Props = { pathname: string; initialSearch: string } & ({ card: PublicCardSeed; catalog?: never } | { catalog: PublicCardCatalogSeed; card?: never });
 export function LegacyCardPage({ card, catalog, pathname, initialSearch }: Props) {
   const access = usePublicAccess();

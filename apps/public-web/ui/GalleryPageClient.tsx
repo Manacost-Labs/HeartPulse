@@ -3,8 +3,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import GalleryTab from '@/src/features/GalleryTab';
 import type { PublicGalleryData } from '@/apps/public-web/lib/publicGallery';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => { window.location.assign(path); };
+import { navigate } from './navigation';
 
 export function GalleryPageClient({ data }: { data: PublicGalleryData }) {
   const access = usePublicAccess();

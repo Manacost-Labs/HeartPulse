@@ -6,9 +6,9 @@ import { BattlegroundStrategyBuilderEmbed } from '@/src/features/Battlegrounds';
 import { BattlegroundsStrategyBuilderSearchIntro } from '@/src/modules/searchLanding/public';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
 const pathname = '/battlegrounds/strategies/';
-const navigate = (path: string) => window.location.assign(path);
 
 export function BattlegroundStrategiesPageClient() {
   const access = usePublicAccess();

@@ -4,8 +4,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import ConstructedArchetypes from '@/src/features/ConstructedArchetypes';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => window.location.assign(path);
+import { navigate } from './navigation';
 
 export function ConstructedArchetypesPageClient({ initialSearch }: { initialSearch: string }) {
   const access = usePublicAccess();

@@ -6,8 +6,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import type { PublicBattlegroundLibraryCard } from '@/apps/public-web/lib/publicBattlegroundLibraryCardData';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => window.location.assign(path);
+import { navigate } from './navigation';
 
 export function BattlegroundLibraryDetailPageClient({ card }: { card: PublicBattlegroundLibraryCard }) {
   const access = usePublicAccess();

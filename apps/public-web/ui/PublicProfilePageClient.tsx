@@ -4,9 +4,9 @@ import dynamic from 'next/dynamic';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { loadPublicProfileCard, publicProfilePath, type PublicProfile } from '@/src/modules/identity/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
 const PublicProfileCard = dynamic(loadPublicProfileCard);
-const navigate = (path: string) => window.location.assign(path);
 
 export function PublicProfilePageClient({ profile, pathname }: { profile: PublicProfile; pathname: string }) {
   const access = usePublicAccess();

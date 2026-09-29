@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
 function ConnectLoading() {
   return <section className="application-connect__loading" aria-busy="true">
@@ -19,8 +20,6 @@ const AccountRoute = dynamic(() => import('@/src/modules/accountRoute/public'), 
   ssr: false,
   loading: ConnectLoading,
 });
-
-const navigate = (path: string) => window.location.assign(path);
 
 export function ApplicationConnectPageClient() {
   const access = usePublicAccess();

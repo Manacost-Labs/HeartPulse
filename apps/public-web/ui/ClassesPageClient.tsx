@@ -2,18 +2,12 @@
 
 import FAQSection from '@/src/components/FAQSection';
 import PaywallGate from '@/src/components/PaywallGate';
-import { NAVIGATION_ROUTES } from '@/src/app/routing/navigationDefinitions';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '@/src/modules/arenaClasses/public';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate, navigateTab } from './navigation';
 
-const navigate = (path: string) => window.location.assign(path);
-const navigateTab = (tab: string) => {
-  const route = NAVIGATION_ROUTES.find(item => item.id === tab);
-  if (!route) throw new Error('Unknown Arena destination');
-  navigate(route.path);
-};
 const ignoreUpdatedAt = (_value: string | null) => undefined;
 
 export function ClassesPageClient() {

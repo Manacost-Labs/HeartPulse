@@ -7,8 +7,7 @@ import StandardMatchupsPage from '@/src/features/StandardMatchups';
 import { useStandardMatchups } from '@/src/modules/standardMatchups/public';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => window.location.assign(path);
+import { navigate } from './navigation';
 
 export function StandardMatchupsPageClient() {
   const access = usePublicAccess();

@@ -5,9 +5,9 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { BattlegroundTierBuilderEmbed } from '@/src/features/Battlegrounds';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
 const pathname = '/battlegrounds/tier-builder/';
-const navigate = (path: string) => window.location.assign(path);
 
 export function BattlegroundTierBuilderPageClient() {
   const access = usePublicAccess();

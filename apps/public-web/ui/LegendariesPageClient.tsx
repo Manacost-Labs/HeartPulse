@@ -1,20 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { NAVIGATION_ROUTES } from '@/src/app/routing/navigationDefinitions';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { Legendaries } from '@/src/features/DeferredRoutes';
 import { useArenaLegendaries, type LegendariesData } from '@/src/modules/arenaLegendaries/public';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate, navigateTab } from './navigation';
 
 const EMPTY_DATA: LegendariesData = { groups: [], updatedAt: null, source: 'hsreplay.net' };
-const navigate = (path: string) => window.location.assign(path);
-const navigateTab = (tab: string) => {
-  const route = NAVIGATION_ROUTES.find(item => item.id === tab);
-  if (!route) throw new Error('Unknown Arena destination');
-  navigate(route.path);
-};
 
 export function LegendariesPageClient() {
   const access = usePublicAccess();

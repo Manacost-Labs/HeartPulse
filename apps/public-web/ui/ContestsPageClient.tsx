@@ -3,11 +3,12 @@
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { ContestsPage, type Contest } from '@/src/modules/contests/public';
 import { usePublicAccess } from './usePublicAccess';
+import { navigate } from './navigation';
 
 export function ContestsPageClient({ initialContests }: { initialContests: Contest[] }) {
   const access = usePublicAccess();
   return <PublicPageShell activeTab="contests" pathname="/contests/" access={access}
-    navigate={path => window.location.assign(path)} editorial>
+    navigate={navigate} editorial>
     <ContestsPage initialContests={initialContests} authUser={access.user}
       subscriptionStatus={access.subscription} subscriptionLoading={access.checking}
       onRefreshSubscription={access.refresh} />

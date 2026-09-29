@@ -4,8 +4,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import PaywallGate from '@/src/components/PaywallGate';
 import ViciousSyndicateGold from '@/src/features/ViciousSyndicateGold';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => window.location.assign(path);
+import { navigate } from './navigation';
 
 export function ViciousGoldPageClient() {
   const access = usePublicAccess();

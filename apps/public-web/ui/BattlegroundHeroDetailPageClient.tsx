@@ -6,8 +6,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import type { PublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHeroData';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => window.location.assign(path);
+import { navigate } from './navigation';
 
 export function BattlegroundHeroDetailPageClient({ hero }: { hero: PublicBattlegroundHero }) {
   const pathname = `/heroes/${hero.dbfId}/`;

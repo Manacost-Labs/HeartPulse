@@ -2,8 +2,7 @@
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import NotFoundPage from '@/src/features/NotFoundPage';
 import { usePublicAccess } from './usePublicAccess';
-
-const navigate = (path: string) => { window.location.assign(path); };
+import { navigate } from './navigation';
 
 export function UnknownPageClient() {
   const access = usePublicAccess();
