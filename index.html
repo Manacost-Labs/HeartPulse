@@ -129,30 +129,9 @@
     }
     </script>
 
-    <!-- ═══ Yandex.Metrika ════════════════════════════════════════════════ -->
-    <script type="text/javascript">
-      (function(m,e,t,r,i){
-        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-        m[i].l=1*new Date();
-        var load=function(){
-          for(var j=0;j<e.scripts.length;j++){if(e.scripts[j].src===r){return;}}
-          var k=e.createElement(t),a=e.getElementsByTagName(t)[0];
-          k.async=1;k.src=r;a.parentNode.insertBefore(k,a);
-        };
-        var schedule=function(){
-          if('requestIdleCallback' in m){m.requestIdleCallback(load,{timeout:3000});}
-          else{m.setTimeout(load,1500);}
-        };
-        if(e.readyState==='complete'){schedule();}
-        else{m.addEventListener('load',schedule,{once:true});}
-      })(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108159528','ym');
-      ym(108159528,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
-    </script>
-    <!-- /Yandex.Metrika -->
     <script defer data-domain="hearthpulse.net" src="https://stats.hs-manacost.ru/js/script.js"></script>
   </head>
   <body>
-    <noscript><div><img src="https://mc.yandex.ru/watch/108159528" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
     <div id="root"></div>
     <script src="/runtime-config.js?v=cdn-20260804"></script>
     <script type="module" src="/src/main.tsx"></script>
