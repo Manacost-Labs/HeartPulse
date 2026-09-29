@@ -3,99 +3,99 @@
   "description": "Gzip ceilings for the JavaScript and CSS that each public Next.js route references in its server-rendered document, checked by tests/next-bundle-budgets.test.mjs. Regenerate with `npm run budget:next:update` only after reviewing a size change.",
   "routes": {
     "/": {
-      "jsGzipBytes": 204800,
+      "jsGzipBytes": 163840,
       "cssGzipBytes": 58368
     },
     "/articles/": {
-      "jsGzipBytes": 200704,
+      "jsGzipBytes": 159744,
       "cssGzipBytes": 61440
     },
     "/faq/": {
-      "jsGzipBytes": 204800,
+      "jsGzipBytes": 164864,
       "cssGzipBytes": 57344
     },
     "/standard/matchups/": {
-      "jsGzipBytes": 211968,
+      "jsGzipBytes": 171008,
       "cssGzipBytes": 61440
     },
     "/standard/meta/": {
-      "jsGzipBytes": 219136,
+      "jsGzipBytes": 179200,
       "cssGzipBytes": 67584
     },
     "/standard/archetypes/": {
-      "jsGzipBytes": 225280,
+      "jsGzipBytes": 184320,
       "cssGzipBytes": 74752
     },
     "/standard/vicious-gold/": {
-      "jsGzipBytes": 212992,
+      "jsGzipBytes": 173056,
       "cssGzipBytes": 65536
     },
     "/standard/cards/": {
-      "jsGzipBytes": 262144,
+      "jsGzipBytes": 221184,
       "cssGzipBytes": 61440
     },
     "/standard/cards/standard/": {
-      "jsGzipBytes": 261120,
+      "jsGzipBytes": 221184,
       "cssGzipBytes": 61440
     },
     "/classes/": {
-      "jsGzipBytes": 209920,
+      "jsGzipBytes": 168960,
       "cssGzipBytes": 58368
     },
     "/tierlist/": {
-      "jsGzipBytes": 230400,
+      "jsGzipBytes": 189440,
       "cssGzipBytes": 65536
     },
     "/legendaries/": {
-      "jsGzipBytes": 231424,
+      "jsGzipBytes": 191488,
       "cssGzipBytes": 65536
     },
     "/heroes/": {
-      "jsGzipBytes": 239616,
+      "jsGzipBytes": 199680,
       "cssGzipBytes": 70656
     },
     "/library/": {
-      "jsGzipBytes": 222208,
+      "jsGzipBytes": 182272,
       "cssGzipBytes": 69632
     },
     "/library/minions/": {
-      "jsGzipBytes": 221184,
+      "jsGzipBytes": 182272,
       "cssGzipBytes": 69632
     },
     "/battlegrounds/tier-list/": {
-      "jsGzipBytes": 202752,
+      "jsGzipBytes": 162816,
       "cssGzipBytes": 57344
     },
     "/gallery/": {
-      "jsGzipBytes": 199680,
+      "jsGzipBytes": 159744,
       "cssGzipBytes": 61440
     },
     "/cosmetics/": {
-      "jsGzipBytes": 209920,
+      "jsGzipBytes": 169984,
       "cssGzipBytes": 58368
     },
     "/contests/": {
-      "jsGzipBytes": 198656,
+      "jsGzipBytes": 157696,
       "cssGzipBytes": 72704
     },
     "/guides-archive/": {
-      "jsGzipBytes": 203776,
+      "jsGzipBytes": 162816,
       "cssGzipBytes": 59392
     },
     "/standard/fun-decks/": {
-      "jsGzipBytes": 214016,
+      "jsGzipBytes": 173056,
       "cssGzipBytes": 65536
     },
     "/developers/api/": {
-      "jsGzipBytes": 201728,
+      "jsGzipBytes": 160768,
       "cssGzipBytes": 56320
     },
     "/privacy/": {
-      "jsGzipBytes": 204800,
+      "jsGzipBytes": 164864,
       "cssGzipBytes": 57344
     },
     "/connect/": {
-      "jsGzipBytes": 196608,
+      "jsGzipBytes": 156672,
       "cssGzipBytes": 54272
     }
   }

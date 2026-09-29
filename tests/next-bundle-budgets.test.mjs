@@ -12,10 +12,15 @@ const budgets = JSON.parse(readFileSync(budgetsPath, 'utf8'));
 
 // Every chunk the server-rendered document references, including the React
 // Server Components payload, is fetched before the page becomes interactive.
+// Chunks loaded later by `next/dynamic` or `React.lazy` are not counted, and
+// the `noModule` polyfill bundle is skipped because modern browsers never load
+// it. Dynamic route segments appear URL-encoded (`%5Bformat%5D`).
 function initialAssets(html) {
+  const unique = matches => [...new Set((matches ?? []).map(file => decodeURIComponent(file)))];
   return {
-    js: [...new Set(html.match(/static\/chunks\/[\w\-./]+?\.js/g) ?? [])],
-    css: [...new Set(html.match(/static\/(?:css|chunks)\/[\w\-./]+?\.css/g) ?? [])],
+    js: unique(html.match(/static\/chunks\/[\w\-./%]+?\.js/g))
+      .filter(file => !/^static\/chunks\/polyfills-/.test(file)),
+    css: unique(html.match(/static\/(?:css|chunks)\/[\w\-./%]+?\.css/g)),
   };
 }
 
@@ -38,6 +43,7 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
   }
 
   if (process.env.NEXT_BUDGETS_WRITE === '1') {
+    assert.ok(!process.env.CI, 'budgets are rewritten only locally, never in CI');
     const ceiling = bytes => Math.ceil((bytes * 1.02) / 1024) * 1024;
     const routes = Object.fromEntries(Object.entries(measured).map(([path, sizes]) => [path, {
       jsGzipBytes: ceiling(sizes.jsGzipBytes), cssGzipBytes: ceiling(sizes.cssGzipBytes),

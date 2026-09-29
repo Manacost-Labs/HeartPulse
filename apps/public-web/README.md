@@ -116,7 +116,7 @@ rebuild after changing source (`npm run build:next`, `npm run build`).
   not this app; see `docs/plans/nextjs-full-site-migration.md`. Bundle
   budgets for this app are `npm run budget:next`; `npm run budget` still
   checks the legacy Vite bundle.
-- Every page ships about 190–250 KiB of gzip JavaScript and 50–70 KiB of CSS
+- Every page ships about 150–210 KiB of gzip JavaScript and 50–70 KiB of CSS
   on first load, because each renders the legacy client shell; the budgets
   only stop that from growing.
 - The Vite build, `src/main.tsx` and `src/App.tsx` stay until the retirement
