@@ -5,6 +5,7 @@ import { publicBattlegroundLibraryCard } from './publicBattlegroundLibraryCardDa
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
 import { decodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
   PUBLIC_BG_PROJECTION_HEADER } from './publicBattlegroundProjectionHeader';
+import { fetchPublicExpress } from './expressApi';
 
 /** Loads an anonymous card projection without forwarding a browser session. */
 export const loadPublicBattlegroundLibraryCard = cache(async (kind: string, slugAndDbfId: string,
@@ -21,14 +22,7 @@ export const loadPublicBattlegroundLibraryCard = cache(async (kind: string, slug
   if (projection === MISSING_PUBLIC_BG_PROJECTION) return null;
   if (projection) return publicBattlegroundLibraryCard(
     decodePublicBattlegroundProjection(projection), kind, match[2], pool);
-  const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
-  if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/') {
-    throw new Error('Invalid legacy origin');
-  }
-  const response = await fetch(new URL(apiPath, origin), {
-    cache: 'no-store', credentials: 'omit', redirect: 'error',
-    signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
-  });
+  const response = await fetchPublicExpress(apiPath);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error('Public Battleground card temporarily unavailable');
   return publicBattlegroundLibraryCard(await response.json(), kind, match[2], pool);

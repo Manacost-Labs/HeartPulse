@@ -7,6 +7,7 @@ import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from '
 import { encodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
   PUBLIC_BG_PROJECTION_HEADER } from './lib/publicBattlegroundProjectionHeader';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
+import { fetchPublicExpress } from './lib/expressApi';
 
 type BattlegroundDetailProbe =
   | { type: 'hero'; dbfId: string; apiPath: string }
@@ -40,14 +41,7 @@ function unavailableResponse(retryAfter: string | null, method: string): Respons
 
 async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: Headers, method: string): Promise<Response | null> {
   try {
-    const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
-    if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/') {
-      throw new Error('Invalid legacy origin');
-    }
-    const response = await fetch(new URL(probe.apiPath, origin), {
-      cache: 'no-store', credentials: 'omit', redirect: 'error',
-      signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
-    });
+    const response = await fetchPublicExpress(probe.apiPath);
     if (response.status === 404) {
       headers.set(PUBLIC_BG_PROJECTION_HEADER, MISSING_PUBLIC_BG_PROJECTION);
       return null;
@@ -76,14 +70,7 @@ async function checkCosmeticsDetail(pathname: string, headers: Headers, method: 
   const match = pathname.match(/^\/cosmetics\/([^/]+)\/([^/]+)\/?$/u);
   if (!match || !cosmeticsDetailPath(match[1], match[2])) return null;
   try {
-    const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
-    if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/') {
-      throw new Error('Invalid legacy origin');
-    }
-    const response = await fetch(new URL(`/api/cosmetics/${match[1]}/${match[2]}`, origin), {
-      cache: 'no-store', credentials: 'omit', redirect: 'error',
-      signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
-    });
+    const response = await fetchPublicExpress(`/api/cosmetics/${match[1]}/${match[2]}`);
     await response.body?.cancel();
     if (response.status === 404) {
       headers.set(MISSING_COSMETICS_DETAIL_HEADER, '1');

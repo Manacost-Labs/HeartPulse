@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import type { PublicProfile } from '@/src/modules/identity/public';
+import { fetchPublicExpress } from './expressApi';
 
 type ProfileRouteKind = 'numeric' | 'legacy';
 const numericId = /^[1-9][0-9]{0,9}$/;
@@ -28,14 +29,7 @@ function publicProfileFromPayload(value: unknown): PublicProfile | null {
 /** Reads only the Express public-profile projection, without browser cookies. */
 export const loadPublicProfile = cache(async (kind: ProfileRouteKind, id: string): Promise<PublicProfile | null> => {
   if (kind === 'numeric' ? !validNumericId(id) : !legacyId.test(id)) return null;
-  const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
-  if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/') {
-    throw new Error('Invalid legacy origin');
-  }
-  const response = await fetch(new URL(`/api/profiles/${encodeURIComponent(id)}`, origin), {
-    cache: 'no-store', credentials: 'omit', redirect: 'error',
-    signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
-  });
+  const response = await fetchPublicExpress(`/api/profiles/${encodeURIComponent(id)}`);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error('Public profile temporarily unavailable');
   if (!response.headers.get('content-type')?.includes('application/json')) {

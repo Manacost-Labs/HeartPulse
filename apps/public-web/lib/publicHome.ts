@@ -2,17 +2,10 @@ import 'server-only';
 import type { HomeArticle, HomeSummaryData } from '@/src/modules/home/public';
 import { homeSummaryData } from './homeSummaryData';
 import { loadPublicArticles } from './publicArticles';
+import { fetchPublicExpress } from './expressApi';
 
 async function loadPublicHomeSummary(): Promise<HomeSummaryData> {
-  const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
-  if (!['http:', 'https:'].includes(origin.protocol)
-    || origin.username || origin.password || origin.pathname !== '/') {
-    throw new Error('Invalid legacy origin');
-  }
-  const response = await fetch(new URL('/api/home/summary', origin), {
-    cache: 'no-store', credentials: 'omit', redirect: 'error',
-    signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
-  });
+  const response = await fetchPublicExpress('/api/home/summary');
   if (!response.ok) throw new Error('Public home summary temporarily unavailable');
   return homeSummaryData(await response.json());
 }

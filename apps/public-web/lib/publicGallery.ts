@@ -1,4 +1,5 @@
 import 'server-only';
+import { fetchPublicExpress } from './expressApi';
 
 export type PublicGalleryItem = {
   id: string;
@@ -61,15 +62,7 @@ function publicGalleryData(value: unknown): PublicGalleryData {
 
 /** Fetches only the anonymous Express gallery projection for server rendering. */
 export async function loadPublicGallery(): Promise<PublicGalleryData> {
-  const origin = new URL(process.env.LEGACY_WEB_ORIGIN ?? 'http://127.0.0.1:3001');
-  if (!['http:', 'https:'].includes(origin.protocol)
-    || origin.username || origin.password || origin.pathname !== '/') {
-    throw new Error('Invalid legacy origin');
-  }
-  const response = await fetch(new URL('/api/gallery', origin), {
-    cache: 'no-store', credentials: 'omit', redirect: 'error',
-    signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
-  });
+  const response = await fetchPublicExpress('/api/gallery');
   if (!response.ok) throw new Error('Public gallery temporarily unavailable');
   return publicGalleryData(await response.json());
 }
