@@ -22,7 +22,7 @@ export function ViciousGoldPageClient() {
         </header>
         <PaywallGate active={!access.checking}
           title="Подтвердите подписку Манакоста для доступа к Vicious Syndicate Gold"
-          headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
+          variant="standard" headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
           subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />
       </section>}
   </PublicPageShell>;

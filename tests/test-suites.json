@@ -355,6 +355,7 @@
         "tests/modal-surface-browser.test.mjs",
         "tests/next-admin-entitlements-browser.test.mjs",
         "tests/next-arena-guest-paywall-browser.test.mjs",
+        "tests/next-standard-guest-paywall-browser.test.mjs",
         "tests/next-modal-isolation-browser.test.mjs",
         "tests/next-support-prompt-browser.test.mjs",
         "tests/next-card-scroll-position-browser.test.mjs",
