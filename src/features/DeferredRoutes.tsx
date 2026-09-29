@@ -1377,7 +1377,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   );
 }
 
-export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription }: {
+export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
   data: TierlistData; loading: boolean; error: boolean;
   companionIds: Set<string>;
   tierlistSource: TierlistSource;
@@ -1388,6 +1388,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
+  /** Access decided by the page (e.g. administrators); defaults to the Arena entitlement. */
+  accessGranted?: boolean;
 }) {
   const [activeClassId, setActiveClassId] = useState<string>(ALL_CARDS_ID);
   const [searchQuery, setSearchQuery]     = useState('');
@@ -1545,7 +1547,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
     [visibleTiers],
   );
   const hiddenCardCount = Math.max(0, totalFilteredCards - visibleCardCount);
-  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
+  const paywallActive = !subscriptionLoading
+    && !(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
 
   return (
     <div className="arena-tierlist-page">
@@ -2009,7 +2012,7 @@ function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey, active
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
 }
 
-export function Legendaries({ data, loading, error, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription }: {
+export function Legendaries({ data, loading, error, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
   data: LegendariesData; loading: boolean; error: boolean;
   legendarySource: LegendarySource;
   onLegendarySourceChange: (src: LegendarySource) => void;
@@ -2019,6 +2022,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
+  /** Access decided by the page (e.g. administrators); defaults to the Arena entitlement. */
+  accessGranted?: boolean;
 }) {
   const [activeClass, setActiveClass] = useState<string>('all');
   const [sortBy, setSortBy] = useState<LegendarySortKey>('winRate');
@@ -2095,7 +2100,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
     imageHa:  lc.imageHa,
     imageRu:  lc.imageRu ?? null,
   }), []);
-  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
+  const paywallActive = !subscriptionLoading
+    && !(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
 
   return (
     <div className="arena-legendaries-page">
