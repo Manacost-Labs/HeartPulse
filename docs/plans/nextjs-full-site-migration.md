@@ -383,9 +383,11 @@ Retire each Vite dependency at its actual owner, in this order:
    `src/app/shell/installFieldFocusMode.ts`. Preserve the current privacy,
    disabled-by-default telemetry and runtime-config behavior.
 4. Replace `scripts/prerender.js` and `test:prerender-seo` with Next route and
-   metadata/status tests. Move bundle checks from `dist/.vite/manifest.json`
-   in `scripts/check-budgets.js` to the Next build output. Update local browser
-   QA scripts and their error-overlay checks to run against Next.
+   metadata/status tests. Bundle checks for the Next build exist since
+   2026-09-29 (`npm run budget:next`, `tests/next-bundle-budgets.test.mjs`,
+   ceilings in `config/next-bundle-budgets.json`); delete
+   `scripts/check-budgets.js` and `npm run budget` with the Vite build. Update
+   local browser QA scripts and their error-overlay checks to run against Next.
 5. Done on 2026-09-29: `dist/` stays the static-root path shared by Nginx,
    regional edges, the deployer and Express, but `npm run build:static`
    (`scripts/build-static-root.mjs`) now assembles it without Vite from

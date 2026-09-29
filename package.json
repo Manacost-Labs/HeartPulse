@@ -49,6 +49,8 @@
     "agent:integration:preflight": "node scripts/agent-session-preflight.mjs --integration",
     "agent:audit:data": "tsx scripts/heartpulse-data-audit.ts",
     "budget": "node scripts/check-budgets.js",
+    "budget:next": "node --test tests/next-bundle-budgets.test.mjs",
+    "budget:next:update": "NEXT_BUDGETS_WRITE=1 node --test tests/next-bundle-budgets.test.mjs",
     "optimize:ui-assets": "node scripts/optimize-ui-assets.mjs",
     "sync:constructed-filter-assets": "node scripts/sync-constructed-filter-assets.mjs",
     "sync:constructed-card-images": "node build/server/constructedCardImagePrewarmer.js",

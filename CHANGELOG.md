@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Появились бюджеты размера для Next.js: `npm run budget:next` проверяет gzip
+  начального JavaScript и CSS 24 публичных страниц по отрисованному HTML и
+  входит в `npm test`. Потолки в `config/next-bundle-budgets.json` сняты с
+  текущей сборки с запасом 2% и не дают бандлам расти незаметно.
+
 - `npm run agent:context -- apps/public-web` и `agent:check` теперь знают
   Next.js-приложение как область `client.nextPublicWeb`: владелец, маршруты,
   фокусные тесты (`npm run test:next-contracts`), документация и долг.

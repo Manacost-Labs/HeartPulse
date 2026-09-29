@@ -89,6 +89,7 @@ behind its `public.ts`, not in `src/features/`.
 | `npm run lint:next` | TypeScript check of this app |
 | `npm run agent:context -- apps/public-web` | Owner, routes, focused tests, docs and debt of this app |
 | `npm run test:next-contracts` | Import, Express-client, search-param and navigation contracts |
+| `npm run budget:next` | Gzip budgets of the initial JS and CSS per public route (`config/next-bundle-budgets.json`) |
 | `node --test tests/next-<name>.test.mjs` | One Next test |
 | `npm run verify:release` | Full release gate |
 <!-- markdownlint-enable MD013 -->
@@ -111,8 +112,12 @@ rebuild after changing source (`npm run build:next`, `npm run build`).
 - Client-rendered wrappers around large legacy views (`src/features/*.tsx`);
   full-document navigation between pages.
 - Legacy global CSS is imported per route from `src/`.
-- `npm run qa:ci`, `npm run budget` and the responsive QA still exercise the
-  legacy Vite build, not this app; see
-  `docs/plans/nextjs-full-site-migration.md`.
+- `npm run qa:ci` and the responsive QA still exercise the legacy Vite build,
+  not this app; see `docs/plans/nextjs-full-site-migration.md`. Bundle
+  budgets for this app are `npm run budget:next`; `npm run budget` still
+  checks the legacy Vite bundle.
+- Every page ships about 190–250 KiB of gzip JavaScript and 50–70 KiB of CSS
+  on first load, because each renders the legacy client shell; the budgets
+  only stop that from growing.
 - The Vite build, `src/main.tsx` and `src/App.tsx` stay until the retirement
   gate in the same plan.
