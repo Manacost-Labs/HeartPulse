@@ -26,6 +26,7 @@ export type AdminUserSearchResult = {
     entitlements?: Partial<Record<string, boolean>>;
   };
   contestEntriesCount?: number;
+  tags?: string[];
   blockedAt?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -49,13 +50,22 @@ type ContestAdminUserRowProps = {
   onToggleMenu: (userId: string) => void;
   onOpenAccessDialog: (user: AdminUserSearchResult) => void;
   onUpdateUser: (user: AdminUserSearchResult, patch: AdminUserPatch) => void;
+  onOpenPerson?: (user: AdminUserSearchResult) => void;
 };
 
-export function ContestAdminUserRow({ currentUserId, user, actionId, openMenuId, menuRef, menuTriggerMap, formatDate, onToggleMenu, onOpenAccessDialog, onUpdateUser }: ContestAdminUserRowProps) {
+export function ContestAdminUserRow({ currentUserId, user, actionId, openMenuId, menuRef, menuTriggerMap, formatDate, onToggleMenu, onOpenAccessDialog, onUpdateUser, onOpenPerson }: ContestAdminUserRowProps) {
   return (
     <div className="contest-user-row">
       <div className="admin-user-profile">
-        <div className="admin-user-identity"><strong>{user.name || 'Без имени'}</strong><span>ID: {user.profileId} · {user.role === 'admin' ? 'администратор' : 'пользователь'}</span></div>
+        <div className="admin-user-identity">
+          <strong>{onOpenPerson ? (
+            <button type="button" className="admin-crm-open" aria-haspopup="dialog" onClick={() => onOpenPerson(user)}>{user.name || 'Без имени'}</button>
+          ) : user.name || 'Без имени'}</strong>
+          <span>ID: {user.profileId} · {user.role === 'admin' ? 'администратор' : 'пользователь'}</span>
+          {Boolean(user.tags?.length) && (
+            <ul className="admin-crm-row-tags" aria-label="Теги">{user.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul>
+          )}
+        </div>
         <dl className="admin-user-facts">
           <div><dt>Почта и страна</dt><dd>{user.email || 'email не указан'} · {user.country || 'страна не указана'}</dd></div>
           <div><dt>Контакты</dt><dd>TG: {user.contactTelegram || user.telegramUsername || user.telegramId || '—'} · VK: {user.contactVkUrl || '—'} · связь: {user.contactEmail || '—'}</dd></div>

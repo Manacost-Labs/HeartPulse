@@ -76,6 +76,22 @@
       ]
     },
     {
+      "id": "client.adminCrm",
+      "runtime": "client",
+      "root": "src/modules/adminCrm",
+      "purpose": "Owns the administrator CRM surfaces: people segments, the client card, notes and tags.",
+      "owner": "operations",
+      "publicEntry": "src/modules/adminCrm/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:admin-crm"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/admin-crm.md"
+      ]
+    },
+    {
       "id": "client.adminWorkspace",
       "runtime": "client",
       "root": "src/modules/adminWorkspace",

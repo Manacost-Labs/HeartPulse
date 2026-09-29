@@ -919,6 +919,19 @@ const adminFixtures = {
     ],
     total: 2,
   },
+  '/api/admin/crm/segments': {
+    segments: [
+      { id: 'all', label: 'Все', count: 2 },
+      { id: 'paying', label: 'Платят сейчас', count: 1 },
+      { id: 'manual', label: 'Ручной доступ', count: 0 },
+      { id: 'expiring', label: 'Истекает ≤ 7 дней', count: 0 },
+      { id: 'lapsed', label: 'Потеряли доступ', count: 0 },
+      { id: 'new', label: 'Новые за 7 дней', count: 0 },
+      { id: 'blocked', label: 'Заблокированы', count: 1 },
+      { id: 'admins', label: 'Администраторы', count: 0 },
+    ],
+    tags: [],
+  },
   '/api/admin/mailings/overview': {
     campaigns: [{
       id: 'mailing-qa-1', subject: 'Прошлая рассылка', preheader: 'Архив', templateKey: 'blank', segment: 'active',

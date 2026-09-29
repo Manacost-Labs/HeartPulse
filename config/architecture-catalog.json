@@ -735,6 +735,64 @@
       ]
     },
     {
+      "name": "frontend-admin-crm",
+      "status": "modular",
+      "owner": "admin-platform",
+      "purpose": "Own the administrator CRM: people segments, the client card, notes and tags.",
+      "paths": [
+        "src/modules/adminCrm"
+      ],
+      "publicEntrypoints": [
+        "src/modules/adminCrm/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        {
+          "method": "GET",
+          "path": "/admin/crm/segments"
+        },
+        {
+          "method": "GET",
+          "path": "/admin/crm/people/:userId"
+        },
+        {
+          "method": "POST",
+          "path": "/admin/crm/people/:userId/notes"
+        },
+        {
+          "method": "DELETE",
+          "path": "/admin/crm/people/:userId/notes/:noteId"
+        },
+        {
+          "method": "PUT",
+          "path": "/admin/crm/people/:userId/tags"
+        }
+      ],
+      "contracts": [
+        "server/adminCrmRoutes.ts",
+        "docs/specs/admin-crm.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [
+        "admin_user_notes",
+        "admin_user_tags"
+      ],
+      "externalServices": [],
+      "tests": [
+        "tests/admin-crm-routes.test.ts",
+        "tests/admin-client-card-model.test.ts"
+      ],
+      "allowedDependencies": [
+        "React",
+        "lucide-react"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
+    },
+    {
       "name": "frontend-admin-workspace",
       "status": "modular",
       "owner": "admin-platform",

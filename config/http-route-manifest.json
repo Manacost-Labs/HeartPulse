@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 81,
-    "routeRegistrations": 228,
-    "middlewareRegistrations": 122,
+    "sourceFiles": 83,
+    "routeRegistrations": 233,
+    "middlewareRegistrations": 123,
     "explicitGuardRouteRegistrations": 59,
     "unresolvedPaths": 0
   },
@@ -412,6 +412,66 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/admin/crm/segments",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminCrmRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/crm/people/:userId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminCrmRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/crm/people/:userId/notes",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminCrmRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/admin/crm/people/:userId/notes/:noteId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminCrmRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "PUT",
+      "path": "/admin/crm/people/:userId/tags",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminCrmRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/fun-decks",
       "pathKind": "string",
       "receiver": "router",
@@ -783,6 +843,19 @@
       "guardSignals": [],
       "source": "server/adminUserReadRoutes.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminCrmRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerAdminCrm.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "middleware",

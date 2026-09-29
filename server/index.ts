@@ -218,6 +218,9 @@ import {
   type NewsletterUnsubscribeStore,
 } from './newsletterUnsubscribeRoutes.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
+import { ADMIN_CRM_SCHEMA_SQL } from './adminCrmRoutes.js';
+import { registerAdminCrm } from './app/registerAdminCrm.js';
+import { createSqlRepository } from './app/sqlRepository.js';
 import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
 import {
   createAdminBoostyAnalyticsRouter,
@@ -1282,8 +1285,7 @@ function db(): DatabaseSync {
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
-    );
-  `);
+    );${ADMIN_CRM_SCHEMA_SQL}`);
   ensureArchetypeDeckCodesAllRank(ecosystemDb);
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_referral_clicks_referral_time ON referral_clicks(referral_id, clicked_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_article_votes_article ON article_votes(article_id);');
@@ -8838,11 +8840,7 @@ app.use('/api', createSubscriptionRouter({
 
 app.use('/api', createContestRouter({
   userAuth,
-  repository: {
-    all: (sql, ...params) => dbAll<Record<string, unknown>>(sql, ...params),
-    get: (sql, ...params) => dbGet<Record<string, unknown>>(sql, ...params) ?? null,
-    run: (sql, ...params) => dbRun(sql, ...params),
-  },
+  repository: createSqlRepository(db),
   serializeContest: (row, entry) => contestFromRow(row, entry),
   serializeUser: publicUser,
   refreshSubscription: user => refreshSubscriptionForUser(user, false),
@@ -8899,10 +8897,7 @@ app.use('/api', createAdminContestMutationRouter({
 
 app.use('/api', createAdminUserReadRouter({
   adminAuth,
-  repository: {
-    get: (sql, ...params) => dbGet<any>(sql, ...params) ?? null,
-    all: (sql, ...params) => dbAll<any>(sql, ...params),
-  },
+  repository: createSqlRepository(db),
   subscriptionForUser: (row, manualAccess) => {
     const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
     const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
@@ -8968,6 +8963,8 @@ app.use('/api', createAdminTelegramReadRouter({
   chatIds: () => [...SUBSCRIPTION_TELEGRAM_CHAT_IDS],
   setPrivateNoStore,
 }));
+
+registerAdminCrm({ app, getDatabase: db, adminAuth, csrfAllowed: cookieMutationCsrfAllowed, setPrivateNoStore, recordAudit: recordAdminAuditByActorId });
 
 app.use('/api', createAdminUserMutationRouter({
   adminAuth,

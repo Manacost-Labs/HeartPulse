@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
 import { ContestAdminUserRow, type AdminUserPatch, type AdminUserSearchResult } from './ContestAdminUserRow';
 import { ADMIN_INPUT } from './contestAdminUi';
+import {
+  AdminClientCard,
+  AdminSegmentBar,
+  type AdminCrmSegmentId,
+  type AdminCrmSegments,
+} from '../modules/adminCrm/public';
 
 export type { AdminUserPatch, AdminUserSearchResult } from './ContestAdminUserRow';
 
@@ -24,6 +30,12 @@ type ContestAdminUsersProps = {
   onPageChange: (page: number) => void;
   onToggleMenu: (userId: string) => void;
   onUpdateUser: (user: AdminUserSearchResult, patch: AdminUserPatch) => void;
+  segments: AdminCrmSegments | null;
+  segment: AdminCrmSegmentId;
+  tag: string;
+  onSegmentChange: (next: { segment: AdminCrmSegmentId; tag: string }) => void;
+  /** Notes or tags changed inside the client card. */
+  onPersonChanged: () => void;
 };
 
 export function ContestAdminUsers({
@@ -44,6 +56,11 @@ export function ContestAdminUsers({
   onPageChange,
   onToggleMenu,
   onUpdateUser,
+  segments,
+  segment,
+  tag,
+  onSegmentChange,
+  onPersonChanged,
 }: ContestAdminUsersProps) {
   const [accessTarget, setAccessTarget] = useState<AdminUserSearchResult | null>(null);
   const [accessPeriod, setAccessPeriod] = useState('30');
@@ -51,12 +68,19 @@ export function ContestAdminUsers({
   const visibleAccessCount = users.filter(user => user.subscription?.hasAccess || user.lifetimeAccess || user.manualAccess?.enabled).length;
   const visibleBlockedCount = users.filter(user => Boolean(user.blockedAt)).length;
 
-  const openAccessDialog = (user: AdminUserSearchResult) => {
+  const [personId, setPersonId] = useState('');
+  const closePerson = useCallback(() => setPersonId(''), []);
+  const prepareAccessDialog = (user: AdminUserSearchResult) => {
     setAccessTarget(user);
     setAccessPeriod(user.manualAccess?.expiresAt ? 'custom' : user.lifetimeAccess ? 'forever' : '30');
     setCustomAccessEnd(user.manualAccess?.expiresAt ? String(user.manualAccess.expiresAt).slice(0, 16) : '');
+  };
+  const openAccessDialog = (user: AdminUserSearchResult) => {
+    prepareAccessDialog(user);
     onToggleMenu(user.id);
   };
+  const personUser = personId ? users.find(user => user.id === personId) : undefined;
+  const filtered = Boolean(query.trim()) || segment !== 'all' || Boolean(tag);
 
   const submitAccess = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -83,10 +107,10 @@ export function ContestAdminUsers({
         status={loading ? 'Обновляем данные' : visibleBlockedCount ? `${visibleBlockedCount} требуют внимания` : 'База готова к работе'}
         statusTone={loading ? 'working' : visibleBlockedCount ? 'attention' : 'ready'}
         metrics={[
-          query.trim()
+          filtered
             ? { label: 'Найдено', value: total, detail: 'по текущему фильтру' }
             : { label: 'Всего профилей', value: total, detail: 'в единой базе' },
-          { label: 'На странице', value: users.length, detail: query.trim() ? 'по текущему фильтру' : `страница ${page} из ${pageCount}` },
+          { label: 'На странице', value: users.length, detail: filtered ? 'по текущему фильтру' : `страница ${page} из ${pageCount}` },
           { label: 'С доступом', value: visibleAccessCount, detail: 'на этой странице' },
           { label: 'Заблокированы', value: visibleBlockedCount, detail: 'на этой странице' },
         ]}
@@ -115,14 +139,15 @@ export function ContestAdminUsers({
             />
           </label>
         </div>
+        <AdminSegmentBar data={segments} segment={segment} tag={tag} disabled={loading} onChange={onSegmentChange} />
         <div className="contest-user-results">
         {loading && !users.length ? (
           <p className="contest-muted" role="status">Загружаем список пользователей...</p>
         ) : users.length ? users.map(user => (
-          <ContestAdminUserRow key={user.id} currentUserId={currentUserId} user={user} actionId={actionId} openMenuId={openMenuId} menuRef={menuRef} menuTriggerMap={menuTriggerMap} formatDate={formatDate} onToggleMenu={onToggleMenu} onOpenAccessDialog={openAccessDialog} onUpdateUser={onUpdateUser} />
+          <ContestAdminUserRow key={user.id} currentUserId={currentUserId} user={user} actionId={actionId} openMenuId={openMenuId} menuRef={menuRef} menuTriggerMap={menuTriggerMap} formatDate={formatDate} onToggleMenu={onToggleMenu} onOpenAccessDialog={openAccessDialog} onUpdateUser={onUpdateUser} onOpenPerson={user => setPersonId(user.id)} />
         )) : (
           <p className="contest-muted" role="status">
-            {query.trim() ? 'По этому фильтру пользователей нет.' : 'В единой базе пока нет пользователей.'}
+            {filtered ? 'По этому фильтру пользователей нет.' : 'В единой базе пока нет пользователей.'}
           </p>
         )}
         </div>
@@ -134,6 +159,14 @@ export function ContestAdminUsers({
         </nav>
         )}
       </section>
+      {personId && (
+        <AdminClientCard
+          userId={personId}
+          onClose={closePerson}
+          onChanged={onPersonChanged}
+          onManageAccess={personUser ? () => { setPersonId(''); prepareAccessDialog(personUser); } : undefined}
+        />
+      )}
       {accessTarget && (
         <div className="admin-access-dialog-backdrop" role="presentation" onMouseDown={event => {
           if (event.target === event.currentTarget) setAccessTarget(null);
@@ -149,7 +182,7 @@ export function ContestAdminUsers({
             <p>Открывает все функции и закрытые разделы сайта независимо от тарифа пользователя.</p>
             <label>
               Срок доступа
-              <select value={accessPeriod} onChange={event => setAccessPeriod(event.target.value)} style={ADMIN_INPUT}>
+              <select autoFocus value={accessPeriod} onChange={event => setAccessPeriod(event.target.value)} style={ADMIN_INPUT}>
                 <option value="7">7 дней</option>
                 <option value="30">30 дней</option>
                 <option value="90">90 дней</option>

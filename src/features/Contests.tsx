@@ -73,6 +73,7 @@ import {
   type ContestWorkspaceView,
 } from './ContestAdminContests';
 import { ADMIN_INPUT } from './contestAdminUi';
+import { useAdminUsersList } from './useAdminUsersList';
 import {
   ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
@@ -197,7 +198,6 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
 ];
 const CONTEST_ADMIN_NAV_ITEMS = ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
 
-const ADMIN_USERS_PAGE_SIZE = 20;
 const ADMIN_ARTICLES_PAGE_SIZE = 12;
 const ADMIN_ENTRIES_PAGE_SIZE = 20;
 const ADMIN_WORKSPACE_SECTION_IDS = new Set(ADMIN_NAV_ITEMS.map(item => item.id));
@@ -236,12 +236,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const { contestId: selectedContestId, winnersText } = contestSelection;
   const [contestStatusFilter, setContestStatusFilter] = useState('all');
   const [contestWorkspaceView, setContestWorkspaceView] = useState<ContestWorkspaceView>('manage');
-  const [userQuery, setUserQuery] = useState('');
-  const [usersPage, setUsersPage] = useState(1);
-  const [users, setUsers] = useState<AdminUserSearchResult[]>([]);
-  const [usersTotal, setUsersTotal] = useState(0);
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [usersReloadKey, setUsersReloadKey] = useState(0);
   const [userActionId, setUserActionId] = useState('');
   const [mailingOverview, setMailingOverview] = useState<MailingOverview | null>(null);
   const [mailingLoading, setMailingLoading] = useState(false);
@@ -280,6 +274,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const setMessage = useCallback((nextMessage: AdminMessage | null) => {
     dispatchAdminWorkspace({ type: 'setMessage', message: nextMessage });
   }, []);
+  const usersList = useAdminUsersList(hasFullAdminAccess && adminSection === 'users', text => setMessage({ type: 'err', text }));
   const [adminArticles, setAdminArticles] = useState<Article[]>([]);
   const [articleQuery, setArticleQuery] = useState('');
   const [articlePage, setArticlePage] = useState(1);
@@ -741,47 +736,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     return () => controller.abort();
   }, [adminSection, allowed, selectedContestId]);
 
-  useEffect(() => {
-    if (!hasFullAdminAccess || adminSection !== 'users') {
-      setUsers([]);
-      setUsersTotal(0);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams({ limit: String(ADMIN_USERS_PAGE_SIZE), offset: String((usersPage - 1) * ADMIN_USERS_PAGE_SIZE) });
-      const query = userQuery.trim();
-      if (query) params.set('q', query);
-
-      setUsersLoading(true);
-      fetch(`/api/admin/users?${params.toString()}`, {
-        headers: authJsonHeaders(),
-        signal: controller.signal,
-        credentials: SAME_ORIGIN,
-      })
-        .then(async res => {
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error || 'Не удалось загрузить пользователей');
-          setUsers(Array.isArray(data.users) ? data.users : []);
-          setUsersTotal(Number(data.total || 0));
-        })
-        .catch((err: any) => {
-          if (controller.signal.aborted) return;
-          setUsers([]);
-          setUsersTotal(0);
-          setMessage({ type: 'err', text: err.message });
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setUsersLoading(false);
-        });
-    }, userQuery.trim() ? 220 : 0);
-
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [adminSection, hasFullAdminAccess, userQuery, usersPage, usersReloadKey]);
 
 	  const submitContest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1004,7 +958,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось обновить пользователя');
       setMessage({ type: 'ok', text: `Пользователь обновлен: ${user.name || user.email || user.id}.` });
-      setUsersReloadKey(value => value + 1);
+      usersList.reload();
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
     } finally {
@@ -1191,11 +1145,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   useEffect(() => {
     setArticlePage(current => Math.min(current, articlePageCount));
   }, [articlePageCount]);
-  const usersPageCount = Math.max(1, Math.ceil(usersTotal / ADMIN_USERS_PAGE_SIZE));
-
-  useEffect(() => {
-    setUsersPage(current => Math.min(current, usersPageCount));
-  }, [usersPageCount]);
   const selectedContestEntryCount = selectedContest?.entriesCount ?? entries.length;
   const selectedContestWinnerCount = selectedWinnerIds.length;
   const selectedContestApprovedWinnerCount = approvedEntries.filter(entry => selectedWinnerIdSet.has(entry.profileId)).length;
@@ -1301,22 +1250,27 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           {hasFullAdminAccess && adminSection === 'users' && (
             <ContestAdminUsers
               currentUserId={authUser?.id}
-              users={users}
-              total={usersTotal}
-              loading={usersLoading}
-              query={userQuery}
-              page={usersPage}
-              pageCount={usersPageCount}
+              users={usersList.users}
+              total={usersList.total}
+              loading={usersList.loading}
+              query={usersList.query}
+              page={usersList.page}
+              pageCount={usersList.pageCount}
               actionId={userActionId}
               openMenuId={openUserMenuId}
               menuRef={userMenuRef}
               menuTriggerMap={userMenuTriggerMap}
               formatDate={formatDate}
-              onRefresh={() => setUsersReloadKey(value => value + 1)}
-              onQueryChange={query => { setUserQuery(query); setUsersPage(1); }}
-              onPageChange={setUsersPage}
+              onRefresh={usersList.reload}
+              onQueryChange={usersList.setQuery}
+              onPageChange={usersList.setPage}
               onToggleMenu={userId => dispatchAdminWorkspace({ type: 'toggleUserMenu', userId })}
               onUpdateUser={(user, patch) => void updateAdminUser(user, patch)}
+              segments={usersList.segments}
+              segment={usersList.segment}
+              tag={usersList.tag}
+              onSegmentChange={usersList.changeSegment}
+              onPersonChanged={usersList.reload}
             />
           )}
 

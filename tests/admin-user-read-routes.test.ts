@@ -21,6 +21,7 @@ app.use('/api', createAdminUserReadRouter({
         email: 'user@example.test',
         manual_access: 1,
         manual_access_expires_at: '2026-08-01T00:00:00.000Z',
+        crm_tags: 'vip\nстример',
       }];
     },
   },
@@ -55,7 +56,7 @@ try {
   assert.deepEqual(lastAll.params, Array(7).fill('%test%'));
   assert.match(lastAll.sql, /LIMIT 40/);
 
-  for (const query of ['?role=owner', '?subscription=expired']) {
+  for (const query of ['?role=owner', '?subscription=expired', '?segment=everyone']) {
     const invalid = await get(query);
     assert.equal(invalid.status, 400);
   }
@@ -88,6 +89,15 @@ try {
   assert.ok(lastAll.params.includes('%user%'));
   assert.ok(lastAll.params.includes('admin'));
   assert.match(lastAll.sql, /g\.expires_at/);
+
+  assert.deepEqual((listPayload.users[0] as unknown as { tags: string[] }).tags, ['vip', 'стример']);
+
+  const segmented = await get('?segment=lapsed&tag=%20VIP%20');
+  assert.equal(segmented.status, 200);
+  assert.ok(lastAll);
+  assert.match(lastAll.sql, /subscription_checks c/);
+  assert.match(lastAll.sql, /admin_user_tags ut WHERE ut\.user_id = u\.id AND ut\.tag = \?/);
+  assert.ok(lastAll.params.includes('vip'));
 
   const clamped = await get('?limit=9999&offset=-5');
   assert.equal(clamped.status, 200);

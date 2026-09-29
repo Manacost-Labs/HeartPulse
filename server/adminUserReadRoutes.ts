@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { ACTIVE_MANUAL_GRANT_SQL, adminUserSegmentWhere, isAdminUserSegment } from './adminCrmSegments.js';
 
 type QueryValue = string | number;
 export type AdminUserReadRepository = {
@@ -34,7 +35,9 @@ const detailedUser = (row: Record<string, unknown>, dependencies: AdminUserReadD
     blockedAt: String(row.blocked_at || ''), manualAccess, lifetimeAccess,
     lifetimeGrantedAt: String(row.manual_access_granted_at || ''),
     subscription: dependencies.subscriptionForUser(row, manualAccess),
-    contestEntriesCount: Number(row.contest_entries_count || 0), createdAt: String(row.created_at || ''),
+    contestEntriesCount: Number(row.contest_entries_count || 0),
+    tags: String(row.crm_tags || '').split('\n').filter(Boolean),
+    createdAt: String(row.created_at || ''),
     updatedAt: String(row.updated_at || ''),
   };
 };
@@ -109,6 +112,9 @@ export function createAdminUserReadRouter(dependencies: AdminUserReadDependencie
     if (subscription && subscription !== 'active' && subscription !== 'inactive') {
       return response.status(400).json({ error: 'Некорректный фильтр подписки' });
     }
+    const segment = text(request.query.segment, 40);
+    if (segment && !isAdminUserSegment(segment)) return response.status(400).json({ error: 'Некорректный сегмент' });
+    const tag = text(request.query.tag, 32).toLowerCase();
     const limit = integer(request.query.limit, 100, 10, 200);
     const offset = integer(request.query.offset, 0, 0, 1_000_000);
     const where: string[] = [];
@@ -126,11 +132,14 @@ export function createAdminUserReadRouter(dependencies: AdminUserReadDependencie
       params.push(like, like, like, like, like, like, like, like);
     }
     if (role) { where.push('u.role = ?'); params.push(role); }
-    const activeManualGrant = `(COALESCE(g.active, 0) = 1 AND (
-      g.expires_at IS NULL OR g.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-    ))`;
+    const activeManualGrant = ACTIVE_MANUAL_GRANT_SQL;
     if (subscription === 'active') where.push(`(COALESCE(s.has_access, 0) = 1 OR ${activeManualGrant})`);
     if (subscription === 'inactive') where.push(`(COALESCE(s.has_access, 0) = 0 AND NOT ${activeManualGrant})`);
+    if (segment && isAdminUserSegment(segment)) where.push(adminUserSegmentWhere(segment));
+    if (tag) {
+      where.push('EXISTS (SELECT 1 FROM admin_user_tags ut WHERE ut.user_id = u.id AND ut.tag = ?)');
+      params.push(tag);
+    }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     try {
       const total = Number(dependencies.repository.get(`
@@ -161,7 +170,8 @@ export function createAdminUserReadRouter(dependencies: AdminUserReadDependencie
           ) THEN 1 ELSE 0 END AS manual_access,
           g.expires_at AS manual_access_expires_at,
           g.granted_at AS manual_access_granted_at,
-          (SELECT COUNT(*) FROM contest_entries e WHERE e.user_id = u.id) AS contest_entries_count
+          (SELECT COUNT(*) FROM contest_entries e WHERE e.user_id = u.id) AS contest_entries_count,
+          (SELECT group_concat(ut.tag, char(10)) FROM admin_user_tags ut WHERE ut.user_id = u.id) AS crm_tags
         FROM users u
         LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
         LEFT JOIN identities oidc ON oidc.user_id = u.id AND oidc.provider = 'telegram_oidc'

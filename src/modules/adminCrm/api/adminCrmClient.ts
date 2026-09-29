@@ -1,0 +1,70 @@
+/** Browser client for the admin CRM API. Contract: docs/specs/admin-crm.md. */
+export type AdminCrmSegmentId = 'all' | 'paying' | 'manual' | 'expiring' | 'lapsed' | 'new' | 'blocked' | 'admins';
+
+export type AdminCrmSegment = { id: AdminCrmSegmentId; label: string; count: number };
+export type AdminCrmTagCount = { tag: string; count: number };
+export type AdminCrmSegments = { segments: AdminCrmSegment[]; tags: AdminCrmTagCount[] };
+
+export type AdminCrmNote = { id: number; body: string; authorId: string; authorName: string; createdAt: string };
+
+export type AdminCrmPerson = {
+  person: {
+    id: string; name: string; email: string; role: string; country: string;
+    createdAt: string; updatedAt: string; blockedAt: string | null; newsletterOptIn: boolean;
+    contacts: { telegram: string; vk: string; email: string };
+  };
+  identities: Array<{ provider: string; username: string; createdAt: string; verifiedAt: string | null }>;
+  access: {
+    hasAccess: boolean; source: string; message: string; checkedAt: string;
+    manual: null | {
+      active: boolean; grantedBy: string; grantedAt: string; expiresAt: string | null;
+      revokedBy: string | null; revokedAt: string | null; note: string;
+    };
+  };
+  accessHistory: Array<{ at: string; source: string; hasAccess: boolean }>;
+  contests: Array<{ contestId: string; title: string; status: string; createdAt: string }>;
+  mailing: null | {
+    consentStatus: string; consentedAt: string | null; unsubscribedAt: string | null;
+    delivered: number; failed: number; lastDeliveredAt: string | null;
+  };
+  notes: AdminCrmNote[];
+  tags: string[];
+  audit: Array<{ id: number; action: string; actorId: string; actorName: string; details: Record<string, unknown>; createdAt: string }>;
+};
+
+const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
+
+// The single same-origin transport for admin people data (CSRF header, no caching, readable errors).
+async function request<T>(path: string, init: RequestInit = {}, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`/api/admin${path}`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    ...init,
+    headers: JSON_HEADERS,
+    signal,
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(payload.error || `Ошибка ${response.status}`);
+  return payload as T;
+}
+
+const personPath = (userId: string) => `/crm/people/${encodeURIComponent(userId)}`;
+
+export type AdminUsersPage<TUser> = { users: TUser[]; total: number };
+
+export const adminCrmClient = {
+  /** GET /api/admin/users with search, segment, tag and paging parameters. */
+  users: <TUser>(params: URLSearchParams, signal?: AbortSignal) => request<Partial<AdminUsersPage<TUser>>>(`/users?${params.toString()}`, {}, signal)
+    .then(page => ({ users: Array.isArray(page.users) ? page.users : [], total: Number(page.total || 0) })),
+  segments: (signal?: AbortSignal) => request<AdminCrmSegments>('/crm/segments', {}, signal),
+  person: (userId: string, signal?: AbortSignal) => request<AdminCrmPerson>(personPath(userId), {}, signal),
+  addNote: (userId: string, body: string) => request<{ note: AdminCrmNote }>(`${personPath(userId)}/notes`, {
+    method: 'POST', body: JSON.stringify({ body }),
+  }).then(result => result.note),
+  deleteNote: (userId: string, noteId: number) => request<{ ok: true }>(`${personPath(userId)}/notes/${noteId}`, { method: 'DELETE' }),
+  setTags: (userId: string, tags: string[]) => request<{ tags: string[] }>(`${personPath(userId)}/tags`, {
+    method: 'PUT', body: JSON.stringify({ tags }),
+  }).then(result => result.tags),
+};
+
+export type AdminCrmClient = typeof adminCrmClient;
