@@ -1,6 +1,5 @@
 /** Browser client for the admin CRM API. Contract: docs/specs/admin-crm.md. */
-import type { MoneyPayload } from '../ui/moneyModel';
-import type { AdminCrmOverview } from '../ui/overviewModel';
+import type { AdminCrmOverview, MoneyPayload } from './adminCrmContracts';
 export type AdminCrmSegmentId = 'all' | 'paying' | 'manual' | 'expiring' | 'lapsed' | 'new' | 'blocked' | 'admins';
 
 export type AdminCrmSegment = { id: AdminCrmSegmentId; label: string; count: number };

@@ -416,7 +416,7 @@
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "<inline-handler>",
+      "handler": "createOverviewHandler(...)",
       "guardSignals": [],
       "source": "server/adminCrmRoutes.ts",
       "sourceOrder": 0

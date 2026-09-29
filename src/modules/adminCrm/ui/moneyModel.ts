@@ -3,35 +3,11 @@
  * Subscription revenue is inferred from observed Boosty payment increases plus exact Tribute
  * webhooks; donations and paid posts come from the exact Boosty sales ledger.
  */
-export type MoneyMetrics = { newSubscriptions: number; renewals: number; revenueRub: number; observedDecreaseRub: number };
-export type MoneyPlan = { planId: string; planName: string; newSubscriptions: number; renewals: number; revenueRub: number; source: 'boosty' | 'tribute' };
-export type MoneyRetention = { days: number; eligible: number; evaluated: number; retained: number; unknown: number; rate: number | null };
-export type MoneyObservation = { observedAt: string; type: string; amountRub: number; planName: string; source: 'boosty' | 'tribute' };
-export type MoneySaleObservation = { observedAt: string; type: 'donation' | 'post_purchase'; amountRub: number; postTitle: string };
-export type MoneyBuyer = { userId: string; name: string; email: string; donations: number; postPurchases: number; totalRevenueRub: number; lastPurchaseAt: string };
-export type MoneyTransaction = {
-  eventKey: string; type: 'donation' | 'post_purchase'; createdAt: string; amountRub: number;
-  user: { id: string; name: string; email: string }; post: { id: string; title: string } | null;
-};
+import type { MoneyPayload, MoneyPlan } from '../api/adminCrmContracts';
 
-export type MoneyPayload = {
-  from: string;
-  to: string;
-  summary: MoneyMetrics;
-  plans: MoneyPlan[];
-  observations?: MoneyObservation[];
-  retention: MoneyRetention[];
-  coverage: { lastAcceptedPollAt: string | null; complete: boolean };
-  limitations: string[];
-  sales: null | {
-    summary: { donations: number; postPurchases: number; totalRevenueRub: number; uniqueBuyers: number };
-    buyers: MoneyBuyer[];
-    observations: MoneySaleObservation[];
-    transactions?: MoneyTransaction[];
-    coverage: { latestImportAt: string | null; complete: boolean };
-  };
-  generatedAt: string;
-};
+export type {
+  MoneyBuyer, MoneyMetrics, MoneyObservation, MoneyPayload, MoneyPlan, MoneyRetention, MoneySaleObservation, MoneyTransaction,
+} from '../api/adminCrmContracts';
 
 export type MoneyPeriodDays = 30 | 90 | 365;
 export const MONEY_PERIODS: ReadonlyArray<{ days: MoneyPeriodDays; label: string }> = [
