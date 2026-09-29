@@ -5,16 +5,25 @@ const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.me
 // The browser QA suite, its shared /api fixtures and the mock handler.
 const browserQa = ['../scripts/e2e-qa.mjs', '../scripts/qa/mockApi.mjs', '../scripts/qa/fixtures.mjs']
   .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
-const browserQaCi = readFileSync(new URL('../scripts/browser-qa-ci.mjs', import.meta.url), 'utf8');
-const responsiveQaLocal = readFileSync(new URL('../scripts/responsive-qa-local.mjs', import.meta.url), 'utf8');
+const browserQaNext = readFileSync(new URL('../scripts/browser-qa-next.mjs', import.meta.url), 'utf8');
+const browserQaLegacy = readFileSync(new URL('../scripts/browser-qa-legacy.mjs', import.meta.url), 'utf8');
 const layoutDiagnostics = readFileSync(new URL('../scripts/mobile-layout-diagnostics.mjs', import.meta.url), 'utf8');
 const applicationCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const { scripts } = packageJson;
 
 assert.equal(
   scripts['qa:ci'],
-  'npm run build && node scripts/browser-qa-ci.mjs',
-  'standalone qa:ci must build current sources before serving dist',
+  'npm run build && npm run build:next && node scripts/browser-qa-next.mjs',
+  'standalone qa:ci must build current sources and test the Next.js renderer production serves',
+);
+assert.equal(
+  scripts['qa:legacy'],
+  'npm run build && node scripts/browser-qa-legacy.mjs',
+  'the Vite build stays testable on demand until it is retired',
+);
+assert.ok(
+  browserQaNext.includes("QA_RENDERER: 'next'") && browserQaNext.includes('startQaNextRuntime()'),
+  'the release browser QA must run against the Next.js runtime with the QA backend',
 );
 
 const verifySteps = scripts['verify:ci'].split(' && ');
@@ -28,8 +37,9 @@ assert.equal(
   'verify:ci must build exactly once',
 );
 assert.ok(
-  verifySteps.includes('node scripts/browser-qa-ci.mjs'),
-  'verify:ci must test the build it already produced',
+  verifySteps.includes('node scripts/browser-qa-next.mjs')
+    && verifySteps.indexOf('node scripts/browser-qa-next.mjs') > verifySteps.indexOf('npm run build:next'),
+  'verify:ci must test the builds it already produced',
 );
 assert.ok(
   !verifySteps.includes('npm run qa:ci'),
@@ -169,42 +179,30 @@ assert.ok(
   'responsive manifest must report QA outcome independently from screenshot capture',
 );
 assert.ok(
-  browserQaCi.includes("QA_RESPONSIVE_SCOPE: process.env.QA_RESPONSIVE_SCOPE || 'representative'"),
+  browserQaNext.includes("QA_RESPONSIVE_SCOPE: process.env.QA_RESPONSIVE_SCOPE || 'representative'"),
   'push/PR browser QA must run the representative responsive matrix by default',
 );
 assert.equal(
   scripts['qa:responsive'],
-  'QA_RESPONSIVE_SCOPE=representative node scripts/responsive-qa-local.mjs',
-  'representative responsive QA must use the isolated local build runner',
+  'npm run build && npm run build:next && QA_RESPONSIVE_SCOPE=representative node scripts/browser-qa-next.mjs',
+  'representative responsive QA must build current sources and test the Next.js runtime',
 );
 assert.equal(
   scripts['qa:responsive:all'],
-  'QA_RESPONSIVE_SCOPE=all-p0 node scripts/responsive-qa-local.mjs',
-  'all-P0 responsive QA must use the isolated local build runner',
+  'npm run build && npm run build:next && QA_RESPONSIVE_SCOPE=all-p0 node scripts/browser-qa-next.mjs',
+  'all-P0 responsive QA must build current sources and test the Next.js runtime',
 );
 assert.ok(
-  responsiveQaLocal.includes('mkdtempSync(join(tmpdir(),'),
-  'local responsive QA must build in a unique temporary directory',
+  browserQaLegacy.includes("previewArgs.push('--outDir', process.env.QA_PREVIEW_DIST_DIR)"),
+  'legacy browser QA preview must accept an isolated build directory',
 );
 assert.ok(
-  responsiveQaLocal.includes('PRERENDER_DIST_DIR: distDirectory'),
-  'local responsive QA must prerender into the isolated build directory',
+  browserQaLegacy.includes("'--port', '0', '--strictPort'"),
+  'legacy browser QA preview must use an isolated ephemeral port',
 );
 assert.ok(
-  responsiveQaLocal.includes('QA_PREVIEW_DIST_DIR: distDirectory'),
-  'local responsive QA must preview the isolated build directory',
-);
-assert.ok(
-  browserQaCi.includes("previewArgs.push('--outDir', process.env.QA_PREVIEW_DIST_DIR)"),
-  'browser QA preview must accept an isolated build directory',
-);
-assert.ok(
-  browserQaCi.includes("'--port', '0', '--strictPort'"),
-  'browser QA preview must use an isolated ephemeral port',
-);
-assert.ok(
-  browserQaCi.includes('stripVTControlCharacters(previewOutput).match(/Local:'),
-  'browser QA must derive and parse a colorized origin from the child Vite process',
+  browserQaLegacy.includes('stripVTControlCharacters(previewOutput).match(/Local:'),
+  'legacy browser QA must derive and parse a colorized origin from the child Vite process',
 );
 
 console.log('QA command contract tests passed');

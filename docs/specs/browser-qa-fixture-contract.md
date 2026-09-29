@@ -55,6 +55,9 @@ Other telemetry errors and all product request failures are still reported.
 
 ## Verification
 
-Run `npm run qa:ci` before release. It builds the production bundle, prerenders
-public routes and runs desktop, mobile, guest, subscriber, administrator,
-keyboard, lightbox and accessibility scenarios.
+Run `npm run qa:ci` before release. It builds the static root and the Next.js
+app, starts them behind the local gateway with the QA backend and runs
+desktop, mobile, guest, subscriber, administrator, keyboard, lightbox and
+accessibility scenarios against the renderer production serves.
+`npm run qa:legacy` runs the same suite against the Vite build until it is
+retired.

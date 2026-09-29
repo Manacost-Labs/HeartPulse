@@ -320,7 +320,8 @@ npm run build-storybook
 | `npm run test:module -- <module>` | Минимальный проверенный набор тестов модуля |
 | `npm run architecture:http-manifest` | Проверка Express routes и middleware |
 | `npm run qa:e2e` | Полный desktop/mobile browser QA |
-| `npm run qa:next` | Тот же browser QA против Next.js с QA-бэкендом |
+| `npm run qa:ci` | Сборка и browser QA против Next.js с QA-бэкендом (деплой-гейт) |
+| `npm run qa:legacy` | Тот же browser QA против Vite-сборки до её вывода |
 | `npm run budget` | Контроль размеров JS и CSS |
 | `npm run scrape` | Ручной запуск scraper в разработке |
 | `npm run security:gitleaks` | Локальная проверка истории и рабочего дерева |

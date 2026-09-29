@@ -32,7 +32,7 @@ npm run verify:ci
 
 Это длинная цепочка: lint → architecture → react-doctor → storybook + build-storybook →
 security-tooling → property → sentry → knip → react-changed → `npm test` → build →
-server-build → recovery-runtime → budget → browser-qa-ci → lint:docs.
+server-build → recovery-runtime → budget → browser-qa-next → lint:docs.
 
 ## Типовые падения
 

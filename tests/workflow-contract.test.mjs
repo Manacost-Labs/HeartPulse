@@ -43,7 +43,7 @@ assert.match(ciWorkflow, /CLEAN_CODE_PR_BASE_SHA:\s*\$\{\{ github\.event\.pull_r
 assert.match(ciWorkflow, /CLEAN_CODE_DISPATCH_BASE:\s*\$\{\{ inputs\.clean_code_base \}\}/);
 assert.match(
   ciWorkflow,
-  /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*15/,
+  /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*25/,
 );
 assert.match(
   ciWorkflow,
@@ -58,7 +58,7 @@ assert.doesNotMatch(
 assert.match(
   ciWorkflow,
   /- name:\s*Run full browser observatory\s+run:\s*npm run qa:ci/,
-  'the isolated browser job must build the current sources before starting Vite preview',
+  'the isolated browser job must build the current sources before testing the Next.js runtime',
 );
 assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
 assert.match(ciWorkflow, /actions\/upload-artifact@v7/);
@@ -132,7 +132,7 @@ assert.doesNotMatch(mobileVisualWorkflow, /^\s*(?:push|pull_request):/m);
 assert.match(mobileVisualWorkflow, /permissions:\s*\n\s*contents:\s*read/);
 assert.match(mobileVisualWorkflow, /group:\s*mobile-visual-\$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}/);
 assert.match(mobileVisualWorkflow, /cancel-in-progress:\s*true/);
-assert.match(mobileVisualWorkflow, /timeout-minutes:\s*30/);
+assert.match(mobileVisualWorkflow, /timeout-minutes:\s*40/);
 assert.match(mobileVisualWorkflow, /PUPPETEER_SKIP_DOWNLOAD:\s*'true'/);
 assert.match(mobileVisualWorkflow, /QA_RESPONSIVE_SCOPE:\s*all-p0/);
 assert.match(

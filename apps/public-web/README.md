@@ -112,10 +112,10 @@ rebuild after changing source (`npm run build:next`, `npm run build`).
 - Client-rendered wrappers around large legacy views (`src/features/*.tsx`);
   full-document navigation between pages.
 - Legacy global CSS is imported per route from `src/`.
-- `npm run qa:ci` and the responsive QA still exercise the legacy Vite build;
-  `npm run qa:next` runs the same suite against this app with the QA backend
-  in `scripts/qa/` until it replaces the gate; see
-  `docs/plans/nextjs-full-site-migration.md`. Bundle
+- `npm run qa:ci`, `verify:ci` and the nightly responsive QA run the browser
+  QA against this app with the QA backend in `scripts/qa/`;
+  `npm run qa:legacy` still covers the Vite build until it is retired (see
+  `docs/plans/nextjs-full-site-migration.md`). Bundle
   budgets for this app are `npm run budget:next`; `npm run budget` still
   checks the legacy Vite bundle.
 - Every page ships about 150–210 KiB of gzip JavaScript and 50–70 KiB of CSS

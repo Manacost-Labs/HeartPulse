@@ -388,9 +388,10 @@ Retire each Vite dependency at its actual owner, in this order:
    ceilings in `config/next-bundle-budgets.json`); delete
    `scripts/check-budgets.js` and `npm run budget` with the Vite build. Update
    local browser QA scripts and their error-overlay checks to run against Next.
-   Since 2026-09-29 `npm run qa:next` runs `scripts/e2e-qa.mjs` against Next
-   with the fixture backend in `scripts/qa/`; `qa:ci` and the nightly
-   responsive QA switch to it once that run is green.
+   Done on 2026-09-29 for the gates: `qa:ci`, `verify:ci` and the nightly
+   responsive QA run `scripts/e2e-qa.mjs` against Next with the fixture
+   backend in `scripts/qa/`. `npm run qa:legacy` keeps the Vite run until
+   the retirement removes it together with `scripts/browser-qa-legacy.mjs`.
 5. Done on 2026-09-29: `dist/` stays the static-root path shared by Nginx,
    regional edges, the deployer and Express, but `npm run build:static`
    (`scripts/build-static-root.mjs`) now assembles it without Vite from

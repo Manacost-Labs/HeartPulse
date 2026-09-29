@@ -16,7 +16,7 @@ jobs:
   responsive-visual:
     name: All P0 routes and viewports
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       QA_RESPONSIVE_SCOPE: all-p0
