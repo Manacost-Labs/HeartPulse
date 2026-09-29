@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 import { usePublicMenuFocus } from './usePublicMenuFocus';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
 import { PublicNavigation } from './PublicNavigation';
@@ -9,6 +9,9 @@ import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, MISC_TABS, TABS, type TabId } from '../
 import { BG_TAB_IDS } from '../routing/routeManifest';
 import type { AuthUser } from '../../modules/identity/public';
 import type { SubscriptionStatus } from '../../modules/subscriptions/public';
+
+// The delayed support prompt stays out of the initial route bundle.
+const SupportPrompt = lazy(() => import('../../components/SupportPrompt'));
 
 type Access = { user: AuthUser | null; checking: boolean; admin: boolean; contestAdmin: boolean; subscription: SubscriptionStatus | null };
 export function PublicPageShell({ children, activeTab, pathname, access, navigate, editorial = false, wide = false, updatedAtLabel = 'Нет данных' }: {
@@ -44,6 +47,7 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
           </div>
         </main>
         <SiteFooter />
+        <Suspense fallback={null}><SupportPrompt /></Suspense>
       </div>
     </div>
   </div>;
