@@ -17,11 +17,14 @@ agent where to look next; linked documents remain the source of truth.
 ## Runtime shape
 
 ```text
-browser
-  -> src/main.tsx
-    -> src/App.tsx              frontend composition and route selection
+browser -> Nginx (deploy/nginx/arena-html-routing.conf)
+  -> apps/public-web            Next.js App Router renders every public page
+    -> app/<route>/page.tsx     URL, metadata, anonymous server-side data
+    -> ui/*PageClient.tsx       client page composing domain and legacy views
       -> src/modules/*          catalogued domain modules
       -> src/features/*         mostly legacy or transitional feature areas
+  -> src/main.tsx -> src/App.tsx
+                                legacy Vite SPA, built only until retirement
 
 HTTP / scheduled work
   -> server/index.ts            server composition and legacy registrations
@@ -29,6 +32,9 @@ HTTP / scheduled work
     -> server/modules/*         catalogued domain modules
     -> server/shared/*          domain-independent server primitives
 ```
+
+For page, metadata, data-loading and import rules of the public web app, start
+with [`apps/public-web/README.md`](../../apps/public-web/README.md).
 
 The required dependency direction is `app -> modules -> shared`. A module owns
 its product behavior and exposes a narrow public entrypoint. Shared code must

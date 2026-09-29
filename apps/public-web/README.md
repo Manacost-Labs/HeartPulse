@@ -1,0 +1,108 @@
+# HearthPulse public web (Next.js)
+
+This app renders every public HTML page of `https://hearthpulse.net`
+(Next.js 16 App Router, React 19, webpack build). Express in `server/` owns
+`/api/`, `/identity/`, sessions, subscriptions, sitemaps and data jobs. Nginx
+decides which process answers each URL: `deploy/nginx/arena-html-routing.conf`
+sends HTML routes and `/_next/` to Next on `127.0.0.1:4321` and APIs to
+Express on `127.0.0.1:3101`. Static files come from the release `dist/`
+directory: a copy of `public/` plus generated sitemaps.
+
+Most pages still render legacy React views from `src/` on the client. Treat
+that as migration debt: new behavior belongs in `src/modules/<domain>`
+behind its `public.ts`, not in `src/features/`.
+
+## Layout
+
+<!-- markdownlint-disable MD013 -->
+| Path | Owns |
+| --- | --- |
+| `app/<route>/page.tsx` | URL, metadata, anonymous server-side data, then one client page component |
+| `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell, real 404 and error boundary |
+| `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
+| `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
+| `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation) |
+| `lib/expressApi.ts` | `fetchPublicExpress()`: the only way server code reads Express |
+| `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
+| `lib/public*.ts` | Server-only loaders that validate public Express projections |
+| `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes |
+<!-- markdownlint-enable MD013 -->
+
+## Rules
+
+- Import siblings with `./`; import everything else as `@/<repository path>`
+  (for example `@/src/modules/subscriptions/public`). Never `../`, never
+  `server/`. `tests/next-import-paths.test.mjs` enforces this.
+- Server components fetch only anonymous public projections through
+  `fetchPublicExpress()`. Viewer-specific or paid data is requested in the
+  browser from `/api/` via hooks and `usePublicAccess()`; it must never appear
+  in server-rendered HTML.
+- Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
+  The production observer (`config/production-observer.json`) expects its
+  `.arena-paywall` markup for guests.
+- Indexing, canonical URLs and robots come from
+  `src/shared/seo/publicRouteInventory.json` and
+  `config/public-seo-pages.json`; do not hand-write them in a page.
+
+## Add a public page
+
+1. Register the URL policy in `src/shared/seo/publicRouteInventory.json` and,
+   when indexable, the title and description in `config/public-seo-pages.json`.
+2. Create `app/<route>/page.tsx`:
+
+   ```tsx
+   import { SomePageClient } from '@/apps/public-web/ui/SomePageClient';
+   import { seoPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+
+   export const dynamic = 'force-dynamic';
+   export const generateMetadata = seoPageMetadata('/some-route', 'Share alt');
+
+   export default function Page() {
+     return <SomePageClient />;
+   }
+   ```
+
+3. Put interactive UI in `ui/SomePageClient.tsx` (`'use client'`), composed
+   from the owning `src/modules/<domain>/public.ts`.
+4. Route the URL to Next in `deploy/nginx/arena-html-routing.conf` and update
+   `tests/nginx-html-routing.test.mjs`. Activating an Nginx change in
+   production follows `docs/runbooks/nextjs-production-cutover.md`.
+5. Add `tests/next-<route>-browser.test.mjs` using
+   `startPublicCardPilot({ pagesEnabled: true })` from
+   `tests/helpers/publicCardPilot.mjs`, and register it in
+   `tests/test-suites.json`.
+
+## Commands
+
+<!-- markdownlint-disable MD013 -->
+| Command | Purpose |
+| --- | --- |
+| `npm run dev:server` | Express API on `127.0.0.1:3001` |
+| `npm run dev:next` | Next dev server on `127.0.0.1:4320` |
+| `npm run build:next` | Production build (required before Next browser tests) |
+| `npm run lint:next` | TypeScript check of this app |
+| `node --test tests/next-<name>.test.mjs` | One Next test |
+| `npm run verify:release` | Full release gate |
+<!-- markdownlint-enable MD013 -->
+
+For complete local navigation with `/api`, run the gateway on
+`127.0.0.1:4317` as described in `docs/runbooks/nextjs-public-web.md`:
+
+```bash
+PUBLIC_CARDS_NEXT_ENABLED=1 PUBLIC_PAGES_NEXT_ENABLED=1 \
+  npm run dev:public-gateway
+```
+
+Browser tests reuse `apps/public-web/.next` and `dist/` when they exist, so
+rebuild after changing source (`npm run build:next`, `npm run build`).
+
+## Known debt
+
+- Client-rendered wrappers around large legacy views (`src/features/*.tsx`);
+  full-document navigation between pages.
+- Legacy global CSS is imported per route from `src/`.
+- `npm run qa:ci`, `npm run budget` and the responsive QA still exercise the
+  legacy Vite build, not this app; see
+  `docs/plans/nextjs-full-site-migration.md`.
+- The Vite build, `src/main.tsx` and `src/App.tsx` stay until the retirement
+  gate in the same plan.

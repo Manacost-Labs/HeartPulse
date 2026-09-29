@@ -37,20 +37,19 @@ wrapper can miss Puppeteer's startup timeout on a cold runner.
 The September 2026 origin Nginx update uses the reviewed contract hash and
 controlled gate procedure in
 [the deploy-helper runbook](docs/runbooks/production-deployer-contract.md).
-The immutable release now contains the validated Next.js build alongside the
-Vite frontend. CI includes the hidden `.next` directory when uploading that
-allowlisted release artifact. The first deployment starts Next on
-`127.0.0.1:4321` while public HTML still uses the legacy routes. Install
-`deploy/hs-arena-next.service` before that deployment; the deployer restarts
-both services, checks `/health/ready` and `/health/next/`, and rolls back a
-candidate that fails either check. Enable the Next unit for boot-time startup
-before the first release (`sudo systemctl enable hs-arena-next.service`), then
-verify it is enabled and active after deployment and after a host reboot. See
+The immutable release contains the validated Next.js build alongside the
+legacy Vite frontend. CI includes the hidden `.next` directory when uploading
+that allowlisted release artifact. `deploy/hs-arena-next.service` runs Next on
+`127.0.0.1:4321`; the deployer restarts the API and Next, checks
+`/health/ready` and `/health/next/`, and rolls back a candidate that fails
+either check. The Next unit must be enabled for boot-time startup
+(`sudo systemctl enable hs-arena-next.service`); verify it is enabled and
+active after deployment and after a host reboot. The origin route snippet
+sends every public HTML route and `/_next/` assets to Next and keeps APIs,
+identity callbacks, health, metrics and sitemaps on Express;
+`deploy/nginx/arena-seo-map.conf` marks Next error responses noindex. See
 [the Next.js production cutover runbook](docs/runbooks/nextjs-production-cutover.md)
-for the staged routing change and rollback procedure. The origin route snippet
-forwards card catalogs and details, FAQ, privacy, terms and `/_next/` assets to
-Next on port 4321; `deploy/nginx/arena-seo-map.conf` marks its error responses
-noindex. All other HTML and API routes retain their previous owners.
+for the routing contract and rollback procedure.
 
 The production job runs a read-only helper contract preflight immediately
 after checkout and before downloading the artifact. It compares the reviewed

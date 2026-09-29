@@ -14,9 +14,10 @@ Next.js metadata, canonical redirects and JSON-LD for current and archive URLs.
 ## Public home
 
 `src/modules/home/public.ts` owns the home summary presentation, article
-teasers and navigation sections. The Vite route loads this contract while
-the Next home route is being built. Data fetching and authentication stay at
-their current application boundaries until the route cutover.
+teasers and navigation sections. The Next home route
+(`apps/public-web/app/page.tsx`) loads the anonymous summary and articles on
+the server; the legacy Vite route still uses the same contract until its
+retirement. Authentication stays in the browser through the Express APIs.
 
 ## Cosmetics catalog
 

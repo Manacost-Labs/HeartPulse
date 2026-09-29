@@ -1,43 +1,29 @@
-# Local Next.js public web migration
+# Local Next.js public web development
 
-Production remains on Vite/Express. No service, Nginx configuration, live data
-or
-release is changed by these commands. Work from the isolated repository
-checkout.
+Production Nginx sends every public HTML page to Next.js; see
+[the production cutover runbook](nextjs-production-cutover.md) and
+[the route coverage ledger](../plans/nextjs-route-coverage.md). The commands
+below run the app locally for development and QA only. No service, Nginx
+configuration, live data or release is changed by them. Work from an isolated
+repository checkout. The app's structure and rules are in
+[`apps/public-web/README.md`](../../apps/public-web/README.md).
 
 1. Install locked dependencies with `npm ci`.
-2. Start Express using an isolated environment and temporary database as
-described
-   by `tests/helpers/credentialBackend.mjs`. Never source the production
+2. Start Express with `npm run dev:server` (loopback port 3001), or with an
+   isolated environment and temporary database as described by
+   `tests/helpers/credentialBackend.mjs`. Never source the production
    environment for QA.
-3. Build the legacy frontend with `npm run build`. Set `LEGACY_WEB_ORIGIN` to
-   that loopback Express origin. Run `npm run build:next`
-   then `npm run start:next` (loopback port 4320), or `npm run dev:next`.
-4. Run `LEGACY_WEB_ORIGIN=http://127.0.0.1:3001 npm run dev:public-gateway`,
-replacing
-   3001 with the test backend port. Gateway port is 4317 by default. Routes are
-   legacy because both rollout flags default to off.
-5. Restart the gateway with `PUBLIC_CARDS_NEXT_ENABLED=1` to assign the whole
-   `/standard/cards/` namespace
-   (catalogs, details and invalid descendants) to Next. `NEXT_WEB_ORIGIN`
-defaults to `http://127.0.0.1:4320`.
-6. Independently enable `PUBLIC_PAGES_NEXT_ENABLED=1` for `/faq/`, `/privacy/`
-   and `/terms/`. These routes render their existing public content and metadata
-   in Next, sharing the card section's navigation shell. Account and subscription
-   state is requested only in the browser through the existing Express APIs.
-7. To roll back either group, restart the gateway without its flag (or set it
-   to `0`). No
-data
-   migration, cookie change or application rebuild is needed. Keep the legacy
-   build available throughout the pilot.
+3. Run `npm run dev:next` (loopback port 4320), or `npm run build:next` then
+   `npm run start:next`. Set `LEGACY_WEB_ORIGIN` when Express is not on
+   `http://127.0.0.1:3001`.
+4. Run `PUBLIC_CARDS_NEXT_ENABLED=1 PUBLIC_PAGES_NEXT_ENABLED=1 npm run
+   dev:public-gateway` and open `http://127.0.0.1:4317`. The gateway sends
+   migrated pages and `/_next/` to Next (`NEXT_WEB_ORIGIN`, default
+   `http://127.0.0.1:4320`) and everything else, including `/api/`, to
+   `LEGACY_WEB_ORIGIN`. Without the flags it serves the legacy frontend.
 
 Use the gateway for complete navigation; directly opening the Next port does not
-provide legacy routes or static assets. HMR uses the direct Next development
-port; the staging gateway is intended for HTTP production-build verification.
-
-Before any separately authorized production activation, apply this exact URL
-ownership to the existing Nginx deployment contract, preserve TLS/rate limits,
-start Next as a separate loopback service and run the pilot integration suite.
+provide `/api/` or static assets. HMR uses the direct Next development port.
 Do not run the development gateway as a public production edge.
 
 ## Verification and recovery

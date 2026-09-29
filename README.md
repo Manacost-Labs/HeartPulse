@@ -164,9 +164,9 @@ AI-агентам и новым участникам следует начина
 ```text
 Browser
   │
-  ├── React 19 + TypeScript + Vite
-  │     ├── route-level code splitting
-  │     ├── pre-rendered route shells
+  ├── Next.js 16 App Router (apps/public-web) + React 19 + TypeScript
+  │     ├── server-rendered metadata and public data
+  │     ├── client pages from src/modules and legacy src/features
   │     └── responsive Hearthstone UI
   │
   └── /api/*
@@ -185,8 +185,9 @@ Nginx → immutable release → systemd service
 Основные каталоги:
 
 ```text
+apps/public-web/      Next.js-приложение: все публичные HTML-страницы
 src/components/       общие UI-компоненты
-src/App.tsx           текущая frontend-композиция и выбор маршрута
+src/App.tsx           legacy Vite-композиция, собирается до удаления Vite
 src/modules/          новые доменные модули с узкими public-контрактами
 src/features/         legacy-страницы на поэтапной миграции, не целевая граница
 src/styles/           общие токены и ограниченные shared-стили
@@ -251,7 +252,7 @@ npm run qa:e2e
 
 | Контур | Используемые инструменты |
 | --- | --- |
-| Интерфейс | React 19, TypeScript с измеряемым долгом и strict islands, Vite 6, Tailwind CSS 4, Lucide, responsive CSS |
+| Интерфейс | Next.js 16 (App Router), React 19, TypeScript с измеряемым долгом и strict islands, Tailwind CSS 4, Lucide, responsive CSS; legacy-сборка Vite 6 до её удаления |
 | API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer Core, node-cron, Hearthstone deckstrings |
 | Тестирование | Node test runner, tsx, fast-check, Storybook 10 + MCP, Puppeteer E2E, axe-core, browser contract tests |
 | Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
@@ -306,8 +307,10 @@ npm run build-storybook
 
 | Команда | Назначение |
 | --- | --- |
-| `npm run dev` | Frontend и API в watch-режиме |
-| `npm run build` | Production frontend, server и pre-render |
+| `npm run dev` | Legacy Vite-frontend и API в watch-режиме |
+| `npm run dev:next` | Next.js-приложение в dev-режиме (см. `apps/public-web/README.md`) |
+| `npm run build` | Legacy frontend, server, статика `dist/` и pre-render |
+| `npm run build:next` | Production-сборка Next.js |
 | `npm test` | Все пять автоматически обнаруживаемых suite без ручного списка |
 | `npm run test:discovery` | Полнота классификации всех test/spec-файлов |
 | `npm run architecture:baseline` | Детерминированный архитектурный baseline |

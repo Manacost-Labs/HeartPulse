@@ -61,6 +61,9 @@ The repository includes project-scoped tools for safer implementation:
   `npm run agent:context -- <module-id-or-path-or-root>` to load a module,
   canonical shared root, checked migration area or the governed project overview, including
   routes, safe starts, focused tests, documentation and current debt.
+- Before changing a public page or anything in `apps/public-web`, read
+  `apps/public-web/README.md`: the Next.js app map, its import, data-loading,
+  SEO and paywall rules, and the recipe for adding a page.
 - For nontrivial code reuse, search bounded project source with `context-economy
   retrieve` before expanding reads. The project labels and exact commands are
   in `docs/runbooks/quality-guard.md`; OpenRouter fallback needs an explicit
