@@ -1,6 +1,7 @@
 import { loadPublicHome } from '@/apps/public-web/lib/publicHome';
 import { HomePageClient } from '@/apps/public-web/ui/HomePageClient';
-import { type PageSearchParams, seoPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { type PageSearchParams } from '@/apps/public-web/lib/searchParams';
+import { seoPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 
 export const dynamic = 'force-dynamic';
 export const generateMetadata = seoPageMetadata('/', 'HearthPulse — Hearthstone');
