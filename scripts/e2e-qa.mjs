@@ -1623,13 +1623,17 @@ for (const fixture of responsiveFixtures) {
       await page.screenshot({ path: screenshotPath, fullPage: false });
       const screenshotSha256 = createHash('sha256').update(readFileSync(screenshotPath)).digest('hex');
       if (fixture.id === 'not-found' && profile.id === 'compact-min') {
-        await page.waitForFunction(() => window.history.state?.routeKnown === false);
-        const initial404State = await page.evaluate(() => ({
-          knowledge: window.history.state?.routeKnown,
-          staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
-        }));
-        if (initial404State.knowledge !== false || initial404State.staleMarker) {
-          failures.push(`${label}: bootstrap 404 state was not captured cleanly (${JSON.stringify(initial404State)})`);
+        // The single-page shell records route knowledge in history state; a
+        // Next.js not-found page is its own document with nothing to record.
+        if (RENDERER === 'legacy') {
+          await page.waitForFunction(() => window.history.state?.routeKnown === false);
+          const initial404State = await page.evaluate(() => ({
+            knowledge: window.history.state?.routeKnown,
+            staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
+          }));
+          if (initial404State.knowledge !== false || initial404State.staleMarker) {
+            failures.push(`${label}: bootstrap 404 state was not captured cleanly (${JSON.stringify(initial404State)})`);
+          }
         }
 
         await page.click('.not-found-page a[href="/"]');
@@ -1656,7 +1660,8 @@ for (const fixture of responsiveFixtures) {
             staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
           };
         });
-        if (returned404State.knowledge !== false || returned404State.sawHomeMutation || returned404State.staleMarker) {
+        if ((RENDERER === 'legacy' && returned404State.knowledge !== false)
+          || returned404State.sawHomeMutation || returned404State.staleMarker) {
           failures.push(`${label}: 404 → Home → Back recovery regressed (${JSON.stringify(returned404State)})`);
         }
       }
@@ -3169,7 +3174,7 @@ for (const [device, viewport] of [
       failures.push(`standard meta archetype link [${device}]: action did not become a direct accessible route (${JSON.stringify(metaArchetypeLinkState)})`);
     }
     await page.click('.standard-meta-card__deck-button');
-    await page.waitForFunction(() => window.location.pathname === '/standard/archetypes/standard/qa-evenlock');
+    await page.waitForFunction(() => window.location.pathname.replace(/(.)\/$/, '$1') === '/standard/archetypes/standard/qa-evenlock');
     await page.waitForSelector('.archetype-detail-page', { timeout: 20_000 });
     if (adminState.standardMetaRecommendationRequests || adminState.standardMetaPreviewRequests) {
       failures.push(`standard meta archetype link [${device}]: direct navigation still requested the legacy modal (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests })})`);
@@ -3698,16 +3703,16 @@ for (const [device, viewport] of [
       failures.push(`constructed cards sorting [${device}]: card metric did not follow deck-winrate sorting (${JSON.stringify(winrateSortState)})`);
     }
     await page.$eval('.constructed-cards__format button:nth-child(2)', element => element.click());
-    await page.waitForFunction(() => window.location.pathname === '/standard/cards/wild');
+    await page.waitForFunction(() => window.location.pathname.replace(/(.)\/$/, '$1') === '/standard/cards/wild');
     const wildFormatPressed = await page.$eval('.constructed-cards__format button:nth-child(2)', button => button.getAttribute('aria-pressed'));
     if (wildFormatPressed !== 'true') failures.push(`constructed cards [${device}]: Wild format URL state regressed`);
     await page.$eval('.constructed-cards__format button:first-child', element => element.click());
-    await page.waitForFunction(() => window.location.pathname === '/standard/cards/standard');
+    await page.waitForFunction(() => window.location.pathname.replace(/(.)\/$/, '$1') === '/standard/cards/standard');
     await page.waitForSelector('.constructed-cards__gallery-card');
     await page.evaluate(() => window.history.back());
-    await page.waitForFunction(() => window.location.pathname === '/standard/cards/wild');
+    await page.waitForFunction(() => window.location.pathname.replace(/(.)\/$/, '$1') === '/standard/cards/wild');
     await page.evaluate(() => window.history.back());
-    await page.waitForFunction(() => window.location.pathname === '/standard/cards');
+    await page.waitForFunction(() => window.location.pathname.replace(/(.)\/$/, '$1') === '/standard/cards');
     await page.waitForSelector('.constructed-cards__gallery-card');
     await chooseConstructedCardFilter(page, 'cards-sort', 'Победы колод');
     await page.waitForFunction(() => document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() === 'Победы колод');
