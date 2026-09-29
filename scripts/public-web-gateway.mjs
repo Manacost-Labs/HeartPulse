@@ -45,6 +45,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     nextOrigin: process.env.NEXT_WEB_ORIGIN ?? 'http://127.0.0.1:4320',
     enabled: process.env.PUBLIC_CARDS_NEXT_ENABLED === '1',
     pagesEnabled: process.env.PUBLIC_PAGES_NEXT_ENABLED === '1',
+    galleryEnabled: process.env.PUBLIC_GALLERY_NEXT_ENABLED === '1',
   });
   server.listen(Number(process.env.PUBLIC_WEB_PORT ?? 4317), '127.0.0.1');
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => server.close());

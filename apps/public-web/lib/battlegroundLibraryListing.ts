@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { seoPageForExactPath } from '@/src/seo/registry';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { searchParamsQuery } from './searchParams';
 
 const headings: Record<string, string> = {
   '/library': 'Библиотека Полей Сражений',
@@ -55,12 +56,7 @@ export function battlegroundLibraryListing(path: string) {
 export async function battlegroundLibraryMetadata(path: string, searchParams: LibrarySearch): Promise<Metadata> {
   const listing = battlegroundLibraryListing(path);
   if (!listing) throw new Error(`Missing Battleground library SEO contract: ${path}`);
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(await searchParams)) {
-    if (Array.isArray(value)) value.forEach(entry => params.append(key, entry));
-    else if (value !== undefined) params.set(key, value);
-  }
-  const policy = await resolvePublicUrlPolicy(path, params.toString());
+  const policy = await resolvePublicUrlPolicy(path, searchParamsQuery(await searchParams));
   const canonical = policy.canonicalUrl ?? `https://hearthpulse.net${listing.pathname}`;
   return {
     title: listing.seo.title, description: listing.seo.description,

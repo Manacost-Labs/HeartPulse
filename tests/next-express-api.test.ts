@@ -35,6 +35,13 @@ test('public Express reads are anonymous, bounded and never follow redirects', a
   assert.ok(calls[0].init?.signal instanceof AbortSignal);
 });
 
+test('paths that could leave the loopback origin are rejected before any request', () => {
+  for (const path of ['https://example.com/api/x', '//example.com/api/x', 'api/x']) {
+    assert.throws(() => withOrigin('http://127.0.0.1:3101', () => fetchPublicExpress(path)),
+      /Express path must be origin-relative/, path);
+  }
+});
+
 test('the development fallback is the local API port', () => {
   assert.equal(withOrigin(undefined, expressOrigin).href, 'http://127.0.0.1:3001/');
 });

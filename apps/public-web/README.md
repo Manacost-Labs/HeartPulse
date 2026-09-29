@@ -22,7 +22,7 @@ behind its `public.ts`, not in `src/features/`.
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation) |
-| `lib/expressApi.ts` | `fetchPublicExpress()`: the only way server code reads Express |
+| `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
 | `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes |
@@ -36,7 +36,9 @@ behind its `public.ts`, not in `src/features/`.
 - Server components fetch only anonymous public projections through
   `fetchPublicExpress()`. Viewer-specific or paid data is requested in the
   browser from `/api/` via hooks and `usePublicAccess()`; it must never appear
-  in server-rendered HTML.
+  in server-rendered HTML. The one exception is `lib/adminAccess.ts`: it
+  forwards the session cookie to a loopback-only Express origin to authorize
+  admin documents, so it must not use the anonymous client.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
   `.arena-paywall` markup for guests.
@@ -46,8 +48,10 @@ behind its `public.ts`, not in `src/features/`.
 
 ## Add a public page
 
-1. Register the URL policy in `src/shared/seo/publicRouteInventory.json` and,
-   when indexable, the title and description in `config/public-seo-pages.json`.
+1. Register the URL policy in `src/shared/seo/publicRouteInventory.json` and
+   the page in `config/public-seo-pages.json` (`"sitemap": true` when
+   indexable, `false` for noindex pages). `seoPageMetadata()` fails when its
+   module loads for an unregistered path.
 2. Create `app/<route>/page.tsx`:
 
    ```tsx
@@ -65,8 +69,10 @@ behind its `public.ts`, not in `src/features/`.
 3. Put interactive UI in `ui/SomePageClient.tsx` (`'use client'`), composed
    from the owning `src/modules/<domain>/public.ts`.
 4. Route the URL to Next in `deploy/nginx/arena-html-routing.conf` and update
-   `tests/nginx-html-routing.test.mjs`. Activating an Nginx change in
-   production follows `docs/runbooks/nextjs-production-cutover.md`.
+   `tests/nginx-html-routing.test.mjs`; add it to
+   `apps/public-web/routeOwnership.mjs` so the local gateway and the Next test
+   pilot route it to Next too. Activating an Nginx change in production
+   follows `docs/runbooks/nextjs-production-cutover.md`.
 5. Add `tests/next-<route>-browser.test.mjs` using
    `startPublicCardPilot({ pagesEnabled: true })` from
    `tests/helpers/publicCardPilot.mjs`, and register it in
@@ -77,7 +83,7 @@ behind its `public.ts`, not in `src/features/`.
 <!-- markdownlint-disable MD013 -->
 | Command | Purpose |
 | --- | --- |
-| `npm run dev:server` | Express API on `127.0.0.1:3001` |
+| `npm run dev` | Legacy Vite dev server on port 3000 (serves `public/`, proxies `/api`) and Express on port 3001 |
 | `npm run dev:next` | Next dev server on `127.0.0.1:4320` |
 | `npm run build:next` | Production build (required before Next browser tests) |
 | `npm run lint:next` | TypeScript check of this app |
@@ -85,11 +91,13 @@ behind its `public.ts`, not in `src/features/`.
 | `npm run verify:release` | Full release gate |
 <!-- markdownlint-enable MD013 -->
 
-For complete local navigation with `/api`, run the gateway on
-`127.0.0.1:4317` as described in `docs/runbooks/nextjs-public-web.md`:
+For complete local navigation with `/api` and static files, run `npm run dev`
+and `npm run dev:next`, then the gateway on `127.0.0.1:4317` with the Vite dev
+server as its legacy origin (see `docs/runbooks/nextjs-public-web.md`):
 
 ```bash
-PUBLIC_CARDS_NEXT_ENABLED=1 PUBLIC_PAGES_NEXT_ENABLED=1 \
+LEGACY_WEB_ORIGIN=http://127.0.0.1:3000 PUBLIC_CARDS_NEXT_ENABLED=1 \
+  PUBLIC_PAGES_NEXT_ENABLED=1 PUBLIC_GALLERY_NEXT_ENABLED=1 \
   npm run dev:public-gateway
 ```
 

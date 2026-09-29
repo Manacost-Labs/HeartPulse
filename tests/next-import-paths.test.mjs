@@ -4,7 +4,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import test from 'node:test';
 
 const repositoryRoot = resolve(import.meta.dirname, '..');
-const specifierPattern = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"]([^'"]+)['"]/g;
+const specifierPattern = /(?:\bfrom\s*|\bimport\s*\(\s*(?:\/\*[\s\S]*?\*\/\s*)*|\bimport\s+)['"]([^'"]+)['"]/g;
 
 function sourceFiles(directory, pattern) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
@@ -29,9 +29,18 @@ const nextSources = sourceFiles(join(repositoryRoot, 'apps/public-web'), /\.(?:t
 
 test('the Next app imports outside its own folder through the @/ repository alias', () => {
   const violations = nextSources.flatMap(file => imports(file)
-    .filter(specifier => specifier.startsWith('../'))
+    .filter(specifier => specifier.startsWith('../') || specifier.includes('/../'))
     .map(specifier => `${relative(repositoryRoot, file)} -> ${specifier}`));
   assert.deepEqual(violations, [], 'replace parent-relative imports with @/<repository path>');
+});
+
+test('client components never import the server-side Express client', () => {
+  const violations = nextSources
+    .filter(file => /^\s*['"]use client['"]/.test(readFileSync(file, 'utf8')))
+    .flatMap(file => imports(file)
+      .filter(specifier => repositoryPath(file, specifier)?.replace(/\.tsx?$/, '') === 'apps/public-web/lib/expressApi')
+      .map(specifier => `${relative(repositoryRoot, file)} -> ${specifier}`));
+  assert.deepEqual(violations, []);
 });
 
 test('the Next app reaches Express over HTTP, never through server modules', () => {

@@ -1,17 +1,13 @@
 import type { Metadata } from 'next';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 import { cosmeticsListing } from '@/src/modules/cosmetics/public';
+import { searchParamsQuery } from './searchParams';
 export { cosmeticsListing } from '@/src/modules/cosmetics/public';
 
 export type CosmeticsSearch = Promise<Record<string, string | string[] | undefined>>;
 
 export async function cosmeticsSearchString(searchParams: CosmeticsSearch) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(await searchParams)) {
-    if (Array.isArray(value)) value.forEach(entry => params.append(key, entry));
-    else if (value !== undefined) params.set(key, value);
-  }
-  return params.toString();
+  return searchParamsQuery(await searchParams);
 }
 
 export async function cosmeticsListingMetadata(path: string, searchParams: CosmeticsSearch): Promise<Metadata> {

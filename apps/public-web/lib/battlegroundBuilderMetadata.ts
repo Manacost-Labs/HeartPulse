@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { seoPageForExactPath } from '@/src/seo/registry';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { searchParamsQuery } from './searchParams';
 
 export type BattlegroundBuilderPath = '/battlegrounds/strategies' | '/battlegrounds/tier-builder';
 export type BuilderSearch = Promise<Record<string, string | string[] | undefined>>;
@@ -9,12 +10,7 @@ export async function battlegroundBuilderMetadata(pathname: BattlegroundBuilderP
   searchParams: BuilderSearch): Promise<Metadata> {
   const seo = seoPageForExactPath(pathname);
   if (!seo) throw new Error(`Missing Battleground builder SEO contract: ${pathname}`);
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(await searchParams)) {
-    if (Array.isArray(value)) value.forEach(entry => params.append(key, entry));
-    else if (value !== undefined) params.set(key, value);
-  }
-  const policy = await resolvePublicUrlPolicy(pathname, params.toString());
+  const policy = await resolvePublicUrlPolicy(pathname, searchParamsQuery(await searchParams));
   const canonical = `https://hearthpulse.net${pathname}/`;
   return {
     title: seo.title, description: seo.description,
