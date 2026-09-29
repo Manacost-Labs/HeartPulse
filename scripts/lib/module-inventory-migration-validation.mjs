@@ -49,7 +49,7 @@ function migrationAreaOverlap(left, right) {
 }
 
 function expectedMigrationRuntime(path) {
-  if (isInside(path, 'src') || isInside(path, 'public/bg-legacy')) return 'client';
+  if (['src', 'public/bg-legacy', 'apps/public-web'].some(root => isInside(path, root))) return 'client';
   if (isInside(path, 'server')) return 'server';
   if (isInside(path, 'shared')) return 'shared';
   return null;

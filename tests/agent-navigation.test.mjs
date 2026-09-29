@@ -473,3 +473,20 @@ test('public route inventory rejects unsafe origins, display metadata and symlin
     rmSync(fixtureRoot, { recursive: true, force: true });
   }
 });
+
+test('the Next.js public web app resolves to its composition migration area', () => {
+  const context = loadAgentContext({
+    repositoryRoot: REPOSITORY_ROOT,
+    selector: 'apps/public-web/ui/LegendariesPageClient.tsx',
+  });
+  const plan = loadAgentCheckPlan({
+    repositoryRoot: REPOSITORY_ROOT,
+    selector: 'apps/public-web/ui/LegendariesPageClient.tsx',
+  });
+
+  assert.equal(context.id, 'client.nextPublicWeb');
+  assert.equal(context.owner, 'web-platform');
+  assert.ok(context.docs.includes('apps/public-web/README.md'));
+  assert.ok(plan.checks.some(check => check.script === 'test:next-contracts'),
+    'agent checks for Next.js files must include the app contract tests');
+});

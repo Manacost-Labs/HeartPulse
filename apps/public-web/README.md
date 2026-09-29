@@ -87,6 +87,8 @@ behind its `public.ts`, not in `src/features/`.
 | `npm run dev:next` | Next dev server on `127.0.0.1:4320` |
 | `npm run build:next` | Production build (required before Next browser tests) |
 | `npm run lint:next` | TypeScript check of this app |
+| `npm run agent:context -- apps/public-web` | Owner, routes, focused tests, docs and debt of this app |
+| `npm run test:next-contracts` | Import, Express-client, search-param and navigation contracts |
 | `node --test tests/next-<name>.test.mjs` | One Next test |
 | `npm run verify:release` | Full release gate |
 <!-- markdownlint-enable MD013 -->

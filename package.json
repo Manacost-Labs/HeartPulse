@@ -254,6 +254,7 @@
     "test:public-web-gateway": "node --test tests/public-web-gateway.test.mjs",
     "lint:next": "tsc --noEmit --project apps/public-web/tsconfig.json",
     "test:next-pilot": "node --test tests/next-public-card-pilot.test.mjs",
+    "test:next-contracts": "node --import tsx --test tests/next-import-paths.test.mjs tests/next-search-params.test.ts tests/next-express-api.test.ts tests/next-navigation.test.ts",
     "test:next-public-card-seed": "tsx tests/next-public-card-seed.test.ts",
     "test:html-plain-text": "tsx tests/html-plain-text.test.ts",
     "lint:domains": "tsc --noEmit --project tsconfig.domains.json",

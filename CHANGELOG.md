@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `npm run agent:context -- apps/public-web` и `agent:check` теперь знают
+  Next.js-приложение как область `client.nextPublicWeb`: владелец, маршруты,
+  фокусные тесты (`npm run test:next-contracts`), документация и долг.
+
 - `npm run verify:release` собирает legacy-фронтенд и Next.js до запуска
   тестов, как `verify:ci`, поэтому браузерные тесты Next.js больше не
   используют устаревшую сборку. `fetchPublicExpress()` принимает только пути

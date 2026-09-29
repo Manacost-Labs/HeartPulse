@@ -1065,6 +1065,56 @@
       "knownDebt": [
         "Top-level shared contracts are not yet governed as a runtime-neutral package with explicit public entries."
       ]
+    },
+    {
+      "id": "client.nextPublicWeb",
+      "runtime": "client",
+      "roots": [
+        "apps/public-web"
+      ],
+      "excludeRoots": [],
+      "purpose": "Next.js composition root that renders every public HTML page: routes, metadata and anonymous server data in app/, client page adapters in ui/, Express and SEO helpers in lib/.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.arenaClasses",
+        "client.arenaLegendaries",
+        "client.arenaTierList",
+        "client.articles",
+        "client.battlegrounds",
+        "client.constructedCards",
+        "client.contests",
+        "client.cosmetics",
+        "client.home",
+        "client.identity",
+        "client.legalPages",
+        "client.standardMatchups",
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:next-contracts",
+        "npm run test:next-pilot",
+        "npm run test:public-web-gateway"
+      ],
+      "docs": [
+        "apps/public-web/README.md",
+        "docs/plans/nextjs-full-site-migration.md",
+        "docs/runbooks/nextjs-production-cutover.md"
+      ],
+      "safeStarts": [
+        "apps/public-web/README.md",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/lib/seoPageMetadata.ts",
+        "apps/public-web/lib/expressApi.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "Most pages are client wrappers that render large legacy views from src/features and navigate by full document loads.",
+        "Legacy global CSS from src/ is imported per route.",
+        "Browser QA, bundle budgets and responsive QA still run against the legacy Vite build.",
+        "The root `npm run lint` excludes this app; run `npm run lint:next` after changing it."
+      ]
     }
   ],
   "allowlistBudgets": {
