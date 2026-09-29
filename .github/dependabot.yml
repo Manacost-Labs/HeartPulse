@@ -11,6 +11,19 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase-if-necessary
     groups:
+      # Browser QA (puppeteer) and the production scraper (puppeteer-core)
+      # must move together: tests/security-tooling-contract.test.mjs pins
+      # one version for both, so split group PRs always fail.
+      puppeteer:
+        patterns:
+          - puppeteer
+          - puppeteer-core
+      # React minors grow the legacy Vite vendor chunk past its startup
+      # budget, so they arrive alone instead of holding back the group.
+      react:
+        patterns:
+          - react
+          - react-dom
       production-minor-and-patch:
         dependency-type: production
         update-types:

@@ -18,7 +18,14 @@ allow-licenses:
   - LGPL-3.0-or-later
   - MIT
   - MPL-2.0
+  - PSF-2.0
   - Python-2.0
+# react-doctor ships a "Modified MIT" license without an SPDX id: MIT plus
+# limits on model training and on resale as a hosted service. It is a
+# development-only linter run in CI, which those limits do not restrict.
+allow-dependencies-licenses:
+  - pkg:npm/react-doctor
+  - pkg:npm/oxlint-plugin-react-doctor
 
 retry-on-snapshot-warnings: true
 retry-on-snapshot-warnings-timeout: 120

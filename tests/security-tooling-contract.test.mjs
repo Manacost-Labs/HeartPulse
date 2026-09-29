@@ -60,6 +60,10 @@ test('Dependabot groups routine npm and Actions updates without assignees', () =
   assert.match(config, /package-ecosystem:\s*github-actions/);
   assert.match(config, /production-minor-and-patch/);
   assert.match(config, /development-minor-and-patch/);
+  // Dependabot assigns an update to the first matching group.
+  assert.match(config, /puppeteer:\s*\n\s*patterns:\s*\n\s*- puppeteer\s*\n\s*- puppeteer-core\n/);
+  assert.ok(config.indexOf('puppeteer:') < config.indexOf('production-minor-and-patch:'),
+    'puppeteer and puppeteer-core share one group ahead of the dependency-type groups');
   assert.doesNotMatch(config, /assignees:/);
 });
 
