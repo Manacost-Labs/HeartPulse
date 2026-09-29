@@ -45,10 +45,11 @@ export function MoneyKpis({ payload }: { payload: MoneyPayload }) {
   );
 }
 
+const label = (start: string) => formatDate(start).replace(/ г\.$/, '');
+
 export function RevenueChart({ idPrefix, payload }: { idPrefix: string; payload: MoneyPayload }) {
   const buckets = revenueBuckets(payload);
   const max = Math.max(1, ...buckets.map(bucket => bucket.subscriptionRub + bucket.salesRub));
-  const label = (start: string) => formatDate(start).replace(/ г\.$/, '');
   return (
     <Panel id={`${idPrefix}-chart`} title="Поступления по периодам" wide>
       <div className="admin-money-legend" aria-hidden="true"><span className="is-subscriptions">Подписки</span><span className="is-sales">Донаты и посты</span></div>

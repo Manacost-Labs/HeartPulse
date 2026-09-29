@@ -745,10 +745,15 @@
       "publicEntrypoints": [
         "src/modules/adminCrm/public.ts",
         "src/modules/adminCrm/AdminClientCard.lazy.ts",
-        "src/modules/adminCrm/AdminMoneyPage.lazy.ts"
+        "src/modules/adminCrm/AdminMoneyPage.lazy.ts",
+        "src/modules/adminCrm/AdminOverviewPage.lazy.ts"
       ],
       "frontendRoutes": [],
       "backendRoutes": [
+        {
+          "method": "GET",
+          "path": "/admin/crm/overview"
+        },
         {
           "method": "GET",
           "path": "/admin/crm/segments"
@@ -772,6 +777,7 @@
       ],
       "contracts": [
         "server/adminCrmRoutes.ts",
+        "server/adminCrmOverview.ts",
         "docs/specs/admin-crm.md"
       ],
       "jobs": [],
@@ -784,7 +790,9 @@
       "tests": [
         "tests/admin-crm-routes.test.ts",
         "tests/admin-client-card-model.test.ts",
-        "tests/admin-money-model.test.ts"
+        "tests/admin-money-model.test.ts",
+        "tests/admin-crm-overview.test.ts",
+        "tests/admin-overview-model.test.ts"
       ],
       "allowedDependencies": [
         "React",

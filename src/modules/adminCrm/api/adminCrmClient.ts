@@ -1,5 +1,6 @@
 /** Browser client for the admin CRM API. Contract: docs/specs/admin-crm.md. */
 import type { MoneyPayload } from '../ui/moneyModel';
+import type { AdminCrmOverview } from '../ui/overviewModel';
 export type AdminCrmSegmentId = 'all' | 'paying' | 'manual' | 'expiring' | 'lapsed' | 'new' | 'blocked' | 'admins';
 
 export type AdminCrmSegment = { id: AdminCrmSegmentId; label: string; count: number };
@@ -60,6 +61,8 @@ export const adminCrmClient = {
   users: <TUser>(params: URLSearchParams, signal?: AbortSignal) => request<Partial<AdminUsersPage<TUser>>>(`/users?${params.toString()}`, {}, signal)
     .then(page => ({ users: Array.isArray(page.users) ? page.users : [], total: Number(page.total || 0) })),
   segments: (signal?: AbortSignal) => request<AdminCrmSegments>('/crm/segments', {}, signal),
+  /** Alerts, KPIs and activity; `fresh` skips the server's one-minute cache. */
+  overview: (fresh: boolean, signal?: AbortSignal) => request<AdminCrmOverview>(`/crm/overview${fresh ? '?fresh=1' : ''}`, {}, signal),
   /** Boosty + Tribute subscription analytics and the Boosty sales ledger for a period. */
   money: (range: { from: string; to: string }, signal?: AbortSignal) => request<MoneyPayload>(
     `/boosty/analytics?${new URLSearchParams(range).toString()}`, {}, signal,

@@ -34,6 +34,8 @@ export const ADMIN_CRM_SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_admin_user_tags_tag ON admin_user_tags(tag);
   CREATE INDEX IF NOT EXISTS idx_subscription_checks_user_time ON subscription_checks(user_id, checked_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_subscription_checks_source_time ON subscription_checks(source, checked_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_subscription_checks_time ON subscription_checks(checked_at);
   CREATE INDEX IF NOT EXISTS idx_admin_audit_entity ON admin_audit_log(entity_type, entity_id, created_at DESC);
 `;
 

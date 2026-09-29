@@ -45,10 +45,25 @@ function describeUserUpdate(details: Record<string, unknown>): string {
   return parts.length ? parts.join(', ') : 'изменён профиль';
 }
 
+const ACTION_LABELS: Record<string, string> = {
+  'api-key.created': 'создан ключ Public API',
+  'api-key.revoked': 'отозван ключ Public API',
+  'archetype-translation.created': 'добавлен перевод архетипа',
+  'archetype-translation.updated': 'изменён перевод архетипа',
+  'archetype-translation.synced': 'переводы архетипов синхронизированы',
+  'mechanic-translation.updated': 'изменён перевод механики',
+  'mailing.queued': 'рассылка поставлена в очередь',
+  'mailing.test-sent': 'отправлено тестовое письмо',
+  'standard-cache.reset': 'сброшен кеш данных Стандарта',
+};
+
 export function auditActionLabel(action: string, details: Record<string, unknown>): string {
   if (action === 'user.updated') return describeUserUpdate(details);
   if (action === 'user.note.added') return 'добавлена заметка';
   if (action === 'user.note.deleted') return 'удалена заметка';
+  const known = ACTION_LABELS[action];
+  if (known) return known;
+  if (action.startsWith('parser-control.')) return 'изменены настройки парсеров';
   if (action === 'user.tags.updated') {
     const tags = Array.isArray(details.to) ? details.to.map(String) : [];
     return tags.length ? `теги: ${tags.join(', ')}` : 'теги очищены';
@@ -73,7 +88,7 @@ export function daysUntil(value: string | null | undefined, now = Date.now()): n
   return Number.isFinite(time) ? Math.ceil((time - now) / 86_400_000) : null;
 }
 
-const upperFirst = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export const upperFirst = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export type TimelineTone = 'good' | 'bad' | 'neutral';
 export type TimelineEvent = { key: string; at: string; title: string; detail: string; tone: TimelineTone };

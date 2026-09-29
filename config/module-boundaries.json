@@ -871,7 +871,7 @@
         "docs/architecture/modularization-plan.md"
       ],
       "safeStarts": [
-        "src/features/ContestAdminDashboard.tsx",
+        "src/features/Contests.tsx",
         "src/features/DeferredRoutes.tsx",
         "src/features/StandardCards.tsx"
       ],

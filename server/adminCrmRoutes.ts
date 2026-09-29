@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { readOverview, type AdminCrmOverview } from './adminCrmOverview.js';
 import {
   ADMIN_CRM_SCHEMA_SQL,
   NOTES_SQL,
@@ -18,6 +19,8 @@ export type AdminCrmDependencies = {
   setPrivateNoStore: (response: Response) => void;
   repository: AdminCrmRepository;
   recordAudit: (actorId: string, action: string, userId: string, details: Record<string, unknown>) => void;
+  /** How long the overview is reused between requests; `?fresh=1` bypasses it. */
+  overviewCacheMs?: number;
 };
 
 export const ADMIN_NOTE_MAX_LENGTH = 2000;
@@ -41,6 +44,25 @@ export function normalizeAdminTags(input: unknown): string[] {
 const str = (value: unknown) => (value === null || value === undefined ? '' : String(value));
 const userIdParam = (request: Request) => String(request.params.userId ?? '').trim().slice(0, 160);
 
+type Authorize = (request: Request, response: Response, mutation?: boolean) => { id: string } | null;
+
+// The overview scans recent subscription checks; operators reopen it often, so reuse it briefly.
+function createOverviewHandler(dependencies: AdminCrmDependencies, authorize: Authorize) {
+  let cache: { at: number; value: AdminCrmOverview } | null = null;
+  return (request: Request, response: Response) => {
+    if (!authorize(request, response)) return;
+    const ttl = dependencies.overviewCacheMs ?? 60_000;
+    try {
+      if (!cache || request.query.fresh === '1' || Date.now() - cache.at >= ttl) {
+        cache = { at: Date.now(), value: readOverview(dependencies.repository) };
+      }
+      return response.json(cache.value);
+    } catch {
+      return response.status(500).json({ error: 'Не удалось собрать обзор' });
+    }
+  };
+}
+
 export function createAdminCrmRouter(dependencies: AdminCrmDependencies): Router {
   const router = Router();
   const { repository } = dependencies;
@@ -59,6 +81,8 @@ export function createAdminCrmRouter(dependencies: AdminCrmDependencies): Router
     return admin;
   };
   const userExists = (userId: string) => Boolean(userId && repository.get('SELECT 1 AS found FROM users WHERE id = ?', userId));
+
+  router.get('/admin/crm/overview', createOverviewHandler(dependencies, authorize));
 
   router.get('/admin/crm/segments', (request, response) => {
     if (!authorize(request, response)) return;

@@ -75,7 +75,7 @@ import {
 } from './ContestAdminContests';
 import { ADMIN_INPUT } from './contestAdminUi';
 import { useAdminUsersList } from './useAdminUsersList';
-import { loadAdminMoneyPage } from '../modules/adminCrm/public';
+import { loadAdminMoneyPage, loadAdminOverviewPage, type AdminCrmSegmentId } from '../modules/adminCrm/public';
 import {
   ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
@@ -87,7 +87,7 @@ import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
 export { ContestsPage } from '../modules/contests/public';
 
 const AdminWorkspaceShell = React.lazy(loadAdminWorkspaceShell);
-const ContestAdminDashboard = React.lazy(() => import('./ContestAdminDashboard').then(module => ({ default: module.ContestAdminDashboard })));
+const AdminOverviewPage = React.lazy(loadAdminOverviewPage);
 
 const ContestAdminTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminTranslations');
@@ -184,7 +184,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   group: string;
   icon: React.ElementType;
 }> = [
-  { id: 'dashboard', label: 'Обзор', caption: 'Состояние проекта и быстрые действия', status: 'Сводка проекта', group: 'Рабочий стол', icon: LayoutDashboard },
+  { id: 'dashboard', label: 'Обзор', caption: 'Что требует внимания, показатели и события', status: 'Сводка проекта', group: 'Рабочий стол', icon: LayoutDashboard },
   { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
   { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', status: 'Ручные правки защищены', group: 'Контент', icon: Newspaper },
@@ -279,6 +279,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     dispatchAdminWorkspace({ type: 'setMessage', message: nextMessage });
   }, []);
   const usersList = useAdminUsersList(hasFullAdminAccess && adminSection === 'users', text => setMessage({ type: 'err', text }));
+  const openUserSegment = (segment: AdminCrmSegmentId) => { usersList.changeSegment({ segment, tag: '' }); changeAdminSection('users'); };
   const [adminArticles, setAdminArticles] = useState<Article[]>([]);
   const [articleQuery, setArticleQuery] = useState('');
   const [articlePage, setArticlePage] = useState(1);
@@ -690,13 +691,13 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
 
   useEffect(() => {
     if (!hasFullAdminAccess) return;
-    if (adminSection === 'articles' || adminSection === 'dashboard') void loadAdminArticles();
-    if (adminSection === 'gallery' || adminSection === 'dashboard') void loadGalleryItems();
-    if (adminSection === 'referrals' || adminSection === 'dashboard') void loadReferrals();
-    if (adminSection === 'boosty' || adminSection === 'dashboard') void loadBoostyStatus();
+    if (adminSection === 'articles') void loadAdminArticles();
+    if (adminSection === 'gallery') void loadGalleryItems();
+    if (adminSection === 'referrals') void loadReferrals();
+    if (adminSection === 'boosty') void loadBoostyStatus();
     if (adminSection === 'boosty') void loadBoostySubscribers();
-    if (adminSection === 'telegram' || adminSection === 'dashboard') void loadTelegramAccounts();
-    if (adminSection === 'mailing' || adminSection === 'dashboard') void loadMailingOverview();
+    if (adminSection === 'telegram') void loadTelegramAccounts();
+    if (adminSection === 'mailing') void loadMailingOverview();
   }, [adminSection, hasFullAdminAccess, loadAdminArticles, loadBoostyStatus, loadBoostySubscribers, loadGalleryItems, loadMailingOverview, loadReferrals, loadTelegramAccounts]);
 
   useEffect(() => {
@@ -1213,8 +1214,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const currentStatus = CONTEST_STATUS_OPTIONS.find(item => item.value === form.status) ?? CONTEST_STATUS_OPTIONS[0];
   const previewStartsAt = form.startsAt ? formatDate(form.startsAt) : 'сразу после публикации';
   const previewEndsAt = form.endsAt ? formatDate(form.endsAt) : 'без даты окончания';
-  const totalReferralClicks = referrals.reduce((sum, item) => sum + (item.clicks || 0), 0);
-  const totalContestEntries = contests.reduce((sum, item) => sum + (item.entriesCount || 0), 0);
   const adminNav = hasFullAdminAccess ? ADMIN_NAV_ITEMS : CONTEST_ADMIN_NAV_ITEMS;
 
   return (
@@ -1235,20 +1234,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
         onDismissMessage={() => setMessage(null)}
       >
           {hasFullAdminAccess && adminSection === 'dashboard' && (
-            <ContestAdminDashboard
-              articleCount={adminArticles.length}
-              galleryCount={galleryItems.length}
-              boostyPaidCount={boostyStatus?.summary?.boostyPaid ?? boostyStatus?.summary?.activePaid ?? '—'}
-              telegramAccessCount={telegramAccounts?.summary?.access ?? '—'}
-              contestCount={contests.length}
-              contestEntryCount={totalContestEntries}
-              referralCount={referrals.length}
-              referralClickCount={totalReferralClicks}
-              recentReferralClicks={referralClicks}
-              formatDate={formatDate}
-              onNavigate={changeAdminSection}
-              onCreateContest={() => { changeAdminSection('contests'); resetContestForm(); }}
-            />
+            <React.Suspense fallback={<RouteFallback minHeight={420} />}>
+              <AdminOverviewPage onNavigate={section => changeAdminSection(section as AdminWorkspaceSection)} onOpenSegment={openUserSegment} />
+            </React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'users' && (

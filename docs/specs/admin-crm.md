@@ -154,6 +154,63 @@ and a limitation, instead of failing with `502`.
 The previous article-interval analytics page (`ContestAdminAnalytics`), removed
 from navigation on 2026-09-13, is deleted together with its model.
 
+## Overview (phase 2)
+
+`/admin?section=dashboard` («Обзор») is the admin landing page. It reads
+`GET /api/admin/crm/overview`, which the server caches for 60 seconds
+(`?fresh=1`, sent by «Обновить», bypasses the cache), and the 30-day money
+analytics for the revenue card. The revenue request is independent: alerts
+and the other cards render without waiting for Boosty or Tribute.
+
+Response:
+
+```ts
+{
+  generatedAt: string,
+  alerts: Array<{
+    id, severity: 'critical' | 'warning' | 'info', title, detail,
+    action?: { section, segment?, label },
+  }>,
+  kpis: {
+    totalUsers, payingNow, newUsers30d, newUsersPrevious30d,
+    lapsed30d, expiringSoon,
+  },
+  // 30 UTC days, oldest first
+  series: { days: string[], newUsers: number[], paying: number[] },
+  // newest first, max 15; see server/adminCrmActivity.ts
+  activity: Array<registration | admin | contest | mailing>,
+}
+```
+
+Alerts, ordered by severity:
+
+- `telegram-chat:<chatId>` (critical): in the last two hours at least three
+  Telegram checks included that chat and at least half of them failed. The
+  detail carries the Telegram error, because members of only that chat lose
+  access.
+- `boosty-stale` (critical): at least three Boosty checks in the last two
+  hours and at least half were stale or had no provider response.
+- `expiring-access` (warning): active manual grants expiring within 7 days;
+  opens the people list on the `expiring` segment.
+- `pending-contest-entries` (warning): contest entries with status `pending`.
+- `mailing-failures` (warning): failed deliveries in campaigns created in the
+  last 7 days.
+- `lapsed-access` (info): the `lapsed` segment is not empty.
+
+`payingNow` counts provider access or an active manual grant. The `paying`
+series counts distinct users with a successful provider check per day, so it
+excludes manual grants. Activity merges registrations, admin audit entries
+(read-only `*.read` and `*.observe` entries are skipped), contest entries and
+mailing campaigns. Admin entries return the raw action and details; the
+client labels them with the same wording as the client card.
+
+The previous dashboard (content counts and nine shortcut buttons) is removed,
+and the dashboard no longer loads articles, gallery, referrals, Boosty,
+Telegram and mailing data on open.
+
+Two indexes support the overview: `subscription_checks(source, checked_at)`
+and `subscription_checks(checked_at)`.
+
 ## Permissions
 
 Every endpoint requires the full administrator role (`adminAuth`), matching

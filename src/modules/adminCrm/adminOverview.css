@@ -1,0 +1,92 @@
+/* Admin overview: alerts first, then KPIs, then activity and shortcuts. Uses the CRM tokens from adminCrm.css. */
+.admin-overview { display: grid; gap: 16px; min-width: 0; color: var(--crm-ink); }
+.admin-overview-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.admin-overview-head h2 { margin: 0; font-size: 22px; }
+.admin-overview-head p { margin: 4px 0 0; color: var(--crm-muted); }
+.admin-overview-head button { display: inline-flex; align-items: center; gap: 6px; }
+
+.admin-overview-calm { display: flex; gap: 8px; align-items: center; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--crm-ok-soft); color: var(--crm-ok); font-weight: 600; }
+.admin-overview-alerts { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.admin-overview-alerts li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--crm-line);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--crm-surface);
+}
+.admin-overview-alerts li > div { display: grid; gap: 2px; min-width: 0; }
+.admin-overview-alerts strong { overflow-wrap: anywhere; }
+.admin-overview-alerts span { color: var(--crm-muted); font-size: 13px; overflow-wrap: anywhere; }
+.admin-overview-alerts .is-critical { border-left-color: var(--crm-bad); }
+.admin-overview-alerts .is-critical > svg { color: var(--crm-bad); }
+.admin-overview-alerts .is-warning { border-left-color: var(--crm-warn); }
+.admin-overview-alerts .is-warning > svg { color: var(--crm-warn); }
+.admin-overview-alerts .is-info { border-left-color: var(--crm-accent); }
+.admin-overview-alerts .is-info > svg { color: var(--crm-accent); }
+
+.admin-overview-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.admin-overview-kpis li { min-width: 0; }
+.admin-overview-kpis button {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--crm-line);
+  border-radius: 10px;
+  background: var(--crm-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-overview-kpis button:hover { border-color: var(--crm-accent); }
+.admin-overview-kpis span { color: var(--crm-muted); font-size: 12.5px; font-weight: 600; }
+.admin-overview-kpis strong { font-size: 26px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.admin-overview-kpis small { color: var(--crm-muted); font-size: 12px; }
+.admin-overview-kpis b.is-up { color: var(--crm-ok); }
+.admin-overview-kpis b.is-down { color: var(--crm-bad); }
+.admin-overview-spark { width: 100%; height: 32px; margin-top: 6px; overflow: visible; }
+.admin-overview-spark polygon { fill: var(--crm-accent-soft); }
+.admin-overview-spark polyline { fill: none; stroke: var(--crm-accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.admin-overview-spark circle { fill: var(--crm-accent); }
+
+.admin-overview-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.admin-overview-panel { padding: 14px 16px; border: 1px solid var(--crm-line); border-radius: 10px; background: var(--crm-surface); min-width: 0; }
+.admin-overview-panel h3 { margin: 0 0 10px; font-size: 15px; }
+.admin-overview-feed { display: grid; margin: 0; padding: 0; list-style: none; }
+.admin-overview-feed li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--crm-line); }
+.admin-overview-feed li:last-child { border-bottom: 0; }
+.admin-overview-feed li > div { display: grid; gap: 1px; min-width: 0; }
+.admin-overview-feed span { color: var(--crm-muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.admin-overview-feed time { color: var(--crm-muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.admin-overview-actions { display: grid; gap: 8px; }
+.admin-overview-actions button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--crm-line);
+  border-radius: 8px;
+  background: var(--crm-soft);
+  color: var(--crm-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-overview-actions button:hover { border-color: var(--crm-accent); }
+.admin-overview :focus-visible { outline: 2px solid var(--crm-accent); outline-offset: 2px; }
+
+@media (max-width: 900px) {
+  .admin-overview-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .admin-overview-alerts li { grid-template-columns: auto minmax(0, 1fr); }
+  .admin-overview-alerts li > button { grid-column: 1 / -1; justify-self: start; }
+  .admin-overview-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-overview-kpis strong { font-size: 22px; }
+}

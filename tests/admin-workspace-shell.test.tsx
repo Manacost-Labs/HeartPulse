@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LayoutDashboard, Trophy } from 'lucide-react';
-import { ContestAdminDashboard } from '../src/features/ContestAdminDashboard.js';
+import { OverviewAlerts, OverviewKpis } from '../src/modules/adminCrm/ui/AdminOverviewSections.js';
 import { AdminWorkspaceShell } from '../src/modules/adminWorkspace/public.js';
 
 const navigation = [
@@ -66,34 +66,31 @@ assert.match(desktopHtml, /<h1 id="admin-section-title">Обзор<\/h1>/);
 assert.match(desktopHtml, /Рабочее содержимое/);
 assert.doesNotMatch(desktopHtml, /role="dialog"/);
 
-const dashboardHtml = renderToStaticMarkup(
-  <ContestAdminDashboard
-    articleCount={184}
-    galleryCount={42}
-    boostyPaidCount={321}
-    telegramAccessCount={288}
-    contestCount={6}
-    contestEntryCount={1284}
-    referralCount={23}
-    referralClickCount={8905}
-    recentReferralClicks={[{
-      id: 'click-1',
-      referralId: 'ref-1',
-      slug: 'launch',
-      clickedAt: '2026-09-13T12:00:00Z',
-      userAgent: '',
-      referrer: '',
-      landingPath: '/',
-    }]}
-    formatDate={() => '13 сентября, 12:00'}
-    onNavigate={noop}
-    onCreateContest={noop}
-  />,
+const overview = {
+  generatedAt: '2026-09-29T12:00:00.000Z',
+  alerts: [{
+    id: 'telegram-chat:-5077378176', severity: 'critical' as const,
+    title: 'Бот не видит VIP-группу Telegram -5077378176',
+    detail: '4 из 4 проверок за 2 часа: chat not found.',
+    action: { section: 'telegram', label: 'Открыть Telegram' },
+  }],
+  kpis: { totalUsers: 8412, payingNow: 1284, newUsers30d: 537, newUsersPrevious30d: 560, lapsed30d: 63, expiringSoon: 14 },
+  series: { days: ['2026-09-28', '2026-09-29'], newUsers: [10, 12], paying: [1280, 1284] },
+  activity: [],
+};
+const overviewHtml = renderToStaticMarkup(
+  <>
+    <OverviewAlerts alerts={overview.alerts} onNavigate={noop} onOpenSegment={noop} />
+    <OverviewKpis overview={overview} money={null} moneyFailed onNavigate={noop} onOpenSegment={noop} />
+  </>,
 );
-assert.match(dashboardHtml, /Пульс проекта/);
-assert.match(dashboardHtml, /Данные и парсеры/);
-assert.match(dashboardHtml, /184/);
-assert.match(dashboardHtml, /\/r\/launch/);
+assert.match(overviewHtml, /Срочно: <\/span>Бот не видит VIP-группу Telegram -5077378176/);
+assert.match(overviewHtml, /Открыть Telegram/);
+assert.match(overviewHtml, /1\s284/);
+assert.match(overviewHtml, /аналитика недоступна/);
+assert.match(overviewHtml, /-4%/);
+assert.equal((overviewHtml.match(/<li><button type="button"/g) ?? []).length, 4);
+assert.match(renderToStaticMarkup(<OverviewAlerts alerts={[]} onNavigate={noop} onOpenSegment={noop} />), /role="status"[^>]*>.*Всё спокойно/);
 
 const mobileHtml = renderToStaticMarkup(
   <AdminWorkspaceShell
