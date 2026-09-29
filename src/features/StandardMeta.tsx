@@ -398,9 +398,11 @@ const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
 
 function StandardMetaContent({
   hasFullAccess,
+  accessPending,
   paywall,
 }: {
   hasFullAccess: boolean;
+  accessPending: boolean;
   paywall: PaywallAccessState;
 }) {
   const [format, setFormat] = useState<MetaFormat>('standard');
@@ -422,6 +424,8 @@ function StandardMetaContent({
   const requestId = useRef(0);
 
   useEffect(() => {
+    // Until the account is known the page cannot tell a teaser from full data.
+    if (accessPending) return undefined;
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
     let redirectedToCurrentPeriod = false;
@@ -467,7 +471,7 @@ function StandardMetaContent({
         }
       });
     return () => controller.abort();
-  }, [format, rank, period, minGames, metaRevision, hasFullAccess, requestKey]);
+  }, [format, rank, period, minGames, metaRevision, hasFullAccess, accessPending, requestKey]);
 
   const filteredItems = useMemo(() => {
     const normalized = deferredQuery.toLowerCase().trim();
@@ -790,10 +794,12 @@ function StandardMetaContent({
 
 export default function StandardMetaPage({
   hasFullAccess = true,
+  accessPending = false,
   paywall = DEFAULT_PAYWALL_ACCESS,
   embedded = false,
 }: {
   hasFullAccess?: boolean;
+  accessPending?: boolean;
   paywall?: PaywallAccessState;
   embedded?: boolean;
 }) {
@@ -805,7 +811,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent hasFullAccess={hasFullAccess} paywall={paywall} />
+        <StandardMetaContent hasFullAccess={hasFullAccess} accessPending={accessPending} paywall={paywall} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

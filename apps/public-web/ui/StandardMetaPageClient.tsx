@@ -12,7 +12,7 @@ export function StandardMetaPageClient() {
   const pageKey = `${access.user?.id ?? 'guest'}:${allowed ? 'full' : 'teaser'}`;
   return <PublicPageShell activeTab="standard-meta" pathname="/standard/meta/"
     access={access} navigate={navigate} wide>
-    <StandardMetaPage key={pageKey} embedded hasFullAccess={allowed}
+    <StandardMetaPage key={pageKey} embedded hasFullAccess={allowed} accessPending={access.checking}
       paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />
   </PublicPageShell>;

@@ -13,7 +13,7 @@ export function ConstructedArchetypesPageClient({ initialSearch }: { initialSear
   return <PublicPageShell activeTab="constructed-archetypes" pathname="/standard/archetypes/"
     access={access} navigate={navigate} wide>
     <ConstructedArchetypes key={pageKey} currentPath="/standard/archetypes/" embedded
-      initialSearch={initialSearch} navigatePath={navigate} hasFullAccess={allowed}
+      initialSearch={initialSearch} navigatePath={navigate} hasFullAccess={allowed} accessPending={access.checking}
       paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />
   </PublicPageShell>;

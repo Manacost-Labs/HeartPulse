@@ -310,11 +310,12 @@ function TrendChart({
 type ArchetypeCatalogProps = {
   navigatePath: (path: string) => void;
   hasFullAccess: boolean;
+  accessPending: boolean;
   initialSearch: string;
   embedded: boolean;
 };
 
-function ArchetypeCatalogPage({ navigatePath, hasFullAccess, initialSearch, embedded }: ArchetypeCatalogProps) {
+function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, initialSearch, embedded }: ArchetypeCatalogProps) {
   const Root = embedded ? 'section' : 'main';
   const { format: initialFormat, classFilter: initialClass } = readInitialCatalogFilters(initialSearch, CLASS_FILTERS);
   const [format, setFormat] = useState<ArchetypeFormat>(initialFormat);
@@ -331,6 +332,8 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, initialSearch, embe
   const error = requestError?.key === requestKey ? requestError.message : '';
 
   useEffect(() => {
+    // Until the account is known the page cannot tell a teaser from full data.
+    if (accessPending) return undefined;
     const controller = new AbortController();
     const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
     void apiJson<ArchetypeCatalog>(`${endpoint}?format=${format}`, controller.signal)
@@ -347,7 +350,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, initialSearch, embe
         if (!controller.signal.aborted) setResolvedRequestKey(requestKey);
       });
     return () => controller.abort();
-  }, [format, revision, hasFullAccess, requestKey]);
+  }, [format, revision, hasFullAccess, accessPending, requestKey]);
 
   const selectFormat = (next: ArchetypeFormat) => {
     setFormat(next);
@@ -735,6 +738,7 @@ export default function ConstructedArchetypes({
   initialDetail = null,
   embedded = false,
   hasFullAccess = true,
+  accessPending = false,
   paywall = DEFAULT_PAYWALL_ACCESS,
 }: {
   currentPath?: string;
@@ -743,6 +747,7 @@ export default function ConstructedArchetypes({
   initialDetail?: ArchetypeDetail | null;
   embedded?: boolean;
   hasFullAccess?: boolean;
+  accessPending?: boolean;
   paywall?: PaywallAccessState;
 }) {
   const detailMatch = currentPath.match(/^\/standard\/(?:archetypes|meta)\/(standard|wild)\/([a-z0-9-]+)\/?$/);
@@ -758,7 +763,8 @@ export default function ConstructedArchetypes({
         embedded={embedded}
       />
     )
-    : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} initialSearch={initialSearch} embedded={embedded} />;
+    : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} accessPending={accessPending}
+      initialSearch={initialSearch} embedded={embedded} />;
   return (
     <RecoverableSurfaceBoundary scope="constructed-archetypes">
       {content}

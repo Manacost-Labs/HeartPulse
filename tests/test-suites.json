@@ -359,6 +359,8 @@
         "tests/next-modal-isolation-browser.test.mjs",
         "tests/next-support-prompt-browser.test.mjs",
         "tests/next-card-scroll-position-browser.test.mjs",
+        "tests/next-account-surface-browser.test.mjs",
+        "tests/next-soft-paywall-requests-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",
         "tests/next-admin-archetypes-browser.test.mjs",
         "tests/next-not-found-browser.test.mjs",
