@@ -35,6 +35,7 @@ export function TierListPageClient() {
       tierlistSource={tierlist.source} onTierlistSourceChange={tierlist.changeSource}
       switchingTierlistSource={tierlist.switching} onNavigate={navigateTab}
       authUser={access.user} subscriptionStatus={access.subscription}
-      subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />
+      subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}
+      accessGranted={allowed} />
   </PublicPageShell>;
 }

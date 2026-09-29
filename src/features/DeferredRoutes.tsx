@@ -11,7 +11,6 @@ import './TraditionalModeBanner.css';
 import './DeferredRoutes.css';
 import { RefreshCw, AlertTriangle, X, Search, Star, BookOpen, Grid3X3, List, ThumbsUp, ThumbsDown, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
-import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
 import PaywallGate from '../components/PaywallGate';
 import FAQSection from '../components/FAQSection';
 import { canAccessAdminWorkspace, type AuthUser } from '../modules/identity/public';
@@ -1378,7 +1377,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   );
 }
 
-export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription }: {
+export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
   data: TierlistData; loading: boolean; error: boolean;
   companionIds: Set<string>;
   tierlistSource: TierlistSource;
@@ -1389,6 +1388,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
+  /** Access decided by the page (e.g. administrators); defaults to the Arena entitlement. */
+  accessGranted?: boolean;
 }) {
   const [activeClassId, setActiveClassId] = useState<string>(ALL_CARDS_ID);
   const [searchQuery, setSearchQuery]     = useState('');
@@ -1546,7 +1547,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
     [visibleTiers],
   );
   const hiddenCardCount = Math.max(0, totalFilteredCards - visibleCardCount);
-  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
+  const paywallActive = !subscriptionLoading
+    && !(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
 
   return (
     <div className="arena-tierlist-page">
@@ -2010,7 +2012,7 @@ function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey, active
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
 }
 
-export function Legendaries({ data, loading, error, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription }: {
+export function Legendaries({ data, loading, error, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
   data: LegendariesData; loading: boolean; error: boolean;
   legendarySource: LegendarySource;
   onLegendarySourceChange: (src: LegendarySource) => void;
@@ -2020,6 +2022,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
+  /** Access decided by the page (e.g. administrators); defaults to the Arena entitlement. */
+  accessGranted?: boolean;
 }) {
   const [activeClass, setActiveClass] = useState<string>('all');
   const [sortBy, setSortBy] = useState<LegendarySortKey>('winRate');
@@ -2096,7 +2100,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
     imageHa:  lc.imageHa,
     imageRu:  lc.imageRu ?? null,
   }), []);
-  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
+  const paywallActive = !subscriptionLoading
+    && !(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
 
   return (
     <div className="arena-legendaries-page">
@@ -2113,13 +2118,15 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
           Фильтр класса показывает классовые легендарки вместе с нейтральными.
         </p>
       </section>
-      <div className="legendary-access-shell" style={{ position: 'relative' }}>
-        <div className="legendary-access-content" style={{
-          filter: paywallActive ? 'blur(7px)' : 'none',
-          pointerEvents: paywallActive ? 'none' : 'auto',
-          userSelect: paywallActive ? 'none' : 'auto',
-          transition: 'filter 180ms ease',
-        }}>
+      <PaywallGate
+        active={paywallActive}
+        title="Подтвердите подписку Манакоста для доступа к легендаркам"
+        headingLevel="h2"
+        authUser={authUser}
+        subscriptionStatus={subscriptionStatus}
+        subscriptionLoading={subscriptionLoading}
+        onRefreshSubscription={onRefreshSubscription}
+      >
       {/* Source toggle + count row */}
       <div
         className="legendary-toolbar flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2"
@@ -2394,132 +2401,12 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         { label: 'Винрейт классов →', href: '/classes', onClick: () => onNavigate('winrates') },
         { label: 'Статьи о Арене →', href: '/articles', onClick: () => onNavigate('articles') },
       ]} />
-        </div>
-        {paywallActive && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            minHeight: 420,
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-            paddingTop: 84,
-            background: 'linear-gradient(180deg, rgba(238,243,255,0.10), rgba(238,243,255,0.62) 42%, rgba(238,243,255,0.86))',
-            borderRadius: '14px',
-          }}>
-            <div style={{
-              width: 'min(680px, 94%)',
-              borderRadius: '14px',
-              border: '1.5px solid #8fa7c8',
-              background: 'linear-gradient(180deg, #f8faff, #e9f0fb)',
-              boxShadow: '0 20px 46px rgba(15,23,42,0.24)',
-              padding: '20px',
-              textAlign: 'center',
-            }}>
-              <p style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Раздел для подписчиков
-              </p>
-              <h3 style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
-                Подтвердите подписку Манакоста
-              </h3>
-              <p style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
-                Подписка открывает закрытые инструменты Арены и помогает Манакосту держать данные свежими.
-              </p>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-                gap: '10px',
-                margin: '0 0 14px',
-                textAlign: 'left',
-              }}>
-                <div style={{
-                  padding: '12px',
-                  borderRadius: '14px',
-                  background: 'linear-gradient(135deg, rgba(239,246,255,0.92), rgba(219,234,254,0.72))',
-                  border: '1px solid rgba(96,165,250,0.34)',
-                }}>
-                  <strong style={{ display: 'block', color: '#142238', fontSize: '13px', marginBottom: '5px' }}>
-                    Платная статистика HSReplay
-                  </strong>
-                  <span style={{ color: '#4b5f78', fontSize: '12px', lineHeight: 1.45 }}>
-                    Удобный доступ к платным данным по Арене: тир-листы, винрейты и быстрые срезы по текущему патчу.
-                  </span>
-                </div>
-                <div style={{
-                  padding: '12px',
-                  borderRadius: '14px',
-                  background: 'linear-gradient(135deg, rgba(255,247,237,0.94), rgba(254,243,199,0.62))',
-                  border: '1px solid rgba(249,115,22,0.28)',
-                }}>
-                  <strong style={{ display: 'block', color: '#142238', fontSize: '13px', marginBottom: '5px' }}>
-                    Авторские мета-отчёты
-                  </strong>
-                  <span style={{ color: '#4b5f78', fontSize: '12px', lineHeight: 1.45 }}>
-                    Разборы от топ-игрока и стримера Арены: что брать, чем играть и где сейчас преимущество.
-                  </span>
-                </div>
-              </div>
-              <p style={{ margin: '0 0 16px', color: '#42566f', fontSize: '12px', lineHeight: 1.5 }}>
-                Доступ откроется через Boosty уровня Любитель Арены и выше или через участие в VIP Telegram-канале.
-              </p>
-              <SubscriptionPurchaseButtons />
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                {!authUser ? (
-                  <a href="/?login" style={{
-                    ...ADMIN_SECONDARY_BUTTON,
-                    textDecoration: 'none',
-                    background: 'linear-gradient(135deg,#12365d,#0a1c32)',
-                    color: '#e5f2ff',
-                    borderColor: '#60a5fa',
-                  }}>
-                    Войти в профиль
-                  </a>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => { void onRefreshSubscription(); }}
-                      disabled={subscriptionLoading}
-                      style={{
-                        ...ADMIN_SECONDARY_BUTTON,
-                        background: 'linear-gradient(135deg,#12365d,#0a1c32)',
-                        color: '#e5f2ff',
-                        borderColor: '#60a5fa',
-                        cursor: subscriptionLoading ? 'wait' : 'pointer',
-                      }}
-                    >
-                      {subscriptionLoading ? 'Проверяем...' : 'Обновить подписку'}
-                    </button>
-                    <a href="/?login" style={{ ...ADMIN_SECONDARY_BUTTON, textDecoration: 'none', background: '#f8faff', color: '#1f3b63', borderColor: '#9db4d5' }}>
-                      Открыть профиль
-                    </a>
-                  </>
-                )}
-              </div>
-              {subscriptionStatus?.message && (
-                <p style={{ margin: '12px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.4 }}>
-                  {subscriptionStatus.message}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      </PaywallGate>
     </div>
   );
 }
 
-// ─── Shared article and subscription presentation ───────────────────────────
-
-const ADMIN_SECONDARY_BUTTON: React.CSSProperties = {
-  background: 'rgba(37,99,235,0.08)',
-  color: '#1f3b63',
-  border: '1px solid #9db4d5',
-  borderRadius: '8px',
-  padding: '8px 12px',
-  fontSize: '13px',
-  cursor: 'pointer',
-};
+// ─── Shared article presentation ─────────────────────────────────────────────
 
 function InternalLinks({ links }: { links: { label: string; href: string; onClick?: () => void }[] }) {
   return (

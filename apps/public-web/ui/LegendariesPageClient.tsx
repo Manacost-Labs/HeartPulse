@@ -31,6 +31,7 @@ export function LegendariesPageClient() {
       onLegendarySourceChange={legendaries.changeSource}
       switchingLegendarySource={legendaries.switching} onNavigate={navigateTab}
       authUser={access.user} subscriptionStatus={access.subscription}
-      subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />
+      subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}
+      accessGranted={allowed} />
   </PublicPageShell>;
 }

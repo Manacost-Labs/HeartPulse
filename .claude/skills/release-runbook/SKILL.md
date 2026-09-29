@@ -23,8 +23,9 @@ artifact=$(mktemp -d "/tmp/hs-arena-${sha}.XXXXXX"); rmdir "$artifact"
 npm run release:create -- --output="$artifact" --sha="$sha"
 ```
 
-`RELEASE_SHA` вкомпилируется в entry-чанк Vite; `release:create` отвергнет
-бандл без запрошенного SHA.
+`RELEASE_SHA` вкомпилируется в клиентский бандл Next.js; `release:create`
+отвергнет сборку Next без запрошенного SHA, а пока собирается legacy Vite —
+и его entry-чанк без SHA.
 
 ## Проверка nginx-контракта перед деплоем
 

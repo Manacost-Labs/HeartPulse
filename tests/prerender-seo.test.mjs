@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -240,31 +240,9 @@ try {
     }
   }
 
-  const sitemapIndex = readOutput('sitemap.xml');
-  assert.match(sitemapIndex, /<sitemapindex xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/,
-    'the canonical sitemap endpoint artifact must describe the runtime segment index');
-  assert.deepEqual(matches(sitemapIndex, /<loc>([^<]+)<\/loc>/g).map(match => match[1]), [
-    `${routeInventory.canonicalOrigin}/sitemaps/static.xml`,
-    `${routeInventory.canonicalOrigin}/sitemaps/standard-cards.xml`,
-    `${routeInventory.canonicalOrigin}/sitemaps/wild-cards.xml`,
-    `${routeInventory.canonicalOrigin}/sitemaps/battleground-minions.xml`,
-    `${routeInventory.canonicalOrigin}/sitemaps/battleground-spells.xml`,
-    `${routeInventory.canonicalOrigin}/sitemaps/battleground-heroes.xml`,
-  ]);
-  assert.doesNotMatch(sitemapIndex, /<(?:lastmod|changefreq|priority)>/i,
-    'the sitemap index must not invent freshness metadata');
-
-  const staticSitemap = readOutput('sitemaps/static.xml');
-  const actualUrls = matches(staticSitemap, /<loc>([^<]+)<\/loc>/g).map(match => match[1]).sort();
-  const expectedUrls = Object.entries(registry.pages)
-    .filter(([, page]) => page.sitemap)
-    .map(([pathname]) => `${routeInventory.canonicalOrigin}${pathname === '/' ? '/' : `${pathname}/`}`)
-    .sort();
-  assert.deepEqual(actualUrls, expectedUrls, 'sitemap URLs must exactly match materialized registry pages');
-  assert.equal(new Set(actualUrls).size, actualUrls.length, 'sitemap URLs must be unique');
-  assert.doesNotMatch(staticSitemap, /[?&#](?:preview|page|sort)=/i, 'sitemap must not contain query URLs');
-  assert.doesNotMatch(staticSitemap, new RegExp(`${escapePattern(routeInventory.canonicalOrigin)}/(?:admin|404)/`));
-  assert.doesNotMatch(staticSitemap, /<(?:lastmod|changefreq|priority)>/i, 'sitemap must not invent freshness metadata');
+  // scripts/build-static-root.mjs owns the sitemap artifacts; see build-static-root.test.mjs.
+  assert.equal(existsSync(resolve(distDir, 'sitemap.xml')), false, 'prerender must not write the sitemap index');
+  assert.equal(existsSync(resolve(distDir, 'sitemaps')), false, 'prerender must not write sitemap segments');
 } finally {
   rmSync(distDir, { recursive: true, force: true });
 }

@@ -26,7 +26,7 @@
 - Статические метатеги и JSON-LD в `index.html`.
 - Реестр навигации в `src/routes.ts` и единый реестр материализованных SEO-страниц в `config/public-seo-pages.json` + `src/seo/registry.ts`.
 - Клиентское обновление title, description, canonical, Open Graph и Twitter Card в `src/routes.ts`.
-- Prerender верхнеуровневых страниц и генерация статического sitemap-сегмента из того же реестра в `scripts/prerender.js`.
+- Prerender верхнеуровневых страниц в `scripts/prerender.js`; статический sitemap-сегмент генерирует из того же реестра `scripts/build-static-root.mjs` (`npm run build:static`).
 - Статические `public/robots.txt` и `public/llms.txt`.
 - Страницы FAQ, статей, Standard, Arena и Battlegrounds.
 - Авторизация и paywall на уровне UI/API.
@@ -57,7 +57,7 @@
 - `SEO-105`: robots policy закрывает crawl только для machine-only `/api`, `/health`, `/metrics` и `/_internal`; admin/auth HTML намеренно остаётся crawlable, чтобы бот увидел обязательный server-side `noindex`. CSS, JS, fonts и публичные изображения разрешены, а отдельный CI-контракт проверяет эту границу.
 - `SEO-104`: versioned nginx map объединяет scheme/host/slash normalization в один `301` для всех 33 route templates, сохраняет query и не добавляет slash API, assets, unknown или removed URL. CI поднимает временный nginx и проверяет canonical, `www` и legacy hosts; production DNS/TLS alias проверяется отдельно при rollout.
 - Release manifest v2 пакует полный versioned nginx contract, хранит install path/роль origin или edge, SHA-256 каждого файла и общий hash. Read-only verifier и deploy preflight проверяют artifact/runtime drift до любых мутаций; переход bootstrap/legacy/изменённого hash требует явного подтверждения N/N-1 compatibility и не может обойти drift.
-- Static sitemap-сегмент генерируется при prerender из актуального SEO-реестра и содержит только index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` не теряются.
+- Static sitemap-сегмент генерируется `npm run build:static` из актуального SEO-реестра и содержит только index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` не теряются.
 - Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Standard card `lastmod` теперь хранится по semantic hash публичной SSR-проекции; первый обход дату намеренно не выставляет.
 - Standard, уникальные Wild-карты, BG minions/spells из active+archive и объединённые solo/Duos heroes подключены к отдельным runtime segments. Будущие локальные articles остаются вне sitemap до появления полного материала.
 - `SEO-602` (code slice): versioned external workflow каждые пять минут проверяет robots, точный sitemap index, границы и уникальность XML, все static/entity segments, deterministic SSR samples каждого типа, canonical redirect, JSON-LD identity, noindex `404` и отсутствие private payload. Search Console/Яндекс baseline и операторский paging ещё не подключены.
