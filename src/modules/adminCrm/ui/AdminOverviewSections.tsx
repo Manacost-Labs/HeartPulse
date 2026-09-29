@@ -71,10 +71,10 @@ export function OverviewKpis({ overview, money, moneyFailed, onNavigate, onOpenS
   return (
     <ul className="admin-overview-kpis" aria-label="Главные показатели за 30 дней">
       <li><button type="button" onClick={() => onOpenSegment('paying')}>
-        <span>Платят сейчас</span>
+        <span>С доступом сейчас</span>
         <strong>{kpis.payingNow.toLocaleString('ru-RU')}</strong>
-        <small>из {kpis.totalUsers.toLocaleString('ru-RU')} пользователей</small>
-        <Sparkline values={series.paying} label="Подписчики с доступом по дням" />
+        <small>платят {kpis.payingProvider.toLocaleString('ru-RU')} · вручную {kpis.manualAccess.toLocaleString('ru-RU')}</small>
+        <Sparkline values={series.paying} label="Платящие подписчики по дням" />
       </button></li>
       <li><button type="button" onClick={() => onNavigate('money')}>
         <span>Выручка за 30 дней</span>

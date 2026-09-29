@@ -74,7 +74,7 @@ const overview = {
     detail: '4 из 4 проверок за 2 часа: chat not found.',
     action: { section: 'telegram', label: 'Открыть Telegram' },
   }],
-  kpis: { totalUsers: 8412, payingNow: 1284, newUsers30d: 537, newUsersPrevious30d: 560, lapsed30d: 63, expiringSoon: 14 },
+  kpis: { totalUsers: 8412, payingNow: 1284, payingProvider: 1243, manualAccess: 41, newUsers30d: 537, newUsersPrevious30d: 560, lapsed30d: 63, expiringSoon: 14 },
   series: { days: ['2026-09-28', '2026-09-29'], newUsers: [10, 12], paying: [1280, 1284] },
   activity: [],
 };

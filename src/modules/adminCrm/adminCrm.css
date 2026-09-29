@@ -212,6 +212,14 @@
 .admin-crm-segments :focus-visible,
 .admin-crm-open:focus-visible { outline: 2px solid var(--crm-accent, #785018); outline-offset: 2px; }
 
+/* Touch screens: every control keeps the 44 px target the admin design requires. */
+@media (pointer: coarse) {
+  .admin-crm-segment { min-height: 44px; }
+  .admin-crm-tags button,
+  .admin-crm-notes footer button,
+  .admin-crm-copy { min-width: 44px; min-height: 44px; }
+}
+
 @media (max-width: 560px) {
   .admin-crm-sheet-head { padding: 14px 16px; }
   .admin-crm-sheet-body { padding: 14px 16px 24px; }

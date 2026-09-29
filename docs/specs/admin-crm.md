@@ -137,7 +137,8 @@ shows:
   donations and paid posts, average subscription payment and observed
   decreases (refunds and downgrades);
 - revenue per day (up to 31 days), per Monday-based week (up to 120 days) or
-  per month, with every bucket present so gaps stay visible;
+  per month, with every bucket present so gaps stay visible; periods start at
+  the beginning of a UTC day, so only today's bucket is partial;
 - revenue per subscription level with its share, retention after 30, 60 and
   90 days, top Boosty buyers and the latest sales.
 
@@ -145,7 +146,8 @@ Subscription revenue is inferred from observed Boosty payment increases plus
 exact Tribute webhooks, so the page lists every data-quality caveat from the
 payload (incomplete polling, unavailable Tribute or sales ledger) above the
 numbers. When the sales ledger is unavailable, donations and posts show «—»
-instead of zero.
+instead of zero. The loader requests at most 500 sales rows; when that limit
+is reached the chart is marked incomplete while the totals stay exact.
 
 The KolodaHearthstone article catalogue only annotates the analytics. If it is
 unavailable, the endpoint still returns revenue with empty `articleIntervals`
@@ -172,8 +174,8 @@ Response:
     action?: { section, segment?, label },
   }>,
   kpis: {
-    totalUsers, payingNow, newUsers30d, newUsersPrevious30d,
-    lapsed30d, expiringSoon,
+    totalUsers, payingNow, payingProvider, manualAccess, newUsers30d,
+    newUsersPrevious30d, lapsed30d, expiringSoon,
   },
   // 30 UTC days, oldest first
   series: { days: string[], newUsers: number[], paying: number[] },
@@ -185,9 +187,13 @@ Response:
 Alerts, ordered by severity:
 
 - `telegram-chat:<chatId>` (critical): in the last two hours at least three
-  Telegram checks included that chat and at least half of them failed. The
-  detail carries the Telegram error, because members of only that chat lose
-  access.
+  Telegram checks included that chat and at least half of them failed with a
+  chat-level error (chat not found, bot kicked, forbidden, missing rights).
+  The detail carries the Telegram error, because members of only that chat
+  lose access.
+- `telegram-api` (warning): other chat-check failures (timeouts, rate limits,
+  network errors) were at least half of all chat checks and at least three.
+  They are reported once instead of as a broken chat.
 - `boosty-stale` (critical): at least three Boosty checks in the last two
   hours and at least half were stale or had no provider response.
 - `expiring-access` (warning): active manual grants expiring within 7 days;
@@ -197,19 +203,31 @@ Alerts, ordered by severity:
   last 7 days.
 - `lapsed-access` (info): the `lapsed` segment is not empty.
 
-`payingNow` counts provider access or an active manual grant. The `paying`
-series counts distinct users with a successful provider check per day, so it
-excludes manual grants. Activity merges registrations, admin audit entries
-(read-only `*.read` and `*.observe` entries are skipped), contest entries and
-mailing campaigns. Admin entries return the raw action and details; the
-client labels them with the same wording as the client card.
+The «С доступом сейчас» card shows `payingNow` (provider access or an active
+manual grant) with `payingProvider` and `manualAccess`, which match the
+`paying` and `manual` segments. The `paying` series counts distinct users
+with a successful provider check per UTC day. The scheduled refresh checks
+every user every 30 minutes, so this is the daily number of paying
+subscribers; it excludes manual grants.
+
+Activity merges registrations, admin audit entries (read-only `*.read` and
+`*.observe` entries are skipped), contest entries and mailing campaigns. Admin
+entries return the raw action and details; the client labels them with the same
+wording as the client card.
 
 The previous dashboard (content counts and nine shortcut buttons) is removed,
 and the dashboard no longer loads articles, gallery, referrals, Boosty,
 Telegram and mailing data on open.
 
-Two indexes support the overview: `subscription_checks(source, checked_at)`
-and `subscription_checks(checked_at)`.
+Production holds about three million `subscription_checks` rows (three per
+user every 30 minutes, no pruning), so the overview and the `lapsed` segment
+read only indexes: `subscription_checks(source, checked_at)` and two partial
+indexes on `has_access = 1`, `(user_id, checked_at)` and
+`(checked_at, user_id)`. A query-plan test guards this. Building them adds a
+few seconds to the first start after deployment.
+
+The revenue card requests `/api/admin/boosty/analytics` with `articles=0`,
+which skips the KolodaHearthstone article catalogue.
 
 ## Permissions
 

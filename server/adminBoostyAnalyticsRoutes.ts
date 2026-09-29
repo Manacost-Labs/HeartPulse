@@ -180,7 +180,7 @@ export type AdminBoostyAnalyticsDependencies = {
   setPrivateNoStore: (response: Response) => void;
   loadAnalytics: (
     from: Date,
-    to: Date,
+    to: Date, includeArticles: boolean, // false: revenue only, no KolodaHearthstone request
   ) => Promise<BoostyArticleAnalyticsPayload>;
   now?: () => Date;
 };
@@ -217,7 +217,7 @@ export function createAdminBoostyAnalyticsRouter(
       });
     }
     try {
-      return response.json(await dependencies.loadAnalytics(range.from, range.to));
+      return response.json(await dependencies.loadAnalytics(range.from, range.to, request.query.articles !== '0'));
     } catch {
       return response.status(502).json({
         error: UPSTREAM_ERROR,
@@ -231,14 +231,14 @@ export function createAdminBoostyAnalyticsRouter(
 
 export function createBoostyAnalyticsLoader(
   options: BoostyAnalyticsLoaderOptions,
-): (from: Date, to: Date) => Promise<BoostyArticleAnalyticsPayload> {
+): (from: Date, to: Date, includeArticles?: boolean) => Promise<BoostyArticleAnalyticsPayload> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 10_000;
   const now = options.now ?? (() => new Date());
   const boostyBaseUrl = options.boostyBaseUrl.replace(/\/+$/, '');
   const kolodaEndpoint = options.kolodaEndpoint ?? DEFAULT_KOLODA_ENDPOINT;
 
-  return async (from, to) => {
+  return async (from, to, includeArticles = true) => {
     const boostyUrl = new URL(`${boostyBaseUrl}/api/analytics`);
     const tributeUrl = new URL(`${boostyBaseUrl}/api/tribute/analytics`);
     const salesUrl = new URL(`${boostyBaseUrl}/api/boosty/sales/analytics`);
@@ -262,7 +262,7 @@ export function createBoostyAnalyticsLoader(
         signal: AbortSignal.timeout(timeoutMs),
         headers: { Accept: 'application/json' },
       }).then(value => ({ value })).catch(() => ({ value: null })),
-      fetchKolodaArticles(fetchImpl, kolodaEndpoint, timeoutMs).catch(() => null), // revenue survives a catalogue outage
+      includeArticles ? fetchKolodaArticles(fetchImpl, kolodaEndpoint, timeoutMs).catch(() => null) : [], // revenue survives a catalogue outage
     ]);
     const sources: NormalizedAnalyticsSource[] = [];
     if (boostyResult.value !== null) {

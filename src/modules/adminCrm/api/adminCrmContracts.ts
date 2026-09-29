@@ -55,6 +55,8 @@ export type AdminCrmOverview = {
   kpis: {
     totalUsers: number;
     payingNow: number;
+    payingProvider: number;
+    manualAccess: number;
     newUsers30d: number;
     newUsersPrevious30d: number;
     lapsed30d: number;

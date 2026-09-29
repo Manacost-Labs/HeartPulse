@@ -63,8 +63,8 @@ export const adminCrmClient = {
   /** Alerts, KPIs and activity; `fresh` skips the server's one-minute cache. */
   overview: (fresh: boolean, signal?: AbortSignal) => request<AdminCrmOverview>(`/crm/overview${fresh ? '?fresh=1' : ''}`, {}, signal),
   /** Boosty + Tribute subscription analytics and the Boosty sales ledger for a period. */
-  money: (range: { from: string; to: string }, signal?: AbortSignal) => request<MoneyPayload>(
-    `/boosty/analytics?${new URLSearchParams(range).toString()}`, {}, signal,
+  money: (range: { from: string; to: string }, signal?: AbortSignal, options: { articles?: boolean } = {}) => request<MoneyPayload>(
+    `/boosty/analytics?${new URLSearchParams({ ...range, ...(options.articles === false ? { articles: '0' } : {}) }).toString()}`, {}, signal,
   ),
   person: (userId: string, signal?: AbortSignal) => request<AdminCrmPerson>(personPath(userId), {}, signal),
   addNote: (userId: string, body: string) => request<{ note: AdminCrmNote }>(`${personPath(userId)}/notes`, {

@@ -18,9 +18,17 @@ export const MONEY_PERIODS: ReadonlyArray<{ days: MoneyPeriodDays; label: string
 
 const DAY_MS = 86_400_000;
 
+/**
+ * The last `days` UTC calendar days including today. Starting on a day boundary keeps the first
+ * chart bucket whole; only today's bucket is partial.
+ */
 export function moneyRange(days: MoneyPeriodDays, now = new Date()): { from: string; to: string } {
-  return { from: new Date(now.getTime() - days * DAY_MS).toISOString(), to: now.toISOString() };
+  const startOfToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return { from: new Date(startOfToday - (days - 1) * DAY_MS).toISOString(), to: now.toISOString() };
 }
+
+/** The analytics loader requests at most this many sales rows (server/adminBoostyAnalyticsRoutes.ts). */
+export const SALES_OBSERVATION_LIMIT = 500;
 
 export function formatRub(value: number): string {
   return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
@@ -97,5 +105,8 @@ export function moneyCaveats(payload: MoneyPayload): string[] {
   if (!payload.coverage.complete) notes.unshift('Наблюдения за подписками неполные: в периоде есть пропуски опроса Boosty.');
   if (payload.sales && !payload.sales.coverage.complete) notes.push('Импорт продаж Boosty неполный.');
   if (!payload.sales) notes.push('Продажи Boosty (донаты и платные посты) сейчас недоступны.');
+  else if (payload.sales.observations.length >= SALES_OBSERVATION_LIMIT) {
+    notes.push(`График продаж неполный: показаны первые ${SALES_OBSERVATION_LIMIT} операций, итоговые суммы точные.`);
+  }
   return [...new Set(notes)];
 }

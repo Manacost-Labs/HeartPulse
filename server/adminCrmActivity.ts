@@ -11,8 +11,6 @@ export type OverviewActivity =
   | { id: string; kind: 'mailing'; at: string; subject: string; accepted: number; failed: number };
 
 const LIMIT = 15;
-// Read-only audit entries (the parser page records its own reads) are noise in a feed of changes.
-const NOISE_ACTION = /\.(read|observe)$/;
 
 const str = (value: unknown) => (value === null || value === undefined ? '' : String(value));
 const details = (value: unknown): Record<string, unknown> => {
@@ -29,14 +27,16 @@ export function readActivity(repository: AdminCrmRepository): OverviewActivity[]
   for (const row of repository.all(`SELECT u.id, u.name, u.email, u.created_at FROM users u ORDER BY u.created_at DESC LIMIT ${LIMIT}`)) {
     events.push({ id: `registration:${str(row.id)}`, kind: 'registration', at: str(row.created_at), name: str(row.name) || str(row.email), userId: str(row.id) });
   }
+  // Read-only audit entries (the parser page records its own reads) are noise in a feed of changes and
+  // are excluded in SQL so a burst of them cannot push real actions out of the window.
   for (const row of repository.all(`
     SELECT l.id, l.action, l.entity_type, l.entity_id, l.details_json, l.created_at, a.name AS actor_name, t.name AS target_name
     FROM admin_audit_log l
     LEFT JOIN users a ON a.id = l.actor_user_id
     LEFT JOIN users t ON l.entity_type = 'user' AND t.id = l.entity_id
-    ORDER BY l.created_at DESC, l.id DESC LIMIT ${LIMIT * 4}
+    WHERE l.action NOT LIKE '%.read' AND l.action NOT LIKE '%.observe'
+    ORDER BY l.created_at DESC, l.id DESC LIMIT ${LIMIT}
   `)) {
-    if (NOISE_ACTION.test(str(row.action))) continue;
     const isUser = str(row.entity_type) === 'user';
     events.push({
       id: `admin:${str(row.id)}`, kind: 'admin', at: str(row.created_at), action: str(row.action), details: details(row.details_json),

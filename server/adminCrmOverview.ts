@@ -15,6 +15,8 @@ const DAY_MS = 86_400_000;
 const HEALTH_WINDOW_MS = 2 * 60 * 60 * 1000;
 const HEALTH_MIN_CHECKS = 3;
 const ACTIVITY_LIMIT = 15;
+// Errors that mean the bot cannot see a chat, as opposed to transient API failures.
+const CHAT_LEVEL_ERROR = /chat not found|kicked|forbidden|not enough rights|have no rights|admin_required|member list is inaccessible/i;
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2 } as const;
 
 const str = (value: unknown) => (value === null || value === undefined ? '' : String(value));
@@ -45,13 +47,18 @@ function integrationAlerts(repository: AdminCrmRepository, now: Date): OverviewA
   ).map(row => parse(row.detail_json));
   const alerts: OverviewAlert[] = [];
 
-  // A VIP chat the bot cannot read silently denies access to members of that chat only.
+  // A VIP chat the bot cannot read silently denies access to members of that chat only. Timeouts,
+  // rate limits and network errors are Telegram API trouble and are reported once, not per chat.
   const chats = new Map<string, { checks: number; failures: number; error: string }>();
+  const api = { checks: 0, failures: 0, error: '' };
   for (const detail of recent('telegram')) {
     for (const chat of Array.isArray(detail.chats) ? detail.chats as Array<Record<string, unknown>> : []) {
+      const error = str(chat.error);
+      api.checks += 1;
       const entry = chats.get(str(chat.chatId)) ?? { checks: 0, failures: 0, error: '' };
       entry.checks += 1;
-      if (chat.ok === false) { entry.failures += 1; entry.error ||= str(chat.error); }
+      if (chat.ok === false && CHAT_LEVEL_ERROR.test(error)) { entry.failures += 1; entry.error ||= error; }
+      else if (chat.ok === false) { api.failures += 1; api.error ||= error; }
       chats.set(str(chat.chatId), entry);
     }
   }
@@ -61,7 +68,16 @@ function integrationAlerts(repository: AdminCrmRepository, now: Date): OverviewA
       id: `telegram-chat:${chatId}`,
       severity: 'critical',
       title: `Бот не видит VIP-группу Telegram ${chatId}`,
-      detail: `${entry.failures} из ${entry.checks} проверок за 2 часа: ${entry.error || 'ошибка Telegram'}. Участники только этой группы не получают доступ.`,
+      detail: `${entry.failures} из ${entry.checks} проверок за 2 часа: ${entry.error}. Участники только этой группы не получают доступ.`,
+      action: { section: 'telegram', label: 'Открыть Telegram' },
+    });
+  }
+  if (api.failures >= HEALTH_MIN_CHECKS && api.failures * 2 >= api.checks) {
+    alerts.push({
+      id: 'telegram-api',
+      severity: 'warning',
+      title: 'Telegram API отвечает с ошибками',
+      detail: `${api.failures} из ${api.checks} проверок групп за 2 часа не получили ответа: ${api.error || 'ошибка сети'}. Доступ из Telegram может временно не подтверждаться.`,
       action: { section: 'telegram', label: 'Открыть Telegram' },
     });
   }
@@ -164,7 +180,11 @@ export function readOverview(repository: AdminCrmRepository, now = new Date()) {
     alerts,
     kpis: {
       totalUsers: counts.all ?? 0,
+      // «С доступом сейчас» = provider access or an active manual grant; both parts are reported
+      // so the card agrees with the `paying` and `manual` segments it links to.
       payingNow: counts.paying_now ?? 0,
+      payingProvider: counts.paying ?? 0,
+      manualAccess: counts.manual ?? 0,
       newUsers30d: num(repository.get('SELECT COUNT(*) AS count FROM users WHERE created_at >= ?', monthAgo)?.count),
       newUsersPrevious30d: previous,
       lapsed30d: counts.lapsed ?? 0,

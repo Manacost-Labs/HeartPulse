@@ -920,7 +920,7 @@ export const adminFixtures = {
         action: { section: 'users', segment: 'expiring', label: 'Показать' },
       },
     ],
-    kpis: { totalUsers: 2, payingNow: 1, newUsers30d: 2, newUsersPrevious30d: 1, lapsed30d: 0, expiringSoon: 1 },
+    kpis: { totalUsers: 2, payingNow: 1, payingProvider: 1, manualAccess: 0, newUsers30d: 2, newUsersPrevious30d: 1, lapsed30d: 0, expiringSoon: 1 },
     series: {
       days: Array.from({ length: 30 }, (_, index) => new Date(Date.UTC(2026, 5, 29 + index)).toISOString().slice(0, 10)),
       newUsers: Array.from({ length: 30 }, (_, index) => (index === 2 || index === 3 ? 1 : 0)),

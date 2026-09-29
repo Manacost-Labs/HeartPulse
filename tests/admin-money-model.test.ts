@@ -40,7 +40,9 @@ const payload: MoneyPayload = {
 };
 
 assert.equal(formatRub(1234.4), `${(1234).toLocaleString('ru-RU')} ₽`);
-assert.deepEqual(moneyRange(30, new Date('2026-09-30T00:00:00.000Z')), { from: '2026-08-31T00:00:00.000Z', to: '2026-09-30T00:00:00.000Z' });
+assert.deepEqual(moneyRange(30, new Date('2026-09-30T15:20:00.000Z')), { from: '2026-09-01T00:00:00.000Z', to: '2026-09-30T15:20:00.000Z' });
+// A 30-day range starting on a day boundary yields exactly 30 daily buckets.
+assert.equal(revenueBuckets({ ...payload, ...moneyRange(30, new Date('2026-09-30T15:20:00.000Z')) }).length, 30);
 
 const summary = moneySummary(payload);
 assert.equal(summary.totalRub, 3200);
@@ -74,5 +76,8 @@ const caveats = moneyCaveats({ ...payload, coverage: { ...payload.coverage, comp
 assert.equal(caveats.length, 3);
 assert.match(caveats[0], /пропуски опроса Boosty/);
 assert.match(caveats.join(' '), /донаты и платные посты/);
+
+const manySales = Array.from({ length: 500 }, () => ({ observedAt: '2026-09-02T09:00:00.000Z', type: 'donation' as const, amountRub: 1, postTitle: '' }));
+assert.match(moneyCaveats({ ...payload, sales: { ...payload.sales!, observations: manySales } }).join(' '), /первые 500 операций/);
 
 console.log('admin money model: ok');

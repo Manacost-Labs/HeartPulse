@@ -42,8 +42,11 @@ db.prepare(`INSERT INTO mailing_campaigns (id, subject, status, created_at, comp
 db.prepare(`INSERT INTO admin_audit_log (actor_user_id, action, entity_type, entity_id, details_json, created_at)
   VALUES ('admin-1', 'user.updated', 'user', 'soon', '{"manualAccess":{"to":{"enabled":true,"expiresAt":null}}}', ?)`).run(iso(-0.5));
 
-db.prepare(`INSERT INTO admin_audit_log (actor_user_id, action, entity_type, entity_id, details_json, created_at)
-  VALUES ('admin-1', 'parser-control.audit.read', 'parser-control', 'x', '{}', ?)`).run(iso(0));
+// A burst of read-only entries newer than the real admin action must not hide it.
+for (let index = 0; index < 80; index += 1) {
+  db.prepare(`INSERT INTO admin_audit_log (actor_user_id, action, entity_type, entity_id, details_json, created_at)
+    VALUES ('admin-1', 'parser-control.audit.read', 'parser-control', 'x', '{}', ?)`).run(iso(-index / 10_000));
+}
 const overview = readOverview(repository, new Date());
 
 // Alerts are ordered by severity and point to the place where the operator acts.
@@ -66,6 +69,8 @@ assert.deepEqual(overview.alerts[5].action, { section: 'users', segment: 'lapsed
 
 assert.equal(overview.kpis.totalUsers, 6);
 assert.equal(overview.kpis.payingNow, 2); // provider access + active manual grant
+assert.equal(overview.kpis.payingProvider, 1);
+assert.equal(overview.kpis.manualAccess, 1);
 assert.equal(overview.kpis.newUsers30d, 1);
 assert.equal(overview.kpis.newUsersPrevious30d, 1);
 assert.equal(overview.kpis.lapsed30d, 1);
@@ -91,6 +96,25 @@ assert.deepEqual(adminAction.details, { manualAccess: { to: { enabled: true, exp
 assert.ok(overview.activity.length <= 15);
 assert.ok(!overview.activity.some(item => item.kind === 'admin' && item.action.endsWith('.read')));
 assert.doesNotMatch(JSON.stringify(overview), /secret-hash|password/);
+
+// subscription_checks holds millions of rows in production (three per user every 30 minutes), so the
+// access-only queries must be answered from partial indexes, never by scanning check rows.
+const plan = (sql: string) => db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all().map(row => String((row as { detail: string }).detail)).join(' | ');
+assert.match(plan("SELECT 1 FROM subscription_checks c WHERE c.user_id = 'x' AND c.has_access = 1 AND c.checked_at >= '2026-09-01'"), /COVERING INDEX idx_subscription_checks_access_user/);
+assert.match(plan("SELECT substr(checked_at, 1, 10) AS day, COUNT(DISTINCT user_id) FROM subscription_checks WHERE has_access = 1 AND checked_at >= '2026-09-01' GROUP BY day"), /COVERING INDEX idx_subscription_checks_access_time/);
+assert.match(plan("SELECT detail_json FROM subscription_checks WHERE source = 'telegram' AND checked_at >= '2026-09-01' ORDER BY checked_at DESC LIMIT 1000"), /idx_subscription_checks_source_time/);
+
+// Timeouts and rate limits are Telegram API trouble, not a broken chat: one warning, no per-chat alerts.
+db.exec(`DELETE FROM subscription_checks WHERE source = 'telegram'`);
+for (const [index, userId] of ['payer', 'gone', 'fresh', 'soon'].entries()) {
+  check(userId, 'telegram', false, { chats: [
+    { chatId: '-100111', ok: false, error: 'The operation was aborted due to timeout' },
+    { chatId: '-100222', ok: false, error: 'Too Many Requests: retry after 5' },
+  ] }, minutesAgo(10 + index));
+}
+const apiTrouble = readOverview(repository, new Date()).alerts.filter(alert => alert.id.startsWith('telegram'));
+assert.deepEqual(apiTrouble.map(alert => [alert.id, alert.severity]), [['telegram-api', 'warning']]);
+assert.match(apiTrouble[0].detail, /8 из 8/);
 
 // With healthy integrations and no pending work there is nothing to alert about.
 db.exec(`DELETE FROM subscription_checks; DELETE FROM contest_entries; DELETE FROM mailing_campaigns; DELETE FROM manual_subscription_grants;`);

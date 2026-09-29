@@ -1811,7 +1811,7 @@ for (const [device, viewport] of [
       failures.push(`admin overview [${device}]: alerts mismatch ${JSON.stringify(state.alerts)}`);
     }
     const expectedKpis = [
-      { label: 'Платят сейчас', value: '1' },
+      { label: 'С доступом сейчас', value: '1' },
       { label: 'Выручка за 30 дней', value: '2 500 ₽' },
       { label: 'Новые пользователи', value: '2' },
       { label: 'Потеряли доступ', value: '0' },

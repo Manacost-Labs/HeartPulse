@@ -31,7 +31,7 @@ export function AdminOverviewPage({ client = adminCrmClient, onNavigate, onOpenS
         if (!controller.signal.aborted) setOverview(current => ({ ...current, status: 'error', message: error instanceof Error ? error.message : 'Не удалось загрузить обзор' }));
       });
     // Revenue comes from the slower Boosty/Tribute analytics and must not hold back the alerts.
-    client.money(moneyRange(30), controller.signal)
+    client.money(moneyRange(30), controller.signal, { articles: false })
       .then(value => setMoney({ status: 'ready', value }))
       .catch(() => { if (!controller.signal.aborted) setMoney({ status: 'error', value: null }); });
     return () => controller.abort();

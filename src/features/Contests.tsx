@@ -1235,7 +1235,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       >
           {hasFullAdminAccess && adminSection === 'dashboard' && (
             <React.Suspense fallback={<RouteFallback minHeight={420} />}>
-              <AdminOverviewPage onNavigate={section => changeAdminSection(section as AdminWorkspaceSection)} onOpenSegment={openUserSegment} />
+              <AdminOverviewPage onNavigate={section => { if (ADMIN_WORKSPACE_SECTION_IDS.has(section as AdminWorkspaceSection)) changeAdminSection(section as AdminWorkspaceSection); }} onOpenSegment={openUserSegment} />
             </React.Suspense>
           )}
 

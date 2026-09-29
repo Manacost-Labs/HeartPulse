@@ -357,14 +357,34 @@ assert.deepEqual(articlesDown.summary, partial.summary);
 assert.deepEqual(articlesDown.articleIntervals, []);
 assert.match(articlesDown.limitations.join(' '), /Статьи KolodaHearthstone временно недоступны/);
 
+// The overview only needs revenue: it asks the loader to skip the article catalogue entirely.
+let kolodaRequests = 0;
+const revenueOnlyLoader = createBoostyAnalyticsLoader({
+  boostyBaseUrl: 'http://boosty.internal',
+  kolodaEndpoint: 'https://kolodahearthstone.com/wp-json/koloda/v1/articles/query',
+  fetchImpl: (async (url) => {
+    if (String(url).includes('kolodahearthstone.com')) kolodaRequests += 1;
+    if (String(url).includes('/api/analytics') && !String(url).includes('tribute') && !String(url).includes('sales')) {
+      return new Response(JSON.stringify(source), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response('{}', { status: 503 });
+  }) as typeof fetch,
+});
+const revenueOnly = await revenueOnlyLoader(new Date('2026-07-01T00:00:00.000Z'), new Date('2026-07-10T00:00:00.000Z'), false);
+assert.equal(kolodaRequests, 0);
+assert.deepEqual(revenueOnly.articleIntervals, []);
+assert.doesNotMatch(revenueOnly.limitations.join(' '), /KolodaHearthstone/);
+
 let loaderCalls = 0;
+let lastIncludeArticles: boolean | undefined;
 let loaderFailure = false;
 const app = express();
 app.use('/api', createAdminBoostyAnalyticsRouter({
   adminAuth: request => request.headers['x-admin'] === 'yes' ? { id: 'admin' } : null,
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
   now: () => new Date('2026-07-10T00:00:00.000Z'),
-  loadAnalytics: async (from, to) => {
+  loadAnalytics: async (from, to, includeArticles) => {
+    lastIncludeArticles = includeArticles;
     loaderCalls += 1;
     if (loaderFailure) throw new Error('http://127.0.0.1/private-token');
     return buildBoostyArticleAnalytics(source, articles, from, to);
@@ -403,6 +423,9 @@ try {
   assert.equal(ready.headers.get('cache-control'), 'private, no-store');
   assert.equal((await ready.json() as { articleIntervals: unknown[] }).articleIntervals.length, 2);
   assert.equal(loaderCalls, 1);
+  assert.equal(lastIncludeArticles, true);
+  await fetch(`${endpoint}?from=2026-07-01T00:00:00Z&to=2026-07-10T00:00:00Z&articles=0`, { headers: { 'X-Admin': 'yes' } });
+  assert.equal(lastIncludeArticles, false);
 
   loaderFailure = true;
   const failed = await fetch(endpoint, { headers: { 'X-Admin': 'yes' } });

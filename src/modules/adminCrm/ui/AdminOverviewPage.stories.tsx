@@ -16,7 +16,7 @@ const overview: AdminCrmOverview = {
     { id: 'expiring-access', severity: 'warning', title: '14 ручных доступов истекают в ближайшие 7 дней', detail: 'Продлите доступ тем, кому он ещё нужен, пока он не закрылся.', action: { section: 'users', segment: 'expiring', label: 'Показать' } },
     { id: 'lapsed-access', severity: 'info', title: '63 человека потеряли доступ за 30 дней', detail: 'Им можно написать и предложить вернуться.', action: { section: 'users', segment: 'lapsed', label: 'Показать' } },
   ],
-  kpis: { totalUsers: 8412, payingNow: 1284, newUsers30d: 537, newUsersPrevious30d: 560, lapsed30d: 63, expiringSoon: 14 },
+  kpis: { totalUsers: 8412, payingNow: 1284, payingProvider: 1243, manualAccess: 41, newUsers30d: 537, newUsersPrevious30d: 560, lapsed30d: 63, expiringSoon: 14 },
   series: { days, newUsers: wave(18, 5), paying: wave(1240, 20) },
   activity: [
     { id: 'r1', kind: 'registration', at: ago(4), name: 'novichok_42', userId: 'u1' },
