@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { NAVIGATION_ROUTES } from '../../../src/app/routing/navigationDefinitions';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { TierList } from '../../../src/features/DeferredRoutes';
+import { NAVIGATION_ROUTES } from '@/src/app/routing/navigationDefinitions';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { TierList } from '@/src/features/DeferredRoutes';
 import { useArenaCompanionIds, useArenaTierList,
-  type TierlistData } from '../../../src/modules/arenaTierList/public';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+  type TierlistData } from '@/src/modules/arenaTierList/public';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const EMPTY_DATA: TierlistData = {

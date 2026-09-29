@@ -1,4 +1,4 @@
-import { PublicSupportPage } from '../../ui/PublicSupportPage';
+import { PublicSupportPage } from '@/apps/public-web/ui/PublicSupportPage';
 export const metadata = {
   title: 'Условия использования | HearthPulse', description: 'Условия использования сайта и сервисов HearthPulse.',
   alternates: { canonical: 'https://hearthpulse.net/terms/' }, robots: { index: true, follow: true },

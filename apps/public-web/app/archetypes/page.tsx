@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { canOpenAdminPage } from '../../lib/adminAccess';
-import { AdminArchetypesPageClient } from '../../ui/AdminArchetypesPageClient';
+import { canOpenAdminPage } from '@/apps/public-web/lib/adminAccess';
+import { AdminArchetypesPageClient } from '@/apps/public-web/ui/AdminArchetypesPageClient';
 import './route.css';
 
 export const dynamic = 'force-dynamic';

@@ -1,15 +1,15 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import PaywallGate from '../../../src/components/PaywallGate';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { BattlegroundsTierListSearchIntro } from '../../../src/modules/searchLanding/public';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+import PaywallGate from '@/src/components/PaywallGate';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { BattlegroundsTierListSearchIntro } from '@/src/modules/searchLanding/public';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const pathname = '/battlegrounds/tier-list/';
 const navigate = (path: string) => window.location.assign(path);
-const BattlegroundTierList = dynamic(() => import('../../../src/features/Battlegrounds')
+const BattlegroundTierList = dynamic(() => import('@/src/features/Battlegrounds')
   .then(module => module.BattlegroundTierList), { ssr: false });
 
 export function BattlegroundTierListPageClient() {

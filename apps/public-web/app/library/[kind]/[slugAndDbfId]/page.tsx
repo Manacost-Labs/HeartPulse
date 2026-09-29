@@ -1,7 +1,7 @@
-import '../../../../../../src/route-parchment.css';
-import '../../../../../../src/features/TraditionalModeBanner.css';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
 import { battlegroundDetailMetadata, battlegroundDetailPage,
-  type BattlegroundDetailProps } from '../../../../lib/battlegroundLibraryDetailRoute';
+  type BattlegroundDetailProps } from '@/apps/public-web/lib/battlegroundLibraryDetailRoute';
 
 export const dynamic = 'force-dynamic';
 

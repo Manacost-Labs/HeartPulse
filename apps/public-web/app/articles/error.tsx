@@ -1,7 +1,7 @@
 'use client';
 
-import { PublicPageShell } from '../../../../src/app/shell/PublicPageShell';
-import { usePublicAccess } from '../../ui/usePublicAccess';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { usePublicAccess } from '@/apps/public-web/ui/usePublicAccess';
 
 export default function ArticlesError({ reset }: { error: Error; reset: () => void }) {
   const access = usePublicAccess();

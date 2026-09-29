@@ -1,10 +1,10 @@
 'use client';
 
-import PaywallGate from '../../../src/components/PaywallGate';
-import { BattlegroundHeroesRoute } from '../../../src/features/Battlegrounds';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
-import type { PublicBattlegroundHero } from '../lib/publicBattlegroundHeroData';
+import PaywallGate from '@/src/components/PaywallGate';
+import { BattlegroundHeroesRoute } from '@/src/features/Battlegrounds';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
+import type { PublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHeroData';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => window.location.assign(path);

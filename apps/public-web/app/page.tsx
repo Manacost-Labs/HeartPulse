@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { seoPageForExactPath } from '../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../src/shared/seo/publicUrlPolicy';
-import { loadPublicHome } from '../lib/publicHome';
-import { HomePageClient } from '../ui/HomePageClient';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { loadPublicHome } from '@/apps/public-web/lib/publicHome';
+import { HomePageClient } from '@/apps/public-web/ui/HomePageClient';
 
 const seo = seoPageForExactPath('/');
 if (!seo) throw new Error('Missing home SEO contract');

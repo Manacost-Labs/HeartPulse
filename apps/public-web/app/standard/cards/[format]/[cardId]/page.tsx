@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { constructedCardPath, type CardFormat } from '../../../../../../../src/modules/constructedCards/public';
-import { loadPublicCard } from '../../../../../lib/publicCard';
-import { LegacyCardPage } from '../../../../../ui/LegacyCardPage';
+import { constructedCardPath, type CardFormat } from '@/src/modules/constructedCards/public';
+import { loadPublicCard } from '@/apps/public-web/lib/publicCard';
+import { LegacyCardPage } from '@/apps/public-web/ui/LegacyCardPage';
 
 type Props = { params: Promise<{ format: string; cardId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 export const dynamic = 'force-dynamic';

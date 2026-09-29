@@ -1,7 +1,7 @@
 import {
   constructedCardPath, CONSTRUCTED_CARD_PERIOD_OPTIONS, CONSTRUCTED_CARD_RANK_OPTIONS,
   type CardFormat, type PublicCardCatalogSeed, type PublicCatalogCard,
-} from '../../../src/modules/constructedCards/public';
+} from '@/src/modules/constructedCards/public';
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue => value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};

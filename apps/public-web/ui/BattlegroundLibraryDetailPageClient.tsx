@@ -1,10 +1,10 @@
 'use client';
 
-import PaywallGate from '../../../src/components/PaywallGate';
-import BgLibrary from '../../../src/features/BgLibrary';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
-import type { PublicBattlegroundLibraryCard } from '../lib/publicBattlegroundLibraryCardData';
+import PaywallGate from '@/src/components/PaywallGate';
+import BgLibrary from '@/src/features/BgLibrary';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
+import type { PublicBattlegroundLibraryCard } from '@/apps/public-web/lib/publicBattlegroundLibraryCardData';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => window.location.assign(path);

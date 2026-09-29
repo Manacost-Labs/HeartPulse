@@ -1,9 +1,9 @@
 'use client';
 
-import PaywallGate from '../../../src/components/PaywallGate';
-import GuidesArchive from '../../../src/features/GuidesArchive';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+import PaywallGate from '@/src/components/PaywallGate';
+import GuidesArchive from '@/src/features/GuidesArchive';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => window.location.assign(path);

@@ -1,7 +1,7 @@
-import { seoPageForExactPath } from '../../../../src/seo/registry';
+import { seoPageForExactPath } from '@/src/seo/registry';
 import type { Metadata } from 'next';
-import { loadPublicGallery } from '../../lib/publicGallery';
-import { GalleryPageClient } from '../../ui/GalleryPageClient';
+import { loadPublicGallery } from '@/apps/public-web/lib/publicGallery';
+import { GalleryPageClient } from '@/apps/public-web/ui/GalleryPageClient';
 
 const seo = seoPageForExactPath('/gallery');
 if (!seo) throw new Error('Missing gallery SEO contract');

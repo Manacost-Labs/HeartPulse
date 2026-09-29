@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../src/route-parchment.css';
-import '../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../src/shared/seo/publicUrlPolicy';
-import { BattlegroundHeroesPageClient } from '../../ui/BattlegroundHeroesPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { BattlegroundHeroesPageClient } from '@/apps/public-web/ui/BattlegroundHeroesPageClient';
 
 const seo = seoPageForExactPath('/heroes');
 if (!seo) throw new Error('Missing Battleground heroes SEO contract');

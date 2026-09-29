@@ -1,4 +1,4 @@
-import type { ArchetypeDetail } from '../../../src/features/ConstructedArchetypes';
+import type { ArchetypeDetail } from '@/src/features/ConstructedArchetypes';
 
 type RecordValue = Record<string, unknown>;
 const CLASSES = new Set(['deathknight', 'demonhunter', 'druid', 'hunter', 'mage',

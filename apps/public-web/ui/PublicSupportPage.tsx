@@ -1,7 +1,7 @@
 'use client';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import FAQPage from '../../../src/features/FAQPage';
-import LegalPage from '../../../src/modules/legalPages/public';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import FAQPage from '@/src/features/FAQPage';
+import LegalPage from '@/src/modules/legalPages/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => { window.location.assign(path); };

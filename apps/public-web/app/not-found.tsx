@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { UnknownPageClient } from '../ui/UnknownPageClient';
-import '../../../src/features/NotFoundPage.css';
+import { UnknownPageClient } from '@/apps/public-web/ui/UnknownPageClient';
+import '@/src/features/NotFoundPage.css';
 
 export const metadata: Metadata = {
   title: 'Страница не найдена | HearthPulse',

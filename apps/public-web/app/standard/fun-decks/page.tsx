@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../../src/shared/seo/publicUrlPolicy';
-import { FunDecksPageClient } from '../../../ui/FunDecksPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { FunDecksPageClient } from '@/apps/public-web/ui/FunDecksPageClient';
 
 const seo = seoPageForExactPath('/standard/fun-decks');
 if (!seo) throw new Error('Missing fun decks SEO contract');

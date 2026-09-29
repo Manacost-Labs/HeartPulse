@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../../src/shared/seo/publicUrlPolicy';
-import { StandardMatchupsPageClient } from '../../../ui/StandardMatchupsPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { StandardMatchupsPageClient } from '@/apps/public-web/ui/StandardMatchupsPageClient';
 
 const seo = seoPageForExactPath('/standard/matchups');
 if (!seo) throw new Error('Missing Standard matchups SEO contract');

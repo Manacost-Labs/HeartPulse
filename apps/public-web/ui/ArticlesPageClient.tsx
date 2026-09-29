@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { ArticlesTab, type ArticlesData } from '../../../src/modules/articles/public';
-import { articlesData } from '../lib/articlesData';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { ArticlesTab, type ArticlesData } from '@/src/modules/articles/public';
+import { articlesData } from '@/apps/public-web/lib/articlesData';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => { window.location.assign(path); };

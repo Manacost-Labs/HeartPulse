@@ -1,5 +1,5 @@
 import 'server-only';
-import { contestsFromResponse } from '../../../src/modules/contests/public';
+import { contestsFromResponse } from '@/src/modules/contests/public';
 
 /** Fetches only the anonymous projection; viewer entries never enter shared SSR state. */
 export async function loadPublicContests() {

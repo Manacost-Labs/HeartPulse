@@ -1,5 +1,5 @@
-import { archetypeDetailMetadata, type ArchetypeRouteParams } from '../../../../../lib/publicArchetypeRoute';
-import { ArchetypeDetailRoute } from '../../../../../ui/ArchetypeDetailRoute';
+import { archetypeDetailMetadata, type ArchetypeRouteParams } from '@/apps/public-web/lib/publicArchetypeRoute';
+import { ArchetypeDetailRoute } from '@/apps/public-web/ui/ArchetypeDetailRoute';
 
 type Props = { params: ArchetypeRouteParams };
 export const dynamic = 'force-dynamic';

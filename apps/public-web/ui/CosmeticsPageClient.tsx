@@ -1,8 +1,8 @@
 'use client';
 
-import Cosmetics from '../../../src/features/Cosmetics';
-import type { DetailPayload } from '../../../src/features/Cosmetics';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
+import Cosmetics from '@/src/features/Cosmetics';
+import type { DetailPayload } from '@/src/features/Cosmetics';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => window.location.assign(path);

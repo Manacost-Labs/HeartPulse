@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { usePublicAccess } from './usePublicAccess';
 
 function ConnectLoading() {
@@ -15,7 +15,7 @@ function ConnectLoading() {
 // The existing account route reads the browser URL and sessionStorage during
 // its first render; keep it behind a client-only boundary without serializing
 // the device code or identity into shared HTML.
-const AccountRoute = dynamic(() => import('../../../src/modules/accountRoute/public'), {
+const AccountRoute = dynamic(() => import('@/src/modules/accountRoute/public'), {
   ssr: false,
   loading: ConnectLoading,
 });

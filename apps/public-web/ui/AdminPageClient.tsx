@@ -6,10 +6,10 @@ import {
   canManageContests,
   fetchCurrentAuthUser,
   type AuthUser,
-} from '../../../src/modules/identity/public';
+} from '@/src/modules/identity/public';
 
 const ContestAdminPanel = dynamic(
-  () => import('../../../src/features/Contests').then(module => module.ContestAdminPanel),
+  () => import('@/src/features/Contests').then(module => module.ContestAdminPanel),
   { ssr: false, loading: () => <div className="admin-access-page" aria-live="polite">Загрузка панели управления…</div> },
 );
 

@@ -1,9 +1,9 @@
 'use client';
 
-import PaywallGate from '../../../src/components/PaywallGate';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { BattlegroundTierBuilderEmbed } from '../../../src/features/Battlegrounds';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+import PaywallGate from '@/src/components/PaywallGate';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { BattlegroundTierBuilderEmbed } from '@/src/features/Battlegrounds';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const pathname = '/battlegrounds/tier-builder/';

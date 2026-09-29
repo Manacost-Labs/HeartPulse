@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import '../../../../src/route-parchment.css';
-import '../../../../src/features/TraditionalModeBanner.css';
-import '../../../../src/features/DeferredRoutes.css';
-import { seoPageForExactPath } from '../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../src/shared/seo/publicUrlPolicy';
-import { loadPublicArticles } from '../../lib/publicArticles';
-import { ArticlesPageClient } from '../../ui/ArticlesPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import '@/src/features/DeferredRoutes.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { loadPublicArticles } from '@/apps/public-web/lib/publicArticles';
+import { ArticlesPageClient } from '@/apps/public-web/ui/ArticlesPageClient';
 
 const seo = seoPageForExactPath('/articles');
 if (!seo) throw new Error('Missing articles SEO contract');

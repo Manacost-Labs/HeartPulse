@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { seoPageForExactPath } from '../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../src/shared/seo/publicUrlPolicy';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 
 const headings: Record<string, string> = {
   '/library': 'Библиотека Полей Сражений',

@@ -2,11 +2,11 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { usePublicAccess } from './usePublicAccess';
 
-const StandardArchetypes = dynamic(() => import('../../../src/features/Archetypes'), { ssr: false });
-const WildArchetypes = dynamic(() => import('../../../src/modules/adminWorkspace/public')
+const StandardArchetypes = dynamic(() => import('@/src/features/Archetypes'), { ssr: false });
+const WildArchetypes = dynamic(() => import('@/src/modules/adminWorkspace/public')
   .then(module => module.loadWildArchetypesPage())
   .then(module => module.WildArchetypesPage), { ssr: false });
 const navigate = (path: string) => { window.location.assign(path); };

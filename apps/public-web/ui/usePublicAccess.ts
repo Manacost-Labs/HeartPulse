@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   fetchCurrentAuthUser, canAccessAdminWorkspace, canManageContests,
   hasAuthSessionHint, markAuthSessionHint, clearAuthSessionHint, type AuthUser,
-} from '../../../src/modules/identity/public';
-import { hasSubscriptionEntitlement, type SubscriptionStatus } from '../../../src/modules/subscriptions/public';
+} from '@/src/modules/identity/public';
+import { hasSubscriptionEntitlement, type SubscriptionStatus } from '@/src/modules/subscriptions/public';
 
 export function usePublicAccess() {
   const [user, setUser] = useState<AuthUser | null>(null);

@@ -1,5 +1,5 @@
 import 'server-only';
-import type { HomeArticle, HomeSummaryData } from '../../../src/modules/home/public';
+import type { HomeArticle, HomeSummaryData } from '@/src/modules/home/public';
 import { homeSummaryData } from './homeSummaryData';
 import { loadPublicArticles } from './publicArticles';
 

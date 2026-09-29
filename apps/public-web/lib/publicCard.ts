@@ -1,6 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
-import type { CardFormat, PublicCardSeed } from '../../../src/modules/constructedCards/public';
+import type { CardFormat, PublicCardSeed } from '@/src/modules/constructedCards/public';
 
 import { publicCardSeed } from './publicCardSeed';
 

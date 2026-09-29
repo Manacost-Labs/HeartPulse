@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { cosmeticsDetailPath } from '../../src/modules/cosmetics/public';
-import { constructedCardRoute } from '../../src/modules/constructedCards/public';
+import { cosmeticsDetailPath } from '@/src/modules/cosmetics/public';
+import { constructedCardRoute } from '@/src/modules/constructedCards/public';
 import { publicBattlegroundHero } from './lib/publicBattlegroundHeroData';
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';

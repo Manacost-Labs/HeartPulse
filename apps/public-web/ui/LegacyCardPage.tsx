@@ -1,7 +1,7 @@
 'use client';
-import StandardCards from '../../../src/features/StandardCards';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import type { PublicCardSeed, PublicCardCatalogSeed } from '../../../src/modules/constructedCards/public';
+import StandardCards from '@/src/features/StandardCards';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import type { PublicCardSeed, PublicCardCatalogSeed } from '@/src/modules/constructedCards/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => { window.location.assign(path); };

@@ -1,10 +1,10 @@
 'use client';
 
-import PaywallGate from '../../../src/components/PaywallGate';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { BattlegroundStrategyBuilderEmbed } from '../../../src/features/Battlegrounds';
-import { BattlegroundsStrategyBuilderSearchIntro } from '../../../src/modules/searchLanding/public';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+import PaywallGate from '@/src/components/PaywallGate';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { BattlegroundStrategyBuilderEmbed } from '@/src/features/Battlegrounds';
+import { BattlegroundsStrategyBuilderSearchIntro } from '@/src/modules/searchLanding/public';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const pathname = '/battlegrounds/strategies/';

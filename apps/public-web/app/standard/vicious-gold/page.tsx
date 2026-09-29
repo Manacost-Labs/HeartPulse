@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../../src/shared/seo/publicUrlPolicy';
-import { ViciousGoldPageClient } from '../../../ui/ViciousGoldPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { ViciousGoldPageClient } from '@/apps/public-web/ui/ViciousGoldPageClient';
 
 const seo = seoPageForExactPath('/standard/vicious-gold');
 if (!seo) throw new Error('Missing Vicious Gold SEO contract');

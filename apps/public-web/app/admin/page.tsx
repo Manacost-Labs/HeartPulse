@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { canOpenAdminPage } from '../../lib/adminAccess';
-import { AdminPageClient } from '../../ui/AdminPageClient';
+import { canOpenAdminPage } from '@/apps/public-web/lib/adminAccess';
+import { AdminPageClient } from '@/apps/public-web/ui/AdminPageClient';
 import './admin.css';
 
 export const dynamic = 'force-dynamic';

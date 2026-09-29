@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import '../../../../src/route-parchment.css';
-import { seoPageForExactPath } from '../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../src/shared/seo/publicUrlPolicy';
-import { GuidesArchivePageClient } from '../../ui/GuidesArchivePageClient';
+import '@/src/route-parchment.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { GuidesArchivePageClient } from '@/apps/public-web/ui/GuidesArchivePageClient';
 
 const seo = seoPageForExactPath('/guides-archive');
 if (!seo) throw new Error('Missing guides archive SEO contract');

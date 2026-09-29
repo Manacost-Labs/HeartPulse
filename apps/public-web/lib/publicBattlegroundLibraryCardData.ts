@@ -1,4 +1,4 @@
-import { sameOriginPublicResourceUrl } from '../../../shared/publicResourceUrl';
+import { sameOriginPublicResourceUrl } from '@/shared/publicResourceUrl';
 import { battlegroundLibraryDetailKind, type BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
 
 export type PublicBattlegroundLibraryCard = {

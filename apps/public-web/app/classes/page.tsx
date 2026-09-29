@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../src/route-parchment.css';
-import '../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../src/shared/seo/publicUrlPolicy';
-import { ClassesPageClient } from '../../ui/ClassesPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { ClassesPageClient } from '@/apps/public-web/ui/ClassesPageClient';
 
 const seo = seoPageForExactPath('/classes');
 if (!seo) throw new Error('Missing Arena classes SEO contract');

@@ -1,8 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { loadPublicProfileCard, publicProfilePath, type PublicProfile } from '../../../src/modules/identity/public';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { loadPublicProfileCard, publicProfilePath, type PublicProfile } from '@/src/modules/identity/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const PublicProfileCard = dynamic(loadPublicProfileCard);

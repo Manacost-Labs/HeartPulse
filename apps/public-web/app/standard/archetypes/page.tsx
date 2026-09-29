@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../../src/shared/seo/publicUrlPolicy';
-import { ConstructedArchetypesPageClient } from '../../../ui/ConstructedArchetypesPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { ConstructedArchetypesPageClient } from '@/apps/public-web/ui/ConstructedArchetypesPageClient';
 
 const seo = seoPageForExactPath('/standard/archetypes');
 if (!seo) throw new Error('Missing constructed archetypes SEO contract');

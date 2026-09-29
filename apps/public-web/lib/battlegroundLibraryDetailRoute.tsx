@@ -1,10 +1,10 @@
 import 'server-only';
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
-import { buildEntityStructuredData } from '../../../shared/entitySeoStructuredData';
+import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { loadPublicBattlegroundLibraryCard } from './publicBattlegroundLibraryCard';
 import type { BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
-import { BattlegroundLibraryDetailPageClient } from '../ui/BattlegroundLibraryDetailPageClient';
+import { BattlegroundLibraryDetailPageClient } from '@/apps/public-web/ui/BattlegroundLibraryDetailPageClient';
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 export type BattlegroundDetailProps = {

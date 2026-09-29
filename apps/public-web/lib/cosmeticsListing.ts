@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { resolvePublicUrlPolicy } from '../../../src/shared/seo/publicUrlPolicy';
-import { cosmeticsListing } from '../../../src/modules/cosmetics/public';
-export { cosmeticsListing } from '../../../src/modules/cosmetics/public';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { cosmeticsListing } from '@/src/modules/cosmetics/public';
+export { cosmeticsListing } from '@/src/modules/cosmetics/public';
 
 export type CosmeticsSearch = Promise<Record<string, string | string[] | undefined>>;
 

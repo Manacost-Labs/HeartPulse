@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import type { Metadata } from 'next';
-import type { PublicProfile } from '../../../src/modules/identity/public';
+import type { PublicProfile } from '@/src/modules/identity/public';
 
 type ProfileRouteKind = 'numeric' | 'legacy';
 const numericId = /^[1-9][0-9]{0,9}$/;

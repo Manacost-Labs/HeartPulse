@@ -1,6 +1,6 @@
-import '../../../../../src/route-parchment.css';
-import { battlegroundBuilderMetadata, type BuilderSearch } from '../../../lib/battlegroundBuilderMetadata';
-import { BattlegroundTierBuilderPageClient } from '../../../ui/BattlegroundTierBuilderPageClient';
+import '@/src/route-parchment.css';
+import { battlegroundBuilderMetadata, type BuilderSearch } from '@/apps/public-web/lib/battlegroundBuilderMetadata';
+import { BattlegroundTierBuilderPageClient } from '@/apps/public-web/ui/BattlegroundTierBuilderPageClient';
 
 export const dynamic = 'force-dynamic';
 

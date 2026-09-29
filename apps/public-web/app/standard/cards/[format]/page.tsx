@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { CardCatalogPage, catalogMetadata, type CatalogSearch } from '../../../../ui/CardCatalogPage';
+import { CardCatalogPage, catalogMetadata, type CatalogSearch } from '@/apps/public-web/ui/CardCatalogPage';
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ format: string }>; searchParams: CatalogSearch };
 async function catalogRoute(params: Props['params']) {

@@ -1,7 +1,7 @@
-import '../../../../src/route-parchment.css';
-import '../../../../src/features/Cosmetics.css';
-import { cosmeticsListingMetadata, cosmeticsSearchString, type CosmeticsSearch } from '../../lib/cosmeticsListing';
-import { CosmeticsPageClient } from '../../ui/CosmeticsPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/Cosmetics.css';
+import { cosmeticsListingMetadata, cosmeticsSearchString, type CosmeticsSearch } from '@/apps/public-web/lib/cosmeticsListing';
+import { CosmeticsPageClient } from '@/apps/public-web/ui/CosmeticsPageClient';
 
 export const dynamic = 'force-dynamic';
 

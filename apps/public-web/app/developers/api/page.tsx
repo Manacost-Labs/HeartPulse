@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { seoPageForExactPath } from '../../../../../src/seo/registry';
-import { DeveloperApiPageClient } from '../../../ui/DeveloperApiPageClient';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { DeveloperApiPageClient } from '@/apps/public-web/ui/DeveloperApiPageClient';
 
 const seo = seoPageForExactPath('/developers/api');
 if (!seo) throw new Error('Missing developer API SEO contract');

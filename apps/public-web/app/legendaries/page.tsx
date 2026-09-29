@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../src/route-parchment.css';
-import '../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../src/shared/seo/publicUrlPolicy';
-import { LegendariesPageClient } from '../../ui/LegendariesPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { LegendariesPageClient } from '@/apps/public-web/ui/LegendariesPageClient';
 
 const seo = seoPageForExactPath('/legendaries');
 if (!seo) throw new Error('Missing Arena legendaries SEO contract');

@@ -1,7 +1,7 @@
 'use client';
 
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { ContestsPage, type Contest } from '../../../src/modules/contests/public';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { ContestsPage, type Contest } from '@/src/modules/contests/public';
 import { usePublicAccess } from './usePublicAccess';
 
 export function ContestsPageClient({ initialContests }: { initialContests: Contest[] }) {

@@ -1,6 +1,6 @@
-import '../../../src/route-parchment.css';
-import '../../../src/features/TraditionalModeBanner.css';
-import { resolveArchetypeRoute, type ArchetypeFamily, type ArchetypeRouteParams } from '../lib/publicArchetypeRoute';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { resolveArchetypeRoute, type ArchetypeFamily, type ArchetypeRouteParams } from '@/apps/public-web/lib/publicArchetypeRoute';
 import { ArchetypeDetailPageClient } from './ArchetypeDetailPageClient';
 
 export async function ArchetypeDetailRoute({ params, family }: { params: ArchetypeRouteParams; family: ArchetypeFamily }) {

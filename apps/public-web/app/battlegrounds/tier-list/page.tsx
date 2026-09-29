@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import '../../../../../src/route-parchment.css';
-import { seoPageForExactPath } from '../../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../../src/shared/seo/publicUrlPolicy';
-import { BattlegroundTierListPageClient } from '../../../ui/BattlegroundTierListPageClient';
+import '@/src/route-parchment.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { BattlegroundTierListPageClient } from '@/apps/public-web/ui/BattlegroundTierListPageClient';
 
 const pathname = '/battlegrounds/tier-list';
 const canonical = 'https://hearthpulse.net/battlegrounds/tier-list/';

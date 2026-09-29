@@ -1,4 +1,4 @@
-import type { HomeSummaryData } from '../../../src/modules/home/public';
+import type { HomeSummaryData } from '@/src/modules/home/public';
 
 /** Project only the public fields used by the home hero into the SSR payload. */
 export function homeSummaryData(value: unknown): HomeSummaryData {

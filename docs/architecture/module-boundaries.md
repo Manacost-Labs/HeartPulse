@@ -412,6 +412,11 @@ the public Express projection; its client adapters compose existing card, FAQ
 and legal UI with `src/app/shell/PublicPageShell.tsx`. This common shell owns
 navigation layout and focus/scroll behavior; domains retain their page content.
 The composition root imports no database, credentials, Redis or background jobs.
+Its TypeScript files import siblings with `./` and everything else through the
+repository-root alias `@/<repository path>` (for example
+`@/src/modules/subscriptions/public`), never through `../`. It reaches Express
+over HTTP only and never imports `server/`; `src/`, `server/` and `shared/`
+never import `apps/`. `tests/next-import-paths.test.mjs` enforces these rules.
 Public navigation metadata lives independently of legacy route loaders, while
 both shells reuse profile and mobile-menu focus behavior. Statistics query
 policy/hooks and the public seed type belong to the card module. HTML entity

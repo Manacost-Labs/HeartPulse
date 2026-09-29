@@ -1,4 +1,4 @@
-import { CardCatalogPage, catalogMetadata, type CatalogSearch } from '../../../ui/CardCatalogPage';
+import { CardCatalogPage, catalogMetadata, type CatalogSearch } from '@/apps/public-web/ui/CardCatalogPage';
 export const dynamic = 'force-dynamic';
 export function generateMetadata({ searchParams }: { searchParams: CatalogSearch }) {
   return catalogMetadata('standard', '/standard/cards/', searchParams);

@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { resolvePublicUrlPolicy } from '../../../src/shared/seo/publicUrlPolicy';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 import { loadPublicArchetypeTeaser } from './publicArchetypeTeaser';
 
 export type ArchetypeRouteParams = Promise<{ format: string; archetypeSlug: string }>;

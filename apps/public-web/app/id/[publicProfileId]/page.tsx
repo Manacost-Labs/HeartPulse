@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/modules/identity/ui/IdentityProfile.css';
-import { loadPublicProfile, publicProfileMetadata } from '../../../lib/publicProfile';
-import { PublicProfilePageClient } from '../../../ui/PublicProfilePageClient';
+import '@/src/route-parchment.css';
+import '@/src/modules/identity/ui/IdentityProfile.css';
+import { loadPublicProfile, publicProfileMetadata } from '@/apps/public-web/lib/publicProfile';
+import { PublicProfilePageClient } from '@/apps/public-web/ui/PublicProfilePageClient';
 
 type Props = { params: Promise<{ publicProfileId: string }> };
 export const dynamic = 'force-dynamic';

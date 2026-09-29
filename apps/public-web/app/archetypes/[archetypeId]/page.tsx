@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { canOpenAdminPage } from '../../../lib/adminAccess';
-import { AdminArchetypesPageClient } from '../../../ui/AdminArchetypesPageClient';
-import '../route.css';
+import { canOpenAdminPage } from '@/apps/public-web/lib/adminAccess';
+import { AdminArchetypesPageClient } from '@/apps/public-web/ui/AdminArchetypesPageClient';
+import '@/apps/public-web/app/archetypes/route.css';
 
 type Props = { params: Promise<{ archetypeId: string }> };
 export const dynamic = 'force-dynamic';

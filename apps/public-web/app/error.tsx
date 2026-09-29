@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { startTransition } from 'react';
-import '../../../src/features/StandardCards.styles';
+import '@/src/features/StandardCards.styles';
 export default function ErrorPage({ reset }: { reset: () => void }) {
   const router = useRouter();
   const retry = () => startTransition(() => { router.refresh(); reset(); });

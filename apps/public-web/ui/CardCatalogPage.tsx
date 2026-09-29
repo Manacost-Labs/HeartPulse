@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { constructedCardPath, type CardFormat } from '../../../src/modules/constructedCards/public';
-import { loadPublicCatalog } from '../lib/publicCatalog';
+import { constructedCardPath, type CardFormat } from '@/src/modules/constructedCards/public';
+import { loadPublicCatalog } from '@/apps/public-web/lib/publicCatalog';
 import { LegacyCardPage } from './LegacyCardPage';
-import { resolvePublicUrlPolicy } from '../../../src/shared/seo/publicUrlPolicy';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 
 export type CatalogSearch = Promise<Record<string, string | string[] | undefined>>;
 async function catalogSearch(searchParams: CatalogSearch) {

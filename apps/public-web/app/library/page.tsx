@@ -1,6 +1,6 @@
-import '../../../../src/route-parchment.css';
-import { battlegroundLibraryListing, battlegroundLibraryMetadata, type LibrarySearch } from '../../lib/battlegroundLibraryListing';
-import { BattlegroundLibraryPageClient } from '../../ui/BattlegroundLibraryPageClient';
+import '@/src/route-parchment.css';
+import { battlegroundLibraryListing, battlegroundLibraryMetadata, type LibrarySearch } from '@/apps/public-web/lib/battlegroundLibraryListing';
+import { BattlegroundLibraryPageClient } from '@/apps/public-web/ui/BattlegroundLibraryPageClient';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { NAVIGATION_ROUTES } from '../../../src/app/routing/navigationDefinitions';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { Legendaries } from '../../../src/features/DeferredRoutes';
-import { useArenaLegendaries, type LegendariesData } from '../../../src/modules/arenaLegendaries/public';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+import { NAVIGATION_ROUTES } from '@/src/app/routing/navigationDefinitions';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { Legendaries } from '@/src/features/DeferredRoutes';
+import { useArenaLegendaries, type LegendariesData } from '@/src/modules/arenaLegendaries/public';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const EMPTY_DATA: LegendariesData = { groups: [], updatedAt: null, source: 'hsreplay.net' };

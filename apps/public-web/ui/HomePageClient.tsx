@@ -1,14 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import FAQSection from '../../../src/components/FAQSection';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { NAVIGATION_ROUTES } from '../../../src/app/routing/navigationDefinitions';
-import HomeTab, { type HomeArticle, type HomeSummaryData } from '../../../src/modules/home/public';
+import FAQSection from '@/src/components/FAQSection';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { NAVIGATION_ROUTES } from '@/src/app/routing/navigationDefinitions';
+import HomeTab, { type HomeArticle, type HomeSummaryData } from '@/src/modules/home/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => { window.location.assign(path); };
-const ReaderAccountRoute = dynamic(() => import('../../../src/modules/browserIdentity/public'), {
+const ReaderAccountRoute = dynamic(() => import('@/src/modules/browserIdentity/public'), {
   ssr: false,
   loading: () => <div role="status">Загружается вход…</div>,
 });

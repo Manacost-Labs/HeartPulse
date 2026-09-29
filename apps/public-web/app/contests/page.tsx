@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import '../../../../src/route-parchment.css';
-import '../../../../src/features/TraditionalModeBanner.css';
-import '../../../../src/features/contests.css';
-import { seoPageForExactPath } from '../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../src/shared/seo/publicUrlPolicy';
-import { loadPublicContests } from '../../lib/publicContests';
-import { ContestsPageClient } from '../../ui/ContestsPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import '@/src/features/contests.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { loadPublicContests } from '@/apps/public-web/lib/publicContests';
+import { ContestsPageClient } from '@/apps/public-web/ui/ContestsPageClient';
 
 const seo = seoPageForExactPath('/contests');
 if (!seo) throw new Error('Missing contests SEO contract');

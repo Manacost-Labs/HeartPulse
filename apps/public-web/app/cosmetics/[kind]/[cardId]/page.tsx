@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { cosmeticsDetailPath } from '../../../../../../src/modules/cosmetics/public';
-import { cosmeticsDetailSeo } from '../../../../lib/cosmeticsDetailSeo';
-import { loadPublicCosmeticsDetail, typedCosmeticsKind } from '../../../../lib/publicCosmeticsDetail';
-import { CosmeticsPageClient } from '../../../../ui/CosmeticsPageClient';
+import { cosmeticsDetailPath } from '@/src/modules/cosmetics/public';
+import { cosmeticsDetailSeo } from '@/apps/public-web/lib/cosmeticsDetailSeo';
+import { loadPublicCosmeticsDetail, typedCosmeticsKind } from '@/apps/public-web/lib/publicCosmeticsDetail';
+import { CosmeticsPageClient } from '@/apps/public-web/ui/CosmeticsPageClient';
 
 type Props = { params: Promise<{ kind: string; cardId: string }> };
 export const dynamic = 'force-dynamic';

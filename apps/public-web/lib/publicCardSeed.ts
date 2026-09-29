@@ -1,4 +1,4 @@
-import type { PublicCardSeed } from '../../../src/modules/constructedCards/public';
+import type { PublicCardSeed } from '@/src/modules/constructedCards/public';
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue => value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};

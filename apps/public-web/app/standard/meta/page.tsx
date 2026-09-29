@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/features/TraditionalModeBanner.css';
-import { seoPageForExactPath } from '../../../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../../../src/shared/seo/publicUrlPolicy';
-import { StandardMetaPageClient } from '../../../ui/StandardMetaPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { StandardMetaPageClient } from '@/apps/public-web/ui/StandardMetaPageClient';
 
 const seo = seoPageForExactPath('/standard/meta');
 if (!seo) throw new Error('Missing Standard meta SEO contract');

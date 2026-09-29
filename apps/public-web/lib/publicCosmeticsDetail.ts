@@ -1,8 +1,8 @@
 import 'server-only';
 import { cache } from 'react';
 import { headers } from 'next/headers';
-import { cosmeticsDetailPath, type CosmeticKind } from '../../../src/modules/cosmetics/public';
-import type { DetailPayload } from '../../../src/features/Cosmetics';
+import { cosmeticsDetailPath, type CosmeticKind } from '@/src/modules/cosmetics/public';
+import type { DetailPayload } from '@/src/features/Cosmetics';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './cosmeticsDetailContract';
 
 /** Loads anonymous detail data from Express without forwarding account cookies. */

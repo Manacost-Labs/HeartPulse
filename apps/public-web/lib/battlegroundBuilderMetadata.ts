@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { seoPageForExactPath } from '../../../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../../../src/shared/seo/publicUrlPolicy';
+import { seoPageForExactPath } from '@/src/seo/registry';
+import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 
 export type BattlegroundBuilderPath = '/battlegrounds/strategies' | '/battlegrounds/tier-builder';
 export type BuilderSearch = Promise<Record<string, string | string[] | undefined>>;

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/features/Cosmetics.css';
+import '@/src/route-parchment.css';
+import '@/src/features/Cosmetics.css';
 import { cosmeticsListing, cosmeticsListingMetadata, cosmeticsSearchString,
-  type CosmeticsSearch } from '../../../lib/cosmeticsListing';
-import { CosmeticsPageClient } from '../../../ui/CosmeticsPageClient';
+  type CosmeticsSearch } from '@/apps/public-web/lib/cosmeticsListing';
+import { CosmeticsPageClient } from '@/apps/public-web/ui/CosmeticsPageClient';
 
 type Props = { params: Promise<{ kind: string }>; searchParams: CosmeticsSearch };
 export const dynamic = 'force-dynamic';

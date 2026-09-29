@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import '../../../../src/route-parchment.css';
-import { ApplicationConnectPageClient } from '../../ui/ApplicationConnectPageClient';
+import '@/src/route-parchment.css';
+import { ApplicationConnectPageClient } from '@/apps/public-web/ui/ApplicationConnectPageClient';
 
 export const metadata: Metadata = {
   title: 'Подключение приложения — Manacost',

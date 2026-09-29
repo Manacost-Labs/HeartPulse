@@ -1,8 +1,8 @@
 'use client';
 
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import PaywallGate from '../../../src/components/PaywallGate';
-import ViciousSyndicateGold from '../../../src/features/ViciousSyndicateGold';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import PaywallGate from '@/src/components/PaywallGate';
+import ViciousSyndicateGold from '@/src/features/ViciousSyndicateGold';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => window.location.assign(path);

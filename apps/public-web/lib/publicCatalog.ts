@@ -1,6 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
-import { catalogLocation, constructedCardCatalogUrl, type CardFormat } from '../../../src/modules/constructedCards/public';
+import { catalogLocation, constructedCardCatalogUrl, type CardFormat } from '@/src/modules/constructedCards/public';
 import { publicCatalogSeed } from './publicCatalogSeed';
 
 /** The upstream sees an anonymous request even when the page visitor is signed in. */

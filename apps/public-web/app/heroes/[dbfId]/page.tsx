@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import '../../../../../src/route-parchment.css';
-import '../../../../../src/features/TraditionalModeBanner.css';
-import { buildEntityStructuredData } from '../../../../../shared/entitySeoStructuredData';
-import { loadPublicBattlegroundHero } from '../../../lib/publicBattlegroundHero';
-import { BattlegroundHeroDetailPageClient } from '../../../ui/BattlegroundHeroDetailPageClient';
+import '@/src/route-parchment.css';
+import '@/src/features/TraditionalModeBanner.css';
+import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
+import { loadPublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHero';
+import { BattlegroundHeroDetailPageClient } from '@/apps/public-web/ui/BattlegroundHeroDetailPageClient';
 
 type Props = { params: Promise<{ dbfId: string }> };
 export const dynamic = 'force-dynamic';

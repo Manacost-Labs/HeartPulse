@@ -1,6 +1,6 @@
-import type { DetailPayload } from '../../../src/features/Cosmetics';
-import type { CosmeticKind } from '../../../src/modules/cosmetics/public';
-import { sameOriginPublicResourceUrl } from '../../../shared/publicResourceUrl';
+import type { DetailPayload } from '@/src/features/Cosmetics';
+import type { CosmeticKind } from '@/src/modules/cosmetics/public';
+import { sameOriginPublicResourceUrl } from '@/shared/publicResourceUrl';
 
 const origin = 'https://hearthpulse.net';
 

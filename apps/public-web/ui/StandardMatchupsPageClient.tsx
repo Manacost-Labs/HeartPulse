@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import PaywallGate from '../../../src/components/PaywallGate';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import StandardMatchupsPage from '../../../src/features/StandardMatchups';
-import { useStandardMatchups } from '../../../src/modules/standardMatchups/public';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+import PaywallGate from '@/src/components/PaywallGate';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import StandardMatchupsPage from '@/src/features/StandardMatchups';
+import { useStandardMatchups } from '@/src/modules/standardMatchups/public';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => window.location.assign(path);

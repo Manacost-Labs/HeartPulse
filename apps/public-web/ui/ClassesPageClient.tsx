@@ -1,11 +1,11 @@
 'use client';
 
-import FAQSection from '../../../src/components/FAQSection';
-import PaywallGate from '../../../src/components/PaywallGate';
-import { NAVIGATION_ROUTES } from '../../../src/app/routing/navigationDefinitions';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '../../../src/modules/arenaClasses/public';
-import { hasSubscriptionEntitlement } from '../../../src/modules/subscriptions/public';
+import FAQSection from '@/src/components/FAQSection';
+import PaywallGate from '@/src/components/PaywallGate';
+import { NAVIGATION_ROUTES } from '@/src/app/routing/navigationDefinitions';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '@/src/modules/arenaClasses/public';
+import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => window.location.assign(path);

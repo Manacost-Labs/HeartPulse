@@ -1,4 +1,4 @@
-import { PublicSupportPage } from '../../ui/PublicSupportPage';
+import { PublicSupportPage } from '@/apps/public-web/ui/PublicSupportPage';
 export const metadata = {
   title: 'Политика конфиденциальности | HearthPulse', description: 'Обработка персональных данных и настройки приватности HearthPulse.',
   alternates: { canonical: 'https://hearthpulse.net/privacy/' }, robots: { index: true, follow: true },

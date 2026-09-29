@@ -1,7 +1,7 @@
 'use client';
-import { PublicPageShell } from '../../../src/app/shell/PublicPageShell';
-import GalleryTab from '../../../src/features/GalleryTab';
-import type { PublicGalleryData } from '../lib/publicGallery';
+import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import GalleryTab from '@/src/features/GalleryTab';
+import type { PublicGalleryData } from '@/apps/public-web/lib/publicGallery';
 import { usePublicAccess } from './usePublicAccess';
 
 const navigate = (path: string) => { window.location.assign(path); };
