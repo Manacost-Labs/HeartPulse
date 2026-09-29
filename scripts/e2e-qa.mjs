@@ -7,12 +7,15 @@
 //   npm run qa:e2e -- --url=http://127.0.0.1:4173
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { replaceControlledInputValue } from './controlled-input.mjs';
 import { inspectHorizontalLayoutFault } from './mobile-layout-diagnostics.mjs';
 import { adminFixtures, qaArchetypeItems, qaDeckCards, subscriber } from './qa/fixtures.mjs';
 import { createQaApiHandler, qaSessionCookie } from './qa/mockApi.mjs';
+import responsiveInventory from '../config/responsive-route-fixtures.json' with { type: 'json' };
 
 const require = createRequire(import.meta.url);
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
@@ -31,11 +34,8 @@ const BASE_ORIGIN = new URL(BASE).origin;
 // `next` when BASE is the Next.js runtime (scripts/browser-qa-next.mjs); the
 // default `legacy` renderer is the Vite single-page build.
 const RENDERER = process.env.QA_RENDERER === 'next' ? 'next' : 'legacy';
-const OUT = process.env.QA_SCREENSHOT_DIR || `/tmp/hs-arena-qa-${process.getuid?.() ?? 'user'}`;
-const responsiveInventory = JSON.parse(readFileSync(
-  new URL('../config/responsive-route-fixtures.json', import.meta.url),
-  'utf8',
-));
+// Without an explicit directory each run gets a private temporary one.
+const OUT = process.env.QA_SCREENSHOT_DIR || mkdtempSync(join(tmpdir(), 'hs-arena-qa-'));
 const responsiveScope = (process.env.QA_RESPONSIVE_SCOPE || 'representative').trim();
 const enforceResponsiveTargets = process.env.QA_RESPONSIVE_ENFORCE_TARGETS === '1';
 if (!['off', 'representative', 'all-p0'].includes(responsiveScope)) {
