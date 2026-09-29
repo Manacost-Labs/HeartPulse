@@ -262,7 +262,7 @@ export function createBoostyAnalyticsLoader(
         signal: AbortSignal.timeout(timeoutMs),
         headers: { Accept: 'application/json' },
       }).then(value => ({ value })).catch(() => ({ value: null })),
-      fetchKolodaArticles(fetchImpl, kolodaEndpoint, timeoutMs),
+      fetchKolodaArticles(fetchImpl, kolodaEndpoint, timeoutMs).catch(() => null), // revenue survives a catalogue outage
     ]);
     const sources: NormalizedAnalyticsSource[] = [];
     if (boostyResult.value !== null) {
@@ -289,13 +289,11 @@ export function createBoostyAnalyticsLoader(
     }
     if (!sources.length && !sales) throw new Error('analytics unavailable');
     const built = attachBoostySales(
-      buildSubscriptionArticleAnalytics(sources, articles, from, to),
+      buildSubscriptionArticleAnalytics(sources, articles ?? [], from, to),
       sales,
     );
-    return {
-      ...built,
-      generatedAt: now().toISOString(),
-    };
+    const articleGap = articles ? [] : ['Статьи KolodaHearthstone временно недоступны: разбивка по публикациям не показана.'];
+    return { ...built, limitations: [...built.limitations, ...articleGap], generatedAt: now().toISOString() };
   };
 }
 

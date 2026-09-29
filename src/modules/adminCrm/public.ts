@@ -7,3 +7,8 @@ export type { AdminCrmPerson, AdminCrmSegmentId, AdminCrmSegments } from './api/
 export function loadAdminClientCard() {
   return import('./AdminClientCard.lazy');
 }
+
+/** The money section loads its charts and styles only when an administrator opens it. */
+export function loadAdminMoneyPage() {
+  return import('./AdminMoneyPage.lazy');
+}

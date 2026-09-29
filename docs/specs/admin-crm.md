@@ -11,7 +11,7 @@ The approved direction is the interactive mock published during the
 2026-09-29 admin review. This document covers phase 1. Later phases (overview
 alerts and charts, money, growth funnels, navigation regrouping) keep their
 own specification updates, because the production browser QA pins the current
-dashboard and navigation.
+dashboard and navigation. The money section is described below.
 
 ## Phase 1 scope
 
@@ -126,6 +126,33 @@ usual):
 `subscription_checks(user_id, checked_at DESC)` for the lapsed segment and the
 access history, and `admin_audit_log(entity_type, entity_id, created_at DESC)`
 for the per-person audit trail.
+
+## Money section (phase 2)
+
+`/admin?section=money` («Деньги») reads the existing
+`GET /api/admin/boosty/analytics?from&to` for 30 days, 90 days or a year and
+shows:
+
+- totals: subscription revenue (new subscriptions and renewals), Boosty
+  donations and paid posts, average subscription payment and observed
+  decreases (refunds and downgrades);
+- revenue per day (up to 31 days), per Monday-based week (up to 120 days) or
+  per month, with every bucket present so gaps stay visible;
+- revenue per subscription level with its share, retention after 30, 60 and
+  90 days, top Boosty buyers and the latest sales.
+
+Subscription revenue is inferred from observed Boosty payment increases plus
+exact Tribute webhooks, so the page lists every data-quality caveat from the
+payload (incomplete polling, unavailable Tribute or sales ledger) above the
+numbers. When the sales ledger is unavailable, donations and posts show «—»
+instead of zero.
+
+The KolodaHearthstone article catalogue only annotates the analytics. If it is
+unavailable, the endpoint still returns revenue with empty `articleIntervals`
+and a limitation, instead of failing with `502`.
+
+The previous article-interval analytics page (`ContestAdminAnalytics`), removed
+from navigation on 2026-09-13, is deleted together with its model.
 
 ## Permissions
 

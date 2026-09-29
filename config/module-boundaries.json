@@ -1139,7 +1139,7 @@
     "internalImport": 0,
     "moduleLegacyImport": 5,
     "runtimeCrossing": 2,
-    "typeCycle": 2
+    "typeCycle": 1
   },
   "exceptions": {
     "missingPublicEntry": [],
@@ -1205,30 +1205,6 @@
       }
     ],
     "typeCycle": [
-      {
-        "source": "src/features/ContestAdminAnalytics.tsx",
-        "target": "src/features/ContestAdminBoostySales.tsx",
-        "kind": "type-cycle",
-        "nodes": [
-          "src/features/ContestAdminAnalytics.tsx",
-          "src/features/ContestAdminBoostySales.tsx"
-        ],
-        "edges": [
-          {
-            "source": "src/features/ContestAdminAnalytics.tsx",
-            "target": "src/features/ContestAdminBoostySales.tsx",
-            "kind": "runtime"
-          },
-          {
-            "source": "src/features/ContestAdminBoostySales.tsx",
-            "target": "src/features/ContestAdminAnalytics.tsx",
-            "kind": "type"
-          }
-        ],
-        "owner": "operations",
-        "reason": "Boosty sales imports analytics-owned types while the analytics view imports the Boosty component.",
-        "expiresOn": "2026-12-31"
-      },
       {
         "source": "src/features/HsReplayDeckList.tsx",
         "target": "src/features/hsReplayDeckPreviewInteractions.ts",

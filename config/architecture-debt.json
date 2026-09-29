@@ -4,15 +4,6 @@
   "typeOnlyCycles": [
     {
       "files": [
-        "src/features/ContestAdminAnalytics.tsx",
-        "src/features/ContestAdminBoostySales.tsx"
-      ],
-      "owner": "admin-boosty-analytics",
-      "reason": "The two lazy admin analytics views share type declarations across their current route files.",
-      "removal": "Extract a pure analytics view-model contract owned by the admin Boosty module."
-    },
-    {
-      "files": [
         "src/features/HsReplayDeckList.tsx",
         "src/features/HsReplayDeckPreviewController.tsx",
         "src/features/hsReplayDeckPreviewInteractions.ts"

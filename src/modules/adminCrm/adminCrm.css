@@ -1,5 +1,6 @@
 /* Admin CRM: segment filters and the client card side sheet. Colours come from the admin shell tokens. */
 .admin-crm-segments,
+.admin-money,
 .admin-crm-sheet {
   --crm-ink: var(--admin-ink, #2d241c);
   --crm-muted: var(--admin-muted, #75685c);

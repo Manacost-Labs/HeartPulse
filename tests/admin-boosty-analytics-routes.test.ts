@@ -336,6 +336,27 @@ assert.deepEqual(partial.sourceBreakdown.map(item => item.id), ['boosty']);
 assert.equal(partial.coverage.complete, false);
 assert.match(partial.limitations.join(' '), /Tribute временно недоступен/);
 
+// Money analytics must not depend on the article catalogue: a KolodaHearthstone outage only drops the
+// article intervals and is reported as a limitation.
+const articlesDownLoader = createBoostyAnalyticsLoader({
+  boostyBaseUrl: 'http://boosty.internal',
+  kolodaEndpoint: 'https://kolodahearthstone.com/wp-json/koloda/v1/articles/query',
+  fetchImpl: (async (url) => {
+    if (String(url).includes('/api/analytics') && !String(url).includes('tribute') && !String(url).includes('sales')) {
+      return new Response(JSON.stringify(source), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (String(url).includes('kolodahearthstone.com')) return new Response('down', { status: 502 });
+    return new Response('{}', { status: 503 });
+  }) as typeof fetch,
+});
+const articlesDown = await articlesDownLoader(
+  new Date('2026-07-01T00:00:00.000Z'),
+  new Date('2026-07-10T00:00:00.000Z'),
+);
+assert.deepEqual(articlesDown.summary, partial.summary);
+assert.deepEqual(articlesDown.articleIntervals, []);
+assert.match(articlesDown.limitations.join(' '), /Статьи KolodaHearthstone временно недоступны/);
+
 let loaderCalls = 0;
 let loaderFailure = false;
 const app = express();

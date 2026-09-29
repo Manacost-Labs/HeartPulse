@@ -744,7 +744,8 @@
       ],
       "publicEntrypoints": [
         "src/modules/adminCrm/public.ts",
-        "src/modules/adminCrm/AdminClientCard.lazy.ts"
+        "src/modules/adminCrm/AdminClientCard.lazy.ts",
+        "src/modules/adminCrm/AdminMoneyPage.lazy.ts"
       ],
       "frontendRoutes": [],
       "backendRoutes": [
@@ -782,7 +783,8 @@
       "externalServices": [],
       "tests": [
         "tests/admin-crm-routes.test.ts",
-        "tests/admin-client-card-model.test.ts"
+        "tests/admin-client-card-model.test.ts",
+        "tests/admin-money-model.test.ts"
       ],
       "allowedDependencies": [
         "React",

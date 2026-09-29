@@ -13,6 +13,7 @@ import {
   Sparkles,
   Trophy,
   Users,
+  Wallet,
 } from 'lucide-react';
 import './contests.css';
 import {
@@ -74,6 +75,7 @@ import {
 } from './ContestAdminContests';
 import { ADMIN_INPUT } from './contestAdminUi';
 import { useAdminUsersList } from './useAdminUsersList';
+import { loadAdminMoneyPage } from '../modules/adminCrm/public';
 import {
   ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
@@ -103,6 +105,7 @@ const ContestAdminFunDecks = React.lazy(async () => {
   const module = await import('./ContestAdminStandardOperations');
   return { default: module.ContestAdminFunDecks };
 });
+const AdminMoneyPage = React.lazy(loadAdminMoneyPage);
 const AdminApiKeys = React.lazy(async () => {
   const module = await import('../modules/developerApi/public');
   return { default: module.AdminApiKeys };
@@ -190,6 +193,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Система', icon: Sparkles },
   { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Система', icon: ShieldCheck },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
+  { id: 'money', label: 'Деньги', caption: 'Выручка, продления и удержание', status: 'Boosty и Tribute', group: 'Аудитория', icon: Wallet },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
   { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: MessageCircle },
@@ -1272,6 +1276,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               onSegmentChange={usersList.changeSegment}
               onPersonChanged={usersList.reload}
             />
+          )}
+
+          {hasFullAdminAccess && adminSection === 'money' && (
+            <React.Suspense fallback={<RouteFallback minHeight={420} />}><AdminMoneyPage /></React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'mailing' && (
