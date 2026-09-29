@@ -198,7 +198,7 @@
       "path": "/admin",
       "access": "anonymous",
       "state": "denied",
-      "ready": { "selector": ".admin-access-state" },
+      "ready": { "selector": ".admin-access-state, .admin-access-card" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": true

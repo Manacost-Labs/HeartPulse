@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-const browserQa = readFileSync(new URL('../scripts/e2e-qa.mjs', import.meta.url), 'utf8');
+// The browser QA suite, its shared /api fixtures and the mock handler.
+const browserQa = ['../scripts/e2e-qa.mjs', '../scripts/qa/mockApi.mjs', '../scripts/qa/fixtures.mjs']
+  .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 const browserQaCi = readFileSync(new URL('../scripts/browser-qa-ci.mjs', import.meta.url), 'utf8');
 const responsiveQaLocal = readFileSync(new URL('../scripts/responsive-qa-local.mjs', import.meta.url), 'utf8');
 const layoutDiagnostics = readFileSync(new URL('../scripts/mobile-layout-diagnostics.mjs', import.meta.url), 'utf8');

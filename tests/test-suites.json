@@ -257,6 +257,7 @@
         "tests/public-profile-client-routes.test.ts",
         "tests/public-profile-routes.test.ts",
         "tests/public-resource-routes.test.ts",
+        "tests/qa-backend.test.mjs",
         "tests/reader-auth-continuation.test.ts",
         "tests/reader-entitlements-routes.test.ts",
         "tests/reader-permissions-routes.test.ts",
