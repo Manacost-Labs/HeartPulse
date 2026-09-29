@@ -229,6 +229,40 @@ few seconds to the first start after deployment.
 The revenue card requests `/api/admin/boosty/analytics` with `articles=0`,
 which skips the KolodaHearthstone article catalogue.
 
+## Referral funnel (phase 3)
+
+Clicks on campaign links (`/r/:slug` and `POST /api/referrals/track/:slug`)
+now also set a first-party cookie `hp_ref=<referralId>.<clickId>.<clickedAtMs>`
+(`Path=/`, `Max-Age` 30 days, `HttpOnly`, `SameSite=Lax`, `Secure` on
+https). No personal data is stored in it.
+
+`server/referralAttribution.ts` runs as an `/api/` middleware. When a request
+carries the cookie and is authenticated, the account is linked to the
+campaign in `user_referrals(user_id, referral_id, click_id, clicked_at,
+attributed_at)` if it was created no earlier than ten minutes before the
+click, and the cookie is cleared either way. Existing accounts and unknown or
+malformed cookies are never attributed; a first attribution is never
+overwritten. Anonymous requests keep the cookie until sign-in. Registration
+code paths are untouched, so every sign-up method is covered.
+
+`GET /api/admin/referrals` adds `registrations` and `payingNow` (provider
+access or an active manual grant) per link, and the referral section shows
+clicks → registrations → access with conversion rates. The client card shows
+«Пришёл по ссылке» and a timeline entry for the click.
+
+The privacy policy (`src/modules/legalPages/content.json`, section 4)
+describes the cookie.
+
+## Navigation (phase 3)
+
+Sections are grouped by job: «Рабочий стол» (Обзор), «Люди и деньги»
+(Пользователи, Деньги, Рассылка), «Контент» (Статьи, Галерея, Переводы,
+Механики и теги, Фановые колоды), «Рост» (Конкурсы, Реферальная ссылка) and
+«Интеграции и система» (Boosty, Telegram, Данные и парсеры, Public API).
+Section ids and labels are unchanged. The admin Arena synergy and draft
+assistant screens, disconnected since 2026-09-13, are deleted; their server
+routes and the pure draft model remain.
+
 ## Permissions
 
 Every endpoint requires the full administrator role (`adminAuth`), matching

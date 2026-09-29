@@ -44,6 +44,7 @@ const card: AdminCrmPerson = {
     { at: '2026-09-14T00:00:00.000Z', source: 'boosty', hasAccess: true },
     { at: '2026-08-14T00:00:00.000Z', source: 'boosty', hasAccess: false },
   ],
+  referral: { label: 'YouTube', slug: 'yt', campaign: '', clickedAt: '2025-03-12T09:55:00.000Z' },
   contests: [{ contestId: 'c1', title: 'Арена-марафон', status: 'approved', createdAt: '2026-09-02T00:00:00.000Z' }],
   mailing: null,
   notes: [],
@@ -57,11 +58,12 @@ assert.deepEqual(timeline.map(event => event.title), [
   'Конкурс «Арена-марафон»',
   'Доступ пропал',
   'Зарегистрировался',
+  'Перешёл по ссылке «YouTube»',
 ]);
-assert.deepEqual(timeline.map(event => event.tone), ['neutral', 'good', 'neutral', 'bad', 'neutral']);
+assert.deepEqual(timeline.map(event => event.tone), ['neutral', 'good', 'neutral', 'bad', 'neutral', 'neutral']);
 assert.equal(timeline[2].detail, 'заявка одобрена');
 assert.equal(timeline[0].detail, 'администратор Админ');
-assert.equal(buildPersonTimeline({ ...card, person: { ...card.person, createdAt: 'broken' }, accessHistory: [], contests: [], audit: [] }).length, 0);
+assert.equal(buildPersonTimeline({ ...card, person: { ...card.person, createdAt: 'broken' }, referral: null, accessHistory: [], contests: [], audit: [] }).length, 0);
 
 const manual = (expiresAt: string | null, active = true) => ({ active, grantedBy: 'Админ', grantedAt: '', expiresAt, revokedBy: null, revokedAt: null, note: '' });
 assert.deepEqual(accessBadge(card, now), { tone: 'ok', text: 'Есть доступ' });

@@ -3,6 +3,11 @@ import { Router, type Request, type RequestHandler } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
 import { referralClickFromRow } from './referrals.js';
+import { setReferralCookie } from './referralAttribution.js';
+import { slugifyReferral } from './referralSlug.js';
+
+export { slugifyReferral };
+import { ACTIVE_MANUAL_GRANT_SQL } from './adminCrmSegments.js';
 
 type AdminIdentity = { id: string };
 
@@ -15,25 +20,11 @@ export type ReferralRouterDependencies = {
   ipHashSalt: string;
   now?: () => Date;
   createId?: () => string;
+  /** Whether the attribution cookie is marked Secure; defaults to an https appUrl. */
+  cookieSecure?: (request: Request) => boolean;
 };
 
 type ReferralRow = Record<string, unknown>;
-
-export function slugifyReferral(value: unknown, now = Date.now()): string {
-  const raw = String(value ?? '').trim().toLowerCase();
-  const translit = raw
-    .replace(/а/g, 'a').replace(/б/g, 'b').replace(/в/g, 'v').replace(/г/g, 'g')
-    .replace(/д/g, 'd').replace(/е/g, 'e').replace(/ё/g, 'e').replace(/ж/g, 'zh')
-    .replace(/з/g, 'z').replace(/и/g, 'i').replace(/й/g, 'y').replace(/к/g, 'k')
-    .replace(/л/g, 'l').replace(/м/g, 'm').replace(/н/g, 'n').replace(/о/g, 'o')
-    .replace(/п/g, 'p').replace(/р/g, 'r').replace(/с/g, 's').replace(/т/g, 't')
-    .replace(/у/g, 'u').replace(/ф/g, 'f').replace(/х/g, 'h').replace(/ц/g, 'c')
-    .replace(/ч/g, 'ch').replace(/ш/g, 'sh').replace(/щ/g, 'sch').replace(/ы/g, 'y')
-    .replace(/э/g, 'e').replace(/ю/g, 'yu').replace(/я/g, 'ya')
-    .replace(/[ъь]/g, '');
-  return translit.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 72)
-    || `ref-${now.toString(36)}`;
-}
 
 export function normalizeReferralTarget(value: unknown, appUrl: string): string {
   const raw = String(value ?? '/').trim();
@@ -56,7 +47,7 @@ function trackReferralClick(
   request: Request,
   clickedAt: Date,
   landingPath: string,
-): { targetPath: string } | null {
+): { targetPath: string; referralId: string; clickId: number; clickedAt: number } | null {
   const rawSlug = String(request.params.slug ?? '').trim();
   if (!rawSlug) return null;
   const slug = slugifyReferral(rawSlug, clickedAt.getTime());
@@ -68,7 +59,7 @@ function trackReferralClick(
   const hashedIp = createHash('sha256')
     .update(`${dependencies.ipHashSalt}:${dependencies.clientIp(request)}`)
     .digest('hex');
-  database.prepare(`
+  const inserted = database.prepare(`
     INSERT INTO referral_clicks (referral_id, clicked_at, ip_hash, user_agent, referrer, landing_path)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(
@@ -80,7 +71,17 @@ function trackReferralClick(
     landingPath.slice(0, 500),
   );
 
-  return { targetPath: normalizeReferralTarget(link.target_path, dependencies.appUrl) };
+  return {
+    targetPath: normalizeReferralTarget(link.target_path, dependencies.appUrl),
+    referralId: String(link.id),
+    clickId: Number(inserted.lastInsertRowid),
+    clickedAt: clickedAt.getTime(),
+  };
+}
+
+type Tracked = NonNullable<ReturnType<typeof trackReferralClick>>;
+function rememberReferral(dependencies: ReferralRouterDependencies, request: Request, response: Parameters<RequestHandler>[1], referral: Tracked): void {
+  setReferralCookie(response, referral, dependencies.cookieSecure?.(request) ?? dependencies.appUrl.startsWith('https://'));
 }
 
 function setReferralDocumentHeaders(response: Parameters<RequestHandler>[1]): void {
@@ -106,6 +107,7 @@ export function createReferralRedirectHandler(
         request.originalUrl || request.url || '/',
       );
       if (!referral) return response.status(404).type('text/plain').send('Ссылка не найдена');
+      rememberReferral(dependencies, request, response, referral);
       return response.redirect(302, referral.targetPath);
     } catch (error: any) {
       response.set('Retry-After', '60');
@@ -130,6 +132,8 @@ export function referralFromRow(row: ReferralRow, appUrl: string) {
     clicks: Number(row.clicks || 0),
     uniqueClicks: Number(row.unique_clicks || 0),
     lastClickAt: row.last_click_at ? String(row.last_click_at) : '',
+    registrations: Number(row.registrations || 0),
+    payingNow: Number(row.paying_now || 0),
   };
 }
 
@@ -153,6 +157,7 @@ export function createReferralRouter(dependencies: ReferralRouterDependencies): 
           targetUrl: `${dependencies.appUrl}/`,
         });
       }
+      rememberReferral(dependencies, request, response, referral);
       return response.json({
         success: true,
         targetPath: referral.targetPath,
@@ -172,7 +177,12 @@ export function createReferralRouter(dependencies: ReferralRouterDependencies): 
           link.*,
           COUNT(clicks.id) AS clicks,
           COUNT(DISTINCT clicks.ip_hash) AS unique_clicks,
-          MAX(clicks.clicked_at) AS last_click_at
+          MAX(clicks.clicked_at) AS last_click_at,
+          (SELECT COUNT(*) FROM user_referrals ur WHERE ur.referral_id = link.id) AS registrations,
+          (SELECT COUNT(*) FROM user_referrals ur
+            LEFT JOIN subscriptions s ON s.user_id = ur.user_id
+            LEFT JOIN manual_subscription_grants g ON g.user_id = ur.user_id
+            WHERE ur.referral_id = link.id AND (COALESCE(s.has_access, 0) = 1 OR ${ACTIVE_MANUAL_GRANT_SQL})) AS paying_now
         FROM referral_links AS link
         LEFT JOIN referral_clicks AS clicks ON clicks.referral_id = link.id
         GROUP BY link.id

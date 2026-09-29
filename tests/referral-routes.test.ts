@@ -9,6 +9,7 @@ import {
   type ReferralRouterDependencies,
   slugifyReferral,
 } from '../server/referralRoutes.js';
+import { REFERRAL_ATTRIBUTION_SCHEMA_SQL } from '../server/referralAttribution.js';
 
 assert.equal(slugifyReferral('Летняя акция', 1), 'letnyaya-akciya');
 assert.equal(slugifyReferral('', 36), 'ref-10');
@@ -41,7 +42,11 @@ database.exec(`
     landing_path TEXT NOT NULL DEFAULT '',
     FOREIGN KEY(referral_id) REFERENCES referral_links(id) ON DELETE CASCADE
   );
+  CREATE TABLE users (id TEXT PRIMARY KEY, created_at TEXT NOT NULL);
+  CREATE TABLE subscriptions (user_id TEXT PRIMARY KEY, has_access INTEGER NOT NULL DEFAULT 0);
+  CREATE TABLE manual_subscription_grants (user_id TEXT PRIMARY KEY, active INTEGER NOT NULL DEFAULT 1, expires_at TEXT);
 `);
+database.exec(REFERRAL_ATTRIBUTION_SCHEMA_SQL);
 
 let idSequence = 0;
 const app = express();
@@ -129,6 +134,8 @@ try {
       clicks: 0,
       uniqueClicks: 0,
       lastClickAt: '',
+      registrations: 0,
+      payingNow: 0,
     },
   });
 

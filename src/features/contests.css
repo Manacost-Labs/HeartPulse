@@ -1078,17 +1078,6 @@
   overflow-wrap: anywhere;
 }
 
-.admin-dashboard-grid {
-  grid-template-columns: minmax(280px, 0.8fr) minmax(320px, 1.2fr);
-}
-
-  .admin-quick-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-
-.admin-quick-actions button,
 .admin-referral-row button,
 .admin-article-row button,
 .admin-image-uploader-head button {
@@ -1648,7 +1637,6 @@
   }
 
   .admin-stat-grid,
-  .admin-dashboard-grid,
   .admin-contest-editor,
   .admin-status-grid,
   .admin-contest-summary-grid,
@@ -1704,10 +1692,6 @@
 
   .admin-article-actions {
     width: 100%;
-  }
-
-.admin-quick-actions {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -1976,7 +1960,6 @@
 }
 
 .admin-workspace-page .contest-secondary-button,
-.admin-workspace-page .admin-quick-actions button,
 .admin-workspace-page .admin-referral-row button,
 .admin-workspace-page .admin-article-row button,
 .admin-workspace-page .admin-image-uploader-head button {
@@ -1992,7 +1975,6 @@
 }
 
 .admin-workspace-page .contest-secondary-button:hover:not(:disabled),
-.admin-workspace-page .admin-quick-actions button:hover:not(:disabled),
 .admin-workspace-page .admin-article-row button:hover:not(:disabled) {
   border-color: var(--admin-blue);
   color: var(--admin-blue-dark);
@@ -2036,19 +2018,6 @@
   font-size: clamp(1.45rem, 2vw, 1.9rem);
   font-weight: 780;
   letter-spacing: -0.04em;
-}
-
-.admin-dashboard-grid {
-  grid-template-columns: minmax(280px, 0.82fr) minmax(360px, 1.18fr);
-}
-
-.admin-quick-actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.admin-workspace-page .admin-quick-actions button {
-  justify-content: flex-start;
-  text-align: left;
 }
 
 .admin-list-toolbar {
@@ -4325,8 +4294,7 @@
 }
 
 @media (max-width: 1160px) {
-  .admin-workspace-page .contest-admin-grid,
-  .admin-dashboard-grid {
+  .admin-workspace-page .contest-admin-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4502,10 +4470,6 @@
 
   .admin-workspace-page .admin-stat-grid strong {
     font-size: 1.4rem;
-  }
-
-  .admin-quick-actions {
-    grid-template-columns: 1fr;
   }
 
   .admin-mailing-preview-toolbar {

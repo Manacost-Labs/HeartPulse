@@ -185,20 +185,20 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   icon: React.ElementType;
 }> = [
   { id: 'dashboard', label: 'Обзор', caption: 'Что требует внимания, показатели и события', status: 'Сводка проекта', group: 'Рабочий стол', icon: LayoutDashboard },
+  { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Люди и деньги', icon: Users },
+  { id: 'money', label: 'Деньги', caption: 'Выручка, продления и удержание', status: 'Boosty и Tribute', group: 'Люди и деньги', icon: Wallet },
+  { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Люди и деньги', icon: Mail },
   { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
   { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', status: 'Ручные правки защищены', group: 'Контент', icon: Newspaper },
   { id: 'mechanics', label: 'Механики и теги', caption: 'Русские переводы, примеры карт и контроль покрытия', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
-  { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', status: 'Центр управления данными', group: 'Система', icon: Database },
-  { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Система', icon: Sparkles },
-  { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Система', icon: ShieldCheck },
-  { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
-  { id: 'money', label: 'Деньги', caption: 'Выручка, продления и удержание', status: 'Boosty и Tribute', group: 'Аудитория', icon: Wallet },
-  { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
-  { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
-  { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: MessageCircle },
+  { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Контент', icon: Sparkles },
   { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', status: 'Сохранение по кнопке', group: 'Рост', icon: Trophy },
-  { id: 'referrals', label: 'Реферальная ссылка', caption: 'Кампании и статистика кликов', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
+  { id: 'referrals', label: 'Реферальная ссылка', caption: 'Кампании: переходы, регистрации и доступ', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
+  { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Интеграции и система', icon: CircleDollarSign },
+  { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Интеграции и система', icon: MessageCircle },
+  { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', status: 'Центр управления данными', group: 'Интеграции и система', icon: Database },
+  { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Интеграции и система', icon: ShieldCheck },
 ];
 const CONTEST_ADMIN_NAV_ITEMS = ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
 

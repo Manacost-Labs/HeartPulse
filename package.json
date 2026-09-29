@@ -92,7 +92,7 @@
     "test:not-found-route": "tsx tests/client-route-resolution.test.ts && tsx tests/not-found-page.test.tsx",
     "test:qa-contract": "node tests/qa-command-contract.test.mjs",
     "test:referrals": "tsx tests/referrals.test.ts",
-    "test:referral-routes": "tsx tests/referral-routes.test.ts",
+    "test:referral-routes": "tsx tests/referral-routes.test.ts && tsx tests/referral-attribution.test.ts",
     "test:gallery-routes": "tsx tests/gallery-routes.test.ts",
     "test:favicon": "node tests/favicon-assets.test.mjs",
     "test:cosmetics": "tsx tests/cosmetics-model.test.ts && tsx tests/cosmetics-routes.test.ts && tsx tests/cosmetics-seo-routes.test.ts && tsx tests/cosmetics-ui-contract.test.ts && tsx tests/next-cosmetics-listing.test.ts",

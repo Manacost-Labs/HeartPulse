@@ -49,6 +49,8 @@ export function createAdminCrmTestDb() {
   `).run(userId, active, iso(-3), expiresInDays === null ? null : iso(expiresInDays), iso(-3));
   db.exec(`
     ALTER TABLE contests ADD COLUMN status TEXT NOT NULL DEFAULT 'active';
+    CREATE TABLE referral_links (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, label TEXT NOT NULL, campaign TEXT NOT NULL DEFAULT '');
+    CREATE TABLE user_referrals (user_id TEXT PRIMARY KEY, referral_id TEXT NOT NULL, click_id INTEGER, clicked_at TEXT NOT NULL, attributed_at TEXT NOT NULL);
     CREATE TABLE mailing_campaigns (id TEXT PRIMARY KEY, subject TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued',
       created_by TEXT NOT NULL DEFAULT 'admin', created_at TEXT NOT NULL, completed_at TEXT, recipient_count INTEGER NOT NULL DEFAULT 0,
       accepted_count INTEGER NOT NULL DEFAULT 0, failed_count INTEGER NOT NULL DEFAULT 0);

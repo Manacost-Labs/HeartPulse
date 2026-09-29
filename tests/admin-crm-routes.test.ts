@@ -23,6 +23,8 @@ for (const [daysAgo, boosty, telegram] of [[60, false, false], [30, true, false]
   addCheck('payer', telegram, daysAgo, 'telegram');
   addCheck('payer', false, daysAgo, 'patreon');
 }
+db.prepare(`INSERT INTO referral_links (id, slug, label, campaign) VALUES ('ref_yt', 'youtube', 'YouTube сентябрь', 'sep')`).run();
+db.prepare(`INSERT INTO user_referrals (user_id, referral_id, click_id, clicked_at, attributed_at) VALUES ('payer', 'ref_yt', 7, '2026-09-02T10:00:00.000Z', '2026-09-02T10:05:00.000Z')`).run();
 db.prepare(`INSERT INTO contests (id, title) VALUES ('c1', 'Арена-марафон')`).run();
 db.prepare(`INSERT INTO contest_entries (id, contest_id, user_id, status, created_at) VALUES ('e1', 'c1', 'payer', 'approved', ?)`).run(iso(-15));
 db.prepare(`INSERT INTO mailing_contacts (id, email, user_id, consent_status, consented_at) VALUES ('m1', 'payer@example.test', 'payer', 'subscribed', ?)`).run(iso(-40));
@@ -119,10 +121,12 @@ try {
   assert.equal(card.mailing.failed, 1);
   assert.deepEqual(card.audit.map((entry: { action: string }) => entry.action), ['user.updated']);
   assert.equal(card.audit[0].actorName, 'Главный админ');
+  assert.deepEqual(card.referral, { label: 'YouTube сентябрь', slug: 'youtube', campaign: 'sep', clickedAt: '2026-09-02T10:00:00.000Z' });
   assert.deepEqual(card.notes, []);
   assert.deepEqual(card.tags, []);
 
   const soon = await (await call('/people/soon')).json();
+  assert.equal(soon.referral, null);
   assert.equal(soon.access.hasAccess, true);
   assert.equal(soon.access.manual.active, true);
   assert.equal(soon.access.manual.note, 'приз конкурса');

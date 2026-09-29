@@ -264,6 +264,7 @@
         "tests/reader-entitlements-routes.test.ts",
         "tests/reader-permissions-routes.test.ts",
         "tests/referral-routes.test.ts",
+        "tests/referral-attribution.test.ts",
         "tests/referrals.test.ts",
         "tests/routes.test.ts",
         "tests/scrape-queue.test.ts",

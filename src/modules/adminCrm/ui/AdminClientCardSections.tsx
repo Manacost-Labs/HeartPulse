@@ -130,6 +130,9 @@ export function AccountsSection({ idPrefix, card }: SectionProps) {
         {contacts.telegram && <div><dt>Контакт Telegram</dt><dd>{contacts.telegram}</dd></div>}
         {contacts.vk && <div><dt>VK</dt><dd>{contacts.vk}</dd></div>}
         {contacts.email && <div><dt>Контактный email</dt><dd>{contacts.email}</dd></div>}
+        <div><dt>Пришёл по ссылке</dt><dd>{card.referral
+          ? `${card.referral.label}${card.referral.campaign ? ` · ${card.referral.campaign}` : ''} · ${formatDate(card.referral.clickedAt)}`
+          : 'нет данных'}</dd></div>
         <div><dt>Рассылка</dt><dd>{mailingSummary(card)}</dd></div>
       </dl>
     </Section>

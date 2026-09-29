@@ -14,7 +14,13 @@ export type AdminReferralLink = {
   clicks: number;
   uniqueClicks: number;
   lastClickAt: string;
+  /** Accounts created after a click on this link (attributed via the hp_ref cookie). */
+  registrations?: number;
+  /** Of those accounts, how many have provider or manual access now. */
+  payingNow?: number;
 };
+
+const percent = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100)}%` : '—');
 
 export type AdminReferralClick = {
   id: string;
@@ -65,6 +71,8 @@ export function ContestAdminReferrals({
   const activeCount = referrals.filter(item => item.status === 'active').length;
   const totalClicks = referrals.reduce((sum, item) => sum + item.clicks, 0);
   const uniqueClicks = referrals.reduce((sum, item) => sum + item.uniqueClicks, 0);
+  const registrations = referrals.reduce((sum, item) => sum + (item.registrations ?? 0), 0);
+  const payingNow = referrals.reduce((sum, item) => sum + (item.payingNow ?? 0), 0);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -77,14 +85,14 @@ export function ContestAdminReferrals({
       <AdminOperationsHeader
         eyebrow="Рост"
         title="Реферальная ссылка"
-        description="Создавайте адреса для кампаний и сразу отслеживайте переходы по каждому каналу."
+        description="Создавайте адреса для кампаний и смотрите путь: переход → регистрация → доступ."
         status={loading ? 'Обновляем переходы' : activeCount ? `${activeCount} активных ссылок` : 'Создайте первую ссылку'}
         statusTone={loading ? 'working' : activeCount ? 'ready' : 'attention'}
         metrics={[
-          { label: 'Всего ссылок', value: referrals.length, detail: 'за всё время' },
-          { label: 'Активны', value: activeCount, detail: 'принимают переходы' },
-          { label: 'Клики', value: totalClicks, detail: 'всего' },
-          { label: 'Уникальные', value: uniqueClicks, detail: 'по всем ссылкам' },
+          { label: 'Всего ссылок', value: referrals.length, detail: `${activeCount} активны` },
+          { label: 'Клики', value: totalClicks, detail: `${uniqueClicks} уникальных` },
+          { label: 'Регистрации', value: registrations, detail: `${percent(registrations, uniqueClicks)} от уникальных кликов` },
+          { label: 'С доступом', value: payingNow, detail: `${percent(payingNow, registrations)} от регистраций` },
         ]}
       />
       <div className="contest-admin-grid admin-referral-layout">
@@ -118,6 +126,8 @@ export function ContestAdminReferrals({
               <div className="admin-referral-stats">
                 <span><strong>{item.clicks}</strong> кликов</span>
                 <span><strong>{item.uniqueClicks}</strong> уник.</span>
+                <span><strong>{item.registrations ?? 0}</strong> регистраций · {percent(item.registrations ?? 0, item.uniqueClicks)}</span>
+                <span><strong>{item.payingNow ?? 0}</strong> с доступом</span>
                 <span>{item.lastClickAt ? formatDate(item.lastClickAt) : 'нет кликов'}</span>
               </div>
               <button type="button" onClick={() => void onCopy(item.url, 'Реферальная ссылка скопирована.')}>Копировать</button>

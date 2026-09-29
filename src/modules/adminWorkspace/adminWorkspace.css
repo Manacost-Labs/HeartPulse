@@ -649,7 +649,6 @@
 }
 
 .admin-tailadmin-shell .contest-secondary-button,
-.admin-tailadmin-shell .admin-quick-actions button,
 .admin-tailadmin-shell .admin-referral-row button,
 .admin-tailadmin-shell .admin-article-row button,
 .admin-tailadmin-shell .admin-image-uploader-head button {
@@ -661,7 +660,6 @@
 }
 
 .admin-tailadmin-shell .contest-secondary-button:hover:not(:disabled),
-.admin-tailadmin-shell .admin-quick-actions button:hover:not(:disabled),
 .admin-tailadmin-shell .admin-article-row button:hover:not(:disabled) {
   border-color: #d0aa64;
   color: var(--admin-gold-dark);
@@ -689,44 +687,6 @@
   border-color: var(--admin-divider-strong);
   border-radius: 8px;
 }
-
-.admin-tailadmin-shell .admin-dashboard {
-  display: grid;
-  gap: 18px;
-}
-
-.admin-tailadmin-shell .admin-dashboard-hero {
-  min-height: 146px;
-  padding: clamp(22px, 3vw, 32px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  overflow: hidden;
-  position: relative;
-  border: 1px solid #4a3427;
-  border-radius: 16px;
-  color: #fff7e8;
-  background:
-    radial-gradient(circle at 86% 24%, rgba(227, 178, 85, 0.2), transparent 15rem),
-    linear-gradient(120deg, #241813 0%, #3a291f 58%, #2b1d17 100%);
-  box-shadow: 0 18px 38px rgba(49, 31, 18, 0.14);
-}
-
-.admin-tailadmin-shell .admin-dashboard-hero::after {
-  position: absolute;
-  right: -34px;
-  bottom: -82px;
-  width: 240px;
-  height: 240px;
-  content: '';
-  border: 1px solid rgba(224, 177, 90, 0.18);
-  border-radius: 50%;
-  box-shadow: 0 0 0 30px rgba(224, 177, 90, 0.035), 0 0 0 64px rgba(224, 177, 90, 0.025);
-}
-
-.admin-tailadmin-shell .admin-dashboard-hero > * { position: relative; z-index: 1; }
-.admin-tailadmin-shell .admin-dashboard-hero > div > span,
 .admin-tailadmin-shell .admin-card-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -737,85 +697,9 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-
-.admin-tailadmin-shell .admin-dashboard-hero > div > span { color: #e2b65f; }
-.admin-tailadmin-shell .admin-dashboard-hero h2 {
-  margin: 8px 0 6px;
-  color: #fff9ec;
-  font-family: var(--font-display), Cinzel, Georgia, serif;
-  font-size: clamp(1.55rem, 3vw, 2.45rem);
-  line-height: 1.08;
-  letter-spacing: 0.02em;
-}
-.admin-tailadmin-shell .admin-dashboard-hero p { max-width: 620px; margin: 0; color: #cdbda9; font-size: 0.84rem; line-height: 1.55; }
-.admin-tailadmin-shell .admin-dashboard-hero button {
-  min-height: 44px;
-  padding: 0 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid #d8aa52;
-  border-radius: 9px;
-  color: #2d1d12;
-  background: linear-gradient(135deg, #f0c66f, #c99031);
-  font-size: 0.76rem;
-  font-weight: 820;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.admin-tailadmin-shell .admin-dashboard-grid { grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr); }
 .admin-tailadmin-shell .admin-card-heading { align-items: flex-start; }
 .admin-tailadmin-shell .admin-card-heading > div > h2 { margin-top: 4px; }
-.admin-tailadmin-shell .admin-dashboard-actions .admin-quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.admin-tailadmin-shell .admin-dashboard-actions .admin-quick-actions button {
-  min-height: 52px;
-  padding: 0 14px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 9px;
-  text-align: left;
-}
-.admin-tailadmin-shell .admin-dashboard-actions .admin-quick-actions button.is-primary {
-  border-color: var(--admin-gold-dark);
-  color: #fffaf0;
-  background: linear-gradient(135deg, #81551b, #ae792a);
-}
-.admin-tailadmin-shell .admin-dashboard-activity .admin-card-heading > button {
-  min-height: 40px;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 0;
-  color: var(--admin-gold-dark);
-  background: transparent;
-  font-size: 0.69rem;
-  font-weight: 780;
-  cursor: pointer;
-}
-.admin-tailadmin-shell .admin-dashboard-activity .admin-referral-clicks { display: grid; gap: 0; }
-.admin-tailadmin-shell .admin-dashboard-activity .admin-referral-clicks > div {
-  min-height: 50px;
-  padding: 8px 2px;
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 9px;
-  border-width: 0 0 1px;
-  border-radius: 0;
-  background: transparent;
-}
-.admin-tailadmin-shell .admin-dashboard-activity .admin-referral-clicks > div:last-child { border-bottom: 0; }
 .admin-tailadmin-shell .admin-activity-mark { width: 8px; height: 8px; border-radius: 50%; background: #4f8a66; box-shadow: 0 0 0 4px rgba(79, 138, 102, 0.1); }
-.admin-tailadmin-shell .admin-dashboard-activity .admin-referral-clicks strong { color: var(--admin-ink); font-size: 0.72rem; }
-.admin-tailadmin-shell .admin-dashboard-activity .admin-referral-clicks span:last-child { color: var(--admin-muted); font-size: 0.65rem; text-align: right; }
-
-@media (max-width: 1160px) {
-  .admin-tailadmin-shell .admin-dashboard-grid { grid-template-columns: 1fr; }
-}
 
 @media (max-width: 1023px) {
   .admin-workspace-page.admin-tailadmin-shell {
@@ -844,7 +728,6 @@
 
   .admin-tailadmin-shell .contest-primary-button,
   .admin-tailadmin-shell .contest-secondary-button,
-  .admin-tailadmin-shell .admin-quick-actions button,
   .admin-tailadmin-shell .admin-referral-row button,
   .admin-tailadmin-shell .admin-article-row button,
   .admin-tailadmin-shell .admin-image-uploader-head button,
@@ -896,8 +779,6 @@
     display: none;
   }
 
-  .admin-tailadmin-shell .admin-dashboard-hero { align-items: flex-start; flex-direction: column; }
-
   .admin-tailadmin-shell .admin-toast {
     top: auto;
     right: 12px;
@@ -945,8 +826,6 @@
   .admin-tailadmin-shell .admin-stat-grid {
     gap: 10px;
   }
-
-  .admin-tailadmin-shell .admin-dashboard-actions .admin-quick-actions { grid-template-columns: 1fr; }
 
   .admin-tailadmin-shell .admin-stat-grid > div {
     min-height: 96px;
@@ -1250,7 +1129,6 @@
 
 .admin-tailadmin-shell .contest-admin-card,
 .admin-tailadmin-shell .admin-stat-grid > div,
-.admin-tailadmin-shell .admin-dashboard-hero,
 .admin-tailadmin-shell .admin-list-toolbar,
 .admin-tailadmin-shell .admin-page-toolbar,
 .admin-tailadmin-shell .admin-article-row,
@@ -1264,16 +1142,8 @@
   background: var(--admin-surface);
   box-shadow: 6px 6px 0 rgba(56, 64, 75, 0.72);
 }
-.admin-tailadmin-shell .admin-dashboard-hero { color: var(--admin-ink); background: var(--admin-surface); box-shadow: 6px 6px 0 rgba(56, 64, 75, 0.72); }
-.admin-tailadmin-shell .admin-dashboard-hero::after { display: none; }
-.admin-tailadmin-shell .admin-dashboard-hero > div > span,
-.admin-tailadmin-shell .admin-dashboard-hero h2 { color: var(--admin-ink); font-family: var(--font-body), Inter, system-ui, sans-serif; }
-.admin-tailadmin-shell .admin-dashboard-hero p { color: var(--admin-muted); }
-.admin-tailadmin-shell .admin-dashboard-hero button,
-.admin-tailadmin-shell .contest-primary-button,
-.admin-tailadmin-shell .admin-dashboard-actions .admin-quick-actions button.is-primary { border: 1px solid #2e3a48; border-radius: 5px; color: #fff; background: #354151; box-shadow: 3px 3px 0 rgba(56, 64, 75, 0.38); }
+.admin-tailadmin-shell .contest-primary-button { border: 1px solid #2e3a48; border-radius: 5px; color: #fff; background: #354151; box-shadow: 3px 3px 0 rgba(56, 64, 75, 0.38); }
 .admin-tailadmin-shell .contest-secondary-button,
-.admin-tailadmin-shell .admin-quick-actions button,
 .admin-tailadmin-shell .admin-referral-row button,
 .admin-tailadmin-shell .admin-article-row button,
 .admin-tailadmin-shell .admin-image-uploader-head button,
@@ -1290,13 +1160,6 @@
   outline: 3px solid rgba(103, 143, 121, 0.24);
   outline-offset: 1px;
   box-shadow: inset 0 0 0 1px rgba(53, 65, 81, 0.12);
-}
-.admin-tailadmin-shell :is(.contest-primary-button, .contest-secondary-button, .admin-quick-actions button, .admin-pagination button) {
-  transition: transform 100ms ease, box-shadow 100ms ease, background-color 140ms ease;
-}
-.admin-tailadmin-shell :is(.contest-primary-button, .contest-secondary-button, .admin-quick-actions button, .admin-pagination button):active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 rgba(56, 64, 75, 0.26);
 }
 
 @media (min-width: 1024px) {
@@ -1342,7 +1205,6 @@
   .admin-tailadmin-shell .admin-workspace-nav-list button,
   .admin-tailadmin-shell .admin-workspace-nav-list button > span,
   .admin-tailadmin-shell :is(input, textarea, select),
-  .admin-tailadmin-shell :is(.contest-primary-button, .contest-secondary-button, .admin-quick-actions button, .admin-pagination button),
   .admin-tailadmin-shell .admin-section-frame {
     transition: none;
     animation: none;

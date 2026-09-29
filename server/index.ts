@@ -48,6 +48,7 @@ import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } fr
 import { isPublicMediaApiRequest } from './apiRateLimitPolicy.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
+import { REFERRAL_ATTRIBUTION_SCHEMA_SQL, createReferralAttributionMiddleware } from './referralAttribution.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { createCosmeticsDataService, createCosmeticsRouter } from './cosmeticsRoutes.js';
 import { createPublicResourceRouter } from './publicResourceRoutes.js';
@@ -1285,7 +1286,7 @@ function db(): DatabaseSync {
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
-    );${ADMIN_CRM_SCHEMA_SQL}`);
+    );${ADMIN_CRM_SCHEMA_SQL}${REFERRAL_ATTRIBUTION_SCHEMA_SQL}`);
   ensureArchetypeDeckCodesAllRank(ecosystemDb);
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_referral_clicks_referral_time ON referral_clicks(referral_id, clicked_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_article_votes_article ON article_votes(article_id);');
@@ -7323,6 +7324,7 @@ app.use('/api/', (req, res, next) => {
   if (cookieMutationCsrfAllowed(req)) return next();
   return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
 });
+app.use('/api/', createReferralAttributionMiddleware(() => ({ getDatabase: db, userAuth, cookieSecure: telegramOidcCookieSecure })));
 
 app.use(createUploadAuthorizationGuard({
   galleryAccessStatus: req => {
@@ -9324,6 +9326,7 @@ const referralRouterDependencies = {
   appUrl: APP_URL,
   clientIp: getTrustedClientIp,
   ipHashSalt: process.env.ECOSYSTEM_INTERNAL_KEY || 'manacost-referrals',
+  cookieSecure: telegramOidcCookieSecure,
 };
 app.get('/r/:slug', createReferralRedirectHandler(referralRouterDependencies));
 app.use('/api', createReferralRouter(referralRouterDependencies));

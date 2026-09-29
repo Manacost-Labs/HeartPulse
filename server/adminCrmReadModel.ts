@@ -147,6 +147,11 @@ export function readPersonCard(repository: AdminCrmRepository, userId: string) {
     contestId: str(row.contest_id), title: str(row.title) || str(row.contest_id), status: str(row.status), createdAt: str(row.created_at),
   }));
 
+  const referralRow = repository.get(`
+    SELECT l.label, l.slug, l.campaign, r.clicked_at
+    FROM user_referrals r JOIN referral_links l ON l.id = r.referral_id WHERE r.user_id = ?
+  `, userId);
+
   const mailingRow = repository.get(`
     SELECT mc.consent_status, mc.consented_at, mc.unsubscribed_at,
       (SELECT COUNT(*) FROM mailing_deliveries d WHERE d.contact_id = mc.id AND d.status = 'accepted') AS delivered,
@@ -195,6 +200,9 @@ export function readPersonCard(repository: AdminCrmRepository, userId: string) {
       } : null,
     },
     accessHistory: changes.reverse().slice(0, HISTORY_LIMIT),
+    referral: referralRow ? {
+      label: str(referralRow.label), slug: str(referralRow.slug), campaign: str(referralRow.campaign), clickedAt: str(referralRow.clicked_at),
+    } : null,
     contests,
     mailing: mailingRow ? {
       consentStatus: str(mailingRow.consent_status),

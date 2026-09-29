@@ -23,6 +23,8 @@ export type AdminCrmPerson = {
     };
   };
   accessHistory: Array<{ at: string; source: string; hasAccess: boolean }>;
+  /** The campaign link that brought this person, when the account was created after a click. */
+  referral: null | { label: string; slug: string; campaign: string; clickedAt: string };
   contests: Array<{ contestId: string; title: string; status: string; createdAt: string }>;
   mailing: null | {
     consentStatus: string; consentedAt: string | null; unsubscribedAt: string | null;

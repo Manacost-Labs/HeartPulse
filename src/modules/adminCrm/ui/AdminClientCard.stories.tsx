@@ -21,6 +21,7 @@ const person: AdminCrmPerson = {
     { at: '2026-09-10T08:00:00.000Z', source: 'boosty', hasAccess: false },
     { at: '2025-03-14T09:00:00.000Z', source: 'boosty', hasAccess: true },
   ],
+  referral: { label: 'YouTube сентябрь', slug: 'youtube-sep', campaign: 'осень-2026', clickedAt: '2025-03-12T09:55:00.000Z' },
   contests: [{ contestId: 'arena-marathon', title: 'Арена-марафон', status: 'approved', createdAt: '2026-09-02T12:00:00.000Z' }],
   mailing: { consentStatus: 'subscribed', consentedAt: '2025-03-12T10:00:00.000Z', unsubscribedAt: null, delivered: 14, failed: 1, lastDeliveredAt: '2026-09-20T10:00:00.000Z' },
   notes: [{ id: 1, body: 'Просил продлить доступ до конца турнира, договорились на 30 дней.', authorId: 'admin', authorName: 'Администратор', createdAt: '2026-09-15T12:00:00.000Z' }],

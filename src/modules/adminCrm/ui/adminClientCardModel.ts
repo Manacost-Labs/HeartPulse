@@ -99,6 +99,9 @@ export function buildPersonTimeline(card: AdminCrmPerson): TimelineEvent[] {
   if (card.person.createdAt) {
     events.push({ key: 'created', at: card.person.createdAt, title: 'Зарегистрировался', detail: '', tone: 'neutral' });
   }
+  if (card.referral) {
+    events.push({ key: 'referral', at: card.referral.clickedAt, title: `Перешёл по ссылке «${card.referral.label}»`, detail: card.referral.campaign, tone: 'neutral' });
+  }
   card.accessHistory.forEach((entry, index) => {
     events.push({
       key: `access-${index}`,

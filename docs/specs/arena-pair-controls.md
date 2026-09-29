@@ -55,7 +55,8 @@
 - чистый подбор контролей: `server/arenaSynergyMatchedControls.ts`;
 - композиция расчёта: `server/arenaSynergyAnalysis.ts`;
 - общий контракт: `shared/arenaSynergyContract.ts`;
-- админ-интерфейс: `src/features/ContestAdminArenaSynergies.tsx`;
+- админ-интерфейс: удалён 2026-09-29 (был отключён от навигации с 2026-09-13);
+  данные доступны через `GET /api/admin/arena-synergies`;
 - тесты: `tests/arena-synergy-analysis.test.ts` и существующие route/service
   проверки.
 
