@@ -3801,7 +3801,7 @@ for (const [device, viewport] of [
       return columns > 0 && grid.children.length === Math.min(columns, 12);
     });
     const constructedDetailState = await page.evaluate(() => ({
-      pathname: window.location.pathname,
+      pathname: window.location.pathname.replace(/(.)\/$/, '$1'),
       scrollY: window.scrollY,
       statsRows: document.querySelectorAll('.constructed-card-detail__statistics .constructed-cards__stats > div').length,
       variants: document.querySelectorAll('.constructed-card-detail__variants button').length,
@@ -4150,6 +4150,8 @@ for (const width of [320, 430]) {
     await page.goto(`${BASE}/admin?section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-parser-control', { timeout: 20_000 });
     await page.waitForSelector('.admin-parser-audit__entry', { timeout: 20_000 });
+    // The schedule panel loads independently of the audit log.
+    await page.waitForSelector('.admin-parser-schedule__state', { timeout: 20_000 });
     await page.click('.admin-parser-audit__details summary');
     const parserControlReflow = await page.evaluate(() => {
       const root = document.querySelector('.admin-parser-control');

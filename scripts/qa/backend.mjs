@@ -23,13 +23,15 @@ export async function startQaBackend({ distDir }) {
       ...qaSessionFromCookie(request.headers.cookie), adminState: serverState, origin,
     });
     const postData = typeof request.body === 'string' && request.body ? request.body : undefined;
-    const answered = handle({ url, method: request.method, postData }, answer => {
-      response.writeHead(answer.status ?? 200, {
-        ...answer.headers,
-        ...(answer.contentType ? { 'content-type': answer.contentType } : {}),
+    // Server rendering reads only JSON. Card images stay with the browser mock,
+    // and every answer is re-serialized as JSON so a fixture that echoes a
+    // query value can never be served as markup.
+    const answered = !url.pathname.startsWith('/api/card-image/')
+      && handle({ url, method: request.method, postData }, answer => {
+        response.status(answer.status ?? 200).set(answer.headers ?? {});
+        if (answer.body) response.json(JSON.parse(answer.body));
+        else response.end();
       });
-      response.end(answer.body ?? '');
-    });
     if (!answered) {
       // Logged once so a fixture gap is visible; the page sees an ordinary miss.
       const gap = `${request.method} ${url.pathname}`;
