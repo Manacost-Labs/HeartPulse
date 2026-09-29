@@ -8,7 +8,7 @@
  * sitemaps and a placeholder entry document. While the legacy Vite build still
  * runs first, its bundle and entry document are kept; this step never deletes.
  */
-import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createPublicSeoModel } from './lib/public-seo-model.mjs';
 
@@ -33,7 +33,9 @@ const PLACEHOLDER_ENTRY = `<!doctype html>
 
 const seo = createPublicSeoModel(root);
 mkdirSync(outDir, { recursive: true });
-cpSync(join(root, 'public'), outDir, { recursive: true, force: true });
+// Dereference like Vite's public copy: the release must not link back into
+// the build workspace.
+cpSync(join(root, 'public'), outDir, { recursive: true, force: true, dereference: true });
 mkdirSync(join(outDir, 'sitemaps'), { recursive: true });
 writeFileSync(join(outDir, 'sitemaps', 'static.xml'), seo.staticSitemapXml(), 'utf8');
 writeFileSync(join(outDir, 'sitemap.xml'), seo.sitemapIndexXml(), 'utf8');
@@ -44,7 +46,7 @@ const staticUrlCount = [...seo.seoPages.values()].filter(page => page.sitemap).l
 console.log(`[static-root] ${outDir}: public assets, sitemap index and ${staticUrlCount} static URLs`);
 
 function makePublicReadable(path) {
-  const stats = statSync(path);
+  const stats = lstatSync(path);
   if (stats.isDirectory()) {
     chmodSync(path, 0o755);
     for (const child of readdirSync(path)) makePublicReadable(join(path, child));

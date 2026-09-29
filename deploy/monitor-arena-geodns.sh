@@ -41,13 +41,12 @@ release="$(basename "$(readlink -f "$release_link")")"
   exit 1
 }
 release_dist="$release_link/dist"
-index_html="$(<"$release_dist/index.html")"
-asset_path=""
-if [[ "$index_html" =~ src=\"(/assets/index-[^\"]+\.js)\" ]]; then
-  asset_path="${BASH_REMATCH[1]}"
-fi
-[[ -n "$asset_path" && -s "$release_dist$asset_path" ]] || {
-  echo "FAIL: current frontend entry asset was not found" >&2
+# A stable public script from the static root proves CDN compression, local
+# mirroring and byte equality without depending on the legacy Vite entry; the
+# SSH check below proves that each edge activated this exact release.
+asset_path="${ARENA_MONITOR_ASSET_PATH:-/bg-legacy/shared.js}"
+[[ -s "$release_dist$asset_path" ]] || {
+  echo "FAIL: static-root probe asset $asset_path was not found" >&2
   exit 1
 }
 expected_asset_sha="$(sha256sum "$release_dist$asset_path" | awk '{print $1}')"

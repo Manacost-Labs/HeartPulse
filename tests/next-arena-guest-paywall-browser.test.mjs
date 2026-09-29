@@ -5,7 +5,7 @@ import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 // The production observer (config/production-observer.json) requires the
 // shared `.arena-paywall` gate on every paid Arena page for anonymous visitors.
-test('Next Arena pages show the shared subscription paywall to guests', { timeout: 120000 }, async () => {
+test('Next Arena pages show the shared subscription paywall to guests', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {

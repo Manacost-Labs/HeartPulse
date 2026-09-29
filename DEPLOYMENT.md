@@ -153,7 +153,9 @@ entry exists. Nginx serves static files from this tree, edges sync it, the
 deployer and edge sync require its entry document, and Express reads
 `dist/sitemaps/static.xml`. Until the Vite retirement, `npm run build` still
 runs `vite build` first and the legacy prerender afterwards; neither owns a
-file that Next.js, Nginx or Express needs.
+file that Next.js, Nginx or Express needs. The remaining Vite coupling is
+operational: the edge activator's size floor currently relies on carried-forward
+Vite bundles, as listed in the migration plan.
 
 Before any deployment, compare the immutable release contract with the files
 actually installed on the target host. The verifier is strictly read-only: it

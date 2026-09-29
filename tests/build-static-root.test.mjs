@@ -62,6 +62,8 @@ test('static root is assembled from public assets and SEO registries without Vit
     assert.deepEqual(actualUrls, expectedUrls, 'sitemap URLs must exactly match indexable registry pages');
     assert.equal(new Set(actualUrls).size, actualUrls.length, 'sitemap URLs must be unique');
     assert.doesNotMatch(staticSitemap, /[?&#](?:preview|page|sort)=/i, 'sitemap must not contain query URLs');
+    assert.doesNotMatch(staticSitemap, new RegExp(`${routeInventory.canonicalOrigin.replaceAll('.', '\\.')}/(?:admin|404)/`),
+      'private and error documents must stay out of the sitemap');
     assert.doesNotMatch(staticSitemap, /<(?:lastmod|changefreq|priority)>/i,
       'sitemap must not invent freshness metadata');
   } finally {

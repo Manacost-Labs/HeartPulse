@@ -394,9 +394,16 @@ Retire each Vite dependency at its actual owner, in this order:
    Keeping the path avoids changing root-owned Nginx, deployer and edge-sync
    contracts; the deployer keeps carrying old hashed `/assets/` forward.
 6. Done on 2026-09-29: `release:create` checks the release SHA in the Next
-   client bundle and checks the legacy entry only while one exists. After the
-   gate, dropping `vite build` and the prerender from `npm run build` leaves a
-   valid static root; no Nginx, deployer or edge change is required for it.
+   client bundle and checks the legacy entry while the Vite manifest exists.
+   The GeoDNS monitor probes the stable `/bg-legacy/shared.js` public script
+   instead of the Vite entry; reinstall `/usr/local/sbin/monitor-arena-geodns`
+   from the reviewed checkout. Before dropping `vite build` and the prerender
+   from `npm run build`, still: recalibrate the edge activator floor
+   (`deploy/activate-arena-static.sh`, 4,500 files and 70 MB) because only
+   carried-forward Vite bundles keep the tree above it (a Vite-free tree is
+   about 400 files and 19 MB) and install it on every edge; and make the build
+   clean `dist/` first so a reused workspace cannot ship stale legacy files.
+   Nginx and the deployer need no change for the static root.
 7. Remove `index.html`, `src/main.tsx`, `vite.config.ts`,
    `src/vite-env.d.ts`, direct Vite packages and obsolete scripts. Drain and
    delete `src/App.tsx` only after its remaining route behavior has a module

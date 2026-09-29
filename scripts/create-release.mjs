@@ -82,19 +82,21 @@ cpSync(nextBuildSource, join(output, 'apps', 'public-web', '.next'), {
   filter: source => source !== nextBuildCache,
 });
 
-// Next.js renders every public page, so its client incident reports must name
-// this release.
+// Next.js renders every public page. `__APP_RELEASE_SHA__` (apps/public-web/
+// next.config.mjs) is inlined as a string literal into client incident reports.
+const releaseLiteral = new RegExp(`["'\`]${sha}["'\`]`);
 const nextClientChunks = listFiles(join(output, 'apps', 'public-web', '.next', 'static'))
   .filter(file => file.endsWith('.js'));
-if (!nextClientChunks.some(file => readFileSync(join(output, file), 'utf8').includes(sha))) {
+if (!nextClientChunks.some(file => releaseLiteral.test(readFileSync(join(output, file), 'utf8')))) {
   throw new Error('Next.js client bundle does not contain the release SHA; rebuild with RELEASE_SHA or GITHUB_SHA');
 }
 
-// The static root may still carry the legacy Vite entry until that build is
-// retired; when it does, the entry bundle must match the release as well.
-const indexHtml = readFileSync(join(output, 'dist', 'index.html'), 'utf8');
-const entryMatch = indexHtml.match(/<script\b[^>]*\bsrc="(\/assets\/[^"?]+\.js)"[^>]*><\/script>/);
-if (entryMatch) {
+// While the legacy Vite build still runs (its manifest exists), its entry
+// bundle must be present and match the release as well.
+if (existsSync(join(output, 'dist', '.vite', 'manifest.json'))) {
+  const indexHtml = readFileSync(join(output, 'dist', 'index.html'), 'utf8');
+  const entryMatch = indexHtml.match(/<script\b[^>]*\bsrc="(\/assets\/[^"?]+\.js)"[^>]*><\/script>/);
+  if (!entryMatch) throw new Error('Legacy frontend entry script was not found in dist/index.html');
   const entryAsset = join(output, 'dist', entryMatch[1].replace(/^\//, ''));
   if (!existsSync(entryAsset) || !readFileSync(entryAsset, 'utf8').includes(sha)) {
     throw new Error('Legacy frontend entry script does not contain the release SHA; rebuild with RELEASE_SHA or GITHUB_SHA');
