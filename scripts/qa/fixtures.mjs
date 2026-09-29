@@ -902,6 +902,35 @@ export const adminFixtures = {
     ],
     tags: [],
   },
+  '/api/admin/crm/overview': {
+    generatedAt: '2026-07-28T00:00:00.000Z',
+    alerts: [
+      {
+        id: 'telegram-chat:-5077378176',
+        severity: 'critical',
+        title: 'Бот не видит VIP-группу Telegram -5077378176',
+        detail: '4 из 4 проверок за 2 часа: Bad Request: chat not found. Участники только этой группы не получают доступ.',
+        action: { section: 'telegram', label: 'Открыть Telegram' },
+      },
+      {
+        id: 'expiring-access',
+        severity: 'warning',
+        title: '1 ручной доступ истекает в ближайшие 7 дней',
+        detail: 'Продлите доступ тем, кому он ещё нужен, пока он не закрылся.',
+        action: { section: 'users', segment: 'expiring', label: 'Показать' },
+      },
+    ],
+    kpis: { totalUsers: 2, payingNow: 1, newUsers30d: 2, newUsersPrevious30d: 1, lapsed30d: 0, expiringSoon: 1 },
+    series: {
+      days: Array.from({ length: 30 }, (_, index) => new Date(Date.UTC(2026, 5, 29 + index)).toISOString().slice(0, 10)),
+      newUsers: Array.from({ length: 30 }, (_, index) => (index === 2 || index === 3 ? 1 : 0)),
+      paying: Array.from({ length: 30 }, (_, index) => (index > 5 ? 1 : 0)),
+    },
+    activity: [
+      { id: 'registration:qa-user-2', kind: 'registration', at: '2026-07-02T00:00:00.000Z', name: 'Заблокированный пользователь', userId: 'qa-user-2' },
+      { id: 'registration:qa-user-1', kind: 'registration', at: '2026-07-01T00:00:00.000Z', name: 'Первый пользователь', userId: 'qa-user-1' },
+    ],
+  },
   '/api/admin/mailings/overview': {
     campaigns: [{
       id: 'mailing-qa-1', subject: 'Прошлая рассылка', preheader: 'Архив', templateKey: 'blank', segment: 'active',

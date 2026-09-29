@@ -1777,74 +1777,86 @@ for (const [device, viewport] of [
   });
   try {
     await page.goto(`${BASE}/admin?section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.admin-stat-grid', { timeout: 20_000 });
-    await page.waitForFunction(() => {
-      const cards = [...document.querySelectorAll('.admin-stat-grid > div')];
-      return cards.length === 4
-        && cards[0]?.querySelector('strong')?.textContent?.trim() === '2'
-        && cards[1]?.querySelector('strong')?.textContent?.trim() === '4'
-        && cards[2]?.querySelector('small')?.textContent?.includes('3 заявок')
-        && cards[3]?.querySelector('small')?.textContent?.includes('7 переходов');
-    });
+    await page.waitForSelector('.admin-overview-kpis', { timeout: 20_000 });
+    // Revenue arrives separately from the Boosty analytics fixture (2500 RUB).
+    await page.waitForFunction(() => /2\s500/.test(document.querySelectorAll('.admin-overview-kpis strong')[1]?.textContent ?? ''));
     const state = await page.evaluate(() => {
       const root = document.documentElement;
       const shell = document.querySelector('.bg-wood');
-      const stats = [...document.querySelectorAll('.admin-stat-grid > div')].map(element => ({
-        label: element.querySelector('span')?.textContent?.trim() || '',
-        value: element.querySelector('strong')?.textContent?.trim() || '',
-        detail: element.querySelector('small')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      }));
-      const quickActions = [...document.querySelectorAll('.admin-quick-actions button')].map(element => element.textContent?.trim() || '');
+      const text = element => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
       return {
-        stats,
-        quickActions,
+        alerts: [...document.querySelectorAll('.admin-overview-alerts > li')].map(element => ({
+          severity: element.className, title: text(element.querySelector('strong')), action: text(element.querySelector('button')),
+        })),
+        kpis: [...document.querySelectorAll('.admin-overview-kpis > li > button')].map(element => ({
+          label: text(element.querySelector('span')), value: text(element.querySelector('strong')),
+        })),
+        sparklines: document.querySelectorAll('.admin-overview-kpis svg polyline').length,
+        activity: [...document.querySelectorAll('.admin-overview-feed > li')].map(element => text(element.querySelector('div'))),
+        quickActions: [...document.querySelectorAll('.admin-overview-actions button')].map(element => text(element)),
         commandBarHeight: document.querySelector('.admin-command-bar')?.getBoundingClientRect().height ?? 0,
         commandLogoSize: document.querySelector('.admin-command-logo')?.getBoundingClientRect().width ?? 0,
         hasRedundantAccessStatus: Boolean(document.querySelector('.admin-system-pulse')),
-        emptyClicksStatus: document.querySelector('.admin-referral-clicks [role="status"]')?.textContent?.trim() || '',
-        dashboardColumns: getComputedStyle(document.querySelector('.admin-dashboard-grid')).gridTemplateColumns.split(/\s+/).length,
+        overviewColumns: getComputedStyle(document.querySelector('.admin-overview-grid')).gridTemplateColumns.split(/\s+/).length,
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
         shellAfterBackground: shell ? getComputedStyle(shell, '::after').backgroundImage : '',
       };
     });
-    if (state.stats.length !== 4) failures.push(`admin dashboard [${device}]: expected 4 KPI cards, got ${state.stats.length}`);
-    const expectedStats = [
-      { label: 'Контент', value: '2', detail: 'статей · 1 артов' },
-      { label: 'Аудитория', value: '4', detail: 'платных Boosty · Telegram 1' },
-      { label: 'Конкурсы', value: '1', detail: '3 заявок' },
-      { label: 'Кампании', value: '1', detail: '7 переходов' },
+    const expectedAlerts = [
+      { severity: 'is-critical', title: 'Срочно: Бот не видит VIP-группу Telegram -5077378176', action: 'Открыть Telegram' },
+      { severity: 'is-warning', title: 'Внимание: 1 ручной доступ истекает в ближайшие 7 дней', action: 'Показать' },
     ];
-    for (const [index, expected] of expectedStats.entries()) {
-      if (JSON.stringify(state.stats[index]) !== JSON.stringify(expected)) {
-        failures.push(`admin dashboard [${device}]: KPI ${index + 1} mismatch ${JSON.stringify(state.stats[index])}`);
-      }
+    if (JSON.stringify(state.alerts) !== JSON.stringify(expectedAlerts)) {
+      failures.push(`admin overview [${device}]: alerts mismatch ${JSON.stringify(state.alerts)}`);
     }
-    if (state.quickActions.length !== 9) failures.push(`admin dashboard [${device}]: expected 9 quick actions, got ${state.quickActions.length}`);
+    const expectedKpis = [
+      { label: 'Платят сейчас', value: '1' },
+      { label: 'Выручка за 30 дней', value: '2 500 ₽' },
+      { label: 'Новые пользователи', value: '2' },
+      { label: 'Потеряли доступ', value: '0' },
+    ];
+    if (JSON.stringify(state.kpis) !== JSON.stringify(expectedKpis)) {
+      failures.push(`admin overview [${device}]: KPI mismatch ${JSON.stringify(state.kpis)}`);
+    }
+    if (state.sparklines !== 3) failures.push(`admin overview [${device}]: expected 3 sparklines, got ${state.sparklines}`);
+    if (state.activity.length !== 2 || !state.activity[0].includes('Новый пользователь')) {
+      failures.push(`admin overview [${device}]: activity feed mismatch ${JSON.stringify(state.activity)}`);
+    }
+    if (state.quickActions.length !== 6) failures.push(`admin overview [${device}]: expected 6 quick actions, got ${state.quickActions.length}`);
     const commandBarHeight = device === 'desktop' ? 84 : 56;
     const commandLogoSize = 0;
     if (state.commandBarHeight !== commandBarHeight || state.commandLogoSize !== commandLogoSize || state.hasRedundantAccessStatus) {
-      failures.push(`admin dashboard [${device}]: compact command bar regressed (${JSON.stringify(state)})`);
+      failures.push(`admin overview [${device}]: compact command bar regressed (${JSON.stringify(state)})`);
     }
-    if (state.dashboardColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin dashboard [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.dashboardColumns}`);
-    if (!state.emptyClicksStatus.includes('Переходов пока нет')) failures.push(`admin dashboard [${device}]: recent-click empty state is not exposed`);
-    if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin dashboard [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
+    if (state.overviewColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin overview [${device}]: expected ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.overviewColumns}`);
+    if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin overview [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
     // The Vite build renders admin inside the wooden public shell; the Next.js
     // admin page has its own full-screen workspace without that shell.
     if (RENDERER === 'legacy'
       && (state.shellAfterBackground === 'none' || !state.shellAfterBackground.includes('linear-gradient'))) {
-      failures.push(`admin dashboard [${device}]: admin shell background overlay was lost`);
+      failures.push(`admin overview [${device}]: admin shell background overlay was lost`);
     }
-    const violationCount = await auditAccessibility(page, `admin dashboard [${device}]`, '.admin-workspace-content');
+    const violationCount = await auditAccessibility(page, `admin overview [${device}]`, '.admin-workspace-content');
+    // An alert action opens the people list already filtered to the right segment.
     await page.evaluate(() => {
-      const button = [...document.querySelectorAll('.admin-quick-actions button')]
-        .find(element => element.textContent?.trim() === 'Добавить статью');
-      if (!(button instanceof HTMLButtonElement)) throw new Error('Add article quick action is missing');
+      const button = [...document.querySelectorAll('.admin-overview-alerts button')].find(element => element.textContent?.trim() === 'Показать');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Expiring-access alert action is missing');
+      button.click();
+    });
+    await page.waitForFunction(() => document.querySelector('#admin-section-title')?.textContent?.trim() === 'Пользователи');
+    await page.waitForFunction(() => document.querySelector('.admin-crm-segment[aria-pressed="true"]')?.textContent?.includes('Истекает'));
+    await page.goto(`${BASE}/admin?section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.admin-overview-actions button', { timeout: 20_000 });
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll('.admin-overview-actions button')]
+        .find(element => element.textContent?.trim() === 'Написать статью');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Write article quick action is missing');
       button.click();
     });
     await page.waitForFunction(() => document.querySelector('#admin-section-title')?.textContent?.trim() === 'Статьи');
     if (!new URL(page.url()).searchParams.has('section') || !page.url().includes('section=articles')) {
-      failures.push(`admin dashboard [${device}]: quick navigation did not update URL`);
+      failures.push(`admin overview [${device}]: quick navigation did not update URL`);
     }
     await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 2);
     await page.click('.admin-article-row button:not(.admin-danger-button)');
@@ -2607,6 +2619,7 @@ for (const [device, viewport] of [
       ['fun-decks', 'Фановые колоды', '.admin-standard-operations', '.admin-fun-decks__stats strong', '0'],
       ['api-keys', 'Public API', '.admin-api-keys', '.admin-api-key-empty', 'Ключей пока нет'],
       ['referrals', 'Реферальная ссылка', '.admin-referral-layout', '.admin-referral-row strong', 'QA campaign'],
+      ['money', 'Деньги', '.admin-money', '.admin-money-kpis dt', 'Получено всего'],
     ];
     let previouslyUncoveredViolationCount = 0;
     for (const [section, heading, selector, loadedSelector, loadedText] of previouslyUncoveredSections) {
