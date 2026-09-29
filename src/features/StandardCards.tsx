@@ -1058,6 +1058,20 @@ const cardIdentityFacts = (card: CardRecord, format: CardFormat) => [
   { label: 'ID карты', value: <><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</> },
 ];
 
+// Another card starts at its top. Loading the same card again (the full
+// detail after the server-rendered seed, a period or rank change) keeps the
+// reader where they scrolled.
+function useScrollToTopOnCardChange(shownCardId: string | null) {
+  const previousShownCardIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const previousCardId = previousShownCardIdRef.current;
+    if (shownCardId) previousShownCardIdRef.current = shownCardId;
+    if (!shownCardId || !previousCardId || previousCardId === shownCardId) return undefined;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+    return () => cancelAnimationFrame(frame);
+  }, [shownCardId]);
+}
+
 function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
   const [period, setPeriod] = useConstructedCardPeriod(initialSearch);
   const [rank, setRank] = useConstructedCardRank(initialSearch);
@@ -1156,18 +1170,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     void load();
     return () => { cancelled = true; };
   }, [cardId, format, period, rank, reloadToken, statsAccess, statsFormat, initialCard]);
-  const shownCardId = card?.card_id ?? null;
-  const previousShownCardIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    const previousCardId = previousShownCardIdRef.current;
-    if (shownCardId) previousShownCardIdRef.current = shownCardId;
-    // Another card starts at its top. Loading the same card again (the full
-    // detail after the server-rendered seed, a period or rank change) keeps
-    // the reader where they scrolled.
-    if (!shownCardId || !previousCardId || previousCardId === shownCardId) return undefined;
-    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
-    return () => cancelAnimationFrame(frame);
-  }, [shownCardId]);
+  useScrollToTopOnCardChange(card?.card_id ?? null);
   useEffect(() => {
     if (!card) return;
     const name = cardName(card);
