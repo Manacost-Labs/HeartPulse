@@ -232,18 +232,22 @@ which skips the KolodaHearthstone article catalogue.
 ## Referral funnel (phase 3)
 
 Clicks on campaign links (`/r/:slug` and `POST /api/referrals/track/:slug`)
-now also set a first-party cookie `hp_ref=<referralId>.<clickId>.<clickedAtMs>`
+also set a first-party cookie `hp_ref=<referralId>.<clickId>.<signature>`
 (`Path=/`, `Max-Age` 30 days, `HttpOnly`, `SameSite=Lax`, `Secure` on
-https). No personal data is stored in it.
+https). The signature is an HMAC-SHA256 of `<referralId>.<clickId>` keyed with
+the referral IP-hash salt. No personal data is stored in it.
 
-`server/referralAttribution.ts` runs as an `/api/` middleware. When a request
-carries the cookie and is authenticated, the account is linked to the
-campaign in `user_referrals(user_id, referral_id, click_id, clicked_at,
-attributed_at)` if it was created no earlier than ten minutes before the
-click, and the cookie is cleared either way. Existing accounts and unknown or
-malformed cookies are never attributed; a first attribution is never
-overwritten. Anonymous requests keep the cookie until sign-in. Registration
-code paths are untouched, so every sign-up method is covered.
+`server/referralAttribution.ts` runs only on `GET /api/auth/me`, the session
+check both frontends make on load, so other requests pay nothing. A cookie
+with a bad signature is cleared before any session lookup. For a signed-in
+visitor the click is looked up in `referral_clicks`; the account is linked in
+`user_referrals(user_id, referral_id, click_id, clicked_at, attributed_at)`
+only if the link is active and the recorded click happened no later than ten
+minutes after the account was created. The click time always comes from the
+database, never from the cookie. The cookie is then cleared whether or not an
+attribution was made, and a first attribution is never overwritten.
+Anonymous visitors keep the cookie until they sign in. Registration code
+paths are untouched, so every sign-up method is covered.
 
 `GET /api/admin/referrals` adds `registrations` and `payingNow` (provider
 access or an active manual grant) per link, and the referral section shows

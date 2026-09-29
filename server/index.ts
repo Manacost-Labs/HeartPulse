@@ -7324,7 +7324,7 @@ app.use('/api/', (req, res, next) => {
   if (cookieMutationCsrfAllowed(req)) return next();
   return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
 });
-app.use('/api/', createReferralAttributionMiddleware(() => ({ getDatabase: db, userAuth, cookieSecure: telegramOidcCookieSecure })));
+app.use('/api/auth/me', createReferralAttributionMiddleware(() => ({ ...referralRouterDependencies, userAuth })));
 
 app.use(createUploadAuthorizationGuard({
   galleryAccessStatus: req => {

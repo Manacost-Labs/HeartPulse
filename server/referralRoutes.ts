@@ -81,7 +81,7 @@ function trackReferralClick(
 
 type Tracked = NonNullable<ReturnType<typeof trackReferralClick>>;
 function rememberReferral(dependencies: ReferralRouterDependencies, request: Request, response: Parameters<RequestHandler>[1], referral: Tracked): void {
-  setReferralCookie(response, referral, dependencies.cookieSecure?.(request) ?? dependencies.appUrl.startsWith('https://'));
+  setReferralCookie(response, referral, dependencies.cookieSecure?.(request) ?? dependencies.appUrl.startsWith('https://'), dependencies.ipHashSalt);
 }
 
 function setReferralDocumentHeaders(response: Parameters<RequestHandler>[1]): void {

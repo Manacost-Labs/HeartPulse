@@ -2354,7 +2354,7 @@
     {
       "kind": "middleware",
       "paths": [
-        "/api/"
+        "/api/auth/me"
       ],
       "receiver": "app",
       "handlers": [

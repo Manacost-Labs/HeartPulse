@@ -8,6 +8,7 @@ import {
   REFERRAL_COOKIE,
   createReferralAttributionMiddleware,
   parseReferralCookie,
+  signReferralCookie,
 } from '../server/referralAttribution.js';
 
 const database = new DatabaseSync(':memory:');
@@ -47,14 +48,17 @@ const dependencies = {
 
 const app = express();
 app.use(express.json());
-app.use('/api', createReferralAttributionMiddleware(() => ({
+let authLookups = 0;
+// Mounted on the session check only, as in server/index.ts.
+app.use('/api/auth/me', createReferralAttributionMiddleware(() => ({
   getDatabase: () => database,
-  userAuth: request => users.get(String(request.headers['x-user'] || '')) ?? null,
+  userAuth: request => { authLookups += 1; return users.get(String(request.headers['x-user'] || '')) ?? null; },
   cookieSecure: () => true,
+  ipHashSalt: 'salt',
 })));
+app.get('/api/auth/me', (_request, response) => response.json({ ok: true }));
 app.get('/r/:slug', createReferralRedirectHandler(dependencies));
 app.use('/api', createReferralRouter(dependencies));
-app.get('/api/ping', (_request, response) => response.json({ ok: true }));
 
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
@@ -68,29 +72,36 @@ try {
   const redirect = await fetch(`${base}/r/youtube`, { redirect: 'manual' });
   assert.equal(redirect.status, 302);
   const set = cookieOf(redirect);
-  assert.match(set, /^hp_ref=ref_yt\.1\.\d+;/);
+  assert.match(set, /^hp_ref=ref_yt\.1\.[A-Za-z0-9_-]{22};/);
   for (const attribute of ['Path=/', 'Max-Age=2592000', 'HttpOnly', 'SameSite=Lax', 'Secure']) assert.ok(set.includes(attribute), attribute);
   const cookie = set.split(';')[0];
-  assert.deepEqual(parseReferralCookie(cookie.split('=')[1]), { referralId: 'ref_yt', clickId: 1, clickedAt: clickTime.getTime() });
-  assert.equal(parseReferralCookie('garbage'), null);
-  assert.equal(parseReferralCookie('ref.x.1'), null);
+  assert.deepEqual(parseReferralCookie(cookie.split('=')[1], 'salt'), { referralId: 'ref_yt', clickId: 1 });
+  assert.equal(parseReferralCookie(cookie.split('=')[1], 'other-secret'), null);
+  assert.equal(parseReferralCookie('garbage', 'salt'), null);
+  assert.equal(parseReferralCookie('ref_yt.1.AAAAAAAAAAAAAAAAAAAAAA', 'salt'), null);
 
   const tracked = await fetch(`${base}/api/referrals/track/youtube`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   assert.match(cookieOf(tracked), /^hp_ref=ref_yt\.2\./);
+  const secondClick = cookieOf(tracked).split(';')[0];
+
+  // Other API paths never run the attribution lookup.
+  authLookups = 0;
+  await fetch(`${base}/api/admin/referrals`, { headers: { Cookie: cookie } });
+  assert.equal(authLookups, 0);
 
   // Anonymous visitors keep the cookie until they sign in.
-  const anonymous = await fetch(`${base}/api/ping`, { headers: { Cookie: cookie } });
+  const anonymous = await fetch(`${base}/api/auth/me`, { headers: { Cookie: cookie } });
   assert.equal(cookieOf(anonymous), '');
 
   // An account created long before the click is not a registration from this campaign.
   addUser('old-user', '2026-01-01T00:00:00.000Z');
-  const old = await fetch(`${base}/api/ping`, { headers: { Cookie: cookie, 'X-User': 'old-user' } });
+  const old = await fetch(`${base}/api/auth/me`, { headers: { Cookie: cookie, 'X-User': 'old-user' } });
   assert.match(cookieOf(old), /Max-Age=0/);
   assert.equal((database.prepare('SELECT COUNT(*) AS count FROM user_referrals').get() as { count: number }).count, 0);
 
   // A new account is attributed once and the cookie is cleared.
   addUser('new-user', '2026-09-20T12:03:00.000Z');
-  const fresh = await fetch(`${base}/api/ping`, { headers: { Cookie: cookie, 'X-User': 'new-user' } });
+  const fresh = await fetch(`${base}/api/auth/me`, { headers: { Cookie: cookie, 'X-User': 'new-user' } });
   assert.equal(fresh.status, 200);
   assert.match(cookieOf(fresh), /Max-Age=0/);
   const row = database.prepare('SELECT * FROM user_referrals WHERE user_id = ?').get('new-user') as Record<string, unknown>;
@@ -98,19 +109,32 @@ try {
   assert.equal(row.click_id, 1);
   assert.equal(row.clicked_at, clickTime.toISOString());
 
-  // A later click from another campaign does not overwrite the first attribution.
-  database.prepare(`INSERT INTO referral_links (id, slug, label, created_by, created_at, updated_at) VALUES ('ref_tw', 'twitch', 'Twitch', 'admin', ?, ?)`).run(clickTime.toISOString(), clickTime.toISOString());
-  await fetch(`${base}/api/ping`, { headers: { Cookie: `hp_ref=ref_tw.9.${clickTime.getTime()}`, 'X-User': 'new-user' } });
-  assert.equal((database.prepare('SELECT referral_id FROM user_referrals WHERE user_id = ?').get('new-user') as { referral_id: string }).referral_id, 'ref_yt');
+  // A later valid click does not overwrite the first attribution.
+  await fetch(`${base}/api/auth/me`, { headers: { Cookie: secondClick, 'X-User': 'new-user' } });
+  assert.equal((database.prepare('SELECT click_id FROM user_referrals WHERE user_id = ?').get('new-user') as { click_id: number }).click_id, 1);
 
-  // Unknown campaigns and malformed values are dropped without failing the request.
+  // Forged or tampered cookies are dropped before any session lookup and never attribute.
   addUser('third-user', '2026-09-20T12:05:00.000Z');
-  const unknown = await fetch(`${base}/api/ping`, { headers: { Cookie: `hp_ref=ref_gone.1.${clickTime.getTime()}`, 'X-User': 'third-user' } });
-  assert.equal(unknown.status, 200);
-  assert.match(cookieOf(unknown), /Max-Age=0/);
+  authLookups = 0;
+  for (const forged of ['hp_ref=ref_yt.1.AAAAAAAAAAAAAAAAAAAAAA', 'hp_ref=ref_yt.1.1000000000000', 'hp_ref=junk']) {
+    const response = await fetch(`${base}/api/auth/me`, { headers: { Cookie: forged, 'X-User': 'third-user' } });
+    assert.equal(response.status, 200);
+    assert.match(cookieOf(response), /Max-Age=0/);
+  }
+  assert.equal(authLookups, 0);
   assert.equal(database.prepare('SELECT 1 FROM user_referrals WHERE user_id = ?').get('third-user'), undefined);
 
+  // A signed cookie for a click that does not exist, or for a paused link, attributes nothing.
+  const signed = (value: string) => `hp_ref=${value}.${signReferralCookie(value, 'salt')}`;
+  const missing = await fetch(`${base}/api/auth/me`, { headers: { Cookie: signed('ref_yt.999'), 'X-User': 'third-user' } });
+  assert.match(cookieOf(missing), /Max-Age=0/);
+  database.prepare(`UPDATE referral_links SET status = 'paused' WHERE id = 'ref_yt'`).run();
+  await fetch(`${base}/api/auth/me`, { headers: { Cookie: secondClick, 'X-User': 'third-user' } });
+  assert.equal(database.prepare('SELECT 1 FROM user_referrals WHERE user_id = ?').get('third-user'), undefined);
+  database.prepare(`UPDATE referral_links SET status = 'active' WHERE id = 'ref_yt'`).run();
+
   // The campaign list reports registrations and people with access next to clicks.
+  database.prepare(`INSERT INTO referral_links (id, slug, label, created_by, created_at, updated_at) VALUES ('ref_tw', 'twitch', 'Twitch', 'admin', ?, ?)`).run(clickTime.toISOString(), clickTime.toISOString());
   database.prepare('INSERT INTO subscriptions (user_id, has_access) VALUES (?, 1)').run('new-user');
   const list = await fetch(`${base}/api/admin/referrals`, { headers: { 'X-Test-User': 'admin' } });
   const payload = await list.json() as { referrals: Array<{ id: string; clicks: number; registrations: number; payingNow: number }> };
