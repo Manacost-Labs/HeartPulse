@@ -386,16 +386,17 @@ Retire each Vite dependency at its actual owner, in this order:
    metadata/status tests. Move bundle checks from `dist/.vite/manifest.json`
    in `scripts/check-budgets.js` to the Next build output. Update local browser
    QA scripts and their error-overlay checks to run against Next.
-5. Move URLs currently served from Vite `dist` into a reviewed Next/Nginx
-   asset contract. Update `deploy/nginx/arena-html-routing.conf`,
-   `arena-cdn-public-static.conf`, `deploy/activate-arena-static.sh`,
-   `deploy/monitor-arena-geodns.sh` and `deploy/nginx-paths.conf.example` as
-   their real dependencies require. Retain old hashed `/assets/` files for the
-   CDN and rollback window; preserve the Yandex verification URL.
-6. Make release creation, checksums, the CI artifact, the deployer and rollback
-   accept a Next-only HTML artifact. Remove their `dist/index.html` requirement
-   only after the deployed N and N-1 releases are compatible with the new
-   Nginx contract. Validate the real origin and edge role files before rollout.
+5. Done on 2026-09-29: `dist/` stays the static-root path shared by Nginx,
+   regional edges, the deployer and Express, but `npm run build:static`
+   (`scripts/build-static-root.mjs`) now assembles it without Vite from
+   `public/`, the JSON route and SEO registries and a `noindex` placeholder
+   entry document. The sitemap artifacts moved there from the prerender.
+   Keeping the path avoids changing root-owned Nginx, deployer and edge-sync
+   contracts; the deployer keeps carrying old hashed `/assets/` forward.
+6. Done on 2026-09-29: `release:create` checks the release SHA in the Next
+   client bundle and checks the legacy entry only while one exists. After the
+   gate, dropping `vite build` and the prerender from `npm run build` leaves a
+   valid static root; no Nginx, deployer or edge change is required for it.
 7. Remove `index.html`, `src/main.tsx`, `vite.config.ts`,
    `src/vite-env.d.ts`, direct Vite packages and obsolete scripts. Drain and
    delete `src/App.tsx` only after its remaining route behavior has a module

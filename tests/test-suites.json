@@ -122,6 +122,7 @@
         "tests/page-tour-registry.test.ts",
         "tests/page-tour.test.ts",
         "tests/prerender-seo.test.mjs",
+        "tests/build-static-root.test.mjs",
         "tests/process-lifecycle.test.ts",
         "tests/production-observer.test.mjs",
         "tests/public-api-arena-statistics.test.ts",

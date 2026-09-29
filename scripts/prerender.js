@@ -1,22 +1,9 @@
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
+import { createPublicSeoModel } from './lib/public-seo-model.mjs';
 
-const PUBLIC_ROUTE_INVENTORY = JSON.parse(readFileSync(
-  resolve(process.cwd(), 'src/shared/seo/publicRouteInventory.json'),
-  'utf8',
-));
-if (PUBLIC_ROUTE_INVENTORY.schemaVersion !== 1) {
-  throw new Error(`[prerender] Unsupported public route inventory version: ${PUBLIC_ROUTE_INVENTORY.schemaVersion}`);
-}
-const PUBLIC_SEO_REGISTRY = JSON.parse(readFileSync(
-  resolve(process.cwd(), 'config/public-seo-pages.json'),
-  'utf8',
-));
-if (PUBLIC_SEO_REGISTRY.schemaVersion !== 1
-  || !PUBLIC_SEO_REGISTRY.pages
-  || typeof PUBLIC_SEO_REGISTRY.pages !== 'object') {
-  throw new Error(`[prerender] Unsupported public SEO registry version: ${PUBLIC_SEO_REGISTRY.schemaVersion}`);
-}
+const PUBLIC_SEO = createPublicSeoModel();
+const PUBLIC_ROUTE_INVENTORY = PUBLIC_SEO.inventory;
 const SITE_URL = PUBLIC_ROUTE_INVENTORY.canonicalOrigin;
 const TODAY = new Date().toISOString().split('T')[0];
 const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
@@ -40,28 +27,8 @@ function renderLegalNoscript(kind) {
   return `<h1>${escapeHtml(page.title)} HearthPulse</h1><p>Актуальная редакция от ${escapeHtml(LEGAL_PAGES.updatedAt)}.</p>${sections}<p><a href="${otherPath}">${escapeHtml(otherTitle)}</a> | <a href="/">На главную</a></p>`;
 }
 
-function renderSeoTemplate(value) {
-  return String(value).replace(/\{([a-z]+)\}/g, (_match, token) => {
-    if (token === 'year') return String(new Date().getUTCFullYear());
-    throw new Error(`[prerender] Unsupported SEO template token: {${token}}`);
-  });
-}
-
-const SEO_PAGES = new Map(Object.entries(PUBLIC_SEO_REGISTRY.pages).map(([pathname, page]) => {
-  const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
-  if (!pathname.startsWith('/') || pathname !== normalizedPathname || /[?#]/.test(pathname)
-    || !page || typeof page.policyRouteId !== 'string' || !page.policyRouteId.trim()
-    || typeof page.title !== 'string' || page.title.trim().length < 10
-    || typeof page.description !== 'string' || page.description.trim().length < 40
-    || typeof page.sitemap !== 'boolean') {
-    throw new Error(`[prerender] Invalid public SEO page: ${pathname}`);
-  }
-  return [pathname, {
-    ...page,
-    title: renderSeoTemplate(page.title.trim()),
-    description: renderSeoTemplate(page.description.trim()),
-  }];
-}));
+const SEO_PAGES = PUBLIC_SEO.seoPages;
+const { normalizePathname, resolvePathPolicy, canonicalUrlFor } = PUBLIC_SEO;
 
 const PAGES = {
   '/': {
@@ -923,91 +890,12 @@ function assertSeoMaterializationContract() {
   }
 }
 
-function escapeXml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&apos;');
-}
-
-function generateStaticSitemapXml() {
-  const urls = [...SEO_PAGES.entries()]
-    .filter(([, page]) => page.sitemap)
-    .map(([pathname]) => {
-      const canonical = canonicalUrlFor(pathname, resolvePathPolicy(pathname));
-      if (!canonical) throw new Error(`[prerender] Sitemap page has no canonical URL: ${pathname}`);
-      return `  <url><loc>${escapeXml(canonical)}</loc></url>`;
-    });
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
-}
-
-function generateSitemapIndexXml() {
-  const locations = [
-    `${SITE_URL}/sitemaps/static.xml`,
-    `${SITE_URL}/sitemaps/standard-cards.xml`,
-    `${SITE_URL}/sitemaps/wild-cards.xml`,
-    `${SITE_URL}/sitemaps/battleground-minions.xml`,
-    `${SITE_URL}/sitemaps/battleground-spells.xml`,
-    `${SITE_URL}/sitemaps/battleground-heroes.xml`,
-  ];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.map(location => `  <sitemap><loc>${escapeXml(location)}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`;
-}
-
 const API_BASE = process.env.PRERENDER_API || 'http://127.0.0.1:3101';
-
-function normalizePathname(pathname) {
-  const withoutQuery = String(pathname || '/').split(/[?#]/, 1)[0] || '/';
-  const absolute = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
-  return absolute.replace(/\/+$/, '') || '/';
-}
-
-function routeMatchesPath(route, pathname) {
-  if (route.kind === 'fallback') return true;
-  const templateParts = route.pattern === '/' ? [] : route.pattern.slice(1).split('/');
-  const pathParts = pathname === '/' ? [] : pathname.slice(1).split('/');
-  const catchAll = templateParts.at(-1)?.endsWith('*') ?? false;
-  if ((!catchAll && templateParts.length !== pathParts.length)
-    || (catchAll && pathParts.length < templateParts.length - 1)) return false;
-
-  return templateParts.every((templatePart, index) => {
-    if (!templatePart.startsWith(':')) return templatePart === pathParts[index];
-    if (templatePart.endsWith('*')) return true;
-    let value;
-    try {
-      value = decodeURIComponent(pathParts[index] || '');
-    } catch {
-      return false;
-    }
-    if (!value) return false;
-    const constraint = route.pathParameters?.[templatePart.slice(1)];
-    if (constraint?.allowedValues && !constraint.allowedValues.includes(value)) return false;
-    if (constraint?.pattern && !new RegExp(constraint.pattern).test(value)) return false;
-    return true;
-  });
-}
-
-function resolvePathPolicy(pathname) {
-  const normalizedPathname = normalizePathname(pathname);
-  const route = PUBLIC_ROUTE_INVENTORY.routes.find(candidate => routeMatchesPath(candidate, normalizedPathname));
-  if (!route) throw new Error(`[prerender] No public URL policy for ${normalizedPathname}`);
-  return { ...route, normalizedPathname };
-}
 
 function robotsContent(indexPolicy) {
   if (indexPolicy === 'noindex-nofollow') return 'noindex, nofollow';
   if (indexPolicy === 'noindex-follow') return 'noindex, follow';
   return 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
-}
-
-function canonicalUrlFor(pathname, policy) {
-  if (policy.canonicalPolicy === 'none') return null;
-  const path = normalizePathname(pathname);
-  const canonicalPath = path === '/' || PUBLIC_ROUTE_INVENTORY.canonicalTrailingSlash !== 'always'
-    ? path
-    : `${path}/`;
-  return `${SITE_URL}${canonicalPath}`;
 }
 
 async function fetchJson(url) {
@@ -1352,12 +1240,6 @@ async function main() {
     { ...notFoundPolicy, normalizedPathname: '/404' },
     resolve(distDir, '404.html'),
   );
-
-  const sitemapDirectory = resolve(distDir, 'sitemaps');
-  mkdirSync(sitemapDirectory, { recursive: true });
-  writeFileSync(resolve(sitemapDirectory, 'static.xml'), generateStaticSitemapXml(), 'utf-8');
-  writeFileSync(resolve(distDir, 'sitemap.xml'), generateSitemapIndexXml(), 'utf-8');
-  console.log(`[prerender] ✓ sitemap index + static segment (${[...SEO_PAGES.values()].filter(page => page.sitemap).length} static URLs)`);
 
   makePublicReadable(distDir);
   console.log('[prerender] ✓ Fixed dist/ permissions');

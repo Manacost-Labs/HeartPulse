@@ -140,10 +140,20 @@ schema v2 also carries every versioned nginx contract file, its origin/edge
 role, installation path, individual hash and one aggregate contract hash. The
 manifest additionally checksums the versioned operational scripts and systemd
 units shipped with the artifact.
-`RELEASE_SHA` (or GitHub Actions' `GITHUB_SHA`) is compiled into the Vite entry
-chunk. This changes its content hash on every release and lets all imports use
-one canonical module URL; `release:create` rejects a bundle that does not
-contain the requested SHA.
+`RELEASE_SHA` (or GitHub Actions' `GITHUB_SHA`) is compiled into the Next.js
+client bundle, which reports it with client incidents; `release:create` rejects
+a Next build that does not contain the requested SHA. While the legacy Vite
+entry is still built, the same check applies to its entry chunk.
+
+The `dist/` static root is assembled by `npm run build:static`
+(`scripts/build-static-root.mjs`) without Vite: it copies `public/`, writes the
+sitemap index and the static sitemap segment from the JSON route and SEO
+registries, and adds a `noindex` placeholder entry document when no legacy
+entry exists. Nginx serves static files from this tree, edges sync it, the
+deployer and edge sync require its entry document, and Express reads
+`dist/sitemaps/static.xml`. Until the Vite retirement, `npm run build` still
+runs `vite build` first and the legacy prerender afterwards; neither owns a
+file that Next.js, Nginx or Express needs.
 
 Before any deployment, compare the immutable release contract with the files
 actually installed on the target host. The verifier is strictly read-only: it
