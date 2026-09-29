@@ -23,7 +23,7 @@ const AccountRoute = dynamic(() => import('@/src/modules/accountRoute/public'), 
 
 export function ApplicationConnectPageClient() {
   const access = usePublicAccess();
-  return <PublicPageShell activeTab="home" pathname="/connect/" access={access} navigate={navigate}>
+  return <PublicPageShell activeTab="home" pathname="/connect/" account access={access} navigate={navigate}>
     <Suspense fallback={<ConnectLoading />}>
       <AccountRoute connect profileId={null} user={access.user} checking={access.checking}
         onChange={access.onAuthChange} />

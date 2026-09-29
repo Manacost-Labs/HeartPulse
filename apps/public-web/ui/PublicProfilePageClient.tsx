@@ -10,7 +10,7 @@ const PublicProfileCard = dynamic(loadPublicProfileCard);
 
 export function PublicProfilePageClient({ profile, pathname }: { profile: PublicProfile; pathname: string }) {
   const access = usePublicAccess();
-  return <PublicPageShell activeTab="home" pathname={pathname} access={access} navigate={navigate}>
+  return <PublicPageShell activeTab="home" pathname={pathname} account access={access} navigate={navigate}>
     <div className="public-profile-page">
       <PublicProfileCard profile={profile} onCopyLink={() => navigator.clipboard.writeText(
         new URL(publicProfilePath(profile.publicProfileId), window.location.origin).href,

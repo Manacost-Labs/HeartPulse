@@ -18,7 +18,8 @@ export function HomePageClient({ summary, articles, login }: {
   login: boolean;
 }) {
   const access = usePublicAccess();
-  return <PublicPageShell activeTab="home" pathname={login ? '/profile/' : '/'} access={access} navigate={navigate}>
+  return <PublicPageShell activeTab="home" pathname={login ? '/profile/' : '/'} account={login}
+    access={access} navigate={navigate}>
     {login ? <ReaderAccountRoute connect={false} profileId={null} user={access.user}
       checking={access.checking} onChange={access.onAuthChange} />
       : <HomeTab homeSummaryData={summary} loadingHomeSummary={false} articles={articles}
