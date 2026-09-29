@@ -12,6 +12,7 @@ import { createQaApiHandler, qaSessionFromCookie } from './mockApi.mjs';
 export async function startQaBackend({ distDir }) {
   // Server-rendering scenario state; every browser page keeps its own.
   const serverState = {};
+  const reportedGaps = new Set();
   let origin = '';
   let notFoundOrigin = '';
   const app = express();
@@ -30,8 +31,10 @@ export async function startQaBackend({ distDir }) {
       response.end(answer.body ?? '');
     });
     if (!answered) {
-      // Logged so a fixture gap is visible; the page sees an ordinary miss.
-      console.warn(`[qa-backend] no fixture for ${request.method} ${url.pathname}`);
+      // Logged once so a fixture gap is visible; the page sees an ordinary miss.
+      const gap = `${request.method} ${url.pathname}`;
+      if (!reportedGaps.has(gap)) console.warn(`[qa-backend] no fixture for ${gap}`);
+      reportedGaps.add(gap);
       response.status(404).json({ error: 'Not found' });
     }
   });
