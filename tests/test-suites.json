@@ -345,6 +345,7 @@
         "tests/mobile-layout-diagnostics.test.mjs",
         "tests/modal-surface-browser.test.mjs",
         "tests/next-admin-entitlements-browser.test.mjs",
+        "tests/next-arena-guest-paywall-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",
         "tests/next-admin-archetypes-browser.test.mjs",
         "tests/next-not-found-browser.test.mjs",
