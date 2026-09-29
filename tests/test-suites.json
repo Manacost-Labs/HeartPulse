@@ -115,6 +115,7 @@
         "tests/newsletter-template-design-contract.test.ts",
         "tests/next-bg-library-card-data.test.ts",
         "tests/next-import-paths.test.mjs",
+        "tests/next-seo-page-metadata.test.ts",
         "tests/next-cosmetics-listing.test.ts",
         "tests/next-public-archetype-teaser.test.ts",
         "tests/next-public-card-seed.test.ts",
