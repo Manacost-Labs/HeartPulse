@@ -361,6 +361,7 @@
         "tests/next-standard-guest-paywall-browser.test.mjs",
         "tests/next-modal-isolation-browser.test.mjs",
         "tests/next-support-prompt-browser.test.mjs",
+        "tests/next-home-hydration-browser.test.mjs",
         "tests/next-card-scroll-position-browser.test.mjs",
         "tests/next-account-surface-browser.test.mjs",
         "tests/next-soft-paywall-requests-browser.test.mjs",
