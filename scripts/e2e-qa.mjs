@@ -491,7 +491,7 @@ async function inspectLayout(page, { mobile }) {
     const bannerStyle = banner ? getComputedStyle(banner) : null;
     const suspiciousOverlays = [...document.querySelectorAll('body *')]
       .map(element => ({ element, style: getComputedStyle(element), rect: element.getBoundingClientRect() }))
-      .filter(({ style, rect }) => (
+      .filter(({ element, style, rect }) => (
         ['fixed', 'absolute'].includes(style.position)
         && rect.width >= innerWidth * 0.8
         && rect.height >= innerHeight * 0.8
@@ -4447,12 +4447,14 @@ for (const [device, viewport] of [
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForSelector('.home-latest-articles');
-    await page.waitForSelector('.home-bg-directory');
+    // Streaming server rendering can hold a section in a hidden chunk after the
+    // application root until React reveals it, so wait for the revealed copy.
+    await page.waitForSelector('#root .home-latest-articles', { visible: true });
+    await page.waitForSelector('#root .home-bg-directory', { visible: true });
     await page.$eval('[data-home-deferred-section="Арена"]', element => element.scrollIntoView({ block: 'center' }));
-    await page.waitForSelector('.home-arena-directory');
+    await page.waitForSelector('#root .home-arena-directory', { visible: true });
     await page.$eval('[data-home-deferred-section="Частые вопросы"]', element => element.scrollIntoView({ block: 'center' }));
-    await page.waitForSelector('.home-faq-zone');
+    await page.waitForSelector('#root .home-faq-zone', { visible: true });
     await page.waitForSelector('#faq-heading');
     await page.waitForSelector('.arena-footer__link');
     const homeLandmarks = await page.evaluate(() => ({
@@ -4543,7 +4545,7 @@ for (const [device, viewport] of [
       || desktopContentCanvas.backdrop !== 'none') {
       failures.push(`home content canvas: desktop contract changed (${JSON.stringify(desktopContentCanvas)})`);
     }
-    const desktopHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
+    const desktopHeading = await page.$eval('#root .home-latest-articles .home-section-heading', element => {
       const label = element.querySelector(':scope > div > span');
       const heading = element.querySelector('h2');
       const summary = element.querySelector(':scope > p');
@@ -5005,7 +5007,7 @@ for (const [device, viewport] of [
       || mobileContentCanvas.shadow !== 'none') {
       failures.push(`home content canvas: mobile contract changed (${JSON.stringify(mobileContentCanvas)})`);
     }
-    const mobileHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
+    const mobileHeading = await page.$eval('#root .home-latest-articles .home-section-heading', element => {
       const heading = element.querySelector('h2');
       const summary = element.querySelector(':scope > p');
       return {

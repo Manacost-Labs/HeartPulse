@@ -568,6 +568,11 @@ export function createQaApiHandler({
     const standardFixturePath = publicStandardFixtureAliases[url.pathname] || url.pathname;
     if ((admin || Boolean(publicStandardFixtureAliases[url.pathname])) && adminFixtures[standardFixturePath]) {
       const fixture = structuredClone(adminFixtures[standardFixturePath]);
+      if (standardFixturePath === '/api/admin/constructed-cards') {
+        // Like Express, a catalog names the format it was asked for; the
+        // Next.js catalog loader rejects a response for another format.
+        fixture.format = url.searchParams.get('format') === 'wild' ? 'wild' : 'standard';
+      }
       if (!authenticated && url.pathname === '/api/constructed-cards') {
         fixture.statsAccess = false;
         fixture.cards = fixture.cards.map(card => ({ ...card, stats: null }));
