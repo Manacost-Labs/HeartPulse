@@ -17,6 +17,24 @@ test can either hide a real regression or block a safe release.
 - Responsive fixtures may accept either paywall presentation, but a public
   content fixture must reject both.
 
+## Server-rendering fixtures
+
+- The fixtures live in `scripts/qa/fixtures.mjs`, and `scripts/qa/mockApi.mjs`
+  answers `/api` requests from them. Browser QA intercepts page requests with
+  that handler. Next.js server loaders reach it through the QA backend
+  (`scripts/qa/backend.mjs`), so server HTML and hydrated state describe the
+  same data.
+- A fixture must match the Express response shape that the Next.js validators
+  in `apps/public-web/lib/` check. Examples are the top-level access flags of
+  `/api/auth/me`, provider sources, catalog `period` and `dataStatus`, and the
+  anonymous card, archetype, hero and library projections.
+- Authenticated QA pages send `manacost_auth_token=qa-subscriber` or
+  `qa-admin` on each request. The backend resolves the fixture account from
+  that cookie, just as Express resolves a session.
+- A backend request without a fixture gets `404 {"error":"Not found"}` and is
+  logged once as `[qa-backend] no fixture for …`. Unknown pages get the Next.js
+  not-found document, like the production nginx fallback.
+
 ## Interaction fixtures
 
 - Constructed-card filters are accessible listboxes, not native `select`
