@@ -29,14 +29,11 @@ export type PaywallAccessState = Pick<
   'authUser' | 'subscriptionStatus' | 'subscriptionLoading' | 'onRefreshSubscription'
 >;
 
+// Paywall actions keep the 44px touch target required on phones.
 const ACTION_STYLE = {
-  background: 'rgba(37,99,235,0.08)',
-  color: '#1f3b63',
-  border: '1px solid #9db4d5',
-  borderRadius: '8px',
-  padding: '8px 12px',
-  fontSize: '13px',
-  cursor: 'pointer',
+  background: 'rgba(37,99,235,0.08)', color: '#1f3b63', border: '1px solid #9db4d5', borderRadius: '8px',
+  padding: '8px 12px', fontSize: '13px', cursor: 'pointer',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '44px', boxSizing: 'border-box',
 } as const;
 
 export default function PaywallGate({

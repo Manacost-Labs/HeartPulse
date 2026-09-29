@@ -17,7 +17,7 @@ export function BattlegroundHeroDetailPageClient({ hero }: { hero: PublicBattleg
     {allowed
       ? <BattlegroundHeroesRoute key={`${hero.dbfId}:${access.user?.id}`} path={pathname} onNavigate={navigate} />
       : <article className="space-y-5">
-        <a href="/heroes/" className="inline-flex rounded-md border border-[#d7b66a] px-3 py-2">Все герои</a>
+        <a href="/heroes/" className="inline-flex min-h-11 items-center rounded-md border border-[#d7b66a] px-3 py-2">Все герои</a>
         <header className="traditional-mode-banner">
           <div className="traditional-mode-banner__copy">
             <h1>{hero.name}</h1>

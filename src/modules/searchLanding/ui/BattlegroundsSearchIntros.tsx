@@ -10,9 +10,9 @@ export function BattlegroundsTierListSearchIntro() {
         откройте вкладку «Стратегии»; источник и время обновления указаны рядом с данными.
       </p>
       <nav className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm" aria-label="Связанные разделы Полей сражений">
-        <a className="font-semibold text-[#75451f] underline underline-offset-4" href="/battlegrounds/strategies">Конструктор стратегий БГ</a>
-        <a className="font-semibold text-[#75451f] underline underline-offset-4" href="/library">Библиотека Полей сражений</a>
-        <a className="font-semibold text-[#75451f] underline underline-offset-4" href="/heroes">Герои БГ</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#75451f] underline underline-offset-4" href="/battlegrounds/strategies">Конструктор стратегий БГ</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#75451f] underline underline-offset-4" href="/library">Библиотека Полей сражений</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#75451f] underline underline-offset-4" href="/heroes">Герои БГ</a>
       </nav>
     </div>
   );
@@ -28,9 +28,9 @@ export function BattlegroundsStrategyBuilderSearchIntro() {
         готовые направления игры сравниваются в отдельном тир-листе.
       </p>
       <nav className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm" aria-label="Связанные инструменты Полей сражений">
-        <a className="font-semibold text-[#75451f] underline underline-offset-4" href="/battlegrounds/tier-list">Тир-лист стратегий БГ</a>
-        <a className="font-semibold text-[#75451f] underline underline-offset-4" href="/library">Библиотека Полей сражений</a>
-        <a className="font-semibold text-[#75451f] underline underline-offset-4" href="/heroes">Герои БГ</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#75451f] underline underline-offset-4" href="/battlegrounds/tier-list">Тир-лист стратегий БГ</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#75451f] underline underline-offset-4" href="/library">Библиотека Полей сражений</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#75451f] underline underline-offset-4" href="/heroes">Герои БГ</a>
       </nav>
     </header>
   );
