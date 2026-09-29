@@ -1824,7 +1824,10 @@ for (const [device, viewport] of [
     if (state.dashboardColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin dashboard [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.dashboardColumns}`);
     if (!state.emptyClicksStatus.includes('Переходов пока нет')) failures.push(`admin dashboard [${device}]: recent-click empty state is not exposed`);
     if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin dashboard [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
-    if (state.shellAfterBackground === 'none' || !state.shellAfterBackground.includes('linear-gradient')) {
+    // The Vite build renders admin inside the wooden public shell; the Next.js
+    // admin page has its own full-screen workspace without that shell.
+    if (RENDERER === 'legacy'
+      && (state.shellAfterBackground === 'none' || !state.shellAfterBackground.includes('linear-gradient'))) {
       failures.push(`admin dashboard [${device}]: admin shell background overlay was lost`);
     }
     const violationCount = await auditAccessibility(page, `admin dashboard [${device}]`, '.admin-workspace-content');
@@ -4544,6 +4547,8 @@ for (const [device, viewport] of [
         labelColor: label ? getComputedStyle(label).color : '',
         headingColor: heading ? getComputedStyle(heading).color : '',
         summaryColor: summary ? getComputedStyle(summary).color : '',
+        // Diagnostic only: the parchment theme is scoped by the shell surface.
+        surface: document.querySelector('.arena-app-shell')?.className.match(/arena-app-(?!shell)[\w-]+/g) ?? [],
       };
     });
     if (desktopHeading.marginBottom !== '21.6px'
