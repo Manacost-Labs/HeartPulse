@@ -18,7 +18,7 @@ behind its `public.ts`, not in `src/features/`.
 | Path | Owns |
 | --- | --- |
 | `app/<route>/page.tsx` | URL, metadata, anonymous server-side data, then one client page component |
-| `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell, real 404 and error boundary |
+| `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell, real 404 and the generic error page for every route |
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation) |
@@ -39,6 +39,10 @@ behind its `public.ts`, not in `src/features/`.
   in server-rendered HTML. The one exception is `lib/adminAccess.ts`: it
   forwards the session cookie to a loopback-only Express origin to authorize
   admin documents, so it must not use the anonymous client.
+- `app/error.tsx` catches errors of every route without its own boundary, so
+  its copy names no section. Section-specific error copy belongs in that
+  segment's `error.tsx` (`app/standard/cards/`, `app/articles/`,
+  `app/contests/`); `tests/next-error-boundary-browser.test.mjs` checks both.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
   `.arena-paywall` markup for guests.
