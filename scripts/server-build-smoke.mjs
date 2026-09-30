@@ -2,6 +2,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
 
 const root = process.cwd();
 const expectedStaticSitemapUrlCount = [
@@ -10,7 +11,21 @@ const expectedStaticSitemapUrlCount = [
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'hs-arena-server-smoke-'));
 const dataDir = join(temporaryRoot, 'data');
 const ecosystemDir = join(temporaryRoot, 'ecosystem');
-const port = 32_000 + Math.floor(Math.random() * 2_000);
+// The operating system picks a free port. A random number from a fixed range
+// can already be in use, which fails the server with EADDRINUSE.
+const port = await new Promise((resolvePort, rejectPort) => {
+  const probe = createServer();
+  probe.once('error', rejectPort);
+  probe.listen(0, '127.0.0.1', () => {
+    const address = probe.address();
+    if (!address || typeof address === 'string') {
+      probe.close();
+      rejectPort(new Error('failed to allocate the server smoke port'));
+      return;
+    }
+    probe.close(error => error ? rejectPort(error) : resolvePort(address.port));
+  });
+});
 const now = new Date().toISOString();
 
 mkdirSync(dataDir, { recursive: true });
