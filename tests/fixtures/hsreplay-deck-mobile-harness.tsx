@@ -1,5 +1,4 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { StrictMode, useState } from 'react';
 import HsReplayDeckList, { type HsReplayDeckCard } from '../../src/features/HsReplayDeckList';
 
 const pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
@@ -32,36 +31,50 @@ function makeCards(size: number, retryImage = false): HsReplayDeckCard[] {
   });
 }
 
-const params = new URLSearchParams(window.location.search);
-const requestedSize = Number.parseInt(params.get('size') || '30', 10);
-const size = requestedSize === 40 ? 40 : 30;
-let previewLoadAttempts = 0;
-let controllerLoadAttempts = 0;
-const previewModuleLoader = params.get('previewChunk') === 'retry'
-  ? async () => {
-      previewLoadAttempts += 1;
-      if (previewLoadAttempts === 1) throw new Error('Simulated optional preview chunk failure');
-      return import('../../src/features/CardPreviewSheet');
-    }
-  : undefined;
-const previewControllerLoader = params.get('controllerChunk') === 'retry'
-  ? async () => {
-      controllerLoadAttempts += 1;
-      if (controllerLoadAttempts === 1) throw new Error('Simulated preview controller chunk failure');
-      return import('../../src/features/HsReplayDeckPreviewController');
-    }
-  : undefined;
+/** The deck of the query string: its size, a failing card image and loaders that fail once. */
+function deckFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const size = Number.parseInt(params.get('size') || '30', 10) === 40 ? 40 : 30;
+  let previewLoadAttempts = 0;
+  let controllerLoadAttempts = 0;
+  return {
+    size,
+    cards: makeCards(size, params.get('imageFailure') === 'retry'),
+    previewModuleLoader: params.get('previewChunk') === 'retry'
+      ? async () => {
+          previewLoadAttempts += 1;
+          if (previewLoadAttempts === 1) throw new Error('Simulated optional preview chunk failure');
+          return import('../../src/features/CardPreviewSheet');
+        }
+      : undefined,
+    previewControllerLoader: params.get('controllerChunk') === 'retry'
+      ? async () => {
+          controllerLoadAttempts += 1;
+          if (controllerLoadAttempts === 1) throw new Error('Simulated preview controller chunk failure');
+          return import('../../src/features/HsReplayDeckPreviewController');
+        }
+      : undefined,
+  };
+}
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <main>
-      <h1>Проверка мобильного состава</h1>
-      <HsReplayDeckList
-        cards={makeCards(size, params.get('imageFailure') === 'retry')}
-        label={`Состав из ${size} карт`}
-        previewModuleLoader={previewModuleLoader}
-        previewControllerLoader={previewControllerLoader}
-      />
-    </main>
-  </StrictMode>,
-);
+/**
+ * A deck list of 30 or 40 cards (`size`). `previewChunk=retry`,
+ * `controllerChunk=retry` and `imageFailure=retry` make the preview sheet, its
+ * controller or the first card image fail once.
+ */
+export function HsReplayDeckFixture() {
+  const [deck] = useState(deckFromQuery);
+  return (
+    <StrictMode>
+      <main>
+        <h1>Проверка мобильного состава</h1>
+        <HsReplayDeckList
+          cards={deck.cards}
+          label={`Состав из ${deck.size} карт`}
+          previewModuleLoader={deck.previewModuleLoader}
+          previewControllerLoader={deck.previewControllerLoader}
+        />
+      </main>
+    </StrictMode>
+  );
+}

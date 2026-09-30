@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
 import { BattlegroundHeroesRoute } from './Battlegrounds';
@@ -7,7 +8,11 @@ const meta = {
   title: 'Battlegrounds/Hero detail',
   component: BattlegroundHeroesRoute,
   args: { path: '/heroes/61488', onNavigate: fn() },
-  decorators: [Story => <div className="arena-app-battlegrounds"><Story /></div>],
+  // A full-page story gets the page shell of the section at the viewport width;
+  // the others sit in the preview surface, which is at most 64rem wide.
+  decorators: [(Story, { parameters }) => parameters.fullPage
+    ? <main className="arena-app-shell arena-app-battlegrounds" style={{ padding: 16 }}><Story /></main>
+    : <div className="arena-app-battlegrounds"><Story /></div>],
   beforeEach: () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (input, init) => {
@@ -43,3 +48,20 @@ export const EmptyStatistics: Story = {
     }
   },
 };
+
+// The three stories below have no play function and really navigate, so
+// `tests/battleground-hero-motion-browser.test.mjs` can drive them itself. They
+// are full pages: the test measures the layout at widths up to 1600 px.
+function NavigableRoute({ path }: { path: string }) {
+  const [current, setCurrent] = useState(path);
+  return <BattlegroundHeroesRoute path={current} onNavigate={setCurrent} />;
+}
+const navigable = (path: string): Story => ({
+  args: { path },
+  parameters: { layout: 'fullscreen', fullPage: true },
+  render: args => <NavigableRoute path={args.path} />,
+});
+
+export const NavigableDetail = navigable('/heroes/61488');
+export const NavigableList = navigable('/heroes');
+export const NavigableEmptyHero = navigable('/heroes/61489');

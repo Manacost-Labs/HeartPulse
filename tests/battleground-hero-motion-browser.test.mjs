@@ -1,22 +1,23 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
-import { createServer } from 'vite';
 import puppeteer from 'puppeteer';
+import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 test('hero detail keeps buddies aligned and statistics navigable without a chart wall', async () => {
-  const server = await createServer({ configFile: 'tests/fixtures/vite.hero-motion.config.ts', server: { host: '127.0.0.1', port: 0 } });
+  // The stories render the heroes route on fixture data: a hero with a buddy
+  // pair, the hero list and a hero without statistics.
+  const storybook = await startStorybookStatic();
+  const story = name => storybook.storyUrl(`battlegrounds-hero-detail--navigable-${name}`);
   let browser;
   try {
-    await server.listen();
-    const port = server.httpServer.address().port;
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(path => path && existsSync(path));
     browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4'] });
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport({ width: 1280, height: 900 });
-    await page.goto(`http://127.0.0.1:${port}/tests/fixtures/battleground-hero-motion.html`);
+    await page.goto(story('detail'));
     await page.waitForSelector('[data-tour-id="bg-hero-detail-media"] button');
     assert.equal(await page.$eval('.bg-hero-stat-plaque', element => getComputedStyle(element).padding), '12px', 'fixture preserves production CSS layer order');
     const buddyGeometry = await page.$$eval('[data-tour-id="bg-hero-detail-media"] button', buttons => buttons.slice(1).map(button => {
@@ -94,7 +95,7 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
       }
     }
     await page.setViewport({ width: 1280, height: 900 });
-    await page.goto(`http://127.0.0.1:${port}/tests/fixtures/battleground-hero-motion.html?path=/heroes`);
+    await page.goto(story('list'));
     await page.waitForSelector('.battleground-hero-card');
     assert.ok(await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches), 'desktop test has an actual fine-pointer media state');
     const heroMotion = await page.$eval('.battleground-hero-card', card => {
@@ -126,7 +127,7 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     assert.ok(duration.split(',').every(value => parseFloat(value) <= 0.001), 'reduced motion disables power movement');
     await page.click('.battleground-hero-card');
     await page.waitForSelector('.bg-hero-detail-page');
-    await page.goto(`http://127.0.0.1:${port}/tests/fixtures/battleground-hero-motion.html?path=/heroes/61489`);
+    await page.goto(story('empty-hero'));
     await page.waitForSelector('[role="tab"]');
     for (const label of ['Обзор', 'Сила героя', 'Таверна', 'Составы']) {
       await page.click(`[role="tab"][data-stat-tab="${label}"]`);
@@ -135,6 +136,6 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     assert.deepEqual(errors, []);
   } finally {
     await browser?.close();
-    await server.close();
+    await storybook.close();
   }
 });

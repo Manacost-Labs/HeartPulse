@@ -35,8 +35,8 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const DisparateSourcesAndFallback: Story = {
-  render: () => (
+function CardGrid() {
+  return (
     <div className="arena-app-tierlist" style={{ maxWidth: 760, padding: 24 }}>
       <div className="tierlist-card-grid">
         <HSCard card={card('Портретный источник', portraitSource)} onClick={() => undefined} />
@@ -44,8 +44,10 @@ export const DisparateSourcesAndFallback: Story = {
         <HSCard card={card('Fallback без изображения')} onClick={() => undefined} />
       </div>
     </div>
-  ),
-};
+  );
+}
+
+export const DisparateSourcesAndFallback: Story = { render: () => <CardGrid /> };
 
 type WinratesProps = ComponentProps<typeof Winrates>;
 
@@ -67,5 +69,33 @@ export const StableWinrateLabel: Story = {
     <div className="arena-app-winrates" style={{ maxWidth: 760, padding: 24 }}>
       <Winrates {...winrateProps} />
     </div>
+  ),
+};
+
+const twoClasses: WinratesProps = {
+  ...winrateProps,
+  state: { status: 'ready', data: {
+    classes: [
+      { id: 'mage', name: 'Маг', winrate: 54.2, color: '#4c78d0', games: 12890 },
+      { id: 'warrior', name: 'Воин', winrate: 49.1, color: '#c44d44', games: 11200 },
+    ],
+    updatedAt: '2026-09-10T12:00:00.000Z', source: 'hsreplay',
+  } },
+};
+
+/**
+ * Cards from three kinds of source next to a two-class chart, with a Tailwind
+ * utility beside them. `tests/arena-card-motion.browser.test.mjs` measures the
+ * card geometry, the chart entrance and reduced motion on this story.
+ */
+export const CardsAndClassChart: Story = {
+  render: () => (
+    <>
+      <div className="arena-motion-tailwind-probe p-3">Tailwind utility-layer probe</div>
+      <CardGrid />
+      <div className="arena-app-winrates" style={{ maxWidth: 760, padding: 24 }}>
+        <Winrates {...twoClasses} />
+      </div>
+    </>
   ),
 };

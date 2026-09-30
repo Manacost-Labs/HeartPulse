@@ -8,9 +8,11 @@ and the cosmetics catalog and details, plus both Battleground builders and the
 device-connection page, both public-profile URL patterns, the administrator
 document and unknown-page responses. Three more entries are redirect or
 removed-URL status contracts. All 47 inventory entries now have their intended
-HTML owner or explicit non-HTML status behavior. Vite retirement remains. The
-origin HTML-owner meter began recording at 2026-09-25 16:23:38 UTC; its
-seven-day zero-Vite gate cannot be evaluated before 2026-10-02 16:23:38 UTC.
+HTML owner or explicit non-HTML status behavior. The Vite application was
+retired on 2026-09-30: the release, the pages and the browser tests no longer
+use Vite, which remains only as Storybook's bundler (section 7). The origin
+HTML-owner meter began recording at 2026-09-25 16:23:38 UTC and counted only
+Next.js responses until the retirement.
 [The coverage ledger](nextjs-route-coverage.md) records every route. The card
 pilot and production
 cutover are recorded in `nextjs-migration.md`, `nextjs-card-catalogs.md` and
@@ -52,9 +54,8 @@ Nginx remains the public edge and routes each URL to exactly one owner.
 - `scripts/create-release.mjs` and `scripts/deploy-release.sh` require
   `dist/index.html`, which is now a placeholder document that no route
   serves; Nginx serves static files and carried-forward `/assets/` from
-  `dist`. Storybook still uses `@storybook/react-vite`, and eleven
-  component-harness browser tests start a Vite dev server: these keep the
-  Vite package in the repository.
+  `dist`. Storybook uses `@storybook/react-vite`; that is the only use of
+  the Vite package left.
 - The public shell links to `/profile/`, which currently returns 404. Decide
   its account destination and fix that path or link before final URL closure.
 
@@ -379,10 +380,14 @@ Retire each Vite dependency at its actual owner, in this order:
    `preview` and `dev:frontend` scripts are gone. Keep
    `apps/public-web/postcss.config.mjs` as the Tailwind pipeline; remove the
    separate Vite plugin only after Storybook no longer needs it.
-2. Replace `.storybook/main.ts` and its framework types, verify every story
-   and the local Storybook MCP, then update the Storybook contract test. The
-   non-Vite builder must work with existing addons and React components before
-   `@storybook/react-vite` is removed.
+2. Open, waiting for the owner's decision: replace `.storybook/main.ts` and
+   its framework types, verify every story and the local Storybook MCP, then
+   update the Storybook contract test. A review on 2026-09-30 found a webpack
+   builder workable (`@storybook/react-webpack5` with the SWC compiler addon
+   and `postcss-loader`: about 170 more packages and no Fast Refresh), while
+   Storybook itself is Vite-first: `@storybook/nextjs` is deprecated in
+   Storybook 11 in favour of `nextjs-vite`. Until the decision Storybook keeps
+   its Vite builder, configured only in `.storybook/main.ts`.
 3. Done on 2026-09-30: no authored client code reads `import.meta.env`.
    Field focus mode and Web Vitals take their settings as arguments, and
    `src/telemetry/sentry.ts` and `AppErrorBoundary` were deleted with the
@@ -418,16 +423,14 @@ Retire each Vite dependency at its actual owner, in this order:
    before the carried files expire around 2026-10-31 (steps in
    `docs/operations/arena-geodns-edge-cache.md`). Nginx and the deployer need
    no change for the static root.
-7. Partly done on 2026-09-30: `index.html`, `src/main.tsx`, `src/App.tsx`,
-   the client router (`routeModules.tsx`, `routeResolution.ts`,
+7. Done on 2026-09-30 except for the packages: `index.html`, `src/main.tsx`,
+   `src/App.tsx`, the client router (`routeModules.tsx`, `routeResolution.ts`,
    `clientNavigation.ts`, `useApplicationNavigation.ts`), the route manifest
    with its module loaders and the modules only they used are deleted,
-   together with `@sentry/react`. `vite.config.ts`
-   keeps only the plugins, alias and release constant that Storybook and the
-   component-harness tests need; `@vitejs/plugin-react` and
-   `@tailwindcss/vite` are development dependencies. Open: delete
-   `vite.config.ts`, `src/vite-env.d.ts` and the Vite packages once step 2
-   and the harness port are done. Regenerate `package-lock.json`. Audit
+   together with `@sentry/react`, the root `vite.config.ts` and
+   `src/vite-env.d.ts`. `vite`, `@vitejs/plugin-react` and `@tailwindcss/vite`
+   stay as development dependencies of Storybook until step 2 is decided.
+   Regenerate `package-lock.json` when they go. Audit
    active source, scripts, tests, CI and package-lock for remaining Vite
    references; keep historical documents and immutable old releases only as
    records or rollback artifacts.
@@ -471,9 +474,18 @@ cutover and that must return before those files are deleted:
   `apps/public-web/ui/useRouteErrorReport.ts`. The browser Sentry SDK is
   removed: no build ever received a client DSN, so it never ran.
 
-Eleven browser tests use a Vite dev server as their component harness
-(`tests/fixtures/*.html`, `tests/fixtures/vite.*.config.ts`); they need another
-harness or a port to the Next runtime before the Vite package can go.
+Done on 2026-09-30: the eleven browser tests that started a Vite dev server
+as their component harness no longer do. `field-focus` and
+`vicious-gold-progressive` run on the Next.js runtime. Eight open stories of
+the Storybook build through `tests/helpers/storybookStatic.mjs`: four use
+component stories (page headers, modal surface, Arena cards, Battlegrounds
+hero), and the page harnesses of the other four became story fixtures under
+`Browser test fixtures/`.
+`browser-identity-continuation` bundles its entry with esbuild. Porting them
+showed that Storybook loaded a stylesheet with `@layer utilities` before
+`index.css`, which put every Tailwind utility below the base reset;
+`.storybook/preview.tsx` now imports the stylesheets in the order of the
+Next.js layout.
 
 **Done when:** `npm run dev`, `npm run build`, Storybook/MCP, release creation,
 deployment and rollback use Next plus Express without a Vite build. No active
@@ -484,7 +496,8 @@ verify:release`, `npm run test:storybook`, `npm run build-storybook`,
 and Nginx contract tests, followed by a production monitor and browser smoke
 check. Update `DEPLOYMENT.md`, `README.md`, `docs/runbooks/nextjs-public-web.md`,
 `docs/runbooks/nextjs-production-cutover.md` and the release/rollback runbook.
-`npm ls vite --all` and a lockfile inspection must show no active Vite package;
+`npm ls vite --all` and a lockfile inspection must show no active Vite package
+(not met while Storybook keeps its Vite builder, see step 2);
 production must serve zero HTML or current assets from a Vite `dist` artifact.
 
 ## Release discipline and risks

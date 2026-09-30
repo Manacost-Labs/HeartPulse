@@ -1,5 +1,4 @@
 import { StrictMode, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import { DeckModal } from '../../src/features/StandardMeta';
 import type { HsReplayDeckCard } from '../../src/features/HsReplayDeckList';
 
@@ -40,20 +39,21 @@ const modalState = {
   previewError: '',
 };
 
-function Harness() {
+/** A page with one button that opens the Standard meta deck dialog, whose rows open a card sheet on top. */
+export function NestedDeckModalFixture() {
   const [open, setOpen] = useState(false);
   return (
-    <main>
-      <button id="open-standard-meta" type="button" onClick={() => setOpen(true)}>Открыть сборку</button>
-      {open && (
-        <DeckModal
-          state={modalState as never}
-          onClose={() => setOpen(false)}
-          onRenderPreview={() => undefined}
-        />
-      )}
-    </main>
+    <StrictMode>
+      <main>
+        <button id="open-standard-meta" type="button" onClick={() => setOpen(true)}>Открыть сборку</button>
+        {open && (
+          <DeckModal
+            state={modalState as never}
+            onClose={() => setOpen(false)}
+            onRenderPreview={() => undefined}
+          />
+        )}
+      </main>
+    </StrictMode>
   );
 }
-
-createRoot(document.getElementById('root')!).render(<StrictMode><Harness /></StrictMode>);

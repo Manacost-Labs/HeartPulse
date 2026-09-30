@@ -1,12 +1,7 @@
 import { StrictMode, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import StandardMetaPage from '../../src/features/StandardMeta';
 import ConstructedArchetypes from '../../src/features/ConstructedArchetypes';
 import FunDecksPage from '../../src/features/FunDecksPage';
-import '../../src/index.css';
-import { installFieldFocusMode } from '../../src/app/shell/installFieldFocusMode';
-
-installFieldFocusMode(document);
 
 const metaItems = [
   ['void-soul-dh', 'Void Soul DH', 'Охотник на демонов Бездны', 'demonhunter', 60.4, 36.7, 390_438],
@@ -171,7 +166,7 @@ const resolvedSideboardCards = ([
   cardImage: '',
 }));
 
-globalThis.fetch = (async (input: RequestInfo | URL) => {
+const fixtureFetch = (async (input: RequestInfo | URL) => {
   const url = new URL(String(input), window.location.origin);
   let payload: unknown;
   if (url.pathname === '/api/deck/render' && new URLSearchParams(window.location.search).get('render') === 'ready') {
@@ -220,6 +215,13 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
   });
 }) as typeof fetch;
 
+/** Answers every request of the fixture pages; returns the function that restores `fetch`. */
+export function installSoftPaywallFixtures(): () => void {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = fixtureFetch;
+  return () => { globalThis.fetch = originalFetch; };
+}
+
 const paywall = {
   authUser: null,
   subscriptionStatus: null,
@@ -227,7 +229,12 @@ const paywall = {
   onRefreshSubscription: async () => null,
 };
 
-function Harness() {
+/**
+ * The Standard meta, fun decks or archetype pages as a guest or a subscriber
+ * sees them. The query string of the document picks the page (`page`), the
+ * access level (`access=full`) and a finished deck render (`render=ready`).
+ */
+export function SoftPaywallFixture() {
   const params = new URLSearchParams(window.location.search);
   const page = params.get('page') ?? 'meta';
   const hasFullAccess = params.get('access') === 'full';
@@ -236,6 +243,7 @@ function Harness() {
     : '/standard/archetypes');
 
   return (
+    <StrictMode>
     <div className={`arena-app-shell arena-app-game-data ${
       page === 'meta'
         ? 'arena-app-standard-meta'
@@ -262,7 +270,6 @@ function Harness() {
         </div>
       </div>
     </div>
+    </StrictMode>
   );
 }
-
-createRoot(document.getElementById('root')!).render(<StrictMode><Harness /></StrictMode>);

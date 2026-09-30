@@ -44,11 +44,19 @@ const preview: Preview = {
     },
   },
   decorators: [
-    (Story, context) => context.parameters.fullPage ? <Story /> : (
-      <main className="storybook-manacost-surface arena-app-shell">
-        <Story />
-      </main>
-    ),
+    (Story, context) => {
+      if (!context.parameters.fullPage) {
+        return (
+          <main className="storybook-manacost-surface arena-app-shell">
+            <Story />
+          </main>
+        );
+      }
+      // A full page sits in the application root, as in the Next.js layout: modal
+      // surfaces and the page tour make `#root` inert while they are open. A docs
+      // page shows several stories at once, so only the story view carries the id.
+      return context.viewMode === 'story' ? <div id="root"><Story /></div> : <Story />;
+    },
   ],
   tags: ['autodocs'],
 };

@@ -4,7 +4,8 @@ import { HeaderFixture, headers } from '../../tests/fixtures/page-headers';
 const meta = {
   title: 'Page headers/Consistency',
   component: HeaderFixture,
-  parameters: { layout: 'fullscreen' },
+  // The fixture renders its own page shell, so the preview must not wrap it in another one.
+  parameters: { layout: 'fullscreen', fullPage: true },
   argTypes: { index: { control: 'select', options: headers.map((_, index) => index) } },
   args: { index: 0 },
 } satisfies Meta<typeof HeaderFixture>;

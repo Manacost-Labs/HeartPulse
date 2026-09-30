@@ -1,7 +1,5 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
 import DeckBuilder from '../../src/features/DeckBuilder';
-import '../../src/index.css';
 
 const resolvedCards = [
   { id: 'CORE_CS2_023', dbfId: 555, name: 'Чародейский интеллект', cost: 3, rarity: 'COMMON', elite: false, count: 2, image: '', cardImage: '' },
@@ -36,7 +34,7 @@ const catalogCards = [
   },
 ];
 
-globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+const fixtureFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
   if (url.includes('/api/admin/deck-builder/resolve')) {
     return new Response(JSON.stringify({
@@ -78,8 +76,18 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   });
 }) as typeof fetch;
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <DeckBuilder isAdmin authChecking={false} />
-  </StrictMode>,
-);
+/** Answers every request of the fixture; returns the function that restores `fetch`. */
+export function installDeckBuilderFixtures(): () => void {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = fixtureFetch;
+  return () => { globalThis.fetch = originalFetch; };
+}
+
+/** The administrator deck builder; a `code` in the query string is loaded on start. */
+export function DeckBuilderFixture() {
+  return (
+    <StrictMode>
+      <DeckBuilder isAdmin authChecking={false} />
+    </StrictMode>
+  );
+}

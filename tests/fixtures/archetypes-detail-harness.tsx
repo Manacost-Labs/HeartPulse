@@ -1,7 +1,5 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
 import ArchetypesPage from '../../src/features/Archetypes';
-import '../../src/index.css';
 
 const cards = [
   { dbf_id: 555, card_id: 'CORE_CS2_023', card_name: 'Чародейский интеллект', card_name_en: 'Arcane Intellect', cost: 3, card_type: 'SPELL', rarity: 'COMMON', count: 2, sideboard: 0 },
@@ -75,7 +73,7 @@ const detail = {
   ],
 };
 
-globalThis.fetch = (async (input: RequestInfo | URL) => {
+const fixtureFetch = (async (input: RequestInfo | URL) => {
   const url = String(input);
   const payload = url.includes('/api/admin/archetypes/856')
     ? { format: 'standard', available: true, data: detail }
@@ -109,12 +107,22 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
   });
 }) as typeof fetch;
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ArchetypesPage
-      isAdmin
-      authChecking={false}
-      currentPath={new URLSearchParams(window.location.search).has('catalog') ? '/archetypes/' : '/archetypes/856/'}
-    />
-  </StrictMode>,
-);
+/** Answers every request of the fixture; returns the function that restores `fetch`. */
+export function installArchetypesDetailFixtures(): () => void {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = fixtureFetch;
+  return () => { globalThis.fetch = originalFetch; };
+}
+
+/** The administrator archetype page: one archetype, or the catalog when the query string has `catalog`. */
+export function ArchetypesDetailFixture() {
+  return (
+    <StrictMode>
+      <ArchetypesPage
+        isAdmin
+        authChecking={false}
+        currentPath={new URLSearchParams(window.location.search).has('catalog') ? '/archetypes/' : '/archetypes/856/'}
+      />
+    </StrictMode>
+  );
+}

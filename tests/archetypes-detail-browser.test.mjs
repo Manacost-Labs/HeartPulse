@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { createServer } from 'node:net';
-import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
+import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const require = createRequire(import.meta.url);
 const axePath = require.resolve('axe-core/axe.min.js');
@@ -17,60 +15,13 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for archetype detail browser tests');
 
-const vitePort = await new Promise((resolve, reject) => {
-  const probe = createServer();
-  probe.once('error', reject);
-  probe.listen(0, '127.0.0.1', () => {
-    const address = probe.address();
-    if (!address || typeof address === 'string') {
-      probe.close();
-      reject(new Error('Could not reserve a browser-test port'));
-      return;
-    }
-    probe.close(error => error ? reject(error) : resolve(address.port));
-  });
-});
-
-const vite = spawn('./node_modules/.bin/vite', [
-  '--config', 'tests/fixtures/vite.modal.config.ts',
-  '--host', '127.0.0.1',
-  '--port', String(vitePort),
-  '--strictPort',
-], {
-  cwd: process.cwd(),
-  detached: true,
-  env: process.env,
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-
-let output = '';
-let origin = '';
-for (const stream of [vite.stdout, vite.stderr]) {
-  stream.on('data', chunk => {
-    output += chunk.toString();
-    const match = stripVTControlCharacters(output).match(/Local:\s+(http:\/\/127\.0\.0\.1:\d+)\/?/);
-    if (match) origin = match[1];
-  });
-}
-
-async function stopVite() {
-  if (vite.exitCode !== null) return;
-  try { process.kill(-vite.pid, 'SIGTERM'); } catch { /* already stopped */ }
-  await new Promise(resolve => setTimeout(resolve, 200));
-  if (vite.exitCode === null) {
-    try { process.kill(-vite.pid, 'SIGKILL'); } catch { /* already stopped */ }
-  }
-}
+// The stories render the administrator archetype page and the deck builder on
+// fixture data; the query string of the canvas picks the state.
+const storybook = await startStorybookStatic();
+const fixture = (name, query = '') => `${storybook.storyUrl(`browser-test-fixtures-administrator-archetypes--${name}`)}${query ? `&${query}` : ''}`;
 
 let browser;
 try {
-  const deadline = Date.now() + 30_000;
-  while (!origin && Date.now() < deadline) {
-    if (vite.exitCode !== null) throw new Error(`Vite exited before becoming ready\n${output}`);
-    await new Promise(resolve => setTimeout(resolve, 50));
-  }
-  if (!origin) throw new Error(`Vite did not become ready\n${output}`);
-
   browser = await puppeteer.launch({
     executablePath: chromiumPath,
     headless: true,
@@ -93,11 +44,10 @@ try {
   });
 
   await page.setViewport({ width: 1440, height: 1050, deviceScaleFactor: 1 });
-  await page.goto(`${origin}/tests/fixtures/archetypes-detail.html`, { waitUntil: 'networkidle0' });
-  // A clean install can spend more than Puppeteer's default 30 seconds compiling this fixture.
-  await page.waitForSelector('.archetype-mulligan-table', { timeout: 60_000 });
+  await page.goto(fixture('archetype-page'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.archetype-mulligan-table');
 
-  assert.equal(await page.$eval('h1', heading => heading.textContent), 'Берн Маг');
+  assert.equal(await page.$eval('#storybook-root h1', heading => heading.textContent), 'Берн Маг');
   assert.equal(await page.$$eval('.archetype-mulligan-table tbody tr', rows => rows.length), 8);
   assert.equal(await page.$$eval('.archetype-matchup-row', rows => rows.length), 6);
   assert.equal(await page.$$eval('.archetype-matchup-matrix', rows => rows.length), 0);
@@ -164,7 +114,7 @@ try {
 
   const builderHref = await page.$eval('.archetype-builder-link', link => link.getAttribute('href'));
   assert.match(builderHref || '', /^\/deck-builder\?code=/);
-  assert.ok(new URL(builderHref, origin).searchParams.get('code')?.length > 20);
+  assert.ok(new URL(builderHref, storybook.origin).searchParams.get('code')?.length > 20);
 
   await page.click('.archetype-analysis-panel__more');
   assert.equal(await page.$$eval('.archetype-deck-card', rows => rows.length), 5);
@@ -208,7 +158,7 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
 
   await page.setViewport({ width: 1440, height: 1050, deviceScaleFactor: 1 });
-  await page.goto(`${origin}/tests/fixtures/archetypes-detail.html?catalog=1`, { waitUntil: 'networkidle0' });
+  await page.goto(fixture('archetype-page', 'catalog=1'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.archetypes-class');
   const headerCopy = await page.$$eval('.archetypes-hero__description p', paragraphs => (
     paragraphs.map(paragraph => paragraph.textContent?.replace(/\s+/g, ' ').trim())
@@ -224,9 +174,9 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1));
   await page.screenshot({ path: `${screenshotPrefix}-catalog-mobile.png`, fullPage: true });
 
-  const code = new URL(builderHref, origin).searchParams.get('code');
+  const code = new URL(builderHref, storybook.origin).searchParams.get('code');
   await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
-  await page.goto(`${origin}/tests/fixtures/deck-builder-autoload.html?code=${encodeURIComponent(code)}`, { waitUntil: 'networkidle0' });
+  await page.goto(fixture('deck-builder', `code=${encodeURIComponent(code)}`), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.deck-builder--workspace');
   assert.equal(await page.$eval('#deck-builder-workspace-title', heading => heading.textContent), 'Маг на элементалях');
   assert.equal(await page.$$eval('.deck-builder__deck .deck-tile', cards => cards.length), 3);
@@ -288,7 +238,7 @@ try {
   await page.click('.deck-builder__gallery .deck-builder__card');
   await new Promise(resolve => setTimeout(resolve, 400));
   assert.equal(await page.$eval('.deck-builder__deck-counter strong', node => node.textContent), '1');
-  await page.goto(`${origin}/tests/fixtures/deck-builder-autoload.html`, { waitUntil: 'networkidle0' });
+  await page.goto(fixture('deck-builder'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.deck-builder--workspace');
   assert.equal(
     await page.$eval('.deck-builder__deck-counter strong', node => node.textContent),
@@ -307,5 +257,5 @@ try {
   console.log('Archetype detail browser tests passed');
 } finally {
   await browser?.close();
-  await stopVite();
+  await storybook.close();
 }

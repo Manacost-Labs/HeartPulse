@@ -1,32 +1,17 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
-import { reserveLocalPort } from './fixtures/reserve-local-port.mjs';
+import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'].find(candidate => candidate && existsSync(candidate));
 assert.ok(chromiumPath, 'Chromium/Chrome executable is required for Arena card-motion browser tests');
-const vitePort = await reserveLocalPort();
-const vite = spawn('./node_modules/.bin/vite', ['--config', 'tests/fixtures/vite.arena-motion.config.ts', '--host', '127.0.0.1', '--port', String(vitePort), '--strictPort'], { cwd: process.cwd(), detached: true, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] });
-let output = '';
-let origin = '';
-for (const stream of [vite.stdout, vite.stderr]) stream.on('data', chunk => {
-  output += chunk.toString();
-  const match = stripVTControlCharacters(output).match(/Local:\s+(http:\/\/127\.0\.0\.1:\d+)\/?/);
-  if (match) origin = match[1];
-});
-
-async function stopVite() {
-  if (vite.exitCode !== null) return;
-  try { process.kill(-vite.pid, 'SIGTERM'); } catch { /* already stopped */ }
-  await new Promise(resolve => setTimeout(resolve, 200));
-  if (vite.exitCode === null) try { process.kill(-vite.pid, 'SIGKILL'); } catch { /* already stopped */ }
-}
+// The story shows three cards, a two-class chart and a Tailwind utility probe.
+const storybook = await startStorybookStatic();
+const storyUrl = storybook.storyUrl('arena-hscard-geometry--cards-and-class-chart');
 
 async function assertStableGeometryAndChart(page, width) {
   await page.setViewport({ width, height: 800, deviceScaleFactor: 1 });
-  await page.goto(`${origin}/tests/fixtures/arena-card-motion.html`, { waitUntil: 'networkidle0' });
+  await page.goto(storyUrl, { waitUntil: 'networkidle0' });
   await page.waitForSelector('.arena-class-meter-label');
   const immediate = await page.evaluate(() => {
     const label = document.querySelector('.arena-class-meter-label');
@@ -76,12 +61,6 @@ async function assertStableGeometryAndChart(page, width) {
 
 let browser;
 try {
-  const deadline = Date.now() + 30_000;
-  while (!origin && Date.now() < deadline) {
-    if (vite.exitCode !== null) throw new Error(`Vite exited before becoming ready\n${output}`);
-    await new Promise(resolve => setTimeout(resolve, 50));
-  }
-  if (!origin) throw new Error(`Vite did not become ready\n${output}`);
   browser = await puppeteer.launch({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const page = await browser.newPage();
   const runtimeErrors = [];
@@ -89,7 +68,7 @@ try {
   await assertStableGeometryAndChart(page, 900);
   await assertStableGeometryAndChart(page, 390);
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-  await page.goto(`${origin}/tests/fixtures/arena-card-motion.html`, { waitUntil: 'networkidle0' });
+  await page.goto(storyUrl, { waitUntil: 'networkidle0' });
   await page.hover('.hs-tier-card');
   const reducedMotion = await page.evaluate(() => ({ cardTransform: getComputedStyle(document.querySelector('.hs-tier-card-inner')).transform, cardDuration: getComputedStyle(document.querySelector('.hs-tier-card-inner')).transitionDuration, fillDuration: getComputedStyle(document.querySelector('.arena-class-meter-fill')).transitionDuration }));
   assert.equal(reducedMotion.cardTransform, 'none', 'reduced-motion cards stay static on hover');
@@ -108,5 +87,5 @@ try {
   console.log('Arena card-motion browser tests passed');
 } finally {
   await browser?.close();
-  await stopVite();
+  await storybook.close();
 }

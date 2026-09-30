@@ -175,6 +175,17 @@ ones in routing, caching and configuration: check the bundled documentation in
 Browser tests reuse `apps/public-web/.next` and `dist/` when they exist, so
 rebuild after changing source (`npm run build:next`, `npm run build:static`).
 
+A browser test of a page runs on this runtime: `scripts/qa/nextRuntime.mjs`
+with the QA fixture backend, or `tests/helpers/publicCardPilot.mjs` with the
+Express fixture. A browser test of one component, or of a state that no page
+can reach (two stacked dialogs, a page header without its page), opens a story
+of the Storybook build through `tests/helpers/storybookStatic.mjs`; run
+`npm run build-storybook` first. A story with the `fullPage` parameter renders
+inside `<div id="root">`, as a page does in the layout, so dialogs isolate the
+page behind them the same way. No test starts a development server, and every
+browser test runs the production React: its development warnings (a missing
+`key`, a state update during render) are not checked by these tests.
+
 ## Known debt
 
 - Client-rendered wrappers around large legacy views (`src/features/*.tsx`);
@@ -193,6 +204,6 @@ rebuild after changing source (`npm run build:next`, `npm run build:static`).
   on first load, because each renders the legacy client shell; the budgets
   only stop that from growing.
 - The Vite application (`index.html`, `src/main.tsx`, `src/App.tsx` and its
-  client router) is deleted. The Vite package stays only for Storybook and
-  eleven component-harness browser tests (see
+  client router) is deleted. The Vite package stays only as Storybook's
+  bundler, configured in `.storybook/main.ts` (see
   `docs/plans/nextjs-full-site-migration.md`).

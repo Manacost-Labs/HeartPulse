@@ -105,6 +105,19 @@ npm run storybook
 production-зависимостей. Телеметрия Storybook отключена в обеих npm-командах.
 Локальный MCP нельзя публиковать через production Nginx.
 
+Browser-тесты изолированных компонентов открывают stories собранного Storybook
+(`storybook-static/`) через `tests/helpers/storybookStatic.mjs`. Страничные
+фикстуры для них лежат в `tests/fixtures/*-harness.tsx` и подключены stories
+раздела «Browser test fixtures»; состояние фикстуры выбирается query-строкой
+адреса. Story с параметром `fullPage` рендерится внутри `<div id="root">`, как
+страница в layout Next.js: модальные окна изолируют `#root` так же, как на
+сайте. В сборке Storybook работает production-сборка React, поэтому
+dev-предупреждения React (пропущенный `key`, обновление состояния во время
+рендера) эти тесты не проверяют. Перед отдельным запуском такого теста выполните
+`npm run build-storybook`; `npm run verify:release` собирает Storybook до
+`npm test`. Dev-сервер Vite тесты не запускают: Vite остался только сборщиком
+Storybook и настраивается в `.storybook/main.ts`.
+
 Стили в `.storybook/preview.tsx` импортируются в том же порядке, что и в
 layout Next.js: `src/index.css` первым. Он объявляет каскадные слои Tailwind;
 если раньше него окажется стиль с `@layer utilities`, утилиты проиграют

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { build as viteBuild } from 'vite';
+import { build } from 'esbuild';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -26,25 +26,23 @@ writeFileSync(entry, `
   createRoot(document.getElementById('root')).render(<Harness />);
 `);
 
-await viteBuild({
-  configFile: false,
-  root: process.cwd(),
-  resolve: { alias: {
-    react: resolve('node_modules/react'),
-    'react-dom': resolve('node_modules/react-dom'),
-  } },
-  build: {
-    outDir: root,
-    emptyOutDir: false,
-    rollupOptions: { input: entry, output: { format: 'iife', entryFileNames: 'bundle.js' } },
-  },
+// The entry lives in a temporary directory, so packages resolve from the checkout.
+await build({
+  entryPoints: [entry],
+  outfile: bundle,
+  bundle: true,
+  format: 'iife',
+  jsx: 'automatic',
+  nodePaths: [resolve('node_modules')],
+  define: { 'process.env.NODE_ENV': '"production"' },
+  logLevel: 'silent',
   plugins: [{
     name: 'account-route-ui-stub',
-    resolveId(source) {
-      return source.endsWith('/accountRoute/public') ? '\0account-route-ui' : null;
-    },
-    load(id) {
-      return id === '\0account-route-ui' ? 'export default function AccountRoute() { return null; }' : null;
+    setup(bundler) {
+      bundler.onResolve({ filter: /\/accountRoute\/public$/ }, () => ({ path: 'account-route-ui', namespace: 'stub' }));
+      bundler.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
+        contents: 'export default function AccountRoute() { return null; }', loader: 'js',
+      }));
     },
   }],
 });

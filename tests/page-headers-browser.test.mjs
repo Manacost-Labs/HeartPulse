@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createServer } from 'vite';
 import puppeteer from 'puppeteer';
+import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const selector = '.traditional-mode-banner, .constructed-cards__header, .section-banner-modern';
 test('traditional and Arena headers share geometry without clipping or reduced-motion animation', async () => {
-  const server = await createServer({ server: { host: '127.0.0.1', port: 0 } });
+  // The story renders one of the nine page headers, chosen by its `index` argument.
+  const storybook = await startStorybookStatic();
   let browser;
   try {
-    await server.listen();
     browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
@@ -17,7 +17,7 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
       await page.setViewport({ width, height: 1000 });
       const dimensions = [];
       for (let index = 0; index < 9; index++) {
-        await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/tests/fixtures/page-headers.html?case=${index}`);
+        await page.goto(storybook.storyUrl('page-headers-consistency--meta-overview', `index:${index}`));
         await page.waitForSelector(selector);
         await page.evaluate(() => document.fonts.ready);
         const geometry = await page.$eval(selector, el => {
@@ -26,7 +26,8 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
           const children = [...el.querySelectorAll('h1, p, dl, .constructed-cards__beta')];
           return { width: rect.width, height: rect.height, x: rect.x, y: rect.y, font: getComputedStyle(title).fontSize,
             gap: document.querySelector('[data-header-content]').getBoundingClientRect().top - rect.bottom,
-            h1: document.querySelectorAll('h1').length,
+            // The canvas document also holds Storybook's own hidden headings.
+            h1: document.querySelectorAll('#storybook-root h1').length,
             overflow: document.documentElement.scrollWidth > innerWidth + 1,
             clipped: children.some(child => { const r = child.getBoundingClientRect(); return r.left < rect.left || r.right > rect.right + 1 || r.bottom > rect.bottom + 1; }),
           };
@@ -70,6 +71,6 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
     assert.deepEqual(errors, []);
   } finally {
     await browser?.close();
-    await server.close();
+    await storybook.close();
   }
 });

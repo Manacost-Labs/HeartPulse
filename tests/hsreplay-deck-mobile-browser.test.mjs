@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { createServer } from 'node:net';
-import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
+import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const require = createRequire(import.meta.url);
 const axePath = require.resolve('axe-core/axe.min.js');
@@ -16,49 +14,11 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for DeckView mobile tests');
 
-const vitePort = await new Promise((resolve, reject) => {
-  const probe = createServer();
-  probe.once('error', reject);
-  probe.listen(0, '127.0.0.1', () => {
-    const address = probe.address();
-    if (!address || typeof address === 'string') {
-      probe.close();
-      reject(new Error('Could not reserve a DeckView browser-test port'));
-      return;
-    }
-    probe.close(error => error ? reject(error) : resolve(address.port));
-  });
-});
-
-const vite = spawn('./node_modules/.bin/vite', [
-  '--config', 'tests/fixtures/vite.modal.config.ts',
-  '--host', '127.0.0.1',
-  '--port', String(vitePort),
-  '--strictPort',
-], {
-  cwd: process.cwd(),
-  detached: true,
-  env: process.env,
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let output = '';
-let origin = '';
-for (const stream of [vite.stdout, vite.stderr]) {
-  stream.on('data', chunk => {
-    output += chunk.toString();
-    const match = stripVTControlCharacters(output).match(/Local:\s+(http:\/\/127\.0\.0\.1:\d+)\/?/);
-    if (match) origin = match[1];
-  });
-}
-
-async function stopVite() {
-  if (vite.exitCode !== null) return;
-  try { process.kill(-vite.pid, 'SIGTERM'); } catch { /* already stopped */ }
-  await new Promise(resolve => setTimeout(resolve, 200));
-  if (vite.exitCode === null) {
-    try { process.kill(-vite.pid, 'SIGKILL'); } catch { /* already stopped */ }
-  }
-}
+// The stories render a deck list and the Standard meta deck dialog on fixture
+// data; the query string of the canvas picks the deck size and the failures.
+const storybook = await startStorybookStatic();
+const deckList = query => `${storybook.storyUrl('browser-test-fixtures-deck-list--deck-list')}&${query}`;
+const nestedDeckModal = storybook.storyUrl('browser-test-fixtures-deck-list--nested-deck-modal');
 
 async function waitForDeck(page, expectedCards) {
   await page.waitForSelector('[data-deck-render-state="ready"] .hsrdv-card-tile');
@@ -68,9 +28,9 @@ async function waitForDeck(page, expectedCards) {
   ), {}, expectedCards);
 }
 
-async function assertMobileDeck(page, originUrl, width, size) {
+async function assertMobileDeck(page, width, size) {
   await page.setViewport({ width, height: 720, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
-  await page.goto(`${originUrl}/tests/fixtures/hsreplay-deck-mobile.html?size=${size}`, { waitUntil: 'networkidle0' });
+  await page.goto(deckList(`size=${size}`), { waitUntil: 'networkidle0' });
   await waitForDeck(page, size);
 
   const geometry = await page.evaluate(() => {
@@ -163,13 +123,6 @@ async function assertMobileDeck(page, originUrl, width, size) {
 
 let browser;
 try {
-  const deadline = Date.now() + 30_000;
-  while (!origin && Date.now() < deadline) {
-    if (vite.exitCode !== null) throw new Error(`Vite exited before becoming ready\n${output}`);
-    await new Promise(resolve => setTimeout(resolve, 50));
-  }
-  if (!origin) throw new Error(`Vite did not become ready\n${output}`);
-
   browser = await puppeteer.launch({
     executablePath: chromiumPath,
     headless: true,
@@ -180,11 +133,11 @@ try {
   page.on('pageerror', error => runtimeErrors.push(error.message));
 
   for (const width of [320, 390, 430, 768]) {
-    await assertMobileDeck(page, origin, width, width === 430 ? 40 : 30);
+    await assertMobileDeck(page, width, width === 430 ? 40 : 30);
   }
 
   await page.setViewport({ width: 390, height: 720, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
-  await page.goto(`${origin}/tests/fixtures/hsreplay-deck-mobile.html?size=30&controllerChunk=retry`, { waitUntil: 'networkidle0' });
+  await page.goto(deckList('size=30&controllerChunk=retry'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('[data-deck-render-state="ready"] .hsrdv-card-tile');
   await page.waitForSelector('[data-deck-preview-controller-state="error"]');
   assert.equal(await page.$$eval('.hsrdv-card-tile', tiles => tiles.length), 30);
@@ -193,7 +146,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('[data-card-preview-trigger]').length === 30);
   assert.equal(await page.$('[data-deck-preview-controller-state="error"]'), null);
 
-  await page.goto(`${origin}/tests/fixtures/hsreplay-deck-mobile.html?size=30&previewChunk=retry`, { waitUntil: 'networkidle0' });
+  await page.goto(deckList('size=30&previewChunk=retry'), { waitUntil: 'networkidle0' });
   await waitForDeck(page, 30);
   await page.click('[data-card-id="MOBILE_TEST_01"]');
   await page.waitForSelector('[data-card-preview-load-state="error"]');
@@ -208,7 +161,7 @@ try {
     'opening another row during a failed preview must replace the focus-return target',
   );
 
-  await page.goto(`${origin}/tests/fixtures/hsreplay-deck-mobile.html?size=30&previewChunk=retry`, { waitUntil: 'networkidle0' });
+  await page.goto(deckList('size=30&previewChunk=retry'), { waitUntil: 'networkidle0' });
   await waitForDeck(page, 30);
   const retryTriggerId = await page.$eval('.hsrdv-card-tile', tile => tile.getAttribute('data-card-id'));
   await page.click('.hsrdv-card-tile');
@@ -250,7 +203,7 @@ try {
   };
   await page.setRequestInterception(true);
   page.on('request', interceptRetryImage);
-  await page.goto(`${origin}/tests/fixtures/hsreplay-deck-mobile.html?size=30&imageFailure=retry`, { waitUntil: 'networkidle0' });
+  await page.goto(deckList('size=30&imageFailure=retry'), { waitUntil: 'networkidle0' });
   await waitForDeck(page, 30);
   await page.$eval('[data-card-id="MOBILE_TEST_01"]', tile => {
     tile.scrollIntoView({ block: 'center' });
@@ -269,7 +222,7 @@ try {
   page.off('request', interceptRetryImage);
   await page.setRequestInterception(false);
 
-  await page.goto(`${origin}/tests/fixtures/standard-meta-nested-modal.html`, { waitUntil: 'networkidle0' });
+  await page.goto(nestedDeckModal, { waitUntil: 'networkidle0' });
   await page.click('#open-standard-meta');
   await page.waitForSelector('.standard-meta-modal[data-modal-surface-state="top"]');
   await page.waitForFunction(() => document.querySelectorAll('.standard-meta-modal .deck-list-view .deck-tile').length === 30);
@@ -313,7 +266,7 @@ try {
 
   await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
   const standardMetaZoomClient = await page.createCDPSession();
-  await page.goto(`${origin}/tests/fixtures/standard-meta-nested-modal.html`, { waitUntil: 'networkidle0' });
+  await page.goto(nestedDeckModal, { waitUntil: 'networkidle0' });
   await standardMetaZoomClient.send('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });
   await page.click('#open-standard-meta');
   await page.waitForSelector('.standard-meta-modal[data-modal-surface-state="top"]');
@@ -336,7 +289,7 @@ try {
   await page.keyboard.press('Escape');
   await standardMetaZoomClient.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
 
-  await page.goto(`${origin}/tests/fixtures/hsreplay-deck-mobile.html?size=30`, { waitUntil: 'networkidle0' });
+  await page.goto(deckList('size=30'), { waitUntil: 'networkidle0' });
   await waitForDeck(page, 30);
   await page.hover('.hsrdv-card-tile');
   await page.waitForSelector('.card-preview-tooltip');
@@ -379,5 +332,5 @@ try {
   console.log('DeckView mobile preview browser tests passed');
 } finally {
   await browser?.close();
-  await stopVite();
+  await storybook.close();
 }

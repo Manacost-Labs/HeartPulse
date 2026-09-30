@@ -1,5 +1,4 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
 import { SectionBanner } from '../../src/features/EditorialRouteChrome';
 import { StandardMetaSearchIntro } from '../../src/modules/searchLanding/ui/StandardMetaSearchIntro';
 import '../../src/index.css';
@@ -39,8 +38,4 @@ export function HeaderFixture({ index = 0 }: { index?: number }) {
       ][index]} aria-label="Контент раздела"><p>Фильтры и содержимое раздела</p></section>
     </div></div></main></div>
   </div>;
-}
-
-if (document.getElementById('header-fixture')) {
-  createRoot(document.getElementById('header-fixture')!).render(<HeaderFixture index={Number(new URLSearchParams(location.search).get('case') || 0)} />);
 }

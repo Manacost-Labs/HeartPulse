@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
-import { reserveLocalPort } from './fixtures/reserve-local-port.mjs';
+import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [
   process.env.CHROMIUM_PATH,
@@ -13,47 +11,10 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for ModalSurface browser tests');
 
-const vitePort = await reserveLocalPort();
-
-const vite = spawn('./node_modules/.bin/vite', [
-  '--config', 'tests/fixtures/vite.modal.config.ts',
-  '--host', '127.0.0.1',
-  '--port', String(vitePort),
-  '--strictPort',
-], {
-  cwd: process.cwd(),
-  detached: true,
-  env: process.env,
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let output = '';
-let origin = '';
-for (const stream of [vite.stdout, vite.stderr]) {
-  stream.on('data', chunk => {
-    output += chunk.toString();
-    const match = stripVTControlCharacters(output).match(/Local:\s+(http:\/\/127\.0\.0\.1:\d+)\/?/);
-    if (match) origin = match[1];
-  });
-}
-
-async function stopVite() {
-  if (vite.exitCode !== null) return;
-  try { process.kill(-vite.pid, 'SIGTERM'); } catch { /* already stopped */ }
-  await new Promise(resolve => setTimeout(resolve, 200));
-  if (vite.exitCode === null) {
-    try { process.kill(-vite.pid, 'SIGKILL'); } catch { /* already stopped */ }
-  }
-}
-
+// The story renders a page root with a card lightbox and two stacked dialogs.
+const storybook = await startStorybookStatic();
 let browser;
 try {
-  const deadline = Date.now() + 30_000;
-  while (!origin && Date.now() < deadline) {
-    if (vite.exitCode !== null) throw new Error(`Vite exited before becoming ready\n${output}`);
-    await new Promise(resolve => setTimeout(resolve, 50));
-  }
-  if (!origin) throw new Error(`Vite did not become ready\n${output}`);
-
   browser = await puppeteer.launch({
     executablePath: chromiumPath,
     headless: true,
@@ -63,7 +24,8 @@ try {
   await page.setViewport({ width: 390, height: 700, deviceScaleFactor: 1 });
   const runtimeErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
-  await page.goto(`${origin}/tests/fixtures/modal-surface.html`, { waitUntil: 'networkidle0' });
+  await page.goto(storybook.storyUrl('components-modal-surface--lightbox-and-stacked-dialogs'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('#lightbox-trigger');
 
   await page.click('#lightbox-trigger');
   await page.waitForSelector('.constructed-card-lightbox');
@@ -125,8 +87,13 @@ try {
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Следующее изображение');
   await page.keyboard.press('Tab');
   assert.match(String(await page.evaluate(() => document.activeElement?.className)), /constructed-card-lightbox__close/);
-  await page.click('.constructed-card-lightbox__backdrop');
+  // With the page styles a phone-sized lightbox covers its whole backdrop, so
+  // the backdrop is clicked where it is reachable: beside the panel on a wide screen.
+  await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
+  assert.match(String(await page.evaluate(() => document.elementFromPoint(8, 8)?.className)), /constructed-card-lightbox__backdrop/);
+  await page.mouse.click(8, 8);
   await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+  await page.setViewport({ width: 390, height: 700, deviceScaleFactor: 1 });
 
   await page.click('#first-trigger');
   assert.equal(await page.evaluate(() => document.activeElement?.id), 'first-close');
@@ -160,5 +127,5 @@ try {
   console.log('ModalSurface browser tests passed');
 } finally {
   await browser?.close();
-  await stopVite();
+  await storybook.close();
 }

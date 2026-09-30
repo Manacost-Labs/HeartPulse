@@ -1,7 +1,5 @@
 import { StrictMode, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import ConstructedArchetypes from '../../src/features/ConstructedArchetypes';
-import '../../src/index.css';
 
 declare global {
   interface Window {
@@ -147,62 +145,72 @@ const resolvedDeck = {
   sideboards: [],
 };
 
-const renderAttempts = new Map<string, number>();
-const simulateStaleDeckAsset = new URLSearchParams(window.location.search).has('stale-deck-asset');
-window.__deckRenderBodies = [];
+/**
+ * Answers every request of the fixture page and records the deck render
+ * requests in `window.__deckRenderBodies`. With `stale-deck-asset` in the
+ * query string the first render of the first build points at a missing image;
+ * otherwise the first render of every deck fails once. Returns the function
+ * that restores `fetch`.
+ */
+export function installConstructedArchetypeFixtures(): () => void {
+  const originalFetch = globalThis.fetch;
+  const renderAttempts = new Map<string, number>();
+  const simulateStaleDeckAsset = new URLSearchParams(window.location.search).has('stale-deck-asset');
+  window.__deckRenderBodies = [];
 
-globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-  const url = String(input);
-  if (url.includes('/api/deck/render')) {
-    const request = JSON.parse(String(init?.body ?? '{}')) as { deckCode?: string; refresh?: boolean };
-    window.__deckRenderBodies.push(request);
-    const cacheKey = request.deckCode || 'unknown';
-    const attempt = (renderAttempts.get(cacheKey) ?? 0) + 1;
-    renderAttempts.set(cacheKey, attempt);
-    if (simulateStaleDeckAsset && cacheKey === builds[0].deckCode && attempt === 1) {
-      return new Response(JSON.stringify({
-        ok: true,
-        ready: true,
-        renderer: 'rust',
-        style: 'parchment',
-        imageUrl: '/missing-deck-preview.webp',
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-    if (!simulateStaleDeckAsset && attempt === 1) {
-      return new Response(JSON.stringify({
-        ok: false,
-        error: 'Временный сбой рендера',
-      }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json', 'Retry-After': '0' },
-      });
-    }
-    await new Promise(resolve => setTimeout(resolve, 600));
-  }
-  const payload = url.includes('/api/deck/render')
-    ? {
-        ok: true,
-        ready: true,
-        renderer: 'rust',
-        style: 'parchment',
-        imageUrl: '/wallpaper/home-paladin-hero.webp',
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes('/api/deck/render')) {
+      const request = JSON.parse(String(init?.body ?? '{}')) as { deckCode?: string; refresh?: boolean };
+      window.__deckRenderBodies.push(request);
+      const cacheKey = request.deckCode || 'unknown';
+      const attempt = (renderAttempts.get(cacheKey) ?? 0) + 1;
+      renderAttempts.set(cacheKey, attempt);
+      if (simulateStaleDeckAsset && cacheKey === builds[0].deckCode && attempt === 1) {
+        return new Response(JSON.stringify({
+          ok: true,
+          ready: true,
+          renderer: 'rust',
+          style: 'parchment',
+          imageUrl: '/missing-deck-preview.webp',
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
-    : url.includes('/api/deck/resolve')
-    ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
-    : url.includes('/wild/void-soul-dh')
-      ? { ...detail, item: voidSoulItem }
-    : url.includes('/wild/thief-priest')
-      ? detail
-      : catalog;
-  return new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}) as typeof fetch;
-
-function Harness() {
-  const [path, setPath] = useState('/standard/archetypes');
-  return <ConstructedArchetypes currentPath={path} navigatePath={setPath} />;
+      if (!simulateStaleDeckAsset && attempt === 1) {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: 'Временный сбой рендера',
+        }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': '0' },
+        });
+      }
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
+    const payload = url.includes('/api/deck/render')
+      ? {
+          ok: true,
+          ready: true,
+          renderer: 'rust',
+          style: 'parchment',
+          imageUrl: '/wallpaper/home-paladin-hero.webp',
+        }
+      : url.includes('/api/deck/resolve')
+      ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
+      : url.includes('/wild/void-soul-dh')
+        ? { ...detail, item: voidSoulItem }
+      : url.includes('/wild/thief-priest')
+        ? detail
+        : catalog;
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch;
+  return () => { globalThis.fetch = originalFetch; };
 }
 
-createRoot(document.getElementById('root')!).render(<StrictMode><Harness /></StrictMode>);
+/** The archetype catalog and its detail pages; `format=wild` in the query string opens the Wild catalog. */
+export function ConstructedArchetypesFixture() {
+  const [path, setPath] = useState('/standard/archetypes');
+  return <StrictMode><ConstructedArchetypes currentPath={path} navigatePath={setPath} /></StrictMode>;
+}
