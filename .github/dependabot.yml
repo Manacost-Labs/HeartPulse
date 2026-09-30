@@ -44,6 +44,10 @@ updates:
       - dependency-name: vite
         versions:
           - 8.x
+      # Version 6 of the React plugin requires Vite 8.
+      - dependency-name: "@vitejs/plugin-react"
+        versions:
+          - 6.x
     labels:
       - dependencies
 

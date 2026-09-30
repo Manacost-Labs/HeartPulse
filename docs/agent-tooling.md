@@ -202,10 +202,11 @@ GitHub Actions повторяет полную проверку на pull reques
   SARIF в GitHub Security. Публичная публикация результата и OIDC отключены.
 - Dependabot еженедельно группирует minor/patch обновления production,
   development и GitHub Actions; major-обновления остаются отдельными PR.
-  Major-версии `@types/node` и `typescript` и Vite 8 он не предлагает: типы
-  Node.js следуют за версией рантайма (production и CI работают на
-  Node.js 22), переход на новую major-версию TypeScript — отдельная
-  миграция, а сборка Storybook на Vite 8 меняет порядок стилей.
+  Major-версии `@types/node` и `typescript`, Vite 8 и `@vitejs/plugin-react` 6
+  он не предлагает: типы Node.js следуют за версией рантайма (production и CI
+  работают на Node.js 22), переход на новую major-версию TypeScript —
+  отдельная миграция, сборка Storybook на Vite 8 меняет порядок стилей, а
+  шестой версии плагина React нужен Vite 8.
 - Dependency Review блокирует pull request, если он добавляет `HIGH` или
   `CRITICAL` уязвимость, неизвестный scope либо лицензию вне утверждённого
   SPDX allowlist. Исключения GHSA отсутствуют; комментарии в PR отключены.
