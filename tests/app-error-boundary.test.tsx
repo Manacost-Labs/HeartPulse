@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { useRouteErrorRecovery } from '../apps/public-web/ui/useRouteErrorRecovery';
 import { classifyAppError, createIncidentId } from '../src/components/appErrorRecovery';
 import { registerAppIncident } from '../src/telemetry/clientIncident';
 
@@ -54,11 +56,44 @@ assert.deepEqual(diagnosticBody, {
   componentStack: 'at StandardOperationsLegacy',
 });
 
-// The root Next.js error page classifies a failure the same way: a stale chunk
-// reloads the document, a render error retries the route. The section error
-// pages only retry.
+// Every Next.js error page recovers through one hook. A chunk that cannot load
+// gets the reload copy and a full reload; any other error gets the page's own
+// copy and the retry that Next.js passes to the page.
+const routeRetry = () => {};
+const pageCopy = { heading: 'Раздел недоступен', text: 'Попробуйте ещё раз.' };
+let recovery: ReturnType<typeof useRouteErrorRecovery> | undefined;
+function RecoveryProbe({ error }: { error: Error }) {
+  recovery = useRouteErrorRecovery(error, routeRetry, 'route:probe', pageCopy);
+  return null;
+}
+renderToStaticMarkup(<RecoveryProbe error={new TypeError('Cannot read properties of undefined')} />);
+assert.deepEqual(recovery, { ...pageCopy, action: 'Повторить', retry: routeRetry });
+
+renderToStaticMarkup(<RecoveryProbe error={new Error('Loading chunk 42 failed')} />);
+assert.deepEqual(
+  { heading: recovery?.heading, text: recovery?.text, action: recovery?.action },
+  { heading: 'Сайт обновился', text: 'Вышла новая версия сайта. Обновите страницу, чтобы продолжить.', action: 'Обновить страницу' },
+);
+let reloads = 0;
+const browserGlobals = globalThis as { window?: unknown };
+browserGlobals.window = { location: { reload: () => { reloads += 1; } } };
+recovery?.retry();
+delete browserGlobals.window;
+assert.equal(reloads, 1, 'a stale chunk needs a full reload, not a retry of the route');
+
+for (const [errorPage, scope] of [
+  ['app/error.tsx', 'route'],
+  ['app/standard/cards/error.tsx', 'route:standard-cards'],
+  ['app/articles/error.tsx', 'route:articles'],
+  ['app/contests/error.tsx', 'route:contests'],
+] as const) {
+  const source = readFileSync(new URL(`../apps/public-web/${errorPage}`, import.meta.url), 'utf8');
+  assert.ok(source.includes(`useRouteErrorRecovery(error, retry, '${scope}', {`), `${errorPage} must recover through the shared hook`);
+  assert.match(source, /onClick=\{recovery\.retry\}/, `${errorPage} must act through the shared hook`);
+  assert.doesNotMatch(source, /\breset\b|location\.reload/, `${errorPage} must not recover on its own`);
+  assert.ok(source.includes(`data-app-error="${scope}"`), `${errorPage} must carry its marker`);
+}
 const rootErrorPage = readFileSync(new URL('../apps/public-web/app/error.tsx', import.meta.url), 'utf8');
-assert.match(rootErrorPage, /classifyAppError\(error\) === 'chunk'/, 'the root error page must reload on a stale chunk');
 assert.match(rootErrorPage, /error\.digest/, 'the root error page must show the server error digest');
 
 // Incident reports carry the release that webpack compiled into the client bundle.

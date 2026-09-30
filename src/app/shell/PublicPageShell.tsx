@@ -5,11 +5,13 @@ import { PublicNavigation } from './PublicNavigation';
 import { HeaderProfileButton } from './HeaderProfileButton';
 import GlobalUtilityHeader from '../../components/GlobalUtilityHeader';
 import SiteFooter from '../../components/SiteFooter';
+import { OptionalSurface } from '../../components/OptionalSurface';
 import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, BG_TAB_IDS, MISC_TABS, TABS, type TabId } from '../routing/navigationRoutes';
 import type { AuthUser } from '../../modules/identity/public';
 import type { SubscriptionStatus } from '../../modules/subscriptions/public';
 
-// The delayed support prompt stays out of the initial route bundle.
+// The delayed support prompt stays out of the initial route bundle. The page
+// works without it, so a chunk that cannot load must not fail the page.
 const SupportPrompt = lazy(() => import('../../components/SupportPrompt'));
 
 type Access = { user: AuthUser | null; checking: boolean; admin: boolean; contestAdmin: boolean; subscription: SubscriptionStatus | null };
@@ -55,7 +57,7 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
           </div>
         </main>
         <SiteFooter />
-        <Suspense fallback={null}><SupportPrompt /></Suspense>
+        <OptionalSurface scope="support-prompt"><Suspense fallback={null}><SupportPrompt /></Suspense></OptionalSurface>
       </div>
     </div>
   </div>;

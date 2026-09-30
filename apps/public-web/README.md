@@ -57,15 +57,28 @@ behind its `public.ts`, not in `src/features/`.
 - `app/error.tsx` catches errors of every route without its own boundary, so
   its copy names no section. Section-specific error copy belongs in that
   segment's `error.tsx` (`app/standard/cards/`, `app/articles/`,
-  `app/contests/`). Every `error.tsx` calls `ui/useRouteErrorReport.ts` with
-  its own scope: the caught error is posted once to
-  `/api/telemetry/client-errors`, and Express writes it to the journal as
-  `[client-interface-error]` with the release, the route and, for a server
-  render error, the `digest` that the Next.js log prints next to the full
-  error. The alert element carries `data-app-error`: the production observer
-  and browser QA recognise an error page by it.
-  `tests/next-error-boundary-browser.test.mjs` checks the copy, the marker
-  and the report.
+  `app/contests/`). Every `error.tsx` renders inside the page shell and
+  calls `ui/useRouteErrorRecovery.ts` with its own scope and copy. The hook
+  posts the caught error once to `/api/telemetry/client-errors` (Express
+  writes it to the journal as `[client-interface-error]` with the release,
+  the route and, for a server render error, the `digest` that the Next.js log
+  prints next to the full error) and returns the heading, the text, the
+  button label and the action. A chunk that cannot load means the tab
+  outlived a deploy, so every page then offers a full reload; any other error
+  keeps the page's copy and the `retry` prop of Next.js, which fetches and
+  renders the route again. The alert element carries `data-app-error`: the
+  production observer and browser QA recognise an error page by it.
+  `tests/next-error-boundary-browser.test.mjs` checks the copy, the marker,
+  the report and the reload after a missing chunk.
+- An error page must not need code that is loaded separately, or a missing
+  chunk fails the error page too and Next.js replaces the document with its
+  built-in "This page couldn't load" screen. Wrap a part of the page that a
+  visitor can do without (the support prompt in the shell) in `OptionalSurface`
+  from `src/components/OptionalSurface.tsx`: it renders nothing when that part
+  fails and reports the failure. There is no custom `global-error.tsx`: it is
+  part of the first load of every page and would cost about 1.8 KB of gzip
+  JavaScript there. So when the shell itself throws, the error page fails
+  with it and the visitor sees the built-in screen.
 - Link to pages with their trailing slash (`/tierlist/`). The slash-less URL
   answers with an uncached 301, which costs a round trip per click and keeps
   the link out of prerendering. `navigate()` adds the slash for scripted

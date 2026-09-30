@@ -3,17 +3,20 @@
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { usePublicAccess } from '@/apps/public-web/ui/usePublicAccess';
 import { navigate } from '@/apps/public-web/ui/navigation';
-import { useRouteErrorReport } from '@/apps/public-web/ui/useRouteErrorReport';
+import { useRouteErrorRecovery } from '@/apps/public-web/ui/useRouteErrorRecovery';
 
-export default function ContestsError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ContestsError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const access = usePublicAccess();
-  useRouteErrorReport(error, 'route:contests');
+  const recovery = useRouteErrorRecovery(error, retry, 'route:contests', {
+    heading: 'Конкурсы временно недоступны',
+    text: 'Попробуйте загрузить раздел ещё раз.',
+  });
   return <PublicPageShell activeTab="contests" pathname="/contests/" access={access}
     navigate={navigate} editorial>
     <div role="alert" data-app-error="route:contests" className="contest-empty">
-      <h1>Конкурсы временно недоступны</h1>
-      <p>Попробуйте загрузить раздел ещё раз.</p>
-      <button type="button" onClick={reset}>Повторить</button>
+      <h1>{recovery.heading}</h1>
+      <p>{recovery.text}</p>
+      <button type="button" onClick={recovery.retry}>{recovery.action}</button>
     </div>
   </PublicPageShell>;
 }
