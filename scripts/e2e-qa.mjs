@@ -2231,37 +2231,47 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/admin?section=boosty`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2);
-    const boostyState = await page.evaluate(() => {
-      const person = document.querySelector('.admin-boosty-person');
-      const personStyle = person ? getComputedStyle(person) : null;
+    const listState = root => {
+      const text = element => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
+      const scope = document.querySelector(root);
       return {
-        rows: document.querySelectorAll('.admin-boosty-row').length,
-        stats: [...document.querySelectorAll('.admin-boosty-stats strong')].map(element => element.textContent?.trim() || ''),
-        apiStatus: document.querySelector('.admin-boosty-status strong')?.textContent?.trim() || '',
+        rows: scope?.querySelectorAll('.admin-people-row').length ?? 0,
+        headers: [...(scope?.querySelectorAll('.admin-people-table thead th') ?? [])].map(text),
+        chips: [...(scope?.querySelectorAll('.admin-crm-segment-row:first-child .admin-crm-segment span') ?? [])].map(text),
+        pills: [...(scope?.querySelectorAll('.admin-people-row') ?? [])].map(row => [...row.querySelectorAll('.admin-crm-pill')].map(text)),
+        status: text(scope?.querySelector('.admin-people-status strong')),
+        summary: text(scope?.querySelector('.admin-people-summary')),
+        searchHeight: scope?.querySelector('.admin-people-search')?.getBoundingClientRect().height ?? 0,
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
-        personDirection: personStyle?.flexDirection || '',
-        personGap: parseFloat(personStyle?.gap || '0') || 0,
       };
-    });
-    if (boostyState.rows !== 2 || boostyState.stats.join(',') !== '2,2,1,1' || !boostyState.apiStatus.includes('работает')) {
-      failures.push(`admin Boosty [${device}]: deterministic status, KPI or subscriber list did not render`);
+    };
+    const clickChip = (root, label) => page.evaluate((scopeSelector, chipLabel) => {
+      const chip = [...document.querySelectorAll(`${scopeSelector} .admin-crm-segment`)].find(element => element.textContent?.trim().startsWith(chipLabel));
+      if (!(chip instanceof HTMLButtonElement)) throw new Error(`Missing filter chip: ${chipLabel}`);
+      chip.click();
+    }, root, label);
+    const boostyState = await page.evaluate(listState, '.admin-boosty');
+    if (boostyState.rows !== 2 || boostyState.chips.join(',') !== '2,1,1,1,1' || !boostyState.status.includes('работает') || !boostyState.summary.includes('Всего 2')) {
+      failures.push(`admin Boosty [${device}]: deterministic status, filters or subscriber table did not render (${JSON.stringify(boostyState)})`);
     }
+    if (JSON.stringify(boostyState.headers) !== JSON.stringify(['Подписчик', 'Уровень', 'Подписка', 'Доступ на сайте', 'Подписан'])
+      || JSON.stringify(boostyState.pills) !== JSON.stringify([['Активна', 'Открывает сайт'], ['Не активна', 'Не открывает сайт']])) {
+      failures.push(`admin Boosty [${device}]: table columns or statuses changed (${JSON.stringify(boostyState)})`);
+    }
+    if (boostyState.searchHeight < 44) failures.push(`admin Boosty [${device}]: search field is below the 44px target (${boostyState.searchHeight})`);
     if (boostyState.scrollWidth > boostyState.clientWidth + 1) {
       failures.push(`admin Boosty [${device}]: horizontal overflow ${boostyState.scrollWidth} > ${boostyState.clientWidth}`);
     }
-    if (boostyState.personDirection !== 'row' || boostyState.personGap < 10) {
-      failures.push(`admin Boosty [${device}]: subscriber identity layout changed (${JSON.stringify(boostyState)})`);
-    }
-    await page.select('.admin-boosty-filters label:last-child select', 'inactive');
+    await clickChip('.admin-boosty', 'Не активны');
     await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 1);
-    await page.type('.admin-boosty-filters input', 'нет такого подписчика');
+    await page.type('.admin-boosty .admin-people-search input', 'нет такого подписчика');
     await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 0);
-    const boostyEmptyState = await page.$eval('.admin-boosty-list [role="status"]', element => element.textContent?.trim() || '');
+    const boostyEmptyState = await page.$eval('.admin-boosty .admin-people-empty', element => element.textContent?.trim() || '');
     if (!boostyEmptyState.includes('не найдены')) failures.push(`admin Boosty [${device}]: filtered empty state is missing`);
     const boostyViolationCount = await auditAccessibility(page, `admin Boosty [${device}]`, '.admin-workspace-content');
     adminState.boostyFailure = true;
-    await page.click('.contest-users-head .contest-secondary-button');
+    await page.click('.admin-boosty .admin-people-reload');
     await page.waitForFunction(() => {
       const text = document.querySelector('.admin-workspace-content')?.textContent || '';
       return text.includes('Boosty API: ошибка') && text.includes('Не удалось загрузить подписчиков Boosty');
@@ -2280,44 +2290,38 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/admin?section=telegram`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 2);
-    const telegramState = await page.evaluate(() => {
-      const person = document.querySelector('.admin-telegram-person');
-      const personStyle = person ? getComputedStyle(person) : null;
-      return {
-        rows: document.querySelectorAll('.admin-telegram-row').length,
-        stats: [...document.querySelectorAll('.admin-telegram-stats strong')].map(element => element.textContent?.trim() || ''),
-        botStatus: document.querySelector('.admin-telegram-status strong')?.textContent?.trim() || '',
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-        personDirection: personStyle?.flexDirection || '',
-        personGap: parseFloat(personStyle?.gap || '0') || 0,
-      };
-    });
-    if (telegramState.rows !== 2 || telegramState.stats.join(',') !== '2,1,1,1' || !telegramState.botStatus.includes('настроен')) {
-      failures.push(`admin Telegram [${device}]: deterministic status, KPI or account list did not render`);
+    const telegramState = await page.evaluate(listState, '.admin-telegram');
+    if (telegramState.rows !== 2 || telegramState.chips.join(',') !== '2,1,0,1,1,0' || !telegramState.status.includes('настроен') || !telegramState.summary.includes('Всего 2')) {
+      failures.push(`admin Telegram [${device}]: deterministic status, filters or account table did not render (${JSON.stringify(telegramState)})`);
+    }
+    if (JSON.stringify(telegramState.headers) !== JSON.stringify(['Человек', 'Telegram', 'Доступ', 'VIP-группы'])
+      || JSON.stringify(telegramState.pills) !== JSON.stringify([['Есть доступ'], ['Telegram не привязан']])) {
+      failures.push(`admin Telegram [${device}]: table columns or statuses changed (${JSON.stringify(telegramState)})`);
     }
     if (telegramState.scrollWidth > telegramState.clientWidth + 1) {
       failures.push(`admin Telegram [${device}]: horizontal overflow ${telegramState.scrollWidth} > ${telegramState.clientWidth}`);
     }
-    if (telegramState.personDirection !== 'row' || telegramState.personGap < 10) {
-      failures.push(`admin Telegram [${device}]: account identity layout changed (${JSON.stringify(telegramState)})`);
-    }
-    await page.select('.admin-telegram-filters select', 'contact-only');
+    // A Telegram account is a site user: the name opens the same client card as the people list.
+    await page.click('.admin-telegram-row .admin-crm-open');
+    await page.waitForFunction(() => document.querySelector('.admin-crm-sheet[role="dialog"] h2')?.textContent?.trim() === 'Участник VIP');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.admin-crm-sheet'));
+    await clickChip('.admin-telegram', 'Не привязан');
     await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 1);
-    await page.type('.admin-telegram-filters input', 'нет такого аккаунта');
+    await page.type('.admin-telegram .admin-people-search input', 'нет такого аккаунта');
     await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 0);
-    const telegramEmptyState = await page.$eval('.admin-telegram-list [role="status"]', element => element.textContent?.trim() || '');
+    const telegramEmptyState = await page.$eval('.admin-telegram .admin-people-empty', element => element.textContent?.trim() || '');
     if (!telegramEmptyState.includes('не найдены')) failures.push(`admin Telegram [${device}]: filtered empty state is missing`);
     const telegramViolationCount = await auditAccessibility(page, `admin Telegram [${device}]`, '.admin-workspace-content');
     adminState.telegramFailure = true;
-    const telegramReloadPoint = await page.$eval('.contest-users-head .contest-secondary-button', async element => {
+    const telegramReloadPoint = await page.$eval('.admin-telegram .admin-people-reload', async element => {
       element.scrollIntoView({ block: 'center', inline: 'center' });
       await new Promise(resolve => requestAnimationFrame(() => resolve()));
       const rect = element.getBoundingClientRect();
       return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
     });
     const telegramReloadHit = await page.evaluate(point => {
-      const button = document.querySelector('.contest-users-head .contest-secondary-button');
+      const button = document.querySelector('.admin-telegram .admin-people-reload');
       const target = document.elementFromPoint(point.x, point.y);
       return Boolean(button && target && (button === target || button.contains(target)));
     }, telegramReloadPoint);

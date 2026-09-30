@@ -918,6 +918,22 @@ export const adminFixtures = {
     tags: ['vip'],
     audit: [],
   },
+  '/api/admin/crm/people/telegram-qa-1': {
+    person: {
+      id: 'telegram-qa-1', name: 'Участник VIP', email: 'vip@example.test', role: 'user', country: '',
+      createdAt: '2026-07-01T00:00:00.000Z', updatedAt: '2026-07-11T00:00:00.000Z', blockedAt: null, newsletterOptIn: false,
+      contacts: { telegram: '@vip_member', vk: '', email: '' },
+    },
+    identities: [{ provider: 'telegram', username: 'vip_member', createdAt: '2026-07-01T00:00:00.000Z', verifiedAt: '2026-07-01T00:00:00.000Z' }],
+    access: { hasAccess: true, source: 'telegram', message: 'Участник найден', checkedAt: '2026-07-11T00:00:00.000Z', manual: null },
+    accessHistory: [{ at: '2026-07-02T00:00:00.000Z', source: 'telegram', hasAccess: true }],
+    referral: null,
+    contests: [],
+    mailing: null,
+    notes: [],
+    tags: [],
+    audit: [],
+  },
   '/api/admin/crm/overview': {
     generatedAt: '2026-07-28T00:00:00.000Z',
     alerts: [

@@ -55,7 +55,6 @@
     "src/features/ConstructedArchetypes.tsx#ArchetypeDetailPage": 206,
     "src/features/ConstructedCardFilterSelect.tsx#ConstructedCardFilterSelect": 197,
     "src/features/ConstructedCardHistoryChart.tsx#ConstructedCardHistoryChart": 175,
-    "src/features/ContestAdminBoosty.tsx#ContestAdminBoosty": 139,
     "src/features/ContestAdminTranslations.tsx#ContestAdminTranslations": 186,
     "src/features/ContestAdminTranslations.tsx#TranslationWorkspaceView": 224,
     "src/features/ContestAdminUsers.tsx#ContestAdminUsers": 194,

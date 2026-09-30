@@ -790,6 +790,7 @@
         "tests/admin-crm-routes.test.ts",
         "tests/admin-client-card-model.test.ts",
         "tests/admin-people-list-model.test.ts",
+        "tests/admin-integration-lists-model.test.ts",
         "tests/admin-crm-overview.test.ts",
         "tests/admin-overview-model.test.ts"
       ],

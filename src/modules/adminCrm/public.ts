@@ -13,3 +13,4 @@ export function loadAdminOverviewPage() {
   return import('./AdminOverviewPage.lazy');
 }
 export { personAccess, personContacts, personInitial } from './ui/peopleListModel';
+export { AdminFilterChips } from './ui/AdminFilterChips';

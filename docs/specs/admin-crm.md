@@ -263,6 +263,30 @@ already shows; it starts with the description, status, actions and metrics.
 The Boosty and Telegram sections describe states in plain language instead of
 provider terms (`active`, `Grace`, `OIDC ID`, raw member statuses).
 
+## Boosty and Telegram lists (2026-09-30 redesign)
+
+`/admin?section=boosty` and `/admin?section=telegram` use the people-list
+layout: one status block, a search field with «Обновить», single-choice filter
+chips with counts (`AdminFilterChips`), a one-line summary, a table that turns
+into cards below 960 px and pagination of 20 rows. Filtering, the chip counts
+and every status label are pure functions in
+`src/features/adminIntegrationListModel.ts`; the endpoints and their payloads
+are unchanged.
+
+Boosty columns: «Подписчик», «Уровень», «Подписка», «Доступ на сайте» and
+«Подписан». Chips: all, opens the site, pays, no paid subscription, inactive;
+a second row filters by Boosty level. «Подписка» is one status (inactive,
+free, active with or without auto-renewal). «Доступ на сайте» tells apart a
+subscriber who opens the site, one who does not, and one who pays for a level
+the site does not recognise — the case an administrator has to fix.
+
+Telegram columns: «Человек», «Telegram», «Доступ» and «VIP-группы». Chips:
+all, with access, linked without access, not linked, stale check, blocked.
+The name opens the client card, because a Telegram account is a site user. A
+group the bot cannot read for at least half of the checked accounts is named
+in the status block with the action to take; a failed request shows an error
+instead of an empty list.
+
 ## Permissions
 
 Every endpoint requires the full administrator role (`adminAuth`), matching

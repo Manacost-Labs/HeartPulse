@@ -121,7 +121,7 @@ export function ContestAdminUsers({
       </p>
       {users.length ? (
         <div className="admin-people-table-wrap" aria-busy={loading}>
-          <table className="admin-people-table">
+          <table className="admin-people-table is-users">
             <thead>
               <tr>
                 <th scope="col">Человек</th>
