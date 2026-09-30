@@ -271,7 +271,7 @@
   },
   "dependencies": {
     "@firestone-hs/deckstrings": "^2.2.8",
-    "@sentry/node": "10.73.0",
+    "@sentry/node": "11.0.0",
     "compression": "^1.8.1",
     "concurrently": "^10.0.5",
     "dotenv": "^17.3.1",
