@@ -4,8 +4,9 @@ import { constructedCardRoute } from '@/src/modules/constructedCards/public';
 import { publicBattlegroundHero } from './lib/publicBattlegroundHeroData';
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';
-import { encodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
-  PUBLIC_BG_PROJECTION_HEADER } from './lib/publicBattlegroundProjectionHeader';
+import { publicCardSeed } from './lib/publicCardSeed';
+import { encodePublicProjection, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION_HEADER,
+  PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
 import { fetchPublicExpress } from './lib/expressApi';
 
@@ -27,7 +28,11 @@ function battlegroundDetailProbe(pathname: string): BattlegroundDetailProbe | nu
   return null;
 }
 
-function unavailableResponse(retryAfter: string | null, method: string): Response {
+/**
+ * `robotsHeader` is false for routes whose Nginx location adds `X-Robots-Tag`
+ * to every error status without hiding the upstream header.
+ */
+function unavailableResponse(retryAfter: string | null, method: string, robotsHeader = true): Response {
   const retry = retryAfter && /^[1-9][0-9]{0,3}$/.test(retryAfter) && Number(retryAfter) <= 3600
     ? retryAfter : '300';
   const html = '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Данные временно недоступны | HearthPulse</title></head><body><main><h1>Данные временно недоступны</h1><p>Попробуйте открыть страницу позже.</p><a href="/">На главную</a></main></body></html>';
@@ -35,7 +40,7 @@ function unavailableResponse(retryAfter: string | null, method: string): Respons
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'private, no-store',
     'Retry-After': retry,
-    'X-Robots-Tag': 'noindex, nofollow',
+    ...(robotsHeader ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
   } });
 }
 
@@ -43,7 +48,7 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
   try {
     const response = await fetchPublicExpress(probe.apiPath);
     if (response.status === 404) {
-      headers.set(PUBLIC_BG_PROJECTION_HEADER, MISSING_PUBLIC_BG_PROJECTION);
+      headers.set(PUBLIC_BG_PROJECTION_HEADER, MISSING_PUBLIC_PROJECTION);
       return null;
     }
     if (!response.ok) return unavailableResponse(response.headers.get('retry-after'), method);
@@ -57,7 +62,8 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
         typeName: card.typeName, textRu: card.text, images: { card: card.image } },
       canonicalPath: card.canonicalPath };
     }
-    const encoded = encodePublicBattlegroundProjection(projection);
+    const encoded = encodePublicProjection(projection);
+    // A large header can exceed an upstream request limit.
     if (!encoded) return unavailableResponse(null, method);
     headers.set(PUBLIC_BG_PROJECTION_HEADER, encoded);
     return null;
@@ -83,6 +89,30 @@ async function checkCosmeticsDetail(pathname: string, headers: Headers, method: 
   }
 }
 
+/**
+ * A missing card stays the page's 404 and a verified card is handed to the
+ * page, so one request reads Express once. Only a card the API cannot verify
+ * is answered here.
+ */
+async function checkConstructedCard(format: string, cardId: string, headers: Headers, method: string): Promise<Response | null> {
+  try {
+    const response = await fetchPublicExpress(`/api/public/constructed-cards/${format}/${encodeURIComponent(cardId)}`);
+    if (response.status === 404) {
+      headers.set(PUBLIC_CARD_PROJECTION_HEADER, MISSING_PUBLIC_PROJECTION);
+      return null;
+    }
+    if (!response.ok) return unavailableResponse(response.headers.get('retry-after'), method, false);
+    const projection = await response.json();
+    publicCardSeed(projection, cardId);
+    // A projection too large for a header is read again by the page itself.
+    const encoded = encodePublicProjection(projection);
+    if (encoded) headers.set(PUBLIC_CARD_PROJECTION_HEADER, encoded);
+    return null;
+  } catch {
+    return unavailableResponse(null, method, false);
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const route = constructedCardRoute(request.nextUrl.pathname);
   const headers = new Headers(request.headers);
@@ -90,12 +120,17 @@ export async function proxy(request: NextRequest) {
   headers.delete('x-hearthpulse-card-id');
   headers.delete('x-hearthpulse-card-format');
   headers.delete(PUBLIC_BG_PROJECTION_HEADER);
+  headers.delete(PUBLIC_CARD_PROJECTION_HEADER);
   headers.delete(MISSING_COSMETICS_DETAIL_HEADER);
   if (route.page === 'detail' && route.cardId) {
     headers.set('x-hearthpulse-card-id', route.cardId);
     headers.set('x-hearthpulse-card-format', route.format);
   }
   if (request.method === 'GET' || request.method === 'HEAD') {
+    if (route.page === 'detail' && route.cardId) {
+      const cardUnavailable = await checkConstructedCard(route.format, route.cardId, headers, request.method);
+      if (cardUnavailable) return cardUnavailable;
+    }
     const probe = battlegroundDetailProbe(request.nextUrl.pathname);
     if (probe) {
       const unavailable = await checkBattlegroundDetail(probe, headers, request.method);

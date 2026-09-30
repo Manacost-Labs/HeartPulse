@@ -3,8 +3,8 @@ import { cache } from 'react';
 import { headers } from 'next/headers';
 import { publicBattlegroundLibraryCard } from './publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
-import { decodePublicBattlegroundProjection, MISSING_PUBLIC_BG_PROJECTION,
-  PUBLIC_BG_PROJECTION_HEADER } from './publicBattlegroundProjectionHeader';
+import { decodePublicProjection, MISSING_PUBLIC_PROJECTION,
+  PUBLIC_BG_PROJECTION_HEADER } from './publicProjectionHeader';
 import { fetchPublicExpress } from './expressApi';
 
 /** Loads an anonymous card projection without forwarding a browser session. */
@@ -19,9 +19,9 @@ export const loadPublicBattlegroundLibraryCard = cache(async (kind: string, slug
   const apiPath = battlegroundLibraryDetailApiPath(kind, pool, match[2]);
   if (!apiPath) return null;
   const projection = (await headers()).get(PUBLIC_BG_PROJECTION_HEADER);
-  if (projection === MISSING_PUBLIC_BG_PROJECTION) return null;
+  if (projection === MISSING_PUBLIC_PROJECTION) return null;
   if (projection) return publicBattlegroundLibraryCard(
-    decodePublicBattlegroundProjection(projection), kind, match[2], pool);
+    decodePublicProjection(projection), kind, match[2], pool);
   const response = await fetchPublicExpress(apiPath);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error('Public Battleground card temporarily unavailable');

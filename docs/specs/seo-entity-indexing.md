@@ -47,6 +47,16 @@ Each included detail page must return:
 Invalid or unverifiable entities remain authoritative `404` or retryable `503`
 documents with `noindex, nofollow`, no canonical and no client reclassification.
 
+A page component cannot choose its HTTP status, so on Next.js
+`apps/public-web/proxy.ts` asks the entity's public Express projection before
+the page renders. A `404` stays the page's own not-found document; any other
+failure becomes the `503` document with the projection's `Retry-After`, or
+300 seconds when it gives none. A card
+catalog served from its last-known-good copy cannot prove that a card is
+absent, so an unknown card is `503` until the next fresh catalog load. The
+release monitor (`scripts/production-monitor.mjs`) accepts that `503` for its
+absent-card probe only while the card API reports `X-Data-Cache: LKG`.
+
 ## Architecture and project structure
 
 - `server/entitySitemapRoutes.ts` owns segment definitions, public sitemap

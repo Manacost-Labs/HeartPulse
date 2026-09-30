@@ -10,8 +10,16 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const path = '/standard/cards/standard/blizzard%3A12345/';
     runtime.setUnavailable(true);
     let response = await fetch(runtime.origin + path);
-    assert.equal(response.status, 500, 'an upstream outage must not turn into a cacheable 404');
+    assert.equal(response.status, 503, 'a card that cannot be verified is retryable, never a cacheable 404 or a server error');
+    assert.equal(response.headers.get('retry-after'), '30', 'the retry hint of the card API reaches the crawler');
     assert.match(response.headers.get('cache-control'), /no-store/);
+    assert.equal(response.headers.get('x-robots-tag'), null, 'the card Nginx location adds the header to error statuses');
+    const outageHtml = await response.text();
+    assert.match(outageHtml, /<meta name="robots" content="noindex, nofollow">/);
+    assert.doesNotMatch(outageHtml, /rel="canonical"/);
+    const outageHead = await fetch(runtime.origin + path, { method: 'HEAD' });
+    assert.equal(outageHead.status, 503);
+    assert.equal(await outageHead.text(), '');
     assert.equal((await fetch(runtime.origin + '/standard/cards/')).status, 500, 'catalog outage is not an empty successful page');
     runtime.setUnavailable(false);
     response = await fetch(runtime.origin + path);

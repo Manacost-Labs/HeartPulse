@@ -622,7 +622,26 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     'unknown card HTML',
     signal,
   );
-  ensure(unknownResponse.status === 404, `unknown card HTML: HTTP ${unknownResponse.status}`);
+  // A last-known-good catalog cannot prove that a card is absent. The
+  // documented answer is then a retryable 503, which is healthy for a release.
+  const unknownCard = unknownResponse.status === 503 ? 'unverifiable' : 'absent';
+  if (unknownCard === 'unverifiable') {
+    const { response: catalogResponse } = await fetchBoundedText(
+      new URL('/api/constructed-cards?format=standard&perPage=1', origin),
+      fetchImpl,
+      timeoutMs,
+      MAX_CONSTRUCTED_JSON_BYTES,
+      'unknown card catalog state',
+      signal,
+    );
+    const catalogCache = catalogResponse.headers.get('x-data-cache') || 'none';
+    ensure(catalogResponse.status === 200 && catalogCache === 'LKG',
+      `unknown card HTML: HTTP 503 while the card catalog answers HTTP ${catalogResponse.status} with X-Data-Cache ${catalogCache}`);
+    ensure(/^[1-9][0-9]{0,3}$/.test(unknownResponse.headers.get('retry-after') || ''),
+      'unknown card HTML: retryable 503 has no Retry-After');
+  } else {
+    ensure(unknownResponse.status === 404, `unknown card HTML: HTTP ${unknownResponse.status}`);
+  }
   ensure(/noindex/i.test(unknownResponse.headers.get('x-robots-tag') || ''),
     'unknown card HTML: noindex response header is missing');
   ensure(!PRIVATE_PAYLOAD_PATTERN.test(unknownHtml), 'unknown card HTML contains private payload fields');
@@ -638,6 +657,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     standardUrls: entityCounts.standard,
     entityUrls: entityCounts,
     sampledDetails,
+    unknownCard,
     sitemapSources,
   };
 }

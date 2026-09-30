@@ -449,6 +449,8 @@ cutover and that must return before those files are deleted:
   cutover; `tests/next-seo-page-metadata.test.mjs` now checks all registry
   pages the way `tests/prerender-seo.test.mjs` checked the prerendered
   documents, including the legal text without JavaScript.
+- Done: a card page that cannot be verified answers the retryable `503` of
+  the entity contract instead of a `500`.
 - Open: client Sentry. No build has ever received a client DSN, so it stays
   inactive; its Vite environment reads go away with `AppErrorBoundary`.
 

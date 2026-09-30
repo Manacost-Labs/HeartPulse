@@ -48,7 +48,7 @@ test('route errors outside the card catalog show generic recovery copy', async (
 
     for (const width of [320, 1440]) {
       await page.setViewport({ width, height: 900 });
-      // The proxy answers Battlegrounds and cosmetics outages itself; archetypes reach error.tsx.
+      // The proxy answers card, Battlegrounds and cosmetics detail outages itself; archetypes reach error.tsx.
       const archetype = await readErrorPage(page, `${next.origin}/standard/meta/standard/qa-evenlock/`);
       assert.equal(archetype.heading, 'Страница временно недоступна');
       assert.doesNotMatch(archetype.text, /карт|каталог/i, 'an archetype outage must not mention the card catalog');
@@ -58,8 +58,8 @@ test('route errors outside the card catalog show generic recovery copy', async (
       assert.equal(archetype.overflow, false, `error page overflow at ${width}px`);
     }
 
-    const card = await readErrorPage(page, `${next.origin}/standard/cards/standard/CARD_QA_1/`);
-    assert.equal(card.heading, 'Данные карты временно недоступны');
+    const catalog = await readErrorPage(page, `${next.origin}/standard/cards/standard/`);
+    assert.equal(catalog.heading, 'Данные карты временно недоступны');
     assert.deepEqual(pageErrors, []);
   } finally {
     if (browser) await browser.close();

@@ -46,6 +46,12 @@ behind its `public.ts`, not in `src/features/`.
   `ui/FieldFocusMode.tsx` and `ui/WebVitalsReporter.tsx`. The
   legacy `index.html` and `src/main.tsx` no longer reach production;
   `tests/next-document-head-browser.test.mjs` checks the rendered document.
+- An entity page that cannot be verified must answer `503`, which a page
+  component cannot do. `proxy.ts` reads the public projection of card, hero,
+  library and cosmetics details and returns the retryable `503` document
+  itself; an absent entity stays the page's own `404`. For cards, heroes and
+  library cards it hands the projection to the page in a request header
+  (`lib/publicProjectionHeader.ts`), so one request reads Express once.
 - `app/error.tsx` catches errors of every route without its own boundary, so
   its copy names no section. Section-specific error copy belongs in that
   segment's `error.tsx` (`app/standard/cards/`, `app/articles/`,

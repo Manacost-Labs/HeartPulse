@@ -56,9 +56,15 @@ critical public HTML routes, `robots.txt`, the exact sitemap index, static and
 all entity sitemap contracts (Standard, Wild-only, Battlegrounds minions,
 spells and heroes), deterministic first/middle/last SSR samples for every
 entity type, canonical redirects, JSON-LD identity, public-payload privacy, and
-a real noindex `404` for an unknown card. The successful report exposes bounded
-per-segment URL counts and sitemap sources so a collapsed catalog or LKG
-fallback is diagnosable without logging response bodies.
+a real noindex `404` for an unknown card. While the card API reports its
+catalog as last-known-good (`X-Data-Cache: LKG`), absence cannot be proven and
+the expected answer is the retryable noindex `503` with `Retry-After`; the
+report then carries `unknownCard: "unverifiable"` instead of `"absent"`. A
+`503` while the card API answers anything else, or any other status, fails the
+check and names the observed state. The
+successful report exposes bounded per-segment URL counts and sitemap sources so
+a collapsed catalog or LKG fallback is diagnosable without logging response
+bodies.
 
 Release-profile impact is high: users or crawlers may receive an unavailable
 site, the wrong release, an invalid canonical/indexing response, an incomplete

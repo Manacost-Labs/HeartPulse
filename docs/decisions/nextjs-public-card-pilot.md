@@ -32,9 +32,13 @@ no credentials, no redirect following, no cache and a bounded deadline. React's
 request-local cache deduplicates page and metadata reads. The hydration seed
 contains public facts and `stats: null`; account and subscription reads start
 in the browser. Paid statistics remain guarded by the existing Express policy.
-Unavailable data produces a retryable HTTP 500, while authoritative absence
-produces HTTP 404. Neither response is a public cache entry. Retry refreshes
-the server component before resetting the error boundary.
+Unavailable data produces a retryable response, while authoritative absence
+produces HTTP 404. Neither response is a public cache entry. Since 2026-09-30
+the proxy reads the card projection first: a card that cannot be verified is
+answered there with HTTP 503 and `Retry-After`, and a verified card is handed
+to the page in a request header, so one request reads Express once. A catalog
+listing that cannot be loaded still produces HTTP 500 with the card error
+boundary, whose retry refreshes the server component before resetting it.
 
 Next's proxy derives the validated card identity from the request pathname and
 overwrites internal identity headers. Both metadata and the page use those

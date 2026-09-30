@@ -9,6 +9,8 @@ import {
 let livenessAttempts = 0;
 let dataFresh = true;
 let unknownCardStatus = 404;
+let standardCatalogLkg = false;
+let unknownCardHtml = 'absent';
 let partialKnownFormat = null;
 let mismatchEnvelopeFormat = null;
 let seoFailure = null;
@@ -102,8 +104,12 @@ async function captureFailure(operation) {
   assert.fail('expected production monitor failure');
 }
 
+function isLastKnownGood(format) {
+  return format === 'wild' || standardCatalogLkg;
+}
+
 function cardHeaders(format) {
-  const lkg = format === 'wild';
+  const lkg = isLastKnownGood(format);
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store',
@@ -154,7 +160,7 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({
       format,
       datasetVersion,
-      dataStatus: format === 'wild' && mismatchEnvelopeFormat !== format ? 'stale' : 'fresh',
+      dataStatus: isLastKnownGood(format) && mismatchEnvelopeFormat !== format ? 'stale' : 'fresh',
       partial: false,
       cards: [{ card_id: cardId }],
     }));
@@ -167,7 +173,7 @@ const server = http.createServer((req, res) => {
     const datasetVersion = `ccc1-sha256:${format === 'wild' ? '2'.repeat(64) : '1'.repeat(64)}`;
     res.writeHead(200, cardHeaders(format));
     res.end(JSON.stringify({
-      dataStatus: format === 'wild' && mismatchEnvelopeFormat !== format ? 'stale' : 'fresh',
+      dataStatus: isLastKnownGood(format) && mismatchEnvelopeFormat !== format ? 'stale' : 'fresh',
       datasetVersion,
       partial: partialKnownFormat === format,
       card: { card_id: cardId },
@@ -308,10 +314,12 @@ const server = http.createServer((req, res) => {
   }
   if (requestUrl.pathname === '/standard/cards/standard/MANACOST_MONITOR_ABSENT_CARD/') {
     const includeCanonical = seoFailure === 'unknown-canonical';
-    res.writeHead(seoFailure === 'unknown-status' ? 200 : 404, {
+    const unverifiable = unknownCardHtml !== 'absent';
+    res.writeHead(seoFailure === 'unknown-status' ? 200 : unverifiable ? 503 : 404, {
       'Content-Type': 'text/html; charset=utf-8',
       'X-Robots-Tag': 'noindex, nofollow',
       'Cache-Control': 'no-store',
+      ...(unknownCardHtml === 'retryable' ? { 'Retry-After': '30' } : {}),
     });
     res.end(`<!doctype html><html><head><meta name="robots" content="noindex, nofollow">${includeCanonical ? `<link rel="canonical" href="${origin}/standard/cards/standard/MANACOST_MONITOR_ABSENT_CARD/">` : ''}</head><body><main><h1>Карта не найдена</h1></main></body></html>`);
     return;
@@ -448,6 +456,32 @@ try {
     /data freshness: HTTP 503/,
   );
   dataFresh = true;
+
+  assert.equal(seoCheck.unknownCard, 'absent');
+  standardCatalogLkg = true;
+  unknownCardHtml = 'retryable';
+  const unverifiableReport = await runProductionMonitor({
+    baseUrl,
+    profile: 'release',
+    expectedRelease: 'abcdef1234567890',
+    attempts: 1,
+    retryDelayMs: 0,
+    timeoutMs: 2_000,
+  });
+  assert.equal(unverifiableReport.checks.find(check => check.label === 'SEO crawl contract').unknownCard, 'unverifiable',
+    'a last-known-good catalog cannot prove absence, so a retryable 503 is the correct answer');
+  unknownCardHtml = 'no-retry-hint';
+  await assert.rejects(
+    runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 }),
+    /unknown card HTML: retryable 503 has no Retry-After/,
+  );
+  standardCatalogLkg = false;
+  unknownCardHtml = 'retryable';
+  await assert.rejects(
+    runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 }),
+    /unknown card HTML: HTTP 503 while the card catalog answers HTTP 200 with X-Data-Cache fresh/,
+  );
+  unknownCardHtml = 'absent';
 
   for (const [mode, expected] of [
     ['robots', /robots\.txt.*(?:Disallow|assets|sitemap)/i],
