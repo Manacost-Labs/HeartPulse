@@ -24,7 +24,7 @@ function InternalLink({ href, children, navigatePath }: {
 function LegalParagraph({ text, navigatePath }: { text: string; navigatePath: (path: string) => void }) {
   return text.split(/(\{\{(?:telegram|privacy)\}\})/g).map((part, index) => {
     if (part === '{{telegram}}') return <a key={index} href="https://t.me/manacost_ru" target="_blank" rel="noreferrer">Telegram Manacost</a>;
-    if (part === '{{privacy}}') return <InternalLink key={index} href="/privacy" navigatePath={navigatePath}>Политика конфиденциальности</InternalLink>;
+    if (part === '{{privacy}}') return <InternalLink key={index} href="/privacy/" navigatePath={navigatePath}>Политика конфиденциальности</InternalLink>;
     return part;
   });
 }
@@ -59,7 +59,7 @@ export default function LegalPage({ kind, navigatePath }: {
       <footer className="legal-page__footer">
         <FileText size={20} aria-hidden="true" />
         <span>{otherPage.title}</span>
-        <InternalLink href={isPrivacy ? '/terms' : '/privacy'} navigatePath={navigatePath}>Открыть документ</InternalLink>
+        <InternalLink href={isPrivacy ? '/terms/' : '/privacy/'} navigatePath={navigatePath}>Открыть документ</InternalLink>
       </footer>
     </article>
   );

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ChevronDown, Gift, Grid3X3 } from 'lucide-react';
+import { canonicalPagePath } from '../routing/canonicalPagePath';
 import type { TABS, TabId } from '../routing/navigationRoutes';
 
 export type NavigationRoute = (typeof TABS)[number];
@@ -30,7 +31,7 @@ export function NavigationRouteLinks({
     return (
       <a
         key={tab.id}
-        href={tab.slug}
+        href={canonicalPagePath(tab.slug)}
         onPointerEnter={() => onWarm(tab.id)}
         onPointerDown={() => onWarm(tab.id)}
         onFocus={() => onWarm(tab.id)}

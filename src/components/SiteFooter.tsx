@@ -2,11 +2,11 @@ import './SiteFooter.css';
 
 const FOOTER_NAV_LINKS = [
   { label: 'Главная', href: '/', tab: 'home' },
-  { label: 'Классы', href: '/classes', tab: 'winrates' },
-  { label: 'Тир-лист', href: '/tierlist', tab: 'tierlist' },
-  { label: 'Легендарки', href: '/legendaries', tab: 'legendaries' },
-  { label: 'Статьи', href: '/articles', tab: 'articles' },
-  { label: 'Галерея', href: '/gallery', tab: 'gallery' },
+  { label: 'Классы', href: '/classes/', tab: 'winrates' },
+  { label: 'Тир-лист', href: '/tierlist/', tab: 'tierlist' },
+  { label: 'Легендарки', href: '/legendaries/', tab: 'legendaries' },
+  { label: 'Статьи', href: '/articles/', tab: 'articles' },
+  { label: 'Галерея', href: '/gallery/', tab: 'gallery' },
 ] as const;
 
 export default function SiteFooter(_props: { onNavigate?: (tab: string) => void }) {
@@ -55,8 +55,8 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
       <div className="arena-footer__legal">
         <p>© 2024–{year} Manacost. Все права защищены.</p>
         <nav className="arena-footer__legal-links" aria-label="Правовые документы">
-          <a href="/privacy" className="arena-footer__link">Конфиденциальность</a>
-          <a href="/terms" className="arena-footer__link">Условия использования</a>
+          <a href="/privacy/" className="arena-footer__link">Конфиденциальность</a>
+          <a href="/terms/" className="arena-footer__link">Условия использования</a>
         </nav>
         <p>Hearthstone® — зарегистрированная торговая марка Blizzard Entertainment.</p>
       </div>

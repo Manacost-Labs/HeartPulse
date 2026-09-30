@@ -37,6 +37,7 @@ assert.match(html, /HearthPulse/);
 assert.match(html, /src="\/hearthpulse-logo\.webp"/);
 assert.match(html, /arena-(?:mobile-menu|sidebar)-link-icon/);
 assert.match(html, /aria-current="page"/);
+assert.doesNotMatch(html, /href="\/[^"?#.]*[^\/"?#.]"/, 'navigation links must target canonical trailing-slash URLs');
 assert.match(html, /Традиционный режим/);
 assert.match(html, /Мета и колоды/);
 assert.match(html, /Арена/);

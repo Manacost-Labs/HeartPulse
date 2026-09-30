@@ -1,0 +1,14 @@
+/* Pages are separate documents: both sides must opt in before the browser
+   runs the route-content animation of src/index.css between them. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+/* The outgoing document is usually scrolled. Moving the content box from its
+   old place would fly the new page in across the sticky header, so the two
+   documents cross-fade where the new content already sits. */
+::view-transition-group(route-content) {
+  animation: none;
+}

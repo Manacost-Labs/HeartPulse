@@ -739,7 +739,10 @@ const browserLaunchOptions = {
   headless: 'new',
   executablePath: CHROMIUM_PATH,
   // Headless hosts may have no physical pointer; mobile pages still opt into touch below.
-  args: ['--no-sandbox', '--disable-dev-shm-usage', '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4'],
+  // Prerendering is off: a document prerendered on hover loads outside the
+  // per-page `/api` interception, and activating it swaps the page's target
+  // under Puppeteer. tests/next-page-transitions-browser.test.mjs covers it.
+  args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-features=Prerender2', '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4'],
   dumpio: true,
 };
 
@@ -3484,7 +3487,7 @@ for (const [device, viewport] of [
       const controls = document.querySelector('.constructed-cards__controls');
       const search = document.querySelector('.constructed-card-search__field input');
       const viewButtons = [...document.querySelectorAll('.constructed-cards__view button')];
-      const menuLinks = [...document.querySelectorAll('a[href="/standard/cards"]')];
+      const menuLinks = [...document.querySelectorAll('a[href="/standard/cards/"]')];
       return {
         cards: document.querySelectorAll('.constructed-cards__gallery-card').length,
         filters: document.querySelectorAll('.constructed-cards__filter').length,
@@ -4343,15 +4346,15 @@ for (const [device, viewport] of [
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
     const expectedFooterLinks = [
       '/',
-      '/classes',
-      '/tierlist',
-      '/legendaries',
-      '/articles',
-      '/gallery',
+      '/classes/',
+      '/tierlist/',
+      '/legendaries/',
+      '/articles/',
+      '/gallery/',
       '/developers/api/',
       '/api/v1/openapi.json',
-      '/privacy',
-      '/terms',
+      '/privacy/',
+      '/terms/',
     ];
     if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);
@@ -5046,7 +5049,7 @@ for (const [device, viewport] of [
     await auditAccessibility(page, 'home lazy sections and support prompt');
     if (runtimeErrors.length) failures.push(`home lazy sections: ${runtimeErrors.join(' | ')}`);
     await page.click('.support-prompt__close');
-    await page.click('.arena-sidebar a[href="/classes"]');
+    await page.click('.arena-sidebar a[href="/classes/"]');
     await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
     const seoRegistryState = await page.evaluate(() => ({
       path: location.pathname,
@@ -5513,7 +5516,7 @@ for (const [device, viewport] of [
           '/articles', '/standard/matchups', '/classes', '/tierlist', '/legendaries',
           '/heroes', '/library', '/battlegrounds/tier-list', '/battlegrounds/strategies',
           '/battlegrounds/tier-builder', '/gallery', '/guides-archive', '/contests',
-        ].filter(path => !document.querySelector(`#arena-mobile-menu a[href="${path}"]`)),
+        ].filter(path => !document.querySelector(`#arena-mobile-menu a[href="${path}/"]`)),
         toggleSize: (() => {
           const toggleRect = toggle?.getBoundingClientRect();
           return { width: toggleRect?.width || 0, height: toggleRect?.height || 0 };

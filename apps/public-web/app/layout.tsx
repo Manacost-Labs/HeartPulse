@@ -1,8 +1,10 @@
 import '@/src/index.css';
 import '@/src/parchment-theme.css';
+import './page-transitions.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { CANONICAL_HOST } from '@/src/config/domain';
+import { ANALYTICS_LOADER } from '@/apps/public-web/lib/analyticsLoader';
+import { SPECULATION_RULES } from '@/apps/public-web/lib/speculationRules';
 import { FieldFocusMode } from '@/apps/public-web/ui/FieldFocusMode';
 import { WebVitalsReporter } from '@/apps/public-web/ui/WebVitalsReporter';
 import { loadRuntimeClientConfig } from '@/apps/public-web/lib/runtimeClientConfig';
@@ -29,14 +31,6 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: '#081a33', colorScheme: 'light' };
 
-// Plausible counts one pageview per document, and pages navigate with full
-// loads. Only the canonical host loads it: tests, local runs and staging stay
-// out of the statistics, and an analytics outage cannot delay them.
-const ANALYTICS_LOADER = `if(location.hostname===${JSON.stringify(CANONICAL_HOST)}){`
-  + 'var s=document.createElement("script");'
-  + `s.dataset.domain=${JSON.stringify(CANONICAL_HOST)};`
-  + 's.src="https://stats.hs-manacost.ru/js/script.js";document.head.appendChild(s)}';
-
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const runtimeConfig = JSON.stringify(await loadRuntimeClientConfig()).replace(/</g, '\\u003c');
   // PageTour and ModalSurface make `#root` inert and aria-hidden while their
@@ -48,5 +42,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <FieldFocusMode />
     <WebVitalsReporter />
     <script dangerouslySetInnerHTML={{ __html: ANALYTICS_LOADER }} />
+    <script type="speculationrules" dangerouslySetInnerHTML={{ __html: JSON.stringify(SPECULATION_RULES) }} />
   </body></html>;
 }

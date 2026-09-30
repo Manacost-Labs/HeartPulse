@@ -21,7 +21,10 @@ behind its `public.ts`, not in `src/features/`.
 | `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell with the site-wide head tags, analytics script and field focus mode; real 404 and the generic error page for every route |
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
-| `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation) |
+| `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
+| `app/page-transitions.css` | Opt-in to cross-document view transitions; the animation itself is the `route-content` block of `src/index.css` |
+| `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press |
+| `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
@@ -56,6 +59,20 @@ behind its `public.ts`, not in `src/features/`.
   its copy names no section. Section-specific error copy belongs in that
   segment's `error.tsx` (`app/standard/cards/`, `app/articles/`,
   `app/contests/`); `tests/next-error-boundary-browser.test.mjs` checks both.
+- Link to pages with their trailing slash (`/tierlist/`). The slash-less URL
+  answers with an uncached 301, which costs a round trip per click and keeps
+  the link out of prerendering. `navigate()` adds the slash for scripted
+  navigation; an `href` has to carry it itself, written out or through
+  `canonicalPagePath()` from `src/app/routing/canonicalPagePath.ts`.
+- Public navigation sections and their detail pages are prerendered when a
+  visitor hovers or presses a link (`lib/speculationRules.ts`), so page code
+  can run for a visit that never happens. Anything that records a visit or
+  changes state on load must wait for the `prerenderingchange` event, as
+  `lib/analyticsLoader.ts` does; a URL that must not load early stays out of
+  the rules. `tests/next-page-transitions-browser.test.mjs` checks the
+  eligible URLs, the prerender and the transition. Browser QA
+  (`scripts/e2e-qa.mjs`) starts Chromium with prerendering off, because a
+  prerendered document loads outside its per-page `/api` mocks.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
   `.arena-paywall` markup for guests.
@@ -154,7 +171,13 @@ rebuild after changing source (`npm run build:next`, `npm run build:static`).
 ## Known debt
 
 - Client-rendered wrappers around large legacy views (`src/features/*.tsx`);
-  full-document navigation between pages.
+  full-document navigation between pages. Prerendering and cross-document
+  view transitions hide its cost in Chromium (the transition also runs in
+  Safari 18.2+); Firefox still swaps documents without either.
+- Links written by hand inside legacy views (home hero, related links, card
+  and cosmetics listings) still omit the trailing slash: a click handler
+  fixes the URL, but those links are not prerendered and a plain anchor
+  still pays the redirect.
 - Legacy global CSS is imported per route from `src/`.
 - `npm run qa:ci`, `verify:ci` and the nightly responsive QA run the browser
   QA against this app with the QA backend in `scripts/qa/`. Bundle budgets
