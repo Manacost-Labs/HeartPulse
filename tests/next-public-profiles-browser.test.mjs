@@ -37,7 +37,7 @@ test('Next public profile routes use the allowlisted Express projection and real
   const child = process.env.NEXT_PROFILE_ORIGIN ? null : spawn(process.execPath,
     ['node_modules/next/dist/bin/next', 'start', 'apps/public-web', '--hostname', '127.0.0.1',
       '--port', new URL(origin).port], {
-      env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1',
+      env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '',
         LEGACY_WEB_ORIGIN: backendOrigin },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

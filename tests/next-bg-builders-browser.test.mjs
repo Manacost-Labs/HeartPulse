@@ -25,7 +25,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
   const origin = await listenLocal(reservation); await closeLocal(reservation);
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
     '--hostname', '127.0.0.1', '--port', new URL(origin).port], {
-    env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1' },
+    env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = ''; let browser;

@@ -5,7 +5,7 @@ import { startNextServer } from '../../scripts/lib/next-server.mjs';
 import { createPublicWebGateway } from '../../scripts/public-web-gateway.mjs';
 import { publicCardFixture, listenLocal, closeLocal } from './publicCardFixture.mjs';
 
-export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false, galleryEnabled = false } = {}) {
+export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false, galleryEnabled = false, runtimeClientConfigFile } = {}) {
   for (const [artifact, script] of [['dist/index.html', 'build'], ['apps/public-web/.next/BUILD_ID', 'build:next']]) {
     if (existsSync(artifact)) continue;
     const built = spawnSync('npm', ['run', script], { encoding: 'utf8', timeout: 90000 });
@@ -19,7 +19,7 @@ export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false, 
     await fixture.close();
   };
   try {
-    next = await startNextServer({ legacyOrigin: fixture.backend.origin });
+    next = await startNextServer({ legacyOrigin: fixture.backend.origin, runtimeClientConfigFile });
     gateway = createPublicWebGateway({ legacyOrigin: fixture.legacyOrigin, nextOrigin: next.origin, enabled: true, pagesEnabled, galleryEnabled });
     let origin;
     if (gatewayPort) {

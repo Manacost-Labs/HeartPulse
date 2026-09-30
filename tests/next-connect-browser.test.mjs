@@ -19,7 +19,7 @@ test('Next device connection keeps the code private and uses the existing authen
   const child = process.env.NEXT_CONNECT_ORIGIN ? null : spawn(process.execPath,
     ['node_modules/next/dist/bin/next', 'start', 'apps/public-web', '--hostname', '127.0.0.1',
       '--port', new URL(origin).port], {
-      env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1' },
+      env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   let output = ''; let browser;

@@ -21,7 +21,7 @@ createRoot(document.getElementById('root')!).render(
 
 const startClientRum = () => {
   void import('./telemetry/webVitals')
-    .then(({ startWebVitalsReporting }) => startWebVitalsReporting())
+    .then(({ startWebVitalsReporting }) => startWebVitalsReporting(import.meta.env.VITE_SENTRY_WEB_VITALS_SAMPLE_RATE))
     .catch(error => {
       console.warn('[telemetry] web-vitals failed:', error);
     });

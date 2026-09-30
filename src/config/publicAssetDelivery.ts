@@ -12,6 +12,7 @@ type RuntimeCardImageCdnConfig = {
 
 type ArenaRuntimeConfig = {
   cardImageCdn?: RuntimeCardImageCdnConfig;
+  webVitals?: { enabled?: unknown };
 };
 
 declare global {
@@ -27,9 +28,11 @@ type CardImageElement = {
 };
 
 function runtimeCardImageDeliveryConfig(): CardImageDeliveryConfig {
-  const runtimeConfig = typeof window === 'undefined'
-    ? undefined
-    : window.__ARENA_RUNTIME_CONFIG__?.cardImageCdn;
+  // The document sets the switches on `window`; the Next.js server publishes
+  // the same value on its global before rendering, so server HTML and
+  // hydration resolve the same URLs.
+  const scope = (typeof window === 'undefined' ? globalThis : window) as { __ARENA_RUNTIME_CONFIG__?: ArenaRuntimeConfig };
+  const runtimeConfig = scope.__ARENA_RUNTIME_CONFIG__?.cardImageCdn;
 
   return {
     enabled: runtimeConfig?.enabled === true,

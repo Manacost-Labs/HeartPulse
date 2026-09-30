@@ -436,8 +436,15 @@ cutover and that must return before those files are deleted:
   from `scripts/prerender.js` to `config/public-seo-structured-data.json` and
   `src/seo/structuredData.ts`. On 2026-09-30 the generated graphs were
   identical to the prerendered documents for all 29 pages.
-- Open: `/runtime-config.js`, without which card images skip the CDN;
-  web-vitals reporting and client Sentry.
+- Done: the runtime switches reach Next.js documents again, so the card
+  library loads its images from the CDN. The server reads the root-managed
+  file and inlines the value, keeping server HTML and hydration on one URL.
+- Done: Web Vitals reporting to `/api/telemetry/web-vitals` starts from the
+  Next.js layout (`ui/WebVitalsReporter.tsx`) on request-rendered pages;
+  `startWebVitalsReporting` takes its sample rate as an argument instead of
+  reading `import.meta.env`.
+- Open: client Sentry. No build has ever received a client DSN, so it stays
+  inactive; its Vite environment reads go away with `AppErrorBoundary`.
 
 Eleven browser tests use a Vite dev server as their component harness
 (`tests/fixtures/*.html`, `tests/fixtures/vite.*.config.ts`); they need another

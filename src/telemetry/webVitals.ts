@@ -61,9 +61,10 @@ function queueWebVital(metric: MetricType): void {
   }
 }
 
-export async function startWebVitalsReporting(): Promise<boolean> {
+/** `sampleRate` is the deployment's bounded 0..1 share of page loads to report; unset reports all. */
+export async function startWebVitalsReporting(sampleRate?: unknown): Promise<boolean> {
   if (started) return true;
-  if (!shouldSampleWebVitals(import.meta.env.VITE_SENTRY_WEB_VITALS_SAMPLE_RATE)) return false;
+  if (!shouldSampleWebVitals(sampleRate)) return false;
 
   const {
     onCLS,

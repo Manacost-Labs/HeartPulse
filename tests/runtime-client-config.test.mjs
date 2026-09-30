@@ -29,4 +29,10 @@ assert.deepEqual(
   'the canonical runtime must use the public HearthPulse CDN after cutover',
 );
 
+const layout = readFileSync(new URL('../apps/public-web/app/layout.tsx', import.meta.url), 'utf8');
+assert.ok(
+  layout.indexOf('window.__ARENA_RUNTIME_CONFIG__=') < layout.indexOf('<div id="root">'),
+  'Next.js documents must define the runtime config before the application markup',
+);
+
 console.log('runtime client config contract tests passed');

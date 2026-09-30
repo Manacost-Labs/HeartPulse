@@ -52,7 +52,7 @@ test('Next archetype detail variants SSR only public data and return real 404s',
   const reservation = http.createServer(); const nextOrigin = await listenLocal(reservation); await closeLocal(reservation);
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
     '--hostname', '127.0.0.1', '--port', new URL(nextOrigin).port], {
-    env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', LEGACY_WEB_ORIGIN: legacyOrigin },
+    env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '', LEGACY_WEB_ORIGIN: legacyOrigin },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = ''; let gateway; let browser;

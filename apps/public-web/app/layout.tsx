@@ -4,6 +4,8 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { CANONICAL_HOST } from '@/src/config/domain';
 import { FieldFocusMode } from '@/apps/public-web/ui/FieldFocusMode';
+import { WebVitalsReporter } from '@/apps/public-web/ui/WebVitalsReporter';
+import { loadRuntimeClientConfig } from '@/apps/public-web/lib/runtimeClientConfig';
 
 // Pages replace title, description, canonical and robots; everything else
 // here reaches every document, so an unregistered page stays noindex.
@@ -35,12 +37,16 @@ const ANALYTICS_LOADER = `if(location.hostname===${JSON.stringify(CANONICAL_HOST
   + `s.dataset.domain=${JSON.stringify(CANONICAL_HOST)};`
   + 's.src="https://stats.hs-manacost.ru/js/script.js";document.head.appendChild(s)}';
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const runtimeConfig = JSON.stringify(await loadRuntimeClientConfig()).replace(/</g, '\\u003c');
   // PageTour and ModalSurface make `#root` inert and aria-hidden while their
   // portaled dialogs are open; without it the page behind them stays reachable.
   return <html lang="ru"><body>
+    {/* Inline and first: the switches must exist before any chunk hydrates. */}
+    <script dangerouslySetInnerHTML={{ __html: `window.__ARENA_RUNTIME_CONFIG__=${runtimeConfig}` }} />
     <div id="root">{children}</div>
     <FieldFocusMode />
+    <WebVitalsReporter />
     <script dangerouslySetInnerHTML={{ __html: ANALYTICS_LOADER }} />
   </body></html>;
 }

@@ -29,6 +29,17 @@ Serve every required public image, media file, font, and hashed frontend asset t
 - A transport edge may bypass its own proxy cache without replacing the
   application's browser `Cache-Control` policy.
 - `Timing-Allow-Origin`, CORS, and exposed diagnostic headers are enabled only where browser modules, fonts, or measurement require them.
+- Next.js documents carry the runtime switches inline. The Next server reads
+  the root-managed file behind `/runtime-config.js` (`dist/runtime-config.js`
+  of the release, overridable with `RUNTIME_CLIENT_CONFIG_FILE`) at most every
+  30 seconds, renders card images with it and sends the same value to the
+  browser before hydration, so both resolve one URL. A missing, unreadable or
+  invalid file means origin delivery and no Web Vitals reporting, which is how
+  test and local runtimes start; a deployed file reports unless it sets
+  `webVitals: { enabled: false }`. Pages prerendered at build time (FAQ,
+  privacy, terms, developer API, device connection, 404) are built with the
+  switches off, so an operational switch is never frozen into static HTML;
+  they show no card-library images and do not report Web Vitals.
 
 ## Rollout order
 

@@ -82,7 +82,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
   await close(reservation);
   const next = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
     '--hostname', '127.0.0.1', '--port', new URL(nextOrigin).port], {
-    env: { ...process.env, LEGACY_WEB_ORIGIN: legacyOrigin, NEXT_TELEMETRY_DISABLED: '1' },
+    env: { ...process.env, LEGACY_WEB_ORIGIN: legacyOrigin, NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';

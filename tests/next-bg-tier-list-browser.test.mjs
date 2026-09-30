@@ -20,7 +20,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
   const nextOrigin = await listenLocal(reservation); await closeLocal(reservation);
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
     '--hostname', '127.0.0.1', '--port', new URL(nextOrigin).port], {
-    env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1' },
+    env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = ''; let browser;

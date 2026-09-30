@@ -15,13 +15,17 @@ async function freeLoopbackPort() {
 /**
  * Starts the built Next.js app (`npm run build:next`) on a loopback port.
  * `legacyOrigin` is the Express-compatible origin its server loaders read.
+ * `runtimeClientConfigFile` is a switch file in the `public/runtime-config.js`
+ * format; without one the switches are off, so pages under test never load
+ * card images from the public CDN.
  */
-export async function startNextServer({ legacyOrigin, readyTimeoutMs = 15_000 }) {
+export async function startNextServer({ legacyOrigin, readyTimeoutMs = 15_000, runtimeClientConfigFile = '' }) {
   const port = await freeLoopbackPort();
   const origin = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
     '--hostname', '127.0.0.1', '--port', String(port)], {
-    env: { PATH: process.env.PATH, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', LEGACY_WEB_ORIGIN: legacyOrigin },
+    env: { PATH: process.env.PATH, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', LEGACY_WEB_ORIGIN: legacyOrigin,
+      RUNTIME_CLIENT_CONFIG_FILE: runtimeClientConfigFile },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';

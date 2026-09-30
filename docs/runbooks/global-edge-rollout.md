@@ -110,7 +110,8 @@ curl -sS -D - -o /dev/null 'https://arena.hs-manacost.ru/?login'
 
 Rollback is scoped to the affected plane:
 
-- client URL migration: disable its root-managed runtime switch;
+- client URL migration: disable its root-managed runtime switch; Next.js
+  picks the change up within 30 seconds without a restart or a release;
 - edge path migration: remove only the new allowlisted location and reload
   Nginx after `nginx -t`;
 - bad release: use the immutable application release rollback;

@@ -25,6 +25,7 @@ behind its `public.ts`, not in `src/features/`.
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
+| `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
 | `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes |
 <!-- markdownlint-enable MD013 -->
 
@@ -41,7 +42,8 @@ behind its `public.ts`, not in `src/features/`.
   admin documents, so it must not use the anonymous client.
 - Anything every document needs goes into `app/layout.tsx`: search-engine
   verification, icons, theme color, the Plausible loader (it runs only on
-  `hearthpulse.net`) and client wiring such as `ui/FieldFocusMode.tsx`. The
+  `hearthpulse.net`), the inline runtime switches and client wiring such as
+  `ui/FieldFocusMode.tsx` and `ui/WebVitalsReporter.tsx`. The
   legacy `index.html` and `src/main.tsx` no longer reach production;
   `tests/next-document-head-browser.test.mjs` checks the rendered document.
 - `app/error.tsx` catches errors of every route without its own boundary, so
