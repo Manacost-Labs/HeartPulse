@@ -46,8 +46,7 @@ behind its `public.ts`, not in `src/features/`.
 - Anything every document needs goes into `app/layout.tsx`: search-engine
   verification, icons, theme color, the Plausible loader (it runs only on
   `hearthpulse.net`), the inline runtime switches and client wiring such as
-  `ui/FieldFocusMode.tsx` and `ui/WebVitalsReporter.tsx`. The
-  legacy `index.html` and `src/main.tsx` no longer reach production;
+  `ui/FieldFocusMode.tsx` and `ui/WebVitalsReporter.tsx`;
   `tests/next-document-head-browser.test.mjs` checks the rendered document.
 - An entity page that cannot be verified must answer `503`, which a page
   component cannot do. `proxy.ts` reads the public projection of card, hero,
@@ -185,7 +184,7 @@ rebuild after changing source (`npm run build:next`, `npm run build:static`).
 - Every page ships about 150–210 KiB of gzip JavaScript and 50–70 KiB of CSS
   on first load, because each renders the legacy client shell; the budgets
   only stop that from growing.
-- No release step runs Vite, but `index.html`, `src/main.tsx`, `src/App.tsx`
-  and the legacy-only modules are still in the tree, and Storybook and eleven
-  component-harness browser tests still use the Vite package (see
+- The Vite application (`index.html`, `src/main.tsx`, `src/App.tsx` and its
+  client router) is deleted. The Vite package stays only for Storybook and
+  eleven component-harness browser tests (see
   `docs/plans/nextjs-full-site-migration.md`).

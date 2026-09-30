@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const paywallSource = readFileSync(new URL('../src/components/PaywallGate.tsx', import.meta.url), 'utf8');
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 const archetypesSource = readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8');
@@ -28,8 +27,11 @@ assert.match(paywallSource, /Открыть статистику архетип�
 assert.match(paywallSource, /Открыть через Boosty/);
 assert.match(paywallSource, /Открыть через Telegram/);
 
-assert.match(appSource, /hasFullAccess=\{standardAccessGranted\}/);
-assert.match(appSource, /STANDARD_SOFT_PAYWALL_TABS\.has\(activeTab\)/);
-assert.match(appSource, /STANDARD_SOFT_PAYWALL_TABS[^;]+fun-decks/);
+// Guests keep the page with a teaser: each page client passes the access decision down.
+for (const pageClient of ['StandardMetaPageClient', 'ConstructedArchetypesPageClient', 'FunDecksPageClient']) {
+  const source = readFileSync(new URL(`../apps/public-web/ui/${pageClient}.tsx`, import.meta.url), 'utf8');
+  assert.match(source, /hasFullAccess=\{allowed\}/, `${pageClient} must pass the access decision to its page`);
+  assert.doesNotMatch(source, /PaywallGate/, `${pageClient} must not replace the page with a full paywall`);
+}
 
 console.log('soft paywall UI contract tests passed');

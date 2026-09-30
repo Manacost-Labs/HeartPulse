@@ -115,7 +115,7 @@ Do not hotlink these assets from wiki.gg in runtime CSS. Keep optimized local co
 
 The app has two navigation contexts that share historical class names:
 
-1. **App shell** in `src/App.tsx`: desktop fixed sidebar at `1024px+`; mobile sticky topbar and fixed drawer below it.
+1. **App shell** in `src/app/shell/PublicPageShell.tsx` and `PublicNavigation.tsx`: desktop fixed sidebar at `1024px+`; mobile sticky topbar and fixed drawer below it.
 2. **Legacy/tab shell** in deferred components: any `.arena-mobile-*` rule for this shell must stay scoped below `.arena-main`.
 
 Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must remain `position: fixed`; an inline dropdown may use `position: absolute` only inside a positioned parent.
@@ -307,7 +307,7 @@ Rules:
 
 - `STABILIZATION.md` — measurable reliability baseline, route/access inventory, SLOs and Definition of Done.
 - `assets.md` — portable design guide and the complete production-URL asset catalogue for integrations.
-- `src/App.tsx` — shell state and route-level root classes.
+- `src/app/shell/PublicPageShell.tsx` — page shell, navigation and route-level root classes.
 - `src/index.css` — base shell and navigation.
 - `src/parchment-theme.css` — shared Arena/editorial parchment system.
 - `src/battlegrounds-parchment.css` — scoped Battlegrounds skin.

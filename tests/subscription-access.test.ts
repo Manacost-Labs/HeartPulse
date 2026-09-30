@@ -119,7 +119,7 @@ assert.deepEqual(
 );
 
 for (const relativePath of [
-  '../src/App.tsx',
+  '../apps/public-web/ui/usePublicAccess.ts',
   '../src/app/routing/routeSurface.ts',
   '../src/components/GlobalUtilityHeader.tsx',
   '../src/features/Contests.tsx',

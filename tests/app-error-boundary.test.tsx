@@ -1,22 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import AppErrorRecoveryScreen from '../src/components/AppErrorRecoveryScreen';
-import {
-  classifyAppError,
-  createIncidentId,
-  releaseIdFromModuleUrl,
-} from '../src/components/appErrorRecovery';
+import { classifyAppError, createIncidentId } from '../src/components/appErrorRecovery';
 import { registerAppIncident } from '../src/telemetry/clientIncident';
-
-assert.equal(releaseIdFromModuleUrl('https://example.test/assets/index.js?v=abcdef1'), 'abcdef1');
-assert.equal(
-  releaseIdFromModuleUrl('https://example.test/assets/index.js?v=ABCDEF1234567890'),
-  'abcdef1234567890',
-);
-assert.equal(releaseIdFromModuleUrl('https://example.test/assets/index.js?v=not-a-sha'), 'development');
-assert.equal(releaseIdFromModuleUrl('not a URL'), 'development');
 
 for (const error of [
   new Error('ChunkLoadError'),
@@ -69,38 +54,16 @@ assert.deepEqual(diagnosticBody, {
   componentStack: 'at StandardOperationsLegacy',
 });
 
-const renderMarkup = renderToStaticMarkup(
-  <AppErrorRecoveryScreen
-    kind="render"
-    incidentId="11111111-2222-4333-8444-555555555555"
-    releaseId="abcdef1234567890"
-    onRetry={() => {}}
-  />,
-);
-assert.match(renderMarkup, /role="alert"/);
-assert.match(renderMarkup, /Произошла ошибка интерфейса/);
-assert.match(renderMarkup, /Повторить/);
-assert.match(renderMarkup, /11111111-2222-4333-8444-555555555555/);
-assert.match(renderMarkup, /abcdef1234567890/);
-assert.doesNotMatch(renderMarkup, /stack|secret|undefined/i);
+// The root Next.js error page classifies a failure the same way: a stale chunk
+// reloads the document, a render error retries the route. The section error
+// pages only retry.
+const rootErrorPage = readFileSync(new URL('../apps/public-web/app/error.tsx', import.meta.url), 'utf8');
+assert.match(rootErrorPage, /classifyAppError\(error\) === 'chunk'/, 'the root error page must reload on a stale chunk');
+assert.match(rootErrorPage, /error\.digest/, 'the root error page must show the server error digest');
 
-const chunkMarkup = renderToStaticMarkup(
-  <AppErrorRecoveryScreen
-    kind="chunk"
-    incidentId="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
-    releaseId="development"
-    onRetry={() => {}}
-  />,
-);
-assert.match(chunkMarkup, /Нужно обновить страницу/);
-assert.match(chunkMarkup, /Обновить страницу/);
-
-const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
-assert.match(mainSource, /typeof __APP_RELEASE_SHA__ === 'string'/);
-assert.match(mainSource, /<AppErrorBoundary releaseId=\{releaseId\}>/);
-
-const viteConfigSource = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
-assert.match(viteConfigSource, /__APP_RELEASE_SHA__/);
-assert.match(viteConfigSource, /GITHUB_SHA/);
+// Incident reports carry the release that webpack compiled into the client bundle.
+const nextConfigSource = readFileSync(new URL('../apps/public-web/next.config.mjs', import.meta.url), 'utf8');
+assert.match(nextConfigSource, /__APP_RELEASE_SHA__/);
+assert.match(nextConfigSource, /RELEASE_SHA \|\| process\.env\.GITHUB_SHA/);
 
 console.log('App error boundary tests passed');

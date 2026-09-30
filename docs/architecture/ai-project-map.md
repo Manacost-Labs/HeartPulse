@@ -11,20 +11,22 @@ agent where to look next; linked documents remain the source of truth.
   docs and redirect tests may still name it.
 - The interface can still use the Manacost Arena product brand. Do not treat
   engineering identity cleanup as permission for a visual rebrand.
-- One repository contains the React frontend, Express API, data jobs, release
-  tooling, tests and project documentation.
+- One repository contains the Next.js frontend, Express API, data jobs,
+  release tooling, tests and project documentation.
 
 ## Runtime shape
 
 ```text
 browser -> Nginx (deploy/nginx/arena-html-routing.conf)
-  -> apps/public-web            Next.js App Router renders every public page
+  -> apps/public-web            Next.js App Router renders every page
+    -> app/layout.tsx           document head, runtime switches, analytics
     -> app/<route>/page.tsx     URL, metadata, anonymous server-side data
+    -> proxy.ts                 entity probes: 404 and retryable 503 answers
     -> ui/*PageClient.tsx       client page composing domain and legacy views
+      -> src/app/shell/PublicPageShell.tsx
+                                navigation, header and footer of every page
       -> src/modules/*          catalogued domain modules
       -> src/features/*         mostly legacy or transitional feature areas
-  -> src/main.tsx -> src/App.tsx
-                                legacy single-page shell: not built, not served
 
 HTTP / scheduled work
   -> server/index.ts            server composition and legacy registrations
@@ -58,8 +60,10 @@ name that host in `publicEntrypoints` while retaining its product owner. The
 `migrationTarget` and exit criteria state where that ownership must end up. The
 catalog now covers `server/index.ts`, `DeferredRoutes.tsx`, `Battlegrounds.tsx`
 and their first selected routes. It does not yet cover every legacy surface;
-`src/App.tsx` and uncatalogued areas remain migration surfaces, not examples for
-new code. Their extraction order and ratchets live in
+uncatalogued areas remain migration surfaces, not examples for new code. The
+single-page shell (`src/App.tsx`, `src/main.tsx`, `index.html`) no longer
+exists: Next.js App Router resolves every URL, and the page shell navigates
+by loading a document. Extraction order and ratchets live in
 [`modularization-plan.md`](modularization-plan.md).
 
 ## Find the owner before reading broadly

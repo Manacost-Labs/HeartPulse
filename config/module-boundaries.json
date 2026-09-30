@@ -741,13 +741,11 @@
       "id": "client.applicationComposition",
       "runtime": "client",
       "roots": [
-        "src/App.tsx",
         "src/app",
-        "src/main.tsx",
         "src/routes.ts"
       ],
       "excludeRoots": [],
-      "purpose": "Composes the browser application shell and canonical route manifest while route owners move behind module public entries.",
+      "purpose": "Owns the page shell shared by every Next.js page and the canonical route manifest and navigation definitions.",
       "owner": "web-platform",
       "targetModules": [
         "client.accountRoute",
@@ -767,14 +765,14 @@
         "docs/architecture/modularization-plan.md"
       ],
       "safeStarts": [
-        "src/App.tsx",
+        "src/app/shell/PublicPageShell.tsx",
         "src/app/routing/routeManifest.ts"
       ],
       "routeScope": {
         "mode": "all"
       },
       "knownDebt": [
-        "The application shell still imports legacy route components and coordinates domain state outside canonical modules."
+        "The route manifest still carries the lazy loaders and preload policy of the removed single-page shell; Next.js pages never call them."
       ]
     },
     {
@@ -901,10 +899,8 @@
         "src"
       ],
       "excludeRoots": [
-        "src/App.tsx",
         "src/app",
         "src/features",
-        "src/main.tsx",
         "src/modules",
         "src/routes.ts",
         "src/shared"
@@ -920,7 +916,7 @@
         "docs/architecture/modularization-plan.md"
       ],
       "safeStarts": [
-        "src/components/AppErrorBoundary.tsx",
+        "src/components/appErrorRecovery.ts",
         "src/index.css",
         "src/telemetry/webVitals.ts"
       ],

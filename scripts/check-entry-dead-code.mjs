@@ -16,11 +16,11 @@ const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, process.cwd(
   noUnusedParameters: true,
 });
 const program = ts.createProgram(parsed.fileNames, parsed.options);
+// Modules that every page loads with the shared shell.
 const entryFiles = new Set([
-  'src/App.tsx',
-  'src/main.tsx',
+  'src/app/shell/PublicPageShell.tsx',
+  'src/app/shell/PublicNavigation.tsx',
   'src/routes.ts',
-  'src/features/Home.tsx',
   'src/modules/identity/ui/AuthAvatar.tsx',
   'src/hooks/usePageScrollLock.ts',
 ]);
@@ -66,10 +66,9 @@ if (returnedAdminSymbols.length > 0) {
   process.exit(1);
 }
 
-const appSource = readFileSync('src/App.tsx', 'utf8');
-const routeModulesSource = readFileSync('src/app/routing/routeModules.tsx', 'utf8');
+const adminPageSource = readFileSync('apps/public-web/ui/AdminPageClient.tsx', 'utf8');
 const contestsSource = readFileSync('src/features/Contests.tsx', 'utf8');
-if (!/module\.ContestAdminPanel\b/.test(routeModulesSource) || !/export\s+function\s+ContestAdminPanel\b/.test(contestsSource)) {
+if (!/module\.ContestAdminPanel\b/.test(adminPageSource) || !/export\s+function\s+ContestAdminPanel\b/.test(contestsSource)) {
   console.error('[entry-dead-code] live ContestAdminPanel route contract is missing');
   process.exit(1);
 }

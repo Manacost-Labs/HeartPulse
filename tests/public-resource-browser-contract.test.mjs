@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 
 const projectRoot = resolve(new URL('..', import.meta.url).pathname);
-const roots = ['src', 'public/bg-legacy'];
+const roots = ['src', 'public/bg-legacy', 'apps/public-web/app', 'apps/public-web/lib', 'apps/public-web/ui'];
 const sourceExtensions = new Set(['.css', '.js', '.jsx', '.ts', '.tsx', '.json']);
 const blockedHosts = [
   'db.kolodahs.ru',
@@ -26,7 +26,6 @@ function collectFiles(directory) {
 
 const violations = roots
   .flatMap(root => collectFiles(join(projectRoot, root)))
-  .concat(join(projectRoot, 'index.html'))
   .filter(path => !path.endsWith('.stories.tsx'))
   .flatMap(path => {
     const source = readFileSync(path, 'utf8');

@@ -1,15 +1,3 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  readonly VITE_SENTRY_DSN?: string;
-  readonly VITE_SENTRY_ENVIRONMENT?: string;
-  readonly VITE_SENTRY_RELEASE?: string;
-  readonly VITE_SENTRY_TRACES_SAMPLE_RATE?: string;
-  readonly VITE_SENTRY_WEB_VITALS_SAMPLE_RATE?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
 declare const __APP_RELEASE_SHA__: string;

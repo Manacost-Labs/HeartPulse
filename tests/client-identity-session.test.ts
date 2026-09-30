@@ -237,7 +237,7 @@ try {
   globalThis.fetch = originalFetch;
 }
 
-const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const accessSource = readFileSync(new URL('../apps/public-web/ui/usePublicAccess.ts', import.meta.url), 'utf8');
 const loginPanelSource = readFileSync(
   new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url),
   'utf8',
@@ -247,8 +247,8 @@ const publicEntrySource = readFileSync(
   'utf8',
 );
 
-assert.doesNotMatch(appSource, /['"]\/api\/auth\/me['"]/, 'the app shell must delegate session I/O');
-assert.match(appSource, /fetchCurrentAuthUser\(signal\)/);
+assert.doesNotMatch(accessSource, /['"]\/api\/auth\/me['"]/, 'public pages must delegate session I/O');
+assert.match(accessSource, /fetchCurrentAuthUser\(controller\.signal\)/);
 assert.doesNotMatch(
   loginPanelSource,
   /['"]\/api\/auth\/(?:profile|logout)['"]/,
@@ -256,7 +256,7 @@ assert.doesNotMatch(
 );
 assert.match(loginPanelSource, /await updateCurrentAuthProfile\(\{/);
 assert.match(loginPanelSource, /void logoutCurrentAuthSession\(\)\.catch/);
-assert.match(appSource, /modules\/identity\/public/);
+assert.match(accessSource, /modules\/identity\/public/);
 assert.match(loginPanelSource, /\.\.\/api\/privateAccountApi/);
 assert.match(publicEntrySource, /\bfetchCurrentAuthUser\b/);
 assert.doesNotMatch(

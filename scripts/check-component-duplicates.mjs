@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-const FILES = ['src/App.tsx', 'src/features/DeferredRoutes.tsx'];
+const FILES = ['src/app/shell/PublicPageShell.tsx', 'src/features/DeferredRoutes.tsx'];
 const MAX_DUPLICATE_COMPONENTS = 0;
 const definitionPattern = /^(?:export\s+)?function\s+([A-Z][A-Za-z0-9_]*)\b/gm;
 

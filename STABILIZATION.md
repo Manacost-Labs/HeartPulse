@@ -27,7 +27,8 @@ every completed task must be tested and pushed to `main` as a separate commit.
 
 The first architecture ratchet is complete:
 
-- `src/App.tsx` is down from 8,193 to 1,777 lines;
+- `src/App.tsx` went from 8,193 to 1,777 lines and was deleted on 2026-09-30,
+  when the Next.js pages replaced the single-page shell;
 - `src/features/DeferredRoutes.tsx` is down from 7,786 to 6,881 lines;
 - exact named component duplicates across those bundles are down from at least
   20 to zero;

@@ -83,7 +83,7 @@ try {
 }
 
 const browserSources = [
-  readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../apps/public-web/ui/usePublicAccess.ts', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url), 'utf8'),
 ].join('\n');

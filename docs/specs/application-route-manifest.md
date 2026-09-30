@@ -2,8 +2,12 @@
 
 ## Status
 
-Implemented on the architecture branch; awaiting integration after the module
-boundary foundations.
+Implemented. The manifest was written for the single-page shell that was
+deleted on 2026-09-30. Next.js App Router now owns URL resolution, rendering,
+history and page metadata, and the pages use only the navigation metadata,
+`tabFromPath` and `BG_TAB_IDS`. The module loaders and preload helpers of the
+manifest have no caller outside tests and are to be removed
+(`docs/plans/nextjs-full-site-migration.md`, section 7).
 
 ## Objective
 
@@ -12,8 +16,11 @@ agent can answer, from one entry point:
 
 - which stable surface id owns a navigation path;
 - how the surface is grouped and entitled;
-- which lazy module is loaded and warmed;
-- which application code resolves and renders it.
+- which navigation entry is active for a URL.
+
+The Next.js route for a surface lives under `apps/public-web/app/`; the
+[route coverage ledger](../plans/nextjs-route-coverage.md) maps URL patterns
+to their pages.
 
 This is an internal structural migration. Public URLs, canonical metadata,
 permissions, history behavior, rendered content and chunk boundaries remain
@@ -27,9 +34,8 @@ all public URLs as the same concept.
 
 ## Tech stack
 
-- React `^19.0.0` with module-scope `React.lazy` declarations.
+- React `^19.0.0` and Next.js App Router.
 - TypeScript `~5.8.2` with bundler module resolution.
-- Vite `^6.4.3` with literal dynamic imports for stable code splitting.
 - Node test runner through the repository test-suite registry.
 
 ## Commands
@@ -49,26 +55,25 @@ all public URLs as the same concept.
 src/
   app/
     routing/
-      routeManifest.ts           # typed metadata, literal loaders and preload policy
-      routeModules.tsx           # module-scope React.lazy adapters
-      routeResolution.ts         # pure URL settlement model
-      useApplicationNavigation.ts # history, metadata and navigation orchestration
-      public.ts           # application routing contract
+      navigationDefinitions.ts   # ids, labels, icons, paths, groups, entitlements
+      navigationRoutes.ts        # navigation groups used by the page shell
+      routeManifest.ts           # typed surfaces, tabFromPath, unused module loaders
+      public.ts                  # routing contract used by tests
+    shell/
+      PublicPageShell.tsx        # page shell: consumes the groups and BG_TAB_IDS
   shared/
     seo/
       publicRouteInventory.json  # complete SEO/deployment URL contract
-  App.tsx                 # composition consumer
-  routes.ts               # temporary compatibility facade during migration
+  routes.ts               # compatibility facade for tests and one story
 
 tests/
   application-route-manifest.test.ts
   routes.test.ts
-  client-route-resolution.test.ts
   route-inventory.test.ts
 ```
 
 No application-wide barrel is introduced. `src/app/routing/public.ts` exposes
-only the routing contract used by the composition root and focused tests.
+only the routing contract used by focused tests.
 
 ## Contract and code style
 
@@ -98,16 +103,10 @@ Rules:
   alias only while existing presentation callers migrate;
 - derive `TabId`, route groups, entitlement maps and preload lookup from the
   manifest;
-- keep literal dynamic imports beside their manifest records in
-  `routeManifest.ts` so preload ownership is inspectable and Vite can retain
-  statically analyzable chunks;
-- obtain a domain-owned auxiliary loader, such as the `login` overlay, only
-  through that domain's `public.ts`; never point an auxiliary preload back at an
-  unrelated shared route chunk;
-- declare every lazy React adapter at module scope in `routeModules.tsx`, and
-  reuse the exact loader identity owned by the manifest;
-- keep browser history, page metadata settlement and stale-navigation guards in
-  `useApplicationNavigation.ts`;
+- do not add module loaders to the manifest: a Next.js page imports its view
+  itself, and the existing loaders are waiting for removal;
+- leave browser history, page metadata and stale-navigation handling to
+  Next.js: every navigation loads a document;
 - make `routePath` fail closed for an unknown route id instead of silently
   navigating to `/`;
 - render unknown Next HTML with a real HTTP 404, `noindex, nofollow`, the
@@ -133,17 +132,14 @@ Rules:
    shared loader identities without importing feature modules.
 2. `tests/routes.test.ts` proves canonical and legacy surface resolution,
    entitlement derivation, navigation grouping and SEO-sensitive special URLs.
-3. `tests/client-route-resolution.test.ts` proves history and authoritative
-   not-found settlement independently of React rendering.
-4. `tests/route-inventory.test.ts` proves all public URL inventory entries and
+3. `tests/route-inventory.test.ts` proves all public URL inventory entries and
    the SEO registry pages remain valid.
-5. Source-boundary tests prove `App.tsx` does not regain module loaders or
-   browser-history ownership.
-6. The manifest test pins 19 distinct loader identities and proves the login
+4. The manifest test pins 19 distinct loader identities and proves the login
    overlay no longer shares the `DeferredRoutes` loader.
-7. The production build proves literal dynamic imports still emit lazy chunks.
-8. Browser QA exercises direct navigation, in-app navigation and Back/Forward
-   on desktop and mobile with a clean console and network log.
+5. `tests/next-not-found-browser.test.mjs` proves an unknown URL is a real
+   404 document with the public navigation.
+6. Browser QA exercises direct navigation, navigation through the menu and
+   Back/Forward on desktop and mobile with a clean console and network log.
 
 Tests assert observable route outcomes and manifest invariants, not internal
 function call order.
@@ -155,15 +151,12 @@ function call order.
 - add or change the contract test before moving implementation;
 - preserve URL, canonical, entitlement, history and loading behavior;
 - keep route metadata typed and derived from one manifest;
-- lower the `App.tsx` size ratchet after extraction;
 - update the ADR and architecture map in the same task.
 
 ### Ask first
 
 - adding a routing dependency;
-- changing a public URL, redirect, canonical policy or entitlement;
-- combining currently separate Vite chunks;
-- changing the browser history state shape.
+- changing a public URL, redirect, canonical policy or entitlement.
 
 ### Never
 
@@ -175,16 +168,11 @@ function call order.
 
 ## Success criteria
 
-- `src/App.tsx` imports route metadata, lazy views and preload behavior only
-  through `src/app/routing/public.ts`.
-- Route ids, canonical surface paths, navigation groups, entitlements and
-  preload ownership have one typed source.
+- Route ids, canonical surface paths, navigation groups and entitlements have
+  one typed source.
 - The existing 25 route surfaces resolve exactly as before, including nested
   detail paths, `/connect`, public-profile paths, removed paths and the legacy
   Standard archetype URL.
-- React lazy declarations remain at module scope and Vite dynamic imports stay
-  literal.
-- `src/App.tsx` is smaller and its ratchet is lowered.
 - Primary authenticated navigation remains eager and does not gain a granular
   avatar request or loading flash as a side effect of the routing migration.
 - Focused tests, route inventory, architecture checks, build and browser QA
@@ -196,6 +184,6 @@ function call order.
   application currently has 25 route surfaces. A later slice may add an
   explicit `surfaceId` to each inventory entry; this slice must not conflate
   those two identifiers or change authoritative URL validation.
-- `src/routes.ts` may remain as a read-only compatibility facade for existing
-  tests during the first increment. It must contain no route data and should be
-  deleted after all consumers move to the application public entry.
+- `src/routes.ts` remains a read-only compatibility facade for three tests
+  and one story. It must contain no route data and should be deleted together
+  with the unused loaders.

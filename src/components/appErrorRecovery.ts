@@ -1,6 +1,5 @@
 export type AppErrorKind = 'render' | 'chunk';
 
-const RELEASE_SHA_PATTERN = /^[a-f0-9]{7,40}$/i;
 const CHUNK_ERROR_PATTERNS = [
   /ChunkLoadError/i,
   /Loading chunk\b.*\bfailed/i,
@@ -9,15 +8,6 @@ const CHUNK_ERROR_PATTERNS = [
   /error loading dynamically imported module/i,
   /Unable to preload CSS for \/assets\//i,
 ];
-
-export function releaseIdFromModuleUrl(moduleUrl: string): string {
-  try {
-    const value = new URL(moduleUrl).searchParams.get('v')?.trim() ?? '';
-    return RELEASE_SHA_PATTERN.test(value) ? value.toLowerCase() : 'development';
-  } catch {
-    return 'development';
-  }
-}
 
 export function createIncidentId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {

@@ -44,10 +44,10 @@ Nginx remains the public edge and routes each URL to exactly one owner.
   Nginx also has explicit `/deck-builder/` and `/archetypes/` pages outside
   that inventory; `/admin/` is listed but has a separate exact edge rule.
 - `src/app/routing/routeManifest.ts` and `src/shared/seo/publicRouteInventory.json`
-  describe the legacy application surfaces and public URL policy. The legacy
-  Vite application starts at `index.html`/`src/main.tsx` and composes routes in
-  `src/App.tsx`; since 2026-09-30 no release step builds it. The release runs
-  `build:static`, `build:server` and `build:next`.
+  describe the application surfaces and public URL policy. The Vite
+  application (`index.html`, `src/main.tsx`, `src/App.tsx` and its client
+  router) was deleted on 2026-09-30. The release runs `build:static`,
+  `build:server` and `build:next`.
 - `scripts/create-release.mjs` and `scripts/deploy-release.sh` require
   `dist/index.html`, which is now a placeholder document that no route
   serves; Nginx serves static files and carried-forward `/assets/` from
@@ -382,10 +382,11 @@ Retire each Vite dependency at its actual owner, in this order:
    and the local Storybook MCP, then update the Storybook contract test. The
    non-Vite builder must work with existing addons and React components before
    `@storybook/react-vite` is removed.
-3. Replace Vite environment reads in `src/telemetry/sentry.ts`,
-   `src/telemetry/webVitals.ts`, `src/components/AppErrorBoundary.tsx` and
-   `src/app/shell/installFieldFocusMode.ts`. Preserve the current privacy,
-   disabled-by-default telemetry and runtime-config behavior.
+3. Done on 2026-09-30: no authored client code reads `import.meta.env`.
+   Field focus mode and Web Vitals take their settings as arguments, and
+   `src/telemetry/sentry.ts` and `AppErrorBoundary` were deleted with the
+   single-page shell. Privacy, disabled-by-default telemetry and the
+   runtime-config behavior are unchanged.
 4. Done on 2026-09-30: `scripts/prerender.js` and `test:prerender-seo` are
    replaced by `npm run test:next-seo`, which checks every registry page on
    the Next output. Bundle checks for the Next build exist since 2026-09-29
@@ -416,10 +417,17 @@ Retire each Vite dependency at its actual owner, in this order:
    before the carried files expire around 2026-10-31 (steps in
    `docs/operations/arena-geodns-edge-cache.md`). Nginx and the deployer need
    no change for the static root.
-7. Remove `index.html`, `src/main.tsx`, `vite.config.ts`,
-   `src/vite-env.d.ts`, direct Vite packages and obsolete scripts. Drain and
-   delete `src/App.tsx` only after its remaining route behavior has a module
-   owner. Regenerate `package-lock.json`. Audit
+7. Partly done on 2026-09-30: `index.html`, `src/main.tsx`, `src/App.tsx`,
+   the client router (`routeModules.tsx`, `routeResolution.ts`,
+   `clientNavigation.ts`, `useApplicationNavigation.ts`) and the modules only
+   they used are deleted, together with `@sentry/react`. `vite.config.ts`
+   keeps only the plugins, alias and release constant that Storybook and the
+   component-harness tests need; `@vitejs/plugin-react` and
+   `@tailwindcss/vite` are development dependencies. Open: delete
+   `vite.config.ts`, `src/vite-env.d.ts` and the Vite packages once step 2
+   and the harness port are done, and remove the module loaders of
+   `src/app/routing/routeManifest.ts`, which no page calls. Regenerate
+   `package-lock.json`. Audit
    active source, scripts, tests, CI and package-lock for remaining Vite
    references; keep historical documents and immutable old releases only as
    records or rollback artifacts.
@@ -457,8 +465,10 @@ cutover and that must return before those files are deleted:
   documents, including the legal text without JavaScript.
 - Done: a card page that cannot be verified answers the retryable `503` of
   the entity contract instead of a `500`.
-- Open: client Sentry. No build has ever received a client DSN, so it stays
-  inactive; its Vite environment reads go away with `AppErrorBoundary`.
+- Open: client error reports. The single-page shell posted every caught
+  error to `/api/telemetry/client-errors`; the Next.js error pages send
+  nothing yet. The browser Sentry SDK is removed: no build ever received a
+  client DSN, so it never ran.
 
 Eleven browser tests use a Vite dev server as their component harness
 (`tests/fixtures/*.html`, `tests/fixtures/vite.*.config.ts`); they need another

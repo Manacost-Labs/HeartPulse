@@ -1,63 +1,18 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, loadEnv} from 'vite';
+import {defineConfig} from 'vite';
 
-export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, '.', '');
-  const configuredRelease = String(
-    process.env.RELEASE_SHA || process.env.GITHUB_SHA || env.RELEASE_SHA || env.GITHUB_SHA || '',
-  ).trim();
-  const appReleaseSha = /^[a-f0-9]{7,40}$/i.test(configuredRelease)
-    ? configuredRelease.toLowerCase()
-    : 'development';
-  return {
-    plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      __APP_RELEASE_SHA__: JSON.stringify(appReleaseSha),
+// Vite builds nothing that ships: Storybook and the component-harness browser
+// tests use this configuration until they move off Vite.
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  define: {
+    __APP_RELEASE_SHA__: JSON.stringify('development'),
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
     },
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
-    server: {
-      hmr: process.env.DISABLE_HMR !== 'true',
-      proxy: {
-        '/api': {
-          target: env.DEV_API_PROXY_TARGET || 'http://localhost:3001',
-          changeOrigin: true,
-        },
-      },
-    },
-    build: {
-      target: 'es2022',
-      cssMinify: true,
-      manifest: true,
-      modulePreload: {
-        resolveDependencies(filename, dependencies) {
-          // Admin subsections are opened explicitly after authentication. Do
-          // not make the public contests route speculate on their dependency
-          // trees; native ESM still loads every dependency when an admin opens
-          // the subsection.
-          return /^assets\/ContestAdmin(?:Translations|MechanicTranslations|StandardOperations)-.*\.js$/.test(filename)
-            ? []
-            : dependencies;
-        },
-      },
-      rollupOptions: {
-        output: {
-          onlyExplicitManualChunks: true,
-          manualChunks(id) {
-            if (id.includes('/src/modules/arenaClasses/')) return 'arena-classes';
-            if (id.includes('jsx-runtime') || id.includes('jsx-dev-runtime')) return;
-            if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'vendor-react';
-          },
-        },
-      },
-      reportCompressedSize: false,
-      chunkSizeWarningLimit: 600,
-    },
-  };
+  },
 });

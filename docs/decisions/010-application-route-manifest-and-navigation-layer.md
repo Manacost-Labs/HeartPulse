@@ -4,7 +4,7 @@
 
 ## Status
 
-Accepted; implemented on the architecture branch and awaiting integration.
+Accepted and implemented. Partly superseded on 2026-09-30: the single-page shell was deleted, so Next.js App Router owns URL resolution, rendering, history and page metadata. `routeModules.tsx`, `routeResolution.ts` and `useApplicationNavigation.ts` no longer exist; the manifest remains the typed source of navigation surfaces (`docs/specs/application-route-manifest.md`).
 
 ## Date
 

@@ -114,8 +114,9 @@ test('the focused AI project map stays compact and routes agents to source-of-tr
   for (const requiredContext of [
     'HearthPulse',
     'https://hearthpulse.net',
-    'src/main.tsx',
-    'src/App.tsx',
+    'apps/public-web',
+    'app/layout.tsx',
+    'src/app/shell/PublicPageShell.tsx',
     'server/index.ts',
     'app -> modules -> shared',
     'modular',

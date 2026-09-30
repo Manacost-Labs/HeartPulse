@@ -6,7 +6,8 @@ const server = readFileSync('server/index.ts', 'utf8');
 const analytics = readFileSync('server/adminBoostyAnalyticsRoutes.ts', 'utf8');
 const articleCard = readFileSync('src/modules/articles/ui/ArticleCard.tsx', 'utf8');
 const articleImageSource = readFileSync('shared/articleImageSrc.ts', 'utf8');
-const app = readFileSync('src/App.tsx', 'utf8');
+const initialData = ['LegendariesPageClient', 'TierListPageClient']
+  .map(name => readFileSync(`apps/public-web/ui/${name}.tsx`, 'utf8')).join('\n');
 const legendaryImageGenerator = readFileSync('server/gen_legendary_image.py', 'utf8');
 
 assert.match(
@@ -61,7 +62,8 @@ for (const [label, source] of [
     `${label} must not trust the unrelated bare Manacost host`,
   );
 }
-assert.doesNotMatch(app, /source:\s*['"]manacost\.ru['"]/, 'initial data must not name the unrelated host');
+assert.match(initialData, /source:\s*'/, 'the page clients must declare the source of their initial data');
+assert.doesNotMatch(initialData, /source:\s*['"]manacost\.ru['"]/, 'initial data must not name the unrelated host');
 assert.doesNotMatch(
   legendaryImageGenerator,
   /manacost\.ru\/arena/,

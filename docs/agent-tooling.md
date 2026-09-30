@@ -238,18 +238,20 @@ npm run quality:knip:full
 LCP, CLS, INP, FCP и TTFB в один credential-free same-origin запрос. Сервер
 валидирует фиксированную схему и при наличии server-only `SENTRY_DSN` отправляет
 в Sentry distribution-метрики: `web.vital.lcp`, `web.vital.cls`,
-`web.vital.inp`, `web.vital.fcp` и `web.vital.ttfb`. Большой browser Sentry SDK
-не загружается ради RUM и остаётся ленивым аварийным контуром. В атрибуты
+`web.vital.inp`, `web.vital.fcp` и `web.vital.ttfb`. Browser Sentry SDK на
+сайте не используется. В атрибуты
 попадают только ограниченные значения `rating` и `navigation_type`; URL, metric
 id, DOM target, cookies, пользователь и другие высококардинальные/чувствительные
 данные не отправляются.
 
-Для активации error monitoring задайте server-only `SENTRY_DSN` и, при
-необходимости, публичный browser DSN `VITE_SENTRY_DSN` для клиентских ошибок.
+Для активации error monitoring задайте server-only `SENTRY_DSN`. Ошибки
+интерфейса, пойманные `RecoverableSurface`, приходят same-origin запросом на
+`/api/telemetry/client-errors` без cookies и попадают в журнал сервера строкой
+`[client-interface-error]`.
 RUM требует только server-only DSN и по умолчанию собирается для всех page
-views; объём можно ограничить через `VITE_SENTRY_WEB_VITALS_SAMPLE_RATE` от `0`
-до `1`. Tracing sampling повышайте только после проверки событий в тестовом
-Sentry environment:
+views; объём можно ограничить через `NEXT_PUBLIC_WEB_VITALS_SAMPLE_RATE` от `0`
+до `1` (значение читается при сборке Next.js). Tracing sampling повышайте только
+после проверки событий в тестовом Sentry environment:
 
 ```bash
 npm run test:sentry

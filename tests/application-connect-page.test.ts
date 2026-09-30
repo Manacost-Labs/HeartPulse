@@ -29,8 +29,8 @@ const deferredRoutes = readFileSync(
   new URL('../src/features/DeferredRoutes.tsx', import.meta.url),
   'utf8',
 );
-const appSource = readFileSync(
-  new URL('../src/App.tsx', import.meta.url),
+const accessSource = readFileSync(
+  new URL('../apps/public-web/ui/usePublicAccess.ts', import.meta.url),
   'utf8',
 );
 
@@ -71,7 +71,7 @@ assert.doesNotMatch(identityPublicEntry, /export\s+\{\s*PublicProfilePage\s*\}/,
   'the public-profile page must remain behind its route-level lazy boundary');
 assert.doesNotMatch(deferredRoutes, /export function LoginPanel\s*\(/,
   'the legacy deferred-route bundle must not own the account login panel');
-for (const [label, source] of [['App', appSource], ['DeferredRoutes', deferredRoutes]] as const) {
+for (const [label, source] of [['usePublicAccess', accessSource], ['DeferredRoutes', deferredRoutes]] as const) {
   assert.doesNotMatch(source, /type AuthUser\s*=/,
     `${label} must consume the canonical identity user contract`);
   assert.match(source, /modules\/identity\/public/,

@@ -187,7 +187,6 @@ Nginx → immutable release → systemd service
 ```text
 apps/public-web/      Next.js-приложение: все публичные HTML-страницы
 src/components/       общие UI-компоненты
-src/App.tsx           legacy SPA-композиция: в релиз не собирается, ждёт удаления
 src/modules/          новые доменные модули с узкими public-контрактами
 src/features/         legacy-страницы на поэтапной миграции, не целевая граница
 src/styles/           общие токены и ограниченные shared-стили

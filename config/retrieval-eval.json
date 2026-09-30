@@ -8,10 +8,10 @@
       "expected_path": "src/modules/identity/model/publicProfilePath.ts"
     },
     {
-      "id": "client-route-meta",
-      "query": "preserve initial server metadata during client route change",
-      "source": ["src/app/routing/routeResolution.ts", "src/modules/identity/model/publicProfilePath.ts"],
-      "expected_path": "src/app/routing/routeResolution.ts"
+      "id": "route-tab-from-path",
+      "query": "resolve the navigation tab that owns a public path",
+      "source": ["src/app/routing/routeManifest.ts", "src/modules/identity/model/publicProfilePath.ts"],
+      "expected_path": "src/app/routing/routeManifest.ts"
     },
     {
       "id": "sentry-privacy",
@@ -40,7 +40,7 @@
     {
       "id": "absent-billing-refund",
       "query": "refund a completed subscription invoice",
-      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/app/routing/routeResolution.ts"],
+      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/app/routing/routeManifest.ts"],
       "expected_path": null
     }
   ]

@@ -44,7 +44,7 @@ assert.match(
   'the shared page-hero dimensions must load globally for editorial routes too',
 );
 
-for (const protectedFile of ['App.tsx', 'routes.ts', 'parchment-theme.css']) {
+for (const protectedFile of ['app/shell/PublicPageShell.tsx', 'routes.ts', 'parchment-theme.css']) {
   const source = readFileSync(new URL(`../src/${protectedFile}`, import.meta.url), 'utf8');
   assert.doesNotMatch(
     source,

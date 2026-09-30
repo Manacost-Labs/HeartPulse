@@ -123,11 +123,6 @@ const moduleBudgets = [
     owner: 'Battlegrounds routes',
   },
   {
-    path: 'src/App.tsx',
-    maxLines: 1_322,
-    owner: 'application shell',
-  },
-  {
     path: 'server/constructedCardRoutes.ts',
     maxLines: 1_234,
     owner: 'constructed-card API',

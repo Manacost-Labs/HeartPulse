@@ -7,7 +7,8 @@ const relatedGallery = readFileSync(
   'utf8',
 );
 const styles = readFileSync(new URL('../src/features/Cosmetics.css', import.meta.url), 'utf8');
-const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const pageClient = readFileSync(new URL('../apps/public-web/ui/CosmeticsPageClient.tsx', import.meta.url), 'utf8');
+const pageShell = readFileSync(new URL('../src/app/shell/PublicPageShell.tsx', import.meta.url), 'utf8');
 
 const heroCardSource = component.match(
   /export function HeroSkinCard[\s\S]*?\n}\n\nfunction CoinCard/,
@@ -56,10 +57,9 @@ assert.doesNotMatch(relatedGallery, /<details className="cosmetics-related"/);
 assert.match(relatedGallery, /className="cosmetics-related-gallery"/);
 assert.match(relatedGallery, /cachedCardImage\(card\.cardId\)/);
 assert.match(styles, /\.cosmetics-related-gallery\s*\{[\s\S]*?grid-template-columns:/);
-assert.match(
-  app,
-  /isGameDataSurfacePage[\s\S]*?\[[^\]]*'cosmetics'/,
-  'cosmetics must opt into the parchment game-data shell instead of the white fallback shell',
-);
+assert.match(pageClient, /<PublicPageShell activeTab="cosmetics"(?![^>]*\beditorial\b)[^>]*>/,
+  'cosmetics must use the parchment game-data shell, not the editorial one');
+assert.match(pageShell, /editorial \? 'editorial' : BG_TAB_IDS\.has\(activeTab\) \? 'battlegrounds' : 'game-data'/,
+  'pages that are neither editorial nor Battlegrounds get the game-data surface');
 
 console.log('Cosmetics UI contract tests passed');

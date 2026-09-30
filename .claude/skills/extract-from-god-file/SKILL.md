@@ -1,6 +1,6 @@
 ---
 name: extract-from-god-file
-description: Использовать при вынесении кода из хотспотов — server/index.ts, src/features/DeferredRoutes.tsx, src/features/Battlegrounds.tsx, src/App.tsx, server/constructedCardRoutes.ts, src/features/StandardCards.tsx. Задаёт порядок шагов, что коммитить отдельно и чем доказывать эквивалентность.
+description: Использовать при вынесении кода из хотспотов — server/index.ts, src/features/DeferredRoutes.tsx, src/features/Battlegrounds.tsx, server/constructedCardRoutes.ts, src/features/StandardCards.tsx. Задаёт порядок шагов, что коммитить отдельно и чем доказывать эквивалентность.
 ---
 
 # Вынесение слайса из хотспота

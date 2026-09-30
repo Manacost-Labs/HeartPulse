@@ -37,7 +37,6 @@ const iconMarkup = [
   ['favicon-96.png', '96x96'],
 ];
 const sourceFiles = [
-  'index.html',
   'apps/public-web/app/layout.tsx',
   'server/constructedCardSeoRoutes.ts',
   'server/battlegroundSeoRoutes.ts',

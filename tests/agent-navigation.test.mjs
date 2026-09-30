@@ -356,7 +356,7 @@ test('production migration scopes conservatively include shell and global route 
   assert.equal(
     resolveModuleOrPathSelector(
       inventory,
-      'src/components/AppErrorBoundary.tsx',
+      'src/components/appErrorRecovery.ts',
       REPOSITORY_ROOT,
     ).migrationAreaId,
     'client.platformLegacy',

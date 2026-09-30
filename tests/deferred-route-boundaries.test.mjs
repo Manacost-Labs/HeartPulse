@@ -1,14 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const pageShellSource = readFileSync(new URL('../src/app/shell/PublicPageShell.tsx', import.meta.url), 'utf8');
 const profileButtonSource = readFileSync(new URL('../src/app/shell/HeaderProfileButton.tsx', import.meta.url), 'utf8');
 const routeManifestSource = readFileSync(new URL('../src/app/routing/routeManifest.ts', import.meta.url), 'utf8');
-const routeModulesSource = readFileSync(new URL('../src/app/routing/routeModules.tsx', import.meta.url), 'utf8');
-const applicationNavigationSource = readFileSync(
-  new URL('../src/app/routing/useApplicationNavigation.ts', import.meta.url),
-  'utf8',
-);
 const authAvatarSource = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.tsx', import.meta.url), 'utf8');
 const authAvatarStyles = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.css', import.meta.url), 'utf8');
 const initialStyles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
@@ -35,37 +30,12 @@ assert.match(
   'login intent must preload the identity-owned form instead of DeferredRoutes',
 );
 assert.match(
-  routeModulesSource,
-  /LazyGalleryTab = React\.lazy\(loadGalleryModule\)/,
-  'the Gallery view must reuse the manifest loader at module scope',
-);
-assert.match(
-  routeModulesSource,
-  /LazyArticlesTab = React\.lazy\(\(\) => Promise\.all\(\[[\s\S]*?modules\/articles\/public[\s\S]*?articlesLegacy\.css[\s\S]*?module\.ArticlesTab/,
-  'the Articles route must load its module and route-owned styles without the Arena bundle',
-);
-assert.match(
-  routeModulesSource,
-  /LazyContestAdminPanel = React\.lazy\(\(\) => loadContestsModule\(\)[\s\S]*?module\.ContestAdminPanel/,
-  'the administrator contest view must reuse the shared Contests loader',
-);
-assert.match(
-  routeModulesSource,
-  /LazyBattlegroundStrategyBuilderEmbed = React\.lazy\(\(\) => loadBattlegroundsModule\(\)[\s\S]*?module\.BattlegroundStrategyBuilderEmbed/,
-  'the strategy builder must reuse the shared Battlegrounds loader',
-);
-assert.doesNotMatch(
-  appSource,
-  /const load[A-Z][A-Za-z]+Module|ROUTE_PRELOADERS/,
-  'App must delegate lazy module ownership and preload policy to application routing',
-);
-assert.match(
-  appSource,
-  /import\s*\{[^}]*\bHeaderProfileButton\b[^}]*\}\s*from '\.\/app\/shell\/HeaderProfileButton'/,
+  pageShellSource,
+  /import\s*\{[^}]*\bHeaderProfileButton\b[^}]*\}\s*from '\.\/HeaderProfileButton'/,
   'the primary authenticated navigation must render its small avatar without an extra request or fallback flash',
 );
 assert.doesNotMatch(
-  `${appSource}\n${profileButtonSource}`,
+  `${pageShellSource}\n${profileButtonSource}`,
   /LazyAuthAvatar|import\(['"][^'"]*AuthAvatar['"]\)/,
   'the primary authenticated navigation must not introduce a granular avatar chunk',
 );
@@ -88,16 +58,6 @@ assert.match(identityProfileStyles, /\.profile-workspace[\s\S]*\.profile-subscri
   'identity must own the authenticated profile layout and subscription presentation');
 assert.doesNotMatch(deferredStyles, /\.profile-workspace|\.login-page/,
   'DeferredRoutes CSS must not regain identity-owned profile or login selectors');
-assert.match(
-  applicationNavigationSource,
-  /window\.addEventListener\('popstate'/,
-  'application routing must own Back and Forward synchronization',
-);
-assert.doesNotMatch(
-  appSource,
-  /window\.history\.(?:pushState|replaceState)|window\.addEventListener\('popstate'/,
-  'App must delegate browser-history orchestration to application routing',
-);
 assert.match(
   gallerySource,
   /<ModalSurface[\s\S]*className="gallery-lightbox"/,

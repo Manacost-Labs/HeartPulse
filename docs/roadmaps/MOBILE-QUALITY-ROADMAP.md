@@ -40,7 +40,7 @@
 
 ### Сильные стороны
 
-- Mobile drawer со scroll lock, Escape/focus behavior и крупными touch targets уже реализован в `src/App.tsx`/`src/index.css`.
+- Mobile drawer со scroll lock, Escape/focus behavior и крупными touch targets уже реализован в `src/app/shell/` (`PublicPageShell.tsx`, `PublicNavigation.tsx`, `usePublicMenuFocus.ts`), `src/hooks/usePageScrollLock.ts` и `src/index.css`.
 - Верхний utility header/search/help имеет mobile layout.
 - Standard Cards уже умеет:
   - сворачивать расширенные фильтры;
