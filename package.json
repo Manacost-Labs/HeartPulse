@@ -304,7 +304,7 @@
     "@types/node": "^22.14.0",
     "@types/oidc-provider": "9.12.1",
     "@types/sanitize-html": "2.16.1",
-    "@vitejs/plugin-react": "^5.0.4",
+    "@vitejs/plugin-react": "^6.1.1",
     "axe-core": "^4.12.1",
     "chrome-devtools-mcp": "1.10.1",
     "esbuild": "0.28.1",
