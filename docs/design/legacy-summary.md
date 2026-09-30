@@ -82,7 +82,7 @@ Do not hotlink wiki assets at runtime.
 
 ## QA
 
-1. Run `npm run lint` and a production Vite build.
+1. Run `npm run lint`, `npm run lint:next` and `npm run build:next`.
 2. Capture `1440px` and `390px` screenshots.
 3. Confirm no 390px overflow.
 4. Verify hero search/hover, library filters/card navigation/golden reveal, BG tier state/lightbox, and builder mount/drag-drop/export buttons.

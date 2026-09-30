@@ -18,7 +18,7 @@ npm run observe:production
 Run against a controlled origin:
 
 ```bash
-PRODUCTION_BASE_URL=http://127.0.0.1:4173 \
+PRODUCTION_BASE_URL=http://127.0.0.1:3000 \
 npm run observe:production
 ```
 

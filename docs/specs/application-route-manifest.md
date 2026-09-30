@@ -37,7 +37,8 @@ all public URLs as the same concept.
 - Focused route contract: `npm run test:routes`.
 - Test registry: `npm run test:registry`.
 - Architecture checks: `npm run lint:architecture`.
-- Production build: `npm run build`.
+- Production build: `npm run build:next` (pages) and `npm run build` (static
+  root and server).
 - Full release verification: `npm run verify:release`.
 - Changed-code security: `npm run security:semgrep`.
 - Secret scan: `npm run security:gitleaks`.
@@ -135,7 +136,7 @@ Rules:
 3. `tests/client-route-resolution.test.ts` proves history and authoritative
    not-found settlement independently of React rendering.
 4. `tests/route-inventory.test.ts` proves all public URL inventory entries and
-   prerender policies remain valid.
+   the SEO registry pages remain valid.
 5. Source-boundary tests prove `App.tsx` does not regain module loaders or
    browser-history ownership.
 6. The manifest test pins 19 distinct loader identities and proves the login

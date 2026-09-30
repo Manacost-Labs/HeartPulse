@@ -325,6 +325,7 @@
         "tests/route-loading-surface.test.tsx",
         "tests/runtime-client-config.test.mjs",
         "tests/runtime-service-inventory.test.mjs",
+        "tests/scripts-undeclared-names.test.mjs",
         "tests/security-tooling-contract.test.mjs",
         "tests/sentry-privacy.test.ts",
         "tests/seo-registry.test.ts",

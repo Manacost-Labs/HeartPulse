@@ -28,6 +28,13 @@ function gzipBytes(files) {
   return files.reduce((total, file) => total + gzipSync(readFileSync(join(nextRoot, file)), { level: 6 }).length, 0);
 }
 
+// The administrator workspace shell must stay a lazy asset of the admin page.
+const ADMIN_SHELL_MARKERS = { js: 'admin-primary-navigation', css: '--admin-nav-w:' };
+function adminShellAssets(assets) {
+  return ['js', 'css'].flatMap(kind => assets[kind]
+    .filter(file => readFileSync(join(nextRoot, file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])));
+}
+
 test('initial Next.js JavaScript and CSS of public routes stay within their budgets', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   const measured = {};
@@ -37,7 +44,12 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
       assert.equal(response.status, 200, `${path} must render`);
       const assets = initialAssets(await response.text());
       measured[path] = { jsGzipBytes: gzipBytes(assets.js), cssGzipBytes: gzipBytes(assets.css) };
+      assert.deepEqual(adminShellAssets(assets), [], `${path} must not load the administrator workspace shell`);
     }
+
+    const admin = initialAssets(await (await fetch(`${runtime.nextOrigin}/admin/`)).text());
+    assert.deepEqual(adminShellAssets(admin), [],
+      'a visitor without administrator access must not download the workspace shell either');
   } finally {
     await runtime.close();
   }

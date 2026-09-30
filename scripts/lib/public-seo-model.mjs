@@ -24,11 +24,7 @@ export function createPublicSeoModel(root = process.cwd()) {
       || typeof page.sitemap !== 'boolean') {
       throw new Error(`[public-seo] Invalid public SEO page: ${pathname}`);
     }
-    return [pathname, {
-      ...page,
-      title: renderSeoTemplate(page.title.trim()),
-      description: renderSeoTemplate(page.description.trim()),
-    }];
+    return [pathname, page];
   }));
 
   function resolvePathPolicy(pathname) {
@@ -71,11 +67,7 @@ export function createPublicSeoModel(root = process.cwd()) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.map(location => `  <sitemap><loc>${escapeXml(location)}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`;
   }
 
-  return {
-    inventory, siteUrl, seoPages,
-    normalizePathname, resolvePathPolicy, canonicalUrlFor,
-    staticSitemapXml, sitemapIndexXml,
-  };
+  return { seoPages, staticSitemapXml, sitemapIndexXml };
 }
 
 function normalizePathname(pathname) {
@@ -86,13 +78,6 @@ function normalizePathname(pathname) {
 
 function readJson(root, relativePath) {
   return JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
-}
-
-function renderSeoTemplate(value) {
-  return String(value).replace(/\{([a-z]+)\}/g, (_match, token) => {
-    if (token === 'year') return String(new Date().getUTCFullYear());
-    throw new Error(`[public-seo] Unsupported SEO template token: {${token}}`);
-  });
 }
 
 function routeMatchesPath(route, pathname) {

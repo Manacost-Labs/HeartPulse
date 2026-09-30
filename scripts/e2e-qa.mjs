@@ -3,8 +3,8 @@
 // account are not required. Screenshots are written outside the repository.
 //
 // Usage:
-//   npm run qa:e2e
-//   npm run qa:e2e -- --url=http://127.0.0.1:4173
+//   npm run qa:ci                                   builds, starts the Next.js runtime and runs this suite
+//   npm run qa:e2e -- --url=http://127.0.0.1:3000   against an already running site
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -395,8 +395,8 @@ async function auditDelayedPageTourResume(page, label) {
   await page.waitForSelector('.page-tour__dialog', { hidden: true, timeout: 10_000 });
 }
 
-// Vite and Next.js name CSS files differently, so a source stylesheet is proven
-// loaded by a selector that only that file declares.
+// Next.js hashes CSS file names, so a source stylesheet is proven loaded by a
+// selector that only that file declares.
 const CSS_OWNER_MARKERS = {
   routeParchment: '.arena-paywall__preview', // src/route-parchment.css
   deferredRoutes: '.card-stats-tooltip-header', // src/features/DeferredRoutes.css
@@ -1406,9 +1406,8 @@ for (const fixture of responsiveFixtures) {
     const scenarioFailureStart = failures.length;
     const label = `responsive ${fixture.id} [${profile.width}x${profile.height}]`;
     const screenshotPath = `${OUT}/responsive-${fixture.id}-${profile.id}.png`;
-    const transport = fixture.transport === 'nginx-html'
-      ? (localNotFoundDocument ? 'status-preserving-local' : 'production-nginx')
-      : 'preview';
+    // Recorded in the manifest: `nginx-html` fixtures are documents whose HTTP status matters.
+    const transport = fixture.transport === 'nginx-html' ? 'status-preserving' : 'page';
     let httpStatus = null;
     await page.setViewport({
       width: profile.width,
@@ -2475,7 +2474,8 @@ for (const [device, viewport] of [
         section: new URL(window.location.href).searchParams.get('section'),
         content: document.querySelector('.admin-workspace-content')?.textContent?.trim() || '',
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-        overlay: Boolean(document.querySelector('nextjs-portal, #webpack-dev-server-client-overlay')),
+        // `next dev` always mounts its portal for the indicator; only an open error dialog counts.
+        overlay: Boolean(document.querySelector('nextjs-portal')?.shadowRoot?.querySelector('[data-nextjs-dialog-overlay]')),
         error: document.querySelector('.admin-workspace-content [role="alert"]')?.textContent?.trim() || '',
         busy: Boolean(document.querySelector('.admin-workspace-content [aria-busy="true"]')),
       }), section);

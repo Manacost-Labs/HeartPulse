@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -88,6 +88,7 @@ test('static root is rebuilt from scratch in a reused workspace', () => {
   try {
     mkdirSync(join(outDir, 'assets'), { recursive: true });
     writeFileSync(join(outDir, 'index.html'), '<!doctype html><script type="module" src="/assets/index-stale.js"></script>\n');
+    writeFileSync(join(outDir, 'sitemap.xml'), '<sitemapindex/>\n');
     writeFileSync(join(outDir, 'assets/index-stale.js'), 'console.log("stale");\n');
     writeFileSync(join(outDir, '404.html'), '<!doctype html>stale\n');
 
@@ -103,20 +104,28 @@ test('static root is rebuilt from scratch in a reused workspace', () => {
   }
 });
 
-test('the build refuses an output directory that is the checkout or contains it', () => {
+test('the build empties only a directory that is an earlier static root', () => {
   // A throwaway directory plays the checkout, so a broken guard can only empty the fixture.
   const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-guard-'));
   const checkout = join(workspace, 'checkout');
   try {
-    mkdirSync(checkout);
-    writeFileSync(join(checkout, 'sentinel'), 'kept\n');
-    for (const out of ['.', '..', workspace]) {
+    mkdirSync(join(checkout, 'public/fonts'), { recursive: true });
+    mkdirSync(join(checkout, 'src'));
+    mkdirSync(join(workspace, 'unrelated'));
+    symlinkSync(checkout, join(workspace, 'link-to-checkout'));
+    const sentinels = ['sentinel', 'public/robots.txt', 'public/fonts/font.woff2', 'src/module.ts']
+      .map(file => join(checkout, file)).concat(join(workspace, 'unrelated/notes.txt'));
+    for (const sentinel of sentinels) writeFileSync(sentinel, 'kept\n');
+    for (const out of ['.', '..', workspace, 'public', 'public/fonts', 'src',
+      join(workspace, 'unrelated'), join(workspace, 'link-to-checkout'), join(workspace, 'link-to-checkout/public')]) {
       const result = spawnSync(process.execPath, [join(projectRoot, 'scripts/build-static-root.mjs'), `--out=${out}`], {
         cwd: checkout, encoding: 'utf8',
       });
       assert.notEqual(result.status, 0, `--out=${out} must be rejected`);
-      assert.match(result.stderr, /refusing to empty/);
-      assert.equal(readFileSync(join(checkout, 'sentinel'), 'utf8'), 'kept\n', `--out=${out} must not delete anything`);
+      assert.match(result.stderr, /refusing to empty/, `--out=${out}`);
+      for (const sentinel of sentinels) {
+        assert.equal(readFileSync(sentinel, 'utf8'), 'kept\n', `--out=${out} must not delete ${sentinel}`);
+      }
     }
   } finally {
     rmSync(workspace, { recursive: true, force: true });

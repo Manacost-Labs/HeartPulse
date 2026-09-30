@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently --names api,next,web npm:dev:server npm:dev:next npm:dev:web",
+    "dev": "concurrently --kill-others-on-fail --names api,next,web npm:dev:server npm:dev:next npm:dev:web",
     "dev:server": "tsx --watch server/index.ts",
     "storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006 --no-open",
     "build-storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook build",
@@ -251,7 +251,7 @@
     "dev:next": "NEXT_TELEMETRY_DISABLED=1 next dev apps/public-web --webpack --hostname 127.0.0.1 --port 4320",
     "build:next": "NEXT_TELEMETRY_DISABLED=1 next build apps/public-web --webpack",
     "start:next": "NEXT_TELEMETRY_DISABLED=1 next start apps/public-web --hostname 127.0.0.1 --port 4320",
-    "dev:web": "PUBLIC_WEB_PORT=3000 PUBLIC_WEB_STATIC_DIR=public PUBLIC_CARDS_NEXT_ENABLED=1 PUBLIC_PAGES_NEXT_ENABLED=1 PUBLIC_GALLERY_NEXT_ENABLED=1 node scripts/public-web-gateway.mjs",
+    "dev:web": "PUBLIC_WEB_PORT=3000 PUBLIC_WEB_STATIC_DIR=public PUBLIC_WEB_TIMEOUT_MS=120000 PUBLIC_CARDS_NEXT_ENABLED=1 PUBLIC_PAGES_NEXT_ENABLED=1 PUBLIC_GALLERY_NEXT_ENABLED=1 node scripts/public-web-gateway.mjs",
     "dev:public-gateway": "node scripts/public-web-gateway.mjs",
     "test:public-web-gateway": "node --test tests/public-web-gateway.test.mjs",
     "lint:next": "tsc --noEmit --project apps/public-web/tsconfig.json",

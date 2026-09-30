@@ -319,7 +319,7 @@ Rules:
 ## QA Checklist
 
 1. `npm run lint`.
-2. `npm run build`; if existing `dist/` ownership blocks a local agent, build to a clean temporary outDir and report the infrastructure limitation.
+2. `npm run build:next` (the pages) and `npm run build` (static root and server). `build:static` empties its output directory and refuses any existing directory that is not an earlier static root.
 3. Desktop screenshot at `1440px` and mobile screenshot at `390px` for every changed route family.
 4. Confirm `document.documentElement.scrollWidth === innerWidth` at `390px`.
 5. Heroes: search filters results; hero hover still changes the media layer; detail media opens/closes.

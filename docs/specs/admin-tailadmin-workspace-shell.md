@@ -128,9 +128,10 @@ The shell exposes stable landmarks and identifiers:
 - Render-contract tests, admin reducer tests, Storybook build, changed React
   checks, security checks and real-browser console/network checks pass.
 - The public contests route remains within its production bundle budget.
-- The shell remains a distinct lazy asset, below 4.5 kB JS and 17 kB CSS, and
-  its JS and CSS markers are absent from the complete static Vite entry graph
-  and directly linked HTML assets.
+- The shell remains a distinct lazy asset: its JS and CSS markers are absent
+  from the initial JavaScript and CSS of every public Next.js route and of the
+  `/admin/` document that a visitor without access receives
+  (`tests/next-bundle-budgets.test.mjs`).
 - No existing admin data or mutation path changes.
 
 ## Documentation impact

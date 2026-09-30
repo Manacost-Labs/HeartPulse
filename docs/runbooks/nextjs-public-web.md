@@ -28,7 +28,11 @@ repository checkout. The app's structure and rules are in
    `npm run build:next` and `npm run start:next` in place of `dev:next`.
 
 Use the gateway for complete navigation; directly opening the Next port does not
-provide `/api/` or static assets.
+provide `/api/` or static assets. The gateway listens on loopback only; set
+`PUBLIC_WEB_HOST` to open it to another device on a trusted network. It also
+sends the `next dev` overlay requests (`/__nextjs…`) to Next. An unknown path
+gets the Express 404 there, not the Next.js not-found page that Nginx serves
+in production.
 Do not run the development gateway as a public production edge.
 
 ## Verification and recovery

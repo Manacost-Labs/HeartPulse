@@ -163,6 +163,11 @@ test('a static directory serves its files and leaves everything else to the owne
     assert.equal((await (await fetch(`${origin}/..%2Fpackage.json`)).json()).owner, 'legacy');
     const post = await fetch(`${origin}/robots.txt`, { method: 'POST' });
     assert.equal((await post.json()).owner, 'legacy', 'only reads are answered from the directory');
+    assert.equal((await fetch(`${origin}/vacancies.pdf`, { method: 'HEAD' })).headers.get('content-type'), 'application/pdf');
+
+    // The `next dev` error overlay posts to its own endpoints on the page origin.
+    const frames = await fetch(`${origin}/__nextjs_original-stack-frames`, { method: 'POST', body: '{}' });
+    assert.deepEqual(await frames.json(), { owner: 'next', url: '/__nextjs_original-stack-frames' });
   } finally { await close(gateway); await close(legacy); await close(next); }
 });
 
@@ -170,7 +175,13 @@ test('development HMR WebSockets reach Next.js and no other upgrade passes', { t
   const legacy = http.createServer((req, res) => res.end('legacy'));
   const next = http.createServer((req, res) => res.end('next'));
   const upgrades = [];
+  let pendingUpstream = null;
   next.on('upgrade', (request, socket) => {
+    if (request.url === '/_next/held') { pendingUpstream = socket; socket.on('error', () => {}); return; }
+    if (request.url === '/_next/refused') {
+      socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n');
+      return;
+    }
     upgrades.push({ url: request.url, host: request.headers.host });
     socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n');
     socket.on('data', chunk => socket.write(`echo:${chunk}`));
@@ -198,7 +209,20 @@ test('development HMR WebSockets reach Next.js and no other upgrade passes', { t
     hmr.socket.destroy();
     assert.deepEqual(upgrades, [{ url: '/_next/webpack-hmr?page=%2Ffaq', host: `${origin.hostname}:${origin.port}` }]);
 
-    await assert.rejects(upgrade('/api/socket'), /socket hang up|ECONNRESET/, 'only Next.js development sockets are forwarded');
-    assert.equal(upgrades.length, 1);
+    assert.equal((await upgrade('/api/socket')).status, 200, 'other upgrade requests are served as ordinary requests');
+    assert.equal(upgrades.length, 1, 'only Next.js development sockets are forwarded');
+    assert.equal((await upgrade('/_next/refused')).status, 403, 'a refused upgrade reaches the client with its status');
+
+    // A client that gives up before Next.js answers must not leave the upstream request open.
+    const abandoned = http.request({ host: origin.hostname, port: origin.port, path: '/_next/held',
+      headers: { Connection: 'Upgrade', Upgrade: 'websocket' } });
+    abandoned.on('error', () => {});
+    abandoned.end();
+    while (!pendingUpstream) await new Promise(resolve => setTimeout(resolve, 10));
+    // The upstream socket is half-open capable, so its end is the signal.
+    const upstreamEnded = Promise.race([once(pendingUpstream, 'end'), once(pendingUpstream, 'close')]);
+    abandoned.destroy();
+    await upstreamEnded;
+    pendingUpstream.destroy();
   } finally { await close(gateway); await close(legacy); await close(next); }
 });

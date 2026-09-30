@@ -116,25 +116,32 @@ Until 2026-09-30 the floor was 4,500 files and 70 MB, sized for releases with
 hashed Vite bundles. Releases built after the Vite retirement keep those
 bundles only through the deployer's 35-day carry-forward, so an edge that
 still runs the old activator refuses every new static release once they
-expire: from the first deploy on or after about 2026-10-31. Install the
+expire: from the first deploy on or after about 2026-10-31. A refused
+activation makes `arena-static-sync.service` exit non-zero, and the deploy
+gate (`hs-arena-ci-deploy`) starts that service last, so every deploy would
+then be reported as failed after the origin has already switched. Install the
 current activator on every edge before then. As root on the origin, after the
 release that contains the new floor is live:
 
 ```bash
 source /etc/hs-arena/edge-static-sync.conf
-script=/var/www/koloda/data/www/hs-arena.ru/current/deploy/activate-arena-static.sh
+release=/var/www/koloda/data/www/hs-arena.ru/current
+script=$release/deploy/activate-arena-static.sh
 hosts=${ARENA_STATIC_KNOWN_HOSTS:-/home/debian/.ssh/known_hosts}
 for spec in "${ARENA_STATIC_EDGE_SPECS[@]}"; do
   IFS='|' read -r edge identity <<< "$spec"
-  remote="ssh -i $identity -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$hosts"
-  rsync --chmod=F0755 --chown=root:root --rsync-path='sudo rsync' -e "$remote" \
-    "$script" "$edge:/usr/local/sbin/activate-arena-static"
-  $remote "$edge" 'grep -c "ARENA_STATIC_MIN_FILES:-300" /usr/local/sbin/activate-arena-static'
+  remote="ssh -i $identity -o BatchMode=yes -o ConnectTimeout=10"
+  remote="$remote -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$hosts"
+  rsync -p --chmod=F0755 --chown=root:root --rsync-path='sudo rsync' \
+    -e "$remote" "$script" "$edge:/usr/local/sbin/activate-arena-static"
+  $remote "$edge" 'sha256sum /usr/local/sbin/activate-arena-static'
 done
+sha256sum "$script"
 ```
 
-Each edge must print `1`. Then start `arena-static-sync.service` once and
-confirm that every edge reports the release as already current.
+Every edge must print the checksum of the release copy. Then start
+`arena-static-sync.service` once and confirm that every edge reports the
+release as already current.
 
 The cache-path file replaces, rather than supplements, the historical
 `proxy_cache_path` declaration embedded in an edge vhost. Back up both files,

@@ -42,14 +42,16 @@ writing an incomplete manifest.
 - HTTP methods, paths and middleware order have a complete declaration
   snapshot in the HTTP route manifest and its contract test.
 - Public HTML routes, redirects and canonical policy are release-blocking via
-  `public-route-inventory.json`, route, Nginx, prerender and public URL tests.
+  `public-route-inventory.json`, route, Nginx, Next.js metadata and public URL
+  tests.
 - Lazy route ownership and preload behavior are release-blocking via the route
   registry and deferred-boundary tests.
 - Auth, CSRF, statuses, response bodies and cache headers are covered per route
   family by focused route, auth-security, CSRF and network-boundary tests. A
   single semantic registry does not exist yet.
 - SEO metadata and sitemap behavior are release-blocking for registered public
-  routes through SEO registry, prerender, sitemap and server SEO route tests.
+  routes through SEO registry, Next.js metadata (`npm run test:next-seo`),
+  sitemap and server SEO route tests.
 - Runtime services, schedules and durable/cache stores have ownership entries
   in `runtime-service-inventory.json`. In-process cache keys are not yet a
   complete checked inventory.

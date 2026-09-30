@@ -49,10 +49,11 @@ Nginx remains the public edge and routes each URL to exactly one owner.
   `src/App.tsx`; since 2026-09-30 no release step builds it. The release runs
   `build:static`, `build:server` and `build:next`.
 - `scripts/create-release.mjs` and `scripts/deploy-release.sh` require
-  `dist/index.html`; Nginx serves legacy `/assets/`, prerendered HTML and the
-  SPA fallback from `dist`. Storybook currently uses `@storybook/react-vite`.
-  These are independent Vite retirement blockers even after all pages render
-  in Next.
+  `dist/index.html`, which is now a placeholder document that no route
+  serves; Nginx serves static files and carried-forward `/assets/` from
+  `dist`. Storybook still uses `@storybook/react-vite`, and eleven
+  component-harness browser tests start a Vite dev server: these keep the
+  Vite package in the repository.
 - The public shell links to `/profile/`, which currently returns 404. Decide
   its account destination and fix that path or link before final URL closure.
 

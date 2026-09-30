@@ -24,7 +24,7 @@ browser -> Nginx (deploy/nginx/arena-html-routing.conf)
       -> src/modules/*          catalogued domain modules
       -> src/features/*         mostly legacy or transitional feature areas
   -> src/main.tsx -> src/App.tsx
-                                legacy Vite SPA, built only until retirement
+                                legacy single-page shell: not built, not served
 
 HTTP / scheduled work
   -> server/index.ts            server composition and legacy registrations
