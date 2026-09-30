@@ -1,7 +1,7 @@
 # Module boundaries
 
 The domain-independent entity JSON-LD graph builder lives in
-`shared/entitySeoStructuredData.ts`. Express SEO routes and staged Next.js
+`shared/entitySeoStructuredData.ts`. Express SEO routes and the Next.js
 Battleground detail pages compose their own public entity data through it,
 keeping canonical and breadcrumb structure consistent across renderers.
 
@@ -16,22 +16,21 @@ Next.js metadata, canonical redirects and JSON-LD for current and archive URLs.
 `src/modules/home/public.ts` owns the home summary presentation, article
 teasers and navigation sections. The Next home route
 (`apps/public-web/app/page.tsx`) loads the anonymous summary and articles on
-the server; the legacy Vite route still uses the same contract until its
-retirement. Authentication stays in the browser through the Express APIs.
+the server. Authentication stays in the browser through the Express APIs.
 
 ## Cosmetics catalog
 
 `src/modules/cosmetics/public.ts` owns the public catalog filter and request
-contract used by the legacy React view and staged Next.js listing routes.
+contract used by the React view and the Next.js listing routes.
 `src/features/Cosmetics.tsx` remains the transitional presentation owner;
 Express still owns `/api/cosmetics/*` and the Next composition owns only HTML.
 
 ## Editorial articles
 
 `src/modules/articles/public.ts` owns the public article listing, filters,
-vote controls and subscription-aware article links. The Vite route loads the
-module and a route-owned bridge for three legacy stylesheets. Arena pages
-remain in `DeferredRoutes.tsx` during the renderer migration. Request handling
+vote controls and subscription-aware article links. The Next.js page
+(`apps/public-web/app/articles/page.tsx`) imports the three legacy stylesheets
+the listing needs. Arena pages remain in `DeferredRoutes.tsx`. Request handling
 stays in the existing Express article API; the client module contains only
 presentation and its narrow API adapter.
 Generic breadcrumbs and section banners are shared UI primitives under
@@ -40,8 +39,8 @@ Generic breadcrumbs and section banners are shared UI primitives under
 ## Public contests
 
 `src/modules/contests/public.ts` owns the public contest list and participation
-UI. The legacy route re-exports this component from `src/features/Contests.tsx`;
-the administrator workspace stays in that feature until its separate migration.
+UI. `src/features/Contests.tsx` re-exports this component; the administrator
+workspace stays in that feature until its separate migration.
 The module calls the existing Express contest API and depends only on the
 identity and subscription public contracts for participation state.
 
@@ -58,34 +57,35 @@ construction. Its legacy feature entry re-exports the public module contract
 for existing callers; server and browser adapters share the same pure model.
 The module also owns catalog URL/history synchronization, debounced request
 lifecycle and bounded idle warming through injected transport ports. The legacy
-feature composes the same presentation for Vite and the Next server seed.
+feature composes the presentation from the Next.js server seed.
 
 The Battlegrounds module owns hero-tier cache lifetimes and mounted-consumer
-retry scheduling and the React subscription hook. The legacy route injects
-live API and local snapshot loaders;
+retry scheduling and the React subscription hook. The legacy feature
+(`src/features/Battlegrounds.tsx`) injects live API and local snapshot loaders;
 it retains source normalization and rendering while consuming the module's
 public resource contract. Disposing a view stops its timers and callbacks.
 
 `src/modules/arenaClasses` owns validated class statistics, account-scoped
-browser caching, request lifecycle and ranking presentation. The legacy Arena
-route composes this module with its existing permission gate and page chrome;
-the application shell retains only the displayed update timestamp.
+browser caching, request lifecycle and ranking presentation. The Arena classes
+page composes this module with its permission gate and page chrome; the page
+shell shows only the update timestamp.
 
 `src/modules/arenaTierList` owns the shared Arena tier-list source and card-data
 contract plus an account-scoped browser client, companion-card filter and React
-loading hooks with response validation, ETag refresh and stale fallback. Legacy
-route composition consumes the source and card types. The staged Next route
-temporarily composes the existing Arena presentation through a client adapter;
-its presentation will move into the module before the legacy route is removed.
+loading hooks with response validation, ETag refresh and stale fallback. The
+Next.js page composes the Arena presentation of `DeferredRoutes.tsx` through a
+client adapter (`apps/public-web/ui/TierListPageClient.tsx`); the presentation
+has not moved into the module yet.
 
 `src/modules/arenaLegendaries` owns the Arena legendary-group response types
-shared by the existing route and its forthcoming Next.js page. The client
-request, response validation, account-scoped cache and React loading live here.
-The staged Next page temporarily composes the legacy presentation through a
-client adapter; presentation will move into this module before Vite retirement.
+used by the Next.js page. The client request, response validation,
+account-scoped cache and React loading live here. The page composes the legacy
+presentation through a client adapter
+(`apps/public-web/ui/LegendariesPageClient.tsx`); the presentation has not
+moved into this module yet.
 
 `src/modules/standardMatchups` owns the Standard matchup response contract
-shared by the legacy route and its forthcoming Next.js page. The protected
+used by the Next.js page. The protected
 account-scoped browser client also lives here, with response validation and
 ETag refresh. React loading is account- and format-scoped. Interactive
 presentation temporarily stays in `src/features/StandardMatchups.tsx` and
@@ -418,8 +418,8 @@ repository-root alias `@/<repository path>` (for example
 `@/src/modules/subscriptions/public`), never through `../`. It reaches Express
 over HTTP only and never imports `server/`; `src/`, `server/` and `shared/`
 never import `apps/`. `tests/next-import-paths.test.mjs` enforces these rules.
-Public navigation metadata lives independently of legacy route loaders, while
-both shells reuse profile and mobile-menu focus behavior. Statistics query
+Public navigation metadata lives in `src/app/routing/navigationDefinitions.ts`;
+the page shell owns profile and mobile-menu focus behavior. Statistics query
 policy/hooks and the public seed type belong to the card module. HTML entity
 decoding is a domain-independent `shared/text` primitive.
 
