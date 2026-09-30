@@ -18,10 +18,12 @@ function signedOut(response) {
 // `speculative` lists what the browser requested ahead of a visit.
 async function startGateway(nextOrigin) {
   const speculative = [];
+  // The upstream host is fixed; only the path comes from the request.
+  const next = new URL(nextOrigin);
   const server = http.createServer((request, response) => {
     if (request.headers['sec-purpose']) speculative.push(request.url);
     if (request.url.startsWith('/api/')) { signedOut(response); return; }
-    const upstream = http.request(new URL(request.url, nextOrigin), { method: request.method, headers: request.headers },
+    const upstream = http.request(next, { method: request.method, path: request.url, headers: request.headers },
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
     request.pipe(upstream);
   });
