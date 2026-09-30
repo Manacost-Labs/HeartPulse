@@ -91,18 +91,6 @@ if (!nextClientChunks.some(file => releaseLiteral.test(readFileSync(join(output,
   throw new Error('Next.js client bundle does not contain the release SHA; rebuild with RELEASE_SHA or GITHUB_SHA');
 }
 
-// While the legacy Vite build still runs (its manifest exists), its entry
-// bundle must be present and match the release as well.
-if (existsSync(join(output, 'dist', '.vite', 'manifest.json'))) {
-  const indexHtml = readFileSync(join(output, 'dist', 'index.html'), 'utf8');
-  const entryMatch = indexHtml.match(/<script\b[^>]*\bsrc="(\/assets\/[^"?]+\.js)"[^>]*><\/script>/);
-  if (!entryMatch) throw new Error('Legacy frontend entry script was not found in dist/index.html');
-  const entryAsset = join(output, 'dist', entryMatch[1].replace(/^\//, ''));
-  if (!existsSync(entryAsset) || !readFileSync(entryAsset, 'utf8').includes(sha)) {
-    throw new Error('Legacy frontend entry script does not contain the release SHA; rebuild with RELEASE_SHA or GITHUB_SHA');
-  }
-}
-
 mkdirSync(join(output, 'server'), { recursive: true });
 cpSync('server/gen_legendary_image.py', join(output, 'server', 'gen_legendary_image.py'));
 mkdirSync(join(output, 'scripts'), { recursive: true });

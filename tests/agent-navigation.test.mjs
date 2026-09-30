@@ -381,7 +381,7 @@ test('production client shared ownership is selectable by id with its exact cont
   const expectedFocusedTests = [
     'npm run test:nginx-canonical-hosts',
     'npm run test:nginx-routing',
-    'npm run test:prerender-seo',
+    'npm run test:next-seo',
     'npm run test:static-root',
     'npm run test:public-url-policy',
     'npm run test:responsive-inventory',

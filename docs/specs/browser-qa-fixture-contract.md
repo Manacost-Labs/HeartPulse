@@ -59,5 +59,3 @@ Run `npm run qa:ci` before release. It builds the static root and the Next.js
 app, starts them behind the local gateway with the QA backend and runs
 desktop, mobile, guest, subscriber, administrator, keyboard, lightbox and
 accessibility scenarios against the renderer production serves.
-`npm run qa:legacy` runs the same suite against the Vite build until it is
-retired.

@@ -6,7 +6,6 @@ const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.me
 const browserQa = ['../scripts/e2e-qa.mjs', '../scripts/qa/mockApi.mjs', '../scripts/qa/fixtures.mjs']
   .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 const browserQaNext = readFileSync(new URL('../scripts/browser-qa-next.mjs', import.meta.url), 'utf8');
-const browserQaLegacy = readFileSync(new URL('../scripts/browser-qa-legacy.mjs', import.meta.url), 'utf8');
 const layoutDiagnostics = readFileSync(new URL('../scripts/mobile-layout-diagnostics.mjs', import.meta.url), 'utf8');
 const applicationCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const { scripts } = packageJson;
@@ -16,13 +15,11 @@ assert.equal(
   'npm run build && npm run build:next && node scripts/browser-qa-next.mjs',
   'standalone qa:ci must build current sources and test the Next.js renderer production serves',
 );
-assert.equal(
-  scripts['qa:legacy'],
-  'npm run build && node scripts/browser-qa-legacy.mjs',
-  'the Vite build stays testable on demand until it is retired',
-);
+assert.equal(scripts['qa:legacy'], undefined, 'Next.js is the only renderer; the Vite run is gone');
+assert.equal(scripts.build, 'npm run build:static && npm run build:server',
+  'the release build assembles the static root and the server without a client bundler');
 assert.ok(
-  browserQaNext.includes("QA_RENDERER: 'next'") && browserQaNext.includes('startQaNextRuntime()'),
+  browserQaNext.includes('startQaNextRuntime()') && !browserQa.includes('QA_RENDERER'),
   'the release browser QA must run against the Next.js runtime with the QA backend',
 );
 
@@ -153,11 +150,6 @@ assert.ok(
   'browser QA must accept image card APIs and bodyless successful API responses',
 );
 assert.ok(
-  browserQa.includes("request.frame() === page.mainFrame()")
-    && browserQa.includes("url.pathname === notFoundDocument.pathname"),
-  'local 404 substitution must be limited to the exact main-frame fixture document',
-);
-assert.ok(
   browserQa.includes('expected status-preserving HTTP 404')
     && browserQa.includes('httpStatus = navigationResponse?.status()'),
   'responsive QA must assert and record the not-found document HTTP status',
@@ -192,17 +184,4 @@ assert.equal(
   'npm run build && npm run build:next && QA_RESPONSIVE_SCOPE=all-p0 node scripts/browser-qa-next.mjs',
   'all-P0 responsive QA must build current sources and test the Next.js runtime',
 );
-assert.ok(
-  browserQaLegacy.includes("previewArgs.push('--outDir', process.env.QA_PREVIEW_DIST_DIR)"),
-  'legacy browser QA preview must accept an isolated build directory',
-);
-assert.ok(
-  browserQaLegacy.includes("'--port', '0', '--strictPort'"),
-  'legacy browser QA preview must use an isolated ephemeral port',
-);
-assert.ok(
-  browserQaLegacy.includes('stripVTControlCharacters(previewOutput).match(/Local:'),
-  'legacy browser QA must derive and parse a colorized origin from the child Vite process',
-);
-
 console.log('QA command contract tests passed');

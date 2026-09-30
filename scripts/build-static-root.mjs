@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Assembles the release static root (`dist/` by default) without Vite.
+ * Assembles the release static root (`dist/` by default).
  *
  * Nginx, regional edges, the deployer and Express read static files, the SEO
  * sitemap segment and the entry document from this directory. Every HTML page
  * is rendered by Next.js, so the tree only needs `public/`, the generated
- * sitemaps and a placeholder entry document. While the legacy Vite build still
- * runs first, its bundle and entry document are kept; this step never deletes.
+ * sitemaps and a placeholder entry document. The directory is rebuilt from
+ * scratch: a reused workspace must not ship files of an earlier build.
  */
-import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { chmodSync, cpSync, lstatSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve, sep } from 'node:path';
 import { createPublicSeoModel } from './lib/public-seo-model.mjs';
 
 const root = process.cwd();
@@ -31,15 +31,19 @@ const PLACEHOLDER_ENTRY = `<!doctype html>
 </html>
 `;
 
+// The output directory is emptied, so it must never be the checkout or contain it.
+if (outDir === root || root.startsWith(outDir.endsWith(sep) ? outDir : `${outDir}${sep}`)) {
+  throw new Error(`[static-root] refusing to empty ${outDir}`);
+}
 const seo = createPublicSeoModel(root);
+rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
-// Dereference like Vite's public copy: the release must not link back into
-// the build workspace.
+// Dereference symlinks: the release must not link back into the build workspace.
 cpSync(join(root, 'public'), outDir, { recursive: true, force: true, dereference: true });
 mkdirSync(join(outDir, 'sitemaps'), { recursive: true });
 writeFileSync(join(outDir, 'sitemaps', 'static.xml'), seo.staticSitemapXml(), 'utf8');
 writeFileSync(join(outDir, 'sitemap.xml'), seo.sitemapIndexXml(), 'utf8');
-if (!existsSync(join(outDir, 'index.html'))) writeFileSync(join(outDir, 'index.html'), PLACEHOLDER_ENTRY, 'utf8');
+writeFileSync(join(outDir, 'index.html'), PLACEHOLDER_ENTRY, 'utf8');
 makePublicReadable(outDir);
 
 const staticUrlCount = [...seo.seoPages.values()].filter(page => page.sitemap).length;

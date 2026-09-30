@@ -65,17 +65,17 @@ try {
     assert.match(unit, new RegExp(`^ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena\\.ru/current/scripts/${script}\\.sh$`, 'm'));
   }
 
-  for (const directory of ['build/server', 'dist/assets', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd', 'apps/public-web/.next/cache', 'apps/public-web/.next/static/chunks', 'dist/.vite']) {
+  for (const directory of ['build/server', 'dist/assets', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd', 'apps/public-web/.next/cache', 'apps/public-web/.next/static/chunks']) {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
   writeFileSync(join(workspace, 'build/server/scraper.js'), 'console.log("scraper");\n');
   writeFileSync(join(workspace, 'build/server/scraperBrowserRuntime.js'), 'console.log("browser runtime");\n');
   writeFileSync(join(workspace, 'build/server/constructedCardImagePrewarmer.js'), 'console.log("sync");\n');
-  writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<script type="module" src="/assets/index-stable.js"></script>\n');
+  const entryDocument = '<!doctype html>\n<meta name="robots" content="noindex, nofollow" />\n';
+  writeFileSync(join(workspace, 'dist/index.html'), entryDocument);
   writeFileSync(join(workspace, 'dist/runtime-config.js'), 'window.__ARENA_RUNTIME_CONFIG__ = {};\n');
-  writeFileSync(join(workspace, 'dist/assets/index-stable.js'), 'const release = "abcdef1";\n');
-  writeFileSync(join(workspace, 'dist/.vite/manifest.json'), '{}\n');
+  writeFileSync(join(workspace, 'dist/assets/og-preview.png'), 'public asset\n');
   writeFileSync(join(workspace, 'dist/sitemap.xml'), '<?xml version="1.0"?><sitemapindex/>\n');
   writeFileSync(join(workspace, 'dist/sitemaps/static.xml'), '<?xml version="1.0"?><urlset/>\n');
   writeFileSync(join(workspace, 'public/asset.txt'), 'asset\n');
@@ -121,12 +121,13 @@ try {
   assert.match(manifest.checksums['apps/public-web/.next/BUILD_ID'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['apps/public-web/next.config.mjs'], /^[a-f0-9]{64}$/);
   assert.deepEqual(manifest.nextWeb, { buildId: 'next-build-id', fileCount: 3 });
-  assert.match(readFileSync(join(output, 'dist/index.html'), 'utf8'), /src="\/assets\/index-stable\.js"/);
+  assert.equal(readFileSync(join(output, 'dist/index.html'), 'utf8'), entryDocument,
+    'the static root entry document ships unchanged');
+  assert.equal(readFileSync(join(output, 'dist/assets/og-preview.png'), 'utf8'), 'public asset\n');
   assert.equal(
     readFileSync(join(output, 'dist/runtime-config.js'), 'utf8'),
     'window.__ARENA_RUNTIME_CONFIG__ = {};\n',
   );
-  assert.doesNotMatch(readFileSync(join(output, 'dist/index.html'), 'utf8'), /\?v=/);
   assert.match(manifest.checksums['scripts/backup-shared-data.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['build/server/scraper.js'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['build/server/scraperBrowserRuntime.js'], /^[a-f0-9]{64}$/);
@@ -199,23 +200,6 @@ try {
   ]) {
     assert.ok((statSync(join(output, 'scripts', script)).mode & 0o111) !== 0, `${script} is not executable`);
   }
-
-  // While the legacy build exists, its entry must still carry the release SHA.
-  writeFileSync(join(workspace, 'dist/assets/index-stable.js'), 'const release = "development";\n');
-  const staleLegacyResult = spawnSync(process.execPath, [
-    join(repository, 'scripts/create-release.mjs'), `--output=${join(root, 'artifact-stale-legacy')}`, '--sha=abcdef1',
-  ], { cwd: workspace, encoding: 'utf8' });
-  assert.notEqual(staleLegacyResult.status, 0, 'a legacy entry without the release SHA must be rejected');
-  assert.match(staleLegacyResult.stderr, /Legacy frontend entry script does not contain the release SHA/);
-
-  // The Vite-free static root has a placeholder entry without a legacy bundle.
-  rmSync(join(workspace, 'dist/.vite'), { recursive: true, force: true });
-  writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<meta name="robots" content="noindex, nofollow" />\n');
-  const staticRootOutput = join(root, 'artifact-static-root');
-  const staticRootResult = spawnSync(process.execPath, [
-    join(repository, 'scripts/create-release.mjs'), `--output=${staticRootOutput}`, '--sha=abcdef1',
-  ], { cwd: workspace, encoding: 'utf8' });
-  assert.equal(staticRootResult.status, 0, staticRootResult.stderr || staticRootResult.stdout);
 
   writeFileSync(join(workspace, 'apps/public-web/.next/static/chunks/app-shell.js'), 'const releaseId = "development";\n');
   const staleNextResult = spawnSync(process.execPath, [

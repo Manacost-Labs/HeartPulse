@@ -5,7 +5,7 @@
 Дата аудита: 20 июля 2026 года
 Обновлено: 3 сентября 2026 года
 Горизонт: 12 недель для базовой программы, затем постоянный цикл
-Область: `hearthpulse.net`, React 19 + Vite SPA, Express API и текущий prerender
+Область: `hearthpulse.net`; на дату аудита — React 19 + Vite SPA, Express API и prerender, с 25 сентября 2026 года все страницы рендерит Next.js
 
 ## 1. Цель
 
@@ -26,7 +26,7 @@
 - Статические метатеги и JSON-LD в `index.html`.
 - Реестр навигации в `src/routes.ts` и единый реестр материализованных SEO-страниц в `config/public-seo-pages.json` + `src/seo/registry.ts`.
 - Клиентское обновление title, description, canonical, Open Graph и Twitter Card в `src/routes.ts`.
-- Prerender верхнеуровневых страниц в `scripts/prerender.js`; статический sitemap-сегмент генерирует из того же реестра `scripts/build-static-root.mjs` (`npm run build:static`).
+- Серверный рендер всех страниц в Next.js (`apps/public-web`): title, description, canonical и share-теги берутся из реестра, JSON-LD страниц разделов — из `config/public-seo-structured-data.json` (`src/seo/structuredData.ts`); статический sitemap-сегмент генерирует из того же реестра `scripts/build-static-root.mjs` (`npm run build:static`).
 - Статические `public/robots.txt` и `public/llms.txt`.
 - Страницы FAQ, статей, Standard, Arena и Battlegrounds.
 - Авторизация и paywall на уровне UI/API.
@@ -38,8 +38,8 @@
 |---|---|---|---|
 | Локальные detail pages статей ещё не существуют и потому не входят в sitemap | `/articles` пока ведёт на внешние материалы | Нельзя честно публиковать Article URL без полного локального текста | P1 |
 | Versioned robots/noindex contract требует production rollout | Release v2 и deploy уже блокируют runtime drift, но активный legacy release ещё не переведён на managed contract | До разрешённого rollout production может продолжить старую index policy | P0 |
-| Schema Dataset использует дату сборки, а не дату данных | `scripts/prerender.js` | Недостоверный `dateModified` и freshness | P1 |
-| Счётчики ItemList могут быть захардкожены | `scripts/prerender.js` | Schema расходится с видимым содержимым | P1 |
+| Schema Dataset использует дату запроса, а не дату данных | `src/seo/structuredData.ts` | Недостоверный `dateModified` и freshness | P1 |
+| Счётчики ItemList могут быть захардкожены | `config/public-seo-structured-data.json` | Schema расходится с видимым содержимым | P1 |
 | Нет внутренних страниц авторов и редакционной политики | Публичные маршруты | Недостаточный E-E-A-T для аналитического продукта | P1 |
 | Статьи в `server/data/articles.json` в основном ведут на внешний домен | `/articles` | Нельзя честно разметить локальную страницу как полную Article | P1 |
 | `llms.txt` описывает в основном Arena | `public/llms.txt` | Standard/BG/FAQ и методология плохо представлены AI-поиску | P2 |

@@ -187,7 +187,7 @@ Nginx → immutable release → systemd service
 ```text
 apps/public-web/      Next.js-приложение: все публичные HTML-страницы
 src/components/       общие UI-компоненты
-src/App.tsx           legacy Vite-композиция, собирается до удаления Vite
+src/App.tsx           legacy SPA-композиция: в релиз не собирается, ждёт удаления
 src/modules/          новые доменные модули с узкими public-контрактами
 src/features/         legacy-страницы на поэтапной миграции, не целевая граница
 src/styles/           общие токены и ограниченные shared-стили
@@ -252,7 +252,7 @@ npm run qa:e2e
 
 | Контур | Используемые инструменты |
 | --- | --- |
-| Интерфейс | Next.js 16 (App Router), React 19, TypeScript с измеряемым долгом и strict islands, Tailwind CSS 4, Lucide, responsive CSS; legacy-сборка Vite 6 до её удаления |
+| Интерфейс | Next.js 16 (App Router), React 19, TypeScript с измеряемым долгом и strict islands, Tailwind CSS 4, Lucide, responsive CSS |
 | API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer Core, node-cron, Hearthstone deckstrings |
 | Тестирование | Node test runner, tsx, fast-check, Storybook 10 + MCP, Puppeteer E2E, axe-core, browser contract tests |
 | Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
@@ -285,9 +285,11 @@ cp .env.example .env
 npm run dev
 ```
 
-Frontend доступен на `http://localhost:3000`, API запускается рядом в dev
-режиме. Без внешних ключей используются локальные snapshots; интеграции и
-публикация свежих данных требуют соответствующих переменных из `.env.example`.
+Сайт доступен на `http://localhost:3000`: команда запускает API (порт 3001),
+Next.js в dev-режиме (порт 4320) и локальный шлюз, который раздаёт страницы,
+`/api` и статику из `public/` так же, как Nginx в продакшене. Без внешних
+ключей используются локальные snapshots; интеграции и публикация свежих данных
+требуют соответствующих переменных из `.env.example`.
 
 Для разработки и AI-проверки компонентов отдельно запустите:
 
@@ -307,9 +309,9 @@ npm run build-storybook
 
 | Команда | Назначение |
 | --- | --- |
-| `npm run dev` | Legacy Vite-frontend и API в watch-режиме |
-| `npm run dev:next` | Next.js-приложение в dev-режиме (см. `apps/public-web/README.md`) |
-| `npm run build` | Legacy frontend, server, статика `dist/` и pre-render |
+| `npm run dev` | API, Next.js и локальный шлюз на `http://localhost:3000` в watch-режиме |
+| `npm run dev:next` | Только Next.js-приложение в dev-режиме (см. `apps/public-web/README.md`) |
+| `npm run build` | Статический корень `dist/` и серверная сборка `build/` |
 | `npm run build:next` | Production-сборка Next.js |
 | `npm test` | Все пять автоматически обнаруживаемых suite без ручного списка |
 | `npm run test:discovery` | Полнота классификации всех test/spec-файлов |
@@ -321,8 +323,7 @@ npm run build-storybook
 | `npm run architecture:http-manifest` | Проверка Express routes и middleware |
 | `npm run qa:e2e` | Полный desktop/mobile browser QA |
 | `npm run qa:ci` | Сборка и browser QA против Next.js с QA-бэкендом (деплой-гейт) |
-| `npm run qa:legacy` | Тот же browser QA против Vite-сборки до её вывода |
-| `npm run budget` | Контроль размеров JS и CSS |
+| `npm run budget:next` | Контроль размеров JS и CSS каждой публичной страницы Next.js |
 | `npm run scrape` | Ручной запуск scraper в разработке |
 | `npm run security:gitleaks` | Локальная проверка истории и рабочего дерева |
 | `npm run security:semgrep` | Статический анализ изменённых JS/TS-файлов |

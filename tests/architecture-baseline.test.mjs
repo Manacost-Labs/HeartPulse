@@ -56,10 +56,10 @@ test('reports the complete architecture safety baseline deterministically', () =
       exclusions: [],
       fileEnvironment: {},
     }));
-    writeFixture(repositoryRoot, 'dist/index.html', '<script type="module" src="/assets/index-fixture.js"></script>');
-    writeFixture(repositoryRoot, 'dist/assets/index-fixture.js', '123456');
-    writeFixture(repositoryRoot, 'dist/assets/vendor-fixture.js', '1234');
-    writeFixture(repositoryRoot, 'dist/assets/index-fixture.css', '12');
+    writeFixture(repositoryRoot, 'apps/public-web/.next/static/chunks/main-fixture.js', '123456');
+    writeFixture(repositoryRoot, 'apps/public-web/.next/static/chunks/app/page-fixture.js', '1234');
+    writeFixture(repositoryRoot, 'apps/public-web/.next/static/css/app-fixture.css', '12');
+    writeFixture(repositoryRoot, 'apps/public-web/.next/static/media/font-fixture.woff2', '1');
 
     const baseline = analyzeArchitecture(repositoryRoot, {
       largeCodeLines: 3,
@@ -98,7 +98,11 @@ test('reports the complete architecture safety baseline deterministically', () =
     assert.equal(baseline.bundle.rawBytes, 12);
     assert.deepEqual(
       baseline.bundle.largestAssets.map(entry => entry.file),
-      ['dist/assets/index-fixture.js', 'dist/assets/vendor-fixture.js', 'dist/assets/index-fixture.css'],
+      [
+        'apps/public-web/.next/static/chunks/main-fixture.js',
+        'apps/public-web/.next/static/chunks/app/page-fixture.js',
+        'apps/public-web/.next/static/css/app-fixture.css',
+      ],
     );
   } finally {
     rmSync(repositoryRoot, { recursive: true, force: true });

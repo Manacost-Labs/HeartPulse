@@ -37,9 +37,10 @@ wrapper can miss Puppeteer's startup timeout on a cold runner.
 The September 2026 origin Nginx update uses the reviewed contract hash and
 controlled gate procedure in
 [the deploy-helper runbook](docs/runbooks/production-deployer-contract.md).
-The immutable release contains the validated Next.js build alongside the
-legacy Vite frontend. CI includes the hidden `.next` directory when uploading
-that allowlisted release artifact. `deploy/hs-arena-next.service` runs Next on
+The immutable release contains the validated Next.js build, the compiled
+server and the static root `dist/`; no release step runs Vite. CI includes the
+hidden `.next` directory when uploading that allowlisted release artifact.
+`deploy/hs-arena-next.service` runs Next on
 `127.0.0.1:4321`; the deployer restarts the API and Next, checks
 `/health/ready` and `/health/next/`, and rolls back a candidate that fails
 either check. The Next unit must be enabled for boot-time startup
@@ -141,20 +142,24 @@ manifest additionally checksums the versioned operational scripts and systemd
 units shipped with the artifact.
 `RELEASE_SHA` (or GitHub Actions' `GITHUB_SHA`) is compiled into the Next.js
 client bundle, which reports it with client incidents; `release:create` rejects
-a Next build that does not contain the requested SHA. While the legacy Vite
-entry is still built, the same check applies to its entry chunk.
+a Next build that does not contain the requested SHA.
 
 The `dist/` static root is assembled by `npm run build:static`
-(`scripts/build-static-root.mjs`) without Vite: it copies `public/`, writes the
-sitemap index and the static sitemap segment from the JSON route and SEO
-registries, and adds a `noindex` placeholder entry document when no legacy
-entry exists. Nginx serves static files from this tree, edges sync it, the
-deployer and edge sync require its entry document, and Express reads
-`dist/sitemaps/static.xml`. Until the Vite retirement, `npm run build` still
-runs `vite build` first and the legacy prerender afterwards; neither owns a
-file that Next.js, Nginx or Express needs. The remaining Vite coupling is
-operational: the edge activator's size floor currently relies on carried-forward
-Vite bundles, as listed in the migration plan.
+(`scripts/build-static-root.mjs`): it empties the directory, copies `public/`,
+writes the sitemap index and the static sitemap segment from the JSON route
+and SEO registries, and adds a `noindex` placeholder entry document. Nginx
+serves static files from this tree, edges sync it, the deployer and edge sync
+require its entry document, and Express reads `dist/sitemaps/static.xml`.
+`npm run build` runs this step and the server build.
+
+The deployer still copies the hashed `/assets/` files of earlier releases into
+each new release and drops them after 35 days (`ASSET_RETENTION_DAYS`), so a
+document cached before the Vite retirement keeps its scripts and styles.
+Without them the tree has about 385 files and 15 MB. Every edge therefore
+needs the activator with the 300-file and 10 MB floor
+(`deploy/activate-arena-static.sh`) before the carried files expire around
+2026-10-31; the installation steps are in
+[the edge operations guide](docs/operations/arena-geodns-edge-cache.md).
 
 Before any deployment, compare the immutable release contract with the files
 actually installed on the target host. The verifier is strictly read-only: it

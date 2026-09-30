@@ -2,9 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
- * JSON-backed public URL and SEO policy shared by the static-root builder and
- * the legacy prerender. It must stay free of Vite and of `src/` TypeScript so
- * release tooling keeps working after the legacy frontend build is removed.
+ * JSON-backed public URL and SEO policy of the static-root builder. It must
+ * stay free of `src/` TypeScript so release tooling needs no compile step.
  */
 export function createPublicSeoModel(root = process.cwd()) {
   const inventory = readJson(root, 'src/shared/seo/publicRouteInventory.json');

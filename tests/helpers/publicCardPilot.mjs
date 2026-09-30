@@ -6,7 +6,7 @@ import { createPublicWebGateway } from '../../scripts/public-web-gateway.mjs';
 import { publicCardFixture, listenLocal, closeLocal } from './publicCardFixture.mjs';
 
 export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false, galleryEnabled = false, runtimeClientConfigFile } = {}) {
-  for (const [artifact, script] of [['dist/index.html', 'build'], ['apps/public-web/.next/BUILD_ID', 'build:next']]) {
+  for (const [artifact, script] of [['dist/index.html', 'build:static'], ['apps/public-web/.next/BUILD_ID', 'build:next']]) {
     if (existsSync(artifact)) continue;
     const built = spawnSync('npm', ['run', script], { encoding: 'utf8', timeout: 90000 });
     if (built.status !== 0) throw new Error(`${script} failed: ${(built.stdout + built.stderr).slice(-2500)}`);

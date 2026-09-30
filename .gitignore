@@ -14,6 +14,7 @@ screenshot/
 .env.*
 !.env.example
 
-# Isolated Next.js build output
+# Isolated Next.js build output; `next dev` and `next build` each rewrite next-env.d.ts
 apps/public-web/.next/
+apps/public-web/next-env.d.ts
 apps/public-web/tsconfig.tsbuildinfo

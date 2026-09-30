@@ -24,8 +24,7 @@ npm run release:create -- --output="$artifact" --sha="$sha"
 ```
 
 `RELEASE_SHA` вкомпилируется в клиентский бандл Next.js; `release:create`
-отвергнет сборку Next без запрошенного SHA, а пока собирается legacy Vite —
-и его entry-чанк без SHA.
+отвергнет сборку Next без запрошенного SHA.
 
 ## Проверка nginx-контракта перед деплоем
 

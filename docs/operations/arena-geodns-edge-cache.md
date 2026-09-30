@@ -104,12 +104,37 @@ After changing these files, run `npm run test:deployment`, install the scripts
 with mode `0755`, reload systemd, start the service once, and confirm that its
 second run reports every edge as already current without invoking rsync.
 
-The guarded activator defaults to a fail-closed floor of 4,500 files and 70 MB.
-Those limits sit below both validated production bundles measured during the
-September 2026 rollout (about 4,900 files and 77 MB). This heuristic rejects an
-undersized tree below either floor; successful `rsync` is the integrity gate for
-a transfer that remains above both floors. Remeasure the active and previous
-known-good bundles before changing either threshold.
+The guarded activator defaults to a fail-closed floor of 300 files and 10 MB.
+The static root that `npm run build:static` assembles has about 385 files and
+15 MB (measured on 2026-09-30), and `tests/build-static-root.test.mjs` fails
+when it comes within 20% of either floor. This heuristic rejects an undersized
+tree below either floor; successful `rsync` is the integrity gate for a
+transfer that remains above both floors. Remeasure the static root before
+changing either threshold.
+
+Until 2026-09-30 the floor was 4,500 files and 70 MB, sized for releases with
+hashed Vite bundles. Releases built after the Vite retirement keep those
+bundles only through the deployer's 35-day carry-forward, so an edge that
+still runs the old activator refuses every new static release once they
+expire: from the first deploy on or after about 2026-10-31. Install the
+current activator on every edge before then. As root on the origin, after the
+release that contains the new floor is live:
+
+```bash
+source /etc/hs-arena/edge-static-sync.conf
+script=/var/www/koloda/data/www/hs-arena.ru/current/deploy/activate-arena-static.sh
+hosts=${ARENA_STATIC_KNOWN_HOSTS:-/home/debian/.ssh/known_hosts}
+for spec in "${ARENA_STATIC_EDGE_SPECS[@]}"; do
+  IFS='|' read -r edge identity <<< "$spec"
+  remote="ssh -i $identity -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$hosts"
+  rsync --chmod=F0755 --chown=root:root --rsync-path='sudo rsync' -e "$remote" \
+    "$script" "$edge:/usr/local/sbin/activate-arena-static"
+  $remote "$edge" 'grep -c "ARENA_STATIC_MIN_FILES:-300" /usr/local/sbin/activate-arena-static'
+done
+```
+
+Each edge must print `1`. Then start `arena-static-sync.service` once and
+confirm that every edge reports the release as already current.
 
 The cache-path file replaces, rather than supplements, the historical
 `proxy_cache_path` declaration embedded in an edge vhost. Back up both files,

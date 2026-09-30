@@ -13,6 +13,8 @@ const config = {
     config.plugins.push(new webpack.DefinePlugin({ __APP_RELEASE_SHA__: JSON.stringify(releaseSha) }));
     return config;
   },
+  // Agent rules live in the repository's AGENTS.md; `next dev` must not add its own files here.
+  agentRules: false,
   poweredByHeader: false,
   reactStrictMode: true,
   trailingSlash: true,

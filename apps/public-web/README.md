@@ -124,8 +124,8 @@ behind its `public.ts`, not in `src/features/`.
 <!-- markdownlint-disable MD013 -->
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Legacy Vite dev server on port 3000 (serves `public/`, proxies `/api`) and Express on port 3001 |
-| `npm run dev:next` | Next dev server on `127.0.0.1:4320` |
+| `npm run dev` | Express on port 3001, `next dev` on `127.0.0.1:4320` and the gateway on `http://localhost:3000` (pages, `/api`, files of `public/`, hot updates) |
+| `npm run dev:next` | Only the Next dev server on `127.0.0.1:4320` |
 | `npm run build:next` | Production build (required before Next browser tests) |
 | `npm run lint:next` | TypeScript check of this app |
 | `npm run agent:context -- apps/public-web` | Owner, routes, focused tests, docs and debt of this app |
@@ -135,18 +135,21 @@ behind its `public.ts`, not in `src/features/`.
 | `npm run verify:release` | Full release gate |
 <!-- markdownlint-enable MD013 -->
 
-For complete local navigation with `/api` and static files, run `npm run dev`
-and `npm run dev:next`, then the gateway on `127.0.0.1:4317` with the Vite dev
-server as its legacy origin (see `docs/runbooks/nextjs-public-web.md`):
+`npm run dev` is the complete local site: open `http://localhost:3000`. The
+gateway (`npm run dev:web`, `scripts/public-web-gateway.mjs`) sends pages and
+`/_next/`, including the hot-update WebSocket, to `next dev`, serves the files
+of `public/` itself and sends everything else to Express, as Nginx does in
+production (see `docs/runbooks/nextjs-public-web.md`). Opening port 4320
+directly gives pages without `/api` and without static files.
 
-```bash
-LEGACY_WEB_ORIGIN=http://127.0.0.1:3000 PUBLIC_CARDS_NEXT_ENABLED=1 \
-  PUBLIC_PAGES_NEXT_ENABLED=1 PUBLIC_GALLERY_NEXT_ENABLED=1 \
-  npm run dev:public-gateway
-```
+`next dev` rewrites `next-env.d.ts`, so that file is ignored by Git, and
+`agentRules: false` in `next.config.mjs` stops it from writing its own
+`AGENTS.md` and `CLAUDE.md` here. This version of Next.js differs from older
+ones in routing, caching and configuration: check the bundled documentation in
+`node_modules/next/dist/docs/` or Context7 before using an API from memory.
 
 Browser tests reuse `apps/public-web/.next` and `dist/` when they exist, so
-rebuild after changing source (`npm run build:next`, `npm run build`).
+rebuild after changing source (`npm run build:next`, `npm run build:static`).
 
 ## Known debt
 
@@ -154,13 +157,12 @@ rebuild after changing source (`npm run build:next`, `npm run build`).
   full-document navigation between pages.
 - Legacy global CSS is imported per route from `src/`.
 - `npm run qa:ci`, `verify:ci` and the nightly responsive QA run the browser
-  QA against this app with the QA backend in `scripts/qa/`;
-  `npm run qa:legacy` still covers the Vite build until it is retired (see
-  `docs/plans/nextjs-full-site-migration.md`). Bundle
-  budgets for this app are `npm run budget:next`; `npm run budget` still
-  checks the legacy Vite bundle.
+  QA against this app with the QA backend in `scripts/qa/`. Bundle budgets
+  are `npm run budget:next`.
 - Every page ships about 150–210 KiB of gzip JavaScript and 50–70 KiB of CSS
   on first load, because each renders the legacy client shell; the budgets
   only stop that from growing.
-- The Vite build, `src/main.tsx` and `src/App.tsx` stay until the retirement
-  gate in the same plan.
+- No release step runs Vite, but `index.html`, `src/main.tsx`, `src/App.tsx`
+  and the legacy-only modules are still in the tree, and Storybook and eleven
+  component-harness browser tests still use the Vite package (see
+  `docs/plans/nextjs-full-site-migration.md`).

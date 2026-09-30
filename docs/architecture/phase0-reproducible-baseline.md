@@ -8,8 +8,9 @@ The checked baseline command is:
 npm run architecture:baseline
 ```
 
-It builds the current source revision first and then prints one deterministic
-JSON document. For a fast repeat against an existing `dist/`, run:
+It builds the Next.js app of the current source revision first and then
+prints one deterministic JSON document. For a fast repeat against an existing
+`apps/public-web/.next`, run:
 
 ```bash
 node scripts/architecture-baseline.mjs
@@ -25,8 +26,10 @@ The analyzer uses the TypeScript AST rather than text matching for raw `fetch`
 calls, JSX inline styles, explicit `any` and imports. It separates runtime
 cycles from cycles that exist only through type imports. Test reachability uses
 the same filesystem discovery and checked registry as `npm test`. Bundle totals
-measure the real built JavaScript and CSS assets in `dist/assets`, including
-deterministic gzip level 9 sizes.
+measure the real built JavaScript and CSS assets in
+`apps/public-web/.next/static`, including deterministic gzip level 9 sizes.
+Until 2026-09-30 they measured the Vite output in `dist/assets`, so the bundle
+rows of the table below are not comparable with later reports.
 
 ## Baseline at the Phase 0 branch head
 

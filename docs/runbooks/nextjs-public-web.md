@@ -9,31 +9,26 @@ repository checkout. The app's structure and rules are in
 [`apps/public-web/README.md`](../../apps/public-web/README.md).
 
 1. Install locked dependencies with `npm ci`.
-2. Run `npm run dev`: Express on port 3001 (set `HOST=127.0.0.1` to keep it
-   on loopback) and the legacy Vite dev server on port 3000, which serves
-   `public/` and proxies `/api` to Express. For QA, start Express with an
-   isolated environment and temporary database as described by
-   `tests/helpers/credentialBackend.mjs` instead. Never source the production
-   environment for QA.
-3. Run `npm run dev:next` (loopback port 4320), or `npm run build:next` then
-   `npm run start:next`. Its server-side loaders read Express at
-   `LEGACY_WEB_ORIGIN` (default `http://127.0.0.1:3001`).
-4. Run the gateway with the Vite dev server as its legacy origin and open
-   `http://127.0.0.1:4317`:
-
-   ```bash
-   LEGACY_WEB_ORIGIN=http://127.0.0.1:3000 PUBLIC_CARDS_NEXT_ENABLED=1 \
-     PUBLIC_PAGES_NEXT_ENABLED=1 PUBLIC_GALLERY_NEXT_ENABLED=1 \
-     npm run dev:public-gateway
-   ```
-
-   The gateway sends migrated pages and `/_next/` to Next (`NEXT_WEB_ORIGIN`,
-   default `http://127.0.0.1:4320`) and everything else, including `/api/` and
-   static files, to its `LEGACY_WEB_ORIGIN`. Without the flags it serves the
-   legacy frontend.
+2. Run `npm run dev` and open `http://localhost:3000`. It starts three
+   processes:
+   - `dev:server`: Express on port 3001 (set `HOST=127.0.0.1` to keep it on
+     loopback);
+   - `dev:next`: `next dev` on loopback port 4320; its server-side loaders
+     read Express at `LEGACY_WEB_ORIGIN` (default `http://127.0.0.1:3001`);
+   - `dev:web`: the gateway on port 3000. It sends pages and `/_next/`,
+     including the hot-update WebSocket, to Next (`NEXT_WEB_ORIGIN`, default
+     `http://127.0.0.1:4320`), serves the files of `public/`
+     (`PUBLIC_WEB_STATIC_DIR`) itself and sends everything else, including
+     `/api/`, to Express (`LEGACY_WEB_ORIGIN`).
+3. For QA, start Express with an isolated environment and temporary database
+   as described by `tests/helpers/credentialBackend.mjs` instead, and point
+   the other two processes at it with `LEGACY_WEB_ORIGIN`. Never source the
+   production environment for QA.
+4. To run the production build locally, use `npm run build:static`,
+   `npm run build:next` and `npm run start:next` in place of `dev:next`.
 
 Use the gateway for complete navigation; directly opening the Next port does not
-provide `/api/` or static assets. HMR uses the direct Next development port.
+provide `/api/` or static assets.
 Do not run the development gateway as a public production edge.
 
 ## Verification and recovery

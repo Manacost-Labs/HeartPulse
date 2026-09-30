@@ -1335,7 +1335,7 @@
       "externalServices": [],
       "tests": [
         "tests/routes.test.ts",
-        "tests/prerender-seo.test.mjs"
+        "tests/next-seo-page-metadata.test.mjs"
       ],
       "allowedDependencies": [
         "React",

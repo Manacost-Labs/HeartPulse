@@ -214,16 +214,21 @@ function routeMatchesPath(route: InventoryRoute, path: string): boolean {
   });
 }
 
-const prerenderSource = readFileSync(new URL('../scripts/prerender.js', import.meta.url), 'utf8');
-const prerenderPaths = [...prerenderSource.matchAll(/^  '([^']+)': \{/gm)].map(match => match[1]);
-for (const path of prerenderPaths) {
+// Pages with authored titles and descriptions live in the SEO registry.
+const seoRegistry = JSON.parse(
+  readFileSync(new URL('../config/public-seo-pages.json', import.meta.url), 'utf8'),
+) as { pages: Record<string, { sitemap: boolean }> };
+const indexedRegistryPaths = Object.entries(seoRegistry.pages)
+  .filter(([, page]) => page.sitemap)
+  .map(([path]) => path);
+for (const path of indexedRegistryPaths) {
   const policy = inventory.routes.find(route => routeMatchesPath(route, path));
-  assert.ok(policy, `${path} prerender must have an inventory policy`);
-  assert.equal(policy.indexPolicy, 'index', `${path} prerender must be indexable`);
-  assert.equal(policy.expectedStatus, 200, `${path} prerender must describe a successful HTML route`);
+  assert.ok(policy, `${path} registry page must have an inventory policy`);
+  assert.equal(policy.indexPolicy, 'index', `${path} registry page must be indexable`);
+  assert.equal(policy.expectedStatus, 200, `${path} registry page must describe a successful HTML route`);
 }
 for (const route of inventory.routes.filter(route => route.htmlStrategy === 'prerender' || route.htmlStrategy === 'prerender-teaser')) {
-  assert.ok(prerenderPaths.includes(route.pattern), `${route.id} must have a prerender page definition`);
+  assert.ok(indexedRegistryPaths.includes(route.pattern), `${route.id} must have an SEO registry page`);
 }
 
 const queryOwners = new Map<string, string>();

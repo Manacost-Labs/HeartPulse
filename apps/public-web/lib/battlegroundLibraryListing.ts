@@ -24,8 +24,8 @@ const headings: Record<string, string> = {
   '/library/archive/trinkets': 'Архив аксессуаров Полей сражений',
 };
 
-// These routes remain outside the legacy prerender registry until Nginx owns
-// their Next pages; that registry is also the Vite materialization contract.
+// These listings are not in the SEO registry (`config/public-seo-pages.json`),
+// so their descriptions live here.
 const stagedDescriptions: Record<string, string> = {
   '/library/anomalies': 'Аномалии Hearthstone Battlegrounds: эффекты и карты, доступные в актуальном пуле Полей сражений.',
   '/library/dark-gifts': 'Темные дары Hearthstone Battlegrounds: русские описания эффектов и изображения карт сезонного набора.',

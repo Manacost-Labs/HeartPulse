@@ -71,8 +71,7 @@ absent-card probe only while the card API reports `X-Data-Cache: LKG`.
   `apps/public-web/ui/SeoStructuredData.tsx`); every registry page, including
   the prerendered ones and the noindex `/connect` and `/admin`, takes its title
   and description from the registry, which
-  `tests/next-seo-page-metadata.test.mjs` checks. `scripts/prerender.js` still
-  carries a copy for the legacy build until that build is removed.
+  `tests/next-seo-page-metadata.test.mjs` checks.
 - Contract tests live in the existing entity sitemap and SEO route test files.
 
 No new dependency, database migration or public JSON API is introduced.
@@ -83,8 +82,7 @@ No new dependency, database migration or public JSON API is introduced.
 - Standard entity SSR: `npm run test:constructed-card-seo-routes`
 - Battlegrounds hero SSR: `npm run test:battleground-seo-routes`
 - Battlegrounds card SSR: `npm run test:battleground-library-seo-routes`
-- Static SEO tests: `npm run test:seo-registry && npm run test:next-seo &&
-  npm run test:prerender-seo`
+- Static SEO tests: `npm run test:seo-registry && npm run test:next-seo`
 - Full release gate: `npm run verify:release`
 - Repository gate: `make check`
 

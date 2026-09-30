@@ -301,7 +301,7 @@ Rules:
 - Keep route-heavy BG code deferred.
 - Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
 - Do not add JS for effects achievable in CSS.
-- Run `npm run budget` when changing bundles or adding assets.
+- Run `npm run budget:next` when changing bundles or adding assets.
 
 ## Primary Files
 

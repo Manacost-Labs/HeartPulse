@@ -44,10 +44,10 @@ Nginx remains the public edge and routes each URL to exactly one owner.
   Nginx also has explicit `/deck-builder/` and `/archetypes/` pages outside
   that inventory; `/admin/` is listed but has a separate exact edge rule.
 - `src/app/routing/routeManifest.ts` and `src/shared/seo/publicRouteInventory.json`
-  describe the legacy application surfaces and public URL policy. The current
+  describe the legacy application surfaces and public URL policy. The legacy
   Vite application starts at `index.html`/`src/main.tsx` and composes routes in
-  `src/App.tsx`. The release still runs `vite build`, `scripts/prerender.js`,
-  `build:next` and `build:server`.
+  `src/App.tsx`; since 2026-09-30 no release step builds it. The release runs
+  `build:static`, `build:server` and `build:next`.
 - `scripts/create-release.mjs` and `scripts/deploy-release.sh` require
   `dist/index.html`; Nginx serves legacy `/assets/`, prerendered HTML and the
   SPA fallback from `dist`. Storybook currently uses `@storybook/react-vite`.
@@ -371,9 +371,12 @@ Do not delete still-requested `/assets/` URLs or historical rollback artifacts.
 
 Retire each Vite dependency at its actual owner, in this order:
 
-1. Make `package.json` development, build and preview scripts start Next plus
-   Express. Keep `apps/public-web/postcss.config.mjs` as the Tailwind pipeline;
-   remove the separate Vite plugin only after Storybook no longer needs it.
+1. Done on 2026-09-30: `npm run dev` starts Express, `next dev` and the local
+   gateway on port 3000, which serves `public/` and forwards the hot-update
+   WebSocket; `npm run build` is `build:static` plus `build:server`; the
+   `preview` and `dev:frontend` scripts are gone. Keep
+   `apps/public-web/postcss.config.mjs` as the Tailwind pipeline; remove the
+   separate Vite plugin only after Storybook no longer needs it.
 2. Replace `.storybook/main.ts` and its framework types, verify every story
    and the local Storybook MCP, then update the Storybook contract test. The
    non-Vite builder must work with existing addons and React components before
@@ -382,16 +385,16 @@ Retire each Vite dependency at its actual owner, in this order:
    `src/telemetry/webVitals.ts`, `src/components/AppErrorBoundary.tsx` and
    `src/app/shell/installFieldFocusMode.ts`. Preserve the current privacy,
    disabled-by-default telemetry and runtime-config behavior.
-4. Replace `scripts/prerender.js` and `test:prerender-seo` with Next route and
-   metadata/status tests. Bundle checks for the Next build exist since
-   2026-09-29 (`npm run budget:next`, `tests/next-bundle-budgets.test.mjs`,
-   ceilings in `config/next-bundle-budgets.json`); delete
-   `scripts/check-budgets.js` and `npm run budget` with the Vite build. Update
-   local browser QA scripts and their error-overlay checks to run against Next.
-   Done on 2026-09-29 for the gates: `qa:ci`, `verify:ci` and the nightly
+4. Done on 2026-09-30: `scripts/prerender.js` and `test:prerender-seo` are
+   replaced by `npm run test:next-seo`, which checks every registry page on
+   the Next output. Bundle checks for the Next build exist since 2026-09-29
+   (`npm run budget:next`, `tests/next-bundle-budgets.test.mjs`, ceilings in
+   `config/next-bundle-budgets.json`); `scripts/check-budgets.js` and
+   `npm run budget` are deleted. `qa:ci`, `verify:ci` and the nightly
    responsive QA run `scripts/e2e-qa.mjs` against Next with the fixture
-   backend in `scripts/qa/`. `npm run qa:legacy` keeps the Vite run until
-   the retirement removes it together with `scripts/browser-qa-legacy.mjs`.
+   backend in `scripts/qa/`; `npm run qa:legacy`,
+   `scripts/browser-qa-legacy.mjs` and the legacy branches of the QA script
+   are deleted.
 5. Done on 2026-09-29: `dist/` stays the static-root path shared by Nginx,
    regional edges, the deployer and Express, but `npm run build:static`
    (`scripts/build-static-root.mjs`) now assembles it without Vite from
@@ -399,17 +402,19 @@ Retire each Vite dependency at its actual owner, in this order:
    entry document. The sitemap artifacts moved there from the prerender.
    Keeping the path avoids changing root-owned Nginx, deployer and edge-sync
    contracts; the deployer keeps carrying old hashed `/assets/` forward.
-6. Done on 2026-09-29: `release:create` checks the release SHA in the Next
-   client bundle and checks the legacy entry while the Vite manifest exists.
-   The GeoDNS monitor probes the stable `/bg-legacy/shared.js` public script
-   instead of the Vite entry; reinstall `/usr/local/sbin/monitor-arena-geodns`
-   from the reviewed checkout. Before dropping `vite build` and the prerender
-   from `npm run build`, still: recalibrate the edge activator floor
-   (`deploy/activate-arena-static.sh`, 4,500 files and 70 MB) because only
-   carried-forward Vite bundles keep the tree above it (a Vite-free tree is
-   about 400 files and 19 MB) and install it on every edge; and make the build
-   clean `dist/` first so a reused workspace cannot ship stale legacy files.
-   Nginx and the deployer need no change for the static root.
+6. Done on 2026-09-30: `release:create` checks the release SHA in the Next
+   client bundle only. The GeoDNS monitor probes the stable
+   `/bg-legacy/shared.js` public script instead of the Vite entry; reinstall
+   `/usr/local/sbin/monitor-arena-geodns` from the reviewed checkout.
+   `npm run build` no longer runs `vite build` or the prerender, and
+   `build:static` empties `dist/` first so a reused workspace cannot ship
+   stale legacy files. The edge activator floor
+   (`deploy/activate-arena-static.sh`) is lowered from 4,500 files and 70 MB to
+   300 files and 10 MB, because the tree without carried-forward Vite bundles
+   has about 385 files and 15 MB. Open: install that activator on every edge
+   before the carried files expire around 2026-10-31 (steps in
+   `docs/operations/arena-geodns-edge-cache.md`). Nginx and the deployer need
+   no change for the static root.
 7. Remove `index.html`, `src/main.tsx`, `vite.config.ts`,
    `src/vite-env.d.ts`, direct Vite packages and obsolete scripts. Drain and
    delete `src/App.tsx` only after its remaining route behavior has a module

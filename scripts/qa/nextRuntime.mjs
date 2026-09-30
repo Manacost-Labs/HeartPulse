@@ -9,10 +9,10 @@ import { startQaBackend } from './backend.mjs';
  * The production page topology for browser QA: the gateway routes pages the
  * way nginx does, Next.js renders them from the QA backend, and the QA backend
  * serves release files and fixture `/api` answers in place of Express.
- * Requires `npm run build` (release files in dist/) and `npm run build:next`.
+ * Requires `npm run build:static` (release files in dist/) and `npm run build:next`.
  */
 export async function startQaNextRuntime() {
-  for (const [artifact, script] of [['dist/index.html', 'build'], ['apps/public-web/.next/BUILD_ID', 'build:next']]) {
+  for (const [artifact, script] of [['dist/index.html', 'build:static'], ['apps/public-web/.next/BUILD_ID', 'build:next']]) {
     if (!existsSync(artifact)) throw new Error(`${artifact} is missing; run npm run ${script} first`);
   }
   const backend = await startQaBackend({ distDir: resolve('dist') });

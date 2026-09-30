@@ -31,9 +31,6 @@ const BASE = (process.argv.find(arg => arg.startsWith('--url=')) || '--url=https
   .slice(6)
   .replace(/\/$/, '');
 const BASE_ORIGIN = new URL(BASE).origin;
-// `next` when BASE is the Next.js runtime (scripts/browser-qa-next.mjs); the
-// default `legacy` renderer is the Vite single-page build.
-const RENDERER = process.env.QA_RENDERER === 'next' ? 'next' : 'legacy';
 // Without an explicit directory each run gets a private temporary one.
 const OUT = process.env.QA_SCREENSHOT_DIR || mkdtempSync(join(tmpdir(), 'hs-arena-qa-'));
 const responsiveScope = (process.env.QA_RESPONSIVE_SCOPE || 'representative').trim();
@@ -80,10 +77,6 @@ const scopedResponsiveFixtures = responsiveScope === 'off'
   ? []
   : responsiveInventory.fixtures.filter(fixture => responsiveScope === 'all-p0' || fixture.representative);
 const responsiveFixtures = scopedResponsiveFixtures;
-const localNotFoundDocument = responsiveFixtures.some(fixture => fixture.transport === 'nginx-html')
-  && process.env.QA_PREVIEW_DIST_DIR
-  ? readFileSync(`${process.env.QA_PREVIEW_DIST_DIR.replace(/\/$/, '')}/404.html`, 'utf8')
-  : null;
 const failures = [];
 mkdirSync(OUT, { recursive: true });
 for (const entry of readdirSync(OUT)) {
@@ -104,7 +97,6 @@ function nextChunkPath(marker) {
 
 let homeArticlesChunk;
 function isHomeArticlesChunk(pathname) {
-  if (RENDERER === 'legacy') return /^\/assets\/HomeLatestArticles-[^/]+\.js$/.test(pathname);
   homeArticlesChunk ??= nextChunkPath('home-latest-articles__board');
   return pathname === homeArticlesChunk;
 }
@@ -114,52 +106,13 @@ async function mockApplicationApi(page, {
   admin = false,
   adminState = {},
   strictApi = false,
-  notFoundDocument = null,
 }) {
-  let shellChunkFailures = 0;
-  let shellRenderOverrides = 0;
   const handleQaApiRequest = createQaApiHandler({
     authenticated, admin, adminState, strictApi, origin: BASE_ORIGIN,
   });
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
-    if (notFoundDocument
-      && request.isNavigationRequest()
-      && request.resourceType() === 'document'
-      && request.frame() === page.mainFrame()
-      && url.origin === BASE_ORIGIN
-      && url.pathname === notFoundDocument.pathname) {
-      request.respond({
-        status: 404,
-        contentType: 'text/html; charset=utf-8',
-        headers: {
-          'cache-control': 'no-cache, no-store, must-revalidate',
-          'x-robots-tag': 'noindex, nofollow',
-        },
-        body: notFoundDocument.html,
-      });
-      return;
-    }
-    if (adminState.shellRenderFailure
-      && shellRenderOverrides === 0
-      && /^\/assets\/GlobalUtilityHeader-[^/]+\.js$/.test(url.pathname)) {
-      shellRenderOverrides += 1;
-      request.respond({
-        status: 200,
-        contentType: 'application/javascript; charset=utf-8',
-        headers: { 'cache-control': 'no-store' },
-        body: 'let shouldFail=true;document.addEventListener("click",event=>{if(event.target instanceof Element&&event.target.closest(".app-error-action--primary"))shouldFail=false},{capture:true});export default function QaRenderFailure(){if(shouldFail)throw new Error("QA render failure");return null}',
-      });
-      return;
-    }
-    if (adminState.shellChunkFailure
-      && shellChunkFailures === 0
-      && /^\/assets\/GlobalUtilityHeader-[^/]+\.js$/.test(url.pathname)) {
-      shellChunkFailures += 1;
-      request.abort('failed');
-      return;
-    }
     if (adminState.homeArticlesChunkFailure && isHomeArticlesChunk(url.pathname)) {
       request.abort('failed');
       return;
@@ -176,7 +129,7 @@ async function mockApplicationApi(page, {
   });
 }
 
-// Application API calls and build assets: Vite `/assets/`, Next.js `/_next/static/`.
+// Application API calls, public `/assets/` files and Next.js `/_next/static/` chunks.
 function isApplicationRequest(pathname) {
   return pathname.startsWith('/api/') || pathname.startsWith('/assets/') || pathname.startsWith('/_next/static/');
 }
@@ -1099,122 +1052,6 @@ async function assertArenaDataRoutePresentation(page, path, device) {
   }
 }
 
-async function auditShellErrorRecovery() {
-  const page = await createQaPage();
-  const adminState = { shellChunkFailure: true };
-  let documentRequests = 0;
-  page.on('request', request => {
-    if (request.resourceType() === 'document') documentRequests += 1;
-  });
-  await page.setViewport({ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-  await mockApplicationApi(page, { authenticated: true, adminState });
-  try {
-    await page.goto(`${BASE}/articles/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('[data-app-error="shell"]', { visible: true, timeout: 20_000 });
-    await page.waitForFunction(() => document.activeElement?.classList.contains('app-error-card'), { timeout: 5_000 });
-    await new Promise(resolve => setTimeout(resolve, 750));
-
-    const state = await page.evaluate(() => {
-      const root = document.documentElement;
-      const alert = document.querySelector('[data-app-error="shell"] [role="alert"]');
-      const button = document.querySelector('.app-error-action--primary');
-      const link = document.querySelector('.app-error-action--secondary');
-      const rect = element => {
-        const bounds = element?.getBoundingClientRect();
-        return bounds ? { width: bounds.width, height: bounds.height } : null;
-      };
-      return {
-        alertLabel: alert?.getAttribute('aria-labelledby') || '',
-        title: document.querySelector('#app-error-title')?.textContent || '',
-        incidentId: document.querySelector('[data-app-error-incident]')?.textContent || '',
-        releaseId: document.querySelector('[data-app-error-release]')?.textContent || '',
-        buttonText: button?.textContent?.trim() || '',
-        button: rect(button),
-        link: rect(link),
-        focused: document.activeElement?.classList.contains('app-error-card') || false,
-        overflow: root.scrollWidth > root.clientWidth + 1,
-      };
-    });
-    const validIncident = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
-      .test(state.incidentId);
-    const validRelease = state.releaseId === 'development' || /^[a-f0-9]{7,40}$/.test(state.releaseId);
-    if (documentRequests !== 1 || state.alertLabel !== 'app-error-title'
-      || !state.title.includes('обновить') || !validIncident || !validRelease
-      || state.buttonText !== 'Обновить страницу' || (state.button?.height || 0) < 44
-      || (state.link?.height || 0) < 44 || !state.focused || state.overflow) {
-      failures.push(`shell error recovery: fallback contract regressed (${JSON.stringify({ documentRequests, ...state })})`);
-    }
-    const violationCount = await auditAccessibility(page, 'shell error recovery');
-    await page.screenshot({ path: `${OUT}/shell-error-recovery-mobile.png`, fullPage: false });
-
-    const requestsBeforeReload = documentRequests;
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45_000 }),
-      page.click('.app-error-action--primary'),
-    ]);
-    await waitForAuthenticatedShell(page);
-    await page.waitForSelector('.global-utility-header', { visible: true, timeout: 20_000 });
-    if (documentRequests !== requestsBeforeReload + 1) {
-      failures.push(`shell error recovery: explicit retry caused ${documentRequests - requestsBeforeReload} document requests`);
-    }
-    console.log(`✓ shell error recovery [mobile] explicit reload + axe (${violationCount} violations)`);
-  } catch (error) {
-    const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body')
-      .catch(() => 'unavailable body');
-    failures.push(`shell error recovery [mobile]: ${error.message}; page: ${diagnostic}`);
-  } finally {
-    await page.close();
-  }
-}
-
-// The single-page shell loads its utility header as a separate module and owns
-// a root error boundary. Next.js pages bundle the header with the route, so
-// these chunk and render-failure scenarios exist only for the legacy build.
-if (RENDERER === 'legacy') await auditShellErrorRecovery();
-
-async function auditShellRenderRetry() {
-  // The preceding chunk-recovery scenario intentionally reloads the same shell
-  // module successfully. A fresh browser profile gives this scenario a cold
-  // module cache, so interception can install a deterministic render failure.
-  const isolatedBrowser = await puppeteer.launch(browserLaunchOptions);
-  const page = await isolatedBrowser.newPage();
-  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-  let documentRequests = 0;
-  page.on('request', request => {
-    if (request.resourceType() === 'document') documentRequests += 1;
-  });
-  await page.setViewport({ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-  await mockApplicationApi(page, { authenticated: true, adminState: { shellRenderFailure: true } });
-  try {
-    await page.goto(`${BASE}/articles/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('[data-app-error="shell"]', { visible: true, timeout: 20_000 });
-    const fallback = await page.evaluate(() => ({
-      title: document.querySelector('#app-error-title')?.textContent || '',
-      action: document.querySelector('.app-error-action--primary')?.textContent?.trim() || '',
-    }));
-    if (!fallback.title.includes('ошибка интерфейса') || fallback.action !== 'Повторить' || documentRequests !== 1) {
-      failures.push(`shell render recovery: fallback contract regressed (${JSON.stringify({ documentRequests, ...fallback })})`);
-    }
-
-    const requestsBeforeRetry = documentRequests;
-    await page.click('.app-error-action--primary');
-    await page.waitForSelector('[data-app-error="shell"]', { hidden: true, timeout: 20_000 });
-    await waitForAuthenticatedShell(page);
-    if (documentRequests !== requestsBeforeRetry) {
-      failures.push(`shell render recovery: in-place retry caused ${documentRequests - requestsBeforeRetry} document requests`);
-    }
-    console.log('✓ shell render recovery [mobile] in-place retry without reload');
-  } catch (error) {
-    const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body')
-      .catch(() => 'unavailable body');
-    failures.push(`shell render recovery [mobile]: ${error.message}; page: ${diagnostic}`);
-  } finally {
-    await isolatedBrowser.close();
-  }
-}
-
-if (RENDERER === 'legacy') await auditShellRenderRetry();
-
 for (const route of authenticatedRoutes) {
   for (const [device, viewport] of [
     ['desktop', { width: 1440, height: 900 }],
@@ -1584,9 +1421,6 @@ for (const fixture of responsiveFixtures) {
       authenticated: fixture.access !== 'anonymous',
       admin: fixture.access === 'admin',
       strictApi: true,
-      notFoundDocument: fixture.transport === 'nginx-html' && localNotFoundDocument
-        ? { pathname: fixture.path, html: localNotFoundDocument }
-        : null,
     });
     try {
       const navigationResponse = await page.goto(`${BASE}${fixture.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
@@ -1623,19 +1457,6 @@ for (const fixture of responsiveFixtures) {
       await page.screenshot({ path: screenshotPath, fullPage: false });
       const screenshotSha256 = createHash('sha256').update(readFileSync(screenshotPath)).digest('hex');
       if (fixture.id === 'not-found' && profile.id === 'compact-min') {
-        // The single-page shell records route knowledge in history state; a
-        // Next.js not-found page is its own document with nothing to record.
-        if (RENDERER === 'legacy') {
-          await page.waitForFunction(() => window.history.state?.routeKnown === false);
-          const initial404State = await page.evaluate(() => ({
-            knowledge: window.history.state?.routeKnown,
-            staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
-          }));
-          if (initial404State.knowledge !== false || initial404State.staleMarker) {
-            failures.push(`${label}: bootstrap 404 state was not captured cleanly (${JSON.stringify(initial404State)})`);
-          }
-        }
-
         await page.click('.not-found-page a[href="/"]');
         await page.waitForFunction(() => window.location.pathname === '/');
         await page.waitForSelector('.home-modern', { visible: true });
@@ -1655,13 +1476,11 @@ for (const fixture of responsiveFixtures) {
         const returned404State = await page.evaluate(() => {
           window.__qa404ReturnObserver?.disconnect();
           return {
-            knowledge: window.history.state?.routeKnown,
             sawHomeMutation: Boolean(window.__qaSawHomeMutationWhileReturningTo404),
             staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
           };
         });
-        if ((RENDERER === 'legacy' && returned404State.knowledge !== false)
-          || returned404State.sawHomeMutation || returned404State.staleMarker) {
+        if (returned404State.sawHomeMutation || returned404State.staleMarker) {
           failures.push(`${label}: 404 → Home → Back recovery regressed (${JSON.stringify(returned404State)})`);
         }
       }
@@ -1780,7 +1599,6 @@ for (const [device, viewport] of [
     await page.waitForSelector('.admin-overview-kpis', { timeout: 20_000 });
     const state = await page.evaluate(() => {
       const root = document.documentElement;
-      const shell = document.querySelector('.bg-wood');
       const text = element => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
       return {
         alerts: [...document.querySelectorAll('.admin-overview-alerts > li')].map(element => ({
@@ -1798,7 +1616,6 @@ for (const [device, viewport] of [
         overviewColumns: getComputedStyle(document.querySelector('.admin-overview-grid')).gridTemplateColumns.split(/\s+/).length,
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
-        shellAfterBackground: shell ? getComputedStyle(shell, '::after').backgroundImage : '',
       };
     });
     const expectedAlerts = [
@@ -1829,12 +1646,6 @@ for (const [device, viewport] of [
     }
     if (state.overviewColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin overview [${device}]: expected ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.overviewColumns}`);
     if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin overview [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
-    // The Vite build renders admin inside the wooden public shell; the Next.js
-    // admin page has its own full-screen workspace without that shell.
-    if (RENDERER === 'legacy'
-      && (state.shellAfterBackground === 'none' || !state.shellAfterBackground.includes('linear-gradient'))) {
-      failures.push(`admin overview [${device}]: admin shell background overlay was lost`);
-    }
     const violationCount = await auditAccessibility(page, `admin overview [${device}]`, '.admin-workspace-content');
     // An alert action opens the people list already filtered to the right segment.
     await page.evaluate(() => {
@@ -2664,7 +2475,7 @@ for (const [device, viewport] of [
         section: new URL(window.location.href).searchParams.get('section'),
         content: document.querySelector('.admin-workspace-content')?.textContent?.trim() || '',
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-        overlay: Boolean(document.querySelector('vite-error-overlay, #webpack-dev-server-client-overlay')),
+        overlay: Boolean(document.querySelector('nextjs-portal, #webpack-dev-server-client-overlay')),
         error: document.querySelector('.admin-workspace-content [role="alert"]')?.textContent?.trim() || '',
         busy: Boolean(document.querySelector('.admin-workspace-content [aria-busy="true"]')),
       }), section);
@@ -5228,9 +5039,6 @@ for (const [device, viewport] of [
       }
       await faqTrigger.click();
     }
-    const seoRegistryLoadedInitially = await page.evaluate(() => performance.getEntriesByType('resource')
-      .some(entry => entry.name.includes('/assets/registry-')));
-    if (seoRegistryLoadedInitially) failures.push('home lazy sections: SEO registry loaded before client navigation');
     await page.evaluate(() => window.scrollTo(0, 900));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');
@@ -5243,13 +5051,9 @@ for (const [device, viewport] of [
     const seoRegistryState = await page.evaluate(() => ({
       path: location.pathname,
       description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
-      chunkLoaded: performance.getEntriesByType('resource').some(entry => entry.name.includes('/assets/registry-')),
     }));
-    // Next.js sends route metadata with the server payload; only the Vite
-    // single-page build loads the SEO registry chunk on client navigation.
     if (seoRegistryState.path.replace(/\/$/, '') !== '/classes'
-      || !seoRegistryState.description.includes('винрейты всех 11 классов')
-      || (RENDERER === 'legacy' && !seoRegistryState.chunkLoaded)) {
+      || !seoRegistryState.description.includes('винрейты всех 11 классов')) {
       failures.push(`home lazy sections: client route metadata did not update (${JSON.stringify(seoRegistryState)})`);
     }
     console.log('✓ home lazy sections and delayed support prompt');

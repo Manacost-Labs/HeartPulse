@@ -141,3 +141,64 @@ test('gallery can roll out without moving API or other editorial routes', () => 
   assert.equal(publicWebOwner('/api/gallery', false, 'GET', false, true), 'legacy');
   assert.equal(publicWebOwner('/articles/', false, 'GET', false, true), 'legacy');
 });
+
+test('a static directory serves its files and leaves everything else to the owners', async () => {
+  const upstreamServer = owner => http.createServer((req, res) => res.end(JSON.stringify({ owner, url: req.url })));
+  const legacy = upstreamServer('legacy'); const next = upstreamServer('next');
+  const legacyOrigin = await listen(legacy); const nextOrigin = await listen(next);
+  const gateway = createPublicWebGateway({ legacyOrigin, nextOrigin, enabled: true, pagesEnabled: true, staticDir: 'public' });
+  const origin = await listen(gateway);
+  try {
+    const robots = await fetch(`${origin}/robots.txt`);
+    assert.equal(robots.headers.get('content-type'), 'text/plain; charset=utf-8');
+    assert.match(await robots.text(), /Sitemap:/);
+    const icon = await fetch(`${origin}/favicon-32.png?v=1`, { method: 'HEAD' });
+    assert.equal(icon.status, 200);
+    assert.equal(icon.headers.get('content-type'), 'image/png');
+
+    assert.equal((await (await fetch(`${origin}/api/auth/me`)).json()).owner, 'legacy', 'APIs still reach Express');
+    assert.equal((await (await fetch(`${origin}/classes/`)).json()).owner, 'next', 'pages still reach Next.js');
+    assert.equal((await (await fetch(`${origin}/missing-file.png`)).json()).owner, 'legacy');
+    // Encoded traversal must not leave the directory.
+    assert.equal((await (await fetch(`${origin}/..%2Fpackage.json`)).json()).owner, 'legacy');
+    const post = await fetch(`${origin}/robots.txt`, { method: 'POST' });
+    assert.equal((await post.json()).owner, 'legacy', 'only reads are answered from the directory');
+  } finally { await close(gateway); await close(legacy); await close(next); }
+});
+
+test('development HMR WebSockets reach Next.js and no other upgrade passes', { timeout: 15_000 }, async () => {
+  const legacy = http.createServer((req, res) => res.end('legacy'));
+  const next = http.createServer((req, res) => res.end('next'));
+  const upgrades = [];
+  next.on('upgrade', (request, socket) => {
+    upgrades.push({ url: request.url, host: request.headers.host });
+    socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n');
+    socket.on('data', chunk => socket.write(`echo:${chunk}`));
+    socket.on('end', () => socket.destroy());
+    socket.on('error', () => {});
+  });
+  const legacyOrigin = await listen(legacy); const nextOrigin = await listen(next);
+  const gateway = createPublicWebGateway({ legacyOrigin, nextOrigin, enabled: true, pagesEnabled: true });
+  const origin = new URL(await listen(gateway));
+  const upgrade = path => new Promise((resolve, reject) => {
+    const request = http.request({ host: origin.hostname, port: origin.port, path,
+      headers: { Connection: 'Upgrade', Upgrade: 'websocket' } });
+    request.on('upgrade', (response, socket) => resolve({ status: response.statusCode, socket }));
+    request.on('response', response => { response.resume(); resolve({ status: response.statusCode }); });
+    request.on('error', reject);
+    request.setTimeout(3_000, () => request.destroy(new Error('upgrade was not answered')));
+    request.end();
+  });
+  try {
+    const hmr = await upgrade('/_next/webpack-hmr?page=%2Ffaq');
+    assert.equal(hmr.status, 101);
+    hmr.socket.write('ping');
+    const [reply] = await once(hmr.socket, 'data');
+    assert.equal(String(reply), 'echo:ping', 'frames flow both ways through the gateway');
+    hmr.socket.destroy();
+    assert.deepEqual(upgrades, [{ url: '/_next/webpack-hmr?page=%2Ffaq', host: `${origin.hostname}:${origin.port}` }]);
+
+    await assert.rejects(upgrade('/api/socket'), /socket hang up|ECONNRESET/, 'only Next.js development sockets are forwarded');
+    assert.equal(upgrades.length, 1);
+  } finally { await close(gateway); await close(legacy); await close(next); }
+});

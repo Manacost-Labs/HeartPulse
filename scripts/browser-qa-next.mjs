@@ -16,7 +16,6 @@ try {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      QA_RENDERER: 'next',
       QA_RESPONSIVE_SCOPE: process.env.QA_RESPONSIVE_SCOPE || 'representative',
     },
     stdio: 'inherit',

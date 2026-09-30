@@ -14,7 +14,7 @@
       "focusedTests": [
         "npm run test:nginx-canonical-hosts",
         "npm run test:nginx-routing",
-        "npm run test:prerender-seo",
+        "npm run test:next-seo",
         "npm run test:static-root",
         "npm run test:public-url-policy",
         "npm run test:responsive-inventory",
@@ -630,7 +630,7 @@
       "dependencies": [],
       "focusedTests": [
         "npm run test:routes",
-        "npm run test:prerender-seo"
+        "npm run test:next-seo"
       ],
       "docs": [
         "docs/specs/legal-pages.md"
@@ -1129,7 +1129,6 @@
       "knownDebt": [
         "Most pages are client wrappers that render large legacy views from src/features and navigate by full document loads.",
         "Legacy global CSS from src/ is imported per route.",
-        "Browser QA, bundle budgets and responsive QA still run against the legacy Vite build.",
         "The root `npm run lint` excludes this app; run `npm run lint:next` after changing it."
       ]
     }

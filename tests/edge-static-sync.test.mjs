@@ -41,10 +41,10 @@ assert.match(activate, /test -s "\$dist\/index\.html"/,
   'activation must require the release entry document');
 assert.match(activate, /files < minimum_files \|\| bytes < minimum_bytes/,
   'activation must reject an incomplete static tree');
-assert.match(activate, /ARENA_STATIC_MIN_FILES:-4500/,
-  'the default file floor must remain below both known-good production bundles');
-assert.match(activate, /ARENA_STATIC_MIN_BYTES:-70000000/,
-  'the default byte floor must remain below both known-good production bundles');
+assert.match(activate, /ARENA_STATIC_MIN_FILES:-300\b/,
+  'the default file floor must stay below the static root without carried-forward bundles');
+assert.match(activate, /ARENA_STATIC_MIN_BYTES:-10000000\b/,
+  'the default byte floor must stay below the static root without carried-forward bundles');
 assert.match(activate, /mv -Tf "\$temporary_link" "\$root\/current"/,
   'the active static version must switch atomically');
 assert.match(activate, /previous_active=.*readlink -f "\$root\/current"/,
@@ -145,7 +145,7 @@ try {
   writeFileSync(join(previousDist, 'index.html'), 'previous\n');
   writeFileSync(join(candidateDist, 'index.html'), 'candidate\n');
   writeFileSync(join(candidateDist, 'payload.bin'), 'x');
-  for (let index = 0; index < 4497; index += 1) {
+  for (let index = 0; index < 297; index += 1) {
     writeFileSync(join(candidateDist, `asset-${index}`), '');
   }
   writeFileSync(join(abandonedRoot, 'dist', 'index.html'), 'abandoned\n');
@@ -176,26 +176,26 @@ try {
     },
   );
 
-  let result = activateCandidate(70_000_000);
+  let result = activateCandidate(10_000_000);
   assert.equal(result.status, 1, result.stderr || result.stdout);
-  assert.match(result.stderr, /files=4499 bytes=70000000/);
+  assert.match(result.stderr, /files=299 bytes=10000000/);
   assert.equal(realpathSync(join(thresholdFixture, 'current')), previousDist,
     'a file-count rejection must not switch the active release');
   assert.equal(existsSync(join(candidateRoot, 'manifest.json')), false,
     'a file-count rejection must not publish a manifest');
   assert.ok(existsSync(abandonedRoot), 'a file-count rejection must not start retention pruning');
 
-  writeFileSync(join(candidateDist, 'asset-4497'), '');
-  result = activateCandidate(69_999_999);
+  writeFileSync(join(candidateDist, 'asset-297'), '');
+  result = activateCandidate(9_999_999);
   assert.equal(result.status, 1, result.stderr || result.stdout);
-  assert.match(result.stderr, /files=4500 bytes=69999999/);
+  assert.match(result.stderr, /files=300 bytes=9999999/);
   assert.equal(realpathSync(join(thresholdFixture, 'current')), previousDist,
     'a byte-count rejection must not switch the active release');
   assert.equal(existsSync(join(candidateRoot, 'manifest.json')), false,
     'a byte-count rejection must not publish a manifest');
   assert.ok(existsSync(abandonedRoot), 'a byte-count rejection must not start retention pruning');
 
-  result = activateCandidate(70_000_000);
+  result = activateCandidate(10_000_000);
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(realpathSync(join(thresholdFixture, 'current')), candidateDist,
     'a bundle at both default floors must activate atomically');

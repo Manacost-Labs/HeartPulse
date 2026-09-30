@@ -44,7 +44,7 @@ the former Standard meta and article-management shortcuts are removed.
 ## Verification
 
 Run `npm run lint`, `npm run security:semgrep`, `npm run test:storybook`,
-`npm run build-storybook`, `npm run build`, `npm run budget`, and
+`npm run build-storybook`, `npm run build`, `npm run budget:next`, and
 `npm run lint:docs`. Run `node --test tests/field-focus-browser.test.mjs`
 for field and account regressions. Use Chrome DevTools MCP for desktop/mobile layout,
 keyboard behavior, accessibility structure, console and failed requests.

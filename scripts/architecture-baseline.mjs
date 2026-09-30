@@ -342,13 +342,14 @@ function testMetrics(repositoryRoot) {
   };
 }
 
+/** JavaScript and CSS that the Next.js build (`npm run build:next`) serves to browsers. */
 function bundleMetrics(repositoryRoot) {
-  const assetsRoot = path.join(repositoryRoot, 'dist', 'assets');
+  const assetsRoot = path.join(repositoryRoot, 'apps', 'public-web', '.next', 'static');
   if (!existsSync(assetsRoot)) return { available: false, assetCount: 0, rawBytes: 0, gzipBytes: 0, largestAssets: [] };
-  const assets = readdirSync(assetsRoot, { withFileTypes: true })
+  const assets = readdirSync(assetsRoot, { withFileTypes: true, recursive: true })
     .filter(entry => entry.isFile() && /\.(?:css|js)$/.test(entry.name))
     .map(entry => {
-      const absolutePath = path.join(assetsRoot, entry.name);
+      const absolutePath = path.join(entry.parentPath, entry.name);
       const source = readFileSync(absolutePath);
       return {
         file: relativePath(repositoryRoot, absolutePath),

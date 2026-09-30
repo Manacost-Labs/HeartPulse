@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -20,7 +20,7 @@ function locations(xml) {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
 }
 
-test('static root is assembled from public assets and SEO registries without Vite', () => {
+test('static root is assembled from public assets and SEO registries', () => {
   const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-'));
   const outDir = join(workspace, 'dist');
   try {
@@ -66,26 +66,58 @@ test('static root is assembled from public assets and SEO registries without Vit
       'private and error documents must stay out of the sitemap');
     assert.doesNotMatch(staticSitemap, /<(?:lastmod|changefreq|priority)>/i,
       'sitemap must not invent freshness metadata');
+
+    // Every edge refuses to activate a tree below the activator's floor, so a
+    // cleanup of public/ must not bring the static root close to it.
+    const activator = readFileSync(join(projectRoot, 'deploy/activate-arena-static.sh'), 'utf8');
+    const floor = name => Number(activator.match(new RegExp(`${name}:-(\\d+)`))[1]);
+    const files = readdirSync(outDir, { recursive: true, withFileTypes: true }).filter(entry => entry.isFile());
+    const bytes = files.reduce((sum, entry) => sum + statSync(join(entry.parentPath, entry.name)).size, 0);
+    assert.ok(files.length >= floor('ARENA_STATIC_MIN_FILES') * 1.2,
+      `static root has ${files.length} files, too close to the edge activation floor`);
+    assert.ok(bytes >= floor('ARENA_STATIC_MIN_BYTES') * 1.2,
+      `static root has ${bytes} bytes, too close to the edge activation floor`);
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }
 });
 
-test('static root keeps an existing legacy entry document and bundle', () => {
-  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-legacy-'));
+test('static root is rebuilt from scratch in a reused workspace', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-stale-'));
   const outDir = join(workspace, 'dist');
   try {
     mkdirSync(join(outDir, 'assets'), { recursive: true });
-    const legacyEntry = '<!doctype html><script type="module" src="/assets/index-legacy.js"></script>\n';
-    writeFileSync(join(outDir, 'index.html'), legacyEntry);
-    writeFileSync(join(outDir, 'assets/index-legacy.js'), 'console.log("legacy");\n');
+    writeFileSync(join(outDir, 'index.html'), '<!doctype html><script type="module" src="/assets/index-stale.js"></script>\n');
+    writeFileSync(join(outDir, 'assets/index-stale.js'), 'console.log("stale");\n');
+    writeFileSync(join(outDir, '404.html'), '<!doctype html>stale\n');
 
     buildStaticRoot(outDir);
-    buildStaticRoot(outDir);
 
-    assert.equal(readFileSync(join(outDir, 'index.html'), 'utf8'), legacyEntry);
-    assert.equal(readFileSync(join(outDir, 'assets/index-legacy.js'), 'utf8'), 'console.log("legacy");\n');
+    assert.doesNotMatch(readFileSync(join(outDir, 'index.html'), 'utf8'), /<script\b/i,
+      'an earlier entry document must not survive');
+    assert.equal(existsSync(join(outDir, 'assets/index-stale.js')), false, 'an earlier bundle must not ship again');
+    assert.equal(existsSync(join(outDir, '404.html')), false);
     assert.ok(statSync(join(outDir, 'assets/og-preview.png')).isFile(), 'public assets share the assets/ directory');
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('the build refuses an output directory that is the checkout or contains it', () => {
+  // A throwaway directory plays the checkout, so a broken guard can only empty the fixture.
+  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-guard-'));
+  const checkout = join(workspace, 'checkout');
+  try {
+    mkdirSync(checkout);
+    writeFileSync(join(checkout, 'sentinel'), 'kept\n');
+    for (const out of ['.', '..', workspace]) {
+      const result = spawnSync(process.execPath, [join(projectRoot, 'scripts/build-static-root.mjs'), `--out=${out}`], {
+        cwd: checkout, encoding: 'utf8',
+      });
+      assert.notEqual(result.status, 0, `--out=${out} must be rejected`);
+      assert.match(result.stderr, /refusing to empty/);
+      assert.equal(readFileSync(join(checkout, 'sentinel'), 'utf8'), 'kept\n', `--out=${out} must not delete anything`);
+    }
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }
