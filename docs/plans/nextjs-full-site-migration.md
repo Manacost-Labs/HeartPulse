@@ -418,6 +418,27 @@ Retire each Vite dependency at its actual owner, in this order:
    references; keep historical documents and immutable old releases only as
    records or rollback artifacts.
 
+Progress (2026-09-30): the origin HTML-owner meter counted 24,313 successful
+HTML responses from 2026-09-25 to 2026-09-30, all from Next.js and none from
+the legacy artifact, and the owner decided to finish the move without waiting
+for the last two days of the window. An inventory of what only `index.html`
+and `src/main.tsx` provided found behavior that production lost at the
+cutover and that must return before those files are deleted:
+
+- Done: the Plausible script, Search Console verification tag, theme color,
+  author, the full icon set and field focus mode now come from
+  `apps/public-web/app/layout.tsx`. Plausible loads only on the canonical
+  host, so tests and the browser QA gate do not depend on the analytics
+  server. `installFieldFocusMode` no longer reads `import.meta.env`.
+- Open: robots preview directives (`max-image-preview:large` and friends) on
+  indexable pages; the per-route JSON-LD kept in `scripts/prerender.js`;
+  `/runtime-config.js`, without which card images skip the CDN; web-vitals
+  reporting and client Sentry.
+
+Eleven browser tests use a Vite dev server as their component harness
+(`tests/fixtures/*.html`, `tests/fixtures/vite.*.config.ts`); they need another
+harness or a port to the Next runtime before the Vite package can go.
+
 **Done when:** `npm run dev`, `npm run build`, Storybook/MCP, release creation,
 deployment and rollback use Next plus Express without a Vite build. No active
 source/config/deploy script depends on Vite or `dist/index.html`; dependency

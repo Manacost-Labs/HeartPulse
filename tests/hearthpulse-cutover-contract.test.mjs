@@ -15,6 +15,7 @@ const productionMonitorWorkflow = readFileSync('.github/workflows/production-mon
 const deploymentWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8');
 const bugReportTemplate = readFileSync('.github/ISSUE_TEMPLATE/bug_report.yml', 'utf8');
 const entrypoint = readFileSync('index.html', 'utf8');
+const nextLayout = readFileSync('apps/public-web/app/layout.tsx', 'utf8');
 
 assert.match(domain, /CANONICAL_HOST = 'hearthpulse\.net'/,
   'the browser canonical host must switch to hearthpulse.net');
@@ -35,6 +36,8 @@ assert.match(entrypoint, /data-domain="hearthpulse\.net"/,
   'Plausible must attribute production pageviews to the canonical host');
 assert.doesNotMatch(entrypoint, /data-domain="arena\.hs-manacost\.ru"/,
   'the retired Arena host must not remain as the Plausible site identifier');
+assert.match(nextLayout, /s\.dataset\.domain=\$\{JSON\.stringify\(CANONICAL_HOST\)\}/,
+  'Next.js documents must attribute Plausible pageviews to the canonical host');
 
 assert.match(application, /server_name\s+hearthpulse\.net;/,
   'the canonical application server must own only the apex host');

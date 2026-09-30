@@ -1,5 +1,5 @@
 /** Keeps field focus visible for Tab navigation without adding a ring while typing after a click. */
-export function installFieldFocusMode(doc: Document): (() => void) | undefined {
+export function installFieldFocusMode(doc: Document): () => void {
   const root = doc.documentElement;
   const onPointerDown = () => { root.dataset.pointerFocus = ''; };
   const onKeyDown = (event: KeyboardEvent) => {
@@ -8,12 +8,9 @@ export function installFieldFocusMode(doc: Document): (() => void) | undefined {
 
   doc.addEventListener('pointerdown', onPointerDown, true);
   doc.addEventListener('keydown', onKeyDown, true);
-  // Production listeners live for the page; only development needs HMR cleanup.
-  if (import.meta.env.DEV) {
-    return () => {
-      doc.removeEventListener('pointerdown', onPointerDown, true);
-      doc.removeEventListener('keydown', onKeyDown, true);
-      delete root.dataset.pointerFocus;
-    };
-  }
+  return () => {
+    doc.removeEventListener('pointerdown', onPointerDown, true);
+    doc.removeEventListener('keydown', onKeyDown, true);
+    delete root.dataset.pointerFocus;
+  };
 }

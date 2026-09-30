@@ -38,6 +38,7 @@ const iconMarkup = [
 ];
 const sourceFiles = [
   'index.html',
+  'apps/public-web/app/layout.tsx',
   'server/constructedCardSeoRoutes.ts',
   'server/battlegroundSeoRoutes.ts',
   'server/battlegroundLibrarySeoRoutes.ts',
@@ -45,7 +46,7 @@ const sourceFiles = [
 for (const sourceFile of sourceFiles) {
   const source = readFileSync(join(root, sourceFile), 'utf8');
   for (const [filename, size] of iconMarkup) {
-    assert.match(source, new RegExp(`${filename.replace('.', '\\.')}[^\\n>]*sizes=["']${size}["']`),
+    assert.match(source, new RegExp(`${filename.replace('.', '\\.')}[^\\n>]*sizes[=:]\\s*["']${size}["']`),
       `${sourceFile} must advertise the ${size} favicon`);
   }
   assert.match(source, /favicon\.ico\?v=hearthstone-cute-20260727/,

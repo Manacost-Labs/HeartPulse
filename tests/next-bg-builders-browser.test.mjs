@@ -65,7 +65,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
           void request.respond({ status: 200, contentType: 'image/webp',
             body: readFileSync(new URL('../public/arena-logo-icon.webp', import.meta.url)) });
         } else void json(signedIn ? 200 : 401, {});
-      } else if (/^\/(?:bg-legacy\/|wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|favicon-32\.png$)/.test(url.pathname)) {
+      } else if (/^\/(?:bg-legacy\/|wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|favicon(?:-\d+)?\.(?:png|ico)$|apple-touch-icon\.png$)/.test(url.pathname)) {
         if (url.pathname.endsWith('.js')) legacyScripts.push(url.pathname);
         const mime = url.pathname.endsWith('.js') ? 'application/javascript'
           : url.pathname.endsWith('.css') ? 'text/css'

@@ -81,7 +81,7 @@ test('Next public profile routes use the allowlisted Express projection and real
       const url = new URL(request.url());
       if (url.pathname === '/api/auth/me') {
         void request.respond({ status: 200, contentType: 'application/json', body: '{"user":null}' });
-      } else if (/^\/(?:wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|favicon-32\.png$)/.test(url.pathname)) {
+      } else if (/^\/(?:wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|favicon(?:-\d+)?\.(?:png|ico)$|apple-touch-icon\.png$)/.test(url.pathname)) {
         const file = new URL(`../public${url.pathname}`, import.meta.url);
         if (existsSync(file)) {
           const mime = url.pathname.endsWith('.woff2') ? 'font/woff2'

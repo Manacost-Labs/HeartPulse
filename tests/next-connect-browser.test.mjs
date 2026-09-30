@@ -66,7 +66,7 @@ test('Next device connection keeps the code private and uses the existing authen
         decisions.push({ method: request.method(), csrf: request.headers()['x-csrf-request'],
           body: JSON.parse(request.postData() || '{}') });
         void respond(200, { ok: true });
-      } else if (/^\/(?:wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|arena-logo-icon-256\.webp$|favicon-32\.png$)/.test(url.pathname)) {
+      } else if (/^\/(?:wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|arena-logo-icon-256\.webp$|favicon(?:-\d+)?\.(?:png|ico)$|apple-touch-icon\.png$)/.test(url.pathname)) {
         const file = new URL(`../public${url.pathname}`, import.meta.url);
         if (existsSync(file)) {
           const mime = url.pathname.endsWith('.woff2') ? 'font/woff2'

@@ -63,7 +63,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
           : tierStatus !== 200 ? { error: 'Данные временно недоступны' }
             : { list: url.searchParams.get('list'), count: 0,
               tiers: { S: [], A: [], B: [], C: [], D: [] } });
-      } else if (/^\/(?:wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|favicon-32\.png$)/.test(url.pathname)) {
+      } else if (/^\/(?:wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|favicon(?:-\d+)?\.(?:png|ico)$|apple-touch-icon\.png$)/.test(url.pathname)) {
         const mime = url.pathname.endsWith('.woff2') ? 'font/woff2'
           : url.pathname.endsWith('.otf') ? 'font/otf'
             : url.pathname.endsWith('.webp') ? 'image/webp'
