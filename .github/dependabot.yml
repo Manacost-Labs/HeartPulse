@@ -18,12 +18,6 @@ updates:
         patterns:
           - puppeteer
           - puppeteer-core
-      # React minors grow the legacy Vite vendor chunk past its startup
-      # budget, so they arrive alone instead of holding back the group.
-      react:
-        patterns:
-          - react
-          - react-dom
       production-minor-and-patch:
         dependency-type: production
         update-types:
@@ -34,6 +28,22 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # The types follow the runtime: production and CI run Node.js 22.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
+      # A TypeScript major is a migration of its own: 7.0.2 reported 177
+      # errors in 73 files here on 2026-09-30.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+      # Vite 8 builds with Rolldown, which links the styles shared with lazy
+      # stories ahead of the entry stylesheet. The cascade of the Storybook
+      # build then differs from the site and three browser tests fail.
+      - dependency-name: vite
+        versions:
+          - 8.x
     labels:
       - dependencies
 
