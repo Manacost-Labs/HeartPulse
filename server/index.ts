@@ -7992,7 +7992,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
     }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(20_000) });
-    let body = Buffer.from(await upstream.arrayBuffer());
+    let body: Buffer = Buffer.from(await upstream.arrayBuffer());
     let contentType = upstream.headers.get('content-type') || 'application/octet-stream';
     if (imageTransform && upstream.status >= 200 && upstream.status < 300) {
       try {
