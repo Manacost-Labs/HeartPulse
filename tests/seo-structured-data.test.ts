@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { seoPageForExactPath } from '../src/seo/registry';
 import { seoStructuredDataGraph } from '../src/seo/structuredData';
+import { normalizePublicPathname } from '../src/shared/seo/publicUrlPolicy';
 
 const registry = JSON.parse(readFileSync('config/public-seo-structured-data.json', 'utf8')) as {
   pages: Record<string, Array<Record<string, unknown>>>;
@@ -40,6 +41,49 @@ test('every structured-data entry belongs to a registered SEO page and builds a 
     const graph = await seoStructuredDataGraph(path, NOW);
     assert.deepEqual(graph?.['@graph'].map(node => node['@type']), nodes.map(node => node['@type']), path);
     assert.equal(JSON.stringify(nodes).includes('"breadcrumb":{"@id"'), false, `${path} registry stays unenriched`);
+  }
+});
+
+const SITE_ORIGIN = 'https://hearthpulse.net';
+const REQUIRED_STRINGS: Record<string, string[]> = {
+  WebSite: ['name', 'url'], WebApplication: ['name', 'url'], CollectionPage: ['name', 'url'],
+  Dataset: ['name', 'description', 'url', 'dateModified'],
+};
+const REQUIRED_LISTS: Record<string, string> = {
+  BreadcrumbList: 'itemListElement', ItemList: 'itemListElement', FAQPage: 'mainEntity',
+};
+
+/** Every same-site `@id`, `item` and `url` must be the canonical URL of an indexable page. */
+function assertCanonicalReferences(value: unknown, pagePath: string, key = ''): void {
+  if (Array.isArray(value)) { value.forEach(item => assertCanonicalReferences(item, pagePath, key)); return; }
+  if (value && typeof value === 'object') {
+    Object.entries(value).forEach(([childKey, child]) => assertCanonicalReferences(child, pagePath, childKey));
+    return;
+  }
+  if (typeof value !== 'string' || !['@id', 'item', 'url'].includes(key) || !URL.canParse(value)) return;
+  const reference = new URL(value);
+  if (reference.origin !== SITE_ORIGIN) return;
+  const path = normalizePublicPathname(reference.pathname);
+  const target = seoPageForExactPath(path);
+  if (!target) return;
+  assert.equal(target.sitemap, true, `${pagePath} must not link the noindex page ${path}`);
+  assert.equal(reference.pathname, path === '/' ? '/' : `${path}/`, `${pagePath} ${key} ${value}`);
+}
+
+test('every graph node carries the fields of its schema type and links canonical URLs', async () => {
+  for (const path of Object.keys(registry.pages)) {
+    const graph = (await seoStructuredDataGraph(path, NOW))!;
+    assert.equal(graph['@context'], 'https://schema.org');
+    for (const node of graph['@graph']) {
+      const type = String(node['@type']);
+      for (const field of REQUIRED_STRINGS[type] ?? []) {
+        assert.equal(typeof node[field], 'string', `${path} ${type} ${field}`);
+      }
+      const list = REQUIRED_LISTS[type];
+      if (list) assert.ok(Array.isArray(node[list]) && (node[list] as unknown[]).length > 0, `${path} ${type} ${list}`);
+      if (type === 'Dataset') assert.equal(typeof node.creator, 'object', `${path} Dataset creator`);
+    }
+    assertCanonicalReferences(graph, path);
   }
 });
 

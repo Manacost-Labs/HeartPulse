@@ -443,6 +443,12 @@ cutover and that must return before those files are deleted:
   Next.js layout (`ui/WebVitalsReporter.tsx`) on request-rendered pages;
   `startWebVitalsReporting` takes its sample rate as an argument instead of
   reading `import.meta.env`.
+- Done: every page of `config/public-seo-pages.json` takes its title,
+  description and share tags from the registry. The FAQ, legal, developer API,
+  card library and cosmetics pages had hand-written metadata since the
+  cutover; `tests/next-seo-page-metadata.test.mjs` now checks all registry
+  pages the way `tests/prerender-seo.test.mjs` checked the prerendered
+  documents, including the legal text without JavaScript.
 - Open: client Sentry. No build has ever received a client DSN, so it stays
   inactive; its Vite environment reads go away with `AppErrorBoundary`.
 

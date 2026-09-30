@@ -1,18 +1,8 @@
-import type { Metadata } from 'next';
-import { seoPageForExactPath } from '@/src/seo/registry';
+import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { DeveloperApiPageClient } from '@/apps/public-web/ui/DeveloperApiPageClient';
-import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
-const seo = seoPageForExactPath('/developers/api');
-if (!seo) throw new Error('Missing developer API SEO contract');
-
-export const metadata: Metadata = {
-  title: seo.title,
-  description: seo.description,
-  alternates: { canonical: 'https://hearthpulse.net/developers/api/' },
-  robots: INDEXABLE_ROBOTS,
-};
+export const generateMetadata = seoStaticPageMetadata('/developers/api', 'HearthPulse — Manacost Public API');
 
 export default function Page() {
   return <>

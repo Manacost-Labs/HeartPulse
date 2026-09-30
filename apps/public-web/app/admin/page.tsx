@@ -1,13 +1,10 @@
-import type { Metadata } from 'next';
 import { canOpenAdminPage } from '@/apps/public-web/lib/adminAccess';
+import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { AdminPageClient } from '@/apps/public-web/ui/AdminPageClient';
 import './admin.css';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Панель управления — HearthPulse',
-  robots: { index: false, follow: false },
-};
+export const generateMetadata = seoStaticPageMetadata('/admin');
 
 export default async function Page() {
   if (!await canOpenAdminPage()) {

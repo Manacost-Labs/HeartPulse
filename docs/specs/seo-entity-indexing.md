@@ -58,7 +58,10 @@ documents with `noindex, nofollow`, no canonical and no client reclassification.
 - `config/public-seo-pages.json` is the source of static hub titles and
   descriptions, and `config/public-seo-structured-data.json` of their JSON-LD.
   Next.js renders both (`apps/public-web/lib/seoPageMetadata.ts`,
-  `apps/public-web/ui/SeoStructuredData.tsx`). `scripts/prerender.js` still
+  `apps/public-web/ui/SeoStructuredData.tsx`); every registry page, including
+  the prerendered ones and the noindex `/connect` and `/admin`, takes its title
+  and description from the registry, which
+  `tests/next-seo-page-metadata.test.mjs` checks. `scripts/prerender.js` still
   carries a copy for the legacy build until that build is removed.
 - Contract tests live in the existing entity sitemap and SEO route test files.
 
@@ -70,7 +73,8 @@ No new dependency, database migration or public JSON API is introduced.
 - Standard entity SSR: `npm run test:constructed-card-seo-routes`
 - Battlegrounds hero SSR: `npm run test:battleground-seo-routes`
 - Battlegrounds card SSR: `npm run test:battleground-library-seo-routes`
-- Static SEO tests: `npm run test:seo-registry && npm run test:prerender-seo`
+- Static SEO tests: `npm run test:seo-registry && npm run test:next-seo &&
+  npm run test:prerender-seo`
 - Full release gate: `npm run verify:release`
 - Repository gate: `make check`
 

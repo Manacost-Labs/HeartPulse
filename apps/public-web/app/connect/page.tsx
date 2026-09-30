@@ -1,12 +1,8 @@
-import type { Metadata } from 'next';
 import '@/src/route-parchment.css';
+import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { ApplicationConnectPageClient } from '@/apps/public-web/ui/ApplicationConnectPageClient';
 
-export const metadata: Metadata = {
-  title: 'Подключение приложения — Manacost',
-  description: 'Подтвердите подключение Manacost Tracker к своему аккаунту.',
-  robots: { index: false, follow: false },
-};
+export const generateMetadata = seoStaticPageMetadata('/connect');
 
 export default function Page() {
   return <ApplicationConnectPageClient />;

@@ -210,6 +210,7 @@
     "test:robots-policy": "node tests/robots-policy.test.mjs",
     "test:public-url-policy": "tsx tests/public-url-policy.test.ts",
     "test:prerender-seo": "node tests/prerender-seo.test.mjs",
+    "test:next-seo": "node --import tsx --test tests/seo-structured-data.test.ts tests/next-seo-page-metadata.test.mjs",
     "test:static-root": "node --test tests/build-static-root.test.mjs",
     "test:page-tour": "tsx tests/page-tour.test.ts && tsx tests/page-tour-registry.test.ts && tsx tests/page-tour-engine-contracts.test.ts",
     "test:page-tour-registry": "tsx tests/page-tour-registry.test.ts",

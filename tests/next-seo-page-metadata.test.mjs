@@ -15,6 +15,23 @@ async function head(origin, path) {
   return (await response.text()).match(/<head>([\s\S]*?)<\/head>/)?.[1] ?? '';
 }
 
+const YEAR = String(new Date().getUTCFullYear());
+const REGISTRY_PAGES = Object.entries(JSON.parse(readFileSync('config/public-seo-pages.json', 'utf8')).pages)
+  .map(([path, page]) => ({
+    path, url: path === '/' ? '/' : `${path}/`, sitemap: page.sitemap,
+    title: page.title.replaceAll('{year}', YEAR), description: page.description.replaceAll('{year}', YEAR),
+  }));
+
+// React escapes text and attribute values in server HTML.
+function decoded(value) {
+  return value.replaceAll('&quot;', '"').replaceAll('&#x27;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&');
+}
+
+function assertOnce(html, pattern, expected, label) {
+  assert.deepEqual([...html.matchAll(pattern)].map(match => decoded(match[1])), [expected], label);
+}
+
 function jsonLdGraph(html) {
   return [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)]
     .map(match => JSON.parse(match[1]))
@@ -53,6 +70,66 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
     assert.match(filtered, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/articles\/"\/>/);
   } finally {
     await runtime.close();
+  }
+});
+
+test('every SEO registry page takes its title, description and share metadata from the registry', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  try {
+    for (const page of REGISTRY_PAGES) {
+      const response = await fetch(`${runtime.nextOrigin}${page.url}`, { redirect: 'manual' });
+      assert.equal(response.status, 200, page.path);
+      const html = await response.text();
+      assertOnce(html, /<title>([^<]*)<\/title>/g, page.title, `${page.path} title`);
+      assertOnce(html, /<meta name="description" content="([^"]*)"/g, page.description, `${page.path} description`);
+      assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${page.path} must render exactly one H1`);
+      if (!page.sitemap) {
+        assertOnce(html, /<meta name="robots" content="([^"]*)"/g, 'noindex, nofollow', `${page.path} robots`);
+        assert.doesNotMatch(html, /<link rel="canonical"/, `${page.path} must not expose a canonical URL`);
+        assert.doesNotMatch(html, /<meta property="og:url"/, `${page.path} must not expose og:url`);
+        assert.doesNotMatch(html, /application\/ld\+json/, `${page.path} must not carry structured data`);
+        continue;
+      }
+      const canonical = `https://hearthpulse.net${page.url}`;
+      assertOnce(html, /<meta name="robots" content="([^"]*)"/g,
+        'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', `${page.path} robots`);
+      assertOnce(html, /<link rel="canonical" href="([^"]*)"/g, canonical, `${page.path} canonical`);
+      assertOnce(html, /<meta property="og:title" content="([^"]*)"/g, page.title, `${page.path} og:title`);
+      assertOnce(html, /<meta property="og:description" content="([^"]*)"/g, page.description, `${page.path} og:description`);
+      assertOnce(html, /<meta property="og:url" content="([^"]*)"/g, canonical, `${page.path} og:url`);
+      assertOnce(html, /<meta name="twitter:title" content="([^"]*)"/g, page.title, `${page.path} twitter:title`);
+      assertOnce(html, /<meta name="twitter:description" content="([^"]*)"/g, page.description,
+        `${page.path} twitter:description`);
+    }
+
+    const shareAlt = async path => (await head(runtime.nextOrigin, path)).match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1];
+    assert.notEqual(await shareAlt('/cosmetics/'), await shareAlt('/cosmetics/heroes/'),
+      'the cosmetics hub is not the hero skins listing');
+
+    // The legal documents must stay readable without JavaScript.
+    const legalPages = JSON.parse(readFileSync('src/modules/legalPages/content.json', 'utf8')).pages;
+    for (const [kind, legal] of Object.entries(legalPages)) {
+      const html = await (await fetch(`${runtime.nextOrigin}/${kind}/`)).text();
+      const text = decoded(html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]*>/g, ''));
+      assert.ok(text.includes(legal.title), `${kind} title`);
+      for (const section of legal.sections) {
+        assert.ok(text.includes(section.heading), `${kind} heading: ${section.heading}`);
+        for (const paragraph of section.paragraphs) {
+          const expected = paragraph.replace('{{telegram}}', 'Telegram Manacost')
+            .replace('{{privacy}}', 'Политика конфиденциальности');
+          assert.ok(text.includes(expected), `${kind} paragraph: ${expected.slice(0, 60)}`);
+        }
+      }
+    }
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('registry pages without request input stay prerendered', () => {
+  const prerendered = Object.keys(JSON.parse(readFileSync('apps/public-web/.next/prerender-manifest.json', 'utf8')).routes);
+  for (const path of ['/faq', '/privacy', '/terms', '/developers/api', '/connect']) {
+    assert.ok(prerendered.includes(path), `${path} must not read the request in generateMetadata`);
   }
 });
 

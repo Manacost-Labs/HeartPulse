@@ -226,8 +226,8 @@
     "/admin": {
       "policyRouteId": "admin-panel",
       "navigationRouteId": "admin-panel",
-      "title": "Админ-панель | Manacost Stats",
-      "description": "Закрытая административная область Manacost Stats.",
+      "title": "Панель управления — HearthPulse",
+      "description": "Закрытая административная область HearthPulse.",
       "sitemap": false
     }
   }

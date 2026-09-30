@@ -53,9 +53,15 @@ behind its `public.ts`, not in `src/features/`.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
   `.arena-paywall` markup for guests.
-- Indexing, canonical URLs and robots come from
+- Titles, descriptions, indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
-  `config/public-seo-pages.json`; do not hand-write them in a page. Robots
+  `config/public-seo-pages.json`; do not hand-write them in a page. A registry
+  page uses `seoPageMetadata()` (query-dependent robots),
+  `seoStaticPageMetadata()` (prerendered pages and noindex pages) or, inside a
+  custom `generateMetadata`, `seoRegistryMetadata()`. The gallery, the
+  Battlegrounds library listings and the two builders still assemble the same
+  registry values in their own helpers. `tests/next-seo-page-metadata.test.mjs`
+  compares every registry page with the registry. Robots
   are `policy.robots` from `resolvePublicUrlPolicy()`, or `INDEXABLE_ROBOTS`
   (`src/shared/seo/robots.ts`) for a page that is always indexable: both
   carry the preview directives (`max-image-preview:large` and friends) that
@@ -71,7 +77,9 @@ behind its `public.ts`, not in `src/features/`.
 1. Register the URL policy in `src/shared/seo/publicRouteInventory.json` and
    the page in `config/public-seo-pages.json` (`"sitemap": true` when
    indexable, `false` for noindex pages). `seoPageMetadata()` fails when its
-   module loads for an unregistered path.
+   module loads for an unregistered path. A page that ignores the query
+   string and has no other request input uses `seoStaticPageMetadata()`
+   instead and drops `dynamic`, so Next prerenders it.
 2. Create `app/<route>/page.tsx`:
 
    ```tsx

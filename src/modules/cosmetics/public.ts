@@ -8,19 +8,8 @@ export function cosmeticsDetailPath(kind: string, cardId: string): string | null
   return `/cosmetics/${kind}/${cardId}/`;
 }
 
-const descriptions: Record<CosmeticKind, { heading: string; description: string }> = {
-  heroes: {
-    heading: 'Скины героев',
-    description: 'Портреты всех классов с редкостью, способом получения, полными артами и анимациями на отдельных страницах.',
-  },
-  coins: {
-    heading: 'Косметические монеты',
-    description: 'Варианты Монетки, их арты и карты, связанные с механикой монет.',
-  },
-  pets: {
-    heading: 'Питомцы',
-    description: 'Все семейства и раскраски питомцев с End Screen и дополнительными артами.',
-  },
+const headings: Record<CosmeticKind, string> = {
+  heroes: 'Скины героев', coins: 'Косметические монеты', pets: 'Питомцы',
 };
 
 export function cosmeticsListing(path: string) {
@@ -28,7 +17,7 @@ export function cosmeticsListing(path: string) {
   const match = normalized.match(/^\/cosmetics(?:\/(heroes|coins|pets))?$/);
   if (!match) return null;
   const kind = (match[1] ?? 'heroes') as CosmeticKind;
-  return { pathname: `${normalized}/`, kind, ...descriptions[kind] };
+  return { pathname: `${normalized}/`, kind, heading: headings[kind] };
 }
 
 /** Mirrors the public catalog filter contract without carrying browser state into the domain. */
