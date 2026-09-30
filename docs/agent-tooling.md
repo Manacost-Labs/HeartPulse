@@ -105,6 +105,11 @@ npm run storybook
 production-зависимостей. Телеметрия Storybook отключена в обеих npm-командах.
 Локальный MCP нельзя публиковать через production Nginx.
 
+Стили в `.storybook/preview.tsx` импортируются в том же порядке, что и в
+layout Next.js: `src/index.css` первым. Он объявляет каскадные слои Tailwind;
+если раньше него окажется стиль с `@layer utilities`, утилиты проиграют
+базовому сбросу и, например, `p-3` даст нулевой отступ.
+
 ## Chrome DevTools MCP
 
 Файл `.mcp.json` подключает Chrome DevTools MCP через локальную зафиксированную
