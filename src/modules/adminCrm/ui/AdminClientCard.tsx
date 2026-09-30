@@ -5,6 +5,7 @@ import { adminCrmClient, type AdminCrmClient, type AdminCrmPerson } from '../api
 import '../adminCrm.css';
 import { accessBadge, accessSourceLabel, formatDate } from './adminClientCardModel';
 import { AccessSection, AccountsSection, HistorySection, NotesSection, TagsSection } from './AdminClientCardSections';
+import { useModalSheet } from './useModalSheet';
 
 export type AdminClientCardProps = {
   userId: string;
@@ -20,43 +21,6 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; card: AdminCrmPerson };
-
-const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled])';
-
-/** Modal contract: focus moves into the sheet, Tab stays inside, Escape closes, focus returns to the trigger. */
-function useModalSheet(sheetRef: React.RefObject<HTMLElement | null>, initialFocusRef: React.RefObject<HTMLElement | null>, onClose: () => void) {
-  // Read through a ref so a new callback identity never re-runs the focus and scroll-lock setup.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    initialFocusRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== 'Tab' || !sheetRef.current) return;
-      const focusable = Array.from(sheetRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      // Another dialog (e.g. the access dialog opened from the card) may already own focus.
-      const active = document.activeElement;
-      if (!active || active === document.body || !active.isConnected) previous?.focus({ preventScroll: true });
-    };
-  }, [initialFocusRef, sheetRef]);
-}
 
 function usePersonCard(client: Pick<AdminCrmClient, 'person'>, userId: string) {
   const [state, setState] = useState<LoadState>({ status: 'loading' });

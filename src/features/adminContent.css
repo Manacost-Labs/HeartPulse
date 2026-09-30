@@ -1,0 +1,135 @@
+/* Admin content lists (articles, gallery): table cells, row actions and the form shown in the side sheet. */
+.admin-people-table.is-articles th:nth-child(1) { width: 34%; }
+.admin-people-table.is-articles th:nth-child(2) { width: 14%; }
+.admin-people-table.is-articles th:nth-child(3) { width: 19%; }
+.admin-people-table.is-articles th:nth-child(4) { width: 11%; }
+.admin-people-table.is-articles th:nth-child(6) { width: 152px; }
+.admin-people-table.is-gallery th:nth-child(1) { width: 40%; }
+.admin-people-table.is-gallery th:nth-child(2) { width: 15%; }
+.admin-people-table.is-gallery th:nth-child(5) { width: 110px; }
+
+.admin-people-table .admin-content-cover {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--people-accent-soft);
+  color: var(--people-accent);
+  object-fit: cover;
+}
+.admin-people-table .admin-content-issues { color: var(--crm-warn, #8a5a06); font-weight: 600; }
+
+.admin-content-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.admin-content-actions a,
+.admin-content-actions button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--people-line);
+  border-radius: 8px;
+  background: var(--people-surface);
+  color: var(--people-ink);
+  cursor: pointer;
+}
+.admin-content-actions a:hover,
+.admin-content-actions button:hover:not(:disabled) { border-color: var(--people-accent); color: var(--people-accent); }
+.admin-content-actions .is-danger:hover:not(:disabled) { border-color: var(--admin-danger, #a13b35); color: var(--admin-danger, #a13b35); }
+.admin-content-actions button:disabled { opacity: 0.5; cursor: progress; }
+.admin-content-actions :focus-visible { outline: 2px solid var(--people-accent); outline-offset: 2px; }
+
+.admin-content-form { display: grid; gap: 6px; }
+.admin-content-form > label { margin-top: 8px; color: var(--crm-ink); font-size: 13px; font-weight: 600; }
+.admin-content-form > input,
+.admin-content-form > select,
+.admin-content-form > textarea {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid var(--crm-line);
+  border-radius: 8px;
+  background: var(--crm-surface);
+  color: var(--crm-ink);
+  font: inherit;
+  font-size: 15px;
+}
+.admin-content-form > textarea { resize: vertical; line-height: 1.45; }
+.admin-content-form > small { color: var(--crm-muted); font-size: 12.5px; }
+.admin-content-form > .admin-image-uploader { margin-top: 10px; border-color: var(--crm-line); border-radius: 10px; background: var(--crm-surface); }
+/* The sheet is portalled out of the admin shell, so the uploader gets its control styles here. */
+.admin-content-form .admin-image-uploader-head { color: var(--crm-ink); font-size: 13px; font-weight: 600; }
+.admin-content-form .admin-image-uploader-head button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--crm-line);
+  border-radius: 8px;
+  background: var(--crm-surface);
+  color: var(--crm-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-content-form .admin-image-uploader-head button:disabled { opacity: 0.5; cursor: default; }
+.admin-content-form .admin-image-uploader-body { min-height: 110px; border-color: var(--crm-line); background: var(--crm-soft); }
+.admin-content-form .admin-image-uploader-body img { min-height: 0; max-height: 180px; }
+.admin-content-form .admin-field-hint { color: var(--crm-muted); font-size: 12.5px; font-weight: 400; }
+.admin-content-file { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; color: var(--crm-ink); font-size: 13px; overflow-wrap: anywhere; }
+.admin-content-file small { color: var(--crm-muted); }
+.admin-content-form-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px -20px -28px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--crm-line);
+  background: var(--crm-surface);
+}
+.admin-content-form-actions button { min-height: 44px; padding: 0 18px; font-size: 14px; }
+
+.admin-content-preview {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 12px;
+  margin: 0 0 4px;
+  padding: 10px;
+  border: 1px solid var(--crm-line);
+  border-radius: 10px;
+  background: var(--crm-surface);
+}
+.admin-content-preview img,
+.admin-content-preview-empty { width: 132px; height: 82px; border-radius: 6px; object-fit: cover; }
+.admin-content-preview-empty { display: grid; place-items: center; background: var(--crm-accent-soft); color: var(--crm-accent); }
+.admin-content-preview figcaption { display: grid; gap: 3px; align-content: start; min-width: 0; overflow-wrap: anywhere; }
+.admin-content-preview small { color: var(--crm-muted); font-size: 12px; }
+.admin-content-preview strong { font-size: 15px; line-height: 1.3; }
+.admin-content-preview span:not(.admin-content-preview-empty) { color: var(--crm-muted); font-size: 13px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Touch screens: 44 px targets, and columns wide enough to hold them while the table is still a table. */
+@media (pointer: coarse) {
+  .admin-content-actions a,
+  .admin-content-actions button { width: 44px; height: 44px; }
+  .admin-people-table.is-articles th:nth-child(6) { width: 176px; }
+  .admin-people-table.is-gallery th:nth-child(5) { width: 124px; }
+}
+
+/* Cards: three row actions do not fit the corner slot the people list uses, so they take their own line. */
+@media (max-width: 960px) {
+  .admin-people-table.is-articles .admin-people-cell-person,
+  .admin-people-table.is-gallery .admin-people-cell-person { padding-right: 0; }
+  .admin-people-table.is-articles .admin-people-actions,
+  .admin-people-table.is-gallery .admin-people-actions { position: static; grid-column: 1 / -1; text-align: left; }
+  .admin-content-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 560px) {
+  .admin-content-form-actions { margin: 12px -16px -24px; padding: 12px 16px; }
+  .admin-content-preview { grid-template-columns: minmax(0, 1fr); }
+  .admin-content-preview img,
+  .admin-content-preview-empty { width: 100%; height: 140px; }
+}

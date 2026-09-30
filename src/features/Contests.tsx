@@ -32,17 +32,6 @@ import {
 } from './ContestAdminReferrals';
 import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
 import {
-  ContestAdminArticles,
-  type Article,
-  type ArticleDraft,
-} from './ContestAdminArticles';
-import { fileToDataUrl } from './ContestAdminImageUploader';
-import {
-  ContestAdminGallery,
-  type GalleryDraft,
-  type GalleryItem,
-} from './ContestAdminGallery';
-import {
   ContestAdminUsers,
   type AdminUserPatch,
   type AdminUserSearchResult,
@@ -88,6 +77,8 @@ export { ContestsPage } from '../modules/contests/public';
 const AdminWorkspaceShell = React.lazy(loadAdminWorkspaceShell);
 const AdminOverviewPage = React.lazy(loadAdminOverviewPage);
 
+const ContestAdminArticles = React.lazy(async () => ({ default: (await import('./ContestAdminArticles')).ContestAdminArticles }));
+const ContestAdminGallery = React.lazy(async () => ({ default: (await import('./ContestAdminGallery')).ContestAdminGallery }));
 const ContestAdminTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminTranslations');
   return { default: module.ContestAdminTranslations };
@@ -199,7 +190,6 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
 ];
 const CONTEST_ADMIN_NAV_ITEMS = ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
 
-const ADMIN_ARTICLES_PAGE_SIZE = 12;
 const ADMIN_ENTRIES_PAGE_SIZE = 20;
 const ADMIN_WORKSPACE_SECTION_IDS = new Set(ADMIN_NAV_ITEMS.map(item => item.id));
 
@@ -212,19 +202,6 @@ function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminW
   }
   if (params.has('contest') || params.has('contests')) return 'contests';
   return defaultSection;
-}
-
-async function uploadGalleryArtFile(file: File, metadata: { title: string; description: string; tag: string; source: string }): Promise<GalleryItem> {
-  if (!file.type.startsWith('image/')) throw new Error('Можно загружать только изображения');
-  const dataUrl = await fileToDataUrl(file);
-  const res = await fetch('/api/admin/gallery', {
-    method: 'POST',
-    headers: authJsonHeaders(),
-    body: JSON.stringify({ ...metadata, dataUrl }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Не удалось загрузить арт');
-  return data.item as GalleryItem;
 }
 
 export function ContestAdminPanel({ authUser, authChecking = false }: { authUser: AuthUser | null; authChecking?: boolean }) {
@@ -275,33 +252,16 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const setMessage = useCallback((nextMessage: AdminMessage | null) => {
     dispatchAdminWorkspace({ type: 'setMessage', message: nextMessage });
   }, []);
+  // A success toast covers the page toolbar on narrow screens, so it leaves on its own; errors stay until dismissed.
+  useEffect(() => {
+    if (message?.type !== 'ok') return undefined;
+    const timer = window.setTimeout(() => setMessage(null), 6_000);
+    return () => window.clearTimeout(timer);
+  }, [message, setMessage]);
   const usersList = useAdminUsersList(hasFullAdminAccess && adminSection === 'users', text => setMessage({ type: 'err', text }));
   const openUserSegment = (segment: AdminCrmSegmentId) => { usersList.changeSegment({ segment, tag: '' }); changeAdminSection('users'); };
-  const [adminArticles, setAdminArticles] = useState<Article[]>([]);
-  const [articleQuery, setArticleQuery] = useState('');
-  const [articlePage, setArticlePage] = useState(1);
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
-  const [galleryFile, setGalleryFile] = useState<File | null>(null);
-  const [galleryUploading, setGalleryUploading] = useState(false);
-  const [galleryDeletingId, setGalleryDeletingId] = useState('');
   const [referrals, setReferrals] = useState<AdminReferralLink[]>([]);
   const [referralClicks, setReferralClicks] = useState<AdminReferralClick[]>([]);
-  const [articleForm, setArticleForm] = useState<ArticleDraft>({
-    title: '',
-    tag: '',
-    date: '',
-    excerpt: '',
-    mode: 'arena',
-    image: '',
-    url: '',
-  });
-  const [galleryForm, setGalleryForm] = useState<GalleryDraft>({
-    title: '',
-    tag: '',
-    description: '',
-    source: '',
-  });
-  const [editingArticleId, setEditingArticleId] = useState('');
   const [boostyStatus, setBoostyStatus] = useState<BoostyAdminStatus | null>(null);
   const [boostyStatusLoading, setBoostyStatusLoading] = useState(false);
   const [boostySubscribers, setBoostySubscribers] = useState<BoostySubscribersPayload | null>(null);
@@ -312,10 +272,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const entriesRequestRef = useRef(0);
   const adminMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const adminNavRef = useRef<HTMLElement | null>(null);
-  const articleFormRef = useRef<HTMLFormElement | null>(null);
-  const articleListRef = useRef<HTMLDivElement | null>(null);
   const contestFormRef = useRef<HTMLFormElement | null>(null);
-  const galleryFileInputRef = useRef<HTMLInputElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userMenuTriggerMap = useMemo(() => new Map<string, HTMLButtonElement>(), []);
   const mailingPreviewRequestRef = useRef(0);
@@ -489,30 +446,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   }, [allowed]);
 
   useEffect(() => { void loadAdminContests(); }, [loadAdminContests]);
-
-  const loadAdminArticles = useCallback(async () => {
-    if (!hasFullAdminAccess) return;
-    try {
-      const res = await fetch(`/api/articles?t=${Date.now()}`, { cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить статьи');
-      setAdminArticles(Array.isArray(data.articles) ? data.articles : []);
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    }
-  }, [hasFullAdminAccess]);
-
-  const loadGalleryItems = useCallback(async () => {
-    if (!hasFullAdminAccess) return;
-    try {
-      const res = await fetch(`/api/admin/gallery?t=${Date.now()}`, { headers: authJsonHeaders(), cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить галерею');
-      setGalleryItems(Array.isArray(data.items) ? data.items : []);
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    }
-  }, [hasFullAdminAccess]);
 
   const loadReferrals = useCallback(async () => {
     if (!hasFullAdminAccess) return;
@@ -688,14 +621,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
 
   useEffect(() => {
     if (!hasFullAdminAccess) return;
-    if (adminSection === 'articles') void loadAdminArticles();
-    if (adminSection === 'gallery') void loadGalleryItems();
     if (adminSection === 'referrals') void loadReferrals();
     if (adminSection === 'boosty') void loadBoostyStatus();
     if (adminSection === 'boosty') void loadBoostySubscribers();
     if (adminSection === 'telegram') void loadTelegramAccounts();
     if (adminSection === 'mailing') void loadMailingOverview();
-  }, [adminSection, hasFullAdminAccess, loadAdminArticles, loadBoostyStatus, loadBoostySubscribers, loadGalleryItems, loadMailingOverview, loadReferrals, loadTelegramAccounts]);
+  }, [adminSection, hasFullAdminAccess, loadBoostyStatus, loadBoostySubscribers, loadMailingOverview, loadReferrals, loadTelegramAccounts]);
 
   useEffect(() => {
     if (adminSection !== 'mailing' || !mailingOverview?.campaigns.some(campaign => campaign.status === 'queued' || campaign.status === 'sending')) return;
@@ -773,124 +704,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       setMessage({ type: 'err', text: err.message });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const submitArticle = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!articleForm.title.trim()) {
-      setMessage({ type: 'err', text: 'Укажите название статьи.' });
-      return;
-    }
-    setLoading(true);
-    setMessage(null);
-    try {
-      const res = await fetch('/api/admin-articles', {
-        method: editingArticleId ? 'PATCH' : 'POST',
-        headers: authJsonHeaders(),
-        body: JSON.stringify({ id: editingArticleId, article: articleForm }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось сохранить статью');
-      setMessage({ type: 'ok', text: editingArticleId ? 'Статья обновлена.' : 'Статья добавлена.' });
-      setArticleForm({ title: '', tag: '', date: '', excerpt: '', mode: 'arena', image: '', url: '' });
-      setEditingArticleId('');
-      await loadAdminArticles();
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteArticle = async (article: Article) => {
-    if (!window.confirm(`Удалить «${article.title}»? Вместе со статьёй будут удалены её голоса. Это действие нельзя отменить.`)) return;
-    setLoading(true);
-    setMessage(null);
-    try {
-      const res = await fetch('/api/admin-articles', {
-        method: 'DELETE',
-        headers: authJsonHeaders(),
-        body: JSON.stringify({ id: article.id }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось удалить статью');
-      setMessage({ type: 'ok', text: 'Статья удалена.' });
-      if (editingArticleId === article.id) {
-        setEditingArticleId('');
-        setArticleForm({ title: '', tag: '', date: '', excerpt: '', mode: 'arena', image: '', url: '' });
-      }
-      await loadAdminArticles();
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const editArticle = (article: Article) => {
-    setEditingArticleId(article.id);
-    setArticleForm({
-      title: article.title || '',
-      tag: article.tag || '',
-      date: article.date || '',
-      excerpt: article.excerpt || '',
-      mode: article.mode || 'general',
-      image: article.image || '',
-      url: article.url || '',
-    });
-    changeAdminSection('articles');
-    window.requestAnimationFrame(() => articleFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  };
-
-  const cancelArticleEdit = () => {
-    setEditingArticleId('');
-    setArticleForm({ title: '', tag: '', date: '', excerpt: '', mode: 'arena', image: '', url: '' });
-  };
-
-  const submitGalleryItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!galleryForm.title.trim()) {
-      setMessage({ type: 'err', text: 'Укажите название арта.' });
-      return;
-    }
-    if (!galleryFile) {
-      setMessage({ type: 'err', text: 'Выберите файл изображения.' });
-      return;
-    }
-    setGalleryUploading(true);
-    setMessage(null);
-    try {
-      await uploadGalleryArtFile(galleryFile, galleryForm);
-      setMessage({ type: 'ok', text: 'Арт добавлен в галерею.' });
-      setGalleryForm({ title: '', tag: '', description: '', source: '' });
-      setGalleryFile(null);
-      if (galleryFileInputRef.current) galleryFileInputRef.current.value = '';
-      await loadGalleryItems();
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message || 'Не удалось загрузить арт' });
-    } finally {
-      setGalleryUploading(false);
-    }
-  };
-
-  const deleteGalleryItem = async (item: GalleryItem) => {
-    if (!window.confirm(`Удалить «${item.title}» из галереи?`)) return;
-    setGalleryDeletingId(item.id);
-    setMessage(null);
-    try {
-      const res = await fetch(`/api/admin/gallery/${encodeURIComponent(item.id)}`, {
-        method: 'DELETE',
-        headers: authJsonHeaders(),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось удалить арт');
-      setMessage({ type: 'ok', text: 'Арт удален.' });
-      await loadGalleryItems();
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message || 'Не удалось удалить арт' });
-    } finally {
-      setGalleryDeletingId('');
     }
   };
 
@@ -1129,24 +942,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     () => contestStatusFilter === 'all' ? contests : contests.filter(contest => contest.status === contestStatusFilter),
     [contestStatusFilter, contests],
   );
-  const filteredAdminArticles = useMemo(() => {
-    const query = articleQuery.trim().toLocaleLowerCase('ru');
-    if (!query) return adminArticles;
-    return adminArticles.filter(article => [article.title, article.tag, article.excerpt, article.url]
-      .filter(Boolean)
-      .join(' ')
-      .toLocaleLowerCase('ru')
-      .includes(query));
-  }, [adminArticles, articleQuery]);
-  const articlePageCount = Math.max(1, Math.ceil(filteredAdminArticles.length / ADMIN_ARTICLES_PAGE_SIZE));
-  const visibleAdminArticles = useMemo(
-    () => filteredAdminArticles.slice((articlePage - 1) * ADMIN_ARTICLES_PAGE_SIZE, articlePage * ADMIN_ARTICLES_PAGE_SIZE),
-    [articlePage, filteredAdminArticles],
-  );
-
-  useEffect(() => {
-    setArticlePage(current => Math.min(current, articlePageCount));
-  }, [articlePageCount]);
   const selectedContestEntryCount = selectedContest?.entriesCount ?? entries.length;
   const selectedContestWinnerCount = selectedWinnerIds.length;
   const selectedContestApprovedWinnerCount = approvedEntries.filter(entry => selectedWinnerIdSet.has(entry.profileId)).length;
@@ -1320,42 +1115,15 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'articles' && (
-            <ContestAdminArticles
-              articles={adminArticles}
-              visibleArticles={visibleAdminArticles}
-              filteredCount={filteredAdminArticles.length}
-              draft={articleForm}
-              editingId={editingArticleId}
-              loading={loading}
-              query={articleQuery}
-              page={articlePage}
-              pageCount={articlePageCount}
-              formRef={articleFormRef}
-              listRef={articleListRef}
-              onSubmit={submitArticle}
-              onCancelEdit={cancelArticleEdit}
-              onDraftChange={patch => setArticleForm(current => ({ ...current, ...patch }))}
-              onQueryChange={query => { setArticleQuery(query); setArticlePage(1); }}
-              onEdit={editArticle}
-              onDelete={article => void deleteArticle(article)}
-              onPageChange={setArticlePage}
-            />
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем статьи…</p>}>
+              <ContestAdminArticles onMessage={setMessage} />
+            </React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'gallery' && (
-            <ContestAdminGallery
-              items={galleryItems}
-              draft={galleryForm}
-              file={galleryFile}
-              uploading={galleryUploading}
-              deletingId={galleryDeletingId}
-              fileInputRef={galleryFileInputRef}
-              onSubmit={submitGalleryItem}
-              onDraftChange={patch => setGalleryForm(current => ({ ...current, ...patch }))}
-              onFileChange={setGalleryFile}
-              onRefresh={() => void loadGalleryItems()}
-              onDelete={item => void deleteGalleryItem(item)}
-            />
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем галерею…</p>}>
+              <ContestAdminGallery onMessage={setMessage} />
+            </React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'translations' && (

@@ -1,148 +1,168 @@
-import React from 'react';
-import { BookOpen, ExternalLink } from 'lucide-react';
-import { ContestAdminImageUploader } from './ContestAdminImageUploader';
-import { ADMIN_INPUT } from './contestAdminUi';
+import React, { Suspense, useMemo, useRef, useState } from 'react';
+import { BookOpen, ExternalLink, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { AdminFilterChips } from '../modules/adminCrm/public';
+import { adminContentClient, type AdminContentClient } from './adminContentClient';
+import {
+  activeChip,
+  articleIssueLabels,
+  articleIssueOptions,
+  articleLinkLabel,
+  articleMode,
+  articleModeOptions,
+  articlePublishingSummary,
+  articleTagSuggestions,
+  articleVotesLabel,
+  filterArticles,
+  formatContentDate,
+  type Article,
+  type ArticleDraft,
+  type ArticleIssueFilter,
+  type ArticleModeFilter,
+} from './adminContentListModel';
+import { AdminListPager } from './AdminListPager';
+import { adminListCount } from './adminListText';
+import type { AdminMessage } from './adminWorkspaceState';
+import { useAdminContentList } from './useAdminContent';
+import './adminPeople.css';
+import './adminContent.css';
 
-export type Article = {
-  id: string;
-  title: string;
-  date: string;
-  image?: string;
-  excerpt?: string;
-  tag?: string;
-  mode?: 'arena' | 'battlegrounds' | 'standard' | 'wild' | 'general';
-  url?: string;
-};
-
-export type ArticleDraft = {
-  title: string;
-  tag: string;
-  date: string;
-  excerpt: string;
-  mode: NonNullable<Article['mode']>;
-  image: string;
-  url: string;
-};
+const AdminArticleEditor = React.lazy(async () => ({ default: (await import('./AdminArticleEditor')).AdminArticleEditor }));
+const PAGE_SIZE = 20;
 
 type ContestAdminArticlesProps = {
-  articles: Article[];
-  visibleArticles: Article[];
-  filteredCount: number;
-  draft: ArticleDraft;
-  editingId: string;
-  loading: boolean;
-  query: string;
-  page: number;
-  pageCount: number;
-  formRef: React.RefObject<HTMLFormElement | null>;
-  listRef: React.RefObject<HTMLDivElement | null>;
-  onSubmit: React.FormEventHandler<HTMLFormElement>;
-  onCancelEdit: () => void;
-  onDraftChange: (patch: Partial<ArticleDraft>) => void;
-  onQueryChange: (query: string) => void;
-  onEdit: (article: Article) => void;
-  onDelete: (article: Article) => void;
-  onPageChange: (page: number) => void;
+  onMessage: (message: AdminMessage | null) => void;
+  client?: AdminContentClient;
 };
 
-function articleModeLabel(mode?: Article['mode']): string {
-  if (mode === 'arena') return 'Арена';
-  if (mode === 'battlegrounds') return 'Поля Сражений';
-  if (mode === 'standard') return 'Стандарт';
-  if (mode === 'wild') return 'Вольный';
-  return 'Общий';
+type RowProps = {
+  article: Article;
+  busy: boolean;
+  onEdit: (article: Article) => void;
+  onDelete: (article: Article) => void;
+};
+
+function ArticleRow({ article, busy, onEdit, onDelete }: RowProps) {
+  const mode = articleMode(article);
+  const issues = articleIssueLabels(article);
+  const opens = Boolean(article.url && article.url !== '#');
+  return (
+    <tr className="admin-people-row admin-content-row">
+      <td className="admin-people-cell-person">
+        <div className="admin-people-person">
+          {article.image
+            ? <img className="admin-content-cover" src={article.image} alt="" loading="lazy" decoding="async" />
+            : <span className="admin-content-cover" aria-hidden="true"><BookOpen size={16} /></span>}
+          <div>
+            <button type="button" className="admin-crm-open" aria-haspopup="dialog" onClick={() => onEdit(article)}>{article.title}</button>
+            <small>{articleLinkLabel(article.url)}</small>
+            {issues.length > 0 && <small className="admin-content-issues">{issues.join(' · ')}</small>}
+          </div>
+        </div>
+      </td>
+      <td data-label="Раздел"><span>{article.tag || 'без раздела'}</span></td>
+      <td data-label="Доступ">
+        <span>{mode.label}</span>
+        <small>{mode.access}</small>
+      </td>
+      <td data-label="Дата"><span>{formatContentDate(article.date)}</span></td>
+      <td data-label="Оценки"><span>{articleVotesLabel(article)}</span></td>
+      <td className="admin-people-actions">
+        <div className="admin-content-actions">
+          {opens && (
+            <a href={article.url} target="_blank" rel="noreferrer" title="Открыть статью" aria-label={`Открыть статью: ${article.title}`}><ExternalLink size={16} aria-hidden="true" /></a>
+          )}
+          <button type="button" title="Изменить" aria-label={`Изменить статью: ${article.title}`} disabled={busy} onClick={() => onEdit(article)}><Pencil size={16} aria-hidden="true" /></button>
+          <button type="button" className="is-danger" title="Удалить" aria-label={`Удалить статью: ${article.title}`} disabled={busy} onClick={() => onDelete(article)}><Trash2 size={16} aria-hidden="true" /></button>
+        </div>
+      </td>
+    </tr>
+  );
 }
 
-export function ContestAdminArticles({
-  articles,
-  visibleArticles,
-  filteredCount,
-  draft,
-  editingId,
-  loading,
-  query,
-  page,
-  pageCount,
-  formRef,
-  listRef,
-  onSubmit,
-  onCancelEdit,
-  onDraftChange,
-  onQueryChange,
-  onEdit,
-  onDelete,
-  onPageChange,
-}: ContestAdminArticlesProps) {
-  const changePage = (nextPage: number) => {
-    onPageChange(nextPage);
-    window.requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+export function ContestAdminArticles({ onMessage, client = adminContentClient }: ContestAdminArticlesProps) {
+  const list = useAdminContentList(client.articles, onMessage);
+  const [search, setSearch] = useState('');
+  const [selectedMode, setMode] = useState<ArticleModeFilter>('all');
+  const [selectedIssue, setIssue] = useState<ArticleIssueFilter>('all');
+  const [requestedPage, setPage] = useState(1);
+  // `null` closes the editor; an empty id opens it for a new article.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const summaryRef = useRef<HTMLParagraphElement | null>(null);
+  const articles = list.items;
+  const modeOptions = useMemo(() => articleModeOptions(articles), [articles]);
+  const issueOptions = useMemo(() => articleIssueOptions(articles), [articles]);
+  const mode = activeChip(modeOptions, selectedMode, 'all');
+  const issue = activeChip(issueOptions, selectedIssue, 'all');
+  const filtered = useMemo(() => filterArticles(articles, { search, mode, issue }), [articles, issue, mode, search]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Deleting the last row of the last page must not leave the list on a page that no longer exists.
+  const page = Math.min(requestedPage, pageCount);
+  const visible = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
+  const publishing = useMemo(() => articlePublishingSummary(articles, new Date()), [articles]);
+  const tagSuggestions = useMemo(() => articleTagSuggestions(articles), [articles]);
+  const editing = editingId ? articles.find(article => article.id === editingId) ?? null : null;
+  const busy = Boolean(list.busy);
+
+  const save = async (draft: ArticleDraft) => {
+    const failure = await list.run('save', () => client.saveArticle(draft, editingId || ''), editingId ? 'Статья обновлена.' : 'Статья добавлена.', false);
+    if (!failure) setEditingId(null);
+    return failure;
   };
+  const remove = (article: Article) => {
+    if (!window.confirm(`Удалить «${article.title}»? Вместе со статьёй будут удалены её оценки. Это действие нельзя отменить.`)) return;
+    // The deleted row took the focus with it; the summary announces the new count.
+    void list.run(`delete:${article.id}`, () => client.deleteArticle(article.id), 'Статья удалена.').then(() => summaryRef.current?.focus());
+  };
+  const summary = list.loading
+    ? 'Загружаем статьи…'
+    : `${adminListCount(filtered.length, articles.length, page, pageCount)}${publishing ? ` · ${publishing}` : ''}`;
 
   return (
-    <div className="contest-admin-grid admin-article-layout">
-      <form ref={formRef} className="contest-admin-card admin-article-form" onSubmit={onSubmit}>
-        <div className="admin-subsection-head">
-          <div>
-            <h2>{editingId ? 'Редактирование статьи' : 'Новая статья'}</h2>
-            {editingId && <p className="contest-muted">ID: {editingId}</p>}
-          </div>
-          {editingId && <button type="button" className="contest-secondary-button" onClick={onCancelEdit}>Отменить</button>}
-        </div>
-        <label>Название<input required value={draft.title} onChange={event => onDraftChange({ title: event.target.value })} style={ADMIN_INPUT} /></label>
-        <label>Раздел<input value={draft.tag} onChange={event => onDraftChange({ tag: event.target.value })} placeholder="Гайд, Мета, Поля Сражений" style={ADMIN_INPUT} /></label>
-        <label>Тип доступа
-          <select value={draft.mode} onChange={event => onDraftChange({ mode: event.target.value as ArticleDraft['mode'] })} style={ADMIN_INPUT}>
-            <option value="arena">Арена — подписка на статьи Арены</option>
-            <option value="battlegrounds">Поля Сражений — подписка на статьи БГ</option>
-            <option value="standard">Стандарт — план «Алмаз» и выше</option>
-            <option value="wild">Вольный — план «Алмаз» и выше</option>
-            <option value="general">Общий материал</option>
-          </select>
-          <span className="admin-field-hint">Этот выбор определяет, какой доступ понадобится читателю.</span>
+    <div className="admin-people admin-articles">
+      <div className="admin-people-toolbar">
+        <label className="admin-people-search">
+          <Search size={18} aria-hidden="true" />
+          <span className="admin-crm-sr-only">Поиск по статьям</span>
+          <input type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} placeholder="Название, раздел, описание или ссылка" />
         </label>
-        <label>Краткое описание
-          <textarea value={draft.excerpt} onChange={event => onDraftChange({ excerpt: event.target.value })} rows={4} placeholder="Описание для карточки статьи" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
-        </label>
-        <label>Дата публикации
-          <input type="date" value={draft.date} onChange={event => onDraftChange({ date: event.target.value })} style={ADMIN_INPUT} />
-          <span className="admin-field-hint">Если оставить пустым, будет сохранена сегодняшняя дата.</span>
-        </label>
-        <label>Ссылка<input value={draft.url} onChange={event => onDraftChange({ url: event.target.value })} placeholder="https://..." style={ADMIN_INPUT} /></label>
-        <ContestAdminImageUploader label="Картинка статьи" value={draft.image} onChange={image => onDraftChange({ image })} />
-        <button type="submit" disabled={loading} className="contest-primary-button">
-          {editingId ? 'Обновить статью' : 'Сохранить статью'}
+        <button type="button" className="contest-secondary-button admin-people-reload" disabled={list.loading || busy} onClick={() => void list.reload()}>
+          <RefreshCw size={16} aria-hidden="true" /> Обновить
         </button>
-      </form>
-
-      <div ref={listRef} className="contest-admin-card admin-article-list-card">
-        <div className="admin-subsection-head">
-          <div><h2>Список статей</h2><p className="contest-muted">Показано {visibleArticles.length} из {filteredCount}{filteredCount !== articles.length ? ` · всего ${articles.length}` : ''}</p></div>
-        </div>
-        <div className="admin-list-toolbar admin-page-toolbar">
-          <label><span>Поиск по статьям</span><input value={query} onChange={event => onQueryChange(event.target.value)} placeholder="Название, раздел или описание" style={ADMIN_INPUT} /></label>
-        </div>
-        <div className="admin-article-list">
-          {visibleArticles.map(article => (
-            <div key={article.id} className="admin-article-row">
-              {article.image ? <img src={article.image} alt="" /> : <div><BookOpen size={18} /></div>}
-              <span><strong>{article.title}</strong><small>{article.tag || 'Без раздела'} · {article.date} · <b>{articleModeLabel(article.mode)}</b></small></span>
-              <div className="admin-article-actions">
-                {article.url && article.url !== '#' && <a href={article.url} target="_blank" rel="noreferrer" aria-label={`Открыть статью: ${article.title}`}><ExternalLink size={14} /> Просмотр</a>}
-                <button type="button" onClick={() => onEdit(article)} disabled={loading}>Редактировать</button>
-                <button type="button" className="admin-danger-button" onClick={() => onDelete(article)} disabled={loading}>Удалить</button>
-              </div>
-            </div>
-          ))}
-          {!filteredCount && <p className="contest-muted" role="status">{articles.length ? 'По вашему запросу ничего не найдено.' : 'Статей пока нет.'}</p>}
-        </div>
-        {pageCount > 1 && (
-          <nav className="admin-pagination" aria-label="Страницы списка статей">
-            <button type="button" disabled={page === 1} onClick={() => changePage(Math.max(1, page - 1))}>Назад</button>
-            <span>Страница {page} из {pageCount}</span>
-            <button type="button" disabled={page === pageCount} onClick={() => changePage(Math.min(pageCount, page + 1))}>Далее</button>
-          </nav>
+        <button type="button" className="contest-primary-button admin-content-create" aria-haspopup="dialog" onClick={() => setEditingId('')}>
+          <Plus size={16} aria-hidden="true" /> Новая статья
+        </button>
+      </div>
+      <div className="admin-crm-segments">
+        <AdminFilterChips label="Режим статьи" options={modeOptions} value={mode} onChange={id => { setMode(id); setPage(1); }} />
+        {issueOptions.length > 0 && (
+          <AdminFilterChips label="Заполненность карточки" options={issueOptions} value={issue} onChange={id => { setIssue(id); setPage(1); }} secondary />
         )}
       </div>
+      {list.loadError && <div className="contest-message contest-message-err" role="alert">{list.loadError}</div>}
+      <p ref={summaryRef} className="admin-people-summary" role="status" tabIndex={-1}>{summary}</p>
+      {visible.length ? (
+        <div className="admin-people-table-wrap" aria-busy={busy}>
+          <table className="admin-people-table is-articles">
+            <thead>
+              <tr>
+                <th scope="col">Статья</th><th scope="col">Раздел</th><th scope="col">Доступ</th><th scope="col">Дата</th><th scope="col">Оценки</th>
+                <th scope="col"><span className="admin-crm-sr-only">Действия</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(article => <ArticleRow key={article.id} article={article} busy={busy} onEdit={item => setEditingId(item.id)} onDelete={remove} />)}
+            </tbody>
+          </table>
+        </div>
+      ) : !list.loading && !list.loadError && (
+        <p className="admin-people-empty">{articles.length ? 'Статьи не найдены по текущим фильтрам.' : 'Статей пока нет. Нажмите «Новая статья», чтобы добавить первую.'}</p>
+      )}
+      <AdminListPager label="Страницы списка статей" page={page} pageCount={pageCount} onPage={setPage} />
+      {editingId !== null && (
+        <Suspense fallback={null}>
+          <AdminArticleEditor key={editingId} article={editing} tagSuggestions={tagSuggestions} saving={list.busy === 'save'} onSave={save} onClose={() => setEditingId(null)} />
+        </Suspense>
+      )}
     </div>
   );
 }

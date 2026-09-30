@@ -8,6 +8,12 @@ export function loadAdminClientCard() {
   return import('./AdminClientCard.lazy');
 }
 
+/** The generic form sheet opens only on demand as well; admin editors lazy-load it. */
+export function loadAdminSheet() {
+  return import('./AdminSheet.lazy');
+}
+export type { AdminSheetProps } from './ui/AdminSheet';
+
 /** The overview (alerts, KPIs, activity) is the admin landing page; it loads on demand like other sections. */
 export function loadAdminOverviewPage() {
   return import('./AdminOverviewPage.lazy');

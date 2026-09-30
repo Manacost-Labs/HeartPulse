@@ -1669,16 +1669,49 @@ for (const [device, viewport] of [
     if (!new URL(page.url()).searchParams.has('section') || !page.url().includes('section=articles')) {
       failures.push(`admin overview [${device}]: quick navigation did not update URL`);
     }
-    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 2);
-    await page.click('.admin-article-row button:not(.admin-danger-button)');
-    await page.waitForFunction(() => document.querySelector('.admin-article-form h2')?.textContent?.trim() === 'Редактирование статьи');
-    const editedArticleTitle = await page.$eval('.admin-article-form input[required]', element => element.value);
+    const listState = root => {
+      const text = element => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
+      const scope = document.querySelector(root);
+      return {
+        rows: scope?.querySelectorAll('.admin-people-row').length ?? 0,
+        headers: [...(scope?.querySelectorAll('.admin-people-table thead th') ?? [])].map(text),
+        chips: [...(scope?.querySelectorAll('.admin-crm-segment-row:first-child .admin-crm-segment span') ?? [])].map(text),
+        pills: [...(scope?.querySelectorAll('.admin-people-row') ?? [])].map(row => [...row.querySelectorAll('.admin-crm-pill')].map(text)),
+        status: text(scope?.querySelector('.admin-people-status strong')),
+        summary: text(scope?.querySelector('.admin-people-summary')),
+        searchHeight: scope?.querySelector('.admin-people-search')?.getBoundingClientRect().height ?? 0,
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      };
+    };
+    const clickChip = (root, label) => page.evaluate((scopeSelector, chipLabel) => {
+      const chip = [...document.querySelectorAll(`${scopeSelector} .admin-crm-segment`)].find(element => element.textContent?.trim().startsWith(chipLabel));
+      if (!(chip instanceof HTMLButtonElement)) throw new Error(`Missing filter chip: ${chipLabel}`);
+      chip.click();
+    }, root, label);
+    const waitForSheet = title => page.waitForFunction(
+      expected => document.querySelector('.admin-crm-sheet[role="dialog"] h2')?.textContent?.trim() === expected, {}, title,
+    );
+    const toastIncludes = text => page.waitForFunction(expected => document.querySelector('.admin-toast')?.textContent?.includes(expected), {}, text);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-articles .admin-content-row').length === 2);
+    const articlesState = await page.evaluate(listState, '.admin-articles');
+    if (articlesState.chips.join(',') !== '2,1,1' || !articlesState.summary.includes('Всего 2') || !articlesState.summary.includes('последняя публикация 11.07.2026')) {
+      failures.push(`admin articles [${device}]: deterministic filters or summary did not render (${JSON.stringify(articlesState)})`);
+    }
+    if (JSON.stringify(articlesState.headers) !== JSON.stringify(['Статья', 'Раздел', 'Доступ', 'Дата', 'Оценки', 'Действия'])) {
+      failures.push(`admin articles [${device}]: table columns changed (${JSON.stringify(articlesState.headers)})`);
+    }
+    if (articlesState.searchHeight < 44) failures.push(`admin articles [${device}]: search field is below the 44px target (${articlesState.searchHeight})`);
+    // The title opens the editor in a side sheet with the stored values.
+    await page.click('.admin-articles .admin-content-row .admin-crm-open');
+    await waitForSheet('Редактирование статьи');
+    const editedArticleTitle = await page.$eval('.admin-content-form input[required]', element => element.value);
     if (editedArticleTitle !== 'Первая статья') failures.push(`admin articles [${device}]: edit did not populate the form`);
-    await replaceControlledInputValue(page, '.admin-article-form input[required]', 'Первая статья — обновлена');
-    const articleImageUrlInput = '.admin-article-form input[aria-label="Картинка статьи: URL"]';
+    await replaceControlledInputValue(page, '.admin-content-form input[required]', 'Первая статья — обновлена');
+    const articleImageUrlInput = '.admin-content-form input[aria-label="Картинка статьи: URL"]';
     await replaceControlledInputValue(page, articleImageUrlInput, 'https://images.example.test/cover.png');
     await page.evaluate(() => {
-      const button = [...document.querySelectorAll('.admin-article-form .admin-image-uploader-actions button')]
+      const button = [...document.querySelectorAll('.admin-content-form .admin-image-uploader-actions button')]
         .find(element => element.textContent?.trim() === 'Загрузить по ссылке');
       if (!(button instanceof HTMLButtonElement)) throw new Error('Remote image import action is missing');
       button.click();
@@ -1686,7 +1719,7 @@ for (const [device, viewport] of [
     await page.waitForFunction(selector => (
       document.querySelector(selector)?.value === '/uploads/admin/qa-article-cover.webp'
     ), {}, articleImageUrlInput);
-    const articleAccessOptions = await page.$$eval('.admin-article-form select option', options => options.map(option => ({
+    const articleAccessOptions = await page.$$eval('.admin-content-form select option', options => options.map(option => ({
       value: option.value,
       text: option.textContent?.trim() || '',
     })));
@@ -1694,45 +1727,57 @@ for (const [device, viewport] of [
       || !articleAccessOptions.some(option => option.value === 'wild' && option.text.includes('Алмаз'))) {
       failures.push(`admin articles [${device}]: Standard/Wild Diamond access options are missing`);
     }
-    await page.click('.admin-article-form button[type="submit"]');
-    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья обновлена.'));
-    await page.waitForFunction(() => [...document.querySelectorAll('.admin-article-row strong')]
+    const articlePreview = await page.$eval('.admin-content-preview', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
+    if (!articlePreview.includes('Первая статья — обновлена') || !articlePreview.includes('11.07.2026')) {
+      failures.push(`admin articles [${device}]: reader preview does not follow the draft (${articlePreview})`);
+    }
+    const articleEditorViolationCount = await auditAccessibility(page, `admin article editor [${device}]`, '.admin-crm-sheet');
+    await page.click('.admin-content-form button[type="submit"]');
+    await toastIncludes('Статья обновлена.');
+    await page.waitForFunction(() => !document.querySelector('.admin-crm-sheet'));
+    await page.waitForFunction(() => [...document.querySelectorAll('.admin-articles .admin-content-row .admin-crm-open')]
       .some(element => element.textContent?.trim() === 'Первая статья — обновлена'));
 
-    await page.type('.admin-article-form input[required]', 'Новая QA статья');
-    await page.select('.admin-article-form select', 'standard');
-    await page.click('.admin-article-form button[type="submit"]');
-    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья добавлена.'));
-    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 3);
-    const createdArticleRow = await page.$eval('.admin-article-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
-    if (!createdArticleRow.includes('Стандарт')) failures.push(`admin articles [${device}]: saved Standard mode is not labelled`);
+    // A new article: an empty title is refused in the sheet, a filled one is saved and listed first.
+    // On a phone the success toast lies over the toolbar, so it is dismissed the way a person would.
+    await page.click('.admin-toast button');
+    await page.waitForFunction(() => !document.querySelector('.admin-toast'));
+    await page.click('.admin-articles .admin-content-create');
+    await waitForSheet('Новая статья');
+    await page.click('.admin-content-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-content-form [role="alert"]')?.textContent?.includes('Укажите название статьи'));
+    await page.type('.admin-content-form input[required]', 'Новая QA статья');
+    await page.select('.admin-content-form select', 'standard');
+    await page.click('.admin-content-form button[type="submit"]');
+    await toastIncludes('Статья добавлена.');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-articles .admin-content-row').length === 3);
+    const createdArticleRow = await page.$eval('.admin-articles .admin-content-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
+    if (!createdArticleRow.includes('Новая QA статья') || !createdArticleRow.includes('Стандарт')) failures.push(`admin articles [${device}]: saved Standard mode is not labelled`);
     await page.evaluate(() => { window.confirm = () => true; });
     await page.evaluate(() => {
-      const row = [...document.querySelectorAll('.admin-article-row')]
-        .find(element => element.querySelector('strong')?.textContent?.trim() === 'Новая QA статья');
-      const button = row?.querySelector('.admin-danger-button');
+      const row = [...document.querySelectorAll('.admin-articles .admin-content-row')]
+        .find(element => element.querySelector('.admin-crm-open')?.textContent?.trim() === 'Новая QA статья');
+      const button = row?.querySelector('.admin-content-actions .is-danger');
       if (!(button instanceof HTMLButtonElement)) throw new Error('Created article delete action is missing');
       button.click();
     });
-    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья удалена.'));
-    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 2);
+    await toastIncludes('Статья удалена.');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-articles .admin-content-row').length === 2);
 
-    const articleSearch = await page.$('.admin-list-toolbar input');
-    if (!articleSearch) throw new Error('Article search input is missing');
-    await articleSearch.type('несуществующий материал');
-    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 0);
-    const articleEmptyState = await page.$eval('.admin-article-list [role="status"]', element => element.textContent?.trim() || '');
-    if (!articleEmptyState.includes('ничего не найдено')) failures.push(`admin articles [${device}]: filtered empty state is missing`);
+    await clickChip('.admin-articles', 'Арена');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-articles .admin-content-row').length === 1);
+    await page.type('.admin-articles .admin-people-search input', 'несуществующий материал');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-articles .admin-content-row').length === 0);
+    const articleEmptyState = await page.$eval('.admin-articles .admin-people-empty', element => element.textContent?.trim() || '');
+    if (!articleEmptyState.includes('не найдены')) failures.push(`admin articles [${device}]: filtered empty state is missing`);
     const articleLayout = await page.evaluate(() => ({
-      columns: getComputedStyle(document.querySelector('.admin-article-layout')).gridTemplateColumns.split(/\s+/).length,
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
     if (articleLayout.scrollWidth > articleLayout.clientWidth + 1) {
       failures.push(`admin articles [${device}]: horizontal overflow ${articleLayout.scrollWidth} > ${articleLayout.clientWidth}`);
     }
-    if (articleLayout.columns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin articles [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${articleLayout.columns}`);
-    const articlesViolationCount = await auditAccessibility(page, `admin articles [${device}]`, '.admin-workspace-content');
+    const articlesViolationCount = articleEditorViolationCount + await auditAccessibility(page, `admin articles [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/admin?section=translations`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 2);
@@ -2010,60 +2055,46 @@ for (const [device, viewport] of [
     if (scheduleRuleCount !== 2) failures.push(`admin Standard operations [${device}]: schedule rules did not expand (${scheduleRuleCount})`);
 
     await page.goto(`${BASE}/admin?section=gallery`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 1);
-    await page.type('.admin-gallery-form input:not([type="file"])', 'Новый контрольный арт');
-    const galleryFileInput = await page.$('.admin-gallery-form input[type="file"]');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-page .admin-content-row').length === 1);
+    const galleryState = await page.evaluate(listState, '.admin-gallery-page');
+    const galleryDownloadHref = await page.$eval('.admin-gallery-page .admin-content-actions a', element => element.getAttribute('href') || '');
+    if (JSON.stringify(galleryState.headers) !== JSON.stringify(['Арт', 'Раздел', 'Файл', 'Добавлен', 'Действия'])
+      || !galleryState.summary.includes('Всего 1') || galleryDownloadHref !== '/favicon-192.png') {
+      failures.push(`admin gallery [${device}]: list fixture did not render correctly (${JSON.stringify({ ...galleryState, galleryDownloadHref })})`);
+    }
+    await page.click('.admin-gallery-page .admin-content-create');
+    await waitForSheet('Новый арт');
+    await page.click('.admin-content-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-content-form [role="alert"]')?.textContent?.includes('Укажите название арта'));
+    await page.type('.admin-content-form input[required]', 'Новый контрольный арт');
+    const galleryFileInput = await page.$('.admin-content-form input[type="file"]');
     if (!galleryFileInput) throw new Error('Gallery file input is missing');
     await galleryFileInput.uploadFile(`${process.cwd()}/public/favicon-192.png`);
-    await page.waitForFunction(() => document.querySelector('.admin-gallery-selected')?.textContent?.includes('favicon-192.png'));
-    await page.click('.admin-gallery-form button[type="submit"]');
-    await page.waitForFunction(() => {
-      const title = document.querySelector('.admin-gallery-form input:not([type="file"])');
-      return title?.value === '' && !document.querySelector('.admin-gallery-selected');
-    });
+    await page.waitForFunction(() => document.querySelector('.admin-content-file')?.textContent?.includes('favicon-192.png'));
+    const galleryUploadViolationCount = await auditAccessibility(page, `admin gallery upload [${device}]`, '.admin-crm-sheet');
+    await page.click('.admin-content-form button[type="submit"]');
+    await toastIncludes('Арт добавлен в галерею.');
+    await page.waitForFunction(() => !document.querySelector('.admin-crm-sheet'));
     const galleryLayout = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.admin-gallery-row').length,
-      downloadHref: document.querySelector('.admin-gallery-actions a')?.getAttribute('href') || '',
-      columns: getComputedStyle(document.querySelector('.admin-gallery-layout')).gridTemplateColumns.split(/\s+/).length,
+      rows: document.querySelectorAll('.admin-gallery-page .admin-content-row').length,
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
-    if (galleryLayout.rows !== 1 || galleryLayout.downloadHref !== '/favicon-192.png') {
-      failures.push(`admin gallery [${device}]: upload/list fixture did not render correctly`);
-    }
+    if (galleryLayout.rows !== 1) failures.push(`admin gallery [${device}]: list did not reload after the upload (${galleryLayout.rows})`);
     if (galleryLayout.scrollWidth > galleryLayout.clientWidth + 1) {
       failures.push(`admin gallery [${device}]: horizontal overflow ${galleryLayout.scrollWidth} > ${galleryLayout.clientWidth}`);
     }
-    if (galleryLayout.columns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin gallery [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${galleryLayout.columns}`);
     adminState.galleryEmpty = true;
-    await page.click('.admin-gallery-layout .contest-secondary-button');
-    await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 0);
-    const galleryEmptyState = await page.$eval('.admin-gallery-list [role="status"]', element => element.textContent?.trim() || '');
+    await page.click('.admin-toast button');
+    await page.waitForFunction(() => !document.querySelector('.admin-toast'));
+    await page.click('.admin-gallery-page .admin-people-reload');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-page .admin-content-row').length === 0);
+    const galleryEmptyState = await page.$eval('.admin-gallery-page .admin-people-empty', element => element.textContent?.trim() || '');
     if (!galleryEmptyState.includes('пока нет артов')) failures.push(`admin gallery [${device}]: empty state is missing`);
-    const galleryViolationCount = await auditAccessibility(page, `admin gallery [${device}]`, '.admin-workspace-content');
+    const galleryViolationCount = galleryUploadViolationCount + await auditAccessibility(page, `admin gallery [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/admin?section=boosty`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2);
-    const listState = root => {
-      const text = element => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
-      const scope = document.querySelector(root);
-      return {
-        rows: scope?.querySelectorAll('.admin-people-row').length ?? 0,
-        headers: [...(scope?.querySelectorAll('.admin-people-table thead th') ?? [])].map(text),
-        chips: [...(scope?.querySelectorAll('.admin-crm-segment-row:first-child .admin-crm-segment span') ?? [])].map(text),
-        pills: [...(scope?.querySelectorAll('.admin-people-row') ?? [])].map(row => [...row.querySelectorAll('.admin-crm-pill')].map(text)),
-        status: text(scope?.querySelector('.admin-people-status strong')),
-        summary: text(scope?.querySelector('.admin-people-summary')),
-        searchHeight: scope?.querySelector('.admin-people-search')?.getBoundingClientRect().height ?? 0,
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-      };
-    };
-    const clickChip = (root, label) => page.evaluate((scopeSelector, chipLabel) => {
-      const chip = [...document.querySelectorAll(`${scopeSelector} .admin-crm-segment`)].find(element => element.textContent?.trim().startsWith(chipLabel));
-      if (!(chip instanceof HTMLButtonElement)) throw new Error(`Missing filter chip: ${chipLabel}`);
-      chip.click();
-    }, root, label);
     const boostyState = await page.evaluate(listState, '.admin-boosty');
     if (boostyState.rows !== 2 || boostyState.chips.join(',') !== '2,1,1,1,1' || !boostyState.status.includes('работает') || !boostyState.summary.includes('Всего 2')) {
       failures.push(`admin Boosty [${device}]: deterministic status, filters or subscriber table did not render (${JSON.stringify(boostyState)})`);

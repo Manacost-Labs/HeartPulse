@@ -16,8 +16,3 @@ export function AdminListPager({ label, page, pageCount, onPage }: AdminListPage
     </nav>
   );
 }
-
-/** One-line result summary under the filters: total or filtered count, page and load time. */
-export function adminListSummary(filtered: number, total: number, page: number, pageCount: number, loadedAt: string): string {
-  return `${filtered === total ? 'Всего' : 'Найдено'} ${filtered.toLocaleString('ru-RU')} · страница ${page} из ${pageCount} · загружено ${loadedAt || 'только что'}`;
-}

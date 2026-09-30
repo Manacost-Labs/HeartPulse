@@ -11,7 +11,8 @@ import {
   type TelegramAccountsPayload,
   type TelegramAdminAccount,
 } from './adminIntegrationListModel';
-import { AdminListPager, adminListSummary } from './AdminListPager';
+import { AdminListPager } from './AdminListPager';
+import { adminListSummary } from './adminListText';
 import './adminPeople.css';
 
 export type { TelegramAccountsPayload, TelegramAdminAccount } from './adminIntegrationListModel';

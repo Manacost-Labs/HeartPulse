@@ -608,8 +608,7 @@
   overflow-wrap: anywhere;
 }
 
-.admin-tailadmin-shell .admin-list-toolbar,
-.admin-tailadmin-shell .admin-page-toolbar {
+.admin-tailadmin-shell .admin-list-toolbar {
   padding: 12px;
   border-color: var(--admin-divider);
   border-radius: 10px;
@@ -650,7 +649,6 @@
 
 .admin-tailadmin-shell .contest-secondary-button,
 .admin-tailadmin-shell .admin-referral-row button,
-.admin-tailadmin-shell .admin-article-row button,
 .admin-tailadmin-shell .admin-image-uploader-head button {
   min-height: 42px;
   border-color: var(--admin-divider-strong);
@@ -659,17 +657,14 @@
   background: #fffdf8;
 }
 
-.admin-tailadmin-shell .contest-secondary-button:hover:not(:disabled),
-.admin-tailadmin-shell .admin-article-row button:hover:not(:disabled) {
+.admin-tailadmin-shell .contest-secondary-button:hover:not(:disabled) {
   border-color: #d0aa64;
   color: var(--admin-gold-dark);
   background: var(--admin-blue-soft);
 }
 
-.admin-tailadmin-shell .admin-article-row,
 .admin-tailadmin-shell .admin-referral-row,
 .admin-tailadmin-shell .admin-referral-clicks div,
-.admin-tailadmin-shell .admin-gallery-row,
 .admin-tailadmin-shell .admin-contest-list > div,
 .admin-tailadmin-shell .contest-entry-row {
   border-color: var(--admin-divider);
@@ -728,7 +723,6 @@
   .admin-tailadmin-shell .contest-primary-button,
   .admin-tailadmin-shell .contest-secondary-button,
   .admin-tailadmin-shell .admin-referral-row button,
-  .admin-tailadmin-shell .admin-article-row button,
   .admin-tailadmin-shell .admin-image-uploader-head button,
   .admin-tailadmin-shell .admin-pagination button {
     min-height: 44px;
@@ -1129,10 +1123,7 @@
 .admin-tailadmin-shell .contest-admin-card,
 .admin-tailadmin-shell .admin-stat-grid > div,
 .admin-tailadmin-shell .admin-list-toolbar,
-.admin-tailadmin-shell .admin-page-toolbar,
-.admin-tailadmin-shell .admin-article-row,
 .admin-tailadmin-shell .admin-referral-row,
-.admin-tailadmin-shell .admin-gallery-row,
 .admin-tailadmin-shell .admin-contest-list > div,
 .admin-tailadmin-shell .contest-entry-row {
   border: 1px solid var(--admin-divider-strong);
@@ -1143,7 +1134,6 @@
 .admin-tailadmin-shell .contest-primary-button { border: 1px solid #2e3a48; border-radius: 5px; color: #fff; background: #354151; box-shadow: 3px 3px 0 rgba(56, 64, 75, 0.38); }
 .admin-tailadmin-shell .contest-secondary-button,
 .admin-tailadmin-shell .admin-referral-row button,
-.admin-tailadmin-shell .admin-article-row button,
 .admin-tailadmin-shell .admin-image-uploader-head button,
 .admin-tailadmin-shell .admin-pagination button { border-color: var(--admin-divider-strong); border-radius: 5px; box-shadow: 3px 3px 0 rgba(56, 64, 75, 0.18); }
 .admin-tailadmin-shell :is(input, textarea, select) {

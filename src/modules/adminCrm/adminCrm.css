@@ -101,6 +101,8 @@
   background: var(--crm-surface);
   border-bottom: 1px solid var(--crm-line);
 }
+/* Form sheets have no avatar column. */
+.admin-crm-sheet-head.is-plain { grid-template-columns: minmax(0, 1fr) auto; }
 .admin-crm-avatar {
   display: grid;
   place-items: center;

@@ -12,7 +12,8 @@ import {
   type BoostySubscriberRow,
   type BoostySubscribersPayload,
 } from './adminIntegrationListModel';
-import { AdminListPager, adminListSummary } from './AdminListPager';
+import { AdminListPager } from './AdminListPager';
+import { adminListSummary } from './adminListText';
 import './adminPeople.css';
 
 export type { BoostyAdminStatus, BoostySubscriberRow, BoostySubscribersPayload } from './adminIntegrationListModel';

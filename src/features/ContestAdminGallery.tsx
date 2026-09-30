@@ -1,133 +1,117 @@
-import React from 'react';
-import { Download, Image as ImageIcon, Trash2 } from 'lucide-react';
-import { firstImageFile } from './ContestAdminImageUploader';
-import { ADMIN_INPUT } from './contestAdminUi';
+import React, { Suspense, useMemo, useRef, useState } from 'react';
+import { Download, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { adminContentClient, type AdminContentClient } from './adminContentClient';
+import { filterGalleryItems, formatContentDate, galleryFileLabel, type GalleryDraft, type GalleryItem } from './adminContentListModel';
+import { fileToDataUrl } from './ContestAdminImageUploader';
+import { AdminListPager } from './AdminListPager';
+import { adminListCount } from './adminListText';
+import type { AdminMessage } from './adminWorkspaceState';
+import { useAdminContentList } from './useAdminContent';
+import './adminPeople.css';
+import './adminContent.css';
 
-export type GalleryItem = {
-  id: string;
-  title: string;
-  description?: string;
-  tag?: string;
-  source?: string;
-  width?: number;
-  height?: number;
-  bytes?: number;
-  format?: string;
-  previewUrl: string;
-  thumbUrl: string;
-  imageUrl: string;
-  downloadUrl: string;
-  createdAt: string;
-  updatedAt?: string;
-};
-
-export type GalleryDraft = {
-  title: string;
-  tag: string;
-  description: string;
-  source: string;
-};
+const AdminGalleryUpload = React.lazy(async () => ({ default: (await import('./AdminGalleryUpload')).AdminGalleryUpload }));
+const PAGE_SIZE = 20;
 
 type ContestAdminGalleryProps = {
-  items: GalleryItem[];
-  draft: GalleryDraft;
-  file: File | null;
-  uploading: boolean;
-  deletingId: string;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onSubmit: React.FormEventHandler<HTMLFormElement>;
-  onDraftChange: (patch: Partial<GalleryDraft>) => void;
-  onFileChange: (file: File | null) => void;
-  onRefresh: () => void;
-  onDelete: (item: GalleryItem) => void;
+  onMessage: (message: AdminMessage | null) => void;
+  client?: AdminContentClient;
 };
 
-function formatBytes(bytes?: number): string {
-  const value = Number(bytes || 0);
-  if (!value) return 'размер не указан';
-  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} МБ`;
-  if (value >= 1024) return `${Math.round(value / 1024)} КБ`;
-  return `${value} Б`;
+type RowProps = { item: GalleryItem; busy: boolean; onDelete: (item: GalleryItem) => void };
+
+function GalleryRow({ item, busy, onDelete }: RowProps) {
+  return (
+    <tr className="admin-people-row admin-content-row">
+      <td className="admin-people-cell-person">
+        <div className="admin-people-person">
+          <img className="admin-content-cover" src={item.thumbUrl || item.previewUrl} alt="" loading="lazy" decoding="async" />
+          <div>
+            <strong>{item.title}</strong>
+            <small>{item.description || 'описание не указано'}</small>
+            {item.source && <small>источник: {item.source}</small>}
+          </div>
+        </div>
+      </td>
+      <td data-label="Раздел"><span>{item.tag || 'без раздела'}</span></td>
+      <td data-label="Файл"><span>{galleryFileLabel(item)}</span></td>
+      <td data-label="Добавлен"><span>{formatContentDate(item.createdAt)}</span></td>
+      <td className="admin-people-actions">
+        <div className="admin-content-actions">
+          <a href={item.downloadUrl} title="Скачать оригинал" aria-label={`Скачать оригинал: ${item.title}`}><Download size={16} aria-hidden="true" /></a>
+          <button type="button" className="is-danger" title="Удалить" aria-label={`Удалить арт: ${item.title}`} disabled={busy} onClick={() => onDelete(item)}><Trash2 size={16} aria-hidden="true" /></button>
+        </div>
+      </td>
+    </tr>
+  );
 }
 
-export function ContestAdminGallery({
-  items,
-  draft,
-  file,
-  uploading,
-  deletingId,
-  fileInputRef,
-  onSubmit,
-  onDraftChange,
-  onFileChange,
-  onRefresh,
-  onDelete,
-}: ContestAdminGalleryProps) {
-  return (
-    <div className="contest-admin-grid admin-gallery-layout">
-      <form className="contest-admin-card admin-gallery-form" onSubmit={onSubmit} aria-busy={uploading}>
-        <div className="admin-subsection-head">
-          <div><h2>Новый арт</h2><p className="contest-muted">Оригинал сохранится для скачивания, а сайт сам создаст легкие превью.</p></div>
-          <ImageIcon size={28} />
-        </div>
-        <label>Название
-          <input value={draft.title} onChange={event => onDraftChange({ title: event.target.value })} placeholder="Например: Легенда Арены" style={ADMIN_INPUT} />
-        </label>
-        <label>Раздел
-          <input value={draft.tag} onChange={event => onDraftChange({ tag: event.target.value })} placeholder="Арт, Обложка, Fan art" style={ADMIN_INPUT} />
-        </label>
-        <label>Описание
-          <textarea value={draft.description} onChange={event => onDraftChange({ description: event.target.value })} rows={4} placeholder="Короткое описание для карточки" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
-        </label>
-        <label>Источник или автор
-          <input value={draft.source} onChange={event => onDraftChange({ source: event.target.value })} placeholder="Необязательно" style={ADMIN_INPUT} />
-        </label>
-        <label className="admin-gallery-file">
-          <span>{file ? file.name : 'Выберите изображение'}</span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            onChange={event => onFileChange(firstImageFile(event.target.files))}
-          />
-        </label>
-        {file && (
-          <div className="admin-gallery-selected">
-            <ImageIcon size={18} />
-            <span>{file.name}</span>
-            <small>{formatBytes(file.size)}</small>
-          </div>
-        )}
-        <button type="submit" disabled={uploading} className="contest-primary-button">
-          {uploading ? 'Загружаем...' : 'Добавить в галерею'}
-        </button>
-      </form>
+export function ContestAdminGallery({ onMessage, client = adminContentClient }: ContestAdminGalleryProps) {
+  const list = useAdminContentList(client.gallery, onMessage);
+  const [search, setSearch] = useState('');
+  const [requestedPage, setPage] = useState(1);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const summaryRef = useRef<HTMLParagraphElement | null>(null);
+  const items = list.items;
+  const filtered = useMemo(() => filterGalleryItems(items, search), [items, search]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(requestedPage, pageCount);
+  const visible = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
+  const busy = Boolean(list.busy);
 
-      <div className="contest-admin-card">
-        <div className="admin-subsection-head">
-          <div><h2>Загруженные арты</h2><p className="contest-muted">Публичный раздел `/gallery`, доступен всем пользователям.</p></div>
-          <button type="button" className="contest-secondary-button" onClick={onRefresh}>Обновить</button>
-        </div>
-        <div className="admin-gallery-list">
-          {items.map(item => (
-            <article key={item.id} className="admin-gallery-row">
-              <img src={item.thumbUrl || item.previewUrl} alt="" loading="lazy" decoding="async" />
-              <div>
-                <strong>{item.title}</strong>
-                <small>{[item.tag || 'без раздела', item.width && item.height ? `${item.width} x ${item.height}` : '', formatBytes(item.bytes)].filter(Boolean).join(' · ')}</small>
-                <span>{item.description || 'Описание не указано'}</span>
-              </div>
-              <div className="admin-gallery-actions">
-                <a href={item.downloadUrl} title="Скачать оригинал" aria-label={`Скачать оригинал: ${item.title}`}><Download size={17} /></a>
-                <button type="button" onClick={() => onDelete(item)} disabled={deletingId === item.id} title="Удалить" aria-label={`Удалить арт: ${item.title}`}>
-                  <Trash2 size={17} />
-                </button>
-              </div>
-            </article>
-          ))}
-          {!items.length && <p className="contest-muted" role="status">В галерее пока нет артов.</p>}
-        </div>
+  const upload = async (draft: GalleryDraft, file: File) => {
+    const failure = await list.run('upload', async () => client.uploadGalleryItem(draft, await fileToDataUrl(file)), 'Арт добавлен в галерею.', false);
+    if (!failure) setUploadOpen(false);
+    return failure;
+  };
+  const remove = (item: GalleryItem) => {
+    if (!window.confirm(`Удалить «${item.title}» из галереи?`)) return;
+    // The deleted row took the focus with it; the summary announces the new count.
+    void list.run(`delete:${item.id}`, () => client.deleteGalleryItem(item.id), 'Арт удалён.').then(() => summaryRef.current?.focus());
+  };
+
+  return (
+    <div className="admin-people admin-gallery-page">
+      <div className="admin-people-toolbar">
+        <label className="admin-people-search">
+          <Search size={18} aria-hidden="true" />
+          <span className="admin-crm-sr-only">Поиск по галерее</span>
+          <input type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} placeholder="Название, раздел, описание или источник" />
+        </label>
+        <button type="button" className="contest-secondary-button admin-people-reload" disabled={list.loading || busy} onClick={() => void list.reload()}>
+          <RefreshCw size={16} aria-hidden="true" /> Обновить
+        </button>
+        <button type="button" className="contest-primary-button admin-content-create" aria-haspopup="dialog" onClick={() => setUploadOpen(true)}>
+          <Plus size={16} aria-hidden="true" /> Добавить арт
+        </button>
       </div>
+      {list.loadError && <div className="contest-message contest-message-err" role="alert">{list.loadError}</div>}
+      <p ref={summaryRef} className="admin-people-summary" role="status" tabIndex={-1}>
+        {list.loading ? 'Загружаем галерею…' : `${adminListCount(filtered.length, items.length, page, pageCount)} · публичный раздел /gallery, открыт всем`}
+      </p>
+      {visible.length ? (
+        <div className="admin-people-table-wrap" aria-busy={busy}>
+          <table className="admin-people-table is-gallery">
+            <thead>
+              <tr>
+                <th scope="col">Арт</th><th scope="col">Раздел</th><th scope="col">Файл</th><th scope="col">Добавлен</th>
+                <th scope="col"><span className="admin-crm-sr-only">Действия</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(item => <GalleryRow key={item.id} item={item} busy={busy} onDelete={remove} />)}
+            </tbody>
+          </table>
+        </div>
+      ) : !list.loading && !list.loadError && (
+        <p className="admin-people-empty">{items.length ? 'Арты не найдены по текущему запросу.' : 'В галерее пока нет артов. Нажмите «Добавить арт».'}</p>
+      )}
+      <AdminListPager label="Страницы списка артов" page={page} pageCount={pageCount} onPage={setPage} />
+      {uploadOpen && (
+        <Suspense fallback={null}>
+          <AdminGalleryUpload uploading={list.busy === 'upload'} onUpload={upload} onClose={() => setUploadOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

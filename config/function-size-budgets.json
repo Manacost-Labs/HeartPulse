@@ -58,7 +58,7 @@
     "src/features/ContestAdminTranslations.tsx#ContestAdminTranslations": 186,
     "src/features/ContestAdminTranslations.tsx#TranslationWorkspaceView": 224,
     "src/features/ContestAdminUsers.tsx#ContestAdminUsers": 194,
-    "src/features/Contests.tsx#ContestAdminPanel": 1289,
+    "src/features/Contests.tsx#ContestAdminPanel": 1011,
     "src/features/Cosmetics.tsx#CatalogView": 140,
     "src/features/DeckBuilder.tsx#DeckBuilder": 994,
     "src/features/decklist/DeckListView.tsx#DeckListView": 161,

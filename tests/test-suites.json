@@ -25,6 +25,7 @@
         "tests/admin-client-card-model.test.ts",
         "tests/admin-people-list-model.test.ts",
         "tests/admin-integration-lists-model.test.ts",
+        "tests/admin-content-lists-model.test.ts",
         "tests/admin-overview-model.test.ts",
         "tests/admin-wild-archetypes-model.test.ts",
         "tests/agent-check.test.mjs",

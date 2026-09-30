@@ -287,6 +287,47 @@ group the bot cannot read for at least half of the checked accounts is named
 in the status block with the action to take; a failed request shows an error
 instead of an empty list.
 
+## Content lists (2026-09-30 redesign)
+
+`/admin?section=articles` and `/admin?section=gallery` use the people-list
+layout too: a search field with «Обновить» and a primary create button,
+filter chips, a one-line summary, a table that turns into cards below 960 px
+and pagination of 20 rows. Creating and editing happen in a modal side sheet
+(`AdminSheet` from `src/modules/adminCrm`, the same focus, Escape and
+scroll-lock contract as the client card), so the list stays in view. Closing a
+sheet with unsaved input asks for confirmation. The endpoints and payloads are
+unchanged; the pure logic lives in `src/features/adminContentListModel.ts`
+and the transport in `src/features/adminContentClient.ts`.
+
+Articles. Columns: «Статья», «Раздел», «Доступ», «Дата», «Оценки» and the row
+actions (open, edit, delete). «Статья» shows the cover, the title (it opens
+the editor), where the link leads and what the public card is missing: a
+description, a link or a cover. Chips filter by mode (only modes in use) and,
+while at least one card is incomplete, by what is missing. «Доступ» states
+what a reader needs: the Arena or Battlegrounds article subscription, the
+«Алмаз» plan for Standard and Wild, or any subscription for a general
+article. The summary adds the date of the last publication and the number of
+articles dated within the last 30 days. The editor shows the card as a reader
+will see it while the draft changes, suggests sections already in use and
+refuses an empty title or a link that is neither `http(s)` nor a site path
+before anything is sent.
+
+Gallery. Columns: «Арт», «Раздел», «Файл» (dimensions, size, format),
+«Добавлен» and the row actions (download the original, delete). The upload
+sheet requires a title and an image file.
+
+Moving both sections out of `ContestAdminPanel` made them self-contained,
+lazily loaded chunks that fetch their own list when opened.
+
+A filter chip exists only while at least one row matches it. When the
+selected chip disappears (its last article was completed or deleted) the
+filter falls back to «Все» instead of leaving an empty list. A failed save or
+upload is reported inside the sheet, not in the toast, so the message never
+covers the sheet's buttons. After a row is deleted, focus moves to the summary
+line. A success toast dismisses itself after 6 seconds in every admin section,
+because on a phone it lies over the page toolbar; error toasts stay until
+closed.
+
 ## Permissions
 
 Every endpoint requires the full administrator role (`adminAuth`), matching
