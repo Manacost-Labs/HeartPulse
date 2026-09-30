@@ -28,6 +28,7 @@ test('switch and rollback retain paths, query, cookies, bodies and response cook
   const fixture = owner => http.createServer(async (req, res) => {
     let body = ''; for await (const chunk of req) body += chunk;
     res.setHeader('set-cookie', 'session=fixture; HttpOnly; Path=/');
+    res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ owner, url: req.url, cookie: req.headers.cookie, method: req.method, body }));
   });
   const legacy = fixture('legacy'); const next = fixture('next');
@@ -143,7 +144,11 @@ test('gallery can roll out without moving API or other editorial routes', () => 
 });
 
 test('a static directory serves its files and leaves everything else to the owners', async () => {
-  const upstreamServer = owner => http.createServer((req, res) => res.end(JSON.stringify({ owner, url: req.url })));
+  // The fixtures echo the request, so they answer as JSON, never as a sniffable document.
+  const upstreamServer = owner => http.createServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ owner, url: req.url }));
+  });
   const legacy = upstreamServer('legacy'); const next = upstreamServer('next');
   const legacyOrigin = await listen(legacy); const nextOrigin = await listen(next);
   const gateway = createPublicWebGateway({ legacyOrigin, nextOrigin, enabled: true, pagesEnabled: true, staticDir: 'public' });
