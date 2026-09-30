@@ -7,6 +7,7 @@ import { tabFromPath } from '@/src/app/routing/navigationRoutes';
 import { classifyAppError } from '@/src/components/appErrorRecovery';
 import { usePublicAccess } from '@/apps/public-web/ui/usePublicAccess';
 import { navigate } from '@/apps/public-web/ui/navigation';
+import { useRouteErrorReport } from '@/apps/public-web/ui/useRouteErrorReport';
 import '@/src/features/NotFoundPage.css';
 
 // Every route without its own error.tsx lands here, so the copy names no
@@ -16,13 +17,14 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
   const router = useRouter();
   const pathname = usePathname() || '/';
   const access = usePublicAccess();
+  useRouteErrorReport(error, 'route');
   const outdated = classifyAppError(error) === 'chunk';
   const retry = () => {
     if (outdated) window.location.reload();
     else startTransition(() => { router.refresh(); reset(); });
   };
   return <PublicPageShell activeTab={tabFromPath(pathname)} pathname={pathname} access={access} navigate={navigate} editorial>
-    <section className="not-found-page not-found-page--unavailable" aria-labelledby="route-error-title" role="alert">
+    <section className="not-found-page not-found-page--unavailable" aria-labelledby="route-error-title" role="alert" data-app-error="route">
       <div className="not-found-page__icon" aria-hidden="true"><RefreshCw /></div>
       <p className="not-found-page__eyebrow">Ошибка загрузки</p>
       <h1 id="route-error-title">{outdated ? 'Сайт обновился' : 'Страница временно недоступна'}</h1>

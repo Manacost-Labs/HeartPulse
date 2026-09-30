@@ -465,10 +465,11 @@ cutover and that must return before those files are deleted:
   documents, including the legal text without JavaScript.
 - Done: a card page that cannot be verified answers the retryable `503` of
   the entity contract instead of a `500`.
-- Open: client error reports. The single-page shell posted every caught
-  error to `/api/telemetry/client-errors`; the Next.js error pages send
-  nothing yet. The browser Sentry SDK is removed: no build ever received a
-  client DSN, so it never ran.
+- Done: client error reports. The single-page shell posted every caught
+  error to `/api/telemetry/client-errors`; the Next.js error pages sent
+  nothing. Every `error.tsx` now reports through
+  `apps/public-web/ui/useRouteErrorReport.ts`. The browser Sentry SDK is
+  removed: no build ever received a client DSN, so it never ran.
 
 Eleven browser tests use a Vite dev server as their component harness
 (`tests/fixtures/*.html`, `tests/fixtures/vite.*.config.ts`); they need another

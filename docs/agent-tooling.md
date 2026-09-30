@@ -245,9 +245,9 @@ id, DOM target, cookies, пользователь и другие высокок
 данные не отправляются.
 
 Для активации error monitoring задайте server-only `SENTRY_DSN`. Ошибки
-интерфейса, пойманные `RecoverableSurface`, приходят same-origin запросом на
-`/api/telemetry/client-errors` без cookies и попадают в журнал сервера строкой
-`[client-interface-error]`.
+интерфейса, пойманные страницами `error.tsx` и `RecoverableSurface`, приходят
+same-origin запросом на `/api/telemetry/client-errors` без cookies и попадают в
+журнал сервера строкой `[client-interface-error]`.
 RUM требует только server-only DSN и по умолчанию собирается для всех page
 views; объём можно ограничить через `NEXT_PUBLIC_WEB_VITALS_SAMPLE_RATE` от `0`
 до `1` (значение читается при сборке Next.js). Tracing sampling повышайте только

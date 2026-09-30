@@ -2737,7 +2737,7 @@ for (const [device, viewport] of [
     const archetypeRetryState = await page.evaluate(() => ({
       marker: window.__qaStandardMetaDocumentMarker || '',
       errorPresent: Boolean(document.querySelector('.archetypes-page [data-recovery-state="error"]')),
-      shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+      shellRecoveryPresent: Boolean(document.querySelector('[data-app-error]')),
     }));
     if (archetypeRetryState.marker !== 'preserve-on-retry' || archetypeRetryState.errorPresent || archetypeRetryState.shellRecoveryPresent) {
       failures.push(`archetype catalog recovery [${device}]: retry reloaded the document or opened shell recovery (${JSON.stringify(archetypeRetryState)})`);
@@ -2851,7 +2851,7 @@ for (const [device, viewport] of [
     const metaRetryState = await page.evaluate(() => ({
       marker: window.__qaStandardMetaDocumentMarker || '',
       errorPresent: Boolean(document.querySelector('.standard-meta [data-recovery-state="error"]')),
-      shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+      shellRecoveryPresent: Boolean(document.querySelector('[data-app-error]')),
     }));
     if (metaRetryState.marker !== 'preserve-on-retry' || metaRetryState.errorPresent || metaRetryState.shellRecoveryPresent) {
       failures.push(`standard meta recovery [${device}]: Retry reloaded the document or opened shell recovery (${JSON.stringify(metaRetryState)})`);
@@ -2868,7 +2868,7 @@ for (const [device, viewport] of [
       return {
         text: state?.textContent?.replace(/\s+/g, ' ').trim() || '',
         shellVisible: Boolean(document.querySelector('.arena-sidebar') && document.querySelector('.global-utility-header')),
-        shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+        shellRecoveryPresent: Boolean(document.querySelector('[data-app-error]')),
       };
     });
     if (!contractErrorState.text.includes('Формат данных обновился')
@@ -3205,7 +3205,7 @@ for (const [device, viewport] of [
         sharedBuilderPresent: Boolean(stage?.querySelector('.deck-list-view')),
         rawCodeVisible: Boolean(document.querySelector('.standard-meta-modal__code-block, .standard-meta-modal code')),
         copyAvailable: Boolean(document.querySelector('.standard-meta-modal__copy-button')),
-        shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+        shellRecoveryPresent: Boolean(document.querySelector('[data-app-error]')),
         pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         stageOverflow: (stage?.scrollWidth ?? 0) > (stage?.clientWidth ?? 0) + 1,
       };

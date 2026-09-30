@@ -19,7 +19,7 @@ function errorDetails(error: unknown): { errorName: string; message: string; sta
   return { errorName: typeof error, message: String(error ?? ''), stack: '' };
 }
 
-/** Send diagnostics only after a boundary catches an error, keeping the normal startup bundle unchanged. */
+/** Send diagnostics after a boundary has caught an error. Nothing is sent on a normal page view. */
 export function registerAppIncident(incidentId: string, details: AppIncidentDetails): void {
   if (typeof globalThis.fetch !== 'function') return;
   const error = errorDetails(details.error);

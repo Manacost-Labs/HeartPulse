@@ -109,6 +109,30 @@ test('real browser probe returns a stable semantic failure', { skip: !chromePath
   }
 });
 
+test('real browser probe reports a visible application error page', { skip: !chromePath }, async () => {
+  // A Next.js `error.tsx` marks its alert with `data-app-error`; the page around it still renders.
+  const server = createServer((_request, response) => {
+    response.setHeader('Content-Type', 'text/html; charset=utf-8');
+    response.end('<!doctype html><html><body><main class="ready"><section role="alert" data-app-error="route"><h1>Error</h1></section></main></body></html>');
+  });
+  const origin = await listen(server);
+  const browser = await createBrowserProbe({
+    baseUrl: origin,
+    navigationTimeoutMs: 5_000,
+    semanticTimeoutMs: 500,
+    executablePath: chromePath,
+  });
+  try {
+    await assert.rejects(
+      browser.probe({ id: 'controlled-error-page', path: '/', assertions: [{ selector: '.ready', minCount: 1 }] }),
+      error => error.code === 'APP_ERROR_STATE',
+    );
+  } finally {
+    await browser.close();
+    await closeServer(server);
+  }
+});
+
 test('real browser probe never includes arbitrary console data in a failure', { skip: !chromePath }, async () => {
   const server = createServer((_request, response) => {
     response.setHeader('Content-Type', 'text/html; charset=utf-8');

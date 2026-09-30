@@ -29,12 +29,13 @@ async function readErrorPage(page, url) {
       retry: [...alert.querySelectorAll('button')].map(button => button.textContent?.trim()),
       homeLink: Boolean(alert.querySelector('a[href="/"]')),
       nav: Boolean(document.querySelector('nav')),
+      marker: alert.getAttribute('data-app-error'),
       overflow: document.documentElement.scrollWidth > innerWidth,
     };
   });
 }
 
-test('route errors outside the card catalog show generic recovery copy', async () => {
+test('route error pages keep their recovery copy and report the error once', async () => {
   const express = await startFailingExpress();
   let next;
   let browser;
@@ -45,12 +46,35 @@ test('route errors outside the card catalog show generic recovery copy', async (
     const page = await browser.newPage();
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
+    // Each error page reports itself once to the first-party diagnostics endpoint.
+    const reports = [];
+    page.on('request', request => {
+      if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/telemetry/client-errors') {
+        reports.push(JSON.parse(request.postData()));
+      }
+    });
+    const reportAfter = async seen => {
+      for (let attempt = 0; attempt < 100 && reports.length <= seen; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      assert.equal(reports.length, seen + 1, 'one report per error page');
+      return reports.at(-1);
+    };
 
     for (const width of [320, 1440]) {
       await page.setViewport({ width, height: 900 });
       // The proxy answers card, Battlegrounds and cosmetics detail outages itself; archetypes reach error.tsx.
+      const seen = reports.length;
       const archetype = await readErrorPage(page, `${next.origin}/standard/meta/standard/qa-evenlock/`);
       assert.equal(archetype.heading, 'Страница временно недоступна');
+      const report = await reportAfter(seen);
+      assert.equal(report.kind, 'render');
+      assert.equal(report.route, '/standard/meta/standard/qa-evenlock/');
+      assert.match(report.scope, /^route digest=\S+$/, 'the digest links the report to the server log');
+      assert.equal(archetype.marker, 'route', 'the production observer finds an error page by this attribute');
+      assert.ok(archetype.text.includes(report.scope.split('digest=')[1]), 'the page shows the same error code');
+      assert.match(report.incidentId, /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+      assert.match(report.releaseId, /^(?:development|[a-f0-9]{7,40})$/);
       assert.doesNotMatch(archetype.text, /карт|каталог/i, 'an archetype outage must not mention the card catalog');
       assert.deepEqual(archetype.retry, ['Повторить']);
       assert.equal(archetype.homeLink, true);
@@ -58,8 +82,18 @@ test('route errors outside the card catalog show generic recovery copy', async (
       assert.equal(archetype.overflow, false, `error page overflow at ${width}px`);
     }
 
-    const catalog = await readErrorPage(page, `${next.origin}/standard/cards/standard/`);
-    assert.equal(catalog.heading, 'Данные карты временно недоступны');
+    // A section boundary keeps its own copy and reports under its own scope.
+    for (const [path, heading, scope] of [
+      ['/standard/cards/standard/', 'Данные карты временно недоступны', 'route:standard-cards'],
+      ['/articles/', 'Статьи временно недоступны', 'route:articles'],
+      ['/contests/', 'Конкурсы временно недоступны', 'route:contests'],
+    ]) {
+      const seen = reports.length;
+      const section = await readErrorPage(page, `${next.origin}${path}`);
+      assert.equal(section.heading, heading);
+      assert.equal(section.marker, scope);
+      assert.ok((await reportAfter(seen)).scope.startsWith(`${scope} digest=`), `${path} reports as ${scope}`);
+    }
     assert.deepEqual(pageErrors, []);
   } finally {
     if (browser) await browser.close();

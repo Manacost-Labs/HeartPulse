@@ -195,7 +195,7 @@ export async function createBrowserProbe(options) {
         const count = await page.evaluate(visibleCountScript, selector);
         if (count > 0) throw probeError('FORBIDDEN_STATE', 'semantic', `${selector} must not be visible`);
       }
-      const appErrorCount = await page.evaluate(visibleCountScript, '[data-app-error], .app-error-card');
+      const appErrorCount = await page.evaluate(visibleCountScript, '[data-app-error]');
       if (appErrorCount > 0) throw probeError('APP_ERROR_STATE', 'semantic', 'application error state is visible');
       if (runtimeFailures.length > 0) {
         const first = runtimeFailures[0];

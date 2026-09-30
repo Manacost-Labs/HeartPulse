@@ -57,7 +57,15 @@ behind its `public.ts`, not in `src/features/`.
 - `app/error.tsx` catches errors of every route without its own boundary, so
   its copy names no section. Section-specific error copy belongs in that
   segment's `error.tsx` (`app/standard/cards/`, `app/articles/`,
-  `app/contests/`); `tests/next-error-boundary-browser.test.mjs` checks both.
+  `app/contests/`). Every `error.tsx` calls `ui/useRouteErrorReport.ts` with
+  its own scope: the caught error is posted once to
+  `/api/telemetry/client-errors`, and Express writes it to the journal as
+  `[client-interface-error]` with the release, the route and, for a server
+  render error, the `digest` that the Next.js log prints next to the full
+  error. The alert element carries `data-app-error`: the production observer
+  and browser QA recognise an error page by it.
+  `tests/next-error-boundary-browser.test.mjs` checks the copy, the marker
+  and the report.
 - Link to pages with their trailing slash (`/tierlist/`). The slash-less URL
   answers with an uncached 301, which costs a round trip per click and keeps
   the link out of prerendering. `navigate()` adds the slash for scripted
