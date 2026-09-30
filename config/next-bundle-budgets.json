@@ -4,99 +4,99 @@
   "routes": {
     "/": {
       "jsGzipBytes": 163840,
-      "cssGzipBytes": 58368
+      "cssGzipBytes": 33792
     },
     "/articles/": {
       "jsGzipBytes": 159744,
-      "cssGzipBytes": 61440
+      "cssGzipBytes": 46080
     },
     "/faq/": {
       "jsGzipBytes": 164864,
-      "cssGzipBytes": 57344
+      "cssGzipBytes": 39936
     },
     "/standard/matchups/": {
       "jsGzipBytes": 171008,
-      "cssGzipBytes": 61440
+      "cssGzipBytes": 45056
     },
     "/standard/meta/": {
       "jsGzipBytes": 179200,
-      "cssGzipBytes": 67584
+      "cssGzipBytes": 58368
     },
     "/standard/archetypes/": {
       "jsGzipBytes": 184320,
-      "cssGzipBytes": 74752
+      "cssGzipBytes": 65536
     },
     "/standard/vicious-gold/": {
       "jsGzipBytes": 173056,
-      "cssGzipBytes": 65536
+      "cssGzipBytes": 56320
     },
     "/standard/cards/": {
       "jsGzipBytes": 221184,
-      "cssGzipBytes": 61440
+      "cssGzipBytes": 60416
     },
     "/standard/cards/standard/": {
       "jsGzipBytes": 221184,
-      "cssGzipBytes": 61440
+      "cssGzipBytes": 60416
     },
     "/classes/": {
       "jsGzipBytes": 168960,
-      "cssGzipBytes": 58368
+      "cssGzipBytes": 43008
     },
     "/tierlist/": {
       "jsGzipBytes": 189440,
-      "cssGzipBytes": 65536
+      "cssGzipBytes": 50176
     },
     "/legendaries/": {
       "jsGzipBytes": 191488,
-      "cssGzipBytes": 65536
+      "cssGzipBytes": 50176
     },
     "/heroes/": {
       "jsGzipBytes": 199680,
-      "cssGzipBytes": 70656
+      "cssGzipBytes": 55296
     },
     "/library/": {
       "jsGzipBytes": 182272,
-      "cssGzipBytes": 69632
+      "cssGzipBytes": 52224
     },
     "/library/minions/": {
       "jsGzipBytes": 182272,
-      "cssGzipBytes": 69632
+      "cssGzipBytes": 52224
     },
     "/battlegrounds/tier-list/": {
       "jsGzipBytes": 162816,
-      "cssGzipBytes": 57344
+      "cssGzipBytes": 39936
     },
     "/gallery/": {
       "jsGzipBytes": 159744,
-      "cssGzipBytes": 61440
+      "cssGzipBytes": 46080
     },
     "/cosmetics/": {
       "jsGzipBytes": 169984,
-      "cssGzipBytes": 58368
+      "cssGzipBytes": 41984
     },
     "/contests/": {
       "jsGzipBytes": 157696,
-      "cssGzipBytes": 72704
+      "cssGzipBytes": 54272
     },
     "/guides-archive/": {
       "jsGzipBytes": 162816,
-      "cssGzipBytes": 59392
+      "cssGzipBytes": 41984
     },
     "/standard/fun-decks/": {
       "jsGzipBytes": 173056,
-      "cssGzipBytes": 65536
+      "cssGzipBytes": 56320
     },
     "/developers/api/": {
       "jsGzipBytes": 160768,
-      "cssGzipBytes": 56320
+      "cssGzipBytes": 31744
     },
     "/privacy/": {
       "jsGzipBytes": 164864,
-      "cssGzipBytes": 57344
+      "cssGzipBytes": 39936
     },
     "/connect/": {
       "jsGzipBytes": 156672,
-      "cssGzipBytes": 54272
+      "cssGzipBytes": 36864
     }
   }
 }
