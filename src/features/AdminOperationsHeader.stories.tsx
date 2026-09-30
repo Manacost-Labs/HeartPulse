@@ -16,8 +16,6 @@ const meta = {
   )],
   parameters: { layout: 'fullscreen' },
   args: {
-    eyebrow: 'Аудитория',
-    title: 'Пользователи',
     description: 'Поиск профилей, управление доступом и блокировками в одном списке.',
     status: 'База готова к работе',
     statusTone: 'ready',

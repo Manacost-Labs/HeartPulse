@@ -81,13 +81,13 @@ const overview = {
 const overviewHtml = renderToStaticMarkup(
   <>
     <OverviewAlerts alerts={overview.alerts} onNavigate={noop} onOpenSegment={noop} />
-    <OverviewKpis overview={overview} money={null} moneyFailed onNavigate={noop} onOpenSegment={noop} />
+    <OverviewKpis overview={overview} onOpenSegment={noop} />
   </>,
 );
 assert.match(overviewHtml, /Срочно: <\/span>Бот не видит VIP-группу Telegram -5077378176/);
 assert.match(overviewHtml, /Открыть Telegram/);
 assert.match(overviewHtml, /1\s284/);
-assert.match(overviewHtml, /аналитика недоступна/);
+assert.match(overviewHtml, /Истекает за 7 дней/);
 assert.match(overviewHtml, /-4%/);
 assert.equal((overviewHtml.match(/<li><button type="button"/g) ?? []).length, 4);
 assert.match(renderToStaticMarkup(<OverviewAlerts alerts={[]} onNavigate={noop} onOpenSegment={noop} />), /role="status"[^>]*>.*Всё спокойно/);

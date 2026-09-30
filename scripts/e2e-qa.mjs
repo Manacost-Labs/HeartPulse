@@ -1778,8 +1778,6 @@ for (const [device, viewport] of [
   try {
     await page.goto(`${BASE}/admin?section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-overview-kpis', { timeout: 20_000 });
-    // Revenue arrives separately from the Boosty analytics fixture (2500 RUB).
-    await page.waitForFunction(() => /2\s500/.test(document.querySelectorAll('.admin-overview-kpis strong')[1]?.textContent ?? ''));
     const state = await page.evaluate(() => {
       const root = document.documentElement;
       const shell = document.querySelector('.bg-wood');
@@ -1812,14 +1810,14 @@ for (const [device, viewport] of [
     }
     const expectedKpis = [
       { label: 'С доступом сейчас', value: '1' },
-      { label: 'Выручка за 30 дней', value: '2 500 ₽' },
       { label: 'Новые пользователи', value: '2' },
       { label: 'Потеряли доступ', value: '0' },
+      { label: 'Истекает за 7 дней', value: '1' },
     ];
     if (JSON.stringify(state.kpis) !== JSON.stringify(expectedKpis)) {
       failures.push(`admin overview [${device}]: KPI mismatch ${JSON.stringify(state.kpis)}`);
     }
-    if (state.sparklines !== 3) failures.push(`admin overview [${device}]: expected 3 sparklines, got ${state.sparklines}`);
+    if (state.sparklines !== 2) failures.push(`admin overview [${device}]: expected 2 sparklines, got ${state.sparklines}`);
     if (state.activity.length !== 2 || !state.activity[0].includes('Новый пользователь')) {
       failures.push(`admin overview [${device}]: activity feed mismatch ${JSON.stringify(state.activity)}`);
     }
@@ -2492,46 +2490,69 @@ for (const [device, viewport] of [
     adminState.contestReadFailure = false;
 
     await page.goto(`${BASE}/admin?section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-people-row').length === 2);
     await page.screenshot({ path: `${OUT}/admin-users-${device}.png`, fullPage: false });
     const usersState = await page.evaluate(() => {
-      const row = document.querySelector('.contest-user-row');
-      const badges = row?.querySelector('.contest-user-badges');
-      const role = badges?.querySelector(':scope > span');
-      const menuWrap = badges?.querySelector('.contest-user-action-menu-wrap');
-      const rowStyle = row ? getComputedStyle(row) : null;
-      const badgesStyle = badges ? getComputedStyle(badges) : null;
-      const roleStyle = role ? getComputedStyle(role) : null;
-      const menuWrapStyle = menuWrap ? getComputedStyle(menuWrap) : null;
-      const contacts = row?.querySelector('.admin-user-facts div:nth-child(2) dd');
-      const contactsStyle = contacts ? getComputedStyle(contacts) : null;
+      const text = element => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
+      const rows = [...document.querySelectorAll('.admin-people-row')];
+      const contacts = rows[0]?.querySelector('.admin-people-contacts');
+      const pill = rows[0]?.querySelector('.admin-crm-pill');
+      const menuWrap = rows[0]?.querySelector('.contest-user-action-menu-wrap');
       return {
-        rows: document.querySelectorAll('.contest-user-row').length,
-        summary: [...document.querySelectorAll('.admin-operations-metric-value')].map(element => element.textContent?.trim() || ''),
+        rows: rows.length,
+        summary: text(document.querySelector('.admin-people-summary')),
+        headers: [...document.querySelectorAll('.admin-people-table thead th')].map(text),
+        access: rows.map(row => text(row.querySelector('.admin-crm-pill'))),
+        pillBackground: pill ? getComputedStyle(pill).backgroundColor : '',
+        searchHeight: document.querySelector('.admin-people-search')?.getBoundingClientRect().height ?? 0,
+        segmentPressed: text(document.querySelector('.admin-crm-segment[aria-pressed="true"]')),
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
-        badgesDisplay: badgesStyle?.display || '',
-        badgesGap: parseFloat(badgesStyle?.gap || '0') || 0,
-        roleColor: roleStyle?.color || '',
-        rowColor: rowStyle?.color || '',
-        menuWrapDisplay: menuWrapStyle?.display || '',
-        contactsText: contacts?.textContent?.trim() || '',
-        contactsWhiteSpace: contactsStyle?.whiteSpace || '',
-        contactsOverflowWrap: contactsStyle?.overflowWrap || '',
+        contactsText: text(contacts),
+        contactsRight: contacts?.getBoundingClientRect().right ?? 0,
+        tableRight: document.querySelector('.admin-people-table')?.getBoundingClientRect().right ?? 0,
+        menuWrapPosition: menuWrap ? getComputedStyle(menuWrap).position : '',
       };
     });
-    if (usersState.rows !== 2 || usersState.summary[0] !== '2' || usersState.summary[1] !== '2') {
-      failures.push(`admin users [${device}]: deterministic user list did not render`);
+    if (usersState.rows !== 2 || !usersState.summary.includes('Всего 2') || !usersState.segmentPressed.startsWith('Все')) {
+      failures.push(`admin users [${device}]: deterministic people list did not render (${JSON.stringify(usersState)})`);
     }
+    if (JSON.stringify(usersState.headers.slice(0, 5)) !== JSON.stringify(['Человек', 'Доступ', 'Контакты', 'Активность', 'Теги'])) {
+      failures.push(`admin users [${device}]: table columns changed (${JSON.stringify(usersState.headers)})`);
+    }
+    if (JSON.stringify(usersState.access) !== JSON.stringify(['Подписка', 'Заблокирован']) || ['', 'rgba(0, 0, 0, 0)'].includes(usersState.pillBackground)) {
+      failures.push(`admin users [${device}]: access status is missing or unstyled (${JSON.stringify(usersState)})`);
+    }
+    if (usersState.searchHeight < 44) failures.push(`admin users [${device}]: search field is below the 44px target (${usersState.searchHeight})`);
     if (usersState.scrollWidth > usersState.clientWidth + 1) {
       failures.push(`admin users [${device}]: horizontal overflow ${usersState.scrollWidth} > ${usersState.clientWidth}`);
     }
-    if (!usersState.contactsText.includes('hearthpulse.community.manager.with.a.long.address@example.test') || usersState.contactsWhiteSpace !== 'normal' || usersState.contactsOverflowWrap !== 'anywhere') {
-      failures.push(`admin users [${device}]: long contact details are hidden or cannot wrap (${JSON.stringify(usersState)})`);
+    if (!usersState.contactsText.includes('hearthpulse.community.manager.with.a.long.address@example.test') || usersState.contactsRight > usersState.tableRight + 1) {
+      failures.push(`admin users [${device}]: long contact details are hidden or overflow the table (${JSON.stringify(usersState)})`);
     }
-    if (usersState.badgesDisplay !== 'flex' || usersState.badgesGap < 5 || usersState.roleColor === usersState.rowColor || usersState.menuWrapDisplay !== 'block') {
-      failures.push(`admin users [${device}]: badge/menu cascade changed (${JSON.stringify(usersState)})`);
+    if (usersState.menuWrapPosition !== 'relative') failures.push(`admin users [${device}]: action menu lost its anchor (${usersState.menuWrapPosition})`);
+
+    // The person's name opens the client card as a modal sheet and returns focus when it closes.
+    await page.click('.admin-people-row .admin-crm-open');
+    await page.waitForFunction(() => document.querySelector('.admin-crm-sheet[role="dialog"] h2')?.textContent?.trim() === 'Первый пользователь');
+    await page.waitForSelector('.admin-crm-timeline li', { timeout: 20_000 });
+    const cardState = await page.evaluate(() => ({
+      focused: document.activeElement?.getAttribute('aria-label') || '',
+      sections: [...document.querySelectorAll('.admin-crm-sheet .admin-crm-section h3')].map(element => element.textContent?.trim() || ''),
+      referral: [...document.querySelectorAll('.admin-crm-sheet dd')].some(element => element.textContent?.includes('QA campaign')),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (cardState.focused !== 'Закрыть карточку' || cardState.overflow || !cardState.referral
+      || JSON.stringify(cardState.sections) !== JSON.stringify(['Доступ', 'Теги', 'Заметки', 'Аккаунты и контакты', 'История'])) {
+      failures.push(`admin users [${device}]: client card did not open correctly (${JSON.stringify(cardState)})`);
     }
+    const cardViolationCount = await auditAccessibility(page, `admin client card [${device}]`, '.admin-crm-sheet');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.admin-crm-sheet'));
+    const cardFocusRestored = await page.evaluate(() => document.activeElement?.classList.contains('admin-crm-open') === true);
+    if (!cardFocusRestored) failures.push(`admin users [${device}]: closing the client card did not restore focus to the name`);
+    console.log(`✓ admin client card [${device}] open + axe (${cardViolationCount} violations) + focus restore`);
+
     await page.click('.contest-user-menu-trigger');
     await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
     await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
@@ -2582,7 +2603,7 @@ for (const [device, viewport] of [
     await page.evaluate(() => { window.confirm = () => true; });
     for (const actionText of ['Дать полный доступ', 'Сделать администратором', 'Заблокировать']) {
       console.log(`→ admin users [${device}] ${actionText}`);
-      await page.click('.contest-user-row:first-child .contest-user-menu-trigger');
+      await page.click('.admin-people-row:first-child .contest-user-menu-trigger');
       await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
       await page.evaluate(text => {
         const button = [...document.querySelectorAll('.contest-user-menu button[role="menuitem"]')]
@@ -2596,11 +2617,11 @@ for (const [device, viewport] of [
         await page.click('.admin-access-dialog button[type="submit"]');
       }
       await page.waitForFunction(text => {
-        const row = document.querySelector('.contest-user-row:first-child');
+        const row = document.querySelector('.admin-people-row:first-child');
         if (!row) return false;
-        if (text === 'Дать полный доступ') return row.querySelector('.contest-access-ok')?.textContent?.includes('полный доступ');
-        if (text === 'Сделать администратором') return row.querySelector('.contest-role-admin')?.textContent?.includes('админ');
-        return row.querySelector('.contest-role-blocked')?.textContent?.includes('заблокирован');
+        if (text === 'Дать полный доступ') return row.textContent?.includes('выдан вручную');
+        if (text === 'Сделать администратором') return row.textContent?.includes('администратор');
+        return row.querySelector('.admin-crm-pill')?.textContent?.includes('Заблокирован');
       }, {}, actionText);
       await page.waitForFunction(() => !document.querySelector('.contest-user-menu'));
       await page.waitForFunction(() => !document.querySelector('.contest-user-menu-trigger')?.hasAttribute('disabled'));
@@ -2608,9 +2629,9 @@ for (const [device, viewport] of [
     }
     console.log(`→ admin users [${device}] persistence reload`);
     await page.goto(`${BASE}/admin?section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
-    const persistedUser = await page.$eval('.contest-user-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
-    if (!persistedUser.includes('админ') || !persistedUser.includes('заблокирован') || !persistedUser.includes('полный доступ')) {
+    await page.waitForFunction(() => document.querySelectorAll('.admin-people-row').length === 2);
+    const persistedUser = await page.$eval('.admin-people-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
+    if (!persistedUser.includes('администратор') || !persistedUser.includes('Заблокирован') || !persistedUser.includes('ручной доступ сохранён')) {
       failures.push(`admin users [${device}]: role/block/manual-access mutations did not persist after navigation`);
     }
     console.log(`✓ admin users [${device}] persistence reload`);
@@ -2619,7 +2640,6 @@ for (const [device, viewport] of [
       ['fun-decks', 'Фановые колоды', '.admin-standard-operations', '.admin-fun-decks__stats strong', '0'],
       ['api-keys', 'Public API', '.admin-api-keys', '.admin-api-key-empty', 'Ключей пока нет'],
       ['referrals', 'Реферальная ссылка', '.admin-referral-layout', '.admin-referral-row strong', 'QA campaign'],
-      ['money', 'Деньги', '.admin-money', '.admin-money-kpis dt', 'Получено всего'],
     ];
     let previouslyUncoveredViolationCount = 0;
     for (const [section, heading, selector, loadedSelector, loadedText] of previouslyUncoveredSections) {

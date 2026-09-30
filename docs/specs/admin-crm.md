@@ -127,42 +127,22 @@ usual):
 access history, and `admin_audit_log(entity_type, entity_id, created_at DESC)`
 for the per-person audit trail.
 
-## Money section (phase 2)
+## Money section (removed)
 
-`/admin?section=money` («Деньги») reads the existing
-`GET /api/admin/boosty/analytics?from&to` for 30 days, 90 days or a year and
-shows:
-
-- totals: subscription revenue (new subscriptions and renewals), Boosty
-  donations and paid posts, average subscription payment and observed
-  decreases (refunds and downgrades);
-- revenue per day (up to 31 days), per Monday-based week (up to 120 days) or
-  per month, with every bucket present so gaps stay visible; periods start at
-  the beginning of a UTC day, so only today's bucket is partial;
-- revenue per subscription level with its share, retention after 30, 60 and
-  90 days, top Boosty buyers and the latest sales.
-
-Subscription revenue is inferred from observed Boosty payment increases plus
-exact Tribute webhooks, so the page lists every data-quality caveat from the
-payload (incomplete polling, unavailable Tribute or sales ledger) above the
-numbers. When the sales ledger is unavailable, donations and posts show «—»
-instead of zero. The loader requests at most 500 sales rows; when that limit
-is reached the chart is marked incomplete while the totals stay exact.
-
-The KolodaHearthstone article catalogue only annotates the analytics. If it is
-unavailable, the endpoint still returns revenue with empty `articleIntervals`
-and a limitation, instead of failing with `502`.
-
-The previous article-interval analytics page (`ContestAdminAnalytics`), removed
-from navigation on 2026-09-13, is deleted together with its model.
+The «Деньги» section shipped on 2026-09-29 and was removed on 2026-09-30. On
+production the subscription analytics it read reported no new subscriptions
+or renewals (the Boosty source does not observe renewals and Tribute had sent
+no events since August), so the page showed a misleading total built from a
+few paid posts. The revenue card on the overview is removed for the same
+reason. `GET /api/admin/boosty/analytics` and its `articles=0` option stay.
 
 ## Overview (phase 2)
 
 `/admin?section=dashboard` («Обзор») is the admin landing page. It reads
 `GET /api/admin/crm/overview`, which the server caches for 60 seconds
-(`?fresh=1`, sent by «Обновить», bypasses the cache), and the 30-day money
-analytics for the revenue card. The revenue request is independent: alerts
-and the other cards render without waiting for Boosty or Tribute.
+(`?fresh=1`, sent by «Обновить», bypasses the cache). Its cards are «С
+доступом сейчас», «Новые пользователи», «Потеряли доступ» and «Истекает за 7
+дней»; each opens the matching people segment.
 
 Response:
 
@@ -226,9 +206,6 @@ indexes on `has_access = 1`, `(user_id, checked_at)` and
 `(checked_at, user_id)`. A query-plan test guards this. Building them adds a
 few seconds to the first start after deployment.
 
-The revenue card requests `/api/admin/boosty/analytics` with `articles=0`,
-which skips the KolodaHearthstone article catalogue.
-
 ## Referral funnel (phase 3)
 
 Clicks on campaign links (`/r/:slug` and `POST /api/referrals/track/:slug`)
@@ -266,6 +243,25 @@ Sections are grouped by job: «Рабочий стол» (Обзор), «Люд�
 Section ids and labels are unchanged. The admin Arena synergy and draft
 assistant screens, disconnected since 2026-09-13, are deleted; their server
 routes and the pure draft model remain.
+
+## People list (2026-09-30 redesign)
+
+`/admin?section=users` is a table: a search field, segment and tag chips, a
+one-line summary and the columns «Человек», «Доступ», «Контакты»,
+«Активность» and «Теги» plus the action menu. The person's name opens the
+client card. Below 960 px each row becomes a card with labelled fields.
+
+«Доступ» shows one status per person (`personAccess` in
+`src/modules/adminCrm/ui/peopleListModel.ts`): blocked (with what unblocking
+would restore), manual access with its expiry (a warning within 7 days),
+provider access with its source, or none. «Контакты» lists Telegram, VK and a
+contact email only when it differs from the account email.
+
+The shared operations header on the mailing, contests, referrals and
+translations sections no longer repeats the section title the workspace shell
+already shows; it starts with the description, status, actions and metrics.
+The Boosty and Telegram sections describe states in plain language instead of
+provider terms (`active`, `Grace`, `OIDC ID`, raw member statuses).
 
 ## Permissions
 

@@ -671,8 +671,7 @@
 .admin-tailadmin-shell .admin-referral-clicks div,
 .admin-tailadmin-shell .admin-gallery-row,
 .admin-tailadmin-shell .admin-contest-list > div,
-.admin-tailadmin-shell .contest-entry-row,
-.admin-tailadmin-shell .contest-user-row {
+.admin-tailadmin-shell .contest-entry-row {
   border-color: var(--admin-divider);
   border-radius: 10px;
   background: #fff;
@@ -1135,8 +1134,7 @@
 .admin-tailadmin-shell .admin-referral-row,
 .admin-tailadmin-shell .admin-gallery-row,
 .admin-tailadmin-shell .admin-contest-list > div,
-.admin-tailadmin-shell .contest-entry-row,
-.admin-tailadmin-shell .contest-user-row {
+.admin-tailadmin-shell .contest-entry-row {
   border: 1px solid var(--admin-divider-strong);
   border-radius: 6px;
   background: var(--admin-surface);

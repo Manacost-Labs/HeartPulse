@@ -1,8 +1,8 @@
 import React, { Suspense, useCallback, useState } from 'react';
-import { X } from 'lucide-react';
-import { AdminOperationsHeader } from './AdminOperationsHeader';
+import { RefreshCw, Search, X } from 'lucide-react';
 import { ContestAdminUserRow, type AdminUserPatch, type AdminUserSearchResult } from './ContestAdminUserRow';
 import { ADMIN_INPUT } from './contestAdminUi';
+import './adminPeople.css';
 import {
   AdminSegmentBar,
   loadAdminClientCard,
@@ -26,7 +26,6 @@ type ContestAdminUsersProps = {
   openMenuId: string;
   menuRef: React.RefObject<HTMLDivElement | null>;
   menuTriggerMap: Map<string, HTMLButtonElement>;
-  formatDate: (value: string) => string;
   onRefresh: () => void;
   onQueryChange: (query: string) => void;
   onPageChange: (page: number) => void;
@@ -52,7 +51,6 @@ export function ContestAdminUsers({
   openMenuId,
   menuRef,
   menuTriggerMap,
-  formatDate,
   onRefresh,
   onQueryChange,
   onPageChange,
@@ -67,8 +65,6 @@ export function ContestAdminUsers({
   const [accessTarget, setAccessTarget] = useState<AdminUserSearchResult | null>(null);
   const [accessPeriod, setAccessPeriod] = useState('30');
   const [customAccessEnd, setCustomAccessEnd] = useState('');
-  const visibleAccessCount = users.filter(user => user.subscription?.hasAccess || user.lifetimeAccess || user.manualAccess?.enabled).length;
-  const visibleBlockedCount = users.filter(user => Boolean(user.blockedAt)).length;
 
   const [personId, setPersonId] = useState('');
   const closePerson = useCallback(() => setPersonId(''), []);
@@ -101,66 +97,60 @@ export function ContestAdminUsers({
   };
 
   return (
-    <div className="admin-operations-page admin-users-page">
-      <AdminOperationsHeader
-        eyebrow="Аудитория"
-        title="Пользователи"
-        description="Поиск профилей, управление доступом и блокировками в одном списке."
-        status={loading ? 'Обновляем данные' : visibleBlockedCount ? `${visibleBlockedCount} требуют внимания` : 'База готова к работе'}
-        statusTone={loading ? 'working' : visibleBlockedCount ? 'attention' : 'ready'}
-        metrics={[
-          filtered
-            ? { label: 'Найдено', value: total, detail: 'по текущему фильтру' }
-            : { label: 'Всего профилей', value: total, detail: 'в единой базе' },
-          { label: 'На странице', value: users.length, detail: filtered ? 'по текущему фильтру' : `страница ${page} из ${pageCount}` },
-          { label: 'С доступом', value: visibleAccessCount, detail: 'на этой странице' },
-          { label: 'Заблокированы', value: visibleBlockedCount, detail: 'на этой странице' },
-        ]}
-        actions={(
-          <button type="button" className="contest-secondary-button" disabled={loading} onClick={onRefresh}>
-            {loading ? 'Загрузка…' : 'Обновить'}
-          </button>
-        )}
-      />
-      <section className="contest-admin-card contest-admin-search admin-full-card" aria-labelledby="admin-users-search-title">
-        <div className="admin-card-heading admin-users-search-heading">
-          <div>
-            <h2 id="admin-users-search-title">Найти пользователя</h2>
-            <p className="contest-muted">Ищите по любому известному контакту или внутреннему ID.</p>
-          </div>
+    <div className="admin-people">
+      <div className="admin-people-toolbar">
+        <label className="admin-people-search">
+          <Search size={18} aria-hidden="true" />
+          <span className="admin-crm-sr-only">Поиск по людям</span>
+          <input
+            type="search"
+            value={query}
+            onChange={event => onQueryChange(event.target.value)}
+            placeholder="Имя, почта, Telegram, VK или ID"
+          />
+        </label>
+        <button type="button" className="contest-secondary-button" disabled={loading} onClick={onRefresh}>
+          <RefreshCw size={16} aria-hidden="true" /> {loading ? 'Загрузка…' : 'Обновить'}
+        </button>
+      </div>
+      <AdminSegmentBar data={segments} segment={segment} tag={tag} disabled={loading} onChange={onSegmentChange} />
+      <p className="admin-people-summary" role="status">
+        {loading && !users.length
+          ? 'Загружаем список…'
+          : `${filtered ? 'Найдено' : 'Всего'} ${total.toLocaleString('ru-RU')} · страница ${page} из ${pageCount}`}
+      </p>
+      {users.length ? (
+        <div className="admin-people-table-wrap" aria-busy={loading}>
+          <table className="admin-people-table">
+            <thead>
+              <tr>
+                <th scope="col">Человек</th>
+                <th scope="col">Доступ</th>
+                <th scope="col">Контакты</th>
+                <th scope="col">Активность</th>
+                <th scope="col">Теги</th>
+                <th scope="col"><span className="admin-crm-sr-only">Действия</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <ContestAdminUserRow key={user.id} currentUserId={currentUserId} user={user} actionId={actionId} openMenuId={openMenuId} menuRef={menuRef} menuTriggerMap={menuTriggerMap} onToggleMenu={onToggleMenu} onOpenAccessDialog={openAccessDialog} onUpdateUser={onUpdateUser} onOpenPerson={user => setPersonId(user.id)} />
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="admin-page-toolbar admin-user-toolbar">
-          <label>
-            ID, почта, имя, Telegram или VK
-            <input
-              type="search"
-              value={query}
-              onChange={event => onQueryChange(event.target.value)}
-              placeholder="user_..., email, имя или username"
-              style={ADMIN_INPUT}
-            />
-          </label>
-        </div>
-        <AdminSegmentBar data={segments} segment={segment} tag={tag} disabled={loading} onChange={onSegmentChange} />
-        <div className="contest-user-results">
-        {loading && !users.length ? (
-          <p className="contest-muted" role="status">Загружаем список пользователей...</p>
-        ) : users.length ? users.map(user => (
-          <ContestAdminUserRow key={user.id} currentUserId={currentUserId} user={user} actionId={actionId} openMenuId={openMenuId} menuRef={menuRef} menuTriggerMap={menuTriggerMap} formatDate={formatDate} onToggleMenu={onToggleMenu} onOpenAccessDialog={openAccessDialog} onUpdateUser={onUpdateUser} onOpenPerson={user => setPersonId(user.id)} />
-        )) : (
-          <p className="contest-muted" role="status">
-            {filtered ? 'По этому фильтру пользователей нет.' : 'В единой базе пока нет пользователей.'}
-          </p>
-        )}
-        </div>
-        {pageCount > 1 && (
+      ) : !loading && (
+        <p className="admin-people-empty">
+          {filtered ? 'По этому фильтру никого нет. Сбросьте сегмент или измените запрос.' : 'В базе пока нет пользователей.'}
+        </p>
+      )}
+      {pageCount > 1 && (
         <nav className="admin-pagination" aria-label="Страницы списка пользователей">
           <button type="button" disabled={page === 1 || loading} onClick={() => onPageChange(Math.max(1, page - 1))}>Назад</button>
           <span>Страница {page} из {pageCount}</span>
           <button type="button" disabled={page === pageCount || loading} onClick={() => onPageChange(Math.min(pageCount, page + 1))}>Далее</button>
         </nav>
-        )}
-      </section>
+      )}
       {personId && (
         <Suspense fallback={null}>
           <AdminClientCard

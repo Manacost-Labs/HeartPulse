@@ -1,7 +1,6 @@
 import React from 'react';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { AdminCrmSegmentId } from '../api/adminCrmClient';
-import { formatRub, revenueBuckets, moneySummary, type MoneyPayload } from './moneyModel';
 import {
   activityText,
   relativeTime,
@@ -61,13 +60,11 @@ function Sparkline({ values, label }: { values: number[]; label: string }) {
   );
 }
 
-type KpisProps = { overview: AdminCrmOverview; money: MoneyPayload | null; moneyFailed: boolean } & Navigate;
+type KpisProps = { overview: AdminCrmOverview } & Pick<Navigate, 'onOpenSegment'>;
 
-export function OverviewKpis({ overview, money, moneyFailed, onNavigate, onOpenSegment }: KpisProps) {
+export function OverviewKpis({ overview, onOpenSegment }: KpisProps) {
   const { kpis, series } = overview;
   const growth = trend(kpis.newUsers30d, kpis.newUsersPrevious30d);
-  const revenue = money ? moneySummary(money) : null;
-  const revenueSeries = money ? revenueBuckets(money).map(bucket => bucket.subscriptionRub + bucket.salesRub) : [];
   return (
     <ul className="admin-overview-kpis" aria-label="Главные показатели за 30 дней">
       <li><button type="button" onClick={() => onOpenSegment('paying')}>
@@ -75,12 +72,6 @@ export function OverviewKpis({ overview, money, moneyFailed, onNavigate, onOpenS
         <strong>{kpis.payingNow.toLocaleString('ru-RU')}</strong>
         <small>платят {kpis.payingProvider.toLocaleString('ru-RU')} · вручную {kpis.manualAccess.toLocaleString('ru-RU')}</small>
         <Sparkline values={series.paying} label="Платящие подписчики по дням" />
-      </button></li>
-      <li><button type="button" onClick={() => onNavigate('money')}>
-        <span>Выручка за 30 дней</span>
-        <strong>{revenue ? formatRub(revenue.totalRub) : moneyFailed ? '—' : '…'}</strong>
-        <small>{revenue ? `${revenue.newSubscriptions} новых подписок · ${revenue.renewals} продлений` : moneyFailed ? 'аналитика недоступна' : 'считаем'}</small>
-        <Sparkline values={revenueSeries} label="Поступления по дням" />
       </button></li>
       <li><button type="button" onClick={() => onOpenSegment('new')}>
         <span>Новые пользователи</span>
@@ -95,7 +86,12 @@ export function OverviewKpis({ overview, money, moneyFailed, onNavigate, onOpenS
       <li><button type="button" onClick={() => onOpenSegment('lapsed')}>
         <span>Потеряли доступ</span>
         <strong>{kpis.lapsed30d.toLocaleString('ru-RU')}</strong>
-        <small>за 30 дней · ручной доступ истекает у {kpis.expiringSoon}</small>
+        <small>за 30 дней, можно вернуть</small>
+      </button></li>
+      <li><button type="button" onClick={() => onOpenSegment('expiring')}>
+        <span>Истекает за 7 дней</span>
+        <strong>{kpis.expiringSoon.toLocaleString('ru-RU')}</strong>
+        <small>ручной доступ, стоит продлить</small>
       </button></li>
     </ul>
   );

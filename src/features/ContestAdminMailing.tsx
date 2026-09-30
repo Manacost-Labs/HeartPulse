@@ -113,8 +113,6 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
   return (
     <div className="admin-mailing-page admin-operations-page">
       <AdminOperationsHeader
-        eyebrow="Аудитория"
-        title="Рассылка"
         description="Соберите письмо, проверьте безопасный предпросмотр и отправьте выбранной аудитории."
         status={loading ? 'Обновляем реестр' : overview?.transport.configured ? `Почта готова · ${overview.transport.from}` : 'Почта требует настройки'}
         statusTone={loading ? 'working' : overview?.transport.configured ? 'ready' : 'attention'}

@@ -745,7 +745,6 @@
       "publicEntrypoints": [
         "src/modules/adminCrm/public.ts",
         "src/modules/adminCrm/AdminClientCard.lazy.ts",
-        "src/modules/adminCrm/AdminMoneyPage.lazy.ts",
         "src/modules/adminCrm/AdminOverviewPage.lazy.ts"
       ],
       "frontendRoutes": [],
@@ -790,7 +789,7 @@
       "tests": [
         "tests/admin-crm-routes.test.ts",
         "tests/admin-client-card-model.test.ts",
-        "tests/admin-money-model.test.ts",
+        "tests/admin-people-list-model.test.ts",
         "tests/admin-crm-overview.test.ts",
         "tests/admin-overview-model.test.ts"
       ],

@@ -6,9 +6,8 @@ export type AdminOperationsMetric = {
   detail?: string;
 };
 
+// The workspace shell already renders the section title; this header starts with what the section is for.
 type AdminOperationsHeaderProps = {
-  eyebrow: string;
-  title: string;
   description: string;
   status: string;
   statusTone?: 'ready' | 'attention' | 'working';
@@ -17,8 +16,6 @@ type AdminOperationsHeaderProps = {
 };
 
 export function AdminOperationsHeader({
-  eyebrow,
-  title,
   description,
   status,
   statusTone = 'ready',
@@ -28,11 +25,7 @@ export function AdminOperationsHeader({
   return (
     <header className="admin-operations-header">
       <div className="admin-operations-heading">
-        <div>
-          <span className="admin-operations-eyebrow">{eyebrow}</span>
-          <h2>{title}</h2>
-          <p>{description}</p>
-        </div>
+        <p>{description}</p>
         <div className="admin-operations-command">
           <span className={`admin-operations-status is-${statusTone}`} role="status">
             <i aria-hidden="true" />

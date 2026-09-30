@@ -4,12 +4,11 @@ import { adminCrmClient, type AdminCrmClient, type AdminCrmSegmentId } from '../
 import '../adminCrm.css';
 import '../adminOverview.css';
 import { AdminClientCard } from './AdminClientCard';
-import { moneyRange, type MoneyPayload } from './moneyModel';
 import { relativeTime, type AdminCrmOverview } from './overviewModel';
 import { OverviewActivityFeed, OverviewAlerts, OverviewKpis, OverviewQuickActions } from './AdminOverviewSections';
 
 export type AdminOverviewPageProps = {
-  client?: Pick<AdminCrmClient, 'overview' | 'money'> & Partial<Pick<AdminCrmClient, 'person' | 'addNote' | 'deleteNote' | 'setTags'>>;
+  client?: Pick<AdminCrmClient, 'overview'> & Partial<Pick<AdminCrmClient, 'person' | 'addNote' | 'deleteNote' | 'setTags'>>;
   onNavigate: (section: string) => void;
   onOpenSegment: (segment: AdminCrmSegmentId) => void;
 };
@@ -18,7 +17,6 @@ type Load<T> = { status: 'loading' | 'ready' | 'error'; value: T | null; message
 
 export function AdminOverviewPage({ client = adminCrmClient, onNavigate, onOpenSegment }: AdminOverviewPageProps) {
   const [overview, setOverview] = useState<Load<AdminCrmOverview>>({ status: 'loading', value: null });
-  const [money, setMoney] = useState<Load<MoneyPayload>>({ status: 'loading', value: null });
   const [refresh, setRefresh] = useState(0);
   const [personId, setPersonId] = useState('');
 
@@ -30,10 +28,6 @@ export function AdminOverviewPage({ client = adminCrmClient, onNavigate, onOpenS
       .catch((error: unknown) => {
         if (!controller.signal.aborted) setOverview(current => ({ ...current, status: 'error', message: error instanceof Error ? error.message : 'Не удалось загрузить обзор' }));
       });
-    // Revenue comes from the slower Boosty/Tribute analytics and must not hold back the alerts.
-    client.money(moneyRange(30), controller.signal, { articles: false })
-      .then(value => setMoney({ status: 'ready', value }))
-      .catch(() => { if (!controller.signal.aborted) setMoney({ status: 'error', value: null }); });
     return () => controller.abort();
   }, [client, refresh]);
 
@@ -52,11 +46,11 @@ export function AdminOverviewPage({ client = adminCrmClient, onNavigate, onOpenS
           <RefreshCw size={16} aria-hidden="true" /> Обновить
         </button>
       </header>
-      {overview.status === 'error' && <p className="admin-money-alert" role="alert">{overview.message}</p>}
+      {overview.status === 'error' && <p className="admin-overview-error" role="alert">{overview.message}</p>}
       {data && (
         <>
           <OverviewAlerts alerts={data.alerts} onNavigate={onNavigate} onOpenSegment={onOpenSegment} />
-          <OverviewKpis overview={data} money={money.value} moneyFailed={money.status === 'error'} onNavigate={onNavigate} onOpenSegment={onOpenSegment} />
+          <OverviewKpis overview={data} onOpenSegment={onOpenSegment} />
           <div className="admin-overview-grid">
             <OverviewActivityFeed overview={data} onOpenPerson={setPersonId} />
             <OverviewQuickActions onNavigate={onNavigate} />

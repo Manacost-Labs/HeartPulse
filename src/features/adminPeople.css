@@ -1,0 +1,127 @@
+/* Admin people list: search, segments and a table that turns into cards on narrow screens. */
+.admin-people {
+  --people-ink: var(--admin-ink, #2d241c);
+  --people-muted: var(--admin-muted, #75685c);
+  --people-surface: var(--admin-surface, #fffdf8);
+  --people-soft: var(--admin-surface-soft, #f8f2e7);
+  --people-line: var(--admin-divider, #e5d8c3);
+  --people-accent: var(--admin-gold-dark, #785018);
+  --people-accent-soft: var(--admin-blue-soft, #fbf1dc);
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  color: var(--people-ink);
+}
+
+.admin-people-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.admin-people-search {
+  flex: 1 1 320px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--people-line);
+  border-radius: 10px;
+  background: var(--people-surface);
+  color: var(--people-muted);
+}
+.admin-people-search:focus-within { border-color: var(--people-accent); box-shadow: 0 0 0 3px var(--people-accent-soft); }
+.admin-people-search input {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--people-ink);
+  font: inherit;
+  font-size: 15px;
+}
+.admin-people-toolbar > button { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; }
+.admin-people .admin-crm-segments { margin-bottom: 0; }
+.admin-people-summary { margin: 0; color: var(--people-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.admin-people-empty { margin: 0; padding: 28px 20px; border: 1px dashed var(--people-line); border-radius: 10px; background: var(--people-surface); color: var(--people-muted); text-align: center; }
+
+.admin-people-table-wrap { border: 1px solid var(--people-line); border-radius: 10px; background: var(--people-surface); }
+.admin-people-table-wrap[aria-busy='true'] { opacity: 0.7; }
+.admin-people-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px; line-height: 1.4; }
+.admin-people-table th {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--people-line);
+  color: var(--people-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+.admin-people-table th:nth-child(1) { width: 30%; }
+.admin-people-table th:nth-child(2) { width: 19%; }
+.admin-people-table th:nth-child(3) { width: 21%; }
+.admin-people-table th:nth-child(4) { width: 14%; }
+.admin-people-table th:nth-child(6) { width: 60px; }
+.admin-people-table td { padding: 12px 14px; border-bottom: 1px solid var(--people-line); vertical-align: top; min-width: 0; overflow-wrap: anywhere; }
+.admin-people-row:last-child td { border-bottom: 0; }
+.admin-people-row:hover td { background: var(--people-soft); }
+.admin-people-table small { display: block; color: var(--people-muted); font-size: 12px; line-height: 1.45; }
+.admin-people-table .admin-crm-open { font-size: 15px; }
+.admin-people-table .admin-crm-pill + small { margin-top: 4px; }
+.admin-people-table td > span { display: block; }
+.admin-people-table td > .admin-crm-pill { display: inline-flex; }
+
+.admin-people-person { display: flex; gap: 12px; align-items: flex-start; }
+.admin-people-person > div { min-width: 0; display: grid; gap: 1px; }
+.admin-people-table .admin-people-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--people-accent-soft);
+  color: var(--people-accent);
+  font-weight: 700;
+}
+.admin-people-contacts > span { margin-bottom: 4px; }
+.admin-people-contacts > span:last-child { margin-bottom: 0; }
+.admin-people-actions { text-align: right; }
+.admin-people .contest-user-action-menu-wrap { position: relative; display: inline-block; }
+
+/* The action menu is laid out here because its labels no longer sit inside the old badge column. */
+.admin-people .contest-user-menu button > span { display: block; min-width: 0; font-size: 0.75rem; text-align: left; color: inherit; }
+.admin-people .contest-user-menu button small { display: block; margin-top: 0.12rem; color: #52606d; font-size: 0.63rem; font-weight: 600; line-height: 1.25; }
+/* An open popover can cover the triggers of the following rows; take them out of hit testing until it closes. */
+.admin-people-table:has(.contest-user-menu) .contest-user-menu-trigger[aria-expanded='false'] { visibility: hidden; }
+
+@media (pointer: coarse) {
+  .admin-people .contest-user-menu-trigger { width: 44px; height: 44px; }
+}
+
+/* Cards instead of columns once six columns no longer fit. */
+@media (max-width: 960px) {
+  .admin-people-table-wrap { border: 0; background: transparent; }
+  .admin-people-table, .admin-people-table tbody { display: block; }
+  .admin-people-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .admin-people-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px 14px;
+    margin-bottom: 10px;
+    padding: 14px;
+    border: 1px solid var(--people-line);
+    border-radius: 10px;
+    background: var(--people-surface);
+  }
+  .admin-people-table td { display: block; padding: 0; border: 0; }
+  .admin-people-row:hover td { background: transparent; }
+  .admin-people-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--people-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .admin-people-table .admin-people-cell-person { grid-column: 1 / -1; padding-right: 52px; }
+  .admin-people-actions { position: absolute; top: 10px; right: 10px; }
+}

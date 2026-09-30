@@ -6,7 +6,6 @@ export const ADMIN_DRAWER_MEDIA_QUERY = '(max-width: 1023px)';
 export type AdminWorkspaceSection =
   | 'dashboard'
   | 'users'
-  | 'money'
   | 'mailing'
   | 'telegram'
   | 'articles'

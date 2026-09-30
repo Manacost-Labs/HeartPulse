@@ -83,8 +83,6 @@ export function ContestAdminReferrals({
   return (
     <div className="admin-operations-page admin-referrals-page">
       <AdminOperationsHeader
-        eyebrow="Рост"
-        title="Реферальная ссылка"
         description="Создавайте адреса для кампаний и смотрите путь: переход → регистрация → доступ."
         status={loading ? 'Обновляем переходы' : activeCount ? `${activeCount} активных ссылок` : 'Создайте первую ссылку'}
         statusTone={loading ? 'working' : activeCount ? 'ready' : 'attention'}

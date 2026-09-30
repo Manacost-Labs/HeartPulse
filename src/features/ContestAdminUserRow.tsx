@@ -1,4 +1,5 @@
 import type React from 'react';
+import { personAccess, personContacts, personInitial } from '../modules/adminCrm/public';
 import { CalendarClock, MoreVertical, ShieldCheck, Trash2, Users } from 'lucide-react';
 
 export type AdminUserSearchResult = {
@@ -46,39 +47,49 @@ type ContestAdminUserRowProps = {
   openMenuId: string;
   menuRef: React.RefObject<HTMLDivElement | null>;
   menuTriggerMap: Map<string, HTMLButtonElement>;
-  formatDate: (value: string) => string;
   onToggleMenu: (userId: string) => void;
   onOpenAccessDialog: (user: AdminUserSearchResult) => void;
   onUpdateUser: (user: AdminUserSearchResult, patch: AdminUserPatch) => void;
   onOpenPerson?: (user: AdminUserSearchResult) => void;
 };
 
-export function ContestAdminUserRow({ currentUserId, user, actionId, openMenuId, menuRef, menuTriggerMap, formatDate, onToggleMenu, onOpenAccessDialog, onUpdateUser, onOpenPerson }: ContestAdminUserRowProps) {
+export function ContestAdminUserRow({ currentUserId, user, actionId, openMenuId, menuRef, menuTriggerMap, onToggleMenu, onOpenAccessDialog, onUpdateUser, onOpenPerson }: ContestAdminUserRowProps) {
+  const access = personAccess(user);
+  const contacts = personContacts(user);
+  const name = user.name || 'Без имени';
   return (
-    <div className="contest-user-row">
-      <div className="admin-user-profile">
-        <div className="admin-user-identity">
-          <strong>{onOpenPerson ? (
-            <button type="button" className="admin-crm-open" aria-haspopup="dialog" onClick={() => onOpenPerson(user)}>{user.name || 'Без имени'}</button>
-          ) : user.name || 'Без имени'}</strong>
-          <span>ID: {user.profileId} · {user.role === 'admin' ? 'администратор' : 'пользователь'}</span>
-          {Boolean(user.tags?.length) && (
-            <ul className="admin-crm-row-tags" aria-label="Теги">{user.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul>
-          )}
+    <tr className="admin-people-row">
+      <td className="admin-people-cell-person">
+        <div className="admin-people-person">
+          <span className="admin-people-avatar" aria-hidden="true">{personInitial(user)}</span>
+          <div>
+            {onOpenPerson
+              ? <button type="button" className="admin-crm-open" aria-haspopup="dialog" onClick={() => onOpenPerson(user)}>{name}</button>
+              : <strong>{name}</strong>}
+            <small>{user.email || 'email не указан'}</small>
+            <small>ID {user.profileId}{user.country ? ` · ${user.country}` : ''}{user.role === 'admin' ? ' · администратор' : ''}</small>
+          </div>
         </div>
-        <dl className="admin-user-facts">
-          <div><dt>Почта и страна</dt><dd>{user.email || 'email не указан'} · {user.country || 'страна не указана'}</dd></div>
-          <div><dt>Контакты</dt><dd>TG: {user.contactTelegram || user.telegramUsername || user.telegramId || '—'} · VK: {user.contactVkUrl || '—'} · связь: {user.contactEmail || '—'}</dd></div>
-          <div><dt>Активность</dt><dd>{user.contestEntriesCount ?? 0} заявок · с {user.createdAt ? formatDate(user.createdAt) : 'неизвестной даты'}</dd></div>
-        </dl>
-      </div>
-      <div className="contest-user-badges">
-        <span className={user.blockedAt ? 'contest-role-blocked' : user.role === 'admin' ? 'contest-role-admin' : 'contest-role-user'}>
-          {user.blockedAt ? 'заблокирован' : user.role === 'admin' ? 'админ' : 'участник'}
-        </span>
-        <span className={user.subscription?.hasAccess ? 'contest-access-ok' : 'contest-access-no'}>
-          {user.lifetimeAccess ? 'полный доступ · навсегда' : user.manualAccess?.enabled && user.manualAccess.expiresAt ? `полный доступ · до ${formatDate(user.manualAccess.expiresAt)}` : user.subscription?.hasAccess ? 'подписка' : 'нет доступа'}
-        </span>
+      </td>
+      <td data-label="Доступ">
+        <span className={`admin-crm-pill is-${access.tone}`}>{access.label}</span>
+        {access.detail && <small>{access.detail}</small>}
+      </td>
+      <td className="admin-people-contacts" data-label="Контакты">
+        {contacts.length
+          ? contacts.map(contact => <span key={contact.kind}><small>{contact.kind}</small>{contact.value}</span>)
+          : <small>не указаны</small>}
+      </td>
+      <td data-label="Активность">
+        <span>{user.contestEntriesCount ?? 0} заявок</span>
+        <small>с {user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : 'неизвестной даты'}</small>
+      </td>
+      <td data-label="Теги">
+        {user.tags?.length
+          ? <ul className="admin-crm-row-tags" aria-label="Теги">{user.tags.map(tag => <li key={tag}>{tag}</li>)}</ul>
+          : <small>—</small>}
+      </td>
+      <td className="admin-people-actions">
         <div className="contest-user-action-menu-wrap">
           <button ref={node => { if (node) menuTriggerMap.set(user.id, node); else menuTriggerMap.delete(user.id); }} type="button" className="contest-user-menu-trigger" disabled={Boolean(actionId)} aria-label={`Действия с пользователем ${user.name || user.email || user.id}`} aria-haspopup="menu" aria-expanded={openMenuId === user.id} aria-controls={openMenuId === user.id ? `user-actions-${user.id}` : undefined} onClick={() => onToggleMenu(user.id)}>
             {actionId.startsWith(`${user.id}:`) ? <span className="admin-action-spinner" aria-hidden="true" /> : <MoreVertical size={20} />}
@@ -93,7 +104,7 @@ export function ContestAdminUserRow({ currentUserId, user, actionId, openMenuId,
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }

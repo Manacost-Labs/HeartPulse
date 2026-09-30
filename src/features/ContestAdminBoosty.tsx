@@ -70,6 +70,18 @@ type ContestAdminBoostyProps = {
   entitlementLabels: (subscriber: Pick<BoostySubscriberRow, 'siteAccess' | 'entitlements'>) => string[];
 };
 
+/** When the subscriber list was last refreshed and how long access survives a Boosty outage. */
+function boostyFreshnessText(status: BoostyAdminStatus | null): string {
+  const age = typeof status?.snapshotAgeSeconds === 'number' ? `${Math.max(1, Math.round(status.snapshotAgeSeconds / 60))} мин назад` : 'неизвестно когда';
+  return `Список подписчиков обновлён ${age}${status?.stale ? ' — данные устарели' : ''}. Если Boosty недоступен, доступ подписчиков сохраняется ещё ${status?.graceHours ?? 24} ч.`;
+}
+
+function boostyEmailText(missingEmail: number): string {
+  return missingEmail
+    ? `У ${missingEmail} подписчиков Boosty не показывает email: связать их с профилем можно только вручную.`
+    : 'У всех подписчиков виден email.';
+}
+
 export function ContestAdminBoosty({
   status,
   statusLoading,
@@ -146,11 +158,8 @@ export function ContestAdminBoosty({
       <div className={`admin-boosty-status admin-boosty-status-${apiTone}`} role={status?.lastErrorMessage ? 'alert' : 'status'}>
         <div>
           <strong>Boosty API: {apiLabel}</strong>
-          <span>Источник: {status?.source || '—'} · Импорт: {status?.importStatus || '—'} · Grace: {status?.graceHours ?? 24} ч</span>
-          <span>
-            Возраст снапшота: {typeof status?.snapshotAgeSeconds === 'number' ? `${Math.round(status.snapshotAgeSeconds / 60)} мин` : '—'}
-            {status?.checkedAt ? ` · Проверено: ${formatDate(status.checkedAt)}` : ''} · Без email: {stats.missingEmail}
-          </span>
+          <span>{boostyFreshnessText(status)}</span>
+          <span>{boostyEmailText(stats.missingEmail)}{status?.checkedAt ? ` Проверено: ${formatDate(status.checkedAt)}.` : ''}</span>
           {status?.lastErrorMessage && <span>Ошибка: {status.lastErrorMessage}</span>}
         </div>
       </div>
@@ -183,7 +192,7 @@ export function ContestAdminBoosty({
         </select></label>
       </div>
 
-      <p className="contest-muted">Источник списка: {subscribers?.source || '—'} · Загружено: {subscribers?.fetchedAt ? formatDate(subscribers.fetchedAt) : '—'}</p>
+      <p className="contest-muted">Список загружен: {subscribers?.fetchedAt ? formatDate(subscribers.fetchedAt) : 'ещё не загружен'}</p>
       {subscribers?.error && <div className="contest-message contest-message-err" role="alert">{subscribers.error}</div>}
 
       <div className="admin-boosty-list" aria-busy={subscribersLoading}>
@@ -195,8 +204,8 @@ export function ContestAdminBoosty({
                 {subscriber.avatarUrl ? <img src={subscriber.avatarUrl} alt="" /> : <span>{(subscriber.name || subscriber.email || '?').slice(0, 1).toUpperCase()}</span>}
                 <div><strong>{subscriber.name || 'Без имени'}</strong><small className={subscriber.hasEmail ? '' : 'is-warning'}>{subscriber.email || 'email не открыт'}</small><code>Boosty ID {subscriber.id}</code></div>
               </div>
-              <div><strong>{subscriber.level?.name || 'Без уровня'}</strong><span>Цена: {subscriber.money?.currentPrice || subscriber.level?.price || 0} {subscriber.money?.currency || subscriber.level?.currency || 'RUB'}</span><span>Статус: {subscriber.active ? 'active' : subscriber.status || 'inactive'}</span><span>Продление: {subscriber.willRenew ? 'да' : 'нет'}</span></div>
-              <div><strong>{subscriber.siteAccess ? 'Открывает сайт' : subscriber.hasActivePaidAccess ? 'Платит, но тариф не сопоставлен' : 'Не открывает сайт'}</strong><span>Доступы: {accessLabels.join(', ') || 'нет'}</span><span>Следующий платеж: {subscriber.dates?.nextPaymentAt ? formatDate(subscriber.dates.nextPaymentAt) : '—'}</span><span>Подписан: {subscriber.dates?.subscribedAt ? formatDate(subscriber.dates.subscribedAt) : '—'}</span></div>
+              <div><strong>{subscriber.level?.name || 'Без уровня'}</strong><span>{subscriber.money?.currentPrice || subscriber.level?.price || 0} {(subscriber.money?.currency || subscriber.level?.currency || 'RUB') === 'RUB' ? '₽' : subscriber.money?.currency || subscriber.level?.currency} в месяц</span><span>{subscriber.active ? 'Подписка активна' : 'Подписка не активна'}</span><span>{subscriber.willRenew ? 'Автопродление включено' : 'Автопродление выключено'}</span></div>
+              <div><strong>{subscriber.siteAccess ? 'Открывает сайт' : subscriber.hasActivePaidAccess ? 'Платит, но тариф не сопоставлен' : 'Не открывает сайт'}</strong><span>Открыто: {accessLabels.join(', ') || 'ничего'}</span><span>Следующий платёж: {subscriber.dates?.nextPaymentAt ? formatDate(subscriber.dates.nextPaymentAt) : 'не запланирован'}</span><span>Подписан с {subscriber.dates?.subscribedAt ? formatDate(subscriber.dates.subscribedAt) : 'неизвестной даты'}</span></div>
             </article>
           );
         }) : <p className="contest-muted" role="status">{subscribers ? 'Подписчики Boosty не найдены по текущим фильтрам.' : 'Нажмите “Обновить Boosty”, чтобы загрузить список подписчиков.'}</p>}

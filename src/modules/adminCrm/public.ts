@@ -8,12 +8,8 @@ export function loadAdminClientCard() {
   return import('./AdminClientCard.lazy');
 }
 
-/** The money section loads its charts and styles only when an administrator opens it. */
-export function loadAdminMoneyPage() {
-  return import('./AdminMoneyPage.lazy');
-}
-
 /** The overview (alerts, KPIs, activity) is the admin landing page; it loads on demand like other sections. */
 export function loadAdminOverviewPage() {
   return import('./AdminOverviewPage.lazy');
 }
+export { personAccess, personContacts, personInitial } from './ui/peopleListModel';

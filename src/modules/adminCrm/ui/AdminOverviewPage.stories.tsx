@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AdminOverviewPage, type AdminOverviewPageProps } from './AdminOverviewPage';
 import type { AdminCrmOverview } from './overviewModel';
-import type { MoneyPayload } from './moneyModel';
 
 // Invented workshop data; not real users or revenue.
 const now = Date.now();
@@ -27,16 +26,8 @@ const overview: AdminCrmOverview = {
   ],
 };
 
-const money = {
-  from: new Date(now - 30 * 86_400_000).toISOString(), to: new Date(now).toISOString(),
-  summary: { newSubscriptions: 74, renewals: 312, revenueRub: 268_900, observedDecreaseRub: 0 }, plans: [], retention: [],
-  observations: days.map((day, index) => ({ observedAt: `${day}T12:00:00.000Z`, type: 'observed_renewal', amountRub: 6000 + (index % 5) * 1500, planName: 'Легенда', source: 'boosty' as const })),
-  coverage: { lastAcceptedPollAt: null, complete: true }, limitations: [], sales: null, generatedAt: new Date(now).toISOString(),
-} satisfies MoneyPayload;
-
 const client = (value: AdminCrmOverview): NonNullable<AdminOverviewPageProps['client']> => ({
   overview: async () => value,
-  money: async () => money,
 });
 
 const meta = {
@@ -51,6 +42,3 @@ type Story = StoryObj<typeof meta>;
 
 export const NeedsAttention: Story = {};
 export const AllCalm: Story = { args: { client: client({ ...overview, alerts: [] }) } };
-export const RevenueUnavailable: Story = {
-  args: { client: { overview: async () => overview, money: async () => { throw new Error('Не удалось загрузить аналитику подписок'); } } },
-};

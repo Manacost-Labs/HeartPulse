@@ -60,6 +60,21 @@ const accessStateLabel: Record<TelegramAdminAccount['accessState'], string> = {
   'no-access': 'Нет доступа',
 };
 
+const CHAT_STATUS_LABEL: Record<string, string> = {
+  creator: 'владелец группы', administrator: 'администратор группы', member: 'состоит', restricted: 'состоит с ограничениями',
+  left: 'вышел из группы', kicked: 'исключён из группы',
+};
+
+/** Telegram's member status or error for one VIP group, in words an operator can act on. */
+function chatStateLabel(chat: Record<string, unknown>): string {
+  const error = String(chat.error || '');
+  if (/chat not found|kicked|forbidden/i.test(error)) return 'бот не видит эту группу';
+  if (error) return `ошибка проверки: ${error}`;
+  const status = String(chat.status || '');
+  if (CHAT_STATUS_LABEL[status]) return CHAT_STATUS_LABEL[status];
+  return chat.isMember || chat.hasAccess ? 'состоит' : 'не состоит';
+}
+
 export function ContestAdminTelegram({ payload, loading, onReload, formatDate, entitlementLabels }: ContestAdminTelegramProps) {
   const [search, setSearch] = useState('');
   const [accessFilter, setAccessFilter] = useState<AccessFilter>('all');
@@ -105,25 +120,25 @@ export function ContestAdminTelegram({ payload, loading, onReload, formatDate, e
 
       <div className={`admin-telegram-status ${payload?.error ? 'is-error' : payload?.configured ? 'is-ok' : 'is-warning'}`} role={payload?.error ? 'alert' : 'status'}>
         <div>
-          <strong>{payload?.error ? 'Не удалось получить данные Telegram' : payload?.configured ? 'Telegram bot настроен' : 'Telegram bot не настроен'}</strong>
+          <strong>{payload?.error ? 'Не удалось получить данные Telegram' : payload?.configured ? 'Telegram-бот настроен' : 'Telegram-бот не настроен'}</strong>
           {payload?.error && <span>{payload.error}</span>}
-          <span>Каналы проверки: {payload?.chatIds?.length ? payload.chatIds.join(', ') : 'нет настроенных chat_id'}</span>
-          <span>Загружено: {payload?.fetchedAt ? formatDate(payload.fetchedAt) : '—'} · Устаревшие проверки: {payload?.summary.stale ?? 0}</span>
+          <span>VIP-группы, в которых бот проверяет участников: {payload?.chatIds?.length ? payload.chatIds.join(', ') : 'не заданы'}</span>
+          <span>Загружено: {payload?.fetchedAt ? formatDate(payload.fetchedAt) : 'ещё не загружено'} · проверок старше суток: {payload?.summary.stale ?? 0}</span>
         </div>
       </div>
 
       <div className="admin-stat-grid admin-telegram-stats">
         <div><span>Всего</span><strong>{payload?.summary.total ?? 0}</strong><small>Telegram-связанные профили</small></div>
-        <div><span>Доступ</span><strong>{payload?.summary.access ?? 0}</strong><small>есть в VIP-каналах</small></div>
-        <div><span>Можно проверить</span><strong>{payload?.summary.checkable ?? 0}</strong><small>есть Telegram ID</small></div>
-        <div><span>Только username</span><strong>{payload?.summary.contactOnly ?? 0}</strong><small>нужна привязка Telegram</small></div>
+        <div><span>С доступом</span><strong>{payload?.summary.access ?? 0}</strong><small>состоят в VIP-группах</small></div>
+        <div><span>Можно проверить</span><strong>{payload?.summary.checkable ?? 0}</strong><small>Telegram привязан к профилю</small></div>
+        <div><span>Не привязан</span><strong>{payload?.summary.contactOnly ?? 0}</strong><small>указан только ник, проверить нельзя</small></div>
       </div>
 
       <div className="admin-telegram-filters admin-page-toolbar">
         <label>Поиск<input value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} placeholder="email, имя, @username или Telegram ID" style={ADMIN_INPUT} /></label>
         <label>Статус<select value={accessFilter} onChange={event => { setAccessFilter(event.target.value as AccessFilter); setPage(1); }} style={ADMIN_INPUT}>
           <option value="all">Все</option><option value="access">Есть Telegram-доступ</option><option value="checkable">Можно проверить</option>
-          <option value="contact-only">Только username</option><option value="stale">Устаревшая проверка</option><option value="blocked">Заблокированные</option>
+          <option value="contact-only">Telegram не привязан</option><option value="stale">Устаревшая проверка</option><option value="blocked">Заблокированные</option>
         </select></label>
       </div>
 
@@ -134,20 +149,20 @@ export function ContestAdminTelegram({ payload, loading, onReload, formatDate, e
               {account.photoUrl ? <img src={account.photoUrl} alt="" /> : <span>{(account.name || account.telegramUsername || account.email || '?').slice(0, 1).toUpperCase()}</span>}
               <div><strong>{account.name || account.telegramUsername || 'Без имени'}</strong><small>{account.email || 'email не указан'}</small><code>{account.profileId}</code></div>
             </div>
-            <div><strong>{account.telegramUsername ? `@${account.telegramUsername}` : 'Telegram username не указан'}</strong><span>Telegram ID: {account.telegramId || '—'}</span><span>OIDC ID: {account.telegramOidcId || '—'}</span><span>Контакт в профиле: {account.contactTelegram ? `@${account.contactTelegram}` : '—'}</span></div>
+            <div><strong>{account.telegramUsername ? `@${account.telegramUsername}` : 'Ник Telegram не указан'}</strong><span>{account.telegramId ? `Привязан, ID ${account.telegramId}` : 'Telegram не привязан к профилю'}</span>{account.telegramOidcId && <span>Входил через Telegram</span>}<span>Контакт в профиле: {account.contactTelegram ? `@${account.contactTelegram}` : 'не указан'}</span></div>
             <div>
-              <strong>{accessStateLabel[account.accessState]}</strong><span>Источник: {account.source || '—'}</span>
-              <span>Доступы: {entitlementLabels(account).join(', ') || 'нет'}</span>
-              <span>Проверка: {account.checkedAt ? formatDate(account.checkedAt) : '—'}{account.stale ? ' · устарела' : ''}</span>
+              <strong>{accessStateLabel[account.accessState]}</strong>
+              <span>Открыто: {entitlementLabels(account).join(', ') || 'ничего'}</span>
+              <span>{account.checkedAt ? `Проверено ${formatDate(account.checkedAt)}` : 'Ещё не проверялся'}{account.stale ? ' · проверка устарела' : ''}</span>
               {account.message && <small>{account.message}</small>}
             </div>
             <div className="admin-telegram-chats">
-              <strong>Каналы</strong>
+              <strong>VIP-группы</strong>
               {account.chats.length ? account.chats.map((chat, index) => (
                 <span key={`${account.id}-${String(chat.chatId || index)}`} className={chat.isMember || chat.hasAccess ? 'is-member' : 'is-missing'}>
-                  {String(chat.chatId || chat.id || 'chat')} · {String(chat.status || chat.error || (chat.isMember || chat.hasAccess ? 'member' : 'no access'))}
+                  {String(chat.chatId || chat.id || 'группа')} · {chatStateLabel(chat)}
                 </span>
-              )) : <span>Истории проверки каналов нет</span>}
+              )) : <span>Группы ещё не проверялись</span>}
             </div>
           </article>
         )) : <p className="contest-muted" role="status">{payload ? 'Telegram-аккаунты не найдены по текущим фильтрам.' : 'Нажмите “Обновить Telegram”, чтобы загрузить список аккаунтов.'}</p>}

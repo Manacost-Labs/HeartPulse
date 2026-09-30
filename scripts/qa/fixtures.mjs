@@ -902,6 +902,22 @@ export const adminFixtures = {
     ],
     tags: [],
   },
+  '/api/admin/crm/people/qa-user-1': {
+    person: {
+      id: 'qa-user-1', name: 'Первый пользователь', email: 'first@example.test', role: 'user', country: 'RU',
+      createdAt: '2026-07-01T00:00:00.000Z', updatedAt: '2026-07-11T00:00:00.000Z', blockedAt: null, newsletterOptIn: true,
+      contacts: { telegram: '@first_user', vk: '', email: '' },
+    },
+    identities: [{ provider: 'telegram', username: 'first_user', createdAt: '2026-07-01T00:00:00.000Z', verifiedAt: '2026-07-01T00:00:00.000Z' }],
+    access: { hasAccess: true, source: 'boosty', message: 'Подписка Boosty активна.', checkedAt: '2026-07-11T00:00:00.000Z', manual: null },
+    accessHistory: [{ at: '2026-07-02T00:00:00.000Z', source: 'boosty', hasAccess: true }],
+    referral: { label: 'QA campaign', slug: 'qa', campaign: 'qa', clickedAt: '2026-06-30T23:50:00.000Z' },
+    contests: [{ contestId: 'qa-contest', title: 'QA конкурс', status: 'approved', createdAt: '2026-07-05T00:00:00.000Z' }],
+    mailing: { consentStatus: 'subscribed', consentedAt: '2026-07-01T00:00:00.000Z', unsubscribedAt: null, delivered: 1, failed: 0, lastDeliveredAt: '2026-07-10T00:00:00.000Z' },
+    notes: [{ id: 1, body: 'QA заметка', authorId: 'qa-admin', authorName: 'QA администратор', createdAt: '2026-07-06T00:00:00.000Z' }],
+    tags: ['vip'],
+    audit: [],
+  },
   '/api/admin/crm/overview': {
     generatedAt: '2026-07-28T00:00:00.000Z',
     alerts: [

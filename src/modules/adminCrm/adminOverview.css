@@ -5,6 +5,7 @@
 .admin-overview-head p { margin: 4px 0 0; color: var(--crm-muted); }
 .admin-overview-head button { display: inline-flex; align-items: center; gap: 6px; }
 
+.admin-overview-error { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--crm-bad-soft); color: var(--crm-bad); }
 .admin-overview-calm { display: flex; gap: 8px; align-items: center; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--crm-ok-soft); color: var(--crm-ok); font-weight: 600; }
 .admin-overview-alerts { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .admin-overview-alerts li {

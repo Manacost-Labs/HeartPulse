@@ -156,8 +156,6 @@ export function ContestAdminContests(props: ContestAdminContestsProps) {
   return (
     <div className="contest-admin-grid admin-operations-page">
       <AdminOperationsHeader
-        eyebrow="Рост"
-        title="Конкурсы"
         description="Создание конкурса, заявки и публикация победителей — в одном последовательном процессе."
         status={props.loading ? 'Обновляем конкурсы' : props.stats.active ? `Активные конкурсы: ${props.stats.active}` : 'Нет активных конкурсов'}
         statusTone={props.loading ? 'working' : props.stats.active ? 'ready' : 'attention'}

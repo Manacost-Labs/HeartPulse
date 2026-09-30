@@ -13,7 +13,6 @@ import {
   Sparkles,
   Trophy,
   Users,
-  Wallet,
 } from 'lucide-react';
 import './contests.css';
 import {
@@ -75,7 +74,7 @@ import {
 } from './ContestAdminContests';
 import { ADMIN_INPUT } from './contestAdminUi';
 import { useAdminUsersList } from './useAdminUsersList';
-import { loadAdminMoneyPage, loadAdminOverviewPage, type AdminCrmSegmentId } from '../modules/adminCrm/public';
+import { loadAdminOverviewPage, type AdminCrmSegmentId } from '../modules/adminCrm/public';
 import {
   ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
@@ -105,7 +104,6 @@ const ContestAdminFunDecks = React.lazy(async () => {
   const module = await import('./ContestAdminStandardOperations');
   return { default: module.ContestAdminFunDecks };
 });
-const AdminMoneyPage = React.lazy(loadAdminMoneyPage);
 const AdminApiKeys = React.lazy(async () => {
   const module = await import('../modules/developerApi/public');
   return { default: module.AdminApiKeys };
@@ -185,8 +183,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   icon: React.ElementType;
 }> = [
   { id: 'dashboard', label: 'Обзор', caption: 'Что требует внимания, показатели и события', status: 'Сводка проекта', group: 'Рабочий стол', icon: LayoutDashboard },
-  { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Люди и деньги', icon: Users },
-  { id: 'money', label: 'Деньги', caption: 'Выручка, продления и удержание', status: 'Boosty и Tribute', group: 'Люди и деньги', icon: Wallet },
+  { id: 'users', label: 'Пользователи', caption: 'Поиск людей, доступ, заметки и история', status: 'Действия с подтверждением', group: 'Люди и деньги', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Люди и деньги', icon: Mail },
   { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
@@ -1252,7 +1249,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               openMenuId={openUserMenuId}
               menuRef={userMenuRef}
               menuTriggerMap={userMenuTriggerMap}
-              formatDate={formatDate}
               onRefresh={usersList.reload}
               onQueryChange={usersList.setQuery}
               onPageChange={usersList.setPage}
@@ -1264,10 +1260,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               onSegmentChange={usersList.changeSegment}
               onPersonChanged={usersList.reload}
             />
-          )}
-
-          {hasFullAdminAccess && adminSection === 'money' && (
-            <React.Suspense fallback={<RouteFallback minHeight={420} />}><AdminMoneyPage /></React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'mailing' && (

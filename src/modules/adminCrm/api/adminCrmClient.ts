@@ -1,5 +1,5 @@
 /** Browser client for the admin CRM API. Contract: docs/specs/admin-crm.md. */
-import type { AdminCrmOverview, MoneyPayload } from './adminCrmContracts';
+import type { AdminCrmOverview } from './adminCrmContracts';
 export type AdminCrmSegmentId = 'all' | 'paying' | 'manual' | 'expiring' | 'lapsed' | 'new' | 'blocked' | 'admins';
 
 export type AdminCrmSegment = { id: AdminCrmSegmentId; label: string; count: number };
@@ -64,10 +64,6 @@ export const adminCrmClient = {
   segments: (signal?: AbortSignal) => request<AdminCrmSegments>('/crm/segments', {}, signal),
   /** Alerts, KPIs and activity; `fresh` skips the server's one-minute cache. */
   overview: (fresh: boolean, signal?: AbortSignal) => request<AdminCrmOverview>(`/crm/overview${fresh ? '?fresh=1' : ''}`, {}, signal),
-  /** Boosty + Tribute subscription analytics and the Boosty sales ledger for a period. */
-  money: (range: { from: string; to: string }, signal?: AbortSignal, options: { articles?: boolean } = {}) => request<MoneyPayload>(
-    `/boosty/analytics?${new URLSearchParams({ ...range, ...(options.articles === false ? { articles: '0' } : {}) }).toString()}`, {}, signal,
-  ),
   person: (userId: string, signal?: AbortSignal) => request<AdminCrmPerson>(personPath(userId), {}, signal),
   addNote: (userId: string, body: string) => request<{ note: AdminCrmNote }>(`${personPath(userId)}/notes`, {
     method: 'POST', body: JSON.stringify({ body }),

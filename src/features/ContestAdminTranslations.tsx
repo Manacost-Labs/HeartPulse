@@ -175,8 +175,6 @@ function TranslationWorkspaceView({
   return (
     <div className="admin-translation-workspace">
       <AdminOperationsHeader
-        eyebrow="Контент"
-        title="Переводы"
         description="Закройте пробелы в названиях архетипов и синхронизируйте справочник без потери ручных правок."
         status={syncing ? 'Синхронизируем BlizzCore' : coverageLoading ? (coverageLoaded ? 'Обновляем покрытие' : 'Проверяем покрытие') : coverage.missing ? `${coverage.missing} требуют перевода` : 'Все актуальные названия переведены'}
         statusTone={syncing || coverageLoading ? 'working' : coverage.missing ? 'attention' : 'ready'}
