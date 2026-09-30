@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { applyDocumentPageMeta, resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
-import { tabFromPath } from '../src/routes';
+import { tabFromPath } from '../src/app/routing/navigationRoutes';
 
 const ORIGIN = 'https://hearthpulse.net';
 

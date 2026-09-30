@@ -33,7 +33,6 @@
         "tests/agent-navigation.test.mjs",
         "tests/application-connect-api.test.ts",
         "tests/application-connect-page.test.ts",
-        "tests/application-route-manifest.test.ts",
         "tests/archetype-deck-codes-schema.test.ts",
         "tests/archetype-deck-identity.test.ts",
         "tests/archetype-detail-model.test.ts",

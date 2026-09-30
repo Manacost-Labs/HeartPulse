@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ARENA_TABS, MISC_TABS, type TabId } from '../../routes';
+import { ARENA_TABS, MISC_TABS, type TabId } from '../routing/navigationRoutes';
 import '../../parchment-theme.css';
 import { PublicNavigation } from './PublicNavigation';
 
@@ -42,7 +42,6 @@ function PublicNavigationPreview({
       profileLabel="Войти в профиль"
       onNavigate={setActiveTab}
       onNavigateLogin={() => setActiveTab('home')}
-      onWarm={() => {}}
       onToggleMobileMenu={() => {
         setMobileMenuOpen(open => !open);
         setMobileNavGroup(null);

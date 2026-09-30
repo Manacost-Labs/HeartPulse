@@ -1,36 +1,30 @@
-# Application route manifest
+# Application navigation routes
 
 ## Status
 
-Implemented. The manifest was written for the single-page shell that was
-deleted on 2026-09-30. Next.js App Router now owns URL resolution, rendering,
-history and page metadata, and the pages use only the navigation metadata,
-`tabFromPath` and `BG_TAB_IDS`. The module loaders and preload helpers of the
-manifest have no caller outside tests and are to be removed
-(`docs/plans/nextjs-full-site-migration.md`, section 7).
+Implemented. This file keeps its name from the route manifest of the
+single-page shell. That shell and its manifest (module loaders, preload policy,
+client history and metadata handling) were deleted on 2026-09-30: Next.js App
+Router owns URL resolution, rendering, history and page metadata. What remains
+is the typed list of navigation surfaces described here.
 
 ## Objective
 
-Create one typed application contract for route surfaces so a maintainer or AI
-agent can answer, from one entry point:
+Keep one typed source from which a maintainer or AI agent can answer:
 
 - which stable surface id owns a navigation path;
-- how the surface is grouped and entitled;
-- which navigation entry is active for a URL.
+- how the surface is grouped in the menus and which subscription it sells;
+- which navigation entry is highlighted for a URL.
 
-The Next.js route for a surface lives under `apps/public-web/app/`; the
+The page for a surface lives under `apps/public-web/app/`; the
 [route coverage ledger](../plans/nextjs-route-coverage.md) maps URL patterns
 to their pages.
 
-This is an internal structural migration. Public URLs, canonical metadata,
-permissions, history behavior, rendered content and chunk boundaries remain
-unchanged.
-
 The public URL inventory remains the deployment and SEO contract for all
-static, listing, detail, redirect, legacy and fallback URLs. The application
-manifest owns the smaller set of route surfaces that compose those URLs. Tests
-must make their relationship explicit rather than treating navigation tabs and
-all public URLs as the same concept.
+static, listing, detail, redirect, legacy and fallback URLs. The navigation
+list owns the smaller set of surfaces that the menus link to. Tests must make
+their relationship explicit rather than treating navigation entries and all
+public URLs as the same concept.
 
 ## Tech stack
 
@@ -56,59 +50,54 @@ src/
   app/
     routing/
       navigationDefinitions.ts   # ids, labels, icons, paths, groups, entitlements
-      navigationRoutes.ts        # navigation groups used by the page shell
-      routeManifest.ts           # typed surfaces, tabFromPath, unused module loaders
-      public.ts                  # routing contract used by tests
+      navigationRoutes.ts        # menu groups, BG_TAB_IDS, tabFromPath
+      canonicalPagePath.ts       # trailing-slash form of a page link
     shell/
-      PublicPageShell.tsx        # page shell: consumes the groups and BG_TAB_IDS
+      PublicPageShell.tsx        # page shell: renders the groups
   shared/
     seo/
       publicRouteInventory.json  # complete SEO/deployment URL contract
-  routes.ts               # compatibility facade for tests and one story
+
+apps/public-web/
+  ui/navigation.ts               # loads the document of a path or surface id
 
 tests/
-  application-route-manifest.test.ts
   routes.test.ts
   route-inventory.test.ts
+  responsive-route-inventory.test.ts
 ```
-
-No application-wide barrel is introduced. `src/app/routing/public.ts` exposes
-only the routing contract used by focused tests.
 
 ## Contract and code style
 
-Every route surface has a literal id, canonical path, navigation metadata,
-entitlement and optional literal module preloader. Derived groups and lookup
-maps come from the manifest; callers do not repeat route-id lists.
+Every surface has a literal id, canonical path, label, icon, menu group and
+the subscription its section sells. Groups and lookups are derived from the
+list; callers do not repeat route-id lists.
 
 ```ts
-export const ROUTE_MANIFEST = [
-  defineRouteSurface(
-    {
-      id: 'articles',
-      label: 'Статьи',
-      icon: BookOpenText,
-      path: '/articles',
-      group: 'top',
-      entitlement: null,
-    },
-    loadDeferredRoutesModule,
-  ),
-] as const satisfies readonly ApplicationRouteSurface[];
+export const NAVIGATION_ROUTES = [
+  {
+    id: 'articles',
+    label: 'Статьи',
+    icon: BookOpenText,
+    path: '/articles',
+    group: 'top',
+    entitlement: null,
+  },
+] as const satisfies readonly NavigationRouteDefinition[];
 ```
 
 Rules:
 
-- use `path` for the canonical surface URL; keep the compatibility `slug`
-  alias only while existing presentation callers migrate;
-- derive `TabId`, route groups, entitlement maps and preload lookup from the
-  manifest;
-- do not add module loaders to the manifest: a Next.js page imports its view
-  itself, and the existing loaders are waiting for removal;
-- leave browser history, page metadata and stale-navigation handling to
-  Next.js: every navigation loads a document;
-- make `routePath` fail closed for an unknown route id instead of silently
-  navigating to `/`;
+- add a surface in `navigationDefinitions.ts` only; `navigationRoutes.ts`
+  derives `TabId`, the menu groups and `BG_TAB_IDS` from it;
+- `entitlement` names the subscription that the section sells. It must equal
+  the entitlement of the same route in the public URL inventory, which the
+  responsive QA fixtures are checked against; the page itself enforces access;
+- `tabFromPath` only chooses the highlighted navigation entry. A path outside
+  every section, including an unknown one, belongs to `home`; whether a URL
+  exists is decided by Next.js and the public URL policy;
+- do not add module loaders or preload policy here: a Next.js page imports its
+  view itself;
 - render unknown Next HTML with a real HTTP 404, `noindex, nofollow`, the
   public navigation and the generic missing-page actions; card details may
   keep their more specific missing-card message;
@@ -121,27 +110,25 @@ Rules:
   either catalog or detail data. The Wild selection query identifies an
   archetype, while deck codes open `/deck-builder/?code=...`; Express remains
   the authority for archetype and deck data;
-- keep domain data fetching and permission decisions out of routing files;
-- preserve optimistic surface selection for nested detail URLs while the
-  public URL policy performs authoritative validation.
+- keep domain data fetching and permission decisions out of routing files.
 
 ## Testing strategy
 
-1. `tests/application-route-manifest.test.ts` proves unique ids and paths,
-   canonical path lookup, derived compatibility metadata, preload coverage and
-   shared loader identities without importing feature modules.
-2. `tests/routes.test.ts` proves canonical and legacy surface resolution,
-   entitlement derivation, navigation grouping and SEO-sensitive special URLs.
-3. `tests/route-inventory.test.ts` proves all public URL inventory entries and
-   the SEO registry pages remain valid.
-4. The manifest test pins 19 distinct loader identities and proves the login
-   overlay no longer shares the `DeferredRoutes` loader.
-5. `tests/next-not-found-browser.test.mjs` proves an unknown URL is a real
+1. `tests/routes.test.ts` pins the 25 surface ids and canonical paths, proves
+   they are unique, that every surface except the home page, FAQ and the
+   footer links belongs to exactly one menu group, and that `tabFromPath`
+   resolves canonical, nested, legacy and unknown paths.
+2. `tests/route-inventory.test.ts` proves all public URL inventory entries and
+   the SEO registry pages remain valid and agree with the navigation
+   entitlements.
+3. `tests/responsive-route-inventory.test.ts` proves the browser QA fixtures
+   match the inventory entitlements.
+4. `tests/next-not-found-browser.test.mjs` proves an unknown URL is a real
    404 document with the public navigation.
-6. Browser QA exercises direct navigation, navigation through the menu and
+5. Browser QA exercises direct navigation, navigation through the menu and
    Back/Forward on desktop and mobile with a clean console and network log.
 
-Tests assert observable route outcomes and manifest invariants, not internal
+Tests assert observable route outcomes and list invariants, not internal
 function call order.
 
 ## Boundaries
@@ -149,8 +136,8 @@ function call order.
 ### Always
 
 - add or change the contract test before moving implementation;
-- preserve URL, canonical, entitlement, history and loading behavior;
-- keep route metadata typed and derived from one manifest;
+- preserve URL, canonical and entitlement behavior;
+- keep navigation metadata typed and derived from one list;
 - update the ADR and architecture map in the same task.
 
 ### Ask first
@@ -161,29 +148,22 @@ function call order.
 ### Never
 
 - import a module's internal file from application routing;
-- place domain business policy or raw data fetching in the manifest;
-- generate dynamic import paths from unvalidated runtime strings;
-- keep two writable route registries after consumers migrate;
+- place domain business policy or raw data fetching in the navigation list;
+- keep two writable route registries;
 - classify an inventory fallback as a valid application surface.
 
 ## Success criteria
 
 - Route ids, canonical surface paths, navigation groups and entitlements have
   one typed source.
-- The existing 25 route surfaces resolve exactly as before, including nested
-  detail paths, `/connect`, public-profile paths, removed paths and the legacy
-  Standard archetype URL.
-- Primary authenticated navigation remains eager and does not gain a granular
-  avatar request or loading flash as a side effect of the routing migration.
+- The 25 surfaces resolve as before, including nested detail paths, removed
+  paths and the legacy Standard archetype URL.
 - Focused tests, route inventory, architecture checks, build and browser QA
   pass without changes to public behavior.
 
 ## Open questions
 
 - The complete public URL inventory contains 48 URL contracts while the
-  application currently has 25 route surfaces. A later slice may add an
-  explicit `surfaceId` to each inventory entry; this slice must not conflate
-  those two identifiers or change authoritative URL validation.
-- `src/routes.ts` remains a read-only compatibility facade for three tests
-  and one story. It must contain no route data and should be deleted together
-  with the unused loaders.
+  navigation has 25 surfaces. A later slice may add an explicit `surfaceId` to
+  each inventory entry; it must not conflate those two identifiers or change
+  authoritative URL validation.

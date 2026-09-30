@@ -23,7 +23,6 @@ const html = renderToStaticMarkup(
     profileLabel="Войти в профиль"
     onNavigate={noop}
     onNavigateLogin={noop}
-    onWarm={noop}
     onToggleMobileMenu={noop}
     onCloseMobileMenu={noop}
     onToggleMobileNavGroup={noop}

@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 
 const pageShellSource = readFileSync(new URL('../src/app/shell/PublicPageShell.tsx', import.meta.url), 'utf8');
 const profileButtonSource = readFileSync(new URL('../src/app/shell/HeaderProfileButton.tsx', import.meta.url), 'utf8');
-const routeManifestSource = readFileSync(new URL('../src/app/routing/routeManifest.ts', import.meta.url), 'utf8');
 const authAvatarSource = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.tsx', import.meta.url), 'utf8');
 const authAvatarStyles = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.css', import.meta.url), 'utf8');
 const initialStyles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
@@ -14,21 +13,6 @@ const deferredStyles = readFileSync(new URL('../src/features/DeferredRoutes.css'
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
 const contestsSource = readFileSync(new URL('../src/features/Contests.tsx', import.meta.url), 'utf8');
 
-assert.match(
-  routeManifestSource,
-  /loadGalleryModule = \(\) => import\('\.\.\/\.\.\/features\/GalleryTab'\)/,
-  'the public gallery must own a dedicated lazy route chunk',
-);
-assert.doesNotMatch(
-  routeManifestSource,
-  /module\.GalleryTab/,
-  'the gallery must not download the unrelated DeferredRoutes module',
-);
-assert.match(
-  routeManifestSource,
-  /routeId === 'login'\) return loadLoginPanel/,
-  'login intent must preload the identity-owned form instead of DeferredRoutes',
-);
 assert.match(
   pageShellSource,
   /import\s*\{[^}]*\bHeaderProfileButton\b[^}]*\}\s*from '\.\/HeaderProfileButton'/,

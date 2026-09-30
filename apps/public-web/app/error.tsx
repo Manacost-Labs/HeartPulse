@@ -3,7 +3,7 @@ import { startTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, RefreshCw } from 'lucide-react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
-import { tabFromPath } from '@/src/app/routing/routeManifest';
+import { tabFromPath } from '@/src/app/routing/navigationRoutes';
 import { classifyAppError } from '@/src/components/appErrorRecovery';
 import { usePublicAccess } from '@/apps/public-web/ui/usePublicAccess';
 import { navigate } from '@/apps/public-web/ui/navigation';

@@ -12,7 +12,6 @@ type NavigationRouteLinksProps = {
   variant: 'mobile' | 'sidebar';
   sublink?: boolean;
   onNavigate: (tab: TabId) => void;
-  onWarm: (tab: TabId) => void;
 };
 
 export function NavigationRouteLinks({
@@ -21,7 +20,6 @@ export function NavigationRouteLinks({
   variant,
   sublink = false,
   onNavigate,
-  onWarm,
 }: NavigationRouteLinksProps) {
   const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
   const iconSize = sublink ? 17 : variant === 'mobile' ? 18 : 19;
@@ -31,10 +29,7 @@ export function NavigationRouteLinks({
     return (
       <a
         key={tab.id}
-        href={canonicalPagePath(tab.slug)}
-        onPointerEnter={() => onWarm(tab.id)}
-        onPointerDown={() => onWarm(tab.id)}
-        onFocus={() => onWarm(tab.id)}
+        href={canonicalPagePath(tab.path)}
         onClick={event => {
           event.preventDefault();
           onNavigate(tab.id);

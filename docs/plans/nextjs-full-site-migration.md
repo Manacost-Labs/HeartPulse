@@ -43,8 +43,9 @@ Nginx remains the public edge and routes each URL to exactly one owner.
   [coverage ledger](nextjs-route-coverage.md) tracks their current owners.
   Nginx also has explicit `/deck-builder/` and `/archetypes/` pages outside
   that inventory; `/admin/` is listed but has a separate exact edge rule.
-- `src/app/routing/routeManifest.ts` and `src/shared/seo/publicRouteInventory.json`
-  describe the application surfaces and public URL policy. The Vite
+- `src/app/routing/navigationDefinitions.ts` and
+  `src/shared/seo/publicRouteInventory.json` describe the navigation surfaces
+  and public URL policy. The Vite
   application (`index.html`, `src/main.tsx`, `src/App.tsx` and its client
   router) was deleted on 2026-09-30. The release runs `build:static`,
   `build:server` and `build:next`.
@@ -419,15 +420,14 @@ Retire each Vite dependency at its actual owner, in this order:
    no change for the static root.
 7. Partly done on 2026-09-30: `index.html`, `src/main.tsx`, `src/App.tsx`,
    the client router (`routeModules.tsx`, `routeResolution.ts`,
-   `clientNavigation.ts`, `useApplicationNavigation.ts`) and the modules only
-   they used are deleted, together with `@sentry/react`. `vite.config.ts`
+   `clientNavigation.ts`, `useApplicationNavigation.ts`), the route manifest
+   with its module loaders and the modules only they used are deleted,
+   together with `@sentry/react`. `vite.config.ts`
    keeps only the plugins, alias and release constant that Storybook and the
    component-harness tests need; `@vitejs/plugin-react` and
    `@tailwindcss/vite` are development dependencies. Open: delete
    `vite.config.ts`, `src/vite-env.d.ts` and the Vite packages once step 2
-   and the harness port are done, and remove the module loaders of
-   `src/app/routing/routeManifest.ts`, which no page calls. Regenerate
-   `package-lock.json`. Audit
+   and the harness port are done. Regenerate `package-lock.json`. Audit
    active source, scripts, tests, CI and package-lock for remaining Vite
    references; keep historical documents and immutable old releases only as
    records or rollback artifacts.

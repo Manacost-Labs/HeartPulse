@@ -20,7 +20,7 @@ const program = ts.createProgram(parsed.fileNames, parsed.options);
 const entryFiles = new Set([
   'src/app/shell/PublicPageShell.tsx',
   'src/app/shell/PublicNavigation.tsx',
-  'src/routes.ts',
+  'src/app/routing/navigationRoutes.ts',
   'src/modules/identity/ui/AuthAvatar.tsx',
   'src/hooks/usePageScrollLock.ts',
 ]);

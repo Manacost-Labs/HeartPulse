@@ -27,7 +27,6 @@ export type PublicNavigationProps = {
   profileLabel: string;
   onNavigate: (tab: TabId) => void;
   onNavigateLogin: () => void;
-  onWarm: (tab: TabId | 'login') => void;
   onToggleMobileMenu: () => void;
   onCloseMobileMenu: () => void;
   onToggleMobileNavGroup: (group: Exclude<NavigationGroup, null>) => void;
@@ -58,14 +57,13 @@ function MobileTopbar({ mobileMenuOpen, mobileMenuToggleRef, onNavigate, onToggl
 
 function MobileMenu({
   activeTab, appIsContestAdmin, mobileMenuOpen, mobileMenuRef, mobileNavGroup, mobileProfile,
-  onCloseMobileMenu, onNavigate, onNavigateLogin, onToggleMobileNavGroup, onWarm, profileLabel,
+  onCloseMobileMenu, onNavigate, onNavigateLogin, onToggleMobileNavGroup, profileLabel,
   visibleArenaTabs, visibleMiscTabs, wantsLogin,
 }: PublicNavigationProps) {
   const mobileLinkProps = {
     activeTab,
     variant: 'mobile' as const,
     onNavigate,
-    onWarm: (tab: TabId) => onWarm(tab),
   };
   const constructorsActive = BG_BUILDER_TABS.some(tab => tab.id === activeTab);
   const miscActive = visibleMiscTabs.some(tab => tab.id === activeTab);
@@ -89,7 +87,7 @@ function MobileMenu({
         <NavigationGroupControl active={miscActive} caption="Материалы и события" group="misc" isOpen={mobileNavGroup === 'misc'} onToggle={() => onToggleMobileNavGroup('misc')} title="Разное" variant="mobile">
           <NavigationRouteLinks routes={visibleMiscTabs} {...mobileLinkProps} sublink onNavigate={tab => { onNavigate(tab); onCloseMobileMenu(); }} />
         </NavigationGroupControl>
-        <a href="/?login" onPointerEnter={() => onWarm('login')} onFocus={() => onWarm('login')} onClick={event => { event.preventDefault(); onNavigateLogin(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
+        <a href="/?login" onClick={event => { event.preventDefault(); onNavigateLogin(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
           {mobileProfile}
         </a>
       </nav>
@@ -98,11 +96,11 @@ function MobileMenu({
 }
 
 function DesktopSidebar({
-  activeTab, appIsContestAdmin, onNavigate, onNavigateLogin, onToggleSidebarNavGroup, onWarm,
+  activeTab, appIsContestAdmin, onNavigate, onNavigateLogin, onToggleSidebarNavGroup,
   profileLabel, sidebarNavGroup, sidebarProfile, updatedAtLabel, visibleArenaTabs, visibleMiscTabs,
   wantsLogin,
 }: PublicNavigationProps) {
-  const sidebarLinkProps = { activeTab, variant: 'sidebar' as const, onNavigate, onWarm: (tab: TabId) => onWarm(tab) };
+  const sidebarLinkProps = { activeTab, variant: 'sidebar' as const, onNavigate };
   const constructorsActive = BG_BUILDER_TABS.some(tab => tab.id === activeTab);
   const miscActive = visibleMiscTabs.some(tab => tab.id === activeTab);
   return (
@@ -162,8 +160,6 @@ function DesktopSidebar({
 
           <a
             href="/?login"
-            onPointerEnter={() => onWarm('login')}
-            onFocus={() => onWarm('login')}
             onClick={event => {
               event.preventDefault();
               onNavigateLogin();

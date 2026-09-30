@@ -5,7 +5,7 @@ import {
   publicProfileIdFromPath,
   publicProfilePath,
 } from '../src/modules/identity/public.js';
-import { isKnownPath, tabFromPath } from '../src/routes.js';
+import { tabFromPath } from '../src/app/routing/navigationRoutes.js';
 
 assert.equal(publicProfileIdFromPath('/id/1'), '1');
 assert.equal(publicProfileIdFromPath('/id/2147483647/'), '2147483647');
@@ -24,10 +24,8 @@ assert.equal(publicProfilePath('1'), '/id/1');
 assert.equal(publicProfilePath('01'), '/');
 assert.equal(publicProfilePath('2147483648'), '/');
 assert.equal(publicProfilePath('user_internal_id'), '/');
-assert.equal(isKnownPath('/id/1'), true);
-assert.equal(isKnownPath(`/profiles/${legacyPublicProfileId}`), true);
-assert.equal(isKnownPath('/id/user_internal_id'), false);
-assert.equal(tabFromPath('/id/1'), 'home');
+assert.equal(tabFromPath('/id/1'), 'home', 'a profile page highlights no navigation section');
+assert.equal(tabFromPath(`/profiles/${legacyPublicProfileId}`), 'home');
 
 const identityPublicEntry = readFileSync(
   new URL('../src/modules/identity/public.ts', import.meta.url),

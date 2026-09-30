@@ -23,9 +23,8 @@
 
 ### Что уже есть
 
-- Статические метатеги и JSON-LD в `index.html`.
-- Реестр навигации в `src/routes.ts` и единый реестр материализованных SEO-страниц в `config/public-seo-pages.json` + `src/seo/registry.ts`.
-- Клиентское обновление title, description, canonical, Open Graph и Twitter Card в `src/routes.ts`.
+- Общие метатеги документа в `apps/public-web/app/layout.tsx`.
+- Реестр навигации в `src/app/routing/navigationDefinitions.ts` и единый реестр материализованных SEO-страниц в `config/public-seo-pages.json` + `src/seo/registry.ts`.
 - Серверный рендер всех страниц в Next.js (`apps/public-web`): title, description, canonical и share-теги берутся из реестра, JSON-LD страниц разделов — из `config/public-seo-structured-data.json` (`src/seo/structuredData.ts`); статический sitemap-сегмент генерирует из того же реестра `scripts/build-static-root.mjs` (`npm run build:static`).
 - Статические `public/robots.txt` и `public/llms.txt`.
 - Страницы FAQ, статей, Standard, Arena и Battlegrounds.
@@ -95,7 +94,7 @@
 3. sitemap;
 4. SEO-контрактные тесты.
 
-`src/routes.ts` остаётся источником навигации и entitlements, но не дублирует SEO-тексты. Неизвестный маршрут должен получать настоящий HTTP 404, а не успешный SPA shell с поздним клиентским `noindex`.
+`src/app/routing/navigationDefinitions.ts` остаётся источником навигации и entitlements, но не дублирует SEO-тексты. Неизвестный маршрут должен получать настоящий HTTP 404, а не успешный SPA shell с поздним клиентским `noindex`.
 
 ### 4.2. HTML-стратегия
 

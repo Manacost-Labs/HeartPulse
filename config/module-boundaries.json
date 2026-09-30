@@ -741,11 +741,10 @@
       "id": "client.applicationComposition",
       "runtime": "client",
       "roots": [
-        "src/app",
-        "src/routes.ts"
+        "src/app"
       ],
       "excludeRoots": [],
-      "purpose": "Owns the page shell shared by every Next.js page and the canonical route manifest and navigation definitions.",
+      "purpose": "Owns the page shell shared by every Next.js page and the navigation definitions that its menus render.",
       "owner": "web-platform",
       "targetModules": [
         "client.accountRoute",
@@ -766,13 +765,13 @@
       ],
       "safeStarts": [
         "src/app/shell/PublicPageShell.tsx",
-        "src/app/routing/routeManifest.ts"
+        "src/app/routing/navigationRoutes.ts"
       ],
       "routeScope": {
         "mode": "all"
       },
       "knownDebt": [
-        "The route manifest still carries the lazy loaders and preload policy of the removed single-page shell; Next.js pages never call them."
+        "The page shell composes the global header, footer and support prompt from src/components, which have no module owner yet."
       ]
     },
     {
@@ -902,7 +901,6 @@
         "src/app",
         "src/features",
         "src/modules",
-        "src/routes.ts",
         "src/shared"
       ],
       "purpose": "Owns transitional client components, styles, content, telemetry and vendor adapters outside domain modules and shared roots.",

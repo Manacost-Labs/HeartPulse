@@ -21,7 +21,18 @@ import {
   Trophy,
   type LucideIcon,
 } from 'lucide-react';
-import type { ApplicationRouteSurfaceDefinition } from './routeSurface';
+import type { SubscriptionEntitlementKey } from '../../modules/subscriptions/public';
+
+type NavigationRouteDefinition = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  path: `/${string}`;
+  group: 'home' | 'top' | 'standard' | 'arena' | 'bg-primary' | 'bg-builder' | 'misc' | 'footer' | 'admin';
+  // The subscription the section sells; the page itself enforces access.
+  entitlement: SubscriptionEntitlementKey | null;
+  adminOnly?: boolean;
+};
 
 export const NAVIGATION_ROUTES = [
   {
@@ -95,11 +106,4 @@ export const NAVIGATION_ROUTES = [
   {
     id: 'admin-panel', label: 'Админ панель', icon: ShieldCheck, path: '/admin', group: 'admin', entitlement: null,
   },
-] as const satisfies readonly Omit<ApplicationRouteSurfaceDefinition, 'loader' | 'preload'>[];
-
-type NavigationDefinition = (typeof NAVIGATION_ROUTES)[number];
-export function navigationDefinition<Id extends NavigationDefinition['id']>(id: Id) {
-  const route = NAVIGATION_ROUTES.find((route): route is Extract<NavigationDefinition, { id: Id }> => route.id === id);
-  if (!route) throw new Error(`Unknown navigation route: ${id}`);
-  return route;
-}
+] as const satisfies readonly NavigationRouteDefinition[];

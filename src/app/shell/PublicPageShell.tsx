@@ -5,8 +5,7 @@ import { PublicNavigation } from './PublicNavigation';
 import { HeaderProfileButton } from './HeaderProfileButton';
 import GlobalUtilityHeader from '../../components/GlobalUtilityHeader';
 import SiteFooter from '../../components/SiteFooter';
-import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, MISC_TABS, TABS, type TabId } from '../routing/navigationRoutes';
-import { BG_TAB_IDS } from '../routing/routeManifest';
+import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, BG_TAB_IDS, MISC_TABS, TABS, type TabId } from '../routing/navigationRoutes';
 import type { AuthUser } from '../../modules/identity/public';
 import type { SubscriptionStatus } from '../../modules/subscriptions/public';
 
@@ -43,8 +42,8 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
         visibleMiscTabs={MISC_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
         appIsContestAdmin={access.contestAdmin} wantsLogin={false} updatedAtLabel={updatedAtLabel} mobileMenuRef={menuRef}
         mobileMenuToggleRef={toggleRef} mobileProfile={<HeaderProfileButton user={access.user} checking={access.checking} variant="mobile" />} sidebarProfile={profile} profileLabel={access.user || access.checking ? 'Открыть профиль' : 'Войти'}
-        onNavigate={tab => navigate(TABS.find(item => item.id === tab)?.slug ?? '/')}
-        onNavigateLogin={() => navigate('/?login')} onWarm={() => undefined}
+        onNavigate={tab => navigate(TABS.find(item => item.id === tab)?.path ?? '/')}
+        onNavigateLogin={() => navigate('/?login')}
         onToggleMobileMenu={() => setMenu(value => !value)} onCloseMobileMenu={() => setMenu(false)}
         onToggleMobileNavGroup={value => setMobileGroup(current => current === value ? null : value)}
         onToggleSidebarNavGroup={value => setSidebarGroup(current => current === value ? null : value)} />

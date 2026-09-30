@@ -7,7 +7,6 @@ const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCa
 const listPrefetchSource = readFileSync(new URL('../src/features/constructedCardListPrefetch.ts', import.meta.url), 'utf8');
 const lightboxSource = readFileSync(new URL('../src/features/ConstructedCardLightbox.tsx', import.meta.url), 'utf8');
 const deferredSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
-const publicNavigationSource = readFileSync(new URL('../src/app/shell/NavigationItems.tsx', import.meta.url), 'utf8');
 
 assert.match(cardsSource, /prefetchConstructedCardDetail\(/,
   'card catalog links must warm their detail response before navigation');
@@ -28,8 +27,6 @@ assert.match(listPrefetchSource, /LIST_PREFETCH_LIMIT\s*=\s*16/,
   'the client list cache must remain bounded');
 assert.match(listPrefetchSource, /statsAccess \? 'paid' : 'public'/,
   'public and subscriber list payloads must never share a client cache key');
-assert.match(publicNavigationSource, /onPointerDown=\{\(\) => onWarm\(tab\.id\)\}/,
-  'touch navigation must start loading its lazy route before click');
 assert.match(cardsStyles, /\.constructed-cards__state\s*\{[^}]*min-height:\s*70vh/,
   'the cold catalog loader must reserve enough viewport space to avoid a late footer shift');
 

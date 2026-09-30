@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { TABS } from '../src/routes';
+import { TABS } from '../src/app/routing/navigationRoutes';
 
 type InventoryRoute = {
   id: string;
@@ -57,7 +57,7 @@ const byId = new Map(inventory.routes.map(route => [route.id, route]));
 for (const route of TABS) {
   const policy = byId.get(route.id);
   assert.ok(policy, `${route.id} must be present in the public route inventory`);
-  assert.equal(policy.pattern, route.slug, `${route.id} path must match the navigation registry`);
+  assert.equal(policy.pattern, route.path, `${route.id} path must match the navigation registry`);
   assert.equal(policy.entitlement, route.entitlement, `${route.id} entitlement must match the navigation registry`);
 }
 

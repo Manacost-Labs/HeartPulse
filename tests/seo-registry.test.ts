@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import routeInventory from '../src/shared/seo/publicRouteInventory.json';
-import { TABS } from '../src/routes';
+import { TABS } from '../src/app/routing/navigationRoutes';
 import {
   publicSeoPages,
   renderSeoTemplate,
@@ -26,7 +26,7 @@ assert.equal(navigationPages.length, TABS.length, 'every navigation route needs 
 
 for (const route of TABS) {
   const page = seoPageForNavigationRoute(route.id);
-  assert.equal(page.pathname, route.slug, `${route.id} must use its route root as default metadata`);
+  assert.equal(page.pathname, route.path, `${route.id} must use its route root as default metadata`);
 }
 
 const indexedTitles = new Set<string>();

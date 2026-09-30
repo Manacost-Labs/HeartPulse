@@ -10,8 +10,8 @@
     {
       "id": "route-tab-from-path",
       "query": "resolve the navigation tab that owns a public path",
-      "source": ["src/app/routing/routeManifest.ts", "src/modules/identity/model/publicProfilePath.ts"],
-      "expected_path": "src/app/routing/routeManifest.ts"
+      "source": ["src/app/routing/navigationRoutes.ts", "src/modules/identity/model/publicProfilePath.ts"],
+      "expected_path": "src/app/routing/navigationRoutes.ts"
     },
     {
       "id": "sentry-privacy",
@@ -40,7 +40,7 @@
     {
       "id": "absent-billing-refund",
       "query": "refund a completed subscription invoice",
-      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/app/routing/routeManifest.ts"],
+      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/app/routing/navigationRoutes.ts"],
       "expected_path": null
     }
   ]
