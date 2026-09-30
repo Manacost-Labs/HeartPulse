@@ -1,4 +1,6 @@
-export type PublicIndexPolicy = 'index' | 'noindex-follow' | 'noindex-nofollow';
+import { robotsContent, type PublicIndexPolicy } from './robots';
+
+export type { PublicIndexPolicy };
 export type PublicCanonicalPolicy = 'self' | 'clean-path' | 'none';
 type PathParameterConstraint = {
   allowedValues?: string[];
@@ -115,12 +117,6 @@ function routeMatchesPath(route: PublicRoutePolicy, pathname: string): boolean {
     }
     return true;
   });
-}
-
-function robotsContent(indexPolicy: PublicIndexPolicy): string {
-  if (indexPolicy === 'noindex-nofollow') return 'noindex, nofollow';
-  if (indexPolicy === 'noindex-follow') return 'noindex, follow';
-  return 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 }
 
 function indexPolicyWeight(indexPolicy: PublicIndexPolicy): number {

@@ -430,10 +430,14 @@ cutover and that must return before those files are deleted:
   `apps/public-web/app/layout.tsx`. Plausible loads only on the canonical
   host, so tests and the browser QA gate do not depend on the analytics
   server. `installFieldFocusMode` no longer reads `import.meta.env`.
-- Open: robots preview directives (`max-image-preview:large` and friends) on
-  indexable pages; the per-route JSON-LD kept in `scripts/prerender.js`;
-  `/runtime-config.js`, without which card images skip the CDN; web-vitals
-  reporting and client Sentry.
+- Done: indexable pages take their robots directives from the shared URL
+  policy again (`max-image-preview:large`, `max-snippet:-1`,
+  `max-video-preview:-1`), and the JSON-LD of 29 listing and hub pages moved
+  from `scripts/prerender.js` to `config/public-seo-structured-data.json` and
+  `src/seo/structuredData.ts`. On 2026-09-30 the generated graphs were
+  identical to the prerendered documents for all 29 pages.
+- Open: `/runtime-config.js`, without which card images skip the CDN;
+  web-vitals reporting and client Sentry.
 
 Eleven browser tests use a Vite dev server as their component harness
 (`tests/fixtures/*.html`, `tests/fixtures/vite.*.config.ts`); they need another

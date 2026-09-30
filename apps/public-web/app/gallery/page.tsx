@@ -2,6 +2,8 @@ import { seoPageForExactPath } from '@/src/seo/registry';
 import type { Metadata } from 'next';
 import { loadPublicGallery } from '@/apps/public-web/lib/publicGallery';
 import { GalleryPageClient } from '@/apps/public-web/ui/GalleryPageClient';
+import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
+import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 const seo = seoPageForExactPath('/gallery');
 if (!seo) throw new Error('Missing gallery SEO contract');
@@ -11,10 +13,7 @@ export const metadata: Metadata = {
   title: seo.title,
   description: seo.description,
   alternates: { canonical: 'https://hearthpulse.net/gallery/' },
-  robots: {
-    index: true, follow: true,
-    'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1,
-  },
+  robots: INDEXABLE_ROBOTS,
   openGraph: {
     type: 'website', url: 'https://hearthpulse.net/gallery/',
     siteName: 'HearthPulse', locale: 'ru_RU',
@@ -28,5 +27,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  return <GalleryPageClient data={await loadPublicGallery()} />;
+  return <>
+    <SeoStructuredData path="/gallery" />
+    <GalleryPageClient data={await loadPublicGallery()} />
+  </>;
 }

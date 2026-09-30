@@ -25,7 +25,7 @@ export async function archetypeDetailMetadata(params: ArchetypeRouteParams, fami
   const canonical = policy.canonicalUrl ?? `https://hearthpulse.net${pathname}/`;
   return {
     title, description, alternates: { canonical },
-    robots: { index: policy.indexPolicy === 'index', follow: policy.indexPolicy !== 'noindex-nofollow' },
+    robots: policy.robots,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
       images: [{ url: '/assets/og-preview.png', alt: 'HearthPulse — архетип Hearthstone', width: 1200, height: 630 }] },
   };

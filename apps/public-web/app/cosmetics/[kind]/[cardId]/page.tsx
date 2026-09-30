@@ -4,6 +4,7 @@ import { cosmeticsDetailPath } from '@/src/modules/cosmetics/public';
 import { cosmeticsDetailSeo } from '@/apps/public-web/lib/cosmeticsDetailSeo';
 import { loadPublicCosmeticsDetail, typedCosmeticsKind } from '@/apps/public-web/lib/publicCosmeticsDetail';
 import { CosmeticsPageClient } from '@/apps/public-web/ui/CosmeticsPageClient';
+import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 
 type Props = { params: Promise<{ kind: string; cardId: string }> };
 export const dynamic = 'force-dynamic';
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { canonical, title, description, image } = cosmeticsDetailSeo(kind, detail);
   return {
     title, description, alternates: { canonical },
-    robots: { index: true, follow: true, 'max-image-preview': 'large' },
+    robots: INDEXABLE_ROBOTS,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title, description, images: image ? [image] : [] },
   };

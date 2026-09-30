@@ -327,6 +327,7 @@
         "tests/security-tooling-contract.test.mjs",
         "tests/sentry-privacy.test.ts",
         "tests/seo-registry.test.ts",
+        "tests/seo-structured-data.test.ts",
         "tests/snapshots.test.ts",
         "tests/social-login-ui-contract.test.ts",
         "tests/social-oauth-server-security-contract.test.ts",

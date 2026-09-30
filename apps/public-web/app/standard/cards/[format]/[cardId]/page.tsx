@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { constructedCardPath, type CardFormat } from '@/src/modules/constructedCards/public';
 import { loadPublicCard } from '@/apps/public-web/lib/publicCard';
 import { LegacyCardPage } from '@/apps/public-web/ui/LegacyCardPage';
+import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 
 type Props = { params: Promise<{ format: string; cardId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { card, format, canonical } = await resolveCard();
   const title = `${card.name.ru} — карта Hearthstone (${format === 'standard' ? 'Стандарт' : 'Вольный формат'}, ${card.card_id}) | HearthPulse`;
   const description = card.text.ru || `${card.name.ru} — характеристики карты Hearthstone.`;
-  return { title, description, alternates: { canonical }, robots: { index: true, follow: true, 'max-image-preview': 'large' },
+  return { title, description, alternates: { canonical }, robots: INDEXABLE_ROBOTS,
     openGraph: { title, description, url: canonical, images: card.images.card ? [card.images.card] : [] } };
 }
 

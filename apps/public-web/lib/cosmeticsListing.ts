@@ -19,7 +19,7 @@ export async function cosmeticsListingMetadata(path: string, searchParams: Cosme
   return {
     title, description: listing.description,
     alternates: { canonical },
-    robots: { index: policy.indexPolicy === 'index', follow: policy.indexPolicy !== 'noindex-nofollow' },
+    robots: policy.robots,
     openGraph: { type: 'website', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title, description: listing.description,
       images: [{ url: '/assets/og-preview.png', alt: listing.heading, width: 1200, height: 630 }] },

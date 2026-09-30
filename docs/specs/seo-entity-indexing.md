@@ -55,8 +55,11 @@ documents with `noindex, nofollow`, no canonical and no client reclassification.
   and last-known-good recovery.
 - Entity SSR route modules remain the source of public page projections and
   metadata.
-- `scripts/prerender.js` and `config/public-seo-pages.json` remain the source of
-  static hub metadata and crawlable introductory copy.
+- `config/public-seo-pages.json` is the source of static hub titles and
+  descriptions, and `config/public-seo-structured-data.json` of their JSON-LD.
+  Next.js renders both (`apps/public-web/lib/seoPageMetadata.ts`,
+  `apps/public-web/ui/SeoStructuredData.tsx`). `scripts/prerender.js` still
+  carries a copy for the legacy build until that build is removed.
 - Contract tests live in the existing entity sitemap and SEO route test files.
 
 No new dependency, database migration or public JSON API is introduced.

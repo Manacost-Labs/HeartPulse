@@ -5,6 +5,7 @@ import '@/src/features/TraditionalModeBanner.css';
 import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { loadPublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHero';
 import { BattlegroundHeroDetailPageClient } from '@/apps/public-web/ui/BattlegroundHeroDetailPageClient';
+import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 
 type Props = { params: Promise<{ dbfId: string }> };
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `${hero.name} — герой Полей сражений Hearthstone. Сила героя «${hero.heroPower.name}»: ${hero.heroPower.text}`.slice(0, 300)
     : `${hero.name} — герой режима «Поля сражений» в Hearthstone.`;
   return {
-    title, description, alternates: { canonical }, robots: { index: true, follow: true },
+    title, description, alternates: { canonical }, robots: INDEXABLE_ROBOTS,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title, description, images: [hero.image] },
   };

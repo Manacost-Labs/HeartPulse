@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = teaser.description || `Архивный гайд Hearthstone: ${teaser.title}.`;
   return {
     title, description, alternates: { canonical },
-    robots: { index: policy.indexPolicy === 'index', follow: policy.indexPolicy !== 'noindex-nofollow' },
+    robots: policy.robots,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
       images: teaser.image ? [teaser.image] : ['/assets/og-preview.png'] },
   };

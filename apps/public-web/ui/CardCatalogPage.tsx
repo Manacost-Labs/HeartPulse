@@ -17,7 +17,7 @@ export async function catalogMetadata(format: CardFormat, pathname: string, sear
   const description = 'Библиотека карт Hearthstone: поиск, дополнения, классы, характеристики и статистика.';
   const canonical = `https://hearthpulse.net${pathname}`;
   const policy = await resolvePublicUrlPolicy(pathname, await catalogSearch(searchParams));
-  return { title, description, alternates: { canonical }, robots: { index: policy.indexPolicy === 'index', follow: policy.indexPolicy !== 'noindex-nofollow', 'max-image-preview': 'large' }, openGraph: { title, description, url: canonical } };
+  return { title, description, alternates: { canonical }, robots: policy.robots, openGraph: { title, description, url: canonical } };
 }
 
 export async function CardCatalogPage({ format, pathname, searchParams }: { format: CardFormat; pathname: string; searchParams: CatalogSearch }) {

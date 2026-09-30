@@ -4,6 +4,7 @@ import '@/src/features/Cosmetics.css';
 import { cosmeticsListing, cosmeticsListingMetadata, cosmeticsSearchString,
   type CosmeticsSearch } from '@/apps/public-web/lib/cosmeticsListing';
 import { CosmeticsPageClient } from '@/apps/public-web/ui/CosmeticsPageClient';
+import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 type Props = { params: Promise<{ kind: string }>; searchParams: CosmeticsSearch };
 export const dynamic = 'force-dynamic';
@@ -22,5 +23,8 @@ export async function generateMetadata({ params, searchParams }: Props) {
 
 export default async function Page({ params, searchParams }: Props) {
   const listing = await listingFor(params);
-  return <CosmeticsPageClient pathname={listing.pathname} search={await cosmeticsSearchString(searchParams)} />;
+  return <>
+    <SeoStructuredData path={listing.pathname} />
+    <CosmeticsPageClient pathname={listing.pathname} search={await cosmeticsSearchString(searchParams)} />
+  </>;
 }

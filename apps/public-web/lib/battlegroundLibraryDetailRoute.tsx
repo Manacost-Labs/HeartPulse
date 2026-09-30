@@ -5,6 +5,7 @@ import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { loadPublicBattlegroundLibraryCard } from './publicBattlegroundLibraryCard';
 import type { BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
 import { BattlegroundLibraryDetailPageClient } from '@/apps/public-web/ui/BattlegroundLibraryDetailPageClient';
+import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 export type BattlegroundDetailProps = {
@@ -49,7 +50,7 @@ export async function battlegroundDetailMetadata(props: BattlegroundDetailProps,
   const card = await resolveCard(props, pool);
   const { canonical, title, description } = seo(card, pool);
   return {
-    title, description, alternates: { canonical }, robots: { index: true, follow: true },
+    title, description, alternates: { canonical }, robots: INDEXABLE_ROBOTS,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title, description, images: [card.image] },
   };

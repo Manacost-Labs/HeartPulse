@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import '@/src/route-parchment.css';
 import { battlegroundLibraryListing, battlegroundLibraryMetadata, type LibrarySearch } from '@/apps/public-web/lib/battlegroundLibraryListing';
 import { BattlegroundLibraryPageClient } from '@/apps/public-web/ui/BattlegroundLibraryPageClient';
+import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 type Props = { params: Promise<{ kind: string }>; searchParams: LibrarySearch };
 export const dynamic = 'force-dynamic';
@@ -19,5 +20,9 @@ export async function generateMetadata({ params, searchParams }: Props) {
 }
 
 export default async function Page({ params }: Props) {
-  return <BattlegroundLibraryPageClient {...await listingFor(params)} />;
+  const listing = await listingFor(params);
+  return <>
+    <SeoStructuredData path={listing.pathname} />
+    <BattlegroundLibraryPageClient {...listing} />
+  </>;
 }

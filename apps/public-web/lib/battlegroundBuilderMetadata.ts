@@ -15,7 +15,7 @@ export async function battlegroundBuilderMetadata(pathname: BattlegroundBuilderP
   return {
     title: seo.title, description: seo.description,
     alternates: { canonical: policy.canonicalUrl ?? canonical },
-    robots: { index: policy.indexPolicy === 'index', follow: policy.indexPolicy !== 'noindex-nofollow' },
+    robots: policy.robots,
     openGraph: {
       type: 'website', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title: seo.title, description: seo.description,

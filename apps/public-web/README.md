@@ -53,7 +53,16 @@ behind its `public.ts`, not in `src/features/`.
   `.arena-paywall` markup for guests.
 - Indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
-  `config/public-seo-pages.json`; do not hand-write them in a page.
+  `config/public-seo-pages.json`; do not hand-write them in a page. Robots
+  are `policy.robots` from `resolvePublicUrlPolicy()`, or `INDEXABLE_ROBOTS`
+  (`src/shared/seo/robots.ts`) for a page that is always indexable: both
+  carry the preview directives (`max-image-preview:large` and friends) that
+  a bare `{ index: true }` drops.
+- JSON-LD of listing and hub pages lives in
+  `config/public-seo-structured-data.json`; the page renders it with
+  `<SeoStructuredData path="/route" />` (`src/seo/structuredData.ts` adds
+  canonical URLs, breadcrumb links and dataset dates). Entity pages (card,
+  hero, library card, cosmetic) build their own.
 
 ## Add a public page
 
@@ -64,6 +73,7 @@ behind its `public.ts`, not in `src/features/`.
 2. Create `app/<route>/page.tsx`:
 
    ```tsx
+   import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
    import { SomePageClient } from '@/apps/public-web/ui/SomePageClient';
    import { seoPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 
@@ -71,9 +81,15 @@ behind its `public.ts`, not in `src/features/`.
    export const generateMetadata = seoPageMetadata('/some-route', 'Share alt');
 
    export default function Page() {
-     return <SomePageClient />;
+     return <>
+       <SeoStructuredData path="/some-route" />
+       <SomePageClient />
+     </>;
    }
    ```
+
+   Add the page's JSON-LD nodes to `config/public-seo-structured-data.json`
+   when it is an indexable listing; omit `SeoStructuredData` otherwise.
 
 3. Put interactive UI in `ui/SomePageClient.tsx` (`'use client'`), composed
    from the owning `src/modules/<domain>/public.ts`.

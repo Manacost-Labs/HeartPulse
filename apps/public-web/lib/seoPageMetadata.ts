@@ -24,7 +24,7 @@ export function seoPageMetadata(path: string, shareImageAlt: string) {
     return {
       title: seo.title, description: seo.description,
       alternates: { canonical: policy.canonicalUrl ?? pageUrl },
-      robots: { index: policy.indexPolicy === 'index', follow: policy.indexPolicy !== 'noindex-nofollow' },
+      robots: policy.robots,
       openGraph: {
         type: 'website', url: pageUrl, siteName: 'HearthPulse', locale: 'ru_RU',
         title: seo.title, description: seo.description,
