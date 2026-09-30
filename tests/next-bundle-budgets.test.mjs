@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 import { gzipSync } from 'node:zlib';
@@ -47,9 +47,18 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
       assert.deepEqual(adminShellAssets(assets), [], `${path} must not load the administrator workspace shell`);
     }
 
-    const admin = initialAssets(await (await fetch(`${runtime.nextOrigin}/admin/`)).text());
-    assert.deepEqual(adminShellAssets(admin), [],
+    const adminResponse = await fetch(`${runtime.nextOrigin}/admin/`);
+    assert.equal(adminResponse.status, 200, 'a visitor gets the sign-in prompt of /admin/');
+    assert.deepEqual(adminShellAssets(initialAssets(await adminResponse.text())), [],
       'a visitor without administrator access must not download the workspace shell either');
+
+    // The markers must exist in the build, or the two checks above prove nothing.
+    const built = readdirSync(join(nextRoot, 'static'), { recursive: true });
+    for (const kind of ['js', 'css']) {
+      assert.ok(built.some(file => file.endsWith(`.${kind}`)
+        && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])),
+      `no built ${kind} file contains "${ADMIN_SHELL_MARKERS[kind]}": update the administrator shell marker`);
+    }
   } finally {
     await runtime.close();
   }

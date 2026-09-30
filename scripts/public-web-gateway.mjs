@@ -37,6 +37,17 @@ function upstream(value) {
 }
 
 /**
+ * Headers of an ordinary proxied request without the hop-by-hop ones. An
+ * `Upgrade` offer (curl probes h2c this way) would otherwise reach the
+ * upstream, which answers it on a socket this request cannot take over.
+ */
+function endToEndHeaders(headers) {
+  const hopByHop = new Set(['connection', 'upgrade',
+    ...String(headers.connection ?? '').toLowerCase().split(',').map(name => name.trim())]);
+  return Object.fromEntries(Object.entries(headers).filter(([name]) => !hopByHop.has(name)));
+}
+
+/**
  * A loopback stand-in for the production edge, which retains rate limits and
  * TLS. Pages and `/_next/` go to Next.js; everything else goes to the Express
  * origin. With `staticDir` the gateway serves that directory's files itself,
@@ -75,7 +86,7 @@ export function createPublicWebGateway({
     const transport = target.protocol === 'https:' ? https : http;
     const proxy = transport.request(target, {
       method: request.method, path: request.url,
-      headers: { ...request.headers, 'x-forwarded-host': request.headers.host ?? '', 'x-forwarded-proto': 'http' },
+      headers: { ...endToEndHeaders(request.headers), 'x-forwarded-host': request.headers.host ?? '', 'x-forwarded-proto': 'http' },
     }, upstreamResponse => {
       response.writeHead(upstreamResponse.statusCode ?? 502, upstreamResponse.headers);
       upstreamResponse.pipe(response);
@@ -115,9 +126,11 @@ export function createPublicWebGateway({
       upstreamSocket.pipe(socket);
     });
     // Next.js refused the upgrade: pass its answer on instead of a bare close.
+    // The body arrives decoded, so the closed connection marks its end.
     proxy.on('response', upstreamResponse => {
-      socket.end([statusLine(upstreamResponse), ...headerLines(upstreamResponse), 'connection: close', '', ''].join('\r\n'));
-      upstreamResponse.resume();
+      const lines = headerLines(upstreamResponse).filter(line => !/^(?:content-length|transfer-encoding|connection):/i.test(line));
+      socket.write([statusLine(upstreamResponse), ...lines, 'connection: close', '', ''].join('\r\n'));
+      upstreamResponse.pipe(socket);
     });
     proxy.on('error', () => socket.destroy());
     proxy.end();

@@ -184,7 +184,7 @@ test('development HMR WebSockets reach Next.js and no other upgrade passes', { t
   next.on('upgrade', (request, socket) => {
     if (request.url === '/_next/held') { pendingUpstream = socket; socket.on('error', () => {}); return; }
     if (request.url === '/_next/refused') {
-      socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n');
+      socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 9\r\n\r\nforbidden');
       return;
     }
     upgrades.push({ url: request.url, host: request.headers.host });
@@ -200,7 +200,13 @@ test('development HMR WebSockets reach Next.js and no other upgrade passes', { t
     const request = http.request({ host: origin.hostname, port: origin.port, path,
       headers: { Connection: 'Upgrade', Upgrade: 'websocket' } });
     request.on('upgrade', (response, socket) => resolve({ status: response.statusCode, socket }));
-    request.on('response', response => { response.resume(); resolve({ status: response.statusCode }); });
+    request.on('response', async response => {
+      try {
+        let body = '';
+        for await (const chunk of response) body += chunk;
+        resolve({ status: response.statusCode, body });
+      } catch (error) { reject(error); }
+    });
     request.on('error', reject);
     request.setTimeout(3_000, () => request.destroy(new Error('upgrade was not answered')));
     request.end();
@@ -215,8 +221,11 @@ test('development HMR WebSockets reach Next.js and no other upgrade passes', { t
     assert.deepEqual(upgrades, [{ url: '/_next/webpack-hmr?page=%2Ffaq', host: `${origin.hostname}:${origin.port}` }]);
 
     assert.equal((await upgrade('/api/socket')).status, 200, 'other upgrade requests are served as ordinary requests');
+    // curl probes h2c with an `Upgrade` offer on a page request; Next.js must see an ordinary request.
+    assert.deepEqual(await upgrade('/faq/'), { status: 200, body: 'next' });
     assert.equal(upgrades.length, 1, 'only Next.js development sockets are forwarded');
-    assert.equal((await upgrade('/_next/refused')).status, 403, 'a refused upgrade reaches the client with its status');
+    assert.deepEqual(await upgrade('/_next/refused'), { status: 403, body: 'forbidden' },
+      'a refused upgrade reaches the client with its status and body');
 
     // A client that gives up before Next.js answers must not leave the upstream request open.
     const abandoned = http.request({ host: origin.hostname, port: origin.port, path: '/_next/held',

@@ -104,29 +104,112 @@ test('static root is rebuilt from scratch in a reused workspace', () => {
   }
 });
 
-test('the build empties only a directory that is an earlier static root', () => {
-  // A throwaway directory plays the checkout, so a broken guard can only empty the fixture.
-  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-guard-'));
+// A throwaway directory plays the checkout, so a broken guard can only empty
+// the fixture. It has the registries, so an accepted build really runs.
+function fixtureCheckout(workspace) {
   const checkout = join(workspace, 'checkout');
+  mkdirSync(join(checkout, 'public/fonts'), { recursive: true });
+  mkdirSync(join(checkout, 'src/shared/seo'), { recursive: true });
+  mkdirSync(join(checkout, 'config'));
+  writeFileSync(join(checkout, 'src/shared/seo/publicRouteInventory.json'), JSON.stringify(routeInventory));
+  writeFileSync(join(checkout, 'config/public-seo-pages.json'), JSON.stringify(registry));
+  for (const file of ['public/robots.txt', 'public/fonts/font.woff2', 'src/module.ts']) {
+    writeFileSync(join(checkout, file), 'kept\n');
+  }
+  return checkout;
+}
+
+function buildIn(checkout, out) {
+  return spawnSync(process.execPath, [join(projectRoot, 'scripts/build-static-root.mjs'), ...(out ? [`--out=${out}`] : [])], {
+    cwd: checkout, encoding: 'utf8',
+  });
+}
+
+function markAsStaticRoot(directory) {
+  writeFileSync(join(directory, 'index.html'), 'kept\n');
+  writeFileSync(join(directory, 'sitemap.xml'), 'kept\n');
+}
+
+test('the build never empties the checkout, a directory that holds it, or public/', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-guard-'));
   try {
-    mkdirSync(join(checkout, 'public/fonts'), { recursive: true });
-    mkdirSync(join(checkout, 'src'));
-    mkdirSync(join(workspace, 'unrelated'));
+    const checkout = fixtureCheckout(workspace);
     symlinkSync(checkout, join(workspace, 'link-to-checkout'));
-    const sentinels = ['sentinel', 'public/robots.txt', 'public/fonts/font.woff2', 'src/module.ts']
-      .map(file => join(checkout, file)).concat(join(workspace, 'unrelated/notes.txt'));
-    for (const sentinel of sentinels) writeFileSync(sentinel, 'kept\n');
-    for (const out of ['.', '..', workspace, 'public', 'public/fonts', 'src',
-      join(workspace, 'unrelated'), join(workspace, 'link-to-checkout'), join(workspace, 'link-to-checkout/public')]) {
-      const result = spawnSync(process.execPath, [join(projectRoot, 'scripts/build-static-root.mjs'), `--out=${out}`], {
-        cwd: checkout, encoding: 'utf8',
-      });
+    // Every directory looks like an earlier static root: only its location protects it.
+    const protectedDirectories = [workspace, checkout, join(checkout, 'public'), join(checkout, 'public/fonts')];
+    for (const directory of protectedDirectories) markAsStaticRoot(directory);
+    const sentinels = ['public/robots.txt', 'public/fonts/font.woff2', 'src/module.ts'].map(file => join(checkout, file))
+      .concat(protectedDirectories.map(directory => join(directory, 'index.html')));
+
+    for (const out of ['.', '..', workspace, 'public', 'public/fonts',
+      join(workspace, 'link-to-checkout'), join(workspace, 'link-to-checkout/public')]) {
+      const result = buildIn(checkout, out);
       assert.notEqual(result.status, 0, `--out=${out} must be rejected`);
-      assert.match(result.stderr, /refusing to empty/, `--out=${out}`);
+      assert.match(result.stderr, /refusing to empty .*: it holds the checkout or lies inside public\//, `--out=${out}`);
       for (const sentinel of sentinels) {
         assert.equal(readFileSync(sentinel, 'utf8'), 'kept\n', `--out=${out} must not delete ${sentinel}`);
       }
     }
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('the build empties only a directory that is an earlier static root', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-guard-'));
+  try {
+    const checkout = fixtureCheckout(workspace);
+    mkdirSync(join(workspace, 'unrelated'));
+    writeFileSync(join(workspace, 'unrelated/notes.txt'), 'kept\n');
+    writeFileSync(join(workspace, 'file'), 'kept\n');
+
+    for (const out of ['src', join(workspace, 'unrelated'), join(workspace, 'file')]) {
+      const result = buildIn(checkout, out);
+      assert.notEqual(result.status, 0, `--out=${out} must be rejected`);
+      assert.match(result.stderr, /refusing to empty .*: it is not an earlier static root/, `--out=${out}`);
+    }
+    for (const kept of [join(checkout, 'src/module.ts'), join(workspace, 'unrelated/notes.txt'), join(workspace, 'file')]) {
+      assert.equal(readFileSync(kept, 'utf8'), 'kept\n');
+    }
+
+    // An absent directory, an empty one and an earlier static root are all rebuilt.
+    mkdirSync(join(workspace, 'empty'));
+    mkdirSync(join(workspace, 'earlier'));
+    markAsStaticRoot(join(workspace, 'earlier'));
+    writeFileSync(join(workspace, 'earlier/stale.txt'), 'stale\n');
+    for (const out of [join(workspace, 'absent'), join(workspace, 'empty'), join(workspace, 'earlier')]) {
+      const result = buildIn(checkout, out);
+      assert.equal(result.status, 0, `--out=${out}: ${result.stderr}`);
+      assert.deepEqual(readdirSync(out).sort(), ['fonts', 'index.html', 'robots.txt', 'sitemap.xml', 'sitemaps']);
+    }
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('a failed build leaves the earlier static root in place and can be repeated', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-failed-'));
+  try {
+    const checkout = fixtureCheckout(workspace);
+    assert.equal(buildIn(checkout).status, 0);
+    writeFileSync(join(checkout, 'dist/earlier.txt'), 'earlier\n');
+
+    // A sitemap page that no route can make canonical stops the sitemap generation.
+    const broken = { ...registry, pages: { ...registry.pages, '/no-such-public-page': {
+      policyRouteId: 'missing', title: 'A page without a route', sitemap: true,
+      description: 'The registry lists this page for the sitemap, but no route gives it a canonical URL.',
+    } } };
+    writeFileSync(join(checkout, 'config/public-seo-pages.json'), JSON.stringify(broken));
+    const failed = buildIn(checkout);
+    assert.notEqual(failed.status, 0);
+    assert.match(failed.stderr, /Sitemap page has no canonical URL: \/no-such-public-page/);
+    assert.equal(readFileSync(join(checkout, 'dist/earlier.txt'), 'utf8'), 'earlier\n',
+      'a build that cannot finish must not empty the earlier static root');
+
+    writeFileSync(join(checkout, 'config/public-seo-pages.json'), JSON.stringify(registry));
+    const repeated = buildIn(checkout);
+    assert.equal(repeated.status, 0, repeated.stderr);
+    assert.equal(existsSync(join(checkout, 'dist/earlier.txt')), false);
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }

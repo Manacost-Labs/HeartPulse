@@ -1439,14 +1439,22 @@ http {
       Cookie: 'session=private-cookie',
     })).status, 200);
     assert.equal((await requestNginx(port, '/_html_owner_fixture')).status, 200);
-    const ownerLogText = readFileSync(ownerLog, 'utf8');
+    // nginx writes a log line after it has sent the response, so a read right
+    // after a response can miss that request. The single worker finishes the
+    // line before it takes the next request: one more request makes every
+    // earlier line readable.
+    const ownerLogAfterBarrier = async () => {
+      await requestNginx(port, '/_next/static/test.js');
+      return readFileSync(ownerLog, 'utf8');
+    };
+    const ownerLogText = await ownerLogAfterBarrier();
     const ownerEvents = ownerLogText.trim().split('\n').map(line => JSON.parse(line));
     assert.ok(ownerEvents.some(event => event.owner === 'next' && event.status === 200));
     assert.ok(ownerEvents.some(event => event.owner === 'legacy_static' && event.status === 200));
     assert.ok(ownerEvents.every(event => event.event === 'html_renderer' && /^[a-f0-9]{32}$/.test(event.request_id)));
     assert.doesNotMatch(ownerLogText, /private-query|private-cookie|\/tierlist\//);
-    await requestNginx(port, '/_next/static/test.js');
-    assert.equal(readFileSync(ownerLog, 'utf8').trim().split('\n').length, ownerEvents.length,
+    // The barrier was a JavaScript response; after a second one its line would be readable.
+    assert.equal((await ownerLogAfterBarrier()).trim().split('\n').length, ownerEvents.length,
       'JavaScript responses must not enter the HTML ownership log');
     for (const path of ['/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/']) {
       const detail = await requestNginx(port, path);

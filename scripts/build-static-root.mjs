@@ -32,14 +32,21 @@ const PLACEHOLDER_ENTRY = `<!doctype html>
 `;
 
 assertDisposableOutput(outDir);
+// Everything that can fail on a registry mistake is generated before the
+// directory is emptied, so such a build leaves the earlier static root alone.
 const seo = createPublicSeoModel(root);
+const generated = [
+  ['index.html', PLACEHOLDER_ENTRY],
+  ['sitemap.xml', seo.sitemapIndexXml()],
+  ['sitemaps/static.xml', seo.staticSitemapXml()],
+];
 rmSync(outDir, { recursive: true, force: true });
-// The generated files come first: they mark the directory as a static root, so
-// an interrupted build can be repeated, and the copy below never replaces them.
-mkdirSync(join(outDir, 'sitemaps'), { recursive: true });
-writeFileSync(join(outDir, 'sitemaps', 'static.xml'), seo.staticSitemapXml(), 'utf8');
-writeFileSync(join(outDir, 'sitemap.xml'), seo.sitemapIndexXml(), 'utf8');
-writeFileSync(join(outDir, 'index.html'), PLACEHOLDER_ENTRY, 'utf8');
+// The generated files come first: the copy below never replaces them, and
+// `index.html` with `sitemap.xml` mark the directory as a static root.
+for (const [file, content] of generated) {
+  mkdirSync(dirname(join(outDir, file)), { recursive: true });
+  writeFileSync(join(outDir, file), content, 'utf8');
+}
 // Dereference symlinks: the release must not link back into the build workspace.
 cpSync(join(root, 'public'), outDir, { recursive: true, force: false, dereference: true });
 makePublicReadable(outDir);
@@ -64,12 +71,13 @@ function assertDisposableOutput(directory) {
   const contains = (parent, child) => child === parent || child.startsWith(parent.endsWith(sep) ? parent : `${parent}${sep}`);
   const source = realPath(join(root, 'public'));
   if (contains(target, realPath(root)) || contains(source, target)) {
-    throw new Error(`[static-root] refusing to empty ${directory}`);
+    throw new Error(`[static-root] refusing to empty ${directory}: it holds the checkout or lies inside public/`);
   }
   if (!existsSync(target)) return;
   const entries = lstatSync(target).isDirectory() ? readdirSync(target) : null;
   if (!entries || (entries.length > 0 && !(entries.includes('index.html') && entries.includes('sitemap.xml')))) {
-    throw new Error(`[static-root] refusing to empty ${directory}: it is not an earlier static root`);
+    throw new Error(`[static-root] refusing to empty ${directory}: it is not an earlier static root. `
+      + 'Delete it by hand if an interrupted build left it behind');
   }
 }
 
