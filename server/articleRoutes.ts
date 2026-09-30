@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { asyncRoute } from './shared/http/asyncRoute.js';
+import { isSameArticlePage, recordArticleOpen } from './articleOpens.js';
 
 type ArticleUser = { id: string };
 type ArticlesCacheEntry = { data: any; etag: string };
@@ -29,6 +30,19 @@ function setPrivateNoStore(response: Response) {
   response.set('Cache-Control', 'no-store');
   response.vary('Cookie');
   response.vary('Authorization');
+}
+
+/**
+ * Counts a subscriber's read after the response has been written, so the write can neither delay nor fail
+ * the article. Staff opens are not reads, and the requested address must be the matched article's own.
+ */
+function countSubscriberOpen(dependencies: ArticleRouterDependencies, article: { id?: unknown; url?: unknown }, requestedUrl: string, user: ArticleUser, at: Date): void {
+  setImmediate(() => {
+    try {
+      if (!article.id || !isSameArticlePage(article.url, requestedUrl) || dependencies.isAdmin(user)) return;
+      recordArticleOpen(dependencies.dbRun, String(article.id), user.id, at);
+    } catch { /* counting is best effort */ }
+  });
 }
 
 export function createArticleRouter(dependencies: ArticleRouterDependencies): Router {
@@ -61,6 +75,7 @@ export function createArticleRouter(dependencies: ArticleRouterDependencies): Ro
       const locker = await dependencies.findVipLocker(target.href, title);
       if (!locker) return response.status(404).json({ error: 'VIP-материал не найден в каталоге Koloda' });
       const issued = await dependencies.issueVipLink(locker, user);
+      countSubscriberOpen(dependencies, article, target.href, user, now());
       return response.json({
         url: String(issued.url),
         target: String(issued.target || locker.url),

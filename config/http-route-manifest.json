@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 83,
-    "routeRegistrations": 234,
+    "routeRegistrations": 235,
     "middlewareRegistrations": 124,
     "explicitGuardRouteRegistrations": 59,
     "unresolvedPaths": 0
@@ -436,6 +436,18 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/admin/crm/articles/reads",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "createArticleReadsHandler(...)",
+      "guardSignals": [],
+      "source": "server/adminCrmRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/admin/crm/people/:userId",
       "pathKind": "string",
       "receiver": "router",
@@ -443,7 +455,7 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/adminCrmRoutes.ts",
-      "sourceOrder": 2
+      "sourceOrder": 3
     },
     {
       "kind": "route",
@@ -455,7 +467,7 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/adminCrmRoutes.ts",
-      "sourceOrder": 3
+      "sourceOrder": 4
     },
     {
       "kind": "route",
@@ -467,7 +479,7 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/adminCrmRoutes.ts",
-      "sourceOrder": 4
+      "sourceOrder": 5
     },
     {
       "kind": "route",
@@ -479,7 +491,7 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/adminCrmRoutes.ts",
-      "sourceOrder": 5
+      "sourceOrder": 6
     },
     {
       "kind": "route",

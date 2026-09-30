@@ -180,7 +180,7 @@
     "test:auth-credential-routes": "tsx tests/auth-credential-routes.test.ts",
     "test:auth-sessions": "tsx tests/auth-sessions.test.ts",
     "test:admin-workspace-state": "tsx tests/admin-workspace-state.test.ts && tsx tests/admin-workspace-shell.test.tsx",
-    "test:admin-crm": "tsx tests/admin-crm-routes.test.ts && tsx tests/admin-crm-overview.test.ts && tsx tests/admin-overview-model.test.ts && tsx tests/admin-client-card-model.test.ts && tsx tests/admin-people-list-model.test.ts && tsx tests/admin-integration-lists-model.test.ts && tsx tests/admin-content-lists-model.test.ts && tsx tests/admin-user-read-routes.test.ts",
+    "test:admin-crm": "tsx tests/admin-crm-routes.test.ts && tsx tests/admin-crm-overview.test.ts && tsx tests/admin-overview-model.test.ts && tsx tests/admin-client-card-model.test.ts && tsx tests/admin-people-list-model.test.ts && tsx tests/admin-integration-lists-model.test.ts && tsx tests/admin-content-lists-model.test.ts && tsx tests/admin-article-reads-model.test.ts && tsx tests/article-opens.test.ts && tsx tests/admin-user-read-routes.test.ts",
     "test:backup": "bash tests/backup-restore.test.sh && bash tests/backup-replication.test.sh",
     "test:release": "node tests/create-release.test.mjs",
     "test:snapshots": "tsx tests/snapshots.test.ts",

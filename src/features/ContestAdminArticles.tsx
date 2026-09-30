@@ -1,6 +1,16 @@
-import React, { Suspense, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, ExternalLink, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { AdminFilterChips } from '../modules/adminCrm/public';
+import {
+  articleOrderOptions,
+  articleReadsCell,
+  articleReadsSummary,
+  indexArticleReads,
+  orderArticles,
+  type ArticleOrder,
+  type ArticleReadStats,
+  type ArticleReads,
+} from './adminArticleReadsModel';
 import { adminContentClient, type AdminContentClient } from './adminContentClient';
 import {
   activeChip,
@@ -36,13 +46,17 @@ type ContestAdminArticlesProps = {
 
 type RowProps = {
   article: Article;
+  reads: ArticleReads | null;
+  stats: ArticleReadStats | undefined;
   busy: boolean;
   onEdit: (article: Article) => void;
   onDelete: (article: Article) => void;
 };
 
-function ArticleRow({ article, busy, onEdit, onDelete }: RowProps) {
+function ArticleRow({ article, reads, stats, busy, onEdit, onDelete }: RowProps) {
   const mode = articleMode(article);
+  const read = articleReadsCell(stats, reads);
+  const votes = articleVotesLabel(article);
   const issues = articleIssueLabels(article);
   const opens = Boolean(article.url && article.url !== '#');
   return (
@@ -65,7 +79,11 @@ function ArticleRow({ article, busy, onEdit, onDelete }: RowProps) {
         <small>{mode.access}</small>
       </td>
       <td data-label="Дата"><span>{formatContentDate(article.date)}</span></td>
-      <td data-label="Оценки"><span>{articleVotesLabel(article)}</span></td>
+      <td data-label="Читали">
+        <span>{read.label}</span>
+        {read.detail && <small>{read.detail}</small>}
+        {votes !== 'оценок нет' && <small>оценки: {votes}</small>}
+      </td>
       <td className="admin-people-actions">
         <div className="admin-content-actions">
           {opens && (
@@ -87,18 +105,35 @@ export function ContestAdminArticles({ onMessage, client = adminContentClient }:
   const [requestedPage, setPage] = useState(1);
   // `null` closes the editor; an empty id opens it for a new article.
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedOrder, setOrder] = useState<ArticleOrder>('date');
+  const [reads, setReads] = useState<ArticleReads | null>(null);
   const summaryRef = useRef<HTMLParagraphElement | null>(null);
   const articles = list.items;
+  // Reads are secondary: the list works without them, and they refresh whenever the list does.
+  const listLoading = list.loading;
+  useEffect(() => {
+    if (listLoading) return undefined;
+    let current = true;
+    client.articleReads().then(value => { if (current) setReads(value); }).catch(() => { if (current) setReads(null); });
+    return () => { current = false; };
+  }, [articles, client, listLoading]);
   const modeOptions = useMemo(() => articleModeOptions(articles), [articles]);
   const issueOptions = useMemo(() => articleIssueOptions(articles), [articles]);
   const mode = activeChip(modeOptions, selectedMode, 'all');
   const issue = activeChip(issueOptions, selectedIssue, 'all');
-  const filtered = useMemo(() => filterArticles(articles, { search, mode, issue }), [articles, issue, mode, search]);
+  const readsIndex = useMemo(() => indexArticleReads(reads), [reads]);
+  const orderOptions = useMemo(() => articleOrderOptions(reads), [reads]);
+  const order = activeChip(orderOptions, selectedOrder, 'date');
+  const filtered = useMemo(
+    () => orderArticles(filterArticles(articles, { search, mode, issue }), order, readsIndex),
+    [articles, issue, mode, order, readsIndex, search],
+  );
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   // Deleting the last row of the last page must not leave the list on a page that no longer exists.
   const page = Math.min(requestedPage, pageCount);
   const visible = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
   const publishing = useMemo(() => articlePublishingSummary(articles, new Date()), [articles]);
+  const readsSummary = useMemo(() => articleReadsSummary(reads, new Date()), [reads]);
   const tagSuggestions = useMemo(() => articleTagSuggestions(articles), [articles]);
   const editing = editingId ? articles.find(article => article.id === editingId) ?? null : null;
   const busy = Boolean(list.busy);
@@ -115,7 +150,7 @@ export function ContestAdminArticles({ onMessage, client = adminContentClient }:
   };
   const summary = list.loading
     ? 'Загружаем статьи…'
-    : `${adminListCount(filtered.length, articles.length, page, pageCount)}${publishing ? ` · ${publishing}` : ''}`;
+    : [adminListCount(filtered.length, articles.length, page, pageCount), publishing, readsSummary].filter(Boolean).join(' · ');
 
   return (
     <div className="admin-people admin-articles">
@@ -137,6 +172,9 @@ export function ContestAdminArticles({ onMessage, client = adminContentClient }:
         {issueOptions.length > 0 && (
           <AdminFilterChips label="Заполненность карточки" options={issueOptions} value={issue} onChange={id => { setIssue(id); setPage(1); }} secondary />
         )}
+        {orderOptions.length > 0 && (
+          <AdminFilterChips label="Порядок статей" options={orderOptions} value={order} onChange={id => { setOrder(id); setPage(1); }} secondary />
+        )}
       </div>
       {list.loadError && <div className="contest-message contest-message-err" role="alert">{list.loadError}</div>}
       <p ref={summaryRef} className="admin-people-summary" role="status" tabIndex={-1}>{summary}</p>
@@ -145,12 +183,12 @@ export function ContestAdminArticles({ onMessage, client = adminContentClient }:
           <table className="admin-people-table is-articles">
             <thead>
               <tr>
-                <th scope="col">Статья</th><th scope="col">Раздел</th><th scope="col">Доступ</th><th scope="col">Дата</th><th scope="col">Оценки</th>
+                <th scope="col">Статья</th><th scope="col">Раздел</th><th scope="col">Доступ</th><th scope="col">Дата</th><th scope="col">Читали</th>
                 <th scope="col"><span className="admin-crm-sr-only">Действия</span></th>
               </tr>
             </thead>
             <tbody>
-              {visible.map(article => <ArticleRow key={article.id} article={article} busy={busy} onEdit={item => setEditingId(item.id)} onDelete={remove} />)}
+              {visible.map(article => <ArticleRow key={article.id} article={article} reads={reads} stats={readsIndex.get(article.id)} busy={busy} onEdit={item => setEditingId(item.id)} onDelete={remove} />)}
             </tbody>
           </table>
         </div>

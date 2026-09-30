@@ -7,6 +7,7 @@ import {
   buildPersonTimeline,
   daysUntil,
   identityProviderLabel,
+  readingSummary,
 } from '../src/modules/adminCrm/ui/adminClientCardModel.js';
 
 assert.equal(accessSourceLabel('none'), 'Нет подписки');
@@ -73,5 +74,13 @@ assert.deepEqual(accessBadge({ ...card, access: { ...card.access, manual: manual
 assert.equal(accessBadge({ ...card, access: { ...card.access, manual: manual('2026-12-02T12:00:00.000Z') } }, now).tone, 'ok');
 assert.deepEqual(accessBadge({ ...card, access: { ...card.access, hasAccess: false } }, now), { tone: 'bad', text: 'Доступ пропал' });
 assert.deepEqual(accessBadge({ ...card, access: { ...card.access, hasAccess: false }, accessHistory: [] }, now), { tone: 'muted', text: 'Без доступа' });
+
+// Reading: the 30-day window first, the last open as the fallback, and no guess when the field is absent.
+const readAt = '2026-09-29T12:00:00'; // no offset: the same local day in every time zone
+assert.match(readingSummary({ opens: 5, articles: 3, lastOpenedAt: readAt }), /^5 открытий за 30 дней · 3 статьи · последнее открытие 29 /);
+assert.match(readingSummary({ opens: 1, articles: 1, lastOpenedAt: readAt }), /^1 открытие за 30 дней · 1 статья · /);
+assert.match(readingSummary({ opens: 0, articles: 0, lastOpenedAt: readAt }), /^за 30 дней не читал · последнее открытие 29 /);
+assert.equal(readingSummary({ opens: 0, articles: 0, lastOpenedAt: null }), 'статьи не открывал');
+assert.equal(readingSummary(undefined), 'нет данных');
 
 console.log('admin client card model: ok');

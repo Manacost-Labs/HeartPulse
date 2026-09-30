@@ -328,6 +328,43 @@ line. A success toast dismisses itself after 6 seconds in every admin section,
 because on a phone it lies over the page toolbar; error toasts stay until
 closed.
 
+## Article reads (2026-09-30)
+
+Every article on the site links to a paid Koloda page, and a subscriber gets
+to it through `POST /api/articles/access-link`. When that endpoint issues a
+link, the server records one open in `article_opens` (`article_id`, `user_id`,
+`opened_at`). This is the only place reads are counted; the public pages send
+nothing extra.
+
+Rules (`server/articleOpens.ts`, tested by `tests/article-opens.test.ts`):
+
+- Only an issued link counts. A refused request, an upstream failure or an
+  article outside the catalogue records nothing.
+- The catalogue matches an article by address or by the title the caller
+  sends, so a read is counted only when the requested address is that
+  article's own page (host and path).
+- Administrators' opens are not reads and are not recorded.
+- The same person opening the same article again within 30 minutes is the
+  same read.
+- Recording is best effort and happens after the response is written: a slow
+  or failed write neither delays nor changes it, so a subscriber always gets
+  the article.
+- Rows older than 400 days are deleted when the server starts. Deleting an
+  account deletes its rows.
+
+`GET /api/admin/crm/articles/reads` returns, for the last 30 days and for the
+retained history, opens and distinct readers per article, the totals and when
+counting began. It never names readers. The article list shows it in the
+«Читали» column (which also carries the reader votes), adds the totals to the
+summary line and offers «Сначала читаемые» once the first open exists. While
+the history is shorter than 30 days the summary says since when opens are
+counted. If the request fails the column shows «—» rather than «не
+открывали».
+
+The client card (`GET /api/admin/crm/people/:userId`, field `reading`) shows
+one person's reading: opens and distinct articles in the last 30 days and the
+date of the last open.
+
 ## Permissions
 
 Every endpoint requires the full administrator role (`adminAuth`), matching

@@ -6,6 +6,7 @@ import {
   buildPersonTimeline,
   formatDate,
   identityProviderLabel,
+  readingSummary,
 } from './adminClientCardModel';
 
 type SectionProps = { idPrefix: string; card: AdminCrmPerson };
@@ -134,6 +135,7 @@ export function AccountsSection({ idPrefix, card }: SectionProps) {
           ? `${card.referral.label}${card.referral.campaign ? ` · ${card.referral.campaign}` : ''} · ${formatDate(card.referral.clickedAt)}`
           : 'нет данных'}</dd></div>
         <div><dt>Рассылка</dt><dd>{mailingSummary(card)}</dd></div>
+        <div><dt>Чтение статей</dt><dd>{readingSummary(card.reading)}</dd></div>
       </dl>
     </Section>
   );

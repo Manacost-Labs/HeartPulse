@@ -916,6 +916,7 @@ export const adminFixtures = {
     mailing: { consentStatus: 'subscribed', consentedAt: '2026-07-01T00:00:00.000Z', unsubscribedAt: null, delivered: 1, failed: 0, lastDeliveredAt: '2026-07-10T00:00:00.000Z' },
     notes: [{ id: 1, body: 'QA заметка', authorId: 'qa-admin', authorName: 'QA администратор', createdAt: '2026-07-06T00:00:00.000Z' }],
     tags: ['vip'],
+    reading: { opens: 5, articles: 3, lastOpenedAt: '2026-07-10T12:00:00.000Z' },
     audit: [],
   },
   '/api/admin/crm/people/telegram-qa-1': {
@@ -933,6 +934,14 @@ export const adminFixtures = {
     notes: [],
     tags: [],
     audit: [],
+  },
+  '/api/admin/crm/articles/reads': {
+    days: 30,
+    since: '2026-01-10T09:00:00.000Z',
+    totals: { opens: 3, readers: 2 },
+    articles: [
+      { articleId: 'qa-article-2', opens: 3, readers: 2, opensTotal: 5, readersTotal: 3, lastOpenedAt: '2026-07-10T12:00:00.000Z' },
+    ],
   },
   '/api/admin/crm/overview': {
     generatedAt: '2026-07-28T00:00:00.000Z',

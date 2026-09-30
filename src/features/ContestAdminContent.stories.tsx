@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { ArticleReads } from './adminArticleReadsModel';
 import type { AdminContentClient } from './adminContentClient';
 import type { Article, GalleryItem } from './adminContentListModel';
 import { ContestAdminArticles } from './ContestAdminArticles';
@@ -25,9 +26,19 @@ const art = (id: string, values: Partial<GalleryItem> = {}): GalleryItem => ({
 });
 const gallery: GalleryItem[] = [art('1'), art('2', { title: 'Паладин — фан-арт', description: '', tag: 'Fan art', source: '', bytes: 2_400_000, format: 'png' })];
 
+const reads: ArticleReads = {
+  days: 30, since: '2026-06-01T10:00:00.000Z', totals: { opens: 58, readers: 31 },
+  articles: [
+    { articleId: '41', opens: 34, readers: 22, opensTotal: 34, readersTotal: 22, lastOpenedAt: '2026-09-30T09:12:00.000Z' },
+    { articleId: '39', opens: 21, readers: 12, opensTotal: 46, readersTotal: 25, lastOpenedAt: '2026-09-29T18:40:00.000Z' },
+    { articleId: '40', opens: 3, readers: 3, opensTotal: 3, readersTotal: 3, lastOpenedAt: '2026-09-28T20:05:00.000Z' },
+    { articleId: '38', opens: 0, readers: 0, opensTotal: 7, readersTotal: 4, lastOpenedAt: '2026-08-02T11:00:00.000Z' },
+  ],
+};
 const wait = () => new Promise(resolve => { window.setTimeout(resolve, 300); });
 const client = (emptyLists = false): AdminContentClient => ({
   articles: async () => (emptyLists ? [] : articles),
+  articleReads: async () => (emptyLists ? { ...reads, since: null, totals: { opens: 0, readers: 0 }, articles: [] } : reads),
   saveArticle: async draft => { await wait(); return { article: { id: 'new', ...draft } }; },
   deleteArticle: wait,
   gallery: async () => (emptyLists ? [] : gallery),

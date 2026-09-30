@@ -140,13 +140,13 @@ export function articleVotesLabel(article: Pick<Article, 'likes' | 'dislikes'>):
   return likes || dislikes ? `${likes} за · ${dislikes} против` : 'оценок нет';
 }
 
-/** «Последняя публикация 29.09.2026 · за 30 дней: 8». */
+/** «Последняя публикация 29.09.2026 · статей за 30 дней: 8». */
 export function articlePublishingSummary(articles: Article[], now: Date): string {
   const dates = articles.map(article => article.date).filter(date => /^\d{4}-\d{2}-\d{2}/.test(date || '')).sort();
   if (!dates.length) return '';
   const since = new Date(now.getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
   const recent = dates.filter(date => date.slice(0, 10) >= since).length;
-  return `последняя публикация ${formatContentDate(dates[dates.length - 1])} · за 30 дней: ${recent}`;
+  return `последняя публикация ${formatContentDate(dates[dates.length - 1])} · статей за 30 дней: ${recent}`;
 }
 
 export function draftFromArticle(article: Article): ArticleDraft {

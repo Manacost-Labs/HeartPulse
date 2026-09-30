@@ -81,8 +81,8 @@ assert.equal(articleVotesLabel(articles[0]), '2 за · 0 против');
 assert.equal(articleVotesLabel(articles[1]), 'оценок нет');
 
 // The summary counts publications of the last 30 days relative to the given moment.
-assert.equal(articlePublishingSummary(articles, new Date('2026-09-30T10:00:00.000Z')), 'последняя публикация 29.09.2026 · за 30 дней: 2');
-assert.equal(articlePublishingSummary(articles, new Date('2026-12-01T00:00:00.000Z')), 'последняя публикация 29.09.2026 · за 30 дней: 0');
+assert.equal(articlePublishingSummary(articles, new Date('2026-09-30T10:00:00.000Z')), 'последняя публикация 29.09.2026 · статей за 30 дней: 2');
+assert.equal(articlePublishingSummary(articles, new Date('2026-12-01T00:00:00.000Z')), 'последняя публикация 29.09.2026 · статей за 30 дней: 0');
 assert.equal(articlePublishingSummary([], new Date('2026-09-30T10:00:00.000Z')), '');
 
 // Editing starts from the stored article; an unknown mode falls back to the general one.

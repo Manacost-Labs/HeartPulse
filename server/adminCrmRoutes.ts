@@ -9,6 +9,7 @@ import {
   tagsFor,
   type AdminCrmRepository,
 } from './adminCrmReadModel.js';
+import { readArticleReads } from './articleOpens.js';
 
 export { ADMIN_CRM_SCHEMA_SQL };
 export type { AdminCrmRepository };
@@ -63,6 +64,18 @@ function createOverviewHandler(dependencies: AdminCrmDependencies, authorize: Au
   };
 }
 
+// Aggregates only: the article list shows how much each article is read, never who read it.
+function createArticleReadsHandler(dependencies: AdminCrmDependencies, authorize: Authorize) {
+  return (request: Request, response: Response) => {
+    if (!authorize(request, response)) return;
+    try {
+      return response.json(readArticleReads(dependencies.repository, new Date()));
+    } catch {
+      return response.status(500).json({ error: 'Не удалось посчитать открытия статей' });
+    }
+  };
+}
+
 export function createAdminCrmRouter(dependencies: AdminCrmDependencies): Router {
   const router = Router();
   const { repository } = dependencies;
@@ -92,6 +105,8 @@ export function createAdminCrmRouter(dependencies: AdminCrmDependencies): Router
       return response.status(500).json({ error: 'Не удалось посчитать сегменты' });
     }
   });
+
+  router.get('/admin/crm/articles/reads', createArticleReadsHandler(dependencies, authorize));
 
   router.get('/admin/crm/people/:userId', (request, response) => {
     if (!authorize(request, response)) return;

@@ -759,6 +759,10 @@
         },
         {
           "method": "GET",
+          "path": "/admin/crm/articles/reads"
+        },
+        {
+          "method": "GET",
           "path": "/admin/crm/people/:userId"
         },
         {
@@ -777,13 +781,15 @@
       "contracts": [
         "server/adminCrmRoutes.ts",
         "server/adminCrmOverview.ts",
+        "server/articleOpens.ts",
         "docs/specs/admin-crm.md"
       ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [
         "admin_user_notes",
-        "admin_user_tags"
+        "admin_user_tags",
+        "article_opens"
       ],
       "externalServices": [],
       "tests": [
@@ -792,6 +798,8 @@
         "tests/admin-people-list-model.test.ts",
         "tests/admin-integration-lists-model.test.ts",
         "tests/admin-content-lists-model.test.ts",
+        "tests/admin-article-reads-model.test.ts",
+        "tests/article-opens.test.ts",
         "tests/admin-crm-overview.test.ts",
         "tests/admin-overview-model.test.ts"
       ],

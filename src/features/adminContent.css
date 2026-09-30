@@ -1,8 +1,8 @@
 /* Admin content lists (articles, gallery): table cells, row actions and the form shown in the side sheet. */
-.admin-people-table.is-articles th:nth-child(1) { width: 34%; }
-.admin-people-table.is-articles th:nth-child(2) { width: 14%; }
-.admin-people-table.is-articles th:nth-child(3) { width: 19%; }
-.admin-people-table.is-articles th:nth-child(4) { width: 11%; }
+.admin-people-table.is-articles th:nth-child(1) { width: 30%; }
+.admin-people-table.is-articles th:nth-child(2) { width: 12%; }
+.admin-people-table.is-articles th:nth-child(3) { width: 17%; }
+.admin-people-table.is-articles th:nth-child(4) { width: 9%; }
 .admin-people-table.is-articles th:nth-child(6) { width: 152px; }
 .admin-people-table.is-gallery th:nth-child(1) { width: 40%; }
 .admin-people-table.is-gallery th:nth-child(2) { width: 15%; }

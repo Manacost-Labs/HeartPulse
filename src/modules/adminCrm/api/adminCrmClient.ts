@@ -32,6 +32,8 @@ export type AdminCrmPerson = {
   };
   notes: AdminCrmNote[];
   tags: string[];
+  /** Paid articles this person opened in the last 30 days, and when they last opened any. */
+  reading?: { opens: number; articles: number; lastOpenedAt: string | null };
   audit: Array<{ id: number; action: string; actorId: string; actorName: string; details: Record<string, unknown>; createdAt: string }>;
 };
 

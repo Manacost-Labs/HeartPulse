@@ -4,6 +4,7 @@ import {
   ADMIN_USER_SEGMENTS,
   adminUserSegmentWhere,
 } from './adminCrmSegments.js';
+import { ARTICLE_OPENS_SCHEMA_SQL, readPersonReading } from './articleOpens.js';
 
 export type QueryValue = string | number | null;
 
@@ -38,7 +39,7 @@ export const ADMIN_CRM_SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_subscription_checks_access_user ON subscription_checks(user_id, checked_at) WHERE has_access = 1;
   CREATE INDEX IF NOT EXISTS idx_subscription_checks_access_time ON subscription_checks(checked_at, user_id) WHERE has_access = 1;
   CREATE INDEX IF NOT EXISTS idx_admin_audit_entity ON admin_audit_log(entity_type, entity_id, created_at DESC);
-`;
+${ARTICLE_OPENS_SCHEMA_SQL}`;
 
 const HISTORY_LIMIT = 50;
 const CHECKS_SCANNED = 2000;
@@ -214,6 +215,7 @@ export function readPersonCard(repository: AdminCrmRepository, userId: string) {
     } : null,
     notes: repository.all(`${NOTES_SQL} WHERE n.user_id = ? ORDER BY n.created_at DESC, n.id DESC`, userId).map(noteView),
     tags: tagsFor(repository, userId),
+    reading: readPersonReading(repository, userId, new Date()),
     audit,
   };
 }

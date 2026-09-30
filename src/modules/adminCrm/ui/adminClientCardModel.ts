@@ -1,3 +1,4 @@
+import { pluralRu } from '../../../shared/text/pluralRu';
 import type { AdminCrmPerson } from '../api/adminCrmClient';
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -89,6 +90,19 @@ export function daysUntil(value: string | null | undefined, now = Date.now()): n
 }
 
 export const upperFirst = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** «5 открытий за 30 дней · 3 статьи · последнее 29 сент. 2026 г.» for the client card. */
+export function readingSummary(reading: AdminCrmPerson['reading']): string {
+  if (!reading) return 'нет данных';
+  if (!reading.lastOpenedAt) return 'статьи не открывал';
+  const last = `последнее открытие ${formatDate(reading.lastOpenedAt)}`;
+  if (!reading.opens) return `за 30 дней не читал · ${last}`;
+  return [
+    `${reading.opens} ${pluralRu(reading.opens, 'открытие', 'открытия', 'открытий')} за 30 дней`,
+    `${reading.articles} ${pluralRu(reading.articles, 'статья', 'статьи', 'статей')}`,
+    last,
+  ].join(' · ');
+}
 
 export type TimelineTone = 'good' | 'bad' | 'neutral';
 export type TimelineEvent = { key: string; at: string; title: string; detail: string; tone: TimelineTone };

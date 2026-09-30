@@ -1698,10 +1698,25 @@ for (const [device, viewport] of [
     if (articlesState.chips.join(',') !== '2,1,1' || !articlesState.summary.includes('Всего 2') || !articlesState.summary.includes('последняя публикация 11.07.2026')) {
       failures.push(`admin articles [${device}]: deterministic filters or summary did not render (${JSON.stringify(articlesState)})`);
     }
-    if (JSON.stringify(articlesState.headers) !== JSON.stringify(['Статья', 'Раздел', 'Доступ', 'Дата', 'Оценки', 'Действия'])) {
+    if (JSON.stringify(articlesState.headers) !== JSON.stringify(['Статья', 'Раздел', 'Доступ', 'Дата', 'Читали', 'Действия'])) {
       failures.push(`admin articles [${device}]: table columns changed (${JSON.stringify(articlesState.headers)})`);
     }
     if (articlesState.searchHeight < 44) failures.push(`admin articles [${device}]: search field is below the 44px target (${articlesState.searchHeight})`);
+    // Reads: the summary totals, the per-article cell and the «most read first» order.
+    await page.waitForFunction(() => document.querySelector('.admin-articles .admin-people-summary')?.textContent?.includes('открытий за 30 дней: 3 (2 человека)'));
+    const articleReadCells = () => [...document.querySelectorAll('.admin-articles .admin-content-row')].map(row => ({
+      title: row.querySelector('.admin-crm-open')?.textContent?.trim() || '',
+      read: row.querySelector('td[data-label="Читали"]')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    }));
+    const readsByDate = await page.evaluate(articleReadCells);
+    if (readsByDate[0]?.title !== 'Первая статья' || readsByDate[0].read !== 'не открывали'
+      || !readsByDate[1]?.read.startsWith('3 открытия · 2 человека') || !readsByDate[1].read.includes('всего 5 открытий')) {
+      failures.push(`admin articles [${device}]: read statistics did not render (${JSON.stringify(readsByDate)})`);
+    }
+    await clickChip('.admin-articles', 'Сначала читаемые');
+    await page.waitForFunction(() => document.querySelector('.admin-articles .admin-content-row .admin-crm-open')?.textContent?.trim() === 'Вторая статья');
+    await clickChip('.admin-articles', 'Сначала новые');
+    await page.waitForFunction(() => document.querySelector('.admin-articles .admin-content-row .admin-crm-open')?.textContent?.trim() === 'Первая статья');
     // The title opens the editor in a side sheet with the stored values.
     await page.click('.admin-articles .admin-content-row .admin-crm-open');
     await waitForSheet('Редактирование статьи');

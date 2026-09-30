@@ -1,4 +1,5 @@
 /** Browser client for the admin content sections (articles and gallery). Contract: docs/specs/admin-crm.md. */
+import type { ArticleReads } from './adminArticleReadsModel';
 import type { Article, ArticleDraft, GalleryDraft, GalleryItem } from './adminContentListModel';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
@@ -19,6 +20,10 @@ export const adminContentClient = {
   async articles(): Promise<Article[]> {
     const data = await request<{ articles?: Article[] }>(`/api/articles?t=${Date.now()}`, 'Не удалось загрузить статьи');
     return Array.isArray(data.articles) ? data.articles : [];
+  },
+  /** Opens of paid articles by subscribers: per article and in total, without naming readers. */
+  articleReads(): Promise<ArticleReads> {
+    return request('/api/admin/crm/articles/reads', 'Не удалось загрузить статистику чтения');
   },
   /** Creates the article, or updates it when `id` is given. */
   saveArticle(draft: ArticleDraft, id = ''): Promise<{ article: Article }> {
