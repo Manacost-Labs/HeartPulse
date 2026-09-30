@@ -28,6 +28,27 @@ function decoded(value) {
     .replaceAll('&amp;', '&');
 }
 
+/** Text a reader gets without JavaScript: no tags and no script or style contents. */
+function visibleText(html) {
+  const lower = html.toLowerCase();
+  let text = '';
+  let index = 0;
+  while (index < html.length) {
+    const open = html.indexOf('<', index);
+    if (open === -1) { text += html.slice(index); break; }
+    text += html.slice(index, open);
+    const close = html.indexOf('>', open);
+    if (close === -1) break;
+    index = close + 1;
+    const name = lower.slice(open + 1, close).split(/[\s/]/, 1)[0];
+    if (name === 'script' || name === 'style') {
+      const end = lower.indexOf(`</${name}`, index);
+      index = end === -1 ? html.length : html.indexOf('>', end) + 1;
+    }
+  }
+  return decoded(text);
+}
+
 function assertOnce(html, pattern, expected, label) {
   assert.deepEqual([...html.matchAll(pattern)].map(match => decoded(match[1])), [expected], label);
 }
@@ -110,7 +131,7 @@ test('every SEO registry page takes its title, description and share metadata fr
     const legalPages = JSON.parse(readFileSync('src/modules/legalPages/content.json', 'utf8')).pages;
     for (const [kind, legal] of Object.entries(legalPages)) {
       const html = await (await fetch(`${runtime.nextOrigin}/${kind}/`)).text();
-      const text = decoded(html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]*>/g, ''));
+      const text = visibleText(html);
       assert.ok(text.includes(legal.title), `${kind} title`);
       for (const section of legal.sections) {
         assert.ok(text.includes(section.heading), `${kind} heading: ${section.heading}`);
