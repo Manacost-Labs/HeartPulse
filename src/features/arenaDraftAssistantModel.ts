@@ -29,8 +29,6 @@ export type ArenaDraftCandidateSuggestionInput = {
   combinations: ArenaCombination[];
 };
 
-export const ARENA_DRAFT_ASSISTANT_STORAGE_KEY = 'arena-draft-assistant-v1';
-
 export function createEmptyDraftState(
   classId: Exclude<ArenaClassId, 'ALL'>,
 ): ArenaDraftAssistantState {
@@ -224,10 +222,6 @@ export function suggestArenaDraftCandidates(
     || left.id.localeCompare(right.id)
   ));
   return ranked.slice(0, 3).map(card => card.id) as [string, string, string];
-}
-
-export function fullCardImageUrl(cardId: string): string {
-  return `/api/card-image/${encodeURIComponent(cardId)}/full.webp`;
 }
 
 export function classIconUrl(classId: Exclude<ArenaClassId, 'ALL'>): string {

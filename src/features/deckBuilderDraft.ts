@@ -90,11 +90,3 @@ export function writeDeckBuilderDraft(
     return false;
   }
 }
-
-export function clearDeckBuilderDraft(storage: DraftStorage): void {
-  try {
-    storage.removeItem(DECK_BUILDER_DRAFT_KEY);
-  } catch {
-    // A private or quota-restricted browser may deny storage access.
-  }
-}

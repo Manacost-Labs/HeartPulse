@@ -47,7 +47,6 @@
         "tests/arena-draft-assistant-ui.test.ts",
         "tests/arena-draft-refresh-pipeline.test.ts",
         "tests/arena-synergy-analysis.test.ts",
-        "tests/arena-synergy-card-identity.test.tsx",
         "tests/arena-synergy-refresh-manager.test.ts",
         "tests/article-access.test.ts",
         "tests/article-image-src.test.ts",

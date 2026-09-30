@@ -1,11 +1,3 @@
-export type ConnectUser = {
-  id?: string;
-  email: string;
-  name: string;
-  role: string;
-  avatarInitials?: string;
-};
-
 export type { DeviceAuthorization } from './schema/deviceAuthorization';
 
 export type ConnectState =

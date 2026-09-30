@@ -45,11 +45,9 @@ types, and unexplained exclusions all fail validation.
 Exclusions live only in the registry and require a non-empty reason. There are
 no exclusions in the initial baseline.
 
-Discovery exposed two existing direct browser-source violations in
-`ArenaSynergyCardIdentity.tsx` and `battlegroundTrinkets.ts`. Their existing
-paths are asserted as an exact ratchet by `public-resource-browser-contract`:
-the test still executes and fails on additions or drift, while removing the two
-legacy sources remains a separate behavior-changing network-boundary slice.
+Discovery exposed two direct browser-source violations, which have since been
+removed. `public-resource-browser-contract` now asserts an empty baseline and
+fails on any browser source that names a third-party host directly.
 
 ## Execution contract
 
