@@ -33,6 +33,13 @@ test('project MCP config uses the guarded Chrome DevTools launcher', () => {
   });
 });
 
+test('AGENTS asks for short answers that end with proposed next steps', () => {
+  const instructions = readFileSync('AGENTS.md', 'utf8');
+  assert.match(instructions, /## Required Answer Style/);
+  assert.match(instructions, /short and to the point/);
+  assert.match(instructions, /End with `Дальше:` and one to three concrete next steps you propose/);
+});
+
 test('AGENTS enforces the installed skill router and task-specific quality skills', () => {
   const instructions = readFileSync('AGENTS.md', 'utf8');
   for (const requiredSkill of [

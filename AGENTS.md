@@ -22,6 +22,19 @@ Use the current user request, repository documentation and supplied visual
 references for task scope and design context. External task databases and
 design boards are not required to investigate, implement or verify work.
 
+## Required Answer Style
+
+The owner reads every answer and wants it short and to the point. Answer in
+the owner's language (Russian):
+
+- Start with the result in one or two sentences: what changed, what was found
+  or what is blocked.
+- Keep only what the owner needs to act on. Do not retell the process or list
+  every command; details belong in PRs, commits and documentation.
+- End with `Дальше:` and one to three concrete next steps you propose, the
+  recommended one first. Mark the steps that need the owner: a decision, root
+  access or money.
+
 ## Required Multi-Session Coordination
 
 Codex, Claude, and other agents share the repository. Treat one task, one branch,
