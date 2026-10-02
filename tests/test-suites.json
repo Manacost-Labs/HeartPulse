@@ -27,6 +27,7 @@
         "tests/admin-integration-lists-model.test.ts",
         "tests/admin-content-lists-model.test.ts",
         "tests/admin-article-reads-model.test.ts",
+        "tests/fetch-with-deadline.test.ts",
         "tests/admin-overview-model.test.ts",
         "tests/admin-wild-archetypes-model.test.ts",
         "tests/agent-check.test.mjs",

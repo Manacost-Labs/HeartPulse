@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { ADMIN_INPUT } from './contestAdminUi';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -19,8 +20,10 @@ export function firstImageFile(files: FileList | File[] | null | undefined): Fil
 async function uploadAdminImageFile(file: File): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('Можно загружать только изображения');
   const dataUrl = await fileToDataUrl(file);
-  const response = await fetch('/api/admin/uploads/image', {
+  const response = await fetchWithDeadline('/api/admin/uploads/image', {
     method: 'POST',
+    // The server stores the original and builds previews; a large image takes longer than a list request.
+    deadlineMs: 90_000,
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
     body: JSON.stringify({ dataUrl }),
   });
@@ -37,8 +40,10 @@ async function uploadAdminImageUrl(sourceUrl: string): Promise<string> {
     throw new Error('Укажите корректную ссылку на изображение');
   }
   if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Ссылка должна начинаться с http:// или https://');
-  const response = await fetch('/api/admin/uploads/image', {
+  const response = await fetchWithDeadline('/api/admin/uploads/image', {
     method: 'POST',
+    // The server stores the original and builds previews; a large image takes longer than a list request.
+    deadlineMs: 90_000,
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
     body: JSON.stringify({ sourceUrl: url.href }),
   });

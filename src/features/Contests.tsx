@@ -72,6 +72,8 @@ import {
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
 import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
+import { AdminSectionFrame } from './AdminSectionFrame';
 export { ContestsPage } from '../modules/contests/public';
 
 const AdminWorkspaceShell = React.lazy(loadAdminWorkspaceShell);
@@ -145,11 +147,13 @@ function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
   return <div className="route-fallback" aria-busy="true" aria-label="Загрузка раздела" style={{ minHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b6c42', fontFamily: 'var(--font-display)' }}>Загрузка...</div>;
 }
 
+// The server waits up to 15 s (status) and 25 s (subscribers) for boosty-auth before it answers.
+const BOOSTY_STATUS_DEADLINE_MS = 30_000;
+const BOOSTY_SUBSCRIBERS_DEADLINE_MS = 45_000;
+
 function authJsonHeaders(): HeadersInit {
   return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
 }
-
-const SAME_ORIGIN: RequestCredentials = 'same-origin';
 
 function contestStatusLabel(status: string): string {
   if (status === 'approved') return 'Одобрено';
@@ -432,7 +436,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     if (!allowed) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/contests', { headers: authJsonHeaders() });
+      const res = await fetchWithDeadline('/api/admin/contests', { headers: authJsonHeaders() });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить конкурсы');
       const list = Array.isArray(data.contests) ? data.contests : [];
@@ -450,7 +454,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const loadReferrals = useCallback(async () => {
     if (!hasFullAdminAccess) return;
     try {
-      const res = await fetch(`/api/admin/referrals?t=${Date.now()}`, { headers: authJsonHeaders(), cache: 'no-store' });
+      const res = await fetchWithDeadline(`/api/admin/referrals?t=${Date.now()}`, { headers: authJsonHeaders(), cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить реферальные ссылки');
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
@@ -464,10 +468,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     if (!hasFullAdminAccess) return;
     setBoostyStatusLoading(true);
     try {
-      const res = await fetch(`/api/admin/boosty/status?t=${Date.now()}`, {
+      const res = await fetchWithDeadline(`/api/admin/boosty/status?t=${Date.now()}`, {
         headers: authJsonHeaders(),
-        cache: 'no-store',
-        credentials: SAME_ORIGIN,
+        cache: 'no-store', deadlineMs: BOOSTY_STATUS_DEADLINE_MS,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить статус Boosty');
@@ -496,10 +499,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     if (!hasFullAdminAccess) return;
     setBoostySubscribersLoading(true);
     try {
-      const res = await fetch(`/api/admin/boosty/subscribers?includeInactive=1&t=${Date.now()}`, {
+      const res = await fetchWithDeadline(`/api/admin/boosty/subscribers?includeInactive=1&t=${Date.now()}`, {
         headers: authJsonHeaders(),
-        cache: 'no-store',
-        credentials: SAME_ORIGIN,
+        cache: 'no-store', deadlineMs: BOOSTY_SUBSCRIBERS_DEADLINE_MS,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить подписчиков Boosty');
@@ -533,10 +535,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     if (!hasFullAdminAccess) return;
     setTelegramAccountsLoading(true);
     try {
-      const res = await fetch(`/api/admin/telegram/accounts?t=${Date.now()}`, {
+      const res = await fetchWithDeadline(`/api/admin/telegram/accounts?t=${Date.now()}`, {
         headers: authJsonHeaders(),
         cache: 'no-store',
-        credentials: SAME_ORIGIN,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить Telegram-аккаунты');
@@ -575,10 +576,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     if (!hasFullAdminAccess) return;
     if (!options?.quiet) setMailingLoading(true);
     try {
-      const res = await fetch(`/api/admin/mailings/overview?t=${Date.now()}`, {
+      const res = await fetchWithDeadline(`/api/admin/mailings/overview?t=${Date.now()}`, {
         headers: authJsonHeaders(),
         cache: 'no-store',
-        credentials: SAME_ORIGIN,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить рассылку');
@@ -594,10 +594,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     const requestId = ++mailingPreviewRequestRef.current;
     if (!options?.quiet) setMailingPreviewLoading(true);
     try {
-      const res = await fetch('/api/admin/mailings/preview', {
+      const res = await fetchWithDeadline('/api/admin/mailings/preview', {
         method: 'POST',
         headers: authJsonHeaders(),
-        credentials: SAME_ORIGIN,
         body: JSON.stringify(draft),
       });
       const data = await res.json().catch(() => ({}));
@@ -651,7 +650,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     const controller = new AbortController();
     setEntries([]);
     setEntriesLoading(true);
-    fetch(`/api/admin/contests/${encodeURIComponent(selectedContestId)}/entries`, { headers: authJsonHeaders(), signal: controller.signal })
+    fetchWithDeadline(`/api/admin/contests/${encodeURIComponent(selectedContestId)}/entries`, { headers: authJsonHeaders(), signal: controller.signal })
       .then(async res => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Не удалось загрузить заявки');
@@ -685,7 +684,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/admin/contests', {
+      const res = await fetchWithDeadline('/api/admin/contests', {
         method: 'POST',
         headers: authJsonHeaders(),
         body: JSON.stringify({
@@ -711,7 +710,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/admin/referrals', {
+      const res = await fetchWithDeadline('/api/admin/referrals', {
         method: 'POST',
         headers: authJsonHeaders(),
         body: JSON.stringify(draft),
@@ -764,10 +763,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     setUserActionId(`${user.id}:${Object.keys(patch).join(',')}`);
     setMessage(null);
     try {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
+      const res = await fetchWithDeadline(`/api/admin/users/${encodeURIComponent(user.id)}`, {
         method: 'PATCH',
         headers: authJsonHeaders(),
-        credentials: SAME_ORIGIN,
         body: JSON.stringify(patch),
       });
       const data = await res.json().catch(() => ({}));
@@ -815,10 +813,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     setMailingTesting(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/admin/mailings/test', {
+      const res = await fetchWithDeadline('/api/admin/mailings/test', {
         method: 'POST',
+        deadlineMs: 60_000, // the test letter is handed to the mail server before the answer
         headers: authJsonHeaders(),
-        credentials: SAME_ORIGIN,
         body: JSON.stringify(mailingDraft),
       });
       const data = await res.json().catch(() => ({}));
@@ -846,10 +844,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const includeFormer = mailingDraft.segment === 'former' || mailingDraft.segment === 'all-consented';
       const warning = includeFormer ? '\nВ выборку могут входить бывшие подписчики, которые не отписались от писем.' : '';
       if (!window.confirm(`Запустить рассылку «${mailingDraft.subject}» для ${recipients} получателей?${warning}\n\nОтправку нельзя отменить после запуска.`)) return;
-      const res = await fetch('/api/admin/mailings/send', {
+      const res = await fetchWithDeadline('/api/admin/mailings/send', {
         method: 'POST',
+        deadlineMs: 60_000, // queuing writes one delivery row per recipient
         headers: authJsonHeaders(),
-        credentials: SAME_ORIGIN,
         body: JSON.stringify({
           ...mailingDraft,
           confirmation: 'SEND',
@@ -879,7 +877,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/admin/contests/${encodeURIComponent(selectedContestId)}/winners`, {
+      const res = await fetchWithDeadline(`/api/admin/contests/${encodeURIComponent(selectedContestId)}/winners`, {
         method: 'POST',
         headers: authJsonHeaders(),
         body: JSON.stringify({ winners }),
@@ -900,7 +898,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/admin/contests/${encodeURIComponent(contest.id)}`, {
+      const res = await fetchWithDeadline(`/api/admin/contests/${encodeURIComponent(contest.id)}`, {
         method: 'DELETE',
         headers: authJsonHeaders(),
       });
@@ -1025,6 +1023,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
         onNavigate={changeAdminSection}
         onDismissMessage={() => setMessage(null)}
       >
+        <AdminSectionFrame section={adminSection}>
           {hasFullAdminAccess && adminSection === 'dashboard' && (
             <React.Suspense fallback={<RouteFallback minHeight={420} />}>
               <AdminOverviewPage onNavigate={section => { if (ADMIN_WORKSPACE_SECTION_IDS.has(section as AdminWorkspaceSection)) changeAdminSection(section as AdminWorkspaceSection); }} onOpenSegment={openUserSegment} />
@@ -1211,6 +1210,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               onSubmit={submitReferral}
             />
           )}
+        </AdminSectionFrame>
       </AdminWorkspaceShell>
     </React.Suspense>
   );

@@ -117,6 +117,11 @@ async function mockApplicationApi(page, {
       request.abort('failed');
       return;
     }
+    // Every code chunk requested after the flag is raised fails, like a dropped connection mid-session.
+    if (adminState.adminChunkFailure && url.pathname.startsWith('/_next/static/chunks/')) {
+      request.abort('failed');
+      return;
+    }
     if (handleQaApiRequest({ url, method: request.method(), postData: request.postData() },
       response => request.respond(response))) return;
     if (authenticated && url.origin === BASE_ORIGIN) {
@@ -5108,6 +5113,68 @@ for (const [device, viewport] of [
     console.log('✓ home lazy sections and delayed support prompt');
   } catch (error) {
     failures.push(`home lazy sections: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
+// Admin resilience: a section whose code cannot be downloaded shows its own error while the menu
+// and the other sections keep working, and a request refused because the session ended tells the
+// administrator to sign in again without dropping what is on the page.
+{
+  const page = await createQaPage();
+  const adminState = {
+    users: structuredClone(adminFixtures['/api/admin/users'].users),
+    articles: structuredClone(adminFixtures['/api/articles'].articles),
+  };
+  await page.setViewport({ width: 1440, height: 900 });
+  await mockApplicationApi(page, { authenticated: true, admin: true, adminState, strictApi: true });
+  const openSection = label => page.evaluate(name => {
+    const button = document.querySelector(`button[data-admin-nav-label="${name}"]`);
+    if (!(button instanceof HTMLButtonElement)) throw new Error(`Missing admin navigation item: ${name}`);
+    button.click();
+  }, label);
+  try {
+    await page.goto(`${BASE}/admin?section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.admin-overview-actions button', { timeout: 20_000 });
+    adminState.adminChunkFailure = true;
+    await openSection('Галерея');
+    await page.waitForFunction(() => document.querySelector('.admin-workspace-content [data-recovery-state="error"]')
+      ?.textContent?.includes('Раздел нужно обновить'), { timeout: 15_000 });
+    adminState.adminChunkFailure = false;
+    const sectionFailure = await page.evaluate(() => ({
+      title: document.querySelector('#admin-section-title')?.textContent?.trim() || '',
+      navigation: document.querySelectorAll('button[data-admin-nav-label]').length,
+      action: document.querySelector('.admin-workspace-content .recoverable-surface__action')?.textContent?.trim() || '',
+      appError: Boolean(document.querySelector('[data-app-error]')),
+    }));
+    if (sectionFailure.title !== 'Галерея' || sectionFailure.navigation < 10 || sectionFailure.action !== 'Обновить страницу' || sectionFailure.appError) {
+      failures.push(`admin recovery: a failed section chunk was not contained (${JSON.stringify(sectionFailure)})`);
+    }
+    // The menu still works: the next section opens normally.
+    await openSection('Пользователи');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-people-row').length > 0, { timeout: 15_000 });
+
+    adminState.sessionLost = true;
+    await openSection('Статьи');
+    await page.waitForFunction(() => document.querySelector('.admin-session-notice')?.textContent?.includes('Нет доступа к админке'), { timeout: 15_000 });
+    const noticeState = await page.$eval('.admin-session-notice', element => ({
+      role: element.getAttribute('role'),
+      login: element.querySelector('a')?.getAttribute('href') || '',
+      loginTarget: element.querySelector('a')?.getAttribute('target') || '',
+      buttonHeight: element.querySelector('button')?.getBoundingClientRect().height || 0,
+    }));
+    if (noticeState.role !== 'alert' || noticeState.login !== '/?login' || noticeState.loginTarget !== '_blank' || noticeState.buttonHeight < 44) {
+      failures.push(`admin recovery: signed-out notice contract changed (${JSON.stringify(noticeState)})`);
+    }
+    const noticeViolations = await auditAccessibility(page, 'admin signed-out notice', '.admin-session-notice');
+    // After signing in again in another tab, «Проверить вход» clears the notice.
+    adminState.sessionLost = false;
+    await page.click('.admin-session-notice__actions button');
+    await page.waitForFunction(() => !document.querySelector('.admin-session-notice'), { timeout: 15_000 });
+    console.log(`✓ admin section failure stays local; signed-out notice appears and clears (${noticeViolations} violations)`);
+  } catch (error) {
+    failures.push(`admin recovery: ${error.message}`);
   } finally {
     await page.close();
   }

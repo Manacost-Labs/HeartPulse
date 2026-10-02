@@ -365,6 +365,34 @@ The client card (`GET /api/admin/crm/people/:userId`, field `reading`) shows
 one person's reading: opens and distinct articles in the last 30 days and the
 date of the last open.
 
+## Resilience (2026-10-02)
+
+The admin panel stays usable when the network or the server misbehaves:
+
+- Every admin request goes through `fetchWithDeadline`
+  (`src/shared/http/fetchWithDeadline.ts`). A request that gets no answer
+  within 20 seconds ends with «Сервер не ответил…» instead of an endless
+  loading state. Reads that wait for an upstream get more (Boosty status
+  30 s and subscribers 45 s, translation coverage 45 s), as do uploads, the
+  BlizzCore sync and mailing requests (60–120 s). The deadline and the
+  caller's cancellation cover the body as well, so a stalled body is cut off
+  and an older search cannot land over a newer one. A timed-out change
+  (anything but GET or HEAD) adds that it may still have been saved, so the
+  administrator checks before repeating it. A dropped connection reads «Нет
+  соединения с сервером»; other errors, including a caller's own
+  cancellation, pass through unchanged.
+- The active section is wrapped in `AdminSectionFrame`, a recovery boundary
+  keyed by the section. If its code cannot be downloaded or it throws while
+  rendering, only that section shows an error («Обновить страницу» for a
+  missing chunk, «Повторить» otherwise) and the incident is reported through
+  `/api/telemetry/client-errors`; the menu and the other sections keep
+  working.
+- A 401 or 403 from any admin request makes the panel re-check the session.
+  When the person is no longer signed in as a manager (signed out or rights
+  removed), a notice «Нет доступа к админке» says so and
+  links to the login page in a new tab, so unsaved input on the page
+  survives; «Проверить вход» hides the notice once the session is back.
+
 ## Permissions
 
 Every endpoint requires the full administrator role (`adminAuth`), matching

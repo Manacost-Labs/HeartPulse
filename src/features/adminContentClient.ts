@@ -1,12 +1,13 @@
 /** Browser client for the admin content sections (articles and gallery). Contract: docs/specs/admin-crm.md. */
 import type { ArticleReads } from './adminArticleReadsModel';
 import type { Article, ArticleDraft, GalleryDraft, GalleryItem } from './adminContentListModel';
+import { fetchWithDeadline, type DeadlineRequestInit } from '../shared/http/fetchWithDeadline';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
 
 // The single same-origin transport for admin content (CSRF header, no caching, readable errors).
-async function request<T>(path: string, fallbackError: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...init, headers: JSON_HEADERS });
+async function request<T>(path: string, fallbackError: string, init: DeadlineRequestInit = {}): Promise<T> {
+  const response = await fetchWithDeadline(path, { credentials: 'same-origin', cache: 'no-store', ...init, headers: JSON_HEADERS });
   if (!response.ok) {
     const failure = await response.json().catch(() => ({})) as { error?: string };
     throw new Error(failure.error || fallbackError);
@@ -38,7 +39,7 @@ export const adminContentClient = {
   },
   /** The original is sent as a data URL; the server stores it and builds the previews. */
   uploadGalleryItem(draft: GalleryDraft, dataUrl: string): Promise<{ item: GalleryItem }> {
-    return request('/api/admin/gallery', 'Не удалось загрузить арт', { method: 'POST', body: body({ ...draft, dataUrl }) });
+    return request('/api/admin/gallery', 'Не удалось загрузить арт', { method: 'POST', body: body({ ...draft, dataUrl }), deadlineMs: 120_000 });
   },
   deleteGalleryItem(id: string): Promise<unknown> {
     return request(`/api/admin/gallery/${encodeURIComponent(id)}`, 'Не удалось удалить арт', { method: 'DELETE' });

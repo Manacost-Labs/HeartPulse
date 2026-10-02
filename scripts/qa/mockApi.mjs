@@ -91,6 +91,19 @@ export function createQaApiHandler({
       });
       return true;
     }
+    // The admin session ended: the account check finds nobody and admin endpoints refuse.
+    if (admin && adminState.sessionLost && url.pathname === '/api/auth/me') {
+      respond(jsonResponse({ user: null }));
+      return true;
+    }
+    if (admin && adminState.sessionLost && /^\/api\/admin(?:\/|-)/.test(url.pathname)) {
+      respond({ ...jsonResponse({ error: 'Требуется вход' }), status: 401 });
+      return true;
+    }
+    if (url.pathname === '/api/telemetry/client-errors' && method === 'POST') {
+      respond({ status: 204, headers: { 'cache-control': 'no-store' }, body: '' });
+      return true;
+    }
     if (url.pathname === '/api/auth/me') {
       respond(jsonResponse(authenticated ? {
         user: {

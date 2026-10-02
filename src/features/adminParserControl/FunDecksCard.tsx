@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy, ExternalLink, RefreshCw, Sparkles } from 'lucide-react';
+import { fetchWithDeadline } from '../../shared/http/fetchWithDeadline';
 
 type FunDeckRow = {
   title: string;
@@ -31,8 +32,7 @@ type FunDecksPayload = {
 type FormatFilter = 'all' | 'Standard' | 'Wild';
 
 async function fetchFunDecks(signal?: AbortSignal): Promise<FunDecksPayload> {
-  const response = await fetch('/api/admin/fun-decks', {
-    credentials: 'same-origin',
+  const response = await fetchWithDeadline('/api/admin/fun-decks', {
     cache: 'no-store',
     headers: { Accept: 'application/json' },
     signal,

@@ -1,5 +1,6 @@
 /** Browser client for the admin CRM API. Contract: docs/specs/admin-crm.md. */
 import type { AdminCrmOverview } from './adminCrmContracts';
+import { fetchWithDeadline } from '../../../shared/http/fetchWithDeadline';
 export type AdminCrmSegmentId = 'all' | 'paying' | 'manual' | 'expiring' | 'lapsed' | 'new' | 'blocked' | 'admins';
 
 export type AdminCrmSegment = { id: AdminCrmSegmentId; label: string; count: number };
@@ -41,7 +42,7 @@ const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json', 'X-CSRF-
 
 // The single same-origin transport for admin people data (CSRF header, no caching, readable errors).
 async function request<T>(path: string, init: RequestInit = {}, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`/api/admin${path}`, {
+  const response = await fetchWithDeadline(`/api/admin${path}`, {
     credentials: 'same-origin',
     cache: 'no-store',
     ...init,

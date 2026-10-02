@@ -9,7 +9,7 @@
       "id": "shared-root.client",
       "runtime": "client",
       "root": "src/shared",
-      "purpose": "Owns domain-independent browser SEO, route-inventory and public URL policy primitives shared across client modules.",
+      "purpose": "Owns domain-independent browser SEO, route-inventory, public URL policy, text and HTTP request primitives shared across client modules.",
       "owner": "web-platform",
       "focusedTests": [
         "npm run test:nginx-canonical-hosts",

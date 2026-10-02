@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { AdminMessage } from './adminWorkspaceState';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 
 type MechanicItem = {
   key: string;
@@ -56,7 +57,7 @@ export function ContestAdminMechanicTranslations({ onMessage }: { onMessage: (me
     if (status) params.set('status', status);
     if (kind) params.set('kind', kind);
     try {
-      const response = await fetch(`/api/admin/mechanic-translations?${params}`, {
+      const response = await fetchWithDeadline(`/api/admin/mechanic-translations?${params}`, {
         headers: headers(), cache: 'no-store', credentials: 'same-origin', signal,
       });
       const payload = await response.json().catch(() => ({}));
@@ -85,7 +86,7 @@ export function ContestAdminMechanicTranslations({ onMessage }: { onMessage: (me
   const save = async (item: MechanicItem) => {
     setSavingKey(item.key);
     try {
-      const response = await fetch(`/api/admin/mechanic-translations/${encodeURIComponent(item.key)}`, {
+      const response = await fetchWithDeadline(`/api/admin/mechanic-translations/${encodeURIComponent(item.key)}`, {
         method: 'PUT', headers: headers(), credentials: 'same-origin',
         body: JSON.stringify({ nameEn: item.nameEn, nameRu: drafts[item.key] || '' }),
       });

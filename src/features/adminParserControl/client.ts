@@ -6,9 +6,10 @@ import type {
   ParserRun,
   ParserRunCreation,
 } from './types';
+import { fetchWithDeadline } from '../../shared/http/fetchWithDeadline';
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
-  const response = await fetch(path, {
+  const response = await fetchWithDeadline(path, {
     ...init,
     credentials: 'same-origin',
     cache: 'no-store',

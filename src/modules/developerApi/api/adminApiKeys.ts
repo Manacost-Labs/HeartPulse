@@ -1,3 +1,5 @@
+import { fetchWithDeadline } from '../../../shared/http/fetchWithDeadline';
+
 export type AdminApiKey = {
   id: string;
   name: string;
@@ -26,7 +28,7 @@ async function json<T>(response: Response): Promise<T> {
 
 export const adminApiKeysClient = {
   async list(): Promise<AdminApiKey[]> {
-    const payload = await json<{ keys: AdminApiKey[] }>(await fetch('/api/admin/api-keys', {
+    const payload = await json<{ keys: AdminApiKey[] }>(await fetchWithDeadline('/api/admin/api-keys', {
       credentials: 'same-origin',
       headers: { 'X-CSRF-Request': '1' },
     }));
@@ -34,7 +36,7 @@ export const adminApiKeysClient = {
   },
 
   async create(name: string, scopes: string[]): Promise<CreatedAdminApiKey> {
-    return json<CreatedAdminApiKey>(await fetch('/api/admin/api-keys', {
+    return json<CreatedAdminApiKey>(await fetchWithDeadline('/api/admin/api-keys', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
@@ -43,7 +45,7 @@ export const adminApiKeysClient = {
   },
 
   async revoke(id: string): Promise<void> {
-    const response = await fetch(`/api/admin/api-keys/${encodeURIComponent(id)}`, {
+    const response = await fetchWithDeadline(`/api/admin/api-keys/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
       headers: { 'X-CSRF-Request': '1' },

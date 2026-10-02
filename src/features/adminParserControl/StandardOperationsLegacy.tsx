@@ -7,6 +7,7 @@ import {
   normalizeStandardOperationsStatus,
   type StandardOperationsStatus,
 } from './standardOperationsStatus';
+import { fetchWithDeadline } from '../../shared/http/fetchWithDeadline';
 
 export function StandardOperationsLegacy({ onMessage }: { onMessage: (message: AdminMessage | null) => void }) {
   const [status, setStatus] = useState<StandardOperationsStatus>(EMPTY_STANDARD_OPERATIONS_STATUS);
@@ -15,7 +16,7 @@ export function StandardOperationsLegacy({ onMessage }: { onMessage: (message: A
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/standard-operations', { credentials: 'same-origin', cache: 'no-store', signal });
+      const response = await fetchWithDeadline('/api/admin/standard-operations', { credentials: 'same-origin', cache: 'no-store', signal });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить служебное состояние');
       setStatus(normalizeStandardOperationsStatus(payload));
@@ -35,7 +36,7 @@ export function StandardOperationsLegacy({ onMessage }: { onMessage: (message: A
   const reset = async (target: 'meta' | 'recommendations' | 'previews' | 'all') => {
     setResetting(target);
     try {
-      const response = await fetch('/api/admin/standard-operations/reset', {
+      const response = await fetchWithDeadline('/api/admin/standard-operations/reset', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
         body: JSON.stringify({ target }),

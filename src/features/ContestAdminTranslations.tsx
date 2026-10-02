@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
 import type { AdminMessage } from './adminWorkspaceState';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 
 export type ArchetypeTranslation = {
   id: number;
@@ -396,7 +397,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     if (query.trim()) params.set('q', query.trim());
     if (source) params.set('source', source);
     try {
-      const response = await fetch(`/api/admin/archetype-translations?${params}`, {
+      const response = await fetchWithDeadline(`/api/admin/archetype-translations?${params}`, {
         headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal: request.signal,
       });
       const payload = await response.json().catch(() => ({}));
@@ -417,8 +418,8 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     setCoverageLoading(true);
     setCoverageError('');
     try {
-      const response = await fetch('/api/admin/archetype-translations/untranslated', {
-        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal: request.signal,
+      const response = await fetchWithDeadline('/api/admin/archetype-translations/untranslated', {
+        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal: request.signal, deadlineMs: 45_000,
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось проверить актуальные архетипы');
@@ -461,7 +462,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     setSaving(true);
     try {
       const successMessage = editing ? 'Перевод обновлён.' : 'Перевод добавлен.';
-      const response = await fetch(editing
+      const response = await fetchWithDeadline(editing
         ? `/api/admin/archetype-translations/${editing.id}`
         : '/api/admin/archetype-translations', {
         method: editing ? 'PATCH' : 'POST',
@@ -486,8 +487,9 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const sync = async () => {
     setSyncing(true);
     try {
-      const response = await fetch('/api/admin/archetype-translations/sync', {
-        method: 'POST', headers: requestHeaders(), credentials: 'same-origin', body: '{}',
+      const response = await fetchWithDeadline('/api/admin/archetype-translations/sync', {
+        // The sync downloads the BlizzCore catalogue before it answers.
+        method: 'POST', headers: requestHeaders(), credentials: 'same-origin', body: '{}', deadlineMs: 90_000,
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось синхронизировать переводы');

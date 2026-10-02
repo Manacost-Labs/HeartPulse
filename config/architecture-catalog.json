@@ -799,6 +799,7 @@
         "tests/admin-integration-lists-model.test.ts",
         "tests/admin-content-lists-model.test.ts",
         "tests/admin-article-reads-model.test.ts",
+        "tests/fetch-with-deadline.test.ts",
         "tests/article-opens.test.ts",
         "tests/admin-crm-overview.test.ts",
         "tests/admin-overview-model.test.ts"
