@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 umask 077
 
-BACKUP_DIR=${HS_ARENA_BACKUP_DIR:-/var/backups/hs-arena}
-PASSPHRASE_FILE=${HS_ARENA_BACKUP_PASSPHRASE_FILE:-/etc/hs-arena/backup-passphrase}
+BACKUP_DIR=${HEARTHPULSE_BACKUP_DIR:-${HS_ARENA_BACKUP_DIR:-/var/backups/hearthpulse}}
+PASSPHRASE_FILE=${HEARTHPULSE_BACKUP_PASSPHRASE_FILE:-${HS_ARENA_BACKUP_PASSPHRASE_FILE:-/etc/hearthpulse/backup-passphrase}}
 backup_file=${1:-}
 
 for command in sqlite3 tar gpg sha256sum find; do
@@ -12,7 +12,7 @@ for command in sqlite3 tar gpg sha256sum find; do
 done
 
 if [[ -z "$backup_file" ]]; then
-  backup_file=$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'hs-arena-*.tar.gz.gpg' -printf '%T@ %p\n' \
+  backup_file=$(find "$BACKUP_DIR" -maxdepth 1 -type f \( -name 'hearthpulse-*.tar.gz.gpg' -o -name 'hs-arena-*.tar.gz.gpg' \) -printf '%T@ %p\n' \
     | sort -nr | head -1 | cut -d' ' -f2-)
 fi
 
@@ -25,7 +25,7 @@ fi
   sha256sum -c "$(basename "$backup_file").sha256"
 )
 
-work_dir=$(mktemp -d "${TMPDIR:-/tmp}/hs-arena-restore.XXXXXX")
+work_dir=$(mktemp -d "${TMPDIR:-/tmp}/hearthpulse-restore.XXXXXX")
 restore_dir="$work_dir/payload"
 cleanup() { rm -rf "$work_dir"; }
 trap cleanup EXIT

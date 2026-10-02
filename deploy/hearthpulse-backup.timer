@@ -1,11 +1,11 @@
 [Unit]
-Description=Daily encrypted HS-Arena backup
+Description=Daily encrypted HearthPulse backup
 
 [Timer]
 OnCalendar=*-*-* 02:35:00 UTC
 RandomizedDelaySec=20m
 Persistent=true
-Unit=hs-arena-backup.service
+Unit=hearthpulse-backup.service
 
 [Install]
 WantedBy=timers.target

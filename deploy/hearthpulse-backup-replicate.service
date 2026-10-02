@@ -1,5 +1,5 @@
 [Unit]
-Description=Replicate latest encrypted HS-Arena backup off site
+Description=Replicate latest encrypted HearthPulse backup off site
 After=network-online.target
 Wants=network-online.target
 
@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=oneshot
 User=root
 Group=root
-EnvironmentFile=/etc/hs-arena/backup.env
-EnvironmentFile=/etc/hs-arena/backup-remote.env
+EnvironmentFile=/etc/hearthpulse/backup.env
+EnvironmentFile=/etc/hearthpulse/backup-remote.env
 ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena.ru/current/scripts/replicate-backup.sh
 Nice=10
 IOSchedulingClass=best-effort

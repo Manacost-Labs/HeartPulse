@@ -3,13 +3,13 @@ set -Eeuo pipefail
 
 umask 077
 
-BACKUP_DIR=${HS_ARENA_BACKUP_DIR:-/var/backups/hs-arena}
-REMOTE_HOST=${HS_ARENA_BACKUP_REMOTE_HOST:-}
-REMOTE_USER=${HS_ARENA_BACKUP_REMOTE_USER:-}
-REMOTE_DIR=${HS_ARENA_BACKUP_REMOTE_DIR:-}
-REMOTE_PORT=${HS_ARENA_BACKUP_REMOTE_PORT:-22}
-SSH_KEY=${HS_ARENA_BACKUP_SSH_KEY:-/etc/hs-arena/backup-replication-key}
-KNOWN_HOSTS=${HS_ARENA_BACKUP_KNOWN_HOSTS:-/etc/hs-arena/backup-known-hosts}
+BACKUP_DIR=${HEARTHPULSE_BACKUP_DIR:-${HS_ARENA_BACKUP_DIR:-/var/backups/hearthpulse}}
+REMOTE_HOST=${HEARTHPULSE_BACKUP_REMOTE_HOST:-${HS_ARENA_BACKUP_REMOTE_HOST:-}}
+REMOTE_USER=${HEARTHPULSE_BACKUP_REMOTE_USER:-${HS_ARENA_BACKUP_REMOTE_USER:-}}
+REMOTE_DIR=${HEARTHPULSE_BACKUP_REMOTE_DIR:-${HS_ARENA_BACKUP_REMOTE_DIR:-}}
+REMOTE_PORT=${HEARTHPULSE_BACKUP_REMOTE_PORT:-${HS_ARENA_BACKUP_REMOTE_PORT:-22}}
+SSH_KEY=${HEARTHPULSE_BACKUP_SSH_KEY:-${HS_ARENA_BACKUP_SSH_KEY:-/etc/hearthpulse/backup-replication-key}}
+KNOWN_HOSTS=${HEARTHPULSE_BACKUP_KNOWN_HOSTS:-${HS_ARENA_BACKUP_KNOWN_HOSTS:-/etc/hearthpulse/backup-known-hosts}}
 SSH_BIN=${HS_ARENA_SSH_BIN:-ssh}
 RSYNC_BIN=${HS_ARENA_RSYNC_BIN:-rsync}
 backup_file=${1:-}
@@ -28,14 +28,14 @@ done
 [[ -r "$KNOWN_HOSTS" ]] || { echo "pinned backup known_hosts file is missing" >&2; exit 1; }
 
 if [[ -z "$backup_file" ]]; then
-  backup_file=$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'hs-arena-*.tar.gz.gpg' -printf '%T@ %p\n' \
+  backup_file=$(find "$BACKUP_DIR" -maxdepth 1 -type f \( -name 'hearthpulse-*.tar.gz.gpg' -o -name 'hs-arena-*.tar.gz.gpg' \) -printf '%T@ %p\n' \
     | sort -nr | head -1 | cut -d' ' -f2-)
 fi
 
 [[ -n "$backup_file" && -r "$backup_file" ]] || { echo "encrypted backup is missing" >&2; exit 1; }
 [[ -r "$backup_file.sha256" ]] || { echo "backup checksum is missing" >&2; exit 1; }
 backup_name=$(basename "$backup_file")
-[[ "$backup_name" =~ ^hs-arena-[0-9]{8}T[0-9]{6}Z\.tar\.gz\.gpg$ ]] \
+[[ "$backup_name" =~ ^(hearthpulse|hs-arena)-[0-9]{8}T[0-9]{6}Z\.tar\.gz\.gpg$ ]] \
   || { echo "unexpected backup filename" >&2; exit 1; }
 
 (

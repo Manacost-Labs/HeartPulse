@@ -1,11 +1,11 @@
 [Unit]
-Description=Verify latest encrypted HS-Arena backup restore
+Description=Verify latest encrypted HearthPulse backup restore
 
 [Service]
 Type=oneshot
 User=root
 Group=root
-EnvironmentFile=/etc/hs-arena/backup.env
+EnvironmentFile=/etc/hearthpulse/backup.env
 ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena.ru/current/scripts/verify-backup.sh
 Nice=10
 IOSchedulingClass=best-effort

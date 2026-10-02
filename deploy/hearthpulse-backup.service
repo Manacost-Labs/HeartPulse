@@ -1,11 +1,11 @@
 [Unit]
-Description=Create encrypted HS-Arena mutable-data backup
+Description=Create encrypted HearthPulse mutable-data backup
 
 [Service]
 Type=oneshot
 User=root
 Group=root
-EnvironmentFile=/etc/hs-arena/backup.env
+EnvironmentFile=/etc/hearthpulse/backup.env
 ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena.ru/current/scripts/backup-shared-data.sh
 Nice=10
 IOSchedulingClass=best-effort

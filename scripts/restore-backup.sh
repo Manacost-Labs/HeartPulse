@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 umask 077
 
-PASSPHRASE_FILE=${HS_ARENA_BACKUP_PASSPHRASE_FILE:-/etc/hs-arena/backup-passphrase}
+PASSPHRASE_FILE=${HEARTHPULSE_BACKUP_PASSPHRASE_FILE:-${HS_ARENA_BACKUP_PASSPHRASE_FILE:-/etc/hearthpulse/backup-passphrase}}
 backup_file=${1:-}
 target_root=${2:-}
 
@@ -31,8 +31,8 @@ fi
   sha256sum --quiet -c "$(basename "$backup_file").sha256"
 )
 
-work_dir=$(mktemp -d "${TMPDIR:-/tmp}/hs-arena-recovery.XXXXXX")
-staging_dir=$(mktemp -d "$target_parent/.hs-arena-recovery.XXXXXX")
+work_dir=$(mktemp -d "${TMPDIR:-/tmp}/hearthpulse-recovery.XXXXXX")
+staging_dir=$(mktemp -d "$target_parent/.hearthpulse-recovery.XXXXXX")
 committed=0
 cleanup() {
   rm -rf "$work_dir"

@@ -61,7 +61,7 @@ try {
     ['backup-verify', 'verify-backup'],
     ['backup-replicate', 'replicate-backup'],
   ]) {
-    const unit = readFileSync(join(repository, `deploy/hs-arena-${unitName}.service`), 'utf8');
+    const unit = readFileSync(join(repository, `deploy/hearthpulse-${unitName}.service`), 'utf8');
     assert.match(unit, new RegExp(`^ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena\\.ru/current/scripts/${script}\\.sh$`, 'm'));
   }
 
