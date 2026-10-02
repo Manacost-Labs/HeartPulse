@@ -112,11 +112,8 @@ try {
   const country = (await ask('Страна [Poland]: ')).trim() || 'Poland';
   if (!email || password.length < 8) throw new Error('Укажите email и пароль длиной не менее 8 символов');
 
-  const newsletterOptIn = (await ask('Регистрация требует согласия на рассылку. Подтвердите YES (иначе отмена): ')).trim() === 'YES';
-  if (!newsletterOptIn) {
-    console.log('Проверка отменена без отправки запросов.');
-    process.exit(0);
-  }
+  // The newsletter is optional at registration; the account is created either way.
+  const newsletterOptIn = (await ask('Подписать тестовый аккаунт на рассылку? Введите YES (иначе без подписки): ')).trim() === 'YES';
 
   await verifyOAuthStarts();
   const registration = await request('/api/auth/register', { email, password, name, country, newsletterOptIn });

@@ -42,7 +42,17 @@ if (profileInlineStyles.length > 0) {
   process.exit(1);
 }
 
-const loginInlineStyles = identityUiInlineStyles(['LoginCard', 'SocialLoginLinks']);
+const loginPanelSource = readFileSync('src/modules/identity/ui/LoginPanel.tsx', 'utf8');
+const loginCardUse = loginPanelSource.indexOf('<LoginCard');
+if (loginCardUse < 0) {
+  console.error('[architecture] the signed-out LoginCard boundary could not be located');
+  process.exit(1);
+}
+// The providers rendered into the card from LoginPanel belong to the same surface.
+const loginInlineStyles = [
+  ...identityUiInlineStyles(['LoginCard', 'SocialLoginLinks']),
+  ...(loginPanelSource.slice(loginCardUse).match(/\bstyle\s*=/g) || []),
+];
 
 console.log(`[architecture] public auth inline styles: ${loginInlineStyles.length} / 0`);
 if (loginInlineStyles.length > 0) {

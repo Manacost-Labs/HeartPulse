@@ -15,6 +15,8 @@ export type ApplicationConnectLoginPanelProps = {
   initialAuthUser: AuthUser | null;
   parentAuthChecking: boolean;
   onAuthChange: (user: AuthUser | null) => void;
+  /** The connect page owns the h1; the sign-in card sits under its section heading. */
+  headingLevel: 3;
 };
 
 export type ApplicationConnectPageProps = {
@@ -118,6 +120,7 @@ export default function ApplicationConnectPage({
           initialAuthUser={initialAuthUser}
           parentAuthChecking={parentAuthChecking}
           onAuthChange={handleAuthChange}
+          headingLevel={3}
         />
       </React.Suspense>
     )

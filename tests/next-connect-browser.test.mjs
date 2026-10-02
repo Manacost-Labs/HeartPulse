@@ -105,6 +105,9 @@ test('Next device connection keeps the code private and uses the existing authen
     await page.waitForFunction(() => location.search.includes('login'));
     await page.waitForSelector('.application-connect__login');
     assert.equal(new URL(page.url()).searchParams.get('user_code'), code);
+    await page.waitForSelector('.application-connect__login .login-card__title');
+    assert.deepEqual(await page.$$eval('h1', headings => headings.map(heading => heading.textContent?.trim())),
+      ['Подключить Manacost Tracker'], 'the sign-in card does not add a second page heading');
 
     await page.setCookie({ name: 'connect_member', value: '1', url: origin });
     await page.goto(route, { waitUntil: 'networkidle2' });

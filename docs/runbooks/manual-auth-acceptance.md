@@ -10,10 +10,9 @@ The default target is HearthPulse; `BASE_URL` can select an HTTPS host or a
 local HTTP fixture. URL credentials are rejected. Use a dedicated test account,
 enter its password at the hidden prompt, and enter codes from the mailbox. The
 helper checks OAuth start redirects and registration/login sessions. The
-existing registration API requires newsletter consent. The helper asks for a
-separate explicit confirmation and exits before requests if it is denied. It
-supplies the target Origin for CSRF checks and removes expired session cookies
-from its in-memory jar.
+newsletter is optional at registration: the helper asks whether to subscribe
+the test account and registers it either way. It supplies the target Origin
+for CSRF checks and removes expired session cookies from its in-memory jar.
 
 The automated guard test runs only the non-interactive rejection path and
 performs no network requests. That check is not evidence of email delivery,

@@ -219,8 +219,11 @@ export function LoginPanel({
   onAuthChange,
   initialAuthUser = null,
   parentAuthChecking = false,
+  headingLevel = 1,
 }: {
   onAuthChange?: (user: AuthUser | null) => void;
+  /** Heading level of the sign-in card: 1 on `/?login`, lower inside another page. */
+  headingLevel?: 1 | 2 | 3;
   initialAuthUser?: AuthUser | null;
   parentAuthChecking?: boolean;
 }) {
@@ -606,6 +609,7 @@ export function LoginPanel({
 
   return (
     <LoginCard
+      headingLevel={headingLevel}
       mode={authMode}
       step={authStep}
       message={msg}

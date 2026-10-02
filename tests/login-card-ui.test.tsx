@@ -72,3 +72,15 @@ test('errors are alerts and confirmations are status messages', () => {
   assert.match(card({ message: { type: 'ok', text: 'Код отправлен' } }), /role="status"[^>]*>Код отправлен/);
   assert.match(card({ loading: true }), /<button type="submit"[^>]*disabled=""[^>]*>Проверяем…<\/button>/);
 });
+
+test('inside another page the card takes the heading level it is given', () => {
+  const markup = card({ headingLevel: 3 });
+  assert.match(markup, /<h3 id="login-card-title"[^>]*>Вход в HearthPulse<\/h3>/);
+  assert.doesNotMatch(markup, /<h1/);
+});
+
+test('the password toggle sits beside its label, so the field is named by the label alone', () => {
+  const markup = card();
+  const field = markup.match(/<div class="login-password-field">([\s\S]*?)<\/div>/)?.[1] ?? '';
+  assert.match(field, /<label class="login-field"><span>Пароль<\/span><input[^>]*><\/label><button type="button"/);
+});

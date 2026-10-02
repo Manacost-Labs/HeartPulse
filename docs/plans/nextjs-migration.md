@@ -175,9 +175,10 @@ Keep isolated backend jobs disabled. Credential HTTP validation, service, code
 issuance and targeted SQL belong to `server/modules/accountCredentials`; retain
 existing account/profile/contact side effects through an injected adapter.
 Documentation impact: this plan, authentication-persistence spec, architecture
-ownership, changelog and the manual-auth runbook. The manual acceptance helper
-must request explicit newsletter consent because the existing registration
-contract requires it; it must not silently submit an incompatible false value.
+ownership, changelog and the manual-auth runbook. Since 2026-10-02 the
+newsletter is optional at registration (owner decision): the registration
+contract records `newsletterOptIn` as given, and the manual acceptance helper
+asks whether to subscribe the test account instead of requiring consent.
 
 ## Credential persistence verified
 

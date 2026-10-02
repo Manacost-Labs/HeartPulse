@@ -33,7 +33,13 @@ profile data stays public-only.
 the code went and points to the spam folder. Registration asks for the
 newsletter as an optional, unchecked box; `/api/auth/register` records the
 choice and no longer rejects a declined newsletter. `LoginCard.tsx` renders
-the view, state and requests stay in `LoginPanel.tsx`.
+the view, state and requests stay in `LoginPanel.tsx`. On `/connect/` the
+card title is an `h3` under the page's own `h1`.
+
+Known limitation: a newsletter declined at an unverified registration is
+written to `mailing_contacts` at once, so it can unsubscribe an address that
+has no account (a former member or an imported subscriber) before anyone
+proves ownership. It never subscribes anyone.
 
 ## Acceptance criteria
 

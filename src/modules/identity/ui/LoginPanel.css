@@ -123,6 +123,7 @@
   background: #fffbf0;
 }
 
+.login-password-field { position: relative; }
 .login-password-field input { padding-right: 52px; }
 
 .login-password-field > button {
@@ -205,7 +206,7 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  color: #8a6e50;
+  color: #6a513a;
   font-size: 0.95rem;
 }
 

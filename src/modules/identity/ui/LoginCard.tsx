@@ -25,6 +25,8 @@ export type LoginCardProps = {
   onEditCredentials: () => void;
   /** Telegram and social sign-in, shown under the login form. */
   providers: ReactNode;
+  /** 1 on `/?login`; lower where the card sits inside another page, such as `/connect/`. */
+  headingLevel?: 1 | 2 | 3;
 };
 
 const TITLES: Record<LoginMode, string> = {
@@ -52,14 +54,17 @@ function PasswordInput({ label, value, onChange, autoComplete }: {
   autoComplete: 'current-password' | 'new-password';
 }) {
   const [visible, setVisible] = useState(false);
+  // The toggle sits beside the label, not in it: a button inside a label is invalid and joins the field's name.
   return (
-    <label className="login-field login-password-field">
-      <span>{label}</span>
-      <input type={visible ? 'text' : 'password'} value={value} onChange={event => onChange(event.target.value)} autoComplete={autoComplete} />
+    <div className="login-password-field">
+      <label className="login-field">
+        <span>{label}</span>
+        <input type={visible ? 'text' : 'password'} value={value} onChange={event => onChange(event.target.value)} autoComplete={autoComplete} />
+      </label>
       <button type="button" onClick={() => setVisible(current => !current)} aria-label={visible ? 'Скрыть пароль' : 'Показать пароль'}>
         {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
       </button>
-    </label>
+    </div>
   );
 }
 
@@ -70,7 +75,7 @@ function CredentialFields({ mode, values, countries, onChange }: Pick<LoginCardP
         <>
           <label className="login-field">
             <span>Имя</span>
-            <input type="text" value={values.name} onChange={event => onChange({ name: event.target.value })} autoComplete="name" autoFocus />
+            <input type="text" value={values.name} onChange={event => onChange({ name: event.target.value })} autoComplete="name" />
           </label>
           <label className="login-field">
             <span>Страна</span>
@@ -83,7 +88,7 @@ function CredentialFields({ mode, values, countries, onChange }: Pick<LoginCardP
       )}
       <label className="login-field">
         <span>Почта</span>
-        <input type="email" value={values.email} onChange={event => onChange({ email: event.target.value })} placeholder="name@example.com" autoComplete="email" autoFocus={mode !== 'register'} />
+        <input type="email" value={values.email} onChange={event => onChange({ email: event.target.value })} placeholder="name@example.com" autoComplete="email" autoFocus />
       </label>
       {mode !== 'reset' && (
         <PasswordInput
@@ -131,13 +136,14 @@ function CodeFields({ mode, values, onChange, onEditCredentials }: Pick<LoginCar
 
 /** The signed-out `/?login` page: sign-in, registration and password reset. State stays in `LoginPanel`. */
 export default function LoginCard(props: LoginCardProps) {
-  const { mode, step, message, loading, onModeChange } = props;
+  const { mode, step, message, loading, onModeChange, headingLevel = 1 } = props;
+  const Heading = `h${headingLevel}` as const;
   return (
     <div className="login-page">
       <section className="login-card" aria-labelledby="login-card-title">
         <div className="login-card__header">
           <div className="login-card__emblem" aria-hidden="true"><Flame size={30} /></div>
-          <h1 id="login-card-title" className="login-card__title">{TITLES[mode]}</h1>
+          <Heading id="login-card-title" className="login-card__title">{TITLES[mode]}</Heading>
           <p className="login-card__intro">{INTROS[mode]}</p>
         </div>
         {message && (

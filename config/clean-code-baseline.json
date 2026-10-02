@@ -77,7 +77,7 @@
       "src/features/StandardMatchups.tsx": 1064,
       "src/features/StandardMeta.tsx": 826,
       "src/features/ViciousSyndicateGold.tsx": 427,
-      "src/modules/identity/ui/LoginPanel.tsx": 654
+      "src/modules/identity/ui/LoginPanel.tsx": 658
     }
   },
   "exceptions": []
