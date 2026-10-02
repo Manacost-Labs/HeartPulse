@@ -67,30 +67,67 @@ test('a newsletter accepted at registration is confirmed by the verified e-mail'
   }
 });
 
-test('an unverified decline leaves someone else\'s list entry alone until the address is verified', async () => {
+const insertFormerSubscriber = (backend, email) => {
+  const consentedAt = '2026-01-01T00:00:00.000Z';
+  backend.database.prepare(`
+    INSERT INTO mailing_contacts (
+      id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
+      unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
+    ) VALUES ('former-contact', ?, NULL, 'Former', 'subscribed', 'imported', ?, ?, NULL, '', 'former', ?, ?, ?, ?)
+  `).run(email, consentedAt, consentedAt, consentedAt, consentedAt, consentedAt, consentedAt);
+};
+
+const entryOf = (backend, email) => ({ ...backend.database.prepare(
+  'SELECT user_id, consent_status, consent_source FROM mailing_contacts WHERE email = ?',
+).get(email) });
+const accountOf = (backend, email) => ({ ...backend.database.prepare(
+  'SELECT id, newsletter_opt_in FROM users WHERE email = ?',
+).get(email) });
+
+test('an unticked box at registration never withdraws an earlier subscription of the address', async () => {
   const backend = await startCredentialBackend();
   try {
     const email = 'former@example.com';
-    const consentedAt = '2026-01-01T00:00:00.000Z';
     // A former member who subscribed and confirmed long ago; no account owns the address now.
-    backend.database.prepare(`
-      INSERT INTO mailing_contacts (
-        id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
-        unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
-      ) VALUES ('former-contact', ?, NULL, 'Former', 'subscribed', 'imported', ?, ?, NULL, '', 'former', ?, ?, ?, ?)
-    `).run(email, consentedAt, consentedAt, consentedAt, consentedAt, consentedAt, consentedAt);
-    const entry = () => ({ ...backend.database.prepare(
-      'SELECT user_id, consent_status, consent_source FROM mailing_contacts WHERE email = ?',
-    ).get(email) });
+    insertFormerSubscriber(backend, email);
 
     const code = await register(backend, email, false);
-    assert.deepEqual(entry(), { user_id: null, consent_status: 'subscribed', consent_source: 'imported' },
-      'registering with someone else\'s address must not unsubscribe or claim it');
+    const account = accountOf(backend, email);
+    assert.deepEqual(entryOf(backend, email), { user_id: account.id, consent_status: 'subscribed', consent_source: 'imported' },
+      'registration links the entry but an unverified account cannot change its consent');
 
     await verify(backend, email, code);
-    const userId = backend.database.prepare('SELECT id FROM users WHERE email = ?').get(email)?.id;
-    assert.deepEqual(entry(), { user_id: userId, consent_status: 'unsubscribed', consent_source: 'email-code-verified' },
-      'the verified owner\'s decline applies');
+    assert.equal(accountOf(backend, email).newsletter_opt_in, 1, 'the account takes over the existing subscription');
+    assert.equal(entryOf(backend, email).consent_status, 'subscribed');
+  } finally {
+    await backend.close();
+  }
+});
+
+test('a password reset drops a newsletter tick that was never confirmed', async () => {
+  const backend = await startCredentialBackend();
+  try {
+    const email = 'squatted@example.com';
+    const createdAt = new Date().toISOString();
+    // Someone else registered the address with the box ticked and never verified it:
+    // the account says yes, the list entry is still unconfirmed.
+    backend.database.prepare(`INSERT INTO users (id, email, name, password_hash, newsletter_opt_in, created_at, updated_at)
+      VALUES ('squatter', ?, 'Squatter', 'unused', 1, ?, ?)`).run(email, createdAt, createdAt);
+    backend.database.prepare(`
+      INSERT INTO mailing_contacts (id, email, user_id, name, consent_status, consent_source, account_state, first_seen_at, last_seen_at, updated_at)
+      VALUES ('squatted-contact', ?, 'squatter', 'Squatter', 'unknown', 'user-sync', 'current', ?, ?, ?)
+    `).run(email, createdAt, createdAt, createdAt);
+    // The owner takes the account back through a password reset.
+    const resetRequest = backend.request('/api/auth/password-reset/request', { email });
+    const delivery = await backend.smtp.delivery(email);
+    delivery.accept();
+    assert.equal((await resetRequest).status, 200);
+    const reset = await backend.request('/api/auth/password-reset/confirm', {
+      email, code: emailedCode(delivery.body), password: 'owner-password-456',
+    });
+    assert.equal(reset.status, 200, await reset.text());
+    assert.equal(accountOf(backend, email).newsletter_opt_in, 0, 'the squatter\'s tick does not subscribe the owner');
+    assert.notEqual(entryOf(backend, email).consent_status, 'subscribed');
   } finally {
     await backend.close();
   }

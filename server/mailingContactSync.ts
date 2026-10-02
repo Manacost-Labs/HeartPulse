@@ -23,10 +23,10 @@ export type MailingContactSyncDependencies = {
 };
 
 /**
- * Mirrors an account's newsletter choice into `mailing_contacts`. Only a
- * `verifiedOwner` caller may change or claim an entry that belongs to someone
- * else, such as an imported subscriber or a former member: an unverified
- * registration must not unsubscribe an address it has not proven it owns.
+ * Mirrors an account's newsletter choice into `mailing_contacts`. An entry that
+ * existed before the account (an imported subscriber, a former member) is linked
+ * to it, but its consent changes only for a `verifiedOwner` caller: an
+ * unverified registration must not unsubscribe an address it has not proven it owns.
  */
 export function syncMailingContact(
   database: DatabaseSync,
@@ -52,9 +52,16 @@ export function syncMailingContact(
     WHERE user_id = ? AND lower(email) <> lower(?)
   `).run(nowIso, user.id, email);
 
-  // An unverified registration must not unsubscribe or claim someone else's entry.
-  const entry = database.prepare('SELECT user_id FROM mailing_contacts WHERE lower(email) = lower(?)').get(email) as { user_id: string | null } | undefined;
-  if (entry && entry.user_id !== user.id && !options.verifiedOwner) return;
+  // `email` is UNIQUE COLLATE NOCASE, so `email = ?` is case-insensitive and indexed.
+  const entry = database.prepare('SELECT first_seen_at FROM mailing_contacts WHERE email = ?').get(email) as { first_seen_at: string } | undefined;
+  if (entry && !options.verifiedOwner && String(entry.first_seen_at) < (user.createdAt || nowIso)) {
+    database.prepare(`
+      UPDATE mailing_contacts
+      SET user_id = ?, name = ?, account_state = 'current', former_at = NULL, last_seen_at = ?, updated_at = ?
+      WHERE email = ?
+    `).run(user.id, normalizeOptionalText(user.name, 120), nowIso, nowIso, email);
+    return;
+  }
 
   database.prepare(`
     INSERT INTO mailing_contacts (
@@ -101,4 +108,10 @@ export function syncMailingContact(
     user.createdAt || nowIso,
     nowIso,
     nowIso,
-  );}
+  );
+}
+
+/** Whether the list already holds a subscription for this address. */
+export function isMailingEntrySubscribed(database: DatabaseSync, email: string): boolean {
+  return Boolean(database.prepare("SELECT 1 FROM mailing_contacts WHERE email = ? AND consent_status = 'subscribed'").get(email));
+}

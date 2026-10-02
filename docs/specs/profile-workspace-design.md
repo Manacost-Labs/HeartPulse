@@ -37,12 +37,14 @@ the view, state and requests stay in `LoginPanel.tsx`. On `/connect/` the
 card title is an `h3` under the page's own `h1`.
 
 `server/mailingContactSync.ts` mirrors the choice into `mailing_contacts`.
-An entry that belongs to someone else (an imported subscriber or a former
-member) changes or changes hands only for a caller that knows the account
-controls the address: a verified e-mail code, a verified e-mail change or
-the signed-in profile. An unverified registration therefore cannot
-unsubscribe or claim another person's entry; the owner's choice applies when
-they verify the code.
+An entry that existed before the account (an imported subscriber or a
+former member) is linked to it, but its consent changes only for a caller
+that knows the account controls the address: the signed-in profile, a
+verified e-mail change or the confirmation of a ticked box at the e-mail
+code. An unticked box is not a withdrawal: at the code the account takes
+over an existing subscription of the address. A password reset keeps the
+newsletter only if the list confirms it, so a box ticked by whoever
+registered someone else's address does not subscribe the owner.
 
 ## Acceptance criteria
 

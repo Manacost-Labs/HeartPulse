@@ -12,6 +12,8 @@ type CompletePasswordResetDependencies<Store extends PasswordResetStore> = {
   verifyCode: (pending: Store['pendingCodes'][number], code: string) => boolean;
   hashPassword: (password: string) => string;
   persist: (store: Store) => void;
+  /** Adjusts the account after a successful reset, before it is saved. */
+  afterReset?: (user: Store['users'][number]) => void;
 };
 
 export type PasswordResetRouterDependencies = {
@@ -45,6 +47,7 @@ export function completePasswordReset<Store extends PasswordResetStore>(
   user.updatedAt = new Date(now).toISOString();
   store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
   store.sessions = store.sessions.filter(item => item.email !== email);
+  dependencies.afterReset?.(user);
   dependencies.persist(store);
   return true;
 }

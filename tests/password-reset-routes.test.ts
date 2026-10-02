@@ -146,4 +146,15 @@ expiredStore.pendingCodes[0].expiresAt = 999;
 assert.equal(completePasswordReset(expiredStore, 'member@example.com', '123456', 'new-password', resetDependencies), false);
 assert.equal(persisted, 2);
 
+const adjusted: string[] = [];
+const hookStore = makeStore();
+const hookDependencies = {
+  ...resetDependencies,
+  afterReset: (user: { email: string; passwordHash: string }) => { adjusted.push(`${user.email}:${user.passwordHash}`); },
+};
+assert.equal(completePasswordReset(makeStore(), 'member@example.com', '000000', 'new-password', hookDependencies), false);
+assert.deepEqual(adjusted, [], 'a failed reset leaves the account as it was');
+assert.equal(completePasswordReset(hookStore, 'member@example.com', '123456', 'new-password', hookDependencies), true);
+assert.deepEqual(adjusted, ['member@example.com:hash:new-password'], 'the account is adjusted once, after the new password is set');
+
 console.log('password reset router and session revocation tests passed');
