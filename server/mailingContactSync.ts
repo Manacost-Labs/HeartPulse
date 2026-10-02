@@ -57,9 +57,9 @@ export function syncMailingContact(
   if (entry && !options.verifiedOwner && String(entry.first_seen_at) < (user.createdAt || nowIso)) {
     database.prepare(`
       UPDATE mailing_contacts
-      SET user_id = ?, name = ?, account_state = 'current', former_at = NULL, last_seen_at = ?, updated_at = ?
+      SET user_id = ?, account_state = 'current', former_at = NULL, last_seen_at = ?, updated_at = ?
       WHERE email = ?
-    `).run(user.id, normalizeOptionalText(user.name, 120), nowIso, nowIso, email);
+    `).run(user.id, nowIso, nowIso, email);
     return;
   }
 
@@ -111,7 +111,10 @@ export function syncMailingContact(
   );
 }
 
-/** Whether the list already holds a subscription for this address. */
+/** Whether the list already holds a confirmed, unsuppressed subscription for this address. */
 export function isMailingEntrySubscribed(database: DatabaseSync, email: string): boolean {
-  return Boolean(database.prepare("SELECT 1 FROM mailing_contacts WHERE email = ? AND consent_status = 'subscribed'").get(email));
+  return Boolean(database.prepare(`
+    SELECT 1 FROM mailing_contacts
+    WHERE email = ? AND consent_status = 'subscribed' AND verified_at IS NOT NULL AND suppressed_reason = ''
+  `).get(email));
 }

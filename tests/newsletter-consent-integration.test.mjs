@@ -67,18 +67,18 @@ test('a newsletter accepted at registration is confirmed by the verified e-mail'
   }
 });
 
-const insertFormerSubscriber = (backend, email) => {
-  const consentedAt = '2026-01-01T00:00:00.000Z';
+const formerConsentAt = '2026-01-01T00:00:00.000Z';
+const insertFormerSubscriber = (backend, email, { confirmed = true } = {}) => {
   backend.database.prepare(`
     INSERT INTO mailing_contacts (
       id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
       unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
     ) VALUES ('former-contact', ?, NULL, 'Former', 'subscribed', 'imported', ?, ?, NULL, '', 'former', ?, ?, ?, ?)
-  `).run(email, consentedAt, consentedAt, consentedAt, consentedAt, consentedAt, consentedAt);
+  `).run(email, formerConsentAt, confirmed ? formerConsentAt : null, formerConsentAt, formerConsentAt, formerConsentAt, formerConsentAt);
 };
 
 const entryOf = (backend, email) => ({ ...backend.database.prepare(
-  'SELECT user_id, consent_status, consent_source FROM mailing_contacts WHERE email = ?',
+  'SELECT user_id, name, consent_status, consent_source, consented_at FROM mailing_contacts WHERE email = ?',
 ).get(email) });
 const accountOf = (backend, email) => ({ ...backend.database.prepare(
   'SELECT id, newsletter_opt_in FROM users WHERE email = ?',
@@ -93,12 +93,26 @@ test('an unticked box at registration never withdraws an earlier subscription of
 
     const code = await register(backend, email, false);
     const account = accountOf(backend, email);
-    assert.deepEqual(entryOf(backend, email), { user_id: account.id, consent_status: 'subscribed', consent_source: 'imported' },
-      'registration links the entry but an unverified account cannot change its consent');
+    const original = { name: 'Former', consent_status: 'subscribed', consent_source: 'imported', consented_at: formerConsentAt };
+    assert.deepEqual(entryOf(backend, email), { user_id: account.id, ...original },
+      'registration links the entry but an unverified account cannot change it');
 
     await verify(backend, email, code);
     assert.equal(accountOf(backend, email).newsletter_opt_in, 1, 'the account takes over the existing subscription');
-    assert.equal(entryOf(backend, email).consent_status, 'subscribed');
+    assert.deepEqual(entryOf(backend, email), { user_id: account.id, ...original },
+      'taking over does not record a new consent that nobody gave');
+  } finally {
+    await backend.close();
+  }
+});
+
+test('an unconfirmed old subscription is not taken over', async () => {
+  const backend = await startCredentialBackend();
+  try {
+    const email = 'unconfirmed@example.com';
+    insertFormerSubscriber(backend, email, { confirmed: false });
+    await registerAndVerify(backend, email, false);
+    assert.equal(accountOf(backend, email).newsletter_opt_in, 0);
   } finally {
     await backend.close();
   }

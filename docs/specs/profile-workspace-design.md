@@ -42,9 +42,12 @@ former member) is linked to it, but its consent changes only for a caller
 that knows the account controls the address: the signed-in profile, a
 verified e-mail change or the confirmation of a ticked box at the e-mail
 code. An unticked box is not a withdrawal: at the code the account takes
-over an existing subscription of the address. A password reset keeps the
-newsletter only if the list confirms it, so a box ticked by whoever
-registered someone else's address does not subscribe the owner.
+over a confirmed, unsuppressed subscription of the address as it is, without
+recording a new consent. A password reset keeps the newsletter only if the
+list confirms it, so a box ticked by whoever registered someone else's
+address does not subscribe the owner. A verified e-mail change and the
+Telegram/KHA e-mail paths still apply the account's own flag, which errs on
+not sending.
 
 ## Acceptance criteria
 

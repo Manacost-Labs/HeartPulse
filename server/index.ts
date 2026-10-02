@@ -8704,10 +8704,11 @@ app.use('/api', createAuthVerificationRouter({
       return { ok: false, status: 403, error: 'Доступ запрещён' } as const;
     }
     const sessionToken = createAuthSession(store, user);
-    // An unticked registration box is not a withdrawal: the account takes over an existing subscription.
-    if (!user.newsletterOptIn && isMailingEntrySubscribed(db(), email)) user.newsletterOptIn = true;
+    // An unticked registration box is not a withdrawal: the account takes over a confirmed subscription as is.
+    const adopted = !user.newsletterOptIn && isMailingEntrySubscribed(db(), email);
+    if (adopted) user.newsletterOptIn = true;
     saveAuthStore(store);
-    if (user.newsletterOptIn) {
+    if (user.newsletterOptIn && !adopted) {
       try {
         updateMailingConsent(user, true, 'email-code-verified');
       } catch {

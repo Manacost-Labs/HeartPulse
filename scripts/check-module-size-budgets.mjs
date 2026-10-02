@@ -99,7 +99,7 @@ const moduleBudgets = [
   },
   {
     path: 'server/index.ts',
-    maxLines: 9_647,
+    maxLines: 9_648,
     owner: 'server composition root',
   },
   {
