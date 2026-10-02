@@ -227,6 +227,6 @@ browser test runs the production React: its development warnings (a missing
   2026-10-02). Server components remove only that rest: the help and legal
   pages went from 157.4 to 149.0 KiB. The budgets stop growth.
 - The Vite application (`index.html`, `src/main.tsx`, `src/App.tsx` and its
-  client router) is deleted. The Vite package stays only as Storybook's
-  bundler, configured in `.storybook/main.ts` (see
-  `docs/plans/nextjs-full-site-migration.md`).
+  client router) is deleted. The Vite package stays as Storybook's bundler,
+  configured in `.storybook/main.ts`; the owner decided on 2026-10-02 to keep
+  it (see `docs/plans/nextjs-full-site-migration.md`).

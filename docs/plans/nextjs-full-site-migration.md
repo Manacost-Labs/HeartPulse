@@ -380,14 +380,14 @@ Retire each Vite dependency at its actual owner, in this order:
    `preview` and `dev:frontend` scripts are gone. Keep
    `apps/public-web/postcss.config.mjs` as the Tailwind pipeline; remove the
    separate Vite plugin only after Storybook no longer needs it.
-2. Open, waiting for the owner's decision: replace `.storybook/main.ts` and
-   its framework types, verify every story and the local Storybook MCP, then
-   update the Storybook contract test. A review on 2026-09-30 found a webpack
-   builder workable (`@storybook/react-webpack5` with the SWC compiler addon
-   and `postcss-loader`: about 170 more packages and no Fast Refresh), while
+2. Decided on 2026-10-02: Storybook keeps its Vite builder
+   (`@storybook/react-vite`), configured only in `.storybook/main.ts`. A
+   review on 2026-09-30 found a webpack builder workable
+   (`@storybook/react-webpack5` with the SWC compiler addon and
+   `postcss-loader`: about 170 more packages and no Fast Refresh), while
    Storybook itself is Vite-first: `@storybook/nextjs` is deprecated in
-   Storybook 11 in favour of `nextjs-vite`. Until the decision Storybook keeps
-   its Vite builder, configured only in `.storybook/main.ts`.
+   Storybook 11 in favour of `nextjs-vite`. The owner chose to keep Vite as a
+   development-only tool.
 3. Done on 2026-09-30: no authored client code reads `import.meta.env`.
    Field focus mode and Web Vitals take their settings as arguments, and
    `src/telemetry/sentry.ts` and `AppErrorBoundary` were deleted with the
@@ -497,7 +497,8 @@ and Nginx contract tests, followed by a production monitor and browser smoke
 check. Update `DEPLOYMENT.md`, `README.md`, `docs/runbooks/nextjs-public-web.md`,
 `docs/runbooks/nextjs-production-cutover.md` and the release/rollback runbook.
 `npm ls vite --all` and a lockfile inspection must show no active Vite package
-(not met while Storybook keeps its Vite builder, see step 2);
+(Storybook keeps its Vite builder by decision, see step 2; the site itself
+needs no Vite package);
 production must serve zero HTML or current assets from a Vite `dist` artifact.
 
 ## Release discipline and risks
