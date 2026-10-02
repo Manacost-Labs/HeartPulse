@@ -75,7 +75,7 @@ systemctl is-active hs-arena.service
 curl -fsS https://arena.hs-manacost.ru/api/health/live
 curl -fsS https://arena.hs-manacost.ru/api/health/ready
 curl -fsS https://arena.hs-manacost.ru/api/health/data
-sudo systemctl list-timers 'hs-arena-backup*'
+sudo systemctl list-timers 'hearthpulse-backup*'
 sudo systemctl list-timers 'hs-arena-scraper*'
 npm run qa:e2e
 ```

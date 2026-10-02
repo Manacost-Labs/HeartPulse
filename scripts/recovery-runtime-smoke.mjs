@@ -79,10 +79,10 @@ writeFileSync(join(releaseRoot, 'release.json'), JSON.stringify({ sha: 'dec0de1'
 const backupEnvironment = {
   ...process.env,
   ECOSYSTEM_DIR: sourceEcosystem,
-  HS_ARENA_BACKUP_DIR: backupDir,
-  HS_ARENA_BACKUP_LOCK_FILE: join(fixture, 'backup.lock'),
-  HS_ARENA_BACKUP_PASSPHRASE_FILE: passphrase,
-  HS_ARENA_BACKUP_RETENTION_DAYS: '1',
+  HEARTHPULSE_BACKUP_DIR: backupDir,
+  HEARTHPULSE_BACKUP_LOCK_FILE: join(fixture, 'backup.lock'),
+  HEARTHPULSE_BACKUP_PASSPHRASE_FILE: passphrase,
+  HEARTHPULSE_BACKUP_KEEP: '3',
   SERVER_DATA_DIR: sourceData,
 };
 
@@ -92,7 +92,7 @@ try {
   const backupFile = run(join(root, 'scripts', 'backup-shared-data.sh'), [], { env: backupEnvironment }).split('\n').at(-1);
   if (!backupFile || !existsSync(backupFile)) throw new Error('backup archive was not created');
   run(join(root, 'scripts', 'restore-backup.sh'), [backupFile, restoredRoot], {
-    env: { ...process.env, HS_ARENA_BACKUP_PASSPHRASE_FILE: passphrase },
+    env: { ...process.env, HEARTHPULSE_BACKUP_PASSPHRASE_FILE: passphrase },
   });
 
   if (readFileSync(join(restoredRoot, 'server-data', 'uploads', 'admin', 'recovered.txt'), 'utf8') !== 'recovered upload\n') {

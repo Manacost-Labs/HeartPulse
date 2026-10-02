@@ -8,7 +8,7 @@ trap cleanup EXIT
 
 mkdir -p "$fixture/bin" "$fixture/backups" "$fixture/remote"
 touch "$fixture/key" "$fixture/known-hosts"
-backup="$fixture/backups/hs-arena-20260712T040000Z.tar.gz.gpg"
+backup="$fixture/backups/hearthpulse-20260712T040000Z.tar.gz.gpg"
 printf 'encrypted-fixture\n' > "$backup"
 (
   cd "$fixture/backups"
@@ -33,12 +33,12 @@ bash -c "$command"
 SCRIPT
 chmod 700 "$fixture/bin/fake-rsync" "$fixture/bin/fake-ssh"
 
-export HS_ARENA_BACKUP_DIR="$fixture/backups"
-export HS_ARENA_BACKUP_REMOTE_HOST=backup.example.test
-export HS_ARENA_BACKUP_REMOTE_USER=arena_backup
-export HS_ARENA_BACKUP_REMOTE_DIR="$fixture/remote"
-export HS_ARENA_BACKUP_SSH_KEY="$fixture/key"
-export HS_ARENA_BACKUP_KNOWN_HOSTS="$fixture/known-hosts"
+export HEARTHPULSE_BACKUP_DIR="$fixture/backups"
+export HEARTHPULSE_BACKUP_REMOTE_HOST=backup.example.test
+export HEARTHPULSE_BACKUP_REMOTE_USER=arena_backup
+export HEARTHPULSE_BACKUP_REMOTE_DIR="$fixture/remote"
+export HEARTHPULSE_BACKUP_SSH_KEY="$fixture/key"
+export HEARTHPULSE_BACKUP_KNOWN_HOSTS="$fixture/known-hosts"
 export HS_ARENA_RSYNC_BIN="$fixture/bin/fake-rsync"
 export HS_ARENA_SSH_BIN="$fixture/bin/fake-ssh"
 export FAKE_REMOTE_DIR="$fixture/remote"
@@ -55,7 +55,7 @@ if "$root/scripts/replicate-backup.sh" "$backup" >/dev/null 2>&1; then
   exit 1
 fi
 
-export HS_ARENA_BACKUP_REMOTE_DIR='../unsafe'
+export HEARTHPULSE_BACKUP_REMOTE_DIR='../unsafe'
 if "$root/scripts/replicate-backup.sh" "$backup" >/dev/null 2>&1; then
   echo 'unsafe remote path unexpectedly accepted' >&2
   exit 1

@@ -360,29 +360,29 @@ Install the root-only configuration and timers after deploying a release that
 contains the backup scripts:
 
 ```bash
-sudo install -d -m 700 /etc/hs-arena /var/backups/hs-arena
-sudo openssl rand -out /etc/hs-arena/backup-passphrase -base64 48
-sudo chmod 600 /etc/hs-arena/backup-passphrase
-sudo install -m 600 deploy/backup.env.example /etc/hs-arena/backup.env
-sudo install -m 644 deploy/hs-arena-backup.service /etc/systemd/system/
-sudo install -m 644 deploy/hs-arena-backup.timer /etc/systemd/system/
-sudo install -m 644 deploy/hs-arena-backup-verify.service /etc/systemd/system/
-sudo install -m 644 deploy/hs-arena-backup-verify.timer /etc/systemd/system/
+sudo install -d -m 700 /etc/hearthpulse /var/backups/hearthpulse
+sudo openssl rand -out /etc/hearthpulse/backup-passphrase -base64 48
+sudo chmod 600 /etc/hearthpulse/backup-passphrase
+sudo install -m 600 deploy/backup.env.example /etc/hearthpulse/backup.env
+sudo install -m 644 deploy/hearthpulse-backup.service /etc/systemd/system/
+sudo install -m 644 deploy/hearthpulse-backup.timer /etc/systemd/system/
+sudo install -m 644 deploy/hearthpulse-backup-verify.service /etc/systemd/system/
+sudo install -m 644 deploy/hearthpulse-backup-verify.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now hs-arena-backup.timer hs-arena-backup-verify.timer
+sudo systemctl enable --now hearthpulse-backup.timer hearthpulse-backup-verify.timer
 ```
 
 The daily job encrypts with GnuPG AES-256 and a high-cost SHA-512 iterated S2K,
 writes an atomic archive
-plus SHA-256 sidecar, and retains 14 days by default. The weekly drill decrypts
+plus SHA-256 sidecar, and keeps the newest 3 backups by default (`HEARTHPULSE_BACKUP_KEEP`). The weekly drill decrypts
 the latest archive into a temporary directory, verifies every manifest entry,
 runs `PRAGMA integrity_check` on the restored user database and checks the
 three critical Arena snapshots. Run both immediately after installation:
 
 ```bash
-sudo systemctl start hs-arena-backup.service
-sudo systemctl start hs-arena-backup-verify.service
-sudo systemctl status hs-arena-backup.service hs-arena-backup-verify.service
+sudo systemctl start hearthpulse-backup.service
+sudo systemctl start hearthpulse-backup-verify.service
+sudo systemctl status hearthpulse-backup.service hearthpulse-backup-verify.service
 ```
 
 For a manual restore, first stop the API and restore the chosen archive into a
@@ -391,10 +391,10 @@ rejects unsafe archive paths, checks every manifest entry and SQLite integrity,
 and refuses to overwrite a populated target:
 
 ```bash
-sudo HS_ARENA_BACKUP_PASSPHRASE_FILE=/etc/hs-arena/backup-passphrase \
+sudo HEARTHPULSE_BACKUP_PASSPHRASE_FILE=/etc/hearthpulse/backup-passphrase \
   /bin/bash current/scripts/restore-backup.sh \
-  /var/backups/hs-arena/hs-arena-YYYYMMDDTHHMMSSZ.tar.gz.gpg \
-  /var/lib/hs-arena-recovery
+  /var/backups/hearthpulse/hearthpulse-YYYYMMDDTHHMMSSZ.tar.gz.gpg \
+  /var/lib/hearthpulse-recovery
 ```
 
 Preserve the current data separately, then install the recovered
@@ -415,16 +415,16 @@ run `sha256sum`; it must not have access to the web host or the recovery
 passphrase. Pin the host key instead of accepting it on first use:
 
 ```bash
-sudo install -m 600 deploy/backup-remote.env.example /etc/hs-arena/backup-remote.env
-sudo ssh-keygen -t ed25519 -f /etc/hs-arena/backup-replication-key -N ''
-sudo ssh-keyscan -H backup.example.net > /etc/hs-arena/backup-known-hosts
-sudo chmod 600 /etc/hs-arena/backup-replication-key /etc/hs-arena/backup-known-hosts
-sudo install -m 644 deploy/hs-arena-backup-replicate.service /etc/systemd/system/
-sudo install -m 644 deploy/hs-arena-backup-replicate.timer /etc/systemd/system/
+sudo install -m 600 deploy/backup-remote.env.example /etc/hearthpulse/backup-remote.env
+sudo ssh-keygen -t ed25519 -f /etc/hearthpulse/backup-replication-key -N ''
+sudo ssh-keyscan -H backup.example.net > /etc/hearthpulse/backup-known-hosts
+sudo chmod 600 /etc/hearthpulse/backup-replication-key /etc/hearthpulse/backup-known-hosts
+sudo install -m 644 deploy/hearthpulse-backup-replicate.service /etc/systemd/system/
+sudo install -m 644 deploy/hearthpulse-backup-replicate.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 ```
 
-Replace every placeholder in `/etc/hs-arena/backup-remote.env`, install only
+Replace every placeholder in `/etc/hearthpulse/backup-remote.env`, install only
 the public half of the generated key on the backup account, and verify the
 pinned fingerprint out of band. The replication script rejects unsafe
 host/user/path values, verifies the local checksum before transfer, uses strict
@@ -432,12 +432,12 @@ host-key checking, and verifies the uploaded checksum on the remote host.
 Enable the timer only after a manual transfer succeeds:
 
 ```bash
-sudo systemctl start hs-arena-backup-replicate.service
-sudo systemctl status hs-arena-backup-replicate.service
-sudo systemctl enable --now hs-arena-backup-replicate.timer
+sudo systemctl start hearthpulse-backup-replicate.service
+sudo systemctl status hearthpulse-backup-replicate.service
+sudo systemctl enable --now hearthpulse-backup-replicate.timer
 ```
 
-Do not store `/etc/hs-arena/backup-passphrase` on that same backup host. Keep at
+Do not store `/etc/hearthpulse/backup-passphrase` on that same backup host. Keep at
 least two offline copies in separate controlled locations and record a key
 recovery drill without putting the secret in source control or logs.
 
@@ -572,7 +572,7 @@ curl -fsS https://hearthpulse.net/api/health/live
 curl -fsS https://hearthpulse.net/api/health/ready
 curl -fsS https://hearthpulse.net/api/health/data
 curl -fsS https://hearthpulse.net/api/metrics
-sudo systemctl list-timers 'hs-arena-backup*'
+sudo systemctl list-timers 'hearthpulse-backup*'
 sudo systemctl list-timers 'hs-arena-scraper*'
 sudo systemctl list-timers 'hs-arena-game-data-audit*'
 npm run qa:e2e
