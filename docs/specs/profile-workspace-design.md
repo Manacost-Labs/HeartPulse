@@ -36,10 +36,13 @@ choice and no longer rejects a declined newsletter. `LoginCard.tsx` renders
 the view, state and requests stay in `LoginPanel.tsx`. On `/connect/` the
 card title is an `h3` under the page's own `h1`.
 
-Known limitation: a newsletter declined at an unverified registration is
-written to `mailing_contacts` at once, so it can unsubscribe an address that
-has no account (a former member or an imported subscriber) before anyone
-proves ownership. It never subscribes anyone.
+`server/mailingContactSync.ts` mirrors the choice into `mailing_contacts`.
+An entry that belongs to someone else (an imported subscriber or a former
+member) changes or changes hands only for a caller that knows the account
+controls the address: a verified e-mail code, a verified e-mail change or
+the signed-in profile. An unverified registration therefore cannot
+unsubscribe or claim another person's entry; the owner's choice applies when
+they verify the code.
 
 ## Acceptance criteria
 

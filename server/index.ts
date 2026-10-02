@@ -218,6 +218,7 @@ import {
   unsubscribeNewsletterContact,
   type NewsletterUnsubscribeStore,
 } from './newsletterUnsubscribeRoutes.js';
+import { syncMailingContact, type MailingContactSyncOptions } from './mailingContactSync.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { ADMIN_CRM_SCHEMA_SQL } from './adminCrmRoutes.js';
 import { registerAdminCrm } from './app/registerAdminCrm.js';
@@ -1394,70 +1395,8 @@ function mailingContactId(email: string): string {
   return `mail_${sha256(normalizeEmail(email)).slice(0, 24)}`;
 }
 
-function syncMailingContactForUser(database: DatabaseSync, user: AdminUser, options: { confirmConsent?: boolean; source?: string } = {}) {
-  const email = normalizeEmail(user.email);
-  if (!isRealEmail(email)) return;
-  const nowIso = new Date().toISOString();
-  const source = normalizeOptionalText(options.source, 80) || 'user-sync';
-  const consentKnown = Boolean(options.confirmConsent);
-  const desiredStatus = user.newsletterOptIn ? (consentKnown ? 'subscribed' : 'unknown') : 'unsubscribed';
-  const confirmedAt = options.confirmConsent && user.newsletterOptIn ? nowIso : null;
-
-  database.prepare(`
-    UPDATE mailing_contacts
-    SET user_id = NULL,
-        consent_status = 'suppressed',
-        suppressed_reason = 'email-replaced',
-        updated_at = ?
-    WHERE user_id = ? AND lower(email) <> lower(?)
-  `).run(nowIso, user.id, email);
-
-  database.prepare(`
-    INSERT INTO mailing_contacts (
-      id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
-      unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'current', NULL, ?, ?, ?)
-    ON CONFLICT(email) DO UPDATE SET
-      user_id = excluded.user_id,
-      name = excluded.name,
-      consent_status = CASE
-        WHEN excluded.consent_status = 'unknown' THEN mailing_contacts.consent_status
-        WHEN mailing_contacts.consent_status IN ('unsubscribed', 'suppressed') AND excluded.verified_at IS NULL
-          THEN mailing_contacts.consent_status
-        ELSE excluded.consent_status
-      END,
-      consent_source = CASE
-        WHEN excluded.consent_status = 'unknown' THEN mailing_contacts.consent_source
-        WHEN mailing_contacts.consent_status IN ('unsubscribed', 'suppressed') AND excluded.verified_at IS NULL
-          THEN mailing_contacts.consent_source
-        ELSE excluded.consent_source
-      END,
-      consented_at = CASE
-        WHEN excluded.consent_status = 'subscribed' AND (excluded.verified_at IS NOT NULL OR mailing_contacts.consented_at IS NULL)
-          THEN COALESCE(excluded.consented_at, mailing_contacts.consented_at)
-        ELSE mailing_contacts.consented_at
-      END,
-      verified_at = COALESCE(excluded.verified_at, mailing_contacts.verified_at),
-      unsubscribed_at = CASE WHEN excluded.verified_at IS NOT NULL THEN NULL ELSE mailing_contacts.unsubscribed_at END,
-      suppressed_reason = CASE WHEN excluded.verified_at IS NOT NULL THEN '' ELSE mailing_contacts.suppressed_reason END,
-      account_state = 'current',
-      former_at = NULL,
-      last_seen_at = excluded.last_seen_at,
-      updated_at = excluded.updated_at
-  `).run(
-    mailingContactId(email),
-    email,
-    user.id,
-    normalizeOptionalText(user.name, 120),
-    desiredStatus,
-    source,
-    desiredStatus === 'subscribed' ? (confirmedAt || user.createdAt || nowIso) : null,
-    confirmedAt,
-    user.newsletterOptIn ? null : nowIso,
-    user.createdAt || nowIso,
-    nowIso,
-    nowIso,
-  );
+function syncMailingContactForUser(database: DatabaseSync, user: AdminUser, options: MailingContactSyncOptions = {}) {
+  syncMailingContact(database, user, options, { normalizeEmail, isRealEmail, normalizeOptionalText, contactId: mailingContactId });
 }
 
 function syncExistingMailingContacts(database: DatabaseSync) {
@@ -1485,7 +1424,7 @@ function syncExistingMailingContacts(database: DatabaseSync) {
 
 function updateMailingConsent(user: AdminUser, subscribed: boolean, source: string) {
   user.newsletterOptIn = subscribed;
-  syncMailingContactForUser(db(), user, { confirmConsent: subscribed, source });
+  syncMailingContactForUser(db(), user, { confirmConsent: subscribed, source, verifiedOwner: true });
   if (!subscribed) {
     const nowIso = new Date().toISOString();
     dbRun(`
@@ -8764,12 +8703,12 @@ app.use('/api', createAuthVerificationRouter({
     }
     const sessionToken = createAuthSession(store, user);
     saveAuthStore(store);
-    if (user.newsletterOptIn) {
-      try {
-        updateMailingConsent(user, true, 'email-code-verified');
-      } catch {
-        console.warn('[auth] verified mailing consent could not be synchronized');
-      }
+    try {
+      if (user.newsletterOptIn) updateMailingConsent(user, true, 'email-code-verified');
+      // A declined newsletter reaches an address once its owner has verified it.
+      else syncMailingContactForUser(db(), user, { source: 'email-code-verified', verifiedOwner: true });
+    } catch {
+      console.warn('[auth] verified mailing consent could not be synchronized');
     }
     return { ok: true, user, sessionToken } as const;
   },
@@ -9256,6 +9195,7 @@ app.post('/api/subscription/email/confirm', authCodeVerifyLimiter, async (req, r
   syncMailingContactForUser(db(), user, {
     confirmConsent: Boolean(user.newsletterOptIn),
     source: 'verified-email-change',
+    verifiedOwner: true,
   });
   const nowIso = new Date().toISOString();
   dbRun(`
