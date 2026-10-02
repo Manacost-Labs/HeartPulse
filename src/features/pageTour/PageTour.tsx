@@ -414,7 +414,7 @@ export default function PageTour({ pagePath, access, onClose }: PageTourProps) {
           <div className="page-tour__state">
             <strong id="page-tour-title">На этой странице пока нечего подсветить</strong>
             <p id="page-tour-description">Обновите страницу после загрузки данных или откройте общий FAQ.</p>
-            <a href="/faq" className="page-tour__faq-link">Открыть FAQ</a>
+            <a href="/faq/" className="page-tour__faq-link">Открыть FAQ</a>
           </div>
         ) : (
           <>

@@ -1288,7 +1288,7 @@ for (const route of authenticatedRoutes) {
           questions: document.querySelectorAll('.faq-page__questions details').length,
           quickSteps: document.querySelectorAll('.faq-page__start li').length,
           authLinks: document.querySelectorAll('a[href="/?login"]').length,
-          activeHeaderLink: document.querySelector('.global-help-menu a[href="/faq"]')?.getAttribute('aria-current') || '',
+          activeHeaderLink: document.querySelector('.global-help-menu a[href="/faq/"]')?.getAttribute('aria-current') || '',
           overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         }));
         if (faqPageState.sections !== 5 || faqPageState.questions < 18 || faqPageState.quickSteps !== 3
@@ -1315,7 +1315,7 @@ for (const route of authenticatedRoutes) {
             contentGap: Number.parseFloat(getComputedStyle(main).paddingTop || '0'),
             helpElement: document.querySelector('.global-faq-button')?.tagName || '',
             helpLabel: document.querySelector('.global-faq-button')?.textContent?.trim() || '',
-            sidebarFaqLinks: document.querySelectorAll('.arena-sidebar a[href="/faq"]').length,
+            sidebarFaqLinks: document.querySelectorAll('.arena-sidebar a[href="/faq"], .arena-sidebar a[href="/faq/"]').length,
             overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
           };
         });
@@ -1327,7 +1327,7 @@ for (const route of authenticatedRoutes) {
           failures.push(`/articles [${device}]: global utility header regressed (${JSON.stringify(utilityState)})`);
         }
         await page.click('.global-faq-button');
-        await page.waitForSelector('.global-help-menu a[href="/faq"]', { visible: true, timeout: 10_000 });
+        await page.waitForSelector('.global-help-menu a[href="/faq/"]', { visible: true, timeout: 10_000 });
         await page.keyboard.press('Escape');
       }
       const tourViolationCount = route.tour
