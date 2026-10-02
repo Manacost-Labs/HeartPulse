@@ -317,6 +317,7 @@
         "tests/patreon-oauth.test.ts",
         "tests/account-dashboard-model.test.ts",
         "tests/account-dashboard-ui.test.tsx",
+        "tests/login-card-ui.test.tsx",
         "tests/public-navigation-shell.test.tsx",
         "tests/public-resource-browser-contract.test.mjs",
         "tests/public-url-policy.test.ts",

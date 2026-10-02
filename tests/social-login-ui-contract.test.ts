@@ -7,13 +7,14 @@ const socialLoginStyles = readFileSync(new URL('../src/modules/identity/ui/Socia
 
 assert.match(loginPanel, /socialProviders: socialLoginProviders,[\s\S]*useTelegramAuthConfig\(\)/);
 assert.match(loginPanel, /telegramAuthUrl=\{telegramEnabled && telegramMode !== 'legacy-widget'/);
-assert.match(loginPanel, /withDivider=\{telegramMode !== 'legacy-widget'\}/);
+assert.match(loginPanel, /withDivider=\{!\(telegramEnabled && telegramMode === 'legacy-widget' && telegramBotUsername\)\}/);
 assert.match(socialLoginLinks, /login-provider-grid/);
 assert.match(socialLoginLinks, /auth-icons\/\$\{provider\}\.svg/);
 assert.match(socialLoginLinks, /aria-disabled=\{disabled \|\| undefined\}/);
 assert.match(socialLoginLinks, /tabIndex=\{disabled \? -1 : undefined\}/);
 assert.match(socialLoginLinks, /onClick=\{disabled \? event => event\.preventDefault\(\) : undefined\}/);
-assert.match(socialLoginStyles, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
+assert.match(socialLoginLinks, /<span>\{labels\[provider\]\}<\/span>/, 'every sign-in provider names itself');
+assert.match(socialLoginStyles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 for (const provider of ['telegram', 'google', 'discord', 'yandex', 'patreon']) {
   assert.ok(existsSync(new URL(`../public/auth-icons/${provider}.svg`, import.meta.url)), `missing ${provider} icon`);
 }

@@ -68,7 +68,6 @@ try {
     [{ email: 'member@example.com', password: 'correct horse', country: 'x'.repeat(81), newsletterOptIn: true }, 'Страна'],
     [{ email: 'member@example.com', password: 'correct horse', country: '', newsletterOptIn: true }, 'страну'],
     [{ email: 'member@example.com', password: 'correct horse', country: 'Россия', newsletterOptIn: 'yes' }, 'согласия'],
-    [{ email: 'member@example.com', password: 'correct horse', country: 'Россия', newsletterOptIn: false }, 'Подтвердите'],
   ];
   for (const [body, messagePart] of invalidRegistrationCases) {
     const response = await api('/auth/register', body);
@@ -93,6 +92,13 @@ try {
     country: 'Россия',
     newsletterOptIn: true,
   }]);
+
+  // The newsletter is a separate, optional consent: registration must not depend on it.
+  const declinedNewsletter = await api('/auth/register', {
+    email: 'quiet@example.com', password: 'correct horse', country: 'Россия', newsletterOptIn: false,
+  });
+  assert.equal(declinedNewsletter.status, 200);
+  assert.equal(registerCalls.at(-1)?.newsletterOptIn, false, 'a declined newsletter is stored as declined');
 
   registerResult = { ok: false, status: 409, error: 'Пользователь с такой почтой уже есть' };
   const conflict = await api('/auth/register', {

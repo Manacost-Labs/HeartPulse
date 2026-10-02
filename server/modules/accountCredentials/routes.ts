@@ -5,7 +5,7 @@ export type RegistrationInput = {
   password: string;
   name: string;
   country: string;
-  newsletterOptIn: true;
+  newsletterOptIn: boolean;
 };
 
 export type LoginInput = {
@@ -105,11 +105,9 @@ export function createAuthCredentialRouter(dependencies: AuthCredentialRouterDep
     const country = readBoundedText(body, 'country', 'Страна', '', 80);
     if (country.ok === false) return response.status(400).json({ error: country.error });
     if (!country.value) return response.status(400).json({ error: 'Укажите страну' });
+    // The newsletter is optional: registration only records the choice.
     if (typeof body.newsletterOptIn !== 'boolean') {
       return response.status(400).json({ error: 'Некорректное значение согласия на рассылку' });
-    }
-    if (!body.newsletterOptIn) {
-      return response.status(400).json({ error: 'Подтвердите согласие на получение рассылки' });
     }
 
     try {
@@ -118,7 +116,7 @@ export function createAuthCredentialRouter(dependencies: AuthCredentialRouterDep
         password: body.password,
         name: name.value,
         country: country.value,
-        newsletterOptIn: true,
+        newsletterOptIn: body.newsletterOptIn,
       }), request, response, dependencies);
     } catch (error) {
       dependencies.reportFailure?.('register', error);

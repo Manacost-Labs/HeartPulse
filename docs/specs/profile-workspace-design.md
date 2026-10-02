@@ -24,6 +24,17 @@ profile data stays public-only.
 - Results of saving, linking and checking float at the bottom of the
   screen. Successes hide after six seconds; errors stay until closed.
 
+## Signed-out view
+
+`/?login` without a session shows one card: a burgundy emblem, the `h1`
+«Вход в HearthPulse», «Вход» and «Регистрация» tabs, e-mail and password,
+«Получить код», then Telegram and the social providers as labelled buttons,
+«Забыли пароль?» and the terms and privacy links. The code step says where
+the code went and points to the spam folder. Registration asks for the
+newsletter as an optional, unchecked box; `/api/auth/register` records the
+choice and no longer rejects a declined newsletter. `LoginCard.tsx` renders
+the view, state and requests stay in `LoginPanel.tsx`.
+
 ## Acceptance criteria
 
 - A refresh, a retry or a Boosty request keeps the last known access state
@@ -55,10 +66,12 @@ passwordless or social-only registration yet; that needs a backend change.
 
 ## Verification
 
-`tests/account-dashboard-model.test.ts` and
-`tests/account-dashboard-ui.test.tsx` cover the derived state and the
-markup of each state. `tests/next-account-surface-browser.test.mjs` and the
-profile block of `scripts/e2e-qa.mjs` check the page in a browser at both
+`tests/account-dashboard-model.test.ts`,
+`tests/account-dashboard-ui.test.tsx` and `tests/login-card-ui.test.tsx`
+cover the derived state and the markup of each state;
+`tests/auth-credential-routes.test.ts` covers a declined newsletter.
+`tests/next-account-surface-browser.test.mjs` and the profile and public
+auth blocks of `scripts/e2e-qa.mjs` check both views in a browser at both
 widths, including the floating messages, the tour and axe. The Storybook
 stories «Profile/Account workspace» use synthetic data with intercepted API
 calls.

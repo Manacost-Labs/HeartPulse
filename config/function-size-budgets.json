@@ -84,6 +84,6 @@
     "src/modules/adminWorkspace/ui/AdminWorkspaceShell.tsx#AdminWorkspaceShell": 171,
     "src/modules/applicationConnect/ApplicationConnectView.tsx#ApplicationConnectView": 155,
     "src/modules/developerApi/ui/AdminApiKeys.tsx#AdminApiKeys": 133,
-    "src/modules/identity/ui/LoginPanel.tsx#LoginPanel": 560
+    "src/modules/identity/ui/LoginPanel.tsx#LoginPanel": 435
   }
 }

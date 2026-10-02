@@ -4155,47 +4155,45 @@ for (const [device, viewport] of [
     await page.waitForSelector('.login-provider-grid', { visible: true, timeout: 10_000 });
     const loginState = await page.evaluate(() => {
       const card = document.querySelector('.login-card');
-      const emblem = document.querySelector('.login-card__emblem');
       const input = document.querySelector('.login-field input');
-      const actionable = [...document.querySelectorAll('.login-card :is(button, a)')];
+      // Links inside the legal sentence are inline text links, exempt from target size.
+      const actionable = [...document.querySelectorAll('.login-card :is(button, a)')]
+        .filter(element => !element.closest('.login-legal'));
       const socialProviders = [...document.querySelectorAll('.login-provider')];
       const cardStyle = getComputedStyle(card);
-      const inputStyle = getComputedStyle(input);
       return {
-        borderImage: cardStyle.borderImageSource,
+        headings: [...document.querySelectorAll('h1')].map(heading => heading.textContent?.trim() || ''),
         background: cardStyle.backgroundColor,
-        emblemBackground: getComputedStyle(emblem).backgroundImage,
-        inputRadius: inputStyle.borderRadius,
+        radius: cardStyle.borderRadius,
         inputHeight: input.getBoundingClientRect().height,
         smallestAction: Math.min(...actionable.map(element => element.getBoundingClientRect().height)),
         inlineOwners: document.querySelectorAll('.login-page [style]').length,
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
         labelledFields: [...document.querySelectorAll('.login-field')].every(label => Boolean(label.querySelector(':scope > span'))),
         socialProviderCount: socialProviders.length,
-        socialProvidersSquare: socialProviders.every(provider => {
-          const { width, height } = provider.getBoundingClientRect();
-          return width >= 44 && Math.abs(width - height) < 1;
-        }),
+        socialProvidersLabelled: socialProviders.every(provider => provider.textContent?.trim()
+          && provider.getBoundingClientRect().height >= 44),
         socialIconsLoaded: socialProviders.every(provider => {
           const icon = provider.querySelector('img');
           return icon?.complete && icon.naturalWidth > 0;
         }),
+        legalLinks: [...document.querySelectorAll('.login-legal a')].map(link => link.getAttribute('href')).join(),
       };
     });
     loginState.stylesheetLoaded = (await loadedCssOwners(page)).loginPanel;
     if (!loginState.stylesheetLoaded
-      || !loginState.borderImage.includes('main-page-rail-border.png')
-      || loginState.background !== 'rgba(248, 231, 191, 0.72)'
-      || !loginState.emblemBackground.includes('arena-rail-red.jpg')
-      || loginState.inputRadius !== '2px'
-      || loginState.inputHeight < 44
+      || loginState.headings.join('|') !== 'Вход в HearthPulse'
+      || loginState.background !== 'rgb(251, 243, 220)'
+      || loginState.radius !== '16px'
+      || loginState.inputHeight < 48
       || loginState.smallestAction < 44
       || loginState.inlineOwners !== 0
       || loginState.horizontalOverflow
       || !loginState.labelledFields
       || loginState.socialProviderCount !== 5
-      || !loginState.socialProvidersSquare
-      || !loginState.socialIconsLoaded) {
+      || !loginState.socialProvidersLabelled
+      || !loginState.socialIconsLoaded
+      || loginState.legalLinks !== '/terms/,/privacy/') {
       failures.push(`public auth [${device}]: material or geometry changed (${JSON.stringify(loginState)})`);
     }
 
@@ -4203,12 +4201,18 @@ for (const [device, viewport] of [
       .find(button => button.textContent?.includes('Регистрация'))?.click());
     await page.waitForSelector('.login-consent');
     const registrationState = await page.evaluate(() => ({
+      title: document.querySelector('h1')?.textContent?.trim() || '',
       name: Boolean(document.querySelector('input[autocomplete="name"]')),
       country: Boolean(document.querySelector('.login-field select')),
       consentHeight: document.querySelector('.login-consent')?.getBoundingClientRect().height || 0,
+      // The newsletter is an optional choice, never a condition of registration.
+      consentRequired: Boolean(document.querySelector('.login-consent input')?.required),
+      consentChecked: Boolean(document.querySelector('.login-consent input')?.checked),
       activeMode: document.querySelector('.login-mode-tab[aria-pressed="true"]')?.textContent?.trim() || '',
     }));
-    if (!registrationState.name || !registrationState.country || registrationState.consentHeight < 44 || registrationState.activeMode !== 'Регистрация') {
+    if (registrationState.title !== 'Регистрация в HearthPulse' || !registrationState.name || !registrationState.country
+      || registrationState.consentHeight < 44 || registrationState.consentRequired || registrationState.consentChecked
+      || registrationState.activeMode !== 'Регистрация') {
       failures.push(`public auth [${device}]: registration fields are incomplete (${JSON.stringify(registrationState)})`);
     }
 
@@ -4221,7 +4225,7 @@ for (const [device, viewport] of [
       emailLabel: document.querySelector('.login-field > span')?.textContent?.trim() || '',
       returnTarget: document.querySelector('.login-link-button--footer')?.getBoundingClientRect().height || 0,
     }));
-    if (!resetState.title.includes('Восстановление') || resetState.emailLabel !== 'Email' || resetState.returnTarget < 44) {
+    if (!resetState.title.includes('Восстановление') || resetState.emailLabel !== 'Почта' || resetState.returnTarget < 44) {
       failures.push(`public auth [${device}]: reset mode changed (${JSON.stringify(resetState)})`);
     }
 
@@ -4235,7 +4239,7 @@ for (const [device, viewport] of [
       radius: getComputedStyle(element).borderRadius,
       color: getComputedStyle(element).color,
     }));
-    if (messageState.role !== 'alert' || messageState.radius !== '2px' || messageState.color !== 'rgb(125, 34, 39)') {
+    if (messageState.role !== 'alert' || messageState.radius !== '10px' || messageState.color !== 'rgb(122, 20, 20)') {
       failures.push(`public auth [${device}]: error feedback changed (${JSON.stringify(messageState)})`);
     }
     const violationCount = await auditAccessibility(page, `public auth [${device}]`, '.login-page');

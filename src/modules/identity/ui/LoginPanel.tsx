@@ -4,12 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Eye,
-  EyeOff,
-  RefreshCw,
-  UserCircle,
-} from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import {
   logoutCurrentAuthSession,
@@ -31,6 +26,7 @@ import { publicProfilePath } from '../model/publicProfilePath';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
 import './IdentityProfile.css';
 import AccountDashboard from './AccountDashboard';
+import LoginCard from './LoginCard';
 import { isRealAuthEmail } from '../model/accountDashboard';
 import { continueToCoverAfterLogin, coverSsoReturnTo } from '../../coverAdminSso/public';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
@@ -155,40 +151,6 @@ const COUNTRY_OPTIONS = [
 ];
 
 
-function PasswordInput({
-  value,
-  onChange,
-  placeholder = 'Пароль',
-  autoComplete = 'current-password',
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  autoComplete?: 'current-password' | 'new-password';
-}) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <label className="login-field login-password-field">
-      <span>{placeholder}</span>
-      <input
-        type={visible ? 'text' : 'password'}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-      />
-      <button
-        type="button"
-        onClick={() => setVisible(v => !v)}
-        aria-label={visible ? 'Скрыть пароль' : 'Показать пароль'}
-        title={visible ? 'Скрыть пароль' : 'Показать пароль'}
-      >
-        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
-    </label>
-  );
-}
-
 function AuthCheckingCard({ delayMs = 180 }: { delayMs?: number }) {
   const [visible, setVisible] = useState(delayMs <= 0);
 
@@ -201,6 +163,7 @@ function AuthCheckingCard({ delayMs = 180 }: { delayMs?: number }) {
     return () => window.clearTimeout(timer);
   }, [delayMs]);
 
+  // Inline on purpose: this card renders before the route stylesheet loads.
   return (
     <div style={{
       minHeight: 220,
@@ -209,34 +172,32 @@ function AuthCheckingCard({ delayMs = 180 }: { delayMs?: number }) {
       transition: 'opacity 180ms ease',
     }}>
       <div style={{
-        maxWidth: 460,
+        maxWidth: 440,
         margin: '0 auto',
-        borderRadius: '16px',
-        border: '1px solid rgba(148,163,184,0.42)',
-        background: 'linear-gradient(180deg, rgba(248,250,255,0.98), rgba(235,241,252,0.94))',
-        boxShadow: '0 24px 54px rgba(4,10,20,0.24), inset 0 1px 0 rgba(255,255,255,0.75)',
+        borderRadius: 16,
+        border: '2px solid #6b4a2a',
+        background: '#fbf3dc',
+        boxShadow: '0 0 0 5px #e3cb94, 0 20px 44px rgba(58,36,18,0.28)',
         padding: '28px 24px',
         textAlign: 'center',
+        color: '#3d2a1e',
       }}>
         <div style={{
-          width: 58,
-          height: 58,
+          width: 56,
+          height: 56,
           margin: '0 auto 14px',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg,#12233f,#081020)',
-          color: '#93c5fd',
-          border: '2px solid rgba(56,189,248,0.45)',
-          boxShadow: '0 12px 26px rgba(15,23,42,0.22)',
+          borderRadius: 14,
+          display: 'grid',
+          placeItems: 'center',
+          background: '#7a1e22',
+          color: '#f1c76e',
         }}>
-          <RefreshCw size={28} className="animate-spin" />
+          <RefreshCw size={28} className="animate-spin" aria-hidden="true" />
         </div>
-        <strong style={{ display: 'block', color: '#1e293b', fontFamily: 'var(--font-display)', fontSize: '1.15rem' }}>
+        <strong style={{ display: 'block', fontFamily: 'var(--font-hs)', fontSize: '1.25rem' }}>
           Проверяем профиль
         </strong>
-        <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '13px', lineHeight: 1.45 }}>
+        <p style={{ margin: '8px 0 0', color: '#6a513a', fontSize: '0.95rem', lineHeight: 1.45 }}>
           Подключаем сессию Экосистемы Манакоста.
         </p>
       </div>
@@ -644,174 +605,49 @@ export function LoginPanel({
   }
 
   return (
-    <div className="login-page">
-      <section className="login-card" aria-labelledby="login-card-title">
-        <div className="login-card__emblem" aria-hidden="true">
-          <UserCircle size={30} />
-        </div>
-        <h2 id="login-card-title" className="login-card__title">
-          {authMode === 'register' ? 'Регистрация' : authMode === 'reset' ? 'Восстановление пароля' : 'Войти в экосистему Манакост'}
-        </h2>
-        <p className="login-card__intro">
-          {authMode === 'register'
-            ? 'Укажите данные профиля, затем подтвердите почту кодом.'
-            : authMode === 'reset'
-              ? 'Укажите почту, получите код и задайте новый пароль.'
-              : 'Войдите по почте, паролю и коду подтверждения.'}
-        </p>
-        {msg && (
-          <div
-            className={`login-message login-message--${msg.type}`}
-            role={msg.type === 'err' ? 'alert' : 'status'}
-            aria-live={msg.type === 'err' ? 'assertive' : 'polite'}
-          >
-            {msg.text}
-          </div>
-        )}
-        {authStep === 'password' && (
-          <div className="login-mode-tabs" aria-label="Режим авторизации">
-            {(['login', 'register'] as const).map(mode => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => { setAuthMode(mode); setMsg(null); setAuthStep('password'); }}
-                className={`login-mode-tab${authMode === mode ? ' login-mode-tab-active' : ''}`}
-                aria-pressed={authMode === mode}
-              >
-                {mode === 'login' ? 'Вход' : 'Регистрация'}
-              </button>
-            ))}
-          </div>
-        )}
-        <form
-          onSubmit={authStep === 'password'
-            ? (authMode === 'login' ? handleLogin : authMode === 'register' ? handleRegister : handleResetRequest)
-            : (authMode === 'reset' ? handleResetConfirm : handleVerify)}
-          className="login-form"
-        >
-          {authStep === 'password' ? (
-            <>
-              {authMode === 'register' && (
-                <>
-                  <label className="login-field">
-                    <span>Имя</span>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={e => setName(e.target.value)}
-                      placeholder="Имя"
-                      autoComplete="name"
-                    />
-                  </label>
-                  <label className="login-field">
-                    <span>Страна</span>
-                    <select value={country} onChange={e => setCountry(e.target.value)} required>
-                      <option value="">Выберите страну</option>
-                      {COUNTRY_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
-                    </select>
-                  </label>
-                </>
-              )}
-              <label className="login-field">
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  autoComplete="email"
-                  autoFocus
-                />
-              </label>
-              {authMode !== 'reset' && (
-                <PasswordInput
-                  value={password}
-                  onChange={setPassword}
-                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
-                />
-              )}
-              {authMode === 'register' && (
-                <label className="login-consent">
-                  <input
-                    type="checkbox"
-                    checked={newsletterOptIn}
-                    onChange={e => setNewsletterOptIn(e.target.checked)}
-                    required
-                  />
-                  <span>Подтверждаю согласие получать рассылку HS-Arena с новостями, гайдами и обновлениями.</span>
-                </label>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="login-code-sent">
-                Код отправлен на <b>{email}</b>
-              </p>
-              <label className="login-field login-code-field">
-                <span>Код подтверждения</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={code}
-                  onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-значный код"
-                  autoComplete="one-time-code"
-                  autoFocus
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => { setAuthStep('password'); setCode(''); setMsg(null); }}
-                className="login-link-button"
-              >
-                Изменить email или пароль
-              </button>
-              {authMode === 'reset' && (
-                <PasswordInput value={password} onChange={setPassword} placeholder="Новый пароль" autoComplete="new-password" />
-              )}
-            </>
-          )}
-          <button type="submit" className="login-submit" disabled={loading}>
-            {loading ? 'Проверяем...' : authStep === 'password' ? 'Получить код' : authMode === 'reset' ? 'Сменить пароль' : 'Войти'}
-          </button>
-        </form>
-        {authStep === 'password' && authMode === 'login' && telegramEnabled && telegramMode === 'legacy-widget' && (
-          <div className="login-telegram">
-            <div className="login-divider">
-              <span className="login-divider__line" />
-              <span>или</span>
-              <span className="login-divider__line" />
+    <LoginCard
+      mode={authMode}
+      step={authStep}
+      message={msg}
+      loading={loading}
+      values={{ name, country, email, password, code, newsletter: newsletterOptIn }}
+      countries={COUNTRY_OPTIONS}
+      onChange={patch => {
+        if (patch.name !== undefined) setName(patch.name);
+        if (patch.country !== undefined) setCountry(patch.country);
+        if (patch.email !== undefined) setEmail(patch.email);
+        if (patch.password !== undefined) setPassword(patch.password);
+        if (patch.code !== undefined) setCode(patch.code);
+        if (patch.newsletter !== undefined) setNewsletterOptIn(patch.newsletter);
+      }}
+      onModeChange={mode => { setAuthMode(mode); setMsg(null); setAuthStep('password'); }}
+      onSubmit={authStep === 'password'
+        ? (authMode === 'login' ? handleLogin : authMode === 'register' ? handleRegister : handleResetRequest)
+        : (authMode === 'reset' ? handleResetConfirm : handleVerify)}
+      onEditCredentials={() => { setAuthStep('password'); setCode(''); setMsg(null); }}
+      providers={(
+        <>
+          {telegramEnabled && telegramMode === 'legacy-widget' && telegramBotUsername && (
+            <div className="login-telegram">
+              <div className="login-divider" aria-hidden="true">
+                <span className="login-divider__line" />
+                <span>или</span>
+                <span className="login-divider__line" />
+              </div>
+              <TelegramLoginWidget botUsername={telegramBotUsername} authUrl={telegramLoginUrl} label="Войти через Telegram" />
             </div>
-            {telegramBotUsername ? (
-              <TelegramLoginWidget
-                botUsername={telegramBotUsername}
-                authUrl={telegramLoginUrl}
-                label="Войти через Telegram"
-              />
-            ) : null}
-          </div>
-        )}
-        {authStep === 'password' && authMode === 'login' && <React.Suspense fallback={null}><SocialLoginLinks disabled={loading} providers={socialLoginProviders} telegramAuthUrl={telegramEnabled && telegramMode !== 'legacy-widget' ? telegramLoginUrl || '/api/auth/telegram/start' : ''} withDivider={telegramMode !== 'legacy-widget'} /></React.Suspense>}
-        {authStep === 'password' && authMode === 'login' && (
-          <button
-            type="button"
-            onClick={() => { setAuthMode('reset'); setMsg(null); }}
-            className="login-link-button login-link-button--footer"
-          >
-            Забыли пароль?
-          </button>
-        )}
-        {authStep === 'password' && authMode === 'reset' && (
-          <button
-            type="button"
-            onClick={() => { setAuthMode('login'); setMsg(null); }}
-            className="login-link-button login-link-button--footer"
-          >
-            Вернуться ко входу
-          </button>
-        )}
-      </section>
-    </div>
+          )}
+          <React.Suspense fallback={null}>
+            <SocialLoginLinks
+              disabled={loading}
+              providers={socialLoginProviders}
+              telegramAuthUrl={telegramEnabled && telegramMode !== 'legacy-widget' ? telegramLoginUrl || '/api/auth/telegram/start' : ''}
+              withDivider={!(telegramEnabled && telegramMode === 'legacy-widget' && telegramBotUsername)}
+            />
+          </React.Suspense>
+        </>
+      )}
+    />
   );
 }
 

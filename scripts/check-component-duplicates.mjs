@@ -5,7 +5,9 @@ const MAX_DUPLICATE_COMPONENTS = 0;
 const definitionPattern = /^(?:export\s+)?function\s+([A-Z][A-Za-z0-9_]*)\b/gm;
 
 const fileSources = FILES.map(file => readFileSync(file, 'utf8'));
-const identityLoginSource = readFileSync('src/modules/identity/ui/LoginPanel.tsx', 'utf8');
+const identityUiInlineStyles = names => names.flatMap(name => (
+  readFileSync(`src/modules/identity/ui/${name}.tsx`, 'utf8').match(/\bstyle\s*=/g) || []
+));
 const componentSets = fileSources.map(source => new Set(
   [...source.matchAll(definitionPattern)].map(match => match[1]),
 ));
@@ -22,26 +24,17 @@ if (duplicates.length > MAX_DUPLICATE_COMPONENTS) {
 console.log('[architecture] single-owner component guard passed');
 
 const deferredSource = fileSources[1];
-const profileStart = identityLoginSource.indexOf('const profileName =');
-const loginStart = identityLoginSource.indexOf('<div className="login-page"', profileStart);
-const loginEnd = identityLoginSource.length;
-const passwordInputStart = identityLoginSource.indexOf('function PasswordInput');
-const passwordInputEnd = identityLoginSource.indexOf('function AuthCheckingCard', passwordInputStart);
 const cardModalStart = deferredSource.indexOf('const CardModal:');
 const cardModalEnd = deferredSource.indexOf('// ─── HSCard', cardModalStart);
 
-if (
-  profileStart < 0 || loginStart < 0 || loginEnd < 0
-  || passwordInputStart < 0 || passwordInputEnd < 0
-  || cardModalStart < 0 || cardModalEnd < 0
-) {
+if (cardModalStart < 0 || cardModalEnd < 0) {
   console.error('[architecture] deferred presentation boundary could not be located');
   process.exit(1);
 }
 
-const profileInlineStyles = identityLoginSource
-  .slice(profileStart, loginStart)
-  .match(/\bstyle\s*=/g) || [];
+const profileInlineStyles = identityUiInlineStyles([
+  'AccountDashboard', 'AccountAccessCard', 'AccountLinks', 'AccountContests', 'AccountSettings',
+]);
 
 console.log(`[architecture] authenticated profile inline styles: ${profileInlineStyles.length} / 0`);
 if (profileInlineStyles.length > 0) {
@@ -49,10 +42,7 @@ if (profileInlineStyles.length > 0) {
   process.exit(1);
 }
 
-const loginInlineStyles = [
-  identityLoginSource.slice(passwordInputStart, passwordInputEnd),
-  identityLoginSource.slice(loginStart, loginEnd),
-].flatMap(source => source.match(/\bstyle\s*=/g) || []);
+const loginInlineStyles = identityUiInlineStyles(['LoginCard', 'SocialLoginLinks']);
 
 console.log(`[architecture] public auth inline styles: ${loginInlineStyles.length} / 0`);
 if (loginInlineStyles.length > 0) {

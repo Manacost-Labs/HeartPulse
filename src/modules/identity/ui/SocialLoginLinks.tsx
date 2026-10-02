@@ -22,9 +22,10 @@ export default function SocialLoginLinks({ disabled, providers, telegramAuthUrl,
     ...parseSocialLoginProviders(providers),
   ];
   if (!buttons.length) return null;
-  return <div className="login-telegram">{withDivider && <div className="login-divider"><span className="login-divider__line" /><span>или</span><span className="login-divider__line" /></div>}<div className="login-provider-grid" aria-label="Вход через социальные сети">{buttons.map(({ provider, authUrl }) => (
-    <a key={provider} href={authUrl} className={`login-provider login-provider--${provider}${disabled ? ' login-provider--disabled' : ''}`} aria-label={`Войти через ${labels[provider]}`} aria-disabled={disabled || undefined} tabIndex={disabled ? -1 : undefined} onClick={disabled ? event => event.preventDefault() : undefined} title={`Войти через ${labels[provider]}`}>
-      <img className="login-provider__icon" src={`/auth-icons/${provider}.svg`} alt="" width="32" height="32" />
+  return <div className="login-telegram">{withDivider && <div className="login-divider" aria-hidden="true"><span className="login-divider__line" /><span>или</span><span className="login-divider__line" /></div>}<div className="login-provider-grid" role="group" aria-label="Вход через социальные сети">{buttons.map(({ provider, authUrl }) => (
+    <a key={provider} href={authUrl} className={`login-provider login-provider--${provider}${disabled ? ' login-provider--disabled' : ''}`} aria-label={`Войти через ${labels[provider]}`} aria-disabled={disabled || undefined} tabIndex={disabled ? -1 : undefined} onClick={disabled ? event => event.preventDefault() : undefined}>
+      <img className="login-provider__icon" src={`/auth-icons/${provider}.svg`} alt="" width="24" height="24" />
+      <span>{labels[provider]}</span>
     </a>
   ))}</div></div>;
 }
