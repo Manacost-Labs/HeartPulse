@@ -144,8 +144,15 @@ behind its `public.ts`, not in `src/features/`.
    Add the page's JSON-LD nodes to `config/public-seo-structured-data.json`
    when it is an indexable listing; omit `SeoStructuredData` otherwise.
 
-3. Put interactive UI in `ui/SomePageClient.tsx` (`'use client'`), composed
-   from the owning `src/modules/<domain>/public.ts`.
+3. Render content that needs no state, effects or handlers on the server:
+   keep it out of `'use client'` modules and pass it as `children` to a small
+   client shell, as `ui/PublicSupportPage.tsx` does with
+   `ui/PublicSupportShell.tsx` for `/faq/`, `/privacy/` and `/terms/`. Its
+   code and data then stay out of the browser bundle. Links in it are plain
+   anchors at canonical URLs (`canonicalPagePath()`): the browser loads the
+   target as a document either way. Put interactive UI in
+   `ui/SomePageClient.tsx` (`'use client'`), composed from the owning
+   `src/modules/<domain>/public.ts`.
 4. Route the URL to Next in `deploy/nginx/arena-html-routing.conf` and update
    `tests/nginx-html-routing.test.mjs`; add it to
    `apps/public-web/routeOwnership.mjs` so the local gateway and the Next test
@@ -213,9 +220,12 @@ browser test runs the production React: its development warnings (a missing
 - `npm run qa:ci`, `verify:ci` and the nightly responsive QA run the browser
   QA against this app with the QA backend in `scripts/qa/`. Bundle budgets
   are `npm run budget:next`.
-- Every page ships about 150–210 KiB of gzip JavaScript and 50–70 KiB of CSS
-  on first load, because each renders the legacy client shell; the budgets
-  only stop that from growing.
+- Every page ships 149–214 KiB of gzip JavaScript and 30–62 KiB of CSS on
+  first load. About 131 KiB of that JavaScript is React and the Next.js
+  runtime, the same on every route; the rest is the hydrated legacy page
+  shell and the route's own client components (measured on `/faq/` on
+  2026-10-02). Server components remove only that rest: the help and legal
+  pages went from 157.4 to 149.0 KiB. The budgets stop growth.
 - The Vite application (`index.html`, `src/main.tsx`, `src/App.tsx` and its
   client router) is deleted. The Vite package stays only as Storybook's
   bundler, configured in `.storybook/main.ts` (see

@@ -8,7 +8,7 @@ import {
   Search,
   ShieldCheck,
 } from 'lucide-react';
-import type { MouseEvent } from 'react';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { FAQ_PAGE_SECTIONS } from '../content/faq';
 import '../route-parchment.css';
 import './FAQPage.css';
@@ -21,13 +21,11 @@ const SECTION_ICONS = {
   support: LifeBuoy,
 } as const;
 
-export default function FAQPage({ navigatePath }: { navigatePath: (path: string) => void }) {
-  const openInternalLink = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (!href.startsWith('/') || href.includes('?')) return;
-    event.preventDefault();
-    navigatePath(href);
-  };
-
+/**
+ * The help center. It has no state and no handlers, so a server component can
+ * render it: links are plain anchors that load the target page as a document.
+ */
+export default function FAQPage() {
   return (
     <article className="faq-page">
       <header className="faq-page__hero">
@@ -89,10 +87,9 @@ export default function FAQPage({ navigatePath }: { navigatePath: (path: string)
                       <p>{item.answer}</p>
                       {item.link && (
                         <a
-                          href={item.link.href}
+                          href={canonicalPagePath(item.link.href)}
                           target={item.link.external ? '_blank' : undefined}
                           rel={item.link.external ? 'noreferrer' : undefined}
-                          onClick={event => openInternalLink(event, item.link!.href)}
                         >
                           {item.link.label} <ArrowRight size={14} aria-hidden="true" />
                         </a>

@@ -23,4 +23,4 @@ type Story = StoryObj<typeof meta>;
 export const CardSection: Story = {};
 export const Help: Story = { args: { activeTab: 'faq', pathname: '/faq/', editorial: true, wide: false,
   access: { user: null, checking: false, admin: false, contestAdmin: false, subscription: null },
-  children: <FAQPage navigatePath={navigate} /> } };
+  children: <FAQPage /> } };

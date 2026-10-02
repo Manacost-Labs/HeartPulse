@@ -1,13 +1,11 @@
-'use client';
-import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import FAQPage from '@/src/features/FAQPage';
 import LegalPage from '@/src/modules/legalPages/public';
-import { usePublicAccess } from './usePublicAccess';
-import { navigate } from './navigation';
+import { PublicSupportShell } from './PublicSupportShell';
 
+// A server component: the help and legal texts reach the browser as HTML only,
+// and the browser downloads and hydrates just the page shell around them.
 export function PublicSupportPage({ page }: { page: 'faq' | 'privacy' | 'terms' }) {
-  const access = usePublicAccess();
-  return <PublicPageShell activeTab={page} pathname={`/${page}/`} access={access} navigate={navigate} editorial>
-    {page === 'faq' ? <FAQPage navigatePath={navigate} /> : <LegalPage kind={page} navigatePath={navigate} />}
-  </PublicPageShell>;
+  return <PublicSupportShell page={page}>
+    {page === 'faq' ? <FAQPage /> : <LegalPage kind={page} />}
+  </PublicSupportShell>;
 }

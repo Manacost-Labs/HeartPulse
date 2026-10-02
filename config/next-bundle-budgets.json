@@ -3,7 +3,7 @@
   "description": "Gzip ceilings for the JavaScript and CSS that each public Next.js route references in its server-rendered document, checked by tests/next-bundle-budgets.test.mjs. Regenerate with `npm run budget:next:update` only after reviewing a size change.",
   "routes": {
     "/": {
-      "jsGzipBytes": 163840,
+      "jsGzipBytes": 160768,
       "cssGzipBytes": 33792
     },
     "/articles/": {
@@ -11,7 +11,7 @@
       "cssGzipBytes": 46080
     },
     "/faq/": {
-      "jsGzipBytes": 164864,
+      "jsGzipBytes": 156672,
       "cssGzipBytes": 39936
     },
     "/standard/matchups/": {
@@ -39,15 +39,15 @@
       "cssGzipBytes": 60416
     },
     "/classes/": {
-      "jsGzipBytes": 168960,
+      "jsGzipBytes": 166912,
       "cssGzipBytes": 43008
     },
     "/tierlist/": {
-      "jsGzipBytes": 189440,
+      "jsGzipBytes": 187392,
       "cssGzipBytes": 50176
     },
     "/legendaries/": {
-      "jsGzipBytes": 191488,
+      "jsGzipBytes": 188416,
       "cssGzipBytes": 50176
     },
     "/heroes/": {
@@ -91,7 +91,7 @@
       "cssGzipBytes": 31744
     },
     "/privacy/": {
-      "jsGzipBytes": 164864,
+      "jsGzipBytes": 156672,
       "cssGzipBytes": 39936
     },
     "/connect/": {
