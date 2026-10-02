@@ -373,8 +373,8 @@ sudo systemctl enable --now hearthpulse-backup.timer hearthpulse-backup-verify.t
 ```
 
 The daily job encrypts with GnuPG AES-256 and a high-cost SHA-512 iterated S2K,
-writes an atomic archive
-plus SHA-256 sidecar, and keeps the newest 3 backups by default (`HEARTHPULSE_BACKUP_KEEP`). The weekly drill decrypts
+writes an atomic archive plus SHA-256 sidecar, and keeps the newest 3 backups
+by default (`HEARTHPULSE_BACKUP_KEEP`). The weekly drill decrypts
 the latest archive into a temporary directory, verifies every manifest entry,
 runs `PRAGMA integrity_check` on the restored user database and checks the
 three critical Arena snapshots. Run both immediately after installation:
@@ -437,8 +437,8 @@ sudo systemctl status hearthpulse-backup-replicate.service
 sudo systemctl enable --now hearthpulse-backup-replicate.timer
 ```
 
-Do not store `/etc/hearthpulse/backup-passphrase` on that same backup host. Keep at
-least two offline copies in separate controlled locations and record a key
+Do not store `/etc/hearthpulse/backup-passphrase` on that same backup host.
+Keep at least two offline copies in separate controlled locations and record a key
 recovery drill without putting the secret in source control or logs.
 
 For the host-loss drill, provision a clean recovery machine, fetch one `.gpg`
