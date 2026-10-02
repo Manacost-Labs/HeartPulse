@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { startCredentialBackend } from './helpers/credentialBackend.mjs';
 
@@ -113,6 +114,30 @@ test('an unconfirmed old subscription is not taken over', async () => {
     insertFormerSubscriber(backend, email, { confirmed: false });
     await registerAndVerify(backend, email, false);
     assert.equal(accountOf(backend, email).newsletter_opt_in, 0);
+  } finally {
+    await backend.close();
+  }
+});
+
+test('a later login does not record the consent again', async () => {
+  const backend = await startCredentialBackend();
+  try {
+    const email = 'regular@example.com';
+    backend.database.prepare(`INSERT INTO users (id, email, name, password_hash, newsletter_opt_in, created_at, updated_at)
+      VALUES ('regular', ?, 'Regular', 'unused', 1, ?, ?)`).run(email, formerConsentAt, formerConsentAt);
+    backend.database.prepare(`
+      INSERT INTO mailing_contacts (id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
+        suppressed_reason, account_state, first_seen_at, last_seen_at, updated_at)
+      VALUES ('regular-contact', ?, 'regular', 'Regular', 'subscribed', 'email-code-verified', ?, ?, '', 'current', ?, ?, ?)
+    `).run(email, formerConsentAt, formerConsentAt, formerConsentAt, formerConsentAt, formerConsentAt);
+    // A login code, as the password step would issue it.
+    backend.database.prepare('INSERT INTO pending_codes (email, code_hash, expires_at, attempts) VALUES (?, ?, ?, 0)')
+      .run(email, createHash('sha256').update('424242').digest('hex'), Date.now() + 600_000);
+    await verify(backend, email, '424242');
+    assert.deepEqual(entryOf(backend, email), {
+      user_id: 'regular', name: 'Regular', consent_status: 'subscribed',
+      consent_source: 'email-code-verified', consented_at: formerConsentAt,
+    }, 'a confirmed subscription keeps the time and source of the original consent');
   } finally {
     await backend.close();
   }
