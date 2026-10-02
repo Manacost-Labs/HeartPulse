@@ -1,4 +1,5 @@
 import { useTelegramAccountLink } from '../hooks/useTelegramAccountLink';
+import { hasTelegramLinkActions } from '../model/accountDashboard';
 
 export type TelegramAccountLinkActionsViewProps = {
   mode: 'legacy-widget' | 'oidc' | 'disabled';
@@ -28,6 +29,7 @@ export function TelegramAccountLinkActionsView(input: TelegramAccountLinkActions
     ? `https://t.me/${input.botUsername}?start=${encodeURIComponent(input.code)}`
     : '';
   const expiresLabel = formatExpiry(input.expiresAt);
+  if (!hasTelegramLinkActions(input.mode, input.botUsername)) return null;
 
   return (
     <>

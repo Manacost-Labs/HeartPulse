@@ -31,6 +31,7 @@ import { publicProfilePath } from '../model/publicProfilePath';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
 import './IdentityProfile.css';
 import AccountDashboard from './AccountDashboard';
+import { isRealAuthEmail } from '../model/accountDashboard';
 import { continueToCoverAfterLogin, coverSsoReturnTo } from '../../coverAdminSso/public';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
 
@@ -121,12 +122,8 @@ function TelegramLoginWidget({
   );
 }
 
-function isRealAuthEmail(email?: string): boolean {
-  return Boolean(email && email.includes('@') && !email.endsWith('@telegram.local') && !email.endsWith('.local'));
-}
-
 function formatSubscriptionDate(value: string | null): string {
-  if (!value) return 'Еще не проверяли';
+  if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -601,7 +598,8 @@ export function LoginPanel({
         onCopyLink={() => { void copyPublicProfileLink(); }}
         message={msg}
         subscription={subscription}
-        subscriptionPending={subscriptionLoading || !subscriptionChecked}
+        subscriptionLoading={subscriptionLoading}
+        subscriptionChecked={subscriptionChecked}
         checkedAt={formatSubscriptionDate(subscription?.checkedAt ?? null)}
         onRefreshSubscription={() => { void fetchSubscription(true); }}
         boosty={{

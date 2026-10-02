@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  accountAccessNote,
   accountAccessSource,
   accountAccessTiles,
   accountLinkRows,
+  hasTelegramLinkActions,
 } from '../src/modules/identity/model/accountDashboard';
 import type { AuthUser } from '../src/modules/identity/public';
 import type { SubscriptionStatus } from '../src/modules/subscriptions/public';
@@ -85,4 +87,37 @@ test('a Telegram username without a server-side link does not count as linked', 
   const telegram = rows.find(row => row.id === 'telegram');
   assert.equal(telegram?.linked, false);
   assert.equal(telegram?.detail, 'Не привязан');
+});
+
+test('a linked Telegram row never shows the user-typed contact handle', () => {
+  const rows = accountLinkRows(user({ telegramLinked: true, telegramUsername: '', contactTelegram: 'someone_else' }), subscription());
+  assert.equal(rows.find(row => row.id === 'telegram')?.detail, 'Привязан');
+});
+
+test('before the first successful check the Boosty row makes no claim', () => {
+  const boosty = accountLinkRows(user(), null).find(row => row.id === 'boosty');
+  assert.equal(boosty?.linked, false);
+  assert.equal(boosty?.detail, 'Статус появится после проверки');
+});
+
+test('grace periods and administrator grants explain themselves; a plain confirmation does not', () => {
+  assert.equal(accountAccessNote(subscription({
+    hasAccess: true, stale: true, boosty: { hasAccess: true, grace: true },
+    message: 'Boosty временно недоступен, доступ сохранён на 24 часа.',
+  })), 'Boosty временно недоступен, доступ сохранён на 24 часа.');
+  assert.equal(accountAccessNote(subscription({
+    hasAccess: true, stale: true, source: 'boosty', message: 'Подписка Манакоста подтверждена.',
+  })), '', 'a stale provider elsewhere is not a grace period');
+  assert.equal(accountAccessNote(subscription({
+    hasAccess: true, source: 'manual-access', message: 'Бессрочный доступ выдан администратором.',
+  })), 'Бессрочный доступ выдан администратором.');
+  assert.equal(accountAccessNote(subscription({ hasAccess: true, source: 'boosty', message: 'Подписка Манакоста подтверждена.' })), '');
+  assert.equal(accountAccessNote(subscription({ hasAccess: false, stale: true, message: 'Boosty временно недоступен.' })), '');
+});
+
+test('Telegram linking offers actions only through OIDC or a configured bot', () => {
+  assert.equal(hasTelegramLinkActions('oidc', ''), true);
+  assert.equal(hasTelegramLinkActions('legacy-widget', 'manacost_auth_bot'), true);
+  assert.equal(hasTelegramLinkActions('disabled', ''), false);
+  assert.equal(hasTelegramLinkActions('legacy-widget', ''), false);
 });

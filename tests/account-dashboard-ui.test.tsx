@@ -6,6 +6,7 @@ import AccountAccessCard, { type BoostyConfirmation } from '../src/modules/ident
 import AccountContests from '../src/modules/identity/ui/AccountContests';
 import AccountLinks from '../src/modules/identity/ui/AccountLinks';
 import AccountSettings from '../src/modules/identity/ui/AccountSettings';
+import { TelegramAccountLinkActionsView } from '../src/modules/identity/ui/TelegramAccountLinkActions';
 import type { AuthUser } from '../src/modules/identity/public';
 import type { SubscriptionStatus } from '../src/modules/subscriptions/public';
 
@@ -30,12 +31,13 @@ const active = subscription({
   boosty: { hasAccess: true, levelName: 'Алмаз', price: 300 },
 });
 
-function accessCard(input: { subscription: SubscriptionStatus | null; pending?: boolean; boosty?: BoostyConfirmation }) {
+function accessCard(input: { subscription: SubscriptionStatus | null; loading?: boolean; checked?: boolean; checkedAt?: string; boosty?: BoostyConfirmation }) {
   return renderToStaticMarkup(
     <AccountAccessCard
       subscription={input.subscription}
-      pending={input.pending ?? false}
-      checkedAt="02.10, 21:34"
+      loading={input.loading ?? false}
+      checked={input.checked ?? true}
+      checkedAt={input.checkedAt ?? '02.10, 21:34'}
       onRefresh={noop}
       boosty={input.boosty ?? boosty}
       patreonLinkUrl="/api/auth/patreon/start"
@@ -56,15 +58,38 @@ test('an active subscription names its source and links the open sections before
 });
 
 test('a refresh keeps the open sections on screen and only disables the button', () => {
-  const markup = accessCard({ subscription: active, pending: true });
+  const markup = accessCard({ subscription: active, loading: true });
   assert.deepEqual(sectionLinks(markup), ['/tierlist/', '/standard/meta/']);
   assert.match(markup, /<button[^>]*disabled=""[^>]*>Проверяем…<\/button>/);
 });
 
-test('the first check shows a neutral state without forms or sections', () => {
-  const markup = accessCard({ subscription: null, pending: true });
+test('the first check shows a neutral state without forms, sections or a button', () => {
+  const markup = accessCard({ subscription: null, loading: true, checked: false });
   assert.match(markup, /Проверяем доступ/);
-  assert.doesNotMatch(markup, /account-access__tile|account-boosty-email/);
+  assert.doesNotMatch(markup, /account-access__tile|account-boosty-email|<button/);
+});
+
+test('a failed first check offers a retry and Boosty, not a subscription offer', () => {
+  const markup = accessCard({ subscription: null, checked: true });
+  assert.match(markup, /Не удалось проверить/);
+  assert.match(markup, /<button[^>]*>Проверить снова<\/button>/);
+  assert.match(markup, /account-boosty-email/, 'Boosty can still be confirmed while the status check fails');
+  assert.doesNotMatch(markup, /boosty\.to|Доступ закрыт|account-access__tile/);
+  const retrying = accessCard({ subscription: null, checked: true, loading: true });
+  assert.match(retrying, /<button[^>]*disabled=""[^>]*>Проверяем…<\/button>/, 'a retry keeps the same card');
+});
+
+test('without access the subscription can be checked again', () => {
+  assert.match(accessCard({ subscription: subscription() }), /<button[^>]*>Проверить снова<\/button>/);
+});
+
+test('an administrator grant shows its note and no check date it does not have', () => {
+  const markup = accessCard({
+    subscription: subscription({ hasAccess: true, source: 'manual-access', message: 'Бессрочный доступ выдан администратором.' }),
+    checkedAt: '',
+  });
+  assert.match(markup, /Бессрочный доступ выдан администратором\./);
+  assert.doesNotMatch(markup, /проверено|<p class="account-muted"><\/p>/);
 });
 
 test('without access the card offers Boosty, Patreon and a subscription, and lists what opens', () => {
@@ -96,6 +121,27 @@ test('sign-in methods show what is linked and how to link the rest', () => {
     <AccountLinks user={user} subscription={active} telegram={telegram} patreonLinkUrl="/api/auth/patreon/start" />,
   );
   assert.doesNotMatch(withoutPatreon, /Patreon|href="#account-access"/);
+});
+
+test('Telegram link actions appear only for an unlinked account that can link', () => {
+  const links = (input: { user: AuthUser; mode?: 'oidc' | 'disabled' }) => renderToStaticMarkup(
+    <AccountLinks user={input.user} subscription={active} telegram={{ ...telegram, mode: input.mode ?? 'oidc' }} patreonLinkUrl="" />,
+  );
+  assert.match(links({ user }), /account-links__telegram/);
+  assert.doesNotMatch(links({ user: { ...user, telegramLinked: true } as AuthUser }), /account-links__telegram/);
+  assert.doesNotMatch(links({ user, mode: 'disabled' }), /account-links__telegram/, 'no empty actions without OIDC or a bot');
+  const view = renderToStaticMarkup(
+    <TelegramAccountLinkActionsView mode="disabled" botUsername="" action={null} code="" expiresAt="" onOidcLink={noop} onBotCodeRequest={noop} />,
+  );
+  assert.equal(view, '');
+});
+
+test('before the first check the Boosty row offers no confirmation shortcut', () => {
+  const markup = renderToStaticMarkup(
+    <AccountLinks user={user} subscription={null} telegram={telegram} patreonLinkUrl="" />,
+  );
+  assert.doesNotMatch(markup, /href="#account-access"/);
+  assert.match(markup, /Статус появится после проверки/);
 });
 
 test('contest history is one quiet line until there are entries', () => {

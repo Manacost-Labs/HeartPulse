@@ -26,9 +26,18 @@ profile data stays public-only.
 
 ## Acceptance criteria
 
-- A refresh or a Boosty request keeps the last known access state on screen.
-- At 390 and 1440 px nothing overflows horizontally and every control is at
-  least 40 px high; buttons and inputs are 44 px.
+- A refresh, a retry or a Boosty request keeps the last known access state
+  on screen. Only the first check shows the neutral state; a failed first
+  check offers «Проверить снова» and the Boosty confirmation instead of a
+  subscription offer.
+- «Проверить снова» is available with and without access. A Boosty grace
+  period or an administrator grant shows the server's note.
+- The Telegram row shows only the server-owned username and offers linking
+  only through OIDC or the bot code.
+- At 320, 390 and 1440 px nothing overflows horizontally, the «⋯» menu stays
+  on screen and every control is at least 40 px high; buttons and inputs are
+  44 px. Focus is a 3 px burgundy outline (gold in the header); Escape
+  closes the menu and returns focus to its button.
 - `/?login` has the tab title «Личный кабинет — HearthPulse» and stays
   `noindex` through the public URL policy.
 - The page tour targets the header, access card, Telegram row, Boosty form,

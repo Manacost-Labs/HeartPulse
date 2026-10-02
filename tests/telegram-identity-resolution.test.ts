@@ -516,6 +516,9 @@ const loginPanelSource = readFileSync(
   new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url),
   'utf8',
 );
+const accountTelegramUiSource = ['AccountLinks.tsx', 'AccountDashboard.tsx']
+  .map(file => readFileSync(new URL(`../src/modules/identity/ui/${file}`, import.meta.url), 'utf8'))
+  .join('\n');
 const accountDashboardModelSource = readFileSync(
   new URL('../src/modules/identity/model/accountDashboard.ts', import.meta.url),
   'utf8',
@@ -599,9 +602,14 @@ assert.match(
   'the OIDC callback must preserve the explicit signed link target',
 );
 assert.doesNotMatch(
-  loginPanelSource,
+  `${loginPanelSource}\n${accountTelegramUiSource}`,
   /telegramLinkUrl|label="Привязать Telegram"/,
   'the profile must not advertise ambient-cookie web linking without a server-issued intent',
+);
+assert.match(
+  accountTelegramUiSource,
+  /<TelegramAccountLinkActions \{\.\.\.telegram\} \/>/,
+  'the account links Telegram only through the server-issued link actions',
 );
 assert.match(
   accountDashboardModelSource,

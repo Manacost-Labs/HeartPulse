@@ -2572,6 +2572,8 @@ for (const [device, viewport] of [
         headings: [...document.querySelectorAll('h1')].map(heading => heading.id),
         headerBackground: header ? getComputedStyle(header).backgroundColor : '',
         openSections: document.querySelectorAll('a.account-access__tile').length,
+        publicProfileActions: [...document.querySelectorAll('.account-header__actions > :is(a, button)')]
+          .map(action => action.textContent.trim()),
         contactsOpen: document.querySelector('#account-settings')?.open ?? null,
         smallControls: controls.filter(control => control.getBoundingClientRect().height < 40)
           .map(control => (control.textContent || control.getAttribute('aria-label') || control.tagName).trim().slice(0, 40)),
@@ -2590,6 +2592,7 @@ for (const [device, viewport] of [
       || profileState.headings.join() !== 'account-title'
       || profileState.headerBackground !== 'rgb(122, 30, 34)'
       || profileState.openSections < 1
+      || profileState.publicProfileActions.join('|') !== 'Публичный профиль|Копировать ссылку'
       || profileState.contactsOpen !== false
       || profileState.smallControls.length > 0
       || profileState.scrollWidth > profileState.clientWidth + 1) {
@@ -2632,7 +2635,9 @@ for (const [device, viewport] of [
       failures.push(`profile [${device}]: save error is not a visible alert (${JSON.stringify(errorMessage)})`);
     }
     adminState.profileSaveFailure = false;
-    const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.account-dashboard');
+    // The error stays until closed, so the floating message is audited too.
+    const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.account-dashboard')
+      + await auditAccessibility(page, `profile message [${device}]`, '.account-message');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
 
     adminState.constructedArchetypeReadFailureOnce = true;

@@ -1,5 +1,4 @@
 @layer utilities {
-
   .login-page {
     animation: none;
   }
@@ -22,10 +21,6 @@
     justify-content: center;
     white-space: nowrap;
   }
-
-  
-
-  
 }
 
 .profile-workspace {

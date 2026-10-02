@@ -33,6 +33,10 @@
 .account-dashboard :where(li, p) { color: inherit; }
 .account-muted { color: var(--account-muted); }
 
+/* The base layer's amber ring is about 1.2:1 on the cream cards. */
+.account-dashboard :where(a, button, summary, input, select):focus-visible { outline: 3px solid rgba(123, 21, 27, 0.72); outline-offset: 3px; box-shadow: none; }
+.account-dashboard :where(input, select):focus-visible { outline-offset: 1px; }
+
 .account-header {
   position: relative;
   display: flex;
@@ -70,6 +74,7 @@
 }
 
 .account-header__action:hover { background: rgba(251, 239, 213, 0.12); color: #fff; }
+.account-header__action:focus-visible { outline-color: #f1c76e; }
 .account-header__action--icon { justify-content: center; min-width: 44px; padding: 8px; }
 
 .account-menu { position: relative; }
@@ -105,6 +110,8 @@
   cursor: pointer;
 }
 
+.account-menu__list--start { right: auto; left: 0; }
+
 .account-menu__list a:hover,
 .account-menu__list button:hover { background: #f1e2bc; }
 .account-menu__list .account-menu__logout { color: #8c1c1c; }
@@ -133,6 +140,7 @@
 .account-message p { flex: 1 1 auto; min-width: 0; margin: 0; color: inherit; }
 .account-message button { display: inline-grid; place-items: center; flex: 0 0 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: inherit; cursor: pointer; }
 .account-message button:hover { background: rgba(58, 36, 18, 0.08); }
+.account-message button:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; box-shadow: none; }
 .account-message--ok { border-color: #9cc49f; background: #ddebd3; color: #235a2f; }
 .account-message--err { border-color: #e0a39b; background: #f8d7d3; color: #7a1414; }
 
@@ -153,14 +161,17 @@
 
 .account-access { gap: 16px; border-top: 5px solid var(--account-line); }
 .account-access--active { border-top-color: #2e6b3b; }
-.account-access--none { border-top-color: #b2541b; }
+.account-access--none,
+.account-access--unknown { border-top-color: #b2541b; }
 .account-access__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 14px; }
 .account-access__summary { display: flex; flex-direction: column; gap: 6px; flex: 1 1 260px; min-width: 0; }
+.account-access__note { padding: 8px 12px; border-left: 3px solid #b2541b; border-radius: 6px; background: #f6e9c8; font-size: 0.95rem; }
 .account-access__subheading { margin: 0; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--account-muted); }
 
 .account-pill { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.9rem; font-weight: 700; }
 .account-pill--active { background: var(--account-ok-bg); color: var(--account-ok); }
-.account-pill--none { background: var(--account-warn-bg); color: var(--account-warn); }
+.account-pill--none,
+.account-pill--unknown { background: var(--account-warn-bg); color: var(--account-warn); }
 .account-pill--pending { background: #ece1c6; color: var(--account-muted); }
 .account-pill--winner { background: #f3d58c; color: #5a3a06; }
 

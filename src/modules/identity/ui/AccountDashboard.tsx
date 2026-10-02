@@ -19,7 +19,8 @@ export type AccountDashboardProps = {
   onCopyLink: () => void;
   message: { type: 'ok' | 'err'; text: string } | null;
   subscription: SubscriptionStatus | null;
-  subscriptionPending: boolean;
+  subscriptionLoading: boolean;
+  subscriptionChecked: boolean;
   checkedAt: string;
   onRefreshSubscription: () => void;
   boosty: BoostyConfirmation;
@@ -48,7 +49,7 @@ function AccountMessage({ message }: Pick<AccountDashboardProps, 'message'>) {
     const timer = window.setTimeout(() => setClosed(message), 6_000);
     return () => window.clearTimeout(timer);
   }, [message]);
-  if (!message || message === closed) return null;
+  if (!message || message === closed || typeof document === 'undefined') return null;
   return createPortal(
     <div className={`account-message account-message--${message.type}`} role={message.type === 'err' ? 'alert' : 'status'}>
       <p>{message.text}</p>
@@ -58,28 +59,45 @@ function AccountMessage({ message }: Pick<AccountDashboardProps, 'message'>) {
   );
 }
 
+// The list is 230 px wide; with the page gutter it needs this much room to the left.
+const MENU_ROOM = 246;
+
 function AccountMenu({ onLogout }: { onLogout: () => void }) {
   const [open, setOpen] = useState(false);
+  const [alignStart, setAlignStart] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     if (!open) return undefined;
-    const close = (event: Event) => {
-      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !rootRef.current?.contains(event.target as Node)) setOpen(false);
+    const closeAway = (event: Event) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
-    document.addEventListener('pointerdown', close);
-    document.addEventListener('keydown', close);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener('pointerdown', closeAway);
+    document.addEventListener('focusin', closeAway);
+    document.addEventListener('keydown', closeOnEscape);
     return () => {
-      document.removeEventListener('pointerdown', close);
-      document.removeEventListener('keydown', close);
+      document.removeEventListener('pointerdown', closeAway);
+      document.removeEventListener('focusin', closeAway);
+      document.removeEventListener('keydown', closeOnEscape);
     };
   }, [open]);
+  const toggle = () => {
+    // Near the left edge of a narrow screen the list opens to the right.
+    setAlignStart((triggerRef.current?.getBoundingClientRect().right ?? MENU_ROOM) < MENU_ROOM);
+    setOpen(value => !value);
+  };
   return (
     <div className="account-menu" ref={rootRef} data-tour-id="profile-account-actions">
-      <button type="button" className="account-header__action account-header__action--icon" aria-label="Меню аккаунта" aria-haspopup="true" aria-expanded={open} onClick={() => setOpen(value => !value)}>
+      <button ref={triggerRef} type="button" className="account-header__action account-header__action--icon" aria-label="Меню аккаунта" aria-controls="account-menu-list" aria-expanded={open} onClick={toggle}>
         <MoreHorizontal size={20} aria-hidden="true" />
       </button>
       {open && (
-        <div className="account-menu__list">
+        <div id="account-menu-list" className={alignStart ? 'account-menu__list account-menu__list--start' : 'account-menu__list'}>
           <a href="#account-settings" onClick={() => { openSettings(); setOpen(false); }}>Контакты и рассылка</a>
           <button type="button" className="account-menu__logout" onClick={onLogout}>Выйти из аккаунта</button>
         </div>
@@ -125,7 +143,8 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         <div className="account-dashboard__main">
           <AccountAccessCard
             subscription={props.subscription}
-            pending={props.subscriptionPending}
+            loading={props.subscriptionLoading}
+            checked={props.subscriptionChecked}
             checkedAt={props.checkedAt}
             onRefresh={props.onRefreshSubscription}
             boosty={props.boosty}

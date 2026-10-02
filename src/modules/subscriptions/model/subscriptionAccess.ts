@@ -26,6 +26,8 @@ export type SubscriptionStatus = SubscriptionAccess & {
     price?: number;
     levelName?: string;
     message?: string;
+    /** Boosty is unreachable and access rests on the last successful check for 24 hours. */
+    grace?: boolean;
   };
   patreon: { configured?: boolean; connected?: boolean; checked?: boolean; hasAccess?: boolean; tierTitles?: string[]; highestTierAmountCents?: number; message?: string };
   telegram: {

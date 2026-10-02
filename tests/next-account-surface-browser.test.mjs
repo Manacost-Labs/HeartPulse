@@ -57,7 +57,7 @@ test('the Next.js account page shows the access state and keeps contacts usable'
     assert.equal(await overflows(), false);
 
     runtime.grant();
-    for (const width of [390, 1440]) {
+    for (const width of [320, 390, 1440]) {
       await openAccount(width);
       await page.waitForSelector('.account-access--active .account-access__tile');
       assert.equal(await page.$eval('.arena-content', content => getComputedStyle(content).borderTopWidth), '0px',
@@ -73,6 +73,15 @@ test('the Next.js account page shows the access state and keeps contacts usable'
       assert.equal(await page.evaluate(() => document.querySelector('#account-settings').getBoundingClientRect().bottom
         <= document.querySelector('.account-logout').getBoundingClientRect().top), true,
       'contacts must not overlap sign-out while scrolling');
+
+      await page.$eval('.account-menu button', trigger => trigger.scrollIntoView({ block: 'center' }));
+      await page.click('.account-menu button');
+      const menu = await page.$eval('#account-menu-list', list => ({ left: list.getBoundingClientRect().left, right: list.getBoundingClientRect().right }));
+      assert.ok(menu.left >= 0 && menu.right <= width, `the account menu stays on screen at ${width}px (${JSON.stringify(menu)})`);
+      await page.keyboard.press('Escape');
+      assert.equal(await page.$('#account-menu-list'), null, 'Escape closes the account menu');
+      assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Меню аккаунта',
+        'Escape returns focus to the menu button');
     }
   } finally {
     if (browser) await browser.close();

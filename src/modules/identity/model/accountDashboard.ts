@@ -47,6 +47,20 @@ export function accountAccessSource(subscription: SubscriptionStatus | null): st
   return '';
 }
 
+/**
+ * The server's own words when access rests on something other than a fresh
+ * provider check: a Boosty grace period or an administrator grant.
+ */
+export function accountAccessNote(subscription: SubscriptionStatus | null): string {
+  if (!subscription?.hasAccess) return '';
+  return subscription.boosty?.grace || subscription.source.includes('manual-access') ? subscription.message : '';
+}
+
+/** Telegram can be linked through OIDC or through the bot's one-time code. */
+export function hasTelegramLinkActions(mode: 'legacy-widget' | 'oidc' | 'disabled', botUsername: string): boolean {
+  return mode === 'oidc' || Boolean(botUsername);
+}
+
 export type AccountLinkRow = {
   id: 'email' | 'telegram' | 'boosty' | 'patreon';
   title: string;
@@ -62,7 +76,6 @@ export function isRealAuthEmail(email?: string): boolean {
 /** Every known way into the account, with whether it is linked. */
 export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus | null): AccountLinkRow[] {
   const realEmail = isRealAuthEmail(user.email);
-  const telegramName = user.telegramUsername || user.contactTelegram;
   const boosty = subscription?.boosty;
   const patreon = subscription?.patreon;
   const rows: AccountLinkRow[] = [
@@ -70,15 +83,18 @@ export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus
     {
       id: 'telegram',
       title: 'Telegram',
-      detail: user.telegramLinked ? (telegramName ? `@${telegramName}` : 'Привязан') : 'Не привязан',
+      // Only the server-owned username: the contact handle is typed by the user.
+      detail: user.telegramLinked ? (user.telegramUsername ? `@${user.telegramUsername}` : 'Привязан') : 'Не привязан',
       linked: Boolean(user.telegramLinked),
     },
     {
       id: 'boosty',
       title: 'Boosty',
-      detail: boosty?.hasAccess
-        ? `${boosty.email || 'Почта подтверждена'} · подписка активна`
-        : boosty?.message || 'Почта подписки не подтверждена',
+      detail: !subscription
+        ? 'Статус появится после проверки'
+        : boosty?.hasAccess
+          ? `${boosty.email || 'Почта подтверждена'} · подписка активна`
+          : boosty?.message || 'Почта подписки не подтверждена',
       linked: Boolean(boosty?.hasAccess),
     },
   ];

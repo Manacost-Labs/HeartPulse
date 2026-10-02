@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, Mail } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
-import { accountLinkRows, type AccountLinkRow } from '../model/accountDashboard';
+import { accountLinkRows, hasTelegramLinkActions, type AccountLinkRow } from '../model/accountDashboard';
 import type { AuthUser } from '../model/authUser';
 
 const TelegramAccountLinkActions = React.lazy(() => import('./TelegramAccountLinkActions'));
@@ -37,13 +37,13 @@ export default function AccountLinks({ user, subscription, telegram, patreonLink
             <RowIcon id={row.id} />
             <span className="account-links__text"><strong>{row.title}</strong><small>{row.detail}</small></span>
             {row.linked && <Check className="account-links__ok" size={20} role="img" aria-label="Привязано" />}
-            {!row.linked && row.id === 'boosty' && !subscription?.hasAccess && (
+            {!row.linked && row.id === 'boosty' && subscription && !subscription.hasAccess && (
               <a className="account-button account-button--secondary account-button--small" href="#account-access">Подтвердить</a>
             )}
             {!row.linked && row.id === 'patreon' && (
               <a className="account-button account-button--secondary account-button--small" href={patreonLinkUrl}>Подключить</a>
             )}
-            {!row.linked && row.id === 'telegram' && (
+            {!row.linked && row.id === 'telegram' && hasTelegramLinkActions(telegram.mode, telegram.botUsername) && (
               <div className="account-links__telegram">
                 <React.Suspense fallback={null}>
                   <TelegramAccountLinkActions {...telegram} />
