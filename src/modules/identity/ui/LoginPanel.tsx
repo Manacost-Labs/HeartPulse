@@ -5,20 +5,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Copy,
-  ExternalLink,
   Eye,
   EyeOff,
-  LogIn,
   RefreshCw,
-  Star,
-  Trophy,
   UserCircle,
 } from 'lucide-react';
-import {
-  subscriptionEntitlementLabels,
-  type SubscriptionStatus,
-} from '../../subscriptions/public';
+import type { SubscriptionStatus } from '../../subscriptions/public';
 import {
   logoutCurrentAuthSession,
   updateCurrentAuthProfile,
@@ -38,12 +30,9 @@ import { canAccessAdminWorkspace } from '../model/authAccess';
 import { publicProfilePath } from '../model/publicProfilePath';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
 import './IdentityProfile.css';
-import ProfileIdentityHero from './ProfileIdentityHero';
-import ProfileAccessSummary from './ProfileAccessSummary';
+import AccountDashboard from './AccountDashboard';
 import { continueToCoverAfterLogin, coverSsoReturnTo } from '../../coverAdminSso/public';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
-
-const TelegramAccountLinkActions = React.lazy(() => import('./TelegramAccountLinkActions'));
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
 
@@ -168,13 +157,6 @@ const COUNTRY_OPTIONS = [
   'Другая страна',
 ];
 
-const PROFILE_CONTEST_STATUS_TEXT: Record<string, string> = {
-  active: 'Идет',
-  planned: 'Скоро',
-  completed: 'Завершен',
-  cancelled: 'Отменен',
-  draft: 'Черновик',
-};
 
 function PasswordInput({
   value,
@@ -600,26 +582,6 @@ export function LoginPanel({
       || (isRealAuthEmail(authUser.email) ? authUser.email : '')
       || (authUser.contactTelegram || authUser.telegramUsername ? `@${authUser.contactTelegram || authUser.telegramUsername}` : '')
       || authUser.email;
-    const subscriptionPending = subscriptionLoading || !subscriptionChecked;
-    const profileRoleLabel = authUser.role === 'admin'
-      ? 'Администратор'
-      : subscription?.hasAccess
-        ? 'Платный подписчик'
-        : 'Участник';
-    const subscriptionLabel = subscriptionPending
-      ? 'Проверяем подписку'
-      : subscription?.hasAccess
-        ? 'Подписка активна'
-        : 'Подписка не подтверждена';
-    const subscriptionAccessLabels = subscriptionEntitlementLabels(subscription);
-    const identityLabel = authUser.telegramLinked
-      ? 'Telegram привязан'
-      : isRealAuthEmail(authUser.email)
-        ? 'Email привязан'
-        : 'Профиль без email';
-    const wonContestCount = contestHistory.filter(item => item.isWinner).length;
-    const profileId = authUser.publicProfileId || '—';
-    const profileIdDisplay = profileId;
     const publicProfileHref = authUser.publicProfileId
       ? publicProfilePath(authUser.publicProfileId)
       : '';
@@ -630,240 +592,56 @@ export function LoginPanel({
       window.setTimeout(() => setPublicLinkCopied(false), 2_000);
     };
     return (
-      <div className="profile-page profile-workspace">
-        <div className="profile-card">
-          <ProfileIdentityHero
-            eyebrow="Личный кабинет"
-            name={profileName}
-            publicProfileId={profileIdDisplay}
-            avatarInitials={authUser.avatarInitials}
-            photoUrl={authUser.photoUrl}
-            contact={profileContact}
-            tourId="profile-summary"
-            actions={publicProfileHref ? (
-              <div className="profile-public-link">
-                <a href={publicProfileHref}>
-                  Публичный профиль
-                  <ExternalLink size={14} aria-hidden="true" />
-                </a>
-                <button type="button" onClick={() => { void copyPublicProfileLink(); }}>
-                  <Copy size={14} aria-hidden="true" />
-                  {publicLinkCopied ? 'Скопировано' : 'Скопировать ссылку'}
-                </button>
-              </div>
-            ) : undefined}
-            badges={[
-              { label: profileRoleLabel, icon: <UserCircle size={14} aria-hidden="true" /> },
-              { label: subscriptionLabel, icon: <Star size={14} aria-hidden="true" /> },
-              { label: identityLabel, icon: <LogIn size={14} aria-hidden="true" /> },
-            ]}
-          />
-          {msg && (
-            <div className={`profile-message profile-message--${msg.type}`} role={msg.type === 'err' ? 'alert' : 'status'} aria-live="polite">
-              {msg.text}
-            </div>
-          )}
-          <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`}>
-            <ProfileAccessSummary
-              pending={subscriptionPending}
-              active={Boolean(subscription?.hasAccess)}
-              checkedAt={formatSubscriptionDate(subscription?.checkedAt ?? null)}
-              onRefresh={() => { void fetchSubscription(true); }}
-            />
-            <p className="profile-subscription-copy">
-              {subscription?.message || 'Подтвердите подписку через Boosty, Patreon или Telegram VIP-канал.'}
-            </p>
-            {subscriptionAccessLabels.length > 0 && (
-              <div className="profile-access-list">
-                {subscriptionAccessLabels.map(label => (
-                  <span key={label} className="profile-access-item">
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
-            <details className="profile-subscription-management" open={subscriptionChecked && !subscription?.hasAccess}>
-              <summary>Настроить доступ</summary>
-              <div className="profile-subscription-sources">
-                <div className={`profile-subscription-source ${subscription?.boosty?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
-                  <img src="/ad/boosty.png" alt="" />
-                  <div>
-                  <strong>Boosty</strong>
-                  <p>
-                    {subscription?.boosty?.hasAccess
-                      ? `${subscription.boosty.levelName || 'Уровень'} · ${subscription.boosty.price || 0} RUB`
-                      : subscription?.boosty?.message || 'Почта еще не проверена.'}
-                  </p>
-                  </div>
-                </div>
-                <div className={`profile-subscription-source profile-subscription-source--telegram ${subscription?.telegram?.hasAccess ? 'profile-subscription-source--active' : ''}`} data-tour-id="profile-telegram-access">
-                  <img src="/ad/telegram.png" alt="" />
-                  <div>
-                  <strong>Telegram</strong>
-                  <p>
-                    {subscription?.telegram?.hasAccess
-                      ? 'Найден в VIP-канале'
-                      : subscription?.telegram?.message || 'Войдите через Telegram для проверки каналов.'}
-                  </p>
-                  <React.Suspense fallback={null}>
-                    <TelegramAccountLinkActions
-                      userId={authUser.id || authUser.profileId || ''}
-                      mode={telegramMode}
-                      botUsername={telegramBotUsername}
-                      onMessage={(type, text) => setMsg({ type, text })}
-                    />
-                  </React.Suspense>
-                  </div>
-                </div>
-                <div className={`profile-subscription-source profile-subscription-source--patreon ${subscription?.patreon?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
-                  <span className="profile-subscription-source__brand profile-subscription-source__brand--patreon" aria-hidden="true">P</span>
-                  <div>
-                    <strong>Patreon</strong>
-                    <p>{subscription?.patreon?.hasAccess ? `${subscription.patreon.tierTitles?.join(' · ') || 'Алмаз'} · полный доступ` : subscription?.patreon?.message || 'Привяжите Patreon для проверки подписки.'}</p>
-                    {subscription?.patreon?.configured ? (
-                      <div className="profile-subscription-source__actions"><a href={patreonLinkUrl} className="profile-subscription-source__link profile-subscription-source__link--button">{subscription.patreon.connected ? 'Обновить Patreon' : 'Привязать Patreon'}</a></div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <form
-                className="profile-boosty-form"
-                data-tour-id="profile-boosty-access"
-                onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
-              >
-                <p>
-                  Введите почту, на которую оформлена подписка Boosty.
-                </p>
-                <input
-                  type="email"
-                  aria-label="Почта подписки Boosty"
-                  value={boostyEmail}
-                  onChange={e => setBoostyEmail(e.target.value)}
-                  placeholder="Email из Boosty"
-                />
-                {boostyStep === 'code' && (
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    aria-label="Код подтверждения Boosty"
-                    value={boostyCode}
-                    onChange={e => setBoostyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="6-значный код"
-                    className="profile-boosty-code"
-                  />
-                )}
-                <button type="submit" disabled={subscriptionLoading}>
-                  {subscriptionLoading
-                    ? 'Проверяем...'
-                    : boostyStep === 'email'
-                      ? 'Подтвердить Boosty-почту'
-                      : 'Подтвердить код Boosty'}
-                </button>
-              </form>
-            </details>
-          </section>
-          <section className="profile-contact-section">
-            <form
-              className="profile-settings-form"
-              onSubmit={handleProfileSave}
-            >
-              <div className="profile-section-heading" data-tour-id="profile-contacts">
-                <h2>Контакты и настройки</h2>
-                <span>
-                  Для связи по конкурсам, призам и важным уведомлениям.
-                </span>
-              </div>
-              <label>
-                Страна
-                <select value={profileCountry} onChange={e => setProfileCountry(e.target.value)}>
-                  <option value="">Не указана</option>
-                  {COUNTRY_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </label>
-              <label>
-                Telegram
-                <input value={profileTelegram} onChange={e => setProfileTelegram(e.target.value)} placeholder="@username" />
-              </label>
-              <label>
-                VK
-                <input value={profileVkUrl} onChange={e => setProfileVkUrl(e.target.value)} placeholder="https://vk.com/username" />
-              </label>
-              <label>
-                Почта для связи
-                <input type="email" value={profileContactEmail} onChange={e => setProfileContactEmail(e.target.value)} placeholder="mail@example.com" />
-              </label>
-              <label className="profile-checkbox-row">
-                <input
-                  className="profile-checkbox"
-                  type="checkbox"
-                  checked={profileNewsletter}
-                  onChange={e => setProfileNewsletter(e.target.checked)}
-                />
-                <span>Получать рассылку Манакоста</span>
-              </label>
-              <button type="submit" disabled={loading}>
-                Сохранить профиль
-              </button>
-            </form>
-          </section>
-          <section className="profile-contests">
-            <div className="profile-contests__heading" data-tour-id="profile-contests">
-              <div>
-                <h2>Ваши конкурсы</h2>
-                <span>
-                  Заявки, результаты и призы в одном месте.
-                </span>
-              </div>
-              <span className="profile-contests__count">
-                <Trophy size={14} />
-                {contestHistory.length} участий · {wonContestCount} побед
-              </span>
-            </div>
-            {contestHistoryLoading ? (
-              <div className="profile-contests__state">Загружаем историю...</div>
-            ) : contestHistory.length === 0 ? (
-              <div className="profile-contests__state profile-contests__state--empty">
-                Пока нет участий. Выберите конкурс — заявки и результаты появятся здесь.
-              </div>
-            ) : (
-              <div className="profile-contest-list">
-                {contestHistory.map(item => (
-                  <article key={item.id || item.contestId} className={`profile-contest-entry ${item.imageUrl ? 'profile-contest-entry--with-image' : ''} ${item.isWinner ? 'profile-contest-entry--winner' : ''}`}>
-                    {item.imageUrl && (
-                      <img src={item.imageUrl} alt="" loading="lazy" decoding="async" />
-                    )}
-                    <div className="profile-contest-entry__body">
-                      <div className="profile-contest-entry__badges">
-                        <span className={`profile-contest-badge profile-contest-badge--${item.status === 'completed' ? 'completed' : 'active'}`}>
-                          {PROFILE_CONTEST_STATUS_TEXT[item.status] || item.status}
-                        </span>
-                        <span className="profile-contest-badge profile-contest-badge--entry">
-                          {item.entryStatus === 'approved' ? 'Участие одобрено' : item.entryStatus || 'Заявка'}
-                        </span>
-                        {item.isWinner && (
-                          <span className="profile-contest-badge profile-contest-badge--winner">
-                            Победитель
-                          </span>
-                        )}
-                      </div>
-                      <strong className="profile-contest-entry__title">{item.title}</strong>
-                      {item.prize && <p className="profile-contest-entry__prize">Приз: {item.prize}</p>}
-                      <p className="profile-contest-entry__date">
-                        Заявка: {item.joinedAt ? new Date(item.joinedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'дата не указана'}
-                      </p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-          <div className="profile-account-actions" data-tour-id="profile-account-actions">
-            <button type="button" className="profile-account-actions__logout" onClick={handleLogout}>
-              Выйти
-            </button>
-          </div>
-        </div>
-      </div>
+      <AccountDashboard
+        user={authUser}
+        name={profileName}
+        contact={profileContact}
+        publicProfileHref={publicProfileHref}
+        linkCopied={publicLinkCopied}
+        onCopyLink={() => { void copyPublicProfileLink(); }}
+        message={msg}
+        subscription={subscription}
+        subscriptionPending={subscriptionLoading || !subscriptionChecked}
+        checkedAt={formatSubscriptionDate(subscription?.checkedAt ?? null)}
+        onRefreshSubscription={() => { void fetchSubscription(true); }}
+        boosty={{
+          email: boostyEmail,
+          code: boostyCode,
+          step: boostyStep,
+          busy: subscriptionLoading,
+          onEmailChange: setBoostyEmail,
+          onCodeChange: setBoostyCode,
+          onSubmit: boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm,
+        }}
+        patreonLinkUrl={patreonLinkUrl}
+        telegram={{
+          userId: authUser.id || authUser.profileId || '',
+          mode: telegramMode,
+          botUsername: telegramBotUsername,
+          onMessage: (type, text) => setMsg({ type, text }),
+        }}
+        contests={{ entries: contestHistory, loading: contestHistoryLoading }}
+        settings={{
+          values: {
+            country: profileCountry,
+            telegram: profileTelegram,
+            vkUrl: profileVkUrl,
+            contactEmail: profileContactEmail,
+            newsletter: profileNewsletter,
+          },
+          countries: COUNTRY_OPTIONS,
+          saving: loading,
+          onChange: patch => {
+            if (patch.country !== undefined) setProfileCountry(patch.country);
+            if (patch.telegram !== undefined) setProfileTelegram(patch.telegram);
+            if (patch.vkUrl !== undefined) setProfileVkUrl(patch.vkUrl);
+            if (patch.contactEmail !== undefined) setProfileContactEmail(patch.contactEmail);
+            if (patch.newsletter !== undefined) setProfileNewsletter(patch.newsletter);
+          },
+          onSubmit: handleProfileSave,
+        }}
+        onLogout={handleLogout}
+      />
     );
   }
 

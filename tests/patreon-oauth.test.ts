@@ -103,11 +103,12 @@ assert.equal(cipher.decrypt(ciphertext), 'refresh-token');
 assert.equal(cipher.decrypt(`${ciphertext}tampered`), null);
 
 const profileRoute = readFileSync(new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url), 'utf8');
-const profileStyles = readFileSync(new URL('../src/modules/identity/ui/IdentityProfile.css', import.meta.url), 'utf8');
+const accountAccessCard = readFileSync(new URL('../src/modules/identity/ui/AccountAccessCard.tsx', import.meta.url), 'utf8');
+const accountStyles = readFileSync(new URL('../src/modules/identity/ui/AccountDashboard.css', import.meta.url), 'utf8');
 const patreonAccount = readFileSync(new URL('../server/patreonAccount.ts', import.meta.url), 'utf8');
 assert.match(profileRoute, /\/api\/auth\/patreon\/start/);
-assert.match(profileRoute, /Привязать Patreon/);
-assert.match(profileStyles, /profile-subscription-source__brand--patreon/);
+assert.match(accountAccessCard, /Подключить Patreon/);
+assert.match(accountStyles, /account-brand--patreon/);
 assert.match(patreonAccount, /SELECT user_id FROM patreon_connections WHERE patreon_user_id = \? LIMIT 1/);
 assert.match(patreonAccount, /if \(created\) \{\s+const newUserId = user\.id;\s+input\.saveStore\(store\);/);
 

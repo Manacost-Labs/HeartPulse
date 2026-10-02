@@ -2558,52 +2558,23 @@ for (const [device, viewport] of [
     }
 
     await page.goto(`${BASE}/?login`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.profile-card .profile-hero__body', { timeout: 20_000 });
+    await page.waitForSelector('.account-dashboard .account-access--active .account-access__tile', { timeout: 20_000 });
     const profileState = await page.evaluate(() => {
-      const card = document.querySelector('.profile-card');
-      const hero = document.querySelector('.profile-hero');
-      const body = document.querySelector('.profile-hero__body');
-      const status = document.querySelector('.profile-status-chips');
-      const cardStyle = card ? getComputedStyle(card) : null;
-      const heroStyle = hero ? getComputedStyle(hero) : null;
-      const bodyStyle = body ? getComputedStyle(body) : null;
-      const statusStyle = status ? getComputedStyle(status) : null;
       const arenaMainStyle = getComputedStyle(document.querySelector('.arena-main'));
       const arenaContent = document.querySelector('.arena-content.arena-content-open');
       const arenaContentStyle = getComputedStyle(arenaContent);
       const profilePlaqueStyle = getComputedStyle(arenaContent, '::before');
-      const material = selector => {
-        const element = document.querySelector(selector);
-        if (!element) return null;
-        const computed = getComputedStyle(element);
-        return {
-          minHeight: computed.minHeight,
-          borderLeftWidth: computed.borderLeftWidth,
-          borderRadius: computed.borderRadius,
-          borderImageSource: computed.borderImageSource,
-          backgroundColor: computed.backgroundColor,
-          backgroundImage: computed.backgroundImage,
-          color: computed.color,
-        };
-      };
+      const header = document.querySelector('.account-header');
+      const controls = [...document.querySelectorAll('.account-dashboard :is(a, button, input, select, summary)')]
+        .filter(control => control.getClientRects().length > 0 && control.getAttribute('type') !== 'checkbox');
       return {
-        cardPadding: cardStyle?.padding || '',
-        cardRadius: cardStyle?.borderRadius || '',
-        heroMinHeight: heroStyle?.minHeight || '',
-        heroMargin: heroStyle?.margin || '',
-        heroPadding: heroStyle?.padding || '',
-        heroAlign: heroStyle?.alignItems || '',
-        heroBackground: heroStyle?.backgroundImage || '',
-        heroBorderImage: heroStyle?.borderImageSource || '',
-        heroOverflow: heroStyle?.overflow || '',
-        bodyDisplay: bodyStyle?.display || '',
-        bodyDirection: bodyStyle?.flexDirection || '',
-        bodyAlign: bodyStyle?.alignItems || '',
-        bodyGap: bodyStyle?.gap || '',
-        statusDisplay: statusStyle?.display || '',
-        statusColumns: statusStyle?.gridTemplateColumns || '',
-        heroScrollWidth: hero?.scrollWidth || 0,
-        heroClientWidth: hero?.clientWidth || 0,
+        title: document.title,
+        headings: [...document.querySelectorAll('h1')].map(heading => heading.id),
+        headerBackground: header ? getComputedStyle(header).backgroundColor : '',
+        openSections: document.querySelectorAll('a.account-access__tile').length,
+        contactsOpen: document.querySelector('#account-settings')?.open ?? null,
+        smallControls: controls.filter(control => control.getBoundingClientRect().height < 40)
+          .map(control => (control.textContent || control.getAttribute('aria-label') || control.tagName).trim().slice(0, 40)),
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
         routeShell: {
@@ -2613,48 +2584,16 @@ for (const [device, viewport] of [
           plaqueContent: profilePlaqueStyle.content,
           plaqueBackground: profilePlaqueStyle.backgroundImage,
         },
-        materials: {
-          settings: material('.profile-settings-form'),
-          subscription: material('.profile-subscription-panel'),
-          source: material('.profile-subscription-source'),
-          contests: material('.profile-contests'),
-          statusChip: material('.profile-status-chip'),
-          input: material('.profile-settings-form input:not([type="checkbox"])'),
-          publicProfile: material('.profile-public-link a'),
-          copyProfile: material('.profile-public-link button'),
-        },
-        publicProfileActionCount: document.querySelectorAll('.profile-public-link :is(a, button)').length,
-        logoutGridColumn: getComputedStyle(document.querySelector('.profile-account-actions__logout')).gridColumn,
-        accountActionLinks: document.querySelectorAll('.profile-account-actions a').length,
       };
     });
-    const expectedProfile = device === 'desktop'
-      ? {
-          cardPadding: '0px', cardRadius: '0px', heroMinHeight: '190px',
-          heroMargin: '0px', heroAlign: 'center', bodyDisplay: 'flex',
-          bodyDirection: 'row', bodyAlign: 'center', statusDisplay: 'flex',
-        }
-      : {
-          cardPadding: '0px', cardRadius: '0px', heroMinHeight: '276px',
-          heroMargin: '0px', heroPadding: '16px', heroAlign: 'center', bodyDisplay: 'flex',
-          bodyDirection: 'row', bodyAlign: 'center', statusDisplay: 'grid',
-        };
-    for (const [property, expected] of Object.entries(expectedProfile)) {
-      if (profileState[property] !== expected) {
-        failures.push(`profile [${device}]: ${property} expected ${expected}, got ${profileState[property]}`);
-      }
-    }
-    const profileGap = Number.parseFloat(profileState.bodyGap);
-    const mobileStatusColumns = profileState.statusColumns.split(/\s+/).filter(Boolean).length;
-    if (!profileState.heroBackground.includes('profile-hero-hth')
-      || !profileState.heroBorderImage.includes('main-page-rail-border')
-      || profileState.heroOverflow !== 'hidden'
-      || !Number.isFinite(profileGap)
-      || profileGap < 12
-      || (device === 'mobile' && mobileStatusColumns !== 2)
-      || profileState.heroScrollWidth > profileState.heroClientWidth + 1
+    if (profileState.title !== 'Личный кабинет — HearthPulse'
+      || profileState.headings.join() !== 'account-title'
+      || profileState.headerBackground !== 'rgb(122, 30, 34)'
+      || profileState.openSections < 1
+      || profileState.contactsOpen !== false
+      || profileState.smallControls.length > 0
       || profileState.scrollWidth > profileState.clientWidth + 1) {
-      failures.push(`profile [${device}]: hero asset or horizontal reflow changed (${JSON.stringify(profileState)})`);
+      failures.push(`profile [${device}]: account layout, access or targets regressed (${JSON.stringify(profileState)})`);
     }
     if (device === 'mobile' && (profileState.routeShell.mainPadding !== '12px 0px 0px'
       || profileState.routeShell.contentMaxWidth !== '100%'
@@ -2664,73 +2603,36 @@ for (const [device, viewport] of [
     if (profileState.routeShell.plaqueContent !== 'none' || profileState.routeShell.plaqueBackground !== 'none') {
       failures.push(`profile [${device}]: retired profile plaque returned (${JSON.stringify(profileState.routeShell)})`);
     }
-    const framedProfileSurfaces = [profileState.materials.settings, profileState.materials.subscription];
-    if (framedProfileSurfaces.some(surface => !surface
-      || surface.borderImageSource !== 'none'
-      || surface.borderLeftWidth !== '1px'
-      || !surface.backgroundImage.includes('arena-parchment.jpg')
-      || surface.borderRadius !== '3px')) {
-      failures.push(`profile [${device}]: settings or subscription frame changed (${JSON.stringify(framedProfileSurfaces)})`);
-    }
-    if (profileState.materials.source?.borderImageSource !== 'none'
-      || profileState.materials.source?.borderLeftWidth !== '4px'
-      || profileState.materials.source?.borderRadius !== '0px') {
-      failures.push(`profile [${device}]: subscription source list row changed (${JSON.stringify(profileState.materials.source)})`);
-    }
-    if (profileState.materials.contests?.borderImageSource !== 'none'
-      || profileState.materials.contests?.borderLeftWidth !== '1px'
-      || profileState.materials.contests?.borderRadius !== '3px') {
-      failures.push(`profile [${device}]: contest frame changed (${JSON.stringify(profileState.materials.contests)})`);
-    }
-    if (profileState.materials.statusChip?.backgroundImage !== 'none'
-      || profileState.materials.statusChip?.borderImageSource !== 'none'
-      || profileState.materials.statusChip?.minHeight !== (device === 'mobile' ? '38px' : '28px')) {
-      failures.push(`profile [${device}]: status chip material changed (${JSON.stringify(profileState.materials.statusChip)})`);
-    }
-    if (profileState.publicProfileActionCount !== 2
-      || profileState.materials.publicProfile?.backgroundColor === profileState.materials.copyProfile?.backgroundColor
-      || profileState.logoutGridColumn !== '1 / -1') {
-      failures.push(`profile [${device}]: profile actions lost their hierarchy or logout layout (${JSON.stringify({
-        count: profileState.publicProfileActionCount,
-        primary: profileState.materials.publicProfile,
-        secondary: profileState.materials.copyProfile,
-        logoutGridColumn: profileState.logoutGridColumn,
-      })})`);
-    }
-    if (profileState.materials.input?.borderRadius !== '2px'
-      || profileState.materials.input?.color !== 'rgb(61, 43, 31)'
-      || profileState.materials.input?.backgroundColor !== 'rgba(255, 246, 219, 0.72)') {
-      failures.push(`profile [${device}]: profile input material changed (${JSON.stringify(profileState.materials.input)})`);
-    }
-    if (profileState.accountActionLinks !== 0) {
-      failures.push(`profile [${device}]: retired account shortcuts returned (${profileState.accountActionLinks})`);
-    }
     const profileTourViolationCount = await auditPageTour(page, {
       label: `profile [${device}]`,
       minSteps: 5,
       mobile: device === 'mobile',
     });
-    await page.click('.profile-settings-form button[type="submit"]');
-    await page.waitForFunction(() => document.querySelector('.profile-message--ok')?.textContent?.includes('Профиль обновлен.'));
-    const successMessage = await page.$eval('.profile-message--ok', element => {
-      const style = getComputedStyle(element);
-      return { role: element.getAttribute('role'), radius: style.borderRadius, color: style.color };
+    await page.$eval('#account-settings', contacts => { contacts.open = true; });
+    await page.click('#account-settings button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.account-message--ok')?.textContent?.includes('Профиль обновлен.'));
+    const accountMessage = selector => page.$eval(selector, element => {
+      const rect = element.getBoundingClientRect();
+      return {
+        role: element.getAttribute('role'),
+        color: getComputedStyle(element).color,
+        inViewport: rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth,
+        onTop: element.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)),
+      };
     });
-    if (successMessage.role !== 'status' || successMessage.radius !== '2px' || successMessage.color !== 'rgb(53, 93, 57)') {
-      failures.push(`profile [${device}]: success message lost semantic visual ownership (${JSON.stringify(successMessage)})`);
+    const successMessage = await accountMessage('.account-message--ok');
+    if (successMessage.role !== 'status' || successMessage.color !== 'rgb(35, 90, 47)' || !successMessage.inViewport || !successMessage.onTop) {
+      failures.push(`profile [${device}]: save confirmation is not a visible status (${JSON.stringify(successMessage)})`);
     }
     adminState.profileSaveFailure = true;
-    await page.click('.profile-settings-form button[type="submit"]');
-    await page.waitForFunction(() => document.querySelector('.profile-message--err')?.textContent?.includes('Контрольная ошибка сохранения'));
-    const errorMessage = await page.$eval('.profile-message--err', element => {
-      const style = getComputedStyle(element);
-      return { role: element.getAttribute('role'), radius: style.borderRadius, color: style.color };
-    });
-    if (errorMessage.role !== 'alert' || errorMessage.radius !== '2px' || errorMessage.color !== 'rgb(125, 34, 39)') {
-      failures.push(`profile [${device}]: error message lost semantic visual ownership (${JSON.stringify(errorMessage)})`);
+    await page.click('#account-settings button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.account-message--err')?.textContent?.includes('Контрольная ошибка сохранения'));
+    const errorMessage = await accountMessage('.account-message--err');
+    if (errorMessage.role !== 'alert' || errorMessage.color !== 'rgb(122, 20, 20)' || !errorMessage.inViewport || !errorMessage.onTop) {
+      failures.push(`profile [${device}]: save error is not a visible alert (${JSON.stringify(errorMessage)})`);
     }
     adminState.profileSaveFailure = false;
-    const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
+    const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.account-dashboard');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
 
     adminState.constructedArchetypeReadFailureOnce = true;

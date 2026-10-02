@@ -1,25 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
-import './IdentityProfile.css';
+import './AccountDashboard.css';
 import {
   TelegramAccountLinkActionsView,
   type TelegramAccountLinkActionsViewProps,
 } from './TelegramAccountLinkActions';
 
+// The actions as the account page shows them: inside the Telegram row of «Вход и привязки».
 const render = (args: TelegramAccountLinkActionsViewProps) => (
-  <div className="arena-app-profile">
-    <div className="profile-workspace">
-      <div className="profile-subscription-sources">
-        <div className="profile-subscription-source profile-subscription-source--telegram">
-          <img src="/ad/telegram.png" alt="" />
-          <div>
-            <strong>Telegram</strong>
-            <p>Привяжите аккаунт для проверки доступа к VIP-каналу.</p>
-            <TelegramAccountLinkActionsView {...args} />
-          </div>
-        </div>
-      </div>
-    </div>
+  <div className="account-dashboard">
+    <ul className="account-links__list">
+      <li className="account-links__row">
+        <span className="account-brand account-brand--telegram" aria-hidden="true">T</span>
+        <span className="account-links__text"><strong>Telegram</strong><small>Не привязан</small></span>
+        <div className="account-links__telegram"><TelegramAccountLinkActionsView {...args} /></div>
+      </li>
+    </ul>
   </div>
 );
 
@@ -85,18 +81,13 @@ export const OpeningOidc: Story = {
 
 export const AlreadyLinked: Story = {
   render: () => (
-    <div className="arena-app-profile">
-      <div className="profile-workspace">
-        <div className="profile-subscription-sources">
-          <div className="profile-subscription-source profile-subscription-source--telegram">
-            <img src="/ad/telegram.png" alt="" />
-            <div>
-              <strong>Telegram</strong>
-              <p>Telegram уже привязан к аккаунту.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="account-dashboard">
+      <ul className="account-links__list">
+        <li className="account-links__row">
+          <span className="account-brand account-brand--telegram" aria-hidden="true">T</span>
+          <span className="account-links__text"><strong>Telegram</strong><small>Привязан</small></span>
+        </li>
+      </ul>
     </div>
   ),
   play: async ({ canvas }) => {

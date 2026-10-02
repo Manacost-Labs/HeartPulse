@@ -1,56 +1,55 @@
-# Profile workspace design
+# Account page design
 
 ## Objective
 
-The account page should feel like part of HearthPulse and make account status,
-subscription access and editable contacts easy to understand. The working scope
-is the personal account opened with `?login`; public profile data stays public-only.
+The personal account opened with `/?login` answers three questions in this
+order: which paid sections are open and why, how to open the rest, and which
+ways into the account are linked. Contests and prize contacts follow. Public
+profile data stays public-only.
+
+## Layout
+
+- A burgundy header with the avatar, the name as the page's only `h1`, the
+  main contact, «Публичный профиль», «Копировать ссылку» and a «⋯» menu
+  with «Контакты и рассылка» and «Выйти из аккаунта».
+- The access card. With access it names the source (Boosty level and price,
+  Patreon tiers or the Telegram VIP channel), the last check and links to the
+  open sections; closed sections follow as plain items. Without access it
+  offers the Boosty e-mail confirmation, Patreon (when configured) and a
+  Boosty subscription link, then lists what a subscription opens.
+- «Вход и привязки»: e-mail, Telegram, Boosty and Patreon (when configured),
+  each with its state and the action that links it.
+- Contest entries, one quiet line while there are none.
+- «Контакты для призов и рассылка», folded by default.
+- Results of saving, linking and checking float at the bottom of the
+  screen. Successes hide after six seconds; errors stay until closed.
 
 ## Acceptance criteria
 
-- The entire account surface uses the site's parchment palette, including
-  the space around panels. No opaque white sheet appears behind the profile.
-- Identity, subscription access, contacts and participation history have clear
-  headings and distinct groups. The main action is clear within each group.
-- Status and verification messages describe real API state. Contact fields,
-  saving, refresh, public-profile links and sign-out remain operable.
-- At 390 and 1440 px, text and controls remain visible without horizontal
-  overflow. Keyboard focus and form feedback remain accessible.
+- A refresh or a Boosty request keeps the last known access state on screen.
+- At 390 and 1440 px nothing overflows horizontally and every control is at
+  least 40 px high; buttons and inputs are 44 px.
+- `/?login` has the tab title «Личный кабинет — HearthPulse» and stays
+  `noindex` through the public URL policy.
+- The page tour targets the header, access card, Telegram row, Boosty form,
+  contests, contacts and menu by their `data-tour-id` values.
 
-## Implementation plan
+## Files
 
-1. Reproduce the current account using local fixtures and identify the owning
-   surface styles. Verify active, inactive and failed subscription checks.
-2. Correct the background and simplify panel hierarchy using existing assets,
-   typography and reusable identity presentation.
-3. Verify contact saving and subscription refresh in Storybook and a real
-   browser, then run the project's build and release checks.
-
-## Files and conventions
-
-Account rendering currently lives in `src/features/DeferredRoutes.tsx`.
-`src/components/ProfileIdentityHero.tsx` owns identity presentation. New visual
-rules belong with their owning component; use existing `profile-*` classes,
-semantic sections and visible labels rather than inline styles or new deps.
-Keep existing account and subscription API contracts and privacy boundaries.
-
-`src/features/ProfileAccessSummary.tsx` presents the existing access state and
-last verification time. An active subscription initially collapses the native
-setup disclosure; unconfirmed access opens it. The account surface is styled
-independently of the previous tab, and promotional overlays are hidden there.
-The bottom account actions contain sign-out only, including for administrators;
-the former Standard meta and article-management shortcuts are removed.
+`src/modules/identity/ui/LoginPanel.tsx` keeps the account state, requests
+and the signed-out login view and passes the signed-in state to
+`AccountDashboard.tsx`. The dashboard is split into `AccountAccessCard`,
+`AccountLinks`, `AccountContests` and `AccountSettings`, styled only by
+`AccountDashboard.css`. `model/accountDashboard.ts` derives the section
+tiles, the access source line and the linked accounts. Login has no
+passwordless or social-only registration yet; that needs a backend change.
 
 ## Verification
 
-Run `npm run lint`, `npm run security:semgrep`, `npm run test:storybook`,
-`npm run build-storybook`, `npm run build`, `npm run budget:next`, and
-`npm run lint:docs`. Run `node --test tests/field-focus-browser.test.mjs`
-for field and account regressions. Use Chrome DevTools MCP for desktop/mobile layout,
-keyboard behavior, accessibility structure, console and failed requests.
-Fixtures must use synthetic account data and intercept their API calls.
-
-## Documentation impact
-
-Update this spec and `CHANGELOG.md` with the final visible behavior. If UI
-ownership changes, update the architecture catalog in the same task.
+`tests/account-dashboard-model.test.ts` and
+`tests/account-dashboard-ui.test.tsx` cover the derived state and the
+markup of each state. `tests/next-account-surface-browser.test.mjs` and the
+profile block of `scripts/e2e-qa.mjs` check the page in a browser at both
+widths, including the floating messages, the tour and axe. The Storybook
+stories «Profile/Account workspace» use synthetic data with intercepted API
+calls.

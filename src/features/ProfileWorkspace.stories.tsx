@@ -27,39 +27,46 @@ type Story = StoryObj<typeof meta>;
 export const ActiveSubscription: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByRole('heading', { name: 'Доступ открыт' });
-    const details = canvasElement.querySelector('details');
-    if (!details) throw new Error('Access management disclosure is missing');
-    await expect(details).not.toHaveAttribute('open');
-    await userEvent.click(canvas.getByText('Настроить доступ'));
-    await expect(details).toHaveAttribute('open');
-    await expect(canvas.getByRole('textbox', { name: 'Почта подписки Boosty' })).toBeVisible();
+    await canvas.findByRole('heading', { name: 'Ваш доступ к HearthPulse' });
+    await expect(canvas.getByRole('link', { name: /^Арена/ })).toHaveAttribute('href', '/tierlist/');
+    const contacts = canvasElement.querySelector('details');
+    if (!contacts) throw new Error('Contacts disclosure is missing');
+    await expect(contacts).not.toHaveAttribute('open');
+    await userEvent.click(canvas.getByText('Контакты для призов и рассылка'));
+    await expect(contacts).toHaveAttribute('open');
+    await expect(canvas.getByRole('textbox', { name: 'Почта для связи' })).toBeVisible();
   },
 };
 export const NoSubscription: Story = {
   beforeEach: () => mockProfileRequests(false),
   play: async ({ canvasElement }) => {
-    await within(canvasElement).findByRole('heading', { name: 'Доступ не подтверждён' });
-    await expect(canvasElement.querySelector('details')).toHaveAttribute('open');
+    const canvas = within(canvasElement);
+    await canvas.findByRole('heading', { name: 'Откройте полный доступ' });
+    await expect(canvas.getByRole('textbox', { name: 'Почта, на которую оформлена подписка' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Прислать код' })).toBeEnabled();
   },
 };
 export const RefreshFailure: Story = {
   beforeEach: () => mockProfileRequests(true, true),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByRole('heading', { name: 'Доступ открыт' });
-    await userEvent.click(canvas.getByRole('button', { name: 'Проверить доступ' }));
-    await expect(await canvas.findByRole('alert')).toHaveTextContent('Не удалось проверить подписку');
+    await canvas.findByRole('heading', { name: 'Ваш доступ к HearthPulse' });
+    await userEvent.click(canvas.getByRole('button', { name: 'Проверить снова' }));
+    // Messages float in document.body, outside the story canvas.
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole('alert')).toHaveTextContent('Не удалось проверить подписку');
   },
 };
 export const SaveContacts: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const contact = await canvas.findByRole('textbox', { name: 'Почта для связи' });
+    await userEvent.click(await canvas.findByText('Контакты для призов и рассылка'));
+    const contact = canvas.getByRole('textbox', { name: 'Почта для связи' });
     await userEvent.clear(contact);
     await userEvent.type(contact, 'contact@example.com');
-    await userEvent.click(canvas.getByRole('button', { name: 'Сохранить профиль' }));
-    await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('Профиль обновлен.'));
+    await userEvent.click(canvas.getByRole('button', { name: 'Сохранить' }));
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('status')).toHaveTextContent('Профиль обновлен.'));
     await expect(contact).toHaveValue('contact@example.com');
   },
 };

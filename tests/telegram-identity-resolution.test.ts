@@ -516,6 +516,10 @@ const loginPanelSource = readFileSync(
   new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url),
   'utf8',
 );
+const accountDashboardModelSource = readFileSync(
+  new URL('../src/modules/identity/model/accountDashboard.ts', import.meta.url),
+  'utf8',
+);
 const telegramLinkActionsSource = readFileSync(
   new URL('../src/modules/identity/ui/TelegramAccountLinkActions.tsx', import.meta.url),
   'utf8',
@@ -600,13 +604,13 @@ assert.doesNotMatch(
   'the profile must not advertise ambient-cookie web linking without a server-issued intent',
 );
 assert.match(
-  loginPanelSource,
-  /identityLabel = authUser\.telegramLinked/,
+  accountDashboardModelSource,
+  /linked: Boolean\(user\.telegramLinked\)/,
   'the profile link state must come from immutable server identity ownership',
 );
 assert.doesNotMatch(
-  loginPanelSource,
-  /identityLabel = authUser\.telegramUsername/,
+  `${loginPanelSource}\n${accountDashboardModelSource}`,
+  /linked: Boolean\(user\.telegramUsername|identityLabel = authUser\.telegramUsername/,
   'mutable Telegram usernames must remain display-only metadata',
 );
 assert.match(

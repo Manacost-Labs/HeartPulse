@@ -41,13 +41,13 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
   {
     id: 'profile', version: 1, paths: ['/profile'], title: 'Как устроен ваш профиль',
     steps: [
-      { id: 'summary', target: 'profile-summary', title: 'Ваш профиль', description: 'Здесь собраны имя, основной контакт, ID профиля, роль и текущий статус доступа. ID пригодится при обращении в поддержку.', preferredPlacement: 'bottom' },
-      { id: 'contacts', target: 'profile-contacts', title: 'Контакты и уведомления', description: 'Укажите удобные способы связи для конкурсов, призов и важных уведомлений. Эти поля не подтверждают Telegram-подписку.', preferredPlacement: 'bottom' },
-      { id: 'access', target: 'profile-access-status', title: 'Доступ к разделам', description: 'Проверьте, какие закрытые разделы открыты и когда обновлялась подписка. Кнопка обновления повторно проверяет источники доступа.', audience: 'authenticated', preferredPlacement: 'bottom' },
-      { id: 'telegram', target: 'profile-telegram-access', title: 'Проверка Telegram', description: 'Создайте ID-код и отправьте его боту. Обычное поле @username в контактах не подтверждает членство в VIP-канале.', audience: 'non-admin', preferredPlacement: 'top' },
-      { id: 'boosty', target: 'profile-boosty-access', title: 'Подтверждение Boosty', description: 'Введите именно почту из Boosty-профиля. После шестизначного кода сайт обновит доступ к разделам вашего уровня.', audience: 'non-admin', preferredPlacement: 'top' },
-      { id: 'contests', target: 'profile-contests', title: 'Ваши конкурсы', description: 'Здесь появляются отправленные заявки, их статус, призы и отметка победителя. Счётчик показывает количество участий и побед.', preferredPlacement: 'top' },
-      { id: 'actions', target: 'profile-account-actions', title: 'Выход из аккаунта', description: 'Нажмите «Выйти», чтобы завершить текущую сессию на этом устройстве.', audience: 'admin', preferredPlacement: 'top' },
+      { id: 'summary', target: 'profile-summary', title: 'Ваш профиль', description: 'Здесь имя, основной контакт и ссылка на публичный профиль, которой можно поделиться.', preferredPlacement: 'bottom' },
+      { id: 'contacts', target: 'profile-contacts', title: 'Контакты для призов', description: 'Контакты нужны, только чтобы передать приз победителю конкурса. Здесь же включается рассылка. Эти поля не подтверждают подписку.', preferredPlacement: 'bottom' },
+      { id: 'access', target: 'profile-access-status', title: 'Доступ к разделам', description: 'Какие разделы открыты, откуда доступ и когда его проверяли. «Проверить снова» заново спрашивает Boosty, Patreon и Telegram.', audience: 'authenticated', preferredPlacement: 'bottom' },
+      { id: 'telegram', target: 'profile-telegram-access', title: 'Привязка Telegram', description: 'Привяжите Telegram, чтобы входить через него и получать доступ по VIP-каналу. Поле @username в контактах привязкой не считается.', audience: 'non-admin', preferredPlacement: 'top' },
+      { id: 'boosty', target: 'profile-boosty-access', title: 'Подтверждение Boosty', description: 'Введите почту из Boosty-профиля и шестизначный код из письма: сайт откроет разделы вашего уровня.', audience: 'non-admin', preferredPlacement: 'top' },
+      { id: 'contests', target: 'profile-contests', title: 'Ваши конкурсы', description: 'Здесь появляются ваши заявки, их статус, призы и отметка победы.', preferredPlacement: 'top' },
+      { id: 'actions', target: 'profile-account-actions', title: 'Меню аккаунта', description: 'В меню «⋯» — контакты для призов и выход из аккаунта на этом устройстве.', audience: 'admin', preferredPlacement: 'top' },
     ],
   },
   {

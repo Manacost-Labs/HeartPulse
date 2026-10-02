@@ -8,7 +8,7 @@ const authAvatarStyles = readFileSync(new URL('../src/modules/identity/ui/AuthAv
 const initialStyles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const identityPublicStyles = readFileSync(new URL('../src/modules/identity/public.css', import.meta.url), 'utf8');
 const profileIdentityStyles = readFileSync(new URL('../src/modules/identity/ui/ProfileIdentityHero.css', import.meta.url), 'utf8');
-const identityProfileStyles = readFileSync(new URL('../src/modules/identity/ui/IdentityProfile.css', import.meta.url), 'utf8');
+const accountDashboardStyles = readFileSync(new URL('../src/modules/identity/ui/AccountDashboard.css', import.meta.url), 'utf8');
 const deferredStyles = readFileSync(new URL('../src/features/DeferredRoutes.css', import.meta.url), 'utf8');
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
 const contestsSource = readFileSync(new URL('../src/features/Contests.tsx', import.meta.url), 'utf8');
@@ -38,10 +38,10 @@ assert.doesNotMatch(
   /profile-hero__body\s*>\s*(?:span|\.auth-avatar):first-child/,
   'legacy profile selectors must not override the eager avatar baseline',
 );
-assert.match(identityProfileStyles, /\.profile-workspace[\s\S]*\.profile-subscription-panel/,
-  'identity must own the authenticated profile layout and subscription presentation');
-assert.doesNotMatch(deferredStyles, /\.profile-workspace|\.login-page/,
-  'DeferredRoutes CSS must not regain identity-owned profile or login selectors');
+assert.match(accountDashboardStyles, /\.account-dashboard[\s\S]*\.account-access/,
+  'identity must own the authenticated account layout and access presentation');
+assert.doesNotMatch(deferredStyles, /\.profile-workspace|\.login-page|\.account-/,
+  'DeferredRoutes CSS must not regain identity-owned account, profile or login selectors');
 assert.match(
   gallerySource,
   /<ModalSurface[\s\S]*className="gallery-lightbox"/,
