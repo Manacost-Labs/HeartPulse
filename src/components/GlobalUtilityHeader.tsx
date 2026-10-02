@@ -385,7 +385,7 @@ export default function GlobalUtilityHeader({
                 </button>
               )}
               <a
-                href="/faq"
+                href="/faq/"
                 className="global-help-menu__item"
                 aria-current={window.location.pathname.replace(/\/+$/, '') === '/faq' ? 'page' : undefined}
                 onClick={event => {

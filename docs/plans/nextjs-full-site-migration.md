@@ -125,14 +125,15 @@ new HTML served from Vite for seven consecutive days**. Keep `/api/`,
 Preserve the Yandex verification URL as a static-asset contract.
 
 Retire Vite in four independently committed tooling slices: (a) replace
-development/preview and Storybook's Vite framework, (b) replace Vite env reads,
+development and preview (Storybook keeps its Vite framework, see step 2 of
+section 7), (b) replace Vite env reads,
 prerender/SEO and bundle-budget checks, (c) make release, Nginx, CDN and
 rollback artifacts Next-only while retaining old hashed assets for their
 carry-forward window, then (d) remove the Vite entry/config/dependencies and
 prove `npm ls vite --all` plus active source/config searches are clear. The
-final gate is `npm run dev`, `npm run build`, Storybook, release creation,
-deployment and rollback working without a Vite artifact; production HTML and
-current assets must no longer depend on `dist`.
+final gate is `npm run dev`, `npm run build`, release creation, deployment
+and rollback working without a Vite artifact, and Storybook on its own Vite
+builder; production HTML and current assets must no longer depend on `dist`.
 
 ## Ordered work
 
@@ -367,9 +368,10 @@ Move required `public/` assets into a Next/Nginx serving contract without URL
 changes. Replace Vite `index.html`, `src/main.tsx`, `vite.config.ts`,
 `src/vite-env.d.ts`, `scripts/prerender.js`, `dist` assumptions, preview/dev
 scripts, CI gates,
-release manifest/checksums and deploy rollback checks. Remove direct Vite,
-`@vitejs/plugin-react`, `@tailwindcss/vite` and `@storybook/react-vite`
-dependencies only after the replacement checks pass; update the lockfile.
+release manifest/checksums and deploy rollback checks. `vite`,
+`@vitejs/plugin-react`, `@tailwindcss/vite` and `@storybook/react-vite` stay
+as development dependencies of Storybook (owner's decision, 2026-10-02);
+nothing else may depend on them.
 Do not delete still-requested `/assets/` URLs or historical rollback artifacts.
 
 Retire each Vite dependency at its actual owner, in this order:
@@ -487,8 +489,9 @@ showed that Storybook loaded a stylesheet with `@layer utilities` before
 `.storybook/preview.tsx` now imports the stylesheets in the order of the
 Next.js layout.
 
-**Done when:** `npm run dev`, `npm run build`, Storybook/MCP, release creation,
-deployment and rollback use Next plus Express without a Vite build. No active
+**Done when:** `npm run dev`, `npm run build`, release creation, deployment
+and rollback use Next plus Express without a Vite build, and Storybook/MCP
+works on its own Vite builder. No active
 source/config/deploy script depends on Vite or `dist/index.html`; dependency
 inspection finds no Vite tooling needed by the site. Verify `npm run
 verify:release`, `npm run test:storybook`, `npm run build-storybook`,
@@ -496,10 +499,9 @@ verify:release`, `npm run test:storybook`, `npm run build-storybook`,
 and Nginx contract tests, followed by a production monitor and browser smoke
 check. Update `DEPLOYMENT.md`, `README.md`, `docs/runbooks/nextjs-public-web.md`,
 `docs/runbooks/nextjs-production-cutover.md` and the release/rollback runbook.
-`npm ls vite --all` and a lockfile inspection must show no active Vite package
-(Storybook keeps its Vite builder by decision, see step 2; the site itself
-needs no Vite package);
-production must serve zero HTML or current assets from a Vite `dist` artifact.
+`npm ls vite --all` and a lockfile inspection must show Vite only under
+Storybook's development dependencies; production must serve zero HTML or
+current assets from a Vite `dist` artifact.
 
 ## Release discipline and risks
 

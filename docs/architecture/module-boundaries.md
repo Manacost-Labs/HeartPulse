@@ -409,8 +409,9 @@ read model. The frontend module exposes the identity presentation independently
 of request state; the legacy feature composes it with existing interactive UI.
 
 `apps/public-web` is a second composition root. Its server-only loader receives
-the public Express projection; its client adapters compose existing card, FAQ
-and legal UI with `src/app/shell/PublicPageShell.tsx`. This common shell owns
+the public Express projection; its client adapters compose existing card UI with
+`src/app/shell/PublicPageShell.tsx`, and the FAQ and legal pages are server
+components rendered inside the client `ui/PublicSupportShell.tsx`. The shell owns
 navigation layout and focus/scroll behavior; domains retain their page content.
 The composition root imports no database, credentials, Redis or background jobs.
 Its TypeScript files import siblings with `./` and everything else through the

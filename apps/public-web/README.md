@@ -17,9 +17,10 @@ behind its `public.ts`, not in `src/features/`.
 <!-- markdownlint-disable MD013 -->
 | Path | Owns |
 | --- | --- |
-| `app/<route>/page.tsx` | URL, metadata, anonymous server-side data, then one client page component |
+| `app/<route>/page.tsx` | URL, metadata, anonymous server-side data, then the page: one client page component, or server-rendered content inside a client shell |
 | `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell with the site-wide head tags, analytics script and field focus mode; real 404 and the generic error page for every route |
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
+| `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
 | `app/page-transitions.css` | Opt-in to cross-document view transitions; the animation itself is the `route-content` block of `src/index.css` |
@@ -148,9 +149,12 @@ behind its `public.ts`, not in `src/features/`.
    keep it out of `'use client'` modules and pass it as `children` to a small
    client shell, as `ui/PublicSupportPage.tsx` does with
    `ui/PublicSupportShell.tsx` for `/faq/`, `/privacy/` and `/terms/`. Its
-   code and data then stay out of the browser bundle. Links in it are plain
-   anchors at canonical URLs (`canonicalPagePath()`): the browser loads the
-   target as a document either way. Put interactive UI in
+   code and data then stay out of the browser bundle, but the rendered
+   content also travels in the RSC payload of every HTML response instead
+   of a cached chunk: `/faq/` lost 8.4 KiB of JavaScript and its document
+   grew from 13.5 to 18.8 KiB gzip. No budget measures HTML. Links in it are
+   plain anchors at canonical URLs: the browser loads the target as a
+   document either way. Put interactive UI in
    `ui/SomePageClient.tsx` (`'use client'`), composed from the owning
    `src/modules/<domain>/public.ts`.
 4. Route the URL to Next in `deploy/nginx/arena-html-routing.conf` and update

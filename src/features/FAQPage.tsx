@@ -8,7 +8,6 @@ import {
   Search,
   ShieldCheck,
 } from 'lucide-react';
-import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { FAQ_PAGE_SECTIONS } from '../content/faq';
 import '../route-parchment.css';
 import './FAQPage.css';
@@ -23,7 +22,8 @@ const SECTION_ICONS = {
 
 /**
  * The help center. It has no state and no handlers, so a server component can
- * render it: links are plain anchors that load the target page as a document.
+ * render it: links are plain anchors that load the target page as a document,
+ * so internal ones in `src/content/faq.ts` carry the canonical trailing slash.
  */
 export default function FAQPage() {
   return (
@@ -87,7 +87,7 @@ export default function FAQPage() {
                       <p>{item.answer}</p>
                       {item.link && (
                         <a
-                          href={canonicalPagePath(item.link.href)}
+                          href={item.link.href}
                           target={item.link.external ? '_blank' : undefined}
                           rel={item.link.external ? 'noreferrer' : undefined}
                         >
