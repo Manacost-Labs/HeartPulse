@@ -1,8 +1,9 @@
 import React from 'react';
-import { Check, Mail } from 'lucide-react';
+import { Check } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
-import { accountLinkRows, hasTelegramLinkActions, type AccountLinkRow } from '../model/accountDashboard';
+import { accountLinkRows, hasTelegramLinkActions } from '../model/accountDashboard';
 import type { AuthUser } from '../model/authUser';
+import AccountBrandIcon from './AccountBrandIcon';
 
 const TelegramAccountLinkActions = React.lazy(() => import('./TelegramAccountLinkActions'));
 
@@ -12,12 +13,6 @@ export type AccountTelegramLink = {
   botUsername: string;
   onMessage: (type: 'ok' | 'err', text: string) => void;
 };
-
-function RowIcon({ id }: { id: AccountLinkRow['id'] }) {
-  if (id === 'email') return <span className="account-brand account-brand--mail" aria-hidden="true"><Mail size={18} /></span>;
-  const letter = { telegram: 'T', boosty: 'B', patreon: 'P' }[id];
-  return <span className={`account-brand account-brand--${id}`} aria-hidden="true">{letter}</span>;
-}
 
 /** Every way into the account in one list, with what is linked and how to link the rest. */
 export default function AccountLinks({ user, subscription, telegram, patreonLinkUrl }: {
@@ -34,7 +29,7 @@ export default function AccountLinks({ user, subscription, telegram, patreonLink
       <ul className="account-links__list">
         {rows.map(row => (
           <li key={row.id} className="account-links__row" data-tour-id={row.id === 'telegram' ? 'profile-telegram-access' : undefined}>
-            <RowIcon id={row.id} />
+            <AccountBrandIcon brand={row.id} />
             <span className="account-links__text"><strong>{row.title}</strong><small>{row.detail}</small></span>
             {row.linked && <Check className="account-links__ok" size={20} role="img" aria-label="Привязано" />}
             {!row.linked && row.id === 'boosty' && subscription && !subscription.hasAccess && (

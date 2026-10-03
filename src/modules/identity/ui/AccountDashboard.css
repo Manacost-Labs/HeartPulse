@@ -215,11 +215,9 @@ a.account-access__tile:hover { border-color: var(--account-accent); color: var(-
 .account-access__option p { color: var(--account-muted); font-size: 0.95rem; }
 .account-access__code { letter-spacing: 0.4em; text-align: center; }
 
-.account-brand { display: inline-grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border-radius: 9px; color: #fff; font-weight: 800; }
+.account-brand { display: inline-grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; box-sizing: border-box; border-radius: 9px; }
 .account-brand--mail { background: #f1e2bc; color: #5a3a1e; }
-.account-brand--telegram { background: #1f7fb5; }
-.account-brand--boosty { background: #c4461c; }
-.account-brand--patreon { background: #2b2b2b; }
+.account-brand--logo { padding: 5px; border: 1px solid #e6d3a8; background: #fffbf0; object-fit: contain; }
 
 .account-dashboard input:not([type="checkbox"]),
 .account-dashboard select {
@@ -297,7 +295,7 @@ a.account-access__tile:hover { border-color: var(--account-accent); color: var(-
 .account-contests__text small { color: var(--account-muted); font-size: 0.9rem; }
 
 .account-settings { padding-block: 6px; }
-.account-settings summary { display: flex; align-items: center; gap: 12px; min-height: 52px; font-family: var(--font-hs); font-size: 1.25rem; list-style: none; cursor: pointer; }
+.account-settings summary { display: flex; align-items: center; gap: 12px; min-height: 52px; font-size: 1.125rem; font-weight: 700; list-style: none; cursor: pointer; }
 .account-settings summary::-webkit-details-marker { display: none; }
 .account-settings summary::after { content: ''; flex: 0 0 auto; width: 9px; height: 9px; margin: -4px 4px 0 auto; border-right: 2.5px solid currentColor; border-bottom: 2.5px solid currentColor; transform: rotate(45deg); }
 .account-settings[open] summary::after { margin-top: 4px; transform: rotate(-135deg); }

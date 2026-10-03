@@ -32,7 +32,7 @@ export const ActiveSubscription: Story = {
     const contacts = canvasElement.querySelector('details');
     if (!contacts) throw new Error('Contacts disclosure is missing');
     await expect(contacts).not.toHaveAttribute('open');
-    await userEvent.click(canvas.getByText('Контакты для призов и рассылка'));
+    await userEvent.click(canvas.getByText('Контакты и рассылка'));
     await expect(contacts).toHaveAttribute('open');
     await expect(canvas.getByRole('textbox', { name: 'Почта для связи' })).toBeVisible();
   },
@@ -60,7 +60,7 @@ export const RefreshFailure: Story = {
 export const SaveContacts: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(await canvas.findByText('Контакты для призов и рассылка'));
+    await userEvent.click(await canvas.findByText('Контакты и рассылка'));
     const contact = canvas.getByRole('textbox', { name: 'Почта для связи' });
     await userEvent.clear(contact);
     await userEvent.type(contact, 'contact@example.com');

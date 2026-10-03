@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { AlertTriangle, Check, ExternalLink, Lock, RefreshCw } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
+import AccountBrandIcon from './AccountBrandIcon';
 import { accountAccessNote, accountAccessSource, accountAccessTiles, type AccountAccessTile } from '../model/accountDashboard';
 
 const BOOSTY_SUBSCRIBE_URL = 'https://boosty.to/kolodahearthstone';
@@ -54,7 +55,7 @@ function BoostyForm({ boosty }: { boosty: BoostyConfirmation }) {
   const codeStep = boosty.step === 'code';
   return (
     <form className="account-access__option" data-tour-id="profile-boosty-access" onSubmit={boosty.onSubmit}>
-      <strong className="account-access__option-title"><span className="account-brand account-brand--boosty" aria-hidden="true">B</span>Подписаны на Boosty</strong>
+      <strong className="account-access__option-title"><AccountBrandIcon brand="boosty" />Подписаны на Boosty</strong>
       <label htmlFor="account-boosty-email">Почта, на которую оформлена подписка</label>
       <input
         id="account-boosty-email"
@@ -94,7 +95,7 @@ function NoAccess({ subscription, boosty, patreonLinkUrl }: Pick<AccountAccessCa
         <BoostyForm boosty={boosty} />
         {patreon?.configured && (
           <div className="account-access__option">
-            <strong className="account-access__option-title"><span className="account-brand account-brand--patreon" aria-hidden="true">P</span>Подписаны на Patreon</strong>
+            <strong className="account-access__option-title"><AccountBrandIcon brand="patreon" />Подписаны на Patreon</strong>
             <p>{patreon.message || 'Подключите аккаунт Patreon, и мы сами увидим подписку.'}</p>
             <a className="account-button account-button--secondary" href={patreonLinkUrl}>
               {patreon.connected ? 'Обновить Patreon' : 'Подключить Patreon'}

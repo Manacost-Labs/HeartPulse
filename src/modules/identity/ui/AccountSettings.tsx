@@ -20,7 +20,7 @@ export type AccountSettingsProps = {
 export default function AccountSettings({ values, countries, saving, onChange, onSubmit }: AccountSettingsProps) {
   return (
     <details id="account-settings" className="account-card account-settings" data-tour-id="profile-contacts">
-      <summary>Контакты для призов и рассылка</summary>
+      <summary>Контакты и рассылка</summary>
       <form className="account-settings__form" onSubmit={onSubmit}>
         <p className="account-muted">Нужны, только если вы выиграете конкурс: так мы передадим приз.</p>
         <label htmlFor="account-country">Страна</label>

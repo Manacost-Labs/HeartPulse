@@ -20,7 +20,8 @@ profile data stays public-only.
 - «Вход и привязки»: e-mail, Telegram, Boosty and Patreon (when configured),
   each with its state and the action that links it.
 - Contest entries, one quiet line while there are none.
-- «Контакты для призов и рассылка», folded by default.
+- «Контакты и рассылка» (prize contacts and the newsletter), folded by
+  default.
 - Results of saving, linking and checking float at the bottom of the
   screen. Successes hide after six seconds; errors stay until closed.
 

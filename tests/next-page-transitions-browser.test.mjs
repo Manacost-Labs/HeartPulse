@@ -156,6 +156,9 @@ test('page links open canonical URLs, prerender on intent and cross-fade between
     // page would fly in across the sticky header.
     const scrolled = await browser.newPage();
     await scrolled.evaluateOnNewDocument(() => addEventListener('pagereveal', async event => {
+      // The head's `rel=expect` keeps the page hidden until its content is parsed,
+      // however the HTML stream is split, so the incoming page always fades in.
+      sessionStorage.setItem('content-at-reveal', String(Boolean(document.querySelector('#main-content .arena-content'))));
       if (!event.viewTransition) return;
       await event.viewTransition.ready;
       sessionStorage.setItem('incoming-animations', document.getAnimations()
@@ -171,6 +174,8 @@ test('page links open canonical URLs, prerender on intent and cross-fade between
     await scrolled.waitForFunction(() => sessionStorage.getItem('incoming-animations') !== null, { timeout: 15_000 });
     assert.equal(await scrolled.evaluate(() => sessionStorage.getItem('incoming-animations')),
       '::view-transition-new(route-content) ::view-transition-old(route-content)');
+    assert.equal(await scrolled.evaluate(() => sessionStorage.getItem('content-at-reveal')), 'true',
+      'the new page is revealed with its content, not just the header');
 
     const calm = await openPage(browser, `${gateway.origin}/privacy/`, true);
     await reportOutgoingTransition(calm.page);

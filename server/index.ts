@@ -1521,7 +1521,7 @@ function authUserFromRow(row: any): AdminUser {
     avatarInitials: String(row.avatar_initials ?? ''),
     telegramId: row.telegram_id ? String(row.telegram_id) : undefined,
     telegramUsername: row.telegram_username ? String(row.telegram_username) : undefined,
-    photoUrl: row.telegram_photo_url ? String(row.telegram_photo_url) : undefined,
+    photoUrl: row.avatar_url ? String(row.avatar_url) : undefined,
     contactVkUrl: String(row.contact_vk_url ?? ''),
     contactTelegram: String(row.contact_telegram ?? ''),
     contactEmail: String(row.contact_email ?? ''),
@@ -1540,7 +1540,7 @@ function findAuthUserById(userId: string): AdminUser | null {
       u.*,
       tg.provider_user_id AS telegram_id,
       tg.username AS telegram_username,
-      tg.photo_url AS telegram_photo_url
+      COALESCE(NULLIF(tg.photo_url, ''), (SELECT ph.photo_url FROM identities ph WHERE ph.user_id = u.id AND ph.photo_url <> '' ORDER BY ph.updated_at DESC LIMIT 1)) AS avatar_url
     FROM users u
     LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
     WHERE u.id = ?
@@ -1566,7 +1566,7 @@ function loadAuthStore(): AdminAuthStore {
       u.*,
       tg.provider_user_id AS telegram_id,
       tg.username AS telegram_username,
-      tg.photo_url AS telegram_photo_url
+      COALESCE(NULLIF(tg.photo_url, ''), (SELECT ph.photo_url FROM identities ph WHERE ph.user_id = u.id AND ph.photo_url <> '' ORDER BY ph.updated_at DESC LIMIT 1)) AS avatar_url
     FROM users u
     LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
     ORDER BY u.created_at ASC
