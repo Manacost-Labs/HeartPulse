@@ -219,6 +219,15 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
     const missingEntrance = JSON.parse(await missing.evaluate(() => sessionStorage.getItem('entrance')));
     assert.ok(missingEntrance.length > 0, 'the 404 page enters too');
     assert.deepEqual([...entrance, ...missingEntrance].filter(step => step.title), [], 'the page title never moves');
+
+    // On the card and cosmetics pages the largest paint is a picture in a section.
+    for (const path of ['/standard/cards/', '/cosmetics/']) {
+      const gallery = await browser.newPage();
+      await recordEntrance(gallery);
+      await gallery.goto(`${gateway.origin}${path}`, { waitUntil: 'networkidle2' });
+      assert.deepEqual(JSON.parse(await gallery.evaluate(() => sessionStorage.getItem('entrance'))), [],
+        `${path} enters without the rise`);
+    }
     await fresh.waitForFunction(() => !document.documentElement.hasAttribute('data-page-enter'), { timeout: 5_000 });
     assert.deepEqual(await fresh.evaluate(() => [getComputedStyle(document.querySelector('.arena-content')).opacity,
       document.getAnimations().filter(animation => /^page-/.test(animation.animationName)).length]), ['1', 0]);

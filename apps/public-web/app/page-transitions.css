@@ -21,12 +21,14 @@
    still because Chrome counts the largest paint only once an animation on it
    ends: animating it would delay LCP by the whole entrance. `data-page-enter`
    exists only while this plays (lib/pageEntrance.ts); the home page
-   (`.home-workbench`) has its own entrance in Home.css. */
+   (`.home-workbench`) has its own entrance in Home.css. The card and
+   cosmetics pages enter without it: their largest paint is a picture inside
+   a section, which a rise would hold back. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-page-enter] .arena-content > :not(.home-workbench) > :not(:first-child, h1, :has(h1)) {
+  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :not(:first-child, h1, :has(h1)) {
     animation: page-enter var(--motion-slow) var(--motion-ease) backwards;
   }
 
-  html[data-page-enter] .arena-content > :not(.home-workbench) > :nth-child(3) { animation-delay: var(--motion-stagger); }
-  html[data-page-enter] .arena-content > :not(.home-workbench) > :nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 2); }
+  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :nth-child(3) { animation-delay: var(--motion-stagger); }
+  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 2); }
 }
