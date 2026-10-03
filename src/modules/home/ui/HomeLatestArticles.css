@@ -23,7 +23,7 @@
   color: #3e2c20;
   text-decoration: none;
   background: rgba(255, 244, 216, 0.5);
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: background-color var(--motion-base) var(--motion-ease), transform var(--motion-base) var(--motion-ease);
 }
 
 .arena-app-home .home-latest-article + .home-latest-article {
@@ -54,7 +54,7 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  transition: transform 0.35s ease;
+  transition: transform var(--motion-slow) var(--motion-ease);
 }
 
 .arena-app-home .home-latest-article:hover .home-latest-article__image img {

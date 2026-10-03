@@ -322,7 +322,7 @@
   white-space: nowrap;
   font-weight: 850;
   cursor: pointer;
-  transition: background-color 140ms ease-out, box-shadow 140ms ease-out, transform 140ms ease-out;
+  transition: background-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .application-connect__code button,

@@ -786,7 +786,7 @@ const ClassTabs: React.FC<{
               aria-pressed={isActive}
               onClick={() => onChange(ALL_CARDS_ID)}
               title="Все карты"
-              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-200"
+              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-(--motion-base)"
               style={{
                 transform: isActive ? 'scale(1.15)' : 'scale(1)',
                 filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)',
@@ -820,7 +820,7 @@ const ClassTabs: React.FC<{
               aria-pressed={isActive}
               onClick={() => onChange(sec.id)}
               title={sec.name}
-              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-200"
+              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-(--motion-base)"
               style={{
                 transform: isActive ? 'scale(1.15)' : 'scale(1)',
                 filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)',
@@ -1730,7 +1730,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                     >
                       {r.icon
                         ? <img src={r.icon} alt={r.name} className="w-6 h-6 object-contain"
-                            style={{ filter: active ? 'drop-shadow(0 2px 4px rgba(15,23,42,0.25))' : 'none', transition: 'filter 0.2s' }} />
+                            style={{ filter: active ? 'drop-shadow(0 2px 4px rgba(15,23,42,0.25))' : 'none', transition: 'filter var(--motion-base) var(--motion-ease)' }} />
                         : <span className="tierlist-filter-label font-hs text-xs">Все</span>
                       }
                     </button>
@@ -1774,7 +1774,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                               filter: active
                                 ? 'drop-shadow(0 2px 4px rgba(15,23,42,0.25))'
                                 : 'none',
-                              transition: 'filter 0.2s',
+                              transition: 'filter var(--motion-base) var(--motion-ease)',
                             }}
                           />
                           <span className={`relative font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] ${mana.id === 10 ? 'text-[8px]' : 'text-[11px]'}`}>
@@ -1937,7 +1937,7 @@ const LegendaryCardThumb: React.FC<{
         title={card.name}
         aria-label={`Открыть карту ${card.name}`}
       >
-        <div className="legendary-card-thumb transform transition-all duration-200 group-hover:scale-110">
+        <div className="legendary-card-thumb transform transition-all duration-(--motion-base) group-hover:scale-110">
           <img
             src={src}
             alt={card.name}
@@ -2260,7 +2260,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
                 onClick={() => setActiveClass(cls.id)}
                 title={cls.name}
                 aria-pressed={isActive}
-                className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-200"
+                className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-(--motion-base)"
                 style={{ transform: isActive ? 'scale(1.15)' : 'scale(1)', filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)' }}
               >
                 <div

@@ -46,7 +46,7 @@ export default function SubscriptionPurchaseButtons() {
             boxShadow: `0 14px 30px ${item.glow}, inset 0 1px 0 rgba(255,255,255,0.86)`,
             textDecoration: 'none',
             textAlign: 'left',
-            transition: 'transform 160ms ease, box-shadow 160ms ease',
+            transition: 'transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease)',
           }}
         >
           <span style={{

@@ -156,7 +156,8 @@
         "tests/traditional-mode-banner-ui.test.ts",
         "tests/vicious-gold-builds.test.ts",
         "tests/vicious-gold-progressive-loading.test.ts",
-        "tests/web-vitals-sentry.test.ts"
+        "tests/web-vitals-sentry.test.ts",
+        "tests/motion-tokens.test.mjs"
       ]
     },
     {

@@ -286,7 +286,7 @@
   background: var(--fun-parchment-light);
   font: 750 0.86rem/1 var(--font-body, Inter, sans-serif);
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .fun-decks-tools__formats button {

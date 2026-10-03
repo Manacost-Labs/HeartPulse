@@ -197,7 +197,7 @@
 .faq-page__questions summary i { position: relative; flex: 0 0 auto; width: 16px; height: 16px; }
 .faq-page__questions summary i::before,
 .faq-page__questions summary i::after { content: ''; position: absolute; top: 7px; left: 2px; width: 12px; height: 2px; background: #8e241f; }
-.faq-page__questions summary i::after { transform: rotate(90deg); transition: transform 140ms ease; }
+.faq-page__questions summary i::after { transform: rotate(90deg); transition: transform var(--motion-fast) var(--motion-ease); }
 .faq-page__questions details[open] summary i::after { transform: rotate(0); }
 .faq-page__questions details > div {
   margin: 0 1.55rem 0.65rem 1.45rem;

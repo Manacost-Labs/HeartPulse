@@ -3,7 +3,7 @@
   z-index: 10050;
   max-width: calc(100vw - 20px);
   pointer-events: none;
-  animation: card-preview-tooltip-in 120ms ease-out both;
+  animation: card-preview-tooltip-in var(--motion-fast) var(--motion-ease) both;
 }
 
 .card-preview-tooltip img {

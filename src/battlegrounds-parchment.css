@@ -511,7 +511,7 @@
   color: #6f5238 !important;
   background: rgba(255, 246, 219, 0.62);
   box-shadow: inset 0 1px 4px rgba(76, 43, 20, 0.06);
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  transition: border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-heroes-search input {
@@ -614,7 +614,7 @@
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
-  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-heroes-segmented button:hover {
@@ -702,7 +702,7 @@
   letter-spacing: inherit;
   text-align: left;
   text-transform: uppercase;
-  transition: color 150ms ease, background-color 150ms ease;
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-hero-ledger__sort-button svg {
@@ -936,7 +936,7 @@
   font-size: 1.05rem;
   line-height: 1.08;
   overflow-wrap: anywhere;
-  transition: color 150ms ease;
+  transition: color var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-hero-ledger__hero a > span > small {
@@ -1105,7 +1105,7 @@
   border-radius: 2px 2px 0 0;
   background: linear-gradient(180deg, #bd83a0, #76506a);
   transform-origin: bottom;
-  transition: filter 140ms ease, transform 140ms ease;
+  transition: filter var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-hero-distribution__place:first-child > span {
@@ -1254,7 +1254,7 @@
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 10px 14px rgba(12, 4, 7, 0.28));
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--motion-base) var(--motion-ease);
 }
 
 @media (min-width: 1536px) {
@@ -1309,7 +1309,7 @@
   background: #100b0c !important;
   box-shadow: 0 11px 20px rgba(13, 5, 7, 0.3) !important;
   backface-visibility: hidden;
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease-out;
+  transition: transform var(--motion-base) var(--motion-ease), box-shadow var(--motion-base) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-reliquary .bg-hero-action-card--gold {
@@ -1585,7 +1585,7 @@
   border: 1px solid transparent;
   border-radius: 0.42rem;
   background: transparent;
-  transition: background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  transition: background-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-trinket-view-toggle button:hover {
@@ -1672,7 +1672,7 @@
     radial-gradient(circle at 13% 50%, rgba(141, 87, 133, 0.4), transparent 26%),
     linear-gradient(100deg, #62465f 0%, #51384f 47%, #493149 100%);
   box-shadow: inset 0 1px rgba(255, 238, 205, 0.08);
-  transition: filter 160ms ease, box-shadow 160ms ease;
+  transition: filter var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-trinket-tier-row__backdrop {
@@ -1941,7 +1941,7 @@
   border-radius: 0.6rem;
   color: #3d2a1e;
   background: transparent;
-  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+  transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-trinket-gallery-card:hover {
@@ -1962,7 +1962,7 @@
   max-height: 17rem;
   object-fit: contain;
   filter: drop-shadow(0 10px 10px rgba(45, 24, 14, 0.28));
-  transition: transform 150ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-battlegrounds .bg-trinket-gallery-card:hover > img,

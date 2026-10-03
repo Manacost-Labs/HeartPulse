@@ -65,7 +65,7 @@
   font-size: 0.72rem;
   font-weight: 850;
 }
-.constructed-card-history__disclosure svg { transition: transform 0.18s ease; }
+.constructed-card-history__disclosure svg { transition: transform var(--motion-base) var(--motion-ease); }
 .constructed-card-history[open] .constructed-card-history__disclosure svg { transform: rotate(180deg); }
 
 .constructed-card-history__body { padding-top: 0.7rem; }

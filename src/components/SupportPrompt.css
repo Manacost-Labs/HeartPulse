@@ -160,7 +160,7 @@
 }
 
 .support-prompt--expanded {
-  animation: supportPromptOpen 0.18s ease-out both;
+  animation: supportPromptOpen var(--motion-base) var(--motion-ease) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

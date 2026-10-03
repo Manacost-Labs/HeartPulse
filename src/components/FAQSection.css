@@ -38,7 +38,7 @@
   background: transparent;
   text-align: left;
   cursor: pointer;
-  transition: background-color 180ms ease;
+  transition: background-color var(--motion-base) var(--motion-ease);
 }
 
 .faq-card__question {

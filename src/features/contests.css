@@ -2114,7 +2114,7 @@
   cursor: pointer;
 }
 
-.admin-parser-section__expand > svg { transition: transform 160ms ease; }
+.admin-parser-section__expand > svg { transition: transform var(--motion-fast) var(--motion-ease); }
 .admin-parser-section.is-expanded .admin-parser-section__expand > svg { transform: rotate(180deg); }
 .admin-parser-section__expand strong,
 .admin-parser-section__expand small { min-width: 0; display: block; overflow-wrap: anywhere; }
@@ -2125,8 +2125,8 @@
 .admin-parser-section__date { color: var(--admin-muted); font-size: 0.67rem; white-space: nowrap; }
 .admin-parser-switch { min-height: 44px; display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; }
 .admin-parser-switch input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
-.admin-parser-switch > span { position: relative; width: 38px; height: 22px; flex: 0 0 auto; border-radius: 999px; background: #aeb9c3; transition: background 140ms ease; }
-.admin-parser-switch > span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15, 31, 54, 0.28); transition: transform 140ms ease; }
+.admin-parser-switch > span { position: relative; width: 38px; height: 22px; flex: 0 0 auto; border-radius: 999px; background: #aeb9c3; transition: background var(--motion-fast) var(--motion-ease); }
+.admin-parser-switch > span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15, 31, 54, 0.28); transition: transform var(--motion-fast) var(--motion-ease); }
 .admin-parser-switch input:checked + span { background: var(--admin-blue-dark); }
 .admin-parser-switch input:checked + span::after { transform: translateX(16px); }
 .admin-parser-switch input:focus-visible + span { outline: 3px solid rgba(35, 175, 218, 0.42); outline-offset: 2px; }
@@ -2279,7 +2279,7 @@
 .admin-parser-run__meta { margin-top: 0.3rem; display: flex; flex-wrap: wrap; gap: 0.35rem 0.7rem; color: var(--admin-muted); font-size: 0.64rem; }
 .admin-parser-run__meta .has-error { color: var(--admin-danger); font-weight: 800; }
 .admin-parser-progress { height: 5px; margin-top: 0.5rem; overflow: hidden; border-radius: 999px; background: #dfe7ee; }
-.admin-parser-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--admin-blue); transition: width 180ms ease; }
+.admin-parser-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--admin-blue); transition: width var(--motion-base) var(--motion-ease); }
 .admin-parser-run__error { margin: 0.4rem 0 0; color: var(--admin-danger); font-size: 0.67rem; overflow-wrap: anywhere; }
 .admin-parser-run__deduplicated { margin: 0.45rem 0 0; padding: 0.42rem 0.5rem; display: flex; align-items: flex-start; gap: 0.38rem; border-left: 3px solid #8d6bad; color: #5a3b76; background: #f8f3fc; font-size: 0.67rem; line-height: 1.4; }
 .admin-parser-run__deduplicated svg { margin-top: 0.05rem; flex: 0 0 auto; }
@@ -2397,7 +2397,7 @@
 .admin-standard-operations__legacy > summary small { display: block; }
 .admin-standard-operations__legacy > summary strong { font-size: 0.84rem; }
 .admin-standard-operations__legacy > summary small { margin-top: 0.12rem; color: var(--admin-muted); font-size: 0.67rem; }
-.admin-standard-operations__legacy-chevron { font-size: 1.35rem; transition: transform 160ms ease; }
+.admin-standard-operations__legacy-chevron { font-size: 1.35rem; transition: transform var(--motion-fast) var(--motion-ease); }
 .admin-standard-operations__legacy[open] .admin-standard-operations__legacy-chevron { transform: rotate(180deg); }
 .admin-standard-operations__legacy > .admin-stat-grid { padding: 0 1rem 1rem; }
 .admin-standard-operations__legacy-body { padding: 1rem; display: grid; gap: 1rem; border-top: 1px solid var(--admin-divider); }
@@ -2885,7 +2885,7 @@
   border-radius: 5px;
   background: #fff;
   box-shadow: 0 6px 18px rgba(15, 31, 54, 0.13);
-  transition: width 160ms ease;
+  transition: width var(--motion-fast) var(--motion-ease);
 }
 
 .admin-mailing-preview-stage.is-mobile iframe {
@@ -3985,7 +3985,7 @@
   border: 0;
   border-left: 1px solid #d7c09a;
   box-shadow: -22px 0 60px rgba(32, 20, 12, 0.24);
-  animation: admin-run-drawer-in 180ms ease-out;
+  animation: admin-run-drawer-in var(--motion-base) var(--motion-ease);
 }
 
 @keyframes admin-run-drawer-in {

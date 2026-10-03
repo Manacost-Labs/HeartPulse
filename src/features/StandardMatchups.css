@@ -74,7 +74,7 @@
   font-weight: 900;
   line-height: 1.1;
   white-space: nowrap;
-  transition: color 130ms ease, background 130ms ease, box-shadow 130ms ease;
+  transition: color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented :is(button, a):first-child {
@@ -285,7 +285,7 @@
   width: 100%;
   min-width: 42px;
   cursor: pointer;
-  transition: filter 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+  transition: filter var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-standard-matchups .standard-matchups__matrix-cell:hover {
@@ -347,7 +347,7 @@
   border-image: url('/wallpaper/deck-border.png') 22 stretch;
   color: #f7e8bf;
   filter: drop-shadow(0 14px 20px rgba(33, 12, 7, 0.38));
-  animation: standard-matchups-tooltip-in 150ms ease-out;
+  animation: standard-matchups-tooltip-in var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-standard-matchups .standard-matchups__tooltip-cloth {

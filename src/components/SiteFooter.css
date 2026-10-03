@@ -75,7 +75,7 @@
   color: inherit;
   font-size: 0.875rem;
   text-decoration: none;
-  transition: color 160ms ease;
+  transition: color var(--motion-fast) var(--motion-ease);
 }
 
 .arena-footer__link:hover {

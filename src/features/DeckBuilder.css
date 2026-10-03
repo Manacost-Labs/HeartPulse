@@ -207,7 +207,7 @@
   justify-content: center;
   gap: 0.42rem;
   padding: 0.55rem 0.9rem;
-  transition: transform 130ms ease, box-shadow 130ms ease, background-color 130ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
 }
 
 .deck-builder__primary-btn {
@@ -329,7 +329,7 @@
   text-align: left;
   cursor: pointer;
   overflow: visible;
-  transition: transform 150ms ease, filter 150ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease), filter var(--motion-fast) var(--motion-ease);
 }
 
 .deck-builder .deck-builder__class-card {
@@ -780,7 +780,7 @@
 
 .deck-builder__advanced-toggle svg:last-child {
   margin-left: auto;
-  transition: transform 140ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
 .deck-builder__advanced-toggle[aria-expanded="true"] svg:last-child {
@@ -814,7 +814,7 @@
   background: linear-gradient(180deg, rgba(84, 14, 21, 0.92), rgba(38, 3, 7, 0.96));
   font: 750 0.7rem/1 var(--font-body, Inter, sans-serif);
   cursor: pointer;
-  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), filter var(--motion-fast) var(--motion-ease);
 }
 
 .deck-builder__mana-filter:hover,
@@ -981,7 +981,7 @@
   background: rgba(30, 2, 6, 0.68);
   cursor: pointer;
   box-shadow: 0 5px 13px rgba(52, 25, 11, 0.19);
-  transition: transform 130ms ease, box-shadow 130ms ease, filter 130ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), filter var(--motion-fast) var(--motion-ease);
 }
 
 .deck-builder__card:hover:not(:disabled),

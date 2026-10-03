@@ -246,7 +246,7 @@
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -4px);
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .constructed-analysis-tip > span strong {
@@ -391,7 +391,7 @@
   height: calc(100% - 2px);
   object-fit: cover;
   object-position: right center;
-  transition: filter 120ms ease;
+  transition: filter var(--motion-fast) var(--motion-ease);
 }
 
 .constructed-card-tile__fade {

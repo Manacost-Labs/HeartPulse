@@ -124,7 +124,7 @@ export function ArticleCard({
 
   return (
     <article
-      className={`article-card-modern anim-scale-in rounded-2xl overflow-hidden flex flex-col transition-all duration-200 ${isFeatured ? 'article-card-featured' : ''}`}
+      className={`article-card-modern anim-scale-in rounded-2xl overflow-hidden flex flex-col transition-all duration-(--motion-base) ${isFeatured ? 'article-card-featured' : ''}`}
       style={{
         animationDelay: `${idx * 0.06}s`,
       }}

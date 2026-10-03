@@ -246,7 +246,7 @@ html .arena-app-profile .profile-workspace .profile-account-actions__logout {
 
 @media (hover: hover) {
   .profile-workspace .profile-status-chip {
-    transition: filter 160ms ease, transform 160ms ease;
+    transition: filter var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
   }
 
   .profile-workspace .profile-status-chip:hover {

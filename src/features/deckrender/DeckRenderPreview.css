@@ -73,7 +73,7 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.34);
   opacity: 0;
   transform: translateY(0.25rem);
-  transition: opacity 140ms ease, transform 140ms ease;
+  transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
   pointer-events: none;
 }
 

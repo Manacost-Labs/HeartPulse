@@ -77,7 +77,7 @@
   text-decoration: none;
   background: rgba(255, 244, 216, 0.38);
   box-shadow: inset 3px 0 rgba(123, 21, 27, 0.52);
-  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition: transform var(--motion-base) var(--motion-ease), background-color var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease);
 }
 
 .arena-app-home .home-arena-directory__link[data-featured='true'] {

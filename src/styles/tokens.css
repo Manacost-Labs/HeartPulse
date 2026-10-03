@@ -38,6 +38,18 @@
   --site-page-hero-padding-block: clamp(1.25rem, 2.5vw, 2rem);
   --site-page-hero-padding-inline: clamp(1rem, 2.5vw, 2rem);
 
+  /* Motion: every transition and entrance takes its tempo from here, so the
+     whole site moves alike. Endless loops (spinners, shimmer) keep their own
+     period. tests/motion-tokens.test.mjs rejects literal timings. */
+  --motion-instant: 90ms; /* press feedback, the outgoing page */
+  --motion-fast: 140ms; /* hover, focus, colour and small state changes */
+  --motion-base: 220ms; /* menus, tooltips, dialogs, disclosures */
+  --motion-slow: 360ms; /* page entrance, large surfaces, data bars */
+  --motion-stagger: 60ms; /* gap between the steps of one entrance */
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1); /* arrive and settle */
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1); /* leave */
+  --motion-rise: 8px; /* how far entering content travels */
+
   /* Legacy draft surfaces still used by the home and data workspaces. */
   --draft-ink: #10233d;
   --draft-muted: #52657e;

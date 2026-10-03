@@ -74,7 +74,7 @@
 
 .constructed-cards__filter-chevron {
   flex: 0 0 auto;
-  transition: transform 140ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
 .constructed-cards__filter.is-open .constructed-cards__filter-chevron {

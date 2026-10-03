@@ -72,7 +72,7 @@
   font-weight: 900;
   text-decoration: none;
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.6);
-  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+  transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .not-found-page__actions :is(a, button):hover {

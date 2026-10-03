@@ -23,7 +23,8 @@ behind its `public.ts`, not in `src/features/`.
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
-| `app/page-transitions.css` | Opt-in to cross-document view transitions; the animation itself is the `route-content` block of `src/index.css` |
+| `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
+| `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays |
 | `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |

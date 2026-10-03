@@ -282,6 +282,19 @@ Protected behavior includes:
 
 Rules:
 
+- Take every duration, delay and easing from the motion tokens in
+  `src/styles/tokens.css` (`--motion-instant` 90 ms, `--motion-fast` 140 ms,
+  `--motion-base` 220 ms, `--motion-slow` 360 ms, `--motion-stagger`,
+  `--motion-ease`, `--motion-ease-exit`). Endless loops and the protected
+  interactions above keep their own timing; `tests/motion-tokens.test.mjs`
+  enforces the rest.
+- A page enters once, on a load that no view transition animates: the
+  frame and the page header are in place at once, and the sections under
+  the header rise by `--motion-rise` one step apart. Never animate the
+  page header or another likely largest paint: Chrome records LCP only
+  when an animation on that element ends. A navigation between pages uses
+  the cross-fade with the same rise. Do not add separate entrance
+  choreography to a page; the home page is the one exception.
 - Prefer `opacity`, `translate`, `transform` and background-position.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.
@@ -340,6 +353,7 @@ Rules:
 
 ## Changelog
 
+- **2026-10-03** — Added motion tokens and one page entrance for every public page; transitions and entrances across the site now share four durations and two easings.
 - **2026-08-01** — Promoted the `25px` compact HSReplay-derived row profile and 90% right-anchored art crop from Fun Decks to every public read-only `DeckListView`, including archetype, meta and card-detail pages; interactive builder rows remain `44px`.
 - **2026-08-01** — Expanded the Fun Decks canvas to six cards per wide row and fixed each card to a five-row non-expandable comparison preview, with 4/3/2/1 responsive fallbacks.
 - **2026-07-31** — Tightened read-only deck ledgers to 28/27 px rows and a 1 px rhythm so 40-card lists use roughly one quarter less vertical space than the original forged-row layout.

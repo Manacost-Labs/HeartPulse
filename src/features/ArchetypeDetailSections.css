@@ -80,7 +80,7 @@
   min-height: 76px;
   padding: 0.65rem 0.8rem;
   border-bottom: 1px solid var(--analysis-rule);
-  transition: background-color 140ms ease, box-shadow 140ms ease;
+  transition: background-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .archetype-mulligan-row:last-child {
@@ -348,7 +348,7 @@ button.archetype-mulligan-card:focus-visible {
     linear-gradient(105deg, rgba(255, 250, 231, 0.7), rgba(242, 220, 176, 0.58)),
     url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
   box-shadow: 0 2px 6px rgba(69, 42, 19, 0.06);
-  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  transition: border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease);
 }
 
 .archetype-matchup-row:hover {
@@ -497,7 +497,7 @@ button.archetype-mulligan-card:focus-visible {
   width: 1.1rem;
   height: 1.1rem;
   color: var(--analysis-wine);
-  transition: transform 160ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
 .archetype-deck-folio[open] > summary > svg {
@@ -807,7 +807,7 @@ button.archetype-mulligan-card:focus-visible {
 }
 
 .archetype-mulligan-table tbody tr {
-  transition: background-color 140ms ease, box-shadow 140ms ease;
+  transition: background-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .archetype-mulligan-table tbody tr:hover,

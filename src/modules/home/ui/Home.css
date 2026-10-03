@@ -142,7 +142,7 @@
   font-size: 0.83rem;
   font-weight: 790;
   text-decoration: none;
-  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: transform var(--motion-base) var(--motion-ease), background-color var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease), color var(--motion-base) var(--motion-ease);
 }
 
 .home-action--primary {
@@ -202,7 +202,7 @@
   text-decoration: none;
   background: rgba(4, 20, 39, 0.76);
   box-shadow: 0 12px 28px rgba(1, 10, 22, 0.25);
-  transition: transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
+  transition: transform var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease), background-color var(--motion-base) var(--motion-ease);
 }
 
 .home-orbit-class--1 {
@@ -361,7 +361,7 @@
   color: #f2f4ff;
   text-decoration: none;
   background: rgba(255, 255, 255, 0.045);
-  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition: transform var(--motion-base) var(--motion-ease), background-color var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease);
 }
 
 .home-bg-directory__link[data-featured="true"] {
@@ -402,7 +402,7 @@
 .home-bg-directory__link > b {
   color: #a89ce7;
   font-size: 0.86rem;
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition: transform var(--motion-base) var(--motion-ease), color var(--motion-base) var(--motion-ease);
 }
 
 /* ─── Community and FAQ ──────────────────────────────────────────────────── */
@@ -445,7 +445,7 @@
 .home-community > a {
   color: #1689bd;
   text-decoration: none;
-  transition: background-color 0.18s ease;
+  transition: background-color var(--motion-base) var(--motion-ease);
 }
 
 .home-community > a > span {
@@ -471,58 +471,38 @@
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition:
-    opacity 0.34s ease,
-    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+    opacity var(--motion-slow) var(--motion-ease),
+    transform var(--motion-slow) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease),
+    border-color var(--motion-base) var(--motion-ease);
 }
 
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(2) { transition-delay: 55ms; }
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(3) { transition-delay: 110ms; }
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(4) { transition-delay: 165ms; }
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(5) { transition-delay: 220ms; }
+.home-bg-directory.is-visible .home-bg-directory__link:nth-child(2) { transition-delay: var(--motion-stagger); }
+.home-bg-directory.is-visible .home-bg-directory__link:nth-child(3) { transition-delay: calc(var(--motion-stagger) * 2); }
+.home-bg-directory.is-visible .home-bg-directory__link:nth-child(4) { transition-delay: calc(var(--motion-stagger) * 3); }
+.home-bg-directory.is-visible .home-bg-directory__link:nth-child(5) { transition-delay: calc(var(--motion-stagger) * 4); }
 
 .home-workbench :where(a, button):focus-visible {
   outline: 3px solid #176fa6;
   outline-offset: 3px;
 }
 
+/* The home page's own entrance: its copy line by line, then the class
+   orbits. The stage and its heading stay still, since Chrome counts the
+   largest paint only once an animation on it ends. Like every page it plays
+   only on a first load (see page-transitions.css); a navigation brings the
+   page in with the cross-fade. */
 @media (prefers-reduced-motion: no-preference) {
-  .home-stage {
-    animation: home-stage-enter 0.56s cubic-bezier(0.22, 1, 0.36, 1) both;
+  html[data-page-enter] .home-stage__copy > :not(h1),
+  html[data-page-enter] .home-orbit-class {
+    animation: page-enter var(--motion-slow) var(--motion-ease) backwards;
   }
 
-  .home-stage__copy > * {
-    animation: home-copy-enter 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .home-stage__copy > :nth-child(1) { animation-delay: 70ms; }
-  .home-stage__copy > :nth-child(2) { animation-delay: 120ms; }
-  .home-stage__copy > :nth-child(3) { animation-delay: 175ms; }
-  .home-stage__copy > :nth-child(4) { animation-delay: 230ms; }
-
-  .home-orbit-class {
-    animation: home-orbit-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .home-orbit-class--1 { animation-delay: 180ms; }
-  .home-orbit-class--2 { animation-delay: 245ms; }
-  .home-orbit-class--3 { animation-delay: 310ms; }
-}
-
-@keyframes home-stage-enter {
-  from { opacity: 0; transform: translate3d(0, 12px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes home-copy-enter {
-  from { opacity: 0; transform: translate3d(0, 10px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes home-orbit-enter {
-  from { opacity: 0; translate: 0 12px; }
-  to { opacity: 1; translate: 0 0; }
+  html[data-page-enter] .home-stage__copy > :nth-child(3) { animation-delay: var(--motion-stagger); }
+  html[data-page-enter] .home-stage__copy > :nth-child(4) { animation-delay: calc(var(--motion-stagger) * 2); }
+  html[data-page-enter] .home-orbit-class--1 { animation-delay: var(--motion-stagger); }
+  html[data-page-enter] .home-orbit-class--2 { animation-delay: calc(var(--motion-stagger) * 2); }
+  html[data-page-enter] .home-orbit-class--3 { animation-delay: calc(var(--motion-stagger) * 3); }
 }
 
 /* ─── Interaction ────────────────────────────────────────────────────────── */

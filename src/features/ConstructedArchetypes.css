@@ -929,7 +929,7 @@
   font-size: 0.72rem;
   font-weight: 900;
   cursor: pointer;
-  transition: filter 140ms ease, background 140ms ease;
+  transition: filter var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease);
 }
 
 .archetype-deck-card__copy:hover {

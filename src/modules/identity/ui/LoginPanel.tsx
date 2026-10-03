@@ -169,7 +169,7 @@ function AuthCheckingCard({ delayMs = 180 }: { delayMs?: number }) {
       minHeight: 220,
       padding: '18px 0',
       opacity: visible ? 1 : 0,
-      transition: 'opacity 180ms ease',
+      transition: 'opacity var(--motion-base) var(--motion-ease)',
     }}>
       <div style={{
         maxWidth: 440,

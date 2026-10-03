@@ -1125,7 +1125,7 @@ function LibraryCardTile({
         <img
           src={image}
           alt={cardRuName(card)}
-          className="relative z-10 h-full w-full object-contain drop-shadow-[0_16px_20px_rgba(21,31,47,0.22)] transition duration-200 group-hover:scale-[1.03] sm:group-hover:-translate-x-5"
+          className="relative z-10 h-full w-full object-contain drop-shadow-[0_16px_20px_rgba(21,31,47,0.22)] transition duration-(--motion-base) group-hover:scale-[1.03] sm:group-hover:-translate-x-5"
           loading="lazy"
           data-fallbacks={fallbacks.join('|') || undefined}
           onError={hideBrokenTileImage}
@@ -1134,7 +1134,7 @@ function LibraryCardTile({
           <img
             src={golden}
             alt={`${cardRuName(card)}, золотая версия`}
-            className="pointer-events-none absolute inset-0 z-20 h-full w-full translate-x-2 object-contain opacity-0 drop-shadow-[0_20px_26px_rgba(21,31,47,0.28)] transition duration-200 group-hover:translate-x-8 group-hover:opacity-100 sm:group-hover:translate-x-12"
+            className="pointer-events-none absolute inset-0 z-20 h-full w-full translate-x-2 object-contain opacity-0 drop-shadow-[0_20px_26px_rgba(21,31,47,0.28)] transition duration-(--motion-base) group-hover:translate-x-8 group-hover:opacity-100 sm:group-hover:translate-x-12"
             loading="lazy"
             onError={hideBrokenImage}
           />

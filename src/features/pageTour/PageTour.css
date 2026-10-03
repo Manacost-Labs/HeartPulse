@@ -50,7 +50,7 @@
     0 0 0 6px rgba(238, 197, 104, 0.44),
     0 0 28px rgba(255, 211, 112, 0.48);
   pointer-events: none;
-  transition: inset 180ms ease, width 180ms ease, height 180ms ease;
+  transition: inset var(--motion-base) var(--motion-ease), width var(--motion-base) var(--motion-ease), height var(--motion-base) var(--motion-ease);
 }
 
 .page-tour__dialog {
@@ -144,7 +144,7 @@
   display: block;
   height: 100%;
   background: linear-gradient(90deg, #a9352c, #f0c76d);
-  transition: width 180ms ease;
+  transition: width var(--motion-base) var(--motion-ease);
 }
 
 .page-tour__dialog h2,
@@ -240,7 +240,7 @@
     backdrop-filter: blur(3px) saturate(0.76);
   }
 
-  .page-tour__spotlight { transition-duration: 120ms; }
+  .page-tour__spotlight { transition-duration: var(--motion-fast); }
 
   .page-tour__dialog[data-placement='bottom-sheet'] {
     top: auto;

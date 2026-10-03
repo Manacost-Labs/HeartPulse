@@ -88,6 +88,22 @@ async function arrival(page, pathname) {
   }
 }
 
+// Records, on the first frame of a document, which entrance animations its
+// own elements run: `box` is the content box, `part` a child of the page's
+// wrapper (its header or a section).
+async function recordEntrance(page) {
+  await page.evaluateOnNewDocument(() => addEventListener('pagereveal', () => requestAnimationFrame(() => {
+    const box = document.querySelector('.arena-content');
+    sessionStorage.setItem('entrance', JSON.stringify(document.getAnimations()
+      .filter(animation => !animation.effect?.pseudoElement && /^page-/.test(animation.animationName))
+      .map(animation => {
+        const target = animation.effect.target;
+        const role = target === box ? 'box' : target.parentElement?.parentElement === box ? 'part' : 'other';
+        return { name: animation.animationName, role, delay: animation.effect.getTiming().delay };
+      })));
+  })));
+}
+
 async function viewTransitionOptIn(page) {
   return page.evaluate(() => {
     const found = [];
@@ -103,7 +119,7 @@ async function viewTransitionOptIn(page) {
   });
 }
 
-test('page links open canonical URLs, prerender on intent and cross-fade between documents', async () => {
+test('page links open canonical URLs, prerender on intent, cross-fade between documents and enter on a first load', async () => {
   const express = http.createServer((request, response) => signedOut(response));
   let next;
   let gateway;
@@ -155,6 +171,7 @@ test('page links open canonical URLs, prerender on intent and cross-fade between
     // box must not travel from where the scrolled old page left it, or the new
     // page would fly in across the sticky header.
     const scrolled = await browser.newPage();
+    await recordEntrance(scrolled);
     await scrolled.evaluateOnNewDocument(() => addEventListener('pagereveal', async event => {
       // The head's `rel=expect` keeps the page hidden until its content box has opened,
       // however the HTML stream is split, so the incoming page always fades in.
@@ -176,6 +193,32 @@ test('page links open canonical URLs, prerender on intent and cross-fade between
       '::view-transition-new(route-content) ::view-transition-old(route-content)');
     assert.equal(await scrolled.evaluate(() => sessionStorage.getItem('content-at-reveal')), 'true',
       'the new page is revealed with its content, not just the header');
+    assert.deepEqual(JSON.parse(await scrolled.evaluate(() => sessionStorage.getItem('entrance'))), [],
+      'the cross-fade brings the page in; its own entrance does not play a second time');
+
+    // A first load has no transition: the frame and the header (the largest
+    // paint) are there at once, the sections under the header rise in one
+    // after another, and afterwards every element is at rest.
+    const fresh = await browser.newPage();
+    await recordEntrance(fresh);
+    await fresh.goto(`${gateway.origin}/privacy/`, { waitUntil: 'networkidle2' });
+    const entrance = JSON.parse(await fresh.evaluate(() => sessionStorage.getItem('entrance')));
+    const parts = entrance.filter(step => step.role === 'part');
+    assert.ok(parts.length >= 2 && parts.every(step => step.name === 'page-enter'), JSON.stringify(entrance));
+    assert.ok(parts.at(-1).delay > parts[0].delay, 'the sections rise one after another');
+    assert.deepEqual(entrance.filter(step => step.role !== 'part'), [], 'the frame and the header do not move');
+    assert.equal(await fresh.evaluate(() => getComputedStyle(document.querySelector('.arena-content > * > :first-child'))
+      .animationName), 'none', 'the header is still');
+    await fresh.waitForFunction(() => !document.documentElement.hasAttribute('data-page-enter'), { timeout: 5_000 });
+    assert.deepEqual(await fresh.evaluate(() => [getComputedStyle(document.querySelector('.arena-content')).opacity,
+      document.getAnimations().filter(animation => /^page-/.test(animation.animationName)).length]), ['1', 0]);
+
+    const still = await browser.newPage();
+    await still.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+    await recordEntrance(still);
+    await still.goto(`${gateway.origin}/privacy/`, { waitUntil: 'networkidle2' });
+    assert.deepEqual(JSON.parse(await still.evaluate(() => sessionStorage.getItem('entrance'))), [],
+      'reduced motion opens the page without an entrance');
 
     const calm = await openPage(browser, `${gateway.origin}/privacy/`, true);
     await reportOutgoingTransition(calm.page);

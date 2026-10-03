@@ -84,7 +84,7 @@ export default function PaywallGate({
           opacity: 0.55,
           pointerEvents: 'none',
           userSelect: 'none',
-          transition: 'filter 180ms ease',
+          transition: 'filter var(--motion-base) var(--motion-ease)',
         }}
       >
         {preview}

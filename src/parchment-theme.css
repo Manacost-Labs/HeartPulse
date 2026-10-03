@@ -209,7 +209,7 @@
 .arena-nav-group-chevron {
   margin-left: auto;
   flex: 0 0 auto;
-  transition: transform 160ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
 [aria-expanded='true'] > .arena-nav-group-chevron {
@@ -563,7 +563,7 @@
   text-decoration: none;
 }
 
-.arena-app-home .home-orbit-action svg { transition: transform 180ms ease; }
+.arena-app-home .home-orbit-action svg { transition: transform var(--motion-base) var(--motion-ease); }
 .arena-app-home .home-orbit-action:hover svg { transform: translateX(4px); }
 
 .arena-app-home .home-orbit-empty {
@@ -626,7 +626,7 @@
   font-size: 0.73rem;
   font-weight: 680;
   text-decoration: none;
-  transition: color 160ms ease, background-color 160ms ease;
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-home .home-page-index > a:hover {

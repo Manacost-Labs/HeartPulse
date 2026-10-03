@@ -48,7 +48,7 @@
   color: #f7df9d;
   font-weight: 900;
   text-decoration: none;
-  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .cosmetics-tab:hover,

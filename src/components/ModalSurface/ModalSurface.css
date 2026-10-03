@@ -13,7 +13,7 @@
 
 .modal-surface__backdrop {
   touch-action: none;
-  animation: modal-surface-backdrop-enter 140ms ease-out both;
+  animation: modal-surface-backdrop-enter var(--motion-fast) var(--motion-ease) both;
 }
 
 .modal-surface__panel {
@@ -21,7 +21,7 @@
   max-width: 100%;
   max-height: 100%;
   overscroll-behavior: contain;
-  animation: modal-surface-panel-enter 180ms ease-out both;
+  animation: modal-surface-panel-enter var(--motion-base) var(--motion-ease) both;
 }
 
 @keyframes modal-surface-backdrop-enter {

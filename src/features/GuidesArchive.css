@@ -117,7 +117,7 @@
   color: #fff2bf;
   font-weight: 900;
   padding: 0.62rem 1rem;
-  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
 }
 
 .guide-archive-search button:hover,
@@ -197,7 +197,7 @@
   color: inherit;
   text-decoration: none;
   box-shadow: 0 14px 28px rgba(61, 42, 30, 0.1);
-  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  transition: transform var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .guide-archive-card:hover {
