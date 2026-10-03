@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import postcss from 'postcss';
 
 // Every transition and entrance takes its timing from the motion tokens of
 // src/styles/tokens.css, so the site moves at one tempo. Exempt: endless loops
@@ -20,11 +19,27 @@ function trackedFiles(pattern) {
     .filter(file => file && !/^(public|storybook-static|dist|build|tests)\//.test(file) && !PROTECTED_FILES.has(file));
 }
 
-function insideReducedMotion(node) {
-  for (let parent = node.parent; parent; parent = parent.parent) {
-    if (parent.type === 'atrule' && /prefers-reduced-motion:\s*reduce/.test(parent.params)) return true;
+// Yields each declaration with the preludes of the blocks around it (selectors
+// and at-rule conditions, innermost last) and its line.
+function* declarations(css) {
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, comment => comment.replace(/[^\n]/g, ' '));
+  const blocks = [];
+  let start = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char !== '{' && char !== '}' && char !== ';') continue;
+    const text = source.slice(start, index);
+    if (char === '{') blocks.push(text.trim());
+    else {
+      const match = /^\s*([a-z-]+)\s*:([\s\S]*)$/.exec(text);
+      if (match && blocks.length) {
+        const line = source.slice(0, start + text.search(/\S/)).split('\n').length;
+        yield { prop: match[1], value: match[2].trim(), blocks: [...blocks], line };
+      }
+      if (char === '}') blocks.pop();
+    }
+    start = index + 1;
   }
-  return false;
 }
 
 function untokenized(value) {
@@ -42,14 +57,14 @@ test('the motion tokens are defined once, in the global token file', () => {
 test('stylesheets time every transition and entrance with the motion tokens', () => {
   const offenders = [];
   for (const file of trackedFiles('*.css')) {
-    postcss.parse(readFileSync(file, 'utf8'), { from: file }).walkDecls(MOTION_PROPERTY, declaration => {
-      const selector = declaration.parent.selector ?? '';
-      if (insideReducedMotion(declaration) || /\binfinite\b/.test(declaration.value)) return;
-      if (PROTECTED_SELECTORS.some(name => selector.includes(name))) return;
+    for (const declaration of declarations(readFileSync(file, 'utf8'))) {
+      if (!MOTION_PROPERTY.test(declaration.prop) || /\binfinite\b/.test(declaration.value)) continue;
+      if (declaration.blocks.some(prelude => /prefers-reduced-motion:\s*reduce/.test(prelude))) continue;
+      if (PROTECTED_SELECTORS.some(name => declaration.blocks.at(-1).includes(name))) continue;
       if (untokenized(declaration.value)) {
-        offenders.push(`${file}:${declaration.source.start.line} ${declaration.prop}: ${declaration.value}`);
+        offenders.push(`${file}:${declaration.line} ${declaration.prop}: ${declaration.value}`);
       }
-    });
+    }
   }
   assert.deepEqual(offenders, [], 'use var(--motion-*) instead of a literal duration or easing');
 });
