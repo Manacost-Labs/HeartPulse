@@ -42,7 +42,7 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     id: 'profile', version: 1, paths: ['/profile'], title: 'Как устроен ваш профиль',
     steps: [
       { id: 'summary', target: 'profile-summary', title: 'Ваш профиль', description: 'Здесь имя, основной контакт и ссылка на публичный профиль, которой можно поделиться.', preferredPlacement: 'bottom' },
-      { id: 'contacts', target: 'profile-contacts', title: 'Контакты для призов', description: 'Контакты нужны, только чтобы передать приз победителю конкурса. Здесь же включается рассылка. Эти поля не подтверждают подписку.', preferredPlacement: 'bottom' },
+      { id: 'contacts', target: 'profile-contacts', title: 'Контакты и рассылка', description: 'Контакты нужны, только чтобы передать приз победителю конкурса. Здесь же включается рассылка. Эти поля не подтверждают подписку.', preferredPlacement: 'bottom' },
       { id: 'access', target: 'profile-access-status', title: 'Доступ к разделам', description: 'Какие разделы открыты, откуда доступ и когда его проверяли. «Проверить снова» заново спрашивает Boosty, Patreon и Telegram.', audience: 'authenticated', preferredPlacement: 'bottom' },
       { id: 'telegram', target: 'profile-telegram-access', title: 'Привязка Telegram', description: 'Привяжите Telegram, чтобы входить через него и получать доступ по VIP-каналу. Поле @username в контактах привязкой не считается.', audience: 'non-admin', preferredPlacement: 'top' },
       { id: 'boosty', target: 'profile-boosty-access', title: 'Подтверждение Boosty', description: 'Введите почту из Boosty-профиля и шестизначный код из письма: сайт откроет разделы вашего уровня.', audience: 'non-admin', preferredPlacement: 'top' },

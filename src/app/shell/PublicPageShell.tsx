@@ -53,6 +53,9 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
         <GlobalUtilityHeader accessStatus={access.admin || access.subscription} onNavigate={navigate} pagePath={pathname} auth={Boolean(access.user)} />
         <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${wide ? 'arena-main-wide' : ''}`}>
           <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${wide ? 'arena-content-wide' : ''} arena-content-open`}>
+            {/* The head's `rel=expect` waits for this marker only: the content box exists
+                for the page transition while the first paint does not wait for the rest. */}
+            <span id="route-content-start" hidden />
             {children}
           </div>
         </main>

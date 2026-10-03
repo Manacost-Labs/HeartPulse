@@ -156,7 +156,7 @@ test('page links open canonical URLs, prerender on intent and cross-fade between
     // page would fly in across the sticky header.
     const scrolled = await browser.newPage();
     await scrolled.evaluateOnNewDocument(() => addEventListener('pagereveal', async event => {
-      // The head's `rel=expect` keeps the page hidden until its content is parsed,
+      // The head's `rel=expect` keeps the page hidden until its content box has opened,
       // however the HTML stream is split, so the incoming page always fades in.
       sessionStorage.setItem('content-at-reveal', String(Boolean(document.querySelector('#main-content .arena-content'))));
       if (!event.viewTransition) return;

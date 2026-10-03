@@ -35,9 +35,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const runtimeConfig = JSON.stringify(await loadRuntimeClientConfig()).replace(/</g, '\\u003c');
   // PageTour and ModalSurface make `#root` inert and aria-hidden while their
   // portaled dialogs are open; without it the page behind them stays reachable.
-  // A page is revealed only once its main content is parsed: a cross-document
+  // A page is revealed only once its content box has opened: a cross-document
   // transition then always has the new content to fade in, not just the header.
-  return <html lang="ru"><head><link rel="expect" href="#main-content" blocking="render" /></head><body>
+  return <html lang="ru"><head><link rel="expect" href="#route-content-start" blocking="render" /></head><body>
     {/* Inline and first: the switches must exist before any chunk hydrates. */}
     <script dangerouslySetInnerHTML={{ __html: `window.__ARENA_RUNTIME_CONFIG__=${runtimeConfig}` }} />
     <div id="root">{children}</div>

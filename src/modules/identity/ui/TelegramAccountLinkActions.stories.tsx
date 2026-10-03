@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
 import './AccountDashboard.css';
+import AccountBrandIcon from './AccountBrandIcon';
 import {
   TelegramAccountLinkActionsView,
   type TelegramAccountLinkActionsViewProps,
@@ -11,7 +12,7 @@ const render = (args: TelegramAccountLinkActionsViewProps) => (
   <div className="account-dashboard">
     <ul className="account-links__list">
       <li className="account-links__row">
-        <span className="account-brand account-brand--telegram" aria-hidden="true">T</span>
+        <AccountBrandIcon brand="telegram" />
         <span className="account-links__text"><strong>Telegram</strong><small>Не привязан</small></span>
         <div className="account-links__telegram"><TelegramAccountLinkActionsView {...args} /></div>
       </li>
@@ -84,7 +85,7 @@ export const AlreadyLinked: Story = {
     <div className="account-dashboard">
       <ul className="account-links__list">
         <li className="account-links__row">
-          <span className="account-brand account-brand--telegram" aria-hidden="true">T</span>
+          <AccountBrandIcon brand="telegram" />
           <span className="account-links__text"><strong>Telegram</strong><small>Привязан</small></span>
         </li>
       </ul>
