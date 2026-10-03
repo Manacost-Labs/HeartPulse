@@ -122,11 +122,11 @@ const shellCss = readFileSync(
   new URL('../src/modules/adminWorkspace/adminWorkspace.css', import.meta.url),
   'utf8',
 );
-assert.match(shellCss, /\.admin-tailadmin-shell \.admin-section-frame \{[\s\S]*?animation: admin-section-enter 180ms cubic-bezier\(0\.16, 1, 0\.3, 1\) both;/);
+assert.match(shellCss, /\.admin-tailadmin-shell \.admin-section-frame \{[\s\S]*?animation: admin-section-enter var\(--motion-base\) var\(--motion-ease\) both;/);
 assert.match(shellCss, /@keyframes admin-section-enter \{[\s\S]*?from \{ opacity: 0\.01; transform: translateY\(5px\); \}/);
 assert.match(shellCss, /\.admin-tailadmin-shell \.admin-workspace-nav-list button\.is-active \{[\s\S]*?color: #f7fbff;[\s\S]*?background: #253446;/);
 assert.match(shellCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.admin-tailadmin-shell \.admin-section-frame[\s\S]*?animation: none;/);
-assert.match(shellCss, /\.admin-tailadmin-shell :is\(input, textarea, select\) \{[\s\S]*?transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;/);
+assert.match(shellCss, /\.admin-tailadmin-shell :is\(input, textarea, select\) \{[\s\S]*?transition: border-color var\(--motion-fast\) var\(--motion-ease\), background-color var\(--motion-fast\) var\(--motion-ease\), box-shadow var\(--motion-fast\) var\(--motion-ease\);/);
 assert.match(shellCss, /\.admin-tailadmin-shell :is\(\.contest-primary-button, \.contest-secondary-button, \.admin-pagination button\):active:not\(:disabled\) \{[\s\S]*?transform: translate\(1px, 1px\);/);
 assert.match(shellCss, /\.admin-tailadmin-shell \.admin-workspace-nav:not\(\.is-open\) \.admin-workspace-nav-list \{[\s\S]*?gap: 0;/);
 assert.match(shellCss, /\.admin-tailadmin-shell \.admin-workspace-nav:not\(\.is-open\) \.admin-workspace-nav-list button \{[\s\S]*?width: 100%;[\s\S]*?border-radius: 0;/);
@@ -165,7 +165,7 @@ assert.ok(toastCloseRules.some(rule => /width:\s*44px;/.test(rule)));
 assert.ok(toastCloseRules.some(rule => /height:\s*44px;/.test(rule)));
 assert.match(externalLinkTouchRule, /min-height:\s*44px;/);
 assert.match(workflowTouchRule, /min-height:\s*44px;/);
-assert.match(referenceSystem, /\.admin-tailadmin-shell \.admin-workspace-nav \{[\s\S]*?transition:\s*width 220ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\), padding 220ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\);/,
+assert.match(referenceSystem, /\.admin-tailadmin-shell \.admin-workspace-nav \{[\s\S]*?transition:\s*width var\(--motion-base\) var\(--motion-ease\), padding var\(--motion-base\) var\(--motion-ease\);/,
   'the desktop rail must expand smoothly rather than jump between compact and open states');
 assert.match(referenceSystem, /\.admin-tailadmin-shell \.admin-workspace-nav\.is-open \.admin-workspace-nav-list button > span \{[\s\S]*?opacity:\s*1;/,
   'navigation labels must fade in with the expanded rail');
