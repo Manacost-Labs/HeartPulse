@@ -90,7 +90,7 @@ async function arrival(page, pathname) {
 
 // Records, on the first frame of a document, which entrance animations its
 // own elements run: `box` is the content box, `part` a child of the page's
-// wrapper (its header or a section).
+// wrapper (its header or a section); `title` marks one that holds the `h1`.
 async function recordEntrance(page) {
   await page.evaluateOnNewDocument(() => addEventListener('pagereveal', () => requestAnimationFrame(() => {
     const box = document.querySelector('.arena-content');
@@ -99,7 +99,8 @@ async function recordEntrance(page) {
       .map(animation => {
         const target = animation.effect.target;
         const role = target === box ? 'box' : target.parentElement?.parentElement === box ? 'part' : 'other';
-        return { name: animation.animationName, role, delay: animation.effect.getTiming().delay };
+        const title = Boolean(target.matches('h1') || target.querySelector('h1'));
+        return { name: animation.animationName, role, title, delay: animation.effect.getTiming().delay };
       })));
   })));
 }
@@ -209,6 +210,15 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
     assert.deepEqual(entrance.filter(step => step.role !== 'part'), [], 'the frame and the header do not move');
     assert.equal(await fresh.evaluate(() => getComputedStyle(document.querySelector('.arena-content > * > :first-child'))
       .animationName), 'none', 'the header is still');
+
+    // The page title is the largest paint; Chrome would count it only once an
+    // animation on it ends. On the 404 page it is not the first child.
+    const missing = await browser.newPage();
+    await recordEntrance(missing);
+    await missing.goto(`${gateway.origin}/no-such-page/`, { waitUntil: 'networkidle2' });
+    const missingEntrance = JSON.parse(await missing.evaluate(() => sessionStorage.getItem('entrance')));
+    assert.ok(missingEntrance.length > 0, 'the 404 page enters too');
+    assert.deepEqual([...entrance, ...missingEntrance].filter(step => step.title), [], 'the page title never moves');
     await fresh.waitForFunction(() => !document.documentElement.hasAttribute('data-page-enter'), { timeout: 5_000 });
     assert.deepEqual(await fresh.evaluate(() => [getComputedStyle(document.querySelector('.arena-content')).opacity,
       document.getAnimations().filter(animation => /^page-/.test(animation.animationName)).length]), ['1', 0]);

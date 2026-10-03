@@ -1803,7 +1803,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
               return (
               <div key={tierGroup.tier} className="tierlist-group anim-fade-up"
                 style={{
-                  animationDelay: `${tierIdx * 0.07}s`,
+                  animationDelay: `calc(var(--motion-stagger) * ${tierIdx})`,
                 }}>
                 {/* Tier header */}
                 <div className="tierlist-group-heading flex items-center gap-4 mb-5">
@@ -1832,7 +1832,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                       data-tour-id={tierIdx === 0 && idx === 0 ? 'arena-tier-results' : undefined}
                       style={{
                         // Cap animation delay: past 20 cards the stagger is imperceptible
-                        animationDelay: idx < 20 ? `${tierIdx * 0.05 + idx * 0.015}s` : '0s',
+                        animationDelay: idx < 20 ? `calc(var(--motion-stagger) * ${tierIdx + idx / 4})` : '0s',
                       }}
                     >
                       <HSCard
@@ -2305,7 +2305,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       {loading ? (
         <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="skeleton h-64 w-full rounded-2xl" style={{ animationDelay: `${i * 0.05}s` }} />
+            <div key={i} className="skeleton h-64 w-full rounded-2xl" style={{ animationDelay: `calc(var(--motion-stagger) * ${i})` }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (

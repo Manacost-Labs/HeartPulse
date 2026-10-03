@@ -126,7 +126,7 @@ export function ArticleCard({
     <article
       className={`article-card-modern anim-scale-in rounded-2xl overflow-hidden flex flex-col transition-all duration-(--motion-base) ${isFeatured ? 'article-card-featured' : ''}`}
       style={{
-        animationDelay: `${idx * 0.06}s`,
+        animationDelay: `calc(var(--motion-stagger) * ${idx})`,
       }}
     >
       <button type="button" onClick={() => void openArticle()}

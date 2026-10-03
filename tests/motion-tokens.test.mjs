@@ -73,10 +73,12 @@ test('components time inline and utility transitions with the motion tokens', ()
   const offenders = [];
   for (const file of trackedFiles('*.tsx')) {
     readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
-      const inline = /\b(transition|animation):\s*['`]([^'`]*)['`]/.exec(line);
       const utility = /\bduration-\d+\b/.exec(line);
-      if (utility || (inline && !/\binfinite\b/.test(inline[2]) && untokenized(inline[2]))) {
-        offenders.push(`${file}:${index + 1} ${(utility ?? inline)[0]}`);
+      if (utility) offenders.push(`${file}:${index + 1} ${utility[0]}`);
+      // Style objects: `transition: '…'`, `animationDelay: \`${i * 0.05}s\``.
+      for (const inline of line.matchAll(/\b(?:transition|animation)(?:Delay|Duration|TimingFunction)?:\s*(['"`])((?:(?!\1).)*)\1/g)) {
+        const value = inline[2].replace(/\$\{[^}]*\}(m?s)\b/g, '1$1');
+        if (!/\binfinite\b/.test(value) && untokenized(value)) offenders.push(`${file}:${index + 1} ${inline[0]}`);
       }
     });
   }

@@ -3,12 +3,13 @@ import './WinrateMeterFill.css';
 
 type WinrateMeterFillProps = {
   color: string;
-  delayMs?: number;
+  /** Row position; each row starts a third of a stagger step after the one above. */
+  order?: number;
   label: string;
   scale: number;
 };
 
-export function WinrateMeterFill({ color, delayMs = 0, label, scale }: WinrateMeterFillProps) {
+export function WinrateMeterFill({ color, order = 0, label, scale }: WinrateMeterFillProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export function WinrateMeterFill({ color, delayMs = 0, label, scale }: WinrateMe
         style={{
           width: '100%',
           transform: `scaleX(${visible ? scale : 0})`,
-          transitionDelay: `${delayMs}ms`,
+          transitionDelay: `calc(var(--motion-stagger) * ${Math.min(order, 8)} / 3)`,
           backgroundImage: `linear-gradient(180deg, ${color}ff 0%, ${color}cc 100%)`,
           boxShadow: `inset 0 2px 5px rgba(255,255,255,0.25), inset 0 -2px 5px rgba(0,0,0,0.35), 0 0 12px ${color}66`,
         }}

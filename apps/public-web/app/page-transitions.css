@@ -16,16 +16,17 @@
 /* A load without a view transition brings the page in itself: the frame and
    the page header are there at once, and the sections under the header rise
    into place one after another. Every page wraps its content in one element,
-   so its children are the header and the sections. The header stays still
-   because Chrome counts the largest paint only once an animation on it ends:
-   animating it would delay LCP by the whole entrance. `data-page-enter`
-   exists only while this plays (lib/pageEntrance.ts); the home page has its
-   own entrance in Home.css. */
+   so its children are the header and the sections. The header, and anything
+   holding the page title where the title is not first (the 404 page), stays
+   still because Chrome counts the largest paint only once an animation on it
+   ends: animating it would delay LCP by the whole entrance. `data-page-enter`
+   exists only while this plays (lib/pageEntrance.ts); the home page
+   (`.home-workbench`) has its own entrance in Home.css. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-page-enter] .arena-app-shell:not(.arena-app-home) .arena-content > * > :not(:first-child) {
+  html[data-page-enter] .arena-content > :not(.home-workbench) > :not(:first-child, h1, :has(h1)) {
     animation: page-enter var(--motion-slow) var(--motion-ease) backwards;
   }
 
-  html[data-page-enter] .arena-app-shell:not(.arena-app-home) .arena-content > * > :nth-child(3) { animation-delay: var(--motion-stagger); }
-  html[data-page-enter] .arena-app-shell:not(.arena-app-home) .arena-content > * > :nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 2); }
+  html[data-page-enter] .arena-content > :not(.home-workbench) > :nth-child(3) { animation-delay: var(--motion-stagger); }
+  html[data-page-enter] .arena-content > :not(.home-workbench) > :nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 2); }
 }
