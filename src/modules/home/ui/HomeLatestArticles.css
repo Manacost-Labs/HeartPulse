@@ -23,18 +23,27 @@
   color: #3e2c20;
   text-decoration: none;
   background: rgba(255, 244, 216, 0.5);
-  transition: background-color var(--motion-base) var(--motion-ease), transform var(--motion-base) var(--motion-ease);
+  transition: background-color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-home .home-latest-article + .home-latest-article {
   border-top: 1px solid var(--arena-paper-line);
 }
 
-.arena-app-home .home-latest-article:hover {
+/* Content-card hover language (tokens.css): lift, picture zoom; keyboard focus
+   mirrors it and keeps its ring. */
+@media (hover: hover) {
+  .arena-app-home .home-latest-article:hover {
+    z-index: 1;
+    transform: translateY(calc(var(--motion-lift) * -1));
+    background: rgba(255, 249, 231, 0.9);
+    box-shadow: 0 12px 22px rgba(69, 38, 15, 0.12);
+  }
+}
+
+.arena-app-home .home-latest-article:focus-visible {
   z-index: 1;
-  transform: translateY(-3px);
-  background: rgba(255, 249, 231, 0.9);
-  box-shadow: 0 12px 22px rgba(69, 38, 15, 0.12);
+  transform: translateY(calc(var(--motion-lift) * -1));
 }
 
 .arena-app-home .home-latest-article__image {
@@ -54,11 +63,17 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  transition: transform var(--motion-slow) var(--motion-ease);
+  transition: transform var(--motion-base) var(--motion-ease);
 }
 
-.arena-app-home .home-latest-article:hover .home-latest-article__image img {
-  transform: scale(1.025);
+@media (hover: hover) {
+  .arena-app-home .home-latest-article:hover .home-latest-article__image img {
+    transform: scale(var(--motion-zoom));
+  }
+}
+
+.arena-app-home .home-latest-article:focus-visible .home-latest-article__image img {
+  transform: scale(var(--motion-zoom));
 }
 
 .arena-app-home .home-latest-article__image-fallback {

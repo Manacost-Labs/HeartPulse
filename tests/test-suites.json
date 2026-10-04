@@ -157,7 +157,8 @@
         "tests/vicious-gold-builds.test.ts",
         "tests/vicious-gold-progressive-loading.test.ts",
         "tests/web-vitals-sentry.test.ts",
-        "tests/motion-tokens.test.mjs"
+        "tests/motion-tokens.test.mjs",
+        "tests/content-card-hover.test.mjs"
       ]
     },
     {

@@ -123,12 +123,7 @@ export function ArticleCard({
   const { openArticle, readLabel } = useArticleLink(article, authUser, subscriptionStatus, subscriptionLoading);
 
   return (
-    <article
-      className={`article-card-modern anim-scale-in rounded-2xl overflow-hidden flex flex-col transition-all duration-(--motion-base) ${isFeatured ? 'article-card-featured' : ''}`}
-      style={{
-        animationDelay: `calc(var(--motion-stagger) * ${idx})`,
-      }}
-    >
+    <article className={`article-card-modern rounded-2xl overflow-hidden flex flex-col ${isFeatured ? 'article-card-featured' : ''}`}>
       <button type="button" onClick={() => void openArticle()}
         aria-label={`Читать статью: ${article.title}`}
         className="flex flex-col flex-grow w-full text-left bg-transparent border-0 p-0 cursor-pointer">

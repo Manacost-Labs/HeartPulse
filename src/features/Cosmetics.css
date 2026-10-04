@@ -192,6 +192,7 @@
   filter: blur(13px);
   opacity: 0;
   pointer-events: none;
+  transition: opacity var(--motion-fast) var(--motion-ease);
 }
 
 .cosmetics-card:hover::before,
@@ -237,6 +238,7 @@
   font-family: var(--font-display, Georgia, serif);
   font-size: 0.9rem;
   line-height: 1.2;
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
 }
 
 .cosmetics-card:hover .cosmetics-card-name,

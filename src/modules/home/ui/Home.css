@@ -361,7 +361,7 @@
   color: #f2f4ff;
   text-decoration: none;
   background: rgba(255, 255, 255, 0.045);
-  transition: transform var(--motion-base) var(--motion-ease), background-color var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease);
+  transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .home-bg-directory__link[data-featured="true"] {
@@ -466,21 +466,6 @@
   opacity: 1;
   transform: none;
 }
-
-.home-bg-directory__link {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition:
-    opacity var(--motion-slow) var(--motion-ease),
-    transform var(--motion-slow) var(--motion-ease),
-    background-color var(--motion-base) var(--motion-ease),
-    border-color var(--motion-base) var(--motion-ease);
-}
-
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(2) { transition-delay: var(--motion-stagger); }
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(3) { transition-delay: calc(var(--motion-stagger) * 2); }
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(4) { transition-delay: calc(var(--motion-stagger) * 3); }
-.home-bg-directory.is-visible .home-bg-directory__link:nth-child(5) { transition-delay: calc(var(--motion-stagger) * 4); }
 
 .home-workbench :where(a, button):focus-visible {
   outline: 3px solid #176fa6;

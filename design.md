@@ -300,6 +300,14 @@ Rules:
   page; the home page is the one exception. The card and cosmetics pages
   (`.constructed-cards`, `.cosmetics-page`) skip the rise, because their
   largest paint is a picture inside a section.
+- Content cards (home article and directory cards, article, guide and
+  legendary cards) share one hover: they rise by `--motion-lift` at
+  `--motion-fast`, a card picture grows to `--motion-zoom` at
+  `--motion-base`, the lift sits inside `@media (hover: hover)` so a tap does
+  not leave a card raised, and keyboard focus (`:focus-visible`, or
+  `:has(:focus-visible)` on a card holding several controls) raises it the
+  same way next to its focus ring. Game-card hovers (arena tier cards, the
+  card gallery, legendary thumbnails) keep their own motion.
 - Menus, the drawer, navigation groups and FAQ answers drop in from their
   trigger by `--motion-drop` over `--motion-base` and fold away over
   `--motion-instant` with `--motion-ease-exit` where they stay in the page

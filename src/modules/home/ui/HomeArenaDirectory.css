@@ -77,7 +77,7 @@
   text-decoration: none;
   background: rgba(255, 244, 216, 0.38);
   box-shadow: inset 3px 0 rgba(123, 21, 27, 0.52);
-  transition: transform var(--motion-base) var(--motion-ease), background-color var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease);
+  transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .arena-app-home .home-arena-directory__link[data-featured='true'] {
@@ -86,11 +86,17 @@
   box-shadow: inset 5px 0 var(--arena-red);
 }
 
-.arena-app-home .home-arena-directory__link:hover {
-  transform: translateY(-3px);
-  border-color: rgba(100, 47, 24, 0.52);
-  background: rgba(255, 249, 232, 0.78);
-  box-shadow: inset 5px 0 var(--arena-red), 0 10px 18px rgba(75, 42, 15, 0.11);
+@media (hover: hover) {
+  .arena-app-home .home-arena-directory__link:hover {
+    transform: translateY(calc(var(--motion-lift) * -1));
+    border-color: rgba(100, 47, 24, 0.52);
+    background: rgba(255, 249, 232, 0.78);
+    box-shadow: inset 5px 0 var(--arena-red), 0 10px 18px rgba(75, 42, 15, 0.11);
+  }
+}
+
+.arena-app-home .home-arena-directory__link:focus-visible {
+  transform: translateY(calc(var(--motion-lift) * -1));
 }
 
 .arena-app-home .home-arena-directory__link > span {
