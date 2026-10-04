@@ -4255,6 +4255,31 @@ for (const [device, viewport] of [
   }
 }
 
+// The directories and the FAQ are in the document, so the page index works on
+// the first click, before any section script loads. Its own page: a pointer
+// click would change which focus the next block's keyboard checks see.
+{
+  const page = await createQaPage();
+  await page.setViewport({ width: 1440, height: 900 });
+  await mockApplicationApi(page, { authenticated: true });
+  try {
+    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    const missingIndexTargets = await page.evaluate(() => ['#home-bg-heading', '#home-arena-directory-heading', '#faq-heading']
+      .filter(target => !document.querySelector(`#root ${target}`)));
+    if (missingIndexTargets.length) throw new Error(`targets missing from the document: ${missingIndexTargets.join(', ')}`);
+    await page.click('.home-page-index a[href="#faq-heading"]');
+    await page.waitForFunction(() => {
+      const top = document.getElementById('faq-heading')?.getBoundingClientRect().top ?? -1;
+      return top >= 0 && top < window.innerHeight;
+    }, { timeout: 5_000 });
+    console.log('✓ home page index reaches server-rendered sections on the first click');
+  } catch (error) {
+    failures.push(`home page index: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 // Below-fold home chunks and the delayed prompt must remain independently usable.
 {
   const page = await createQaPage();
@@ -4263,16 +4288,6 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: true });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    // The directories and the FAQ are in the document, so the page index
-    // works on the first click, before any section script loads.
-    const missingIndexTargets = await page.evaluate(() => ['#home-bg-heading', '#home-arena-directory-heading', '#faq-heading']
-      .filter(target => !document.querySelector(`#root ${target}`)));
-    if (missingIndexTargets.length) throw new Error(`Home index targets are missing from the document: ${missingIndexTargets.join(', ')}`);
-    await page.click('.home-page-index a[href="#faq-heading"]');
-    await page.waitForFunction(() => {
-      const top = document.getElementById('faq-heading')?.getBoundingClientRect().top ?? -1;
-      return top >= 0 && top < window.innerHeight;
-    }, { timeout: 5_000 });
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     // Streaming server rendering can hold a section in a hidden chunk after the
     // application root until React reveals it, so wait for the revealed copy.

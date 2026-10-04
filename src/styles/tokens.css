@@ -61,7 +61,6 @@
      .skeleton): one placeholder fill for every data section, about 1.5:1
      against parchment so a block reads even at the pulse's faint end. */
   --loading-fill: rgba(128, 86, 40, 0.3);
-  --loading-line: rgba(102, 62, 31, 0.26);
 
   /* Legacy draft surfaces still used by the home and data workspaces. */
   --draft-ink: #10233d;

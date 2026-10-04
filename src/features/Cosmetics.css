@@ -253,7 +253,7 @@
 /* Geometry only: the fill and pulse come from LoadingBlock. */
 .cosmetics-skeleton {
   aspect-ratio: 2 / 3;
-  border: 1px solid var(--loading-line);
+  border: 1px solid var(--arena-paper-line);
 }
 
 .cosmetics-pagination {

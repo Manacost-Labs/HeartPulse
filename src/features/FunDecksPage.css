@@ -717,7 +717,7 @@
 }
 
 .fun-decks-page__loading .loading-block {
-  border: 1px solid var(--loading-line);
+  border: 1px solid var(--arena-paper-line);
 }
 
 @media (max-width: 1120px) {

@@ -143,6 +143,11 @@ test('public previews render on the server and hydrate without a guest data requ
       assert.deepEqual(errors, [], `${path} hydrates without errors`);
       assert.equal(await page.$('#root [data-loading-surface="panel"]'), null,
         `${path} shows no loader for server-rendered data`);
+      if (path === '/standard/meta/') {
+        // The collapsed chart is server-rendered; its plot loads when opened.
+        await page.click('#root .standard-meta-chart__header-actions button');
+        await page.waitForSelector('#root .standard-meta-chart__point', { visible: true });
+      }
       if (path === '/standard/archetypes/') {
         await page.waitForFunction(() => /обновлено 4 окт\., 07:30/.test(document.querySelector('#root .archetypes-tools small')?.textContent ?? ''));
       }

@@ -819,8 +819,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent hasFullAccess={hasFullAccess} accessPending={accessPending} paywall={paywall}
-          initialTeaser={initialTeaser} />
+        <StandardMetaContent hasFullAccess={hasFullAccess} accessPending={accessPending} paywall={paywall} initialTeaser={initialTeaser} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

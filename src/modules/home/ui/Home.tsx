@@ -3,10 +3,12 @@ import { ArrowRight, Send, Sparkles } from 'lucide-react';
 import type { HomeArticle } from './HomeLatestArticles';
 import type { HomeSummaryData } from '../model/homeSummary';
 import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
-import HomeArenaDirectory from './HomeArenaDirectory';
-import HomeBattlegrounds from './HomeBattlegrounds';
 import { HomeHero } from './HomeHero';
 import './Home.css';
+// After Home.css: the directories' own rules win ties with its older ones,
+// as they did when the directories loaded later as separate chunks.
+import HomeArenaDirectory from './HomeArenaDirectory';
+import HomeBattlegrounds from './HomeBattlegrounds';
 
 // Latest articles stay lazy: a legacy host renders them without server data.
 // The directories and the FAQ are static links and text, so they render with
