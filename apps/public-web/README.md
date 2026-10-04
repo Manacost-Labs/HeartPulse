@@ -116,20 +116,25 @@ behind its `public.ts`, not in `src/features/`.
   (`documentCaching.mjs`, applied by `next.config.mjs` and, for `/`, by
   `proxy.ts`), so Back restores them from the back/forward cache instead of
   reloading them; every normal visit still revalidates, and no shared cache
-  stores them. Add a new public route family there; anything not listed keeps
-  the header Next chooses (`no-store` on dynamic pages), as `/?login`,
-  `/admin/`, `/deck-builder/`, `/archetypes/`, `/id/`, `/profiles/`, errors
-  outside these families and the `503` of `proxy.ts` do; Nginx forces
-  `no-store` on the account and admin locations as well. A restored page keeps
-  its state, so `usePublicAccess()` re-checks the session on `pageshow` and,
-  when the browser signed out or switched accounts meanwhile, hides the viewer
-  and any paid view synchronously before that check. Plausible counts no new
-  pageview for a restored page. A route whose server render fails inside these
-  families sends its error page with the same header, so Back can show that
-  error from the browser cache until the visitor reloads.
-  `tests/next-bfcache-browser.test.mjs` checks the headers, the restore and a
-  sign-out followed by Back. Production Nginx still adds `no-store` to `/`
-  (see `docs/runbooks/nextjs-production-cutover.md`).
+  stores them. Add a new public route family there only if its server
+  modules read no cookies (`tests/next-document-caching.test.mjs`); anything
+  not listed keeps the header Next chooses (`no-store` on dynamic pages), as
+  `/?login`, `/admin/`, `/deck-builder/`, `/archetypes/`, `/id/`,
+  `/profiles/` and the `503` of `proxy.ts` do; Nginx forces `no-store` on the
+  account and admin locations as well. A `404` or `500` inside a listed
+  family carries the same header: it is never restored from the
+  back/forward cache, but Back can show it from the HTTP cache until the
+  visitor reloads. Every server answer about the viewer is recorded in this
+  browser (`ui/restoredPageAccess.ts`); a restored page that shows another
+  viewer than the last recorded one hides it and any paid view synchronously
+  before it checks the session, and a re-check that cannot reach the server
+  hides as well. A view that keeps viewer data must derive it from the
+  current viewer in render, not in an effect. Plausible counts no new
+  pageview for a restored page. The contract and its remaining gap are in
+  `docs/specs/public-document-caching.md`;
+  `tests/next-bfcache-browser.test.mjs` checks the headers, restores,
+  sign-out and an account switch followed by Back. Production Nginx still
+  adds `no-store` to `/` (see `docs/runbooks/nextjs-production-cutover.md`).
 - `lib/authPrefetch.ts` starts `/api/auth/me` from the document head; the
   first `fetchCurrentAuthUser()` call adopts that response once, within ten
   seconds, and every later call fetches. A page that never checks the session

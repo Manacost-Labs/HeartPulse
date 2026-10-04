@@ -152,7 +152,8 @@ from the browser's back/forward cache. `/?login`, `/admin/`,
 `/deck-builder/`, `/archetypes/`, the profile pages and the retryable `503`
 keep `no-store`; the locations that already force `no-store` (`/admin/`,
 `/deck-builder/`, `/archetypes/`, `/connect`, `/id/`, `/profiles/`,
-`/identity/`) still do. The other slash locations pass the header through. The
+`/identity/`) still do. The other slash locations pass the header through
+([contract](../specs/public-document-caching.md)). The
 exact `location = /` still adds `Cache-Control: no-cache, no-store,
 must-revalidate`, `Pragma` and `Expires`; a browser combines both
 `Cache-Control` headers, so the home page keeps reloading on Back. Letting it

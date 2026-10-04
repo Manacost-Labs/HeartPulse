@@ -5,7 +5,9 @@
  * holds viewer or paid data (`usePublicAccess` fetches that in the browser),
  * so `private` (no shared cache) with `no-cache` (every normal visit
  * revalidates) is safe and lets Back restore the page as the visitor left it.
- * `usePublicAccess` re-checks the session on such a restore.
+ * `usePublicAccess` re-checks the session on such a restore. The header is set
+ * before rendering, so a 404 or 500 of these families carries it too; see
+ * docs/specs/public-document-caching.md.
  *
  * This is an allowlist: a route family that is missing here keeps Next's
  * `no-store`. Pages whose HTML depends on cookies (`/admin/`, `/deck-builder/`,

@@ -9,14 +9,17 @@ import { navigate } from './navigation';
 
 export function ArticlesPageClient({ initialData }: { initialData: ArticlesData }) {
   const access = usePublicAccess();
-  const [data, setData] = useState(initialData);
+  const [personal, setPersonal] = useState<{ owner: string; data: ArticlesData } | null>(null);
   const [personalError, setPersonalError] = useState(false);
   const [retry, setRetry] = useState(0);
   const userId = access.user?.id;
+  // Votes belong to the viewer who fetched them: anyone else, or nobody while
+  // access is checked again (a restored page), sees the public data at once.
+  const data = personal && userId && personal.owner === userId ? personal.data : initialData;
 
   useEffect(() => {
     if (access.checking) return;
-    if (!userId) { setData(initialData); setPersonalError(false); return; }
+    if (!userId) { setPersonal(null); setPersonalError(false); return; }
     const controller = new AbortController();
     void fetch('/api/articles', {
       cache: 'no-store', credentials: 'same-origin', signal: controller.signal,
@@ -25,12 +28,12 @@ export function ArticlesPageClient({ initialData }: { initialData: ArticlesData 
       if (!response.ok) throw new Error('Article votes unavailable');
       return articlesData(await response.json(), true);
     }).then(value => {
-      if (!controller.signal.aborted) { setData(value); setPersonalError(false); }
+      if (!controller.signal.aborted) { setPersonal({ owner: userId, data: value }); setPersonalError(false); }
     }).catch(() => {
       if (!controller.signal.aborted) setPersonalError(true);
     });
     return () => controller.abort();
-  }, [access.checking, userId, initialData, retry]);
+  }, [access.checking, userId, retry]);
 
   return <PublicPageShell activeTab="articles" pathname="/articles/" access={access} navigate={navigate} editorial>
     {personalError && <div role="status" className="articles-personal-error mb-4 rounded-lg border p-3">

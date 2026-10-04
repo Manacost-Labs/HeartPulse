@@ -7,38 +7,47 @@ import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
 const READER = { id: 'bf-reader', email: 'reader@example.test', name: 'Читатель Кэша', role: 'user' };
-const SUBSCRIBED = { hasAccess: true, entitlements: { battlegrounds: true }, source: 'boosty', checkedAt: null,
+const OTHER = { id: 'bf-other', email: 'other@example.test', name: 'Другой Посетитель', role: 'user' };
+const SUBSCRIBED = { hasAccess: true, entitlements: { battlegrounds: true, arena: true }, source: 'boosty', checkedAt: null,
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
+const UNSUBSCRIBED = { ...SUBSCRIBED, hasAccess: false, entitlements: {}, boosty: { checked: true, hasAccess: false } };
+const ACCOUNTS = { reader: { user: READER, subscription: SUBSCRIBED }, other: { user: OTHER, subscription: UNSUBSCRIBED } };
 
 // Stands where nginx and Express do: pages go to Next.js, `/api/` is answered
-// here with Express's `no-store` header. The session lives in `bf_session`
-// until the account page signs out.
+// here with Express's `no-store` header. `bf_session` names the account; the
+// server ends a session on sign-out or revocation (`sessions.delete`).
 async function startGateway(nextOrigin) {
-  const session = { active: true };
+  const sessions = new Set(Object.keys(ACCOUNTS));
   const next = new URL(nextOrigin);
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://gateway');
-    const signedIn = session.active && /(?:^|;\s*)bf_session=1/.test(request.headers.cookie ?? '');
+    const name = /(?:^|;\s*)bf_session=(\w+)/.exec(request.headers.cookie ?? '')?.[1];
+    const account = name && sessions.has(name) ? ACCOUNTS[name] : null;
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json',
       'Cache-Control': 'private, no-store' }).end(JSON.stringify(payload));
-    if (url.pathname === '/api/auth/me') return json(200, { user: signedIn ? READER : null });
+    if (url.pathname === '/api/auth/me') return json(200, { user: account?.user ?? null });
     if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
-      session.active = false;
+      sessions.delete(name);
       return json(200, { ok: true });
     }
     if (url.pathname === '/api/subscription/status') {
-      return signedIn ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
+      return account ? json(200, account.subscription) : json(401, { error: 'guest' });
     }
     if (url.pathname === '/api/bg/tier-lists') {
-      return signedIn ? json(200, { list: url.searchParams.get('list'), count: 0, tiers: { S: [], A: [], B: [], C: [], D: [] } })
+      return account?.subscription.entitlements.battlegrounds
+        ? json(200, { list: url.searchParams.get('list'), count: 0, tiers: { S: [], A: [], B: [], C: [], D: [] } })
         : json(401, { error: 'guest' });
+    }
+    if (url.pathname === '/api/winrates') {
+      return account?.subscription.entitlements.arena ? json(200, { source: 'hsreplay', updatedAt: new Date().toISOString(),
+        classes: [{ id: 'mage', name: 'Маг', winrate: 55.5, color: '#3366ff', games: 1000 }] }) : json(401, { error: 'guest' });
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(next, { method: request.method, path: request.url, headers: request.headers },
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
     request.pipe(upstream);
   });
-  return { server, origin: await listenLocal(server), session };
+  return { server, origin: await listenLocal(server), sessions };
 }
 
 // Navigates like a link the visitor follows (renderer-initiated, not prerendered).
@@ -46,35 +55,53 @@ async function follow(page, path) {
   await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.evaluate(href => { location.href = href; }, path)]);
 }
 
-async function back(page) {
-  await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.goBack()]);
+async function back(page, steps = 1) {
+  await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.evaluate(count => history.go(-count), steps)]);
 }
 
-// What the restored document shows the moment it is back: inside `pageshow`
-// (after the page's own listener) and on the first frame after it.
+// What the restored document shows: inside `pageshow` (after the page's own
+// listener), on the first frame after it, and later while it re-checks.
 async function watchRestore(page) {
   await page.evaluate(() => {
-    const snapshot = () => ({
-      paid: Boolean(document.querySelector('.bg-tier-list-page')),
-      viewer: Boolean(document.querySelector('.arena-sidebar-profile-avatar'))
-        || document.body.textContent.includes('Читатель Кэша'),
-    });
     window.__restoreMarker = true;
     window.__restored = null;
     if (window.__restoreWatched) return;
     window.__restoreWatched = true;
+    const snapshot = () => ({
+      paid: Boolean(document.querySelector('.bg-tier-list-page, .arena-classes-board')),
+      reader: document.body.textContent.includes('Читатель Кэша'),
+      avatar: Boolean(document.querySelector('.arena-sidebar-profile-avatar')),
+    });
     addEventListener('pageshow', event => {
       if (!event.persisted) return;
-      window.__restored = { event: snapshot() };
+      window.__restored = { event: snapshot(), later: [] };
       requestAnimationFrame(() => { window.__restored.frame = snapshot(); });
+      for (const wait of [300, 1000, 2500, 6500]) setTimeout(() => window.__restored.later.push(snapshot()), wait);
     });
   });
 }
 
-async function restoredState(page) {
-  await page.waitForFunction(() => window.__restored?.frame, { timeout: 5000 }).catch(() => null);
+async function restoredState(page, settled = 0) {
+  await page.waitForFunction(count => window.__restored?.frame && window.__restored.later.length >= count,
+    { timeout: 10000 }, settled).catch(() => null);
   return page.evaluate(() => ({ marker: window.__restoreMarker === true, restored: window.__restored ?? null }));
 }
+
+async function openReader(browser, origin, account, path = '/battlegrounds/tier-list/', paid = '.bg-tier-list-page') {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1440, height: 900 });
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.setCookie({ name: 'bf_session', value: account, url: origin });
+  await page.goto(`${origin}${path}`, { waitUntil: 'load' });
+  await page.waitForSelector(paid, { timeout: 15000 });
+  await page.waitForFunction(() => document.body.textContent.includes('Читатель Кэша'));
+  await watchRestore(page);
+  return { page, pageErrors };
+}
+
+const SHOWN = { paid: true, reader: true, avatar: true };
+const HIDDEN = { paid: false, reader: false, avatar: false };
 
 test('public documents allow the back/forward cache and account documents keep no-store', async () => {
   const express = http.createServer((request, response) => response.writeHead(401).end());
@@ -138,23 +165,13 @@ test('Back restores public pages from the back/forward cache and never shows a s
     await guest.close();
 
     // A subscriber's restored page keeps the paid view: nothing changed in between.
-    const reader = await browser.newPage();
-    await reader.setViewport({ width: 1440, height: 900 });
-    const pageErrors = [];
-    reader.on('pageerror', error => pageErrors.push(error.message));
-    await reader.setCookie({ name: 'bf_session', value: '1', url: gateway.origin });
-    await reader.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
-    await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
-    await reader.waitForSelector('.arena-sidebar-profile-avatar');
-    await watchRestore(reader);
+    const { page: reader, pageErrors } = await openReader(browser, gateway.origin, 'reader');
     await follow(reader, '/classes/');
     await back(reader);
-    const kept = await restoredState(reader);
+    const kept = await restoredState(reader, 1);
     assert.equal(kept.marker, true, 'the subscriber page must be restored');
-    assert.deepEqual(kept.restored, { event: { paid: true, viewer: true }, frame: { paid: true, viewer: true } },
-      'an unchanged session keeps the restored paid view');
-    await delay(500);
-    assert.ok(await reader.$('.bg-tier-list-page'), 'the quiet re-check keeps the paid view');
+    assert.deepEqual({ event: kept.restored.event, frame: kept.restored.frame, later: kept.restored.later[0] },
+      { event: SHOWN, frame: SHOWN, later: SHOWN }, 'an unchanged session keeps the restored paid view');
 
     // The subscriber signs out on the account page, then goes Back.
     await watchRestore(reader);
@@ -162,18 +179,93 @@ test('Back restores public pages from the back/forward cache and never shows a s
     const logout = await reader.waitForSelector('.account-logout', { timeout: 15000 });
     await logout.evaluate(button => button.click());
     await reader.waitForFunction(() => !document.querySelector('.account-logout'));
-    for (let attempt = 0; gateway.session.active && attempt < 50; attempt += 1) await delay(50);
-    assert.equal(gateway.session.active, false, 'the account page must end the session');
+    for (let attempt = 0; gateway.sessions.has('reader') && attempt < 50; attempt += 1) await delay(50);
+    assert.equal(gateway.sessions.has('reader'), false, 'the account page must end the session');
     await back(reader);
     const signedOut = await restoredState(reader);
     assert.equal(signedOut.marker, true, 'the paid page must come back from the back/forward cache');
-    assert.deepEqual(signedOut.restored, { event: { paid: false, viewer: false }, frame: { paid: false, viewer: false } },
+    assert.deepEqual({ event: signedOut.restored.event, frame: signedOut.restored.frame }, { event: HIDDEN, frame: HIDDEN },
       'a page restored after sign-out must hide the paid view and the signed-in header before its first frame');
     await reader.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10000 });
     assert.equal(await reader.$('.bg-tier-list-page'), null);
     assert.equal(await reader.$('.arena-sidebar-profile-avatar'), null);
     assert.deepEqual(pageErrors, []);
     await reader.close();
+
+    // The same on /classes/: its statistics leave in the render that hides the viewer.
+    gateway.sessions.add('reader');
+    const classes = await openReader(browser, gateway.origin, 'reader', '/classes/', '.arena-classes-board');
+    await follow(classes.page, '/?login');
+    const classesLogout = await classes.page.waitForSelector('.account-logout', { timeout: 15000 });
+    await classesLogout.evaluate(button => button.click());
+    for (let attempt = 0; gateway.sessions.has('reader') && attempt < 50; attempt += 1) await delay(50);
+    await back(classes.page);
+    const classesState = await restoredState(classes.page);
+    assert.equal(classesState.marker, true);
+    assert.deepEqual({ event: classesState.restored.event, frame: classesState.restored.frame }, { event: HIDDEN, frame: HIDDEN },
+      'restored /classes/ must drop the class statistics before its first frame');
+    assert.deepEqual(classes.pageErrors, []);
+    await classes.page.close();
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    await closeLocal(express);
+  }
+});
+
+// The session can end without a sign-out on our pages (expiry, revocation on
+// another device) and another account can sign in through a redirect. The
+// page that observed those answers recorded them, so the restored page of the
+// first account hides before its first frame, also when the browser is
+// offline and the re-check cannot reach the server.
+test('a page restored after an account switch or offline never shows the previous viewer', async () => {
+  const express = http.createServer((request, response) => response.writeHead(401).end());
+  let next; let gateway; let browser;
+  try {
+    next = await startNextServer({ legacyOrigin: await listenLocal(express) });
+    gateway = await startGateway(next.origin);
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+      headless: true, args: ['--no-sandbox'] });
+    for (const offline of [false, true]) {
+      gateway.sessions.add('reader');
+      const context = await browser.createBrowserContext();
+      const { page, pageErrors } = await openReader(context, gateway.origin, 'reader');
+      gateway.sessions.delete('reader');
+      await follow(page, '/?login');
+      await page.waitForFunction(() => localStorage.getItem('hs_arena_auth_cookie_hint') === null);
+      await page.setCookie({ name: 'bf_session', value: 'other', url: gateway.origin });
+      await follow(page, '/?login&telegram=ok');
+      await page.waitForFunction(() => document.body.textContent.includes('Другой Посетитель'));
+      if (offline) await page.setOfflineMode(true);
+      await back(page, 2);
+      const state = await restoredState(page, 4);
+      assert.equal(state.marker, true, 'the first account\'s page must come back from the back/forward cache');
+      for (const [moment, shown] of [['event', state.restored.event], ['frame', state.restored.frame],
+        ...state.restored.later.map((shown, index) => [`check ${index}`, shown])]) {
+        assert.equal(shown.paid, false, `offline=${offline} ${moment}: the previous viewer's paid view must stay hidden`);
+        assert.equal(shown.reader, false, `offline=${offline} ${moment}: the previous viewer's name must stay hidden`);
+      }
+      if (!offline) {
+        await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10000 });
+        assert.ok(await page.evaluate(() => document.body.textContent.includes('Другой Посетитель')));
+      }
+      assert.deepEqual(pageErrors, []);
+      await context.close();
+    }
+
+    // Offline, a restored page cannot confirm even an unchanged viewer: it hides after the failed re-check.
+    gateway.sessions.add('reader');
+    const context = await browser.createBrowserContext();
+    const { page } = await openReader(context, gateway.origin, 'reader');
+    await follow(page, '/classes/');
+    await page.setOfflineMode(true);
+    await back(page);
+    const offlineState = await restoredState(page, 3);
+    assert.equal(offlineState.marker, true);
+    assert.deepEqual(offlineState.restored.event, SHOWN, 'the last verified viewer may stay while the page re-checks');
+    assert.equal(offlineState.restored.later[2].paid, false, 'an unconfirmed restored page must not keep the paid view');
+    await context.close();
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);

@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import test from 'node:test';
 import { createRequire } from 'node:module';
 import { isPublicHomeDocument, publicDocumentHeaders, PUBLIC_DOCUMENT_CACHE_CONTROL } from '../apps/public-web/documentCaching.mjs';
@@ -38,4 +40,54 @@ test('the home page is public, its login query is the account page', () => {
   assert.equal(isPublicHomeDocument('/', new URLSearchParams('login')), false);
   assert.equal(isPublicHomeDocument('/', new URLSearchParams('login=1')), false);
   assert.equal(isPublicHomeDocument('/tierlist/', new URLSearchParams('')), false);
+});
+
+// `private, no-cache` is safe only while the HTML of these routes is the same
+// for every visitor. Walks the server modules of each listed route family
+// (stopping at client components, which cannot read request cookies) and
+// rejects any cookie read, header forwarding of cookies or the admin check.
+const root = resolve(import.meta.dirname, '..');
+const app = join(root, 'apps/public-web/app');
+const FAMILY_DIRECTORIES = ['articles', 'classes', 'contests', 'gallery', 'legendaries', 'tierlist',
+  'battlegrounds/strategies', 'battlegrounds/tier-builder', 'battlegrounds/tier-list', 'cosmetics',
+  'guides-archive', 'heroes', 'library', 'standard/archetypes', 'standard/cards', 'standard/fun-decks',
+  'standard/matchups', 'standard/meta', 'standard/vicious-gold'];
+const COOKIE_READ = [/\bcookies\s*\(/, /adminAccess/, /get\(\s*['"]cookie['"]\s*\)/, /\bheaders\.cookie\b/, /\bdraftMode\s*\(/];
+
+function files(directory) {
+  return readdirSync(directory).flatMap(name => {
+    const path = join(directory, name);
+    return statSync(path).isDirectory() ? files(path) : /\.(?:ts|tsx|mjs)$/.test(name) ? [path] : [];
+  });
+}
+
+function resolveImport(from, specifier) {
+  const base = specifier.startsWith('@/') ? join(root, specifier.slice(2))
+    : specifier.startsWith('.') ? resolve(dirname(from), specifier) : null;
+  if (!base) return null;
+  return ['', '.ts', '.tsx', '.mjs', '/index.ts', '/index.tsx'].map(suffix => base + suffix)
+    .find(path => existsSync(path) && statSync(path).isFile()) ?? null;
+}
+
+test('the cached route families render the same HTML for every visitor', () => {
+  const pending = ['page.tsx', 'layout.tsx'].map(name => join(app, name)).filter(existsSync)
+    .concat(FAMILY_DIRECTORIES.flatMap(directory => files(join(app, directory))));
+  const seen = new Set();
+  const offenders = [];
+  while (pending.length) {
+    const file = pending.pop();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const source = readFileSync(file, 'utf8');
+    if (/^\s*['"]use client['"]/.test(source)) continue;
+    for (const pattern of COOKIE_READ) {
+      if (pattern.test(source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ''))) offenders.push(`${relative(root, file)} ${pattern}`);
+    }
+    for (const match of source.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*)['"]([^'"]+)['"]/g)) {
+      const target = resolveImport(file, match[1]);
+      if (target) pending.push(target);
+    }
+  }
+  assert.ok(seen.size > 40, `the walk must reach the route modules (${seen.size})`);
+  assert.deepEqual(offenders, [], 'a cached public document must not depend on the visitor\'s cookies');
 });
