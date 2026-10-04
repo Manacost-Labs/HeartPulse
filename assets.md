@@ -108,21 +108,27 @@ fontTools 4.66.1: `TTFont("2318-font.otf")`, `flavor = "woff2"`, `save(...)`.
 
 | Назначение | Путь | Production URL | Роль |
 | --- | --- | --- | --- |
-| Пергамент страницы | `wallpaper/arena-parchment.jpg` | <https://arena.hs-manacost.ru/wallpaper/arena-parchment.jpg> | Непрерывный фон контента |
+| Пергамент страницы | `wallpaper/arena-parchment-v2.webp` | <https://arena.hs-manacost.ru/wallpaper/arena-parchment-v2.webp> | Непрерывный фон контента: WebP из `arena-parchment.jpg` (`cwebp -q 75 -m 6 -sns 0 -f 0`: без сглаживания, чтобы сохранить зерно бумаги), 18,4 KB вместо 79,1 KB; JPEG остаётся для писем рассылки |
 | Красное сукно | `wallpaper/arena-rail-red.jpg` | <https://arena.hs-manacost.ru/wallpaper/arena-rail-red.jpg> | Меню, Arena-заголовки, футер, lightbox |
 | Главная деревянная рама | `wallpaper/main-page-rail-border.png` | <https://arena.hs-manacost.ru/wallpaper/main-page-rail-border.png> | Крупные панели и border-image |
 | Компактная деревянная рама | `wallpaper/deck-border.png` | <https://arena.hs-manacost.ru/wallpaper/deck-border.png> | Поиск, статусы, небольшие карточки |
 | BG-внешняя рама | `wallpaper/wiki-battlegrounds-skin.webp` | <https://arena.hs-manacost.ru/wallpaper/wiki-battlegrounds-skin.webp> | Конструкторы и крупные BG-поверхности |
 | BG-вывеска | `wallpaper/battlegrounds-bartender-header.webp` | <https://arena.hs-manacost.ru/wallpaper/battlegrounds-bartender-header.webp> | Заголовок Полей Сражений |
 | Орнамент заголовка | `wallpaper/main-page-header.svg` | <https://arena.hs-manacost.ru/wallpaper/main-page-header.svg> | Mask для коротких заголовков |
-| Персонаж главной | `wallpaper/home-paladin-hero.webp` | <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero.webp> | Мурал главного Arena-блока |
-| Профильная таверна | `wallpaper/profile-hero-hth.webp` | <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.webp> | Фон профиля |
+| Персонаж главной | `wallpaper/home-paladin-hero.webp` | <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero.webp> | Мурал главного Arena-блока; сайт отдаёт `home-paladin-hero-{720,960,1280}.avif` через `<picture>` (18–43 KB вместо 157 KB) |
+| Профильная таверна | `wallpaper/profile-hero-hth.webp` | <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.webp> | Фон профиля и арт баннера страниц; баннер берёт `profile-hero-hth-1430.avif` (46 KB вместо 65 KB) там, где браузер понимает `image-set()` с `type()` |
 | Arena-иконка | `assets/arena_icon.webp` | <https://arena.hs-manacost.ru/assets/arena_icon.webp> | Маркер режима Арены |
 | Мана | `assets/mana.png` | <https://arena.hs-manacost.ru/assets/mana.png> | Кристалл для отдельных интерфейсов; в HSReplay-строках колоды не используется |
 
 Публичные read-only списки колод используют не `assets/mana.png`, а точную CSS-геометрию vendored-компонента [`Zulut30/hsreplay-deck-view`](https://github.com/Zulut30/hsreplay-deck-view) на commit `a2860ee286e4f85adbbaf007003bfcab23800318`. Исходные стили лежат в `src/vendor/hsreplay-deck-view/`; локальные ассеты ограничены официальным артом самих карт и фоновой рамой сайта.
 
 Исходник локального орнамента заголовка: <https://hearthstone.wiki.gg/images/b/b2/Main_page_header.svg>.
+
+Производные файлы собраны один раз и лежат рядом с исходниками (sharp 0.35).
+Новые байты всегда получают новое имя: файлы `public/` кэшируются как `immutable`
+на 30 дней. AVIF мурала — из `home-paladin-hero.webp`, ширина 720/960/1280,
+`avif({ quality: 55, effort: 4 })`; AVIF баннера — из `profile-hero-hth.jpg`, 1430 px,
+`quality: 50`.
 
 ## 5. Готовые CSS-рецепты
 
@@ -135,7 +141,7 @@ fontTools 4.66.1: `TTFont("2318-font.otf")`, `flavor = "woff2"`, `save(...)`.
   background-color: var(--hs-parchment);
   background-image:
     linear-gradient(rgba(249, 235, 202, .72), rgba(236, 213, 166, .78)),
-    url("https://arena.hs-manacost.ru/wallpaper/arena-parchment.jpg");
+    url("https://arena.hs-manacost.ru/wallpaper/arena-parchment-v2.webp");
   background-repeat: repeat;
   background-size: auto, 865px 878px;
 }
@@ -322,8 +328,9 @@ body:has(.hs-lightbox-backdrop) {
 
 ## 8. Полный каталог production URL
 
-### Материалы, фоны и рамки (19)
+### Материалы, фоны и рамки (24)
 
+- `wallpaper/arena-parchment-v2.webp` — <https://arena.hs-manacost.ru/wallpaper/arena-parchment-v2.webp>
 - `wallpaper/arena-parchment.jpg` — <https://arena.hs-manacost.ru/wallpaper/arena-parchment.jpg>
 - `wallpaper/arena-rail-red.jpg` — <https://arena.hs-manacost.ru/wallpaper/arena-rail-red.jpg>
 - `wallpaper/battlegrounds-bartender-header.webp` — <https://arena.hs-manacost.ru/wallpaper/battlegrounds-bartender-header.webp>
@@ -332,12 +339,16 @@ body:has(.hs-lightbox-backdrop) {
 - `wallpaper/deck-border.png` — <https://arena.hs-manacost.ru/wallpaper/deck-border.png>
 - `wallpaper/footer-bg.jpg` — <https://arena.hs-manacost.ru/wallpaper/footer-bg.jpg>
 - `wallpaper/footer-bg.webp` — <https://arena.hs-manacost.ru/wallpaper/footer-bg.webp>
+- `wallpaper/home-paladin-hero-1280.avif` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero-1280.avif>
+- `wallpaper/home-paladin-hero-720.avif` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero-720.avif>
+- `wallpaper/home-paladin-hero-960.avif` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero-960.avif>
 - `wallpaper/home-paladin-hero.webp` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero.webp>
 - `wallpaper/main-page-header.svg` — <https://arena.hs-manacost.ru/wallpaper/main-page-header.svg>
 - `wallpaper/main-page-rail-border.png` — <https://arena.hs-manacost.ru/wallpaper/main-page-rail-border.png>
 - `wallpaper/nav-bg.png` — <https://arena.hs-manacost.ru/wallpaper/nav-bg.png>
 - `wallpaper/nav-right-under-arrow.png` — <https://arena.hs-manacost.ru/wallpaper/nav-right-under-arrow.png>
 - `wallpaper/nav-right-under.png` — <https://arena.hs-manacost.ru/wallpaper/nav-right-under.png>
+- `wallpaper/profile-hero-hth-1430.avif` — <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth-1430.avif>
 - `wallpaper/profile-hero-hth.jpg` — <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.jpg>
 - `wallpaper/profile-hero-hth.webp` — <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.webp>
 - `wallpaper/wallpaper.jpg` — <https://arena.hs-manacost.ru/wallpaper/wallpaper.jpg>

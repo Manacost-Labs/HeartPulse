@@ -22,6 +22,7 @@ behind its `public.ts`, not in `src/features/`.
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
+| `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
 | `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
 | `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays |
@@ -95,6 +96,22 @@ behind its `public.ts`, not in `src/features/`.
   eligible URLs, the prerender and the transition. Browser QA
   (`scripts/e2e-qa.mjs`) starts Chromium with prerendering off, because a
   prerendered document loads outside its per-page `/api` mocks.
+- The largest paint of most pages is a CSS background, which the browser
+  finds only after every stylesheet. `PublicPageShell` therefore preloads the
+  parchment page material (`--arena-parchment-texture`) at high priority; React
+  sends the hint in the `Link` response header, or at the top of `<head>` for a
+  prerendered page. A page whose measured mobile LCP element is something else
+  passes `parchmentPreload={false}`: text on `/tierlist/`, `/classes/` and
+  `/legendaries/`, the site header on `/guides-archive/`, cosmetics images, and
+  the banner art on `/standard/matchups/`, `/standard/archetypes/` and
+  `/standard/vicious-gold/`, which render `<PageBannerPreload />` instead.
+  A preload on a page that paints something else first takes bandwidth from
+  that element and the CSS. `tests/next-lcp-image-preload.test.mjs` checks
+  both lists.
+- Files in `public/` are served `immutable` for 30 days under names without a
+  content hash: new bytes need a new file name (`arena-parchment-v2.webp`,
+  `hsdisplay-2026-10.woff2`), never an overwrite. `assets.md` lists how each
+  derived file was made.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
   `.arena-paywall` markup for guests.

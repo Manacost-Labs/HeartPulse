@@ -21,6 +21,16 @@ stretched to cover a wide canvas, so the character’s face is not cropped.
 The existing route transitions stay intact, and decorative opacity motion is
 disabled with `prefers-reduced-motion: reduce`.
 
+The artwork is `/wallpaper/profile-hero-hth-1430.avif` (46 KB) in browsers
+that read `image-set()` with `type()`, and `profile-hero-hth.webp` (65 KB) in
+the rest. The AVIF sits in an `@supports` rule: the CSS build merges a fallback
+declaration in the same rule away. On phones the banner is the largest paint
+of `/standard/matchups/`, `/standard/archetypes/` and
+`/standard/vicious-gold/`, so those pages preload the AVIF with
+`PageBannerPreload` and skip the shell's parchment preload; on the other
+banner pages the parchment or text paints first and the banner is not
+preloaded.
+
 ## Implementation and verification
 
 1. Reproduce geometry differences in a browser fixture using the production

@@ -28,7 +28,7 @@ export function TierListPageClient() {
       : 'Нет данных');
   }, [data.updatedAt]);
 
-  return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" access={access}
+  return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" parchmentPreload={false} access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     <TierList data={data} loading={tierlist.loading || access.checking}
       error={tierlist.error} companionIds={companionIds}

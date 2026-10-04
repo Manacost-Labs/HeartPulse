@@ -21,7 +21,7 @@
   --bg-line: rgba(89, 53, 29, 0.3);
   background:
     linear-gradient(90deg, rgba(45, 20, 11, 0.2), transparent 10%, transparent 90%, rgba(45, 20, 11, 0.2)),
-    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat;
+    var(--arena-parchment-texture) center top / 865px auto repeat;
 }
 
 /* The legacy application shell paints a fixed blue dashboard veil through
@@ -47,6 +47,6 @@
   color: var(--bg-ink) !important;
   background:
     linear-gradient(rgba(249, 232, 191, 0.9), rgba(234, 211, 160, 0.9)),
-    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat !important;
+    var(--arena-parchment-texture) center top / 865px auto repeat !important;
   box-shadow: none !important;
 }

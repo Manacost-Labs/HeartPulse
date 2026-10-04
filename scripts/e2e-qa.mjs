@@ -1018,7 +1018,7 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     return;
   }
   if (state.kind === 'tierlist' || state.kind === 'legendaries') {
-    if (!state.sourceShell?.backgroundImage.includes('arena-parchment.jpg') || state.sourceShell?.borderRadius !== '2px') {
+    if (!state.sourceShell?.backgroundImage.includes('arena-parchment-v2.webp') || state.sourceShell?.borderRadius !== '2px') {
       failures.push(`${prefix}: source switcher lost its parchment frame`);
     }
     if (state.activeSource?.backgroundColor !== 'rgb(109, 17, 23)' || state.activeSource?.color !== 'rgb(255, 240, 196)') {
@@ -4125,11 +4125,11 @@ for (const [device, viewport] of [
       };
     });
     const prefix = `/library [${device} guest]`;
-    if (!surface.appBackground.includes('arena-parchment.jpg')) failures.push(`${prefix}: BG route shell parchment is missing`);
+    if (!surface.appBackground.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: BG route shell parchment is missing`);
     if (surface.appVeilBackground !== 'none') failures.push(`${prefix}: legacy blue shell veil remains above the parchment`);
     if (surface.workspaceBackground !== 'rgba(0, 0, 0, 0)' || surface.workspaceImage !== 'none') failures.push(`${prefix}: workspace paints a white frame`);
     if (surface.mainBackground !== 'rgba(0, 0, 0, 0)' || surface.mainImage !== 'none') failures.push(`${prefix}: main canvas paints a white frame`);
-    if (!surface.contentBackground.includes('arena-parchment.jpg')) failures.push(`${prefix}: content parchment does not cover the locked route`);
+    if (!surface.contentBackground.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: content parchment does not cover the locked route`);
     await page.screenshot({ path: `${OUT}/library-guest-${device}.png`, fullPage: true });
     const violationCount = await auditAccessibility(page, prefix);
     console.log(`✓ ${prefix} continuous parchment + axe (${violationCount} violations)`);
@@ -5405,14 +5405,14 @@ for (const [device, viewport] of [
       || sidebarState.workspaceMarginLeft !== '258px'
       || Math.abs(sidebarState.workspaceLeft - 258) > 0.1
       || sidebarState.shellBackgroundColor !== 'rgb(234, 214, 167)'
-      || !sidebarState.shellBackgroundImage.includes('arena-parchment.jpg')
+      || !sidebarState.shellBackgroundImage.includes('arena-parchment-v2.webp')
       || sidebarState.shellBackgroundRepeat !== 'repeat, repeat'
       || sidebarState.shellBackgroundSize !== 'auto, 865px 878px'
       || sidebarState.shellAfterContent !== 'none'
       || sidebarState.shellAfterDisplay !== 'none'
       || sidebarState.shellAfterBackground !== 'none'
-      || !sidebarState.workspaceBackground.includes('arena-parchment.jpg')
-      || !sidebarState.mainBackground.includes('arena-parchment.jpg')
+      || !sidebarState.workspaceBackground.includes('arena-parchment-v2.webp')
+      || !sidebarState.mainBackground.includes('arena-parchment-v2.webp')
       || sidebarState.mainPaddingTop !== '16px') {
       failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
     }
@@ -5793,7 +5793,7 @@ async function assertCardTooltipPresentation(page, label) {
   });
   const prefix = `card tooltip ${label}`;
   if (!material.borderImage.includes('main-page-rail-border.png') || material.borderWidth < 8) failures.push(`${prefix}: wooden frame is missing`);
-  if (!material.background.includes('arena-parchment.jpg')) failures.push(`${prefix}: parchment surface is missing`);
+  if (!material.background.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: parchment surface is missing`);
   if (!material.headerBackground.includes('arena-rail-red.jpg')) failures.push(`${prefix}: red header texture is missing`);
   if (material.rowBackground !== 'rgba(255, 244, 216, 0.28)' || material.rowRadius !== '0px') failures.push(`${prefix}: row material changed`);
   if (material.rect.width <= 0 || material.rect.height <= 0) failures.push(`${prefix}: preview has no rendered area`);

@@ -9,7 +9,7 @@ import { navigate } from './navigation';
 export function ViciousGoldPageClient() {
   const access = usePublicAccess();
   const allowed = !access.checking && access.statsAccess;
-  return <PublicPageShell activeTab="standard-vicious-gold" pathname="/standard/vicious-gold/"
+  return <PublicPageShell activeTab="standard-vicious-gold" pathname="/standard/vicious-gold/" parchmentPreload={false}
     access={access} navigate={navigate} wide>
     {allowed
       ? <ViciousSyndicateGold key={access.user?.id} />
