@@ -1,6 +1,7 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import GuidesArchive from '@/src/features/GuidesArchive';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -21,7 +22,7 @@ export function GuidesArchivePageClient() {
           <p>Старые гайды, мета-отчеты и материалы Koloda Hearthstone в удобном формате для чтения.</p>
         </header>
         {access.checking
-          ? <p className="guide-archive-loading" aria-busy="true">Проверяем доступ к архиву...</p>
+          ? <PaywallPending className="guide-archive-loading">Проверяем доступ к архиву...</PaywallPending>
           : <PaywallGate active title="Архив гайдов доступен подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

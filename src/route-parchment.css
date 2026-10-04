@@ -1221,7 +1221,7 @@
 
 /* Subscription gate — a red framed notice instead of a blue modal. */
 :is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall {
-  min-height: 760px !important;
+  min-height: var(--subscription-gate-min-height) !important;
   padding-bottom: 3rem !important;
 }
 

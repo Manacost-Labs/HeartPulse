@@ -49,4 +49,23 @@ const deferredRoutesSource = readFileSync(new URL('../src/features/DeferredRoute
 assert.ok(!/animation: 'spin (?:1s|0\.7s) linear infinite/.test(deferredRoutesSource),
   'the tier-list loader inside a locked preview must use classes, not inline animation styles');
 
+// While access is checked, full-page gates reserve the gate's height through
+// one shared placeholder, never a bare line that the gate then pushes down.
+const pendingSource = readFileSync(new URL('../src/components/PaywallPending.tsx', import.meta.url), 'utf8');
+assert.match(pendingSource, /export default function PaywallPending\b/);
+assert.match(pendingSource, /className="arena-paywall-pending" role="status"/);
+assert.match(pendingSource, /aria-busy="true"/);
+assert.match(pendingSource, /import '\.\/PaywallGate\.css';/, 'the placeholder brings its own reserved height');
+assert.ok(/\.arena-paywall-pending \{\s*min-height: var\(--subscription-gate-min-height\);\s*\}/.test(paywallCss),
+  'the placeholder must reserve the gate height token');
+assert.match(readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8'),
+  /--subscription-gate-min-height: 760px;/);
+for (const pageClient of ['BattlegroundHeroesPageClient', 'BattlegroundHeroDetailPageClient', 'BattlegroundLibraryPageClient',
+  'BattlegroundLibraryDetailPageClient', 'BattlegroundTierListPageClient', 'BattlegroundTierBuilderPageClient',
+  'BattlegroundStrategiesPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
+  const source = readFileSync(new URL(`../apps/public-web/ui/${pageClient}.tsx`, import.meta.url), 'utf8');
+  assert.match(source, /access\.checking\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is checked`);
+  assert.ok(!/<p[^>]*aria-busy/.test(source), `${pageClient} must not render a bare pending line`);
+}
+
 console.log('soft paywall UI contract tests passed');

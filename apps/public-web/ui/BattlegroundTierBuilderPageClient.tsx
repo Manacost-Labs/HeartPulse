@@ -1,6 +1,7 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { BattlegroundTierBuilderEmbed } from '@/src/features/Battlegrounds';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -23,7 +24,7 @@ export function BattlegroundTierBuilderPageClient() {
       {allowed
         ? <BattlegroundTierBuilderEmbed key={access.user?.id} />
         : access.checking
-          ? <p aria-busy="true">Проверяем доступ к конструктору тир-листов...</p>
+          ? <PaywallPending>Проверяем доступ к конструктору тир-листов...</PaywallPending>
           : <PaywallGate active title="Конструктор тир-листов доступен подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

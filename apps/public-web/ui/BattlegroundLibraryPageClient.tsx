@@ -1,6 +1,7 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import BgLibrary from '@/src/features/BgLibrary';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -23,7 +24,7 @@ export function BattlegroundLibraryPageClient({ pathname, heading, description }
           <p className="mt-2 max-w-3xl text-sm text-[#5e708a]">{description}</p>
         </header>
         {access.checking
-          ? <p aria-busy="true">Проверяем доступ к библиотеке...</p>
+          ? <PaywallPending>Проверяем доступ к библиотеке...</PaywallPending>
           : <PaywallGate active title="Библиотека Полей сражений доступна подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

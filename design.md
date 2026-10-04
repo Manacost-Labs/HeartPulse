@@ -317,6 +317,9 @@ Rules:
 
 - Reuse local compressed textures; do not add large remote runtime backgrounds.
 - Keep route-heavy BG code deferred.
+- While access is checked, a gated page holds the gate's height
+  (`PaywallPending`), so the footer does not jump when the gate or the paid
+  view arrives.
 - Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
 - Do not add JS for effects achievable in CSS.
 - Run `npm run budget:next` when changing bundles or adding assets.

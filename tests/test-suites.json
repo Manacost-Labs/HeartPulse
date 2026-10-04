@@ -385,6 +385,7 @@
         "tests/next-bg-library-listings-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
+        "tests/next-paywall-access-check-browser.test.mjs",
         "tests/next-cosmetics-browser.test.mjs",
         "tests/next-connect-browser.test.mjs",
         "tests/next-deck-builder-browser.test.mjs",

@@ -370,6 +370,13 @@
   }
 }
 
+/* While access is unknown, the gated page holds the gate's height, so neither
+   the gate nor a subscriber's page moves the footer when the check ends. It
+   holds no data. Phones keep it too: their gate is a little taller than this. */
+.arena-paywall-pending {
+  min-height: var(--subscription-gate-min-height);
+}
+
 /* A guest's locked preview never leaves its loading state, and the preview is
    decorative (aria-hidden, inert, blurred). A looping loader inside it would
    restyle and repaint the blurred layer on every frame for the whole visit, so

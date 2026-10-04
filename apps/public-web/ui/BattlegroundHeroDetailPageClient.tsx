@@ -1,6 +1,7 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import { BattlegroundHeroesRoute } from '@/src/features/Battlegrounds';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -27,7 +28,7 @@ export function BattlegroundHeroDetailPageClient({ hero }: { hero: PublicBattleg
           <img src={hero.image} alt="" width="180" height="240" decoding="async" />
         </header>
         {access.checking
-          ? <p aria-busy="true">Проверяем доступ к статистике героя...</p>
+          ? <PaywallPending>Проверяем доступ к статистике героя...</PaywallPending>
           : <PaywallGate active title="Статистика героя доступна подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

@@ -1,6 +1,7 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import { BattlegroundHeroesRoute } from '@/src/features/Battlegrounds';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -22,7 +23,7 @@ export function BattlegroundHeroesPageClient() {
       {allowed
         ? <BattlegroundHeroesRoute key={access.user?.id} path="/heroes/" onNavigate={navigate} />
         : access.checking
-          ? <p aria-busy="true">Проверяем доступ к героям...</p>
+          ? <PaywallPending>Проверяем доступ к героям...</PaywallPending>
           : <PaywallGate active title="Герои Полей сражений доступны подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

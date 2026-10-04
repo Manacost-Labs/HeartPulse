@@ -1,6 +1,7 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import BgLibrary from '@/src/features/BgLibrary';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -26,7 +27,7 @@ export function BattlegroundLibraryDetailPageClient({ card }: { card: PublicBatt
           <img src={card.image} alt="" width="180" height="240" decoding="async" />
         </header>
         {access.checking
-          ? <p aria-busy="true">Проверяем доступ к статистике карты...</p>
+          ? <PaywallPending>Проверяем доступ к статистике карты...</PaywallPending>
           : <PaywallGate active title="Статистика карты доступна подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

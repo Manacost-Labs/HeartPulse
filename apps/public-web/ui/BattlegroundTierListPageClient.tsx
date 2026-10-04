@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { BattlegroundsTierListSearchIntro } from '@/src/modules/searchLanding/public';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -22,7 +23,7 @@ export function BattlegroundTierListPageClient() {
       : <section className="space-y-5">
         <BattlegroundsTierListSearchIntro />
         {access.checking
-          ? <p aria-busy="true">Проверяем доступ к тир-листу...</p>
+          ? <PaywallPending>Проверяем доступ к тир-листу...</PaywallPending>
           : <PaywallGate active title="Тир-лист БГ доступен подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}
