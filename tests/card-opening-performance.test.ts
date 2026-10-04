@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const cardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+const cardDetailSource = readFileSync(new URL('../src/features/StandardCardDetail.tsx', import.meta.url), 'utf8');
 const cardsStyles = readFileSync(new URL('../src/features/StandardCards.css', import.meta.url), 'utf8');
 const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCardDetailPrefetch.ts', import.meta.url), 'utf8');
 const listPrefetchSource = readFileSync(new URL('../src/features/constructedCardListPrefetch.ts', import.meta.url), 'utf8');
@@ -10,7 +11,7 @@ const deferredSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx'
 
 assert.match(cardsSource, /prefetchConstructedCardDetail\(/,
   'card catalog links must warm their detail response before navigation');
-assert.match(cardsSource, /loadConstructedCardDetail\(/,
+assert.match(cardDetailSource, /loadConstructedCardDetail\(/,
   'card detail navigation must consume the same in-flight prefetched response');
 assert.match(cardsSource, /onPointerDown=\{\(\) => warmCard/,
   'touch and fast clicks must start warming before navigation');

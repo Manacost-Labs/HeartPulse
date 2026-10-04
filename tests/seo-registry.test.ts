@@ -114,7 +114,7 @@ assert.match(battlegroundsSource, /<BattlegroundsStrategyBuilderSearchIntro \/>/
 assert.match(battlegroundsSource, /герой Полей сражений \| HearthPulse/);
 assert.doesNotMatch(battlegroundsSource, /герой Полей сражений \| Manacost Stats/);
 
-const constructedCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+const constructedCardsSource = readFileSync(new URL('../src/features/StandardCardDetail.tsx', import.meta.url), 'utf8');
 assert.match(constructedCardsSource, /карта Hearthstone.*\| HearthPulse/);
 assert.doesNotMatch(constructedCardsSource, /карта Hearthstone.*\| Manacost Stats/);
 
