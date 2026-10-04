@@ -38,6 +38,22 @@ assert.match(nextAssetLocation, /proxy_no_cache\s+1;/,
 assert.match(nextAssetLocation, /proxy_cache_bypass\s+1;/);
 assert.match(nextAssetLocation, /add_header\s+X-Content-Type-Options\s+nosniff\s+always;/,
   'the dedicated asset location must retain security headers');
+const staticAssetLocation = application.match(/location \^~ \/_next\/static\/ \{([\s\S]*?)\n    \}/)?.[1];
+assert.ok(staticAssetLocation, 'content-hashed build assets must have their own edge-cached location');
+const publicFileLocation = application.match(/location ~ \^\/\(\?:assets\/\|fonts\/[^\n]*\{([\s\S]*?)\n    \}/)?.[1];
+assert.ok(publicFileLocation, 'public static files must have their own edge-cached location');
+for (const [name, location] of [['build assets', staticAssetLocation], ['public files', publicFileLocation]]) {
+  assert.match(location, /proxy_cache\s+hs_arena_cache;/, `${name} must be kept on the edge`);
+  assert.match(location, /proxy_cache_key\s+"hearthpulse:\$request_uri";/, `${name} must use this host's cache key`);
+  assert.doesNotMatch(location, /proxy_cache_valid/, `${name} must be stored only as long as the origin allows`);
+  assert.doesNotMatch(location, /proxy_set_header/, `${name} must keep the server-level upstream headers`);
+  assert.match(location, /proxy_ignore_headers\s+Set-Cookie\s+Vary;/);
+  assert.match(location, /proxy_hide_header\s+Set-Cookie;/, `${name} must never pass a cookie from a shared copy`);
+  assert.match(location, /add_header\s+X-Content-Type-Options\s+nosniff\s+always;/, `${name} must keep security headers`);
+  assert.match(location, /add_header\s+Strict-Transport-Security\s+"max-age=31536000"\s+always;/);
+  assert.match(location, /add_header\s+X-Proxy-Cache\s+\$upstream_cache_status\s+always;/);
+}
+assert.doesNotMatch(publicFileLocation, /runtime-config/, 'runtime switches must never be cached on the edge');
 const canonicalServerStart = application.indexOf('listen 443 ssl http2;');
 assert.doesNotMatch(application.slice(canonicalServerStart,
   application.indexOf('location = /_proxy_health', canonicalServerStart)), /gzip\s+on;/,
@@ -71,6 +87,18 @@ assert.match(cdn, /ssl_certificate\s+\/etc\/nginx\/ssl\/hearthpulse\.net\/fullch
 assert.match(cdn, /location\s+~\s+\^\/\(\?:api\/card-image\//,
   'the CDN must explicitly allow only public paths');
 assert.match(cdn, /add_header\s+Access-Control-Allow-Origin\s+"\*"\s+always;/);
+const cdnPublicLocation = cdn.match(/location ~ \^\/\(\?:api\/card-image\/[^\n]*\{([\s\S]*?)\n    \}/)?.[1];
+assert.ok(cdnPublicLocation);
+assert.match(cdnPublicLocation, /proxy_cache\s+hs_arena_cache;/, 'card images and public files must be kept on the edge');
+assert.match(cdnPublicLocation, /proxy_cache_key\s+"hearthpulse-cdn:\$request_uri";/);
+assert.doesNotMatch(cdnPublicLocation, /add_header\s+Cache-Control/,
+  'the CDN must pass the single origin Cache-Control instead of adding a second one');
+assert.doesNotMatch(cdnPublicLocation, /runtime-config/);
+const cdnRuntimeLocation = cdn.match(/location = \/runtime-config\.js \{([\s\S]*?)\n    \}/)?.[1];
+assert.ok(cdnRuntimeLocation, 'runtime switches keep their own short browser policy');
+assert.doesNotMatch(cdnRuntimeLocation, /proxy_cache\s+hs_arena_cache;/);
+assert.match(cdnRuntimeLocation, /proxy_hide_header\s+Cache-Control;/);
+assert.match(cdnRuntimeLocation, /add_header\s+Cache-Control\s+"public, max-age=300, stale-while-revalidate=3600"\s+always;/);
 assert.match(cdn, /location\s+\/\s*\{[^}]*return\s+404;/s,
   'the CDN must keep private and unknown paths closed');
 assert.match(cdn, /Strict-Transport-Security\s+"max-age=31536000"/);
@@ -164,5 +192,84 @@ ${directives}
   }
 }
 
+// A temporary nginx runs the real build-asset location against a stub origin:
+// the second request comes from the edge copy, an error is never stored, and
+// an origin answer that forbids caching is fetched again every time.
+async function verifyEdgeAssetCache() {
+  const binary = ['nginx', '/usr/sbin/nginx'].find(candidate =>
+    spawnSync(candidate, ['-v'], { encoding: 'utf8' }).status === 0);
+  if (!binary) return;
+  const hits = new Map();
+  const upstream = createHttpServer((incoming, response) => {
+    hits.set(incoming.url, (hits.get(incoming.url) ?? 0) + 1);
+    if (incoming.url.endsWith('/missing.js')) {
+      response.writeHead(404, { 'Content-Type': 'text/plain' }).end('missing');
+      return;
+    }
+    const immutable = !incoming.url.endsWith('/private.js');
+    response.writeHead(200, { 'Content-Type': 'application/javascript', 'Set-Cookie': 'session=secret',
+      'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-store' });
+    response.end('window.nextRuntime = true;'.repeat(100));
+  });
+  await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
+  const root = mkdtempSync(join(tmpdir(), 'hearthpulse-edge-cache-'));
+  const port = await freePort();
+  const config = join(root, 'nginx.conf');
+  const location = staticAssetLocation.replace('https://hs_arena_origin', `http://127.0.0.1:${upstream.address().port}`);
+  writeFileSync(config, `worker_processes 1;
+pid ${join(root, 'nginx.pid')};
+events { worker_connections 32; }
+http {
+  access_log ${join(root, 'access.log')} combined;
+  error_log ${join(root, 'error.log')} warn;
+  proxy_cache_path ${join(root, 'cache')} levels=1:2 keys_zone=hs_arena_cache:1m max_size=10m inactive=1h use_temp_path=off;
+  server {
+    listen 127.0.0.1:${port};
+    proxy_set_header Accept-Encoding "";
+    location ^~ /_next/static/ {${location}
+    }
+  }
+}
+`);
+  const syntax = spawnSync(binary, ['-t', '-p', root, '-c', config], { encoding: 'utf8' });
+  assert.equal(syntax.status, 0, syntax.stderr || syntax.stdout);
+  const processState = spawn(binary, ['-p', root, '-c', config, '-g', 'daemon off; master_process off;']);
+  const fetchAsset = path => new Promise((resolve, reject) => {
+    const pending = request({ host: '127.0.0.1', port, path, headers: { 'Accept-Encoding': 'gzip' } }, response => {
+      response.resume();
+      response.on('end', () => resolve({ status: response.statusCode, headers: response.headers }));
+    });
+    pending.once('error', reject);
+    pending.end();
+  });
+  try {
+    let first;
+    for (let attempt = 0; attempt < 50 && !first; attempt += 1) {
+      first = await fetchAsset('/_next/static/chunks/app.js').catch(() => null);
+      if (!first) await new Promise(resolve => setTimeout(resolve, 40));
+    }
+    assert.ok(first, 'temporary edge must start');
+    assert.equal(first.headers['x-proxy-cache'], 'MISS');
+    assert.equal(first.headers['set-cookie'], undefined, 'a cookie must never leave the edge copy');
+    const second = await fetchAsset('/_next/static/chunks/app.js');
+    assert.equal(second.headers['x-proxy-cache'], 'HIT');
+    assert.equal(second.headers['content-encoding'], 'gzip');
+    assert.equal(second.headers['x-content-type-options'], 'nosniff');
+    assert.equal(hits.get('/_next/static/chunks/app.js'), 1, 'the origin is asked once');
+    await fetchAsset('/_next/static/chunks/missing.js');
+    assert.equal((await fetchAsset('/_next/static/chunks/missing.js')).status, 404);
+    assert.equal(hits.get('/_next/static/chunks/missing.js'), 2, 'an error answer is never stored');
+    await fetchAsset('/_next/static/chunks/private.js');
+    await fetchAsset('/_next/static/chunks/private.js');
+    assert.equal(hits.get('/_next/static/chunks/private.js'), 2, 'an uncacheable answer is never stored');
+  } finally {
+    processState.kill('SIGTERM');
+    await new Promise(resolve => processState.once('exit', resolve));
+    await new Promise(resolve => upstream.close(resolve));
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 await verifyBrowserAssetCompression();
+await verifyEdgeAssetCache();
 console.log('HearthPulse canonical nginx contract passed');
