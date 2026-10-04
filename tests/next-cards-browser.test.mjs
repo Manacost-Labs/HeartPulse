@@ -1,0 +1,73 @@
+import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import test from 'node:test';
+import puppeteer from 'puppeteer';
+import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
+
+const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(candidate => candidate && existsSync(candidate));
+const CARD_PATH = '/standard/cards/standard/blizzard%3A12345/';
+
+// A 0.1 s silent mono WAV: enough for the browser to start playback.
+function silentWav() {
+  const samples = 800;
+  const buffer = Buffer.alloc(44 + samples * 2);
+  buffer.write('RIFF', 0); buffer.writeUInt32LE(36 + samples * 2, 4); buffer.write('WAVE', 8);
+  buffer.write('fmt ', 12); buffer.writeUInt32LE(16, 16); buffer.writeUInt16LE(1, 20); buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(8000, 24); buffer.writeUInt32LE(16000, 28); buffer.writeUInt16LE(2, 32); buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36); buffer.writeUInt32LE(samples * 2, 40);
+  return buffer;
+}
+
+async function withPage(runtime, viewport, fn) {
+  const browser = await puppeteer.launch({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport(viewport);
+    return await fn(page);
+  } finally {
+    await browser.close();
+  }
+}
+
+test('card pages load their heavy parts only when a visitor asks for them', { timeout: 120_000 }, async t => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  try {
+    await t.test('voice lines download on play, not with the page', () => withPage(runtime, { width: 1280, height: 900 }, async page => {
+      const voiceRequests = [];
+      await page.setRequestInterception(true);
+      page.on('request', async request => {
+        const url = new URL(request.url());
+        if (/\.wav$/.test(url.pathname)) {
+          voiceRequests.push(url.pathname);
+          await request.respond({ status: 200, contentType: 'audio/wav', body: silentWav() });
+          return;
+        }
+        if (url.pathname.startsWith('/api/constructed-cards/blizzard')) {
+          const payload = await (await fetch(runtime.origin + url.pathname + url.search)).json();
+          payload.card.wiki = { ...payload.card.wiki, sounds: [
+            { heading: 'Play', clips: [
+              { file_url: 'https://hearthstone.wiki.gg/images/VO_QA_Play_01.wav', description: 'Вперёд!' },
+              { file_url: 'https://hearthstone.wiki.gg/images/VO_QA_Play_02.wav', description: 'За Азерот!' },
+            ] },
+            { heading: 'Death', clips: [{ file_url: 'https://hearthstone.wiki.gg/images/VO_QA_Death_01.wav', description: 'Нет…' }] },
+          ] };
+          await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+          return;
+        }
+        await request.continue();
+      });
+      await page.goto(runtime.origin + CARD_PATH, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('.constructed-card-detail__sounds audio');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      assert.deepEqual(await page.$$eval('.constructed-card-detail__sounds audio', audios => audios.map(audio => audio.preload)),
+        ['none', 'none', 'none']);
+      assert.deepEqual(voiceRequests, [], 'about 0.3 MB per clip must not download before the visitor presses play');
+
+      const played = page.waitForRequest(request => request.url().endsWith('/VO_QA_Play_01.wav'), { timeout: 10_000 });
+      await page.$eval('.constructed-card-detail__sounds audio', audio => { audio.muted = true; void audio.play().catch(() => undefined); });
+      await played;
+    }));
+  } finally {
+    await runtime.close();
+  }
+});
