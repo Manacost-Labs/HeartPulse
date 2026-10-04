@@ -49,6 +49,10 @@ for (const [name, location] of [['build assets', staticAssetLocation], ['public 
   assert.doesNotMatch(location, /proxy_set_header/, `${name} must keep the server-level upstream headers`);
   assert.match(location, /proxy_ignore_headers\s+Set-Cookie\s+Vary;/);
   assert.match(location, /proxy_hide_header\s+Set-Cookie;/, `${name} must never pass a cookie from a shared copy`);
+  for (const header of ['Strict-Transport-Security', 'X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy']) {
+    assert.match(location, new RegExp(`proxy_hide_header\\s+${header};`),
+      `${name} must repeat the server-level hidden headers, or the origin copy doubles the edge one`);
+  }
   assert.match(location, /add_header\s+X-Content-Type-Options\s+nosniff\s+always;/, `${name} must keep security headers`);
   assert.match(location, /add_header\s+Strict-Transport-Security\s+"max-age=31536000"\s+always;/);
   assert.match(location, /add_header\s+X-Proxy-Cache\s+\$upstream_cache_status\s+always;/);
