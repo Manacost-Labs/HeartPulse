@@ -56,8 +56,8 @@ assert.match(pendingSource, /export default function PaywallPending\b/);
 assert.match(pendingSource, /className="arena-paywall-pending" role="status"/);
 assert.match(pendingSource, /aria-busy="true"/);
 assert.match(pendingSource, /import '\.\/PaywallGate\.css';/, 'the placeholder brings its own reserved height');
-assert.ok(/\.arena-paywall-pending \{\s*min-height: var\(--subscription-gate-min-height\);\s*\}/.test(paywallCss),
-  'the placeholder must reserve the gate height token');
+assert.ok(/\.arena-paywall-pending,\s*\.arena-paid-view \{\s*min-height: var\(--subscription-gate-min-height\);\s*\}/.test(paywallCss),
+  'the placeholder and a mounting paid view must reserve the gate height token');
 assert.match(readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8'),
   /--subscription-gate-min-height: 760px;/);
 for (const pageClient of ['BattlegroundHeroesPageClient', 'BattlegroundHeroDetailPageClient', 'BattlegroundLibraryPageClient',

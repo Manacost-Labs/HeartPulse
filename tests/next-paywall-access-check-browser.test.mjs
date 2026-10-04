@@ -9,13 +9,23 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 // download, so the access check is still pending when the page has painted.
 const SESSION_DELAY_MS = 1200;
 
+const SUBSCRIBER = { id: 'pending-reader', email: 'reader@example.test', name: 'Игрок', role: 'user' };
+const SUBSCRIBED = { hasAccess: true, entitlements: { battlegrounds: true }, source: 'boosty', checkedAt: null,
+  stale: false, message: '', boosty: {}, patreon: {}, telegram: {} };
+
 async function startGateway(nextOrigin) {
   const next = new URL(nextOrigin);
   const server = http.createServer((request, response) => {
+    const subscriber = /(?:^|;\s*)pending_reader=1/.test(request.headers.cookie ?? '');
+    const json = payload => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
+      .end(JSON.stringify(payload));
     if (request.url === '/api/auth/me') {
-      setTimeout(() => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
-        .end('{"user":null}'), SESSION_DELAY_MS);
+      setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
       return;
+    }
+    if (subscriber && request.url === '/api/subscription/status') return json(SUBSCRIBED);
+    if (subscriber && request.url.startsWith('/api/bg/tier-lists')) {
+      return json({ list: 'heroes', count: 0, tiers: { S: [], A: [], B: [], C: [], D: [] } });
     }
     if (request.url.startsWith('/api/')) {
       response.writeHead(401, { 'Content-Type': 'application/json' }).end('{"error":"guest"}');
@@ -65,6 +75,52 @@ test('gated pages keep the gate height while the access check runs', async () =>
         assert.ok(total < 0.01, `${path} at ${viewport.width}px shifted by ${total.toFixed(3)}: ${JSON.stringify(shifts)}`);
         await page.close();
       }
+    }
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    await closeLocal(express);
+  }
+});
+
+// A remembered session downloads the paid view during the access check, so a
+// subscriber gets it in the render that confirms access: no loading state in
+// between and no reveal delay (a Suspense boundary held it back ~300 ms).
+test('a remembered subscriber gets the preloaded paid view as soon as access is confirmed', async () => {
+  const express = http.createServer((request, response) => response.writeHead(401).end());
+  let next; let gateway; let browser;
+  try {
+    next = await startNextServer({ legacyOrigin: await listenLocal(express) });
+    gateway = await startGateway(next.origin);
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    for (const [path, root] of [['/battlegrounds/tier-list/', '.bg-tier-list-page'], ['/library/', '.bg-library-page']]) {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1440, height: 900 });
+      await page.setCookie({ name: 'pending_reader', value: '1', url: gateway.origin });
+      await page.evaluateOnNewDocument(selector => {
+        localStorage.setItem('hs_arena_auth_cookie_hint', '1');
+        window.__paid = { loadingShown: false, at: 0 };
+        new MutationObserver(() => {
+          if (document.body?.textContent.includes('Загружаем раздел')) window.__paid.loadingShown = true;
+          if (!window.__paid.at && document.querySelector(selector)) window.__paid.at = performance.now();
+        }).observe(document, { childList: true, subtree: true, characterData: true });
+      }, root);
+      await page.goto(`${gateway.origin}${path}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector(root, { timeout: 10_000 });
+      const timing = await page.evaluate(() => {
+        const status = performance.getEntriesByType('resource').find(entry => entry.name.endsWith('/api/subscription/status'));
+        return { ...window.__paid, statusEnd: status?.responseEnd ?? null,
+          paidCss: [...document.styleSheets].some(sheet => {
+            try { return [...sheet.cssRules].some(rule => rule.cssText.includes('.bg-hero-ledger')); } catch { return false; }
+          }) };
+      });
+      assert.equal(timing.loadingShown, false, `${path} must not show the loading state when the view is preloaded`);
+      assert.ok(timing.statusEnd && timing.at - timing.statusEnd < 200,
+        `${path} paid view ${Math.round(timing.at - timing.statusEnd)} ms after access was confirmed`);
+      assert.equal(timing.paidCss, true, `${path} must load the paid view's stylesheet with it`);
+      await page.close();
     }
   } finally {
     if (browser) await browser.close();

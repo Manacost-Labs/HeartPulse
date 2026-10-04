@@ -106,8 +106,12 @@ behind its `public.ts`, not in `src/features/`.
   (`--subscription-gate-min-height`), so the gate or the paid page replaces
   it without moving the footer, and it holds no data. Do not give it the
   `.arena-paywall` class, which QA reads as "the gate has rendered". Load a
-  paid view that a guest never sees with `next/dynamic`
-  (`ui/lazyBattlegrounds.tsx`), so guests download only the gate;
+  paid view that a guest never sees on demand, so guests download only the
+  gate: `ui/lazyBattlegrounds.tsx` starts the download during the access
+  check of a remembered session and renders a loaded view directly, without
+  a Suspense boundary whose reveal throttle would delay it by about 300 ms,
+  inside `.arena-paid-view`, which keeps the gate's height around the view's
+  first render before its own data arrives.
   `tests/next-bundle-budgets.test.mjs` checks that the Battlegrounds routes do
   not load those views up front. A locked preview behind the gate keeps its
   loaders still (`PaywallGate.css`): give a loader a class, not an inline

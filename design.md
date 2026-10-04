@@ -319,7 +319,8 @@ Rules:
 - Keep route-heavy BG code deferred: guests on a gated BG route load the gate,
   not the paid view or its stylesheet (`apps/public-web/ui/lazyBattlegrounds.tsx`).
 - While access is checked, a gated page holds the gate's height
-  (`PaywallPending`), so the footer does not jump when the gate or the paid
+  (`PaywallPending`), and a paid view keeps it while it mounts
+  (`.arena-paid-view`), so the footer does not jump when the gate or the paid
   view arrives.
 - Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
 - Do not add JS for effects achievable in CSS.
