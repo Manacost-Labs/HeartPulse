@@ -404,6 +404,7 @@ Rules:
 
 ## Changelog
 
+- **2026-10-04** — Performance wave 3: one LoadingSurface, server-rendered public previews with a 600 ms budget, sidebar prefetch, quicker fade-through, popover mobile drawer, shared hover and overlay motion.
 - **2026-10-04** — Performance wave 2: lighter parchment/fonts/banners with early LCP preloads, a split and lighter card catalogue, bfcache-restorable public pages with viewer re-verification, reserved paywall height and lazy paid Battlegrounds views.
 - **2026-10-04** — Performance wave 1: edge-cached immutable static files, canonical trailing-slash links everywhere, resized WebP article covers with srcset, and per-page RUM dimensions.
 - **2026-10-03** — Added motion tokens and one page entrance for every public page; transitions and entrances across the site now share four durations and two easings.

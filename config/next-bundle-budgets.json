@@ -4,7 +4,7 @@
   "routes": {
     "/": {
       "jsGzipBytes": 160768,
-      "cssGzipBytes": 33792
+      "cssGzipBytes": 35328
     },
     "/articles/": {
       "jsGzipBytes": 160768,
@@ -16,11 +16,11 @@
     },
     "/standard/matchups/": {
       "jsGzipBytes": 171008,
-      "cssGzipBytes": 46080
+      "cssGzipBytes": 46336
     },
     "/standard/meta/": {
       "jsGzipBytes": 178176,
-      "cssGzipBytes": 58368
+      "cssGzipBytes": 59392
     },
     "/standard/archetypes/": {
       "jsGzipBytes": 184320,
@@ -28,7 +28,7 @@
     },
     "/standard/vicious-gold/": {
       "jsGzipBytes": 173056,
-      "cssGzipBytes": 56320
+      "cssGzipBytes": 57088
     },
     "/standard/cards/": {
       "jsGzipBytes": 183296,
@@ -68,23 +68,23 @@
     },
     "/gallery/": {
       "jsGzipBytes": 159744,
-      "cssGzipBytes": 46080
+      "cssGzipBytes": 46336
     },
     "/cosmetics/": {
       "jsGzipBytes": 169984,
-      "cssGzipBytes": 41984
+      "cssGzipBytes": 42240
     },
     "/contests/": {
-      "jsGzipBytes": 157696,
-      "cssGzipBytes": 54272
+      "jsGzipBytes": 157952,
+      "cssGzipBytes": 54784
     },
     "/guides-archive/": {
       "jsGzipBytes": 162816,
-      "cssGzipBytes": 41984
+      "cssGzipBytes": 43008
     },
     "/standard/fun-decks/": {
       "jsGzipBytes": 173056,
-      "cssGzipBytes": 56320
+      "cssGzipBytes": 56576
     },
     "/developers/api/": {
       "jsGzipBytes": 161792,
@@ -96,7 +96,7 @@
     },
     "/connect/": {
       "jsGzipBytes": 156672,
-      "cssGzipBytes": 36864
+      "cssGzipBytes": 37376
     }
   }
 }
