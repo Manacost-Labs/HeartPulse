@@ -23,7 +23,7 @@ export function StandardMatchupsPageClient() {
       : 'Нет данных');
   }, [matchups.state.data?.updatedAt]);
 
-  return <PublicPageShell activeTab="standard-matchups" pathname="/standard/matchups/" parchmentPreload={false}
+  return <PublicPageShell activeTab="standard-matchups" pathname="/standard/matchups/" parchmentPreload="tablet-up"
     access={access} navigate={navigate} updatedAtLabel={updatedAtLabel} wide>
     {allowed
       ? <StandardMatchupsPage external={{ format: matchups.format, changeFormat: matchups.changeFormat,

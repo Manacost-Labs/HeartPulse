@@ -100,11 +100,14 @@ behind its `public.ts`, not in `src/features/`.
   finds only after every stylesheet. `PublicPageShell` therefore preloads the
   parchment page material (`--arena-parchment-texture`) at high priority; React
   sends the hint in the `Link` response header, or at the top of `<head>` for a
-  prerendered page. A page whose measured mobile LCP element is something else
-  passes `parchmentPreload={false}`: text on `/tierlist/`, `/classes/` and
-  `/legendaries/`, the site header on `/guides-archive/`, cosmetics images, and
-  the banner art on `/standard/matchups/`, `/standard/archetypes/` and
-  `/standard/vicious-gold/`, which render `<PageBannerPreload />` instead.
+  prerendered page. A page whose measured phone LCP element is something else
+  passes `parchmentPreload="tablet-up"`, which adds
+  `media="(min-width: 768px)"`: from 768px the parchment is still the LCP
+  there, below it phones skip the early fetch and load the file once from the
+  CSS. These are text on `/tierlist/`, `/classes/` and `/legendaries/`, the
+  site header on `/guides-archive/`, cosmetics images, and the banner art on
+  `/standard/matchups/`, `/standard/archetypes/` and
+  `/standard/vicious-gold/`, which also render `<PageBannerPreload />`.
   A preload on a page that paints something else first takes bandwidth from
   that element and the CSS. `tests/next-lcp-image-preload.test.mjs` checks
   both lists.

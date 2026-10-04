@@ -24,7 +24,7 @@ export function LegendariesPageClient() {
       : 'Нет данных');
   }, [data.updatedAt]);
 
-  return <PublicPageShell activeTab="legendaries" pathname="/legendaries/" parchmentPreload={false} access={access}
+  return <PublicPageShell activeTab="legendaries" pathname="/legendaries/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     <Legendaries data={data} loading={legendaries.loading || access.checking}
       error={legendaries.error} legendarySource={legendaries.source}

@@ -10,7 +10,7 @@ import { navigate } from './navigation';
 export function GuidesArchivePageClient() {
   const access = usePublicAccess();
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'guidesArchive'));
-  return <PublicPageShell activeTab="guides-archive" pathname="/guides-archive/" parchmentPreload={false}
+  return <PublicPageShell activeTab="guides-archive" pathname="/guides-archive/" parchmentPreload="tablet-up"
     access={access} navigate={navigate} wide>
     {allowed
       ? <GuidesArchive key={access.user?.id} currentPath="/guides-archive/" navigatePath={navigate} />

@@ -27,9 +27,9 @@ the rest. The AVIF sits in an `@supports` rule: the CSS build merges a fallback
 declaration in the same rule away. On phones the banner is the largest paint
 of `/standard/matchups/`, `/standard/archetypes/` and
 `/standard/vicious-gold/`, so those pages preload the AVIF with
-`PageBannerPreload` and skip the shell's parchment preload; on the other
-banner pages the parchment or text paints first and the banner is not
-preloaded.
+`PageBannerPreload` and keep the shell's parchment preload only from 768px,
+where the parchment paints first; on the other banner pages the parchment or
+text paints first and the banner is not preloaded.
 
 ## Implementation and verification
 

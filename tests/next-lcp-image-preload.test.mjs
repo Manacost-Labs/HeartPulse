@@ -19,6 +19,7 @@ async function imageHints(origin, path) {
 }
 const hintsFor = (hints, href) => hints.filter(hint => hint.href === href);
 const isHigh = hint => /fetchpriority="high"|fetchPriority="high"/.test(hint.text);
+const TABLET_UP = /media="\(min-width: 768px\)"/;
 
 let runtime;
 before(async () => { runtime = await startPublicCardPilot({ pagesEnabled: true }); });
@@ -29,6 +30,17 @@ test('pages preload the image that is their measured LCP element, and only that 
     const { hints } = await imageHints(runtime.origin, path);
     const parchment = hintsFor(hints, PARCHMENT);
     assert.ok(parchment.length >= 1 && parchment.every(isHigh), `${path} preloads the parchment at high priority`);
+    assert.ok(parchment.every(hint => !/media=/.test(hint.text)), `${path} paints the parchment first at every width`);
+  }
+  // Phones paint text, banner art or an image first here; from 768px the parchment.
+  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/standard/matchups/', '/standard/archetypes/']) {
+    const { hints } = await imageHints(runtime.origin, path);
+    const parchment = hintsFor(hints, PARCHMENT);
+    assert.ok(parchment.length >= 1, `${path} preloads the parchment for wider screens`);
+    for (const hint of parchment) {
+      assert.ok(isHigh(hint), path);
+      assert.match(hint.text, TABLET_UP, `${path} must not fetch the parchment early on phones`);
+    }
   }
   for (const path of ['/standard/matchups/', '/standard/archetypes/']) {
     const { hints } = await imageHints(runtime.origin, path);
@@ -38,7 +50,6 @@ test('pages preload the image that is their measured LCP element, and only that 
       assert.ok(isHigh(hint), path);
       assert.match(hint.text, /type="image\/avif"/, 'a browser without AVIF must skip the hint');
     }
-    assert.equal(hintsFor(hints, PARCHMENT).length, 0, `${path} paints the banner first, not the parchment`);
   }
   for (const path of ['/tierlist/', '/standard/matchups/', '/heroes/?view=table']) {
     const { hints } = await imageHints(runtime.origin, path);
@@ -46,8 +57,7 @@ test('pages preload the image that is their measured LCP element, and only that 
     assert.equal(hintsFor(hints, '/wallpaper/profile-hero-hth.webp').length, 0, path);
   }
   const tierList = await imageHints(runtime.origin, '/tierlist/');
-  assert.equal(hintsFor(tierList.hints, PARCHMENT).length + hintsFor(tierList.hints, BANNER).length, 0,
-    'the tier list paints text first and gets neither image hint');
+  assert.equal(hintsFor(tierList.hints, BANNER).length, 0, 'the tier list paints text first, never the banner');
   const heroes = await imageHints(runtime.origin, '/heroes/?view=table');
   assert.equal(hintsFor(heroes.hints, BANNER).length, 0, 'the parchment, not the banner, is the LCP of /heroes/');
 });

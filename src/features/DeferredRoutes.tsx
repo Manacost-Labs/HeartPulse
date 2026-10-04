@@ -285,7 +285,8 @@ const SourceToggleButton: React.FC<{
           border: '1px solid rgba(255,255,255,0.16)',
         }}
       >
-        {/* Lazy: the source switch is hidden on phones, where it must not download. */}
+        {/* Lazy keeps the logo out of React's head preloads, which went ahead of the CSS.
+            Phones may still fetch it inside the guest paywall's hidden preview. */}
         <img
           src={SOURCE_LOGO[source]}
           alt=""
@@ -2278,7 +2279,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
                   {cls.id === 'all' ? (
                     <Star size={16} className="text-[#fcd34d]" />
                   ) : iconSrc ? (
-                    // Lazy: the class tabs are hidden on phones, where they must not download.
+                    // Lazy keeps the icons out of React's head preloads, which went ahead of the CSS.
+                    // Phones may still fetch them inside the guest paywall's hidden preview.
                     <img src={iconSrc} alt={cls.name} className="w-6 h-6 sm:w-7 sm:h-7 object-contain" loading="lazy" decoding="async" draggable={false} />
                   ) : (
                     <span className="text-white/80 text-sm font-hs">⚔</span>
