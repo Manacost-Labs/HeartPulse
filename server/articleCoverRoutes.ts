@@ -184,10 +184,10 @@ function sendCover(request: Request, response: ExpressResponse, entry: ArticleCo
 
 /**
  * Relays allowlisted editorial covers. `?w=` returns a WebP no wider than an
- * allowlisted width. Stable HTTPS sources are kept in a bounded in-memory LRU
- * and concurrent misses share one upstream fetch, so a cached cover or its
- * revalidation never reaches the upstream. Only responses that passed the
- * host, redirect, type and size checks are ever cached.
+ * allowlisted width. Sources without a query string are kept in a bounded
+ * in-memory LRU and concurrent misses share one upstream fetch, so a cached
+ * cover or its revalidation never reaches the upstream. Only responses that
+ * passed the host, redirect, type and size checks are ever cached.
  */
 export function createArticleCoverRouter(dependencies: ArticleCoverRouterDependencies): Router {
   const router = Router();
