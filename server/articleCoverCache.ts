@@ -44,3 +44,28 @@ export class ArticleCoverCache {
     }
   }
 }
+
+const CACHEABLE_PATH = /^\/(?:wp-content\/)?uploads\/(?:[^/]+\/)*[^/]+\.(?:avif|gif|jpe?g|png|webp)$/i;
+
+/**
+ * The one URL a cover is fetched from and cached under, or null when the
+ * source must be relayed uncached. Only HTTPS image files under an uploads
+ * directory, without a port and without any `?` or `#` in the requested
+ * string, qualify. Spelling variants of one file share one entry: `www.` is
+ * dropped when the allowlist also allows the bare host, and every path
+ * segment is decoded and re-encoded with empty segments removed. Fetching
+ * this canonical URL (not the requested spelling) keeps an entry's bytes
+ * identical to what its key names.
+ */
+export function canonicalArticleCoverUrl(requested: string, target: URL, allowedHosts: ReadonlySet<string>): URL | null {
+  if (/[?#]/.test(requested) || target.protocol !== 'https:' || target.port) return null;
+  let path: string;
+  try {
+    path = `/${target.pathname.split('/').filter(Boolean).map(segment => encodeURIComponent(decodeURIComponent(segment))).join('/')}`;
+  } catch {
+    return null;
+  }
+  if (!CACHEABLE_PATH.test(path)) return null;
+  const bareHost = target.hostname.replace(/^www\./, '');
+  return new URL(`https://${allowedHosts.has(bareHost) ? bareHost : target.hostname}${path}`);
+}

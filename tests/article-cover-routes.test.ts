@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import express from 'express';
 import sharp from 'sharp';
 import { ARTICLE_COVER_WIDTHS, createArticleCoverRouter } from '../server/articleCoverRoutes.js';
+import { encodeArticleCoverVariant } from '../server/articleCoverVariant.js';
 
 const coverPng = await sharp({
   create: { width: 1176, height: 597, channels: 4, background: { r: 120, g: 40, b: 160, alpha: 1 } },
@@ -20,10 +21,13 @@ const gifBytes = Buffer.from('GIF89a-not-really');
 
 const upstreamHits = new Map<string, number>();
 const hits = (path: string) => upstreamHits.get(path) ?? 0;
+const uploadHits = (name: string) => hits(`/wp-content/uploads${name}`);
 
+// Files are served by their last path segment, so one fixture answers every
+// spelling of its URL; hits are counted per requested path.
 const upstream = createServer((request, response) => {
-  const path = request.url ?? '';
-  upstreamHits.set(path, hits(path) + 1);
+  upstreamHits.set(request.url ?? '', hits(request.url ?? '') + 1);
+  const path = (request.url ?? '').slice((request.url ?? '').lastIndexOf('/'));
   if (path === '/image') {
     response.writeHead(200, { 'Content-Type': 'image/png' });
     return response.end(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
@@ -51,7 +55,7 @@ const upstream = createServer((request, response) => {
     response.write('123');
     return response.end('456');
   }
-  if (path === '/cover.png' || path === '/cover-2.png' || path === '/cover.png?v=2') {
+  if (path === '/cover.png' || path === '/cover-2.png' || path === '/cover.png?v=2' || /^\/c\d\.png$/.test(path)) {
     response.writeHead(200, { 'Content-Type': 'image/png' });
     return response.end(coverPng);
   }
@@ -94,7 +98,19 @@ const upstreamAddress = upstream.address();
 assert.ok(upstreamAddress && typeof upstreamAddress === 'object');
 const upstreamOrigin = `http://127.0.0.1:${upstreamAddress.port}`;
 
+// Covers are requested from https://covers.test; this fetch serves them from
+// the local upstream while keeping the redirect handling of the real fetch.
+const fetchedUrls: string[] = [];
+const localFetch: typeof fetch = (input, init) => {
+  const url = new URL(input instanceof URL ? input.href : String(input));
+  fetchedUrls.push(url.href);
+  return fetch(url.hostname.endsWith('covers.test') ? `${upstreamOrigin}${url.pathname}${url.search}` : url, init);
+};
+const coverHosts = new Set(['covers.test', 'www.covers.test', '127.0.0.1']);
+
 let clock = 1_000_000;
+let activeEncodes = 0;
+let peakEncodes = 0;
 const app = express();
 app.use('/limited/api', createArticleCoverRouter({
   allowedHosts: new Set(['127.0.0.1']),
@@ -103,24 +119,40 @@ app.use('/limited/api', createArticleCoverRouter({
   maxRedirects: 2,
 }));
 app.use('/api', createArticleCoverRouter({
-  allowedHosts: new Set(['127.0.0.1']),
+  allowedHosts: coverHosts,
   maxBytes: 1024 * 1024,
+  fetchImpl: localFetch,
   timeoutMs: 2_000,
   maxRedirects: 2,
   cacheTtlMs: 60_000,
   now: () => clock,
 }));
 app.use('/two-entries/api', createArticleCoverRouter({
-  allowedHosts: new Set(['127.0.0.1']),
+  allowedHosts: coverHosts,
   maxBytes: 1024 * 1024,
-  timeoutMs: 2_000,
+  fetchImpl: localFetch,
   cacheMaxEntries: 2,
 }));
 app.use('/tiny-bytes/api', createArticleCoverRouter({
-  allowedHosts: new Set(['127.0.0.1']),
+  allowedHosts: coverHosts,
   maxBytes: 1024 * 1024,
-  timeoutMs: 2_000,
+  fetchImpl: localFetch,
   cacheMaxBytes: 800,
+}));
+app.use('/counted-encodes/api', createArticleCoverRouter({
+  allowedHosts: coverHosts,
+  maxBytes: 1024 * 1024,
+  fetchImpl: localFetch,
+  encodeVariant: async (source, width) => {
+    activeEncodes += 1;
+    peakEncodes = Math.max(peakEncodes, activeEncodes);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 60));
+      return await encodeArticleCoverVariant(source, width);
+    } finally {
+      activeEncodes -= 1;
+    }
+  },
 }));
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -131,9 +163,11 @@ const address = server.address();
 assert.ok(address && typeof address === 'object');
 const serverOrigin = `http://127.0.0.1:${address.port}`;
 
-const coverUrl = (path: string, query = '', mount = '') =>
-  `${serverOrigin}${mount}/api/article-cover?url=${encodeURIComponent(`${upstreamOrigin}${path}`)}${query}`;
-const limitedCoverUrl = (path: string) => coverUrl(path, '', '/limited');
+const proxyUrl = (source: string, query = '', mount = '') =>
+  `${serverOrigin}${mount}/api/article-cover?url=${encodeURIComponent(source)}${query}`;
+const coverUrl = (name: string, query = '', mount = '') =>
+  proxyUrl(`https://covers.test/wp-content/uploads${name}`, query, mount);
+const limitedCoverUrl = (path: string) => proxyUrl(`${upstreamOrigin}${path}`, '', '/limited');
 
 try {
   // Existing proxy contract: allowlist, redirects, type and size checks.
@@ -183,9 +217,9 @@ try {
   }
   const multipleWidths = await fetch(coverUrl('/cover.png', '&w=480&w=960'));
   assert.equal(multipleWidths.status, 400, 'a repeated w parameter must be rejected');
-  assert.equal(hits('/cover.png'), 0, 'invalid widths must be rejected before any upstream fetch');
+  assert.equal(uploadHits('/cover.png'), 0, 'invalid widths must be rejected before any upstream fetch');
 
-  const forbiddenVariant = await fetch(`${serverOrigin}/api/article-cover?url=${encodeURIComponent('http://localhost/cover.png')}&w=480`);
+  const forbiddenVariant = await fetch(proxyUrl('https://localhost/wp-content/uploads/cover.png', '&w=480'));
   assert.equal(forbiddenVariant.status, 400, 'the host allowlist applies to variants as well');
 
   const variant = await fetch(coverUrl('/cover.png', '&w=480'));
@@ -202,22 +236,22 @@ try {
   assert.ok(variantBody.length < coverPng.length, 'the variant is smaller than the source');
   const variantEtag = variant.headers.get('etag');
   assert.ok(variantEtag);
-  assert.equal(hits('/cover.png'), 1);
+  assert.equal(uploadHits('/cover.png'), 1);
 
   const cachedVariant = await fetch(coverUrl('/cover.png', '&w=480'));
   assert.equal(cachedVariant.headers.get('x-article-cover-cache'), 'HIT');
   assert.equal(cachedVariant.headers.get('etag'), variantEtag);
   assert.deepEqual(Buffer.from(await cachedVariant.arrayBuffer()), variantBody);
-  assert.equal(hits('/cover.png'), 1, 'a cached variant is served without an upstream fetch');
+  assert.equal(uploadHits('/cover.png'), 1, 'a cached variant is served without an upstream fetch');
 
   const cachedNotModified = await fetch(coverUrl('/cover.png', '&w=480'), { headers: { 'If-None-Match': variantEtag } });
   assert.equal(cachedNotModified.status, 304);
-  assert.equal(hits('/cover.png'), 1, 'a revalidation is answered from the cache');
+  assert.equal(uploadHits('/cover.png'), 1, 'a revalidation is answered from the cache');
 
   const widerVariant = await fetch(coverUrl('/cover.png', '&w=960'));
   assert.equal((await sharp(Buffer.from(await widerVariant.arrayBuffer())).metadata()).width, 960);
   assert.notEqual(widerVariant.headers.get('etag'), variantEtag, 'each width has its own validator');
-  assert.equal(hits('/cover.png'), 2);
+  assert.equal(uploadHits('/cover.png'), 2);
 
   const original = await fetch(coverUrl('/cover.png'));
   assert.equal(original.headers.get('content-type'), 'image/png');
@@ -225,7 +259,7 @@ try {
   assert.notEqual(original.headers.get('etag'), variantEtag);
   const cachedOriginal = await fetch(coverUrl('/cover.png'));
   assert.equal(cachedOriginal.headers.get('x-article-cover-cache'), 'HIT');
-  assert.equal(hits('/cover.png'), 3, 'the original is cached too');
+  assert.equal(uploadHits('/cover.png'), 3, 'the original is cached too');
 
   const small = await fetch(coverUrl('/small.png', '&w=960'));
   assert.equal((await sharp(Buffer.from(await small.arrayBuffer())).metadata()).width, 300, 'a variant is never enlarged');
@@ -234,13 +268,52 @@ try {
   const concurrent = await Promise.all(Array.from({ length: 5 }, () => fetch(coverUrl('/slow-cover.png', '&w=720'))));
   assert.deepEqual(concurrent.map(response => response.status), [200, 200, 200, 200, 200]);
   assert.equal(new Set(concurrent.map(response => response.headers.get('etag'))).size, 1);
-  assert.equal(hits('/slow-cover.png'), 1, 'concurrent misses are coalesced');
+  assert.equal(uploadHits('/slow-cover.png'), 1, 'concurrent misses are coalesced');
 
   // The cache expires with its TTL.
   clock += 61_000;
   const expired = await fetch(coverUrl('/cover.png', '&w=480'));
   assert.equal(expired.headers.get('x-article-cover-cache'), 'MISS');
-  assert.equal(hits('/cover.png'), 4, 'an expired entry is fetched again');
+  assert.equal(uploadHits('/cover.png'), 4, 'an expired entry is fetched again');
+
+  // Spellings of one file share one entry; a miss fetches the canonical URL.
+  for (const spelling of [
+    'https://www.covers.test/wp-content/uploads/cover.png',
+    'https://COVERS.test/wp-content//uploads/%63over.png',
+    'https://covers.test/wp-content/uploads/./cover.png',
+  ]) {
+    const respelled = await fetch(proxyUrl(spelling, '&w=480'));
+    assert.equal(respelled.headers.get('x-article-cover-cache'), 'HIT', `${spelling} must reuse the cached entry`);
+  }
+  assert.equal(uploadHits('/cover.png'), 4);
+  const wwwMiss = await fetch(proxyUrl('https://www.covers.test/wp-content//uploads/cover-2.png', '&w=480'));
+  assert.equal(wwwMiss.headers.get('content-type'), 'image/webp');
+  assert.equal(fetchedUrls.at(-1), 'https://covers.test/wp-content/uploads/cover-2.png');
+
+  // Any `?` or `#`, plain HTTP, a port or a path outside an uploads directory
+  // is relayed as before: original bytes, re-fetched every time.
+  for (const source of [
+    'https://covers.test/wp-content/uploads/cover.png?',
+    'https://covers.test/wp-content/uploads/cover.png#',
+    'http://covers.test/wp-content/uploads/cover.png',
+    'https://covers.test:8443/wp-content/uploads/cover.png',
+  ]) {
+    const relayedBefore = uploadHits('/cover.png');
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const relayed = await fetch(proxyUrl(source, '&w=480'));
+      assert.equal(relayed.headers.get('content-type'), 'image/png', `${source} must not be re-encoded`);
+      assert.equal(relayed.headers.get('x-article-cover-cache'), 'MISS', `${source} must not be cached`);
+    }
+    assert.equal(uploadHits('/cover.png'), relayedBefore + 2);
+  }
+  const outsideUploads = await fetch(proxyUrl('https://covers.test/media/cover.png', '&w=480'));
+  assert.equal(outsideUploads.headers.get('content-type'), 'image/png');
+  assert.equal(outsideUploads.headers.get('x-article-cover-cache'), 'MISS');
+
+  // Re-encodes run two at a time; the others queue instead of failing.
+  const burst = await Promise.all([1, 2, 3, 4, 5].map(index => fetch(coverUrl(`/c${index}.png`, '&w=480', '/counted-encodes'))));
+  assert.deepEqual(burst.map(response => response.headers.get('content-type')), Array(5).fill('image/webp'));
+  assert.equal(peakEncodes, 2, 'no more than two re-encodes run at once');
 
   // Formats that must not be re-encoded keep their bytes.
   const gif = await fetch(coverUrl('/cover.gif', '&w=480'));
@@ -255,7 +328,7 @@ try {
   assert.equal(corrupt.headers.get('content-type'), 'image/png');
   assert.equal(Buffer.from(await corrupt.arrayBuffer()).toString(), 'definitely not a png', 'a failed re-encode falls back to the original');
   await fetch(coverUrl('/corrupt.png', '&w=480'));
-  assert.equal(hits('/corrupt.png'), 2, 'a failed re-encode is not cached');
+  assert.equal(uploadHits('/corrupt.png'), 2, 'a failed re-encode is not cached');
 
   const svg = await fetch(coverUrl('/cover.svg', '&w=480'));
   assert.equal(svg.status, 415, 'scriptable SVG is never served from this origin');
@@ -263,11 +336,10 @@ try {
   assert.equal(svgOriginal.status, 415);
 
   // Upstream failures and checks are not cached.
-  const missingBefore = hits('/missing');
-  await fetch(coverUrl('/missing', '&w=480'));
-  const missingAgain = await fetch(coverUrl('/missing', '&w=480'));
+  await fetch(coverUrl('/missing.png', '&w=480'));
+  const missingAgain = await fetch(coverUrl('/missing.png', '&w=480'));
   assert.equal(missingAgain.status, 404);
-  assert.equal(hits('/missing'), missingBefore + 2);
+  assert.equal(uploadHits('/missing.png'), 2);
 
   const foreignVariant = await fetch(coverUrl('/cover-foreign-redirect.png', '&w=480'));
   assert.equal(foreignVariant.status, 502, 'a variant cannot be fetched through a redirect to a foreign host');
@@ -278,10 +350,10 @@ try {
   assert.equal(queried.headers.get('content-type'), 'image/png');
   assert.deepEqual(Buffer.from(await queried.arrayBuffer()), coverPng);
   await fetch(coverUrl('/cover.png?v=2', '&w=480'));
-  assert.equal(hits('/cover.png?v=2'), 2);
+  assert.equal(uploadHits('/cover.png?v=2'), 2);
 
   // The entry cap evicts the least recently used variant.
-  const before = hits('/cover.png');
+  const before = uploadHits('/cover.png');
   await fetch(coverUrl('/cover.png', '&w=960', '/two-entries'));
   await fetch(coverUrl('/cover-2.png', '&w=960', '/two-entries'));
   const touched = await fetch(coverUrl('/cover.png', '&w=960', '/two-entries'));
@@ -291,7 +363,7 @@ try {
   assert.equal(kept.headers.get('x-article-cover-cache'), 'HIT', 'a recently used entry survives eviction');
   const evicted = await fetch(coverUrl('/cover-2.png', '&w=960', '/two-entries'));
   assert.equal(evicted.headers.get('x-article-cover-cache'), 'MISS', 'the least recently used entry was evicted');
-  assert.equal(hits('/cover.png'), before + 1);
+  assert.equal(uploadHits('/cover.png'), before + 1);
 
   // An entry too large for the byte budget is served but not kept.
   await fetch(coverUrl('/cover.png', '&w=480', '/tiny-bytes'));
