@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, mocked, userEvent, within } from 'storybook/test';
 import StandardCards from './StandardCards';
 import { loadConstructedCardList, prefetchConstructedCardList } from './constructedCardListPrefetch';
-import { prefetchConstructedCardDetail } from './constructedCardDetailPrefetch';
 import type { PublicCardCatalogSeed } from '../modules/constructedCards/public';
 
 const seed: PublicCardCatalogSeed = {
@@ -25,7 +24,6 @@ const meta = {
   beforeEach: () => {
     mocked(loadConstructedCardList).mockResolvedValue({ ok: true, status: 200, payload: seed });
     mocked(prefetchConstructedCardList).mockResolvedValue(undefined);
-    mocked(prefetchConstructedCardDetail).mockResolvedValue(undefined);
   },
 } satisfies Meta<typeof StandardCards>;
 export default meta;
@@ -33,7 +31,7 @@ type Story = StoryObj<typeof meta>;
 export const PublicCatalog: Story = { play: async ({ canvasElement, args }) => {
   const canvas = within(canvasElement);
   await userEvent.click(canvas.getByRole('button', { name: 'Таблица' }));
-  await expect(canvas.getByRole('table')).toBeVisible();
+  await expect(await canvas.findByRole('table')).toBeVisible();
   await userEvent.click(canvas.getByRole('link', { name: 'Открыть карту Ученица мага' }));
   await expect(args.navigatePath).toHaveBeenCalledWith(expect.stringContaining('/standard/cards/standard/blizzard%3A12345'));
 } };

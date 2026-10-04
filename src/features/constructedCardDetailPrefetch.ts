@@ -86,7 +86,3 @@ export function loadConstructedCardDetail(
   detailRequests.set(key, { expiresAt: now + DETAIL_PREFETCH_TTL_MS, promise });
   return promise;
 }
-
-export function prefetchConstructedCardDetail(request: ConstructedCardDetailRequest): void {
-  void loadConstructedCardDetail(request).catch(() => undefined);
-}

@@ -459,6 +459,13 @@ active route preserve compatibility while its endpoint implementation remains
 to be split. Server composition supplies the public-term policy without
 introducing a module-to-legacy dependency. The enforced
 `constructedCardRoutes.ts` ceiling is now 1,234 lines instead of 1,591.
+The client list and detail pages are separate bundles: `StandardCards.tsx`
+renders only the catalog and `StandardCardDetail.tsx` only the card page,
+each behind its own Next.js client (`LegacyCardPage`, `LegacyCardDetailPage`),
+with card records and statistics rows in `constructedCardRecord.ts` and
+`ConstructedCardStats.tsx`. List navigation no longer downloads the history
+chart, deck lists, lightbox or text decoding, and the card page no longer
+downloads filters, search or the table renderer.
 
 1. Extract catalog filters, URL/search state and request controller.
 2. Extract list rendering, tile image policy and visible-window loading.

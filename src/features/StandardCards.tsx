@@ -1,62 +1,37 @@
-import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
-import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, type PublicCardSeed, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
-import { useCatalogLocation, useCatalogData, useCatalogWarm, catalogLocationUrl, type CardCatalogPayload, type PublicCardCatalogSeed } from '../modules/constructedCards/public';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { useCatalogLocation, useCatalogData, useCatalogIntentWarm, catalogLocationUrl, type CardCatalogPayload } from '../modules/constructedCards/public';
+import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  Copy,
-  ExternalLink,
   Grid3X3,
-  Layers3,
   List,
   LockKeyhole,
   RefreshCw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
-  Volume2,
 } from 'lucide-react';
 import './StandardCards.styles';
 import { publicResourceUrl } from '../publicResourceUrl';
-import { fallbackCardImageToOrigin } from '../config/publicAssetDelivery';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
-import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
-import { cardSupportsStandardStatistics } from './constructedCardFormats';
-import ConstructedCardLightbox from './ConstructedCardLightbox';
-import {
-  loadConstructedCardDetail,
-  prefetchConstructedCardDetail,
-} from './constructedCardDetailPrefetch';
 import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import ConstructedCardGalleryImage, { useCardGalleryImageLoading } from './ConstructedCardGalleryImage';
+import { CARD_GALLERY_HIGH_PRIORITY_COUNT } from './cardGalleryImageLoading';
 import FilterSelect from './ConstructedCardFilterSelect';
 import {
   loadConstructedCardList,
   prefetchConstructedCardList,
 } from './constructedCardListPrefetch';
 export { prefetchInitialConstructedCardCatalog } from './constructedCardListPrefetch';
-import {
-  type ConstructedCardFormat,
-  type ConstructedCardCatalogFilters as Filters,
-} from './constructedCardCatalogModel';
-import DeckListView, {
-  type DeckListCard,
-  type DeckListSideboard,
-} from './decklist/DeckListView';
-import DeckRenderPreview from './deckrender/DeckRenderPreview';
-import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
-import { canonicalPagePath } from '../app/routing/canonicalPagePath';
-import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
+import { type ConstructedCardCatalogFilters as Filters } from './constructedCardCatalogModel';
+import { compareConstructedSets, constructedSetLabel } from './constructedCardLabels';
 import {
   classFilterOptions,
   constructedClassIcon as classIcon,
   constructedClassLabel as classLabel,
-  constructedRarityLabel,
   constructedTypeLabel,
   numericFilterOptions,
   rarityFilterOptions,
@@ -67,143 +42,39 @@ import {
 import {
   constructedCardDataNotice,
   constructedCardRequestError,
-  type ConstructedCardRequestErrorCopy,
 } from './constructedCardRequestState';
 import {
   CONSTRUCTED_CARD_RANK_OPTIONS,
   constructedCardPeriodLabel,
   constructedCardPeriodOptions,
-  constructedCardPeriodUrl,
   constructedCardRankLabel,
-  constructedCardStatsFormatFromSearch,
-  constructedCardStatsFormatLabel,
   constructedCardStatsUrl,
   type ConstructedCardPeriod,
   type ConstructedCardRank,
 } from './constructedCardPeriods';
-import { useConstructedCardHistory } from './useConstructedCardHistory';
+import { constructedCardImage } from './constructedCardMedia';
+import { loadDeckView } from './hsReplayDeckViewRuntime';
+import { isPublicConstructedTerm } from '../../shared/constructedCardTranslations';
 import {
-  collectConstructedCardMedia,
-  collectConstructedRelatedCardMedia,
-  collectConstructedRelatedCardArtMedia,
-  collectConstructedGeneratedPoolMedia,
-  constructedGeneratedPoolCardImage,
-  constructedCardImage,
-  collectConstructedCardVariants,
-  flattenConstructedCardSounds,
-  constructedRelatedCardImage,
-  type ConstructedCardMediaItem,
-} from './constructedCardMedia';
-import { normalizeConstructedRelatedCardGroups, type ConstructedRelatedCardGroup } from './constructedRelatedCards';
-import {
-  constructedSpellSchoolLabel,
-  constructedTribeLabel,
-  isPublicConstructedTerm,
-  mergeConstructedTranslationSources,
-  translateConstructedMechanic,
-} from '../../shared/constructedCardTranslations';
-import '../vendor/hsreplay-deck-view/hsreplay-deck-view.js';
+  cardName,
+  cardPath,
+  mechanicLabel,
+  navigateWithConstructedCardContext,
+  number,
+  percent,
+  type CardFormat,
+  type CardRecord,
+  type StandardCardsProps,
+} from './constructedCardRecord';
+import { LockedStatsRows, StatsRows, StatsUnlockNotice, type StatsGateProps } from './ConstructedCardStats';
 
-type CardFormat = ConstructedCardFormat;
 type ViewMode = 'gallery' | 'table';
+
 type ConstructedCardPeriodDescriptor = {
   id: ConstructedCardPeriod;
   label: string;
   timeRange: string | null;
   patch: string | null;
-};
-type CardStats = {
-  deckPopularity: number | null;
-  deckWinrate: number | null;
-  averageCopies: number | null;
-  timesPlayed: number | null;
-  winrateWhenPlayed: number | null;
-  winrateWhenDrawn: number | null;
-  keepPercentage: number | null;
-  openingHandWinrate: number | null;
-  averageTurnsInHand: number | null;
-  averageTurnPlayed: number | null;
-};
-
-type CardRecord = {
-  card_id: string;
-  dbf: number | null;
-  slug?: string;
-  formats?: Array<{ slug: string; name_ru?: string; name_en?: string }>;
-  name?: { ru?: string | null; en?: string | null };
-  text?: { ru?: string | null; en?: string | null };
-  flavor?: { ru?: string | null; en?: string | null };
-  card_set?: string | null;
-  card_type?: { slug?: string | null; name_ru?: string | null };
-  rarity?: string | null;
-  class?: string | null;
-  multi_class?: string[];
-  minion_type?: string | null;
-  spell_school?: string | null;
-  mana_cost?: number | null;
-  attack?: number | null;
-  health?: number | null;
-  durability?: number | null;
-  armor?: number | null;
-  artist?: string | null;
-  images?: {
-    card?: string | null;
-    golden?: string | null;
-    signature?: string | null;
-    diamond?: string | null;
-    crop?: string | null;
-    animated?: Record<string, string | null>;
-  };
-  mechanics?: string[];
-  referenced_tags?: string[];
-  wiki_page?: { title?: string | null; url?: string | null };
-  stats: CardStats | null;
-  statsUpdatedAt?: string | null;
-  statsSourceUrl?: string | null;
-  catalogPending?: boolean;
-  wiki?: Record<string, any>;
-  mechanicTranslations?: Record<string, string>;
-  mechanicOverrides?: Record<string, string>;
-  decks?: ConstructedDeck[];
-  related_cards_localized?: unknown;
-};
-
-type ConstructedDeck = {
-  id: string;
-  title: string;
-  archetype?: string | null;
-  archetypeLabel?: string | null;
-  className?: string | null;
-  deckCode: string;
-  source?: string | null;
-  sourceUrl?: string | null;
-  winrate?: number | null;
-  score?: string | null;
-  updatedAt?: string | null;
-};
-
-type ResolvedConstructedDeck = {
-  ok: boolean;
-  format: CardFormat;
-  deckCode: string;
-  cards: DeckListCard[];
-  sideboards: DeckListSideboard[];
-  totalCards: number;
-  deckSizeLimit: 30 | 40;
-};
-
-const CONSTRUCTED_DECK_CLASS_COLORS: Record<string, string> = {
-  deathknight: '#397b87',
-  demonhunter: '#556d24',
-  druid: '#8b4d25',
-  hunter: '#3f792f',
-  mage: '#326c97',
-  paladin: '#a77816',
-  priest: '#6e6862',
-  rogue: '#55545b',
-  shaman: '#345aa0',
-  warlock: '#694477',
-  warrior: '#8e342f',
 };
 
 type Facets = {
@@ -216,21 +87,12 @@ type Facets = {
 
 type ListPayload = CardCatalogPayload<CardRecord>;
 
-type StandardCardsProps = {
-  initialCard?: PublicCardSeed;
-  initialCatalog?: PublicCardCatalogSeed;
-  initialSearch?: string;
-  currentPath: string;
-  navigatePath: (path: string) => void;
-  statsAccess: boolean;
-  statsAccessLoading: boolean;
-  authUser: object | null;
-  onRefreshSubscription: () => Promise<unknown>;
-};
-
 const EMPTY_FACETS: Facets = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
+
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
+
 const warmedCardImages = new Set<string>();
+
 function preloadImage(url: string | null | undefined): void {
   const source = String(url ?? '').trim();
   if (!source || typeof Image === 'undefined' || warmedCardImages.has(source)) return;
@@ -239,68 +101,6 @@ function preloadImage(url: string | null | undefined): void {
   image.decoding = 'async';
   image.onerror = () => warmedCardImages.delete(source);
   image.src = source;
-}
-const LOCKED_STATS_PLACEHOLDER: CardStats = {
-  deckPopularity: 18.7,
-  deckWinrate: 53.4,
-  averageCopies: 1.8,
-  timesPlayed: 12480,
-  winrateWhenPlayed: 56.2,
-  winrateWhenDrawn: 54.1,
-  keepPercentage: 42.6,
-  openingHandWinrate: 52.8,
-  averageTurnsInHand: 2.4,
-  averageTurnPlayed: 5.3,
-};
-
-type StatsGateProps = Pick<StandardCardsProps, 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>;
-
-const GENERATED_POOL_LABELS: Record<string, string> = {
-  'Fire spells': 'Огненные заклинания',
-  'Arcane spells': 'Чародейские заклинания',
-  'Frost spells': 'Ледяные заклинания',
-  'Nature spells': 'Заклинания природы',
-  'Holy spells': 'Заклинания Света',
-  'Shadow spells': 'Заклинания Тьмы',
-  'Fel spells': 'Заклинания Скверны',
-  'Spell cards': 'Карты заклинаний',
-  'Minion cards': 'Карты существ',
-  'Weapon cards': 'Карты оружия',
-  "Cards banned from E.T.C.'s band": 'Карты, недоступные для группы E.T.C.',
-  'Cards banned from E.T.C.’s band': 'Карты, недоступные для группы E.T.C.',
-};
-
-function cardName(card: CardRecord): string {
-  return card.name?.ru || card.name?.en || card.card_id;
-}
-
-function mechanicLabel(value: string, translations?: Record<string, string>): string {
-  return translateConstructedMechanic(value, translations);
-}
-
-function uniqueMechanicLabels(values: unknown[], translations?: Record<string, string>): Array<{ key: string; label: string }> {
-  const unique = new Map<string, { key: string; label: string }>();
-  for (const rawValue of values) {
-    const value = String(rawValue ?? '').trim();
-    if (!isPublicConstructedTerm(value)) continue;
-    const label = mechanicLabel(value, translations).trim();
-    const normalizedLabel = label.toLocaleLowerCase('ru-RU').replace(/[^a-zа-яё0-9]+/gi, '');
-    if (normalizedLabel && !unique.has(normalizedLabel)) unique.set(normalizedLabel, { key: normalizedLabel, label });
-  }
-  return [...unique.values()];
-}
-
-function generatedPoolLabel(value: unknown): string {
-  const label = String(value ?? '').trim();
-  return GENERATED_POOL_LABELS[label] || label || 'Сгенерированные карты';
-}
-
-function percent(value: number | null | undefined): string {
-  return value === null || value === undefined ? 'Нет данных' : `${value.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
-}
-
-function number(value: number | null | undefined): string {
-  return value === null || value === undefined ? 'Нет данных' : value.toLocaleString('ru-RU');
 }
 
 function sortMetric(card: CardRecord, sort: string): { label: string; value: string } {
@@ -325,101 +125,6 @@ function cardMechanicKeys(card: CardRecord): string[] {
     .filter(isPublicConstructedTerm))];
 }
 
-function soundClipLabel(description: string, group: string, index: number): string {
-  const label = plainText(description);
-  if (!label) return `${constructedSoundGroupLabel(group)} · фрагмент ${index + 1}`;
-  if (/[A-Za-z]/.test(label) && !/[А-Яа-яЁё]/.test(label)) {
-    return `${constructedSoundGroupLabel(group)} · реплика ${index + 1}`;
-  }
-  return label;
-}
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return 'нет данных';
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : value;
-}
-
-function patchTimestamp(row: any): number {
-  for (const value of [row?.manacost_published_at, row?.date]) {
-    const timestamp = Date.parse(String(value ?? ''));
-    if (Number.isFinite(timestamp)) return timestamp;
-  }
-  return 0;
-}
-
-function patchDate(value: unknown): string {
-  const date = new Date(String(value ?? ''));
-  return Number.isFinite(date.getTime())
-    ? date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
-    : 'Дата не указана';
-}
-
-function patchVersion(value: unknown): string {
-  return String(value ?? '').trim().replace(/^patch\s+/i, '') || 'без номера';
-}
-
-
-
-
-function cardPath(format: CardFormat, card: CardRecord): string {
-  return canonicalPagePath(constructedCardPath(format, card.card_id));
-}
-
-function navigateWithConstructedCardContext(
-  navigatePath: (path: string) => void,
-  pathname: string,
-  period: ConstructedCardPeriod,
-  rank: ConstructedCardRank,
-  statsFormat?: CardFormat,
-  defaultStatsFormat?: CardFormat,
-): void {
-  navigatePath(constructedCardStatsUrl(pathname, { period, rank, statsFormat, defaultStatsFormat },
-    typeof window === 'undefined' ? '' : window.location.search));
-}
-
-function StatsRows({ stats, compact = false }: { stats: CardStats | null; compact?: boolean }) {
-  const rows = [
-    ['В % колод', percent(stats?.deckPopularity)],
-    ['Победы колод', percent(stats?.deckWinrate)],
-    ['Победы при розыгрыше', percent(stats?.winrateWhenPlayed)],
-    ['Победы при получении', percent(stats?.winrateWhenDrawn)],
-    ['Оставлено на старте', percent(stats?.keepPercentage)],
-    ...(!compact ? [
-      ['Победы со стартовой рукой', percent(stats?.openingHandWinrate)],
-      ['Средний ход розыгрыша', number(stats?.averageTurnPlayed)],
-      ['Среднее копий', number(stats?.averageCopies)],
-    ] : []),
-    ['Сыграно партий', number(stats?.timesPlayed)],
-  ];
-  return (
-    <dl className={`constructed-cards__stats${compact ? ' constructed-cards__stats--compact' : ''}`}>
-      {rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-    </dl>
-  );
-}
-
-function StatsUnlockNotice({ statsAccessLoading, authUser, onRefreshSubscription, compact = false }: StatsGateProps & { compact?: boolean }) {
-  return (
-    <div className={`constructed-cards__stats-lock${compact ? ' constructed-cards__stats-lock--compact' : ''}`}>
-      <LockKeyhole size={compact ? 18 : 24} aria-hidden="true" />
-      <div>
-        <strong>Статистика доступна с тарифом «Алмаз»</strong>
-        {!compact && <span>Процент колод, винрейт и игровые показатели откроются после проверки подписки.</span>}
-      </div>
-      {!compact && (!authUser ? (
-        <a href="/?login">Войти</a>
-      ) : (
-        <button type="button" disabled={statsAccessLoading} onClick={() => { void onRefreshSubscription(); }}>
-          {statsAccessLoading ? 'Проверяем…' : 'Проверить доступ'}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function LockedStatValue() {
   return (
     <span className="constructed-cards__locked-value" aria-label="Доступно с тарифом Алмаз">
@@ -437,79 +142,87 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
       <div className="constructed-cards__tooltip-header"><strong>{cardName(card)}</strong><span>Статистика · {rankLabel}</span></div>
       {statsAccess ? <StatsRows stats={card.stats} compact /> : (
         <div className="constructed-cards__stats-locked-preview">
-          <div aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} compact /></div>
+          <div aria-hidden="true" inert><LockedStatsRows compact /></div>
           <StatsUnlockNotice {...gate} compact />
         </div>
       )}
     </aside>
   );
 }
-function CardGallery({ cards, search, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
+
+type GalleryCardProps = {
+  card: CardRecord;
+  index: number;
+  search: string;
+  format: CardFormat;
+  period: ConstructedCardPeriod;
+  rank: ConstructedCardRank;
+  sort: string;
+  statsAccess: boolean;
+  immediate: boolean;
+  navigatePath: (path: string) => void;
+  onShow: (card: CardRecord, element: HTMLElement, warmNow: boolean) => void;
+  onHide: () => void;
+};
+
+// Memoized so that hovering one card (which moves the tooltip state of the
+// gallery) re-renders the tooltip, not all 60 cards.
+const GalleryCard = memo(function GalleryCard({ card, index, search, format, period, rank, sort, statsAccess, immediate, navigatePath, onShow, onHide }: GalleryCardProps) {
+  const metric = sortMetric(card, sort);
+  const name = cardName(card);
+  const fullImage = constructedCardImage(card);
+  return (
+    <article className="constructed-cards__gallery-card" data-rarity={String(card.rarity || 'COMMON').toLowerCase()}>
+      <a
+        href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format }, search)}
+        className="constructed-cards__gallery-card-link"
+        onMouseEnter={event => onShow(card, event.currentTarget, false)}
+        onMouseLeave={onHide}
+        onPointerDown={() => preloadImage(fullImage)}
+        onFocus={event => onShow(card, event.currentTarget, true)}
+        onBlur={onHide}
+        onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
+      >
+        <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={immediate} highPriority={index < CARD_GALLERY_HIGH_PRIORITY_COUNT} />
+        <span className="constructed-cards__gallery-name">{name}</span>
+        <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
+      </a>
+      {fullImage && <ConstructedCardDownloadButton cardId={card.card_id} cardName={name} href={fullImage} />}
+    </article>
+  );
+});
+
+// Card pages load as new documents and their API response is no-store, so
+// only the full render (cached across documents) is worth warming.
+function useCardTooltip() {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
-  const prefetchTimer = useRef<number | null>(null);
+  const warmTimer = useRef<number | null>(null);
+  const onHide = useCallback(() => {
+    setHovered(null);
+    if (warmTimer.current !== null) window.clearTimeout(warmTimer.current);
+    warmTimer.current = null;
+  }, []);
+  const onShow = useCallback((card: CardRecord, element: HTMLElement, warmNow: boolean) => {
+    setHovered({ card, rect: element.getBoundingClientRect() });
+    if (warmTimer.current !== null) window.clearTimeout(warmTimer.current);
+    const fullImage = constructedCardImage(card);
+    if (warmNow) preloadImage(fullImage);
+    else warmTimer.current = window.setTimeout(() => preloadImage(fullImage), 120);
+  }, []);
+  useEffect(() => () => { if (warmTimer.current !== null) window.clearTimeout(warmTimer.current); }, []);
+  return { hovered, onShow, onHide };
+}
+
+function CardGallery({ cards, search, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
+  const { hovered, onShow, onHide } = useCardTooltip();
   const { galleryRef, immediateImageCount } = useCardGalleryImageLoading(cards);
-  const showTooltip = (card: CardRecord, element: HTMLElement) => setHovered({ card, rect: element.getBoundingClientRect() });
-  const warmCard = (card: CardRecord, fullImage: string | null) => {
-    preloadImage(fullImage);
-    prefetchConstructedCardDetail({
-      cardId: card.card_id,
-      format,
-      statsFormat: format,
-      period,
-      rank,
-      statsAccess,
-    });
-  };
-  const scheduleWarmCard = (card: CardRecord, fullImage: string | null) => {
-    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
-    prefetchTimer.current = window.setTimeout(() => warmCard(card, fullImage), 120);
-  };
-  const cancelWarmCard = () => {
-    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
-    prefetchTimer.current = null;
-  };
-  useEffect(() => cancelWarmCard, []);
+  const grid = useMemo(() => cards.map((card, index) => (
+    <GalleryCard key={card.card_id} card={card} index={index} search={search} format={format} period={period} rank={rank} sort={sort}
+      statsAccess={statsAccess} immediate={index < immediateImageCount} navigatePath={navigatePath} onShow={onShow} onHide={onHide} />
+  )), [cards, search, format, period, rank, sort, statsAccess, immediateImageCount, navigatePath, onShow, onHide]);
   return (
     <>
-      <div className="constructed-cards__gallery" ref={galleryRef}>
-        {cards.map((card, index) => {
-          const metric = sortMetric(card, sort);
-          const name = cardName(card);
-          const fullImage = constructedCardImage(card);
-          return (
-            <article
-              key={card.card_id}
-              className="constructed-cards__gallery-card"
-              data-rarity={String(card.rarity || 'COMMON').toLowerCase()}
-            >
-              <a
-                href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format }, search)}
-                className="constructed-cards__gallery-card-link"
-                onMouseEnter={event => {
-                  showTooltip(card, event.currentTarget);
-                  scheduleWarmCard(card, fullImage);
-                }}
-                onMouseLeave={() => {
-                  setHovered(null);
-                  cancelWarmCard();
-                }}
-                onPointerDown={() => warmCard(card, fullImage)}
-                onFocus={event => {
-                  showTooltip(card, event.currentTarget);
-                  warmCard(card, fullImage);
-                }}
-                onBlur={() => setHovered(null)}
-                onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
-              >
-                <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={index < immediateImageCount} />
-                <span className="constructed-cards__gallery-name">{name}</span>
-                <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
-              </a>
-              {fullImage && <ConstructedCardDownloadButton cardId={card.card_id} cardName={name} href={fullImage} />}
-            </article>
-          );
-        })}
-      </div>
+      <div className="constructed-cards__gallery" ref={galleryRef}>{grid}</div>
       {hovered && <HoverTooltip card={hovered.card} rect={hovered.rect} rankLabel={constructedCardRankLabel(rank)} statsAccess={statsAccess} gate={gate} />}
     </>
   );
@@ -519,26 +232,36 @@ function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
   const dbfIds = card.dbf === null || card.dbf === undefined ? '' : String(card.dbf);
   useEffect(() => {
     const container = containerRef.current;
-    const api = window.HSReplayDeckView;
-    if (!container || !api?.renderDeck) return undefined;
-    api.renderDeck(container, [{
-      id: card.card_id,
-      dbfId: card.dbf,
-      name: cardName(card),
-      cost: card.mana_cost ?? 0,
-      rarity: card.rarity || 'COMMON',
-      elite: String(card.rarity || '').toUpperCase() === 'LEGENDARY',
-      count: 1,
-      image: publicResourceUrl(card.images?.crop)
-        || `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
-    }], {
-      className: 'constructed-cards__hsrdv',
-      group: false,
-      sort: false,
-      clear: true,
-      showSingleCountBox: false,
-    });
-    return () => container.replaceChildren();
+    if (!container) return undefined;
+    let cancelled = false;
+    let rendered = false;
+    // The card name stays as the cell's text until the renderer arrives, or
+    // for good when its chunk cannot load.
+    void loadDeckView().then(api => {
+      if (cancelled) return;
+      api.renderDeck(container, [{
+        id: card.card_id,
+        dbfId: card.dbf,
+        name: cardName(card),
+        cost: card.mana_cost ?? 0,
+        rarity: card.rarity || 'COMMON',
+        elite: String(card.rarity || '').toUpperCase() === 'LEGENDARY',
+        count: 1,
+        image: publicResourceUrl(card.images?.crop)
+          || `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
+      }], {
+        className: 'constructed-cards__hsrdv',
+        group: false,
+        sort: false,
+        clear: true,
+        showSingleCountBox: false,
+      });
+      rendered = true;
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+      if (rendered) container.replaceChildren();
+    };
   }, [card]);
   return <div ref={containerRef} className="constructed-cards__data-deck-card" data-deck-cards={dbfIds} data-card-id={card.card_id}><span>{cardName(card)}</span></div>;
 }
@@ -557,17 +280,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
     imageUrl: constructedCardImage(card),
     rect: element.getBoundingClientRect(),
   });
-  const warmCard = (card: CardRecord) => {
-    preloadImage(constructedCardImage(card));
-    prefetchConstructedCardDetail({
-      cardId: card.card_id,
-      format,
-      statsFormat: format,
-      period,
-      rank,
-      statsAccess,
-    });
-  };
+  const warmCard = (card: CardRecord) => preloadImage(constructedCardImage(card));
   const scheduleWarmCard = (card: CardRecord) => {
     if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
     prefetchTimer.current = window.setTimeout(() => warmCard(card), 120);
@@ -637,7 +350,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
   const { format, period, rank, view, filters, perPage } = state;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { data, loading, error: failure, requestQuery, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList });
-  useCatalogWarm(state, Boolean(data) && !loading && requestQuery === filters.query.trim(), statsAccess, prefetchConstructedCardList);
+  const warmCatalog = useCatalogIntentWarm(state, statsAccess, prefetchConstructedCardList);
   const error = failure ? constructedCardRequestError('list', failure.status, '') : null;
   useEffect(() => {
     if (!statsAccessLoading && !statsAccess && STATISTIC_SORTS.has(filters.sort)) update({ filters: { ...filters, sort: 'set', direction: 'asc' }, page: 1 }, true);
@@ -652,6 +365,10 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
   const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
   const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
   const dataNotice = data ? constructedCardDataNotice(data) : null;
+  // The pressed button paints at once; the other view (about 1,800 table
+  // nodes) renders after it in an interruptible transition.
+  const contentView = useDeferredValue(view);
+  const contentSearch = catalogLocationUrl('', { ...state, view: contentView });
   const normalizedInputQuery = filters.query.trim();
   const searchPending = Boolean(normalizedInputQuery) && (
     normalizedInputQuery !== requestQuery || loading
@@ -688,6 +405,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
             label="Ранг"
             value={rank}
             onChange={value => changeRank(value as ConstructedCardRank)}
+            onOptionIntent={value => warmCatalog({ rank: value as ConstructedCardRank })}
             tourId="cards-rank"
             options={CONSTRUCTED_CARD_RANK_OPTIONS.map(option => ({
               value: option.id,
@@ -699,6 +417,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
             label="Период"
             value={period}
             onChange={value => changePeriod(value as ConstructedCardPeriod)}
+            onOptionIntent={value => warmCatalog({ period: value as ConstructedCardPeriod })}
             tourId="cards-period"
             options={constructedCardPeriodOptions(currentPatch).map(option => ({
               value: option.id,
@@ -765,585 +484,13 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
 
       {loading && !data ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={retry}><RefreshCw size={16} /> Повторить</button>}</section>
-          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery search={catalogLocationUrl('', state)} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={catalogLocationUrl('', state)} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
+          : data && data.cards.length > 0 ? <>{contentView === 'gallery' ? <CardGallery search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );
 }
 
-function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }: {
-  key?: React.Key;
-  pool: any;
-  format: CardFormat;
-  period: ConstructedCardPeriod;
-  rank: ConstructedCardRank;
-  navigatePath: (path: string) => void;
-  onOpen: (url: string) => void;
-}) {
-  const cards = Array.isArray(pool?.cards) ? pool.cards : [];
-  const gridRef = useRef<HTMLDivElement | null>(null);
-  const [cardsPerRow, setCardsPerRow] = useState(5);
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return undefined;
-    const updateCardsPerRow = () => {
-      const columns = window.getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
-      if (columns > 0) setCardsPerRow(columns);
-    };
-    updateCardsPerRow();
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateCardsPerRow);
-      return () => window.removeEventListener('resize', updateCardsPerRow);
-    }
-    const observer = new ResizeObserver(updateCardsPerRow);
-    observer.observe(grid);
-    return () => observer.disconnect();
-  }, []);
-
-  const visibleCards = expanded ? cards : cards.slice(0, cardsPerRow);
-  const hasMore = cards.length > cardsPerRow;
-
-  return (
-    <article className="constructed-card-detail__pool">
-      <header><strong>{generatedPoolLabel(pool?.pool)}</strong><span>{cards.length} карт</span></header>
-      <div className="constructed-card-detail__pool-cards" ref={gridRef}>
-        {visibleCards.map((item: any) => {
-          const itemId = String(item?.card_id || item?.id || '').trim();
-          const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
-          const image = constructedGeneratedPoolCardImage(item);
-          const internalUrl = item?.can_open && itemId ? canonicalPagePath(constructedCardPath(format, itemId)) : '';
-          const href = internalUrl
-            ? constructedCardStatsUrl(internalUrl, { period, rank, statsFormat: format, defaultStatsFormat: format })
-            : item?.url || undefined;
-          const itemKey = itemId || String(href || image || name);
-          return (
-            <article className="constructed-card-detail__pool-card" key={itemKey}>
-              {image
-                ? (
-                  <button
-                    type="button"
-                    className="constructed-card-detail__pool-card-image"
-                    aria-label={`Открыть карту «${name}» в полном размере`}
-                    onClick={() => onOpen(image)}
-                  >
-                    <img src={image} alt="" loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
-                  </button>
-                )
-                : <div className="constructed-card-detail__pool-card-placeholder" aria-hidden="true"><Sparkles size={34} /></div>}
-              {href
-                ? (
-                  <a
-                    className="constructed-card-detail__pool-card-link"
-                    href={href}
-                    target={internalUrl ? undefined : '_blank'}
-                    rel={internalUrl ? undefined : 'noreferrer'}
-                    onClick={event => {
-                      if (!internalUrl) return;
-                      event.preventDefault();
-                      navigateWithConstructedCardContext(navigatePath, internalUrl, period, rank, format, format);
-                    }}
-                  >{name}</a>
-                )
-                : <span className="constructed-card-detail__pool-card-name">{name}</span>}
-            </article>
-              );
-        })}
-      </div>
-      {hasMore && <button type="button" className="constructed-card-detail__pool-toggle" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Свернуть' : `Показать все · ${cards.length}`}</button>}
-    </article>
-  );
-}
-
-function GeneratedCardPools({ pools, format, period, rank, navigatePath, onOpen }: {
-  pools: any[];
-  format: CardFormat;
-  period: ConstructedCardPeriod;
-  rank: ConstructedCardRank;
-  navigatePath: (path: string) => void;
-  onOpen: (url: string) => void;
-}) {
-  return (
-    <section className="constructed-card-detail__section constructed-card-detail__pools">
-      <h2 data-tour-id="card-pools"><Layers3 size={19} /> Пулы генерации · {pools.length}</h2>
-      <div className="constructed-card-detail__pool-list">
-        {pools.map((pool, poolIndex) => <GeneratedPoolCards key={`${pool?.pool || 'pool'}-${poolIndex}`} pool={pool} format={format} period={period} rank={rank} navigatePath={navigatePath} onOpen={onOpen} />)}
-      </div>
-    </section>
-  );
-}
-
-function RelatedCardGroups({ groups, onOpen }: {
-  groups: ConstructedRelatedCardGroup[];
-  onOpen: (url: string) => void;
-}) {
-  const total = groups.reduce((sum, group) => sum + group.cards.length, 0);
-  return (
-    <section className="constructed-card-detail__section constructed-card-detail__related-groups">
-      <h2><Sparkles size={19} /> Токены, награды и связанные карты · {total}</h2>
-      <div className="constructed-card-detail__related-group-list">
-        {groups.map(group => (
-          <article className="constructed-card-detail__related-group" key={group.id}>
-            <header>
-              <div><h3>{group.headingRu}</h3>{group.headingEn && group.headingEn !== group.headingRu && <span lang="en">{group.headingEn}</span>}</div>
-              <strong>{group.cards.length}</strong>
-            </header>
-            <div className="constructed-card-detail__related-card-grid">
-              {group.cards.map(item => {
-                const name = item.nameRu || item.nameEn || item.cardId || 'Связанная карта';
-                const rules = plainText(item.textRu || item.textEn);
-                const cardImageUrl = constructedRelatedCardImage(item);
-                return (
-                  <article
-                    className="constructed-card-detail__related-card"
-                    key={item.cardId || `${name}-${item.cardImageUrl || ''}`}
-                  >
-                    {cardImageUrl
-                      ? (
-                        <button
-                          type="button"
-                          className="constructed-card-detail__related-card-image"
-                          aria-label={`Открыть карту «${name}» в полном размере`}
-                          onClick={() => onOpen(cardImageUrl)}
-                        >
-                          <img src={cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
-                        </button>
-                      )
-                      : <div className="constructed-card-detail__related-card-image"><Sparkles size={34} aria-hidden="true" /></div>}
-                    <div className="constructed-card-detail__related-card-copy">
-                      <strong>{name}</strong>
-                      {item.nameEn && item.nameEn !== name && <span lang="en">{item.nameEn}</span>}
-                      {(item.attack !== null || item.health !== null) && (
-                        <dl aria-label={`Характеристики карты ${name}`}>
-                          {item.attack !== null && <div><dt>Атака</dt><dd>{item.attack}</dd></div>}
-                          {item.health !== null && <div><dt>Здоровье</dt><dd>{item.health}</dd></div>}
-                        </dl>
-                      )}
-                      {rules && <p>{rules}</p>}
-                      {item.cardId && <code>{item.cardId}</code>}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-async function copyText(value: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(value);
-    return true;
-  } catch {
-    const fallback = document.createElement('textarea');
-    fallback.value = value;
-    fallback.setAttribute('readonly', '');
-    fallback.style.position = 'fixed';
-    fallback.style.opacity = '0';
-    document.body.appendChild(fallback);
-    fallback.select();
-    const copied = document.execCommand('copy');
-    fallback.remove();
-    return copied;
-  }
-}
-
-function ConstructedDeckCard({ deck, format }: {
-  key?: React.Key;
-  deck: ConstructedDeck;
-  format: CardFormat;
-}) {
-  const [resolvedDeck, setResolvedDeck] = useState<ResolvedConstructedDeck | null>(null);
-  const [resolveError, setResolveError] = useState('');
-  const [retryToken, setRetryToken] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const deckTitle = deck.archetypeLabel || deck.archetype || deck.title;
-  const classKey = String(deck.className || '').toLowerCase().replace(/[^a-z]/g, '');
-  const classColor = CONSTRUCTED_DECK_CLASS_COLORS[classKey] || '#67131c';
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const resolveDeck = async () => {
-      setResolvedDeck(null);
-      setResolveError('');
-      try {
-        const query = new URLSearchParams({
-          code: deck.deckCode,
-          format,
-          archetype: deckTitle,
-        });
-        const response = await fetch(`/api/deck/resolve?${query}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-          signal: controller.signal,
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(payload.error || 'Не удалось разобрать состав колоды');
-        }
-        setResolvedDeck(payload as ResolvedConstructedDeck);
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          setResolveError(error instanceof Error ? error.message : 'Не удалось разобрать состав колоды');
-        }
-      }
-    };
-    void resolveDeck();
-    return () => controller.abort();
-  }, [deck.deckCode, deckTitle, format, retryToken]);
-
-  const copyDeck = async () => {
-    if (!await copyText(deck.deckCode)) return;
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
-  };
-
-  return (
-    <article className="constructed-card-detail__deck">
-      <div className="constructed-card-detail__deck-list">
-        <DeckRenderPreview deckCode={deck.deckCode} deckName={deckTitle}>
-          {resolvedDeck ? (
-            <DeckListView
-              cards={resolvedDeck.cards} sideboards={resolvedDeck.sideboards}
-              title={deckTitle} subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
-              headerColor={classColor}
-              totalCards={resolvedDeck.totalCards} deckSizeLimit={resolvedDeck.deckSizeLimit}
-            />
-          ) : (
-            <div className="constructed-card-detail__deck-list-state" aria-busy={!resolveError}>
-              <Layers3 size={28} />
-              <span>{resolveError || 'Загружаем состав колоды…'}</span>
-              {resolveError && <button type="button" onClick={() => setRetryToken(value => value + 1)}><RefreshCw size={14} /> Повторить</button>}
-            </div>
-          )}
-        </DeckRenderPreview>
-      </div>
-      <div className="constructed-card-detail__deck-copy">
-        <h3>{deckTitle}</h3>
-        <p>{[deck.className ? classLabel(deck.className.toUpperCase().replace(/\s+/g, '')) : '', deck.score || (deck.winrate != null ? `${percent(deck.winrate)} побед` : '')].filter(Boolean).join(' · ') || 'Готовая сборка'}</p>
-        <button type="button" onClick={copyDeck}><Copy size={15} /> {copied ? 'Код скопирован' : 'Скопировать код'}</button>
-      </div>
-    </article>
-  );
-}
-
-function ConstructedCardDecks({ decks, format }: { decks: ConstructedDeck[]; format: CardFormat }) {
-  const [visibleCount, setVisibleCount] = useState(3);
-  const visibleDecks = decks.slice(0, visibleCount);
-  return (
-    <section className="constructed-card-detail__section constructed-card-detail__decks">
-      <h2 data-tour-id="card-decks"><Layers3 size={19} /> Колоды с этой картой · {decks.length}</h2>
-      <div className="constructed-card-detail__deck-grid">{visibleDecks.map(deck => <ConstructedDeckCard key={deck.id} deck={deck} format={format} />)}</div>
-      {visibleCount < decks.length && <button type="button" className="constructed-card-detail__pool-toggle" onClick={() => setVisibleCount(count => Math.min(count + 3, decks.length))}>Показать больше · ещё {Math.min(3, decks.length - visibleCount)}</button>}
-    </section>
-  );
-}
-
-const cardIdentityFacts = (card: CardRecord, format: CardFormat) => [
-  { label: 'Мана', value: number(card.mana_cost) },
-  { label: 'Класс', value: classLabel(card.class || 'NEUTRAL') },
-  { label: 'Тип', value: card.card_type?.name_ru || constructedTypeLabel(card.card_type?.slug || '—') },
-  { label: 'Редкость', value: constructedRarityLabel(card.rarity || '—') },
-  { label: 'Дополнение', value: card.card_set ? constructedSetLabel(card.card_set) : 'Не указано' },
-  { label: 'Художник', value: card.artist || 'Не указан' },
-  ...[['Атака', card.attack], ['Здоровье', card.health], ['Прочность', card.durability], ['Броня', card.armor]]
-    .filter(([, value]) => value !== null && value !== undefined)
-    .map(([label, value]) => ({ label: String(label), value })),
-  ...(card.minion_type ? [{ label: 'Тип существа', value: constructedTribeLabel(card.minion_type) }] : []),
-  ...(card.spell_school ? [{ label: 'Школа магии', value: constructedSpellSchoolLabel(card.spell_school) }] : []),
-  { label: 'Форматы', value: card.formats?.map(item => item.name_ru || item.name_en || item.slug).join(', ') || (format === 'standard' ? 'Стандартный, Вольный' : 'Вольный') },
-  { label: 'ID карты', value: <><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</> },
-];
-
-// Another card starts at its top. Loading the same card again (the full
-// detail after the server-rendered seed, a period or rank change) keeps the
-// reader where they scrolled.
-function useScrollToTopOnCardChange(shownCardId: string | null) {
-  const previousShownCardIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    const previousCardId = previousShownCardIdRef.current;
-    if (shownCardId) previousShownCardIdRef.current = shownCardId;
-    if (!shownCardId || !previousCardId || previousCardId === shownCardId) return undefined;
-    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
-    return () => cancelAnimationFrame(frame);
-  }, [shownCardId]);
-}
-
-function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
-  const [period, setPeriod] = useConstructedCardPeriod(initialSearch);
-  const [rank, setRank] = useConstructedCardRank(initialSearch);
-  const [statsFormat, setStatsFormat] = useState<CardFormat>(() => (
-    constructedCardStatsFormatFromSearch(initialSearch ?? (typeof window === 'undefined' ? '' : window.location.search), format)
-  ));
-  const [periodLabel, setPeriodLabel] = useState(() => constructedCardPeriodLabel(period));
-  const [currentPatch, setCurrentPatch] = useState<string | null>(null);
-  const [card, setCard] = useState<CardRecord | null>(initialCard ?? null);
-  const [serverStatsAccess, setServerStatsAccess] = useState(false);
-  const [loading, setLoading] = useState(!initialCard);
-  const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
-  const [dataState, setDataState] = useState<{
-    dataStatus: 'fresh' | 'stale';
-    partial: boolean;
-    warning: string | null;
-  }>({ dataStatus: 'fresh', partial: false, warning: null });
-  const [reloadToken, setReloadToken] = useState(0);
-  const [variant, setVariant] = useState('normal');
-  const [lightboxIndex, setLightboxIndex] = useState(-1);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const history = useConstructedCardHistory({
-    cardId,
-    format: statsFormat,
-    period,
-    rank,
-    enabled: Boolean(card && serverStatsAccess && historyOpen),
-  });
-  useEffect(() => {
-    const syncFromLocation = () => setStatsFormat(
-      constructedCardStatsFormatFromSearch(window.location.search, format),
-    );
-    syncFromLocation();
-    window.addEventListener('popstate', syncFromLocation);
-    return () => window.removeEventListener('popstate', syncFromLocation);
-  }, [format]);
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(!initialCard); setError(null);
-      try {
-        const response = await loadConstructedCardDetail({
-          cardId,
-          format,
-          statsFormat,
-          period,
-          rank,
-          statsAccess,
-        });
-        const payload = response.payload;
-        if (!response.ok) {
-          const failure = new Error(payload.error || 'Не удалось загрузить карту') as Error & { status?: number };
-          failure.status = response.status;
-          throw failure;
-        }
-        if (cancelled) return;
-        const loadedCard = {
-          ...(payload.card as CardRecord),
-          mechanicTranslations: payload.mechanicTranslations || {},
-          mechanicOverrides: payload.mechanicOverrides ?? payload.mechanicTranslations ?? {},
-        };
-        if (statsFormat === 'standard' && !cardSupportsStandardStatistics(loadedCard.formats)) {
-          setStatsFormat('wild');
-          if (typeof window !== 'undefined') {
-            window.history.replaceState(
-              window.history.state,
-              '',
-              constructedCardStatsUrl(
-                window.location.pathname,
-                { period, rank, statsFormat: 'wild', defaultStatsFormat: format },
-                window.location.search,
-              ),
-            );
-          }
-          return;
-        }
-        setCard(loadedCard);
-        setServerStatsAccess(payload.statsAccess === true);
-        setPeriodLabel(payload.period?.label || constructedCardPeriodLabel(period));
-        setCurrentPatch(payload.period?.patch || null);
-        setDataState({
-          dataStatus: payload.dataStatus === 'stale' ? 'stale' : 'fresh',
-          partial: payload.partial === true,
-          warning: typeof payload.warning === 'string' ? payload.warning : null,
-        });
-        setVariant('normal');
-        setLightboxIndex(-1);
-      } catch (loadError) {
-        if (!cancelled) setError(constructedCardRequestError(
-          'detail',
-          Number((loadError as { status?: number })?.status ?? 0),
-          loadError instanceof Error ? loadError.message : '',
-        ));
-      } finally { if (!cancelled) setLoading(false); }
-    };
-    void load();
-    return () => { cancelled = true; };
-  }, [cardId, format, period, rank, reloadToken, statsAccess, statsFormat, initialCard]);
-  useScrollToTopOnCardChange(card?.card_id ?? null);
-  useEffect(() => {
-    if (!card) return;
-    const name = cardName(card);
-    const formatLabel = format === 'standard' ? 'Стандарт' : 'Вольный формат';
-    const resolvedCardId = card.card_id || cardId;
-    const rules = plainText(card.text?.ru || card.text?.en);
-    const description = rules
-      ? `${name} (${formatLabel}, ID ${resolvedCardId}): ${rules}`
-      : `${name} — карта Hearthstone (${formatLabel}, ID ${resolvedCardId}) в библиотеке HearthPulse.`;
-    void applyDocumentPageMeta({
-      title: `${name} — карта Hearthstone (${formatLabel}, ${resolvedCardId}) | HearthPulse`,
-      description: description.slice(0, 300),
-      pathname: constructedCardPath(format, resolvedCardId),
-      search: '',
-      image: publicResourceUrl(card.images?.card),
-    });
-  }, [card, cardId, format]);
-
-  if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><h1>Загружаем карту</h1></section>;
-  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>{error?.title || 'Данные карты временно недоступны'}</h1><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
-
-  const variants = collectConstructedCardVariants(card);
-  const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
-  const wiki = card.wiki || {};
-  const effectiveTranslations = mergeConstructedTranslationSources(wiki, card.mechanicOverrides);
-  const mechanics = uniqueMechanicLabels([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])], effectiveTranslations);
-  const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : [])
-    .flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })))
-    .sort((left: any, right: any) => patchTimestamp(right) - patchTimestamp(left));
-  const relatedGroups = normalizeConstructedRelatedCardGroups(card);
-  const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
-    .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
-  const relatedArtMedia = collectConstructedRelatedCardArtMedia(relatedGroups);
-  const relatedCardMedia = collectConstructedRelatedCardMedia(relatedGroups);
-  const generatedPoolMedia = collectConstructedGeneratedPoolMedia(generatedPools);
-  const mediaItems = [...collectConstructedCardMedia(card), ...relatedCardMedia, ...generatedPoolMedia, ...relatedArtMedia];
-  const galleryMedia = mediaItems.filter(item => item.id.startsWith('gallery-') || item.id.startsWith('related-art-'));
-  const sounds = flattenConstructedCardSounds(wiki.sounds);
-  const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
-  const externalLinks = Array.isArray(wiki.external_links) ? wiki.external_links : [];
-  const decks = Array.isArray(card.decks) ? card.decks : [];
-  const openMedia = (url: string) => {
-    const index = mediaItems.findIndex(item => item.url === url);
-    if (index >= 0) setLightboxIndex(index);
-  };
-  const dataNotice = constructedCardDataNotice(dataState);
-  const rankLabel = constructedCardRankLabel(rank);
-  const statsFormatLabel = constructedCardStatsFormatLabel(statsFormat);
-  const standardStatisticsAvailable = cardSupportsStandardStatistics(card.formats);
-  const changeStatistics = (next: {
-    format?: CardFormat;
-    rank?: ConstructedCardRank;
-    period?: ConstructedCardPeriod;
-  }) => {
-    const nextFormat = next.format ?? statsFormat;
-    const nextRank = next.rank ?? rank;
-    const nextPeriod = next.period ?? period;
-    setStatsFormat(nextFormat);
-    setRank(nextRank);
-    setPeriod(nextPeriod);
-    if (typeof window !== 'undefined') {
-      window.history.replaceState(
-        window.history.state,
-        '',
-        constructedCardStatsUrl(
-          window.location.pathname,
-          {
-            period: nextPeriod,
-            rank: nextRank,
-            statsFormat: nextFormat,
-            defaultStatsFormat: format,
-          },
-          window.location.search,
-        ),
-      );
-    }
-  };
-
-  return (
-    <article className="constructed-cards constructed-card-detail">
-      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}/`, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}/`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
-      <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button>
-      {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
-
-      <section className="constructed-card-detail__hero">
-        <div className="constructed-card-detail__visual">
-          <button type="button" className="constructed-card-detail__visual-button" onClick={() => openMedia(selectedImage)} aria-label={`Открыть ${cardName(card)} в полном размере`}>
-            <img src={selectedImage} alt={cardName(card)} onError={fallbackCardImageToOrigin} />
-            <span>Открыть в полном размере</span>
-          </button>
-          <div className="constructed-card-detail__variants" aria-label="Вариант изображения" data-tour-id="card-art">{variants.map(item => <button key={item.id} type="button" aria-pressed={variant === item.id} onClick={() => setVariant(item.id)}>{item.label}</button>)}</div>
-        </div>
-        <ConstructedCardIdentity
-          name={cardName(card)} englishName={card.name?.en} classIconUrl={classIcon(card.class)}
-          rulesText={plainText(card.text?.ru || card.text?.en)}
-          flavorText={plainText(card.flavor?.ru || card.flavor?.en)}
-          facts={cardIdentityFacts(card, format)}
-        />
-        <div className={`constructed-card-detail__statistics${serverStatsAccess ? '' : ' is-locked'}`}>
-          <div data-tour-id="card-statistics"><h2>Статистика · {rankLabel}</h2><span>{statsFormatLabel} · {periodLabel}{serverStatsAccess ? ` · обновлено ${formatDate(card.statsUpdatedAt)}` : ' · тариф «Алмаз»'}</span></div>
-          <div className="constructed-card-detail__statistics-controls" aria-label="Выбор статистики карты">
-            <div className="constructed-card-detail__statistics-format" role="group" aria-label="Формат статистики">
-              {standardStatisticsAvailable && <button type="button" aria-pressed={statsFormat === 'standard'} onClick={() => changeStatistics({ format: 'standard' })}><img src="/card-format-standard.webp" alt="" />Стандарт</button>}
-              <button type="button" aria-pressed={statsFormat === 'wild'} onClick={() => changeStatistics({ format: 'wild' })}><img src="/card-format-wild.webp" alt="" />Вольный</button>
-            </div>
-            <FilterSelect
-              label="Ранг"
-              value={rank}
-              onChange={value => changeStatistics({ rank: value as ConstructedCardRank })}
-              options={CONSTRUCTED_CARD_RANK_OPTIONS.map(option => ({ value: option.id, label: option.label }))}
-            />
-            <FilterSelect
-              label="Период"
-              value={period}
-              onChange={value => changeStatistics({ period: value as ConstructedCardPeriod })}
-              options={constructedCardPeriodOptions(currentPatch).map(option => ({ value: option.id, label: option.label }))}
-            />
-          </div>
-          {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : (
-            <div className="constructed-card-detail__statistics-gate">
-              <div className="constructed-card-detail__statistics-blur" aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} /></div>
-              <StatsUnlockNotice statsAccessLoading={statsAccessLoading} authUser={authUser} onRefreshSubscription={onRefreshSubscription} />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {serverStatsAccess && (
-        <ConstructedCardHistoryChart
-          points={history.points}
-          periodLabel={periodLabel}
-          formatLabel={statsFormatLabel}
-          rankLabel={rankLabel}
-          days={history.days}
-          onDaysChange={history.setDays}
-          loading={history.loading}
-          error={history.error}
-          onOpenChange={setHistoryOpen}
-        />
-      )}
-
-      <section className="constructed-card-detail__lower-grid">
-        <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(item => <span key={item.key}>{item.label}</span>) : <p>Механики не указаны.</p>}</div></div>
-        <div className="constructed-card-detail__section constructed-card-detail__patches" data-tour-id="card-patches"><h2>Изменения по патчам</h2>{patchRows.length ? <div>{patchRows.map((row: any, index: number) => {
-          const dateValue = row.manacost_published_at || row.date;
-          const title = row.manacost_title || `Обновление ${patchVersion(row.patch)}`;
-          const description = row.manacost_summary || (row.manacost_url ? 'Подробности обновления доступны на HS-Manacost.' : 'Русская статья для этого обновления пока не найдена.');
-          const heading = <><span>{patchDate(dateValue)}</span><strong>{title}</strong>{row.manacost_url && <ExternalLink size={15} />}</>;
-          return <details key={`${row.patch}-${row.date}-${index}`}><summary><span className="constructed-card-detail__patch-heading">{heading}</span></summary><div className="constructed-card-detail__patch-body"><p>{description}</p>{row.manacost_url && <a href={row.manacost_url} target="_blank" rel="noreferrer">Читать на HS‑Manacost <ExternalLink size={14} /></a>}</div></details>;
-        })}</div> : <p>История изменений не найдена.</p>}</div>
-      </section>
-
-      {relatedGroups.length > 0 && <RelatedCardGroups groups={relatedGroups} onOpen={openMedia} />}
-
-      {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} period={period} rank={rank} navigatePath={navigatePath} onOpen={openMedia} />}
-
-      {decks.length > 0 && <ConstructedCardDecks key={`${format}:${cardId}`} decks={decks} format={format} />}
-
-      <section className={`constructed-card-detail__media-grid${sounds.length ? '' : ' constructed-card-detail__media-grid--two'}`}>
-        <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button className={item.presentation === 'contain' ? 'is-contain' : undefined} key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
-        {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map((item, clipIndex) => <article key={item.id}><span>{soundClipLabel(item.description, item.group, clipIndex)}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div></div>}
-        <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>
-      </section>
-      {lightboxIndex >= 0 && <ConstructedCardLightbox items={mediaItems} index={lightboxIndex} onClose={() => setLightboxIndex(-1)} onIndexChange={setLightboxIndex} />}
-    </article>
-  );
-}
-
+/** The card catalog; the card page is the separate StandardCardDetail bundle. */
 export default function StandardCards(props: StandardCardsProps) {
-  const { currentPath, navigatePath } = props;
-  const route = routeState(currentPath);
-  return route.page === 'detail' && route.cardId
-    ? <DetailPage key={`${route.format}:${route.cardId}`} format={route.format} cardId={route.cardId} {...props} />
-    : <CardsListPage initialFormat={route.format} {...props} />;
+  return <CardsListPage initialFormat={routeState(props.currentPath).format} {...props} />;
 }

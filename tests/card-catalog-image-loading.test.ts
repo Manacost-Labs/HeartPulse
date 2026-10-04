@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import React from 'react';
+import { renderToString } from 'react-dom/server';
 import {
   activateDeferredCardImage,
   cardGalleryPriorityCount,
+  CARD_GALLERY_HIGH_PRIORITY_COUNT,
   CARD_GALLERY_IMAGE_ROOT_MARGIN,
 } from '../src/features/cardGalleryImageLoading.js';
+import ConstructedCardGalleryImage from '../src/features/ConstructedCardGalleryImage.js';
 
 assert.equal(cardGalleryPriorityCount(320), 2);
 assert.equal(cardGalleryPriorityCount(640), 2);
@@ -15,6 +19,17 @@ assert.equal(cardGalleryPriorityCount(1240), 5);
 assert.equal(cardGalleryPriorityCount(1241), 6);
 assert.equal(cardGalleryPriorityCount(Number.POSITIVE_INFINITY), 6);
 assert.equal(CARD_GALLERY_IMAGE_ROOT_MARGIN, '320px 0px');
+assert.equal(CARD_GALLERY_HIGH_PRIORITY_COUNT, cardGalleryPriorityCount(320),
+  'only the narrowest first row may ask for high priority before the viewport is known');
+
+const render = (immediate: boolean, highPriority: boolean) => renderToString(React.createElement(ConstructedCardGalleryImage,
+  { src: '/api/card-image/JAIL_878/thumb.webp?v=test', alt: 'Card', immediate, highPriority }));
+assert.match(render(true, true), /fetchPriority="high"/);
+const eagerFirstRow = render(true, false);
+assert.doesNotMatch(eagerFirstRow, /fetchPriority/i,
+  'the rest of the widest first row keeps a real eager src at default priority');
+assert.match(eagerFirstRow, /src="\/api\/card-image\/JAIL_878\/thumb\.webp\?v=test"[^>]*loading="eager"/);
+assert.match(render(false, false), /fetchPriority="low"/);
 
 const deferredImage = {
   dataset: {
@@ -64,8 +79,8 @@ assert.match(imageSource, /activateDeferredCardImage\(image, 'lazy'\)/,
   'the no-observer fallback must preserve native lazy loading');
 assert.match(imageSource, /data-card-image-src=/,
   'below-fold cards must defer their real URL instead of relying only on native lazy loading');
-assert.match(imageSource, /fetchPriority=\{immediate \? 'high' : 'low'\}/,
-  'only the first row may compete at high network priority');
+assert.match(cardsSource, /highPriority=\{index < CARD_GALLERY_HIGH_PRIORITY_COUNT\}/,
+  'the gallery must ask for high priority only for the narrowest first row');
 assert.match(imageSource, /width=\{360\}[\s\S]*height=\{497\}/,
   'catalog cards must reserve the real thumbnail aspect ratio');
 assert.match(imageSource, /onError=\{fallbackCardImageToOrigin\}/,

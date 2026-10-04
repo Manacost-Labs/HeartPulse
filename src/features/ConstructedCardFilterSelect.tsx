@@ -12,7 +12,27 @@ type ConstructedCardFilterSelectProps = {
   className?: string;
   visual?: 'text' | 'class' | 'set' | 'stat' | 'rarity';
   align?: 'start' | 'end';
+  /** Called once an open menu has rested on another enabled option for a moment. */
+  onOptionIntent?: (value: string) => void;
 };
+
+// Long enough that sweeping the pointer across the menu warms nothing.
+const OPTION_INTENT_DELAY_MS = 150;
+
+function useOptionIntent(activeOption: ConstructedCardFilterOption | undefined, value: string, onOptionIntent?: (value: string) => void) {
+  const optionIntentRef = useRef(onOptionIntent);
+  useEffect(() => { optionIntentRef.current = onOptionIntent; });
+  const intentValue = activeOption && !activeOption.disabled && activeOption.value !== value ? activeOption.value : null;
+  useEffect(() => {
+    if (intentValue === null || !optionIntentRef.current) return undefined;
+    const timer = window.setTimeout(() => optionIntentRef.current?.(intentValue), OPTION_INTENT_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [intentValue]);
+}
+
+function boundaryIndex(options: ConstructedCardFilterOption[], key: 'Home' | 'End'): number {
+  return enabledIndex(options, key === 'Home' ? -1 : 0, key === 'Home' ? 1 : -1);
+}
 
 function enabledIndex(
   options: ConstructedCardFilterOption[],
@@ -37,6 +57,7 @@ export default function ConstructedCardFilterSelect({
   className = '',
   visual = 'text',
   align = 'start',
+  onOptionIntent,
 }: ConstructedCardFilterSelectProps) {
   const generatedId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -50,6 +71,7 @@ export default function ConstructedCardFilterSelect({
   );
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
   const selectedOption = options[selectedIndex] ?? options[0];
+  useOptionIntent(open ? options[activeIndex] : undefined, value, onOptionIntent);
   const labelId = `${generatedId}-label`;
   const buttonId = `${generatedId}-button`;
   const listboxId = `${generatedId}-listbox`;
@@ -111,8 +133,7 @@ export default function ConstructedCardFilterSelect({
     }
     if (event.key === 'Home' || event.key === 'End') {
       event.preventDefault();
-      const boundary = event.key === 'Home' ? -1 : 0;
-      setActiveIndex(enabledIndex(options, boundary, event.key === 'Home' ? 1 : -1));
+      setActiveIndex(boundaryIndex(options, event.key));
       setOpen(true);
       return;
     }
@@ -131,8 +152,7 @@ export default function ConstructedCardFilterSelect({
     }
     if (event.key === 'Home' || event.key === 'End') {
       event.preventDefault();
-      const boundary = event.key === 'Home' ? -1 : 0;
-      setActiveIndex(enabledIndex(options, boundary, event.key === 'Home' ? 1 : -1));
+      setActiveIndex(boundaryIndex(options, event.key));
       return;
     }
     if (event.key === 'Enter' || event.key === ' ') {
