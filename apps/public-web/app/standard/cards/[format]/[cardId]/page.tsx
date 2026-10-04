@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { constructedCardPath, type CardFormat } from '@/src/modules/constructedCards/public';
 import { loadPublicCard } from '@/apps/public-web/lib/publicCard';
-import { LegacyCardPage } from '@/apps/public-web/ui/LegacyCardPage';
+import { LegacyCardDetailPage } from '@/apps/public-web/ui/LegacyCardDetailPage';
 import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 
 type Props = { params: Promise<{ format: string; cardId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -44,6 +44,6 @@ export default async function CardPage(props: Props) {
   return <>
     <script type="application/ld+json" data-server-entity-jsonld data-entity-path={pathname}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} />
-    <LegacyCardPage card={card} pathname={pathname} initialSearch={query.toString()} />
+    <LegacyCardDetailPage card={card} pathname={pathname} initialSearch={query.toString()} />
   </>;
 }

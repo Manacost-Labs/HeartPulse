@@ -1,9 +1,4 @@
-import {
-  CONSTRUCTED_CARD_PERIOD_OPTIONS,
-  CONSTRUCTED_CARD_RANK_OPTIONS,
-  type ConstructedCardPeriod,
-  type ConstructedCardRank,
-} from './statisticsContext';
+import type { ConstructedCardPeriod, ConstructedCardRank } from './statisticsContext';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
 
@@ -69,33 +64,4 @@ export function constructedCardCatalogUrl({
     if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
   });
   return `/api/constructed-cards?${params}`;
-}
-
-function adjacentOption<T extends string>(
-  options: ReadonlyArray<{ id: T }>,
-  current: T,
-): T | null {
-  const currentIndex = options.findIndex(option => option.id === current);
-  if (currentIndex < 0) return null;
-  return options[currentIndex + 1]?.id ?? options[currentIndex - 1]?.id ?? null;
-}
-
-/**
- * Warms only the three transitions that are adjacent to the current catalog.
- * The previous all-options strategy transferred more than 1 MB of JSON after
- * every filter change and could compete with visible card images.
- */
-export function adjacentConstructedCardCatalogContexts(
-  context: ConstructedCardCatalogContext,
-): ConstructedCardCatalogContext[] {
-  const period = adjacentOption(CONSTRUCTED_CARD_PERIOD_OPTIONS, context.period);
-  const rank = adjacentOption(CONSTRUCTED_CARD_RANK_OPTIONS, context.rank);
-  const candidates: ConstructedCardCatalogContext[] = [];
-  if (period) candidates.push({ ...context, period });
-  if (rank) candidates.push({ ...context, rank });
-  candidates.push({
-    ...context,
-    format: context.format === 'standard' ? 'wild' : 'standard',
-  });
-  return candidates;
 }

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { HOME_COVER_SIZES, HOME_LEAD_COVER_SIZES, responsiveHomeCover } from '../model/articleCover';
 import './HomeLatestArticles.css';
 
 export interface HomeArticle {
@@ -19,12 +20,15 @@ function formatArticleDate(value: string): string {
   return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function ArticleImage({ src, title }: { src: string; title: string }) {
+function ArticleImage({ src, title, lead }: { src: string; title: string; lead: boolean }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <span className="home-latest-article__image-fallback" aria-hidden="true">M</span>;
+  const cover = responsiveHomeCover(src);
   return (
     <img
-      src={src}
+      src={cover.src}
+      srcSet={cover.srcSet}
+      sizes={cover.srcSet && (lead ? HOME_LEAD_COVER_SIZES : HOME_COVER_SIZES)}
       alt=""
       width={560}
       height={300}
@@ -70,7 +74,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
       <div className="home-latest-articles__board" aria-busy={loading}>
         {loading && latest.length === 0
           ? [0, 1, 2].map(index => <div key={index} className="home-latest-article home-latest-article--loading" />)
-          : latest.map(article => (
+          : latest.map((article, index) => (
             <a
               key={article.id}
               href={article.url}
@@ -78,7 +82,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
               rel="noreferrer"
               className="home-latest-article"
             >
-              <span className="home-latest-article__image"><ArticleImage src={article.image} title={article.title} /></span>
+              <span className="home-latest-article__image"><ArticleImage src={article.image} title={article.title} lead={index === 0} /></span>
               <span className="home-latest-article__body">
                 <span className="home-latest-article__meta">
                   <small>{articleSectionLabel(article)}</small>
@@ -97,7 +101,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
       </div>
 
       <a
-        href="/articles"
+        href="/articles/"
         className="home-latest-articles__all"
         onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('articles'); }}
       >

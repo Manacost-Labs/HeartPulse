@@ -95,7 +95,7 @@
   outline: 0;
   background:
     linear-gradient(rgba(255, 249, 225, 0.97), rgba(246, 222, 173, 0.97)),
-    url('/wallpaper/arena-parchment.jpg') center / 720px auto;
+    var(--arena-parchment-texture) center / 720px auto;
   box-shadow: 0 14px 30px rgba(64, 31, 10, 0.3), inset 0 0 0 2px rgba(255, 252, 235, 0.46);
   list-style: none;
   animation: surface-enter var(--motion-base) var(--motion-ease) both;

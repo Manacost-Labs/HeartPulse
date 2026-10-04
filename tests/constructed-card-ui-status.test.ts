@@ -51,7 +51,9 @@ assert.equal(
   'a concrete server warning must remain visible without an extra stale-data banner',
 );
 
-const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+// The catalog and the card page are separate bundles of one constructed-card UI.
+const standardCardsSource = ['StandardCards.tsx', 'StandardCardDetail.tsx']
+  .map(file => readFileSync(new URL(`../src/features/${file}`, import.meta.url), 'utf8')).join('\n');
 const catalogModelSource = readFileSync(new URL('../src/modules/constructedCards/model/catalogQuery.ts', import.meta.url), 'utf8');
 const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCardDetailPrefetch.ts', import.meta.url), 'utf8');
 const cardHistorySource = readFileSync(new URL('../src/features/useConstructedCardHistory.ts', import.meta.url), 'utf8');

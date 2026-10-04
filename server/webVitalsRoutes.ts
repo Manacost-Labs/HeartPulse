@@ -1,9 +1,12 @@
 import { Router, type RequestHandler } from 'express';
+import { isWebVitalLcpTarget } from '../shared/webVitalsDimensions.js';
 import {
   normalizeWebVitalClientRegion,
   normalizeWebVitalEdgeRegion,
+  normalizeWebVitalPage,
   type ServerWebVitalContext,
   type ServerWebVitalMetric,
+  type ServerWebVitalPage,
 } from './webVitalsModel.js';
 
 const METRIC_NAMES = new Set<ServerWebVitalMetric['name']>([
@@ -36,25 +39,34 @@ export function normalizeWebVitalMetric(value: unknown): ServerWebVitalMetric | 
   const navigationType = String(record.navigationType ?? '');
   const metricValue = Number(record.value);
   const maximum = name === 'CLS' ? 10 : 600_000;
+  const { lcpTarget } = record;
+  const lcpTargetAllowed = lcpTarget === undefined || (name === 'LCP' && isWebVitalLcpTarget(lcpTarget));
   if (!METRIC_NAMES.has(name)
     || !RATINGS.has(rating)
     || !NAVIGATION_TYPES.has(navigationType)
     || !Number.isFinite(metricValue)
     || metricValue < 0
-    || metricValue > maximum) {
+    || metricValue > maximum
+    || !lcpTargetAllowed) {
     return null;
   }
-  return { name, value: metricValue, rating, navigationType };
+  const metric: ServerWebVitalMetric = { name, value: metricValue, rating, navigationType };
+  if (typeof lcpTarget === 'string') metric.lcpTarget = lcpTarget;
+  return metric;
 }
 
-export function normalizeWebVitalsPayload(value: unknown): ServerWebVitalMetric[] | null {
+export function normalizeWebVitalsPayload(
+  value: unknown,
+): { page: ServerWebVitalPage; metrics: ServerWebVitalMetric[] } | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const metrics = (value as Record<string, unknown>).metrics;
-  if (!Array.isArray(metrics) || metrics.length === 0 || metrics.length > 5) return null;
+  const body = value as Record<string, unknown>;
+  const page = normalizeWebVitalPage(body);
+  const { metrics } = body;
+  if (!page || !Array.isArray(metrics) || metrics.length === 0 || metrics.length > 5) return null;
   const normalized = metrics.map(normalizeWebVitalMetric);
   if (normalized.some(metric => metric === null)) return null;
   if (new Set(normalized.map(metric => metric!.name)).size !== normalized.length) return null;
-  return normalized as ServerWebVitalMetric[];
+  return { page, metrics: normalized as ServerWebVitalMetric[] };
 }
 
 export function createWebVitalsRouter(options: {
@@ -62,15 +74,14 @@ export function createWebVitalsRouter(options: {
 }): Router {
   const router = Router();
   const handler: RequestHandler = (req, res) => {
-    const context: ServerWebVitalContext = {
-      edgeRegion: normalizeWebVitalEdgeRegion(req.headers['x-arena-edge-region']),
-      clientRegion: normalizeWebVitalClientRegion(req.headers['x-arena-client-region']),
-    };
-    res.setHeader('X-RUM-Edge-Region', context.edgeRegion);
-    res.setHeader('X-RUM-Client-Region', context.clientRegion);
-    const metrics = normalizeWebVitalsPayload(req.body);
-    if (!metrics) return res.status(400).json({ error: 'Некорректные Web Vitals' });
-    for (const metric of metrics) options.capture(metric, context);
+    const edgeRegion = normalizeWebVitalEdgeRegion(req.headers['x-arena-edge-region']);
+    const clientRegion = normalizeWebVitalClientRegion(req.headers['x-arena-client-region']);
+    res.setHeader('X-RUM-Edge-Region', edgeRegion);
+    res.setHeader('X-RUM-Client-Region', clientRegion);
+    const report = normalizeWebVitalsPayload(req.body);
+    if (!report) return res.status(400).json({ error: 'Некорректные Web Vitals' });
+    const context: ServerWebVitalContext = { edgeRegion, clientRegion, ...report.page };
+    for (const metric of report.metrics) options.capture(metric, context);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(204).end();
   };

@@ -27,6 +27,7 @@ import {
 import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { cosmeticsCatalogRequest, type CosmeticKind } from '../modules/cosmetics/public';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { cachedCardImage } from './cosmeticsCardImage';
@@ -297,12 +298,12 @@ function CatalogTabs({ active, navigatePath }: { active: CosmeticKind; navigateP
         return (
           <a
             key={kind}
-            href={`/cosmetics/${kind}`}
+            href={`/cosmetics/${kind}/`}
             className={`cosmetics-tab${active === kind ? ' cosmetics-tab-active' : ''}`}
             aria-current={active === kind ? 'page' : undefined}
             onClick={(event) => {
               event.preventDefault();
-              navigatePath(`/cosmetics/${kind}`);
+              navigatePath(`/cosmetics/${kind}/`);
             }}
           >
             <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
@@ -380,7 +381,7 @@ export function HeroSkinCard({
   item: HeroSummary;
   navigatePath: (path: string) => void;
 }) {
-  const href = `/cosmetics/heroes/${encodeURIComponent(item.cardId)}`;
+  const href = canonicalPagePath(`/cosmetics/heroes/${encodeURIComponent(item.cardId)}`);
 
   return (
     <a
@@ -409,7 +410,7 @@ export function HeroSkinCard({
 }
 
 function CoinCard({ item, navigatePath }: { item: CoinSummary; navigatePath: (path: string) => void }) {
-  const href = `/cosmetics/coins/${encodeURIComponent(item.cardId)}`;
+  const href = canonicalPagePath(`/cosmetics/coins/${encodeURIComponent(item.cardId)}`);
   return (
     <a
       href={href}
@@ -435,7 +436,7 @@ function CoinCard({ item, navigatePath }: { item: CoinSummary; navigatePath: (pa
 }
 
 function PetCard({ item, navigatePath }: { item: PetVariant; navigatePath: (path: string) => void }) {
-  const href = `/cosmetics/pets/${encodeURIComponent(item.cardId)}`;
+  const href = canonicalPagePath(`/cosmetics/pets/${encodeURIComponent(item.cardId)}`);
   return (
     <a
       href={href}
@@ -903,10 +904,10 @@ function DetailView({
     <article className="cosmetics-detail">
       <a
         className="cosmetics-back"
-        href={`/cosmetics/${kind}`}
+        href={`/cosmetics/${kind}/`}
         onClick={(event) => {
           event.preventDefault();
-          navigatePath(`/cosmetics/${kind}`);
+          navigatePath(`/cosmetics/${kind}/`);
         }}
       >
         <ArrowLeft size={18} aria-hidden="true" /> К каталогу

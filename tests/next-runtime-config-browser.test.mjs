@@ -35,8 +35,15 @@ async function renderCard(runtime, browser) {
     src: document.querySelector(selector).getAttribute('src'),
     config: window.__ARENA_RUNTIME_CONFIG__,
   }), CARD_IMAGE);
-  // Long enough for the reporter's three-second batch, had it started.
+  // A trusted input finalizes LCP; the title is not a link, so the page stays.
+  await page.click('h1');
+  // Long enough for the reporter's three-second batches, had it started.
+  const deadline = Date.now() + 8_000;
   await new Promise(resolve => setTimeout(resolve, 4_000));
+  while (reports.length > 0 && !reports.some(report => report.metrics.some(metric => metric.name === 'LCP'))
+    && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
   await page.close();
   return { html, errors, cdnRequests, reports, serverSrc: html.match(/<img src="([^"]*\/api\/card-image\/CARD_QA_0002\/full\.webp[^"]*)"/)?.[1], ...hydrated };
 }
@@ -56,13 +63,24 @@ test('server HTML and the hydrated page share the runtime switches for card imag
       assert.match(card.serverSrc ?? '', /^https:\/\/cdn\.hearthpulse\.net\/api\/card-image\//, 'server HTML uses the CDN');
       assert.equal(card.src, card.serverSrc.replaceAll('&amp;', '&'), 'hydration keeps the server URL');
       assert.deepEqual(card.config, { cardImageCdn: { enabled: true, origin: CDN }, webVitals: { enabled: true } });
-      const metrics = card.reports[0]?.metrics ?? [];
+      const metrics = card.reports.flatMap(report => report.metrics);
       assert.ok(metrics.length > 0, 'a deployed switch file turns Web Vitals reporting on');
       for (const metric of metrics) {
         assert.match(metric.name, /^(?:CLS|FCP|INP|LCP|TTFB)$/);
         assert.match(metric.rating, /^(?:good|needs-improvement|poor)$/);
         assert.ok(Number.isFinite(metric.value) && metric.value >= 0, `${metric.name} value`);
+        assert.equal('lcpTarget' in metric, metric.name === 'LCP', `${metric.name} element descriptor`);
       }
+      for (const report of card.reports) {
+        // Puppeteer's default 800px viewport renders the mobile shell.
+        assert.deepEqual({ route: report.route, device: report.device },
+          { route: '/standard/cards/[format]/[cardId]/', device: 'mobile' });
+      }
+      const lcp = metrics.find(metric => metric.name === 'LCP');
+      assert.ok(lcp, 'the click finalizes LCP');
+      assert.match(lcp.lcpTarget, /^[a-z0-9]+(?:\.[a-z][a-z0-9_-]*)?$/, 'LCP names a tag and at most one class');
+      assert.notEqual(lcp.lcpTarget, 'none');
+      assert.equal(JSON.stringify(card.reports).includes('CARD_QA_0002'), false, 'reports never carry the card id');
       assert.ok(card.cdnRequests.length > 0, 'the browser loads the card image from the CDN');
       assert.deepEqual(card.errors, []);
     } finally {

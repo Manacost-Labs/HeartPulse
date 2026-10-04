@@ -83,7 +83,9 @@ try {
   writeFileSync(join(workspace, 'apps/public-web/.next/routes-manifest.json'), '{}');
   writeFileSync(join(workspace, 'apps/public-web/.next/static/chunks/app-shell.js'), 'const releaseId = "abcdef1";\n');
   writeFileSync(join(workspace, 'apps/public-web/.next/cache/build-cache'), 'discard');
-  writeFileSync(join(workspace, 'apps/public-web/next.config.mjs'), 'export default {};\n');
+  writeFileSync(join(workspace, 'apps/public-web/next.config.mjs'),
+    "import { publicDocumentHeaders } from './documentCaching.mjs';\nexport default { headers: publicDocumentHeaders };\n");
+  writeFileSync(join(workspace, 'apps/public-web/documentCaching.mjs'), 'export const publicDocumentHeaders = [];\n');
   writeFileSync(join(workspace, 'server/gen_legendary_image.py'), '# fixture\n');
   for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-backup.sh', 'replicate-backup.sh']) {
     writeFileSync(join(workspace, 'scripts', script), '#!/usr/bin/env bash\nexit 0\n', { mode: 0o755 });
@@ -116,7 +118,11 @@ try {
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.sha, 'abcdef1');
   assert.equal(readFileSync(join(output, 'apps/public-web/.next/BUILD_ID'), 'utf8'), 'next-build-id');
-  assert.equal(readFileSync(join(output, 'apps/public-web/next.config.mjs'), 'utf8'), 'export default {};\n');
+  assert.match(readFileSync(join(output, 'apps/public-web/next.config.mjs'), 'utf8'), /from '\.\/documentCaching\.mjs'/);
+  // `next start` loads next.config.mjs from the release: every module it
+  // imports ships next to it, or the public web fails readiness.
+  assert.equal(readFileSync(join(output, 'apps/public-web/documentCaching.mjs'), 'utf8'), 'export const publicDocumentHeaders = [];\n');
+  assert.match(manifest.checksums['apps/public-web/documentCaching.mjs'], /^[a-f0-9]{64}$/);
   assert.equal(existsSync(join(output, 'apps/public-web/.next/cache')), false);
   assert.match(manifest.checksums['apps/public-web/.next/BUILD_ID'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['apps/public-web/next.config.mjs'], /^[a-f0-9]{64}$/);

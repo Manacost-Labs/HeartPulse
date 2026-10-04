@@ -8,7 +8,7 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
 // The support pages and the guest tier list need no data; every `/api/` call
 // (the shell's session check) answers "signed out", uncacheable as in
-// production, which also keeps the pages out of the back/forward cache.
+// production.
 function signedOut(response) {
   response.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
     .end('{"error":"Unavailable"}');
@@ -65,7 +65,7 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
     gateway = await startGateway(next.origin);
     browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
-      headless: true, args: ['--no-sandbox'] });
+      headless: true, args: ['--no-sandbox', '--disable-features=BackForwardCache'] });
 
     // Before (here: without) JavaScript the toggle opens the drawer natively,
     // and its links are plain anchors to canonical URLs.
@@ -120,10 +120,10 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await waitForDrawer(page, { open: false, shown: false, locked: '' });
 
     // Leaving through a drawer link releases the lock first, so Back returns
-    // to the reading position instead of the top. The classes page is not
-    // cacheable (like every data page in production), so Back reloads it and
-    // only the scroll position stored with the history entry can bring the
-    // reader back.
+    // to the reading position instead of the top. The back/forward cache is
+    // off in this browser (tests/next-bfcache-browser.test.mjs covers a
+    // restore), so Back reloads the page and only the scroll position stored
+    // with the history entry can bring the reader back.
     await page.goto(`${gateway.origin}/classes/`, { waitUntil: 'networkidle2' });
     await page.evaluate(() => {
       document.querySelector('script[type="speculationrules"]').remove();

@@ -4,7 +4,7 @@ export type AccountBrand = 'email' | 'telegram' | 'boosty' | 'patreon';
 
 const LOGOS: Record<Exclude<AccountBrand, 'email'>, string> = {
   telegram: '/auth-icons/telegram.svg',
-  boosty: '/ad/boosty.png',
+  boosty: '/ad/boosty-96.webp',
   patreon: '/auth-icons/patreon.svg',
 };
 

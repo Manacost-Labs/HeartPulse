@@ -16,6 +16,7 @@ import {
 import '../route-parchment.css';
 import './ConstructedArchetypes.css';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import ConstructedArchetypeAnalysis, {
   type ConstructedAnalysis,
 } from './ConstructedArchetypeAnalysis';
@@ -101,7 +102,7 @@ const FORMATS: Array<{ id: ArchetypeFormat; label: string; description: string; 
     id: 'wild',
     label: 'Вольный',
     description: 'Карты всех дополнений',
-    asset: '/card-format-wild.webp',
+    asset: '/assets/card-format-wild-128.webp',
   },
 ];
 
@@ -135,7 +136,7 @@ const CLASS_LABELS: Record<ArchetypeClass, string> = {
 };
 
 const CLASS_FILTERS: Array<{ id: ArchetypeClassFilter; label: string; asset: string }> = [
-  { id: 'all', label: 'Все классы', asset: '/class_icon/all1.png' },
+  { id: 'all', label: 'Все классы', asset: '/class_icon/ui/all-96.webp' },
   ...Object.entries(CLASS_LABELS).map(([id, label]) => ({
     id: id as ArchetypeClass,
     label,
@@ -506,10 +507,10 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
                 </dl>
                 <a
                   className="archetype-row__open"
-                  href={`/standard/archetypes/${item.format}/${item.slug}`}
+                  href={canonicalPagePath(`/standard/archetypes/${item.format}/${item.slug}`)}
                   onClick={event => {
                     event.preventDefault();
-                    navigatePath(`/standard/archetypes/${item.format}/${item.slug}`);
+                    navigatePath(canonicalPagePath(`/standard/archetypes/${item.format}/${item.slug}`));
                   }}
                 >
                   <span>Открыть</span>
@@ -591,7 +592,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
   return (
     <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
       <nav className="archetype-breadcrumb" aria-label="Навигационная цепочка">
-        <a href="/standard/archetypes" onClick={event => { event.preventDefault(); navigatePath('/standard/archetypes'); }}>
+        <a href="/standard/archetypes/" onClick={event => { event.preventDefault(); navigatePath('/standard/archetypes/'); }}>
           <ArrowLeft size={17} /> Архетипы
         </a>
         <span aria-hidden="true">/</span>

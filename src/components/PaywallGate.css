@@ -17,7 +17,7 @@
   color: var(--paywall-ink);
   background:
     linear-gradient(100deg, rgba(255, 247, 221, 0.97), rgba(238, 205, 139, 0.9)),
-    url('/wallpaper/arena-parchment.jpg') center / 720px auto repeat;
+    var(--arena-parchment-texture) center / 720px auto repeat;
   box-shadow: 0 16px 32px rgba(71, 39, 15, 0.17);
   isolation: isolate;
 }
@@ -123,7 +123,7 @@
   border: 1px solid rgba(111, 62, 25, 0.42);
   background:
     linear-gradient(135deg, rgba(255, 247, 221, 0.78), rgba(225, 184, 103, 0.3)),
-    url('/wallpaper/arena-parchment.jpg') center / 540px auto repeat;
+    var(--arena-parchment-texture) center / 540px auto repeat;
   box-shadow:
     inset 0 0 0 3px rgba(255, 248, 220, 0.45),
     0 8px 20px rgba(72, 36, 12, 0.12);
@@ -368,4 +368,24 @@
   .arena-inline-paywall__refresh {
     transition: none;
   }
+}
+
+/* While access is unknown, the gated page holds the gate's height, so neither
+   the gate nor a subscriber's page moves the footer when the check ends. It
+   holds no data. Phones keep it too: their gate is a little taller than this.
+   A lazily loaded paid view (`.arena-paid-view`) keeps the same height around
+   its first render, before its own data arrives. */
+.arena-paywall-pending,
+.arena-paid-view {
+  min-height: var(--subscription-gate-min-height);
+}
+
+/* A guest's locked preview never leaves its loading state, and the preview is
+   decorative (aria-hidden, inert, blurred). A looping loader inside it would
+   restyle and repaint the blurred layer on every frame for the whole visit, so
+   it stays still. Unlayered on purpose: it beats the `@layer utilities` shimmer
+   and Tailwind `animate-*` loops without !important. Entrance animations keep
+   running, and a subscriber's unlocked page never has this wrapper. */
+.arena-paywall__preview :is(.skeleton, [class*='animate-']) {
+  animation: none;
 }

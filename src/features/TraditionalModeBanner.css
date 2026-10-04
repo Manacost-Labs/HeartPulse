@@ -45,6 +45,20 @@
   pointer-events: none;
 }
 
+/* A browser that reads image-set() type() takes the AVIF, the file that
+   PageBannerPreload.tsx preloads; any other keeps the WebP above. A fallback
+   declaration in the same rule would not survive: the CSS build merges it away. */
+@supports (background-image: image-set(url('/wallpaper/profile-hero-hth-1430.avif') type('image/avif'))) {
+  :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::before {
+    background-image:
+      linear-gradient(90deg, rgba(73, 5, 17, 0.76), rgba(49, 4, 13, 0.24) 55%, rgba(30, 2, 9, 0.08)),
+      image-set(
+        url('/wallpaper/profile-hero-hth-1430.avif') type('image/avif'),
+        url('/wallpaper/profile-hero-hth.webp') type('image/webp')
+      );
+  }
+}
+
 :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::after {
   position: absolute;
   z-index: -1;

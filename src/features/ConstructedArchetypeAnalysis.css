@@ -11,7 +11,7 @@
   color: var(--archetype-ink);
   background:
     linear-gradient(rgba(255, 248, 219, 0.86), rgba(248, 228, 182, 0.84)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   box-shadow: 0 6px 16px rgba(70, 34, 12, 0.13);
 }
 

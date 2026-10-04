@@ -114,7 +114,7 @@ assert.match(battlegroundsSource, /<BattlegroundsStrategyBuilderSearchIntro \/>/
 assert.match(battlegroundsSource, /герой Полей сражений \| HearthPulse/);
 assert.doesNotMatch(battlegroundsSource, /герой Полей сражений \| Manacost Stats/);
 
-const constructedCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+const constructedCardsSource = readFileSync(new URL('../src/features/StandardCardDetail.tsx', import.meta.url), 'utf8');
 assert.match(constructedCardsSource, /карта Hearthstone.*\| HearthPulse/);
 assert.doesNotMatch(constructedCardsSource, /карта Hearthstone.*\| Manacost Stats/);
 
@@ -149,12 +149,12 @@ assert.equal(
 assert.equal(subscriptionPaywallHeading('Мета доступна подписчикам', '/standard/meta/'), 'Мета доступна подписчикам');
 
 const arenaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/ArenaTierListSearchIntro.tsx', import.meta.url), 'utf8');
-assert.match(arenaLandingSource, /href="\/classes"[^>]*>Винрейты классов Арены<\/a>/);
+assert.match(arenaLandingSource, /href="\/classes\/"[^>]*>Винрейты классов Арены<\/a>/);
 
 const battlegroundsLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/BattlegroundsSearchIntros.tsx', import.meta.url), 'utf8');
 assert.match(battlegroundsLandingSource, /<h1[^>]*>Тир-лист БГ Hearthstone<\/h1>/);
 assert.match(battlegroundsLandingSource, /<h1[^>]*>Конструктор стратегий БГ Hearthstone<\/h1>/);
-assert.match(battlegroundsLandingSource, /href="\/battlegrounds\/tier-list"[^>]*>Тир-лист стратегий БГ<\/a>/);
+assert.match(battlegroundsLandingSource, /href="\/battlegrounds\/tier-list\/"[^>]*>Тир-лист стратегий БГ<\/a>/);
 
 const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(standardMetaSource, /<StandardMetaSearchIntro \/>/);

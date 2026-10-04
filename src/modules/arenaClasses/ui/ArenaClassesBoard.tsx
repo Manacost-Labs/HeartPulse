@@ -3,19 +3,19 @@ import type { ArenaClassesState } from '../model/state';
 import './ArenaClassesBoard.css';
 
 const CLASS_ICON_BY_ID: Record<string, string> = {
-  dk:             '/class_icon/deathknight.png',
-  'death-knight': '/class_icon/deathknight.png',
-  dh:             '/class_icon/demonhunter.png',
-  'demon-hunter': '/class_icon/demonhunter.png',
-  druid:          '/class_icon/druid.png',
-  hunter:         '/class_icon/hunter.png',
-  mage:           '/class_icon/mage.png',
-  paladin:        '/class_icon/paladin.png',
-  priest:         '/class_icon/priest.png',
-  rogue:          '/class_icon/rogue.png',
-  shaman:         '/class_icon/shaman.png',
-  warlock:        '/class_icon/warlock.png',
-  warrior:        '/class_icon/warrior.png',
+  dk:             '/class_icon/ui/deathknight-96.webp',
+  'death-knight': '/class_icon/ui/deathknight-96.webp',
+  dh:             '/class_icon/ui/demonhunter-96.webp',
+  'demon-hunter': '/class_icon/ui/demonhunter-96.webp',
+  druid:          '/class_icon/ui/druid-96.webp',
+  hunter:         '/class_icon/ui/hunter-96.webp',
+  mage:           '/class_icon/ui/mage-96.webp',
+  paladin:        '/class_icon/ui/paladin-96.webp',
+  priest:         '/class_icon/ui/priest-96.webp',
+  rogue:          '/class_icon/ui/rogue-96.webp',
+  shaman:         '/class_icon/ui/shaman-96.webp',
+  warlock:        '/class_icon/ui/warlock-96.webp',
+  warrior:        '/class_icon/ui/warrior-96.webp',
 };
 
 export function ArenaClassesBoard({ state, onRetry }: {

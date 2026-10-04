@@ -354,7 +354,7 @@
   border-radius: 2px !important;
   background:
     linear-gradient(180deg, rgba(248, 230, 188, 0.96), rgba(220, 188, 130, 0.88)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat !important;
+    var(--arena-parchment-texture) center / 865px 878px repeat !important;
   box-shadow:
     inset 0 1px rgba(255, 246, 218, 0.72),
     0 4px 10px rgba(64, 31, 11, 0.12) !important;
@@ -582,7 +582,7 @@
   color: #3d2a1d !important;
   background:
     linear-gradient(rgba(251, 237, 204, 0.77), rgba(234, 207, 155, 0.82)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat !important;
+    var(--arena-parchment-texture) center / 865px 878px repeat !important;
   box-shadow: 0 13px 24px rgba(68, 37, 15, 0.14) !important;
 }
 
@@ -1239,7 +1239,7 @@
 
 /* Subscription gate — a red framed notice instead of a blue modal. */
 :is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall {
-  min-height: 760px !important;
+  min-height: var(--subscription-gate-min-height) !important;
   padding-bottom: 3rem !important;
 }
 

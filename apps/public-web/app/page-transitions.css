@@ -24,14 +24,15 @@
    reason a section marked `data-page-still` (the intro text under the header,
    the largest paint of the arena pages on a phone) stays still too.
    `data-page-enter` exists only while this plays (lib/pageEntrance.ts); the
-   home page (`.home-workbench`) has its own entrance in Home.css. The card and
-   cosmetics pages enter without it: their largest paint is a picture inside
-   a section, which a rise would hold back. */
+   home page (`.home-workbench`) has its own entrance in Home.css. The card,
+   cosmetics and articles pages enter without it: their largest paint is a
+   picture inside a section (on /articles/ the first cover), which a rise
+   would hold back. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :not(:first-child, h1, :has(h1), [data-page-still]) {
+  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page, .articles-page) > :not(:first-child, h1, :has(h1), [data-page-still]) {
     animation: page-enter var(--motion-slow) var(--motion-ease) backwards;
   }
 
-  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :nth-child(3) { animation-delay: var(--motion-stagger); }
-  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 2); }
+  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page, .articles-page) > :nth-child(3) { animation-delay: var(--motion-stagger); }
+  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page, .articles-page) > :nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 2); }
 }

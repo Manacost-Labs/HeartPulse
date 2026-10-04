@@ -8,6 +8,9 @@
 :root {
   --arena-parchment: #ead6a7;
   --arena-parchment-light: #f5e7c6;
+  /* The page material. A new file name ships new bytes: /wallpaper/ is served
+     immutable for 30 days. The newsletter keeps the JPEG (no WebP in mail). */
+  --arena-parchment-texture: url('/wallpaper/arena-parchment-v2.webp');
   --arena-ink: #30251c;
   --arena-muted-ink: #74624d;
   --arena-red: #7b151b;
@@ -35,6 +38,8 @@
   --site-page-hero-title-leading: 1.05;
   --site-page-gutter: clamp(0.75rem, 2vw, 1.5rem);
   --site-page-width: 1480px;
+  /* The subscription gate's height; the access-check placeholder reserves it. */
+  --subscription-gate-min-height: 760px;
   --site-page-hero-padding-block: clamp(1.25rem, 2.5vw, 2rem);
   --site-page-hero-padding-inline: clamp(1rem, 2.5vw, 2rem);
 

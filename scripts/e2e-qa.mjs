@@ -1018,7 +1018,7 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     return;
   }
   if (state.kind === 'tierlist' || state.kind === 'legendaries') {
-    if (!state.sourceShell?.backgroundImage.includes('arena-parchment.jpg') || state.sourceShell?.borderRadius !== '2px') {
+    if (!state.sourceShell?.backgroundImage.includes('arena-parchment-v2.webp') || state.sourceShell?.borderRadius !== '2px') {
       failures.push(`${prefix}: source switcher lost its parchment frame`);
     }
     if (state.activeSource?.backgroundColor !== 'rgb(109, 17, 23)' || state.activeSource?.color !== 'rgb(255, 240, 196)') {
@@ -2898,7 +2898,7 @@ for (const [device, viewport] of [
       || !standardMetaChartState.subtitle.includes('Стандарт') || !standardMetaChartState.subtitle.includes('Легенда')
       || !standardMetaChartState.detail.includes('Чётный Чернокнижник') || !standardMetaChartState.hasAxes
       || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.archetypeLinkHeight < 44
-      || standardMetaChartState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock'
+      || standardMetaChartState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock/'
       || !standardMetaChartState.chartVisible || standardMetaChartState.pageOverflow
       || (device === 'mobile' && !standardMetaChartState.viewportScrollable)) {
       failures.push(`standard meta chart [${device}]: data, interaction or responsive containment regressed (${JSON.stringify(standardMetaChartState)})`);
@@ -2936,7 +2936,7 @@ for (const [device, viewport] of [
     });
     if (standardMetaTableState.rows !== 5 || standardMetaTableState.columns !== 8 || standardMetaTableState.sortControls !== 7
       || standardMetaTableState.stickyPosition !== 'sticky' || standardMetaTableState.stickyLeft !== '0px'
-      || standardMetaTableState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock'
+      || standardMetaTableState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock/'
       || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
       failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);
     }
@@ -2977,7 +2977,7 @@ for (const [device, viewport] of [
       };
     });
     if (metaArchetypeLinkState.tag !== 'A'
-      || metaArchetypeLinkState.href !== '/standard/archetypes/standard/qa-evenlock'
+      || metaArchetypeLinkState.href !== '/standard/archetypes/standard/qa-evenlock/'
       || !metaArchetypeLinkState.label.includes('Открыть страницу архетипа')
       || metaArchetypeLinkState.height < 44 || metaArchetypeLinkState.modalPresent) {
       failures.push(`standard meta archetype link [${device}]: action did not become a direct accessible route (${JSON.stringify(metaArchetypeLinkState)})`);
@@ -3466,7 +3466,7 @@ for (const [device, viewport] of [
         setMetricLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('Дополнение')).length,
         defaultSort: document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() || '',
         rarity: document.querySelector('.constructed-cards__gallery-card')?.getAttribute('data-rarity') || '',
-        rarityGlow: getComputedStyle(document.querySelector('.constructed-cards__gallery-card'), '::before').backgroundImage,
+        rarityGlow: getComputedStyle(document.querySelector('.constructed-cards__gallery-card'), '::before').backgroundColor,
         hoverTransition: getComputedStyle(document.querySelector('.constructed-cards__gallery-card')).transitionDuration,
         advancedToggleHeight: document.querySelector('.constructed-cards__advanced-toggle')?.getBoundingClientRect().height || 0,
         advancedFiltersVisible: getComputedStyle(document.querySelector('.constructed-cards__secondary-controls')).display !== 'none',
@@ -3478,7 +3478,7 @@ for (const [device, viewport] of [
       || constructedCardsState.formatControls !== 1 || constructedCardsState.setMetricLabels !== 8 || constructedCardsState.defaultSort !== 'Новые дополнения'
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
       || !constructedCardsState.secondaryLabels.includes('Класс') || !constructedCardsState.secondaryLabels.includes('Дополнение')
-      || !constructedCardsState.rarity || !constructedCardsState.rarityGlow.includes('radial-gradient') || constructedCardsState.hoverTransition === '0s'
+      || !constructedCardsState.rarity || /^(rgba\(0, 0, 0, 0\)|transparent|)$/.test(constructedCardsState.rarityGlow) || constructedCardsState.hoverTransition === '0s'
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
       || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44
         || constructedCardsState.advancedToggleHeight < 44 || constructedCardsState.advancedFiltersVisible))) {
@@ -3600,6 +3600,8 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/constructed-cards-table-${device}.png`, fullPage: false });
     await page.click('.constructed-cards__view button:first-child');
+    // The gallery renders from a deferred value, a moment after the toggle.
+    await page.waitForSelector('.constructed-cards__gallery-card-link');
     await page.$eval('.constructed-cards__gallery-card-link', element => element.click());
     await page.waitForSelector('.constructed-card-detail__hero');
     await page.waitForSelector('.constructed-card-detail__pool-toggle');
@@ -4125,11 +4127,11 @@ for (const [device, viewport] of [
       };
     });
     const prefix = `/library [${device} guest]`;
-    if (!surface.appBackground.includes('arena-parchment.jpg')) failures.push(`${prefix}: BG route shell parchment is missing`);
+    if (!surface.appBackground.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: BG route shell parchment is missing`);
     if (surface.appVeilBackground !== 'none') failures.push(`${prefix}: legacy blue shell veil remains above the parchment`);
     if (surface.workspaceBackground !== 'rgba(0, 0, 0, 0)' || surface.workspaceImage !== 'none') failures.push(`${prefix}: workspace paints a white frame`);
     if (surface.mainBackground !== 'rgba(0, 0, 0, 0)' || surface.mainImage !== 'none') failures.push(`${prefix}: main canvas paints a white frame`);
-    if (!surface.contentBackground.includes('arena-parchment.jpg')) failures.push(`${prefix}: content parchment does not cover the locked route`);
+    if (!surface.contentBackground.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: content parchment does not cover the locked route`);
     await page.screenshot({ path: `${OUT}/library-guest-${device}.png`, fullPage: true });
     const violationCount = await auditAccessibility(page, prefix);
     console.log(`✓ ${prefix} continuous parchment + axe (${violationCount} violations)`);
@@ -5405,14 +5407,14 @@ for (const [device, viewport] of [
       || sidebarState.workspaceMarginLeft !== '258px'
       || Math.abs(sidebarState.workspaceLeft - 258) > 0.1
       || sidebarState.shellBackgroundColor !== 'rgb(234, 214, 167)'
-      || !sidebarState.shellBackgroundImage.includes('arena-parchment.jpg')
+      || !sidebarState.shellBackgroundImage.includes('arena-parchment-v2.webp')
       || sidebarState.shellBackgroundRepeat !== 'repeat, repeat'
       || sidebarState.shellBackgroundSize !== 'auto, 865px 878px'
       || sidebarState.shellAfterContent !== 'none'
       || sidebarState.shellAfterDisplay !== 'none'
       || sidebarState.shellAfterBackground !== 'none'
-      || !sidebarState.workspaceBackground.includes('arena-parchment.jpg')
-      || !sidebarState.mainBackground.includes('arena-parchment.jpg')
+      || !sidebarState.workspaceBackground.includes('arena-parchment-v2.webp')
+      || !sidebarState.mainBackground.includes('arena-parchment-v2.webp')
       || sidebarState.mainPaddingTop !== '16px') {
       failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
     }
@@ -5793,7 +5795,7 @@ async function assertCardTooltipPresentation(page, label) {
   });
   const prefix = `card tooltip ${label}`;
   if (!material.borderImage.includes('main-page-rail-border.png') || material.borderWidth < 8) failures.push(`${prefix}: wooden frame is missing`);
-  if (!material.background.includes('arena-parchment.jpg')) failures.push(`${prefix}: parchment surface is missing`);
+  if (!material.background.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: parchment surface is missing`);
   if (!material.headerBackground.includes('arena-rail-red.jpg')) failures.push(`${prefix}: red header texture is missing`);
   if (material.rowBackground !== 'rgba(255, 244, 216, 0.28)' || material.rowRadius !== '0px') failures.push(`${prefix}: row material changed`);
   if (material.rect.width <= 0 || material.rect.height <= 0) failures.push(`${prefix}: preview has no rendered area`);

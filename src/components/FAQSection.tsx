@@ -23,7 +23,7 @@ export default function FAQSection() {
                 aria-controls={panelId}
               >
                 <span className="faq-card__question">{item.q}</span>
-                <span aria-hidden="true" className="faq-card__icon" />
+                <span aria-hidden="true" className="faq-card__icon">{expanded ? '−' : '+'}</span>
               </button>
               <div id={panelId} className="faq-card__panel" hidden={!expanded}>
                 <p className="faq-card__answer">{item.a}</p>

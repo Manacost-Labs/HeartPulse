@@ -19,5 +19,5 @@ export function publicProfileIdFromPath(path: string): string | null {
 
 /** Builds canonical links only for server-issued numeric public IDs. */
 export function publicProfilePath(publicProfileId: string): string {
-  return isNumericPublicProfileId(publicProfileId) ? `/id/${publicProfileId}` : '/';
+  return isNumericPublicProfileId(publicProfileId) ? `/id/${publicProfileId}/` : '/';
 }

@@ -12,18 +12,14 @@ background change without animation while the page content cross-fades.
 - Links and scripted navigation target the canonical trailing-slash URL, so a
   click is never answered with a redirect first.
 - In browsers with speculation rules (Chromium), the public navigation
-  sections and their pages (except the entity detail pages below) are
-  prerendered when a visitor hovers a link for 200 milliseconds or presses
-  it, and the click opens the prepared document. The admin panel, profiles,
-  `/connect/`, `/r/` referral links, `/api/` and any URL with a query
+  sections are prerendered when a visitor hovers a link for 200
+  milliseconds or presses it, and the click opens the prepared document.
+  Detail pages that listings show by the dozen (cards, archetypes, cosmetics,
+  heroes, library cards, guides) are prerendered only when pressed: a
+  prerender runs the page's `/api` calls, so a sweep across a grid or a phone
+  scrolling it would spend the visitor's API rate limit. The admin panel,
+  profiles, `/connect/`, `/r/` referral links, `/api/` and any URL with a query
   (including `/?login`) load only when opened.
-- Entity detail pages that listings show by the dozen (card, cosmetic, hero,
-  Battlegrounds library card, archetype and guide pages) are never
-  prerendered. A prerender runs the page's `/api` calls, so a pointer
-  sweeping the card grid, or a finger scrolling it on a phone, would spend the
-  per-visitor API rate limit on pages nobody opens, and a page activated
-  after a refused call would show its error state. They fetch only their
-  HTML, when the link is pressed (conservative prefetch).
 - Links of the desktop sidebar also fetch their page's HTML after a 10
   millisecond hover. That prefetch runs no script and makes no `/api/` call;
   a click that comes before the 200 millisecond hover is prerendered from the
@@ -64,12 +60,16 @@ Run `npm run build:next`,
 `node --test tests/next-page-transitions-browser.test.mjs` and
 `node --test tests/next-mobile-menu-browser.test.mjs`, then the normal
 release checks. The transitions test covers the canonical links, the URLs
-eligible for prefetching and prerendering, the sidebar prefetch, a
-prerendered and a plain navigation, the animated pseudo elements with their
-fade-through timing, the shifted snapshot of a scrolled page and reduced
-motion. The drawer test covers the drawer without JavaScript, its entrance
-and exit, closing from outside and from the back/forward cache, and Back
-after a drawer link. Review forward and back navigation in a real
+eligible for prefetching and prerendering with their eagerness per URL
+family, the sidebar prefetch, a prerendered and a plain navigation, the
+animated pseudo elements with their fade-through timing, the shifted
+snapshot of a scrolled page and reduced motion. The drawer test covers the
+drawer without JavaScript, its entrance and exit, closing from outside and
+from the back/forward cache, and Back after a drawer link.
+`tests/next-canonical-links-browser.test.mjs` checks that the content links
+of the main pages (home, arena, cards, archetypes, meta, cosmetics,
+Battlegrounds, guides) carry the trailing slash and that a pressed card link
+in the catalog is prerendered. Review forward and back navigation in a real
 browser at mobile and desktop widths: the shell stays stable, content is not
 clipped, and the console and network remain clean. Browser automation that
 attaches its own DevTools session disables prerendering; observe that path

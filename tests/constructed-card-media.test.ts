@@ -6,6 +6,7 @@ import {
   collectConstructedGeneratedPoolMedia,
   constructedRelatedCardImage,
   constructedGeneratedPoolCardImage,
+  constructedCardImage,
   constructedCardImageIdentity,
   constructedCardImageVersion,
   constructedCardRenderImage,
@@ -23,6 +24,30 @@ assert.equal(
   'JAIL_EVENT_102',
   'all constructed-card views must share the canonical-ID-first image identity rule',
 );
+// Cards revealed before HearthstoneJSON has their canonical ID arrive as
+// `blizzard:<DBF>`. The colon cannot enter the image path, so they use the DBF
+// render of the first-party WebP pipeline instead of the third-party PNG.
+const blizzardCard = {
+  card_id: 'blizzard:130567',
+  dbf: 130567,
+  images: { card: 'https://api.kolodahearthstone.com/uploads/constructed-related/blizzard_130567.png?v=2026-10-03%2020%3A29%3A16' },
+};
+assert.equal(constructedCardImageIdentity(blizzardCard), '130567');
+assert.equal(constructedCardImageIdentity({ card_id: 'blizzard:130567' }), '130567', 'the ID carries the DBF when the row omits it');
+assert.equal(constructedCardImage(blizzardCard, 'thumb'), '/api/card-image/130567/thumb.webp?v=constructed-cards-patch-36-2-20260805');
+assert.equal(constructedCardImage(blizzardCard), '/api/card-image/130567/full.webp?v=constructed-cards-patch-36-2-20260805');
+assert.equal(
+  collectConstructedCardVariants(blizzardCard).find(variant => variant.id === 'normal')?.url,
+  '/api/card-image/130567/full.webp?v=constructed-cards-patch-36-2-20260805',
+  'the card page shows the same WebP render as the catalog',
+);
+for (const card of [
+  { ...blizzardCard, dbf: 99 },
+  { ...blizzardCard, card_id: 'blizzard:0' },
+  { ...blizzardCard, card_id: 'blizzard:12a' },
+]) {
+  assert.equal(constructedCardImage(card, 'thumb'), blizzardCard.images.card, `${card.card_id}/${card.dbf} keeps its own render`);
+}
 
 const sounds = flattenConstructedCardSounds([
   {

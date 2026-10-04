@@ -27,36 +27,36 @@ const entityDetailPages = [
 
 /**
  * Pages navigate as full documents, so Chromium prerenders the page behind a
- * link the visitor hovers (200 ms) or presses and swaps it in on click. Only
- * the public navigation sections and their detail pages qualify, at the
- * canonical trailing-slash URL and without a query: the admin panel, profiles,
- * `/connect/`, `/r/` referral links, `/?login` and `/api/` never load ahead of
- * the visit. A prerendered page runs its scripts early, so anything that
- * records a visit must wait for `prerenderingchange` (see `analyticsLoader.ts`).
+ * link and swaps it in on click. Only the public navigation sections and their
+ * detail pages qualify, at the canonical trailing-slash URL and without a
+ * query: the admin panel, profiles, `/connect/`, `/r/` referral links,
+ * `/?login` and `/api/` never load ahead of the visit. A prerendered page runs
+ * its scripts early, so anything that records a visit must wait for
+ * `prerenderingchange` (see `analyticsLoader.ts`).
+ *
+ * Section pages prerender on hover (moderate, 200 ms). Entity detail pages
+ * prerender only when pressed (conservative): every prerender makes the page's
+ * `/api` calls, and a pointer sweeping a grid of them, or a phone scrolling one
+ * (moderate rules follow the viewport there), would spend the per-visitor API
+ * rate limit on pages nobody opens.
  *
  * A quick click on the desktop sidebar comes before the 200 ms hover, so its
- * links also fetch their HTML after a 10 ms hover (no script runs, about
- * 10 KB) and the prerender started by the press reuses that response. Only
- * the sidebar: on content grids every link the pointer crosses would fetch,
- * and on phones eager rules fire for every link in the viewport, so the
+ * links also fetch their HTML after a 10 ms hover (a prefetch: no script runs,
+ * about 10 KB) and the prerender started by the press reuses that response.
+ * Only the sidebar: on content grids every link the pointer crosses would
+ * fetch, and on phones eager rules fire for every link in the viewport, so the
  * mobile menu stays out (the sidebar is not displayed there).
- *
- * Entity detail pages are never prerendered: every prerender makes the page's
- * `/api` calls, and a pointer sweeping a grid of them (or a finger scrolling
- * one on a phone, where moderate rules follow the viewport) would spend the
- * per-visitor API rate limit on pages nobody opens, and a page activated after
- * a refused call shows its error state. They fetch only their HTML, on press.
  */
 export const SPECULATION_RULES = {
   prefetch: [{
     where: { and: [...eligiblePages, { selector_matches: '.arena-sidebar a' }] },
     eagerness: 'eager',
-  }, {
-    where: { and: [...eligiblePages, { href_matches: entityDetailPages }] },
-    eagerness: 'conservative',
   }],
   prerender: [{
     where: { and: [...eligiblePages, { not: { href_matches: entityDetailPages } }] },
     eagerness: 'moderate',
+  }, {
+    where: { and: [...eligiblePages, { href_matches: entityDetailPages }] },
+    eagerness: 'conservative',
   }],
 };

@@ -10,7 +10,7 @@ export function ConstructedArchetypesPageClient({ initialSearch }: { initialSear
   const access = usePublicAccess();
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'standard'));
   const pageKey = `${access.user?.id ?? 'guest'}:${allowed ? 'full' : 'teaser'}`;
-  return <PublicPageShell activeTab="constructed-archetypes" pathname="/standard/archetypes/"
+  return <PublicPageShell activeTab="constructed-archetypes" pathname="/standard/archetypes/" parchmentPreload="tablet-up"
     access={access} navigate={navigate} wide>
     <ConstructedArchetypes key={pageKey} currentPath="/standard/archetypes/" embedded
       initialSearch={initialSearch} navigatePath={navigate} hasFullAccess={allowed} accessPending={access.checking}

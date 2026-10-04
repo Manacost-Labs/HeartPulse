@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { BookOpen, Search } from 'lucide-react';
 import { Breadcrumbs, SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import type { AuthUser } from '../../identity/public';
@@ -26,7 +26,10 @@ function ArticlesToolbar({ articleSearch, articleTag, articleTags, setArticleSea
   </div>;
 }
 
-function filterArticles(articles: Article[], votes: Record<string, Pick<Article, 'likes' | 'dislikes' | 'userVote'>>, tag: string, search: string) {
+type ArticleVotes = Record<string, Pick<Article, 'likes' | 'dislikes' | 'userVote'>>;
+const NO_VOTES: ArticleVotes = {};
+
+function filterArticles(articles: Article[], votes: ArticleVotes, tag: string, search: string) {
   const query = search.trim().toLowerCase();
   const visible: Article[] = [];
   for (const base of articles) {
@@ -61,19 +64,12 @@ export function ArticlesTab({
   const [articleSearch, setArticleSearch] = useState('');
   const deferredArticleSearch = useDeferredValue(articleSearch);
   const [articleTag, setArticleTag] = useState('__all__');
-  const [articleVotes, setArticleVotes] = useState<Record<string, Pick<Article, 'likes' | 'dislikes' | 'userVote'>>>({});
+  // Votes cast here apply only to the articles they were cast on: new data (a
+  // different viewer, or none) shows its own counts and votes in that render.
+  const [castVotes, setCastVotes] = useState<{ articles: Article[]; votes: ArticleVotes }>(
+    () => ({ articles: data.articles, votes: {} }));
+  const articleVotes = castVotes.articles === data.articles ? castVotes.votes : NO_VOTES;
   const [votingArticleId, setVotingArticleId] = useState('');
-
-  useEffect(() => {
-    setArticleVotes(Object.fromEntries(data.articles.map(article => [
-      article.id,
-      {
-        likes: article.likes ?? 0,
-        dislikes: article.dislikes ?? 0,
-        userVote: article.userVote ?? null,
-      },
-    ])));
-  }, [data.articles]);
 
   const articleTags = useMemo(() => {
     const tags = new Set<string>();
@@ -100,10 +96,11 @@ export function ArticlesTab({
     setVotingArticleId(article.id);
     try {
       const result = await submitArticleVote(article.id, vote);
-      setArticleVotes(previous => ({
-        ...previous,
-        [article.id]: {
-          likes: result.likes, dislikes: result.dislikes, userVote: result.userVote,
+      setCastVotes(previous => ({
+        articles: data.articles,
+        votes: {
+          ...(previous.articles === data.articles ? previous.votes : {}),
+          [article.id]: { likes: result.likes, dislikes: result.dislikes, userVote: result.userVote },
         },
       }));
     } catch (err: unknown) {
@@ -111,14 +108,14 @@ export function ArticlesTab({
     } finally {
       setVotingArticleId('');
     }
-  }, [authUser, subscriptionLoading, subscriptionStatus]);
+  }, [authUser, data.articles, subscriptionLoading, subscriptionStatus]);
 
   return (
     <div className="articles-page">
       <SectionBanner title="Статьи" subtitle="Гайды, разборы мета и советы по режиму Арена" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Статьи', href: '/articles' },
+        { name: 'Статьи', href: '/articles/' },
       ]} />
 
       <ArticlesToolbar articleSearch={articleSearch} articleTag={articleTag} articleTags={articleTags}

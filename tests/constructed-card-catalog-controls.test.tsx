@@ -85,4 +85,17 @@ assert.match(standardCardsCss, /\.constructed-cards__gallery-card:has\(>\s*\.con
 assert.match(standardCardsCss, /@media\s*\(hover:\s*none\)\s*and\s*\(pointer:\s*coarse\)/,
   'the download action must remain available on touch devices without hover');
 
+const galleryCardRule = standardCardsCss.match(/\.constructed-cards__gallery-card\s*\{[^}]*\}/)?.[0] ?? '';
+const galleryImageRule = standardCardsCss.match(/\.constructed-cards__gallery-card-link > img\s*\{[^}]*\}/)?.[0] ?? '';
+assert.match(galleryCardRule, /transition:\s*transform var\(--motion-base\)/);
+assert.match(galleryImageRule, /transition:\s*transform var\(--motion-slow\)/);
+for (const rule of [galleryCardRule, galleryImageRule]) {
+  assert.doesNotMatch(rule, /transition:[^;]*filter/, 'gallery hover must not transition a filter, which repaints on the main thread');
+}
+const galleryHoverRules = standardCardsCss.match(/\.constructed-cards__gallery-card:hover[^{]*\{[^}]*\}/g) ?? [];
+assert.ok(galleryHoverRules.length >= 3);
+for (const rule of galleryHoverRules) {
+  assert.doesNotMatch(rule.slice(rule.indexOf('{')), /filter:/, 'hovered card art keeps its colours and static shadow');
+}
+
 console.log('constructed-card catalog search and download controls passed');

@@ -118,7 +118,7 @@ test('Next public profile routes use the allowlisted Express projection and real
     await page.evaluate(() => [...document.querySelectorAll('button')]
       .find(button => button.textContent?.includes('Скопировать ссылку'))?.click());
     await page.waitForFunction(() => Boolean(window.__copiedProfileUrl));
-    assert.equal(await page.evaluate(() => window.__copiedProfileUrl), `${origin}/id/7`);
+    assert.equal(await page.evaluate(() => window.__copiedProfileUrl), `${origin}/id/7/`, 'the shared link is the canonical URL, not its 301');
     assert.ok(requests.includes('/api/profiles/7'));
     assert.ok(requests.includes(`/api/profiles/${legacyId}`));
   } finally {

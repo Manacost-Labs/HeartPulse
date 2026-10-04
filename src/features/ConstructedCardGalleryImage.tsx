@@ -40,10 +40,12 @@ export default function ConstructedCardGalleryImage({
   src,
   alt,
   immediate,
+  highPriority,
 }: {
   src: string;
   alt: string;
   immediate: boolean;
+  highPriority: boolean;
 }) {
   return (
     <img
@@ -54,7 +56,7 @@ export default function ConstructedCardGalleryImage({
       height={497}
       loading={immediate ? 'eager' : 'lazy'}
       decoding="async"
-      fetchPriority={immediate ? 'high' : 'low'}
+      fetchPriority={highPriority ? 'high' : immediate ? undefined : 'low'}
       onError={fallbackCardImageToOrigin}
     />
   );

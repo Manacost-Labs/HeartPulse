@@ -155,38 +155,30 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
 
     const rules = JSON.parse(await page.$eval('script[type="speculationrules"]', script => script.textContent));
     assert.deepEqual(Object.keys(rules).sort(), ['prefetch', 'prerender']);
-    assert.equal(rules.prerender.length, 1);
-    const [prerender] = rules.prerender;
-    assert.equal(prerender.eagerness, 'moderate');
-    // Sidebar links fetch their HTML on a short hover; entity detail pages
-    // fetch theirs on press and are never prerendered; nothing else is eager.
-    assert.equal(rules.prefetch.length, 2);
-    const [sidebar, entities] = rules.prefetch;
-    assert.equal(sidebar.eagerness, 'eager');
-    assert.deepEqual(sidebar.where.and.filter(clause => clause.selector_matches), [{ selector_matches: '.arena-sidebar a' }]);
-    assert.equal(entities.eagerness, 'conservative');
-    assert.deepEqual(entities.where.and.filter(clause => clause.selector_matches), []);
-    const eligible = (rule, href) => ruleMatches(rule.where, new URL(href, gateway.origin).href, gateway.origin);
-    // Section pages and the listings: prerendered on a hover or press.
-    for (const href of ['/', '/faq/', '/tierlist/', '/standard/cards/', '/standard/cards/wild/', '/standard/archetypes/',
-      '/heroes/', '/library/', '/library/minions/', '/cosmetics/', '/cosmetics/card-backs/', '/battlegrounds/tier-list/',
-      '/guides-archive/']) {
-      assert.deepEqual([eligible(prerender, href), eligible(sidebar, href), eligible(entities, href)], [true, true, false],
-        `${href} is prerendered on intent`);
+    assert.deepEqual(rules.prerender.map(rule => rule.eagerness), ['moderate', 'conservative']);
+    // Sidebar links also fetch their HTML on a short hover; nothing else is eager.
+    assert.deepEqual(rules.prefetch.map(rule => rule.eagerness), ['eager']);
+    assert.deepEqual(rules.prefetch[0].where.and.filter(clause => clause.selector_matches),
+      [{ selector_matches: '.arena-sidebar a' }]);
+    const matching = (list, href) => list
+      .filter(rule => ruleMatches(rule.where, new URL(href, gateway.origin).href, gateway.origin))
+      .map(rule => rule.eagerness);
+    const eagerness = href => matching(rules.prerender, href);
+    const prefetched = href => matching(rules.prefetch, href);
+    const eligible = href => eagerness(href).length > 0 || prefetched(href).length > 0;
+    for (const href of ['/', '/faq/', '/tierlist/', '/standard/cards/', '/library/minions/', '/battlegrounds/tier-list/']) {
+      assert.deepEqual(eagerness(href), ['moderate'], `${href} is prerendered on hover`);
+      assert.deepEqual(prefetched(href), ['eager'], `${href} is prefetched from the sidebar on a glance`);
     }
-    // Entity detail pages, shown by the dozen in grids and lists: HTML on press only.
-    for (const href of ['/standard/cards/standard/BE_013/', '/standard/archetypes/standard/dragon-warrior/',
-      '/standard/meta/wild/dragon-warrior/', '/cosmetics/card-backs/123/', '/heroes/57893/',
-      '/library/minions/murloc-tidehunter-976/', '/library/archive/minions/murloc-tidehunter-976/',
-      '/guides-archive/some-guide/']) {
-      assert.deepEqual([eligible(prerender, href), eligible(entities, href)], [false, true],
-        `${href} is only prefetched, on press`);
+    // Detail pages listed by the dozen prerender only when pressed: a sweep
+    // across a grid (or a phone scrolling one) must not spend the API limit.
+    for (const href of ['/standard/cards/standard/BE_013/', '/heroes/57893/', '/guides-archive/some-guide/',
+      '/standard/archetypes/standard/qa-evenlock/', '/cosmetics/coins/123/', '/library/minions/brann/']) {
+      assert.deepEqual(eagerness(href), ['conservative'], `${href} is prerendered only when pressed`);
     }
     for (const href of ['/?login', '/tierlist/?source=hsreplay', '/tierlist', '/admin/', '/admin/people/',
-      '/connect/', '/r/tg-july/', '/id/12345/', '/api/v1/openapi.json', '/sitemap.xml', 'https://boosty.to/kolodahearthstone/',
-      '/standard/cards/standard/BE_013/?view=stats']) {
-      assert.deepEqual([prerender, sidebar, entities].map(rule => eligible(rule, href)), [false, false, false],
-        `${href} must load only when the visitor opens it`);
+      '/connect/', '/r/tg-july/', '/id/12345/', '/api/v1/openapi.json', '/sitemap.xml', 'https://boosty.to/kolodahearthstone/']) {
+      assert.equal(eligible(href), false, `${href} must load only when the visitor opens it`);
     }
     assert.deepEqual(gateway.speculative, [], 'nothing loads ahead of the visit without an intent signal');
 
