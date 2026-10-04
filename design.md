@@ -300,6 +300,11 @@ Rules:
   page; the home page is the one exception. The card and cosmetics pages
   (`.constructed-cards`, `.cosmetics-page`) skip the rise, because their
   largest paint is a picture inside a section.
+- Menus, the drawer, navigation groups and FAQ answers drop in from their
+  trigger by `--motion-drop` over `--motion-base` and fold away over
+  `--motion-instant` with `--motion-ease-exit` where they stay in the page
+  (transitions with `@starting-style` and `allow-discrete`); a menu that
+  mounts on open uses the shared `surface-enter` keyframes.
 - Prefer `opacity`, `translate`, `transform` and background-position.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.

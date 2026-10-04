@@ -46,16 +46,44 @@
   font-size: clamp(0.875rem, 2.5vw, 1rem);
 }
 
+/* A plus whose upright bar folds away as the answer opens. */
 .faq-card__icon {
   flex-shrink: 0;
+  width: 14px;
+  height: 14px;
   color: #34618f;
-  font-size: 1.125rem;
-  font-weight: 700;
-  line-height: 1;
+  background:
+    linear-gradient(currentColor, currentColor) center / 12px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 2px 12px no-repeat;
+  transition: background-size var(--motion-fast) var(--motion-ease);
 }
 
+[aria-expanded='true'] > .faq-card__icon {
+  background-size: 12px 2px, 2px 0;
+}
+
+/* The answer unfolds with the shared surface motion and fades before it
+   collapses (display waits for the fade). */
 .faq-card__panel {
   padding: 0.25rem 1rem 1rem;
+  transition:
+    opacity var(--motion-base) var(--motion-ease),
+    translate var(--motion-base) var(--motion-ease),
+    display var(--motion-base) allow-discrete;
+}
+
+.faq-card__panel[hidden] {
+  opacity: 0;
+  translate: 0 var(--motion-drop);
+  transition-duration: var(--motion-instant);
+  transition-timing-function: var(--motion-ease-exit);
+}
+
+@starting-style {
+  .faq-card__panel:not([hidden]) {
+    opacity: 0;
+    translate: 0 var(--motion-drop);
+  }
 }
 
 .faq-card__answer {

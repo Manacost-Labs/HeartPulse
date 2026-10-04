@@ -205,6 +205,32 @@
   border-left: 3px solid rgba(146, 34, 31, 0.7);
   background: rgba(229, 195, 129, 0.16);
 }
+
+/* An answer unfolds with the shared surface motion and fades before it
+   closes, where the browser exposes the details content (elsewhere it
+   simply opens and closes). */
+.faq-page__questions details::details-content {
+  opacity: 0;
+  translate: 0 var(--motion-drop);
+  transition:
+    opacity var(--motion-instant) var(--motion-ease-exit),
+    translate var(--motion-instant) var(--motion-ease-exit),
+    content-visibility var(--motion-instant) allow-discrete;
+}
+
+.faq-page__questions details[open]::details-content {
+  opacity: 1;
+  translate: none;
+  transition-duration: var(--motion-base);
+  transition-timing-function: var(--motion-ease);
+}
+
+@starting-style {
+  .faq-page__questions details[open]::details-content {
+    opacity: 0;
+    translate: 0 var(--motion-drop);
+  }
+}
 .faq-page__questions details p { margin: 0; color: #74563d; font-size: 0.78rem; line-height: 1.65; }
 .faq-page__questions details a { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.55rem; color: #8c201f; font-size: 0.74rem; font-weight: 900; }
 

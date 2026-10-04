@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import FAQSection from './FAQSection';
 
@@ -31,8 +31,9 @@ export const Expanded: Story = {
 
     await userEvent.click(firstQuestion);
     await expect(firstQuestion).toHaveAttribute('aria-expanded', 'true');
-    await expect(
+    // The answer fades in over the shared surface motion.
+    await waitFor(() => expect(
       canvas.getByText(/Актуальный рейтинг классов/i),
-    ).toBeVisible();
+    ).toBeVisible());
   },
 };

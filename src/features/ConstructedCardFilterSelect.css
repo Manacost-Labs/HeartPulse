@@ -98,6 +98,7 @@
     url('/wallpaper/arena-parchment.jpg') center / 720px auto;
   box-shadow: 0 14px 30px rgba(64, 31, 10, 0.3), inset 0 0 0 2px rgba(255, 252, 235, 0.46);
   list-style: none;
+  animation: surface-enter var(--motion-base) var(--motion-ease) both;
   scrollbar-color: #8a653f rgba(245, 222, 174, 0.55);
   scrollbar-width: thin;
 }

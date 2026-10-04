@@ -881,6 +881,13 @@
     from { opacity: 0; translate: 0 var(--motion-rise); }
   }
 
+  /* A menu or popover that mounts when it opens drops in from its trigger.
+     Surfaces that stay in the page (the drawer, navigation groups, FAQ
+     answers) use transitions with the same tokens, so they also fold away. */
+  @keyframes surface-enter {
+    from { opacity: 0; translate: 0 var(--motion-drop); }
+  }
+
   /* Hover-lift for winrate rows — replaces JS onMouseEnter/Leave DOM mutation */
   .row-hover {
     box-shadow:
