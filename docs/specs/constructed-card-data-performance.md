@@ -57,3 +57,16 @@ or pointer down. The catalog page consumes the same bounded in-flight request,
 so a normal navigation does not create a duplicate API call. Public and
 subscriber payloads remain isolated by the existing entitlement-aware cache
 key, and a failed warm request is evicted so the visible page can retry.
+
+## Catalog filter warming
+
+The catalog does not warm neighbouring slices while idle. Catalog responses
+are `no-store` and the warm cache (`constructedCardListPrefetch.ts`, 16
+entries, 90 seconds) lives only in the current document, so the previous idle
+warm of three adjacent slices cost every visit about 68 KB of Brotli JSON and
+up to a second of API time, for the few visitors who then changed a filter.
+Now the rank and period menus warm the option the pointer or keyboard rests
+on for 150 ms (`onOptionIntent` of `ConstructedCardFilterSelect`,
+`useCatalogIntentWarm` of the card module); choosing it reuses the in-flight
+request. Save-Data and 2G connections warm nothing, and a format change is
+never warmed: it loads a new document whose catalog the server renders.

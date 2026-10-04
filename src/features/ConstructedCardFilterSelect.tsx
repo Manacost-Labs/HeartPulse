@@ -12,7 +12,12 @@ type ConstructedCardFilterSelectProps = {
   className?: string;
   visual?: 'text' | 'class' | 'set' | 'stat' | 'rarity';
   align?: 'start' | 'end';
+  /** Called once an open menu has rested on another enabled option for a moment. */
+  onOptionIntent?: (value: string) => void;
 };
+
+// Long enough that sweeping the pointer across the menu warms nothing.
+const OPTION_INTENT_DELAY_MS = 150;
 
 function enabledIndex(
   options: ConstructedCardFilterOption[],
@@ -37,6 +42,7 @@ export default function ConstructedCardFilterSelect({
   className = '',
   visual = 'text',
   align = 'start',
+  onOptionIntent,
 }: ConstructedCardFilterSelectProps) {
   const generatedId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -148,6 +154,16 @@ export default function ConstructedCardFilterSelect({
     }
     if (event.key === 'Tab') setOpen(false);
   };
+
+  const optionIntentRef = useRef(onOptionIntent);
+  useEffect(() => { optionIntentRef.current = onOptionIntent; });
+  const activeOption = open && activeIndex >= 0 ? options[activeIndex] : undefined;
+  const intentValue = activeOption && !activeOption.disabled && activeOption.value !== value ? activeOption.value : null;
+  useEffect(() => {
+    if (intentValue === null || !optionIntentRef.current) return undefined;
+    const timer = window.setTimeout(() => optionIntentRef.current?.(intentValue), OPTION_INTENT_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [intentValue]);
 
   useEffect(() => {
     if (!open || activeIndex < 0) return;

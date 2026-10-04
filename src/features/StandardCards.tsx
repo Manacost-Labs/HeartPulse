@@ -1,6 +1,6 @@
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
 import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, type PublicCardSeed, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
-import { useCatalogLocation, useCatalogData, useCatalogWarm, catalogLocationUrl, type CardCatalogPayload, type PublicCardCatalogSeed } from '../modules/constructedCards/public';
+import { useCatalogLocation, useCatalogData, useCatalogIntentWarm, catalogLocationUrl, type CardCatalogPayload, type PublicCardCatalogSeed } from '../modules/constructedCards/public';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -637,7 +637,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
   const { format, period, rank, view, filters, perPage } = state;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { data, loading, error: failure, requestQuery, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList });
-  useCatalogWarm(state, Boolean(data) && !loading && requestQuery === filters.query.trim(), statsAccess, prefetchConstructedCardList);
+  const warmCatalog = useCatalogIntentWarm(state, statsAccess, prefetchConstructedCardList);
   const error = failure ? constructedCardRequestError('list', failure.status, '') : null;
   useEffect(() => {
     if (!statsAccessLoading && !statsAccess && STATISTIC_SORTS.has(filters.sort)) update({ filters: { ...filters, sort: 'set', direction: 'asc' }, page: 1 }, true);
@@ -688,6 +688,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
             label="Ранг"
             value={rank}
             onChange={value => changeRank(value as ConstructedCardRank)}
+            onOptionIntent={value => warmCatalog({ rank: value as ConstructedCardRank })}
             tourId="cards-rank"
             options={CONSTRUCTED_CARD_RANK_OPTIONS.map(option => ({
               value: option.id,
@@ -699,6 +700,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
             label="Период"
             value={period}
             onChange={value => changePeriod(value as ConstructedCardPeriod)}
+            onOptionIntent={value => warmCatalog({ period: value as ConstructedCardPeriod })}
             tourId="cards-period"
             options={constructedCardPeriodOptions(currentPatch).map(option => ({
               value: option.id,

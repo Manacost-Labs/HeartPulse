@@ -67,6 +67,29 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       await page.$eval('.constructed-card-detail__sounds audio', audio => { audio.muted = true; void audio.play().catch(() => undefined); });
       await played;
     }));
+
+    await t.test('the catalog warms only the filter option a visitor points at', () => withPage(runtime, { width: 1280, height: 900 }, async page => {
+      const listRequests = [];
+      page.on('request', request => {
+        if (new URL(request.url()).pathname === '/api/constructed-cards') listRequests.push(new URL(request.url()).searchParams);
+      });
+      await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
+      await new Promise(resolve => setTimeout(resolve, 3500));
+      assert.deepEqual(listRequests.map(String), [], 'an anonymous visit reads the server-rendered catalog and warms nothing');
+
+      await page.click('.constructed-cards__rank-filter .constructed-cards__filter-trigger');
+      const option = await page.waitForSelector('.constructed-cards__rank-filter [role="option"][aria-selected="false"]');
+      const box = await option.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+      await new Promise(resolve => setTimeout(resolve, 600));
+      assert.equal(listRequests.length, 1, 'resting on an option warms exactly that slice');
+      const warmedRank = listRequests[0].get('rank');
+      assert.notEqual(warmedRank, 'legend');
+      await option.click();
+      await page.waitForFunction(rank => new URL(location.href).searchParams.get('rank') === rank, {}, warmedRank);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      assert.equal(listRequests.length, 1, 'choosing the warmed option reuses the in-flight request');
+    }));
   } finally {
     await runtime.close();
   }
