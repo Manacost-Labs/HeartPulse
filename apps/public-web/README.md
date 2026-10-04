@@ -50,7 +50,8 @@ behind its `public.ts`, not in `src/features/`.
   first cosmetics page) goes through `readFirstPaintJson()`: it never holds
   the document longer than 600 ms and never fails it, and the page then loads
   the same data in the browser. Seed the client state with exactly the
-  request the page would make, so it does not fetch it again. Viewer-specific or paid data is requested in the
+  request the page would make, so it does not fetch it again.
+  Viewer-specific or paid data is requested in the
   browser from `/api/` via hooks and `usePublicAccess()`; it must never appear
   in server-rendered HTML. The one exception is `lib/adminAccess.ts`: it
   forwards the session cookie to a loopback-only Express origin to authorize
@@ -101,8 +102,8 @@ behind its `public.ts`, not in `src/features/`.
   pages, in the server HTML and after hydration, for a guest and a
   subscriber, and fails on a page URL without the slash.
 - Public navigation sections are prerendered when a visitor hovers or presses
-  a link, and entity detail pages only when pressed
-  (`lib/speculationRules.ts`), so page code
+  a link; entity detail pages only fetch their HTML when pressed
+  (`lib/speculationRules.ts`). A prerendered page's code
   can run for a visit that never happens. Anything that records a visit or
   changes state on load must wait for the `prerenderingchange` event, as
   `lib/analyticsLoader.ts` does; a URL that must not load early stays out of

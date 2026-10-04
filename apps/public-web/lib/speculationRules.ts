@@ -35,10 +35,12 @@ const entityDetailPages = [
  * `prerenderingchange` (see `analyticsLoader.ts`).
  *
  * Section pages prerender on hover (moderate, 200 ms). Entity detail pages
- * prerender only when pressed (conservative): every prerender makes the page's
- * `/api` calls, and a pointer sweeping a grid of them, or a phone scrolling one
- * (moderate rules follow the viewport there), would spend the per-visitor API
- * rate limit on pages nobody opens.
+ * only fetch their HTML when pressed (conservative prefetch): every prerender
+ * makes the page's `/api` calls, and a pointer sweeping a grid of them, a phone
+ * scrolling one (moderate rules follow the viewport there), or even a scroll
+ * that starts with a finger on a card (it counts as a press) would spend the
+ * per-visitor API rate limit on pages nobody opens. Measured click-to-content
+ * on a card page was the same for a prefetch and a prerender on press.
  *
  * A quick click on the desktop sidebar comes before the 200 ms hover, so its
  * links also fetch their HTML after a 10 ms hover (a prefetch: no script runs,
@@ -51,12 +53,12 @@ export const SPECULATION_RULES = {
   prefetch: [{
     where: { and: [...eligiblePages, { selector_matches: '.arena-sidebar a' }] },
     eagerness: 'eager',
+  }, {
+    where: { and: [...eligiblePages, { href_matches: entityDetailPages }] },
+    eagerness: 'conservative',
   }],
   prerender: [{
     where: { and: [...eligiblePages, { not: { href_matches: entityDetailPages } }] },
     eagerness: 'moderate',
-  }, {
-    where: { and: [...eligiblePages, { href_matches: entityDetailPages }] },
-    eagerness: 'conservative',
   }],
 };

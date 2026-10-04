@@ -155,9 +155,9 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
 
     const rules = JSON.parse(await page.$eval('script[type="speculationrules"]', script => script.textContent));
     assert.deepEqual(Object.keys(rules).sort(), ['prefetch', 'prerender']);
-    assert.deepEqual(rules.prerender.map(rule => rule.eagerness), ['moderate', 'conservative']);
+    assert.deepEqual(rules.prerender.map(rule => rule.eagerness), ['moderate']);
     // Sidebar links also fetch their HTML on a short hover; nothing else is eager.
-    assert.deepEqual(rules.prefetch.map(rule => rule.eagerness), ['eager']);
+    assert.deepEqual(rules.prefetch.map(rule => rule.eagerness), ['eager', 'conservative']);
     assert.deepEqual(rules.prefetch[0].where.and.filter(clause => clause.selector_matches),
       [{ selector_matches: '.arena-sidebar a' }]);
     const matching = (list, href) => list
@@ -170,11 +170,13 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
       assert.deepEqual(eagerness(href), ['moderate'], `${href} is prerendered on hover`);
       assert.deepEqual(prefetched(href), ['eager'], `${href} is prefetched from the sidebar on a glance`);
     }
-    // Detail pages listed by the dozen prerender only when pressed: a sweep
-    // across a grid (or a phone scrolling one) must not spend the API limit.
+    // Detail pages listed by the dozen are never prerendered and fetch only
+    // their HTML when pressed: a sweep across a grid, a phone scrolling one or a
+    // scroll that starts on a card must not spend the API limit.
     for (const href of ['/standard/cards/standard/BE_013/', '/heroes/57893/', '/guides-archive/some-guide/',
       '/standard/archetypes/standard/qa-evenlock/', '/cosmetics/coins/123/', '/library/minions/brann/']) {
-      assert.deepEqual(eagerness(href), ['conservative'], `${href} is prerendered only when pressed`);
+      assert.deepEqual(eagerness(href), [], `${href} is never prerendered`);
+      assert.deepEqual(prefetched(href), ['conservative'], `${href} fetches its HTML only when pressed`);
     }
     for (const href of ['/?login', '/tierlist/?source=hsreplay', '/tierlist', '/admin/', '/admin/people/',
       '/connect/', '/r/tg-july/', '/id/12345/', '/api/v1/openapi.json', '/sitemap.xml', 'https://boosty.to/kolodahearthstone/']) {

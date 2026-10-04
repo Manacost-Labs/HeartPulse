@@ -15,9 +15,11 @@ background change without animation while the page content cross-fades.
   sections are prerendered when a visitor hovers a link for 200
   milliseconds or presses it, and the click opens the prepared document.
   Detail pages that listings show by the dozen (cards, archetypes, cosmetics,
-  heroes, library cards, guides) are prerendered only when pressed: a
-  prerender runs the page's `/api` calls, so a sweep across a grid or a phone
-  scrolling it would spend the visitor's API rate limit. The admin panel,
+  heroes, library cards, guides) are never prerendered; a press fetches only
+  their HTML. A prerender runs the page's `/api` calls, so a sweep across a
+  grid, a phone scrolling it, or a scroll that starts with a finger on a card
+  (it counts as a press) would spend the visitor's API rate limit. The admin
+  panel,
   profiles, `/connect/`, `/r/` referral links, `/api/` and any URL with a query
   (including `/?login`) load only when opened.
 - Links of the desktop sidebar also fetch their page's HTML after a 10
