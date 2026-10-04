@@ -74,7 +74,7 @@
     "src/features/HsReplayDeckList.tsx#HsReplayDeckList": 136,
     "src/features/pageTour/PageTour.tsx#PageTour": 341,
     "src/features/StandardCardDetail.tsx#DetailPage": 266,
-    "src/features/StandardCards.tsx#CardsListPage": 284,
+    "src/features/StandardCards.tsx#CardsListPage": 144,
     "src/features/StandardMatchups.tsx#StandardMatchupsPage": 784,
     "src/features/StandardMeta.tsx#DeckModal": 152,
     "src/features/StandardMeta.tsx#StandardMetaContent": 412,
