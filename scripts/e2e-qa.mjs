@@ -2898,7 +2898,7 @@ for (const [device, viewport] of [
       || !standardMetaChartState.subtitle.includes('Стандарт') || !standardMetaChartState.subtitle.includes('Легенда')
       || !standardMetaChartState.detail.includes('Чётный Чернокнижник') || !standardMetaChartState.hasAxes
       || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.archetypeLinkHeight < 44
-      || standardMetaChartState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock'
+      || standardMetaChartState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock/'
       || !standardMetaChartState.chartVisible || standardMetaChartState.pageOverflow
       || (device === 'mobile' && !standardMetaChartState.viewportScrollable)) {
       failures.push(`standard meta chart [${device}]: data, interaction or responsive containment regressed (${JSON.stringify(standardMetaChartState)})`);
@@ -2936,7 +2936,7 @@ for (const [device, viewport] of [
     });
     if (standardMetaTableState.rows !== 5 || standardMetaTableState.columns !== 8 || standardMetaTableState.sortControls !== 7
       || standardMetaTableState.stickyPosition !== 'sticky' || standardMetaTableState.stickyLeft !== '0px'
-      || standardMetaTableState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock'
+      || standardMetaTableState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock/'
       || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
       failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);
     }
@@ -2977,7 +2977,7 @@ for (const [device, viewport] of [
       };
     });
     if (metaArchetypeLinkState.tag !== 'A'
-      || metaArchetypeLinkState.href !== '/standard/archetypes/standard/qa-evenlock'
+      || metaArchetypeLinkState.href !== '/standard/archetypes/standard/qa-evenlock/'
       || !metaArchetypeLinkState.label.includes('Открыть страницу архетипа')
       || metaArchetypeLinkState.height < 44 || metaArchetypeLinkState.modalPresent) {
       failures.push(`standard meta archetype link [${device}]: action did not become a direct accessible route (${JSON.stringify(metaArchetypeLinkState)})`);

@@ -40,10 +40,10 @@ Editorial covers use `/api/article-cover?url=<source>[&w=<width>]`
   Only images are relayed, never SVG, and never more than the byte limit.
 - A cacheable source is an HTTPS image file (`.avif`, `.gif`, `.jpg`,
   `.jpeg`, `.png`, `.webp`) whose path starts with `/uploads/` or
-  `/wp-content/uploads/`, with no port and no `?` or `#` anywhere in `url`. Its spellings share one cache
-  key, which is also the URL fetched: `www.` is dropped when the bare host is
-  allowed too, and the path is decoded, re-encoded and stripped of empty
-  segments.
+  `/wp-content/uploads/`, with no port and no `?` or `#` anywhere in `url`.
+  Its spellings share one cache key, which is also the URL fetched: `www.` is
+  dropped when the bare host is allowed too, and the path is decoded,
+  re-encoded and stripped of empty segments.
 - Without `w` the original bytes and content type are relayed.
 - `w` is one of 480, 720 or 960; any other `w` is a 400. For a cacheable
   source the response is a WebP (quality 78) no wider than that, never
