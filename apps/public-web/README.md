@@ -26,6 +26,7 @@ behind its `public.ts`, not in `src/features/`.
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
 | `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
 | `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays |
+| `lib/authPrefetch.ts` | Inline head script that starts the session check (`/api/auth/me`) while the document parses |
 | `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
@@ -129,6 +130,10 @@ behind its `public.ts`, not in `src/features/`.
   `tests/next-bfcache-browser.test.mjs` checks the headers, the restore and a
   sign-out followed by Back. Production Nginx still adds `no-store` to `/`
   (see `docs/runbooks/nextjs-production-cutover.md`).
+- `lib/authPrefetch.ts` starts `/api/auth/me` from the document head; the
+  first `fetchCurrentAuthUser()` call adopts that response once, within ten
+  seconds, and every later call fetches. A page that never checks the session
+  wastes one small request.
 - Titles, descriptions, indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
   `config/public-seo-pages.json`; do not hand-write them in a page. A registry

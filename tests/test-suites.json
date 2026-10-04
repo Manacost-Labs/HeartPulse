@@ -304,6 +304,7 @@
         "tests/clean-code-gate.test.mjs",
         "tests/client-identity-guest-auth.test.ts",
         "tests/client-identity-session.test.ts",
+        "tests/client-identity-early-session.test.ts",
         "tests/cosmetics-ui-contract.test.ts",
         "tests/csrf.test.ts",
         "tests/deferred-route-boundaries.test.mjs",
