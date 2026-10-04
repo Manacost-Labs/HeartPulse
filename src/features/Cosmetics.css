@@ -252,16 +252,10 @@
   min-height: 760px;
 }
 
+/* Geometry only: the fill and pulse come from LoadingBlock. */
 .cosmetics-skeleton {
   aspect-ratio: 2 / 3;
-  border: 1px solid rgba(102, 62, 31, 0.2);
-  background: linear-gradient(105deg, rgba(148, 103, 63, 0.12) 30%, rgba(255, 246, 214, 0.62) 45%, rgba(148, 103, 63, 0.12) 60%);
-  background-size: 220% 100%;
-  animation: cosmetics-shimmer 1.3s linear infinite;
-}
-
-@keyframes cosmetics-shimmer {
-  to { background-position-x: -220%; }
+  border: 1px solid var(--arena-paper-line);
 }
 
 .cosmetics-pagination {
@@ -877,9 +871,5 @@
   .cosmetics-tab,
   .cosmetics-card {
     transition: none;
-  }
-
-  .cosmetics-skeleton {
-    animation: none;
   }
 }

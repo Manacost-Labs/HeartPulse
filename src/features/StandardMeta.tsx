@@ -34,11 +34,12 @@ import {
   orderStandardMetaPeriods,
   resolveStandardMetaDefaultPeriod,
 } from './standardMetaFilterModel';
+import StandardMetaChart from './StandardMetaChart';
+import { metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed } from './standardMetaTeaser';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
+import '../shared/ui/LoadingSurface.css';
 import './StandardMeta.css';
-
-const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
@@ -401,32 +402,44 @@ function StandardMetaContent({
   hasFullAccess,
   accessPending,
   paywall,
+  initialTeaser,
 }: {
   hasFullAccess: boolean;
   accessPending: boolean;
   paywall: PaywallAccessState;
+  initialTeaser: StandardMetaTeaserSeed | null;
 }) {
-  const [format, setFormat] = useState<MetaFormat>('standard');
-  const [rank, setRank] = useState<MetaRank>('diamond_legend');
-  const [period, setPeriod] = useState<MetaPeriod | null>(null);
+  const [format, setFormat] = useState<MetaFormat>(TEASER_SEED_FILTERS.format);
+  const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
+  const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
   const coin: MetaCoin = 'any_player';
-  const [minGames, setMinGames] = useState<MetaMinGames>(100);
+  const [minGames, setMinGames] = useState<MetaMinGames>(TEASER_SEED_FILTERS.minGames);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
   const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
-  const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
+  // A subscriber's page starts from the teaser too, busy until the full slice replaces it.
+  const [data, setData] = useState<MetaPayload>(initialTeaser?.data ?? EMPTY_DATA);
+  const hasPayload = data !== EMPTY_DATA;
+  // The teaser's top-three totals are not a subscriber's numbers: a dash until the full slice lands.
+  const summaryReady = hasPayload && !(hasFullAccess && data === initialTeaser?.data);
+  const [arrivesLater] = useState(!initialTeaser);
   const [metaRevision, setMetaRevision] = useState(0);
-  const requestKey = `${format}:${rank}:${period ?? 'auto'}:${minGames}:${metaRevision}:${hasFullAccess ? 'full' : 'teaser'}`;
-  const [resolvedRequestKey, setResolvedRequestKey] = useState('');
+  const requestKey = metaRequestKey(format, rank, period, minGames, metaRevision, hasFullAccess);
+  const seedKey = teaserSeedKey(initialTeaser, hasFullAccess);
+  const answeredKey = useRef(seedKey);
+  const [resolvedRequestKey, setResolvedRequestKey] = useState(seedKey);
   const [requestError, setRequestError] = useState<{ key: string; message: string } | null>(null);
   const loading = resolvedRequestKey !== requestKey;
   const error = requestError?.key === requestKey ? requestError.message : '';
   const requestId = useRef(0);
 
   useEffect(() => {
+    // The server-rendered teaser already answers the guest's first slice.
+    if (requestKey === answeredKey.current) return undefined;
     // Until the account is known the page cannot tell a teaser from full data.
     if (accessPending) return undefined;
+    answeredKey.current = '';
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
     let redirectedToCurrentPeriod = false;
@@ -551,8 +564,8 @@ function StandardMetaContent({
       <section className="traditional-mode-banner">
         <StandardMetaSearchIntro />
         <dl className="traditional-mode-banner__summary" aria-label="Сводка меты">
-          <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{data.items.length}</dd></div>
-          <div><dt>Игр в выборке</dt><dd>{data.items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU')}</dd></div>
+          <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{summaryReady ? data.items.length : '—'}</dd></div>
+          <div><dt>Игр в выборке</dt><dd>{summaryReady ? data.items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU') : '—'}</dd></div>
         </dl>
       </section>
 
@@ -627,7 +640,7 @@ function StandardMetaContent({
         </div>
       </section>
 
-      {loading && (
+      {loading && !hasPayload && (
         <AsyncSurfaceState
           variant="loading"
           title="Загружаем мету"
@@ -650,22 +663,14 @@ function StandardMetaContent({
           message="Попробуйте другой формат или рейтинг. Данные появятся после следующего обновления источника."
         />
       )}
-      {!loading && !error && data.items.length > 0 && (
-        <>
-          <React.Suspense fallback={(
-            <AsyncSurfaceState
-              variant="loading"
-              title="Подготавливаем карту меты"
-              compact
-            />
-          )}>
-            <StandardMetaChart
-              items={visibleItems}
-              format={format}
-              formatLabel={data.formatLabel}
-              rankLabel={data.rankLabel}
-            />
-          </React.Suspense>
+      {(!loading || hasPayload) && !error && data.items.length > 0 && (
+        <div className={`standard-meta__results data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-busy={loading}>
+          <StandardMetaChart
+            items={visibleItems}
+            format={format}
+            formatLabel={data.formatLabel}
+            rankLabel={data.rankLabel}
+          />
 
           <section className="standard-meta__results-toolbar" aria-label="Представление меты">
             <p data-tour-id="meta-results">
@@ -776,7 +781,7 @@ function StandardMetaContent({
             />
           )}
 
-          {!hasFullAccess ? (
+          {!hasFullAccess && !accessPending ? (
             <PaywallGate
               active
               presentation="inline"
@@ -786,7 +791,7 @@ function StandardMetaContent({
               {...paywall}
             />
           ) : null}
-        </>
+        </div>
       )}
 
     </>
@@ -798,11 +803,13 @@ export default function StandardMetaPage({
   accessPending = false,
   paywall = DEFAULT_PAYWALL_ACCESS,
   embedded = false,
+  initialTeaser = null,
 }: {
   hasFullAccess?: boolean;
   accessPending?: boolean;
   paywall?: PaywallAccessState;
   embedded?: boolean;
+  initialTeaser?: StandardMetaTeaserSeed | null;
 }) {
   const Root = embedded ? 'section' : 'main';
   return (
@@ -812,7 +819,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent hasFullAccess={hasFullAccess} accessPending={accessPending} paywall={paywall} />
+        <StandardMetaContent hasFullAccess={hasFullAccess} accessPending={accessPending} paywall={paywall} initialTeaser={initialTeaser} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

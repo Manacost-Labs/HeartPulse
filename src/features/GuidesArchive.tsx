@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Search, Tag } from 'lucide-react';
 import '../route-parchment.css';
 import './GuidesArchive.css';
+import { LoadingSurface } from '../shared/ui/LoadingSurface';
 
 interface GuideFilter {
   slug: string;
@@ -194,9 +195,8 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
         {submittedQuery && <span><Search size={17} /> Поиск: {submittedQuery}</span>}
         {kind && <span><Tag size={17} /> {visibleKinds.find(item => item.slug === kind)?.label ?? kind}</span>}
       </div>
-
       {error && <div className="guide-archive-error">{error}</div>}
-      {loading && <div className="guide-archive-loading">Загружаем архив...</div>}
+      {loading && <LoadingSurface label="Загружаем архив" layout="rows" count={4} />}
 
       {!loading && data && (
         <>
@@ -260,7 +260,7 @@ function GuidesArchiveDetail({ slug, navigatePath }: { slug: string; navigatePat
     };
   }, [slug]);
 
-  if (loading) return <div className="guide-archive-loading">Загружаем гайд...</div>;
+  if (loading) return <section className="guide-archive-page"><LoadingSurface label="Загружаем гайд" /></section>;
   if (error || !guide) {
     return (
       <section className="guide-archive-page">

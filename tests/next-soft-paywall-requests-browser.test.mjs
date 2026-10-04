@@ -4,8 +4,10 @@ import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 // Meta and the archetype catalog show a teaser to guests and full data to
-// Diamond subscribers. They wait for the account check, so a subscriber does
-// not first request, then abort, the guest teaser.
+// Diamond subscribers. The server renders the anonymous teaser when Express
+// has it (tests/next-first-paint-data-browser.test.mjs), so a guest requests
+// at most the teaser, and only when the page has none; a subscriber makes
+// exactly one request, for the full data, after the account check.
 test('Next.js soft-paywall pages request only the data the visitor may see', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
@@ -24,9 +26,13 @@ test('Next.js soft-paywall pages request only the data the visitor may see', asy
           const { pathname } = new URL(request.url());
           if (pathname.startsWith(endpoint)) requested.push(pathname);
         });
-        await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle0' });
-        assert.deepEqual(requested, [subscriber ? endpoint : `${endpoint}/teaser`],
+        const response = await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle0' });
+        const html = await response.text();
+        // The fixture Express has an (empty) archetype catalog but no meta data.
+        const serverTeaser = path === '/standard/archetypes/';
+        assert.deepEqual(requested, subscriber ? [endpoint] : serverTeaser ? [] : [`${endpoint}/teaser`],
           `${path} for a ${subscriber ? 'subscriber' : 'guest'} requested ${JSON.stringify(requested)}`);
+        assert.doesNotMatch(html, /"deckCode":"[^"]/, `${path} carries no deck code in its HTML`);
         await context.close();
       }
     }

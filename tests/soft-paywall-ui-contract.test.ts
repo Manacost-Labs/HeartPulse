@@ -5,6 +5,7 @@ const paywallSource = readFileSync(new URL('../src/components/PaywallGate.tsx', 
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 const archetypesSource = readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8');
 const funDecksSource = readFileSync(new URL('../src/features/FunDecksPage.tsx', import.meta.url), 'utf8');
+const funDecksPreviewSource = readFileSync(new URL('../src/features/funDecksPreview.ts', import.meta.url), 'utf8');
 
 assert.match(metaSource, /hasFullAccess\s*\?\s*'\/api\/standard-meta'/);
 assert.match(metaSource, /'\/api\/standard-meta\/teaser'/);
@@ -16,7 +17,9 @@ assert.match(archetypesSource, /'\/api\/constructed-archetypes\/teaser'/);
 assert.match(archetypesSource, /surface="archetype"/);
 assert.match(archetypesSource, /featuredBuild/);
 
-assert.match(funDecksSource, /FREE_PREVIEW_COUNT\s*=\s*3/);
+assert.match(funDecksPreviewSource, /FUN_DECKS_FREE_PREVIEW_COUNT\s*=\s*3/);
+assert.match(funDecksSource, /FREE_PREVIEW_COUNT\s*=\s*FUN_DECKS_FREE_PREVIEW_COUNT/);
+assert.match(funDecksSource, /!hasFullAccess && !accessPending \? \(\s*<PaywallGate/);
 assert.match(funDecksSource, /hasFullAccess/);
 assert.match(funDecksSource, /providerButtons/);
 assert.match(funDecksSource, /data-tour-id=\{tourAnchor \? 'fun-decks-deck-list'/);

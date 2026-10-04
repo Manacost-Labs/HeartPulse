@@ -1,4 +1,5 @@
 import '@/src/route-parchment.css';
+import '@/src/shared/ui/LoadingSurface.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { ViciousGoldPageClient } from '@/apps/public-web/ui/ViciousGoldPageClient';
 import { PageBannerPreload } from '@/apps/public-web/ui/PageBannerPreload';

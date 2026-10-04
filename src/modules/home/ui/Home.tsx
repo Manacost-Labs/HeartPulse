@@ -2,19 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Send, Sparkles } from 'lucide-react';
 import type { HomeArticle } from './HomeLatestArticles';
 import type { HomeSummaryData } from '../model/homeSummary';
+import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
 import { HomeHero } from './HomeHero';
 import './Home.css';
+// After Home.css: the directories' own rules win ties with its older ones,
+// as they did when the directories loaded later as separate chunks.
+import HomeArenaDirectory from './HomeArenaDirectory';
+import HomeBattlegrounds from './HomeBattlegrounds';
 
-const HomeArenaDirectory = React.lazy(() => import('./HomeArenaDirectory'));
-const HomeBattlegrounds = React.lazy(() => import('./HomeBattlegrounds'));
+// Latest articles stay lazy: a legacy host renders them without server data.
+// The directories and the FAQ are static links and text, so they render with
+// the page; behind a placeholder they shifted it and broke its index links.
 const HomeLatestArticles = React.lazy(() => import('./HomeLatestArticles'));
 
-function HomeSectionFallback({ announce = false, label }: { announce?: boolean; label: string }) {
-  return (
-    <section className="home-deferred-placeholder" {...(announce ? { role: 'status', 'aria-live': 'polite' } : {})}>
-      <span>Загружается раздел «{label}»…</span>
-    </section>
-  );
+function HomeSectionFallback({ label }: { label: string }) {
+  return <LoadingSurface label={`Загружаем раздел «${label}»`} className="home-section-loading" />;
 }
 
 const HOME_SECTION_PRELOAD_MARGIN = '720px 0px';
@@ -93,22 +95,18 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
       </nav>
 
       <DeferredHomeSection label="Последние статьи" eager={serverArticles}>
-        <React.Suspense fallback={<HomeSectionFallback announce label="Последние статьи" />}>
+        <React.Suspense fallback={<HomeSectionFallback label="Последние статьи" />}>
           <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
         </React.Suspense>
       </DeferredHomeSection>
 
-      <DeferredHomeSection label="Поля Сражений">
-        <React.Suspense fallback={<HomeSectionFallback announce label="Поля Сражений" />}>
-          <HomeBattlegrounds onNavigate={onNavigate} />
-        </React.Suspense>
-      </DeferredHomeSection>
+      <HomeSectionBoundary label="Поля Сражений">
+        <HomeBattlegrounds onNavigate={onNavigate} />
+      </HomeSectionBoundary>
 
-      <DeferredHomeSection label="Арена">
-        <React.Suspense fallback={<HomeSectionFallback announce label="Арена" />}>
-          <HomeArenaDirectory onNavigate={onNavigate} />
-        </React.Suspense>
-      </DeferredHomeSection>
+      <HomeSectionBoundary label="Арена">
+        <HomeArenaDirectory onNavigate={onNavigate} />
+      </HomeSectionBoundary>
 
       <aside className="home-community home-reveal" aria-label="Сообщество и поддержка">
         <span className="home-community__lead">
@@ -127,9 +125,7 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         </a>
       </aside>
 
-      <DeferredHomeSection label="Частые вопросы">
-        <div className="home-faq-zone home-reveal">{faq}</div>
-      </DeferredHomeSection>
+      <div className="home-faq-zone home-reveal">{faq}</div>
     </div>
   );
 }

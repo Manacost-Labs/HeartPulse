@@ -1213,3 +1213,102 @@
   .standard-meta__segmented button,
   .standard-meta__rank-tabs button { transition: none; }
 }
+
+/* The collapsed meta chart (StandardMetaChart.tsx) is part of the page's
+   first paint, so its rules ship with the page; the expanded plot's rules
+   load with the plot (StandardMetaChartPlot.css). */
+.standard-meta-chart {
+  margin-top: 0.85rem;
+  border: 7px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  color: #3a281c;
+  background: rgba(247, 229, 188, 0.76);
+  box-shadow: 0 5px 12px rgba(66, 38, 14, 0.1);
+}
+
+.standard-meta-chart__header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid rgba(102, 63, 27, 0.22);
+  background: rgba(255, 242, 207, 0.5);
+}
+
+.standard-meta-chart__heading,
+.standard-meta-chart__header-actions,
+.standard-meta-chart__header-actions button {
+  display: flex;
+  align-items: center;
+}
+
+.standard-meta-chart__heading { gap: 0.7rem; min-width: 0; }
+
+.standard-meta-chart__icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(74, 47, 102, 0.32);
+  color: #fff0c4;
+  background: #4a2f66;
+}
+
+.standard-meta-chart__heading h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.standard-meta-chart__heading p {
+  margin: 0.16rem 0 0;
+  color: #765b3e;
+  font-size: 0.7rem;
+}
+
+.standard-meta-chart__header-actions { gap: 0.55rem; flex: 0 0 auto; }
+.standard-meta-chart__header-actions > span { color: #806244; font-size: 0.68rem; font-weight: 800; }
+
+.standard-meta-chart__header-actions button {
+  gap: 0.38rem;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.55rem 0.72rem;
+  border: 1px solid rgba(74, 47, 102, 0.42);
+  color: #fff0c4;
+  background: #4a2f66;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.standard-meta-chart__header-actions button:hover { background: #5b3b78; }
+
+.standard-meta-chart__header-actions button:focus-visible {
+  outline: 3px solid #4a2f66;
+  outline-offset: 2px;
+}
+
+.standard-meta-chart__content { padding: 0.75rem; }
+
+/* The expanded plot's loader keeps about the plot's height. */
+.standard-meta-chart__loading { --loading-row-height: clamp(18rem, 45vw, 30rem); }
+
+@media (max-width: 720px) {
+  .standard-meta-chart { margin-top: 0.65rem; border-width: 5px; }
+  .standard-meta-chart__header { display: grid; gap: 0.6rem; min-height: 0; padding: 0.65rem; }
+  .standard-meta-chart__heading { align-items: flex-start; }
+  .standard-meta-chart__icon { width: 38px; height: 38px; }
+  .standard-meta-chart__heading h2 { font-size: 1rem; }
+  .standard-meta-chart__heading p { line-height: 1.35; }
+  .standard-meta-chart__header-actions { justify-content: space-between; }
+  .standard-meta-chart__header-actions button { min-height: 44px; }
+  .standard-meta-chart__content { padding: 0.55rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .standard-meta-chart__header-actions button { transition: none; }
+}

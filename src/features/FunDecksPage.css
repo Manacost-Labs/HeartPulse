@@ -579,14 +579,14 @@
   color: #ead6a7;
 }
 
+/* Geometry and the deck panel tint only: the pulse comes from LoadingBlock. */
 .fun-deck-card__deck-skeleton {
-  display: block;
   height: 29px;
-  background:
-    linear-gradient(90deg, rgba(116, 70, 47, 0.46), rgba(161, 112, 73, 0.7), rgba(116, 70, 47, 0.46));
-  background-size: 220% 100%;
-  animation: fun-deck-shimmer 1.25s ease-in-out infinite;
+  border-radius: 0;
+  background: rgba(116, 70, 47, 0.52);
 }
+
+.fun-deck-card__deck-skeletons { gap: 3px; }
 
 .fun-deck-card__deck-state--error {
   min-height: 220px;
@@ -711,17 +711,13 @@
   height: 16px;
 }
 
-.fun-decks-page__spinner {
-  animation: fun-deck-spin 900ms linear infinite;
+/* Three deck-card tiles: the loader keeps the grid the decks fill. */
+.fun-decks-page__loading {
+  --loading-tile-ratio: 3 / 5;
 }
 
-@keyframes fun-deck-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes fun-deck-shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+.fun-decks-page__loading .loading-block {
+  border: 1px solid var(--arena-paper-line);
 }
 
 @media (max-width: 1120px) {
@@ -849,12 +845,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fun-deck-card__deck-skeleton,
-  .fun-decks-page__spinner {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-  }
-
   .fun-decks-tools__formats button,
   .fun-decks-page__more button,
   .fun-decks-page__state button,

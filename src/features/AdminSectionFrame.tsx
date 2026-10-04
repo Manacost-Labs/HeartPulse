@@ -4,6 +4,7 @@ import { canManageContests, fetchCurrentAuthUser } from '../modules/identity/pub
 import { ACCESS_REJECTED_EVENT } from '../shared/http/fetchWithDeadline';
 import { RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import './recovery/RecoverableSurface.css';
+import '../shared/ui/LoadingSurface.css';
 import './adminSessionNotice.css';
 
 /**

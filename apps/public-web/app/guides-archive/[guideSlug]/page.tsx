@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import '@/src/route-parchment.css';
+import '@/src/shared/ui/LoadingSurface.css';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 import { loadPublicGuideTeaser } from '@/apps/public-web/lib/publicGuideTeaser';
 import { GuideArchiveDetailPageClient } from '@/apps/public-web/ui/GuideArchiveDetailPageClient';

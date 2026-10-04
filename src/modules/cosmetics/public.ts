@@ -20,6 +20,26 @@ export function cosmeticsListing(path: string) {
   return { pathname: `${normalized}/`, kind, heading: headings[kind] };
 }
 
+export type CosmeticsCatalogFilters = { q: string; classSlug: string; rarity: string; category: string };
+
+/**
+ * Reads catalog filters and page from a listing's query string. The page
+ * and the server loader both parse with it, so a server-rendered first page
+ * answers exactly the request the page would make.
+ */
+export function cosmeticsCatalogControls(search: string): { filters: CosmeticsCatalogFilters; page: number } {
+  const params = new URLSearchParams(search);
+  return {
+    filters: {
+      q: params.get('search') || '',
+      classSlug: params.get('class') || '',
+      rarity: params.get('rarity') || '',
+      category: params.get('category') || '',
+    },
+    page: Math.max(1, Number(params.get('page')) || 1),
+  };
+}
+
 /** Mirrors the public catalog filter contract without carrying browser state into the domain. */
 export function cosmeticsCatalogRequest(kind: CosmeticKind, query: string, filters: {
   classSlug: string; rarity: string; category: string;

@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useDeferredValue,
   useEffect,
   useId,
@@ -28,13 +29,22 @@ import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
-import { cosmeticsCatalogRequest, type CosmeticKind } from '../modules/cosmetics/public';
+import {
+  cosmeticsCatalogControls,
+  cosmeticsCatalogRequest,
+  type CosmeticKind,
+  type CosmeticsCatalogFilters,
+} from '../modules/cosmetics/public';
+import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
+import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
+import { useCatalogRequest, type CatalogRequestState } from './cosmeticsCatalogRequest';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { cachedCardImage } from './cosmeticsCardImage';
 import {
   RelatedCardGallery,
   type RelatedCard,
 } from './CosmeticsRelatedCardGallery';
+import '../shared/ui/LoadingSurface.css';
 import './Cosmetics.css';
 
 export type HeroSummary = {
@@ -70,7 +80,7 @@ type PetFamily = {
   variants: PetVariant[];
 };
 
-type CatalogPayload = {
+export type CatalogPayload = {
   items: Array<HeroSummary | CoinSummary | PetFamily>;
   generatedBy?: RelatedCard[];
   related?: RelatedCard[];
@@ -105,23 +115,22 @@ type PetDetail = PetVariant & {
   variants: PetVariant[];
 };
 
+/** The first catalog page read on the server, keyed by the request the page would make. */
+export type CosmeticsCatalogSeed = { requestUrl: string; payload: CatalogPayload };
+
 type CosmeticsProps = {
   currentPath: string;
   navigatePath: (path: string) => void;
   initialSearch?: string;
   initialDetail?: DetailPayload;
+  initialCatalog?: CosmeticsCatalogSeed | null;
 };
 
 function cosmeticMediaSource(source: string | null | undefined) {
   return publicResourceUrl(source);
 }
 
-type HeroFilters = {
-  q: string;
-  classSlug: string;
-  rarity: string;
-  category: string;
-};
+type HeroFilters = CosmeticsCatalogFilters;
 
 type CatalogControls = {
   filters: HeroFilters;
@@ -131,12 +140,6 @@ type CatalogControls = {
 type CatalogControlsAction =
   | { type: 'filters'; patch: Partial<HeroFilters> }
   | { type: 'page'; page: number };
-
-type CatalogRequestState = {
-  requestUrl: string;
-  payload: CatalogPayload | null;
-  error: string | null;
-};
 
 export type DetailPayload = HeroDetail | CoinDetail | PetDetail;
 
@@ -255,19 +258,6 @@ function useReducedMotion() {
   return useSyncExternalStore(subscribeReducedMotion, getReducedMotionSnapshot, () => false);
 }
 
-function initializeCatalogControls(search: string): CatalogControls {
-  const params = new URLSearchParams(search);
-  return {
-    filters: {
-      q: params.get('search') || '',
-      classSlug: params.get('class') || '',
-      rarity: params.get('rarity') || '',
-      category: params.get('category') || '',
-    },
-    page: Math.max(1, Number(params.get('page')) || 1),
-  };
-}
-
 function catalogControlsReducer(state: CatalogControls, action: CatalogControlsAction): CatalogControls {
   if (action.type === 'filters') {
     return {
@@ -281,12 +271,12 @@ function catalogControlsReducer(state: CatalogControls, action: CatalogControlsA
   };
 }
 
-function formatUpdatedAt(value: string | null) {
+function formatUpdatedAt(value: string | null, timeZone?: string) {
   if (!value) return 'время не указано';
   const parsed = new Date(value.replace(' ', 'T') + (value.includes('Z') || /[+-]\d\d:\d\d$/.test(value) ? '' : 'Z'));
   return Number.isNaN(parsed.getTime())
     ? value
-    : parsed.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+    : parsed.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short', timeZone });
 }
 
 function CatalogTabs({ active, navigatePath }: { active: CosmeticKind; navigatePath: (path: string) => void }) {
@@ -374,12 +364,22 @@ export function CosmeticsMediaLightbox({
   );
 }
 
+// The first cards hold the largest paint (on a phone the first row is two
+// cards): they load with the document, the rest wait for the viewport.
+function cardImagePriority(index: number): Pick<React.ImgHTMLAttributes<HTMLImageElement>, 'loading' | 'fetchPriority'> {
+  if (index >= 2) return { loading: 'lazy' };
+  return index === 0 ? { loading: 'eager', fetchPriority: 'high' } : { loading: 'eager' };
+}
+
 export function HeroSkinCard({
   item,
   navigatePath,
+  index = Number.POSITIVE_INFINITY,
 }: {
   item: HeroSummary;
   navigatePath: (path: string) => void;
+  /** Position in the grid; the first cards load first. */
+  index?: number;
 }) {
   const href = canonicalPagePath(`/cosmetics/heroes/${encodeURIComponent(item.cardId)}`);
 
@@ -397,7 +397,7 @@ export function HeroSkinCard({
           <img
             src={publicResourceImageUrl(item.images.static, { width: 384, quality: 82 })}
             alt={`Скин героя «${item.name.ru}»`}
-            loading="lazy"
+            {...cardImagePriority(index)}
             decoding="async"
             width="512"
             height="768"
@@ -409,7 +409,9 @@ export function HeroSkinCard({
   );
 }
 
-function CoinCard({ item, navigatePath }: { item: CoinSummary; navigatePath: (path: string) => void }) {
+function CoinCard({ item, navigatePath, index = Number.POSITIVE_INFINITY }: {
+  item: CoinSummary; navigatePath: (path: string) => void; index?: number;
+}) {
   const href = canonicalPagePath(`/cosmetics/coins/${encodeURIComponent(item.cardId)}`);
   return (
     <a
@@ -424,7 +426,7 @@ function CoinCard({ item, navigatePath }: { item: CoinSummary; navigatePath: (pa
         <img
           src={cachedCardImage(item.cardId)}
           alt={item.name.en || item.name.ru}
-          loading="lazy"
+          {...cardImagePriority(index)}
           decoding="async"
           width="512"
           height="768"
@@ -435,7 +437,9 @@ function CoinCard({ item, navigatePath }: { item: CoinSummary; navigatePath: (pa
   );
 }
 
-function PetCard({ item, navigatePath }: { item: PetVariant; navigatePath: (path: string) => void }) {
+function PetCard({ item, navigatePath, index = Number.POSITIVE_INFINITY }: {
+  item: PetVariant; navigatePath: (path: string) => void; index?: number;
+}) {
   const href = canonicalPagePath(`/cosmetics/pets/${encodeURIComponent(item.cardId)}`);
   return (
     <a
@@ -448,7 +452,7 @@ function PetCard({ item, navigatePath }: { item: PetVariant; navigatePath: (path
     >
       <span className="cosmetics-card-media">
         {item.images.card ? (
-          <img src={publicResourceImageUrl(item.images.card, { width: 384, quality: 82 })} alt={`Питомец «${item.name}»`} loading="lazy" decoding="async" width="512" height="768" />
+          <img src={publicResourceImageUrl(item.images.card, { width: 384, quality: 82 })} alt={`Питомец «${item.name}»`} {...cardImagePriority(index)} decoding="async" width="512" height="768" />
         ) : <span className="cosmetics-media-placeholder"><PawPrint aria-hidden="true" /></span>}
       </span>
       <strong className="cosmetics-card-name">{item.name}</strong>
@@ -500,9 +504,9 @@ function HeroFiltersPanel({
 
 function LoadingGrid() {
   return (
-    <div className="cosmetics-grid cosmetics-grid-loading" aria-label="Загрузка косметики">
-      {Array.from({ length: 12 }, (_, index) => <span key={index} className="cosmetics-skeleton" />)}
-    </div>
+    <LoadingSurface label="Загружаем косметику" quiet layout="grid" blocksClassName="cosmetics-grid cosmetics-grid-loading">
+      {Array.from({ length: 12 }, (_, index) => <LoadingBlock key={index} className="cosmetics-skeleton" />)}
+    </LoadingSurface>
   );
 }
 
@@ -520,61 +524,36 @@ function CatalogView({
   kind,
   navigatePath,
   initialSearch,
+  initialCatalog,
 }: {
   kind: CosmeticKind;
   navigatePath: (path: string) => void;
   initialSearch: string;
+  initialCatalog?: CosmeticsCatalogSeed | null;
 }) {
   const [controls, dispatchControls] = useReducer(
     catalogControlsReducer,
     initialSearch,
-    initializeCatalogControls,
+    cosmeticsCatalogControls,
   );
   const { filters, page } = controls;
   const deferredQuery = useDeferredValue(filters.q);
   const request = useMemo(() => cosmeticsCatalogRequest(kind, deferredQuery, filters, page),
     [kind, deferredQuery, filters.classSlug, filters.rarity, filters.category, page]);
-  const [requestState, setRequestState] = useState<CatalogRequestState>({
-    requestUrl: '',
-    payload: null,
-    error: null,
-  });
+  const correctPage = useCallback((next: number) => dispatchControls({ type: 'page', page: next }), []);
+  const requestState: CatalogRequestState<CatalogPayload> = useCatalogRequest(request, page, correctPage, initialCatalog,
+    fetchCosmetics<CatalogPayload>);
   const currentRequest = requestState.requestUrl === request.url ? requestState : null;
   const payload = currentRequest?.payload ?? null;
   const error = currentRequest?.error ?? null;
   const loading = currentRequest === null;
-  useEffect(() => {
-    window.history.replaceState(
-      window.history.state,
-      '',
-      `${window.location.pathname}${request.query ? `?${request.query}` : ''}`,
-    );
-
-    const controller = new AbortController();
-    fetchCosmetics<CatalogPayload>(request.url, controller.signal)
-      .then(result => {
-        setRequestState({ requestUrl: request.url, payload: result, error: null });
-        if (result.pagination.page !== page) {
-          dispatchControls({ type: 'page', page: result.pagination.page });
-        }
-      })
-      .catch(requestError => {
-        if (requestError?.name !== 'AbortError') {
-          setRequestState({
-            requestUrl: request.url,
-            payload: null,
-            error: requestError instanceof Error ? requestError.message : 'Не удалось загрузить каталог',
-          });
-        }
-      });
-    return () => controller.abort();
-  }, [request.query, request.url, page]);
 
   const updateFilters = (patch: Partial<HeroFilters>) => {
     dispatchControls({ type: 'filters', patch });
   };
 
   const items = payload?.items ?? [];
+  const timeZone = useViewerTimeZone();
   return (
     <>
       {kind === 'heroes' && <HeroFiltersPanel filters={filters} onChange={updateFilters} />}
@@ -605,15 +584,15 @@ function CatalogView({
             {loading && <span>Обновляем…</span>}
           </div>
           <div className={`cosmetics-grid cosmetics-grid-${kind}`} aria-busy={loading}>
-            {kind === 'heroes' && (items as HeroSummary[]).map(item => (
-              <HeroSkinCard key={item.cardId} item={item} navigatePath={navigatePath} />
+            {kind === 'heroes' && (items as HeroSummary[]).map((item, index) => (
+              <HeroSkinCard key={item.cardId} item={item} navigatePath={navigatePath} index={index} />
             ))}
-            {kind === 'coins' && (items as CoinSummary[]).map(item => (
-              <CoinCard key={item.cardId} item={item} navigatePath={navigatePath} />
+            {kind === 'coins' && (items as CoinSummary[]).map((item, index) => (
+              <CoinCard key={item.cardId} item={item} navigatePath={navigatePath} index={index} />
             ))}
-            {kind === 'pets' && (items as PetFamily[]).flatMap(family => family.variants.map(item => (
-              <PetCard key={item.cardId} item={item} navigatePath={navigatePath} />
-            )))}
+            {kind === 'pets' && (items as PetFamily[]).flatMap(family => family.variants).map((item, index) => (
+              <PetCard key={item.cardId} item={item} navigatePath={navigatePath} index={index} />
+            ))}
           </div>
           {!loading && items.length === 0 && <EmptyState />}
           {(payload?.pagination.totalPages ?? 1) > 1 && (
@@ -639,7 +618,7 @@ function CatalogView({
       )}
       {payload && (
         <p className="cosmetics-source">
-          Источник: {payload.source} · обновлено {formatUpdatedAt(payload.updatedAt)}
+          Источник: {payload.source} · обновлено {formatUpdatedAt(payload.updatedAt, timeZone)}
         </p>
       )}
     </>
@@ -919,7 +898,7 @@ function DetailView({
   );
 }
 
-export default function Cosmetics({ currentPath, navigatePath, initialSearch, initialDetail }: CosmeticsProps) {
+export default function Cosmetics({ currentPath, navigatePath, initialSearch, initialDetail, initialCatalog }: CosmeticsProps) {
   const route = routeState(currentPath);
   const meta = KIND_META[route.kind];
   const search = initialSearch ?? (typeof window === 'undefined' ? '' : window.location.search);
@@ -936,7 +915,8 @@ export default function Cosmetics({ currentPath, navigatePath, initialSearch, in
       <section className="cosmetics-surface" aria-label="Каталог косметики Hearthstone">
         {route.cardId
           ? <DetailView kind={route.kind} cardId={route.cardId} navigatePath={navigatePath} initialDetail={initialDetail} />
-          : <CatalogView key={route.kind} kind={route.kind} navigatePath={navigatePath} initialSearch={search} />}
+          : <CatalogView key={route.kind} kind={route.kind} navigatePath={navigatePath} initialSearch={search}
+            initialCatalog={initialCatalog} />}
       </section>
     </div>
   );

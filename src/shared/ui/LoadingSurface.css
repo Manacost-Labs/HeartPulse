@@ -1,0 +1,82 @@
+/*
+ * The single loading state of a data section (LoadingSurface.tsx). It sits in
+ * the components layer, so the owning surface's own (unlayered) class can set
+ * the geometry of its content: reserve the same size, and a swap from loader
+ * to content does not move the page. Only views that render a loader load
+ * this file; the pulse keyframes are global (src/index.css).
+ */
+@layer components {
+  .loading-surface {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
+    color: var(--arena-muted-ink);
+  }
+
+  .loading-surface--panel {
+    min-block-size: var(--loading-surface-min-block, 154px);
+    padding: clamp(1rem, 3vw, 1.5rem);
+    border: 1px solid var(--arena-paper-line);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--arena-parchment-light) 58%, transparent);
+  }
+
+  .loading-surface__caption {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .loading-surface__caption strong {
+    color: var(--arena-ink);
+    font: 700 clamp(1rem, 2vw, 1.15rem) / 1.2 var(--font-display, Georgia, serif);
+  }
+
+  .loading-surface__blocks {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  /* Default blocks only: custom blocks take their size from their own class. */
+  .loading-block--line { block-size: 0.85rem; }
+  .loading-block--line:nth-child(2) { inline-size: 86%; }
+  .loading-block--line:nth-child(3) { inline-size: 62%; }
+  .loading-block--row { block-size: var(--loading-row-height, 3.5rem); }
+  .loading-block--tile { aspect-ratio: var(--loading-tile-ratio, 4 / 3); }
+
+  .loading-surface--grid .loading-surface__blocks {
+    grid-template-columns: repeat(auto-fill, minmax(var(--loading-tile-min, 10rem), 1fr));
+  }
+
+  .loading-block {
+    display: block;
+    border-radius: 4px;
+    background: var(--loading-fill);
+    animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
+  }
+
+  /* A data section that replaces a loader after the page has painted fades
+     in by opacity alone: no rise, so it neither repeats the entrance nor
+     moves anything. It is a transition from @starting-style, not an
+     animation, so the page entrance on the same element cannot restart it.
+     Never on a header, a likely largest paint or server-rendered content.
+     While the section refreshes it stays on screen, dimmed and aria-busy,
+     instead of turning back into a loader. */
+  .data-surface { transition: opacity var(--motion-base) var(--motion-ease); }
+  .data-surface[aria-busy="true"] { opacity: 0.62; }
+
+  @starting-style {
+    .data-arrive { opacity: 0.24; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loading-block { animation: none; }
+  }
+
+  @media (forced-colors: active) {
+    .loading-block { background: GrayText; }
+  }
+}

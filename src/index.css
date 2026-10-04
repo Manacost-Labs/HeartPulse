@@ -790,9 +790,12 @@
 
 /* ─── Keyframe animations ─────────────────────────────────────────────────── */
 
-@keyframes shimmer {
-  0%   { background-position: -400% 0; }
-  100% { background-position:  400% 0; }
+/* The one loading animation (src/shared/ui/LoadingSurface.tsx, .skeleton):
+   an opacity pulse on the placeholder itself, so the compositor runs it
+   without a repaint per frame. */
+@keyframes loading-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.55; }
 }
 
 /* ─── Utility classes ─────────────────────────────────────────────────────── */
@@ -851,16 +854,10 @@
     animation: route-content-enter var(--motion-base) var(--motion-ease) both;
   }
 
-  /* Skeleton shimmer */
+  /* Legacy skeleton block: the same fill and pulse as LoadingBlock. */
   .skeleton {
-    background: linear-gradient(
-      90deg,
-      rgba(196,164,106,0.3) 25%,
-      rgba(196,164,106,0.55) 50%,
-      rgba(196,164,106,0.3) 75%
-    );
-    background-size: 400% 100%;
-    animation: shimmer 2.4s ease-in-out infinite;
+    background: var(--loading-fill);
+    animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
     border-radius: 0.5rem;
   }
 

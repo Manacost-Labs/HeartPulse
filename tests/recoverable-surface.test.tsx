@@ -8,13 +8,21 @@ import {
   RecoverableSurfaceBoundary,
 } from '../src/features/recovery/RecoverableSurface';
 
+// Loading is the site-wide LoadingSurface, sized like the card it replaces.
 const loadingMarkup = renderToStaticMarkup(
   <AsyncSurfaceState variant="loading" title="Загружаем данные" message="Один момент" />,
 );
 assert.match(loadingMarkup, /role="status"/);
 assert.match(loadingMarkup, /aria-live="polite"/);
-assert.match(loadingMarkup, /aria-busy="true"/);
-assert.match(loadingMarkup, /data-recovery-state="loading"/);
+assert.doesNotMatch(loadingMarkup, /aria-busy/);
+assert.match(loadingMarkup, /data-loading-surface="panel"/);
+assert.match(loadingMarkup, /class="loading-surface loading-surface--panel recoverable-surface-loading"/);
+assert.match(loadingMarkup, /<strong>Загружаем данные<\/strong><span>Один момент<\/span>/);
+assert.doesNotMatch(loadingMarkup, /recoverable-surface__mark/);
+const compactLoadingMarkup = renderToStaticMarkup(
+  <AsyncSurfaceState variant="loading" title="Загружаем данные" compact className="extra" />,
+);
+assert.match(compactLoadingMarkup, /recoverable-surface-loading recoverable-surface-loading--compact extra/);
 
 const emptyMarkup = renderToStaticMarkup(
   <AsyncSurfaceState variant="empty" title="Ничего не найдено" compact />,

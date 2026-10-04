@@ -2,8 +2,10 @@ import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useSt
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import '../route-parchment.css';
+import '../shared/ui/LoadingSurface.css';
 import './StandardMatchups.css';
 import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
+import { LoadingSurface } from '../shared/ui/LoadingSurface';
 import { activeMatrixMatchupAt, type ActiveMatrixMatchup, useCloseMatrixMatchup,
   useTooltipViewportPosition } from './standardMatchupsTooltip';
 import type {
@@ -606,7 +608,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
           )}
 
           {loading && rows.length === 0 ? (
-            <div className="py-16 text-center text-[#7a5a35]">Загружаем матчапы...</div>
+            <LoadingSurface label="Загружаем матчапы" layout="rows" count={6} />
           ) : rows.length === 0 ? (
             <div className="py-16 text-center text-[#7a5a35]">Данные матчапов пока недоступны.</div>
           ) : (

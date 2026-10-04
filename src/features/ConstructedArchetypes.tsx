@@ -14,6 +14,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import '../route-parchment.css';
+import '../shared/ui/LoadingSurface.css';
 import './ConstructedArchetypes.css';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
@@ -25,6 +26,9 @@ import {
   AsyncSurfaceState,
   RecoverableSurfaceBoundary,
 } from './recovery/RecoverableSurface';
+import { LoadingSurface } from '../shared/ui/LoadingSurface';
+import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
+import { useSeededRequest } from './useSeededRequest';
 import {
   readInitialCatalogFilters,
   replaceCatalogUrl,
@@ -62,7 +66,7 @@ type ArchetypeItem = {
   sourceUrl: string;
 };
 
-type ArchetypeCatalog = {
+export type ArchetypeCatalog = {
   format: ArchetypeFormat;
   formatLabel: string;
   patch: string;
@@ -183,13 +187,14 @@ function formatNumber(value: number | null, suffix = '', maximumFractionDigits =
   return `${value.toLocaleString('ru-RU', { maximumFractionDigits })}${suffix}`;
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, timeZone?: string): string {
   if (!value || !Number.isFinite(Date.parse(value))) return 'Нет данных';
   return new Intl.DateTimeFormat('ru-RU', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone,
   }).format(new Date(value));
 }
 
@@ -201,13 +206,8 @@ function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutra
 }
 
 function LoadingState({ detail = false }: { detail?: boolean }) {
-  return (
-    <div className={`archetypes-loading${detail ? ' archetypes-loading--detail' : ''}`} aria-busy="true" aria-label="Загрузка архетипов">
-      <div className="archetypes-loading__bar" />
-      <div className="archetypes-loading__bar" />
-      <div className="archetypes-loading__bar" />
-    </div>
-  );
+  return <LoadingSurface label={detail ? 'Загружаем архетип' : 'Загружаем архетипы'} quiet layout="rows"
+    className={`archetypes-loading${detail ? ' archetypes-loading--detail' : ''}`} />;
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -314,44 +314,30 @@ type ArchetypeCatalogProps = {
   accessPending: boolean;
   initialSearch: string;
   embedded: boolean;
+  /** Server-rendered teaser: it answers a guest's first request; a subscriber keeps it on screen, busy, until the full catalog replaces it. */
+  initialCatalog: ArchetypeCatalog | null;
 };
 
-function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, initialSearch, embedded }: ArchetypeCatalogProps) {
+function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, initialSearch, embedded, initialCatalog }: ArchetypeCatalogProps) {
   const Root = embedded ? 'section' : 'main';
   const { format: initialFormat, classFilter: initialClass } = readInitialCatalogFilters(initialSearch, CLASS_FILTERS);
+  const seed = initialCatalog?.format === initialFormat ? initialCatalog : null;
   const [format, setFormat] = useState<ArchetypeFormat>(initialFormat);
   const [classFilter, setClassFilter] = useState<ArchetypeClassFilter>(initialClass);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [sort, setSort] = useState<SortKey>('games');
-  const [catalog, setCatalog] = useState<ArchetypeCatalog | null>(null);
+  const [arrivesLater] = useState(!seed);
   const [revision, setRevision] = useState(0);
   const requestKey = `${format}:${revision}:${hasFullAccess ? 'full' : 'teaser'}`;
-  const [resolvedRequestKey, setResolvedRequestKey] = useState('');
-  const [requestError, setRequestError] = useState<{ key: string; message: string } | null>(null);
-  const loading = resolvedRequestKey !== requestKey;
-  const error = requestError?.key === requestKey ? requestError.message : '';
-
-  useEffect(() => {
+  const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
+  const { data: catalog, loading, error } = useSeededRequest<ArchetypeCatalog>(requestKey, {
+    seed, seedKey: seed && !hasFullAccess ? `${seed.format}:0:teaser` : '',
     // Until the account is known the page cannot tell a teaser from full data.
-    if (accessPending) return undefined;
-    const controller = new AbortController();
-    const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
-    void apiJson<ArchetypeCatalog>(`${endpoint}?format=${format}`, controller.signal)
-      .then(setCatalog)
-      .catch(cause => {
-        if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
-          setRequestError({
-            key: requestKey,
-            message: cause instanceof Error ? cause.message : 'Не удалось загрузить каталог',
-          });
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setResolvedRequestKey(requestKey);
-      });
-    return () => controller.abort();
-  }, [format, revision, hasFullAccess, accessPending, requestKey]);
+    ready: !accessPending,
+    load: signal => apiJson<ArchetypeCatalog>(`${endpoint}?format=${format}`, signal),
+    fallbackError: 'Не удалось загрузить каталог',
+  });
 
   const selectFormat = (next: ArchetypeFormat) => {
     setFormat(next);
@@ -388,6 +374,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
 
   const totalGames = catalog?.items.reduce((sum, item) => sum + item.games, 0) ?? 0;
   const activeClassLabel = CLASS_FILTERS.find(item => item.id === classFilter)?.label ?? 'Все классы';
+  const timeZone = useViewerTimeZone();
 
   return (
     <Root className="archetypes-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
@@ -452,7 +439,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
         <div>
           <span className="archetypes-eyebrow"><BookOpenText size={14} /> Каталог</span>
           <strong>{catalog?.formatLabel ?? (format === 'standard' ? 'Стандарт' : 'Вольный')}</strong>
-          <small>Патч {catalog?.patch || '—'} · минимум {catalog?.minimumGames ?? 50} игр · обновлено {formatDate(catalog?.updatedAt ?? null)}</small>
+          <small>Патч {catalog?.patch || '—'} · минимум {catalog?.minimumGames ?? 50} игр · обновлено {formatDate(catalog?.updatedAt ?? null, timeZone)}</small>
         </div>
         <label className="archetypes-search" data-tour-id="archetypes-search">
           <Search size={18} aria-hidden="true" />
@@ -468,7 +455,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
         </label>
       </section>
 
-      {loading && <LoadingState />}
+      {loading && !catalog && <LoadingState />}
       {!loading && error && <ErrorState message={error} onRetry={() => setRevision(value => value + 1)} />}
       {!loading && !error && items.length === 0 && (
         <AsyncSurfaceState
@@ -483,8 +470,8 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
           className="archetypes-state"
         />
       )}
-      {!loading && !error && items.length > 0 && (
-        <section className="archetypes-ledger" aria-label={`Архетипы: ${catalog?.formatLabel}`}>
+      {(!loading || catalog) && !error && items.length > 0 && (
+        <section className={`archetypes-ledger data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label={`Архетипы: ${catalog?.formatLabel}`} aria-busy={loading}>
           <header className="archetypes-ledger__header" data-tour-id="archetypes-results">
             <span>{items.length} архетипов со сборками</span>
             <span>Нажмите на строку, чтобы открыть подробную страницу</span>
@@ -737,6 +724,7 @@ export default function ConstructedArchetypes({
   navigatePath = path => window.location.assign(path),
   initialSearch = typeof window === 'undefined' ? '' : window.location.search,
   initialDetail = null,
+  initialCatalog = null,
   embedded = false,
   hasFullAccess = true,
   accessPending = false,
@@ -746,6 +734,7 @@ export default function ConstructedArchetypes({
   navigatePath?: (path: string) => void;
   initialSearch?: string;
   initialDetail?: ArchetypeDetail | null;
+  initialCatalog?: ArchetypeCatalog | null;
   embedded?: boolean;
   hasFullAccess?: boolean;
   accessPending?: boolean;
@@ -765,7 +754,7 @@ export default function ConstructedArchetypes({
       />
     )
     : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} accessPending={accessPending}
-      initialSearch={initialSearch} embedded={embedded} />;
+      initialSearch={initialSearch} embedded={embedded} initialCatalog={initialCatalog} />;
   return (
     <RecoverableSurfaceBoundary scope="constructed-archetypes">
       {content}

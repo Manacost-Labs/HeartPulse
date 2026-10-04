@@ -165,7 +165,10 @@
         "tests/web-vitals-dimensions.test.ts",
         "tests/motion-tokens.test.mjs",
         "tests/scroll-behavior.test.ts",
-        "tests/content-card-hover.test.mjs"
+        "tests/content-card-hover.test.mjs",
+        "tests/loading-keyframes.test.mjs",
+        "tests/loading-surface.test.tsx",
+        "tests/next-public-first-paint-loaders.test.ts"
       ]
     },
     {
@@ -386,6 +389,7 @@
         "tests/next-cards-browser.test.mjs",
         "tests/next-account-surface-browser.test.mjs",
         "tests/next-soft-paywall-requests-browser.test.mjs",
+        "tests/next-first-paint-data-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",
         "tests/next-admin-archetypes-browser.test.mjs",
         "tests/next-not-found-browser.test.mjs",

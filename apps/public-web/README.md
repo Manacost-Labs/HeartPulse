@@ -33,6 +33,7 @@ behind its `public.ts`, not in `src/features/`.
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
+| `lib/publicFirstPaintRead.ts` | `readFirstPaintJson()`: a server read that only improves the first paint; `null` after 600 ms or on any failure, so the page falls back to its browser request |
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
 | `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, and the home page's `Cache-Control` |
 | `documentCaching.mjs` | Which public documents send `private, no-cache` instead of `no-store` (`next.config.mjs` `headers()`) |
@@ -44,7 +45,12 @@ behind its `public.ts`, not in `src/features/`.
   (for example `@/src/modules/subscriptions/public`). Never `../`, never
   `server/`. `tests/next-import-paths.test.mjs` enforces this.
 - Server components fetch only anonymous public projections through
-  `fetchPublicExpress()`. Viewer-specific or paid data is requested in the
+  `fetchPublicExpress()`. A read that only puts data into the first paint
+  (the meta and fun-deck guest previews, the archetype catalog teaser, the
+  first cosmetics page) goes through `readFirstPaintJson()`: it never holds
+  the document longer than 600 ms and never fails it, and the page then loads
+  the same data in the browser. Seed the client state with exactly the
+  request the page would make, so it does not fetch it again. Viewer-specific or paid data is requested in the
   browser from `/api/` via hooks and `usePublicAccess()`; it must never appear
   in server-rendered HTML. The one exception is `lib/adminAccess.ts`: it
   forwards the session cookie to a loopback-only Express origin to authorize
