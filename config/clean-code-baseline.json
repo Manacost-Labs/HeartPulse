@@ -61,7 +61,7 @@
       "src/features/BgLibrary.tsx": 1872,
       "src/features/ConstructedArchetypeAnalysis.tsx": 490,
       "src/features/ConstructedArchetypes.tsx": 777,
-      "src/features/constructedCardMedia.ts": 323,
+      "src/features/constructedCardMedia.ts": 314,
       "src/features/ContestAdminTranslations.tsx": 547,
       "src/features/ContestAdminUsers.tsx": 261,
       "src/features/Contests.tsx": 1755,

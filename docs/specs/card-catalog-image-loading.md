@@ -26,7 +26,7 @@
   `/api/card-image/<DBF>/thumb.webp` и `full.webp` вместо PNG 404×558 со
   стороннего `api.kolodahearthstone.com` (≈43 КБ против ≈90 КБ, без отдельного
   соединения). Строка, чей `dbf` не совпадает с числом в ID, оставляет свой
-  рендер (`constructedCardImageIdentity` в `src/features/constructedCardMedia.ts`);
+  рендер (`src/features/constructedCardImageIdentity.ts`);
 - размеры, aspect ratio, подписи и интерактивная область карточки не меняются;
 - первая строка получает `loading="eager"`; `fetchPriority="high"` есть
   только у первых двух карт (`CARD_GALLERY_HIGH_PRIORITY_COUNT`, самая узкая
