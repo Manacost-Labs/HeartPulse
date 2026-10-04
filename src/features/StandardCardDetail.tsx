@@ -25,7 +25,6 @@ import DeckListView, {
 } from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
-import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
   constructedClassIcon as classIcon,
@@ -68,7 +67,7 @@ import {
   mergeConstructedTranslationSources,
 } from '../../shared/constructedCardTranslations';
 import {
-  cardName,
+  canonicalCardIdPath, cardName,
   mechanicLabel,
   navigateWithConstructedCardContext,
   number,
@@ -214,7 +213,7 @@ function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }
           const itemId = String(item?.card_id || item?.id || '').trim();
           const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
           const image = constructedGeneratedPoolCardImage(item);
-          const internalUrl = item?.can_open && itemId ? canonicalPagePath(constructedCardPath(format, itemId)) : '';
+          const internalUrl = item?.can_open && itemId ? canonicalCardIdPath(format, itemId) : '';
           const href = internalUrl
             ? constructedCardStatsUrl(internalUrl, { period, rank, statsFormat: format, defaultStatsFormat: format })
             : item?.url || undefined;

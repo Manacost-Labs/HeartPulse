@@ -115,6 +115,11 @@ export function cardPath(format: CardFormat, card: CardRecord): string {
   return canonicalPagePath(constructedCardPath(format, card.card_id));
 }
 
+/** A card page path in its canonical trailing-slash form, from the card id alone. */
+export function canonicalCardIdPath(format: CardFormat, cardId: string): string {
+  return canonicalPagePath(constructedCardPath(format, cardId));
+}
+
 export function navigateWithConstructedCardContext(
   navigatePath: (path: string) => void,
   pathname: string,

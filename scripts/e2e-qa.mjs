@@ -3466,7 +3466,7 @@ for (const [device, viewport] of [
         setMetricLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('Дополнение')).length,
         defaultSort: document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() || '',
         rarity: document.querySelector('.constructed-cards__gallery-card')?.getAttribute('data-rarity') || '',
-        rarityGlow: getComputedStyle(document.querySelector('.constructed-cards__gallery-card'), '::before').backgroundImage,
+        rarityGlow: getComputedStyle(document.querySelector('.constructed-cards__gallery-card'), '::before').backgroundColor,
         hoverTransition: getComputedStyle(document.querySelector('.constructed-cards__gallery-card')).transitionDuration,
         advancedToggleHeight: document.querySelector('.constructed-cards__advanced-toggle')?.getBoundingClientRect().height || 0,
         advancedFiltersVisible: getComputedStyle(document.querySelector('.constructed-cards__secondary-controls')).display !== 'none',
@@ -3478,7 +3478,7 @@ for (const [device, viewport] of [
       || constructedCardsState.formatControls !== 1 || constructedCardsState.setMetricLabels !== 8 || constructedCardsState.defaultSort !== 'Новые дополнения'
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
       || !constructedCardsState.secondaryLabels.includes('Класс') || !constructedCardsState.secondaryLabels.includes('Дополнение')
-      || !constructedCardsState.rarity || !constructedCardsState.rarityGlow.includes('radial-gradient') || constructedCardsState.hoverTransition === '0s'
+      || !constructedCardsState.rarity || /^(rgba\(0, 0, 0, 0\)|transparent|)$/.test(constructedCardsState.rarityGlow) || constructedCardsState.hoverTransition === '0s'
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
       || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44
         || constructedCardsState.advancedToggleHeight < 44 || constructedCardsState.advancedFiltersVisible))) {
@@ -3600,6 +3600,8 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/constructed-cards-table-${device}.png`, fullPage: false });
     await page.click('.constructed-cards__view button:first-child');
+    // The gallery renders from a deferred value, a moment after the toggle.
+    await page.waitForSelector('.constructed-cards__gallery-card-link');
     await page.$eval('.constructed-cards__gallery-card-link', element => element.click());
     await page.waitForSelector('.constructed-card-detail__hero');
     await page.waitForSelector('.constructed-card-detail__pool-toggle');
