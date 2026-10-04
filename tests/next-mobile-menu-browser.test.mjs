@@ -82,16 +82,25 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await page.evaluate(() => document.querySelector('script[type="speculationrules"]').remove());
 
     // After hydration React owns the state: open drops in, close lifts out
-    // (still on screen for the exit, then gone), Escape returns focus. Sampled
-    // in the page two frames after each change, so a slow runner cannot miss
-    // the short transitions.
-    const sampleAfter = change => page.evaluate(async action => {
+    // (still on screen for the exit, then gone), Escape returns focus. The
+    // state is read when the opacity transition starts (`transitionrun`), not
+    // after a number of frames: a slow runner can finish a 90 ms exit first.
+    const sampleAfter = change => page.evaluate(action => {
       const menu = document.querySelector('#arena-mobile-menu');
+      const read = fading => ({ open: menu.matches(':popover-open'), display: getComputedStyle(menu).display, fading });
+      const started = new Promise(resolve => {
+        const timer = setTimeout(() => { menu.removeEventListener('transitionrun', onRun); resolve(read(false)); }, 3000);
+        function onRun(event) {
+          if (event.target !== menu || event.propertyName !== 'opacity') return;
+          clearTimeout(timer);
+          menu.removeEventListener('transitionrun', onRun);
+          resolve(read(true));
+        }
+        menu.addEventListener('transitionrun', onRun);
+      });
       if (action === 'open') document.querySelector('.arena-mobile-nav-toggle').click();
       else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      return { open: menu.matches(':popover-open'), display: getComputedStyle(menu).display,
-        fading: document.getAnimations().some(animation => animation.effect?.target === menu && animation.transitionProperty === 'opacity') };
+      return started;
     }, change);
     assert.deepEqual(await sampleAfter('open'), { open: true, display: 'grid', fading: true }, 'the drawer drops in');
     await waitForDrawer(page, { open: true, shown: true, backdrop: true, expanded: 'true', locked: 'fixed' });
