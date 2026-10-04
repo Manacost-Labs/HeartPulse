@@ -53,8 +53,9 @@
   border: 1px solid rgba(248, 208, 109, 0.18);
   content: '';
   pointer-events: none;
-  will-change: opacity;
-  animation: site-page-hero-sheen 12s ease-in-out infinite alternate;
+  /* A still frame: a breathing loop here kept every idle page with a banner
+     drawing 60 frames a second for a line whose alpha moved by 0.07. */
+  opacity: 0.55;
 }
 
 :is(.traditional-mode-banner__copy, .constructed-cards__header > div) {
@@ -225,13 +226,6 @@
   :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern) {
     scroll-behavior: auto;
   }
-
-  :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::after { animation: none; }
-}
-
-@keyframes site-page-hero-sheen {
-  from { opacity: 0.35; }
-  to { opacity: 0.75; }
 }
 
 .section-banner-modern {

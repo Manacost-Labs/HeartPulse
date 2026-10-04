@@ -305,6 +305,8 @@ Rules:
   `--motion-instant` with `--motion-ease-exit` where they stay in the page
   (transitions with `@starting-style` and `allow-discrete`); a menu that
   mounts on open uses the shared `surface-enter` keyframes.
+- No endless animation on a page banner or other always-visible decoration:
+  an idle page draws no frames.
 - Prefer `opacity`, `translate`, `transform` and background-position.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.

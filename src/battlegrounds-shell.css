@@ -49,4 +49,9 @@
     linear-gradient(rgba(249, 232, 191, 0.9), rgba(234, 211, 160, 0.9)),
     url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat !important;
   box-shadow: none !important;
+  /* The opaque parchment hides the shell's utility blur, which still costs a
+     full-box backdrop pass on every composited frame. This file is not
+     autoprefixed, hence the WebKit line for iOS Safari 17 and older. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }

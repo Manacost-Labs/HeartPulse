@@ -800,11 +800,6 @@
   100% { background-position:  400% 0; }
 }
 
-@keyframes subtleArtDrift {
-  0%, 100% { transform: scale(1.02) translate3d(0, 0, 0); }
-  50%      { transform: scale(1.045) translate3d(0, 8px, 0); }
-}
-
 /* ─── Utility classes ─────────────────────────────────────────────────────── */
 
 @layer utilities {
@@ -1170,12 +1165,6 @@
     color: #52667f;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .section-banner-modern::before {
-      animation: none !important;
-    }
-  }
-
   .arena-app-shell:not(.arena-app-game-data) .arena-content h1,
   .arena-app-shell:not(.arena-app-game-data) .arena-content h2,
   .arena-app-shell:not(.arena-app-game-data) .arena-content h3,
@@ -1220,12 +1209,6 @@
 
   .section-banner-modern p {
     color: #bfdbfe !important;
-  }
-
-  .section-banner-modern::before {
-    transform-origin: center bottom;
-    will-change: transform;
-    animation: subtleArtDrift 18s ease-in-out infinite;
   }
 
 }

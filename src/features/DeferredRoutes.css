@@ -831,10 +831,6 @@
     animation-delay: 0ms !important;
   }
 
-  .section-banner-modern::before {
-    animation: none !important;
-  }
-
   .article-image-fallback {
     color: #93c5fd !important;
   }

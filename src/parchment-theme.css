@@ -742,6 +742,7 @@
     border-radius: 0;
     box-shadow: none;
     filter: none;
+    -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 

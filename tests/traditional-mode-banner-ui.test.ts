@@ -30,7 +30,8 @@ const stylesheet = readFileSync(
 assert.match(stylesheet, /profile-hero-hth\.webp/);
 assert.match(stylesheet, /main-page-rail-border\.png/);
 assert.match(stylesheet, /var\(--site-page-hero-min-height\)/);
-assert.match(stylesheet, /hero-sheen/);
+assert.doesNotMatch(stylesheet, /animation[^;{}]*\binfinite\b/, 'page banners must not run endless animations on idle pages');
+assert.doesNotMatch(stylesheet, /will-change/, 'page banners keep no permanently promoted layer');
 assert.match(stylesheet, /@media \(max-width: 720px\)/);
 assert.match(stylesheet, /prefers-reduced-motion/);
 
