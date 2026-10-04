@@ -1,6 +1,7 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import GuidesArchive from '@/src/features/GuidesArchive';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
@@ -26,7 +27,7 @@ export function GuideArchiveDetailPageClient({ pathname, teaser }: { pathname: s
           </div>
         </header>
         {access.checking
-          ? <p className="guide-archive-loading" aria-busy="true">Проверяем доступ к гайду...</p>
+          ? <PaywallPending className="guide-archive-loading">Проверяем доступ к гайду...</PaywallPending>
           : <PaywallGate active title="Полный гайд доступен подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

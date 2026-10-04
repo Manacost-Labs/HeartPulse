@@ -1,15 +1,17 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
-import BgLibrary from '@/src/features/BgLibrary';
+import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import type { PublicBattlegroundLibraryCard } from '@/apps/public-web/lib/publicBattlegroundLibraryCardData';
 import { usePublicAccess } from './usePublicAccess';
+import { BgLibrary, loadBgLibrary, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
 export function BattlegroundLibraryDetailPageClient({ card }: { card: PublicBattlegroundLibraryCard }) {
   const access = usePublicAccess();
+  usePaidViewPrefetch(loadBgLibrary);
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'battlegrounds'));
   return <PublicPageShell activeTab="bg-library" pathname={card.canonicalPath}
     access={access} navigate={navigate} wide>
@@ -26,7 +28,7 @@ export function BattlegroundLibraryDetailPageClient({ card }: { card: PublicBatt
           <img src={card.image} alt="" width="180" height="240" decoding="async" />
         </header>
         {access.checking
-          ? <p aria-busy="true">Проверяем доступ к статистике карты...</p>
+          ? <PaywallPending>Проверяем доступ к статистике карты...</PaywallPending>
           : <PaywallGate active title="Статистика карты доступна подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

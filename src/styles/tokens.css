@@ -38,6 +38,8 @@
   --site-page-hero-title-leading: 1.05;
   --site-page-gutter: clamp(0.75rem, 2vw, 1.5rem);
   --site-page-width: 1480px;
+  /* The subscription gate's height; the access-check placeholder reserves it. */
+  --subscription-gate-min-height: 760px;
   --site-page-hero-padding-block: clamp(1.25rem, 2.5vw, 2rem);
   --site-page-hero-padding-inline: clamp(1rem, 2.5vw, 2rem);
 

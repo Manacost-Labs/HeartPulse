@@ -1619,10 +1619,9 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         <div className="flex flex-col items-center py-20 gap-5">
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-full border-4 border-[#a88a45]/20" />
-            <div className="absolute inset-0 rounded-full border-4 border-t-[#fcd34d] border-r-transparent border-b-transparent border-l-transparent"
-              style={{ animation: 'spin 1s linear infinite' }} />
-            <div className="absolute inset-2 rounded-full border-2 border-t-transparent border-r-[#a88a45]/60 border-b-transparent border-l-transparent"
-              style={{ animation: 'spin 0.7s linear infinite reverse' }} />
+            {/* Classes, not inline styles: the locked preview of PaywallGate stops them. */}
+            <div className="absolute inset-0 rounded-full border-4 border-t-[#fcd34d] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+            <div className="absolute inset-2 rounded-full border-2 border-t-transparent border-r-[#a88a45]/60 border-b-transparent border-l-transparent animate-[spin_0.7s_linear_infinite_reverse]" />
           </div>
           <p className="font-hs text-[#6b4c2a] text-xl tracking-wide">Загрузка тир-листа…</p>
           <p className="text-[#8b6c42] text-sm">Получаем данные из API статистики</p>

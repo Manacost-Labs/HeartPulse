@@ -4,6 +4,7 @@ import './page-transitions.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { ANALYTICS_LOADER } from '@/apps/public-web/lib/analyticsLoader';
+import { AUTH_PREFETCH } from '@/apps/public-web/lib/authPrefetch';
 import { PAGE_ENTRANCE } from '@/apps/public-web/lib/pageEntrance';
 import { SPECULATION_RULES } from '@/apps/public-web/lib/speculationRules';
 import { FieldFocusMode } from '@/apps/public-web/ui/FieldFocusMode';
@@ -43,6 +44,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return <html lang="ru" suppressHydrationWarning><head>
     <link rel="expect" href="#route-content-start" blocking="render" />
     <script dangerouslySetInnerHTML={{ __html: PAGE_ENTRANCE }} />
+    <script dangerouslySetInnerHTML={{ __html: AUTH_PREFETCH }} />
   </head><body>
     {/* Inline and first: the switches must exist before any chunk hydrates. */}
     <script dangerouslySetInnerHTML={{ __html: `window.__ARENA_RUNTIME_CONFIG__=${runtimeConfig}` }} />

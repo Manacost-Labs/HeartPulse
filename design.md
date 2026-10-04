@@ -299,6 +299,9 @@ Rules:
   `.articles-page`) skip the rise, because their largest paint is a picture
   inside a section; the first article card also skips its card entrance.
 - Prefer `opacity`, `translate`, `transform` and background-position.
+- A locked paywall preview never animates: `PaywallGate.css` stops the
+  `.skeleton` shimmer and Tailwind `animate-*` loops inside it, so a loader
+  there takes a class, not an inline `animation` style.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.
 - A visual pass should add semantic root hooks rather than rewriting component state.
@@ -314,7 +317,12 @@ Rules:
 ## Performance
 
 - Reuse local compressed textures; do not add large remote runtime backgrounds.
-- Keep route-heavy BG code deferred.
+- Keep route-heavy BG code deferred: guests on a gated BG route load the gate,
+  not the paid view or its stylesheet (`apps/public-web/ui/lazyBattlegrounds.tsx`).
+- While access is checked, a gated page holds the gate's height
+  (`PaywallPending`), and a paid view keeps it while it mounts
+  (`.arena-paid-view`), so the footer does not jump when the gate or the paid
+  view arrives.
 - Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
 - Do not add JS for effects achievable in CSS.
 - Editorial covers load a `/api/article-cover?w=` WebP variant through

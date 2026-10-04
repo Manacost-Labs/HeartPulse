@@ -21,18 +21,21 @@ behind its `public.ts`, not in `src/features/`.
 | `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell with the site-wide head tags, analytics script and field focus mode; real 404 and the generic error page for every route |
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
-| `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
+| `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer; re-checks it on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
+| `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
 | `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
 | `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
 | `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays |
+| `lib/authPrefetch.ts` | Inline head script that starts the session check (`/api/auth/me`) while the document parses |
 | `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
-| `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes |
+| `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, and the home page's `Cache-Control` |
+| `documentCaching.mjs` | Which public documents send `private, no-cache` instead of `no-store` (`next.config.mjs` `headers()`) |
 <!-- markdownlint-enable MD013 -->
 
 ## Rules
@@ -121,7 +124,49 @@ behind its `public.ts`, not in `src/features/`.
   derived file was made.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
-  `.arena-paywall` markup for guests.
+  `.arena-paywall` markup for guests. While `usePublicAccess()` is still
+  checking, a full-page gate renders `PaywallPending`
+  (`src/components/PaywallPending.tsx`): it reserves the gate's height
+  (`--subscription-gate-min-height`), so the gate or the paid page replaces
+  it without moving the footer, and it holds no data. Do not give it the
+  `.arena-paywall` class, which QA reads as "the gate has rendered". Load a
+  paid view that a guest never sees on demand, so guests download only the
+  gate: `ui/lazyBattlegrounds.tsx` starts the download during the access
+  check of a remembered session and renders a loaded view directly, without
+  a Suspense boundary whose reveal throttle would delay it by about 300 ms,
+  inside `.arena-paid-view`, which keeps the gate's height around the view's
+  first render before its own data arrives.
+  `tests/next-bundle-budgets.test.mjs` checks that the Battlegrounds routes do
+  not load those views up front. A locked preview behind the gate keeps its
+  loaders still (`PaywallGate.css`): give a loader a class, not an inline
+  `animation` style, or it loops for the whole visit.
+- Anonymous public documents send `Cache-Control: private, no-cache`
+  (`documentCaching.mjs`, applied by `next.config.mjs` and, for `/`, by
+  `proxy.ts`), so Back restores them from the back/forward cache instead of
+  reloading them; every normal visit still revalidates, and no shared cache
+  stores them. Add a new public route family there only if its server
+  modules read no cookies (`tests/next-document-caching.test.mjs`); anything
+  not listed keeps the header Next chooses (`no-store` on dynamic pages), as
+  `/?login`, `/admin/`, `/deck-builder/`, `/archetypes/`, `/id/`,
+  `/profiles/` and the `503` of `proxy.ts` do; Nginx forces `no-store` on the
+  account and admin locations as well. A `404` or `500` inside a listed
+  family carries the same header: it is never restored from the
+  back/forward cache, but Back can show it from the HTTP cache until the
+  visitor reloads. Every server answer about the viewer is recorded in this
+  browser (`ui/restoredPageAccess.ts`); a restored page that shows another
+  viewer than the last recorded one hides it and any paid view synchronously
+  before it checks the session, and a re-check that cannot reach the server
+  hides as well. A view that keeps viewer data must derive it from the
+  current viewer in render, not in an effect. Plausible counts no new
+  pageview for a restored page. The contract and its remaining gap are in
+  `docs/specs/public-document-caching.md`;
+  `tests/next-bfcache-browser.test.mjs` checks the headers, restores,
+  sign-out and an account switch followed by Back. Production Nginx still
+  adds `no-store` to `/` (see `docs/runbooks/nextjs-production-cutover.md`).
+- `lib/authPrefetch.ts` starts `/api/auth/me` from the document head; the
+  first `fetchCurrentAuthUser()` call adopts that response once, within ten
+  seconds, and every later call fetches. A page that never checks the session
+  wastes one small request.
 - Titles, descriptions, indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
   `config/public-seo-pages.json`; do not hand-write them in a page. A registry
@@ -186,7 +231,9 @@ behind its `public.ts`, not in `src/features/`.
    `tests/nginx-html-routing.test.mjs`; add it to
    `apps/public-web/routeOwnership.mjs` so the local gateway and the Next test
    pilot route it to Next too. Activating an Nginx change in production
-   follows `docs/runbooks/nextjs-production-cutover.md`.
+   follows `docs/runbooks/nextjs-production-cutover.md`. An anonymous public
+   page of a new route family also goes into `documentCaching.mjs` and
+   `tests/next-document-caching.test.mjs`.
 5. Add `tests/next-<route>-browser.test.mjs` using
    `startPublicCardPilot({ pagesEnabled: true })` from
    `tests/helpers/publicCardPilot.mjs`, and register it in

@@ -2267,12 +2267,6 @@
   box-shadow: 0 16px 28px rgba(65, 35, 17, 0.16) !important;
 }
 
-.arena-app-bg-strategies .arena-content.arena-content-open,
-.arena-app-bg-tier-builder .arena-content.arena-content-open {
-  max-width: none !important;
-  padding-inline: clamp(0.35rem, 0.8vw, 0.8rem) !important;
-}
-
 .arena-app-battlegrounds .bg-builder-page .strategy-builder-page,
 .arena-app-battlegrounds .strategy-builder-page.bg-builder-page {
   border-radius: 0.3rem !important;
@@ -2531,10 +2525,6 @@
 }
 
 @media (max-width: 720px) {
-  .arena-app-battlegrounds .arena-content.arena-content-open {
-    padding-inline: 0.55rem !important;
-  }
-
   .arena-app-battlegrounds .bg-heroes-tools__legend {
     align-items: flex-start;
     flex-direction: column;

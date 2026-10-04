@@ -1,16 +1,18 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
-import BgLibrary from '@/src/features/BgLibrary';
+import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { BgLibrary, loadBgLibrary, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
 export function BattlegroundLibraryPageClient({ pathname, heading, description }: {
   pathname: string; heading: string; description: string;
 }) {
   const access = usePublicAccess();
+  usePaidViewPrefetch(loadBgLibrary);
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'battlegrounds'));
   return <PublicPageShell activeTab="bg-library" pathname={pathname}
     access={access} navigate={navigate} wide>
@@ -23,7 +25,7 @@ export function BattlegroundLibraryPageClient({ pathname, heading, description }
           <p className="mt-2 max-w-3xl text-sm text-[#5e708a]">{description}</p>
         </header>
         {access.checking
-          ? <p aria-busy="true">Проверяем доступ к библиотеке...</p>
+          ? <PaywallPending>Проверяем доступ к библиотеке...</PaywallPending>
           : <PaywallGate active title="Библиотека Полей сражений доступна подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

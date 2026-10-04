@@ -9,7 +9,9 @@ export function ContestsPageClient({ initialContests }: { initialContests: Conte
   const access = usePublicAccess();
   return <PublicPageShell activeTab="contests" pathname="/contests/" access={access}
     navigate={navigate} editorial>
-    <ContestsPage initialContests={initialContests} authUser={access.user}
+    {/* Entries are the viewer's own: another viewer, or none while access is
+        checked again, starts from the public list. */}
+    <ContestsPage key={access.user?.id ?? 'guest'} initialContests={initialContests} authUser={access.user}
       subscriptionStatus={access.subscription} subscriptionLoading={access.checking}
       onRefreshSubscription={access.refresh} />
   </PublicPageShell>;

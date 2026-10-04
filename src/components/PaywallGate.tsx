@@ -73,7 +73,7 @@ export default function PaywallGate({
     );
   }
   return (
-    <div className="arena-paywall" style={{ position: 'relative', minHeight: 760, paddingBottom: 48 }}>
+    <div className="arena-paywall" style={{ position: 'relative', minHeight: 'var(--subscription-gate-min-height)', paddingBottom: 48 }}>
       <div
         aria-hidden="true"
         inert

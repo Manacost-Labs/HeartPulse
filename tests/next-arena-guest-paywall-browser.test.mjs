@@ -18,6 +18,14 @@ test('Next Arena pages show the shared subscription paywall to guests', async ()
         .catch(() => assert.fail(`${path} must render the shared paywall for a guest`));
       assert.equal(await page.$$eval('.arena-paywall', nodes => nodes.length), 1,
         `${path} must render exactly one paywall`);
+      // A guest's preview never loads; its blurred loaders must not loop for the whole visit.
+      const preview = await page.$eval('.arena-paywall__preview', node => ({
+        loaders: node.querySelectorAll('.skeleton, [class*="animate-"]').length,
+        running: document.getAnimations().filter(animation => animation.playState === 'running'
+          && node.contains(animation.effect?.target)).map(animation => animation.animationName),
+      }));
+      assert.ok(preview.loaders > 0, `${path} preview must still hold its loading state`);
+      assert.deepEqual(preview.running, [], `${path} must not loop animations inside the locked preview`);
       await page.close();
     }
   } finally {
