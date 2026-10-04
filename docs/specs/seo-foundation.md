@@ -73,8 +73,6 @@ This slice must not open private API responses to indexing or shared caches.
 
 ## Open questions for the next slice
 
-- Measure whether article-cover originals should gain server-side responsive
-  formats rather than relying only on browser sizing.
 - Decide which legacy internal links can move from redirects to direct
   canonical URLs without affecting saved content.
 - Use Search Console data to prioritize title and landing-page improvements.
