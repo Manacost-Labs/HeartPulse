@@ -44,7 +44,24 @@ export function viewerState(user: AuthUser | null, subscription: SubscriptionSta
 export function recordVerifiedViewer(state: string): void {
   try {
     localStorage.setItem(VERIFIED_VIEWER_KEY, state);
-  } catch { /* Storage may be disabled; a restored page then always hides. */ }
+  } catch {
+    // A failed write must not leave the previous viewer's record behind; with
+    // no record a restored page always hides.
+    try { localStorage.removeItem(VERIFIED_VIEWER_KEY); } catch { /* storage disabled */ }
+  }
+}
+
+const accountOf = (value: string | null) => value?.split(':')[0];
+
+/**
+ * Records a subscription answer. It can arrive after another tab ended this
+ * account's session and signed someone else in, so it only refines the record
+ * while that still names the same account; a guest record is never upgraded.
+ */
+export function recordVerifiedGrants(state: string): void {
+  const recorded = verifiedViewer();
+  if (recorded === null || recorded === GUEST_VIEWER || accountOf(recorded) !== accountOf(state)) return;
+  recordVerifiedViewer(state);
 }
 
 /**
@@ -55,8 +72,7 @@ export function recordVerifiedViewer(state: string): void {
  */
 export function recordVerifiedAccount(user: AuthUser | null): void {
   const state = viewerState(user, null);
-  const account = (value: string | null) => value?.split(':')[0];
-  if (user && account(verifiedViewer()) === account(state)) return;
+  if (user && accountOf(verifiedViewer()) === accountOf(state)) return;
   recordVerifiedViewer(state);
 }
 

@@ -164,6 +164,25 @@ test('Back restores public pages from the back/forward cache and never shows a s
     assert.equal(await guest.evaluate(() => scrollY), 600, 'the restored page keeps its scroll position');
     await guest.close();
 
+    // A phone visitor who leaves through the open menu comes back to a closed,
+    // scrollable page, not to the menu the document was left with.
+    const phone = await browser.newPage();
+    await phone.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await phone.goto(`${gateway.origin}/tierlist/`, { waitUntil: 'load' });
+    await phone.click('button[aria-controls="arena-mobile-menu"]');
+    await phone.waitForSelector('#arena-mobile-menu');
+    await watchRestore(phone);
+    await follow(phone, '/classes/');
+    await back(phone);
+    const phoneState = await restoredState(phone);
+    assert.equal(phoneState.marker, true, 'the phone page must be restored');
+    assert.deepEqual(await phone.evaluate(() => ({
+      menu: Boolean(document.querySelector('#arena-mobile-menu')),
+      expanded: document.querySelector('button[aria-controls="arena-mobile-menu"]')?.getAttribute('aria-expanded'),
+      locked: getComputedStyle(document.body).overflow === 'hidden' || getComputedStyle(document.body).position === 'fixed',
+    })), { menu: false, expanded: 'false', locked: false });
+    await phone.close();
+
     // A subscriber's restored page keeps the paid view: nothing changed in between.
     const { page: reader, pageErrors } = await openReader(browser, gateway.origin, 'reader');
     await follow(reader, '/classes/');

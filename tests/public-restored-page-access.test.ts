@@ -12,7 +12,7 @@ const storage = {
 };
 Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true });
 
-const { GUEST_VIEWER, recordVerifiedAccount, recordVerifiedViewer, restoredPageMustHideViewer, verifiedViewer, viewerState } =
+const { GUEST_VIEWER, recordVerifiedAccount, recordVerifiedGrants, recordVerifiedViewer, restoredPageMustHideViewer, verifiedViewer, viewerState } =
   await import('../apps/public-web/ui/restoredPageAccess.ts');
 
 const alpha = { id: 'alpha', email: 'alpha@example.test', name: 'Альфа', role: 'user' };
@@ -62,6 +62,29 @@ assert.equal(verifiedViewer(), null);
 assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
 storageBroken = false;
 
+// A late subscription answer for A (another tab meanwhile ended A's session
+// and signed B in) must not overwrite B's record: grants are written only
+// while the record still names the same account.
+recordVerifiedAccount(beta);
+recordVerifiedGrants(viewerState(alpha, subscribed));
+assert.equal(verifiedViewer(), viewerState(beta, null));
+assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
+recordVerifiedGrants(viewerState(beta, subscribed));
+assert.equal(verifiedViewer(), viewerState(beta, subscribed));
+recordVerifiedAccount(null);
+recordVerifiedGrants(viewerState(beta, subscribed));
+assert.equal(verifiedViewer(), GUEST_VIEWER, 'a guest record is never upgraded by a late answer');
+
+// A write that fails (quota, privacy mode) must not leave the previous
+// viewer's record behind: it is removed, so a restored page hides.
+recordVerifiedViewer(viewerState(alpha, subscribed));
+const setItem = storage.setItem;
+storage.setItem = () => { throw new Error('QuotaExceededError'); };
+recordVerifiedAccount(beta);
+storage.setItem = setItem;
+assert.equal(verifiedViewer(), null);
+assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
+
 // A guest page shows nothing private; it only re-checks.
 assert.equal(restoredPageMustHideViewer(GUEST_VIEWER, viewerState(beta, subscribed)), false);
 
@@ -75,7 +98,8 @@ assert.match(accessSource, /restoredPageMustHideViewer\(shownViewer\.current, ve
 assert.match(accessSource, /flushSync\(\(\) => \{\s*showUser\(null\);\s*setSubscription\(null\);\s*setChecking\(true\);\s*\}\);\s*void verifySession\(\);/);
 assert.equal((accessSource.match(/recordVerifiedAccount\(current\);/g) ?? []).length, 2,
   'every session answer and every sign-in or sign-out records the viewer');
-assert.match(accessSource, /recordVerifiedViewer\(viewerState\(current, value\)\);\s*setSubscription\(value\);/);
+assert.match(accessSource, /recordVerifiedGrants\(viewerState\(current, value\)\);\s*setSubscription\(value\);/);
+assert.doesNotMatch(accessSource, /recordVerifiedViewer\(/, 'subscription answers write grants only for the recorded account');
 assert.match(accessSource, /if \(quiet\) \{\s*showUser\(null\);\s*setSubscription\(null\);\s*\}/);
 
 // Viewer-specific parts of public pages follow the viewer in the same render,

@@ -7,7 +7,7 @@ import {
 } from '@/src/modules/identity/public';
 import { hasSubscriptionEntitlement, type SubscriptionStatus } from '@/src/modules/subscriptions/public';
 import {
-  GUEST_VIEWER, recordVerifiedAccount, recordVerifiedViewer, restoredPageMustHideViewer, verifiedViewer, viewerState,
+  GUEST_VIEWER, recordVerifiedAccount, recordVerifiedGrants, restoredPageMustHideViewer, verifiedViewer, viewerState,
 } from './restoredPageAccess';
 
 const sameAccount = (left: AuthUser | null, right: AuthUser | null) =>
@@ -38,7 +38,7 @@ export function usePublicAccess() {
         .then(response => response.ok ? response.json() as Promise<SubscriptionStatus> : null)
         .then(value => {
           setSubscription(value);
-          if (sameAccount(shownUser.current, current)) recordVerifiedViewer(viewerState(current, value));
+          if (sameAccount(shownUser.current, current)) recordVerifiedGrants(viewerState(current, value));
         })
         .catch(() => setSubscription(null));
     }
@@ -46,7 +46,7 @@ export function usePublicAccess() {
   const refresh = useCallback(async () => {
     const response = await fetch('/api/subscription/refresh', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Request': '1' } });
     const value: SubscriptionStatus | null = response.ok ? await response.json() : null;
-    if (response.ok && shownUser.current) recordVerifiedViewer(viewerState(shownUser.current, value));
+    if (response.ok && shownUser.current) recordVerifiedGrants(viewerState(shownUser.current, value));
     setSubscription(value); return value;
   }, []);
   useEffect(() => {
@@ -79,7 +79,7 @@ export function usePublicAccess() {
           }
           const value: SubscriptionStatus | null = response.ok ? await response.json() : null;
           if (superseded()) return;
-          recordVerifiedViewer(viewerState(current, value));
+          recordVerifiedGrants(viewerState(current, value));
           setSubscription(value);
         }
       } catch {

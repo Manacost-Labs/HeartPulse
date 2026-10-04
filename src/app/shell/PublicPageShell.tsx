@@ -1,5 +1,5 @@
-import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
-import { preload } from 'react-dom';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { flushSync, preload } from 'react-dom';
 import { usePublicMenuFocus } from './usePublicMenuFocus';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
 import { PublicNavigation } from './PublicNavigation';
@@ -50,6 +50,20 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   usePublicMenuFocus(menu, menuRef, toggleRef, setMenu);
   usePageScrollLock(menu);
+  // Public pages can come back from the back/forward cache exactly as they
+  // were left. The menu closes as the page leaves (and again on a restore, in
+  // case the browser kept a frame from before), so Back never lands on an
+  // open, scroll-locked menu.
+  useEffect(() => {
+    const close = () => flushSync(() => setMenu(false));
+    const onShow = (event: PageTransitionEvent) => { if (event.persisted) close(); };
+    window.addEventListener('pagehide', close);
+    window.addEventListener('pageshow', onShow);
+    return () => {
+      window.removeEventListener('pagehide', close);
+      window.removeEventListener('pageshow', onShow);
+    };
+  }, []);
   const profile = <HeaderProfileButton user={access.user} checking={access.checking} />;
   return <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${surfaceClasses(activeTab, editorial, account)}`}>
     <a className="arena-skip-link" href="#main-content">К основному содержимому</a>
