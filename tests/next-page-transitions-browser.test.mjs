@@ -165,6 +165,10 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
       .map(rule => rule.eagerness);
     const eagerness = href => matching(rules.prerender, href);
     const prefetched = href => matching(rules.prefetch, href);
+    // The URL patterns alone: the sidebar rule also needs its selector, which
+    // only the browser evaluates (no sidebar link points at a detail page).
+    const prefetchedByUrl = href => matching(rules.prefetch
+      .filter(rule => !rule.where.and.some(clause => clause.selector_matches)), href);
     const eligible = href => eagerness(href).length > 0 || prefetched(href).length > 0;
     for (const href of ['/', '/faq/', '/tierlist/', '/standard/cards/', '/library/minions/', '/battlegrounds/tier-list/']) {
       assert.deepEqual(eagerness(href), ['moderate'], `${href} is prerendered on hover`);
@@ -176,7 +180,7 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
     for (const href of ['/standard/cards/standard/BE_013/', '/heroes/57893/', '/guides-archive/some-guide/',
       '/standard/archetypes/standard/qa-evenlock/', '/cosmetics/coins/123/', '/library/minions/brann/']) {
       assert.deepEqual(eagerness(href), [], `${href} is never prerendered`);
-      assert.deepEqual(prefetched(href), ['conservative'], `${href} fetches its HTML only when pressed`);
+      assert.deepEqual(prefetchedByUrl(href), ['conservative'], `${href} fetches its HTML only when pressed`);
     }
     for (const href of ['/?login', '/tierlist/?source=hsreplay', '/tierlist', '/admin/', '/admin/people/',
       '/connect/', '/r/tg-july/', '/id/12345/', '/api/v1/openapi.json', '/sitemap.xml', 'https://boosty.to/kolodahearthstone/']) {
