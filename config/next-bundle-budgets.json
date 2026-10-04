@@ -19,7 +19,7 @@
       "cssGzipBytes": 45056
     },
     "/standard/meta/": {
-      "jsGzipBytes": 179200,
+      "jsGzipBytes": 178176,
       "cssGzipBytes": 58368
     },
     "/standard/archetypes/": {
@@ -31,12 +31,12 @@
       "cssGzipBytes": 56320
     },
     "/standard/cards/": {
-      "jsGzipBytes": 221184,
-      "cssGzipBytes": 60416
+      "jsGzipBytes": 183296,
+      "cssGzipBytes": 50176
     },
     "/standard/cards/standard/": {
-      "jsGzipBytes": 221184,
-      "cssGzipBytes": 60416
+      "jsGzipBytes": 183296,
+      "cssGzipBytes": 50176
     },
     "/classes/": {
       "jsGzipBytes": 166912,
@@ -51,16 +51,16 @@
       "cssGzipBytes": 50176
     },
     "/heroes/": {
-      "jsGzipBytes": 199680,
-      "cssGzipBytes": 55296
+      "jsGzipBytes": 162816,
+      "cssGzipBytes": 41984
     },
     "/library/": {
-      "jsGzipBytes": 182272,
-      "cssGzipBytes": 52224
+      "jsGzipBytes": 163840,
+      "cssGzipBytes": 39936
     },
     "/library/minions/": {
-      "jsGzipBytes": 182272,
-      "cssGzipBytes": 52224
+      "jsGzipBytes": 163840,
+      "cssGzipBytes": 39936
     },
     "/battlegrounds/tier-list/": {
       "jsGzipBytes": 162816,
