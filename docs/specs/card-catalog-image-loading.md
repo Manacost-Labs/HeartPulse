@@ -21,6 +21,12 @@
 - full-size остаётся текущим WebP quality 90 шириной до 512 px без увеличения
   исходника;
 - ссылка скачивания и hover/focus prefetch продолжают использовать full-size;
+- карта с ID `blizzard:<DBF>` (вышла раньше, чем HearthstoneJSON дал ей
+  каноничный ID) берёт рендер того же конвейера по DBF:
+  `/api/card-image/<DBF>/thumb.webp` и `full.webp` вместо PNG 404×558 со
+  стороннего `api.kolodahearthstone.com` (≈43 КБ против ≈90 КБ, без отдельного
+  соединения). Строка, чей `dbf` не совпадает с числом в ID, оставляет свой
+  рендер (`constructedCardImageIdentity` в `src/features/constructedCardMedia.ts`);
 - размеры, aspect ratio, подписи и интерактивная область карточки не меняются;
 - первая строка получает `loading="eager"` и `fetchPriority="high"`;
 - остальные изображения получают реальный `src` только на расстоянии 320 px
