@@ -62,6 +62,9 @@ const sanitizedMetric = redactSentryMetric({
     navigation_type: 'navigate',
     edge_region: 'ru-moscow',
     client_region: 'russia',
+    route: '/standard/cards/[format]/[cardId]/',
+    device: 'mobile',
+    lcp_target: 'img.constructed-card-detail__visual-button',
     url: 'https://arena.hs-manacost.ru/admin?token=secret',
     user_id: '42',
   },
@@ -71,6 +74,9 @@ assert.deepEqual(sanitizedMetric.attributes, {
   navigation_type: 'navigate',
   edge_region: 'ru-moscow',
   client_region: 'russia',
+  route: '/standard/cards/[format]/[cardId]/',
+  device: 'mobile',
+  lcp_target: 'img.constructed-card-detail__visual-button',
 });
 
 console.log('Sentry privacy tests passed');

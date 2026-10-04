@@ -5,6 +5,9 @@ const SAFE_METRIC_ATTRIBUTE_KEYS = new Set([
   'navigation_type',
   'edge_region',
   'client_region',
+  'route',
+  'device',
+  'lcp_target',
 ]);
 
 export type SentryEventLike = {

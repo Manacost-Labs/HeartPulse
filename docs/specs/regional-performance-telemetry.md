@@ -19,6 +19,26 @@ boundary:
 An unexpected, duplicated, or missing value becomes `unknown`. Cardinality is
 fixed; arbitrary header contents never become metric attributes.
 
+## Page dimensions
+
+The browser also reports, per batch and per LCP value, dimensions derived by
+`shared/webVitalsDimensions.ts`:
+
+- `route`: the Next.js page template of the loaded URL, such as
+  `/standard/cards/[format]/[cardId]/`, or `other` when no page matches;
+- `device`: `mobile` below 1024 px, where the public shell switches to its
+  desktop sidebar, otherwise `desktop`;
+- `lcp_target` (LCP only): the element's tag from a fixed list plus at most
+  one lower-case component class of up to 48 characters, `none` without an
+  element.
+
+Unlike the proxy headers, these come from the request body. A missing value
+becomes `unknown` so tabs opened before a release keep reporting; a present
+value outside the allowlist or format rejects the whole report with `400`.
+Raw paths, ids, query strings, element text and URLs are never accepted. How
+to read the dimensions is described in
+`docs/runbooks/web-vitals-field-data.md`.
+
 ## Trust boundary
 
 The browser cannot select a trusted geography. The first Arena edge must
@@ -32,10 +52,10 @@ does not infer geography from forwarding headers. Raw IP addresses,
 `X-Forwarded-For`, account IDs, cookies, query strings, and full URLs are not
 stored with Web Vitals.
 
-The Sentry metric privacy filter explicitly allowlists both `edge_region` and
-`client_region`. Tests must fail if either bounded dimension is accidentally
-removed before ingestion, while arbitrary URL, user, and query attributes
-remain forbidden.
+The Sentry metric privacy filter explicitly allowlists `edge_region`,
+`client_region`, `route`, `device`, and `lcp_target`. Tests must fail if a
+bounded dimension is accidentally removed before ingestion, while arbitrary
+URL, user, and query attributes remain forbidden.
 
 ## Metrics
 
@@ -55,7 +75,9 @@ individual asset URL.
 
 ## Verification
 
-- Unit tests reject arbitrary and duplicated labels.
+- Unit tests reject arbitrary and duplicated labels, raw paths, unknown
+  devices and free-text LCP descriptors, and keep the route allowlist equal to
+  the Next.js page directory.
 - Route tests verify bounded response diagnostics and capture context.
 - Nginx contract tests must prove that edges overwrite browser headers and the
   origin trusts only known sockets before the first non-`unknown` rollout.

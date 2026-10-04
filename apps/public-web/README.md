@@ -167,6 +167,10 @@ behind its `public.ts`, not in `src/features/`.
    `startPublicCardPilot({ pagesEnabled: true })` from
    `tests/helpers/publicCardPilot.mjs`, and register it in
    `tests/test-suites.json`.
+6. Add the page template to `WEB_VITAL_ROUTE_TEMPLATES` in
+   `shared/webVitalsDimensions.ts`; `tests/web-vitals-dimensions.test.ts`
+   fails until the list matches the `app/` pages, and field Web Vitals would
+   report the page as `other`.
 
 ## Commands
 
