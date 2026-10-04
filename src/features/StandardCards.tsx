@@ -94,6 +94,7 @@ import {
   constructedRelatedCardImage,
   type ConstructedCardMediaItem,
 } from './constructedCardMedia';
+import { loadDeckView } from './hsReplayDeckViewRuntime';
 import { normalizeConstructedRelatedCardGroups, type ConstructedRelatedCardGroup } from './constructedRelatedCards';
 import {
   constructedSpellSchoolLabel,
@@ -102,7 +103,6 @@ import {
   mergeConstructedTranslationSources,
   translateConstructedMechanic,
 } from '../../shared/constructedCardTranslations';
-import '../vendor/hsreplay-deck-view/hsreplay-deck-view.js';
 
 type CardFormat = ConstructedCardFormat;
 type ViewMode = 'gallery' | 'table';
@@ -519,26 +519,36 @@ function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
   const dbfIds = card.dbf === null || card.dbf === undefined ? '' : String(card.dbf);
   useEffect(() => {
     const container = containerRef.current;
-    const api = window.HSReplayDeckView;
-    if (!container || !api?.renderDeck) return undefined;
-    api.renderDeck(container, [{
-      id: card.card_id,
-      dbfId: card.dbf,
-      name: cardName(card),
-      cost: card.mana_cost ?? 0,
-      rarity: card.rarity || 'COMMON',
-      elite: String(card.rarity || '').toUpperCase() === 'LEGENDARY',
-      count: 1,
-      image: publicResourceUrl(card.images?.crop)
-        || `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
-    }], {
-      className: 'constructed-cards__hsrdv',
-      group: false,
-      sort: false,
-      clear: true,
-      showSingleCountBox: false,
-    });
-    return () => container.replaceChildren();
+    if (!container) return undefined;
+    let cancelled = false;
+    let rendered = false;
+    // The card name stays as the cell's text until the renderer arrives, or
+    // for good when its chunk cannot load.
+    void loadDeckView().then(api => {
+      if (cancelled) return;
+      api.renderDeck(container, [{
+        id: card.card_id,
+        dbfId: card.dbf,
+        name: cardName(card),
+        cost: card.mana_cost ?? 0,
+        rarity: card.rarity || 'COMMON',
+        elite: String(card.rarity || '').toUpperCase() === 'LEGENDARY',
+        count: 1,
+        image: publicResourceUrl(card.images?.crop)
+          || `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
+      }], {
+        className: 'constructed-cards__hsrdv',
+        group: false,
+        sort: false,
+        clear: true,
+        showSingleCountBox: false,
+      });
+      rendered = true;
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+      if (rendered) container.replaceChildren();
+    };
   }, [card]);
   return <div ref={containerRef} className="constructed-cards__data-deck-card" data-deck-cards={dbfIds} data-card-id={card.card_id}><span>{cardName(card)}</span></div>;
 }
