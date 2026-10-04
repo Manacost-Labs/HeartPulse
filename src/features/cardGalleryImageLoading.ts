@@ -9,6 +9,15 @@ type DeferredCardImage = {
   src: string;
 };
 
+/**
+ * Cards that compete at high network priority. The server cannot know the
+ * viewport, so it renders the widest first row with a real `src`; only the
+ * narrowest row (two cards) asks for high priority, and Chrome raises the
+ * rest once layout puts them in view. A phone, whose first row sits below
+ * the fold, then no longer spends its first seconds on six card renders.
+ */
+export const CARD_GALLERY_HIGH_PRIORITY_COUNT = 2;
+
 export function cardGalleryPriorityCount(viewportWidth: number): number {
   if (viewportWidth <= 640) return 2;
   if (viewportWidth <= 900) return 4;

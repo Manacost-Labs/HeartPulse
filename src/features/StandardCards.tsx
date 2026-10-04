@@ -34,6 +34,7 @@ import {
 import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import ConstructedCardGalleryImage, { useCardGalleryImageLoading } from './ConstructedCardGalleryImage';
+import { CARD_GALLERY_HIGH_PRIORITY_COUNT } from './cardGalleryImageLoading';
 import FilterSelect from './ConstructedCardFilterSelect';
 import {
   loadConstructedCardList,
@@ -500,7 +501,7 @@ function CardGallery({ cards, search, format, period, rank, sort, navigatePath, 
                 onBlur={() => setHovered(null)}
                 onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
               >
-                <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={index < immediateImageCount} />
+                <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={index < immediateImageCount} highPriority={index < CARD_GALLERY_HIGH_PRIORITY_COUNT} />
                 <span className="constructed-cards__gallery-name">{name}</span>
                 <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
               </a>
