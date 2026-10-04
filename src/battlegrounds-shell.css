@@ -21,7 +21,7 @@
   --bg-line: rgba(89, 53, 29, 0.3);
   background:
     linear-gradient(90deg, rgba(45, 20, 11, 0.2), transparent 10%, transparent 90%, rgba(45, 20, 11, 0.2)),
-    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat;
+    var(--arena-parchment-texture) center top / 865px auto repeat;
 }
 
 /* The legacy application shell paints a fixed blue dashboard veil through
@@ -47,6 +47,20 @@
   color: var(--bg-ink) !important;
   background:
     linear-gradient(rgba(249, 232, 191, 0.9), rgba(234, 211, 160, 0.9)),
-    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat !important;
+    var(--arena-parchment-texture) center top / 865px auto repeat !important;
   box-shadow: none !important;
+}
+
+/* The content box belongs to the shell: a locked route shows it without the
+ * paid view's stylesheet, so its builder width and phone gutter live here. */
+.arena-app-bg-strategies .arena-content.arena-content-open,
+.arena-app-bg-tier-builder .arena-content.arena-content-open {
+  max-width: none !important;
+  padding-inline: clamp(0.35rem, 0.8vw, 0.8rem) !important;
+}
+
+@media (max-width: 720px) {
+  .arena-app-battlegrounds .arena-content.arena-content-open {
+    padding-inline: 0.55rem !important;
+  }
 }

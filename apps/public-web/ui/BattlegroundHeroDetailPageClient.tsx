@@ -1,16 +1,18 @@
 'use client';
 
 import PaywallGate from '@/src/components/PaywallGate';
-import { BattlegroundHeroesRoute } from '@/src/features/Battlegrounds';
+import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import type { PublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHeroData';
 import { usePublicAccess } from './usePublicAccess';
+import { BattlegroundHeroesRoute, loadBattlegrounds, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
 export function BattlegroundHeroDetailPageClient({ hero }: { hero: PublicBattlegroundHero }) {
   const pathname = `/heroes/${hero.dbfId}/`;
   const access = usePublicAccess();
+  usePaidViewPrefetch(loadBattlegrounds);
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'battlegrounds'));
   return <PublicPageShell activeTab="bg-heroes" pathname={pathname}
     access={access} navigate={navigate} wide>
@@ -27,7 +29,7 @@ export function BattlegroundHeroDetailPageClient({ hero }: { hero: PublicBattleg
           <img src={hero.image} alt="" width="180" height="240" decoding="async" />
         </header>
         {access.checking
-          ? <p aria-busy="true">Проверяем доступ к статистике героя...</p>
+          ? <PaywallPending>Проверяем доступ к статистике героя...</PaywallPending>
           : <PaywallGate active title="Статистика героя доступна подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}

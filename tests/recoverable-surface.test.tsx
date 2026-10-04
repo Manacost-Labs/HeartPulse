@@ -76,8 +76,14 @@ assert.match(fallbackMarkup, /aria-label="3 маны"/);
 assert.match(fallbackMarkup, /aria-label="2 копии"/);
 
 const deckSource = readFileSync(new URL('../src/features/HsReplayDeckList.tsx', import.meta.url), 'utf8');
-assert.match(deckSource, /import\('\.\.\/vendor\/hsreplay-deck-view\/hsreplay-deck-view\.js'\)/);
-assert.doesNotMatch(deckSource, /^import ['"]\.\.\/vendor\/hsreplay-deck-view\/hsreplay-deck-view\.js['"];$/m);
+const deckRuntimeSource = readFileSync(new URL('../src/features/hsReplayDeckViewRuntime.ts', import.meta.url), 'utf8');
+const cardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+assert.match(deckRuntimeSource, /import\('\.\/hsReplayDeckViewVendor'\)/, 'the deck renderer loads as a lazy chunk');
+for (const source of [deckSource, cardsSource]) {
+  assert.match(source, /import \{ loadDeckView \} from '\.\/hsReplayDeckViewRuntime'/);
+  assert.doesNotMatch(source, /^import ['"][./]+vendor\/hsreplay-deck-view\/hsreplay-deck-view\.js['"];$/m,
+    'a page must not download the deck renderer before it draws a deck');
+}
 assert.match(deckSource, /data-deck-render-state=\{renderState\}/);
 
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');

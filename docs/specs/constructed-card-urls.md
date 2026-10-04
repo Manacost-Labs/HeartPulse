@@ -25,10 +25,13 @@ parsing. Identity is decoded exactly once and validated independently of query
 parameters and fragments. Malformed escapes, encoded separators and double
 encoding do not resolve as a card.
 
-Generated links encode the identity with `encodeURIComponent`. Canonical URLs
-and sitemap locations add a trailing slash. Thus the canonical Blizzard form
-is `/standard/cards/standard/blizzard%3A12345/`. Bare colon and lowercase `%3a`
-inputs resolve to the same identity and advertise this canonical form.
+Generated links encode the identity with `encodeURIComponent`. Canonical URLs,
+sitemap locations and the card links pages render add a trailing slash; a page
+wraps `constructedCardPath()` in `canonicalPagePath()`, so the link matches the
+prerender rule and its click handler opens the same URL. Thus the canonical
+Blizzard form is `/standard/cards/standard/blizzard%3A12345/`. Bare colon and
+lowercase `%3a` inputs resolve to the same identity and advertise this
+canonical form.
 
 Express SEO rendering, browser metadata, both card sitemaps and the production
 monitor follow this contract. Monitoring validates canonical encoded paths,

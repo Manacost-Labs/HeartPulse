@@ -13,7 +13,7 @@
   color: var(--recovery-ink, #4e3827);
   background:
     linear-gradient(var(--recovery-wash, rgba(255, 246, 217, 0.78)), var(--recovery-wash, rgba(255, 246, 217, 0.78))),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   overflow-wrap: anywhere;
 }
 

@@ -135,7 +135,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(90deg, rgba(255, 249, 226, 0.5), rgba(238, 210, 154, 0.34)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
   box-shadow: inset 0 0 0 1px rgba(255, 247, 219, 0.45), 0 5px 12px rgba(79, 45, 19, 0.1);
 }
 .vsgold__panel::before {
@@ -322,7 +322,7 @@
     border: 1px solid #b98c51;
     background:
       linear-gradient(rgba(250, 232, 191, 0.96), rgba(235, 205, 151, 0.96)),
-      url('/wallpaper/arena-parchment.jpg') center / cover;
+      var(--arena-parchment-texture) center / cover;
     box-shadow: 0 5px 15px rgba(71, 39, 17, 0.16);
   }
   .vsgold__mobile-nav a {

@@ -12,8 +12,11 @@ background change without animation while the page content cross-fades.
 - Links and scripted navigation target the canonical trailing-slash URL, so a
   click is never answered with a redirect first.
 - In browsers with speculation rules (Chromium), the public navigation
-  sections and their detail pages are prerendered when a visitor hovers or
-  presses a link, and the click opens the prepared document. The admin panel,
+  sections are prerendered when a visitor hovers or presses a link, and the
+  click opens the prepared document. Detail pages that listings show by the
+  dozen (cards, archetypes, cosmetics, heroes, library cards, guides) are
+  prerendered only when pressed, so a sweep across a grid or a phone scrolling
+  it does not spend the visitor's API rate limit. The admin panel,
   profiles, `/connect/`, `/r/` referral links, `/api/` and any URL with a query
   (including `/?login`) load only when opened.
 - A prerendered page runs before the visit. It is counted as a pageview, and
@@ -36,11 +39,14 @@ Run `npm run build:next` and
 `node --test tests/next-page-transitions-browser.test.mjs`, then the normal
 release checks. The test covers the canonical links, the URLs eligible for
 prerendering, a prerendered and a plain navigation, the animated pseudo
-elements and reduced motion. Review forward and back navigation in a real
-browser at mobile and desktop widths: the shell stays stable, content is not
-clipped, and the console and network remain clean. Browser automation that
-attaches its own DevTools session disables prerendering; observe that path
-through the test instead.
+elements and reduced motion. `tests/next-canonical-links-browser.test.mjs`
+checks that the content links of the main pages (home, arena, cards,
+archetypes, meta, cosmetics, Battlegrounds, guides) carry the trailing slash
+and that a hovered card link in the catalog is prerendered. Review forward
+and back navigation in a real browser at mobile and desktop widths: the shell
+stays stable, content is not clipped, and the console and network remain
+clean. Browser automation that attaches its own DevTools session disables
+prerendering; observe that path through the test instead.
 
 ## Documentation impact
 

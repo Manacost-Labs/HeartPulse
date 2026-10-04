@@ -27,6 +27,10 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/hearthpulse-identity-origin-ca.crt', installPath: '/etc/nginx/ssl/hearthpulse-identity-origin-ca.crt', roles: ['edge'] },
 ];
 const nginxContractFiles = nginxContractDefinitions.map(file => file.source);
+// `next start` loads next.config.mjs from the release, so every local module
+// it imports ships next to it; a missing one stops the public web at boot.
+const nextConfigFiles = ['apps/public-web/next.config.mjs', ...[...readFileSync('apps/public-web/next.config.mjs', 'utf8')
+  .matchAll(/^import[^;]*?from\s+'\.\/([^']+)'/gm)].map(([, file]) => `apps/public-web/${file}`)];
 const systemdFiles = [
   'deploy/hs-arena-next.service',
   'deploy/systemd/hs-arena-card-image-sync.service',
@@ -60,7 +64,7 @@ for (const required of [
   'dist/sitemap.xml',
   'dist/sitemaps/static.xml',
   'apps/public-web/.next/BUILD_ID',
-  'apps/public-web/next.config.mjs',
+  ...nextConfigFiles,
   'package.json',
   'package-lock.json',
   'scripts/verify-nginx-contract.mjs',
@@ -74,7 +78,7 @@ for (const required of [
 mkdirSync(output, { recursive: false });
 for (const directory of ['build', 'dist', 'public']) cpSync(directory, join(output, directory), { recursive: true });
 mkdirSync(join(output, 'apps', 'public-web'), { recursive: true });
-cpSync('apps/public-web/next.config.mjs', join(output, 'apps', 'public-web', 'next.config.mjs'));
+for (const file of nextConfigFiles) cpSync(file, join(output, file));
 const nextBuildSource = resolve('apps/public-web/.next');
 const nextBuildCache = join(nextBuildSource, 'cache');
 cpSync(nextBuildSource, join(output, 'apps', 'public-web', '.next'), {
@@ -139,7 +143,7 @@ const criticalFiles = [
   'dist/index.html',
   'dist/sitemap.xml',
   'dist/sitemaps/static.xml',
-  'apps/public-web/next.config.mjs',
+  ...nextConfigFiles,
   'package-lock.json',
   'scripts/backup-shared-data.sh',
   'scripts/verify-backup.sh',

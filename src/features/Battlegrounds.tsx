@@ -130,7 +130,7 @@ function bgMinionDetailHref(item: any): string {
   const dbfId = Number(item?.dbfId || item?.dbf || item?.dbf_id);
   if (!Number.isFinite(dbfId)) return '';
   const slug = bgNormalizeDeepLinkValue(bgItemTitle(item));
-  return `/library/minions/${slug || 'minion'}-${dbfId}`;
+  return `/library/minions/${slug || 'minion'}-${dbfId}/`;
 }
 
 function bgStrategySourceFromValue(value: unknown): BattlegroundStrategySource {
@@ -1181,7 +1181,7 @@ function BattlegroundHeroLedgerRow({
   onNavigate: (path: string) => void;
   flat?: boolean;
 }) {
-  const href = hero.dbfId ? `/heroes/${hero.dbfId}` : '/heroes';
+  const href = hero.dbfId ? `/heroes/${hero.dbfId}/` : '/heroes/';
   const pickRate = bgHeroMetricNumber(hero.popularity);
   const averagePlace = bgHeroMetricNumber(hero.averagePlace);
   const heroPowerText = bgHeroPlainText(hero.heroPower?.text);

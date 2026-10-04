@@ -3,30 +3,8 @@ import { BookOpen, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { canAccessAdminWorkspace, type AuthUser } from '../../identity/public';
 import { hasSubscriptionEntitlement, type SubscriptionEntitlementKey, type SubscriptionStatus } from '../../subscriptions/public';
 import { requestArticleAccessLink } from '../api/articleRequests';
+import { ARTICLE_CARD_COVER_SIZES, responsiveArticleCover } from '../model/articleCover';
 import type { Article } from '../model/types';
-
-const ARTICLE_COVER_PROXY_HOSTS = new Set([
-  'hs-manacost.ru',
-  'www.hs-manacost.ru',
-  'kolodahearthstone.com',
-  'www.kolodahearthstone.com',
-  'kolodahearthstone.ru',
-  'www.kolodahearthstone.ru',
-]);
-
-function articleImageSrc(value?: string): string {
-  const raw = String(value ?? '').trim();
-  if (!raw || raw.startsWith('/')) return raw;
-  try {
-    const url = new URL(raw);
-    if (ARTICLE_COVER_PROXY_HOSTS.has(url.hostname.toLowerCase())) {
-      return `/api/article-cover?url=${encodeURIComponent(url.href)}`;
-    }
-  } catch {
-    return raw;
-  }
-  return raw;
-}
 
 function isKolodaArticleUrl(value?: string): boolean {
   const raw = String(value ?? '').trim();
@@ -120,11 +98,15 @@ export function ArticleCard({
 }) {
   const [imgErr, setImgErr] = useState(false);
   const isFeatured = idx === 0;
+  const cover = responsiveArticleCover(article.image);
   const { openArticle, readLabel } = useArticleLink(article, authUser, subscriptionStatus, subscriptionLoading);
 
+  // The first cover is the phone LCP: it loads eagerly at high priority, and
+  // its card does not enter, because Chrome records LCP only once an
+  // animation on the image or an ancestor ends.
   return (
     <article
-      className={`article-card-modern anim-scale-in rounded-2xl overflow-hidden flex flex-col transition-all duration-(--motion-base) ${isFeatured ? 'article-card-featured' : ''}`}
+      className={`article-card-modern rounded-2xl overflow-hidden flex flex-col transition-all duration-(--motion-base) ${isFeatured ? 'article-card-featured' : 'anim-scale-in'}`}
       style={{
         animationDelay: `calc(var(--motion-stagger) * ${idx})`,
       }}
@@ -134,7 +116,9 @@ export function ArticleCard({
         className="flex flex-col flex-grow w-full text-left bg-transparent border-0 p-0 cursor-pointer">
         <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
           {!imgErr ? (
-            <img src={articleImageSrc(article.image)} alt={article.title} loading="lazy"
+            <img src={cover.src} srcSet={cover.srcSet} sizes={cover.srcSet && ARTICLE_CARD_COVER_SIZES}
+              width={1176} height={597} alt={article.title}
+              loading={isFeatured ? 'eager' : 'lazy'} fetchPriority={isFeatured ? 'high' : undefined}
               onError={() => setImgErr(true)} className="w-full h-full object-contain" />
           ) : (
             <div className="article-image-fallback w-full h-full flex items-center justify-center">

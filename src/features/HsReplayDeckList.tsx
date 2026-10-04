@@ -3,6 +3,7 @@ import type { AppErrorKind } from '../components/appErrorRecovery';
 import { classifyAppError } from '../components/appErrorRecovery';
 import '../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
 import HsReplayDeckFallback from './HsReplayDeckFallback';
+import { loadDeckView } from './hsReplayDeckViewRuntime';
 import type {
   CardPreviewModuleLoader,
 } from './HsReplayDeckPreviewController';
@@ -31,7 +32,6 @@ type HsReplayDeckListProps = {
   previewControllerLoader?: DeckPreviewControllerLoader;
 };
 
-type DeckViewApi = NonNullable<typeof window.HSReplayDeckView>;
 type DeckRenderState = 'loading' | 'ready' | 'error';
 type DeckPreviewState = 'loading' | 'ready' | 'error';
 type DeckPreviewControllerProps = {
@@ -53,31 +53,6 @@ function loadDeckPreviewController(): Promise<DeckPreviewControllerModule> {
     });
   }
   return deckPreviewControllerPromise;
-}
-
-let deckViewLoader: Promise<DeckViewApi> | null = null;
-
-function loadedDeckView(): DeckViewApi | null {
-  if (typeof window === 'undefined') return null;
-  return window.HSReplayDeckView?.renderDeck ? window.HSReplayDeckView : null;
-}
-
-function loadDeckView(): Promise<DeckViewApi> {
-  const loaded = loadedDeckView();
-  if (loaded) return Promise.resolve(loaded);
-  if (!deckViewLoader) {
-    deckViewLoader = import('../vendor/hsreplay-deck-view/hsreplay-deck-view.js')
-      .then(() => {
-        const api = loadedDeckView();
-        if (!api) throw new Error('HSReplay DeckView API is unavailable');
-        return api;
-      })
-      .catch(cause => {
-        deckViewLoader = null;
-        throw cause;
-      });
-  }
-  return deckViewLoader;
 }
 
 export default function HsReplayDeckList({

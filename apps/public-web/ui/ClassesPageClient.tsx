@@ -20,7 +20,7 @@ export function ClassesPageClient() {
     })
     : 'Нет данных';
 
-  return <PublicPageShell activeTab="winrates" pathname="/classes/" access={access}
+  return <PublicPageShell activeTab="winrates" pathname="/classes/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     <ArenaClassesPage onNavigate={navigateTab}>
       <PaywallGate active={!access.checking && !allowed}

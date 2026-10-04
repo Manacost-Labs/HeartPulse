@@ -143,12 +143,19 @@ test('page links open canonical URLs, prerender on intent, cross-fade between do
 
     const rules = JSON.parse(await page.$eval('script[type="speculationrules"]', script => script.textContent));
     assert.deepEqual(Object.keys(rules), ['prerender']);
-    assert.equal(rules.prerender.length, 1);
-    assert.equal(rules.prerender[0].eagerness, 'moderate');
-    const eligible = href => ruleMatches(rules.prerender[0].where, new URL(href, gateway.origin).href, gateway.origin);
-    for (const href of ['/', '/faq/', '/tierlist/', '/standard/cards/', '/standard/cards/standard/BE_013/',
-      '/heroes/57893/', '/library/minions/', '/battlegrounds/tier-list/', '/guides-archive/some-guide/']) {
-      assert.equal(eligible(href), true, `${href} is prerendered on intent`);
+    assert.deepEqual(rules.prerender.map(rule => rule.eagerness), ['moderate', 'conservative']);
+    const eagerness = href => rules.prerender
+      .filter(rule => ruleMatches(rule.where, new URL(href, gateway.origin).href, gateway.origin))
+      .map(rule => rule.eagerness);
+    const eligible = href => eagerness(href).length > 0;
+    for (const href of ['/', '/faq/', '/tierlist/', '/standard/cards/', '/library/minions/', '/battlegrounds/tier-list/']) {
+      assert.deepEqual(eagerness(href), ['moderate'], `${href} is prerendered on hover`);
+    }
+    // Detail pages listed by the dozen prerender only when pressed: a sweep
+    // across a grid (or a phone scrolling one) must not spend the API limit.
+    for (const href of ['/standard/cards/standard/BE_013/', '/heroes/57893/', '/guides-archive/some-guide/',
+      '/standard/archetypes/standard/qa-evenlock/', '/cosmetics/coins/123/', '/library/minions/brann/']) {
+      assert.deepEqual(eagerness(href), ['conservative'], `${href} is prerendered only when pressed`);
     }
     for (const href of ['/?login', '/tierlist/?source=hsreplay', '/tierlist', '/admin/', '/admin/people/',
       '/connect/', '/r/tg-july/', '/id/12345/', '/api/v1/openapi.json', '/sitemap.xml', 'https://boosty.to/kolodahearthstone/']) {

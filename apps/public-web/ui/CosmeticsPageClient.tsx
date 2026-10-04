@@ -10,7 +10,7 @@ export function CosmeticsPageClient({ pathname, search, initialDetail, initialCa
   pathname: string; search: string; initialDetail?: DetailPayload; initialCatalog?: CosmeticsCatalogSeed | null;
 }) {
   const access = usePublicAccess();
-  return <PublicPageShell activeTab="cosmetics" pathname={pathname} access={access} navigate={navigate} wide>
+  return <PublicPageShell activeTab="cosmetics" pathname={pathname} parchmentPreload="tablet-up" access={access} navigate={navigate} wide>
     <Cosmetics currentPath={pathname} navigatePath={navigate} initialSearch={search} initialDetail={initialDetail}
       initialCatalog={initialCatalog} />
   </PublicPageShell>;

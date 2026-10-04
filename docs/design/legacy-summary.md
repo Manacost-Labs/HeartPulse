@@ -22,7 +22,7 @@ HS-Arena is a Hearthstone statistics product presented as a readable game compen
 
 ## Canonical Assets
 
-- `/wallpaper/arena-parchment.jpg`
+- `/wallpaper/arena-parchment-v2.webp` (`var(--arena-parchment-texture)`)
 - `/wallpaper/arena-rail-red.jpg`
 - `/wallpaper/main-page-rail-border.png`
 - `/wallpaper/deck-border.png`

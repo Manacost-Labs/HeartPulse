@@ -2,6 +2,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { ConstructedArchetypesPageClient } from '@/apps/public-web/ui/ConstructedArchetypesPageClient';
 import { loadPublicArchetypeCatalogTeaser } from '@/apps/public-web/lib/publicArchetypeCatalogTeaser';
+import { PageBannerPreload } from '@/apps/public-web/ui/PageBannerPreload';
 import { type PageSearchParams, searchParamsQuery } from '@/apps/public-web/lib/searchParams';
 import { seoPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 
@@ -10,6 +11,9 @@ export const generateMetadata = seoPageMetadata('/standard/archetypes', 'HearthP
 
 export default async function Page({ searchParams }: { searchParams: PageSearchParams }) {
   const initialSearch = searchParamsQuery(await searchParams);
-  return <ConstructedArchetypesPageClient initialSearch={initialSearch}
-    initialCatalog={await loadPublicArchetypeCatalogTeaser(initialSearch)} />;
+  return <>
+    <PageBannerPreload />
+    <ConstructedArchetypesPageClient initialSearch={initialSearch}
+      initialCatalog={await loadPublicArchetypeCatalogTeaser(initialSearch)} />
+  </>;
 }

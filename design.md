@@ -102,7 +102,7 @@ Gold is not a general panel fill. Use it for small accents, asset-native details
 
 | Asset | Purpose |
 |---|---|
-| `/wallpaper/arena-parchment.jpg` | continuous page material |
+| `/wallpaper/arena-parchment-v2.webp` | continuous page material, always through `var(--arena-parchment-texture)`; the newsletter keeps `arena-parchment.jpg` |
 | `/wallpaper/arena-rail-red.jpg` | fixed red navigation rail |
 | `/wallpaper/main-page-rail-border.png` | major Arena and Battlegrounds wooden frame |
 | `/wallpaper/deck-border.png` | compact dark frame for short profile statuses and BG hero media cards |
@@ -295,9 +295,10 @@ Rules:
   page header or another likely largest paint: Chrome records LCP only
   when an animation on that element ends. A navigation between pages uses
   the cross-fade with the same rise. Do not add separate entrance
-  choreography to a page; the home page is the one exception. The card and
-  cosmetics pages (`.constructed-cards`, `.cosmetics-page`) skip the rise,
-  because their largest paint is a picture inside a section.
+  choreography to a page; the home page is the one exception. The card,
+  cosmetics and articles pages (`.constructed-cards`, `.cosmetics-page`,
+  `.articles-page`) skip the rise, because their largest paint is a picture
+  inside a section; the first article card also skips its card entrance.
 - Data loads behind one loading state, `LoadingSurface` from
   `src/shared/ui/LoadingSurface.tsx` (legacy markup: `.skeleton`): a polite
   `role="status"` with its label (`Загружаем …`), placeholder blocks shaped
@@ -313,6 +314,9 @@ Rules:
   rendered; public data the page can read anonymously is server-rendered and
   shows no loader at all.
 - Prefer `opacity`, `translate`, `transform` and background-position.
+- A locked paywall preview never animates: `PaywallGate.css` stops the
+  `.skeleton` pulse and Tailwind `animate-*` loops inside it, so a loader
+  there takes a class, not an inline `animation` style.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.
 - A visual pass should add semantic root hooks rather than rewriting component state.
@@ -328,9 +332,18 @@ Rules:
 ## Performance
 
 - Reuse local compressed textures; do not add large remote runtime backgrounds.
-- Keep route-heavy BG code deferred.
+- Keep route-heavy BG code deferred: guests on a gated BG route load the gate,
+  not the paid view or its stylesheet (`apps/public-web/ui/lazyBattlegrounds.tsx`).
+- While access is checked, a gated page holds the gate's height
+  (`PaywallPending`), and a paid view keeps it while it mounts
+  (`.arena-paid-view`), so the footer does not jump when the gate or the paid
+  view arrives.
 - Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
 - Do not add JS for effects achievable in CSS.
+- Editorial covers load a `/api/article-cover?w=` WebP variant through
+  `srcset` and a measured `sizes`. Only the first `/articles/` cover, the
+  phone LCP, is `loading="eager"` with `fetchpriority="high"`; every other
+  cover, including the home teasers, stays lazy.
 - Run `npm run budget:next` when changing bundles or adding assets.
 
 ## Primary Files
@@ -370,6 +383,8 @@ Rules:
 
 ## Changelog
 
+- **2026-10-04** — Performance wave 2: lighter parchment/fonts/banners with early LCP preloads, a split and lighter card catalogue, bfcache-restorable public pages with viewer re-verification, reserved paywall height and lazy paid Battlegrounds views.
+- **2026-10-04** — Performance wave 1: edge-cached immutable static files, canonical trailing-slash links everywhere, resized WebP article covers with srcset, and per-page RUM dimensions.
 - **2026-10-03** — Added motion tokens and one page entrance for every public page; transitions and entrances across the site now share four durations and two easings.
 - **2026-08-01** — Promoted the `25px` compact HSReplay-derived row profile and 90% right-anchored art crop from Fun Decks to every public read-only `DeckListView`, including archetype, meta and card-detail pages; interactive builder rows remain `44px`.
 - **2026-08-01** — Expanded the Fun Decks canvas to six cards per wide row and fixed each card to a five-row non-expandable comparison preview, with 4/3/2/1 responsive fallbacks.

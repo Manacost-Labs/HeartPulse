@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { publicDocumentHeaders } from './documentCaching.mjs';
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 
 /** @type {import('next').NextConfig} */
@@ -15,6 +16,10 @@ const config = {
   },
   // Agent rules live in the repository's AGENTS.md; `next dev` must not add its own files here.
   agentRules: false,
+  // Anonymous public documents may be restored from the back/forward cache.
+  async headers() {
+    return publicDocumentHeaders();
+  },
   poweredByHeader: false,
   reactStrictMode: true,
   trailingSlash: true,

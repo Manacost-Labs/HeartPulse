@@ -34,7 +34,8 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     for (const catalogPath of ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/']) {
       const catalog = await fetch(runtime.origin + catalogPath);
       assert.equal(catalog.status, 200, runtime.output());
-      assert.match(catalog.headers.get('cache-control'), /no-store/);
+      // Anonymous catalog HTML may be restored from the back/forward cache (apps/public-web/documentCaching.mjs).
+      assert.equal(catalog.headers.get('cache-control'), 'private, no-cache');
       const catalogHtml = await catalog.text();
       assert.match(catalogHtml, /<h1>Карты<\/h1>/);
       assert.match(catalogHtml, /Публичная карта 1/);

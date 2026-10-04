@@ -134,7 +134,7 @@
   border-image: url('/wallpaper/deck-border.png') 22 stretch;
   background:
     linear-gradient(rgba(251, 235, 192, 0.88), rgba(226, 193, 133, 0.78)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
 }
 
 .archetypes-format-switch button {
@@ -185,7 +185,7 @@
   border-left: 4px solid var(--archetype-red);
   background:
     linear-gradient(90deg, rgba(255, 247, 217, 0.78), rgba(236, 210, 160, 0.58)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
 }
 
 .archetypes-class-filter > header {
@@ -343,7 +343,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(rgba(250, 235, 197, 0.87), rgba(229, 199, 144, 0.78)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
   box-shadow: 0 6px 16px rgba(60, 31, 10, 0.12);
 }
 
@@ -608,7 +608,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
 }
 
 .archetype-main-build { padding: 1rem; }
@@ -711,7 +711,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(rgba(250, 235, 197, 0.92), rgba(229, 199, 144, 0.82)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
 }
 
 .archetype-build-preview h2 {

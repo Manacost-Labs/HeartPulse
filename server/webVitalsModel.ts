@@ -1,3 +1,10 @@
+import {
+  isWebVitalDevice,
+  isWebVitalRoute,
+  type WebVitalDevice,
+  type WebVitalRoute,
+} from '../shared/webVitalsDimensions.js';
+
 export const WEB_VITAL_EDGE_REGIONS = [
   'eu-germany-limburg',
   'ru-moscow',
@@ -26,9 +33,17 @@ export type ServerWebVitalMetric = {
   value: number;
   rating: 'good' | 'needs-improvement' | 'poor';
   navigationType: string;
+  /** LCP only: `tag` or `tag.class` from shared/webVitalsDimensions. */
+  lcpTarget?: string;
 };
 
-export type ServerWebVitalContext = {
+/** `unknown` marks a report from a page loaded before these fields existed. */
+export type ServerWebVitalPage = {
+  route: WebVitalRoute | 'unknown';
+  device: WebVitalDevice | 'unknown';
+};
+
+export type ServerWebVitalContext = ServerWebVitalPage & {
   edgeRegion: WebVitalEdgeRegion;
   clientRegion: WebVitalClientRegion;
 };
@@ -56,6 +71,25 @@ export function normalizeWebVitalClientRegion(value: unknown): WebVitalClientReg
   return value as WebVitalClientRegion;
 }
 
+/**
+ * Read the page dimensions of a report body. A missing field becomes
+ * `unknown` so pages opened before a release keep reporting; a present value
+ * outside the allowlist rejects the whole report (`null`).
+ */
+export function normalizeWebVitalPage(body: Record<string, unknown>): ServerWebVitalPage | null {
+  const route = optionalDimension(body.route, isWebVitalRoute);
+  const device = optionalDimension(body.device, isWebVitalDevice);
+  return route && device ? { route, device } : null;
+}
+
+function optionalDimension<T extends string>(
+  value: unknown,
+  isAllowed: (candidate: unknown) => candidate is T,
+): T | 'unknown' | null {
+  if (value === undefined) return 'unknown';
+  return isAllowed(value) ? value : null;
+}
+
 export function webVitalMetricAttributes(
   metric: ServerWebVitalMetric,
   context: ServerWebVitalContext,
@@ -65,5 +99,8 @@ export function webVitalMetricAttributes(
     navigation_type: metric.navigationType,
     edge_region: context.edgeRegion,
     client_region: context.clientRegion,
+    route: context.route,
+    device: context.device,
+    ...(metric.name === 'LCP' ? { lcp_target: metric.lcpTarget ?? 'unknown' } : {}),
   };
 }

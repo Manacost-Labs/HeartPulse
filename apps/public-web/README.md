@@ -21,10 +21,13 @@ behind its `public.ts`, not in `src/features/`.
 | `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell with the site-wide head tags, analytics script and field focus mode; real 404 and the generic error page for every route |
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
-| `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
+| `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer; re-checks it on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
+| `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
+| `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
 | `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
 | `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays |
+| `lib/authPrefetch.ts` | Inline head script that starts the session check (`/api/auth/me`) while the document parses |
 | `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
@@ -32,7 +35,8 @@ behind its `public.ts`, not in `src/features/`.
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
 | `lib/publicFirstPaintRead.ts` | `readFirstPaintJson()`: a server read that only improves the first paint; `null` after 600 ms or on any failure, so the page falls back to its browser request |
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
-| `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes |
+| `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, and the home page's `Cache-Control` |
+| `documentCaching.mjs` | Which public documents send `private, no-cache` instead of `no-store` (`next.config.mjs` `headers()`) |
 <!-- markdownlint-enable MD013 -->
 
 ## Rules
@@ -91,9 +95,14 @@ behind its `public.ts`, not in `src/features/`.
   answers with an uncached 301, which costs a round trip per click and keeps
   the link out of prerendering. `navigate()` adds the slash for scripted
   navigation; an `href` has to carry it itself, written out or through
-  `canonicalPagePath()` from `src/app/routing/canonicalPagePath.ts`.
-- Public navigation sections and their detail pages are prerendered when a
-  visitor hovers or presses a link (`lib/speculationRules.ts`), so page code
+  `canonicalPagePath()` from `src/app/routing/canonicalPagePath.ts`. Modules
+  under `src/modules/` may not import `src/app/`, so they write the slash out.
+  `tests/next-canonical-links-browser.test.mjs` reads every link of the main
+  pages, in the server HTML and after hydration, for a guest and a
+  subscriber, and fails on a page URL without the slash.
+- Public navigation sections are prerendered when a visitor hovers or presses
+  a link, and entity detail pages only when pressed
+  (`lib/speculationRules.ts`), so page code
   can run for a visit that never happens. Anything that records a visit or
   changes state on load must wait for the `prerenderingchange` event, as
   `lib/analyticsLoader.ts` does; a URL that must not load early stays out of
@@ -101,9 +110,70 @@ behind its `public.ts`, not in `src/features/`.
   eligible URLs, the prerender and the transition. Browser QA
   (`scripts/e2e-qa.mjs`) starts Chromium with prerendering off, because a
   prerendered document loads outside its per-page `/api` mocks.
+- The largest paint of most pages is a CSS background, which the browser
+  finds only after every stylesheet. `PublicPageShell` therefore preloads the
+  parchment page material (`--arena-parchment-texture`) at high priority; React
+  sends the hint in the `Link` response header, or at the top of `<head>` for a
+  prerendered page. A page whose measured phone LCP element is something else
+  passes `parchmentPreload="tablet-up"`, which adds
+  `media="(min-width: 768px)"`: from 768px the parchment is still the LCP
+  there, below it phones skip the early fetch and load the file once from the
+  CSS. These are text on `/tierlist/`, `/classes/` and `/legendaries/`, the
+  site header on `/guides-archive/`, cosmetics images, and the banner art on
+  `/standard/matchups/`, `/standard/archetypes/` and
+  `/standard/vicious-gold/`, which also render `<PageBannerPreload />`.
+  A preload on a page that paints something else first takes bandwidth from
+  that element and the CSS. `tests/next-lcp-image-preload.test.mjs` checks
+  both lists.
+- Files in `public/` are served `immutable` for 30 days under names without a
+  content hash: new bytes need a new file name (`arena-parchment-v2.webp`,
+  `hsdisplay-2026-10.woff2`), never an overwrite. `assets.md` lists how each
+  derived file was made.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
-  `.arena-paywall` markup for guests.
+  `.arena-paywall` markup for guests. While `usePublicAccess()` is still
+  checking, a full-page gate renders `PaywallPending`
+  (`src/components/PaywallPending.tsx`): it reserves the gate's height
+  (`--subscription-gate-min-height`), so the gate or the paid page replaces
+  it without moving the footer, and it holds no data. Do not give it the
+  `.arena-paywall` class, which QA reads as "the gate has rendered". Load a
+  paid view that a guest never sees on demand, so guests download only the
+  gate: `ui/lazyBattlegrounds.tsx` starts the download during the access
+  check of a remembered session and renders a loaded view directly, without
+  a Suspense boundary whose reveal throttle would delay it by about 300 ms,
+  inside `.arena-paid-view`, which keeps the gate's height around the view's
+  first render before its own data arrives.
+  `tests/next-bundle-budgets.test.mjs` checks that the Battlegrounds routes do
+  not load those views up front. A locked preview behind the gate keeps its
+  loaders still (`PaywallGate.css`): give a loader a class, not an inline
+  `animation` style, or it loops for the whole visit.
+- Anonymous public documents send `Cache-Control: private, no-cache`
+  (`documentCaching.mjs`, applied by `next.config.mjs` and, for `/`, by
+  `proxy.ts`), so Back restores them from the back/forward cache instead of
+  reloading them; every normal visit still revalidates, and no shared cache
+  stores them. Add a new public route family there only if its server
+  modules read no cookies (`tests/next-document-caching.test.mjs`); anything
+  not listed keeps the header Next chooses (`no-store` on dynamic pages), as
+  `/?login`, `/admin/`, `/deck-builder/`, `/archetypes/`, `/id/`,
+  `/profiles/` and the `503` of `proxy.ts` do; Nginx forces `no-store` on the
+  account and admin locations as well. A `404` or `500` inside a listed
+  family carries the same header: it is never restored from the
+  back/forward cache, but Back can show it from the HTTP cache until the
+  visitor reloads. Every server answer about the viewer is recorded in this
+  browser (`ui/restoredPageAccess.ts`); a restored page that shows another
+  viewer than the last recorded one hides it and any paid view synchronously
+  before it checks the session, and a re-check that cannot reach the server
+  hides as well. A view that keeps viewer data must derive it from the
+  current viewer in render, not in an effect. Plausible counts no new
+  pageview for a restored page. The contract and its remaining gap are in
+  `docs/specs/public-document-caching.md`;
+  `tests/next-bfcache-browser.test.mjs` checks the headers, restores,
+  sign-out and an account switch followed by Back. Production Nginx still
+  adds `no-store` to `/` (see `docs/runbooks/nextjs-production-cutover.md`).
+- `lib/authPrefetch.ts` starts `/api/auth/me` from the document head; the
+  first `fetchCurrentAuthUser()` call adopts that response once, within ten
+  seconds, and every later call fetches. A page that never checks the session
+  wastes one small request.
 - Titles, descriptions, indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
   `config/public-seo-pages.json`; do not hand-write them in a page. A registry
@@ -168,11 +238,17 @@ behind its `public.ts`, not in `src/features/`.
    `tests/nginx-html-routing.test.mjs`; add it to
    `apps/public-web/routeOwnership.mjs` so the local gateway and the Next test
    pilot route it to Next too. Activating an Nginx change in production
-   follows `docs/runbooks/nextjs-production-cutover.md`.
+   follows `docs/runbooks/nextjs-production-cutover.md`. An anonymous public
+   page of a new route family also goes into `documentCaching.mjs` and
+   `tests/next-document-caching.test.mjs`.
 5. Add `tests/next-<route>-browser.test.mjs` using
    `startPublicCardPilot({ pagesEnabled: true })` from
    `tests/helpers/publicCardPilot.mjs`, and register it in
    `tests/test-suites.json`.
+6. Add the page template to `WEB_VITAL_ROUTE_TEMPLATES` in
+   `shared/webVitalsDimensions.ts`; `tests/web-vitals-dimensions.test.ts`
+   fails until the list matches the `app/` pages, and field Web Vitals would
+   report the page as `other`.
 
 ## Commands
 
@@ -223,10 +299,6 @@ browser test runs the production React: its development warnings (a missing
   full-document navigation between pages. Prerendering and cross-document
   view transitions hide its cost in Chromium (the transition also runs in
   Safari 18.2+); Firefox still swaps documents without either.
-- Links written by hand inside legacy views (home hero, related links, card
-  and cosmetics listings) still omit the trailing slash: a click handler
-  fixes the URL, but those links are not prerendered and a plain anchor
-  still pays the redirect.
 - Legacy global CSS is imported per route from `src/`.
 - `npm run qa:ci`, `verify:ci` and the nightly responsive QA run the browser
   QA against this app with the QA backend in `scripts/qa/`. Bundle budgets

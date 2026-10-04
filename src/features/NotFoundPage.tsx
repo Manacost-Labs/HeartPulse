@@ -45,8 +45,8 @@ export default function NotFoundPage({ navigatePath, state = 'not-found' }: NotF
           На главную
           <ArrowRight aria-hidden="true" />
         </a>
-        <a href="/articles" onClick={event => navigate(event, '/articles')}>Статьи</a>
-        <a href="/standard/cards" onClick={event => navigate(event, '/standard/cards')}>
+        <a href="/articles/" onClick={event => navigate(event, '/articles/')}>Статьи</a>
+        <a href="/standard/cards/" onClick={event => navigate(event, '/standard/cards/')}>
           <LibraryBig aria-hidden="true" />
           Карты
         </a>

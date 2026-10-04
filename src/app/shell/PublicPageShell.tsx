@@ -1,4 +1,5 @@
-import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { flushSync, preload } from 'react-dom';
 import { usePublicMenuFocus } from './usePublicMenuFocus';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
 import { PublicNavigation } from './PublicNavigation';
@@ -14,6 +15,11 @@ import type { SubscriptionStatus } from '../../modules/subscriptions/public';
 // works without it, so a chunk that cannot load must not fail the page.
 const SupportPrompt = lazy(() => import('../../components/SupportPrompt'));
 
+/** Same file as `--arena-parchment-texture` in `src/styles/tokens.css`. */
+const PARCHMENT_TEXTURE_URL = '/wallpaper/arena-parchment-v2.webp';
+/** Below this width some pages paint text, banner art or an image first (measured at 390-640px). */
+const PARCHMENT_TABLET_UP = '(min-width: 768px)';
+
 type Access = { user: AuthUser | null; checking: boolean; admin: boolean; contestAdmin: boolean; subscription: SubscriptionStatus | null };
 // Route styles are scoped by these classes: account pages and the home page
 // have their own surfaces; every other page is editorial, Battlegrounds or
@@ -25,9 +31,18 @@ function surfaceClasses(activeTab: TabId, editorial: boolean, account: boolean):
   return `arena-app-${surface} arena-app-${activeTab}`;
 }
 
-export function PublicPageShell({ children, activeTab, pathname, access, navigate, editorial = false, account = false, wide = false, updatedAtLabel = 'Нет данных' }: {
+export function PublicPageShell({ children, activeTab, pathname, access, navigate, editorial = false, account = false, wide = false, updatedAtLabel = 'Нет данных', parchmentPreload = 'always' }: {
   children: ReactNode; activeTab: TabId; pathname: string; access: Access; navigate: (path: string) => void; editorial?: boolean; account?: boolean; wide?: boolean; updatedAtLabel?: string;
+  /** `tablet-up` on a page whose measured phone LCP is not the parchment (text, banner art, an image). */
+  parchmentPreload?: 'always' | 'tablet-up';
 }) {
+  // The parchment behind the workspace is the largest paint of most pages, and
+  // as a CSS background it is found only after every stylesheet. During server
+  // rendering React sends this high-priority hint in the Link response header,
+  // ahead of the CSS. Where it is not the LCP, `media` keeps phones from
+  // fetching it early; they still load it once, from the CSS.
+  preload(PARCHMENT_TEXTURE_URL, { as: 'image', fetchPriority: 'high',
+    ...(parchmentPreload === 'tablet-up' ? { media: PARCHMENT_TABLET_UP } : {}) });
   const [menu, setMenu] = useState(false);
   const [mobileGroup, setMobileGroup] = useState<'constructors' | 'misc' | null>(null);
   const [sidebarGroup, setSidebarGroup] = useState<'constructors' | 'misc' | null>(null);
@@ -35,6 +50,20 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   usePublicMenuFocus(menu, menuRef, toggleRef, setMenu);
   usePageScrollLock(menu);
+  // Public pages can come back from the back/forward cache exactly as they
+  // were left. The menu closes as the page leaves (and again on a restore, in
+  // case the browser kept a frame from before), so Back never lands on an
+  // open, scroll-locked menu.
+  useEffect(() => {
+    const close = () => flushSync(() => setMenu(false));
+    const onShow = (event: PageTransitionEvent) => { if (event.persisted) close(); };
+    window.addEventListener('pagehide', close);
+    window.addEventListener('pageshow', onShow);
+    return () => {
+      window.removeEventListener('pagehide', close);
+      window.removeEventListener('pageshow', onShow);
+    };
+  }, []);
   const profile = <HeaderProfileButton user={access.user} checking={access.checking} />;
   return <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${surfaceClasses(activeTab, editorial, account)}`}>
     <a className="arena-skip-link" href="#main-content">К основному содержимому</a>

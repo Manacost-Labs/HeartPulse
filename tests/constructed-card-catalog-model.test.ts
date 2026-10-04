@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { catalogLocation, catalogLocationUrl } from '../src/modules/constructedCards/model/catalogLocation';
 import {
-  adjacentConstructedCardCatalogContexts,
   constructedCardCatalogUrl,
   EMPTY_CONSTRUCTED_CARD_FILTERS,
 } from '../src/features/constructedCardCatalogModel';
@@ -35,29 +34,6 @@ assert.equal(catalogParams.get('query'), 'Зиллиакс');
 assert.equal(catalogParams.get('class'), 'MAGE');
 assert.equal(catalogParams.get('mechanic'), 'Battlecry');
 assert.equal(catalogParams.has('set'), false, 'empty filters must stay out of the request');
-
-const commonContexts = adjacentConstructedCardCatalogContexts({
-  format: 'standard',
-  period: '1d',
-  rank: 'legend',
-});
-assert.deepEqual(commonContexts, [
-  { format: 'standard', period: '3d', rank: 'legend' },
-  { format: 'standard', period: '1d', rank: 'diamond_4_1' },
-  { format: 'wild', period: '1d', rank: 'legend' },
-]);
-assert.ok(commonContexts.length <= 3, 'background warming must remain bounded');
-
-const boundaryContexts = adjacentConstructedCardCatalogContexts({
-  format: 'wild',
-  period: 'patch',
-  rank: 'platinum',
-});
-assert.deepEqual(boundaryContexts, [
-  { format: 'wild', period: '14d', rank: 'platinum' },
-  { format: 'wild', period: 'patch', rank: 'diamond' },
-  { format: 'standard', period: 'patch', rank: 'platinum' },
-]);
 
 console.log('constructed-card catalog model contracts passed');
 

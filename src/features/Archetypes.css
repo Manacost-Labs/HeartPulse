@@ -4,7 +4,7 @@
   background-color: #e7d2a3;
   background-image:
     linear-gradient(rgba(248, 235, 203, 0.7), rgba(231, 206, 157, 0.84)),
-    url('/wallpaper/arena-parchment.jpg');
+    var(--arena-parchment-texture);
   background-repeat: repeat;
   background-size: auto, 865px 878px;
 }
@@ -278,7 +278,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(rgba(250, 238, 204, 0.88), rgba(233, 209, 161, 0.82)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   box-shadow: 0 8px 20px rgba(69, 42, 19, 0.12);
 }
 
@@ -355,7 +355,7 @@
   min-width: 0;
   background:
     linear-gradient(115deg, rgba(255, 249, 226, 0.44), rgba(244, 224, 180, 0.46)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
 }
 
 .archetypes-class:last-child:nth-child(odd) {
@@ -544,7 +544,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(rgba(250, 238, 204, 0.88), rgba(233, 209, 161, 0.82)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   box-shadow: 0 6px 17px rgba(69, 42, 19, 0.11);
 }
 

@@ -8,11 +8,11 @@ const ARENA_HOME_CARDS: Array<{
   desc: string;
   label: string;
 }> = [
-  { id: 'winrates', href: '/classes', title: 'Классы', desc: 'Текущие винрейты всех классов и лидер меты перед началом драфта.', label: 'мета классов' },
-  { id: 'tierlist', href: '/tierlist', title: 'Тир-лист карт', desc: 'Оценки карт от S до F для быстрых решений во время каждого выбора.', label: 'главный инструмент' },
-  { id: 'legendaries', href: '/legendaries', title: 'Легендарки', desc: 'Сравнение легендарных групп по реальному винрейту.', label: 'первый выбор' },
-  { id: 'articles', href: '/articles', title: 'Мета-отчёты', desc: 'Разборы патчей, классов и актуальных стратегий Арены.', label: 'аналитика' },
-  { id: 'guides-archive', href: '/guides-archive', title: 'Архив гайдов', desc: 'Сохранённые материалы и полезные руководства Manacost.', label: 'база знаний' },
+  { id: 'winrates', href: '/classes/', title: 'Классы', desc: 'Текущие винрейты всех классов и лидер меты перед началом драфта.', label: 'мета классов' },
+  { id: 'tierlist', href: '/tierlist/', title: 'Тир-лист карт', desc: 'Оценки карт от S до F для быстрых решений во время каждого выбора.', label: 'главный инструмент' },
+  { id: 'legendaries', href: '/legendaries/', title: 'Легендарки', desc: 'Сравнение легендарных групп по реальному винрейту.', label: 'первый выбор' },
+  { id: 'articles', href: '/articles/', title: 'Мета-отчёты', desc: 'Разборы патчей, классов и актуальных стратегий Арены.', label: 'аналитика' },
+  { id: 'guides-archive', href: '/guides-archive/', title: 'Архив гайдов', desc: 'Сохранённые материалы и полезные руководства Manacost.', label: 'база знаний' },
 ];
 
 export default function HomeArenaDirectory({ onNavigate }: { onNavigate: (tab: string) => void }) {

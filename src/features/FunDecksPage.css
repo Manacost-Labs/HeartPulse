@@ -174,7 +174,7 @@
   border-image: url("/wallpaper/deck-border.png") 20 / 8px stretch;
   background:
     linear-gradient(rgba(247, 232, 191, 0.9), rgba(234, 214, 167, 0.94)),
-    url("/wallpaper/arena-parchment.jpg") center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   box-shadow: 0 8px 18px rgba(55, 27, 13, 0.15);
 }
 
@@ -394,7 +394,7 @@
   border-image: url("/wallpaper/deck-border.png") 20 / 5px stretch;
   background:
     linear-gradient(rgba(239, 220, 175, 0.94), rgba(229, 201, 146, 0.96)),
-    url("/wallpaper/arena-parchment.jpg") center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   box-shadow: 0 8px 18px rgba(55, 27, 13, 0.2);
 }
 

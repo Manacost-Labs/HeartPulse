@@ -58,7 +58,7 @@ assert.match(metaSource, /\{loading && !hasPayload && \(\s*<AsyncSurfaceState\s*
 assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<PaywallGate/);
 assert.match(metaSource, /option\.asset/);
 assert.match(metaSource, /\/card-format-standard\.webp/);
-assert.match(metaSource, /\/card-format-wild\.webp/);
+assert.match(metaSource, /\/assets\/card-format-wild-128\.webp/);
 assert.match(
   metaSource,
   /most_wanted:\s*'За мини-набор — В розыске'/,

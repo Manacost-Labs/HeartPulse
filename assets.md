@@ -76,13 +76,14 @@ HS-Arena выглядит как читаемый статистический �
 ```css
 @font-face {
   font-family: "HSDisplay";
-  src: url("https://arena.hs-manacost.ru/fonts/2318-font.otf") format("opentype");
+  src: url("https://arena.hs-manacost.ru/fonts/hsdisplay-2026-10.woff2") format("woff2");
   font-display: swap;
 }
 
 @font-face {
   font-family: "Inter";
-  src: url("https://arena.hs-manacost.ru/fonts/google/inter-cyrillic.woff2") format("woff2");
+  src: url("https://arena.hs-manacost.ru/fonts/google/inter-cyrillic-400-700.woff2") format("woff2");
+  font-weight: 400 700;
   font-display: swap;
 }
 
@@ -95,25 +96,44 @@ h1, h2, h3, .hs-display { font-family: var(--font-hs); }
 body { font-family: var(--font-body); }
 ```
 
+`fonts/hsdisplay-2026-10.woff2` — тот же `2318-font.otf` в WOFF2 без потерь: все
+355 глифов, кернинг и хинтинг сохранены, 30,7 KB вместо 63,9 KB. Собран один раз
+fontTools 4.66.1: `TTFont("2318-font.otf")`, `flavor = "woff2"`, `save(...)`.
+`fonts/google/inter-{latin,cyrillic}-400-700.woff2` — вариативный Inter, обрезанный
+до оси `wght` 400–700 (`fontTools.varLib.instancer`, `{"wght": (400, 700)}`):
+36,1 и 13,2 KB вместо 48,3 и 18,7 KB. Исходный OTF нужен генератору
+изображений на сервере (`server/gen_legendary_image.py`) и внешним ссылкам.
+
 ## 4. Главные ассеты
 
 | Назначение | Путь | Production URL | Роль |
 | --- | --- | --- | --- |
-| Пергамент страницы | `wallpaper/arena-parchment.jpg` | <https://arena.hs-manacost.ru/wallpaper/arena-parchment.jpg> | Непрерывный фон контента |
+| Пергамент страницы | `wallpaper/arena-parchment-v2.webp` | <https://arena.hs-manacost.ru/wallpaper/arena-parchment-v2.webp> | Непрерывный фон контента: WebP из `arena-parchment.jpg` (`cwebp -q 75 -m 6 -sns 0 -f 0`: без сглаживания, чтобы сохранить зерно бумаги), 18,4 KB вместо 79,1 KB; JPEG остаётся для писем рассылки |
 | Красное сукно | `wallpaper/arena-rail-red.jpg` | <https://arena.hs-manacost.ru/wallpaper/arena-rail-red.jpg> | Меню, Arena-заголовки, футер, lightbox |
 | Главная деревянная рама | `wallpaper/main-page-rail-border.png` | <https://arena.hs-manacost.ru/wallpaper/main-page-rail-border.png> | Крупные панели и border-image |
 | Компактная деревянная рама | `wallpaper/deck-border.png` | <https://arena.hs-manacost.ru/wallpaper/deck-border.png> | Поиск, статусы, небольшие карточки |
 | BG-внешняя рама | `wallpaper/wiki-battlegrounds-skin.webp` | <https://arena.hs-manacost.ru/wallpaper/wiki-battlegrounds-skin.webp> | Конструкторы и крупные BG-поверхности |
 | BG-вывеска | `wallpaper/battlegrounds-bartender-header.webp` | <https://arena.hs-manacost.ru/wallpaper/battlegrounds-bartender-header.webp> | Заголовок Полей Сражений |
 | Орнамент заголовка | `wallpaper/main-page-header.svg` | <https://arena.hs-manacost.ru/wallpaper/main-page-header.svg> | Mask для коротких заголовков |
-| Персонаж главной | `wallpaper/home-paladin-hero.webp` | <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero.webp> | Мурал главного Arena-блока |
-| Профильная таверна | `wallpaper/profile-hero-hth.webp` | <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.webp> | Фон профиля |
+| Персонаж главной | `wallpaper/home-paladin-hero.webp` | <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero.webp> | Мурал главного Arena-блока; сайт отдаёт `home-paladin-hero-{720,960,1280}.avif` через `<picture>` (18–43 KB вместо 157 KB) |
+| Профильная таверна | `wallpaper/profile-hero-hth.webp` | <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.webp> | Фон профиля и арт баннера страниц; баннер берёт `profile-hero-hth-1430.avif` (46 KB вместо 65 KB) там, где браузер понимает `image-set()` с `type()` |
 | Arena-иконка | `assets/arena_icon.webp` | <https://arena.hs-manacost.ru/assets/arena_icon.webp> | Маркер режима Арены |
 | Мана | `assets/mana.png` | <https://arena.hs-manacost.ru/assets/mana.png> | Кристалл для отдельных интерфейсов; в HSReplay-строках колоды не используется |
 
 Публичные read-only списки колод используют не `assets/mana.png`, а точную CSS-геометрию vendored-компонента [`Zulut30/hsreplay-deck-view`](https://github.com/Zulut30/hsreplay-deck-view) на commit `a2860ee286e4f85adbbaf007003bfcab23800318`. Исходные стили лежат в `src/vendor/hsreplay-deck-view/`; локальные ассеты ограничены официальным артом самих карт и фоновой рамой сайта.
 
 Исходник локального орнамента заголовка: <https://hearthstone.wiki.gg/images/b/b2/Main_page_header.svg>.
+
+Производные файлы собраны один раз и лежат рядом с исходниками (sharp 0.35).
+Новые байты всегда получают новое имя: файлы `public/` кэшируются как `immutable`
+на 30 дней. AVIF мурала — из `home-paladin-hero.webp`, ширина 720/960/1280,
+`avif({ quality: 55, effort: 4 })`; AVIF баннера — из `profile-hero-hth.jpg`, 1430 px,
+`quality: 50`.
+
+Иконки интерфейса — `webp({ quality: 82, alphaQuality: 90, effort: 6 })` вдвое больше
+отрисованного размера: `class_icon/ui/<класс>-96.webp` и `all-96.webp` из PNG классов
+(до 255 KB → 3–5 KB), `assets/mana-64.webp`, `assets/card-format-wild-128.webp`,
+`ad/{telegram,boosty}-96.webp`, `source-logos/<источник>-64.webp`.
 
 ## 5. Готовые CSS-рецепты
 
@@ -126,7 +146,7 @@ body { font-family: var(--font-body); }
   background-color: var(--hs-parchment);
   background-image:
     linear-gradient(rgba(249, 235, 202, .72), rgba(236, 213, 166, .78)),
-    url("https://arena.hs-manacost.ru/wallpaper/arena-parchment.jpg");
+    url("https://arena.hs-manacost.ru/wallpaper/arena-parchment-v2.webp");
   background-repeat: repeat;
   background-size: auto, 865px 878px;
 }
@@ -313,8 +333,9 @@ body:has(.hs-lightbox-backdrop) {
 
 ## 8. Полный каталог production URL
 
-### Материалы, фоны и рамки (19)
+### Материалы, фоны и рамки (24)
 
+- `wallpaper/arena-parchment-v2.webp` — <https://arena.hs-manacost.ru/wallpaper/arena-parchment-v2.webp>
 - `wallpaper/arena-parchment.jpg` — <https://arena.hs-manacost.ru/wallpaper/arena-parchment.jpg>
 - `wallpaper/arena-rail-red.jpg` — <https://arena.hs-manacost.ru/wallpaper/arena-rail-red.jpg>
 - `wallpaper/battlegrounds-bartender-header.webp` — <https://arena.hs-manacost.ru/wallpaper/battlegrounds-bartender-header.webp>
@@ -323,34 +344,43 @@ body:has(.hs-lightbox-backdrop) {
 - `wallpaper/deck-border.png` — <https://arena.hs-manacost.ru/wallpaper/deck-border.png>
 - `wallpaper/footer-bg.jpg` — <https://arena.hs-manacost.ru/wallpaper/footer-bg.jpg>
 - `wallpaper/footer-bg.webp` — <https://arena.hs-manacost.ru/wallpaper/footer-bg.webp>
+- `wallpaper/home-paladin-hero-1280.avif` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero-1280.avif>
+- `wallpaper/home-paladin-hero-720.avif` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero-720.avif>
+- `wallpaper/home-paladin-hero-960.avif` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero-960.avif>
 - `wallpaper/home-paladin-hero.webp` — <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero.webp>
 - `wallpaper/main-page-header.svg` — <https://arena.hs-manacost.ru/wallpaper/main-page-header.svg>
 - `wallpaper/main-page-rail-border.png` — <https://arena.hs-manacost.ru/wallpaper/main-page-rail-border.png>
 - `wallpaper/nav-bg.png` — <https://arena.hs-manacost.ru/wallpaper/nav-bg.png>
 - `wallpaper/nav-right-under-arrow.png` — <https://arena.hs-manacost.ru/wallpaper/nav-right-under-arrow.png>
 - `wallpaper/nav-right-under.png` — <https://arena.hs-manacost.ru/wallpaper/nav-right-under.png>
+- `wallpaper/profile-hero-hth-1430.avif` — <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth-1430.avif>
 - `wallpaper/profile-hero-hth.jpg` — <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.jpg>
 - `wallpaper/profile-hero-hth.webp` — <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.webp>
 - `wallpaper/wallpaper.jpg` — <https://arena.hs-manacost.ru/wallpaper/wallpaper.jpg>
 - `wallpaper/wallpaper.webp` — <https://arena.hs-manacost.ru/wallpaper/wallpaper.webp>
 - `wallpaper/wiki-battlegrounds-skin.webp` — <https://arena.hs-manacost.ru/wallpaper/wiki-battlegrounds-skin.webp>
 
-### Шрифты (7)
+### Шрифты (10)
 
 - `fonts/2318-font.otf` — <https://arena.hs-manacost.ru/fonts/2318-font.otf>
+- `fonts/hsdisplay-2026-10.woff2` — <https://arena.hs-manacost.ru/fonts/hsdisplay-2026-10.woff2>
 - `fonts/google/cinzel-latin-500.woff2` — <https://arena.hs-manacost.ru/fonts/google/cinzel-latin-500.woff2>
 - `fonts/google/cinzel-latin-ext-500.woff2` — <https://arena.hs-manacost.ru/fonts/google/cinzel-latin-ext-500.woff2>
 - `fonts/google/inter-cyrillic-ext.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-cyrillic-ext.woff2>
+- `fonts/google/inter-cyrillic-400-700.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-cyrillic-400-700.woff2>
 - `fonts/google/inter-cyrillic.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-cyrillic.woff2>
 - `fonts/google/inter-latin-ext.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-latin-ext.woff2>
+- `fonts/google/inter-latin-400-700.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-latin-400-700.woff2>
 - `fonts/google/inter-latin.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-latin.woff2>
 
-### Общие игровые и брендовые ассеты (8)
+### Общие игровые и брендовые ассеты (10)
 
 - `assets/arena_icon.webp` — <https://arena.hs-manacost.ru/assets/arena_icon.webp>
+- `assets/card-format-wild-128.webp` — <https://arena.hs-manacost.ru/assets/card-format-wild-128.webp>
 - `assets/common.png` — <https://arena.hs-manacost.ru/assets/common.png>
 - `assets/epic.png` — <https://arena.hs-manacost.ru/assets/epic.png>
 - `assets/legendary.png` — <https://arena.hs-manacost.ru/assets/legendary.png>
+- `assets/mana-64.webp` — <https://arena.hs-manacost.ru/assets/mana-64.webp>
 - `assets/mana.png` — <https://arena.hs-manacost.ru/assets/mana.png>
 - `assets/manacost-avatar.jpeg` — <https://arena.hs-manacost.ru/assets/manacost-avatar.jpeg>
 - `assets/og-preview.png` — <https://arena.hs-manacost.ru/assets/og-preview.png>
@@ -371,7 +401,7 @@ body:has(.hs-lightbox-backdrop) {
 - `main_assets/tier-list.png` — <https://arena.hs-manacost.ru/main_assets/tier-list.png>
 - `main_assets/winrate-classes.png` — <https://arena.hs-manacost.ru/main_assets/winrate-classes.png>
 
-### Иконки классов (24)
+### Иконки классов (36)
 
 - `class_icon/all1.png` — <https://arena.hs-manacost.ru/class_icon/all1.png>
 - `class_icon/deathknight.png` — <https://arena.hs-manacost.ru/class_icon/deathknight.png>
@@ -384,24 +414,39 @@ body:has(.hs-lightbox-backdrop) {
 - `class_icon/priest.png` — <https://arena.hs-manacost.ru/class_icon/priest.png>
 - `class_icon/rogue.png` — <https://arena.hs-manacost.ru/class_icon/rogue.png>
 - `class_icon/shaman.png` — <https://arena.hs-manacost.ru/class_icon/shaman.png>
+- `class_icon/ui/all-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/all-96.webp>
 - `class_icon/ui/deathknight-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/deathknight-64.webp>
+- `class_icon/ui/deathknight-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/deathknight-96.webp>
 - `class_icon/ui/demonhunter-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/demonhunter-64.webp>
+- `class_icon/ui/demonhunter-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/demonhunter-96.webp>
 - `class_icon/ui/druid-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/druid-64.webp>
+- `class_icon/ui/druid-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/druid-96.webp>
 - `class_icon/ui/hunter-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/hunter-64.webp>
+- `class_icon/ui/hunter-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/hunter-96.webp>
 - `class_icon/ui/mage-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/mage-64.webp>
+- `class_icon/ui/mage-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/mage-96.webp>
 - `class_icon/ui/paladin-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/paladin-64.webp>
+- `class_icon/ui/paladin-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/paladin-96.webp>
 - `class_icon/ui/priest-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/priest-64.webp>
+- `class_icon/ui/priest-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/priest-96.webp>
 - `class_icon/ui/rogue-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/rogue-64.webp>
+- `class_icon/ui/rogue-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/rogue-96.webp>
 - `class_icon/ui/shaman-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/shaman-64.webp>
+- `class_icon/ui/shaman-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/shaman-96.webp>
 - `class_icon/ui/warlock-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/warlock-64.webp>
+- `class_icon/ui/warlock-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/warlock-96.webp>
 - `class_icon/ui/warrior-64.webp` — <https://arena.hs-manacost.ru/class_icon/ui/warrior-64.webp>
+- `class_icon/ui/warrior-96.webp` — <https://arena.hs-manacost.ru/class_icon/ui/warrior-96.webp>
 - `class_icon/warlock.png` — <https://arena.hs-manacost.ru/class_icon/warlock.png>
 - `class_icon/warrior.png` — <https://arena.hs-manacost.ru/class_icon/warrior.png>
 
-### Логотипы источников данных (3)
+### Логотипы источников данных (6)
 
+- `source-logos/firestone-64.webp` — <https://arena.hs-manacost.ru/source-logos/firestone-64.webp>
 - `source-logos/firestone.png` — <https://arena.hs-manacost.ru/source-logos/firestone.png>
+- `source-logos/heartharena-64.webp` — <https://arena.hs-manacost.ru/source-logos/heartharena-64.webp>
 - `source-logos/heartharena.webp` — <https://arena.hs-manacost.ru/source-logos/heartharena.webp>
+- `source-logos/hsreplay-64.webp` — <https://arena.hs-manacost.ru/source-logos/hsreplay-64.webp>
 - `source-logos/hsreplay.png` — <https://arena.hs-manacost.ru/source-logos/hsreplay.png>
 
 ### Иконки связанных сайтов (2)
@@ -409,10 +454,12 @@ body:has(.hs-lightbox-backdrop) {
 - `site-icons/hs-manacost.png` — <https://arena.hs-manacost.ru/site-icons/hs-manacost.png>
 - `site-icons/koloda.ico` — <https://arena.hs-manacost.ru/site-icons/koloda.ico>
 
-### Сообщество и рекламные изображения (5)
+### Сообщество и рекламные изображения (7)
 
+- `ad/boosty-96.webp` — <https://arena.hs-manacost.ru/ad/boosty-96.webp>
 - `ad/boosty.png` — <https://arena.hs-manacost.ru/ad/boosty.png>
 - `ad/donate-qr.png` — <https://arena.hs-manacost.ru/ad/donate-qr.png>
+- `ad/telegram-96.webp` — <https://arena.hs-manacost.ru/ad/telegram-96.webp>
 - `ad/telegram.png` — <https://arena.hs-manacost.ru/ad/telegram.png>
 - `ad/wallpaper_info.jpg` — <https://arena.hs-manacost.ru/ad/wallpaper_info.jpg>
 - `ad/wallpaper_info.webp` — <https://arena.hs-manacost.ru/ad/wallpaper_info.webp>

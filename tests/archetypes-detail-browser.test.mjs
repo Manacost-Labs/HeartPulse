@@ -113,7 +113,7 @@ try {
   await page.waitForSelector('.card-preview-tooltip', { hidden: true });
 
   const builderHref = await page.$eval('.archetype-builder-link', link => link.getAttribute('href'));
-  assert.match(builderHref || '', /^\/deck-builder\?code=/);
+  assert.match(builderHref || '', /^\/deck-builder\/\?code=/);
   assert.ok(new URL(builderHref, storybook.origin).searchParams.get('code')?.length > 20);
 
   await page.click('.archetype-analysis-panel__more');

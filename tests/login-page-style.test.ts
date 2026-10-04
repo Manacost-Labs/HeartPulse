@@ -10,6 +10,6 @@ const loginPageStyles = styles.match(/\.login-page\s*\{(?<rules>[^}]*)\}/)?.grou
 
 assert.match(loginPageStyles, /min-height:\s*calc\(100vh - 3rem\)/);
 assert.match(loginPageStyles, /background-color:\s*#ead6a7/);
-assert.match(loginPageStyles, /url\('\/wallpaper\/arena-parchment\.jpg'\)/);
+assert.match(loginPageStyles, /var\(--arena-parchment-texture\)/);
 
 console.log('login page background fallback contract passed');

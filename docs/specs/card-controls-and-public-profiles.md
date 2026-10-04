@@ -39,6 +39,8 @@ Improve constructed-card detail controls and add privacy-safe public user profil
 - Existing users are backfilled during the idempotent database migration.
 - New users receive an ID during persistence.
 - The private profile shows the full public ID and a link to the public page.
+  That link and every copied profile URL use the canonical form with the
+  trailing slash; `/id/1` only redirects there.
 - The public API allowlist contains only:
   `publicProfileId`, `name`, `avatarInitials`, and `createdAt`.
 - Public responses exclude email, contacts, country, role, subscription state,
