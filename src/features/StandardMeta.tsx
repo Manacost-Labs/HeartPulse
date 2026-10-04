@@ -131,7 +131,7 @@ const FORMATS: Array<{ id: MetaFormat; label: string; description: string; asset
     id: 'wild',
     label: 'Вольный',
     description: 'Все дополнения',
-    asset: '/card-format-wild.webp',
+    asset: '/assets/card-format-wild-128.webp',
   },
 ];
 

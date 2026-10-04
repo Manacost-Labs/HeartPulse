@@ -676,7 +676,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           <div className="constructed-card-detail__statistics-controls" aria-label="Выбор статистики карты">
             <div className="constructed-card-detail__statistics-format" role="group" aria-label="Формат статистики">
               {standardStatisticsAvailable && <button type="button" aria-pressed={statsFormat === 'standard'} onClick={() => changeStatistics({ format: 'standard' })}><img src="/card-format-standard.webp" alt="" />Стандарт</button>}
-              <button type="button" aria-pressed={statsFormat === 'wild'} onClick={() => changeStatistics({ format: 'wild' })}><img src="/card-format-wild.webp" alt="" />Вольный</button>
+              <button type="button" aria-pressed={statsFormat === 'wild'} onClick={() => changeStatistics({ format: 'wild' })}><img src="/assets/card-format-wild-128.webp" alt="" />Вольный</button>
             </div>
             <FilterSelect
               label="Ранг"

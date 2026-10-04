@@ -6,7 +6,7 @@
   color: #342317;
   background:
     linear-gradient(rgba(255, 249, 226, 0.92), rgba(240, 211, 151, 0.78)),
-    url('/wallpaper/arena-parchment.jpg') center / 32rem auto;
+    var(--arena-parchment-texture) center / 32rem auto;
   border: 1px solid #76502b;
   border-radius: 0.5rem;
   box-shadow:

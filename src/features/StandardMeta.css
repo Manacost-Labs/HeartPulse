@@ -165,7 +165,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(90deg, rgba(255, 249, 226, 0.5), rgba(238, 210, 154, 0.34)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
   box-shadow: inset 0 0 0 1px rgba(255, 247, 219, 0.45), 0 5px 12px rgba(73, 42, 17, 0.1);
 }
 
@@ -376,7 +376,7 @@
   border-image: url('/wallpaper/deck-border.png') 22 stretch;
   background:
     linear-gradient(rgba(255, 244, 211, 0.68), rgba(235, 207, 154, 0.58)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
   box-shadow: inset 0 1px rgba(255, 250, 230, 0.52), 0 3px 8px rgba(73, 42, 17, 0.08);
 }
 
@@ -439,7 +439,7 @@
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(rgba(255, 247, 218, 0.76), rgba(232, 204, 151, 0.65)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
   box-shadow: inset 0 0 0 1px rgba(255, 250, 230, 0.4), 0 5px 12px rgba(72, 41, 17, 0.1);
   scrollbar-color: var(--meta-purple) rgba(112, 71, 32, 0.15);
   scrollbar-gutter: stable;
@@ -552,7 +552,7 @@
   text-align: left;
   background:
     linear-gradient(90deg, rgba(248, 225, 177, 0.98), rgba(243, 218, 166, 0.96)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
   box-shadow: 7px 0 12px -12px rgba(53, 24, 7, 0.8);
 }
 
@@ -619,7 +619,7 @@
   border-image: url('/wallpaper/deck-border.png') 22 stretch;
   background:
     linear-gradient(135deg, rgba(255, 248, 220, 0.88), rgba(230, 199, 142, 0.66)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
+    var(--arena-parchment-texture) center / cover;
   box-shadow: inset 0 0 0 1px rgba(255, 250, 229, 0.46), 0 3px 8px rgba(75, 43, 18, 0.1);
   content-visibility: auto;
   contain: layout paint style;

@@ -10,7 +10,6 @@ export const generateMetadata = seoPageMetadata('/heroes', 'HearthPulse — ге
 export default function Page() {
   return <>
     <SeoStructuredData path="/heroes" />
-    <link rel="preload" href="/wallpaper/profile-hero-hth.webp" as="image" fetchPriority="high" />
     <BattlegroundHeroesPageClient />
   </>;
 }

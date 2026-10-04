@@ -82,7 +82,7 @@ function DeckTile({
         <span className="hsrdv-card-cost">{card.cost}</span>
       </span>
       <span className={`deck-tile__frame hsrdv-card-frame ${hasCountBox ? 'hsrdv-card-frame--with-count' : 'hsrdv-card-frame--without-count'}`}>
-        {card.image ? <img className="deck-tile__art hsrdv-card-art" src={card.image} alt={card.name} /> : null}
+        {card.image ? <img className="deck-tile__art hsrdv-card-art" src={card.image} alt={card.name} loading="lazy" decoding="async" /> : null}
         {hasCountBox ? (
           <span className="deck-tile__countbox hsrdv-card-countbox" aria-hidden="true">
             <span className={`deck-tile__count hsrdv-card-count${card.count > 1 ? ' hsrdv-card-count--copies' : ''}`}>{countLabel}</span>

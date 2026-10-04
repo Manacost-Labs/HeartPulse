@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
 
+import DeckListView, { type DeckListCard } from '../decklist/DeckListView';
 import DeckRenderPreview from './DeckRenderPreview';
 
 const meta = {
@@ -62,5 +63,33 @@ export const PreviewCardWithFullSizeViewer: Story = {
     const lightbox = document.body.querySelector<HTMLImageElement>('.deck-render-lightbox__image');
     await expect(lightbox).not.toBeNull();
     await expect(lightbox).toHaveAttribute('src', FULL_DATA_URL);
+  },
+};
+
+const FALLBACK_CARDS: DeckListCard[] = ['Дар видений', 'Теневой вор', 'Украденная реликвия'].map((name, index) => ({
+  id: `STORY_${index + 1}`,
+  dbfId: 91_000 + index,
+  name,
+  cost: index + 1,
+  rarity: index === 0 ? 'LEGENDARY' : 'COMMON',
+  elite: index === 0,
+  count: index === 0 ? 1 : 2,
+  image: `/story-deck-tile/${index + 1}.webp`,
+}));
+
+/** A rendered deck keeps its card list as the hidden fallback; the list's tile art must not download. */
+export const RenderedDeckWithHiddenFallbackList: Story = {
+  args: {
+    deckCode: 'AAEC-story-hidden-fallback',
+    initialAsset: {
+      imageUrl: FULL_DATA_URL,
+      previewImageUrl: PREVIEW_DATA_URL,
+    },
+    children: <DeckListView cards={FALLBACK_CARDS} title="Жрец" totalCards={5} />,
+  },
+  play: async ({ canvasElement }) => {
+    const list = canvasElement.querySelector('.deck-render-preview__list');
+    await expect(list).not.toBeVisible();
+    await expect(canvasElement.querySelector('.deck-tile__art')).toHaveAttribute('loading', 'lazy');
   },
 };

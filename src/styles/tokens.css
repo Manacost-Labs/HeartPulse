@@ -8,6 +8,9 @@
 :root {
   --arena-parchment: #ead6a7;
   --arena-parchment-light: #f5e7c6;
+  /* The page material. A new file name ships new bytes: /wallpaper/ is served
+     immutable for 30 days. The newsletter keeps the JPEG (no WebP in mail). */
+  --arena-parchment-texture: url('/wallpaper/arena-parchment-v2.webp');
   --arena-ink: #30251c;
   --arena-muted-ink: #74624d;
   --arena-red: #7b151b;

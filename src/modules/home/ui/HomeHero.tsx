@@ -2,6 +2,14 @@ import React, { useMemo } from 'react';
 import { ArrowRight, BarChart3 } from 'lucide-react';
 import { CLASS_ICON_BY_ID, type HomeSummaryData } from '../model/homeSummary';
 
+const HERO_AVIF_SRCSET = [720, 960, 1280]
+  .map(width => `/wallpaper/home-paladin-hero-${width}.avif ${width}w`)
+  .join(', ');
+// Width the mural paints with object-fit: cover (parchment-theme.css), measured
+// at 360-2560px: the stacked layout up to 900px, then the stage's right side,
+// capped at 931px from 1920px.
+const HERO_SIZES = '(max-width: 900px) 88vw, (max-width: 1100px) 62vw, (max-width: 1920px) 49vw, 931px';
+
 export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
   homeSummaryData: HomeSummaryData | null;
   loadingHomeSummary: boolean;
@@ -40,14 +48,19 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
         </div>
 
         <figure className="home-stage__character" aria-hidden="true">
-          <img
-            src="/wallpaper/home-paladin-hero.webp"
-            alt=""
-            width={1280}
-            height={853}
-            decoding="async"
-            fetchPriority="high"
-          />
+          {/* The mural is not the page's LCP element, so it gets no head preload
+              (React adds none inside <picture>); fetchPriority keeps it early. */}
+          <picture>
+            <source type="image/avif" srcSet={HERO_AVIF_SRCSET} sizes={HERO_SIZES} />
+            <img
+              src="/wallpaper/home-paladin-hero.webp"
+              alt=""
+              width={1280}
+              height={853}
+              decoding="async"
+              fetchPriority="high"
+            />
+          </picture>
         </figure>
 
         <aside className="home-draft-orbit" aria-live="polite" aria-label="Классы-лидеры текущей меты">

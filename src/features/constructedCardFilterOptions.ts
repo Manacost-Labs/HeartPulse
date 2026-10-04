@@ -82,7 +82,7 @@ export function constructedClassIcon(value?: string | null): string {
 
 export function classFilterOptions(values: string[]): ConstructedCardFilterOption[] {
   return [
-    { value: '', label: 'Все классы', icon: '/class_icon/all1.png', iconAlt: '' },
+    { value: '', label: 'Все классы', icon: '/class_icon/ui/all-96.webp', iconAlt: '' },
     ...values.map(value => ({
       value,
       label: constructedClassLabel(value),

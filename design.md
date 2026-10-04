@@ -102,7 +102,7 @@ Gold is not a general panel fill. Use it for small accents, asset-native details
 
 | Asset | Purpose |
 |---|---|
-| `/wallpaper/arena-parchment.jpg` | continuous page material |
+| `/wallpaper/arena-parchment-v2.webp` | continuous page material, always through `var(--arena-parchment-texture)`; the newsletter keeps `arena-parchment.jpg` |
 | `/wallpaper/arena-rail-red.jpg` | fixed red navigation rail |
 | `/wallpaper/main-page-rail-border.png` | major Arena and Battlegrounds wooden frame |
 | `/wallpaper/deck-border.png` | compact dark frame for short profile statuses and BG hero media cards |

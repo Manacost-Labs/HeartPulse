@@ -346,7 +346,7 @@ button.archetype-mulligan-card:focus-visible {
   border: 1px solid var(--analysis-rule);
   background:
     linear-gradient(105deg, rgba(255, 250, 231, 0.7), rgba(242, 220, 176, 0.58)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   box-shadow: 0 2px 6px rgba(69, 42, 19, 0.06);
   transition: border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease);
 }
@@ -355,7 +355,7 @@ button.archetype-mulligan-card:focus-visible {
   border-color: rgba(103, 19, 28, 0.36);
   background:
     linear-gradient(105deg, rgba(255, 252, 239, 0.9), rgba(245, 225, 184, 0.72)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
   box-shadow: 0 4px 10px rgba(69, 42, 19, 0.11);
 }
 
@@ -481,7 +481,7 @@ button.archetype-mulligan-card:focus-visible {
   list-style: none;
   background:
     linear-gradient(90deg, rgba(255, 249, 226, 0.7), rgba(237, 210, 158, 0.48)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
 }
 
 .archetype-deck-folio > summary::-webkit-details-marker {
@@ -893,7 +893,7 @@ button.archetype-mulligan-card:focus-visible {
   border-bottom: 1px solid var(--analysis-rule);
   background:
     linear-gradient(90deg, rgba(255, 249, 226, 0.76), rgba(237, 210, 158, 0.56)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+    var(--arena-parchment-texture) center / 865px 878px repeat;
 }
 
 .archetype-analysis-panel .archetype-deck-card__summary .archetype-deck-folio__metric {
