@@ -46,7 +46,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
     const url = new URL(request.url, 'http://fixture');
     const path = url.pathname;
     if (path.startsWith('/api/cosmetics/')) catalogRequests.push(`${path}${url.search}`);
-    if (/^\/api\/cosmetics\/(heroes|coins|pets)\/[^/]+$/.test(path)) detailCookies.push(request.headers.cookie ?? '');
+    if (/^\/api\/cosmetics\/(heroes|coins|pets)(\/[^/]+)?$/.test(path)) detailCookies.push(request.headers.cookie ?? '');
     if (path.startsWith('/api/card-image/') || path.startsWith('/api/public-resource/wiki/')) {
       response.setHeader('Content-Type', 'image/webp');
       response.end(readFileSync('public/arena-logo-icon.webp'));
@@ -104,6 +104,11 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
     assert.match(filteredHtml, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/cosmetics\/heroes\/"/);
     const robotsMeta = filteredHtml.match(/<meta name="robots" content="([^"]+)"/)?.[1] ?? '';
     assert.match(robotsMeta, /noindex/);
+    // The first catalog page is in the document: its pictures load with it,
+    // the first one first, and no skeleton waits for the browser to fetch it.
+    assert.match(filteredHtml, /class="cosmetics-card cosmetics-hero-card"/);
+    assert.match(filteredHtml, /<img[^>]*loading="eager"[^>]*fetchPriority="high"/i);
+    assert.doesNotMatch(filteredHtml, /cosmetics-skeleton/);
     browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     const listings = [
@@ -115,12 +120,13 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
     for (const width of [1440, 390, 320]) {
       const page = await browser.newPage();
       await page.setViewport({ width, height: 900 });
-      const errors = []; const failed = []; const httpErrors = []; const mediaRequests = [];
+      const errors = []; const failed = []; const httpErrors = []; const mediaRequests = []; const browserCatalogReads = [];
       page.on('pageerror', error => errors.push(error.message));
       page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
       page.on('requestfailed', request => failed.push(request.url()));
       page.on('request', request => {
         if (/\.(?:webm|mp3|ogg)(?:$|\?)/i.test(request.url())) mediaRequests.push(request.url());
+        if (/^\/api\/cosmetics\/(heroes|coins|pets)$/.test(new URL(request.url()).pathname)) browserCatalogReads.push(request.url());
       });
       page.on('response', response => {
         if (response.status() >= 400) httpErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
@@ -194,6 +200,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
       assert.deepEqual([...new Set(errors)], []);
       assert.deepEqual(failed, []);
       assert.deepEqual(mediaRequests, [], 'catalog navigation must not preload animation or audio');
+      assert.deepEqual(browserCatalogReads, [], 'the server-rendered catalog page is not fetched again');
       await page.close();
     }
     assert.equal((await fetch(`${origin}/cosmetics/unknown/`)).status, 404);
@@ -201,8 +208,9 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
       headers: { Cookie: 'session=browser-fixture' },
     });
     assert.equal(authenticatedRequest.status, 200);
+    assert.equal((await fetch(`${origin}/cosmetics/pets/`, { headers: { Cookie: 'session=browser-fixture' } })).status, 200);
     assert.ok(detailCookies.length > 0);
-    assert.deepEqual([...new Set(detailCookies)], [''], 'public detail fetch must not forward browser cookies');
+    assert.deepEqual([...new Set(detailCookies)], [''], 'public catalog and detail reads must not forward browser cookies');
     const missing = await fetch(`${origin}/cosmetics/heroes/MISSING/`);
     assert.equal(missing.status, 404);
     assert.match(await missing.text(), /Косметика не найдена/);

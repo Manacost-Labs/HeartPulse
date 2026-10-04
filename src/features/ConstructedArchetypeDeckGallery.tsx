@@ -9,6 +9,7 @@ import DeckListView, {
   type DeckListSideboard,
 } from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
+import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 
 type ArchetypeFormat = 'standard' | 'wild';
 
@@ -179,13 +180,10 @@ function DeckBuildCard({
             </button>
           </div>
         ) : (
-          <div className="archetype-deck-card__state" aria-busy="true" aria-label={`Загружается сборка ${index + 1}`}>
-            <span className="archetype-deck-card__skeleton" />
-            <span className="archetype-deck-card__skeleton" />
-            <span className="archetype-deck-card__skeleton" />
-            <span className="archetype-deck-card__skeleton" />
-            <span className="archetype-deck-card__skeleton" />
-          </div>
+          <LoadingSurface label={`Загружается сборка ${index + 1}`} quiet layout="rows"
+            className="archetype-deck-card__state" blocksClassName="archetype-deck-card__skeletons">
+            {Array.from({ length: 5 }, (_, row) => <LoadingBlock key={row} className="archetype-deck-card__skeleton" />)}
+          </LoadingSurface>
         )}
       </DeckRenderPreview>
 

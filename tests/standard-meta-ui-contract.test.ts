@@ -44,8 +44,18 @@ assert.equal(
   'most_wanted',
 );
 
-assert.match(metaSource, /useState<MetaRank>\('diamond_legend'\)/);
-assert.match(metaSource, /useState<MetaPeriod \| null>\(null\)/);
+// The page opens on Diamond–Legend; a server-rendered teaser also fixes the
+// period it was read for, otherwise the page resolves the current one itself.
+const teaserSource = readFileSync(new URL('../src/features/standardMetaTeaser.ts', import.meta.url), 'utf8');
+assert.match(teaserSource, /TEASER_SEED_FILTERS = \{ format: 'standard', rank: 'diamond_legend', minGames: 100 \} as const/);
+assert.match(metaSource, /useState<MetaRank>\(TEASER_SEED_FILTERS\.rank\)/);
+assert.match(metaSource, /useState<MetaPeriod \| null>\(initialTeaser\?\.period \?\? null\)/);
+// Until a payload resolves the summary shows a dash, never a fake zero.
+assert.match(metaSource, /const summaryReady = hasPayload && !\(hasFullAccess && data === initialTeaser\?\.data\);/);
+assert.match(metaSource, /<dd>\{summaryReady \? data\.items\.length : '—'\}<\/dd>/);
+assert.match(metaSource, /\{loading && !hasPayload && \(\s*<AsyncSurfaceState\s*variant="loading"/);
+// The guest teaser's prompt waits for the account check, so a subscriber never sees it.
+assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<PaywallGate/);
 assert.match(metaSource, /option\.asset/);
 assert.match(metaSource, /\/card-format-standard\.webp/);
 assert.match(metaSource, /\/card-format-wild\.webp/);

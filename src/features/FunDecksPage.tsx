@@ -18,46 +18,19 @@ import '../route-parchment.css';
 import DeckListView from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { useResolvedDeck } from './decklist/useResolvedDeck';
+import {
+  FUN_DECKS_FREE_PREVIEW_COUNT,
+  orderFunDecks,
+  type FunDeckRow,
+  type FunDecksPayload,
+  type FunDecksSortMode,
+} from './funDecksPreview';
+import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
+import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import './FunDecksPage.css';
 
-type FunDeckRow = {
-  title: string;
-  deckCode: string;
-  format: string;
-  className: string;
-  streamer: string | null;
-  funScore: number | null;
-  maxMetaSimilarity: number | null;
-  nearestArchetype: string | null;
-  winRate: number | null;
-  games: number | null;
-  reasons: string[];
-  url: string | null;
-  firstSeenAt: string | null;
-  lastSeenAt: string | null;
-  render?: {
-    imageUrl: string;
-    previewImageUrl: string;
-  };
-};
-
-type FunDecksPayload = {
-  fetchedAt: string | null;
-  stats: {
-    total: number;
-    standard: number;
-    wild: number;
-  };
-  methodology: {
-    detectorVersion: string | null;
-    minFunScore: number;
-    maxMetaSimilarity: number;
-  };
-  decks: FunDeckRow[];
-};
-
 type FormatFilter = 'all' | 'standard' | 'wild';
-type SortMode = 'newest' | 'fun';
+type SortMode = FunDecksSortMode;
 
 const EMPTY_DATA: FunDecksPayload = {
   fetchedAt: null,
@@ -66,7 +39,7 @@ const EMPTY_DATA: FunDecksPayload = {
   decks: [],
 };
 
-const FREE_PREVIEW_COUNT = 3;
+const FREE_PREVIEW_COUNT = FUN_DECKS_FREE_PREVIEW_COUNT;
 const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
   authUser: null,
   subscriptionStatus: null,
@@ -120,7 +93,7 @@ function score(value: number | null): string {
   return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
-function updatedLabel(value: string | null): string {
+function updatedLabel(value: string | null, timeZone: string | undefined): string {
   const parsed = timestamp(value);
   if (!parsed) return '';
   return new Intl.DateTimeFormat('ru-RU', {
@@ -128,6 +101,7 @@ function updatedLabel(value: string | null): string {
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone,
   }).format(parsed);
 }
 
@@ -188,7 +162,7 @@ function FunDeckCard({
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const format = formatOf(deck);
-  const { data, loading, error, reload } = useResolvedDeck(deck.deckCode, {
+  const { data, error, reload } = useResolvedDeck(deck.deckCode, {
     format,
     archetype: deck.nearestArchetype || undefined,
   });
@@ -289,11 +263,10 @@ function FunDeckCard({
               </button>
             </div>
           ) : (
-            <div className="fun-deck-card__deck-state" aria-busy={loading}>
-              {Array.from({ length: 10 }, (_, index) => (
-                <span key={index} className="fun-deck-card__deck-skeleton" />
-              ))}
-            </div>
+            <LoadingSurface label="Загружаем состав колоды" quiet layout="rows"
+              className="fun-deck-card__deck-state" blocksClassName="fun-deck-card__deck-skeletons">
+              {Array.from({ length: 10 }, (_, index) => <LoadingBlock key={index} className="fun-deck-card__deck-skeleton" />)}
+            </LoadingSurface>
           )}
         </DeckRenderPreview>
         <button
@@ -319,24 +292,18 @@ function FunDeckCard({
   );
 }
 
-export default function FunDecksPage({
-  hasFullAccess = true,
-  paywall = DEFAULT_PAYWALL_ACCESS,
-}: {
-  hasFullAccess?: boolean;
-  paywall?: PaywallAccessState;
-}) {
-  const [data, setData] = useState<FunDecksPayload>(EMPTY_DATA);
-  const [loading, setLoading] = useState(true);
+/**
+ * The selection: a server-rendered guest preview shows at once, and the
+ * complete list, which filters and subscribers need, loads behind it
+ * without a loader. Only a page without a preview starts with the loader.
+ */
+function useFunDecksData(initialPreview: FunDecksPayload | null) {
+  const [data, setData] = useState<FunDecksPayload>(initialPreview ?? EMPTY_DATA);
+  const [loading, setLoading] = useState(!initialPreview);
+  const [complete, setComplete] = useState(false);
   const [error, setError] = useState('');
-  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
-  const [sortMode, setSortMode] = useState<SortMode>('newest');
-  const [query, setQuery] = useState('');
-  const [visibleCount, setVisibleCount] = useState(6);
-  const deferredQuery = useDeferredValue(query);
 
   const load = useCallback(async () => {
-    setLoading(true);
     setError('');
     try {
       const response = await fetch('/api/fun-decks', {
@@ -346,6 +313,7 @@ export default function FunDecksPage({
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить подборку');
       setData(payload as FunDecksPayload);
+      setComplete(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Не удалось загрузить подборку');
     } finally {
@@ -354,20 +322,42 @@ export default function FunDecksPage({
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  const retry = useCallback(() => {
+    setLoading(true);
+    void load();
+  }, [load]);
+  return { data, loading, complete, error, retry };
+}
+
+export default function FunDecksPage({
+  hasFullAccess = true,
+  accessPending = false,
+  paywall = DEFAULT_PAYWALL_ACCESS,
+  initialPreview = null,
+}: {
+  hasFullAccess?: boolean;
+  accessPending?: boolean;
+  paywall?: PaywallAccessState;
+  /** Guest preview read on the server (apps/public-web/lib/publicFunDecksPreview.ts). */
+  initialPreview?: FunDecksPayload | null;
+}) {
+  const { data, loading, complete, error: loadError, retry } = useFunDecksData(initialPreview);
+  // A guest whose complete list failed still has the preview it may see.
+  const error = loadError && (hasFullAccess || !data.decks.length) ? loadError : '';
+  const [arrivesLater] = useState(!initialPreview);
+  const timeZone = useViewerTimeZone();
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
+  const [sortMode, setSortMode] = useState<SortMode>('newest');
+  const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(6);
+  const deferredQuery = useDeferredValue(query);
 
   const filteredDecks = useMemo(() => {
     const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
     const formatDecks = data.decks.filter(deck => (
       formatFilter === 'all' || formatOf(deck) === formatFilter
     ));
-    const sortedDecks = [...formatDecks].sort((left, right) => {
-      if (sortMode === 'fun') {
-        return (right.funScore ?? 0) - (left.funScore ?? 0)
-          || timestamp(right.firstSeenAt) - timestamp(left.firstSeenAt);
-      }
-      return timestamp(right.firstSeenAt) - timestamp(left.firstSeenAt)
-        || (right.funScore ?? 0) - (left.funScore ?? 0);
-    });
+    const sortedDecks = orderFunDecks(formatDecks, sortMode);
     const accessibleDecks = hasFullAccess ? sortedDecks : sortedDecks.slice(0, FREE_PREVIEW_COUNT);
     return accessibleDecks.filter(deck => {
       if (!needle) return true;
@@ -394,7 +384,7 @@ export default function FunDecksPage({
           {data.fetchedAt ? (
             <p className="fun-decks-freshness">
               <Clock3 aria-hidden="true" />
-              Обновлено <time dateTime={data.fetchedAt}>{updatedLabel(data.fetchedAt)}</time>
+              Обновлено <time dateTime={data.fetchedAt}>{updatedLabel(data.fetchedAt, timeZone)}</time>
             </p>
           ) : null}
         </div>
@@ -492,31 +482,33 @@ export default function FunDecksPage({
       </section>
 
       {loading ? (
-        <section className="fun-decks-page__state" aria-busy="true">
-          <RefreshCw className="fun-decks-page__spinner" aria-hidden="true" />
-          <h2>Собираем фан-колоды</h2>
-          <p>Загружаем свежую подборку и составы карт.</p>
-        </section>
+        <LoadingSurface label="Собираем фан-колоды" detail="Загружаем свежую подборку и составы карт."
+          layout="grid" count={3} className="fun-decks-page__loading" blocksClassName="fun-decks-grid" />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">
           <TriangleAlert aria-hidden="true" />
           <h2>Подборка временно недоступна</h2>
           <p>{error}</p>
-          <button type="button" onClick={() => void load()}>
+          <button type="button" onClick={retry}>
             <RefreshCw aria-hidden="true" />
             Повторить
           </button>
         </section>
       ) : visibleDecks.length ? (
         <>
-          <section className="fun-decks-grid" aria-label="Подборка фан-колод">
+          <section className={`fun-decks-grid data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label="Подборка фан-колод"
+            aria-busy={hasFullAccess && !complete}>
             {visibleDecks.map((deck, index) => (
               <React.Fragment key={`${deck.format}:${deck.deckCode}`}>
                 <FunDeckCard
                   deck={deck}
                   fresh={isRecentlyAdded(deck, data.fetchedAt)}
                   tourAnchor={index === 0}
-                  eager={index < 3}
+                  // The deck images are in the server HTML: only the first,
+                  // in view on every screen, loads with it; the rest wait for
+                  // the viewport instead of taking a phone's bandwidth from
+                  // the page scripts.
+                  eager={index === 0}
                 />
               </React.Fragment>
             ))}
@@ -538,7 +530,7 @@ export default function FunDecksPage({
         </section>
       )}
 
-      {!loading && !error && !hasFullAccess ? (
+      {!loading && !error && !hasFullAccess && !accessPending ? (
         <PaywallGate
           active
           presentation="inline"

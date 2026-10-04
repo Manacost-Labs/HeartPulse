@@ -365,6 +365,9 @@
   background: transparent;
 }
 
+/* The collapsed chart is about as tall as its loader; keep its spacing too. */
+.standard-meta-chart-loading { margin-top: 0.85rem; }
+
 .standard-meta__results-toolbar {
   display: flex;
   gap: 1rem;

@@ -33,4 +33,17 @@ assert.match(styles, /min-block-size:\s*var\(--loading-surface-min-block,/);
 assert.doesNotMatch(styles, /\.loading-surface--\w+ \.loading-block\b/, 'layouts size only their default blocks');
 assert.doesNotMatch(styles, /@keyframes|background-position|!important/);
 
+// Data that replaces a loader on the client fades in by opacity alone and stays
+// on screen, dimmed, while it refreshes; the server-rendered copy never fades.
+const index = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+assert.match(index, /\.data-surface\s*\{\s*transition:\s*opacity var\(--motion-base\) var\(--motion-ease\);/);
+assert.match(index, /@starting-style\s*\{\s*\.data-arrive\s*\{\s*opacity:\s*0\.24;/);
+for (const feature of ['StandardMeta', 'ConstructedArchetypes']) {
+  const source = readFileSync(new URL(`../src/features/${feature}.tsx`, import.meta.url), 'utf8');
+  assert.match(source, /data-surface\$\{arrivesLater \? ' data-arrive' : ''\}/, `${feature} fades in only data the browser loaded`);
+  assert.match(source, /const \[arrivesLater\] = useState\(!/, `${feature} decides once, from its server seed`);
+}
+const cosmetics = readFileSync(new URL('../src/features/Cosmetics.tsx', import.meta.url), 'utf8');
+assert.doesNotMatch(cosmetics, /data-arrive/, 'the cosmetics grid holds the largest paint and must not fade');
+
 console.log('loading surface contracts passed');

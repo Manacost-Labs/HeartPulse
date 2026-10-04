@@ -3,6 +3,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/Cosmetics.css';
 import { cosmeticsListing, cosmeticsListingMetadata, cosmeticsSearchString,
   type CosmeticsSearch } from '@/apps/public-web/lib/cosmeticsListing';
+import { loadPublicCosmeticsCatalog } from '@/apps/public-web/lib/publicCosmeticsCatalog';
 import { CosmeticsPageClient } from '@/apps/public-web/ui/CosmeticsPageClient';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
@@ -23,8 +24,10 @@ export async function generateMetadata({ params, searchParams }: Props) {
 
 export default async function Page({ params, searchParams }: Props) {
   const listing = await listingFor(params);
+  const search = await cosmeticsSearchString(searchParams);
   return <>
     <SeoStructuredData path={listing.pathname} />
-    <CosmeticsPageClient pathname={listing.pathname} search={await cosmeticsSearchString(searchParams)} />
+    <CosmeticsPageClient pathname={listing.pathname} search={search}
+      initialCatalog={await loadPublicCosmeticsCatalog(listing.kind, search)} />
   </>;
 }
