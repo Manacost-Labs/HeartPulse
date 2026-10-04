@@ -76,13 +76,14 @@ HS-Arena выглядит как читаемый статистический �
 ```css
 @font-face {
   font-family: "HSDisplay";
-  src: url("https://arena.hs-manacost.ru/fonts/2318-font.otf") format("opentype");
+  src: url("https://arena.hs-manacost.ru/fonts/hsdisplay-2026-10.woff2") format("woff2");
   font-display: swap;
 }
 
 @font-face {
   font-family: "Inter";
-  src: url("https://arena.hs-manacost.ru/fonts/google/inter-cyrillic.woff2") format("woff2");
+  src: url("https://arena.hs-manacost.ru/fonts/google/inter-cyrillic-400-700.woff2") format("woff2");
+  font-weight: 400 700;
   font-display: swap;
 }
 
@@ -94,6 +95,14 @@ HS-Arena выглядит как читаемый статистический �
 h1, h2, h3, .hs-display { font-family: var(--font-hs); }
 body { font-family: var(--font-body); }
 ```
+
+`fonts/hsdisplay-2026-10.woff2` — тот же `2318-font.otf` в WOFF2 без потерь: все
+355 глифов, кернинг и хинтинг сохранены, 30,7 KB вместо 63,9 KB. Собран один раз
+fontTools 4.66.1: `TTFont("2318-font.otf")`, `flavor = "woff2"`, `save(...)`.
+`fonts/google/inter-{latin,cyrillic}-400-700.woff2` — вариативный Inter, обрезанный
+до оси `wght` 400–700 (`fontTools.varLib.instancer`, `{"wght": (400, 700)}`):
+36,1 и 13,2 KB вместо 48,3 и 18,7 KB. Исходный OTF нужен генератору
+изображений на сервере (`server/gen_legendary_image.py`) и внешним ссылкам.
 
 ## 4. Главные ассеты
 
@@ -335,14 +344,17 @@ body:has(.hs-lightbox-backdrop) {
 - `wallpaper/wallpaper.webp` — <https://arena.hs-manacost.ru/wallpaper/wallpaper.webp>
 - `wallpaper/wiki-battlegrounds-skin.webp` — <https://arena.hs-manacost.ru/wallpaper/wiki-battlegrounds-skin.webp>
 
-### Шрифты (7)
+### Шрифты (10)
 
 - `fonts/2318-font.otf` — <https://arena.hs-manacost.ru/fonts/2318-font.otf>
+- `fonts/hsdisplay-2026-10.woff2` — <https://arena.hs-manacost.ru/fonts/hsdisplay-2026-10.woff2>
 - `fonts/google/cinzel-latin-500.woff2` — <https://arena.hs-manacost.ru/fonts/google/cinzel-latin-500.woff2>
 - `fonts/google/cinzel-latin-ext-500.woff2` — <https://arena.hs-manacost.ru/fonts/google/cinzel-latin-ext-500.woff2>
 - `fonts/google/inter-cyrillic-ext.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-cyrillic-ext.woff2>
+- `fonts/google/inter-cyrillic-400-700.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-cyrillic-400-700.woff2>
 - `fonts/google/inter-cyrillic.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-cyrillic.woff2>
 - `fonts/google/inter-latin-ext.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-latin-ext.woff2>
+- `fonts/google/inter-latin-400-700.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-latin-400-700.woff2>
 - `fonts/google/inter-latin.woff2` — <https://arena.hs-manacost.ru/fonts/google/inter-latin.woff2>
 
 ### Общие игровые и брендовые ассеты (8)
