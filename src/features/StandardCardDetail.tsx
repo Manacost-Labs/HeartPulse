@@ -77,7 +77,7 @@ import {
   type ConstructedDeck,
   type StandardCardsProps,
 } from './constructedCardRecord';
-import { LOCKED_STATS_PLACEHOLDER, StatsRows, StatsUnlockNotice } from './ConstructedCardStats';
+import { LockedStatsRows, StatsRows, StatsUnlockNotice } from './ConstructedCardStats';
 
 type ResolvedConstructedDeck = {
   ok: boolean;
@@ -692,7 +692,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           </div>
           {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : (
             <div className="constructed-card-detail__statistics-gate">
-              <div className="constructed-card-detail__statistics-blur" aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} /></div>
+              <div className="constructed-card-detail__statistics-blur" aria-hidden="true" inert><LockedStatsRows /></div>
               <StatsUnlockNotice statsAccessLoading={statsAccessLoading} authUser={authUser} onRefreshSubscription={onRefreshSubscription} />
             </div>
           )}

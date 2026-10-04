@@ -2,7 +2,7 @@ type DeckViewApi = NonNullable<typeof window.HSReplayDeckView>;
 
 let deckViewLoader: Promise<DeckViewApi> | null = null;
 
-export function loadedDeckView(): DeckViewApi | null {
+function loadedDeckView(): DeckViewApi | null {
   if (typeof window === 'undefined') return null;
   return window.HSReplayDeckView?.renderDeck ? window.HSReplayDeckView : null;
 }

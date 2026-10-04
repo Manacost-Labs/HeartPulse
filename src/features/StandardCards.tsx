@@ -1,6 +1,6 @@
 import { constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import { useCatalogLocation, useCatalogData, useCatalogIntentWarm, catalogLocationUrl, type CardCatalogPayload } from '../modules/constructedCards/public';
-import React, { memo, useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ChevronLeft,
@@ -66,7 +66,7 @@ import {
   type CardRecord,
   type StandardCardsProps,
 } from './constructedCardRecord';
-import { LOCKED_STATS_PLACEHOLDER, StatsRows, StatsUnlockNotice, type StatsGateProps } from './ConstructedCardStats';
+import { LockedStatsRows, StatsRows, StatsUnlockNotice, type StatsGateProps } from './ConstructedCardStats';
 
 type ViewMode = 'gallery' | 'table';
 
@@ -142,7 +142,7 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
       <div className="constructed-cards__tooltip-header"><strong>{cardName(card)}</strong><span>Статистика · {rankLabel}</span></div>
       {statsAccess ? <StatsRows stats={card.stats} compact /> : (
         <div className="constructed-cards__stats-locked-preview">
-          <div aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} compact /></div>
+          <div aria-hidden="true" inert><LockedStatsRows compact /></div>
           <StatsUnlockNotice {...gate} compact />
         </div>
       )}
@@ -216,14 +216,13 @@ function useCardTooltip() {
 function CardGallery({ cards, search, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
   const { hovered, onShow, onHide } = useCardTooltip();
   const { galleryRef, immediateImageCount } = useCardGalleryImageLoading(cards);
+  const grid = useMemo(() => cards.map((card, index) => (
+    <GalleryCard key={card.card_id} card={card} index={index} search={search} format={format} period={period} rank={rank} sort={sort}
+      statsAccess={statsAccess} immediate={index < immediateImageCount} navigatePath={navigatePath} onShow={onShow} onHide={onHide} />
+  )), [cards, search, format, period, rank, sort, statsAccess, immediateImageCount, navigatePath, onShow, onHide]);
   return (
     <>
-      <div className="constructed-cards__gallery" ref={galleryRef}>
-        {cards.map((card, index) => (
-          <GalleryCard key={card.card_id} card={card} index={index} search={search} format={format} period={period} rank={rank} sort={sort}
-            statsAccess={statsAccess} immediate={index < immediateImageCount} navigatePath={navigatePath} onShow={onShow} onHide={onHide} />
-        ))}
-      </div>
+      <div className="constructed-cards__gallery" ref={galleryRef}>{grid}</div>
       {hovered && <HoverTooltip card={hovered.card} rect={hovered.rect} rankLabel={constructedCardRankLabel(rank)} statsAccess={statsAccess} gate={gate} />}
     </>
   );

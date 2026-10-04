@@ -1,7 +1,8 @@
 import { LockKeyhole } from 'lucide-react';
 import { number, percent, type CardStats, type StandardCardsProps } from './constructedCardRecord';
 
-export const LOCKED_STATS_PLACEHOLDER: CardStats = {
+// Sample values shown blurred behind the subscription notice, never real statistics.
+const LOCKED_STATS_PLACEHOLDER: CardStats = {
   deckPopularity: 18.7,
   deckWinrate: 53.4,
   averageCopies: 1.8,
@@ -54,4 +55,8 @@ export function StatsUnlockNotice({ statsAccessLoading, authUser, onRefreshSubsc
       ))}
     </div>
   );
+}
+
+export function LockedStatsRows({ compact = false }: { compact?: boolean }) {
+  return <StatsRows stats={LOCKED_STATS_PLACEHOLDER} compact={compact} />;
 }

@@ -129,7 +129,7 @@ const moduleBudgets = [
   },
   {
     path: 'src/features/StandardCards.tsx',
-    maxLines: 497,
+    maxLines: 496,
     owner: 'constructed-card UI',
   },
 ];
