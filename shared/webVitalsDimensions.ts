@@ -101,7 +101,10 @@ const CLASS_PATTERN = /^[a-z][a-z0-9]*(?:(?:-|--|__)[a-z0-9]+)*$/;
 // A run of digits is more likely an entity id than a component name.
 const ID_LIKE_CLASS = /[0-9]{3}/;
 // Tailwind utilities describe styling rather than the component and repeat on every page.
-const UTILITY_CLASS = /^(?:[mp][xytrbl]?|[wh]|size|min|max|inset|top|right|bottom|left|z|gap|space|text|font|leading|tracking|bg|border|rounded|shadow|drop|ring|outline|opacity|object|overflow|items|justify|content|self|place|flex|grid|col|row|order|basis|grow|shrink|aspect|blur|transition|duration|ease|delay|animate|cursor|select|pointer|whitespace|break|line|underline|decoration|sr|not|scroll|snap|fill|stroke|translate|rotate|scale|origin|block|inline|hidden|absolute|relative|fixed|sticky|static|uppercase|lowercase|capitalize|italic|truncate|container|contents|isolate|visible|invisible)(?:-|$)/;
+const UTILITY_CLASS = /^(?:[mp][xytrbl]?|[wh]|size|min|max|inset|top|right|bottom|left|z|gap|space|text|font|leading|tracking|border|rounded|shadow|drop|ring|outline|opacity|object|overflow|items|justify|content|self|place|flex|grid|col|row|order|basis|grow|shrink|aspect|blur|transition|duration|ease|delay|animate|cursor|select|pointer|whitespace|break|line|underline|decoration|sr|scroll|snap|fill|stroke|translate|rotate|scale|origin|block|inline|hidden|absolute|relative|fixed|sticky|static|uppercase|lowercase|capitalize|italic|truncate|container|contents|isolate|visible|invisible)(?:-|$)/;
+// `bg-` also starts Battlegrounds component names (`bg-heroes-page`), so only
+// the background utility shapes are dropped: `bg-black`, `bg-amber-50`, `bg-gradient-to-r`.
+const BACKGROUND_UTILITY_CLASS = /^bg-(?:[a-z]+(?:-[0-9]+)?|gradient-to-[a-z]+|no-repeat|clip-[a-z]+)$/;
 
 /** Map a pathname to its page template, or `other` when no Next.js page matches. */
 export function webVitalRouteTemplate(pathname: string): WebVitalRoute {
@@ -124,11 +127,16 @@ export function isWebVitalDevice(value: unknown): value is WebVitalDevice {
   return (WEB_VITAL_DEVICES as readonly unknown[]).includes(value);
 }
 
+function isUtilityClass(name: string): boolean {
+  // A BEM element (`block__element`) is always a component name.
+  return !name.includes('__') && (UTILITY_CLASS.test(name) || BACKGROUND_UTILITY_CLASS.test(name));
+}
+
 function isComponentClass(name: string): boolean {
   return name.length <= MAX_CLASS_LENGTH
     && CLASS_PATTERN.test(name)
     && !ID_LIKE_CLASS.test(name)
-    && !UTILITY_CLASS.test(name);
+    && !isUtilityClass(name);
 }
 
 function componentClass(element: LcpElementLike): string | null {

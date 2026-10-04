@@ -13,10 +13,10 @@ change moved the page it was meant to move.
 <!-- markdownlint-disable MD013 -->
 | Attribute | Values | Meaning |
 | --- | --- | --- |
-| `route` | a template such as `/standard/cards/[format]/[cardId]/`, `other`, `unknown` | The Next.js page the visitor loaded. `other` matched no page (mostly 404 traffic). `unknown` comes from a tab opened before this field existed. |
+| `route` | a template such as `/standard/cards/[format]/[cardId]/`, `other`, `unknown` | The Next.js page the visitor loaded. `other` matched no template. A missing entity under a known template (`/heroes/999999/`) still counts under that template (`/heroes/[dbfId]/`), so 404s are split between `other` and the templates. `unknown` comes from a tab opened before this field existed. |
 | `device` | `mobile`, `desktop`, `unknown` | The layout rendered: `desktop` from 1024 px wide (sidebar shell), `mobile` below it (top-bar shell, including tablets). |
 | `navigation_type` | `navigate`, `reload`, `back-forward`, `back-forward-cache`, `prerender`, `restore` | How the page was reached, from the `web-vitals` library. |
-| `lcp_target` | `img.article-image-shell`, `h1`, `none`, `unknown` (LCP only) | The LCP element's tag and one component class. `none`: no element, as after a back-forward cache restore. `unknown`: an older tab. |
+| `lcp_target` | `img.article-image-shell`, `h1`, `none`, `unknown` (LCP only) | The LCP element's tag and one component class. `none`: no element, either after a back-forward cache restore or because the element was removed from the page before the idle reporter started. `unknown`: an older tab. |
 | `rating` | `good`, `needs-improvement`, `poor` | The library's rating against the Core Web Vitals thresholds. |
 | `edge_region`, `client_region` | see `docs/specs/regional-performance-telemetry.md` | The serving edge and the coarse visitor region. |
 <!-- markdownlint-enable MD013 -->
@@ -67,22 +67,32 @@ page load reports TTFB once.
   rates.
 - Browsers without the Event Timing or LCP APIs report only the metrics they
   support, so INP and LCP counts are lower than TTFB counts.
-- A high `other` share after a release usually means a new page whose
-  template is missing from `shared/webVitalsDimensions.ts`; the unit test
-  `tests/web-vitals-dimensions.test.ts` fails for that before merge. A high
+- A rise in `other` means more visits to paths without a template, such as
+  stale links, or a new page whose template is missing from
+  `shared/webVitalsDimensions.ts`; the unit test
+  `tests/web-vitals-dimensions.test.ts` fails for the latter before merge. A high
   `unknown` share that lasts more than a few days points at stale cached
   JavaScript.
 
 ## Privacy and validation
 
-The browser sends only the derived values. The API answers `400` and records
-nothing when a report carries a raw path, an id, a query string, a device
-other than `mobile` or `desktop`, or an LCP descriptor that is not a known
-tag with one lower-case class of at most 48 characters; class names with
-three or more consecutive digits are rejected as possible ids. The Sentry
-metric filter keeps only the attribute keys in the table above;
-`sendDefaultPii` stays off. Element text, URLs, ids and attributes are never
-read.
+The browser derives every value from the URL path, the viewport width and the
+LCP element's own tag and class names; it never reads element text, URLs, ids
+or attributes. The API answers `400` and records nothing when a report
+carries a `route` outside the template list (a raw path, an id or a query
+string) or a device other than `mobile` or `desktop`, so those two attributes
+have a fixed set of values.
+
+`lcp_target` is checked by shape only: an allowlisted tag plus one class name
+of lower-case letters, digits and BEM separators, at most 48 characters,
+without three consecutive digits and not a Tailwind utility. A forged report
+can therefore still store any word of that shape, such as `p.leeroy-jenkins`.
+The values are bounded in length and form, not enumerated, and the endpoint
+shares the general `/api/` limit of 120 requests per minute per client.
+Judge `lcp_target` by values with real sample counts and ignore rare ones.
+
+The Sentry metric filter keeps only the attribute keys in the table above;
+`sendDefaultPii` stays off.
 
 ## Local checks
 

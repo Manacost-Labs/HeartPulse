@@ -267,10 +267,12 @@ LCP, CLS, INP, FCP и TTFB в один credential-free same-origin запрос.
 и посетителя, шаблон страницы `route` (например
 `/standard/cards/[format]/[cardId]/`), класс раскладки `device`
 (`mobile`/`desktop`) и для LCP `lcp_target` (тег и один класс компонента).
-Сервер принимает их только из allowlist; URL, id, query string, текст
-элементов, metric id, cookies, пользователь и другие
-высококардинальные/чувствительные данные не отправляются. Как читать эти
-срезы: `docs/runbooks/web-vitals-field-data.md`.
+`route` и `device` сервер принимает только из фиксированных списков;
+`lcp_target` проверяется лишь по форме (тег из списка и одно имя класса до 48
+символов), поэтому поддельный отчёт может записать туда любое слово такой
+формы. Браузер не читает текст элементов; URL, id, query string, metric id,
+cookies, пользователь и другие чувствительные данные не отправляются. Как
+читать эти срезы: `docs/runbooks/web-vitals-field-data.md`.
 
 Для активации error monitoring задайте server-only `SENTRY_DSN`. Ошибки
 интерфейса, пойманные страницами `error.tsx` и `RecoverableSurface`, приходят

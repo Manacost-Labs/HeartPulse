@@ -105,6 +105,12 @@ test('the LCP target is a tag plus one component class and never page text', () 
   assert.equal(webVitalLcpTarget(element('IMG', ['card-12345', 'User_Name', 'text-[#7a5a35]', 'sm:px-4'])), 'img',
     'id-like, mixed-case and arbitrary-value classes are dropped');
   assert.equal(webVitalLcpTarget(element('IMG', [`a${'b'.repeat(60)}`])), 'img', 'long classes are dropped');
+  assert.equal(webVitalLcpTarget(element('IMG', ['bg-black', 'bg-amber-50', 'bg-gradient-to-r', 'bg-hero-action-card__image'])),
+    'img.bg-hero-action-card__image', 'Battlegrounds BEM elements are components, background utilities are not');
+  assert.equal(webVitalLcpTarget(element('DIV', ['bg-wood', 'bg-heroes-page'])), 'div.bg-heroes-page');
+  assert.equal(webVitalLcpTarget(element('H1', ['text-xl', 'text-block__title'])), 'h1.text-block__title',
+    'a BEM element is never a utility, whatever its prefix');
+  assert.equal(webVitalLcpTarget(element('MAIN', ['not-found-page'])), 'main.not-found-page');
   assert.equal(webVitalLcpTarget(element('CANVAS', ['game-board'])), 'other.game-board');
   assert.equal(webVitalLcpTarget(element('image', ['hero-portrait'])), 'image.hero-portrait');
   assert.equal(webVitalLcpTarget(null), 'none');
@@ -115,6 +121,8 @@ test('every derived LCP target passes the server validator', () => {
   for (const value of [
     webVitalLcpTarget(element('H1', ['site-page-hero__title'])),
     webVitalLcpTarget(element('IMG', ['account-access__option--subscribe'])),
+    webVitalLcpTarget(element('IMG', ['bg-hero-action-card__image'])),
+    webVitalLcpTarget(element('MAIN', ['not-found-page'])),
     webVitalLcpTarget(element('CANVAS', [])),
     webVitalLcpTarget(null),
   ]) {
@@ -133,6 +141,7 @@ test('the LCP target validator rejects free text, selectors and unknown tags', (
     '.hero',
     'img.card-12345',
     'img.text-sm',
+    'div.bg-black',
     `img.${'a'.repeat(60)}`,
     'Leeroy Jenkins',
     'unknown',
