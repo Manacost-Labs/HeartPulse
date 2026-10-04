@@ -3,15 +3,16 @@
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
-import { BattlegroundTierBuilderEmbed } from '@/src/features/Battlegrounds';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { BattlegroundTierBuilderEmbed, loadBattlegrounds, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
 const pathname = '/battlegrounds/tier-builder/';
 
 export function BattlegroundTierBuilderPageClient() {
   const access = usePublicAccess();
+  usePaidViewPrefetch(loadBattlegrounds);
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'battlegrounds'));
   return <PublicPageShell activeTab="bg-tier-builder" pathname={pathname}
     access={access} navigate={navigate} wide>

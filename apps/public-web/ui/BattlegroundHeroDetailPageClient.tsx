@@ -2,16 +2,17 @@
 
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
-import { BattlegroundHeroesRoute } from '@/src/features/Battlegrounds';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import type { PublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHeroData';
 import { usePublicAccess } from './usePublicAccess';
+import { BattlegroundHeroesRoute, loadBattlegrounds, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
 export function BattlegroundHeroDetailPageClient({ hero }: { hero: PublicBattlegroundHero }) {
   const pathname = `/heroes/${hero.dbfId}/`;
   const access = usePublicAccess();
+  usePaidViewPrefetch(loadBattlegrounds);
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'battlegrounds'));
   return <PublicPageShell activeTab="bg-heroes" pathname={pathname}
     access={access} navigate={navigate} wide>

@@ -2,15 +2,16 @@
 
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
-import BgLibrary from '@/src/features/BgLibrary';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import type { PublicBattlegroundLibraryCard } from '@/apps/public-web/lib/publicBattlegroundLibraryCardData';
 import { usePublicAccess } from './usePublicAccess';
+import { BgLibrary, loadBgLibrary, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
 export function BattlegroundLibraryDetailPageClient({ card }: { card: PublicBattlegroundLibraryCard }) {
   const access = usePublicAccess();
+  usePaidViewPrefetch(loadBgLibrary);
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'battlegrounds'));
   return <PublicPageShell activeTab="bg-library" pathname={card.canonicalPath}
     access={access} navigate={navigate} wide>

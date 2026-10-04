@@ -35,6 +35,18 @@ function adminShellAssets(assets) {
     .filter(file => readFileSync(join(nextRoot, file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])));
 }
 
+// Guests on the Battlegrounds routes see only the gate: the paid views and
+// their stylesheet are lazy assets that load once access is confirmed.
+const PAID_BATTLEGROUNDS_MARKERS = { js: ['bg-heroes-page', 'bg-library-page'], css: ['.bg-hero-ledger'] };
+const PAID_BATTLEGROUNDS_ROUTES = ['/heroes/', '/library/', '/battlegrounds/tier-builder/',
+  '/battlegrounds/strategies/', '/battlegrounds/tier-list/'];
+function paidBattlegroundsAssets(assets) {
+  return ['js', 'css'].flatMap(kind => assets[kind].filter(file => {
+    const source = readFileSync(join(nextRoot, file), 'utf8');
+    return PAID_BATTLEGROUNDS_MARKERS[kind].some(marker => source.includes(marker));
+  }));
+}
+
 test('initial Next.js JavaScript and CSS of public routes stay within their budgets', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   const measured = {};
@@ -45,6 +57,13 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
       const assets = initialAssets(await response.text());
       measured[path] = { jsGzipBytes: gzipBytes(assets.js), cssGzipBytes: gzipBytes(assets.css) };
       assert.deepEqual(adminShellAssets(assets), [], `${path} must not load the administrator workspace shell`);
+    }
+
+    for (const path of PAID_BATTLEGROUNDS_ROUTES) {
+      const response = await fetch(`${runtime.nextOrigin}${path}`);
+      assert.equal(response.status, 200, `${path} must render`);
+      assert.deepEqual(paidBattlegroundsAssets(initialAssets(await response.text())), [],
+        `${path} must not load the paid Battlegrounds view before access is confirmed`);
     }
 
     const adminResponse = await fetch(`${runtime.nextOrigin}/admin/`);
@@ -58,6 +77,11 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
       assert.ok(built.some(file => file.endsWith(`.${kind}`)
         && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])),
       `no built ${kind} file contains "${ADMIN_SHELL_MARKERS[kind]}": update the administrator shell marker`);
+      for (const marker of PAID_BATTLEGROUNDS_MARKERS[kind]) {
+        assert.ok(built.some(file => file.endsWith(`.${kind}`)
+          && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(marker)),
+        `no built ${kind} file contains "${marker}": update the paid Battlegrounds marker`);
+      }
     }
   } finally {
     await runtime.close();

@@ -3,16 +3,17 @@
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
-import { BattlegroundStrategyBuilderEmbed } from '@/src/features/Battlegrounds';
 import { BattlegroundsStrategyBuilderSearchIntro } from '@/src/modules/searchLanding/public';
 import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
 import { usePublicAccess } from './usePublicAccess';
+import { BattlegroundStrategyBuilderEmbed, loadBattlegrounds, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
 const pathname = '/battlegrounds/strategies/';
 
 export function BattlegroundStrategiesPageClient() {
   const access = usePublicAccess();
+  usePaidViewPrefetch(loadBattlegrounds);
   const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'battlegrounds'));
   return <PublicPageShell activeTab="bg-strategies" pathname={pathname}
     access={access} navigate={navigate} wide>

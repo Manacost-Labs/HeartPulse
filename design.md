@@ -316,7 +316,8 @@ Rules:
 ## Performance
 
 - Reuse local compressed textures; do not add large remote runtime backgrounds.
-- Keep route-heavy BG code deferred.
+- Keep route-heavy BG code deferred: guests on a gated BG route load the gate,
+  not the paid view or its stylesheet (`apps/public-web/ui/lazyBattlegrounds.tsx`).
 - While access is checked, a gated page holds the gate's height
   (`PaywallPending`), so the footer does not jump when the gate or the paid
   view arrives.

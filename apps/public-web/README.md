@@ -22,6 +22,7 @@ behind its `public.ts`, not in `src/features/`.
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
+| `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
 | `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
 | `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays |
@@ -102,10 +103,13 @@ behind its `public.ts`, not in `src/features/`.
   (`src/components/PaywallPending.tsx`): it reserves the gate's height
   (`--subscription-gate-min-height`), so the gate or the paid page replaces
   it without moving the footer, and it holds no data. Do not give it the
-  `.arena-paywall` class, which QA reads as "the gate has rendered". A
-  locked preview behind the gate keeps its loaders still (`PaywallGate.css`):
-  give a loader a class, not an inline `animation` style, or it loops for
-  the whole visit.
+  `.arena-paywall` class, which QA reads as "the gate has rendered". Load a
+  paid view that a guest never sees with `next/dynamic`
+  (`ui/lazyBattlegrounds.tsx`), so guests download only the gate;
+  `tests/next-bundle-budgets.test.mjs` checks that the Battlegrounds routes do
+  not load those views up front. A locked preview behind the gate keeps its
+  loaders still (`PaywallGate.css`): give a loader a class, not an inline
+  `animation` style, or it loops for the whole visit.
 - Titles, descriptions, indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
   `config/public-seo-pages.json`; do not hand-write them in a page. A registry
