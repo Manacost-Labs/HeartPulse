@@ -263,9 +263,14 @@ LCP, CLS, INP, FCP и TTFB в один credential-free same-origin запрос.
 в Sentry distribution-метрики: `web.vital.lcp`, `web.vital.cls`,
 `web.vital.inp`, `web.vital.fcp` и `web.vital.ttfb`. Browser Sentry SDK на
 сайте не используется. В атрибуты
-попадают только ограниченные значения `rating` и `navigation_type`; URL, metric
-id, DOM target, cookies, пользователь и другие высококардинальные/чувствительные
-данные не отправляются.
+попадают только ограниченные значения `rating`, `navigation_type`, регион edge
+и посетителя, шаблон страницы `route` (например
+`/standard/cards/[format]/[cardId]/`), класс раскладки `device`
+(`mobile`/`desktop`) и для LCP `lcp_target` (тег и один класс компонента).
+Сервер принимает их только из allowlist; URL, id, query string, текст
+элементов, metric id, cookies, пользователь и другие
+высококардинальные/чувствительные данные не отправляются. Как читать эти
+срезы: `docs/runbooks/web-vitals-field-data.md`.
 
 Для активации error monitoring задайте server-only `SENTRY_DSN`. Ошибки
 интерфейса, пойманные страницами `error.tsx` и `RecoverableSurface`, приходят
