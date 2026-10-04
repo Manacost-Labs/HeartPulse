@@ -14,6 +14,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import '../route-parchment.css';
+import '../shared/ui/LoadingSurface.css';
 import './ConstructedArchetypes.css';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import ConstructedArchetypeAnalysis, {

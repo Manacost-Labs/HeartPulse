@@ -27,6 +27,7 @@ import {
 } from './funDecksPreview';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
+import '../shared/ui/LoadingSurface.css';
 import './FunDecksPage.css';
 
 type FormatFilter = 'all' | 'standard' | 'wild';

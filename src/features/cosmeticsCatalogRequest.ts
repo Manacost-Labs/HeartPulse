@@ -21,6 +21,7 @@ export function useCatalogRequest<P extends { pagination: { page: number } }>(
 ): CatalogRequestState<P> {
   const seed = initialCatalog?.requestUrl === request.url ? initialCatalog : null;
   const answeredUrl = useRef(seed?.requestUrl ?? '');
+  const seededPage = useRef(seed?.payload.pagination.page ?? null);
   const [requestState, setRequestState] = useState<CatalogRequestState<P>>(() => seed
     ? { requestUrl: seed.requestUrl, payload: seed.payload, error: null }
     : { requestUrl: '', payload: null, error: null });
@@ -30,7 +31,12 @@ export function useCatalogRequest<P extends { pagination: { page: number } }>(
       '',
       `${window.location.pathname}${request.query ? `?${request.query}` : ''}`,
     );
-    if (request.url === answeredUrl.current) return undefined;
+    if (request.url === answeredUrl.current) {
+      // Express clamps an out-of-range page (?page=99): move the controls and
+      // the address to the page it answered, exactly as a browser fetch does.
+      if (seededPage.current !== null && seededPage.current !== page) correctPage(seededPage.current);
+      return undefined;
+    }
     answeredUrl.current = '';
 
     const controller = new AbortController();

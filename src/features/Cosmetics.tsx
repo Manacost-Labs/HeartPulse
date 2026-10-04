@@ -43,6 +43,7 @@ import {
   RelatedCardGallery,
   type RelatedCard,
 } from './CosmeticsRelatedCardGallery';
+import '../shared/ui/LoadingSurface.css';
 import './Cosmetics.css';
 
 export type HeroSummary = {

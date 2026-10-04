@@ -46,6 +46,27 @@ assert.deepEqual(metaReads, [standardMetaTeaserPath(null), standardMetaTeaserPat
 assert.equal(metaSeed?.period, 'patch_36.6.3');
 assert.equal(metaSeed?.data.period, 'patch_36.6.3');
 assert.equal(metaSeed?.data.items.length, 3);
+// With the period resolved last time, both reads start together (one round trip, not two).
+const startedReads: string[] = [];
+let release: () => void = () => undefined;
+const gate = new Promise<void>(resolve => { release = resolve; });
+const parallelSeed = loadStandardMetaTeaserSeed(async path => {
+  startedReads.push(path);
+  await gate;
+  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
+}, 'patch_36.6.3');
+await new Promise(resolve => setTimeout(resolve, 10));
+assert.deepEqual(startedReads, [standardMetaTeaserPath(null), standardMetaTeaserPath('patch_36.6.3')],
+  'the expected period is read before the default read answers');
+release();
+assert.equal((await parallelSeed)?.data.period, 'patch_36.6.3');
+const changedPeriod: string[] = [];
+const changedSeed = await loadStandardMetaTeaserSeed(async path => {
+  changedPeriod.push(path);
+  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
+}, 'patch_36.6.2');
+assert.equal(changedSeed?.period, 'patch_36.6.3');
+assert.equal(changedPeriod.length, 3, 'a new patch reads the current period in turn');
 const oneRead: string[] = [];
 await loadStandardMetaTeaserSeed(async path => { oneRead.push(path); return metaPayload('patch_36.6.3'); });
 assert.equal(oneRead.length, 1, 'no second read when Express already answered the current period');
@@ -83,14 +104,36 @@ assert.equal(cosmeticsCatalogSeedRequest('heroes', 'search=Jaina&rarity=legendar
   '/api/cosmetics/heroes?search=Jaina&rarity=legendary');
 assert.equal(cosmeticsCatalogSeedRequest('coins', 'class=mage').url, '/api/cosmetics/coins',
   'only hero listings filter');
-const cosmeticsPayload = {
-  items: [{ cardId: 'HERO_01cg' }], pagination: { page: 1, perPage: 48, total: 1, totalPages: 1 },
-  updatedAt: null, source: 'HearthstoneJSON',
+const heroItem = {
+  cardId: 'HERO_01cg', dbf: 2826, name: { ru: 'Нетопырь Денатрий', en: 'Batty Denathrius' },
+  class: { slug: 'demonhunter', nameRu: 'Охотник на демонов' }, rarity: { slug: 'legendary', nameRu: 'Легендарные' },
+  categorySlugs: ['money'], images: { static: '/api/public-resource/db/uploads/hero-skins/static/HERO_01cg.png', animated: null },
+  internal: 'PRIVATE_FIELD',
 };
-assert.deepEqual(cosmeticsCatalogSeed('/api/cosmetics/heroes', cosmeticsPayload),
-  { requestUrl: '/api/cosmetics/heroes', payload: cosmeticsPayload });
-assert.equal(cosmeticsCatalogSeed('/api/cosmetics/heroes', { ...cosmeticsPayload, pagination: { page: 0 } }), null);
-assert.equal(cosmeticsCatalogSeed('/api/cosmetics/heroes', { error: 'upstream' }), null);
+const cosmeticsPayload = {
+  items: [heroItem], pagination: { page: 1, perPage: 48, total: 1, totalPages: 1 },
+  updatedAt: null, source: 'HearthstoneJSON', debug: 'PRIVATE_FIELD',
+};
+const heroSeed = cosmeticsCatalogSeed('heroes', '/api/cosmetics/heroes', cosmeticsPayload);
+assert.equal(heroSeed?.requestUrl, '/api/cosmetics/heroes');
+assert.equal(heroSeed?.payload.items.length, 1);
+assert.equal(JSON.stringify(heroSeed).includes('PRIVATE_'), false, 'only the fields the grid renders are serialized');
+// One malformed item would crash the server render: the page falls back to the browser fetch instead.
+for (const broken of [{ ...heroItem, name: null }, { ...heroItem, images: undefined }, { ...heroItem, cardId: '../x' }, 'HERO']) {
+  assert.equal(cosmeticsCatalogSeed('heroes', '/api/cosmetics/heroes', { ...cosmeticsPayload, items: [heroItem, broken] }), null,
+    `malformed item ${JSON.stringify(broken)?.slice(0, 40)}`);
+}
+assert.equal(cosmeticsCatalogSeed('heroes', '/api/cosmetics/heroes', { ...cosmeticsPayload, pagination: { page: 0 } }), null);
+assert.equal(cosmeticsCatalogSeed('heroes', '/api/cosmetics/heroes', { error: 'upstream' }), null);
+const coinSeed = cosmeticsCatalogSeed('coins', '/api/cosmetics/coins', {
+  ...cosmeticsPayload, items: [{ cardId: 'COIN1', dbf: 1, name: { ru: 'Монетка', en: 'The Coin' }, textRu: null, images: { card: null, crop: null } }],
+  generatedBy: [{ cardId: 'CS2_001', dbf: 2, name: { ru: 'Карта', en: null } }], related: [],
+});
+assert.equal(coinSeed?.payload.generatedBy?.[0].cardId, 'CS2_001');
+assert.equal(cosmeticsCatalogSeed('pets', '/api/cosmetics/pets', { ...cosmeticsPayload,
+  items: [{ petId: 1, name: 'Семейство', variants: [{ cardId: 'PET1', dbf: null, variantId: 1, name: 'Питомец', level: 1, images: {} }] }] })
+  ?.payload.items.length, 1);
+assert.equal(cosmeticsCatalogSeed('pets', '/api/cosmetics/pets', { ...cosmeticsPayload, items: [{ petId: 1, name: 'x' }] }), null);
 
 // Fun decks: only the three newest free decks of the selection enter the page.
 const funDeck = (index: number, firstSeenAt: string) => ({

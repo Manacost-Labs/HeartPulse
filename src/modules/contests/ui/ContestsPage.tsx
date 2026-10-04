@@ -7,6 +7,7 @@ import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { Contest } from '../model/types';
 import { requestContestJoin, requestContests } from '../api/contestRequests';
 import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
+import '../../../shared/ui/LoadingSurface.css';
 
 type PageMessage = { type: 'ok' | 'err'; text: string };
 

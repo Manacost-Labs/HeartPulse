@@ -2,6 +2,7 @@ import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useSt
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import '../route-parchment.css';
+import '../shared/ui/LoadingSurface.css';
 import './StandardMatchups.css';
 import { LoadingSurface } from '../shared/ui/LoadingSurface';
 import { activeMatrixMatchupAt, type ActiveMatrixMatchup, useCloseMatrixMatchup,

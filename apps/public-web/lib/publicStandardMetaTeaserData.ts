@@ -28,17 +28,24 @@ function teaserData(raw: unknown): StandardMetaData | null {
 
 /**
  * Loads the slice a guest sees first. Express answers a request without a
- * period with its own default, while the page shows the current period, so
- * a second read is made only when the two differ, as the page itself would.
+ * period with its own default, while the page shows the current period. The
+ * period resolved last time (`expectedPeriod`) is read alongside, so in the
+ * usual case both reads run in parallel; only when the current period has
+ * changed (or is not known yet) does a third read follow.
  */
 export async function loadStandardMetaTeaserSeed(
   read: (path: string) => Promise<unknown>,
+  expectedPeriod: StandardMetaPeriod | null = null,
 ): Promise<StandardMetaTeaserSeed | null> {
-  const first = teaserData(await read(standardMetaTeaserPath(null)));
+  const [first, expected] = await Promise.all([
+    read(standardMetaTeaserPath(null)).then(teaserData),
+    expectedPeriod ? read(standardMetaTeaserPath(expectedPeriod)).then(teaserData) : null,
+  ]);
   if (!first) return null;
   const period = resolveStandardMetaDefaultPeriod(first.availablePeriods, first.currentPeriod, first.currentPatchPeriod)
     ?? first.period;
   if (period === first.period) return { period, data: first };
+  if (expected?.period === period) return { period, data: expected };
   const current = teaserData(await read(standardMetaTeaserPath(period)));
   return current?.period === period ? { period, data: current } : null;
 }

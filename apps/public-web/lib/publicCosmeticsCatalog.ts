@@ -12,5 +12,5 @@ import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPai
 export const loadPublicCosmeticsCatalog = cache(async (kind: CosmeticKind, search: string) => {
   const request = cosmeticsCatalogSeedRequest(kind, search);
   const raw = await readFirstPaintJson(() => fetchPublicExpress(request.url), Date.now() + FIRST_PAINT_READ_BUDGET_MS);
-  return raw === null ? null : cosmeticsCatalogSeed(request.url, raw);
+  return raw === null ? null : cosmeticsCatalogSeed(kind, request.url, raw);
 });

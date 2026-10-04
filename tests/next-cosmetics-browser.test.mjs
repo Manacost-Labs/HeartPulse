@@ -61,8 +61,11 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
       response.end(readFileSync(staticFile));
       return;
     }
+    // Express clamps an out-of-range page to the last one.
+    const heroPage = ['2', '99'].includes(url.searchParams.get('page') ?? '')
+      ? { page: 2, perPage: 48, total: 49, totalPages: 2 } : pagination;
     const payload = path === '/api/auth/me' ? { user: null }
-      : path === '/api/cosmetics/heroes' ? { items: [hero], pagination, updatedAt: null, source: 'fixture' }
+      : path === '/api/cosmetics/heroes' ? { items: [hero], pagination: heroPage, updatedAt: null, source: 'fixture' }
         : path === '/api/cosmetics/coins' ? { items: [coin], generatedBy: [], related: [], pagination, updatedAt: null, source: 'fixture' }
           : path === '/api/cosmetics/pets' ? { items: [{ petId: 1, name: 'Семейство', variants: [pet] }], pagination, updatedAt: null, source: 'fixture' }
             : path === '/api/cosmetics/heroes/HERO_QA_001' ? heroDetail
@@ -201,6 +204,24 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
       assert.deepEqual(failed, []);
       assert.deepEqual(mediaRequests, [], 'catalog navigation must not preload animation or audio');
       assert.deepEqual(browserCatalogReads, [], 'the server-rendered catalog page is not fetched again');
+      await page.close();
+    }
+    // A server-rendered out-of-range page moves the controls and the address to
+    // the page Express answered, so «Назад» goes to the page before it.
+    {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1440, height: 900 });
+      const reads = [];
+      page.on('request', request => {
+        const url = new URL(request.url());
+        if (url.pathname === '/api/cosmetics/heroes') reads.push(url.search);
+      });
+      await page.goto(`${origin}/cosmetics/?page=99`, { waitUntil: 'networkidle0' });
+      await page.waitForFunction(() => window.location.search === '?page=2'
+        && document.querySelector('#root .cosmetics-pagination span')?.textContent === 'Страница 2 из 2');
+      await page.click('#root .cosmetics-pagination button:first-child');
+      await page.waitForFunction(() => window.location.search === '' && document.querySelector('#root .cosmetics-hero-card'));
+      assert.deepEqual(reads, ['?page=2', ''], 'the corrected page loads once, then «Назад» loads the first page');
       await page.close();
     }
     assert.equal((await fetch(`${origin}/cosmetics/unknown/`)).status, 404);

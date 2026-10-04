@@ -692,8 +692,14 @@
     transform: none !important;
   }
 }
+/* The articles' streaming placeholder: the home page does not load the
+   LoadingSurface stylesheet for it, so it reserves its block size here. */
 .home-section-loading {
-  --loading-surface-min-block: 18rem;
+  min-block-size: 18rem;
+  display: grid;
+  place-content: center;
+  color: var(--arena-muted-ink);
+  text-align: center;
 }
 
 .home-deferred-placeholder {

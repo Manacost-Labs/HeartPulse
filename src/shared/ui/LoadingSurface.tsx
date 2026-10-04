@@ -1,8 +1,8 @@
 import React from 'react';
 
-// Styles: LoadingSurface.css, loaded globally by src/index.css. Loaders sit
-// on most data routes; one global rule set costs less than a separate
-// render-blocking stylesheet on each of them.
+// Styles: a view that renders it imports LoadingSurface.css next to it (as
+// with RecoverableSurface.css), so routes without a loader do not download
+// them. The pulse keyframes (loading-pulse) are global, in src/index.css.
 
 type LoadingLayout = 'panel' | 'rows' | 'grid';
 
@@ -41,9 +41,11 @@ export type LoadingSurfaceProps = {
 };
 
 /**
- * The single loading state of a data section. It announces one polite status,
- * keeps the final size so the swap to content does not shift the page, and
- * animates only a transform, so it costs no repaint per frame.
+ * The single loading state of a data section. It announces one polite status
+ * (no `aria-busy` on it, which would hold that announcement back: busy state
+ * belongs to the region whose content refreshes), keeps the final size so
+ * the swap to content does not shift the page, and animates only opacity,
+ * which the compositor runs without a repaint per frame.
  */
 export function LoadingSurface({
   label,
@@ -64,7 +66,6 @@ export function LoadingSurface({
       className={classes('loading-surface', `loading-surface--${layout}`, className)}
       role="status"
       aria-live="polite"
-      aria-busy="true"
       data-loading-surface={layout}
     >
       <span className={classes('loading-surface__caption', quiet && 'sr-only')}>

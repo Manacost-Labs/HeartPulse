@@ -43,5 +43,9 @@ async function withinDeadline<T>(promise: Promise<T>, deadline: number): Promise
   }
 }
 
-/** Budget of every first-paint read of one document, in milliseconds. */
-export const FIRST_PAINT_READ_BUDGET_MS = 1500;
+/**
+ * Total wait for the first-paint reads of one document, in milliseconds.
+ * Nothing streams before them, so this is also the most the header can be
+ * delayed; a slower Express leaves the data to the browser request instead.
+ */
+export const FIRST_PAINT_READ_BUDGET_MS = 600;

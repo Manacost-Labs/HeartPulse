@@ -8,6 +8,7 @@ import type {
 } from './HsReplayDeckPreviewController';
 import { AsyncSurfaceState } from './recovery/RecoverableSurface';
 import './recovery/RecoverableSurface.css';
+import '../shared/ui/LoadingSurface.css';
 import './HsReplayDeckList.css';
 
 export type HsReplayDeckCard = {

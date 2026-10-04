@@ -35,8 +35,8 @@ stays in the existing Express article API; the client module contains only
 presentation and its narrow API adapter.
 Generic breadcrumbs and section banners are shared UI primitives under
 `src/shared/ui/EditorialRouteChrome.tsx`. The single loading state of a data
-section is `src/shared/ui/LoadingSurface.tsx` (its stylesheet loads globally
-from `src/index.css`), and `src/shared/ui/useViewerTimeZone.ts` keeps dates in
+section is `src/shared/ui/LoadingSurface.tsx` (a view imports its
+`LoadingSurface.css` next to it; the pulse keyframes are global), and `src/shared/ui/useViewerTimeZone.ts` keeps dates in
 server-rendered views identical between server and hydration.
 
 ## Public contests

@@ -54,11 +54,8 @@ async function listen(server) {
 
 function startLegacy(state) {
   const publicRoot = resolve('public');
-  const server = http.createServer((request, response) => {
-    const url = new URL(request.url, 'http://fixture');
+  const respond = (url, response) => {
     const path = url.pathname;
-    state.reads.push({ path: `${path}${url.search}`, cookie: request.headers.cookie ?? '' });
-    if (state.stall && /^\/api\/(standard-meta|constructed-archetypes|fun-decks)/.test(path)) return;
     const staticFile = resolve(publicRoot, `.${path}`);
     if (staticFile.startsWith(`${publicRoot}${sep}`) && existsSync(staticFile) && statSync(staticFile).isFile()) {
       response.setHeader('Content-Type', { '.webp': 'image/webp', '.png': 'image/png', '.otf': 'font/otf',
@@ -73,13 +70,22 @@ function startLegacy(state) {
             : null;
     response.setHeader('Content-Type', 'application/json');
     response.writeHead(payload ? 200 : 404).end(JSON.stringify(payload ?? { error: 'missing' }));
+  };
+  return http.createServer((request, response) => {
+    const url = new URL(request.url, 'http://fixture');
+    const browser = Boolean(request.headers['x-forwarded-host']);
+    state.reads.push({ path: `${url.pathname}${url.search}`, cookie: request.headers.cookie ?? '', browser });
+    // Latency and stalls apply to server reads only; the browser, through the gateway, is answered at once.
+    const serverRead = !browser && /^\/api\/(standard-meta|constructed-archetypes|fun-decks)/.test(url.pathname);
+    if (serverRead && state.stall) return;
+    if (serverRead && state.delay) setTimeout(() => respond(url, response), state.delay);
+    else respond(url, response);
   });
-  return server;
 }
 
 test('public previews render on the server and hydrate without a guest data request', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
-  const state = { reads: [], stall: false };
+  const state = { reads: [], stall: false, delay: 0 };
   const legacy = startLegacy(state);
   const legacyOrigin = await listen(legacy);
   const next = await startNextServer({ legacyOrigin });
@@ -91,6 +97,12 @@ test('public previews render on the server and hydrate without a guest data requ
     assert.equal(metaHtml.match(/class="standard-meta-card"/g)?.length, 3, 'the three teaser archetypes are in the HTML');
     assert.match(metaHtml, /В предпросмотре<\/dt><dd>3<\/dd>/, 'the summary counts the teaser, not a placeholder zero');
     assert.doesNotMatch(metaHtml, /data-arrive/, 'server-rendered data does not fade in');
+    // The chart is part of the document with its stylesheet: no loader before it and no unstyled reveal.
+    assert.match(metaHtml, /class="standard-meta-chart"/);
+    assert.doesNotMatch(metaHtml, /data-loading-surface/, 'no loader is rendered for data the HTML already has');
+    const stylesheets = [...metaHtml.matchAll(/href="(\/_next\/static\/css\/[^"]+\.css)"/g)].map(match => match[1]);
+    const css = (await Promise.all([...new Set(stylesheets)].map(href => fetch(`${origin}${href}`).then(response => response.text())))).join('');
+    assert.match(css, /\.standard-meta-chart__header\{/, 'the chart stylesheet loads with the document');
     assert.deepEqual(state.reads.filter(read => read.path.startsWith('/api/standard-meta')).map(read => read.path), [
       '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100',
       '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100&period=patch_36.6.3',
@@ -129,7 +141,7 @@ test('public previews render on the server and hydrate without a guest data requ
       // Only the fun-deck page loads its complete list behind the preview, for filters and subscribers.
       assert.deepEqual(dataRequests, path === '/standard/fun-decks/' ? ['/api/fun-decks'] : [], `${path} guest data requests`);
       assert.deepEqual(errors, [], `${path} hydrates without errors`);
-      assert.equal(await page.$('#root [data-loading-surface="panel"][aria-busy="true"]:not(.standard-meta-chart-loading)'), null,
+      assert.equal(await page.$('#root [data-loading-surface="panel"]'), null,
         `${path} shows no loader for server-rendered data`);
       if (path === '/standard/archetypes/') {
         await page.waitForFunction(() => /обновлено 4 окт\., 07:30/.test(document.querySelector('#root .archetypes-tools small')?.textContent ?? ''));
@@ -137,12 +149,39 @@ test('public previews render on the server and hydrate without a guest data requ
       await page.close();
     }
 
+    // A slow Express: the meta reads run in parallel (the period is known from
+    // the first request), so 350 ms each still fits the 600 ms budget.
+    state.delay = 350;
+    let started = Date.now();
+    const slowHtml = await (await fetch(`${origin}/standard/meta/`)).text();
+    assert.ok(Date.now() - started < 1500, `a slow Express read is awaited in parallel (${Date.now() - started} ms)`);
+    assert.equal(slowHtml.match(/class="standard-meta-card"/g)?.length, 3, 'two parallel reads fit the budget');
+    state.delay = 0;
+
+    // A stalled Express: the document leaves after the budget with the loader,
+    // and the browser loads the teaser itself.
     state.stall = true;
-    const started = Date.now();
+    started = Date.now();
     const stalled = await (await fetch(`${origin}/standard/meta/`)).text();
-    assert.ok(Date.now() - started < 4000, 'a stalled Express read does not hold the document');
+    const stalledMs = Date.now() - started;
+    assert.ok(stalledMs >= 550 && stalledMs < 2000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
     assert.match(stalled, /data-loading-surface="panel"/, 'without data the page renders its loader');
     assert.match(stalled, /В предпросмотре<\/dt><dd>—<\/dd>/, 'and no fake zero');
+    const page = await browser.newPage();
+    await page.setViewport({ width: 390, height: 844 });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    const browserReads = [];
+    page.on('request', request => {
+      if (new URL(request.url()).pathname === '/api/standard-meta/teaser') browserReads.push(request.url());
+    });
+    await page.goto(`${origin}/standard/meta/`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('#root .standard-meta-card', { visible: true });
+    assert.ok(browserReads.length >= 1, 'the browser loads the teaser the server could not');
+    assert.match(await page.$eval('#root .traditional-mode-banner__summary dd', node => node.textContent), /^3$/);
+    assert.deepEqual(errors, []);
+    await page.close();
+    state.stall = false;
   } finally {
     if (browser) await browser.close();
     gateway.closeAllConnections();

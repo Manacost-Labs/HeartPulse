@@ -8,7 +8,8 @@ import { LoadingBlock, LoadingSurface } from '../src/shared/ui/LoadingSurface';
 // label, placeholder blocks hidden from assistive technology, and the owning
 // surface's class to reserve the content's size.
 const panel = renderToStaticMarkup(<LoadingSurface label="Загружаем мету" detail="Получаем срез" />);
-assert.match(panel, /^<div class="loading-surface loading-surface--panel" role="status" aria-live="polite" aria-busy="true" data-loading-surface="panel">/);
+assert.match(panel, /^<div class="loading-surface loading-surface--panel" role="status" aria-live="polite" data-loading-surface="panel">/);
+assert.doesNotMatch(panel, /aria-busy/, 'a busy status may not be announced; busy belongs to the refreshing region');
 assert.match(panel, /<span class="loading-surface__caption"><strong>Загружаем мету<\/strong><span>Получаем срез<\/span><\/span>/);
 assert.match(panel, /<div class="loading-surface__blocks" aria-hidden="true">(<span class="loading-block loading-block--line" aria-hidden="true"><\/span>){3}<\/div>/);
 assert.equal(panel.match(/role="status"/g)?.length, 1, 'a loader announces once');
@@ -35,9 +36,19 @@ assert.doesNotMatch(styles, /@keyframes|background-position|!important/);
 
 // Data that replaces a loader on the client fades in by opacity alone and stays
 // on screen, dimmed, while it refreshes; the server-rendered copy never fades.
+assert.match(styles, /\.data-surface \{ transition: opacity var\(--motion-base\) var\(--motion-ease\); \}/);
+assert.match(styles, /@starting-style\s*\{\s*\.data-arrive\s*\{\s*opacity:\s*0\.24;/);
+
+// The stylesheet loads with the views that render a loader, not on every route.
 const index = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
-assert.match(index, /\.data-surface\s*\{\s*transition:\s*opacity var\(--motion-base\) var\(--motion-ease\);/);
-assert.match(index, /@starting-style\s*\{\s*\.data-arrive\s*\{\s*opacity:\s*0\.24;/);
+assert.doesNotMatch(index, /LoadingSurface\.css|\.data-surface/);
+for (const view of ['features/StandardMeta.tsx', 'features/HsReplayDeckList.tsx', 'features/ConstructedArchetypes.tsx',
+  'features/Cosmetics.tsx', 'features/FunDecksPage.tsx', 'features/StandardMatchups.tsx', 'modules/contests/ui/ContestsPage.tsx']) {
+  assert.match(readFileSync(new URL(`../src/${view}`, import.meta.url), 'utf8'), /^import '[./]+shared\/ui\/LoadingSurface\.css';$/m,
+    `${view} loads the loading surface stylesheet`);
+}
+assert.doesNotMatch(readFileSync(new URL('../src/shared/ui/LoadingSurface.tsx', import.meta.url), 'utf8'), /\.css'/,
+  'the component itself stays importable by node tests');
 for (const feature of ['StandardMeta', 'ConstructedArchetypes']) {
   const source = readFileSync(new URL(`../src/features/${feature}.tsx`, import.meta.url), 'utf8');
   assert.match(source, /data-surface\$\{arrivesLater \? ' data-arrive' : ''\}/, `${feature} fades in only data the browser loaded`);

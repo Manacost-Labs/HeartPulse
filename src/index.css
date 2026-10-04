@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "./styles/tokens.css";
-@import "./shared/ui/LoadingSurface.css";
 @import "./modules/identity/public.css";
 @import "./styles/field-focus.css";
 /* Local agent traces can contain copied class names and must never affect the release CSS graph. */
@@ -754,7 +753,7 @@
    without a repaint per frame. */
 @keyframes loading-pulse {
   from { opacity: 1; }
-  to { opacity: 0.45; }
+  to { opacity: 0.55; }
 }
 
 @keyframes subtleArtDrift {
@@ -823,25 +822,6 @@
     background: var(--loading-fill);
     animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
     border-radius: 0.5rem;
-  }
-
-  /* A data section that replaces a loader after the page has painted fades
-     in by opacity alone: no rise, so it neither repeats the entrance nor
-     moves anything. It is a transition from @starting-style, not an
-     animation, so the page entrance on the same element cannot restart it.
-     Never put it on a header or a likely largest paint, or on content that
-     the server already rendered. While the section refreshes it stays on
-     screen, dimmed and aria-busy, instead of turning back into a loader. */
-  .data-surface {
-    transition: opacity var(--motion-base) var(--motion-ease);
-  }
-
-  .data-surface[aria-busy="true"] {
-    opacity: 0.62;
-  }
-
-  @starting-style {
-    .data-arrive { opacity: 0.24; }
   }
 
   .route-fallback {

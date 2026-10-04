@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { LoadingBlock, LoadingSurface } from './LoadingSurface';
+import './LoadingSurface.css';
 
 const meta = {
   title: 'Shared/LoadingSurface',
@@ -28,7 +29,7 @@ type Story = StoryObj<typeof meta>;
 export const Panel: Story = {
   play: async ({ canvas }) => {
     const status = canvas.getByRole('status');
-    await expect(status).toHaveAttribute('aria-busy', 'true');
+    await expect(status).toHaveAttribute('aria-live', 'polite');
     await expect(status).toHaveTextContent('Загружаем мету');
   },
 };

@@ -33,10 +33,11 @@ import {
   orderStandardMetaPeriods,
   resolveStandardMetaDefaultPeriod,
 } from './standardMetaFilterModel';
-import StandardMetaChartSection from './StandardMetaChartSection';
+import StandardMetaChart from './StandardMetaChart';
 import { metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed } from './standardMetaTeaser';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
+import '../shared/ui/LoadingSurface.css';
 import './StandardMeta.css';
 
 type MetaFormat = 'standard' | 'wild';
@@ -416,8 +417,7 @@ function StandardMetaContent({
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
   const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
-  // A subscriber's page starts from the teaser too and keeps it on screen,
-  // marked busy, until the full slice replaces it.
+  // A subscriber's page starts from the teaser too, busy until the full slice replaces it.
   const [data, setData] = useState<MetaPayload>(initialTeaser?.data ?? EMPTY_DATA);
   const hasPayload = data !== EMPTY_DATA;
   // The teaser's top-three totals are not a subscriber's numbers: a dash until the full slice lands.
@@ -664,7 +664,7 @@ function StandardMetaContent({
       )}
       {(!loading || hasPayload) && !error && data.items.length > 0 && (
         <div className={`standard-meta__results data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-busy={loading}>
-          <StandardMetaChartSection
+          <StandardMetaChart
             items={visibleItems}
             format={format}
             formatLabel={data.formatLabel}

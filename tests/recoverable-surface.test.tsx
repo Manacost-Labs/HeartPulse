@@ -14,7 +14,7 @@ const loadingMarkup = renderToStaticMarkup(
 );
 assert.match(loadingMarkup, /role="status"/);
 assert.match(loadingMarkup, /aria-live="polite"/);
-assert.match(loadingMarkup, /aria-busy="true"/);
+assert.doesNotMatch(loadingMarkup, /aria-busy/);
 assert.match(loadingMarkup, /data-loading-surface="panel"/);
 assert.match(loadingMarkup, /class="loading-surface loading-surface--panel recoverable-surface-loading"/);
 assert.match(loadingMarkup, /<strong>Загружаем данные<\/strong><span>Один момент<\/span>/);
