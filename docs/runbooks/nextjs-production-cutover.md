@@ -146,6 +146,22 @@ console/network errors and the
 subscription gate. Confirm canonical metadata and that API requests still
 reach Express. The CI release monitor must pass for the exact deployed SHA.
 
+Next sends `Cache-Control: private, no-cache` on the anonymous public
+documents (`apps/public-web/documentCaching.mjs`) so that Back restores them
+from the browser's back/forward cache. `/?login`, `/admin/`,
+`/deck-builder/`, `/archetypes/`, the profile pages and the retryable `503`
+keep `no-store`; the locations that already force `no-store` (`/admin/`,
+`/deck-builder/`, `/archetypes/`, `/connect`, `/id/`, `/profiles/`,
+`/identity/`) still do. The other slash locations pass the header through. The
+exact `location = /` still adds `Cache-Control: no-cache, no-store,
+must-revalidate`, `Pragma` and `Expires`; a browser combines both
+`Cache-Control` headers, so the home page keeps reloading on Back. Letting it
+in is a root change of the origin snippet: drop those three headers for plain
+`/` only, keep `no-store` for any `login` query (a map on `$arg_login`, or
+`$args`), update `tests/nginx-html-routing.test.mjs` and the release Nginx
+contract hash, then `sudo nginx -t`, reload and check `/` and `/?login` with
+`curl -sD-` through an edge.
+
 If a routed page fails, restore the saved Nginx snippet and SEO map, run
 `sudo nginx -t` and reload before changing application releases. The legacy
 HTML remains in the same immutable artifact, so restoring both files returns
