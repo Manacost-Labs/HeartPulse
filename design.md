@@ -316,6 +316,10 @@ Rules:
 - Keep route-heavy BG code deferred.
 - Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
 - Do not add JS for effects achievable in CSS.
+- Editorial covers load a `/api/article-cover?w=` WebP variant through
+  `srcset` and a measured `sizes`. Only the first `/articles/` cover, the
+  phone LCP, is `loading="eager"` with `fetchpriority="high"`; every other
+  cover, including the home teasers, stays lazy.
 - Run `npm run budget:next` when changing bundles or adding assets.
 
 ## Primary Files

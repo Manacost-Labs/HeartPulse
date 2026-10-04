@@ -11,6 +11,16 @@ own article projection from Express after hydration; failed personal refresh
 keeps the public listing visible with a retry notice. The page never caches a
 private projection in shared Next state.
 
+Each card cover offers the 480, 720 and 960 px WebP variants of
+`/api/article-cover` through `srcset`, with `sizes` matching the grid (one
+column below 640 px, two below 1024 px, three beside the sidebar, 446 px at
+most), so a phone at DPR 3 loads the 960 px variant and a desktop at DPR 1 the
+480 px one. The first card's cover is the largest paint on phones: it loads
+eagerly with `fetchpriority="high"` (React also preloads it from the head);
+the other covers stay lazy. Uploaded covers (`/uploads/...`) keep a single
+`src`. See [same-origin public content](same-origin-public-content-proxy.md)
+for the variant contract.
+
 The page preserves `/articles/` as its canonical URL. Query filters such as
 `?search=` are `noindex, follow`. Nginx applies this header on successful
 responses and

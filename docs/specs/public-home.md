@@ -6,7 +6,10 @@ production Nginx continues to serve the legacy route until cutover. It reads
 visitor's cookie. The serialized summary contains only the class id, name and
 win rate needed by the hero; article data uses the existing public projection.
 
-The latest articles appear in the server HTML. Battlegrounds, Arena and FAQ
+The latest articles appear in the server HTML. Their covers stay lazy and
+offer the `/api/article-cover` WebP variants through `srcset`; the lead
+teaser and the other two have separate `sizes` that follow the board's
+container-query columns. Battlegrounds, Arena and FAQ
 sections keep their viewport-based loading behavior after hydration. If either
 public feed is unavailable, the other content and navigation remain usable.
 

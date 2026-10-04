@@ -3,30 +3,8 @@ import { BookOpen, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { canAccessAdminWorkspace, type AuthUser } from '../../identity/public';
 import { hasSubscriptionEntitlement, type SubscriptionEntitlementKey, type SubscriptionStatus } from '../../subscriptions/public';
 import { requestArticleAccessLink } from '../api/articleRequests';
+import { ARTICLE_CARD_COVER_SIZES, responsiveArticleCover } from '../model/articleCover';
 import type { Article } from '../model/types';
-
-const ARTICLE_COVER_PROXY_HOSTS = new Set([
-  'hs-manacost.ru',
-  'www.hs-manacost.ru',
-  'kolodahearthstone.com',
-  'www.kolodahearthstone.com',
-  'kolodahearthstone.ru',
-  'www.kolodahearthstone.ru',
-]);
-
-function articleImageSrc(value?: string): string {
-  const raw = String(value ?? '').trim();
-  if (!raw || raw.startsWith('/')) return raw;
-  try {
-    const url = new URL(raw);
-    if (ARTICLE_COVER_PROXY_HOSTS.has(url.hostname.toLowerCase())) {
-      return `/api/article-cover?url=${encodeURIComponent(url.href)}`;
-    }
-  } catch {
-    return raw;
-  }
-  return raw;
-}
 
 function isKolodaArticleUrl(value?: string): boolean {
   const raw = String(value ?? '').trim();
@@ -120,6 +98,7 @@ export function ArticleCard({
 }) {
   const [imgErr, setImgErr] = useState(false);
   const isFeatured = idx === 0;
+  const cover = responsiveArticleCover(article.image);
   const { openArticle, readLabel } = useArticleLink(article, authUser, subscriptionStatus, subscriptionLoading);
 
   return (
@@ -134,7 +113,10 @@ export function ArticleCard({
         className="flex flex-col flex-grow w-full text-left bg-transparent border-0 p-0 cursor-pointer">
         <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
           {!imgErr ? (
-            <img src={articleImageSrc(article.image)} alt={article.title} loading="lazy"
+            // The first card's cover is the page's largest paint on phones.
+            <img src={cover.src} srcSet={cover.srcSet} sizes={cover.srcSet && ARTICLE_CARD_COVER_SIZES}
+              width={1176} height={597} alt={article.title}
+              loading={isFeatured ? 'eager' : 'lazy'} fetchPriority={isFeatured ? 'high' : undefined}
               onError={() => setImgErr(true)} className="w-full h-full object-contain" />
           ) : (
             <div className="article-image-fallback w-full h-full flex items-center justify-center">
