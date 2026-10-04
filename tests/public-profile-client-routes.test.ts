@@ -20,7 +20,7 @@ assert.equal(publicProfileIdFromPath(`/profiles/${legacyPublicProfileId}`), lega
 assert.equal(publicProfileIdFromPath('/profiles/p_short'), null);
 assert.equal(publicProfileIdFromPath('/profiles/p_../../admin'), null);
 
-assert.equal(publicProfilePath('1'), '/id/1');
+assert.equal(publicProfilePath('1'), '/id/1/', 'nginx answers /id/1 with a 301 to /id/1/');
 assert.equal(publicProfilePath('01'), '/');
 assert.equal(publicProfilePath('2147483648'), '/');
 assert.equal(publicProfilePath('user_internal_id'), '/');

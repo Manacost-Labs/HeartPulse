@@ -2,6 +2,7 @@ import { battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/ba
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { publicResourceUrl } from '../publicResourceUrl';
 import BattlegroundCardVariantToggle, {
   type BattlegroundCardVariant,
@@ -412,7 +413,7 @@ function cardLibraryKind(card: LibraryCard): LibraryKind {
 }
 
 function cardPath(card: LibraryCard, pool: PoolMode): string {
-  return `${sectionHref(cardLibraryKind(card), pool)}/${cardSlug(card)}`;
+  return canonicalPagePath(`${sectionHref(cardLibraryKind(card), pool)}/${cardSlug(card)}`);
 }
 
 function cardRuName(card: LibraryCard): string {
@@ -853,7 +854,7 @@ function strategyTierListPath(strategy: StrategyEntry): string {
     strategy: strategy.key,
   });
   if (strategy.title) params.set('q', strategy.title);
-  return `/battlegrounds/tier-list?${params.toString()}#strategy`;
+  return `/battlegrounds/tier-list/?${params.toString()}#strategy`;
 }
 
 function metricTone(value: unknown): string {
@@ -1039,16 +1040,14 @@ function LibrarySectionSwitcher({
           <div className="flex flex-wrap gap-2">
             {(['current', 'archive'] as PoolMode[]).map(nextPool => {
               const active = nextPool === pool;
-              const href = sectionHref(kind, nextPool);
+              const href = canonicalPagePath(sectionHref(kind, nextPool));
               const disabled = nextPool === 'archive' && !sectionFor(kind).supportsArchive;
               return (
                 <a
                   key={nextPool}
-                  href={href}
-                  onClick={(event) => {
-                    if (disabled) event.preventDefault();
-                    else navigateTo(event, href);
-                  }}
+                  href={disabled ? undefined : href}
+                  role={disabled ? 'link' : undefined}
+                  onClick={disabled ? undefined : event => navigateTo(event, href)}
                   aria-disabled={disabled ? 'true' : undefined}
                   data-active={active ? 'true' : 'false'}
                   className={`inline-flex min-h-[44px] items-center rounded-md border px-4 py-2 font-hs text-sm ${
@@ -1071,7 +1070,7 @@ function LibrarySectionSwitcher({
             {LIBRARY_SECTIONS.map(section => {
               const nextKind = section.kind;
               const active = nextKind === kind;
-              const href = sectionHref(nextKind, pool);
+              const href = canonicalPagePath(sectionHref(nextKind, pool));
               return (
                 <a
                   key={nextKind}

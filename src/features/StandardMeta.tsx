@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import { StandardMetaSearchIntro } from '../modules/searchLanding/public';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
@@ -543,7 +544,7 @@ function StandardMetaContent({
     );
   };
 
-  const archetypeHref = (item: MetaItem) => `/standard/archetypes/${format}/${item.slug}`;
+  const archetypeHref = (item: MetaItem) => canonicalPagePath(`/standard/archetypes/${format}/${item.slug}`);
 
   return (
     <>

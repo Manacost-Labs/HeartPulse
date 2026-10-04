@@ -65,7 +65,7 @@ function guideKindLabel(kind: string | null): string {
 }
 
 function GuideArchiveCard({ guide, navigatePath }: { key?: React.Key; guide: GuideArchiveItem; navigatePath: (path: string) => void }) {
-  const href = `/guides-archive/${encodeURIComponent(guide.slug)}`;
+  const href = `/guides-archive/${encodeURIComponent(guide.slug)}/`;
   const date = guide.publishedAt ? formatGuideDate(guide.publishedAt) : '';
   return (
     <a

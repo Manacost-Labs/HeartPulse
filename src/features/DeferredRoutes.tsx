@@ -1555,7 +1555,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
       <SectionBanner title="Тир-лист карт Арены Hearthstone" subtitle="Оценки карт для каждого класса — текущий патч" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Тир-лист', href: '/tierlist' },
+        { name: 'Тир-лист', href: '/tierlist/' },
       ]} />
       <ArenaTierListSearchIntro />
       <PaywallGate
@@ -1888,9 +1888,9 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
       )}
 
       <InternalLinks links={[
-        { label: 'Винрейт классов →', href: '/classes', onClick: () => onNavigate('winrates') },
-        { label: 'Легендарки →', href: '/legendaries', onClick: () => onNavigate('legendaries') },
-        { label: 'Статьи о Арене →', href: '/articles', onClick: () => onNavigate('articles') },
+        { label: 'Винрейт классов →', href: '/classes/', onClick: () => onNavigate('winrates') },
+        { label: 'Легендарки →', href: '/legendaries/', onClick: () => onNavigate('legendaries') },
+        { label: 'Статьи о Арене →', href: '/articles/', onClick: () => onNavigate('articles') },
       ]} />
       </PaywallGate>
       <FAQSection />
@@ -2108,7 +2108,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       <SectionBanner title="Легендарки" subtitle="Наборы карт для выбора первой легендарки на Арене" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Легендарки', href: '/legendaries' },
+        { name: 'Легендарки', href: '/legendaries/' },
       ]} />
       <section aria-label="Описание раздела">
         <p className="text-[#6b4c2a] text-sm leading-relaxed mb-5 px-1"
@@ -2397,9 +2397,9 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       )}
 
       <InternalLinks links={[
-        { label: 'Тир-лист карт →', href: '/tierlist', onClick: () => onNavigate('tierlist') },
-        { label: 'Винрейт классов →', href: '/classes', onClick: () => onNavigate('winrates') },
-        { label: 'Статьи о Арене →', href: '/articles', onClick: () => onNavigate('articles') },
+        { label: 'Тир-лист карт →', href: '/tierlist/', onClick: () => onNavigate('tierlist') },
+        { label: 'Винрейт классов →', href: '/classes/', onClick: () => onNavigate('winrates') },
+        { label: 'Статьи о Арене →', href: '/articles/', onClick: () => onNavigate('articles') },
       ]} />
       </PaywallGate>
     </div>

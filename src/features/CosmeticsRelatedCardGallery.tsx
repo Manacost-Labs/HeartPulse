@@ -1,4 +1,5 @@
 import { constructedCardPath } from '../modules/constructedCards/public';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { useId } from 'react';
 import { cachedCardImage } from './cosmeticsCardImage';
 
@@ -30,7 +31,7 @@ export function RelatedCardGallery({
       </header>
       <div className="cosmetics-related-gallery">
         {items.map(card => {
-          const href = constructedCardPath('wild', card.cardId);
+          const href = canonicalPagePath(constructedCardPath('wild', card.cardId));
           return (
             <a
               key={card.cardId}

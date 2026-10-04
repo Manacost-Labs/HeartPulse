@@ -118,7 +118,7 @@ export function ArticlesTab({
       <SectionBanner title="Статьи" subtitle="Гайды, разборы мета и советы по режиму Арена" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Статьи', href: '/articles' },
+        { name: 'Статьи', href: '/articles/' },
       ]} />
 
       <ArticlesToolbar articleSearch={articleSearch} articleTag={articleTag} articleTags={articleTags}

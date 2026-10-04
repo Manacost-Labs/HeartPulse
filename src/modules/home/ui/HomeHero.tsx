@@ -23,14 +23,14 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
           </p>
           <div className="home-stage__actions">
             <a
-              href="/tierlist"
+              href="/tierlist/"
               className="home-action home-action--primary"
               onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('tierlist'); }}
             >
               Открыть тир-лист <ArrowRight size={18} aria-hidden="true" />
             </a>
             <a
-              href="/classes"
+              href="/classes/"
               className="home-action home-action--secondary"
               onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('winrates'); }}
             >
@@ -60,7 +60,7 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
                 return (
                   <a
                     key={classItem.id}
-                    href="/classes"
+                    href="/classes/"
                     className={`home-orbit-class home-orbit-class--${index + 1}`}
                     onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('winrates'); }}
                   >
@@ -79,7 +79,7 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
               })}
             {!loadingHomeSummary && topClasses.length === 0 && (
               <a
-                href="/classes"
+                href="/classes/"
                 className="home-orbit-empty"
                 onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('winrates'); }}
               >
@@ -89,7 +89,7 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
             )}
           </div>
           <a
-            href="/classes"
+            href="/classes/"
             className="home-orbit-action"
             onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('winrates'); }}
           >

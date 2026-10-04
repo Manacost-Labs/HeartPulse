@@ -12,8 +12,8 @@ const qaCard = {
 };
 const qaArticleCover = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1176" height="597" viewBox="0 0 1176 597"%3E%3Crect width="1176" height="597" fill="%236d1117"/%3E%3C/svg%3E';
 const qaArticles = [
-  { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', tag: 'Арена', excerpt: 'Контрольная статья Арены.', mode: 'arena', image: qaArticleCover, url: '/articles/qa-1' },
-  { id: 'qa-article-2', title: 'Вторая статья', date: '2026-07-10', tag: 'Общее', excerpt: 'Контрольный общий материал.', mode: 'general', image: qaArticleCover, url: '/articles/qa-2' },
+  { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', tag: 'Арена', excerpt: 'Контрольная статья Арены.', mode: 'arena', image: qaArticleCover, url: 'https://kolodahearthstone.com/qa-1/' },
+  { id: 'qa-article-2', title: 'Вторая статья', date: '2026-07-10', tag: 'Общее', excerpt: 'Контрольный общий материал.', mode: 'general', image: qaArticleCover, url: 'https://kolodahearthstone.com/qa-2/' },
 ];
 export const qaDeckCards = Array.from({ length: 17 }, (_, index) => ({
   id: `CARD_QA_${index + 1}`,
