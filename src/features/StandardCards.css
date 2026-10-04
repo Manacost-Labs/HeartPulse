@@ -113,10 +113,11 @@
   content: '';
   position: absolute;
   z-index: -1;
-  inset: 7% 9% 15%;
-  border-radius: 46% 46% 38% 38%;
-  background: radial-gradient(ellipse at 50% 45%, var(--card-rarity-glow), transparent 68%);
-  filter: blur(16px);
+  inset: 5% 9% auto;
+  aspect-ratio: 0.75;
+  border-radius: 9%;
+  background: var(--card-rarity-glow);
+  filter: blur(7px);
   opacity: 0;
   transform: scale(0.88) translateY(8px);
   transition: opacity var(--motion-base) var(--motion-ease), transform var(--motion-slow) var(--motion-ease);
@@ -128,7 +129,8 @@
 .constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible)::before { opacity: 0.86; transform: scale(1.04) translateY(0); }
 /* Hover moves only transform and opacity. A drop-shadow transition repaints on
    the main thread every frame, so the image shadow stays static and the
-   ::before glow carries the rarity colour; card art is never recoloured. */
+   ::before glow, a blurred card-sized plate behind the art, carries the
+   rarity colour; card art is never recoloured. */
 .constructed-cards__gallery-card-link > img {
   width: 100%;
   max-width: 230px;
