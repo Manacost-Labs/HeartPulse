@@ -97,7 +97,9 @@ behind its `public.ts`, not in `src/features/`.
   prerendered document loads outside its per-page `/api` mocks.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.
   The production observer (`config/production-observer.json`) expects its
-  `.arena-paywall` markup for guests.
+  `.arena-paywall` markup for guests. A locked preview behind the gate keeps
+  its loaders still (`PaywallGate.css`): give a loader a class, not an inline
+  `animation` style, or it loops for the whole visit.
 - Titles, descriptions, indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
   `config/public-seo-pages.json`; do not hand-write them in a page. A registry

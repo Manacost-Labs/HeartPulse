@@ -369,3 +369,13 @@
     transition: none;
   }
 }
+
+/* A guest's locked preview never leaves its loading state, and the preview is
+   decorative (aria-hidden, inert, blurred). A looping loader inside it would
+   restyle and repaint the blurred layer on every frame for the whole visit, so
+   it stays still. Unlayered on purpose: it beats the `@layer utilities` shimmer
+   and Tailwind `animate-*` loops without !important. Entrance animations keep
+   running, and a subscriber's unlocked page never has this wrapper. */
+.arena-paywall__preview :is(.skeleton, [class*='animate-']) {
+  animation: none;
+}

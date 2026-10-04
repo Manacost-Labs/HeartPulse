@@ -298,6 +298,9 @@ Rules:
   cosmetics pages (`.constructed-cards`, `.cosmetics-page`) skip the rise,
   because their largest paint is a picture inside a section.
 - Prefer `opacity`, `translate`, `transform` and background-position.
+- A locked paywall preview never animates: `PaywallGate.css` stops the
+  `.skeleton` shimmer and Tailwind `animate-*` loops inside it, so a loader
+  there takes a class, not an inline `animation` style.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.
 - A visual pass should add semantic root hooks rather than rewriting component state.

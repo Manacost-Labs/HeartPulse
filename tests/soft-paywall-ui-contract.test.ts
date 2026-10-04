@@ -34,4 +34,19 @@ for (const pageClient of ['StandardMetaPageClient', 'ConstructedArchetypesPageCl
   assert.doesNotMatch(source, /PaywallGate/, `${pageClient} must not replace the page with a full paywall`);
 }
 
+// A guest's locked preview keeps its loaders still. The rule must stay
+// unlayered and outside media queries: inside `@layer` it would lose to the
+// `@layer utilities` shimmer, and inline animation styles would escape it.
+const paywallCss = readFileSync(new URL('../src/components/PaywallGate.css', import.meta.url), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
+const freezeRule = /\.arena-paywall__preview :is\(\.skeleton, \[class\*='animate-'\]\) \{\s*animation: none;\s*\}/;
+assert.ok(freezeRule.test(paywallCss), 'PaywallGate.css must stop the loaders of a locked preview');
+const beforeFreeze = paywallCss.slice(0, paywallCss.search(freezeRule));
+assert.equal((beforeFreeze.match(/\{/g) ?? []).length, (beforeFreeze.match(/\}/g) ?? []).length,
+  'the locked-preview rule must be a top-level rule');
+assert.ok(!paywallCss.includes('@layer'), 'PaywallGate.css must stay unlayered');
+const deferredRoutesSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
+assert.ok(!/animation: 'spin (?:1s|0\.7s) linear infinite/.test(deferredRoutesSource),
+  'the tier-list loader inside a locked preview must use classes, not inline animation styles');
+
 console.log('soft paywall UI contract tests passed');
