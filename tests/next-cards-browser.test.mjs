@@ -123,6 +123,39 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       await page.waitForSelector('.constructed-cards__gallery');
       assert.equal(await page.$('.constructed-cards__table'), null);
     }));
+
+    // The hover glow is a blurred plate behind the card art. It must follow the
+    // image, which is capped (190 px at 640 px and below, 230 px above), not the
+    // grid cell, or a wide cell puts the whole tile on an opaque coloured box.
+    for (const width of [600, 1000, 1440]) {
+      await t.test(`the hover glow stays behind the card art at ${width} px`, () => withPage(runtime, { width, height: 900 }, async page => {
+        await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
+        const geometry = await page.$eval('.constructed-cards__gallery-card', card => {
+          const cardBox = card.getBoundingClientRect();
+          const image = card.querySelector('.constructed-cards__gallery-card-link > img').getBoundingClientRect();
+          const plate = getComputedStyle(card, '::before');
+          const plateWidth = parseFloat(plate.width);
+          const plateHeight = parseFloat(plate.height);
+          const left = cardBox.left + parseFloat(plate.left) + parseFloat(plate.marginLeft);
+          const top = cardBox.top + parseFloat(plate.top) + parseFloat(plate.marginTop);
+          // The hover state scales the plate by 1.04 around its centre.
+          const grow = 0.02;
+          return {
+            image: { left: image.left, top: image.top, right: image.right, bottom: image.bottom },
+            plate: {
+              left: left - plateWidth * grow, top: top - plateHeight * grow,
+              right: left + plateWidth * (1 + grow), bottom: top + plateHeight * (1 + grow),
+            },
+          };
+        });
+        const { image, plate } = geometry;
+        assert.ok(plate.left >= image.left - 0.5 && plate.right <= image.right + 0.5
+          && plate.top >= image.top - 0.5 && plate.bottom <= image.bottom + 0.5,
+        `glow plate ${JSON.stringify(plate)} must sit inside the card image ${JSON.stringify(image)}`);
+        assert.ok(plate.right - plate.left >= (image.right - image.left) * 0.75,
+          'the plate still spans most of the card so its blurred rim shows as a halo');
+      }));
+    }
   } finally {
     await runtime.close();
   }

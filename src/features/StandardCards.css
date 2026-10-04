@@ -90,6 +90,7 @@
 .constructed-cards__gallery { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(0.55rem, 1.2vw, 1.1rem); padding: 1.15rem 0.3rem 1rem; }
 .constructed-cards__gallery-card {
   --card-rarity-glow: rgba(225, 235, 244, 0.72);
+  --card-image-max-width: 230px;
   position: relative;
   isolation: isolate;
   min-width: 0;
@@ -113,7 +114,14 @@
   content: '';
   position: absolute;
   z-index: -1;
-  inset: 5% 9% auto;
+  top: 0.15rem;
+  right: 0;
+  left: 0;
+  /* Sized from the card image, whose width is the cell minus its 0.15rem
+     side padding, capped: a wider grid cell must not widen the glow.
+     Percentages of a margin resolve against the card's width. */
+  width: calc(min(100% - 0.3rem, var(--card-image-max-width)) * 0.82);
+  margin: calc(min(100% - 0.3rem, var(--card-image-max-width)) * 0.09) auto 0;
   aspect-ratio: 0.75;
   border-radius: 9%;
   background: var(--card-rarity-glow);
@@ -133,7 +141,7 @@
    rarity colour; card art is never recoloured. */
 .constructed-cards__gallery-card-link > img {
   width: 100%;
-  max-width: 230px;
+  max-width: var(--card-image-max-width);
   aspect-ratio: 0.72;
   object-fit: contain;
   filter: drop-shadow(0 10px 8px rgba(56, 29, 12, 0.24));
@@ -455,7 +463,7 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-cards__secondary-controls.is-open { display: grid; }
   .constructed-cards__reset { min-height: 44px; }
   .constructed-cards__gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; padding-inline: 0; }
-  .constructed-cards__gallery-card-link > img { max-width: 190px; }
+  .constructed-cards__gallery-card { --card-image-max-width: 190px; }
   .constructed-cards__table-wrap { overflow: visible; border: 0; background: transparent; }
   .constructed-cards__table { display: block; min-width: 0; font-size: 0.72rem; }
   .constructed-cards__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
