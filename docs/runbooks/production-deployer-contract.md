@@ -61,8 +61,13 @@ checkout and before `actions/download-artifact`. A failed preflight means the
 host must be updated through the controlled installation above; retry the
 workflow only after the read-only check passes from the exact reviewed source.
 
-For the reviewed HearthPulse origin Nginx transition, the workflow passes
-`--allow-nginx-contract-hash=f57fe6f91874cc9506dc8a9a65562bdef6c8fbe23d9c461e0370bf24d8c0b3d8`.
+The workflow passes `--allow-nginx-contract-hash=<hash>` for the reviewed
+Nginx contract. A change to any contract file listed in
+`scripts/create-release.mjs` (origin or edge role) changes that hash, so the
+same commit must update it in `.github/workflows/ci.yml`;
+`tests/workflow-contract.test.mjs` recomputes it from the files and fails
+otherwise. Without that update the deploy stops with "release nginx contract
+hash differs from the reviewed transition".
 The root gate compares this value with the validated release manifest before
 granting the deployer its one-release transition flag. A later, different
 Nginx contract stays blocked. Install the origin routing snippet and SEO map

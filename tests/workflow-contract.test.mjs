@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 const workflow = readFileSync('.github/workflows/scrape.yml', 'utf8');
@@ -100,7 +101,7 @@ assert.match(
 assert.doesNotMatch(productionJob, /uses:\s*[^\s@]+@v\d+/);
 assert.match(
   ciWorkflow,
-  /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=89859bbe700a7857e86379716c02fda0d8d85e4aa1254dd4c39301ee57b6200e "\$artifact" "\$GITHUB_SHA"/,
+  /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=d68af05aec0f46c28554fa20774b718835f050fef4e4c5bb2bd1bc418e39b89b "\$artifact" "\$GITHUB_SHA"/,
   'production must fail closed unless the installed privileged deployer advertises the browser smoke capability',
 );
 assert.doesNotMatch(
@@ -192,5 +193,20 @@ assert.match(
   /^EnvironmentFile=-\/etc\/hs-arena\/browser-runtime\.env$/m,
   'the scraper service and release probe must share the same non-secret browser configuration',
 );
+
+// The deployer refuses a release whose nginx contract differs from the hash
+// CI approves, so a change to any contract file must update that hash in the
+// same commit. Recompute it the way scripts/create-release.mjs does.
+const releaseScript = readFileSync('scripts/create-release.mjs', 'utf8');
+const contractBlock = releaseScript.match(/const nginxContractDefinitions = (\[[\s\S]*?\n\]);/)?.[1];
+assert.ok(contractBlock, 'the release script must keep its nginx contract list');
+const contractFiles = [...contractBlock.matchAll(
+  /\{ source: '([^']+)', installPath: '([^']+)', roles: \[([^\]]*)\] \}/g,
+)].map(([, source, installPath, roles]) => ({ source, installPath, roles: roles.replace(/['\s]/g, '') }));
+assert.ok(contractFiles.length > 0);
+const contractHash = createHash('sha256').update(contractFiles.map(file => `${file.source}\0${file.installPath}\0${file.roles}\0${
+  createHash('sha256').update(readFileSync(file.source)).digest('hex')}\n`).join('')).digest('hex');
+assert.match(ciWorkflow, new RegExp(`--allow-nginx-contract-hash=${contractHash} `),
+  `the approved nginx contract hash in ci.yml must match the contract files (${contractHash})`);
 
 console.log('workflow ownership contracts passed');
