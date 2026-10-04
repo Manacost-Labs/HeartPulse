@@ -122,6 +122,16 @@ test('pages link to canonical trailing-slash URLs, so a card link prerenders on 
       'page links must not point at URLs that only redirect to their trailing-slash form');
     assert.deepEqual(pageErrors, []);
 
+    // Dark gifts and timewarped cards have no archive: the greyed-out control
+    // is not a link, or hovering it would prerender the archive's 404.
+    for (const section of ['dark-gifts', 'timewarped']) {
+      await subscriberPage.goto(`${runtime.origin}/library/${section}/`, { waitUntil: 'networkidle0' });
+      assert.deepEqual(await subscriberPage.$$eval('.arena-content [aria-disabled="true"]', nodes => nodes
+        .map(node => ({ text: node.textContent.trim(), href: node.getAttribute('href'), role: node.getAttribute('role') }))),
+      [{ text: 'Архив', href: null, role: 'link' }], `/library/${section}/ offers no archive`);
+      assert.equal(await subscriberPage.$(`a[href^="/library/archive/${section}"]`), null);
+    }
+
     // The catalog's card links are the densest set; with the slash they match
     // the prerender rule, and the click handler opens that same URL.
     recorder = await startSpeculationRecorder(runtime.origin);

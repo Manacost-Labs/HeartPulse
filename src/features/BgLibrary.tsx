@@ -1045,11 +1045,9 @@ function LibrarySectionSwitcher({
               return (
                 <a
                   key={nextPool}
-                  href={href}
-                  onClick={(event) => {
-                    if (disabled) event.preventDefault();
-                    else navigateTo(event, href);
-                  }}
+                  href={disabled ? undefined : href}
+                  role={disabled ? 'link' : undefined}
+                  onClick={disabled ? undefined : event => navigateTo(event, href)}
                   aria-disabled={disabled ? 'true' : undefined}
                   data-active={active ? 'true' : 'false'}
                   className={`inline-flex min-h-[44px] items-center rounded-md border px-4 py-2 font-hs text-sm ${
