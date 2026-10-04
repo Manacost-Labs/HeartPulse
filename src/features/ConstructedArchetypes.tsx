@@ -16,6 +16,7 @@ import {
 import '../route-parchment.css';
 import './ConstructedArchetypes.css';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import ConstructedArchetypeAnalysis, {
   type ConstructedAnalysis,
 } from './ConstructedArchetypeAnalysis';
@@ -506,10 +507,10 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
                 </dl>
                 <a
                   className="archetype-row__open"
-                  href={`/standard/archetypes/${item.format}/${item.slug}`}
+                  href={canonicalPagePath(`/standard/archetypes/${item.format}/${item.slug}`)}
                   onClick={event => {
                     event.preventDefault();
-                    navigatePath(`/standard/archetypes/${item.format}/${item.slug}`);
+                    navigatePath(canonicalPagePath(`/standard/archetypes/${item.format}/${item.slug}`));
                   }}
                 >
                   <span>Открыть</span>
@@ -591,7 +592,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
   return (
     <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
       <nav className="archetype-breadcrumb" aria-label="Навигационная цепочка">
-        <a href="/standard/archetypes" onClick={event => { event.preventDefault(); navigatePath('/standard/archetypes'); }}>
+        <a href="/standard/archetypes/" onClick={event => { event.preventDefault(); navigatePath('/standard/archetypes/'); }}>
           <ArrowLeft size={17} /> Архетипы
         </a>
         <span aria-hidden="true">/</span>

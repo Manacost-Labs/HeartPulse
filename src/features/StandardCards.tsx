@@ -50,6 +50,7 @@ import DeckListView, {
 } from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
   classFilterOptions,
@@ -364,7 +365,7 @@ function patchVersion(value: unknown): string {
 
 
 function cardPath(format: CardFormat, card: CardRecord): string {
-  return constructedCardPath(format, card.card_id);
+  return canonicalPagePath(constructedCardPath(format, card.card_id));
 }
 
 function navigateWithConstructedCardContext(
@@ -812,7 +813,7 @@ function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }
           const itemId = String(item?.card_id || item?.id || '').trim();
           const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
           const image = constructedGeneratedPoolCardImage(item);
-          const internalUrl = item?.can_open && itemId ? constructedCardPath(format, itemId) : '';
+          const internalUrl = item?.can_open && itemId ? canonicalPagePath(constructedCardPath(format, itemId)) : '';
           const href = internalUrl
             ? constructedCardStatsUrl(internalUrl, { period, rank, statsFormat: format, defaultStatsFormat: format })
             : item?.url || undefined;
@@ -1251,7 +1252,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
   return (
     <article className="constructed-cards constructed-card-detail">
-      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}`, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
+      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}/`, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}/`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
       <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button>
       {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
 

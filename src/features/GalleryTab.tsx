@@ -115,7 +115,7 @@ export default function GalleryTab({
       />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Галерея', href: '/gallery' },
+        { name: 'Галерея', href: '/gallery/' },
       ]} />
 
       <section className="gallery-intro" aria-label="О галерее">

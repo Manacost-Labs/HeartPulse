@@ -18,7 +18,7 @@ export const BattlegroundHeroCard = memo(function BattlegroundHeroCard({ hero, t
 }) {
   const [previewDismissed, setPreviewDismissed] = useState(false);
   const powerImage = hero.heroPower?.image || hero.heroPower?.imageGold || hero.heroPower?.cropImage;
-  const href = hero.dbfId ? `/heroes/${hero.dbfId}` : '/heroes';
+  const href = hero.dbfId ? `/heroes/${hero.dbfId}/` : '/heroes/';
   return (
     <a
       href={href}

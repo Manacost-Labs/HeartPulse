@@ -149,7 +149,7 @@ function LedgerRow({
   onNavigate: (path: string) => void;
   flat?: boolean;
 }) {
-  const href = hero.dbfId ? `/heroes/${hero.dbfId}` : '/heroes';
+  const href = hero.dbfId ? `/heroes/${hero.dbfId}/` : '/heroes/';
   const pickRate = metricNumber(hero.popularity);
   const averagePlace = metricNumber(hero.averagePlace);
   const heroPowerText = plainText(hero.heroPower?.text);

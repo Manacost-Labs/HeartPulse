@@ -13,7 +13,7 @@ export function ArenaClassesPage({ onNavigate, children }: ArenaClassesPageProps
     <SectionBanner title="Классы" subtitle="Статистика побед на Арене — текущий патч" />
     <Breadcrumbs items={[
       { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-      { name: 'Классы', href: '/classes' },
+      { name: 'Классы', href: '/classes/' },
     ]} />
     <section aria-label="Описание раздела">
       <p className="text-[#6b4c2a] text-sm leading-relaxed mb-5 px-1"
@@ -38,9 +38,9 @@ export function ArenaClassesResults({ onNavigate, state, onRetry }: {
       <p className="text-[#8b6c42] text-xs mb-2 uppercase tracking-wide font-hs">Смотри также</p>
       <div className="flex flex-wrap gap-2">
         {[
-          { label: 'Тир-лист карт →', href: '/tierlist', tab: 'tierlist' },
-          { label: 'Легендарки →', href: '/legendaries', tab: 'legendaries' },
-          { label: 'Статьи о Арене →', href: '/articles', tab: 'articles' },
+          { label: 'Тир-лист карт →', href: '/tierlist/', tab: 'tierlist' },
+          { label: 'Легендарки →', href: '/legendaries/', tab: 'legendaries' },
+          { label: 'Статьи о Арене →', href: '/articles/', tab: 'articles' },
         ].map(link => <a key={link.href} href={link.href}
           onClick={event => { event.preventDefault(); onNavigate(link.tab); }}
           className="inline-flex min-h-11 items-center px-4 py-2 rounded-lg text-sm font-hs transition-[filter] hover:brightness-110"

@@ -486,7 +486,7 @@ export function ArchetypeDecksPanel({
             });
             const sideboardCount = (deck.cards || []).filter(card => Boolean(card.sideboard)).length;
             const deckCode = buildDeckCode(deck, classKey);
-            const builderHref = deckCode ? `/deck-builder?code=${encodeURIComponent(deckCode)}` : '';
+            const builderHref = deckCode ? `/deck-builder/?code=${encodeURIComponent(deckCode)}` : '';
 
             return (
               <article className="archetype-deck-card" key={deck.id || deck.deck_id || index}>

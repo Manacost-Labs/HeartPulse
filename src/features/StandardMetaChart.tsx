@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, ChartScatter, ChevronDown, ChevronUp, MousePointer2 } from 'lucide-react';
+import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import './StandardMetaChart.css';
 
 export type StandardMetaChartItem = {
@@ -207,7 +208,7 @@ export default function StandardMetaChart({ items, format, formatLabel, rankLabe
               </dl>
               <a
                 className="standard-meta-chart__deck-action"
-                href={`/standard/archetypes/${format}/${selectedItem.slug}`}
+                href={canonicalPagePath(`/standard/archetypes/${format}/${selectedItem.slug}`)}
                 aria-label={`Открыть страницу архетипа: ${selectedItem.archetypeLabel}`}
               >
                 <span>Архетип</span>

@@ -36,11 +36,14 @@ Run `npm run build:next` and
 `node --test tests/next-page-transitions-browser.test.mjs`, then the normal
 release checks. The test covers the canonical links, the URLs eligible for
 prerendering, a prerendered and a plain navigation, the animated pseudo
-elements and reduced motion. Review forward and back navigation in a real
-browser at mobile and desktop widths: the shell stays stable, content is not
-clipped, and the console and network remain clean. Browser automation that
-attaches its own DevTools session disables prerendering; observe that path
-through the test instead.
+elements and reduced motion. `tests/next-canonical-links-browser.test.mjs`
+checks that the content links of the main pages (home, arena, cards,
+archetypes, meta, cosmetics, Battlegrounds, guides) carry the trailing slash
+and that a hovered card link in the catalog is prerendered. Review forward
+and back navigation in a real browser at mobile and desktop widths: the shell
+stays stable, content is not clipped, and the console and network remain
+clean. Browser automation that attaches its own DevTools session disables
+prerendering; observe that path through the test instead.
 
 ## Documentation impact
 

@@ -97,7 +97,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
       </div>
 
       <a
-        href="/articles"
+        href="/articles/"
         className="home-latest-articles__all"
         onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('articles'); }}
       >

@@ -85,7 +85,11 @@ behind its `public.ts`, not in `src/features/`.
   answers with an uncached 301, which costs a round trip per click and keeps
   the link out of prerendering. `navigate()` adds the slash for scripted
   navigation; an `href` has to carry it itself, written out or through
-  `canonicalPagePath()` from `src/app/routing/canonicalPagePath.ts`.
+  `canonicalPagePath()` from `src/app/routing/canonicalPagePath.ts`. Modules
+  under `src/modules/` may not import `src/app/`, so they write the slash out.
+  `tests/next-canonical-links-browser.test.mjs` reads every link of the main
+  pages, in the server HTML and after hydration, for a guest and a
+  subscriber, and fails on a page URL without the slash.
 - Public navigation sections and their detail pages are prerendered when a
   visitor hovers or presses a link (`lib/speculationRules.ts`), so page code
   can run for a visit that never happens. Anything that records a visit or
@@ -217,10 +221,6 @@ browser test runs the production React: its development warnings (a missing
   full-document navigation between pages. Prerendering and cross-document
   view transitions hide its cost in Chromium (the transition also runs in
   Safari 18.2+); Firefox still swaps documents without either.
-- Links written by hand inside legacy views (home hero, related links, card
-  and cosmetics listings) still omit the trailing slash: a click handler
-  fixes the URL, but those links are not prerendered and a plain anchor
-  still pays the redirect.
 - Legacy global CSS is imported per route from `src/`.
 - `npm run qa:ci`, `verify:ci` and the nightly responsive QA run the browser
   QA against this app with the QA backend in `scripts/qa/`. Bundle budgets

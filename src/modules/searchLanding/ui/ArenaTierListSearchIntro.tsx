@@ -12,8 +12,8 @@ export function ArenaTierListSearchIntro() {
         HSReplay, HearthArena и Firestone.
       </p>
       <nav className="mb-5 flex flex-wrap gap-x-4 gap-y-2 px-1 text-sm" aria-label="Связанные разделы Арены">
-        <a className="inline-flex min-h-11 items-center font-semibold text-[#7b151b] underline underline-offset-4" href="/classes">Винрейты классов Арены</a>
-        <a className="inline-flex min-h-11 items-center font-semibold text-[#7b151b] underline underline-offset-4" href="/legendaries">Легендарные карты Арены</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#7b151b] underline underline-offset-4" href="/classes/">Винрейты классов Арены</a>
+        <a className="inline-flex min-h-11 items-center font-semibold text-[#7b151b] underline underline-offset-4" href="/legendaries/">Легендарные карты Арены</a>
         <a className="inline-flex min-h-11 items-center font-semibold text-[#7b151b] underline underline-offset-4" href="/">Статистика Арены Hearthstone</a>
       </nav>
     </section>
