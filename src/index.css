@@ -361,6 +361,53 @@
     backdrop-filter: blur(18px);
   }
 
+  /* The shell's drawer is a popover (src/app/shell/PublicNavigation.tsx), kept
+     in the page closed. It drops in and lifts out with the shared surface
+     motion, and the backdrop after it fades along. `data-open` stands in for
+     `:popover-open` where popovers are unsupported; `:is()` ignores the
+     selector a browser does not know instead of dropping the rule. */
+  .arena-mobile-menu[popover] {
+    width: auto;
+    margin: 0;
+    color: inherit;
+    display: none;
+    opacity: 0;
+    translate: 0 var(--motion-drop);
+    transition:
+      opacity var(--motion-instant) var(--motion-ease-exit),
+      translate var(--motion-instant) var(--motion-ease-exit),
+      display var(--motion-instant) allow-discrete,
+      overlay var(--motion-instant) allow-discrete;
+  }
+
+  .arena-mobile-drawer-backdrop {
+    display: none;
+    opacity: 0;
+    transition: opacity var(--motion-instant) var(--motion-ease-exit), display var(--motion-instant) allow-discrete;
+  }
+
+  @media (max-width: 1023.98px) {
+    .arena-mobile-menu:is([data-open], :popover-open) {
+      display: grid;
+      opacity: 1;
+      translate: none;
+      transition-duration: var(--motion-base);
+      transition-timing-function: var(--motion-ease);
+    }
+
+    .arena-mobile-menu:is([data-open], :popover-open) + .arena-mobile-drawer-backdrop {
+      display: block;
+      opacity: 1;
+      transition-duration: var(--motion-fast);
+      transition-timing-function: var(--motion-ease);
+    }
+
+    @starting-style {
+      .arena-mobile-menu:is([data-open], :popover-open) { opacity: 0; translate: 0 var(--motion-drop); }
+      .arena-mobile-menu:is([data-open], :popover-open) + .arena-mobile-drawer-backdrop { opacity: 0; }
+    }
+  }
+
   .arena-mobile-menu-link {
     display: flex;
     align-items: center;

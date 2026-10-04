@@ -1,5 +1,6 @@
 import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 import { usePublicMenuFocus } from './usePublicMenuFocus';
+import { useMobileMenuPopover } from './useMobileMenuPopover';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
 import { PublicNavigation } from './PublicNavigation';
 import { HeaderProfileButton } from './HeaderProfileButton';
@@ -34,6 +35,7 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
   const menuRef = useRef<HTMLElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   usePublicMenuFocus(menu, menuRef, toggleRef, setMenu);
+  useMobileMenuPopover(menu, menuRef, setMenu);
   usePageScrollLock(menu);
   const profile = <HeaderProfileButton user={access.user} checking={access.checking} />;
   return <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${surfaceClasses(activeTab, editorial, account)}`}>

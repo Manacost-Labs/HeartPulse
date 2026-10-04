@@ -381,6 +381,7 @@
         "tests/next-document-head-browser.test.mjs",
         "tests/next-runtime-config-browser.test.mjs",
         "tests/next-page-transitions-browser.test.mjs",
+        "tests/next-mobile-menu-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",

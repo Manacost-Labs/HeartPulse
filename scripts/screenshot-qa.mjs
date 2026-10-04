@@ -63,8 +63,9 @@ for (const path of PAGES) {
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
     await new Promise(r => setTimeout(r, 600));
     const state = await page.evaluate(() => {
+      // The closed drawer stays in the page (a popover), so open means shown.
       const menu = document.querySelector('.arena-mobile-menu');
-      if (!menu) return { open: false };
+      if (!menu || getComputedStyle(menu).display === 'none') return { open: false };
       const links = [...menu.querySelectorAll('a')];
       const visible = links.filter(a => {
         const r = a.getBoundingClientRect();
@@ -82,7 +83,10 @@ for (const path of PAGES) {
     });
     await page.touchscreen.tap(link.x, link.y);
     await new Promise(r => setTimeout(r, 800));
-    const stillOpen = await page.evaluate(() => !!document.querySelector('.arena-mobile-menu'));
+    const stillOpen = await page.evaluate(() => {
+      const menu = document.querySelector('.arena-mobile-menu');
+      return Boolean(menu) && getComputedStyle(menu).display !== 'none';
+    });
     if (stillOpen) throw new Error('menu did not close after tapping a link');
     console.log(`✓ mobile menu: opens (${state.visible}/${state.total} links visible), closes on tap`);
   } catch (err) {

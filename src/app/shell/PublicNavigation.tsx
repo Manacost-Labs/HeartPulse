@@ -33,17 +33,21 @@ export type PublicNavigationProps = {
   onToggleSidebarNavGroup: (group: Exclude<NavigationGroup, null>) => void;
 };
 
-function MobileTopbar({ mobileMenuOpen, mobileMenuToggleRef, onNavigate, onToggleMobileMenu }: PublicNavigationProps) {
+// The drawer is a native popover, so the toggle opens it before React has
+// hydrated; afterwards the click handler takes over and the shell's state
+// drives the popover (useMobileMenuPopover).
+function MobileTopbar({ mobileMenuOpen, mobileMenuToggleRef, onCloseMobileMenu, onNavigate, onToggleMobileMenu }: PublicNavigationProps) {
   return (
     <header className="arena-mobile-topbar lg:hidden">
-      <a href="/" onClick={event => { event.preventDefault(); onNavigate('home'); }} className="arena-mobile-brand" aria-label="HearthPulse — на главную">
+      <a href="/" onClick={event => { event.preventDefault(); onNavigate('home'); onCloseMobileMenu(); }} className="arena-mobile-brand" aria-label="HearthPulse — на главную">
         <img src="/hearthpulse-logo.webp" alt="" />
         <span>HearthPulse</span>
       </a>
       <button
         ref={mobileMenuToggleRef}
         type="button"
-        onClick={onToggleMobileMenu}
+        popoverTarget="arena-mobile-menu"
+        onClick={event => { event.preventDefault(); onToggleMobileMenu(); }}
         className="arena-mobile-nav-toggle"
         aria-expanded={mobileMenuOpen}
         aria-controls="arena-mobile-menu"
@@ -60,19 +64,21 @@ function MobileMenu({
   onCloseMobileMenu, onNavigate, onNavigateLogin, onToggleMobileNavGroup, profileLabel,
   visibleArenaTabs, visibleMiscTabs, wantsLogin,
 }: PublicNavigationProps) {
+  // Every link closes the drawer as the page leaves: the scroll lock is released
+  // first, so the history entry keeps the reader's position for Back.
   const mobileLinkProps = {
     activeTab,
     variant: 'mobile' as const,
-    onNavigate,
+    onNavigate: (tab: TabId) => { onNavigate(tab); onCloseMobileMenu(); },
   };
   const constructorsActive = BG_BUILDER_TABS.some(tab => tab.id === activeTab);
   const miscActive = visibleMiscTabs.some(tab => tab.id === activeTab);
 
-  if (!mobileMenuOpen) return null;
+  // Always rendered, closed: the server HTML carries the drawer, so its links
+  // work before hydration. `data-open` shows it where popovers are unsupported.
   return (
     <>
-      <button type="button" className="arena-mobile-drawer-backdrop lg:hidden" aria-label="Закрыть меню" onClick={onCloseMobileMenu} />
-      <nav ref={mobileMenuRef} id="arena-mobile-menu" className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
+      <nav ref={mobileMenuRef} id="arena-mobile-menu" popover="auto" data-open={mobileMenuOpen ? '' : undefined} className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
         <NavigationRouteLinks routes={TOP_LEVEL_TABS} {...mobileLinkProps} />
         {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} {...mobileLinkProps} />}
         <NavigationSection title="Традиционный режим" caption="Мета и колоды" variant="mobile" />
@@ -82,15 +88,17 @@ function MobileMenu({
         <NavigationSection title="Поля Сражений" caption="Герои и тактика" variant="mobile" />
         <NavigationRouteLinks routes={BG_PRIMARY_TABS} {...mobileLinkProps} />
         <NavigationGroupControl active={constructorsActive} caption="Создавайте и сравнивайте" group="constructors" isOpen={mobileNavGroup === 'constructors'} onToggle={() => onToggleMobileNavGroup('constructors')} title="Конструкторы" variant="mobile">
-          <NavigationRouteLinks routes={BG_BUILDER_TABS} {...mobileLinkProps} sublink onNavigate={tab => { onNavigate(tab); onCloseMobileMenu(); }} />
+          <NavigationRouteLinks routes={BG_BUILDER_TABS} {...mobileLinkProps} sublink />
         </NavigationGroupControl>
         <NavigationGroupControl active={miscActive} caption="Материалы и события" group="misc" isOpen={mobileNavGroup === 'misc'} onToggle={() => onToggleMobileNavGroup('misc')} title="Разное" variant="mobile">
-          <NavigationRouteLinks routes={visibleMiscTabs} {...mobileLinkProps} sublink onNavigate={tab => { onNavigate(tab); onCloseMobileMenu(); }} />
+          <NavigationRouteLinks routes={visibleMiscTabs} {...mobileLinkProps} sublink />
         </NavigationGroupControl>
-        <a href="/?login" onClick={event => { event.preventDefault(); onNavigateLogin(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
+        <a href="/?login" onClick={event => { event.preventDefault(); onNavigateLogin(); onCloseMobileMenu(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
           {mobileProfile}
         </a>
       </nav>
+      {/* After the drawer: CSS shows it only next to an open drawer. */}
+      <button type="button" className="arena-mobile-drawer-backdrop lg:hidden" aria-label="Закрыть меню" onClick={onCloseMobileMenu} />
     </>
   );
 }

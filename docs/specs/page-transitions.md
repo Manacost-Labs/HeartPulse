@@ -48,6 +48,11 @@ background change without animation while the page content cross-fades.
   `pagereveal`) and clipped at the top of the new content box, so a page left
   from below the fold fades out in place instead of flashing its top or a
   blank area.
+- On phones the navigation drawer closes, and releases its scroll lock, as
+  soon as one of its links is followed, so Back returns to the reading
+  position. A page restored from the back/forward cache never comes back with
+  the drawer open. The drawer is a native popover in the server HTML, so its
+  toggle and links work before the page has hydrated.
 - `prefers-reduced-motion: reduce` disables the transition and keeps
   navigation immediate.
 - Browsers without cross-document view transitions (Firefox, Safari before
@@ -56,12 +61,15 @@ background change without animation while the page content cross-fades.
 ## Verification
 
 Run `npm run build:next`,
-`node --test tests/next-page-transitions-browser.test.mjs`, then the normal
+`node --test tests/next-page-transitions-browser.test.mjs` and
+`node --test tests/next-mobile-menu-browser.test.mjs`, then the normal
 release checks. The transitions test covers the canonical links, the URLs
 eligible for prefetching and prerendering, the sidebar prefetch, a
 prerendered and a plain navigation, the animated pseudo elements with their
 fade-through timing, the shifted snapshot of a scrolled page and reduced
-motion. Review forward and back navigation in a real
+motion. The drawer test covers the drawer without JavaScript, its entrance
+and exit, closing from outside and from the back/forward cache, and Back
+after a drawer link. Review forward and back navigation in a real
 browser at mobile and desktop widths: the shell stays stable, content is not
 clipped, and the console and network remain clean. Browser automation that
 attaches its own DevTools session disables prerendering; observe that path

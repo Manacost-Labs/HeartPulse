@@ -115,7 +115,7 @@ Do not hotlink these assets from wiki.gg in runtime CSS. Keep optimized local co
 
 The app has two navigation contexts that share historical class names:
 
-1. **App shell** in `src/app/shell/PublicPageShell.tsx` and `PublicNavigation.tsx`: desktop fixed sidebar at `1024px+`; mobile sticky topbar and fixed drawer below it.
+1. **App shell** in `src/app/shell/PublicPageShell.tsx` and `PublicNavigation.tsx`: desktop fixed sidebar at `1024px+`; mobile sticky topbar and fixed drawer below it. The drawer is a native popover kept closed in the server HTML, so its toggle and links work before hydration; every drawer link closes it as the page leaves.
 2. **Legacy/tab shell** in deferred components: any `.arena-mobile-*` rule for this shell must stay scoped below `.arena-main`.
 
 Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must remain `position: fixed`; an inline dropdown may use `position: absolute` only inside a positioned parent.
