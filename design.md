@@ -360,6 +360,7 @@ Rules:
 
 ## Changelog
 
+- **2026-10-04** — Performance wave 1: edge-cached immutable static files, canonical trailing-slash links everywhere, resized WebP article covers with srcset, and per-page RUM dimensions.
 - **2026-10-03** — Added motion tokens and one page entrance for every public page; transitions and entrances across the site now share four durations and two easings.
 - **2026-08-01** — Promoted the `25px` compact HSReplay-derived row profile and 90% right-anchored art crop from Fun Decks to every public read-only `DeckListView`, including archetype, meta and card-detail pages; interactive builder rows remain `44px`.
 - **2026-08-01** — Expanded the Fun Decks canvas to six cards per wide row and fixed each card to a five-row non-expandable comparison preview, with 4/3/2/1 responsive fallbacks.
