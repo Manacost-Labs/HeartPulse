@@ -7,7 +7,7 @@
       "cssGzipBytes": 33792
     },
     "/articles/": {
-      "jsGzipBytes": 159744,
+      "jsGzipBytes": 160768,
       "cssGzipBytes": 46080
     },
     "/faq/": {
@@ -16,7 +16,7 @@
     },
     "/standard/matchups/": {
       "jsGzipBytes": 171008,
-      "cssGzipBytes": 45056
+      "cssGzipBytes": 46080
     },
     "/standard/meta/": {
       "jsGzipBytes": 178176,
@@ -87,7 +87,7 @@
       "cssGzipBytes": 56320
     },
     "/developers/api/": {
-      "jsGzipBytes": 160768,
+      "jsGzipBytes": 161792,
       "cssGzipBytes": 31744
     },
     "/privacy/": {
