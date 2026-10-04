@@ -22,6 +22,7 @@ import {
   type BattlegroundHeroTierSection,
 } from '../modules/battlegrounds/public';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { publicResourceUrl } from '../publicResourceUrl';
 import {
   buildTrinketStatsRequest,
@@ -3151,7 +3152,7 @@ function BattlegroundTierList() {
     if (!hasStrategyHighlight || loading) return undefined;
     const timer = window.setTimeout(() => {
       const target = document.querySelector<HTMLElement>('[data-bg-strategy-highlight="true"]');
-      if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (target) target.scrollIntoView({ block: 'center', behavior: preferredScrollBehavior() });
     }, 120);
     return () => window.clearTimeout(timer);
   }, [displayedTiers, hasStrategyHighlight, loading]);

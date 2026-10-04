@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import '../route-parchment.css';
 import './StandardMatchups.css';
+import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { activeMatrixMatchupAt, type ActiveMatrixMatchup, useCloseMatrixMatchup,
   useTooltipViewportPosition } from './standardMatchupsTooltip';
 import type {
@@ -345,7 +346,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
     if (!node) return;
     node.scrollBy({
       left: direction * Math.max(280, Math.floor(node.clientWidth * 0.78)),
-      behavior: 'smooth',
+      behavior: preferredScrollBehavior(),
     });
   }, []);
 
@@ -496,7 +497,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
     setView('overview');
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => document.getElementById(sectionId)?.scrollIntoView({
-        behavior: 'smooth',
+        behavior: preferredScrollBehavior(),
         block: 'start',
       }));
     });
@@ -506,7 +507,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
     setView('matrix');
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => document.getElementById('matchups-matrix')?.scrollIntoView({
-        behavior: 'smooth',
+        behavior: preferredScrollBehavior(),
         block: 'start',
       }));
     });

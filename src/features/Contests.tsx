@@ -73,6 +73,7 @@ import {
 } from './adminWorkspaceState';
 import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
+import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { AdminSectionFrame } from './AdminSectionFrame';
 export { ContestsPage } from '../modules/contests/public';
 
@@ -982,7 +983,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       status: selectedContest.status,
       description: selectedContest.description,
     });
-    window.requestAnimationFrame(() => contestFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    window.requestAnimationFrame(() => contestFormRef.current?.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'start' }));
   };
   const setContestStartNow = () => setForm(v => ({ ...v, startsAt: addHoursForDateInput(0) }));
   const setContestStartInHour = () => setForm(v => ({ ...v, startsAt: addHoursForDateInput(1) }));

@@ -315,6 +315,9 @@ Rules:
   mounts on open uses the shared `surface-enter` keyframes.
 - No endless animation on a page banner or other always-visible decoration:
   an idle page draws no frames.
+- Scripted scrolling asks `preferredScrollBehavior()`
+  (`src/shared/ui/scrollBehavior.ts`) instead of passing `'smooth'`, which
+  would override the reduced-motion rule.
 - Prefer `opacity`, `translate`, `transform` and background-position.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.

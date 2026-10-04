@@ -32,6 +32,7 @@ import {
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import { ArenaTierListSearchIntro } from '../modules/searchLanding/public';
+import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '../modules/arenaClasses/public';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -761,7 +762,7 @@ const ClassTabs: React.FC<{
 
   useEffect(() => {
     const el = scrollRef.current?.querySelector(`[data-id="${activeId}"]`) as HTMLElement | null;
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    el?.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'nearest', inline: 'center' });
   }, [activeId]);
 
   return (

@@ -158,6 +158,7 @@
         "tests/vicious-gold-progressive-loading.test.ts",
         "tests/web-vitals-sentry.test.ts",
         "tests/motion-tokens.test.mjs",
+        "tests/scroll-behavior.test.ts",
         "tests/content-card-hover.test.mjs"
       ]
     },
