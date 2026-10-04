@@ -94,7 +94,7 @@
   isolation: isolate;
   min-width: 0;
   padding: 0.15rem 0.15rem 0.55rem;
-  transition: transform var(--motion-base) var(--motion-ease), filter var(--motion-base) var(--motion-ease);
+  transition: transform var(--motion-base) var(--motion-ease);
 }
 .constructed-cards__gallery-card-link {
   display: grid;
@@ -123,19 +123,22 @@
   pointer-events: none;
 }
 .constructed-cards__gallery-card:hover,
-.constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible) { z-index: 2; filter: brightness(1.055); transform: translateY(-6px) scale(1.012); }
+.constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible) { z-index: 2; transform: translateY(-6px) scale(1.012); }
 .constructed-cards__gallery-card:hover::before,
 .constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible)::before { opacity: 0.86; transform: scale(1.04) translateY(0); }
+/* Hover moves only transform and opacity. A drop-shadow transition repaints on
+   the main thread every frame, so the image shadow stays static and the
+   ::before glow carries the rarity colour; card art is never recoloured. */
 .constructed-cards__gallery-card-link > img {
   width: 100%;
   max-width: 230px;
   aspect-ratio: 0.72;
   object-fit: contain;
   filter: drop-shadow(0 10px 8px rgba(56, 29, 12, 0.24));
-  transition: filter var(--motion-base) var(--motion-ease), transform var(--motion-slow) var(--motion-ease);
+  transition: transform var(--motion-slow) var(--motion-ease);
 }
 .constructed-cards__gallery-card:hover .constructed-cards__gallery-card-link > img,
-.constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible) .constructed-cards__gallery-card-link > img { filter: drop-shadow(0 13px 11px rgba(56, 29, 12, 0.3)) drop-shadow(0 0 9px var(--card-rarity-glow)); transform: scale(1.025); }
+.constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible) .constructed-cards__gallery-card-link > img { transform: scale(1.025); }
 .constructed-cards__gallery-card > .constructed-card-download {
   position: absolute;
   z-index: 3;
