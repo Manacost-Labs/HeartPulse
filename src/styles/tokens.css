@@ -39,8 +39,9 @@
   --site-page-hero-padding-inline: clamp(1rem, 2.5vw, 2rem);
 
   /* Motion: every transition and entrance takes its tempo from here, so the
-     whole site moves alike. Endless loops (spinners, shimmer) keep their own
-     period. tests/motion-tokens.test.mjs rejects literal timings. */
+     whole site moves alike. Endless loops (control spinners) keep their own
+     period; the loading pulse breathes once per --motion-loop.
+     tests/motion-tokens.test.mjs rejects literal timings. */
   --motion-instant: 90ms; /* press feedback, the outgoing page */
   --motion-fast: 140ms; /* hover, focus, colour and small state changes */
   --motion-base: 220ms; /* menus, tooltips, dialogs, disclosures */
@@ -49,6 +50,12 @@
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1); /* arrive and settle */
   --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1); /* leave */
   --motion-rise: 8px; /* how far entering content travels */
+  --motion-loop: 1.1s; /* one beat of the loading pulse */
+
+  /* Loading surface (src/shared/ui/LoadingSurface.tsx and the legacy
+     .skeleton): one placeholder fill for every data section. */
+  --loading-fill: rgba(196, 164, 106, 0.34);
+  --loading-line: rgba(102, 62, 31, 0.16);
 
   /* Legacy draft surfaces still used by the home and data workspaces. */
   --draft-ink: #10233d;

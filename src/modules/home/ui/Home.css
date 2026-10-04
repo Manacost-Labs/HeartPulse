@@ -692,6 +692,10 @@
     transform: none !important;
   }
 }
+.home-section-loading {
+  --loading-surface-min-block: 18rem;
+}
+
 .home-deferred-placeholder {
   min-height: 18rem;
   display: grid;

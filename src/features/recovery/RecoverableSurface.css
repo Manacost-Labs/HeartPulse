@@ -17,6 +17,10 @@
   overflow-wrap: anywhere;
 }
 
+/* The loading variant is LoadingSurface; it keeps the card's height. */
+.recoverable-surface-loading { --loading-surface-min-block: 154px; }
+.recoverable-surface-loading--compact { --loading-surface-min-block: 92px; }
+
 .recoverable-surface--compact {
   min-height: 92px;
   padding: 0.8rem 0.9rem;
@@ -36,10 +40,6 @@
   font-size: 1.15rem;
   font-weight: 900;
   line-height: 1;
-}
-
-.recoverable-surface--loading .recoverable-surface__mark {
-  animation: recoverable-surface-pulse 1.1s ease-in-out infinite alternate;
 }
 
 .recoverable-surface__copy {
@@ -93,18 +93,9 @@
   overflow-wrap: anywhere;
 }
 
-@keyframes recoverable-surface-pulse {
-  from { opacity: 0.55; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
-}
-
 @media (max-width: 520px) {
   .recoverable-surface { grid-template-columns: auto minmax(0, 1fr); }
   .recoverable-surface__action { grid-column: 1 / -1; width: 100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .recoverable-surface--loading .recoverable-surface__mark { animation: none; }
 }
 
 @media (forced-colors: active) {

@@ -281,8 +281,8 @@
 .vsgold__state h1 { margin: 0.8rem 0 0.3rem; font-family: var(--font-display); font-size: 2rem; }
 .vsgold__state p { margin: 0; color: #7c5a3b; }
 .vsgold__state button { display: inline-flex; gap: 0.4rem; align-items: center; margin-top: 1rem; padding: 0.65rem 1rem; border: 1px solid #6f431d; background: #6d3e1c; color: #fff1cc; font-weight: 900; }
-.vsgold__spinner { animation: vsgold-spin 0.8s linear infinite; }
-@keyframes vsgold-spin { to { transform: rotate(360deg); } }
+/* The loader keeps the dashboard's height: five section-sized rows. */
+.vsgold__loading { --loading-row-height: 6.5rem; min-height: 620px; }
 
 @media (max-width: 1120px) {
   .vsgold__hero { grid-template-columns: 1fr; }
@@ -426,4 +426,3 @@
   .vsgold__tier-card > img { width: 34px; height: 34px; }
 }
 
-@media (prefers-reduced-motion: reduce) { .vsgold__spinner { animation: none; } }

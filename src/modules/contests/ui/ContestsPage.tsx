@@ -6,6 +6,7 @@ import type { AuthUser } from '../../identity/public';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { Contest } from '../model/types';
 import { requestContestJoin, requestContests } from '../api/contestRequests';
+import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
 
 type PageMessage = { type: 'ok' | 'err'; text: string };
 
@@ -15,9 +16,6 @@ function formatDate(iso: string | null): string {
   return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
-  return <div className="route-fallback" aria-busy="true" aria-label="Загрузка раздела" style={{ minHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b6c42', fontFamily: 'var(--font-display)' }}>Загрузка...</div>;
-}
 
 function contestStatusLabel(status: string): string {
   if (status === 'approved') return 'Одобрено';
@@ -179,7 +177,7 @@ export function ContestsPage({
       </div>
 
       {loading ? (
-        <RouteFallback minHeight={260} />
+        <LoadingSurface label="Загружаем конкурсы" layout="grid" count={3} />
       ) : contests.length ? (
         <div className="contest-grid">
           {contests.map(contest => (

@@ -179,6 +179,7 @@ The public shell groups secondary destinations instead of filling the rail with 
 - The first screen uses `/wallpaper/home-paladin-hero.webp` as a masked character mural behind the live Arena scoreboard. Keep the face and hammer clearly visible beside the class board with a left-biased desktop composition, preserve the red text field, and never place essential copy directly over the artwork. On narrow screens the mural becomes a short panorama between actions and live rankings.
 - Do not repeat freshness, source count and leader data in a separate footer strip inside the hero; the label and live ranking already communicate that context, so the wood frame should close directly below the main composition.
 - After the quick index, show **Latest articles** first, then the **Battlegrounds directory**, then the **Arena directory**. Each directory links directly to the work users can perform in that mode.
+- The directories and the FAQ are static links and text and render with the page: every heading the quick index links to is in the document before any script runs, and no placeholder reserves a guessed height for them.
 - Do not restore the removed home “Мета в цифрах” aggregate: class leaders, best cards and legendary groups already have dedicated pages and made the home unnecessarily long.
 - Use the canonical wood frame for the hero spotlight and major directory boundaries. Internal rows stay quiet and readable; do not add generic colored side rails or a grid of white dashboard cards.
 - On mobile, directories stack before articles and community content, and the page never gains document-level horizontal scrolling.
@@ -297,6 +298,14 @@ Rules:
   choreography to a page; the home page is the one exception. The card and
   cosmetics pages (`.constructed-cards`, `.cosmetics-page`) skip the rise,
   because their largest paint is a picture inside a section.
+- Data loads behind one loading state, `LoadingSurface` from
+  `src/shared/ui/LoadingSurface.tsx` (legacy markup: `.skeleton`): a polite
+  `role="status"` with its label (`Загружаем …`), placeholder blocks shaped
+  like the content, and the owning surface's class reserving the content's
+  size. Its only motion is `loading-pulse`, an opacity pulse on the blocks
+  timed by `--motion-loop`, static under reduced motion. Do not add page
+  spinners, shimmers that move `background-position`, or plain «Загрузка…»
+  text; spinners stay inside controls (search fields, buttons) and modals.
 - Prefer `opacity`, `translate`, `transform` and background-position.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.

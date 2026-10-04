@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AppErrorKind } from '../../components/appErrorRecovery';
 import { classifyAppError, createIncidentId } from '../../components/appErrorRecovery';
+import { LoadingSurface } from '../../shared/ui/LoadingSurface';
 
 export type AsyncSurfaceVariant = 'loading' | 'empty' | 'error' | 'stale';
 
@@ -14,8 +15,7 @@ type AsyncSurfaceStateProps = {
   className?: string;
 };
 
-const STATE_MARKS: Record<AsyncSurfaceVariant, string> = {
-  loading: '···',
+const STATE_MARKS: Record<Exclude<AsyncSurfaceVariant, 'loading'>, string> = {
   empty: '○',
   error: '!',
   stale: '↻',
@@ -30,6 +30,11 @@ export function AsyncSurfaceState({
   compact = false,
   className = '',
 }: AsyncSurfaceStateProps) {
+  // Loading is the site-wide LoadingSurface; it keeps this card's reserved height.
+  if (variant === 'loading') {
+    const surfaceClass = `recoverable-surface-loading${compact ? ' recoverable-surface-loading--compact' : ''}`;
+    return <LoadingSurface label={title} detail={message} className={className ? `${surfaceClass} ${className}` : surfaceClass} />;
+  }
   const role = variant === 'error' ? 'alert' : 'status';
   return (
     <div
@@ -37,7 +42,6 @@ export function AsyncSurfaceState({
       data-recovery-state={variant}
       role={role}
       aria-live={variant === 'error' ? 'assertive' : 'polite'}
-      aria-busy={variant === 'loading' ? 'true' : undefined}
     >
       <span className="recoverable-surface__mark" aria-hidden="true">{STATE_MARKS[variant]}</span>
       <div className="recoverable-surface__copy">

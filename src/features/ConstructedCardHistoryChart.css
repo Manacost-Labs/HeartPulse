@@ -132,9 +132,8 @@
   width: min(100%, 620px);
   height: 120px;
   margin-bottom: 0.75rem;
-  background: linear-gradient(100deg, rgba(101, 70, 42, 0.08) 20%, rgba(255, 247, 221, 0.62) 45%, rgba(101, 70, 42, 0.08) 70%);
-  background-size: 220% 100%;
-  animation: constructed-card-history-shimmer 1.3s linear infinite;
+  background: var(--loading-fill);
+  animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
 }
 
 .constructed-card-history__content { padding: 0.75rem 0.8rem 0.85rem; }
@@ -207,10 +206,6 @@
   fill: #5b3b78;
   stroke: #fff0c4;
   stroke-width: 3;
-}
-
-@keyframes constructed-card-history-shimmer {
-  to { background-position: -120% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

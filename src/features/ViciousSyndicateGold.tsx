@@ -10,6 +10,7 @@ import '../route-parchment.css';
 import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import './ViciousSyndicateGold.css';
+import { LoadingSurface } from '../shared/ui/LoadingSurface';
 
 type DeckBuild = {
   deckCode: string;
@@ -289,10 +290,9 @@ export default function ViciousSyndicateGold() {
 
   if (loading) {
     return (
-      <section className="vsgold vsgold__state" aria-busy="true">
-        <RefreshCw className="vsgold__spinner" size={38} />
-        <h1>Загружаем Vicious Syndicate Gold</h1>
-        <p>Собираем распределения, Power Tier и коды колод.</p>
+      <section className="vsgold">
+        <LoadingSurface label="Загружаем Vicious Syndicate Gold" detail="Собираем распределения, Power Tier и коды колод."
+          layout="rows" count={5} className="vsgold__loading" />
       </section>
     );
   }

@@ -4261,14 +4261,22 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: true });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    // The directories and the FAQ are in the document, so the page index
+    // works on the first click, before any section script loads.
+    const missingIndexTargets = await page.evaluate(() => ['#home-bg-heading', '#home-arena-directory-heading', '#faq-heading']
+      .filter(target => !document.querySelector(`#root ${target}`)));
+    if (missingIndexTargets.length) throw new Error(`Home index targets are missing from the document: ${missingIndexTargets.join(', ')}`);
+    await page.click('.home-page-index a[href="#faq-heading"]');
+    await page.waitForFunction(() => {
+      const top = document.getElementById('faq-heading')?.getBoundingClientRect().top ?? -1;
+      return top >= 0 && top < window.innerHeight;
+    }, { timeout: 5_000 });
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     // Streaming server rendering can hold a section in a hidden chunk after the
     // application root until React reveals it, so wait for the revealed copy.
     await page.waitForSelector('#root .home-latest-articles', { visible: true });
     await page.waitForSelector('#root .home-bg-directory', { visible: true });
-    await page.$eval('[data-home-deferred-section="Арена"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('#root .home-arena-directory', { visible: true });
-    await page.$eval('[data-home-deferred-section="Частые вопросы"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('#root .home-faq-zone', { visible: true });
     await page.waitForSelector('#faq-heading');
     await page.waitForSelector('.arena-footer__link');
@@ -5105,10 +5113,8 @@ for (const [device, viewport] of [
     await page.$eval('[data-home-deferred-section="Последние статьи"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('[data-home-error]', { visible: true, timeout: 15_000 });
     await page.waitForSelector('.home-bg-directory', { visible: true });
-    await page.$eval('[data-home-deferred-section="Арена"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('.home-arena-directory', { visible: true });
     await page.waitForSelector('.home-community', { visible: true });
-    await page.$eval('[data-home-deferred-section="Частые вопросы"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('.home-faq-zone', { visible: true });
     const recoveryState = await page.$eval('[data-home-error]', element => {
       const button = element.querySelector('button');
