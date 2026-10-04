@@ -12,8 +12,11 @@ background change without animation while the page content cross-fades.
 - Links and scripted navigation target the canonical trailing-slash URL, so a
   click is never answered with a redirect first.
 - In browsers with speculation rules (Chromium), the public navigation
-  sections and their detail pages are prerendered when a visitor hovers or
-  presses a link, and the click opens the prepared document. The admin panel,
+  sections are prerendered when a visitor hovers or presses a link, and the
+  click opens the prepared document. Detail pages that listings show by the
+  dozen (cards, archetypes, cosmetics, heroes, library cards, guides) are
+  prerendered only when pressed, so a sweep across a grid or a phone scrolling
+  it does not spend the visitor's API rate limit. The admin panel,
   profiles, `/connect/`, `/r/` referral links, `/api/` and any URL with a query
   (including `/?login`) load only when opened.
 - A prerendered page runs before the visit. It is counted as a pageview, and

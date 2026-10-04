@@ -94,8 +94,9 @@ behind its `public.ts`, not in `src/features/`.
   `tests/next-canonical-links-browser.test.mjs` reads every link of the main
   pages, in the server HTML and after hydration, for a guest and a
   subscriber, and fails on a page URL without the slash.
-- Public navigation sections and their detail pages are prerendered when a
-  visitor hovers or presses a link (`lib/speculationRules.ts`), so page code
+- Public navigation sections are prerendered when a visitor hovers or presses
+  a link, and entity detail pages only when pressed
+  (`lib/speculationRules.ts`), so page code
   can run for a visit that never happens. Anything that records a visit or
   changes state on load must wait for the `prerenderingchange` event, as
   `lib/analyticsLoader.ts` does; a URL that must not load early stays out of

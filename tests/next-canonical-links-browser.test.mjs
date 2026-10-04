@@ -97,7 +97,7 @@ async function arrival(page, pathname) {
   }
 }
 
-test('pages link to canonical trailing-slash URLs, so a card link prerenders on hover', async () => {
+test('pages link to canonical trailing-slash URLs, so a card link prerenders when pressed', async () => {
   const runtime = await startQaNextRuntime();
   let recorder;
   let browser;
@@ -141,13 +141,17 @@ test('pages link to canonical trailing-slash URLs, so a card link prerenders on 
     assert.match(href, /^\/standard\/cards\/standard\/[^/?#]+\/$/);
     recorder.speculative.length = 0;
     await page.hover(card);
+    await delay(600);
+    assert.deepEqual(recorder.speculative, [], 'hovering a card in the grid prerenders nothing');
+    // A card page prerenders when pressed, and the release opens that page.
+    await page.mouse.down();
     const deadline = Date.now() + 15_000;
     while (!recorder.speculative.includes(href)) {
       assert.ok(Date.now() < deadline, `${href} was not prerendered; speculative requests: ${recorder.speculative}`);
       await delay(50);
     }
     await delay(500);
-    await page.click(card);
+    await page.mouse.up();
     assert.deepEqual(await arrival(page, href), { redirects: 0, prerendered: true });
   } finally {
     await browser?.close();
