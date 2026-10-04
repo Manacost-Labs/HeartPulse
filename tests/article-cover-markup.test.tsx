@@ -56,6 +56,9 @@ for (const image of images) {
   assert.match(image, /width="1176"/);
   assert.match(image, /height="597"/);
 }
+const cards = [...html.matchAll(/<article [^>]*class="([^"]*)"/g)].map(match => match[1].split(' '));
+assert.equal(cards[0].includes('anim-scale-in'), false, 'the card holding the LCP cover does not enter');
+assert.ok(cards.slice(1).every(classes => classes.includes('anim-scale-in')), 'the other cards keep their entrance');
 for (const image of rest) {
   assert.match(image, /loading="lazy"/, 'covers after the first stay lazy');
   assert.doesNotMatch(image, /fetchPriority/i);

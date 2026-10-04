@@ -60,9 +60,29 @@ async function startGateway(nextOrigin, api) {
   return { server, origin: await listenLocal(server) };
 }
 
+// Chrome reports an image as the largest paint only once every animation on
+// it or an ancestor has ended, so this records, frame by frame from the first
+// one, each animation that moves the first cover.
+function recordLeadAnimations(selector) {
+  window.__leadAnimations = [];
+  const seen = new Set();
+  const poll = () => {
+    const lead = document.querySelector(selector);
+    for (const animation of document.getAnimations()) {
+      const target = animation.effect?.target;
+      if (!lead || !target || seen.has(animation) || !target.contains(lead)) continue;
+      seen.add(animation);
+      window.__leadAnimations.push(`${animation.animationName} on ${target.tagName.toLowerCase()}.${String(target.className).split(' ')[0]}`);
+    }
+    if (performance.now() < 3000) requestAnimationFrame(poll);
+  };
+  requestAnimationFrame(poll);
+}
+
 async function openCovers(browser, url, viewport, selector) {
   const page = await browser.newPage();
   await page.setViewport(viewport);
+  await page.evaluateOnNewDocument(recordLeadAnimations, selector);
   await page.goto(url, { waitUntil: 'networkidle0' });
   await page.waitForFunction(sel => {
     const image = document.querySelector(sel);
@@ -77,6 +97,7 @@ async function openCovers(browser, url, viewport, selector) {
     height: image.getAttribute('height'),
     currentSrc: image.currentSrc,
   })));
+  covers.leadAnimations = await page.evaluate(() => window.__leadAnimations);
   await page.close();
   return covers;
 }
@@ -99,6 +120,7 @@ test('article covers request the WebP variant that fits the card, and the first 
     const [lead, ...rest] = phone;
     assert.equal(lead.loading, 'eager', 'the first cover is the phone LCP and must not wait for layout');
     assert.equal(lead.fetchPriority, 'high');
+    assert.deepEqual(phone.leadAnimations, [], 'no entrance animation holds back the first cover');
     for (const cover of phone) {
       assert.match(cover.srcset, /&w=480 480w, .*&w=720 720w, .*&w=960 960w$/);
       assert.ok(cover.sizes, 'sizes tells the browser how wide the card is');

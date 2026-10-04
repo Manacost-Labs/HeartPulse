@@ -294,9 +294,10 @@ Rules:
   page header or another likely largest paint: Chrome records LCP only
   when an animation on that element ends. A navigation between pages uses
   the cross-fade with the same rise. Do not add separate entrance
-  choreography to a page; the home page is the one exception. The card and
-  cosmetics pages (`.constructed-cards`, `.cosmetics-page`) skip the rise,
-  because their largest paint is a picture inside a section.
+  choreography to a page; the home page is the one exception. The card,
+  cosmetics and articles pages (`.constructed-cards`, `.cosmetics-page`,
+  `.articles-page`) skip the rise, because their largest paint is a picture
+  inside a section; the first article card also skips its card entrance.
 - Prefer `opacity`, `translate`, `transform` and background-position.
 - Do not add permanent `will-change` to repeated cards.
 - Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.

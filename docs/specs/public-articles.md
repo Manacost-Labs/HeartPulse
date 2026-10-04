@@ -17,7 +17,9 @@ column below 640 px, two below 1024 px, three beside the sidebar, 446 px at
 most), so a phone at DPR 3 loads the 960 px variant and a desktop at DPR 1 the
 480 px one. The first card's cover is the largest paint on phones: it loads
 eagerly with `fetchpriority="high"` (React also preloads it from the head);
-the other covers stay lazy. Uploaded covers (`/uploads/...`) keep a single
+the other covers stay lazy. Because Chrome records LCP only once an animation
+on the image or an ancestor ends, the page skips the first-load rise and the
+first card skips its card entrance. Uploaded covers (`/uploads/...`) keep a single
 `src`. See [same-origin public content](same-origin-public-content-proxy.md)
 for the variant contract.
 
