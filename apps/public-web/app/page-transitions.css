@@ -7,8 +7,9 @@
 }
 
 /* The outgoing document is usually scrolled. Moving the content box from its
-   old place would fly the new page in across the sticky header, so the two
-   documents cross-fade where the new content already sits. */
+   old place would fly the new page in across the sticky header, so the group
+   stays where the new content sits; only the old snapshot is shifted back to
+   where the reader saw it (`--vt-old-shift`, src/index.css). */
 ::view-transition-group(route-content) {
   animation: none;
 }
@@ -19,13 +20,15 @@
    so its children are the header and the sections. The header, and anything
    holding the page title where the title is not first (the 404 page), stays
    still because Chrome counts the largest paint only once an animation on it
-   ends: animating it would delay LCP by the whole entrance. `data-page-enter`
-   exists only while this plays (lib/pageEntrance.ts); the home page
-   (`.home-workbench`) has its own entrance in Home.css. The card and
+   ends: animating it would delay LCP by the whole entrance. For the same
+   reason a section marked `data-page-still` (the intro text under the header,
+   the largest paint of the arena pages on a phone) stays still too.
+   `data-page-enter` exists only while this plays (lib/pageEntrance.ts); the
+   home page (`.home-workbench`) has its own entrance in Home.css. The card and
    cosmetics pages enter without it: their largest paint is a picture inside
    a section, which a rise would hold back. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :not(:first-child, h1, :has(h1)) {
+  html[data-page-enter] .arena-content > :not(.home-workbench, .constructed-cards, .cosmetics-page) > :not(:first-child, h1, :has(h1), [data-page-still]) {
     animation: page-enter var(--motion-slow) var(--motion-ease) backwards;
   }
 

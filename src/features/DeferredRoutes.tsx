@@ -2110,7 +2110,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Легендарки', href: '/legendaries' },
       ]} />
-      <section aria-label="Описание раздела">
+      <section aria-label="Описание раздела" data-page-still>
         <p className="text-[#6b4c2a] text-sm leading-relaxed mb-5 px-1"
           style={{ borderLeft: '3px solid #c4a46a', paddingLeft: '12px' }}>
           На Арене Hearthstone легендарная карта предлагается в качестве первого выбора.

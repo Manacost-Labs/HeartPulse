@@ -2,7 +2,7 @@ import React from 'react';
 
 export function ArenaTierListSearchIntro() {
   return (
-    <section aria-label="Описание раздела">
+    <section aria-label="Описание раздела" data-page-still>
       <p
         className="mb-5 px-1 text-sm leading-relaxed text-[#6b4c2a]"
         style={{ borderLeft: '3px solid #c4a46a', paddingLeft: '12px' }}

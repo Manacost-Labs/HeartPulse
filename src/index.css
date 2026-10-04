@@ -847,19 +847,25 @@
 
     /* Fade through: the old page is gone before the new one appears, so two
        layouts never overlap, and its snapshot keeps its own size and centre
-       instead of stretching to a wider or narrower page. */
+       instead of stretching to a wider or narrower page. The group sits where
+       the new content box is, so a snapshot of a scrolled page would show its
+       top (or blank, where nothing was captured): `--vt-old-shift` from
+       lib/pageEntrance.ts moves it back to where the reader saw it, and the
+       clip keeps it from painting over the sticky header above the box. */
     ::view-transition-old(route-content) {
       inset-inline-start: 50%;
       inline-size: auto;
       block-size: auto;
-      translate: -50% 0;
+      translate: -50% var(--vt-old-shift, 0px);
+      clip-path: inset(max(0px, calc(-1 * var(--vt-old-shift, 0px))) 0 0 0);
       animation: route-content-leave var(--motion-instant) var(--motion-ease-exit) both;
     }
 
-    /* The same rise as a first load (page-transitions.css), so a page
-       arrives alike however it was opened. */
+    /* The same rise as a first load (page-transitions.css), at a quicker
+       tempo: it starts as the old page is gone and settles 230 ms after the
+       reveal, so the page is ready for the next click sooner. */
     ::view-transition-new(route-content) {
-      animation: page-enter var(--motion-base) var(--motion-ease) var(--motion-instant) both;
+      animation: page-enter var(--motion-fast) var(--motion-ease) var(--motion-instant) both;
     }
   }
 

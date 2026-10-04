@@ -24,8 +24,8 @@ behind its `public.ts`, not in `src/features/`.
 | `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
 | `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
-| `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays |
-| `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press |
+| `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays, and keeps the outgoing page's snapshot where the reader saw it during a transition (`--vt-old-shift`) |
+| `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press, which sidebar links it prefetches (HTML only) on a brief hover, and the entity detail pages it only prefetches, on press |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
@@ -86,13 +86,20 @@ behind its `public.ts`, not in `src/features/`.
   the link out of prerendering. `navigate()` adds the slash for scripted
   navigation; an `href` has to carry it itself, written out or through
   `canonicalPagePath()` from `src/app/routing/canonicalPagePath.ts`.
-- Public navigation sections and their detail pages are prerendered when a
+- Public navigation sections and their pages are prerendered when a
   visitor hovers or presses a link (`lib/speculationRules.ts`), so page code
   can run for a visit that never happens. Anything that records a visit or
   changes state on load must wait for the `prerenderingchange` event, as
   `lib/analyticsLoader.ts` does; a URL that must not load early stays out of
-  the rules. `tests/next-page-transitions-browser.test.mjs` checks the
-  eligible URLs, the prerender and the transition. Browser QA
+  the rules. Links of the desktop sidebar also fetch their HTML on a 10 ms
+  hover (a prefetch: no script runs, the request carries
+  `Sec-Purpose: prefetch`), so a quick click is prerendered from that response.
+  Entity detail pages that listings show by the dozen (cards, cosmetics,
+  heroes, library cards, archetypes, guides) are never prerendered: each
+  prerender makes the page's `/api` calls, and sweeping a grid would spend the
+  visitor's API rate limit. They only fetch their HTML when pressed.
+  `tests/next-page-transitions-browser.test.mjs` checks the
+  eligible URLs, the prefetch, the prerender and the transition. Browser QA
   (`scripts/e2e-qa.mjs`) starts Chromium with prerendering off, because a
   prerendered document loads outside its per-page `/api` mocks.
 - Gate paid pages with `PaywallGate` from `src/components/PaywallGate.tsx`.

@@ -15,7 +15,7 @@ export function ArenaClassesPage({ onNavigate, children }: ArenaClassesPageProps
       { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
       { name: 'Классы', href: '/classes' },
     ]} />
-    <section aria-label="Описание раздела">
+    <section aria-label="Описание раздела" data-page-still>
       <p className="text-[#6b4c2a] text-sm leading-relaxed mb-5 px-1"
         style={{ borderLeft: '3px solid #c4a46a', paddingLeft: '12px' }}>
         Винрейт классов на Арене Hearthstone показывает процент побед каждого из 11 классов.
