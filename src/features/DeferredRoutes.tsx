@@ -59,18 +59,18 @@ type TierlistViewMode = 'gallery' | 'table';
 
 /** Maps tier-list section IDs → icon path */
 const CLASS_ICON: Record<string, string> = {
-  '__all__':      '/class_icon/all1.png',
-  'death-knight': '/class_icon/deathknight.png',
-  'demon-hunter': '/class_icon/demonhunter.png',
-  druid:          '/class_icon/druid.png',
-  hunter:         '/class_icon/hunter.png',
-  mage:           '/class_icon/mage.png',
-  paladin:        '/class_icon/paladin.png',
-  priest:         '/class_icon/priest.png',
-  rogue:          '/class_icon/rogue.png',
-  shaman:         '/class_icon/shaman.png',
-  warlock:        '/class_icon/warlock.png',
-  warrior:        '/class_icon/warrior.png',
+  '__all__':      '/class_icon/ui/all-96.webp',
+  'death-knight': '/class_icon/ui/deathknight-96.webp',
+  'demon-hunter': '/class_icon/ui/demonhunter-96.webp',
+  druid:          '/class_icon/ui/druid-96.webp',
+  hunter:         '/class_icon/ui/hunter-96.webp',
+  mage:           '/class_icon/ui/mage-96.webp',
+  paladin:        '/class_icon/ui/paladin-96.webp',
+  priest:         '/class_icon/ui/priest-96.webp',
+  rogue:          '/class_icon/ui/rogue-96.webp',
+  shaman:         '/class_icon/ui/shaman-96.webp',
+  warlock:        '/class_icon/ui/warlock-96.webp',
+  warrior:        '/class_icon/ui/warrior-96.webp',
   any:            '/class_icon/neutral.webp',
 };
 
@@ -208,7 +208,7 @@ const RARITY_ICON: Record<string, string> = {
   epic:      '/assets/epic.png',
   legendary: '/assets/legendary.png',
 };
-const MANA_ICON    = '/assets/mana.png';
+const MANA_ICON    = '/assets/mana-64.webp';
 const ARENA_ICON   = '/assets/arena_icon.webp';
 
 const TIER_COLORS: Record<string, string> = {
@@ -244,9 +244,9 @@ const LEGENDARY_SOURCE_LABEL: Record<LegendarySource, string> = {
   firestone: 'Firestone',
 };
 const SOURCE_LOGO: Record<TierlistSource, string> = {
-  hsreplay: '/source-logos/hsreplay.png?v=source_logos_v2',
-  heartharena: '/source-logos/heartharena.webp?v=keeper_v2',
-  firestone: '/source-logos/firestone.png?v=source_logos_v2',
+  hsreplay: '/source-logos/hsreplay-64.webp',
+  heartharena: '/source-logos/heartharena-64.webp',
+  firestone: '/source-logos/firestone-64.webp',
 };
 
 const SourceToggleButton: React.FC<{
@@ -285,11 +285,14 @@ const SourceToggleButton: React.FC<{
           border: '1px solid rgba(255,255,255,0.16)',
         }}
       >
+        {/* Lazy: the source switch is hidden on phones, where it must not download. */}
         <img
           src={SOURCE_LOGO[source]}
           alt=""
           aria-hidden="true"
           className="max-w-full max-h-full object-contain"
+          loading="lazy"
+          decoding="async"
           draggable={false}
           style={{
             filter: active
@@ -800,7 +803,7 @@ const ClassTabs: React.FC<{
                   border: '2px solid rgba(0,0,0,0.25)',
                 }}
               >
-                <img src="/class_icon/all1.png" alt="Все карты" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" draggable={false} />
+                <img src="/class_icon/ui/all-96.webp" alt="Все карты" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" draggable={false} />
               </div>
               {isActive && (
                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#fcd34d]" />
@@ -2275,7 +2278,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
                   {cls.id === 'all' ? (
                     <Star size={16} className="text-[#fcd34d]" />
                   ) : iconSrc ? (
-                    <img src={iconSrc} alt={cls.name} className="w-6 h-6 sm:w-7 sm:h-7 object-contain" draggable={false} />
+                    // Lazy: the class tabs are hidden on phones, where they must not download.
+                    <img src={iconSrc} alt={cls.name} className="w-6 h-6 sm:w-7 sm:h-7 object-contain" loading="lazy" decoding="async" draggable={false} />
                   ) : (
                     <span className="text-white/80 text-sm font-hs">⚔</span>
                   )}

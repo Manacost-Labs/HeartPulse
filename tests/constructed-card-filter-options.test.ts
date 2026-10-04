@@ -15,7 +15,7 @@ assert.deepEqual(classOptions.map(option => option.label), [
   'Рыцарь смерти',
   'Маг',
 ]);
-assert.equal(classOptions[0].icon, '/class_icon/all1.png');
+assert.equal(classOptions[0].icon, '/class_icon/ui/all-96.webp');
 assert.equal(classOptions[1].icon, '/class_icon/ui/deathknight-64.webp');
 assert.equal(classOptions[2].icon, '/class_icon/ui/mage-64.webp');
 assert.doesNotMatch(classOptions.map(option => option.label).join(' '), /\(\d+\)/,

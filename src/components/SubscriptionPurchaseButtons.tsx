@@ -1,7 +1,7 @@
 const SUBSCRIPTION_OPTIONS = [
   {
     href: 'https://boosty.to/kolodahearthstone',
-    icon: '/ad/boosty.png',
+    icon: '/ad/boosty-96.webp',
     title: 'Оформить на Boosty',
     text: 'Уровень Любитель Арены и выше',
     background: 'linear-gradient(135deg, rgba(255,247,237,0.96), rgba(239,246,255,0.94))',
@@ -10,7 +10,7 @@ const SUBSCRIPTION_OPTIONS = [
   },
   {
     href: 'https://web.tribute.tg/s/xz9',
-    icon: '/ad/telegram.png',
+    icon: '/ad/telegram-96.webp',
     title: 'Оформить в Telegram',
     text: 'Подписка через Tribute',
     background: 'linear-gradient(135deg, rgba(239,246,255,0.98), rgba(224,242,254,0.94))',

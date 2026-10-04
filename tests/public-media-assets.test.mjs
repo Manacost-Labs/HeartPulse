@@ -48,3 +48,22 @@ test('the home mural offers responsive AVIF files', () => {
   }
 });
 
+test('UI icons point at files near their rendered size', () => {
+  const sources = [
+    'src/features/DeferredRoutes.tsx',
+    'src/features/ConstructedArchetypes.tsx',
+    'src/features/StandardCards.tsx',
+    'src/features/StandardMeta.tsx',
+    'src/features/constructedCardFilterOptions.ts',
+    'src/components/SubscriptionPurchaseButtons.tsx',
+    'src/modules/identity/ui/AccountBrandIcon.tsx',
+    'src/modules/arenaClasses/ui/ArenaClassesBoard.tsx',
+  ];
+  const icon = /['"](\/(?:class_icon|ad|source-logos|assets)\/[^'"`$]+\.(?:png|webp|avif)|\/card-format-[a-z]+\.webp)['"]/g;
+  const urls = new Set(sources.flatMap(file => [...read(file).matchAll(icon)].map(match => match[1])));
+  assert.ok(urls.size >= 20, `found only ${urls.size} icon URLs`);
+  for (const url of urls) {
+    // Icons render at 20-56 CSS px. The originals these replaced were 17-255 KiB.
+    assert.ok(publicSize(url) <= 12 * 1024, `${url} is ${publicSize(url)} B`);
+  }
+});
