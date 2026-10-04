@@ -90,6 +90,39 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       await new Promise(resolve => setTimeout(resolve, 500));
       assert.equal(listRequests.length, 1, 'choosing the warmed option reuses the in-flight request');
     }));
+
+    await t.test('the gallery hovers without card requests and the table brings its renderer', () => withPage(runtime, { width: 1440, height: 900 }, async page => {
+      const detailRequests = [];
+      page.on('request', request => {
+        if (/^\/api\/constructed-cards\/./.test(new URL(request.url()).pathname)) detailRequests.push(request.url());
+      });
+      await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
+      assert.equal(await page.evaluate(() => typeof window.HSReplayDeckView), 'undefined',
+        'the gallery view must not download the HSReplay deck renderer');
+      assert.equal(await page.evaluate(() => [...document.styleSheets].some(sheet => {
+        try { return [...sheet.cssRules].some(rule => rule.cssText.startsWith('.hsrdv')); } catch { return false; }
+      })), false, 'nor its stylesheet');
+
+      for (const link of (await page.$$('.constructed-cards__gallery-card-link')).slice(0, 4)) {
+        await link.hover();
+        await page.waitForSelector('.constructed-cards__tooltip');
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      await page.mouse.move(5, 5);
+      await page.waitForSelector('.constructed-cards__tooltip', { hidden: true });
+      assert.deepEqual(detailRequests, [], 'a card page is a new document: hovering must not fetch card details');
+
+      await page.click('.constructed-cards__view button:nth-child(2)');
+      assert.equal(await page.$eval('.constructed-cards__view button:nth-child(2)', button => button.getAttribute('aria-pressed')), 'true');
+      await page.waitForSelector('.constructed-cards__table .constructed-cards__data-deck-card .hsrdv');
+      assert.equal(new URL(page.url()).searchParams.get('view'), 'table');
+      assert.equal(await page.$eval('.constructed-cards__data-deck-card .hsrdv', element => getComputedStyle(element).getPropertyValue('--hsrdv-tile-height').trim()), '40px',
+        'the catalog overrides keep winning over the lazily loaded renderer stylesheet');
+
+      await page.click('.constructed-cards__view button:nth-child(1)');
+      await page.waitForSelector('.constructed-cards__gallery');
+      assert.equal(await page.$('.constructed-cards__table'), null);
+    }));
   } finally {
     await runtime.close();
   }

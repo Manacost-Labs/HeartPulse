@@ -70,3 +70,17 @@ on for 150 ms (`onOptionIntent` of `ConstructedCardFilterSelect`,
 `useCatalogIntentWarm` of the card module); choosing it reuses the in-flight
 request. Save-Data and 2G connections warm nothing, and a format change is
 never warmed: it loads a new document whose catalog the server renders.
+
+## Catalog interactions
+
+- Card links warm only the full render (`preloadImage`), 120 ms after the
+  pointer enters or at once on focus and pointer down. A card page is a new
+  document and its API response is `no-store`, so the catalog no longer
+  requests card details that the card page could never reuse.
+- Gallery cards are memoized: hovering one moves the tooltip, not the 60
+  cards. Their hover transitions animate only `transform` and `opacity`.
+- The Table/Gallery switch marks the pressed button at once and renders the
+  other view from `useDeferredValue`, so the click paints before the table's
+  1,800 nodes mount. The HSReplay deck renderer and its stylesheet load with
+  the first table view (`hsReplayDeckViewRuntime.ts`); until then a row shows
+  the card name.

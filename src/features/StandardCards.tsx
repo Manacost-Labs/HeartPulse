@@ -1,6 +1,6 @@
 import { constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import { useCatalogLocation, useCatalogData, useCatalogIntentWarm, catalogLocationUrl, type CardCatalogPayload } from '../modules/constructedCards/public';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ChevronLeft,
@@ -16,7 +16,6 @@ import {
 import './StandardCards.styles';
 import { publicResourceUrl } from '../publicResourceUrl';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
-import { prefetchConstructedCardDetail } from './constructedCardDetailPrefetch';
 import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import ConstructedCardGalleryImage, { useCardGalleryImageLoading } from './ConstructedCardGalleryImage';
@@ -151,77 +150,84 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
   );
 }
 
-function CardGallery({ cards, search, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
+type GalleryCardProps = {
+  card: CardRecord;
+  index: number;
+  search: string;
+  format: CardFormat;
+  period: ConstructedCardPeriod;
+  rank: ConstructedCardRank;
+  sort: string;
+  statsAccess: boolean;
+  immediate: boolean;
+  navigatePath: (path: string) => void;
+  onShow: (card: CardRecord, element: HTMLElement, warmNow: boolean) => void;
+  onHide: () => void;
+};
+
+// Memoized so that hovering one card (which moves the tooltip state of the
+// gallery) re-renders the tooltip, not all 60 cards.
+const GalleryCard = memo(function GalleryCard({ card, index, search, format, period, rank, sort, statsAccess, immediate, navigatePath, onShow, onHide }: GalleryCardProps) {
+  const metric = sortMetric(card, sort);
+  const name = cardName(card);
+  const fullImage = constructedCardImage(card);
+  return (
+    <article className="constructed-cards__gallery-card" data-rarity={String(card.rarity || 'COMMON').toLowerCase()}>
+      <a
+        href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format }, search)}
+        className="constructed-cards__gallery-card-link"
+        onMouseEnter={event => onShow(card, event.currentTarget, false)}
+        onMouseLeave={onHide}
+        onPointerDown={() => preloadImage(fullImage)}
+        onFocus={event => onShow(card, event.currentTarget, true)}
+        onBlur={onHide}
+        onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
+      >
+        <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={immediate} highPriority={index < CARD_GALLERY_HIGH_PRIORITY_COUNT} />
+        <span className="constructed-cards__gallery-name">{name}</span>
+        <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
+      </a>
+      {fullImage && <ConstructedCardDownloadButton cardId={card.card_id} cardName={name} href={fullImage} />}
+    </article>
+  );
+});
+
+// Card pages load as new documents and their API response is no-store, so
+// only the full render (cached across documents) is worth warming.
+function useCardTooltip() {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
-  const prefetchTimer = useRef<number | null>(null);
+  const warmTimer = useRef<number | null>(null);
+  const onHide = useCallback(() => {
+    setHovered(null);
+    if (warmTimer.current !== null) window.clearTimeout(warmTimer.current);
+    warmTimer.current = null;
+  }, []);
+  const onShow = useCallback((card: CardRecord, element: HTMLElement, warmNow: boolean) => {
+    setHovered({ card, rect: element.getBoundingClientRect() });
+    if (warmTimer.current !== null) window.clearTimeout(warmTimer.current);
+    const fullImage = constructedCardImage(card);
+    if (warmNow) preloadImage(fullImage);
+    else warmTimer.current = window.setTimeout(() => preloadImage(fullImage), 120);
+  }, []);
+  useEffect(() => () => { if (warmTimer.current !== null) window.clearTimeout(warmTimer.current); }, []);
+  return { hovered, onShow, onHide };
+}
+
+function CardGallery({ cards, search, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
+  const { hovered, onShow, onHide } = useCardTooltip();
   const { galleryRef, immediateImageCount } = useCardGalleryImageLoading(cards);
-  const showTooltip = (card: CardRecord, element: HTMLElement) => setHovered({ card, rect: element.getBoundingClientRect() });
-  const warmCard = (card: CardRecord, fullImage: string | null) => {
-    preloadImage(fullImage);
-    prefetchConstructedCardDetail({
-      cardId: card.card_id,
-      format,
-      statsFormat: format,
-      period,
-      rank,
-      statsAccess,
-    });
-  };
-  const scheduleWarmCard = (card: CardRecord, fullImage: string | null) => {
-    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
-    prefetchTimer.current = window.setTimeout(() => warmCard(card, fullImage), 120);
-  };
-  const cancelWarmCard = () => {
-    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
-    prefetchTimer.current = null;
-  };
-  useEffect(() => cancelWarmCard, []);
   return (
     <>
       <div className="constructed-cards__gallery" ref={galleryRef}>
-        {cards.map((card, index) => {
-          const metric = sortMetric(card, sort);
-          const name = cardName(card);
-          const fullImage = constructedCardImage(card);
-          return (
-            <article
-              key={card.card_id}
-              className="constructed-cards__gallery-card"
-              data-rarity={String(card.rarity || 'COMMON').toLowerCase()}
-            >
-              <a
-                href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format }, search)}
-                className="constructed-cards__gallery-card-link"
-                onMouseEnter={event => {
-                  showTooltip(card, event.currentTarget);
-                  scheduleWarmCard(card, fullImage);
-                }}
-                onMouseLeave={() => {
-                  setHovered(null);
-                  cancelWarmCard();
-                }}
-                onPointerDown={() => warmCard(card, fullImage)}
-                onFocus={event => {
-                  showTooltip(card, event.currentTarget);
-                  warmCard(card, fullImage);
-                }}
-                onBlur={() => setHovered(null)}
-                onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
-              >
-                <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={index < immediateImageCount} highPriority={index < CARD_GALLERY_HIGH_PRIORITY_COUNT} />
-                <span className="constructed-cards__gallery-name">{name}</span>
-                <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
-              </a>
-              {fullImage && <ConstructedCardDownloadButton cardId={card.card_id} cardName={name} href={fullImage} />}
-            </article>
-          );
-        })}
+        {cards.map((card, index) => (
+          <GalleryCard key={card.card_id} card={card} index={index} search={search} format={format} period={period} rank={rank} sort={sort}
+            statsAccess={statsAccess} immediate={index < immediateImageCount} navigatePath={navigatePath} onShow={onShow} onHide={onHide} />
+        ))}
       </div>
       {hovered && <HoverTooltip card={hovered.card} rect={hovered.rect} rankLabel={constructedCardRankLabel(rank)} statsAccess={statsAccess} gate={gate} />}
     </>
   );
 }
-
 function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dbfIds = card.dbf === null || card.dbf === undefined ? '' : String(card.dbf);
@@ -275,17 +281,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
     imageUrl: constructedCardImage(card),
     rect: element.getBoundingClientRect(),
   });
-  const warmCard = (card: CardRecord) => {
-    preloadImage(constructedCardImage(card));
-    prefetchConstructedCardDetail({
-      cardId: card.card_id,
-      format,
-      statsFormat: format,
-      period,
-      rank,
-      statsAccess,
-    });
-  };
+  const warmCard = (card: CardRecord) => preloadImage(constructedCardImage(card));
   const scheduleWarmCard = (card: CardRecord) => {
     if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
     prefetchTimer.current = window.setTimeout(() => warmCard(card), 120);
@@ -370,6 +366,10 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
   const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
   const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
   const dataNotice = data ? constructedCardDataNotice(data) : null;
+  // The pressed button paints at once; the other view (about 1,800 table
+  // nodes) renders after it in an interruptible transition.
+  const contentView = useDeferredValue(view);
+  const contentSearch = catalogLocationUrl('', { ...state, view: contentView });
   const normalizedInputQuery = filters.query.trim();
   const searchPending = Boolean(normalizedInputQuery) && (
     normalizedInputQuery !== requestQuery || loading
@@ -485,7 +485,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
 
       {loading && !data ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={retry}><RefreshCw size={16} /> Повторить</button>}</section>
-          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery search={catalogLocationUrl('', state)} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={catalogLocationUrl('', state)} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
+          : data && data.cards.length > 0 ? <>{contentView === 'gallery' ? <CardGallery search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );

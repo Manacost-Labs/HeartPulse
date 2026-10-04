@@ -9,12 +9,15 @@ const listPrefetchSource = readFileSync(new URL('../src/features/constructedCard
 const lightboxSource = readFileSync(new URL('../src/features/ConstructedCardLightbox.tsx', import.meta.url), 'utf8');
 const deferredSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
 
-assert.match(cardsSource, /prefetchConstructedCardDetail\(/,
-  'card catalog links must warm their detail response before navigation');
+// A card page is a new document and its API response is no-store, so a detail
+// response warmed by the catalog was always thrown away. Links warm only the
+// full render, which the HTTP cache keeps across documents.
+assert.doesNotMatch(cardsSource, /prefetchConstructedCardDetail|loadConstructedCardDetail/,
+  'the catalog must not request card details that the card page cannot reuse');
 assert.match(cardDetailSource, /loadConstructedCardDetail\(/,
-  'card detail navigation must consume the same in-flight prefetched response');
-assert.match(cardsSource, /onPointerDown=\{\(\) => warmCard/,
-  'touch and fast clicks must start warming before navigation');
+  'the card page loads its detail through the bounded entitlement-aware cache');
+assert.match(cardsSource, /onPointerDown=\{\(\) => preloadImage\(fullImage\)\}/,
+  'touch and fast clicks must start warming the full render before navigation');
 assert.match(detailPrefetchSource, /DETAIL_PREFETCH_LIMIT\s*=\s*24/,
   'the client detail cache must remain bounded');
 assert.match(detailPrefetchSource, /statsAccess \? 'paid' : 'public'/,
