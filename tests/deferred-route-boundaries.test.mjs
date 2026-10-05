@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const pageShellSource = readFileSync(new URL('../src/app/shell/PublicPageShell.tsx', import.meta.url), 'utf8');
+const navigationControllerSource = readFileSync(new URL('../src/app/shell/PublicNavigationController.tsx', import.meta.url), 'utf8');
 const profileButtonSource = readFileSync(new URL('../src/app/shell/HeaderProfileButton.tsx', import.meta.url), 'utf8');
 const authAvatarSource = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.tsx', import.meta.url), 'utf8');
 const authAvatarStyles = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.css', import.meta.url), 'utf8');
@@ -14,12 +15,12 @@ const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', imp
 const contestsSource = readFileSync(new URL('../src/features/Contests.tsx', import.meta.url), 'utf8');
 
 assert.match(
-  pageShellSource,
+  navigationControllerSource,
   /import\s*\{[^}]*\bHeaderProfileButton\b[^}]*\}\s*from '\.\/HeaderProfileButton'/,
   'the primary authenticated navigation must render its small avatar without an extra request or fallback flash',
 );
 assert.doesNotMatch(
-  `${pageShellSource}\n${profileButtonSource}`,
+  `${pageShellSource}\n${navigationControllerSource}\n${profileButtonSource}`,
   /LazyAuthAvatar|import\(['"][^'"]*AuthAvatar['"]\)/,
   'the primary authenticated navigation must not introduce a granular avatar chunk',
 );

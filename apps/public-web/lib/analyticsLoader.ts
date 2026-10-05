@@ -3,8 +3,8 @@ import { CANONICAL_HOST } from '@/src/config/domain';
 const host = JSON.stringify(CANONICAL_HOST);
 
 /**
- * Inline script that adds Plausible. It counts one pageview per document, and
- * pages navigate with full loads. Only the canonical host loads it: tests,
+ * Inline script that adds Plausible. The tracker handles the initial pageview
+ * and History API navigation; the persistent layout loads it only once. Only the canonical host loads it: tests,
  * local runs and staging stay out of the statistics, and an analytics outage
  * cannot delay them. A prerendered document waits until the visitor opens it,
  * so a page that was only hovered is never counted.

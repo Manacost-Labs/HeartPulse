@@ -3,6 +3,8 @@ import { ChevronDown, Gift, Grid3X3 } from 'lucide-react';
 import { canonicalPagePath } from '../routing/canonicalPagePath';
 import type { TABS, TabId } from '../routing/navigationRoutes';
 
+import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
+
 export type NavigationRoute = (typeof TABS)[number];
 export type NavigationGroup = 'constructors' | 'misc' | null;
 
@@ -31,6 +33,7 @@ export function NavigationRouteLinks({
         key={tab.id}
         href={canonicalPagePath(tab.path)}
         onClick={event => {
+          if (!isPlainNavigationClick(event)) return;
           event.preventDefault();
           onNavigate(tab.id);
         }}

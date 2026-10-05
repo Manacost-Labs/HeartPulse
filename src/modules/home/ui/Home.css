@@ -472,26 +472,6 @@
   outline-offset: 3px;
 }
 
-/* The home page's own entrance: its copy line by line, then the class
-   orbits. The stage and its heading stay still, since Chrome counts the
-   largest paint only once an animation on it ends. Like every page it plays
-   only on a first load (see page-transitions.css); a navigation brings the
-   page in with the cross-fade. */
-@media (prefers-reduced-motion: no-preference) {
-  html[data-page-enter] .home-stage__copy > :not(h1),
-  html[data-page-enter] .home-orbit-class {
-    animation: page-enter var(--motion-slow) var(--motion-ease) backwards;
-  }
-
-  html[data-page-enter] .home-stage__copy > :nth-child(3) { animation-delay: var(--motion-stagger); }
-  html[data-page-enter] .home-stage__copy > :nth-child(4) { animation-delay: calc(var(--motion-stagger) * 2); }
-  html[data-page-enter] .home-orbit-class--1 { animation-delay: var(--motion-stagger); }
-  html[data-page-enter] .home-orbit-class--2 { animation-delay: calc(var(--motion-stagger) * 2); }
-  html[data-page-enter] .home-orbit-class--3 { animation-delay: calc(var(--motion-stagger) * 3); }
-}
-
-/* ─── Interaction ────────────────────────────────────────────────────────── */
-
 @media (hover: hover) and (pointer: fine) {
   .home-action:hover { transform: translateY(-2px); }
   .home-action--primary:hover { border-color: #ffda8a; background: #f7c765; }

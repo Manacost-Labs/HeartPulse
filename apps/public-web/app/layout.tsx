@@ -1,12 +1,10 @@
 import '@/src/index.css';
 import '@/src/parchment-theme.css';
-import './page-transitions.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { ANALYTICS_LOADER } from '@/apps/public-web/lib/analyticsLoader';
 import { AUTH_PREFETCH } from '@/apps/public-web/lib/authPrefetch';
-import { PAGE_ENTRANCE } from '@/apps/public-web/lib/pageEntrance';
-import { SPECULATION_RULES } from '@/apps/public-web/lib/speculationRules';
+import { PublicNavigationLayout } from '@/apps/public-web/ui/PublicNavigationLayout';
 import { FieldFocusMode } from '@/apps/public-web/ui/FieldFocusMode';
 import { WebVitalsReporter } from '@/apps/public-web/ui/WebVitalsReporter';
 import { loadRuntimeClientConfig } from '@/apps/public-web/lib/runtimeClientConfig';
@@ -37,21 +35,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const runtimeConfig = JSON.stringify(await loadRuntimeClientConfig()).replace(/</g, '\\u003c');
   // PageTour and ModalSurface make `#root` inert and aria-hidden while their
   // portaled dialogs are open; without it the page behind them stays reachable.
-  // A page is revealed only once its content box has opened: a cross-document
-  // transition then always has the new content to fade in, not just the header.
-  // The entrance script marks `<html>` before React hydrates it, hence the
-  // suppressed attribute warning on that element only.
-  return <html lang="ru" suppressHydrationWarning><head>
+  // Wait only for the content box, rather than the entire streamed document.
+  return <html lang="ru"><head>
     <link rel="expect" href="#route-content-start" blocking="render" />
-    <script dangerouslySetInnerHTML={{ __html: PAGE_ENTRANCE }} />
     <script dangerouslySetInnerHTML={{ __html: AUTH_PREFETCH }} />
   </head><body>
     {/* Inline and first: the switches must exist before any chunk hydrates. */}
     <script dangerouslySetInnerHTML={{ __html: `window.__ARENA_RUNTIME_CONFIG__=${runtimeConfig}` }} />
-    <div id="root">{children}</div>
+    <div id="root"><PublicNavigationLayout>{children}</PublicNavigationLayout></div>
     <FieldFocusMode />
     <WebVitalsReporter />
     <script dangerouslySetInnerHTML={{ __html: ANALYTICS_LOADER }} />
-    <script type="speculationrules" dangerouslySetInnerHTML={{ __html: JSON.stringify(SPECULATION_RULES) }} />
   </body></html>;
 }

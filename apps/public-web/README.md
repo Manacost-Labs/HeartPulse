@@ -21,14 +21,13 @@ behind its `public.ts`, not in `src/features/`.
 | `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell with the site-wide head tags, analytics script and field focus mode; real 404 and the generic error page for every route |
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
-| `ui/usePublicAccess.ts` | Browser session, subscription and admin state for the viewer; re-checks it on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
+| `ui/usePublicAccess.ts` | Shared browser session, subscription and admin state in the persistent layout; quietly re-checks on route changes and on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
 | `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
 | `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
-| `ui/navigation.ts` | `navigate()` and `navigateTab()` (full-document navigation to the canonical trailing-slash URL) |
-| `app/page-transitions.css` | Opt-in to cross-document view transitions (the animation itself is the `route-content` block of `src/index.css`) and the entrance of a load that no transition animates |
-| `lib/pageEntrance.ts` | Inline head script that marks `<html>` with `data-page-enter` while that entrance plays, and keeps the outgoing page's snapshot where the reader saw it during a transition (`--vt-old-shift`) |
+| `ui/PublicNavigationLayout.tsx` | Persistent menu and viewer access; composes the route-owned content without moving data loaders into the layout |
+| `ui/PublicNavigationBridge.tsx` | App Router adapter for legacy callbacks and public anchors; prefetches on pointer/focus intent; preserves native modified/external/download/identity/API/admin links |
+| `ui/navigation.ts` | `navigate()` and `navigateTab()` use the mounted App Router adapter; native document navigation remains the fallback |
 | `lib/authPrefetch.ts` | Inline head script that starts the session check (`/api/auth/me`) while the document parses |
-| `lib/speculationRules.ts` | Which links Chromium prerenders on hover or press, and which sidebar links it prefetches (HTML only) on a brief hover |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
@@ -101,19 +100,18 @@ behind its `public.ts`, not in `src/features/`.
   `tests/next-canonical-links-browser.test.mjs` reads every link of the main
   pages, in the server HTML and after hydration, for a guest and a
   subscriber, and fails on a page URL without the slash.
-- Public navigation sections are prerendered when a visitor hovers or presses
-  a link; entity detail pages only fetch their HTML when pressed
-  (`lib/speculationRules.ts`). A prerendered page's code
-  can run for a visit that never happens. Anything that records a visit or
-  changes state on load must wait for the `prerenderingchange` event, as
-  `lib/analyticsLoader.ts` does; a URL that must not load early stays out of
-  the rules. Links of the desktop sidebar also fetch their HTML on a 10 ms
-  hover (a prefetch: no script runs, the request carries
-  `Sec-Purpose: prefetch`), so a quick click is prerendered from that response.
-  `tests/next-page-transitions-browser.test.mjs` checks the
-  eligible URLs, the prefetch, the prerender and the transition. Browser QA
-  (`scripts/e2e-qa.mjs`) starts Chromium with prerendering off, because a
-  prerendered document loads outside its per-page `/api` mocks.
+- Public links use App Router after hydration, preserving the actual menu DOM,
+  its scroll and expanded desktop groups. Hover/focus prefetches the route's RSC
+  response; it does not execute a hidden document. Mobile navigation releases
+  the drawer scroll lock before saving the history entry. Plain anchors still
+  work before JavaScript, and Ctrl/Cmd-click, external/download links, hashes,
+  authentication and API endpoints keep browser navigation. Page content stays
+  visible until the next route is ready; no fade-through or entrance offset runs.
+  `tests/next-page-transitions-browser.test.mjs` covers this contract.
+  See [navigation spec](../../docs/specs/public-client-navigation.md).
+- Plausible is loaded once by the document layout and its existing tracker
+  observes History API navigation. No extra pageview calls are added:
+  [official SPA contract](https://plausible.io/docs/spa-support).
 - The largest paint of most pages is a CSS background, which the browser
   finds only after every stylesheet. `PublicPageShell` therefore preloads the
   parchment page material (`--arena-parchment-texture`) at high priority; React
@@ -300,9 +298,7 @@ browser test runs the production React: its development warnings (a missing
 ## Known debt
 
 - Client-rendered wrappers around large legacy views (`src/features/*.tsx`);
-  full-document navigation between pages. Prerendering and cross-document
-  view transitions hide its cost in Chromium (the transition also runs in
-  Safari 18.2+); Firefox still swaps documents without either.
+  initial hydration and server data latency still affect the first visit.
 - Legacy global CSS is imported per route from `src/`.
 - `npm run qa:ci`, `verify:ci` and the nightly responsive QA run the browser
   QA against this app with the QA backend in `scripts/qa/`. Bundle budgets

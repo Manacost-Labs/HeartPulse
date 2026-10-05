@@ -298,3 +298,35 @@ test('a page restored after an account switch or offline never shows the previou
     await closeLocal(express);
   }
 });
+
+test('client routes revalidate shared access after revocation and account changes', async () => {
+  const legacy = http.createServer((_request, response) => response.writeHead(401).end());
+  let next, gateway, browser;
+  try {
+    next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
+    gateway = await startGateway(next.origin);
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    const { page, pageErrors } = await openReader(browser, gateway.origin, 'reader');
+    await page.evaluate(() => { window.__sharedMenu = document.querySelector('.arena-sidebar'); });
+    await page.click('.arena-sidebar a[href="/classes/"]');
+    await page.waitForSelector('.arena-classes-board');
+    assert.equal(await page.evaluate(() => window.__sharedMenu === document.querySelector('.arena-sidebar')), true);
+    gateway.sessions.delete('reader');
+    await page.click('.arena-sidebar a[href="/tierlist/"]');
+    await page.waitForFunction(() => location.pathname === '/tierlist/' && !document.body.textContent.includes('Читатель Кэша'));
+    await page.evaluate(() => history.back());
+    await page.waitForFunction(() => location.pathname === '/classes/');
+    assert.equal(await page.$('.arena-classes-board'), null, 'revoked access must not reappear on client Back');
+    await page.setCookie({ name: 'bf_session', value: 'other', url: gateway.origin });
+    await page.click('.arena-sidebar a[href="/battlegrounds/tier-list/"]');
+    await page.waitForFunction(() => location.pathname === '/battlegrounds/tier-list/' && document.body.textContent.includes('Другой Посетитель'));
+    assert.equal(await page.$('.bg-tier-list-page'), null, 'the new account has no paid grants');
+    assert.equal(await page.evaluate(() => window.__sharedMenu === document.querySelector('.arena-sidebar')), true);
+    assert.deepEqual(pageErrors, []);
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    await closeLocal(legacy);
+  }
+});

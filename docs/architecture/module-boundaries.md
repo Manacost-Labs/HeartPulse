@@ -11,6 +11,18 @@ identity fields; paid statistics remain behind the existing authorization API.
 `apps/public-web/lib/battlegroundLibraryDetailRoute.tsx` composes their shared
 Next.js metadata, canonical redirects and JSON-LD for current and archive URLs.
 
+## Public navigation
+
+`apps/public-web/ui/PublicNavigationLayout.tsx` composes the persistent public
+menu and one shared viewer-access provider in the Next root layout.
+`src/app/shell/PublicNavigationController.tsx` owns drawer/group state and the
+existing navigation UI; `PublicPageShell` owns only route-specific surfaces,
+utility header and content, with standalone navigation for isolated previews.
+A narrow context reports each page's update timestamp to the persistent menu.
+Page data stays in route/domain loaders; the layout adds no domain-wide barrel.
+`PublicNavigationBridge` adapts existing callback navigation and real public
+anchors to App Router, guarded by the canonical route-ownership policy.
+
 ## Public home
 
 `src/modules/home/public.ts` owns the home summary presentation, article

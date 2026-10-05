@@ -79,7 +79,7 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
 
     const { page, pageErrors } = await phonePage(browser);
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
-    await page.evaluate(() => document.querySelector('script[type="speculationrules"]').remove());
+    await page.evaluate(() => document.querySelector('script[type="speculationrules"]')?.remove());
 
     // After hydration React owns the state: open drops in, close lifts out
     // (still on screen for the exit, then gone), Escape returns focus. The
@@ -104,6 +104,7 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     }, change);
     assert.deepEqual(await sampleAfter('open'), { open: true, display: 'grid', fading: true }, 'the drawer drops in');
     await waitForDrawer(page, { open: true, shown: true, backdrop: true, expanded: 'true', locked: 'fixed' });
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('#arena-mobile-menu')).opacity === '1');
     assert.deepEqual(await sampleAfter('close'), { open: false, display: 'grid', fading: true }, 'the drawer lifts out before it goes');
     await waitForDrawer(page, { shown: false, backdrop: false, expanded: 'false', locked: '' });
     assert.equal(await page.evaluate(() => document.activeElement?.classList.contains('arena-mobile-nav-toggle')), true);
@@ -128,14 +129,11 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
     await waitForDrawer(page, { open: false, shown: false, locked: '' });
 
-    // Leaving through a drawer link releases the lock first, so Back returns
-    // to the reading position instead of the top. The back/forward cache is
-    // off in this browser (tests/next-bfcache-browser.test.mjs covers a
-    // restore), so Back reloads the page and only the scroll position stored
-    // with the history entry can bring the reader back.
+    // Client navigation must release the drawer's scroll lock before Next
+    // records the history entry, so Back restores the reading position.
     await page.goto(`${gateway.origin}/classes/`, { waitUntil: 'networkidle2' });
     await page.evaluate(() => {
-      document.querySelector('script[type="speculationrules"]').remove();
+      document.querySelector('script[type="speculationrules"]')?.remove();
       scrollTo(0, 600);
     });
     await page.click('.arena-mobile-nav-toggle');
@@ -144,13 +142,14 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
       JSON.stringify({ y: scrollY, locked: document.body.style.position }))));
     await page.click('#arena-mobile-menu a[href="/tierlist/"]');
     await page.waitForFunction(() => location.pathname === '/tierlist/' && document.readyState === 'complete', { timeout: 10_000 });
-    assert.deepEqual(JSON.parse(await page.evaluate(() => sessionStorage.getItem('left-at'))), { y: 600, locked: '' });
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('left-at')), null, 'client navigation keeps the document');
+    assert.equal(await page.evaluate(() => document.body.style.position), '');
     await page.evaluate(() => history.back());
     await page.waitForFunction(() => location.pathname === '/classes/' && document.readyState === 'complete' && scrollY > 0,
       { timeout: 10_000 }).catch(() => {});
     assert.deepEqual(await page.evaluate(() => ({ y: Math.round(scrollY),
-      type: performance.getEntriesByType('navigation')[0].type })), { y: 600, type: 'back_forward' },
-    'Back reloads the page at the reading position');
+      type: performance.getEntriesByType('navigation')[0].type })), { y: 600, type: 'navigate' },
+    'Back restores the reading position in the same document');
     assert.deepEqual(pageErrors, []);
   } finally {
     if (browser) await browser.close();

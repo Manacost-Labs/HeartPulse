@@ -1,3 +1,4 @@
+import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 import { NavigationRouteLinks, NavigationSection, NavigationGroupControl, type NavigationRoute, type NavigationGroup } from './NavigationItems';
 import type { ReactNode, RefObject } from 'react';
 import { Menu, X } from 'lucide-react';
@@ -39,7 +40,7 @@ export type PublicNavigationProps = {
 function MobileTopbar({ mobileMenuOpen, mobileMenuToggleRef, onCloseMobileMenu, onNavigate, onToggleMobileMenu }: PublicNavigationProps) {
   return (
     <header className="arena-mobile-topbar lg:hidden">
-      <a href="/" onClick={event => { event.preventDefault(); onNavigate('home'); onCloseMobileMenu(); }} className="arena-mobile-brand" aria-label="HearthPulse — на главную">
+      <a href="/" onClick={event => { if (!isPlainNavigationClick(event)) return; event.preventDefault(); onCloseMobileMenu(); onNavigate('home'); }} className="arena-mobile-brand" aria-label="HearthPulse — на главную">
         <img src="/hearthpulse-logo.webp" alt="" />
         <span>HearthPulse</span>
       </a>
@@ -69,7 +70,7 @@ function MobileMenu({
   const mobileLinkProps = {
     activeTab,
     variant: 'mobile' as const,
-    onNavigate: (tab: TabId) => { onNavigate(tab); onCloseMobileMenu(); },
+    onNavigate: (tab: TabId) => { onCloseMobileMenu(); onNavigate(tab); },
   };
   const constructorsActive = BG_BUILDER_TABS.some(tab => tab.id === activeTab);
   const miscActive = visibleMiscTabs.some(tab => tab.id === activeTab);
@@ -93,7 +94,7 @@ function MobileMenu({
         <NavigationGroupControl active={miscActive} caption="Материалы и события" group="misc" isOpen={mobileNavGroup === 'misc'} onToggle={() => onToggleMobileNavGroup('misc')} title="Разное" variant="mobile">
           <NavigationRouteLinks routes={visibleMiscTabs} {...mobileLinkProps} sublink />
         </NavigationGroupControl>
-        <a href="/?login" onClick={event => { event.preventDefault(); onNavigateLogin(); onCloseMobileMenu(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
+        <a href="/?login" onClick={event => { if (!isPlainNavigationClick(event)) return; event.preventDefault(); onCloseMobileMenu(); onNavigateLogin(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
           {mobileProfile}
         </a>
       </nav>
@@ -116,6 +117,7 @@ function DesktopSidebar({
           <a
             href="/"
             onClick={event => {
+              if (!isPlainNavigationClick(event)) return;
               event.preventDefault();
               onNavigate('home');
             }}
@@ -169,6 +171,7 @@ function DesktopSidebar({
           <a
             href="/?login"
             onClick={event => {
+              if (!isPlainNavigationClick(event)) return;
               event.preventDefault();
               onNavigateLogin();
             }}

@@ -99,7 +99,11 @@ for (const links of drawerLinks) {
   assert.deepEqual(calls.sort(), ['close', `navigate ${first.id}`], `${first.id} closes the drawer as it navigates`);
 }
 assert.ok(drawerLinks.some(links => links.props.routes === BG_BUILDER_TABS), 'the builder sub-links close it too');
-const click = { preventDefault: noop };
+const click = {
+  button: 0, defaultPrevented: false,
+  altKey: false, ctrlKey: false, metaKey: false, shiftKey: false,
+  preventDefault: noop,
+};
 calls.length = 0;
 (elementsOf(drawer).find(element => String(element.props.className ?? '').includes('arena-mobile-menu-profile'))!
   .props.onClick as (event: typeof click) => void)(click);

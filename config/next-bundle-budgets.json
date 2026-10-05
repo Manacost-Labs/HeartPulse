@@ -3,11 +3,11 @@
   "description": "Gzip ceilings for the JavaScript and CSS that each public Next.js route references in its server-rendered document, checked by tests/next-bundle-budgets.test.mjs. Regenerate with `npm run budget:next:update` only after reviewing a size change.",
   "routes": {
     "/": {
-      "jsGzipBytes": 160768,
+      "jsGzipBytes": 162816,
       "cssGzipBytes": 35328
     },
     "/articles/": {
-      "jsGzipBytes": 160768,
+      "jsGzipBytes": 162816,
       "cssGzipBytes": 46080
     },
     "/faq/": {
@@ -15,7 +15,7 @@
       "cssGzipBytes": 39936
     },
     "/standard/matchups/": {
-      "jsGzipBytes": 171008,
+      "jsGzipBytes": 173056,
       "cssGzipBytes": 46336
     },
     "/standard/meta/": {
@@ -27,7 +27,7 @@
       "cssGzipBytes": 65536
     },
     "/standard/vicious-gold/": {
-      "jsGzipBytes": 173056,
+      "jsGzipBytes": 174080,
       "cssGzipBytes": 57088
     },
     "/standard/cards/": {
@@ -39,15 +39,15 @@
       "cssGzipBytes": 50176
     },
     "/classes/": {
-      "jsGzipBytes": 166912,
+      "jsGzipBytes": 167936,
       "cssGzipBytes": 43008
     },
     "/tierlist/": {
-      "jsGzipBytes": 187392,
+      "jsGzipBytes": 188416,
       "cssGzipBytes": 50176
     },
     "/legendaries/": {
-      "jsGzipBytes": 188416,
+      "jsGzipBytes": 189440,
       "cssGzipBytes": 50176
     },
     "/heroes/": {
@@ -63,31 +63,31 @@
       "cssGzipBytes": 39936
     },
     "/battlegrounds/tier-list/": {
-      "jsGzipBytes": 162816,
+      "jsGzipBytes": 163840,
       "cssGzipBytes": 39936
     },
     "/gallery/": {
-      "jsGzipBytes": 159744,
+      "jsGzipBytes": 160768,
       "cssGzipBytes": 46336
     },
     "/cosmetics/": {
-      "jsGzipBytes": 169984,
+      "jsGzipBytes": 171008,
       "cssGzipBytes": 42240
     },
     "/contests/": {
-      "jsGzipBytes": 157952,
+      "jsGzipBytes": 160768,
       "cssGzipBytes": 54784
     },
     "/guides-archive/": {
-      "jsGzipBytes": 162816,
+      "jsGzipBytes": 165888,
       "cssGzipBytes": 43008
     },
     "/standard/fun-decks/": {
-      "jsGzipBytes": 173056,
+      "jsGzipBytes": 175104,
       "cssGzipBytes": 56576
     },
     "/developers/api/": {
-      "jsGzipBytes": 161792,
+      "jsGzipBytes": 163840,
       "cssGzipBytes": 31744
     },
     "/privacy/": {
@@ -95,7 +95,7 @@
       "cssGzipBytes": 39936
     },
     "/connect/": {
-      "jsGzipBytes": 156672,
+      "jsGzipBytes": 157696,
       "cssGzipBytes": 37376
     }
   }

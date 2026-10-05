@@ -34,15 +34,25 @@ Cookies нельзя перенести между разными registrable do
 После повторных `no live upstreams` на московском edge Москва также временно
 исключалась. После восстановления обратных туннелей и проверки параллельной
 загрузки страниц, CSS, JS и изображений Москва возвращена в A-записи apex и
-CDN 25 сентября 2026 года. Рабочий набор сейчас — Limburg (`162.19.220.14`)
-и Москва (`194.67.92.242`); `www` наследует его через CNAME. Новосибирск
-остаётся в карантине до отдельной проверки.
+CDN 25 сентября 2026 года. Тогда рабочим набором были Limburg
+(`162.19.220.14`) и Москва (`194.67.92.242`), а Новосибирск оставался в карантине.
+
+Проверка 5 октября 2026 года: apex и CDN уже указывают на Москву и
+Новосибирск; Limburg отсутствует в DNS и недоступен по SSH/HTTPS. Точный
+набор подтверждён через резолверы 1.1.1.1 и 8.8.8.8, оба действующих edge
+прошли `monitor-hearthpulse-shadow.sh` с карантином `limburg`. В root-managed
+`/etc/hs-arena/edge-static-sync.conf` оставлены эти два действующих узла;
+`/etc/hs-arena/hearthpulse-shadow-monitor.env` задаёт
+`HEARTHPULSE_MONITOR_QUARANTINED_REGIONS=limburg`. Это устраняет сбой выкладки
+из-за ожидания отключённого узла. Резервные копии конфигурации находятся в
+`/var/backups/hs-arena/navigation-edge-topology-20261005-100211/`; секреты
+остаются вне репозитория. DNS этой задачей не изменялся.
 Снимок записей до изменения находится в root-only файле
 `/var/backups/hs-arena/hearthpulse-dns-before-novosibirsk-withdrawal-20260925-1209.json`.
 Снимок перед выводом Москвы находится в
 `/var/backups/hs-arena/hearthpulse-dns-before-moscow-withdrawal-20260925-1230.json`.
 Обычный трёхузловой DNS-контракт сохраняется в мониторе по умолчанию. На время
-карантина задайте `HEARTHPULSE_MONITOR_QUARANTINED_REGIONS=novosibirsk`
+карантина задайте актуальный `HEARTHPULSE_MONITOR_QUARANTINED_REGIONS`
 в `/etc/hs-arena/hearthpulse-shadow-monitor.env` (root-only): монитор требует
 точный DNS-набор и проверяет оставшийся edge. Старый одиночный флаг
 `HEARTHPULSE_MONITOR_QUARANTINED_REGION` поддерживается при поэтапном возврате.

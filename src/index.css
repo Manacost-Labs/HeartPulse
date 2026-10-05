@@ -848,10 +848,10 @@
   /* Gold border utility */
   .border-gold { border-color: #d4af37; }
 
-  /* Entry animations with stagger */
+  /* Route content stays visible while App Router replaces the page. */
   .anim-fade-up,
   .anim-scale-in {
-    animation: route-content-enter var(--motion-base) var(--motion-ease) both;
+    animation: none;
   }
 
   /* Legacy skeleton block: the same fill and pulse as LoadingBlock. */
@@ -863,56 +863,6 @@
 
   .route-fallback {
     contain: layout paint;
-  }
-
-  @supports (view-transition-name: route-content) {
-    .arena-content { view-transition-name: route-content; }
-
-    ::view-transition-group(root),
-    ::view-transition-old(root),
-    ::view-transition-new(root) {
-      animation: none;
-    }
-
-    ::view-transition-group(route-content) {
-      animation-duration: var(--motion-slow);
-      animation-timing-function: var(--motion-ease);
-    }
-
-    /* Fade through: the old page is gone before the new one appears, so two
-       layouts never overlap, and its snapshot keeps its own size and centre
-       instead of stretching to a wider or narrower page. The group sits where
-       the new content box is, so a snapshot of a scrolled page would show its
-       top (or blank, where nothing was captured): `--vt-old-shift` from
-       lib/pageEntrance.ts moves it back to where the reader saw it, and the
-       clip keeps it from painting over the sticky header above the box. */
-    ::view-transition-old(route-content) {
-      inset-inline-start: 50%;
-      inline-size: auto;
-      block-size: auto;
-      translate: -50% var(--vt-old-shift, 0px);
-      clip-path: inset(max(0px, calc(-1 * var(--vt-old-shift, 0px))) 0 0 0);
-      animation: route-content-leave var(--motion-instant) var(--motion-ease-exit) both;
-    }
-
-    /* The same rise as a first load (page-transitions.css), at a quicker
-       tempo: it starts as the old page is gone and settles 230 ms after the
-       reveal, so the page is ready for the next click sooner. */
-    ::view-transition-new(route-content) {
-      animation: page-enter var(--motion-fast) var(--motion-ease) var(--motion-instant) both;
-    }
-  }
-
-  @keyframes route-content-leave {
-    to { opacity: 0; }
-  }
-
-  @keyframes route-content-enter {
-    from { opacity: 0.24; }
-  }
-
-  @keyframes page-enter {
-    from { opacity: 0; translate: 0 var(--motion-rise); }
   }
 
   /* A menu or popover that mounts when it opens drops in from its trigger.
