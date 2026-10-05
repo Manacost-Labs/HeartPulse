@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { PublicNavigationController } from './PublicNavigationController';
 import { PublicNavigationContext } from './PublicNavigationContext';
 import { PublicPageShell } from './PublicPageShell';
@@ -55,5 +55,24 @@ export const Mobile: Story = {
     await expect(canvas.getByRole('button', { name: 'Открыть меню' })).toHaveAttribute('aria-expanded', 'false');
     await expect(args.navigate).toHaveBeenCalledWith('/tierlist');
     await expect(canvas.getByRole('heading', { name: 'Другая страница' })).toBeVisible();
+  },
+};
+export const ScrolledMobileDrawer: Story = {
+  globals: { viewport: { value: 'mobile1', isRotated: false } },
+  render: args => <div style={{ minHeight: 1800 }}><PersistentMenuPreview onNavigate={args.navigate} /></div>,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const page = canvasElement.ownerDocument.defaultView;
+    const header = canvasElement.querySelector('.arena-mobile-topbar');
+    if (!page || !header) throw new Error('Mobile preview frame is missing');
+    page.scrollTo(0, 600);
+    await waitFor(() => expect(page.scrollY).toBe(600));
+    await userEvent.click(canvas.getByRole('button', { name: 'Открыть меню' }));
+    await waitFor(() => expect(page.document.body.style.position).toBe('fixed'));
+    await expect(Math.round(header.getBoundingClientRect().top)).toBe(0);
+    await userEvent.click(within(header as HTMLElement).getByRole('button', { name: 'Закрыть меню' }));
+    await waitFor(() => expect(page.scrollY).toBe(600));
+    await expect(args.navigate).not.toHaveBeenCalled();
+    await userEvent.click(canvas.getByRole('button', { name: 'Открыть меню' }));
   },
 };

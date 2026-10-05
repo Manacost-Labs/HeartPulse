@@ -119,6 +119,25 @@ notice. It does not announce a production deployment.
 
 ### Follow-up: group layout and prefetch freshness
 
+Final production review also reproduced a clipped mobile header: opening
+the drawer at scroll 600 moved the sticky top bar to -600px while the body
+was fixed. The scroll lock now exposes the saved offset through an inherited
+CSS property; the sticky header compensates with translation. The existing
+fixed-body mechanism and nested lock lifetime remain in place. Unlock restores
+the original property value and priority. The mobile browser regression fails
+on the previous build and verifies the header at 0px, the visible close button,
+inline style restoration and Back at scroll 600. The scrolled-drawer Storybook
+state exercises closing and reopening without navigation.
+
+The local build verifies header top 0px while locked at scroll 600 and restores
+scroll 600 and the absent CSS property after close; it has no horizontal
+overflow. The header fix adds 68 gzip bytes to the local home runtime
+(162931 → 162999). The active release's `/legendaries/` runtime measured
+189393 bytes against a 189440-byte ceiling, so its JavaScript ceiling alone
+is rounded to 190464 for this reviewed addition. Other JavaScript and all CSS
+ceilings are retained; the existing budget test passes. These are asset sizes
+and single browser checks, not field performance scores.
+
 The 2026-10-05 production phone sample (390×844, CPU 4x) showed a second
 109px control movement around 108ms after switching groups: the old group
 kept 106px of height during its discrete display transition. Group display

@@ -128,22 +128,33 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await waitForDrawer(page, { open: true, locked: 'fixed' });
     await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
     await waitForDrawer(page, { open: false, shown: false, locked: '' });
+    assert.equal(await page.evaluate(() => document.body.style.getPropertyValue('--page-scroll-lock-offset')), '');
 
     // Client navigation must release the drawer's scroll lock before Next
     // records the history entry, so Back restores the reading position.
     await page.goto(`${gateway.origin}/classes/`, { waitUntil: 'networkidle2' });
     await page.evaluate(() => {
       document.querySelector('script[type="speculationrules"]')?.remove();
+      document.body.style.setProperty('--page-scroll-lock-offset', '0px', 'important');
       scrollTo(0, 600);
     });
     await page.click('.arena-mobile-nav-toggle');
     await waitForDrawer(page, { open: true, shown: true, locked: 'fixed' });
+    assert.deepEqual(await page.evaluate(() => {
+      const header = document.querySelector('.arena-mobile-topbar').getBoundingClientRect();
+      const toggle = document.querySelector('.arena-mobile-nav-toggle').getBoundingClientRect();
+      return { top: Math.round(header.top), closeVisible: toggle.top >= 0 && toggle.bottom <= innerHeight };
+    }), { top: 0, closeVisible: true }, 'the locked page keeps its sticky header and close button on screen');
     await page.evaluate(() => addEventListener('pagehide', () => sessionStorage.setItem('left-at',
       JSON.stringify({ y: scrollY, locked: document.body.style.position }))));
     await page.click('#arena-mobile-menu a[href="/tierlist/"]');
     await page.waitForFunction(() => location.pathname === '/tierlist/' && document.readyState === 'complete', { timeout: 10_000 });
     assert.equal(await page.evaluate(() => sessionStorage.getItem('left-at')), null, 'client navigation keeps the document');
-    assert.equal(await page.evaluate(() => document.body.style.position), '');
+    assert.deepEqual(await page.evaluate(() => ({
+      position: document.body.style.position,
+      offset: document.body.style.getPropertyValue('--page-scroll-lock-offset'),
+      priority: document.body.style.getPropertyPriority('--page-scroll-lock-offset'),
+    })), { position: '', offset: '0px', priority: 'important' }, 'unlock restores the original inline offset');
     await page.evaluate(() => history.back());
     await page.waitForFunction(() => location.pathname === '/classes/' && document.readyState === 'complete' && scrollY > 0,
       { timeout: 10_000 }).catch(() => {});

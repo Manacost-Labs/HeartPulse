@@ -17,6 +17,11 @@ route again, with no polling. A speculative failure must not interrupt the
 interaction or prevent retry. Closed menus do not require a synchronous
 React commit; an open mobile drawer still releases its lock before navigation.
 
+Opening the mobile drawer from a scrolled page keeps the sticky top bar and
+close button in the viewport. The fixed-body scroll lock publishes its saved
+offset for the header's translation. The last nested lock restores the original
+inline offset, including its priority, and the reading position on close.
+
 Direct loads and links before hydration remain ordinary canonical HTML URLs.
 Modified clicks, downloads, external links, API/identity endpoints, referrals
 and admin navigation keep their native behaviour. Browser Back/Forward and
