@@ -109,6 +109,10 @@ behind its `public.ts`, not in `src/features/`.
   visible until the next route is ready; no fade-through or entrance offset runs.
   `tests/next-page-transitions-browser.test.mjs` covers this contract.
   See [navigation spec](../../docs/specs/public-client-navigation.md).
+  The root access provider exposes a stable snapshot store, with guest state
+  for SSR/hydration and verified updates before paint. Changing profile state
+  must not invalidate unrelated unloaded Suspense boundaries or replace their
+  server HTML with a loader (`tests/next-home-hydration-browser.test.mjs`).
 - Plausible is loaded once by the document layout and its existing tracker
   observes History API navigation. No extra pageview calls are added:
   [official SPA contract](https://plausible.io/docs/spa-support).

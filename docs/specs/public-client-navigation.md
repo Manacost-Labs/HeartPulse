@@ -14,6 +14,10 @@ and admin navigation keep their native behaviour. Browser Back/Forward and
 page-level error recovery remain available. Viewer access is shared inside
 one document and rechecked quietly when the public route changes; a failed
 verification hides paid access using the existing session policy.
+The access provider keeps a stable, per-document snapshot store. Hydrated
+readers receive verified changes before paint without invalidating unloaded
+Suspense boundaries. Server-rendered home articles remain visible while their
+lazy chunk loads, including when the guest profile check finishes first.
 
 ## Implementation plan
 

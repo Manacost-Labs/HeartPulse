@@ -36,6 +36,7 @@ test('the Next.js home keeps its server-rendered articles while their chunk load
     const accountChecked = page.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/me');
     await page.goto(`${runtime.origin}/`, { waitUntil: 'domcontentloaded' });
     await Promise.all([chunkHeld, accountChecked]);
+    await page.waitForFunction(() => document.querySelector('.arena-sidebar-profile')?.textContent.includes('Войти'));
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
     assert.equal(await page.$('#root .home-latest-articles') !== null, true,
       'the section stays while its chunk is still loading');

@@ -20,6 +20,14 @@ prefetch fetches RSC rather than running another document. The document
 transition, entrance script and hidden-document speculation rules are removed.
 Standalone page shells still render navigation for component previews.
 
+The access context holds a stable per-document snapshot store instead of the
+changing profile object. React context propagation had invalidated a dehydrated
+home article boundary when the account check finished before its chunk loaded.
+Hydrated readers subscribe through `useSyncExternalStore`; the SSR snapshot is
+the initial guest state, and verified changes publish in a layout effect before
+paint. Revocation is synchronous, without a transition or delayed grant update.
+The snapshot contract follows [React's SSR store guidance](https://react.dev/reference/react/useSyncExternalStore).
+
 Mobile links close the drawer synchronously before navigating, releasing the
 body scroll lock before Next records the history entry. The desktop scroll
 and expanded groups persist. Modified clicks, downloads, external links,
@@ -43,6 +51,8 @@ against the installed tracker and [Plausible's SPA contract](https://plausible.i
   RSC navigation without a new document, menu DOM identity/scroll/groups,
   mobile lock release and Back position, revoked access and account switching.
 - Registered tests and architecture/debt/catalog/route-manifest gates.
+- Slow-chunk home hydration: server-rendered articles stay visible while the
+  guest profile check finishes, with the article chunk deliberately held.
 - Changed-source Semgrep: zero findings and parser errors.
 - Storybook MCP instructions and story discovery; ten affected desktop/mobile
   states reviewed in the browser. The persistent-menu stories exercise route
@@ -78,7 +88,9 @@ The shared adapter adds some initial JavaScript. The reviewed home build has
 about 159 KiB gzip JavaScript and 34 KiB CSS. Only exceeded JavaScript ceilings
 were rounded up to the next KiB in `config/next-bundle-budgets.json`; existing
 CSS ceilings and already sufficient JavaScript ceilings were retained. The
-tradeoff is paid once per document; client routes reuse the runtime and menu.
+stable access store adds approximately 150 bytes gzip to the shared runtime;
+three newly exceeded ceilings were rounded up by the same next-KiB rule.
+The tradeoff is paid once per document; client routes reuse the runtime and menu.
 First-visit server latency, DNS/TLS and legacy view hydration still need their
 own measured work if cold loading remains slow. Application cache and deployment
 gates remain unchanged. Before publishing, the root-managed edge sync and monitor

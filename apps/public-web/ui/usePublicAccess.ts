@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import {
   fetchCurrentAuthUser, canAccessAdminWorkspace, canManageContests,
@@ -13,12 +13,41 @@ import {
 const sameAccount = (left: AuthUser | null, right: AuthUser | null) =>
   viewerState(left, null) === viewerState(right, null);
 
-export const PublicAccessContext = createContext<ReturnType<typeof usePublicAccessState> | null>(null);
+type PublicAccessSnapshot = ReturnType<typeof usePublicAccessState>;
+export const PublicAccessContext = createContext<ReturnType<typeof usePublicAccessStore> | null>(null);
+
+/** Per-layout snapshots: hydrate as a guest, then publish verified access before paint. */
+export function usePublicAccessStore(access: PublicAccessSnapshot) {
+  // A changing context invalidates dehydrated Suspense boundaries, even when
+  // their content does not read it. Notify hydrated readers instead, keeping
+  // server HTML visible while its lazy chunks arrive.
+  const [store] = useState(() => {
+    let current = access;
+    const listeners = new Set<() => void>();
+    return {
+      getSnapshot: () => current,
+      getServerSnapshot: () => access,
+      subscribe: (listener: () => void) => {
+        listeners.add(listener);
+        return () => { listeners.delete(listener); };
+      },
+      publish: (value: PublicAccessSnapshot) => {
+        if (value === current) return;
+        current = value;
+        listeners.forEach(listener => listener());
+      },
+    };
+  });
+  // Access revocations must reach readers before the next paint, including
+  // synchronous hiding on a back/forward-cache restore.
+  useLayoutEffect(() => { store.publish(access); }, [store, access]);
+  return store;
+}
 
 export function usePublicAccess() {
-  const access = useContext(PublicAccessContext);
-  if (!access) throw new Error('Public access requires the application layout');
-  return access;
+  const store = useContext(PublicAccessContext);
+  if (!store) throw new Error('Public access requires the application layout');
+  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
 }
 
 export function usePublicAccessState(routeKey: string) {
@@ -146,5 +175,6 @@ export function usePublicAccessState(routeKey: string) {
     verifyOnNavigation.current?.();
   }, [routeKey]);
   const admin = canAccessAdminWorkspace(user);
-  return { user, subscription, checking, refresh, onAuthChange, contestAdmin: canManageContests(user), statsAccess: admin || hasSubscriptionEntitlement(subscription, 'standard'), admin };
+  return useMemo(() => ({ user, subscription, checking, refresh, onAuthChange, contestAdmin: canManageContests(user), statsAccess: admin || hasSubscriptionEntitlement(subscription, 'standard'), admin }),
+    [user, subscription, checking, refresh, onAuthChange, admin]);
 }

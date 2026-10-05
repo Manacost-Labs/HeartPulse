@@ -5,16 +5,17 @@ import { PublicNavigationController } from '@/src/app/shell/PublicNavigationCont
 import { PublicNavigationContext } from '@/src/app/shell/PublicNavigationContext';
 import { tabFromPath } from '@/src/app/routing/navigationRoutes';
 import { PublicNavigationBridge } from './PublicNavigationBridge';
-import { PublicAccessContext, usePublicAccessState } from './usePublicAccess';
+import { PublicAccessContext, usePublicAccessState, usePublicAccessStore } from './usePublicAccess';
 import { navigate } from './navigation';
 
 export function PublicNavigationLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const access = usePublicAccessState(pathname);
+  const accessStore = usePublicAccessStore(access);
   const [updatedAt, setUpdatedAt] = useState({ pathname, label: 'Нет данных' });
   const reportUpdatedAt = useCallback((label: string) => setUpdatedAt({ pathname, label }), [pathname]);
   const publicPage = !/^\/admin(?:\/|$)/.test(pathname);
-  return <PublicAccessContext.Provider value={access}>
+  return <PublicAccessContext.Provider value={accessStore}>
     <PublicNavigationBridge />
     <PublicNavigationContext.Provider value={publicPage ? reportUpdatedAt : null}>
       {publicPage && <>
