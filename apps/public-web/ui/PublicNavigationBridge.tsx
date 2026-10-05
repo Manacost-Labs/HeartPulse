@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { clientPagePath, installClientNavigation } from './navigation';
+import { clientPagePath, createRoutePrefetcher, installClientNavigation } from './navigation';
 
 function publicAnchorPath(target: EventTarget | null): string | null {
   const anchor = target instanceof Element ? target.closest<HTMLAnchorElement>('a[href]') : null;
@@ -19,7 +19,8 @@ export function PublicNavigationBridge() {
   const router = useRouter();
   useEffect(() => {
     const dispose = installClientNavigation(path => router.push(path));
-    const prefetched = new Set<string>();
+    // Next 16.3's type requires the legacy `kind`; its runtime defaults it to AUTO.
+    const prepare = createRoutePrefetcher((path, options) => router.prefetch(path, options as Parameters<typeof router.prefetch>[1]));
     const click = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const destination = publicAnchorPath(event.target);
@@ -29,9 +30,7 @@ export function PublicNavigationBridge() {
     };
     const prefetch = (event: Event) => {
       const destination = publicAnchorPath(event.target);
-      if (!destination || prefetched.has(destination)) return;
-      prefetched.add(destination);
-      router.prefetch(destination);
+      if (destination) prepare(destination);
     };
     document.addEventListener('click', click);
     document.addEventListener('pointerover', prefetch);

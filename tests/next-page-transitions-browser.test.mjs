@@ -38,6 +38,26 @@ async function assertSameFrame(page) {
     && window.__navigationFrame?.topbar === document.querySelector('.arena-mobile-topbar')), true, 'navigation DOM must persist');
 }
 
+async function assertGroupSwitchHasNoDelayedCollapse(page, root) {
+  const result = await page.evaluate(async selector => {
+    const nav = document.querySelector(selector);
+    const buttons = [...nav.querySelectorAll('button[aria-controls]')];
+    const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+    buttons[0].click();
+    await new Promise(resolve => setTimeout(resolve, 250));
+    buttons[1].click();
+    await frame();
+    await frame();
+    const closed = document.getElementById(buttons[0].getAttribute('aria-controls'));
+    const height = closed.getBoundingClientRect().height;
+    const firstY = buttons[1].getBoundingClientRect().y;
+    await new Promise(resolve => setTimeout(resolve, 180));
+    return { height, firstY, lastY: buttons[1].getBoundingClientRect().y };
+  }, root);
+  assert.equal(result.height, 0, 'the closed group must release layout with the newly opened group');
+  assert.ok(Math.abs(result.firstY - result.lastY) < 0.5, 'group controls must not move again after the exit duration');
+}
+
 test('public navigation preserves the frame, sidebar state and native link behavior', { timeout: 60_000 }, async () => {
   const legacy = http.createServer((_request, response) => response.writeHead(401).end());
   let next, gateway, browser;
@@ -52,7 +72,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await page.setViewport({ width: 1440, height: 700 });
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     await rememberFrame(page);
-    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-misc"]');
+    await assertGroupSwitchHasNoDelayedCollapse(page, '.arena-sidebar');
     await page.evaluate(() => { document.querySelector('.arena-sidebar').scrollTop = 180; });
     await page.hover('.arena-sidebar a[href="/guides-archive/"]');
     const scroll = await page.$eval('.arena-sidebar', node => node.scrollTop);
@@ -98,6 +118,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await page.setViewport({ width: 390, height: 844 });
     await page.click('.arena-mobile-nav-toggle');
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').matches(':popover-open'));
+    await assertGroupSwitchHasNoDelayedCollapse(page, '#arena-mobile-menu');
     await visitByClick(page, '#arena-mobile-menu a[href="/tierlist/"]', '/tierlist/');
     await page.waitForFunction(() => !document.querySelector('#arena-mobile-menu').matches(':popover-open') && document.body.style.position !== 'fixed');
     await assertSameFrame(page);

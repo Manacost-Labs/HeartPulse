@@ -30,7 +30,9 @@ export const Desktop: Story = {
     const sidebar = canvasElement.querySelector<HTMLElement>('.arena-sidebar');
     if (!sidebar) throw new Error('Persistent sidebar is missing');
     const canvas = within(sidebar as HTMLElement);
+    await userEvent.click(canvas.getByRole('button', { name: /Конструкторы/ }));
     await userEvent.click(canvas.getByRole('button', { name: /Разное/ }));
+    await expect(canvasElement.querySelector('#arena-sidebar-constructors')).not.toBeVisible();
     await userEvent.click(canvas.getByRole('link', { name: 'Архив гайдов' }));
     await expect(canvasElement.querySelector('.arena-sidebar')).toBe(sidebar);
     await expect(canvas.getByRole('button', { name: /Разное/ })).toHaveAttribute('aria-expanded', 'true');
@@ -43,6 +45,10 @@ export const Mobile: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Открыть меню' }));
+    const menu = within(canvasElement.querySelector('#arena-mobile-menu') as HTMLElement);
+    await userEvent.click(menu.getByRole('button', { name: /Конструкторы/ }));
+    await userEvent.click(menu.getByRole('button', { name: /Разное/ }));
+    await expect(canvasElement.querySelector('#arena-mobile-constructors')).not.toBeVisible();
     const destination = canvasElement.querySelector<HTMLAnchorElement>('#arena-mobile-menu a[href="/tierlist/"]');
     if (!destination) throw new Error('Arena tier-list link is missing');
     await userEvent.click(destination);

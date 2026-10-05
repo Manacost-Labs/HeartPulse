@@ -24,7 +24,7 @@ export function PublicNavigationController({ activeTab, pathname, access, naviga
   useEffect(() => { setMenu(false); }, [pathname]);
   const visit = (path: string) => {
     // Next must save the reading position after the drawer releases its lock.
-    flushSync(() => setMenu(false));
+    if (menu) flushSync(() => setMenu(false));
     navigate(path);
   };
   return <PublicNavigation activeTab={activeTab} mobileMenuOpen={menu} mobileNavGroup={mobileGroup} sidebarNavGroup={sidebarGroup}

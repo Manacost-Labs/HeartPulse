@@ -117,6 +117,43 @@ notice. It does not announce a production deployment.
 
 ## Repeat the checks
 
+### Follow-up: group layout and prefetch freshness
+
+The 2026-10-05 production phone sample (390×844, CPU 4x) showed a second
+109px control movement around 108ms after switching groups: the old group
+kept 106px of height during its discrete display transition. Group display
+now changes immediately; appearance still uses the shared motion tokens.
+The drawer's popover and scroll-lock behavior is preserved for iOS and Back.
+
+The permanent prefetch set now follows Next's `onInvalidate` callback.
+Repeated intent reuses a fresh request, stale intent can prepare a new one,
+and invalidation alone starts no request. A synchronous speculative failure
+allows a later retry. Desktop/closed-drawer transitions skip the unnecessary
+`flushSync`; open-drawer transitions still close synchronously.
+
+Regression coverage: `tests/next-navigation.test.ts` exercises fresh/stale
+intent and failure/retry; `tests/next-page-transitions-browser.test.mjs`
+checks zero closed-group geometry and no delayed control movement on desktop
+and mobile, together with its existing navigation/history/native-link checks.
+Persistent navigation stories exercise group switching before route changes.
+
+Local production-build review at 390×844/CPU 4x sampled 15 frames after a
+group switch: the closed group's height was zero throughout, and the control
+had zero subsequent movement. Mobile FAQ→tierlist kept the document and menu,
+closed the drawer, and Back restored scroll 600→600. The observed transition
+was 147ms in the local fixture, not a production speed comparison or field INP.
+All four focused navigation/mobile/head/canonical browser tests passed;
+Next contracts (20), motion tokens (3), shell, TypeScript, architecture,
+Storybook build/contracts, existing bundle budgets and documentation gates
+passed. Changed-source Semgrep found no issues. Desktop and mobile persistent
+stories were visually reviewed; no overflow or application console error was
+found. The pre-existing unused CSS preload warning remains. No bundle ceiling
+was increased. A separate read-only review found no required corrections.
+
+Documentation impact: this runbook, `docs/specs/public-client-navigation.md`
+and `CHANGELOG.md`. The public-web README and architecture contract remain
+accurate: no route, access rule, data contract or ownership boundary changed.
+
 ```sh
 npm run agent:session:preflight
 npm run build:next

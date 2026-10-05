@@ -8,6 +8,15 @@ position between public pages. The mobile drawer closes on navigation without
 losing the page's scroll position. Content changes without fading to the
 background or rising into place.
 
+Switching navigation groups removes the old group's geometry immediately,
+before revealing the new one. Closing a group must not postpone layout until
+its fade finishes, move controls a second time, or leave hidden links visible.
+Route intent is deduplicated only while Next's prefetch remains fresh. The
+`onInvalidate` callback clears that marker; a new hover/focus can prepare the
+route again, with no polling. A speculative failure must not interrupt the
+interaction or prevent retry. Closed menus do not require a synchronous
+React commit; an open mobile drawer still releases its lock before navigation.
+
 Direct loads and links before hydration remain ordinary canonical HTML URLs.
 Modified clicks, downloads, external links, API/identity endpoints, referrals
 and admin navigation keep their native behaviour. Browser Back/Forward and
@@ -62,6 +71,8 @@ production deployment on 2026-10-05. The normal main/CI deployment gates apply.
 Next.js 16.3.6 and React 19.3.0 are the installed dependencies. App Router
 navigation uses `router.push` and `router.prefetch` from
 [`useRouter`](https://nextjs.org/docs/app/api-reference/functions/use-router).
+Prefetch freshness uses the documented `onInvalidate` callback rather than
+an application timer or a permanent visited-route list.
 The root layout persists across client transitions as described in
 [layouts](https://nextjs.org/docs/app/getting-started/layouts-and-pages).
 

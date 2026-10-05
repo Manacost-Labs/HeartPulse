@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { clientPagePath, installClientNavigation, navigate, navigateTab } from '../apps/public-web/ui/navigation';
+import { clientPagePath, createRoutePrefetcher, installClientNavigation, navigate, navigateTab } from '../apps/public-web/ui/navigation';
 import { canonicalPagePath } from '../src/app/routing/canonicalPagePath';
 
 function captureNavigation(run: () => void): string[] {
@@ -82,4 +82,30 @@ test('only same-origin public Next pages are eligible for client navigation', ()
     '//other.example/faq/', 'http://%', 'javascript:alert(1)', '#main-content']) {
     assert.equal(clientPagePath(path, base), null, path);
   }
+});
+
+test('repeated route intent reuses its prefetch until Next invalidates it', () => {
+  const calls: string[] = [];
+  const invalidate = new Map<string, () => void>();
+  const prepare = createRoutePrefetcher((path, options) => {
+    calls.push(path);
+    invalidate.set(path, options.onInvalidate);
+  });
+  prepare('/faq/');
+  prepare('/faq/');
+  prepare('/tierlist/');
+  assert.deepEqual(calls, ['/faq/', '/tierlist/']);
+  invalidate.get('/faq/')?.();
+  assert.deepEqual(calls, ['/faq/', '/tierlist/'], 'invalidation must not start background polling');
+  prepare('/faq/');
+  prepare('/tierlist/');
+  assert.deepEqual(calls, ['/faq/', '/tierlist/', '/faq/']);
+});
+
+test('failed speculative preparation neither interrupts interaction nor prevents retry', () => {
+  let calls = 0;
+  const prepare = createRoutePrefetcher(() => { calls += 1; throw new Error('router unavailable'); });
+  assert.doesNotThrow(() => prepare('/faq/'));
+  assert.doesNotThrow(() => prepare('/faq/'));
+  assert.equal(calls, 2);
 });

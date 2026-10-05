@@ -5,6 +5,21 @@ import { publicWebOwner } from '@/apps/public-web/routeOwnership.mjs';
 type ClientNavigate = (path: string) => void;
 let clientNavigate: ClientNavigate | null = null;
 
+/** Deduplicates intent while Next's cache is fresh; stale routes wait for new intent. */
+export function createRoutePrefetcher(prefetch: (path: string, options: { onInvalidate: () => void }) => void): ClientNavigate {
+  const prefetched = new Set<string>();
+  return path => {
+    if (prefetched.has(path)) return;
+    prefetched.add(path);
+    try {
+      prefetch(path, { onInvalidate: () => prefetched.delete(path) });
+    } catch {
+      // A speculative failure must not interrupt a link or suppress its next attempt.
+      prefetched.delete(path);
+    }
+  };
+}
+
 /** The root layout owns the router; a stale cleanup must not detach its replacement. */
 export function installClientNavigation(handler: ClientNavigate): () => void {
   clientNavigate = handler;
