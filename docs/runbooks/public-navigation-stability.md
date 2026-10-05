@@ -85,11 +85,14 @@ TTFB 925 ms; its remote network/server conditions differ, so it is not used
 as a before/after comparison with these local route samples.
 
 The shared adapter adds some initial JavaScript. The reviewed home build has
-about 159 KiB gzip JavaScript and 34 KiB CSS. Only exceeded JavaScript ceilings
+about 159–160 KiB gzip JavaScript and 34 KiB CSS. Only exceeded JavaScript ceilings
 were rounded up to the next KiB in `config/next-bundle-budgets.json`; existing
 CSS ceilings and already sufficient JavaScript ceilings were retained. The
 stable access store adds approximately 150 bytes gzip to the shared runtime;
 three newly exceeded ceilings were rounded up by the same next-KiB rule.
+The CI build measured about 0.6 KiB more shared JavaScript than the local build;
+the thirteen ceilings exceeded in CI were likewise rounded to the next KiB.
+Both builds remain covered by the same route budgets; CSS limits are unchanged.
 The tradeoff is paid once per document; client routes reuse the runtime and menu.
 First-visit server latency, DNS/TLS and legacy view hydration still need their
 own measured work if cold loading remains slow. Application cache and deployment

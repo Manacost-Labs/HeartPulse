@@ -33,7 +33,7 @@ const SUBSCRIBER_ROUTES = [
 
 /**
  * A page URL without its trailing slash answers with an uncached 301 and never
- * matches the prerender rule. In-page (`#…`) and query-only (`?…`) links stay
+ * shares the canonical router-cache key. In-page (`#…`) and query-only (`?…`) links stay
  * on the current page; `/api/`, `/_next/` and files keep their own URLs.
  */
 function slashlessPageHrefs(hrefs, pageUrl) {
@@ -68,17 +68,22 @@ async function collectSlashless(page, origin, routes, cookie = '') {
 }
 
 // Records the requests the browser makes ahead of a visit.
-async function startSpeculationRecorder(runtimeOrigin) {
-  const speculative = [];
+async function startNavigationRecorder(runtimeOrigin) {
+  const prefetched = [];
+  const documents = [];
+  const apiRequests = [];
   const upstream = new URL(runtimeOrigin);
   const server = http.createServer((request, response) => {
-    if (request.headers['sec-purpose']) speculative.push(request.url);
+    const pathname = new URL(request.url, runtimeOrigin).pathname;
+    if (request.headers.rsc === '1') prefetched.push(pathname);
+    if (request.headers['sec-fetch-dest'] === 'document') documents.push(pathname);
+    if (pathname.startsWith('/api/')) apiRequests.push(pathname);
     const forwarded = http.request(upstream, { method: request.method, path: request.url, headers: request.headers },
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
     forwarded.on('error', () => response.writeHead(502).end());
     request.pipe(forwarded);
   });
-  return { server, origin: await listenLocal(server), speculative };
+  return { server, origin: await listenLocal(server), prefetched, documents, apiRequests };
 }
 
 // An activated prerender replaces the page's frame, which a pending
@@ -123,7 +128,7 @@ test('pages link to canonical trailing-slash URLs, so a card link is fetched whe
     assert.deepEqual(pageErrors, []);
 
     // Dark gifts and timewarped cards have no archive: the greyed-out control
-    // is not a link, or hovering it would prerender the archive's 404.
+    // is not a link, or hovering it would prefetch the archive's 404.
     for (const section of ['dark-gifts', 'timewarped']) {
       await subscriberPage.goto(`${runtime.origin}/library/${section}/`, { waitUntil: 'networkidle0' });
       assert.deepEqual(await subscriberPage.$$eval('.arena-content [aria-disabled="true"]', nodes => nodes
@@ -132,29 +137,28 @@ test('pages link to canonical trailing-slash URLs, so a card link is fetched whe
       assert.equal(await subscriberPage.$(`a[href^="/library/archive/${section}"]`), null);
     }
 
-    // The catalog's card links are the densest set; with the slash they match
-    // the prerender rule, and the click handler opens that same URL.
-    recorder = await startSpeculationRecorder(runtime.origin);
+    // Intent prefetch and the visit must use the same canonical card URL.
+    recorder = await startNavigationRecorder(runtime.origin);
     await page.goto(`${recorder.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
     const card = '.arena-content a[href^="/standard/cards/standard/"]';
     const href = await page.$eval(card, anchor => anchor.getAttribute('href'));
     assert.match(href, /^\/standard\/cards\/standard\/[^/?#]+\/$/);
-    recorder.speculative.length = 0;
+    const timeOrigin = await page.evaluate(() => performance.timeOrigin);
+    recorder.prefetched.length = 0;
+    recorder.documents.length = 0;
+    recorder.apiRequests.length = 0;
     await page.hover(card);
-    await delay(600);
-    assert.deepEqual(recorder.speculative, [], 'hovering a card in the grid prerenders nothing');
-    // A press fetches the card page's HTML (no prerender, so no /api calls),
-    // and the release opens that page from the prefetched response.
-    await page.mouse.down();
     const deadline = Date.now() + 15_000;
-    while (!recorder.speculative.includes(href)) {
-      assert.ok(Date.now() < deadline, `${href} was not prefetched; speculative requests: ${recorder.speculative}`);
+    while (!recorder.prefetched.includes(href)) {
+      assert.ok(Date.now() < deadline, `${href} was not prefetched; RSC requests: ${recorder.prefetched}`);
       await delay(50);
     }
-    await delay(500);
-    await page.mouse.up();
-    assert.ok(recorder.speculative.every(url => !url.startsWith('/api/')), 'a press fetches no data ahead of the visit');
+    assert.deepEqual(recorder.documents, [], 'intent prefetch does not execute another document');
+    assert.deepEqual(recorder.apiRequests, [], 'intent prefetch does not execute client API calls');
+    await page.click(card);
     assert.deepEqual(await arrival(page, href), { redirects: 0, prerendered: false });
+    assert.equal(await page.evaluate(() => performance.timeOrigin), timeOrigin, 'the card visit reuses the document');
+    assert.deepEqual(recorder.documents, [], 'the visit replaces route content without loading a document');
   } finally {
     await browser?.close();
     if (recorder) await closeLocal(recorder.server);

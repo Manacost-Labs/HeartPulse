@@ -7,15 +7,15 @@
       "cssGzipBytes": 35328
     },
     "/articles/": {
-      "jsGzipBytes": 162816,
+      "jsGzipBytes": 163840,
       "cssGzipBytes": 46080
     },
     "/faq/": {
-      "jsGzipBytes": 156672,
+      "jsGzipBytes": 157696,
       "cssGzipBytes": 39936
     },
     "/standard/matchups/": {
-      "jsGzipBytes": 173056,
+      "jsGzipBytes": 174080,
       "cssGzipBytes": 46336
     },
     "/standard/meta/": {
@@ -23,11 +23,11 @@
       "cssGzipBytes": 59392
     },
     "/standard/archetypes/": {
-      "jsGzipBytes": 184320,
+      "jsGzipBytes": 185344,
       "cssGzipBytes": 65536
     },
     "/standard/vicious-gold/": {
-      "jsGzipBytes": 174080,
+      "jsGzipBytes": 175104,
       "cssGzipBytes": 57088
     },
     "/standard/cards/": {
@@ -39,7 +39,7 @@
       "cssGzipBytes": 50176
     },
     "/classes/": {
-      "jsGzipBytes": 167936,
+      "jsGzipBytes": 168960,
       "cssGzipBytes": 43008
     },
     "/tierlist/": {
@@ -51,7 +51,7 @@
       "cssGzipBytes": 50176
     },
     "/heroes/": {
-      "jsGzipBytes": 162816,
+      "jsGzipBytes": 163840,
       "cssGzipBytes": 41984
     },
     "/library/": {
@@ -63,11 +63,11 @@
       "cssGzipBytes": 39936
     },
     "/battlegrounds/tier-list/": {
-      "jsGzipBytes": 163840,
+      "jsGzipBytes": 164864,
       "cssGzipBytes": 39936
     },
     "/gallery/": {
-      "jsGzipBytes": 160768,
+      "jsGzipBytes": 161792,
       "cssGzipBytes": 46336
     },
     "/cosmetics/": {
@@ -75,7 +75,7 @@
       "cssGzipBytes": 42240
     },
     "/contests/": {
-      "jsGzipBytes": 160768,
+      "jsGzipBytes": 161792,
       "cssGzipBytes": 54784
     },
     "/guides-archive/": {
@@ -83,15 +83,15 @@
       "cssGzipBytes": 43008
     },
     "/standard/fun-decks/": {
-      "jsGzipBytes": 175104,
+      "jsGzipBytes": 176128,
       "cssGzipBytes": 56576
     },
     "/developers/api/": {
-      "jsGzipBytes": 163840,
+      "jsGzipBytes": 164864,
       "cssGzipBytes": 31744
     },
     "/privacy/": {
-      "jsGzipBytes": 156672,
+      "jsGzipBytes": 157696,
       "cssGzipBytes": 39936
     },
     "/connect/": {

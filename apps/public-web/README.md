@@ -93,8 +93,8 @@ behind its `public.ts`, not in `src/features/`.
   with it and the visitor sees the built-in screen.
 - Link to pages with their trailing slash (`/tierlist/`). The slash-less URL
   answers with an uncached 301, which costs a round trip per click and keeps
-  the link out of prerendering. `navigate()` adds the slash for scripted
-  navigation; an `href` has to carry it itself, written out or through
+  the link out of the canonical router cache. `navigate()` adds the slash for
+  scripted navigation; an `href` has to carry it itself, written out or through
   `canonicalPagePath()` from `src/app/routing/canonicalPagePath.ts`. Modules
   under `src/modules/` may not import `src/app/`, so they write the slash out.
   `tests/next-canonical-links-browser.test.mjs` reads every link of the main
