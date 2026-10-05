@@ -103,6 +103,17 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await visitByClick(page, '#client-test-link', '/faq/');
     assert.equal(await page.evaluate(() => location.search), '?from=navigation');
     await assertSameFrame(page);
+    await page.evaluate(() => {
+      const fragment = document.createElement('a'); fragment.id = 'native-fragment';
+      fragment.href = `${location.pathname}${location.search}#main-content`; fragment.textContent = 'К содержимому';
+      document.querySelector('.arena-content').prepend(fragment);
+    });
+    const beforeFragment = gateway.requests.length;
+    await page.click('#native-fragment');
+    assert.equal(await page.evaluate(() => location.hash), '#main-content');
+    assert.equal(gateway.requests.slice(beforeFragment).some(request => request.rsc === '1'), false,
+      'a fragment on the current canonical path/query must remain native');
+    await assertSameFrame(page);
     const popupReady = browser.waitForTarget(target => target.type() === 'page' && target.url() === `${gateway.origin}/tierlist/`, { timeout: 10_000 });
     await page.keyboard.down('Control');
     await page.click('.arena-sidebar a[href="/tierlist/"]');

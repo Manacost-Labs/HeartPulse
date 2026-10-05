@@ -147,8 +147,21 @@ Next contracts (20), motion tokens (3), shell, TypeScript, architecture,
 Storybook build/contracts, existing bundle budgets and documentation gates
 passed. Changed-source Semgrep found no issues. Desktop and mobile persistent
 stories were visually reviewed; no overflow or application console error was
-found. The pre-existing unused CSS preload warning remains. No bundle ceiling
-was increased. A separate read-only review found no required corrections.
+found. The pre-existing unused CSS preload warning remains. A separate
+read-only review found no required corrections.
+
+The first follow-up CI passed the full browser observatory but measured
+cosmetics JavaScript at 171045 bytes against a 171008-byte ceiling (37 bytes
+over). Only that ceiling was rounded to the next KiB, 172032; CSS and every
+other route ceiling are retained. Home JavaScript in that CI was 163576 bytes,
+45 bytes above the prior CI sample. The bridge then dropped a redundant URL
+parse: `clientPagePath` already returns a canonical relative path, so current
+path/query fragments can be compared directly. Native fragment navigation
+has a browser regression check. The router's documented prefetch method is
+passed directly, avoiding an extra wrapper. The final local home measurement
+was 162931 bytes, cosmetics 170458. Local/CI differences prohibit treating
+these as a before/after speed comparison; the route budget remains a checked
+upper bound rather than a claim about field performance.
 
 Documentation impact: this runbook, `docs/specs/public-client-navigation.md`
 and `CHANGELOG.md`. The public-web README and architecture contract remain

@@ -9,8 +9,7 @@ function publicAnchorPath(target: EventTarget | null): string | null {
     || anchor.relList.contains('external') || anchor.hasAttribute('data-native-navigation')) return null;
   const path = clientPagePath(anchor.getAttribute('href') ?? '', location.href);
   if (!path) return null;
-  const url = new URL(path, location.href);
-  if (url.pathname === location.pathname && url.search === location.search && url.hash) return null;
+  if (path.startsWith(`${location.pathname}${location.search}#`)) return null;
   return path;
 }
 
@@ -20,7 +19,7 @@ export function PublicNavigationBridge() {
   useEffect(() => {
     const dispose = installClientNavigation(path => router.push(path));
     // Next 16.3's type requires the legacy `kind`; its runtime defaults it to AUTO.
-    const prepare = createRoutePrefetcher((path, options) => router.prefetch(path, options as Parameters<typeof router.prefetch>[1]));
+    const prepare = createRoutePrefetcher(router.prefetch as Parameters<typeof createRoutePrefetcher>[0]);
     const click = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const destination = publicAnchorPath(event.target);
