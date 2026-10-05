@@ -53,6 +53,8 @@ against the installed tracker and [Plausible's SPA contract](https://plausible.i
 - Registered tests and architecture/debt/catalog/route-manifest gates.
 - Slow-chunk home hydration: server-rendered articles stay visible while the
   guest profile check finishes, with the article chunk deliberately held.
+- Browser observatory checks the first skip link at the persistent Next root
+  or standalone shell, then retains its viewport, sticky and keyboard checks.
 - Changed-source Semgrep: zero findings and parser errors.
 - Storybook MCP instructions and story discovery; ten affected desktop/mobile
   states reviewed in the browser. The persistent-menu stories exercise route

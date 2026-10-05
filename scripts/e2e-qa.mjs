@@ -202,7 +202,9 @@ async function waitForAuthenticatedShell(page) {
     { timeout: 20_000 },
   );
   await page.waitForFunction(() => {
-    const shell = document.querySelector('#root > .arena-app-shell');
+    // Next owns the skip link in its persistent root; standalone shells own it locally.
+    const root = document.querySelector('#root');
+    const shell = root?.firstElementChild?.matches('.arena-app-shell') ? root.firstElementChild : root;
     const skipLink = shell?.firstElementChild;
     return Boolean(skipLink?.matches('.arena-skip-link') && skipLink.isConnected);
   }, { timeout: 5_000 });
@@ -5179,9 +5181,11 @@ for (const [device, viewport] of [
     const skipState = await page.evaluate(() => {
       const element = document.activeElement;
       const rect = element?.getBoundingClientRect();
+      const root = document.querySelector('#root');
+      const shell = root?.firstElementChild?.matches('.arena-app-shell') ? root.firstElementChild : root;
       return {
         className: element?.className || '',
-        firstAppChild: document.querySelector('#root > .arena-app-shell')?.firstElementChild?.matches('.arena-skip-link') || false,
+        firstAppChild: shell?.firstElementChild?.matches('.arena-skip-link') || false,
         width: rect?.width || 0,
         height: rect?.height || 0,
         top: rect?.top || 0,
