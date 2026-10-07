@@ -364,6 +364,10 @@
 .archetypes-ledger__header span:first-child { color: #fff0c8; font-weight: 900; text-transform: uppercase; }
 .archetypes-list { display: grid; }
 
+/* About 90 rows of nested grids: rows away from the viewport skip style,
+   layout and paint (phone TBT 555 -> 224 ms at CPU x4). The intrinsic size is
+   the measured row height per breakpoint; `auto` then keeps each row's real
+   height once rendered, so scrolling back does not resize the list. */
 .archetype-row {
   display: grid;
   grid-template-columns: 34px 52px minmax(185px, 1.2fr) minmax(390px, 1.5fr) auto;
@@ -372,6 +376,8 @@
   min-height: 88px;
   padding: 0.7rem 0.8rem;
   border-bottom: 1px solid rgba(92, 54, 24, 0.18);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 88px;
 }
 
 .archetype-row:last-child { border-bottom: 0; }
@@ -1083,7 +1089,7 @@
 @media (max-width: 1120px) {
   .archetypes-hero { grid-template-columns: 1fr; }
   .archetypes-hero__summary { max-width: 620px; }
-  .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; }
+  .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; contain-intrinsic-size: auto 130px; }
   .archetype-row__metrics { grid-column: 1 / -1; grid-row: 2; }
   .archetype-row__open { grid-column: 4; grid-row: 1; }
   .archetype-dossier { grid-template-columns: 1fr; }
@@ -1119,6 +1125,7 @@
     gap: 0.55rem;
     min-height: 0;
     padding: 0.75rem 0.55rem;
+    contain-intrinsic-size: auto 175px;
   }
   .archetype-row__class { width: 44px; height: 44px; }
   .archetype-row__identity h2 { font-size: 1rem; }

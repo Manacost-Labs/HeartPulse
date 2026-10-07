@@ -109,6 +109,40 @@ The sandbox's default sans-serif, DejaVu Sans, is 15% wider than Arial, so
 the baseline shift there overstates what Windows and Android visitors saw;
 field `web.vital.cls` by route is the reference for the real gain.
 
+## Archetype catalog weight on phones
+
+The production sample measured 954 ms of total blocking time for
+`/standard/archetypes/` on a CPU ×4 phone, against about 290 ms for the
+median public page. A trace showed the cost in style recalculation and layout
+of the server-rendered list (about 90 rows, each a nested grid with a
+filtered class icon) and in rendering those rows again during hydration.
+
+`.archetype-row` now uses `content-visibility: auto`, so rows away from the
+viewport skip style, layout and paint while staying in the document for
+search, find-in-page and assistive technology. `contain-intrinsic-size` is the
+measured row height per breakpoint (88 px above 1120 px, 130 px down to
+820 px, 175 px below); `auto` keeps each row's real height once it has
+rendered. The catalog also reuses one `Intl.NumberFormat` per precision
+instead of building one for every number in every render.
+
+Local production build, guest, 390 px, CPU ×4, 90 production rows, median of
+five loads:
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Total blocking time | 555 ms | 196 ms |
+| Longest task | 198 ms | 128 ms |
+| Style recalculation | 225 ms | 91 ms |
+| Layout | 204 ms | 114 ms |
+| Main-thread task time | 1460 ms | 998 ms |
+
+`content-visibility` alone took blocking time to 224 ms; the formatter cache
+accounts for the rest. These are local lab samples, not field INP or LCP.
+`tests/next-archetypes-catalog-rendering-browser.test.mjs` renders 90 rows on
+a phone, requires a row far below the viewport to be skipped, all 90 links to
+stay in the document, scrolling to cause less than 0.01 layout shift and the
+last row to render once it is in view.
+
 ## Repeat the checks
 
 ```sh
@@ -117,7 +151,8 @@ npm run build:next
 CHROMIUM_PATH=/path/to/chromium node --test --test-concurrency=1 \
   tests/next-cards-browser.test.mjs \
   tests/next-arena-guest-paywall-browser.test.mjs \
-  tests/next-font-swap-browser.test.mjs
+  tests/next-font-swap-browser.test.mjs \
+  tests/next-archetypes-catalog-rendering-browser.test.mjs
 node --test tests/font-faces.test.mjs
 ```
 

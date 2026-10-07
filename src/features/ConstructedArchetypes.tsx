@@ -182,9 +182,27 @@ function classIcon(classKey: ArchetypeClass | null): string {
   return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
 }
 
+// The catalog formats three numbers per row on every render; toLocaleString
+// with options builds a new Intl.NumberFormat each call.
+const NUMBER_FORMATS = new Map<number, Intl.NumberFormat>();
+
+function numberFormat(maximumFractionDigits: number): Intl.NumberFormat {
+  let format = NUMBER_FORMATS.get(maximumFractionDigits);
+  if (!format) {
+    format = new Intl.NumberFormat('ru-RU', { maximumFractionDigits });
+    NUMBER_FORMATS.set(maximumFractionDigits, format);
+  }
+  return format;
+}
+
 function formatNumber(value: number | null, suffix = '', maximumFractionDigits = 1): string {
   if (value === null || !Number.isFinite(value)) return '—';
-  return `${value.toLocaleString('ru-RU', { maximumFractionDigits })}${suffix}`;
+  return `${numberFormat(maximumFractionDigits).format(value)}${suffix}`;
+}
+
+/** Same output as `toLocaleString('ru-RU')`, whose default keeps three fraction digits. */
+function formatCount(value: number): string {
+  return numberFormat(3).format(value);
 }
 
 function formatDate(value: string | null, timeZone?: string): string {
@@ -385,7 +403,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка каталога">
           <div><dt>Архетипов</dt><dd>{catalog?.items.length ?? '—'}</dd></div>
-          <div><dt>Игр в выборке</dt><dd>{totalGames ? totalGames.toLocaleString('ru-RU') : '—'}</dd></div>
+          <div><dt>Игр в выборке</dt><dd>{totalGames ? formatCount(totalGames) : '—'}</dd></div>
         </dl>
       </section>
 
@@ -489,7 +507,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
                 <dl className="archetype-row__metrics">
                   <div><dt>Винрейт</dt><dd className={`metric-${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</dd></div>
                   <div><dt>Популярность</dt><dd>{formatNumber(item.popularity, '%')}</dd></div>
-                  <div><dt>Игры</dt><dd>{item.games.toLocaleString('ru-RU')}</dd></div>
+                  <div><dt>Игры</dt><dd>{formatCount(item.games)}</dd></div>
                   <div><dt>Сборки</dt><dd>{item.deckCount}</dd></div>
                 </dl>
                 <a
