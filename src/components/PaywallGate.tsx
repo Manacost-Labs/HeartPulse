@@ -29,9 +29,7 @@ export type PaywallAccessState = Pick<
   'authUser' | 'subscriptionStatus' | 'subscriptionLoading' | 'onRefreshSubscription'
 >;
 
-// The gate's own key stops React from recycling the first unlocked child (often
-// a plain div) as the wrapper and its children as the preview and overlay; the
-// browser scores those reused nodes as moved content (CLS 0.2 on /legendaries/).
+// React must not recycle an unlocked child div as the gate: reused nodes count as moved (CLS 0.2).
 const GATE_KEY = 'subscription-gate';
 
 // Paywall actions keep the 44px touch target required on phones.
