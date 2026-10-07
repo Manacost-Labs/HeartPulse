@@ -136,18 +136,19 @@ unchanged. The catalog also reuses one `Intl.NumberFormat` per precision
 instead of building one for every number in every render.
 
 Local production build, guest, 390 px, CPU ×4, 90 production rows, median of
-five loads:
+seven loads (five for the baseline):
 
 | Metric | Before | After |
 | --- | ---: | ---: |
-| Total blocking time | 555 ms | 196 ms |
-| Longest task | 198 ms | 128 ms |
-| Style recalculation | 225 ms | 91 ms |
-| Layout | 204 ms | 114 ms |
-| Main-thread task time | 1460 ms | 998 ms |
+| Total blocking time | 555 ms | 200 ms |
+| Longest task | 198 ms | 126 ms |
+| Style recalculation | 225 ms | 74 ms |
+| Layout | 204 ms | 109 ms |
+| Main-thread task time | 1460 ms | 984 ms |
 
-`content-visibility` alone took blocking time to 224 ms; the formatter cache
-accounts for the rest. These are local lab samples, not field INP or LCP.
+`content-visibility` alone took blocking time to 224 ms in a five-load sample;
+the formatter cache moved script time from about 433 to 398 ms, which is within
+run-to-run noise. These are local lab samples, not field INP or LCP.
 `tests/next-archetypes-catalog-rendering-browser.test.mjs` renders 90 rows on
 a phone, requires a row far below the viewport to be skipped, all 90 links to
 stay in the document, scrolling to cause less than 0.01 layout shift and the

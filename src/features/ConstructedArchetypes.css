@@ -365,7 +365,7 @@
 .archetypes-list { display: grid; }
 
 /* About 90 rows of nested grids: rows away from the viewport skip style,
-   layout and paint (phone TBT 555 -> 196 ms at CPU x4). The intrinsic size is
+   layout and paint (phone TBT 555 -> 200 ms at CPU x4). The intrinsic size is
    the content height (measured row minus padding and border) per breakpoint;
    `auto` then keeps each row's real height once it has rendered. */
 .archetype-row {
