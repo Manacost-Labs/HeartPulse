@@ -60,7 +60,7 @@ export type MailingDraft = {
 
 export const EMPTY_MAILING_DRAFT: MailingDraft = {
   subject: 'Новости Manacost',
-  preheader: 'Свежие материалы и обновления HS-Arena.',
+  preheader: 'Свежие материалы и обновления HearthPulse.',
   htmlBody: '<h2>Заголовок письма</h2><p>Напишите здесь основной текст рассылки.</p>',
   segment: 'all-consented',
   templateKey: 'blank',

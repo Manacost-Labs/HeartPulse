@@ -1,5 +1,5 @@
 ---
-name: HS-Arena Design System
+name: HearthPulse Design System
 colors:
   primary: "#8d171d"
   on-primary: "#fff0c8"
@@ -52,13 +52,13 @@ spacing:
   margin: 24px
 ---
 
-# HS-Arena Design System
+# HearthPulse Design System
 
 > This is the visual source of truth for `arena.hs-manacost.ru`. Read it before changing UI. Preserve product behavior, data loading and protected animations unless a task explicitly asks for functional changes.
 
 ## Product Direction
 
-HS-Arena is a Hearthstone statistics product presented as a readable game compendium. The interface uses real Hearthstone materials without copying the game client: continuous parchment for content, a red textured navigation rail, wood for separators and frames, and one restrained accent per game mode. Cold white, milk-white and blue-white page backgrounds are never valid: every exposed page surface must be parchment, wood, red tavern cloth or the assigned game-mode material.
+HearthPulse is a Hearthstone statistics product presented as a readable game compendium. The interface uses real Hearthstone materials without copying the game client: continuous parchment for content, a red textured navigation rail, wood for separators and frames, and one restrained accent per game mode. Cold white, milk-white and blue-white page backgrounds are never valid: every exposed page surface must be parchment, wood, red tavern cloth or the assigned game-mode material.
 
 The design must feel authored and useful, not like a collection of unrelated rounded dashboard cards.
 

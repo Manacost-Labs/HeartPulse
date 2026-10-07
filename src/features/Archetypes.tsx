@@ -83,7 +83,7 @@ export default function ArchetypesPage({
          * Data path, deliberately kept server-side after this request:
          *
          * Browser → GET /api/admin/archetypes (admin cookie required)
-         * HS-Arena server → HS_DATA_API_BASE_URL/api/hsreplay/archetypes?hl=en
+         * HearthPulse server → HS_DATA_API_BASE_URL/api/hsreplay/archetypes?hl=en
          * HS Data API → HSReplay /api/v1/archetypes/?hl=en
          *
          * The Arena server combines the English HSReplay dictionary with our

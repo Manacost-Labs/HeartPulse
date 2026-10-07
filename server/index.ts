@@ -1881,7 +1881,7 @@ function khaBoostySubscriptionDetail(user: AdminUser, profile: Record<string, an
     source: 'kha-vip-bot',
     message: hasAccess
       ? 'Boosty подписка подтверждена через Telegram-бот Манакоста.'
-      : 'Boosty уровень найден, но он не открывает разделы HS-Arena.',
+      : 'Boosty уровень найден, но он не открывает разделы HearthPulse.',
   };
 }
 
@@ -2157,7 +2157,7 @@ function applyKhaSubscriptionSnapshot(user: AdminUser, profile: Record<string, a
     stale: false,
     message: hasAccess
       ? 'Boosty подписка подтверждена через Telegram-бот Манакоста.'
-      : 'Boosty уровень найден, но он не открывает разделы HS-Arena.',
+      : 'Boosty уровень найден, но он не открывает разделы HearthPulse.',
     entitlements,
     boosty,
     telegram: {},
@@ -2490,7 +2490,7 @@ function sendAuthCodeEmail(to: string, code: string): Promise<void> {
             <tr>
               <td style="padding:0 28px 24px;background:#f8faff;">
                 <div style="height:1px;background:#dbe6f5;margin:8px 0 14px;font-size:0;line-height:0;">&nbsp;</div>
-                <div style="font-size:12px;line-height:1.5;color:#64748b;">HS-Arena · Hearthstone statistics · Manacost</div>
+                <div style="font-size:12px;line-height:1.5;color:#64748b;">HearthPulse · Hearthstone statistics · Manacost</div>
               </td>
             </tr>
             <tr>
@@ -2682,7 +2682,7 @@ function renderNewsletterHtml(draft: NewsletterDraft, unsubscribeUrl: string, pr
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${safePreheader}</div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mail-wrap"><tr><td>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mail-card">
-        <tr><td class="mail-head"><small>HS-Arena · Manacost</small><strong>${safeSubject}</strong></td></tr>
+        <tr><td class="mail-head"><small>HearthPulse · Manacost</small><strong>${safeSubject}</strong></td></tr>
         <tr><td class="mail-content">${draft.htmlBody}</td></tr>
         <tr><td class="mail-foot">Вы получили письмо, потому что согласились на рассылку Manacost. <a href="${safeUnsubscribeUrl}">Отписаться от рассылки</a>.</td></tr>
       </table>
@@ -2789,14 +2789,14 @@ function newsletterTemplates() {
   const latestUrl = safeNewsletterUrl(latest?.url, `${APP_URL}/articles`);
   const latestImage = latest?.image ? safeNewsletterUrl(latest.image, '') : '';
   const latestTitle = normalizeOptionalText(latest?.title, 180) || 'Новая статья Manacost';
-  const latestExcerpt = normalizeOptionalText(latest?.excerpt, 500) || 'Читайте новый материал на HS-Arena.';
+  const latestExcerpt = normalizeOptionalText(latest?.excerpt, 500) || 'Читайте новый материал на HearthPulse.';
   return [
     {
       id: 'blank',
       label: 'Пустое письмо',
       description: 'Начните с чистого текста и своей структуры.',
       subject: 'Новости Manacost',
-      preheader: 'Свежие материалы и обновления HS-Arena.',
+      preheader: 'Свежие материалы и обновления HearthPulse.',
       htmlBody: '<h2>Заголовок письма</h2><p>Напишите здесь основной текст рассылки.</p>',
     },
     {
@@ -2809,7 +2809,7 @@ function newsletterTemplates() {
         ${latestImage ? `<img src="${escapeNewsletterHtml(latestImage)}" alt="">` : ''}
         <h2>${escapeNewsletterHtml(latestTitle)}</h2>
         <p>${escapeNewsletterHtml(latestExcerpt)}</p>
-        <p><a href="${escapeNewsletterHtml(latestUrl)}">Читать статью на HS-Arena →</a></p>
+        <p><a href="${escapeNewsletterHtml(latestUrl)}">Читать статью на HearthPulse →</a></p>
       `),
     },
     {
@@ -2817,7 +2817,7 @@ function newsletterTemplates() {
       label: 'Обновился тир-лист',
       description: 'Короткое письмо об актуальных данных Арены.',
       subject: 'Тир-лист Арены обновлён',
-      preheader: 'Свежие позиции классов и актуальные данные уже на HS-Arena.',
+      preheader: 'Свежие позиции классов и актуальные данные уже на HearthPulse.',
       htmlBody: sanitizeNewsletterFragment(`
         <h2>Тир-лист Арены обновлён</h2>
         <p>Мы пересчитали актуальные позиции классов по свежей статистике. Проверьте лидеров и подготовьтесь к следующему забегу.</p>
@@ -3449,7 +3449,7 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
       message: hasAccess
         ? 'Boosty подписка подтверждена.'
         : data?.found
-          ? 'Этот уровень Boosty не открывает разделы HS-Arena.'
+          ? 'Этот уровень Boosty не открывает разделы HearthPulse.'
           : 'Boosty не нашёл эту почту. Зайдите на Boosty и привяжите/откройте email, затем обновите проверку.',
     };
   } catch (err: any) {

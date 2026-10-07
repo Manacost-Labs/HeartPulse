@@ -55,7 +55,7 @@ function buildMessage({ version, text }) {
   const body = text.trim();
   if (!body) throw new Error('Changelog text is required. Pass --text or pipe stdin.');
   const date = new Date().toISOString().slice(0, 10);
-  return [`HS-Arena ${version}`, date, '', body].join('\n');
+  return [`HearthPulse ${version}`, date, '', body].join('\n');
 }
 
 const args = parseArgs(process.argv.slice(2));

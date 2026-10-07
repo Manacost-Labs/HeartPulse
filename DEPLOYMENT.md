@@ -1,4 +1,4 @@
-# HS-Arena immutable deployment
+# HearthPulse immutable deployment
 
 ## Filesystem layout
 

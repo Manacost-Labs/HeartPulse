@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD013 -->
 
-# HS-Arena Design System
+# HearthPulse Design System
 
 > Archived summary. Previously lived in the repository root as `Design.md`, where it existed only so case-insensitive filesystems could not read it and `design.md` as one contradictory file. That collision is gone, so this file is no longer a compatibility pointer and is not authoritative.
 
@@ -8,7 +8,7 @@ The canonical design specification is [`design.md`](../../design.md) in the repo
 
 ## Product Direction
 
-HS-Arena is a Hearthstone statistics product presented as a readable game compendium. Use a continuous parchment canvas, red textured navigation, thin wood separators, real game assets and a restrained game-mode accent. Existing filters, lightboxes, tier grids, drag/drop builders, exports and protected animations must remain intact during visual work. Cold white, milk-white and blue-white page backgrounds are forbidden: every exposed page surface must read as parchment, wood, red tavern cloth or the assigned game-mode material.
+HearthPulse is a Hearthstone statistics product presented as a readable game compendium. Use a continuous parchment canvas, red textured navigation, thin wood separators, real game assets and a restrained game-mode accent. Existing filters, lightboxes, tier grids, drag/drop builders, exports and protected animations must remain intact during visual work. Cold white, milk-white and blue-white page backgrounds are forbidden: every exposed page surface must read as parchment, wood, red tavern cloth or the assigned game-mode material.
 
 ## Canonical Tokens
 

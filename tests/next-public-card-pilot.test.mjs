@@ -119,7 +119,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const galleryHtml = await gallery.text();
     assert.match(galleryHtml, /Контрольный арт/);
     assert.match(galleryHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/gallery\/"/);
-    assert.match(galleryHtml, /property="og:title" content="Галерея артов Hearthstone \| HS-Arena"/);
+    assert.match(galleryHtml, /property="og:title" content="Галерея артов Hearthstone \| HearthPulse"/);
     assert.match(galleryHtml, /property="og:image" content="https:\/\/hearthpulse.net\/assets\/og-preview.png"/);
     assert.match(galleryHtml, /name="twitter:card" content="summary_large_image"/);
     assert.match(galleryHtml, /\/api\/gallery\/qa-gallery\/thumb/);

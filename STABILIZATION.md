@@ -1,8 +1,8 @@
 <!-- markdownlint-disable MD013 -->
 
-# HS-Arena stabilization programme
+# HearthPulse stabilization programme
 
-This document is the operational source of truth for making HS-Arena safer,
+This document is the operational source of truth for making HearthPulse safer,
 more predictable and easier to maintain. Work is delivered as small tasks;
 every completed task must be tested and pushed to `main` as a separate commit.
 

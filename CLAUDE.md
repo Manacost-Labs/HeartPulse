@@ -1,4 +1,4 @@
-# HS-Arena Claude Instructions
+# HearthPulse Claude Instructions
 
 Before investigating, planning, editing, testing, committing, or deploying this
 repository, read and follow [AGENTS.md](AGENTS.md) completely.

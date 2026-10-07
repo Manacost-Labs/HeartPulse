@@ -114,7 +114,7 @@ exchanging, refreshing and authenticating credentials. Tracker ingestion shares
 this authenticator and cannot bypass account blocking.
 
 This document is the architectural contract for new code and incremental
-refactoring in HS-Arena. It defines ownership and dependency direction so the
+refactoring in HearthPulse. It defines ownership and dependency direction so the
 application can be changed without first understanding a multi-thousand-line
 file.
 

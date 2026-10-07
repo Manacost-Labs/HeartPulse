@@ -4,7 +4,7 @@
     "/": {
       "policyRouteId": "home",
       "navigationRouteId": "home",
-      "title": "HS-Arena — Тир-лист и Винрейты для Арены Hearthstone",
+      "title": "HearthPulse — Тир-лист и Винрейты для Арены Hearthstone",
       "description": "Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.",
       "sitemap": true
     },
@@ -87,7 +87,7 @@
     "/classes": {
       "policyRouteId": "winrates",
       "navigationRouteId": "winrates",
-      "title": "Винрейт классов — Арена Hearthstone {year} | HS-Arena",
+      "title": "Винрейт классов — Арена Hearthstone {year} | HearthPulse",
       "description": "Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.",
       "sitemap": true
     },
@@ -101,21 +101,21 @@
     "/legendaries": {
       "policyRouteId": "legendaries",
       "navigationRouteId": "legendaries",
-      "title": "Легендарки на Арене Hearthstone — Лучшие группы | HS-Arena",
+      "title": "Легендарки на Арене Hearthstone — Лучшие группы | HearthPulse",
       "description": "Какую легендарную карту выбрать на Арене? Все группы первого выбора с процентом побед для каждого класса. Обновляется автоматически с Manacost.",
       "sitemap": true
     },
     "/articles": {
       "policyRouteId": "articles",
       "navigationRouteId": "articles",
-      "title": "Статьи и гайды по Арене Hearthstone | HS-Arena",
+      "title": "Статьи и гайды по Арене Hearthstone | HearthPulse",
       "description": "Гайды, разборы мета и советы по режиму Арена в Hearthstone от команды Manacost. Актуальные статьи для игроков всех уровней.",
       "sitemap": true
     },
     "/gallery": {
       "policyRouteId": "gallery",
       "navigationRouteId": "gallery",
-      "title": "Галерея артов Hearthstone | HS-Arena",
+      "title": "Галерея артов Hearthstone | HearthPulse",
       "description": "Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.",
       "sitemap": true
     },
@@ -219,7 +219,7 @@
     "/battlegrounds/tier-builder": {
       "policyRouteId": "bg-tier-builder",
       "navigationRouteId": "bg-tier-builder",
-      "title": "Конструктор тир-листов Полей Сражений | HS-Arena",
+      "title": "Конструктор тир-листов Полей Сражений | HearthPulse",
       "description": "Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей Сражений.",
       "sitemap": true
     },
