@@ -29,6 +29,11 @@ export type PaywallAccessState = Pick<
   'authUser' | 'subscriptionStatus' | 'subscriptionLoading' | 'onRefreshSubscription'
 >;
 
+// The gate's own key stops React from recycling the first unlocked child (often
+// a plain div) as the wrapper and its children as the preview and overlay; the
+// browser scores those reused nodes as moved content (CLS 0.2 on /legendaries/).
+const GATE_KEY = 'subscription-gate';
+
 // Paywall actions keep the 44px touch target required on phones.
 const ACTION_STYLE = {
   background: 'rgba(37,99,235,0.08)', color: '#1f3b63', border: '1px solid #9db4d5', borderRadius: '8px',
@@ -73,7 +78,7 @@ export default function PaywallGate({
     );
   }
   return (
-    <div className="arena-paywall" style={{ position: 'relative', minHeight: 'var(--subscription-gate-min-height)', paddingBottom: 48 }}>
+    <div key={GATE_KEY} className="arena-paywall" style={{ position: 'relative', minHeight: 'var(--subscription-gate-min-height)', paddingBottom: 48 }}>
       <div
         aria-hidden="true"
         inert

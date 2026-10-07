@@ -38,12 +38,36 @@ asserts that the box is already taller than 200 px, that it keeps its height
 when the image arrives and that the layout shift stays below 0.01. It fails
 on the base commit with a 0 px box.
 
+## Subscription gate
+
+`PaywallGate` returns its children unchanged while access is unknown or
+granted, and wraps them in `.arena-paywall` once a guest is confirmed. On
+`/legendaries/` the children are plain `div`s, so React reconciled the
+toolbar `div` into the gate wrapper and its children into the preview and
+overlay. The browser scored those recycled nodes as moved content (CLS 0.20
+desktop, 0.12 phone); `/classes/` passes a component child and was not
+affected. The wrapper now has a stable `key`, so the gate always mounts new
+nodes. Geometry, the phone layout without a preview and the production
+observer's `.arena-paywall` contract are unchanged.
+
+`tests/next-arena-guest-paywall-browser.test.mjs` loads `/classes/`,
+`/tierlist/` and `/legendaries/` as a guest at 1440 px and 390 px and
+requires a total layout shift below 0.02 after the gate appears. It fails
+on the base commit with 0.2002 for `/legendaries/` at 1440 px.
+
+`tests/soft-paywall-browser.test.mjs` fails on the base commit in this
+cloud sandbox as well: Storybook logs `Error loading story index: Failed to
+fetch` when the test navigates away from a story while `index.json` is still
+loading. The gate change does not affect it.
+
 ## Repeat the checks
 
 ```sh
 npm run build:static
 npm run build:next
-CHROMIUM_PATH=/path/to/chromium node --test tests/next-cards-browser.test.mjs
+CHROMIUM_PATH=/path/to/chromium node --test --test-concurrency=1 \
+  tests/next-cards-browser.test.mjs \
+  tests/next-arena-guest-paywall-browser.test.mjs
 ```
 
 Production review: open the page on a 390 px phone with CPU ×4, observe
