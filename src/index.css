@@ -290,6 +290,53 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* Metric-matched fallbacks. `swap` paints text in a local face until the web
+   font arrives; scaled to the web font's width and line box, that face wraps
+   lines the same way, so the swap no longer moves the page (CLS 0.2 on legal
+   pages). size-adjust is measured in Chromium on Russian text against
+   metric-compatible faces (Arial = Liberation Sans, Times New Roman =
+   Liberation Serif); the overrides are the web font's ascent and descent
+   divided by size-adjust. Roboto shares Arial's width; Noto Serif, Android's
+   serif, is estimated from its Latin width. See
+   docs/runbooks/layout-shift-stability.md. */
+@font-face {
+  font-family: 'Inter Fallback';
+  font-weight: 100 500;
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Roboto'), local('Roboto-Regular');
+  size-adjust: 106.74%;
+  ascent-override: 90.76%;
+  descent-override: 22.6%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Inter Fallback';
+  font-weight: 600 900;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Roboto Bold'), local('Roboto-Bold');
+  size-adjust: 101.45%;
+  ascent-override: 95.49%;
+  descent-override: 23.78%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'HSDisplay Fallback';
+  src: local('Times New Roman'), local('TimesNewRomanPSMT'), local('Liberation Serif'), local('LiberationSerif');
+  size-adjust: 120.43%;
+  ascent-override: 81.21%;
+  descent-override: 19.66%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'HSDisplay Fallback Android';
+  src: local('Noto Serif'), local('NotoSerif-Regular');
+  size-adjust: 101.71%;
+  ascent-override: 96.15%;
+  descent-override: 23.28%;
+  line-gap-override: 0%;
+}
+
 
 @layer utilities {
   .arena-layout-shell {
@@ -736,9 +783,9 @@
 }
 
 @theme {
-  --font-hs:      "HSDisplay", "Cinzel", serif;
-  --font-display: "HSDisplay", serif;
-  --font-body:    "Inter", sans-serif;
+  --font-hs:      "HSDisplay", "Cinzel", "HSDisplay Fallback", "HSDisplay Fallback Android", serif;
+  --font-display: "HSDisplay", "HSDisplay Fallback", "HSDisplay Fallback Android", serif;
+  --font-body:    "Inter", "Inter Fallback", sans-serif;
   /* `transition-*` utilities without a duration move at the site tempo. */
   --default-transition-duration: var(--motion-fast);
   --default-transition-timing-function: var(--motion-ease);

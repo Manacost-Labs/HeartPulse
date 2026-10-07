@@ -60,6 +60,55 @@ cloud sandbox as well: Storybook logs `Error loading story index: Failed to
 fetch` when the test navigates away from a story while `index.json` is still
 loading. The gate change does not affect it.
 
+## Web font swap
+
+Inter and HSDisplay use `font-display: swap`. Until a file arrives the
+browser paints the text in the next family, an unscaled local face, and the
+swap re-wraps lines. On `/terms/` and `/privacy/` the header line wrapped
+from one line to two and pushed the document down 21–49 px; the
+`/battlegrounds/tier-list/` title wrapped the same way. Blocking the fonts
+removed the shift entirely, so the fallback metrics are the cause.
+
+`src/index.css` now declares local-only fallback faces that the font tokens
+(`--font-body`, `--font-display`, `--font-hs`) list right after each web
+font:
+
+<!-- markdownlint-disable MD013 -->
+| Fallback | Local faces | size-adjust | Measured against |
+| --- | --- | ---: | --- |
+| `Inter Fallback` 100–500 | Arial, Liberation Sans, Roboto | 106.74% | Inter 400 |
+| `Inter Fallback` 600–900 | the same, Bold | 101.45% | Inter 600–700 |
+| `HSDisplay Fallback` | Times New Roman, Liberation Serif | 120.43% | HSDisplay |
+| `HSDisplay Fallback Android` | Noto Serif | 101.71% | estimate |
+<!-- markdownlint-enable MD013 -->
+
+The ratios were measured in Chromium by rendering Russian text with the
+shipped WOFF2 files and with Liberation Sans and Liberation Serif, which share
+Arial's and Times New Roman's advance widths. They differ from Next.js's
+Latin-only estimate for Inter (107.12%). Roboto's Latin width is within 0.3%
+of Arial's, so it shares the Arial values. Noto Serif is not available in the
+sandbox; its value scales the Times ratio by the Latin width ratio from Next's
+bundled capsize metrics. `ascent-override`, `descent-override` and
+`line-gap-override` are the web font's own vertical metrics divided by
+size-adjust, the formula `next/font` uses, so the fallback keeps the web
+font's line box. HSDisplay lacks only `₽` among common characters, which now
+falls through to the scaled Times face.
+
+`tests/next-font-swap-browser.test.mjs` holds every WOFF2 request, lets the
+page settle in the fallback, releases the fonts and requires the swap to move
+`/terms/`, `/privacy/` and `/battlegrounds/tier-list/` by less than 0.02 at
+390 px and 1440 px. On the base commit `/terms/` at 390 px moved by 0.1943.
+With the fallbacks, a 1.5 s font delay moves `/terms/` and `/privacy/` by 0 on
+the phone and the battlegrounds page by 0.0007. `tests/font-faces.test.mjs`
+checks the descriptors and the token order.
+
+Font preloading was not added: it would start about 80 KB of fonts in
+parallel with the LCP image and CSS, and the sandbox cannot measure that
+trade-off for Russian visitors. Field CLS and LCP in Sentry should decide it.
+The sandbox's default sans-serif, DejaVu Sans, is 15% wider than Arial, so
+the baseline shift there overstates what Windows and Android visitors saw;
+field `web.vital.cls` by route is the reference for the real gain.
+
 ## Repeat the checks
 
 ```sh
@@ -67,7 +116,9 @@ npm run build:static
 npm run build:next
 CHROMIUM_PATH=/path/to/chromium node --test --test-concurrency=1 \
   tests/next-cards-browser.test.mjs \
-  tests/next-arena-guest-paywall-browser.test.mjs
+  tests/next-arena-guest-paywall-browser.test.mjs \
+  tests/next-font-swap-browser.test.mjs
+node --test tests/font-faces.test.mjs
 ```
 
 Production review: open the page on a 390 px phone with CPU ×4, observe

@@ -11,13 +11,17 @@ const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(match => {
     url: body.match(/url\(["']?([^"')]+)["']?\)/)?.[1],
     format: body.match(/format\(["']?([^"')]+)["']?\)/)?.[1],
     unicodeRange: body.match(/unicode-range:\s*([^;]+);/)?.[1].trim() ?? '',
+    body,
   };
 });
 const publicFile = url => new URL(`../public${url}`, import.meta.url);
+// Local-only faces are the metric-matched fallbacks, not downloads.
+const selfHosted = faces.filter(face => !/src:\s*local\(/.test(face.body));
+const fallbacks = faces.filter(face => /src:\s*local\(/.test(face.body));
 
 test('every self-hosted face points at an existing WOFF2 file', () => {
-  assert.ok(faces.length > 0);
-  for (const face of faces) {
+  assert.ok(selfHosted.length > 0);
+  for (const face of selfHosted) {
     assert.match(face.url, /^\/fonts\/.+\.woff2$/, `${face.family} ${face.weight}`);
     assert.equal(face.format, 'woff2', `${face.family} ${face.url}`);
     assert.ok(existsSync(publicFile(face.url)), `${face.url} is missing from public/`);
@@ -46,4 +50,21 @@ test('Inter latin and cyrillic use the 400-700 cut and keep one face per weight'
       assert.ok(size <= ceiling, `${face.url} is ${size} B`);
     }
   }
+});
+
+test('web fonts have metric-matched local fallbacks in every font token', () => {
+  const families = new Set(fallbacks.map(face => face.family));
+  assert.deepEqual([...families].sort(), ['HSDisplay Fallback', 'HSDisplay Fallback Android', 'Inter Fallback']);
+  for (const face of fallbacks) {
+    assert.equal(face.url, undefined, `${face.family} must not download a file`);
+    for (const descriptor of ['size-adjust', 'ascent-override', 'descent-override', 'line-gap-override']) {
+      assert.match(face.body, new RegExp(`${descriptor}:\\s*\\d+(\\.\\d+)?%;`), `${face.family} ${face.weight ?? ''} ${descriptor}`);
+    }
+  }
+  // Inter's regular and bold cuts differ in width, so each has its own fallback.
+  assert.deepEqual(fallbacks.filter(face => face.family === 'Inter Fallback').map(face => face.weight), ['100 500', '600 900']);
+  const token = name => css.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].replace(/\s+/g, ' ').trim();
+  assert.equal(token('font-body'), '"Inter", "Inter Fallback", sans-serif');
+  assert.equal(token('font-display'), '"HSDisplay", "HSDisplay Fallback", "HSDisplay Fallback Android", serif');
+  assert.equal(token('font-hs'), '"HSDisplay", "Cinzel", "HSDisplay Fallback", "HSDisplay Fallback Android", serif');
 });
