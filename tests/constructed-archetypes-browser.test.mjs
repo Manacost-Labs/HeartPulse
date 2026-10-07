@@ -351,18 +351,32 @@ try {
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   await page.goto(fixture('format=wild'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.archetype-row');
-  const catalogMobile = await page.evaluate(() => ({
-    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch button')].map(element => element.getBoundingClientRect().height)),
-    minClassButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-class-filter button')].map(element => element.getBoundingClientRect().height)),
-    minOpenHeight: Math.min(...[...document.querySelectorAll('.archetype-row__open')].map(element => element.getBoundingClientRect().height)),
-  }));
+  const catalogMobile = await page.evaluate(async () => {
+    // Rows away from the viewport skip layout (content-visibility), so each
+    // row's control is measured once that row is on screen.
+    const openHeights = [];
+    for (const row of document.querySelectorAll('.archetype-row')) {
+      row.scrollIntoView({ block: 'center' });
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      openHeights.push(row.querySelector('.archetype-row__open').getBoundingClientRect().height);
+    }
+    scrollTo(0, 0);
+    return {
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch button')].map(element => element.getBoundingClientRect().height)),
+      minClassButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-class-filter button')].map(element => element.getBoundingClientRect().height)),
+      minOpenHeight: Math.min(...openHeights),
+    };
+  });
   assert.ok(catalogMobile.overflow <= 1, `catalog overflowed by ${catalogMobile.overflow}px`);
   assert.ok(catalogMobile.minFormatButtonHeight >= 44);
   assert.ok(catalogMobile.minClassButtonHeight >= 44);
   assert.ok(catalogMobile.minOpenHeight >= 42);
   await page.screenshot({ path: `${screenshotPrefix}-mobile.png`, fullPage: true });
 
+  // A visitor taps a row on screen; a skipped offscreen row has no layout to aim at.
+  await page.$eval('.archetype-row', row => row.scrollIntoView({ block: 'center' }));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await page.click('.archetype-row__open');
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');

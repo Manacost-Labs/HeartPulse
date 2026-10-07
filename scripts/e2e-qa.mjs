@@ -226,6 +226,27 @@ async function chooseConstructedCardFilter(page, tourId, optionLabel) {
   ), { timeout: 5_000 }, rootSelector, optionLabel);
 }
 
+// Catalog rows skip layout away from the viewport (content-visibility), so each
+// row's open control is measured while that row is on screen.
+async function smallestArchetypeOpenTarget(page) {
+  return page.evaluate(async () => {
+    const heights = [];
+    for (const row of document.querySelectorAll('.archetype-row')) {
+      row.scrollIntoView({ block: 'center' });
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      heights.push(row.querySelector('.archetype-row__open')?.getBoundingClientRect().height ?? 0);
+    }
+    scrollTo(0, 0);
+    return Math.min(...heights);
+  });
+}
+
+async function tapFirstArchetypeRow(page) {
+  await page.$eval('.archetype-row', row => row.scrollIntoView({ block: 'center' }));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.click('.archetype-row__open');
+}
+
 async function auditAccessibility(page, label, context = 'document') {
   await page.addScriptTag({ path: AXE_PATH });
   const results = await page.evaluate(async auditContext => {
@@ -2671,12 +2692,11 @@ for (const [device, viewport] of [
     if (archetypeRetryState.marker !== 'preserve-on-retry' || archetypeRetryState.errorPresent || archetypeRetryState.shellRecoveryPresent) {
       failures.push(`archetype catalog recovery [${device}]: retry reloaded the document or opened shell recovery (${JSON.stringify(archetypeRetryState)})`);
     }
-    const archetypeCatalogState = await page.evaluate(() => {
+    const archetypeCatalogLayout = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');
       const hero = document.querySelector('.traditional-mode-banner');
       const search = document.querySelector('.archetypes-search input');
       const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
-      const openButtons = [...document.querySelectorAll('.archetype-row__open')];
       return {
         heading: root?.querySelector('h1')?.textContent?.trim() || '',
         rows: document.querySelectorAll('.archetype-row').length,
@@ -2685,11 +2705,11 @@ for (const [device, viewport] of [
         heroHeight: hero?.getBoundingClientRect().height ?? 0,
         searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
         smallestFormatTarget: Math.min(...formatButtons.map(button => button.getBoundingClientRect().height)),
-        smallestOpenTarget: Math.min(...openButtons.map(button => button.getBoundingClientRect().height)),
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
+    const archetypeCatalogState = { ...archetypeCatalogLayout, smallestOpenTarget: await smallestArchetypeOpenTarget(page) };
     if (!archetypeCatalogState.heading.includes('Архетипы') || archetypeCatalogState.rows !== qaArchetypeItems.length
       || archetypeCatalogState.formats !== 2 || archetypeCatalogState.summaryItems !== 2
       || archetypeCatalogState.heroHeight < 120 || archetypeCatalogState.heroHeight > 620
@@ -2706,7 +2726,7 @@ for (const [device, viewport] of [
     const archetypeViolationCount = await auditAccessibility(page, `archetype catalog [${device}]`, '.archetypes-page');
     await page.screenshot({ path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
 
-    await page.click('.archetype-row__open');
+    await tapFirstArchetypeRow(page);
     await page.waitForSelector('.archetype-detail-page .archetype-trend', { timeout: 20_000 });
     await page.waitForSelector('.archetype-deck-card .deck-render-preview[data-render-state="ready"]', { timeout: 20_000 });
     const archetypeDetailState = await page.evaluate(() => {
@@ -3837,22 +3857,21 @@ for (const width of [320, 430]) {
     // The catalog remounts with the full view once the account is known.
     await waitForAuthenticatedShell(page);
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
-    const metaNarrowState = await page.evaluate(() => {
+    const metaNarrowLayout = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');
       const hero = document.querySelector('.traditional-mode-banner');
       const search = document.querySelector('.archetypes-search input');
       const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
-      const openButtons = [...document.querySelectorAll('.archetype-row__open')];
       return {
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         heroHeight: hero?.getBoundingClientRect().height ?? 0,
         searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
         smallestFormatTarget: Math.min(...formatButtons.map(button => button.getBoundingClientRect().height)),
-        smallestOpenTarget: Math.min(...openButtons.map(button => button.getBoundingClientRect().height)),
         rows: document.querySelectorAll('.archetype-row').length,
       };
     });
+    const metaNarrowState = { ...metaNarrowLayout, smallestOpenTarget: await smallestArchetypeOpenTarget(page) };
     if (metaNarrowState.rootOverflow || metaNarrowState.documentOverflow || metaNarrowState.heroHeight > 620
       || metaNarrowState.searchFontSize < 16 || metaNarrowState.smallestFormatTarget < 44
       || metaNarrowState.smallestOpenTarget < 42 || metaNarrowState.rows !== qaArchetypeItems.length) {

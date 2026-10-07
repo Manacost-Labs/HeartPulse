@@ -119,10 +119,20 @@ filtered class icon) and in rendering those rows again during hydration.
 
 `.archetype-row` now uses `content-visibility: auto`, so rows away from the
 viewport skip style, layout and paint while staying in the document for
-search, find-in-page and assistive technology. `contain-intrinsic-size` is the
-measured row height per breakpoint (88 px above 1120 px, 130 px down to
-820 px, 175 px below); `auto` keeps each row's real height once it has
-rendered. The catalog also reuses one `Intl.NumberFormat` per precision
+search, find-in-page and assistive technology. `contain-intrinsic-size` sets
+the content height, so it is the measured row height minus padding and the
+bottom border per breakpoint: rows of 88, 130 and about 175 px give 65 px
+above 1120 px, 107 px down to 820 px and 150 px below. `auto` keeps each
+row's real height once it has rendered.
+
+Layout queries inside a skipped row return zero sizes, and an automated tap
+aimed at an offscreen row misses because its contents have no layout yet.
+Browser checks therefore measure each row's controls while that row is on
+screen and scroll a row into view before tapping it:
+`tests/constructed-archetypes-browser.test.mjs` and `scripts/e2e-qa.mjs`
+(`smallestArchetypeOpenTarget`, `tapFirstArchetypeRow`). Visitors only tap
+rows they can see, and keyboard focus renders a row, so their behaviour is
+unchanged. The catalog also reuses one `Intl.NumberFormat` per precision
 instead of building one for every number in every render.
 
 Local production build, guest, 390 px, CPU ×4, 90 production rows, median of
