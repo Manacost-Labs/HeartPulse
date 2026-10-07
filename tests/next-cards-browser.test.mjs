@@ -68,6 +68,39 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       await played;
     }));
 
+    // A phone stacks the art above the facts. An unsized image grows from 0 to
+    // about 430 px when it arrives and pushes the variants and facts down
+    // (production CLS 0.29), so its box must exist before the bytes do.
+    await t.test('the card art reserves its box before the image arrives on a phone', () => withPage(runtime, { width: 390, height: 844, isMobile: true }, async page => {
+      await page.evaluateOnNewDocument(() => {
+        window.__layoutShifts = [];
+        new PerformanceObserver(list => {
+          for (const entry of list.getEntries()) window.__layoutShifts.push(entry.value);
+        }).observe({ type: 'layout-shift', buffered: true });
+      });
+      let releaseArt;
+      const artHeld = new Promise(resolve => { releaseArt = resolve; });
+      await page.setRequestInterception(true);
+      page.on('request', async request => {
+        if (/\/api\/card-image\/12345\/full\./.test(request.url())) await artHeld;
+        await request.continue();
+      });
+      const art = '.constructed-card-detail__visual-button img';
+      await page.goto(runtime.origin + CARD_PATH, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector(art);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const pending = await page.$eval(art, image => ({ loaded: image.naturalWidth > 0, height: image.getBoundingClientRect().height }));
+      assert.equal(pending.loaded, false, 'the fixture must still hold the card art');
+      releaseArt();
+      await page.waitForFunction(selector => document.querySelector(selector).naturalWidth > 0, {}, art);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const loadedHeight = await page.$eval(art, image => image.getBoundingClientRect().height);
+      assert.ok(pending.height > 200, `the art box is ${pending.height}px tall before its image arrives`);
+      assert.ok(Math.abs(loadedHeight - pending.height) < 1, `the art box changed from ${pending.height}px to ${loadedHeight}px`);
+      const shift = await page.evaluate(() => window.__layoutShifts.reduce((sum, value) => sum + value, 0));
+      assert.ok(shift < 0.01, `layout shift while the art loads was ${shift}`);
+    }));
+
     await t.test('the catalog warms only the filter option a visitor points at', () => withPage(runtime, { width: 1280, height: 900 }, async page => {
       const listRequests = [];
       page.on('request', request => {

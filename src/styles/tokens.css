@@ -38,6 +38,10 @@
   --site-page-hero-title-leading: 1.05;
   --site-page-gutter: clamp(0.75rem, 2vw, 1.5rem);
   --site-page-width: 1480px;
+  /* Card renders are 404×558. An image box keeps this ratio before its bytes
+     arrive, so loading art never moves the facts below it; object-fit
+     contains variants of other proportions inside the same box. */
+  --card-render-aspect-ratio: 404 / 558;
   /* The subscription gate's height; the access-check placeholder reserves it. */
   --subscription-gate-min-height: 760px;
   --site-page-hero-padding-block: clamp(1.25rem, 2.5vw, 2rem);
