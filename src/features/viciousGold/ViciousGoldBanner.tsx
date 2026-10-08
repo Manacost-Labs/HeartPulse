@@ -13,7 +13,8 @@ export function ViciousGoldBanner({ source, children }: {
         <h1>Vicious Syndicate Gold</h1>
         <p>Расширенная статистика меты: популярность, готовые сборки и Power Tier.</p>
         {source && <p className="vsgold__freshness">
-          Данные <a href={source.url} target="_blank" rel="noreferrer">Vicious Syndicate Live</a>, обновлено {formatDate(source.updatedAt)}
+          Данные {source.url ? <a href={source.url} target="_blank" rel="noreferrer">Vicious Syndicate Live</a> : 'Vicious Syndicate Live'}
+          {source.updatedAt && `, обновлено ${formatDate(source.updatedAt)}`}
         </p>}
       </div>
       {children}

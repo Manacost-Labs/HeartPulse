@@ -97,7 +97,7 @@ export function missingBuildLabel(deck: string, buildState: BuildState): string 
   return 'Сборка обновляется';
 }
 
-export type PowerTierId = 'one' | 'two' | 'three' | 'four';
+type PowerTierId = 'one' | 'two' | 'three' | 'four';
 
 // Win-rate bands of the Power Tier board, strongest first.
 const POWER_TIERS: Array<{ id: PowerTierId; label: string; range: string; from: number }> = [
