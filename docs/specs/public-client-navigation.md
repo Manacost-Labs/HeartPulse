@@ -73,7 +73,7 @@ production deployment on 2026-10-05. The normal main/CI deployment gates apply.
 
 ## Framework contract
 
-Next.js 16.3.6 and React 19.3.0 are the installed dependencies. App Router
+Next.js 16.3.8 and React 19.3.0 are the installed dependencies. App Router
 navigation uses `router.push` and `router.prefetch` from
 [`useRouter`](https://nextjs.org/docs/app/api-reference/functions/use-router).
 Prefetch freshness uses the documented `onInvalidate` callback rather than
