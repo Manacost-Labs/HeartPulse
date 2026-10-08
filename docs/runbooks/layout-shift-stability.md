@@ -126,7 +126,8 @@ viewport skip style, layout and paint while staying in the document for
 search, find-in-page and assistive technology. `contain-intrinsic-size` sets
 the content height, so it is the measured row height minus padding and the
 bottom border per breakpoint: rows of 88, 130 and about 175 px give 65 px
-above 1120 px, 107 px down to 820 px and 150 px below. `auto` keeps each
+above 1120 px, 107 px down to 820 px and 152 px below; the phone value is the
+mean content height of the production rows (143, 150 or 167 px). `auto` keeps each
 row's real height once it has rendered. The catalog also reuses one
 `Intl.NumberFormat` per precision instead of building one for every number
 in every render.
@@ -142,11 +143,12 @@ axe cannot check colours in skipped rows. Visitors only tap rows they can see,
 and keyboard focus renders a row, so their behaviour is unchanged.
 
 The trade-off is scroll restoration on phones. Row heights there vary with
-whether a long label wraps (168, 175 or 192 px), so the 150 px content
-estimate is right on average but not per row, and `auto` remembers real
-heights only while the list stays mounted. After scrolling continuously to
-row 62 on a 390 px phone, opening an archetype and going Back showed the same
-row at the top, 133 px higher than before. A direct jump to a row, desktop
+whether a long label wraps (168, 175 or 192 px), so the content estimate is
+right on average but not per row, and `auto` remembers real heights only
+while the list stays mounted. After scrolling continuously to row 62 on a
+390 px phone, opening an archetype and going Back showed the same row at the
+top, 133 px higher than before with a 150 px estimate and 25 px higher with
+the mean, 152 px. A direct jump to a row, desktop
 and 1000 px layouts restore exactly because their rows share one height.
 
 Local production build, guest, 390 px, CPU ×4, 90 production rows, median of
@@ -160,6 +162,8 @@ seven loads (five for the baseline):
 | Layout | 204 ms | 109 ms |
 | Main-thread task time | 1460 ms | 984 ms |
 
+A later sample on a slower sandbox machine, with Next.js 16.3.8, measured
+600 ms before and 308 ms after (style 247 to 93 ms, layout 239 to 138 ms).
 `content-visibility` alone took blocking time to 224 ms in a five-load sample;
 the formatter cache moved script time from about 433 to 398 ms, which is within
 run-to-run noise. These are local lab samples, not field INP or LCP.

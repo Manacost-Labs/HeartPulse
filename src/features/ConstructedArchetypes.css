@@ -1125,7 +1125,7 @@
     gap: 0.55rem;
     min-height: 0;
     padding: 0.75rem 0.55rem;
-    contain-intrinsic-size: auto 150px;
+    contain-intrinsic-size: auto 152px;
   }
   .archetype-row__class { width: 44px; height: 44px; }
   .archetype-row__identity h2 { font-size: 1rem; }

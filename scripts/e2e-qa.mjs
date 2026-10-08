@@ -254,7 +254,16 @@ async function auditArchetypeCatalog(page, label) {
 
 async function tapFirstArchetypeRow(page) {
   await page.$eval('.archetype-row', row => row.scrollIntoView({ block: 'center' }));
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  // Aim only once the control is rendered and has kept its place for a frame.
+  await page.waitForFunction(() => {
+    const open = document.querySelector('.archetype-row__open');
+    const rect = open.getBoundingClientRect();
+    const key = `${Math.round(rect.top)}:${Math.round(rect.height)}`;
+    const settled = window.__archetypeOpenRect === key && rect.height > 0
+      && open.checkVisibility({ contentVisibilityAuto: true });
+    window.__archetypeOpenRect = key;
+    return settled;
+  }, { polling: 'raf', timeout: 10_000 });
   await page.click('.archetype-row__open');
 }
 

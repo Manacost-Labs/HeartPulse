@@ -375,8 +375,18 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-mobile.png`, fullPage: true });
 
   // A visitor taps a row on screen; a skipped offscreen row has no layout to aim at.
+  // Wait until its control is rendered and stays put for a frame, so the tap
+  // is not aimed while neighbouring rows are still being laid out.
   await page.$eval('.archetype-row', row => row.scrollIntoView({ block: 'center' }));
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.waitForFunction(() => {
+    const open = document.querySelector('.archetype-row__open');
+    const rect = open.getBoundingClientRect();
+    const key = `${Math.round(rect.top)}:${Math.round(rect.height)}`;
+    const settled = window.__archetypeOpenRect === key && rect.height > 0
+      && open.checkVisibility({ contentVisibilityAuto: true });
+    window.__archetypeOpenRect = key;
+    return settled;
+  }, { polling: 'raf' });
   await page.click('.archetype-row__open');
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
