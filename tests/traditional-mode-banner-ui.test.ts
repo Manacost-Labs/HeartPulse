@@ -1,18 +1,20 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const featureFiles = [
-  'StandardMatchups.tsx',
-  'StandardMeta.tsx',
-  'FunDecksPage.tsx',
-  'ConstructedArchetypes.tsx',
-  'ViciousSyndicateGold.tsx',
+// Vicious Gold renders its banner through one component shared by its access, loading and statistics states.
+const featureFiles: Array<[page: string, banner?: { file: string; component: string }]> = [
+  ['StandardMatchups.tsx'],
+  ['StandardMeta.tsx'],
+  ['FunDecksPage.tsx'],
+  ['ConstructedArchetypes.tsx'],
+  ['ViciousSyndicateGold.tsx', { file: 'viciousGold/ViciousGoldBanner.tsx', component: 'ViciousGoldBanner' }],
 ];
 
-for (const file of featureFiles) {
+for (const [file, banner] of featureFiles) {
   const source = readFileSync(new URL(`../src/features/${file}`, import.meta.url), 'utf8');
+  if (banner) assert.match(source, new RegExp(`<${banner.component}[\\s>]`), `${file} must render ${banner.component}`);
   assert.match(
-    source,
+    banner ? readFileSync(new URL(`../src/features/${banner.file}`, import.meta.url), 'utf8') : source,
     /className="traditional-mode-banner"/,
     `${file} must use the shared traditional-mode banner contract`,
   );
