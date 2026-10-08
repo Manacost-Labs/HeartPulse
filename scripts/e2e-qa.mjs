@@ -241,6 +241,17 @@ async function smallestArchetypeOpenTarget(page) {
   });
 }
 
+// Axe cannot check colours in rows whose rendering is skipped, so the audit
+// renders every row and restores the production behaviour afterwards.
+async function auditArchetypeCatalog(page, label) {
+  const style = await page.addStyleTag({ content: '.archetype-row { content-visibility: visible; }' });
+  try {
+    return await auditAccessibility(page, label, '.archetypes-page');
+  } finally {
+    await style.evaluate(node => node.remove());
+  }
+}
+
 async function tapFirstArchetypeRow(page) {
   await page.$eval('.archetype-row', row => row.scrollIntoView({ block: 'center' }));
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -2723,7 +2734,7 @@ for (const [device, viewport] of [
       expectedSteps: 5,
       mobile: device === 'mobile',
     });
-    const archetypeViolationCount = await auditAccessibility(page, `archetype catalog [${device}]`, '.archetypes-page');
+    const archetypeViolationCount = await auditArchetypeCatalog(page, `archetype catalog [${device}]`);
     await page.screenshot({ path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
 
     await tapFirstArchetypeRow(page);
@@ -3877,7 +3888,7 @@ for (const width of [320, 430]) {
       || metaNarrowState.smallestOpenTarget < 42 || metaNarrowState.rows !== qaArchetypeItems.length) {
       failures.push(`archetype catalog [${width}px]: narrow mobile layout regressed (${JSON.stringify(metaNarrowState)})`);
     }
-    await auditAccessibility(page, `archetype catalog narrow ${width}px`, '.archetypes-page');
+    await auditArchetypeCatalog(page, `archetype catalog narrow ${width}px`);
     await page.screenshot({ path: `${OUT}/archetype-catalog-${width}px.png`, fullPage: false });
 
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });

@@ -783,7 +783,7 @@
 }
 
 @theme {
-  --font-hs:      "HSDisplay", "Cinzel", "HSDisplay Fallback", "HSDisplay Fallback Android", serif;
+  --font-hs:      "HSDisplay", "HSDisplay Fallback", "HSDisplay Fallback Android", "Cinzel", serif;
   --font-display: "HSDisplay", "HSDisplay Fallback", "HSDisplay Fallback Android", serif;
   --font-body:    "Inter", "Inter Fallback", sans-serif;
   /* `transition-*` utilities without a duration move at the site tempo. */

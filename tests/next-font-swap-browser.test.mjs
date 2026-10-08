@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
+const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(candidate => candidate && existsSync(candidate));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // `font-display: swap` paints text in a local face until the web font arrives.
@@ -13,7 +15,7 @@ test('public pages keep their layout when the web fonts arrive late', { timeout:
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await puppeteer.launch({ executablePath: chromiumPath,
       headless: true, args: ['--no-sandbox'] });
     for (const viewport of [{ width: 390, height: 844, isMobile: true }, { width: 1440, height: 900 }]) {
       for (const path of ['/terms/', '/privacy/', '/battlegrounds/tier-list/']) {

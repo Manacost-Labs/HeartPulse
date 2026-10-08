@@ -186,7 +186,9 @@ function classIcon(classKey: ArchetypeClass | null): string {
 // catalog row on every render. Counts use 3 digits, toLocaleString's default.
 const NUMBER_FORMATS = new Map<number, Intl.NumberFormat>();
 function numberFormat(maximumFractionDigits: number): Intl.NumberFormat {
-  const format = NUMBER_FORMATS.get(maximumFractionDigits) ?? new Intl.NumberFormat('ru-RU', { maximumFractionDigits });
+  const cached = NUMBER_FORMATS.get(maximumFractionDigits);
+  if (cached) return cached;
+  const format = new Intl.NumberFormat('ru-RU', { maximumFractionDigits });
   NUMBER_FORMATS.set(maximumFractionDigits, format);
   return format;
 }

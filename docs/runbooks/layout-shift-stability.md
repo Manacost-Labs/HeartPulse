@@ -92,7 +92,11 @@ bundled capsize metrics. `ascent-override`, `descent-override` and
 `line-gap-override` are the web font's own vertical metrics divided by
 size-adjust, the formula `next/font` uses, so the fallback keeps the web
 font's line box. HSDisplay lacks only `₽` among common characters, which now
-falls through to the scaled Times face.
+falls through to the scaled Times face. `--font-hs` lists Cinzel after the
+fallbacks: Cinzel's metrics are not matched, so a Cinzel file that arrived
+before HSDisplay would re-wrap Latin headings twice. Inter 500 and 600 differ
+from the measured 400 and 700 widths by about 1% and 0.5%; they share the
+nearest fallback rather than adding two more faces.
 
 `tests/next-font-swap-browser.test.mjs` holds every WOFF2 request, lets the
 page settle in the fallback, releases the fonts and requires the swap to move
@@ -123,17 +127,27 @@ search, find-in-page and assistive technology. `contain-intrinsic-size` sets
 the content height, so it is the measured row height minus padding and the
 bottom border per breakpoint: rows of 88, 130 and about 175 px give 65 px
 above 1120 px, 107 px down to 820 px and 150 px below. `auto` keeps each
-row's real height once it has rendered.
+row's real height once it has rendered. The catalog also reuses one
+`Intl.NumberFormat` per precision instead of building one for every number
+in every render.
 
 Layout queries inside a skipped row return zero sizes, and an automated tap
 aimed at an offscreen row misses because its contents have no layout yet.
 Browser checks therefore measure each row's controls while that row is on
 screen and scroll a row into view before tapping it:
 `tests/constructed-archetypes-browser.test.mjs` and `scripts/e2e-qa.mjs`
-(`smallestArchetypeOpenTarget`, `tapFirstArchetypeRow`). Visitors only tap
-rows they can see, and keyboard focus renders a row, so their behaviour is
-unchanged. The catalog also reuses one `Intl.NumberFormat` per precision
-instead of building one for every number in every render.
+(`smallestArchetypeOpenTarget`, `tapFirstArchetypeRow`). The accessibility
+audit renders every row for its duration (`auditArchetypeCatalog`), because
+axe cannot check colours in skipped rows. Visitors only tap rows they can see,
+and keyboard focus renders a row, so their behaviour is unchanged.
+
+The trade-off is scroll restoration on phones. Row heights there vary with
+whether a long label wraps (168, 175 or 192 px), so the 150 px content
+estimate is right on average but not per row, and `auto` remembers real
+heights only while the list stays mounted. After scrolling continuously to
+row 62 on a 390 px phone, opening an archetype and going Back showed the same
+row at the top, 133 px higher than before. A direct jump to a row, desktop
+and 1000 px layouts restore exactly because their rows share one height.
 
 Local production build, guest, 390 px, CPU ×4, 90 production rows, median of
 seven loads (five for the baseline):

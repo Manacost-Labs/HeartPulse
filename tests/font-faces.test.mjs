@@ -66,5 +66,5 @@ test('web fonts have metric-matched local fallbacks in every font token', () => 
   const token = name => css.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].replace(/\s+/g, ' ').trim();
   assert.equal(token('font-body'), '"Inter", "Inter Fallback", sans-serif');
   assert.equal(token('font-display'), '"HSDisplay", "HSDisplay Fallback", "HSDisplay Fallback Android", serif');
-  assert.equal(token('font-hs'), '"HSDisplay", "Cinzel", "HSDisplay Fallback", "HSDisplay Fallback Android", serif');
+  assert.equal(token('font-hs'), '"HSDisplay", "HSDisplay Fallback", "HSDisplay Fallback Android", "Cinzel", serif');
 });

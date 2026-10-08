@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import http from 'node:http';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
+const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(candidate => candidate && existsSync(candidate));
 const CLASSES = ['deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'];
 // The production standard catalog lists about 90 archetypes.
 const catalog = JSON.stringify({
@@ -44,7 +46,7 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await puppeteer.launch({ executablePath: chromiumPath,
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 844, isMobile: true });
