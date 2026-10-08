@@ -20,111 +20,8 @@
   color: var(--vs-ink);
 }
 
-.vsgold__hero {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.68fr);
-  gap: clamp(2rem, 5vw, 5rem);
-  align-items: center;
-  min-height: clamp(260px, 22vw, 330px);
-  padding: clamp(2rem, 4vw, 3.7rem);
-  overflow: hidden;
-  border: 10px solid transparent;
-  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
-  background: #3b0710;
-  color: #fff0c4;
-  box-shadow: 0 14px 30px rgba(67, 35, 14, 0.18);
-}
-
-.vsgold__hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(circle at 82% 18%, rgba(91, 54, 118, 0.24), transparent 34%),
-    linear-gradient(112deg, #3c050d 0%, #580c18 48%, #28172f 100%);
-}
-
-.vsgold__hero::after {
-  content: '';
-  position: absolute;
-  inset: 7px;
-  z-index: -1;
-  border: 1px solid rgba(228, 183, 78, 0.17);
-  pointer-events: none;
-}
-
-.vsgold__eyebrow {
-  display: inline-flex;
-  gap: 0.45rem;
-  align-items: center;
-  color: var(--vs-gold-pale);
-  font-size: 0.66rem;
-  font-weight: 900;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.vsgold__hero h1 {
-  margin: 0.65rem 0 0;
-  color: #fff3cd;
-  font-family: var(--font-display);
-  font-size: clamp(2.35rem, 3.8vw, 3.65rem);
-  line-height: 0.96;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 4px rgba(22, 1, 4, 0.58);
-}
-
-.vsgold__hero h1 span { min-width: 0; }
-.vsgold__hero h1 em { display: block; margin-top: 0.12em; color: var(--vs-gold); font-style: normal; }
-.vsgold__hero-copy > p {
-  max-width: 690px;
-  margin: 1.05rem 0 0;
-  color: #e4c98e;
-  font-size: clamp(0.88rem, 1.15vw, 1rem);
-  line-height: 1.52;
-}
-
-.vsgold__hero-ornament {
-  display: block;
-  width: min(420px, 82%);
-  height: 18px;
-  margin-top: 1.15rem;
-  background: linear-gradient(90deg, var(--vs-gold), rgba(228, 183, 78, 0.34));
-  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  opacity: 0.62;
-}
-
-.vsgold__hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-self: center;
-  min-height: 112px;
-  border: 5px solid transparent;
-  border-image: url('/wallpaper/deck-border.png') 22 stretch;
-  background: rgba(24, 4, 11, 0.24);
-}
-.vsgold__hero-stats div {
-  display: grid;
-  align-content: center;
-  gap: 0.35rem;
-  min-width: 0;
-  padding: 1.2rem 1rem;
-  border-right: 1px solid rgba(228, 183, 78, 0.14);
-}
-.vsgold__hero-stats div:last-child { border-right: 0; }
-.vsgold__hero-stats strong {
-  overflow: hidden;
-  color: #fff1bd;
-  font-family: var(--font-display);
-  font-size: clamp(0.92rem, 1.25vw, 1.08rem);
-  line-height: 1.12;
-  text-overflow: ellipsis;
-}
-.vsgold__hero-stats span { color: #c9ad74; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.075em; text-transform: uppercase; }
+.traditional-mode-banner .vsgold__freshness { margin-top: 0.55rem; font-size: 0.8rem; }
+.vsgold__freshness a { color: var(--arena-gold-light); text-decoration: underline; text-underline-offset: 2px; }
 
 .vsgold__mobile-nav { display: none; }
 
@@ -164,25 +61,25 @@
   background: rgba(74, 47, 102, 0.1);
   object-fit: contain;
 }
-.vsgold__section-heading span { color: #875720; font-size: 0.64rem; font-weight: 900; letter-spacing: 0.13em; }
+.vsgold__section-heading span { color: #875720; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em; }
 .vsgold__section-heading h2 { margin: 0.08rem 0 0; color: #432713; font-family: var(--font-display); font-size: clamp(1.4rem, 2.3vw, 1.9rem); line-height: 1; }
 
 .vsgold__class-bars { display: grid; gap: 0.32rem; margin-top: 1rem; }
-.vsgold__class-bars button { display: grid; grid-template-columns: 32px minmax(100px, 0.8fr) minmax(80px, 1fr) 58px; gap: 0.55rem; align-items: center; width: 100%; padding: 0.42rem 0.55rem; border: 1px solid rgba(117, 72, 31, 0.22); color: #4b311d; background: rgba(255, 249, 226, 0.32); box-shadow: inset 0 0 0 1px rgba(255, 250, 229, 0.28); text-align: left; }
+.vsgold__class-bars button { display: grid; grid-template: 'icon name value' auto 'icon bar bar' auto / 32px minmax(0, 1fr) auto; gap: 0.2rem 0.55rem; align-items: center; width: 100%; padding: 0.42rem 0.55rem; border: 1px solid rgba(117, 72, 31, 0.22); color: #4b311d; background: rgba(255, 249, 226, 0.32); box-shadow: inset 0 0 0 1px rgba(255, 250, 229, 0.28); text-align: left; }
 .vsgold__class-bars button:hover { border-color: #a97b45; background: rgba(255, 248, 221, 0.68); }
 .vsgold__class-bars button[aria-pressed='true'] { border-color: #75518d; background: rgba(100, 65, 128, 0.1); }
-.vsgold__class-bars img { width: 30px; height: 30px; object-fit: contain; }
-.vsgold__class-bars span { font-size: 0.8rem; font-weight: 800; }
-.vsgold__class-bars div { height: 7px; overflow: hidden; border-radius: 999px; background: rgba(94, 60, 30, 0.17); }
+.vsgold__class-bars img { grid-area: icon; width: 30px; height: 30px; object-fit: contain; }
+.vsgold__class-bars span { grid-area: name; font-size: 0.8rem; font-weight: 800; }
+.vsgold__class-bars div { grid-area: bar; height: 7px; overflow: hidden; border-radius: 999px; background: rgba(94, 60, 30, 0.17); }
 .vsgold__class-bars i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--vs-purple), #8e5c34); }
-.vsgold__class-bars strong { color: #71451f; font-size: 0.78rem; text-align: right; }
+.vsgold__class-bars strong { grid-area: value; color: #71451f; font-size: 0.78rem; text-align: right; }
 
 .vsgold__deck-tools { display: grid; grid-template-columns: 1fr minmax(145px, 0.4fr); gap: 0.55rem; margin: 1rem 0 0.7rem; }
 .vsgold__deck-tools label { display: flex; gap: 0.45rem; align-items: center; padding: 0 0.65rem; border: 1px solid #a97b45; background: rgba(255, 249, 225, 0.68); }
 .vsgold__deck-tools input, .vsgold__deck-tools select { width: 100%; min-height: 38px; border: 0; outline: none; background: transparent; color: #472d19; font-size: 0.8rem; }
 .vsgold__deck-tools select { padding: 0 0.55rem; border: 1px solid #a97b45; background: rgba(255, 249, 225, 0.68); }
 .vsgold__deck-list { max-height: 590px; overflow: auto; border: 5px solid transparent; border-image: url('/wallpaper/deck-border.png') 22 stretch; background: rgba(255, 249, 226, 0.18); }
-.vsgold__deck-row { display: grid; grid-template-columns: 38px minmax(150px, 1fr) 64px 128px; gap: 0.6rem; align-items: center; min-height: 70px; padding: 0.55rem 0.55rem; border-bottom: 1px solid rgba(128, 82, 38, 0.14); contain: layout paint style; }
+.vsgold__deck-row { display: grid; grid-template-columns: 38px minmax(150px, 1fr) 64px auto; gap: 0.6rem; align-items: center; min-height: 86px; padding: 0.55rem 0.55rem; border-bottom: 1px solid rgba(128, 82, 38, 0.14); contain: layout paint style; }
 .vsgold__deck-row:nth-child(even) { background: rgba(255, 250, 231, 0.22); }
 .vsgold__deck-row > img { width: 36px; height: 36px; object-fit: contain; }
 .vsgold__deck-name { display: grid; min-width: 0; }
@@ -191,6 +88,8 @@
 .vsgold__deck-row > b { color: #6e421e; font-family: var(--font-display); text-align: right; }
 
 .vsgold__build { display: grid; width: 128px; gap: 0.18rem; justify-items: stretch; justify-self: end; }
+.vsgold__deck-row .vsgold__build { grid-template-columns: 128px 104px; width: auto; column-gap: 0.4rem; }
+.vsgold__deck-row .vsgold__build > span { grid-column: 1 / -1; max-width: none; }
 .vsgold__build-open { display: inline-flex; min-height: 34px; gap: 0.3rem; align-items: center; justify-content: center; border: 1px solid #82562f; color: #5b3820; background: rgba(255, 239, 194, 0.76); font-size: 0.65rem; font-weight: 900; }
 .vsgold__build-open[aria-expanded='true'] { color: #fff0c4; background: #4a2f66; }
 .vsgold__deck-composition { padding: 0.75rem; border-bottom: 1px solid rgba(128, 82, 38, 0.24); background: linear-gradient(145deg, rgba(50, 17, 24, 0.96), rgba(28, 7, 15, 0.96)); }
@@ -253,7 +152,7 @@
 .vsgold__power { margin-top: 0.9rem; }
 .vsgold__power-heading { display: flex; gap: 1.5rem; align-items: center; justify-content: space-between; }
 .vsgold__power-heading > p { max-width: 480px; margin: 0; color: #795a3c; font-size: 0.78rem; line-height: 1.45; text-align: right; }
-.vsgold__rank-tabs, .vsgold__class-tabs { display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.2rem 0 0.45rem; scrollbar-width: thin; }
+.vsgold__rank-tabs, .vsgold__class-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.2rem 0 0.45rem; }
 .vsgold__rank-tabs { margin-top: 1.25rem; }
 .vsgold__rank-tabs button, .vsgold__class-tabs button { flex: 0 0 auto; min-height: 37px; padding: 0 0.8rem; border: 1px solid #a37644; background: rgba(255, 248, 221, 0.48); color: #603c20; font-size: 0.72rem; font-weight: 900; }
 .vsgold__rank-tabs button[aria-selected='true'], .vsgold__class-tabs button.active { border-color: #6d4b83; background: var(--vs-purple); color: #fff0c7; }
@@ -261,55 +160,47 @@
 .vsgold__class-tabs button { display: inline-flex; gap: 0.35rem; align-items: center; min-height: 34px; padding: 0 0.65rem; }
 .vsgold__class-tabs img { width: 23px; height: 23px; object-fit: contain; }
 
+.vsgold__tier-band { margin-top: 1.25rem; }
+.vsgold__tier-band > header { display: flex; flex-wrap: wrap; gap: 0.2rem 0.85rem; align-items: baseline; padding: 0 0 0.45rem 0.3rem; border-bottom: 1px solid var(--vs-line); }
+.vsgold__tier-band h3 { display: flex; gap: 0.5rem; align-items: center; margin: 0; color: var(--vs-ink); font-family: var(--font-display); font-size: 1.3rem; line-height: 1.1; }
+.vsgold__tier-band h3::before { content: ''; width: 0.7rem; height: 0.7rem; background: var(--tier-accent); box-shadow: 0 0 0 2px rgba(255, 248, 221, 0.8), 0 0 0 3px var(--tier-accent); transform: rotate(45deg); }
+.vsgold__tier-band > header p { margin: 0; color: var(--arena-muted-ink); font-size: 0.78rem; }
 .vsgold__tier-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin-top: 0.65rem; }
-.vsgold__tier-card { --tier-accent: #925347; position: relative; display: grid; grid-template-columns: 38px 48px minmax(120px, 1fr) 70px 128px; gap: 0.65rem; align-items: center; min-height: 94px; padding: 0.75rem; overflow: hidden; border: 5px solid transparent; border-image: url('/wallpaper/deck-border.png') 22 stretch; background: rgba(255, 248, 221, 0.56); box-shadow: inset 0 0 0 1px rgba(255, 252, 235, 0.36), 0 3px 8px rgba(75, 43, 18, 0.08); content-visibility: auto; contain: layout paint style; contain-intrinsic-size: 94px; }
+.vsgold__tier-card { --tier-accent: #925347; position: relative; display: grid; grid-template-columns: 30px 42px minmax(120px, 1fr) 64px 112px; gap: 0.65rem; align-items: center; min-height: 94px; padding: 0.75rem; overflow: hidden; border: 5px solid transparent; border-image: url('/wallpaper/deck-border.png') 22 stretch; background: rgba(255, 248, 221, 0.56); box-shadow: inset 0 0 0 1px rgba(255, 252, 235, 0.36), 0 3px 8px rgba(75, 43, 18, 0.08); content-visibility: auto; contain: layout paint style; contain-intrinsic-size: auto 68px; }
+/* contain-intrinsic-size is the content height of a card that has not rendered yet: the
+   mean rendered height minus padding and border per layout; auto then keeps the real one. */
 .vsgold__tier-card::before { content: ''; position: absolute; inset: 7px auto 7px 2px; width: 3px; background: var(--tier-accent); }
-.vsgold__tier-card--one { --tier-accent: #b88714; }
-.vsgold__tier-card--two { --tier-accent: #397950; }
-.vsgold__tier-card--three { --tier-accent: #587fa0; }
-.vsgold__tier-card--four { --tier-accent: #925347; }
+.vsgold__tier-band--one, .vsgold__tier-card--one { --tier-accent: #b88714; }
+.vsgold__tier-band--two, .vsgold__tier-card--two { --tier-accent: #397950; }
+.vsgold__tier-band--three, .vsgold__tier-card--three { --tier-accent: #587fa0; }
+.vsgold__tier-band--four, .vsgold__tier-card--four { --tier-accent: #925347; }
 .vsgold__tier-rank { color: #8b633c; font-family: var(--font-display); font-size: 1rem; text-align: center; }
-.vsgold__tier-card > img { width: 46px; height: 46px; object-fit: contain; }
-.vsgold__tier-card h3 { margin: 0.05rem 0; font-family: var(--font-display); font-size: 1.08rem; line-height: 1.05; }
-.vsgold__tier-card small { color: #96682d; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.vsgold__tier-card > img { width: 42px; height: 42px; object-fit: contain; }
+.vsgold__tier-card .vsgold__build { width: 112px; }
+.vsgold__tier-card .vsgold__build > span { max-width: 112px; }
+.vsgold__tier-card h4 { margin: 0.05rem 0; font-family: var(--font-display); font-size: 1rem; line-height: 1.1; }
+.vsgold__tier-card small { color: #8a5f28; font-size: 0.68rem; font-weight: 800; }
 .vsgold__tier-card p { margin: 0; color: #88694c; font-size: 0.67rem; }
 .vsgold__tier-card > strong { display: grid; color: #593519; font-family: var(--font-display); font-size: 1.08rem; text-align: center; }
-.vsgold__tier-card > strong span { color: #9a795a; font-family: var(--font-body); font-size: 0.58rem; letter-spacing: 0.08em; }
+.vsgold__tier-card > strong span { color: #8a6a4c; font-family: var(--font-body); font-size: 0.62rem; font-weight: 700; }
 .vsgold__empty { grid-column: 1 / -1; margin: 1rem; color: #815f3e; text-align: center; }
 
 .vsgold__state { display: grid; min-height: 620px; place-content: center; justify-items: center; padding: 2rem; text-align: center; }
-.vsgold__state h1 { margin: 0.8rem 0 0.3rem; font-family: var(--font-display); font-size: 2rem; }
+.vsgold__state h2 { margin: 0.8rem 0 0.3rem; font-family: var(--font-display); font-size: 2rem; }
 .vsgold__state p { margin: 0; color: #7c5a3b; }
 .vsgold__state button { display: inline-flex; gap: 0.4rem; align-items: center; margin-top: 1rem; padding: 0.65rem 1rem; border: 1px solid #6f431d; background: #6d3e1c; color: #fff1cc; font-weight: 900; }
-/* The loader keeps the dashboard's height: five section-sized rows. */
-.vsgold__loading { --loading-row-height: 6.5rem; min-height: 620px; }
+/* The loader keeps the dashboard's height, five section-sized rows and at least
+   one screen, so the footer stays below the fold until the statistics arrive. */
+.vsgold__loading { --loading-row-height: 6.5rem; min-height: max(620px, 100dvh); }
 
 @media (max-width: 1120px) {
-  .vsgold__hero { grid-template-columns: 1fr; }
-  .vsgold__hero-stats { min-height: 88px; }
   .vsgold__distribution-grid { grid-template-columns: 1fr; }
   .vsgold__deck-list { max-height: none; }
   .vsgold__tier-board { grid-template-columns: 1fr; }
+  .vsgold__tier-card { contain-intrinsic-size: auto 61px; }
 }
 
 @media (max-width: 720px) {
-  .vsgold__hero {
-    gap: 0.62rem;
-    min-height: 0;
-    padding: 0.78rem 0.72rem;
-    border-width: 6px;
-    box-shadow: 0 8px 18px rgba(67, 35, 14, 0.15);
-  }
-  .vsgold__eyebrow { gap: 0.35rem; font-size: 0.55rem; letter-spacing: 0.1em; }
-  .vsgold__hero h1 { margin-top: 0.42rem; font-size: clamp(1.82rem, 8.7vw, 2.25rem); line-height: 0.98; }
-  .vsgold__hero-copy > p { margin: 0.45rem 0 0; font-size: 0.75rem; line-height: 1.36; }
-  .vsgold__hero-ornament { width: 100%; height: 11px; margin-top: 0.55rem; }
-  .vsgold__hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); min-height: 0; }
-  .vsgold__hero-stats div { min-height: 52px; padding: 0.36rem 0.42rem; }
-  .vsgold__hero-stats div:nth-child(2) { border-right: 0; }
-  .vsgold__hero-stats div:last-child { grid-column: 1 / -1; min-height: 46px; border-top: 1px solid rgba(228, 183, 78, 0.14); }
-  .vsgold__hero-stats strong { font-size: 0.75rem; }
-  .vsgold__hero-stats span { font-size: 0.47rem; letter-spacing: 0.045em; }
   .vsgold__mobile-nav {
     position: sticky;
     top: var(--arena-mobile-sticky-offset, 70px);
@@ -375,16 +266,17 @@
   .vsgold__deck-row {
     grid-template: 'icon name metric' auto '. build build' auto / 40px minmax(0, 1fr) auto;
     gap: 0.38rem 0.52rem;
-    min-height: 96px;
+    min-height: 128px;
     padding: 0.55rem;
   }
+  .vsgold__deck-row > :is(.vsgold__build-missing, .vsgold__build-aggregate) { grid-area: build; text-align: left; }
   .vsgold__deck-row > img { grid-area: icon; width: 38px; height: 38px; }
   .vsgold__deck-name { grid-area: name; }
   .vsgold__deck-name strong { font-size: 0.84rem; }
   .vsgold__deck-row > b { grid-area: metric; font-size: 0.9rem; }
   .vsgold__deck-row .vsgold__build { grid-area: build; justify-items: stretch; }
   .vsgold__build { width: 100%; }
-  .vsgold__deck-row .vsgold__build { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .vsgold__deck-row .vsgold__build { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
   .vsgold__build .vsgold__build-copy-button { flex: 1; width: auto; min-height: 48px; padding: 0.3rem 0.55rem; }
   .vsgold__build-open { min-height: 44px; }
   .vsgold__deck-composition { padding: 0.55rem; }
@@ -395,7 +287,7 @@
   .vsgold__power-heading { gap: 0.55rem; align-items: flex-start; flex-direction: column; }
   .vsgold__power-heading > p { font-size: 0.72rem; line-height: 1.4; text-align: left; }
   .vsgold__rank-tabs,
-  .vsgold__class-tabs { gap: 0.32rem; padding-bottom: 0.55rem; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+  .vsgold__class-tabs { flex-wrap: nowrap; gap: 0.32rem; overflow-x: auto; padding-bottom: 0.55rem; scrollbar-width: thin; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
   .vsgold__rank-tabs { margin-top: 0.75rem; }
   .vsgold__rank-tabs button,
   .vsgold__class-tabs button { min-height: 44px; scroll-snap-align: start; touch-action: manipulation; }
@@ -406,23 +298,23 @@
     min-height: 118px;
     padding: 0.58rem;
     border-width: 4px;
+    contain-intrinsic-size: auto 118px;
   }
   .vsgold__tier-rank { grid-area: rank; font-size: 0.84rem; }
   .vsgold__tier-card > img { grid-area: icon; width: 38px; height: 38px; }
   .vsgold__tier-card > div:not(.vsgold__build) { grid-area: main; min-width: 0; }
-  .vsgold__tier-card h3 { overflow-wrap: anywhere; font-size: 0.95rem; }
+  .vsgold__tier-card h4 { overflow-wrap: anywhere; font-size: 0.95rem; }
   .vsgold__tier-card > strong { grid-area: win; font-size: 0.9rem; }
-  .vsgold__tier-card .vsgold__build { grid-area: build; justify-items: stretch; }
+  .vsgold__tier-card .vsgold__build { grid-area: build; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); align-items: center; column-gap: 0.6rem; width: 100%; }
+  .vsgold__tier-card .vsgold__build > span { grid-column: auto; }
 }
 
 @media (max-width: 480px) {
-  .vsgold__eyebrow { font-size: 0.51rem; letter-spacing: 0.075em; }
-  .vsgold__hero h1 { font-size: 1.78rem; }
   .vsgold__mobile-nav a { font-size: 0.64rem; }
   .vsgold__classes,
   .vsgold__decks,
   .vsgold__power { padding: 0.56rem; }
-  .vsgold__tier-card { grid-template-columns: 25px 36px minmax(0, 1fr) auto; padding-inline: 0.45rem; }
+  .vsgold__tier-card { grid-template-columns: 25px 36px minmax(0, 1fr) auto; padding-inline: 0.45rem; contain-intrinsic-size: auto 123px; }
   .vsgold__tier-card > img { width: 34px; height: 34px; }
 }
 

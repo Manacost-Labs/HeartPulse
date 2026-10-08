@@ -29,6 +29,28 @@ wording and does not cover an individual archetype page.
 - Tours remain concise, keyboard accessible, mobile-safe and manually
   restartable from Help.
 
+## Page layout
+
+- The access check, the guest gate, the loader, the error panel and the
+  statistics render the same banner, and the loader holds at least one screen.
+  A subscriber's first screen therefore does not move when the statistics
+  arrive. The banner names the source and the update time once data is in.
+- Class bars are drawn against the most popular class; the percentage stays the
+  absolute share.
+- The Power Tier board groups the selected rank bracket into win-rate bands:
+  Tier 1 from 52%, Tier 2 from 50%, Tier 3 from 47% and Tier 4 below. Each band
+  names its threshold and deck count and keeps the source order. Class chips
+  wrap on wide screens and scroll on phones.
+- Tier cards keep `content-visibility: auto`. Their `contain-intrinsic-size` is
+  `auto` plus the mean rendered content height per layout (68, 61, 118 and
+  123 px), so unrendered cards do not move the scrollbar on phones.
+- The graphical deck-code button and the bounded mobile deck list are product
+  decisions covered by `scripts/e2e-qa.mjs`; keep them unless the owner changes
+  that contract.
+- `tests/vicious-gold-layout-browser.test.mjs` checks the bands, the bars, the
+  source line, the filters, accessibility, the layout shift and the phone
+  scroll height with `tests/fixtures/viciousGoldPayload.mjs`.
+
 ## Tour rollout plan
 
 ### Coverage inventory

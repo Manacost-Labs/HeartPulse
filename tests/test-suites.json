@@ -161,6 +161,7 @@
         "tests/traditional-mode-banner-ui.test.ts",
         "tests/vicious-gold-builds.test.ts",
         "tests/vicious-gold-progressive-loading.test.ts",
+        "tests/vicious-gold-model.test.ts",
         "tests/web-vitals-sentry.test.ts",
         "tests/web-vitals-dimensions.test.ts",
         "tests/motion-tokens.test.mjs",
@@ -417,7 +418,8 @@
         "tests/page-headers-browser.test.mjs",
         "tests/production-observer-browser.test.mjs",
         "tests/soft-paywall-browser.test.mjs",
-        "tests/vicious-gold-progressive-browser.test.mjs"
+        "tests/vicious-gold-progressive-browser.test.mjs",
+        "tests/vicious-gold-layout-browser.test.mjs"
       ]
     },
     {
