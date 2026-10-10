@@ -74,6 +74,15 @@ test('Vicious Gold reads as a ranked board and keeps its place while loading', {
     summary.classDistribution.forEach((item, index) => assert.ok(Math.abs(bars[index] - item.frequency / leader) < 0.02,
       `${item.classLabel} is drawn against the leader`));
 
+    const deckBars = await page.$$eval('.vsgold__deck-share', bars => bars.map(bar => bar.firstElementChild.getBoundingClientRect().width / bar.getBoundingClientRect().width));
+    assert.ok(deckBars[0] > 0.98 && deckBars.at(-1) < deckBars[0], 'archetype bars run against the most played deck');
+    assert.equal(await page.$eval('.vsgold__deck-count', node => node.textContent.trim()), '28 колод');
+    await page.click('.vsgold__class-bars button');
+    assert.match(await page.$eval('.vsgold__deck-count', node => node.textContent.trim()), /^\d+ колод[аы]? из 28$/,
+      'a class filter says how many archetypes remain');
+    await page.click('.vsgold__class-bars button');
+    assert.equal(await page.$eval('.vsgold__deck-tools select', select => select.value), 'all', 'a second press clears the class filter');
+
     const freshness = await page.$eval('.vsgold__freshness', node => ({ text: node.textContent, href: node.querySelector('a')?.href }));
     assert.equal(freshness.href, summary.sourceUrl);
     assert.match(freshness.text, /обновлено \d{2}\.\d{2}\.\d{4}/);
@@ -83,6 +92,19 @@ test('Vicious Gold reads as a ranked board and keeps its place while loading', {
     assert.equal(await page.$eval('.vsgold__class-tabs', row => row.scrollWidth <= row.clientWidth), true,
       'every class chip is visible on a wide screen');
 
+    await page.click('.vsgold__tier-card .vsgold__build-open');
+    const opened = await page.evaluate(() => {
+      const composition = document.querySelector('.vsgold__tier-composition');
+      const board = composition?.parentElement.getBoundingClientRect();
+      return { expanded: document.querySelector('.vsgold__tier-card .vsgold__build-open').getAttribute('aria-expanded'),
+        spansBoard: Boolean(composition) && Math.abs(composition.getBoundingClientRect().width - board.width) < 2 };
+    });
+    assert.deepEqual(opened, { expanded: 'true', spansBoard: true }, 'a Power Tier card opens its card list across the board');
+    await page.click('.vsgold__tier-card .vsgold__build-open');
+    assert.equal(await page.$('.vsgold__tier-composition'), null);
+
+    assert.deepEqual(await page.$$eval('.vsgold__rank-tabs button', buttons => buttons.map(button => button.getAttribute('aria-pressed'))),
+      summary.tierList.map((_, index) => String(index === 0)), 'rank brackets are a pressed-button group');
     await page.click('.vsgold__rank-tabs button:nth-child(2)');
     assertBands(await readBands(page), 'legend');
     await page.click('.vsgold__class-tabs button:nth-child(2)');

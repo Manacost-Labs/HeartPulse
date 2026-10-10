@@ -1,14 +1,13 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw, Search } from 'lucide-react';
 import '../route-parchment.css';
-import HsReplayDeckList from './HsReplayDeckList';
-import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import './ViciousSyndicateGold.css';
 import { BuildActions } from './viciousGold/BuildActions';
+import { DeckComposition } from './viciousGold/DeckComposition';
 import { PowerTierBoard } from './viciousGold/PowerTierBoard';
 import { ViciousGoldBanner, ViciousGoldLoading } from './viciousGold/ViciousGoldBanner';
 import {
-  classIcon, percent, shareOfLeader, thresholdPercent,
+  classIcon, deckCount, percent, shareOfLeader, thresholdPercent,
   type BuildState, type DeckBuild, type ViciousGoldPayload,
 } from './viciousGold/viciousGoldModel';
 
@@ -118,6 +117,7 @@ export default function ViciousSyndicateGold() {
   }, [revision]);
 
   const leadingClassShare = Math.max(0, ...data.classDistribution.map(item => item.frequency));
+  const leadingDeckShare = Math.max(0, ...data.deckDistribution.map(deck => deck.frequency));
   const visibleDecks = useMemo(() => {
     const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
     return data.deckDistribution.filter(deck => (
@@ -147,9 +147,10 @@ export default function ViciousSyndicateGold() {
     window.setTimeout(() => setCopiedDeck(current => current === deck ? '' : current), 1800);
   };
 
+  // A second press on the selected class shows every class again.
   const selectDeckClass = (classKey: string) => {
-    setDeckClass(classKey);
-    if (!window.matchMedia('(max-width: 1120px)').matches) return;
+    setDeckClass(current => current === classKey ? 'all' : classKey);
+    if (deckClass === classKey || !window.matchMedia('(max-width: 1120px)').matches) return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.requestAnimationFrame(() => deckSectionRef.current?.scrollIntoView({
       behavior: reducedMotion ? 'auto' : 'smooth',
@@ -210,26 +211,25 @@ export default function ViciousSyndicateGold() {
             <div><span>Популярность от {thresholdPercent(data.minimumDeckFrequency)}</span><h2>Распределение колод</h2></div>
           </header>
           <div className="vsgold__deck-tools">
-            <label><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип" /></label>
+            <label><Search size={16} /><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип" aria-label="Найти архетип" /></label>
             <select value={deckClass} onChange={event => setDeckClass(event.target.value)} aria-label="Фильтр колод по классу">
               <option value="all">Все классы</option>
               {data.classDistribution.map(item => <option key={item.class} value={item.class}>{item.classLabel}</option>)}
             </select>
           </div>
+          <p className="vsgold__deck-count" aria-live="polite">
+            {visibleDecks.length === data.deckDistribution.length ? deckCount(visibleDecks.length) : `${deckCount(visibleDecks.length)} из ${data.deckDistribution.length}`}
+          </p>
           <div className="vsgold__deck-list">
             {visibleDecks.map((deck, index) => <React.Fragment key={deck.deck}>
               <div className="vsgold__deck-row" data-tour-id={index === 0 ? 'vicious-build-action' : undefined}>
                 <img src={classIcon(deck.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
-                <div className="vsgold__deck-name"><strong>{deck.deckLabel}</strong><span>{deck.deck}</span></div>
+                <div className="vsgold__deck-name"><strong>{deck.deckLabel}</strong><span>{deck.deck}</span>
+                  <div className="vsgold__deck-share" aria-hidden="true"><i style={{ width: shareOfLeader(deck.frequency, leadingDeckShare) }} /></div></div>
                 <b>{percent(deck.frequency)}</b>
                 <BuildActions deck={deck.deck} build={deck.build} buildState={buildState} copiedDeck={copiedDeck} onCopy={copyDeck} expanded={openDeckKey === deck.deck} onOpen={key => setOpenDeckKey(current => current === key ? '' : key)} />
               </div>
-              {openDeckKey === deck.deck && deck.build && <section className="vsgold__deck-composition" aria-label={`Состав колоды ${deck.deckLabel}`}>
-                <header><div><span>Актуальная сборка</span><h3>{deck.deckLabel}</h3></div><a href={deck.build.sourceUrl} target="_blank" rel="noreferrer">Источник</a></header>
-                <DeckRenderPreview deckCode={deck.build.deckCode} deckName={deck.deckLabel}>
-                  <HsReplayDeckList cards={deck.build.deckCards || []} label={`Состав колоды ${deck.deckLabel}`} />
-                </DeckRenderPreview>
-              </section>}
+              {openDeckKey === deck.deck && deck.build && <DeckComposition deckLabel={deck.deckLabel} build={deck.build} />}
             </React.Fragment>)}
             {!visibleDecks.length && <p className="vsgold__empty">По этому фильтру колод нет.</p>}
           </div>

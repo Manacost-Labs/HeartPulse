@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Swords } from 'lucide-react';
 import { BuildActions } from './BuildActions';
+import { DeckComposition } from './DeckComposition';
 import {
   classIcon, deckCount, groupByPowerTier, percent,
   type BuildState, type ClassDistribution, type TierSection,
@@ -15,6 +16,7 @@ export function PowerTierBoard({ tierList, classes, buildState, copiedDeck, onCo
 }) {
   const [rankBracket, setRankBracket] = useState(() => tierList[0]?.rankBracket ?? 'All ranks');
   const [powerClass, setPowerClass] = useState('all');
+  const [openDeck, setOpenDeck] = useState('');
   const selectedTier = tierList.find(section => section.rankBracket === rankBracket) ?? tierList[0];
   const bands = useMemo(
     () => groupByPowerTier((selectedTier?.decks ?? []).filter(deck => powerClass === 'all' || deck.class === powerClass)),
@@ -31,13 +33,13 @@ export function PowerTierBoard({ tierList, classes, buildState, copiedDeck, onCo
         <p>Выберите диапазон рангов и класс. Винрейт и порядок берутся из Vicious Syndicate Live.</p>
       </header>
 
-      <div className="vsgold__rank-tabs" role="tablist" aria-label="Диапазон рейтинга" data-tour-id="vicious-power-filters">
+      <div className="vsgold__rank-tabs" role="group" aria-label="Диапазон рейтинга" data-tour-id="vicious-power-filters">
         {tierList.map(section => (
-          <button key={section.rankBracket} type="button" role="tab" aria-selected={rankBracket === section.rankBracket}
+          <button key={section.rankBracket} type="button" aria-pressed={rankBracket === section.rankBracket}
             onClick={() => setRankBracket(section.rankBracket)}>{section.rankLabel}</button>
         ))}
       </div>
-      <div className="vsgold__class-tabs" aria-label="Класс для Power Tier">
+      <div className="vsgold__class-tabs" role="group" aria-label="Класс для Power Tier">
         <button type="button" aria-pressed={powerClass === 'all'} className={powerClass === 'all' ? 'active' : ''} onClick={() => setPowerClass('all')}><Swords size={15} /> Все</button>
         {classes.map(item => (
           <button key={item.class} type="button" aria-pressed={powerClass === item.class} className={powerClass === item.class ? 'active' : ''} onClick={() => setPowerClass(item.class)}>
@@ -50,15 +52,18 @@ export function PowerTierBoard({ tierList, classes, buildState, copiedDeck, onCo
         <section key={band.id} className={`vsgold__tier-band vsgold__tier-band--${band.id}`} aria-labelledby={`vsgold-tier-${band.id}`}>
           <header><h3 id={`vsgold-tier-${band.id}`}>{band.label}</h3><p>{band.range}, {deckCount(band.decks.length)}</p></header>
           <div className="vsgold__tier-board">
-            {band.decks.map(deck => (
-              <article className={`vsgold__tier-card vsgold__tier-card--${band.id}`} key={`${rankBracket}:${deck.deck}`}>
+            {band.decks.map(deck => <Fragment key={`${rankBracket}:${deck.deck}`}>
+              <article className={`vsgold__tier-card vsgold__tier-card--${band.id}`}>
                 <span className="vsgold__tier-rank">#{deck.rank}</span>
                 <img src={classIcon(deck.classIcon)} alt="" width="46" height="46" loading="lazy" decoding="async" />
                 <div><small>{deck.classLabel}</small><h4>{deck.deckLabel}</h4><p>{deck.deck}</p></div>
                 <strong>{percent(deck.winrate)}<span>винрейт</span></strong>
-                <BuildActions deck={`tier:${deck.deck}`} build={deck.build} buildState={buildState} copiedDeck={copiedDeck} onCopy={onCopy} />
+                <BuildActions deck={`tier:${deck.deck}`} build={deck.build} buildState={buildState} copiedDeck={copiedDeck} onCopy={onCopy}
+                  expanded={openDeck === deck.deck} onOpen={() => setOpenDeck(current => current === deck.deck ? '' : deck.deck)} />
               </article>
-            ))}
+              {openDeck === deck.deck && deck.build
+                && <DeckComposition deckLabel={deck.deckLabel} build={deck.build} titleTag="h5" className="vsgold__tier-composition" />}
+            </Fragment>)}
           </div>
         </section>
       ))}
