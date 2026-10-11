@@ -25,7 +25,8 @@ slots, annotations and PNG/WebP exports remain available.
   including ultrawide screens. The strategy heading is «Конструктор стратегий БГ».
 - Desktop library width is adjustable with a range, draggable divider or arrow
   keys. Width persists locally; narrow screens keep the tabbed layout. Library
-  controls stay visible while scrolling the catalog.
+  search and width controls stay visible while scrolling; filters scroll so they
+  do not cover the catalog on shorter screens.
 - Strategy boards support 1–10 rows of five slots. Reducing rows preserves every
   card and repacks displaced slots; the minimum row count fits all placed cards.
   Rows and grid visibility participate in draft restoration and undo. The visible

@@ -20,7 +20,14 @@ export function mountBuilderSidebarResize(root: HTMLElement, signal: AbortSignal
   input.type = 'range'; input.min = '260'; input.max = '600'; input.step = '1';
   const output = doc.createElement('output');
   label.append(text, input, output);
-  (sidebar.querySelector('.builder-controls') ?? sidebar).prepend(label);
+  const head = doc.createElement('div');
+  head.className = 'builder-library-head';
+  const search = sidebar.querySelector<HTMLElement>('.control-field[data-tour-id$="-search"]');
+  const searchParent = search?.parentNode;
+  const searchNext = search?.nextSibling;
+  head.append(label);
+  if (search) head.append(search);
+  sidebar.prepend(head);
   const separator = doc.createElement('div');
   separator.className = 'builder-sidebar-resize';
   separator.tabIndex = 0;
@@ -82,6 +89,7 @@ export function mountBuilderSidebarResize(root: HTMLElement, signal: AbortSignal
   paint();
   return () => {
     observer.disconnect(); win.cancelAnimationFrame(frame);
-    label.remove(); separator.remove(); grid.style.removeProperty('--builder-sidebar-width');
+    if (search && searchParent) searchParent.insertBefore(search, searchNext?.parentNode === searchParent ? searchNext : null);
+    head.remove(); separator.remove(); grid.style.removeProperty('--builder-sidebar-width');
   };
 }

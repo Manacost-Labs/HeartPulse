@@ -410,10 +410,11 @@
 }
 
 @media (min-width: 901px) {
-  .arena-app-battlegrounds .strategy-builder-page .builder-controls {
+  .arena-app-battlegrounds .strategy-builder-page .builder-library-head {
     position: sticky;
     top: 0;
     z-index: 6;
     background: var(--panel);
+    padding-bottom: 12px;
   }
 }
