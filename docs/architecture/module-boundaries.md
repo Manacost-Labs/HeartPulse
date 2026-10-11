@@ -71,6 +71,12 @@ they consume the module port and stop their global listeners and animation frame
 on unmount. The draft and interaction contracts are documented in
 `docs/specs/battleground-builders.md`.
 
+## Battlegrounds library controls
+
+The Battlegrounds client module owns compact library controls. The legacy
+listing supplies catalog state, navigation and selection callbacks; the control
+view performs no data requests or permission checks.
+
 ## Battlegrounds minion type icons
 
 `src/modules/battlegrounds/public.ts` exposes the Russian-name and slug icon

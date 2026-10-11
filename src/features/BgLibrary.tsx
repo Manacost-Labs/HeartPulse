@@ -1,7 +1,7 @@
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
-import { battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
+import { LibraryControls, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
+import { ArrowLeft, BarChart3, ExternalLink } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { publicResourceUrl } from '../publicResourceUrl';
@@ -141,7 +141,6 @@ interface BgLibraryProps {
   navigatePath: (path: string) => void;
 }
 
-const TAVERN_TIERS = [1, 2, 3, 4, 5, 6, 7];
 const INITIAL_VISIBLE_CARDS = 96;
 const MORE_VISIBLE_CARDS = 96;
 const ARCHIVE_PAGE_SIZE = 72;
@@ -983,117 +982,6 @@ function MiniChart({ points, color = '#f1d47b', unit = '', invert = false }: { p
   );
 }
 
-function FilterChip({ active, children, onClick, title }: { key?: React.Key; active: boolean; children: React.ReactNode; onClick: () => void; title?: string }) {
-  return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      data-active={active ? 'true' : 'false'}
-      className={`bg-library-filter-chip flex min-h-[44px] items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
-        active
-          ? 'border-[#e4c675] bg-[#e4c675] text-[#101827] shadow-sm'
-          : 'border-[#cbd9ed] bg-[#ffffff] text-[#34445c] hover:border-[#d3af55] hover:text-[#6d4f1c]'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function LibrarySectionSwitcher({
-  kind,
-  pool,
-  navigatePath,
-  totalCards,
-  filteredCards,
-}: {
-  kind: LibraryKind;
-  pool: PoolMode;
-  navigatePath: (path: string) => void;
-  totalCards: number;
-  filteredCards: number;
-}) {
-  const activeSection = sectionFor(kind);
-  const activePoolLabel = pool === 'archive' ? 'Архив' : 'Актуальный пул';
-  const navigateTo = (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    event.preventDefault();
-    navigatePath(href);
-  };
-
-  return (
-    <section
-      className="bg-library-directory rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5"
-    >
-      <div className="bg-library-directory-head mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div data-tour-id="bg-library-directory">
-          <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">Разделы библиотеки</p>
-          <h2 className="mt-1 font-hs text-2xl text-[#26374f]">{activeSection.shortTitle} · {activePoolLabel}</h2>
-        </div>
-        <div className="bg-library-result-count rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#5e708a]">
-          {filteredCards.toLocaleString('ru-RU')} найдено · {totalCards.toLocaleString('ru-RU')} загружено
-        </div>
-      </div>
-
-      <div className="bg-library-directory-grid grid gap-3 lg:grid-cols-[minmax(260px,0.75fr)_1fr]">
-        <div className="bg-library-nav-group rounded-md border border-[#d6e1f1] bg-white p-3">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-[#60718a]">Состояние пула</p>
-          <div className="flex flex-wrap gap-2">
-            {(['current', 'archive'] as PoolMode[]).map(nextPool => {
-              const active = nextPool === pool;
-              const href = canonicalPagePath(sectionHref(kind, nextPool));
-              const disabled = nextPool === 'archive' && !sectionFor(kind).supportsArchive;
-              return (
-                <a
-                  key={nextPool}
-                  href={disabled ? undefined : href}
-                  role={disabled ? 'link' : undefined}
-                  onClick={disabled ? undefined : event => navigateTo(event, href)}
-                  aria-disabled={disabled ? 'true' : undefined}
-                  data-active={active ? 'true' : 'false'}
-                  className={`inline-flex min-h-[44px] items-center rounded-md border px-4 py-2 font-hs text-sm ${
-                    disabled
-                      ? 'cursor-not-allowed border-[#d6e1f1] bg-[#eef4fd] text-[#8b9ab0]'
-                      : active ? 'border-[#e4c675] bg-[#e4c675] text-[#101827]' : 'border-[#cbd9ed] bg-[#ffffff] text-[#33445d]'
-                  }`}
-                  style={{ textDecoration: 'none' }}
-                >
-                  {nextPool === 'current' ? 'Актуальный пул' : 'Архив'}
-                </a>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="bg-library-nav-group rounded-md border border-[#d6e1f1] bg-white p-3">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-[#60718a]">Тип данных</p>
-          <div className="flex max-h-none flex-wrap gap-2 overflow-auto pr-1 sm:max-h-28">
-            {LIBRARY_SECTIONS.map(section => {
-              const nextKind = section.kind;
-              const active = nextKind === kind;
-              const href = canonicalPagePath(sectionHref(nextKind, pool));
-              return (
-                <a
-                  key={nextKind}
-                  href={href}
-                  onClick={(event) => navigateTo(event, href)}
-                  data-active={active ? 'true' : 'false'}
-                  className={`inline-flex min-h-[44px] items-center rounded-md border px-4 py-2 font-hs text-sm ${
-                    active ? 'border-[#e4c675] bg-[#e4c675] text-[#101827]' : 'border-[#cbd9ed] bg-[#ffffff] text-[#33445d]'
-                  }`}
-                  style={{ textDecoration: 'none' }}
-                >
-                  {section.shortTitle}
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function LibraryCardTile({
   card,
   pool,
@@ -1284,6 +1172,10 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
   const toggleRace = (slug: string) => {
     setRaceFilters(current => current.includes(slug) ? current.filter(item => item !== slug) : [...current, slug]);
   };
+  const resetFilters = () => {
+    setQuery(''); setTavernFilters([]); setRaceFilters([]);
+    setGroupFilter('ALL'); setMechanic('ALL'); setIncludeDuos(false);
+  };
   const archivePages = useMemo(() => {
     const pages = new Set<number>([1, archivePageCount, normalizedArchivePage]);
     for (let page = normalizedArchivePage - 2; page <= normalizedArchivePage + 2; page += 1) {
@@ -1299,115 +1191,29 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
         {pool === 'archive' ? 'Архив' : 'Актуальный пул'} · {activeSection.shortTitle}
       </p>
 
-      <LibrarySectionSwitcher
-        kind={kind}
-        pool={pool}
-        navigatePath={navigatePath}
-        totalCards={cards.length}
-        filteredCards={filtered.length}
+      <LibraryControls
+        section={kind} pool={pool}
+        sections={LIBRARY_SECTIONS.map(section => ({ value: section.kind, label: section.shortTitle }))}
+        pools={[{ value: 'current', label: 'Актуальный пул' }, { value: 'archive', label: 'Архив', disabled: !activeSection.supportsArchive }]}
+        onSection={value => navigatePath(canonicalPagePath(sectionHref(value as LibraryKind, pool)))}
+        onPool={value => navigatePath(canonicalPagePath(sectionHref(kind, value as PoolMode)))}
+        query={query} onQuery={setQuery}
+        tiers={tavernFilters} onTier={toggleTavern} onClearTiers={() => setTavernFilters([])}
+        races={kind === 'minion' ? creatureTypes : []} selectedRaces={raceFilters}
+        onRace={toggleRace} onClearRaces={() => setRaceFilters([])}
+        mechanics={mechanics} mechanic={mechanic} onMechanic={setMechanic}
+        groups={cardGroups} group={groupFilter} onGroup={setGroupFilter}
+        duos={includeDuos} onDuos={() => setIncludeDuos(value => !value)}
+        selections={[
+          ...(query ? [{ id: 'query', label: query, remove: () => setQuery('') }] : []),
+          ...tavernFilters.map(tier => ({ id: `tier-${tier}`, label: `Таверна ${tier}`, remove: () => toggleTavern(tier) })),
+          ...raceFilters.map(slug => ({ id: `race-${slug}`, label: creatureTypes.find(([value]) => value === slug)?.[1] || slug, remove: () => toggleRace(slug) })),
+          ...(mechanic !== 'ALL' ? [{ id: 'mechanic', label: mechanics.find(([value]) => value === mechanic)?.[1] || mechanic, remove: () => setMechanic('ALL') }] : []),
+          ...(groupFilter !== 'ALL' ? [{ id: 'group', label: cardGroups.find(([value]) => value === groupFilter)?.[1] || groupFilter, remove: () => setGroupFilter('ALL') }] : []),
+          ...(includeDuos ? [{ id: 'duos', label: 'Duo', remove: () => setIncludeDuos(false) }] : []),
+        ]}
+        onReset={resetFilters} resultCount={filtered.length} totalCount={cards.length}
       />
-
-      <section className="bg-library-filter-board rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5">
-        <div className="grid gap-3">
-          <label className="bg-library-search relative block" data-tour-id="bg-library-search">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7b8da6]" size={20} />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              type="search"
-              placeholder="Название на русском или английском, ID или механика…"
-              className="h-12 w-full rounded-md border border-[#c5d4e9] bg-[#ffffff] pl-12 pr-4 text-base font-semibold text-[#26374f] outline-none transition-colors placeholder:text-[#8b9ab0] focus:border-[#d3af55]"
-            />
-          </label>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          <div
-            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#d6e1f1] bg-white px-3 py-2 font-hs text-sm text-[#26374f]"
-            data-tour-id="bg-library-filters"
-          >
-            <Filter size={16} aria-hidden="true" />
-            Фильтры библиотеки
-          </div>
-          <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
-            <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
-              <span>Формат</span><ChevronDown size={16} />
-            </summary>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIncludeDuos(value => !value)}
-                data-active={includeDuos ? 'true' : 'false'}
-                className={`bg-library-duos-toggle inline-flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
-                  includeDuos ? 'border-[#e4c675] bg-[#e4c675] text-[#101827]' : 'border-[#cbd9ed] bg-white text-[#34445c] hover:border-[#d3af55]'
-                }`}
-              >
-                <span className={`h-4 w-8 rounded-full p-0.5 transition-colors ${includeDuos ? 'bg-[#26374f]' : 'bg-[#cbd9ed]'}`}>
-                  <span className={`block h-3 w-3 rounded-full bg-white transition-transform ${includeDuos ? 'translate-x-4' : ''}`} />
-                </span>
-                Показывать карты Duo
-              </button>
-              <span className="text-sm text-[#657893]">Добавляет карты Duo к списку.</span>
-            </div>
-          </details>
-
-          <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
-            <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
-              <span className="flex items-center gap-2"><Filter size={16} />Уровень таверны</span><ChevronDown size={16} />
-            </summary>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <FilterChip active={tavernFilters.length === 0} onClick={() => setTavernFilters([])}>Все уровни</FilterChip>
-              {TAVERN_TIERS.map(tier => (
-                <FilterChip key={tier} active={tavernFilters.includes(String(tier))} onClick={() => toggleTavern(String(tier))} title={`Таверна ${tier}`}>
-                  <img src={tavernIcon(tier)} alt="" className="h-7 w-7" loading="lazy" />Таверна {tier}
-                </FilterChip>
-              ))}
-            </div>
-          </details>
-
-          {kind === 'minion' && (
-            <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
-              <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
-                <span>Тип существа</span><ChevronDown size={16} />
-              </summary>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <FilterChip active={raceFilters.length === 0} onClick={() => setRaceFilters([])}>Все типы</FilterChip>
-                {creatureTypes.map(([slug, label]) => (
-                  <FilterChip key={slug} active={raceFilters.includes(slug)} onClick={() => toggleRace(slug)}>
-                    {RACE_ICON_BY_SLUG[slug] && <img src={RACE_ICON_BY_SLUG[slug]} alt="" className="h-7 w-7 rounded-full" loading="lazy" />}{label}
-                  </FilterChip>
-                ))}
-              </div>
-            </details>
-          )}
-
-          {cardGroups.length > 0 && (
-            <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
-              <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
-                <span>Группа</span><ChevronDown size={16} />
-              </summary>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <FilterChip active={groupFilter === 'ALL'} onClick={() => setGroupFilter('ALL')}>Все группы</FilterChip>
-                {cardGroups.map(([slug, label]) => (
-                  <FilterChip key={slug} active={groupFilter === slug} onClick={() => setGroupFilter(slug)}>{label}</FilterChip>
-                ))}
-              </div>
-            </details>
-          )}
-
-          <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
-              <span>Механики</span><ChevronDown size={16} />
-            </summary>
-            <div className="mt-3 flex max-h-56 flex-wrap gap-2 overflow-auto pr-1">
-              <FilterChip active={mechanic === 'ALL'} onClick={() => setMechanic('ALL')}>Все механики</FilterChip>
-              {mechanics.map(([slug, label]) => (
-                <FilterChip key={slug} active={mechanic === slug} onClick={() => setMechanic(slug)}>{label}</FilterChip>
-              ))}
-            </div>
-          </details>
-        </div>
-      </section>
 
       <section className="overflow-visible rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-sm sm:p-5">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -1418,7 +1224,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
         </div>
 
         {error && <div className="rounded-md border border-[#efb4b4] bg-[#fff1f1] p-4 text-[#8f2424]">{error}</div>}
-        {!loading && !error && filtered.length === 0 && <div className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-8 text-center text-[#657893]">По выбранным фильтрам ничего не найдено.</div>}
+        {!loading && !error && filtered.length === 0 && <div className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-8 text-center text-[#657893]"><p>По выбранным фильтрам ничего не найдено.</p><button type="button" className="mt-3 min-h-[44px] underline" onClick={resetFilters}>Сбросить фильтры</button></div>}
 
         <div className="space-y-8">
           {grouped.map((group, groupIndex) => (

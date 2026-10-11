@@ -406,6 +406,7 @@
         "tests/next-mobile-menu-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
+        "tests/bg-library-controls-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",
