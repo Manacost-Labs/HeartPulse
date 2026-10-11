@@ -18,7 +18,6 @@ export function BattlegroundHeroesPageClient() {
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Герои Полей сражений</h1>
-          <p>Рейтинг героев для соло и дуо, фильтры по MMR и подробная статистика.</p>
         </div>
       </header>
       {allowed

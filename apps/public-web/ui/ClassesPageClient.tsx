@@ -1,6 +1,5 @@
 'use client';
 
-import FAQSection from '@/src/components/FAQSection';
 import PaywallGate from '@/src/components/PaywallGate';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '@/src/modules/arenaClasses/public';
@@ -28,9 +27,8 @@ export function ClassesPageClient() {
         headingLevel="h2"
         authUser={access.user} subscriptionStatus={access.subscription}
         subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}>
-        <ArenaClassesResults onNavigate={navigateTab} state={state} onRetry={retry} />
+        <ArenaClassesResults state={state} onRetry={retry} />
       </PaywallGate>
-      <FAQSection />
     </ArenaClassesPage>
   </PublicPageShell>;
 }

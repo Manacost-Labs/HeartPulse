@@ -13,11 +13,11 @@ assert.match(
 assert.match(homeSource, /<DeferredHomeSection label="Последние статьи" eager=\{serverArticles\}>/,
   'Next can include latest articles in server HTML without changing legacy lazy loading');
 
-// The two directories and the FAQ are static links and text. A placeholder
+// The two directories are static links and text. A placeholder
 // a third of their height shifted the page when they mounted, and the
 // page index linked to headings that did not exist yet, so they render in
 // the document like any other section.
-for (const label of ['Поля Сражений', 'Арена', 'Частые вопросы']) {
+for (const label of ['Поля Сражений', 'Арена']) {
   assert.doesNotMatch(homeSource, new RegExp(`<DeferredHomeSection label="${label}"`),
     `${label} renders with the page instead of behind a placeholder`);
 }
@@ -25,7 +25,7 @@ assert.match(homeSource, /^import HomeArenaDirectory from '\.\/HomeArenaDirector
 assert.match(homeSource, /^import HomeBattlegrounds from '\.\/HomeBattlegrounds';$/m);
 assert.doesNotMatch(homeSource, /React\.lazy\(\(\) => import\('\.\/Home(ArenaDirectory|Battlegrounds)'\)\)/,
   'a lazy section would leave its stylesheet out of the document');
-for (const anchor of ['home-articles-heading', 'home-bg-heading', 'home-arena-directory-heading', 'faq-heading']) {
+for (const anchor of ['home-articles-heading', 'home-bg-heading', 'home-arena-directory-heading']) {
   assert.match(homeSource, new RegExp(`href="#${anchor}"`), `the page index links to #${anchor}`);
 }
 assert.match(homeSource, /<LoadingSurface[^>]*label=\{`Загружаем раздел «\$\{label\}»`\}/,

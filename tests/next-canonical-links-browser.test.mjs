@@ -7,19 +7,19 @@ import { qaSessionCookie } from '../scripts/qa/mockApi.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
-// Each route names a link its content must render, so a page that lost its
-// fixture data (and with it the links under test) fails instead of passing empty.
+// Each route names a content marker. Data listings require an entry link;
+// compact hub pages use their breadcrumb or heading after removing related links.
 const GUEST_ROUTES = [
   ['/', '.arena-content a[href^="/tierlist"]'],
-  ['/tierlist/', '.arena-content a[href^="/classes"]'],
-  ['/classes/', '.arena-content a[href^="/legendaries"]'],
-  ['/legendaries/', '.arena-content a[href^="/classes"]'],
+  ['/tierlist/', '.arena-content nav[aria-label="Breadcrumb"] a'],
+  ['/classes/', '.arena-content nav[aria-label="Breadcrumb"] a'],
+  ['/legendaries/', '.arena-content nav[aria-label="Breadcrumb"] a'],
   ['/standard/cards/', '.arena-content a[href^="/standard/cards/standard/"]'],
   ['/standard/cards/standard/CARD_QA_1/', '.constructed-card-detail__breadcrumb a'],
   ['/standard/archetypes/', '.arena-content a[href^="/standard/archetypes/standard/"]'],
   ['/standard/meta/', '.arena-content a[href^="/standard/archetypes/standard/"]'],
   ['/cosmetics/', '.arena-content a[href^="/cosmetics/coins"]'],
-  ['/battlegrounds/tier-list/', '.arena-content a[href^="/library"]'],
+  ['/battlegrounds/tier-list/', '.arena-content h1'],
   ['/articles/', '.arena-content a[href]'],
   ['/no-such-page/', '.arena-content a[href^="/articles"]'],
 ];
@@ -28,7 +28,7 @@ const SUBSCRIBER_ROUTES = [
   ['/heroes/', '.arena-content a[href^="/heroes/"]'],
   ['/library/', '.arena-content a[data-library-card-tile]'],
   ['/guides-archive/', '.arena-content a.guide-archive-card'],
-  ['/tierlist/', '.arena-content a[href^="/legendaries"]'],
+  ['/tierlist/', '.arena-content nav[aria-label="Breadcrumb"] a'],
 ];
 
 /**

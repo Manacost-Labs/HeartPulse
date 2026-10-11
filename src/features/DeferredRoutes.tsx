@@ -12,7 +12,6 @@ import './DeferredRoutes.css';
 import { RefreshCw, AlertTriangle, X, Search, Star, BookOpen, Grid3X3, List, ThumbsUp, ThumbsDown, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import PaywallGate from '../components/PaywallGate';
-import FAQSection from '../components/FAQSection';
 import { canAccessAdminWorkspace, type AuthUser } from '../modules/identity/public';
 import {
   TIERLIST_SOURCES,
@@ -31,7 +30,6 @@ import {
 } from '../modules/subscriptions/public';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
-import { ArenaTierListSearchIntro } from '../modules/searchLanding/public';
 import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '../modules/arenaClasses/public';
 
@@ -747,9 +745,8 @@ export function WinratesView(props: WinratesProps & {
       title="Подтвердите подписку Манакоста для доступа к классам"
       authUser={props.authUser} subscriptionStatus={props.subscriptionStatus}
       subscriptionLoading={props.subscriptionLoading} onRefreshSubscription={props.onRefreshSubscription}>
-      <ArenaClassesResults onNavigate={props.onNavigate} state={props.state} onRetry={props.onRetry} />
+      <ArenaClassesResults state={props.state} onRetry={props.onRetry} />
     </PaywallGate>
-    <FAQSection />
   </ArenaClassesPage>;
 }
 
@@ -1562,7 +1559,6 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Тир-лист', href: '/tierlist/' },
       ]} />
-      <ArenaTierListSearchIntro />
       <PaywallGate
         active={paywallActive}
         title="Подтвердите подписку Манакоста для доступа к тир-листу"
@@ -1891,13 +1887,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         <CardModal card={modalCard.card} tier={modalCard.tier} onClose={() => setModalCard(null)} />
       )}
 
-      <InternalLinks links={[
-        { label: 'Винрейт классов →', href: '/classes/', onClick: () => onNavigate('winrates') },
-        { label: 'Легендарки →', href: '/legendaries/', onClick: () => onNavigate('legendaries') },
-        { label: 'Статьи о Арене →', href: '/articles/', onClick: () => onNavigate('articles') },
-      ]} />
       </PaywallGate>
-      <FAQSection />
     </div>
   );
 }
@@ -2114,14 +2104,6 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Легендарки', href: '/legendaries/' },
       ]} />
-      <section aria-label="Описание раздела" data-page-still>
-        <p className="text-[#6b4c2a] text-sm leading-relaxed mb-5 px-1"
-          style={{ borderLeft: '3px solid #c4a46a', paddingLeft: '12px' }}>
-          На Арене Hearthstone легендарная карта предлагается в качестве первого выбора.
-          На этой странице собраны все группы первого выбора с винрейтом и метриками ArenaSmith.
-          Фильтр класса показывает классовые легендарки вместе с нейтральными.
-        </p>
-      </section>
       <PaywallGate
         active={paywallActive}
         title="Подтвердите подписку Манакоста для доступа к легендаркам"
@@ -2402,40 +2384,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         <CardModal card={modalCard.card} tier={modalCard.tier} onClose={() => setModalCard(null)} />
       )}
 
-      <InternalLinks links={[
-        { label: 'Тир-лист карт →', href: '/tierlist/', onClick: () => onNavigate('tierlist') },
-        { label: 'Винрейт классов →', href: '/classes/', onClick: () => onNavigate('winrates') },
-        { label: 'Статьи о Арене →', href: '/articles/', onClick: () => onNavigate('articles') },
-      ]} />
       </PaywallGate>
     </div>
-  );
-}
-
-// ─── Shared article presentation ─────────────────────────────────────────────
-
-function InternalLinks({ links }: { links: { label: string; href: string; onClick?: () => void }[] }) {
-  return (
-    <section aria-label="Смотри также" className="mt-8 pt-4" style={{ borderTop: '1px solid #c4a46a55' }}>
-      <p className="text-[#8b6c42] text-xs mb-2 uppercase tracking-wide font-hs">Смотри также</p>
-      <div className="flex flex-wrap gap-2">
-        {links.map((link, i) => (
-          <a
-            key={i}
-            href={link.href}
-            onClick={link.onClick ? (e: React.MouseEvent) => { e.preventDefault(); link.onClick!(); } : undefined}
-            className="inline-flex min-h-11 items-center px-4 py-2 rounded-lg text-sm font-hs transition-all hover:brightness-110"
-            style={{
-              background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)',
-              border: '1.5px solid #c4a46a',
-              color: '#4a3018',
-              textDecoration: 'none',
-            }}
-          >
-            {link.label}
-          </a>
-        ))}
-      </div>
-    </section>
   );
 }

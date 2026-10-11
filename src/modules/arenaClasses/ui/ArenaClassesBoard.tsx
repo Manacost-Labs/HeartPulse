@@ -23,20 +23,11 @@ export function ArenaClassesBoard({ state, onRetry }: {
 }) {
   const classes = state.data?.classes ?? [];
   const maxWinrate = Math.max(...classes.map(item => item.winrate), 1);
-  const source = state.data?.source.toLowerCase().includes('firestone') ? 'Firestone' : 'HSReplay';
   return (
     <section aria-label="Статистика классов" aria-busy={state.status === 'loading'}>
-      {state.data && (
-        <p className="arena-classes-data-meta" data-tour-id="arena-classes-source">
-          Источник: {source}. Обновлено: {state.data.updatedAt
-            ? <time dateTime={state.data.updatedAt}>{new Date(state.data.updatedAt).toLocaleString('ru-RU', { timeZone: 'UTC' })} UTC</time>
-            : 'время не указано'}
-        </p>
-      )}
       {state.status === 'loading' && <div role="status">Загрузка статистики классов…</div>}
       {state.status === 'error' && <p role="alert" className="arena-classes-notice">Не удалось загрузить статистику классов. Повторите попытку.</p>}
       {state.status === 'empty' && <p role="status" className="arena-classes-notice">Статистики классов пока нет.</p>}
-      {state.status === 'stale' && <p role="status" className="arena-classes-notice">Показаны сохранённые данные. Обновление не подтверждено.</p>}
       {state.status === 'loading' && <div aria-hidden="true">{Array.from({ length: 11 }, (_, index) =>
         <div key={index} className="skeleton h-16 sm:h-[72px] w-full mb-3" />)}</div>}
       {classes.length > 0 && <ol aria-label="Рейтинг классов" className="arena-classes-board space-y-2.5 sm:space-y-3 relative">
@@ -94,8 +85,8 @@ export function ArenaClassesBoard({ state, onRetry }: {
               );
             })}
       </ol>}
-      {state.status !== 'loading' && <button type="button" className="arena-classes-retry" onClick={onRetry}>
-        {state.status === 'error' ? 'Повторить загрузку' : 'Обновить статистику'}
+      {(state.status === 'error' || state.status === 'empty') && <button type="button" className="arena-classes-retry" onClick={onRetry}>
+        Повторить загрузку
       </button>}
     </section>
   );

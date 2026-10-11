@@ -13,10 +13,10 @@ const byType = (graph: Array<Record<string, unknown>>, type: string) => graph.fi
 
 test('the home graph links its application to the breadcrumb and marks the language', async () => {
   const graph = (await seoStructuredDataGraph('/', NOW))!['@graph'];
-  assert.deepEqual(graph.map(node => node['@type']), ['WebSite', 'WebApplication', 'BreadcrumbList', 'FAQPage']);
+  assert.deepEqual(graph.map(node => node['@type']), ['WebSite', 'WebApplication', 'BreadcrumbList']);
   assert.equal(byType(graph, 'BreadcrumbList')!['@id'], 'https://hearthpulse.net/#breadcrumb');
   assert.deepEqual(byType(graph, 'WebApplication')!.breadcrumb, { '@id': 'https://hearthpulse.net/#breadcrumb' });
-  assert.equal(byType(graph, 'FAQPage')!.inLanguage, 'ru');
+  assert.equal(byType(graph, 'FAQPage'), undefined, 'FAQ belongs on the dedicated help page');
   assert.equal(byType(graph, 'WebSite')!.breadcrumb, undefined, 'the site node is not a page in the trail');
 });
 

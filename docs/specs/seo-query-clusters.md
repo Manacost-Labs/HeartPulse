@@ -35,8 +35,10 @@ Each primary landing page must provide:
 
 - a unique, concise title and description aligned with its owned intent;
 - exactly one descriptive H1 in prerendered HTML and one H1 after hydration;
-- visible introductory copy that explains the page's purpose and data source;
-- ordinary crawlable links with descriptive anchors to complementary pages;
+- a compact heading; data-source context belongs beside the relevant controls or
+  statistics, without repeated introductory paragraphs;
+- ordinary crawlable navigation links; repeated related-section link blocks are
+  not required;
 - structured data that describes only content visible on that page;
 - one self-canonical URL without query-string variants in the sitemap.
 
@@ -46,15 +48,15 @@ brand as its own site or claim partnership, endorsement, or ownership.
 ## Testing strategy
 
 1. Assert intent ownership and title uniqueness in the SEO registry test.
-2. Assert primary H1, visible explanatory copy, internal links and matching
+2. Assert primary H1, navigation links and matching
    structured data in generated HTML.
 3. Build and run the repository release checks.
 4. Verify desktop and mobile rendering, heading structure, console and network
    health in a real Chromium session.
 
-Visible search-intent introductions are owned by the focused
+Compact search-intent headings are owned by the focused
 `src/modules/searchLanding` frontend module. Legacy route hosts consume only
-its public entrypoint so SEO copy does not add more responsibilities to the
+its public entrypoint so headings do not add more responsibilities to the
 ratcheted Arena and Battlegrounds monoliths.
 
 ## Safety and rollback
@@ -67,7 +69,8 @@ ratcheted Arena and Battlegrounds monoliths.
 ## Success criteria
 
 - The four primary landing pages clearly own distinct search intents.
-- Arena and Battlegrounds pages expose aligned title, H1 and useful copy.
-- `/standard/meta` transparently describes HSGuru as its statistics source.
+- Arena and Battlegrounds pages expose aligned title and H1 without repeated
+  keyword introductions.
+- `/standard/meta` identifies HSGuru in its heading as the statistics source.
 - Prerender and runtime content agree and do not create duplicate H1 elements.
 - Focused tests, full quality/security gates and browser review pass.

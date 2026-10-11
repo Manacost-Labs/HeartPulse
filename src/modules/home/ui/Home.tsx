@@ -74,13 +74,12 @@ class HomeSectionBoundary extends React.Component<
   }
 }
 
-export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, faq, serverArticles = false }: {
+export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, serverArticles = false }: {
   homeSummaryData: HomeSummaryData | null;
   loadingHomeSummary: boolean;
   articles: HomeArticle[];
   loadingArticles: boolean;
   onNavigate: (tab: string) => void;
-  faq: React.ReactNode;
   serverArticles?: boolean;
 }) {
   return (
@@ -91,7 +90,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <a href="#home-articles-heading">Статьи</a>
         <a href="#home-bg-heading">Поля Сражений</a>
         <a href="#home-arena-directory-heading">Арена</a>
-        <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
       <DeferredHomeSection label="Последние статьи" eager={serverArticles}>
@@ -125,7 +123,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         </a>
       </aside>
 
-      <div className="home-faq-zone home-reveal">{faq}</div>
     </div>
   );
 }

@@ -24,8 +24,8 @@ export const Ready: Story = {
   play: async ({ canvas, args }) => {
     await expect(canvas.getByRole('list', { name: 'Рейтинг классов' })).toBeVisible();
     await expect(canvas.getByText('51.2%')).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Обновить статистику' }));
-    await expect(args.onRetry).toHaveBeenCalledOnce();
+    await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
+    await expect(args.onRetry).not.toHaveBeenCalled();
   },
 };
 export const Loading: Story = {
@@ -39,7 +39,7 @@ export const Empty: Story = {
   args: { state: { status: 'empty', data: { ...data, classes: [] } } },
   play: async ({ canvas, args }) => {
     await expect(canvas.getByRole('status')).toHaveTextContent('пока нет');
-    await userEvent.click(canvas.getByRole('button', { name: 'Обновить статистику' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Повторить загрузку' }));
     await expect(args.onRetry).toHaveBeenCalledOnce();
   },
 };
@@ -55,10 +55,9 @@ export const Error: Story = {
 export const Stale: Story = {
   args: { state: { status: 'stale', data } },
   play: async ({ canvas, args }) => {
-    await expect(canvas.getByRole('status')).toHaveTextContent('сохранённые данные');
-    await expect(canvas.getByText(/Источник: HSReplay/)).toBeVisible();
+    await expect(canvas.queryByRole('status')).not.toBeInTheDocument();
     await expect(canvas.getByText('51.2%')).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Обновить статистику' }));
-    await expect(args.onRetry).toHaveBeenCalledOnce();
+    await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
+    await expect(args.onRetry).not.toHaveBeenCalled();
   },
 };

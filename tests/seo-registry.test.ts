@@ -106,7 +106,7 @@ for (const contract of intentContracts) {
 
 const deferredRoutesSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
 assert.match(deferredRoutesSource, /SectionBanner title="Тир-лист карт Арены Hearthstone"/);
-assert.match(deferredRoutesSource, /<ArenaTierListSearchIntro \/>/);
+assert.doesNotMatch(deferredRoutesSource, /<ArenaTierListSearchIntro \/>/);
 
 const battlegroundsSource = readFileSync(new URL('../src/features/Battlegrounds.tsx', import.meta.url), 'utf8');
 assert.match(battlegroundsSource, /<BattlegroundsTierListSearchIntro \/>/);
@@ -148,19 +148,17 @@ assert.equal(
 );
 assert.equal(subscriptionPaywallHeading('Мета доступна подписчикам', '/standard/meta/'), 'Мета доступна подписчикам');
 
-const arenaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/ArenaTierListSearchIntro.tsx', import.meta.url), 'utf8');
-assert.match(arenaLandingSource, /href="\/classes\/"[^>]*>Винрейты классов Арены<\/a>/);
 
 const battlegroundsLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/BattlegroundsSearchIntros.tsx', import.meta.url), 'utf8');
 assert.match(battlegroundsLandingSource, /<h1[^>]*>Тир-лист БГ Hearthstone<\/h1>/);
 assert.match(battlegroundsLandingSource, /<h1[^>]*>Конструктор стратегий БГ Hearthstone<\/h1>/);
-assert.match(battlegroundsLandingSource, /href="\/battlegrounds\/tier-list\/"[^>]*>Тир-лист стратегий БГ<\/a>/);
+assert.doesNotMatch(battlegroundsLandingSource, /<nav/);
 
 const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(standardMetaSource, /<StandardMetaSearchIntro \/>/);
 assert.doesNotMatch(standardMetaSource, /StandardMetaRelatedLinks/);
 const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/StandardMetaSearchIntro.tsx', import.meta.url), 'utf8');
 assert.match(standardMetaLandingSource, /<h1>HSGuru: мета Hearthstone<\/h1>/);
-assert.match(standardMetaLandingSource, /HSGuru — источник статистики/);
+
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);

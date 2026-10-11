@@ -133,9 +133,8 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'arena-classes', version: 1, paths: ['/classes'], title: 'Как читать рейтинг классов Арены',
+    id: 'arena-classes', version: 2, paths: ['/classes'], title: 'Как читать рейтинг классов Арены',
     steps: [
-      { id: 'source', target: 'arena-classes-source', title: 'Свежесть статистики', description: 'Дата обновления показывает, насколько свежий текущий срез HSReplay по классам Арены.', audience: 'arena' },
       { id: 'ranking', target: 'arena-classes-ranking', title: 'Рейтинг классов', description: 'Классы расположены по проценту побед; длина полосы помогает быстро увидеть разницу между лидерами.', audience: 'arena', preferredPlacement: 'top' },
       { id: 'details', target: 'arena-classes-details', title: 'Как читать строку класса', description: 'Место задаёт порядок рейтинга, шкала и процент показывают винрейт, а справа указано число учтённых игр, если оно доступно.', audience: 'arena', preferredPlacement: 'top' },
     ],
@@ -163,7 +162,6 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     steps: [
       { id: 'metrics', target: 'bg-heroes-metrics', title: 'Основные показатели', description: 'Среднее место показывает результат героя, а частота выбора — насколько часто игроки предпочитают его альтернативам.', audience: 'battlegrounds' },
       { id: 'search', target: 'bg-heroes-search', title: 'Поиск героя', description: 'Введите русское или английское имя, чтобы быстро найти героя среди полного актуального списка.', audience: 'battlegrounds' },
-      { id: 'source', target: 'bg-heroes-source', title: 'Источник и свежесть данных', description: 'Под заголовком указан текущий источник среза HSReplay. Используйте его вместе с показателями, чтобы понимать контекст рейтинга.', audience: 'battlegrounds' },
       { id: 'results', target: 'bg-heroes-results', title: 'Карточки героев', description: 'Карточка показывает силу героя и статистику; откройте её для подробного распределения мест и связанных данных.', audience: 'battlegrounds', preferredPlacement: 'top' },
     ],
   },

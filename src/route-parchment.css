@@ -303,16 +303,6 @@
   color: var(--arena-ink);
 }
 
-:is(.arena-app-tierlist, .arena-app-legendaries) :is(.arena-tierlist-page, .arena-legendaries-page) > section[aria-label='Описание раздела'] p {
-  margin: 0 0 1.3rem !important;
-  padding: 0.25rem 0 1rem 1rem !important;
-  border: 0 !important;
-  border-left: 5px solid var(--arena-red) !important;
-  border-bottom: 1px solid var(--arena-paper-line) !important;
-  color: #725d45 !important;
-  background: transparent !important;
-}
-
 :is(.arena-app-tierlist, .arena-app-legendaries) :is(.tierlist-source-row, .legendary-toolbar) {
   margin: 0 0 1rem !important;
   padding: 0 0 0.75rem;
@@ -686,20 +676,6 @@
   background: rgba(247, 231, 196, 0.6) !important;
 }
 
-.arena-app-legendaries section[aria-label='Смотри также'] {
-  margin-top: 1.8rem !important;
-  padding-top: 1rem !important;
-  border-top: 5px solid transparent !important;
-  border-image: var(--arena-wood-divider) 1 !important;
-}
-
-.arena-app-legendaries section[aria-label='Смотри также'] a {
-  border: 1px solid rgba(97, 56, 24, 0.34) !important;
-  border-radius: 2px !important;
-  color: #5a3d28 !important;
-  background: rgba(255, 241, 207, 0.52) !important;
-}
-
 @media (max-width: 720px) {
   .arena-app-legendaries .legendary-group-card {
     min-height: 0;
@@ -713,20 +689,6 @@
   width: min(100%, 1480px);
   margin: 0 auto;
   color: var(--arena-ink);
-}
-
-.arena-app-winrates .arena-classes-page > section[aria-label='Описание раздела'] {
-  margin-bottom: 1.35rem;
-}
-
-.arena-app-winrates .arena-classes-page > section[aria-label='Описание раздела'] p {
-  margin: 0 !important;
-  padding: 0.25rem 0 1rem 1rem !important;
-  border: 0 !important;
-  border-left: 5px solid var(--arena-red) !important;
-  border-bottom: 1px solid var(--arena-paper-line) !important;
-  color: #725d45 !important;
-  background: transparent !important;
 }
 
 .arena-app-winrates .arena-classes-update {
@@ -836,20 +798,6 @@
 
 .arena-app-winrates .arena-class-meter-fill {
   border-radius: 1px !important;
-}
-
-.arena-app-winrates section[aria-label='Смотри также'] {
-  margin-top: 1.8rem !important;
-  padding-top: 1rem !important;
-  border-top: 5px solid transparent !important;
-  border-image: var(--arena-wood-divider) 1 !important;
-}
-
-.arena-app-winrates section[aria-label='Смотри также'] a {
-  border: 1px solid rgba(97, 56, 24, 0.34) !important;
-  border-radius: 2px !important;
-  color: #5a3d28 !important;
-  background: rgba(255, 241, 207, 0.52) !important;
 }
 
 /* Gallery — pictures sit in actual wooden display frames. */

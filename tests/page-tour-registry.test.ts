@@ -98,7 +98,8 @@ assert.doesNotMatch(
 for (const tour of PAGE_TOURS) {
   assert.ok(tour.version >= 1, `${tour.id}: version must be positive`);
   assert.ok(tour.paths.length >= 1, `${tour.id}: at least one path is required`);
-  assert.ok(tour.steps.length >= 3 && tour.steps.length <= 7, `${tour.id}: tours must stay useful and concise`);
+  const minimumSteps = tour.id === 'arena-classes' ? 2 : 3;
+  assert.ok(tour.steps.length >= minimumSteps && tour.steps.length <= 7, `${tour.id}: tours must stay useful and concise`);
   assert.equal(new Set(tour.steps.map(step => step.id)).size, tour.steps.length, `${tour.id}: step ids must be unique`);
   assert.equal(new Set(tour.steps.map(step => step.target)).size, tour.steps.length, `${tour.id}: target anchors must be unique`);
   for (const step of tour.steps) {

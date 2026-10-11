@@ -3527,7 +3527,7 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
   const [searchTerm, setSearchTerm] = useState(initialUrlState.search);
   const [sortKey, setSortKey] = useState<BattlegroundHeroSortKey>(initialUrlState.sortKey);
   const [sortDirection, setSortDirection] = useState<BattlegroundHeroSortDirection>(initialUrlState.sortDirection);
-  const { sections, sourceLabel, loading, error } = useBattlegroundHeroTierData(bgHeroTierResource, mode, mmr);
+  const { sections, loading, error } = useBattlegroundHeroTierData(bgHeroTierResource, mode, mmr);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   useEffect(() => bgScheduleHeroPrefetch(initialUrlState.mode, initialUrlState.mmr), [initialUrlState.mmr, initialUrlState.mode]);
@@ -3569,22 +3569,6 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
 
   return (
     <div className="bg-heroes-page space-y-5">
-      <div className="text-center">
-        <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8b6c42]">Поля сражений</p>
-        <h2 className="mt-2 font-hs text-3xl text-[#3d2a1e] sm:text-4xl">Герои</h2>
-        <p className="mx-auto mt-2 max-w-2xl text-sm text-[#6b4c2a]">
-          Рейтинг героев HSReplay для соло и дуо: выберите диапазон MMR и удобный вид списка.
-        </p>
-        {sourceLabel && (
-          <p
-            className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#8b6c42]"
-            data-tour-id="bg-heroes-source"
-          >
-            {sourceLabel}
-          </p>
-        )}
-      </div>
-
       <section className="bg-heroes-tools">
         <div className="bg-heroes-controls">
           <fieldset className="bg-heroes-control-group">

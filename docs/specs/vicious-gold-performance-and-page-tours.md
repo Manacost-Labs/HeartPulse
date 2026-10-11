@@ -86,6 +86,7 @@ wording and does not cover an individual archetype page.
 4. **Do not add tours** to static FAQ, simple article readers or one-action
    pages. Prefer contextual labels there to avoid unnecessary interruption.
 
+The class ranking tour has two steps after removing its duplicate source row.
 Every new tour must have stable `data-tour-id` anchors, 3–7 steps, mobile copy
 where behavior differs, a version bump when meaning changes, registry tests and
 desktop/mobile browser QA.
