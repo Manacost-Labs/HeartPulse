@@ -8,6 +8,10 @@ position between public pages. The mobile drawer closes on navigation without
 losing the page's scroll position. Content changes without fading to the
 background or rising into place.
 
+The skip link remains the first DOM element in the public root, before the
+pending navigation indicator, so keyboard entry and shell readiness share the
+same accessibility contract.
+
 Switching navigation groups removes the old group's geometry immediately,
 before revealing the new one. Closing a group must not postpone layout until
 its fade finishes, move controls a second time, or leave hidden links visible.

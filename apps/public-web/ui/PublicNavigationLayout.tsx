@@ -16,13 +16,13 @@ export function PublicNavigationLayout({ children }: { children: ReactNode }) {
   const reportUpdatedAt = useCallback((label: string) => setUpdatedAt({ pathname, label }), [pathname]);
   const publicPage = !/^\/admin(?:\/|$)/.test(pathname);
   return <PublicAccessContext.Provider value={accessStore}>
-    <PublicNavigationBridge />
     <PublicNavigationContext.Provider value={publicPage ? reportUpdatedAt : null}>
       {publicPage && <>
         <a className="arena-skip-link" href="#main-content">К основному содержимому</a>
         <PublicNavigationController activeTab={tabFromPath(pathname)} pathname={pathname} access={access} navigate={navigate}
           updatedAtLabel={updatedAt.pathname === pathname ? updatedAt.label : 'Нет данных'} />
       </>}
+      <PublicNavigationBridge />
       {children}
     </PublicNavigationContext.Provider>
   </PublicAccessContext.Provider>;

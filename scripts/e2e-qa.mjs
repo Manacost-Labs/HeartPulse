@@ -2749,6 +2749,8 @@ for (const [device, viewport] of [
 
     await tapFirstArchetypeRow(page);
     await page.waitForSelector('.archetype-detail-page .archetype-trend', { timeout: 20_000 });
+    await page.waitForSelector('.archetype-main-build', { timeout: 20_000 });
+    await page.$eval('.archetype-main-build', node => node.scrollIntoView({ block: 'start' }));
     await page.waitForSelector('.archetype-deck-card .deck-render-preview[data-render-state="ready"]', { timeout: 20_000 });
     const archetypeDetailState = await page.evaluate(() => {
       const root = document.querySelector('.archetype-detail-page');
