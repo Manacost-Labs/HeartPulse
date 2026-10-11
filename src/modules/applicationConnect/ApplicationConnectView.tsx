@@ -1,3 +1,4 @@
+import { SectionBanner } from '../../shared/ui/EditorialRouteChrome';
 import type { ReactNode } from 'react';
 import type { AuthUser } from '../identity/public';
 import {
@@ -92,6 +93,7 @@ export function ApplicationConnectView({
 
   return (
     <article className="application-connect" aria-labelledby="application-connect-title">
+      <SectionBanner title="Подключить Manacost Tracker" titleId="application-connect-title" />
       <header className="application-connect__header">
         <div className="application-connect__brand">
           <span className="application-connect__brand-mark" aria-hidden="true">
@@ -99,7 +101,6 @@ export function ApplicationConnectView({
           </span>
           <div>
             <span className="application-connect__kicker"><ShieldCheck size={18} /> Безопасный вход Manacost</span>
-            <h1 id="application-connect-title">Подключить Manacost Tracker</h1>
             <p>
               Подтвердите вход на этом устройстве. Приложение получит отдельный токен,
               а ваш пароль останется только на Manacost.

@@ -1,5 +1,7 @@
 'use client';
 
+import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { Gift } from 'lucide-react';
 import type { AuthUser } from '../../identity/public';
@@ -151,10 +153,10 @@ export function ContestsPage({
 
   return (
     <section className="contests-page">
+      <SectionBanner title="Конкурсы" />
       <div className="contest-hero">
         <div>
           <p className="contest-eyebrow">Manacost</p>
-          <h1>Конкурсы</h1>
           <p>
             Здесь будут проходить розыгрыши для подписчиков: игровая валюта, бонусы и другие призы.
             Нажмите “Участвовать”, система проверит подписку и подтвердит заявку автоматически.

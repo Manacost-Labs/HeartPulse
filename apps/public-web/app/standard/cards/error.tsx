@@ -1,4 +1,5 @@
 'use client';
+import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { usePublicAccess } from '@/apps/public-web/ui/usePublicAccess';
 import { navigate } from '@/apps/public-web/ui/navigation';
@@ -13,7 +14,7 @@ export default function CardsErrorPage({ error, retry }: { error: Error & { dige
   });
   return <PublicPageShell activeTab="standard-cards" pathname="/standard/cards/" access={access} navigate={navigate} wide>
     <section className="constructed-cards constructed-cards__state" role="alert" data-app-error="route:standard-cards">
-      <h1>{recovery.heading}</h1>
+      <SectionBanner title={recovery.heading} />
       <p>{recovery.text}</p>
       <div className="constructed-cards__state-actions">
         <button type="button" onClick={recovery.retry}>{recovery.action}</button>

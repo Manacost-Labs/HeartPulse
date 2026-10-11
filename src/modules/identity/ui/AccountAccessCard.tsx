@@ -149,8 +149,8 @@ export default function AccountAccessCard({ subscription, loading, checked, chec
   const note = accountAccessNote(subscription);
   const summary = accessSummary(state, subscription, checkedAt);
   return (
-    <section id="account-access" className={`account-card account-access account-access--${state}`} aria-labelledby="account-access-title" data-tour-id="profile-access-status">
-      <div className="account-access__head">
+    <section id="account-access" className={`account-card account-access account-access--${state}`} aria-labelledby="account-access-title">
+      <div className="account-access__head" data-tour-id="profile-access-status">
         <div className="account-access__summary">
           <span className={`account-pill account-pill--${state}`}><Icon size={16} aria-hidden="true" />{pill}</span>
           <h2 id="account-access-title">{title}</h2>

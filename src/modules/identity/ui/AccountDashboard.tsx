@@ -1,3 +1,4 @@
+import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Copy, ExternalLink, MoreHorizontal, X } from 'lucide-react';
@@ -108,25 +109,27 @@ function AccountMenu({ onLogout }: { onLogout: () => void }) {
 
 function AccountHeader({ user, name, contact, publicProfileHref, linkCopied, onCopyLink, onLogout }: Pick<AccountDashboardProps, 'user' | 'name' | 'contact' | 'publicProfileHref' | 'linkCopied' | 'onCopyLink' | 'onLogout'>) {
   return (
-    <header className="account-header" data-tour-id="profile-summary">
-      <AuthAvatar user={{ name, email: '', avatarInitials: user.avatarInitials, photoUrl: user.photoUrl }} size={68} />
-      <div className="account-header__identity">
-        <p className="account-header__eyebrow">Личный кабинет</p>
-        <h1 id="account-title">{name}</h1>
-        {contact && <p className="account-header__contact">{contact}</p>}
-      </div>
-      <div className="account-header__actions">
-        {publicProfileHref && (
-          <>
-            <a className="account-header__action" href={publicProfileHref}><ExternalLink size={18} aria-hidden="true" />Публичный профиль</a>
-            <button type="button" className="account-header__action" onClick={onCopyLink}>
-              <Copy size={18} aria-hidden="true" />{linkCopied ? 'Ссылка скопирована' : 'Копировать ссылку'}
-            </button>
-          </>
-        )}
-        <AccountMenu onLogout={onLogout} />
-      </div>
-    </header>
+    <>
+      <SectionBanner title={name} titleId="account-title" />
+      <header className="account-header" data-tour-id="profile-summary">
+        <AuthAvatar user={{ name, email: '', avatarInitials: user.avatarInitials, photoUrl: user.photoUrl }} size={68} />
+        <div className="account-header__identity">
+          <p className="account-header__eyebrow">Личный кабинет</p>
+          {contact && <p className="account-header__contact">{contact}</p>}
+        </div>
+        <div className="account-header__actions">
+          {publicProfileHref && (
+            <>
+              <a className="account-header__action" href={publicProfileHref}><ExternalLink size={18} aria-hidden="true" />Публичный профиль</a>
+              <button type="button" className="account-header__action" onClick={onCopyLink}>
+                <Copy size={18} aria-hidden="true" />{linkCopied ? 'Ссылка скопирована' : 'Копировать ссылку'}
+              </button>
+            </>
+          )}
+          <AccountMenu onLogout={onLogout} />
+        </div>
+      </header>
+    </>
   );
 }
 

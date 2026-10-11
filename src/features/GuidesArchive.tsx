@@ -1,3 +1,4 @@
+import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Search, Tag } from 'lucide-react';
 import '../route-parchment.css';
@@ -138,11 +139,7 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
 
   return (
     <section className="guide-archive-page">
-      <header className="site-page-hero guide-archive-hero">
-        <span className="guide-archive-eyebrow">Архив Манакоста</span>
-        <h1>Архив гайдов</h1>
-        <p>Старые гайды, мета-отчеты и материалы Koloda Hearthstone в новом аккуратном формате для чтения.</p>
-      </header>
+      <SectionBanner title="Архив гайдов" />
 
       <div className="guide-archive-toolbar">
         <form
@@ -280,13 +277,13 @@ function GuidesArchiveDetail({ slug, navigatePath }: { slug: string; navigatePat
         К архиву
       </button>
 
+      <SectionBanner title={guide.title} />
       <header className="guide-archive-detail-header">
         {guide.image && (
           <img className="guide-archive-detail-cover" src={guide.image} alt="" loading="lazy" decoding="async" />
         )}
         <div>
           <span className="guide-archive-eyebrow">{guideKindLabel(guide.kind)}</span>
-          <h1>{guide.title}</h1>
           <div className="guide-archive-detail-meta">
             {guide.publishedAt && <span><CalendarDays size={17} /> {formatGuideDate(guide.publishedAt)}</span>}
             {guide.menuName && <span><Tag size={17} /> {guide.menuName}</span>}

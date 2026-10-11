@@ -14,11 +14,16 @@ assert.equal(
 );
 assert.match(html, /<h1[^>]*>Статьи<\/h1>/);
 assert.match(html, /class="[^"]*section-banner-modern[^\"]*"/);
+assert.doesNotMatch(
+  renderToStaticMarkup(<SectionBanner title="Герои Полей сражений" subtitle="" />),
+  /<p[\s>]/,
+  'a title-only banner must not reserve an empty description row',
+);
 
 const guideArchiveSource = readFileSync(new URL('../src/features/GuidesArchive.tsx', import.meta.url), 'utf8');
 assert.match(
   guideArchiveSource,
-  /className="site-page-hero guide-archive-hero"/,
+  /<SectionBanner title="Архив гайдов"/,
   'the guides archive must share the public page-hero contract',
 );
 

@@ -52,15 +52,17 @@ export function Breadcrumbs({
 export function SectionBanner({
   title,
   subtitle,
+  titleId,
 }: {
   title: string;
-  subtitle: string;
+  subtitle?: string;
+  titleId?: string;
 }) {
   return (
     <header className="section-banner-modern">
       <div className="traditional-mode-banner__copy">
-        <h1>{title}</h1>
-        <p>{subtitle}</p>
+        <h1 id={titleId}>{title}</h1>
+        {subtitle && <p>{subtitle}</p>}
       </div>
     </header>
   );

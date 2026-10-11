@@ -19,3 +19,5 @@ export const MetaOverview: Story = {
 };
 export const Cards: Story = { args: { index: 5 } };
 export const ArenaLongTitle: Story = { args: { index: 7 } };
+export const Home: Story = { args: { index: 9 } };
+export const BattlegroundsBuilder: Story = { args: { index: 10 } };

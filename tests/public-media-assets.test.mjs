@@ -25,7 +25,7 @@ test('the parchment is one token on a compact WebP; only the newsletter keeps th
 });
 
 test('the page banner paints the AVIF where image-set() type() works and the WebP elsewhere', () => {
-  const banner = read('src/features/TraditionalModeBanner.css');
+  const banner = read('src/shared/ui/PublicPageBanner.css');
   const avif = read('apps/public-web/ui/PageBannerPreload.tsx').match(/PAGE_BANNER_AVIF_URL = '([^']+)'/)?.[1];
   assert.equal(avif, '/wallpaper/profile-hero-hth-1430.avif');
   assert.ok(publicSize(avif) < publicSize('/wallpaper/profile-hero-hth.webp'));

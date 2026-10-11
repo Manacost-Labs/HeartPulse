@@ -1,3 +1,4 @@
+import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -598,7 +599,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         <span aria-hidden="true">/</span>
         <strong>{item.archetypeLabel}</strong>
       </nav>
-
+      <SectionBanner title={item.archetypeLabel} />
       <section className="archetype-dossier" data-tour-id="archetype-summary">
         {heroArt ? (
           <img
@@ -612,7 +613,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         ) : null}
         <div className="archetype-dossier__identity">
           <img src={classIcon(item.classKey)} alt="" width="92" height="92" />
-          <h1>{item.archetypeLabel}</h1>
+          <h2>{item.archetypeLabel}</h2>
         </div>
         <dl className="archetype-dossier__metrics">
           <div><dt>Винрейт</dt><dd className={`metric-${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</dd></div>

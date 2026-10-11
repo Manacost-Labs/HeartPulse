@@ -26,7 +26,7 @@ for (const [file, banner] of featureFiles) {
 }
 
 const stylesheet = readFileSync(
-  new URL('../src/features/TraditionalModeBanner.css', import.meta.url),
+  new URL('../src/shared/ui/PublicPageBanner.css', import.meta.url),
   'utf8',
 );
 assert.match(stylesheet, /profile-hero-hth\.webp/);

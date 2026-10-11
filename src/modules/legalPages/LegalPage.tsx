@@ -1,4 +1,5 @@
-import { FileText, Scale, ShieldCheck } from 'lucide-react';
+import { SectionBanner } from '../../shared/ui/EditorialRouteChrome';
+import { FileText } from 'lucide-react';
 import legalPages from './content.json';
 import './LegalPage.css';
 
@@ -21,20 +22,12 @@ function LegalParagraph({ text }: { text: string }) {
  */
 export default function LegalPage({ kind }: { kind: LegalPageKind }) {
   const isPrivacy = kind === 'privacy';
-  const Icon = isPrivacy ? ShieldCheck : Scale;
   const page = LEGAL_PAGES[kind];
   const otherPage = LEGAL_PAGES[isPrivacy ? 'terms' : 'privacy'];
 
   return (
     <article className="legal-page">
-      <header className="legal-page__hero">
-        <div className="legal-page__hero-icon" aria-hidden="true"><Icon size={28} /></div>
-        <div>
-          <p>HearthPulse · Manacost</p>
-          <h1>{page.title}</h1>
-          <span>Актуальная редакция от {UPDATED_AT}.</span>
-        </div>
-      </header>
+      <SectionBanner title={page.title} subtitle={`Актуальная редакция от ${UPDATED_AT}.`} />
 
       <div className="legal-page__content">
         {page.sections.map((section, index) => {

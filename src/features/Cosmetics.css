@@ -504,7 +504,7 @@
   color: #e3bc69;
 }
 
-.cosmetics-detail-copy h1 {
+.cosmetics-detail-copy :is(h1, h2) {
   margin: 0;
   color: #fff0be;
   font-family: var(--font-display, Georgia, serif);

@@ -1,3 +1,4 @@
+import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import {
   ArrowRight,
   CircleHelp,
@@ -28,14 +29,7 @@ const SECTION_ICONS = {
 export default function FAQPage() {
   return (
     <article className="faq-page">
-      <header className="faq-page__hero">
-        <div className="faq-page__hero-icon" aria-hidden="true"><CircleHelp size={28} /></div>
-        <div>
-          <p>Центр помощи Manacost Stats</p>
-          <h1>Частые вопросы</h1>
-          <span>Авторизация, подписки, уровни доступа, статистика и решение частых проблем — в одном месте.</span>
-        </div>
-      </header>
+      <SectionBanner title="Частые вопросы" subtitle="Авторизация, подписки, уровни доступа, статистика и решение частых проблем — в одном месте." />
 
       <nav className="faq-page__index" aria-label="Разделы центра помощи">
         {FAQ_PAGE_SECTIONS.map(section => {

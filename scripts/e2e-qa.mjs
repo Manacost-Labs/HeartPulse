@@ -536,7 +536,6 @@ async function inspectLayout(page, { mobile }) {
       bannerPosition: bannerStyle?.position || null,
       bannerOverflow: bannerStyle?.overflow || null,
       bannerHeight: banner?.getBoundingClientRect().height || 0,
-      textOnlyBanner: banner?.classList.contains('section-banner-modern') || false,
       suspiciousOverlays,
       mobile: isMobile,
     };
@@ -610,17 +609,12 @@ function assertLayout(path, layout) {
     failures.push(`${path}: banner decoration is not contained (${layout.bannerOverflow})`);
   }
   if (layout.bannerHeight) {
-    if (layout.mobile && layout.textOnlyBanner) {
-      if (layout.bannerHeight < 176 || layout.bannerHeight >= 360) {
-        failures.push(`${path}: text-only mobile banner height changed (${layout.bannerHeight}px)`);
-      }
-    } else {
-      const expectedHeight = layout.mobile ? 360 : 320;
-      if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
-        failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
-      }
+    const expectedHeight = layout.mobile ? 360 : 320;
+    if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
+      failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
     }
   }
+
   if (layout.suspiciousOverlays.length) {
     failures.push(`${path}: dark viewport overlay detected (${layout.suspiciousOverlays.join(', ')})`);
   }
@@ -4559,7 +4553,7 @@ for (const [device, viewport] of [
     const desktopShell = await page.$eval('.home-workbench', element => {
       const stage = element.querySelector('.home-stage');
       const stageLabelDot = element.querySelector('.home-stage__label > span');
-      const stageHeading = element.querySelector('.home-stage h1');
+      const pageHeading = element.querySelector('#draft-home-title');
       const action = element.querySelector('.home-action');
       const orbit = element.querySelector('.home-draft-orbit');
       const orbitCaption = element.querySelector('.home-draft-orbit__caption');
@@ -4583,7 +4577,8 @@ for (const [device, viewport] of [
         labelDotWidth: labelDotStyles?.width || '',
         labelDotHeight: labelDotStyles?.height || '',
         labelDotBorder: labelDotStyles?.borderTopWidth || '',
-        headingWeight: stageHeading ? getComputedStyle(stageHeading).fontWeight : '',
+        sharedHeading: Boolean(pageHeading?.closest('.section-banner-modern')),
+        bannerGap: (stage?.getBoundingClientRect().top || 0) - (pageHeading?.closest('.section-banner-modern')?.getBoundingClientRect().bottom || 0),
         actionMinHeight: actionStyles?.minHeight || '',
         actionRadius: actionStyles?.borderRadius || '',
         actionFontSize: actionStyles?.fontSize || '',
@@ -4609,8 +4604,6 @@ for (const [device, viewport] of [
       const copy = element.querySelector('.home-stage__copy');
       const label = element.querySelector('.home-stage__label');
       const labelDot = element.querySelector('.home-stage__label > span');
-      const heading = element.querySelector('h1');
-      const headingAccent = heading?.querySelector('span');
       const summary = element.querySelector('.home-stage__copy > p');
       const actions = element.querySelector('.home-stage__actions');
       const primary = element.querySelector('.home-action--primary');
@@ -4623,9 +4616,8 @@ for (const [device, viewport] of [
       const orbitImage = orbitIcon?.querySelector('img');
       const orbitAction = element.querySelector('.home-orbit-action');
       const orbitEmpty = element.querySelector('[data-qa-home-orbit-empty-fixture]') || element.querySelector('.home-orbit-empty');
-      const pageIndex = element.parentElement?.querySelector('.home-page-index');
+      const pageIndex = element.closest('.home-workbench')?.querySelector('.home-page-index');
       const copyStyles = copy ? getComputedStyle(copy) : null;
-      const headingStyles = heading ? getComputedStyle(heading) : null;
       const summaryStyles = summary ? getComputedStyle(summary) : null;
       const primaryStyles = primary ? getComputedStyle(primary) : null;
       const secondaryStyles = secondary ? getComputedStyle(secondary) : null;
@@ -4647,13 +4639,6 @@ for (const [device, viewport] of [
         labelColor: label ? getComputedStyle(label).color : '',
         labelDotBackground: labelDot ? getComputedStyle(labelDot).backgroundColor : '',
         labelDotShadow: labelDot ? getComputedStyle(labelDot).boxShadow : '',
-        headingMaxWidth: headingStyles?.maxWidth || '',
-        headingMarginTop: headingStyles?.marginTop || '',
-        headingColor: headingStyles?.color || '',
-        headingSize: headingStyles?.fontSize || '',
-        headingLineHeight: headingStyles?.lineHeight || '',
-        headingShadow: headingStyles?.textShadow || '',
-        headingAccent: headingAccent ? getComputedStyle(headingAccent).color : '',
         summaryMarginTop: summaryStyles?.marginTop || '',
         summaryColor: summaryStyles?.color || '',
         summarySize: summaryStyles?.fontSize || '',
@@ -4703,7 +4688,8 @@ for (const [device, viewport] of [
       || desktopShell.labelDotWidth !== '7px'
       || desktopShell.labelDotHeight !== '7px'
       || desktopShell.labelDotBorder !== '0px'
-      || desktopShell.headingWeight !== '800'
+      || !desktopShell.sharedHeading
+      || Math.abs(desktopShell.bannerGap - 16) > 1
       || desktopShell.actionMinHeight !== '44px'
       || desktopShell.actionRadius !== '3px'
       || desktopShell.actionFontSize !== '12.48px'
@@ -4738,13 +4724,6 @@ for (const [device, viewport] of [
       || desktopStageLayout.labelColor !== 'rgb(232, 190, 98)'
       || desktopStageLayout.labelDotBackground !== 'rgb(116, 183, 120)'
       || desktopStageLayout.labelDotShadow === 'none'
-      || desktopStageLayout.headingMaxWidth !== 'none'
-      || desktopStageLayout.headingMarginTop !== '8.8px'
-      || desktopStageLayout.headingColor !== 'rgb(255, 240, 200)'
-      || desktopStageLayout.headingSize !== '58.4px'
-      || desktopStageLayout.headingLineHeight !== '58.4px'
-      || desktopStageLayout.headingShadow === 'none'
-      || desktopStageLayout.headingAccent !== 'rgb(226, 184, 88)'
       || desktopStageLayout.summaryMarginTop !== '12.8px'
       || desktopStageLayout.summaryColor !== 'rgb(222, 202, 160)'
       || desktopStageLayout.summarySize !== '14.56px'
@@ -4889,8 +4868,8 @@ for (const [device, viewport] of [
       const heading = element.querySelector('h2');
       const summary = element.querySelector(':scope > p');
       return {
-        alignItems: getComputedStyle(element).alignItems,
         headingSize: heading ? getComputedStyle(heading).fontSize : '',
+        alignItems: getComputedStyle(element).alignItems,
         summaryDisplay: summary ? getComputedStyle(summary).display : '',
         sectionPaddingTop: Number.parseFloat(getComputedStyle(element.closest('.home-latest-articles')).paddingTop),
       };
@@ -4987,14 +4966,12 @@ for (const [device, viewport] of [
     }
     const mobileStageLayout = await page.$eval('.home-stage', element => {
       const stageStyles = getComputedStyle(element);
-      const heading = element.querySelector('h1');
       const summary = element.querySelector('.home-stage__copy > p');
       const character = element.querySelector('.home-stage__character');
       const characterImage = character?.querySelector('img');
       const orbit = element.querySelector('.home-draft-orbit');
       const board = element.querySelector('.home-draft-orbit__board');
-      const pageIndex = element.parentElement?.querySelector('.home-page-index');
-      const headingStyles = heading ? getComputedStyle(heading) : null;
+      const pageIndex = element.closest('.home-workbench')?.querySelector('.home-page-index');
       const characterStyles = character ? getComputedStyle(character) : null;
       const characterImageStyles = characterImage ? getComputedStyle(characterImage) : null;
       const orbitStyles = orbit ? getComputedStyle(orbit) : null;
@@ -5006,9 +4983,6 @@ for (const [device, viewport] of [
         padding: stageStyles.padding,
         borderWidth: stageStyles.borderTopWidth,
         borderImageWidth: stageStyles.borderImageWidth,
-        headingMaxWidth: headingStyles?.maxWidth || '',
-        headingSize: headingStyles?.fontSize || '',
-        headingLineHeight: headingStyles?.lineHeight || '',
         summarySize: summary ? getComputedStyle(summary).fontSize : '',
         characterPosition: characterStyles?.position || '',
         characterWidth: character?.getBoundingClientRect().width || 0,
@@ -5031,9 +5005,6 @@ for (const [device, viewport] of [
       || mobileStageLayout.padding !== '12.8px'
       || mobileStageLayout.borderWidth !== '9px'
       || mobileStageLayout.borderImageWidth !== '9px'
-      || mobileStageLayout.headingMaxWidth !== 'none'
-      || mobileStageLayout.headingSize !== '39px'
-      || mobileStageLayout.headingLineHeight !== '39px'
       || mobileStageLayout.summarySize !== '12.8px'
       || mobileStageLayout.characterPosition !== 'relative'
       || mobileStageLayout.characterWidth <= 0
@@ -5051,7 +5022,7 @@ for (const [device, viewport] of [
       failures.push(`home stage: mobile responsive layout changed (${JSON.stringify(mobileStageLayout)})`);
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
-    await page.evaluate(() => window.scrollTo(0, 900));
+    await page.$eval('.home-latest-articles', section => section.scrollIntoView({ block: 'start' }));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');
     await page.waitForSelector('.support-prompt--expanded', { visible: true });

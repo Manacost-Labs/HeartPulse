@@ -1,3 +1,4 @@
+import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import React from 'react';
 import {
   ArrowUpRight,
@@ -19,10 +20,10 @@ const DEVICE_EXAMPLE = `curl -X POST https://hearthpulse.net/api/v1/oauth/device
 export function DeveloperApiPage() {
   return (
     <article className="developer-api-page">
+      <SectionBanner title="Manacost Public API" />
       <header className="developer-api-hero">
         <div>
           <span className="developer-api-kicker"><Braces size={16} /> Для приложений и трекеров</span>
-          <h1>Manacost Public API</h1>
           <p>
             Версионированный доступ к данным Manacost для Hearthstone-инструментов.
             Доступны каталог карт с токенами, статистика по форматам, рангам и

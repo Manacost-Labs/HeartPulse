@@ -1,5 +1,7 @@
 'use client';
 
+import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
+
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
 import GuidesArchive from '@/src/features/GuidesArchive';
@@ -18,11 +20,11 @@ export function GuideArchiveDetailPageClient({ pathname, teaser }: { pathname: s
       ? <GuidesArchive key={`${pathname}:${access.user?.id}`} currentPath={pathname} navigatePath={navigate} />
       : <article className="guide-archive-detail">
         <a className="guide-archive-back" href="/guides-archive/">К архиву</a>
+        <SectionBanner title={teaser.title} />
         <header className="guide-archive-detail-header">
           {teaser.image && <img className="guide-archive-detail-cover" src={teaser.image} alt="" loading="lazy" decoding="async" />}
           <div>
             {teaser.kind && <span className="guide-archive-eyebrow">{teaser.kind}</span>}
-            <h1>{teaser.title}</h1>
             {teaser.description && <p>{teaser.description}</p>}
           </div>
         </header>

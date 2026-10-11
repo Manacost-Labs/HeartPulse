@@ -270,7 +270,7 @@
 .constructed-card-detail__identity { min-width: 0; overflow: hidden; border: 1px solid rgba(125, 79, 37, 0.34); background: rgba(255, 250, 232, 0.4); }
 .constructed-card-detail__title { display: flex; gap: 0.8rem; align-items: center; padding: 0.8rem 0.9rem; border-bottom: 2px solid #4c190e; background: linear-gradient(90deg, rgba(63, 4, 7, 0.18), rgba(111, 13, 18, 0.08)), url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat; }
 .constructed-card-detail__title > img { width: 52px; height: 52px; object-fit: contain; }
-.constructed-card-detail__title h1 { margin: 0; color: #fff0c4; font-family: var(--font-display); font-size: clamp(1.8rem, 3vw, 2.8rem); line-height: 1; text-shadow: 0 2px 3px rgba(39, 2, 5, 0.72); }
+.constructed-card-detail__title :is(h1, h2) { margin: 0; color: #fff0c4; font-family: var(--font-display); font-size: clamp(1.8rem, 3vw, 2.8rem); line-height: 1; text-shadow: 0 2px 3px rgba(39, 2, 5, 0.72); }
 .constructed-card-detail__title p { margin: 0.25rem 0 0; color: #e9c66f; font-size: 0.7rem; }
 .constructed-card-detail__meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0.35rem 0.85rem; }
 .constructed-card-detail__meta div { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 0.45rem; min-height: 40px; align-items: center; border-bottom: 1px solid rgba(107, 67, 30, 0.16); }
@@ -488,7 +488,7 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-cards__stats-lock { grid-template-columns: auto minmax(0, 1fr); }
   .constructed-cards__stats-lock :is(a, button) { grid-column: 1 / -1; width: 100%; min-height: 42px; }
   .constructed-card-detail__meta { grid-template-columns: 1fr; }
-  .constructed-card-detail__title h1 { font-size: 2rem; }
+  .constructed-card-detail__title :is(h1, h2) { font-size: 2rem; }
   .constructed-card-detail__section { padding: 0.7rem; }
   .constructed-card-detail__patch-heading { grid-template-columns: 1fr 18px; gap: 0.25rem 0.5rem; }
   .constructed-card-detail__patch-heading > span:first-child { grid-column: 1 / -1; }

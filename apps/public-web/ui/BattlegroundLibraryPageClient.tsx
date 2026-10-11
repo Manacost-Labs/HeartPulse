@@ -1,5 +1,7 @@
 'use client';
 
+import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
+
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
@@ -19,11 +21,7 @@ export function BattlegroundLibraryPageClient({ pathname, heading, description }
     {allowed
       ? <BgLibrary key={`${pathname}:${access.user?.id}`} currentPath={pathname} navigatePath={navigate} />
       : <section className="space-y-5">
-        <header className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-[0_16px_38px_rgba(68,88,122,0.14)] sm:p-6">
-          <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">Battlegrounds</p>
-          <h1 className="mt-2 font-hs text-3xl text-[#23314a] sm:text-4xl">{heading}</h1>
-          <p className="mt-2 max-w-3xl text-sm text-[#5e708a]">{description}</p>
-        </header>
+        <SectionBanner title={heading} subtitle={description} />
         {access.checking
           ? <PaywallPending>Проверяем доступ к библиотеке...</PaywallPending>
           : <PaywallGate active title="Библиотека Полей сражений доступна подписчикам"

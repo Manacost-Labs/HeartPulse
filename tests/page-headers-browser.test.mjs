@@ -5,7 +5,7 @@ import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const selector = '.traditional-mode-banner, .constructed-cards__header, .section-banner-modern';
 test('traditional and Arena headers share geometry without clipping or reduced-motion animation', async () => {
-  // The story renders one of the nine page headers, chosen by its `index` argument.
+  // The story renders a page header chosen by its `index` argument.
   const storybook = await startStorybookStatic();
   let browser;
   try {
@@ -16,7 +16,7 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewport({ width, height: 1000 });
       const dimensions = [];
-      for (let index = 0; index < 9; index++) {
+      for (let index = 0; index < 11; index++) {
         await page.goto(storybook.storyUrl('page-headers-consistency--meta-overview', `index:${index}`));
         await page.waitForSelector(selector);
         await page.evaluate(() => document.fonts.ready);
@@ -29,12 +29,18 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
             // The canvas document also holds Storybook's own hidden headings.
             h1: document.querySelectorAll('#storybook-root h1').length,
             overflow: document.documentElement.scrollWidth > innerWidth + 1,
+            artwork: getComputedStyle(el, '::before').backgroundImage,
+            artworkOpacity: getComputedStyle(el, '::before').opacity,
+            artworkBlend: getComputedStyle(el, '::before').mixBlendMode,
             clipped: children.some(child => { const r = child.getBoundingClientRect(); return r.left < rect.left || r.right > rect.right + 1 || r.bottom > rect.bottom + 1; }),
           };
         });
         assert.equal(geometry.h1, 1);
         assert.ok(Math.abs(geometry.gap - 16) <= 1, `${width}px case ${index}: expected 16px content gap, got ${geometry.gap}`);
         assert.equal(geometry.overflow, false, `${width}px case ${index}: page overflow`);
+        assert.match(geometry.artwork, /profile-hero-hth/, `${width}px case ${index}: shared artwork must be visible`);
+        assert.equal(geometry.artworkOpacity, '1', 'legacy editorial opacity must not darken the shared illustration');
+        assert.equal(geometry.artworkBlend, 'normal');
         assert.equal(geometry.clipped, false, `${width}px case ${index}: header content clipped`);
         dimensions.push(geometry);
         await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
@@ -53,19 +59,9 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
         const values = dimensions.map(d => d[key]);
         assert.ok(Math.max(...values) - Math.min(...values) <= 1, `${width}px ${key}: ${values.join(', ')}`);
       }
-      const artworkHeights = dimensions.slice(0, 6).map(d => d.height);
+      const artworkHeights = dimensions.map(d => d.height);
       assert.ok(Math.max(...artworkHeights) - Math.min(...artworkHeights) <= 1,
         `${width}px artwork heights: ${artworkHeights.join(', ')}`);
-      if (width <= 720) {
-        for (const [index, dimension] of dimensions.entries()) {
-          if (index < 6) continue;
-          assert.ok(dimension.height >= 176 && dimension.height < artworkHeights[0],
-            `${width}px text banner ${index}: ${dimension.height}px must fit content below artwork height`);
-        }
-      } else {
-        assert.ok(Math.max(...dimensions.map(d => d.height)) - Math.min(...dimensions.map(d => d.height)) <= 1,
-          `${width}px desktop banner heights must still align`);
-      }
       assert.equal(new Set(dimensions.map(d => d.font)).size, 1, `${width}px: heading scale differs`);
     }
     assert.deepEqual(errors, []);

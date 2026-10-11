@@ -1,5 +1,7 @@
 'use client';
 
+import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
+
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
 import GuidesArchive from '@/src/features/GuidesArchive';
@@ -16,11 +18,7 @@ export function GuidesArchivePageClient() {
     {allowed
       ? <GuidesArchive key={access.user?.id} currentPath="/guides-archive/" navigatePath={navigate} />
       : <section className="guide-archive-page">
-        <header className="site-page-hero guide-archive-hero">
-          <span className="guide-archive-eyebrow">Архив Манакоста</span>
-          <h1>Архив гайдов</h1>
-          <p>Старые гайды, мета-отчеты и материалы Koloda Hearthstone в удобном формате для чтения.</p>
-        </header>
+        <SectionBanner title="Архив гайдов" />
         {access.checking
           ? <PaywallPending className="guide-archive-loading">Проверяем доступ к архиву...</PaywallPending>
           : <PaywallGate active title="Архив гайдов доступен подписчикам"

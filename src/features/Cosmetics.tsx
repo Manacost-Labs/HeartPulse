@@ -1,3 +1,4 @@
+import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import React, {
   useCallback,
   useDeferredValue,
@@ -649,13 +650,14 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
   const [activeMedia, setActiveMedia] = useState<CosmeticsMediaItem | null>(null);
   return (
     <>
+      <SectionBanner title={detail.name.ru} />
       <div className="cosmetics-detail-hero">
         <div className="cosmetics-detail-primary-media">
           {detail.images.static && <img src={cosmeticMediaSource(detail.images.static)} alt={`Скин «${detail.name.ru}»`} width="512" height="768" />}
         </div>
         <div className="cosmetics-detail-copy">
           <span className="cosmetics-kicker">{detail.class.nameRu} · {detail.rarity.nameRu}</span>
-          <h1>{detail.name.ru}</h1>
+          <h2>{detail.name.ru}</h2>
           {detail.name.en && detail.name.en !== detail.name.ru && <p className="cosmetics-detail-subtitle">{detail.name.en}</p>}
           <dl className="cosmetics-facts">
             <div><dt>ID</dt><dd>{detail.cardId}</dd></div>
@@ -747,13 +749,14 @@ function CoinDetailView({
 }) {
   return (
     <>
+      <SectionBanner title={detail.name.en || detail.name.ru} />
       <div className="cosmetics-detail-hero">
         <div className="cosmetics-detail-primary-media cosmetics-detail-crop">
           {detail.images.crop && <img src={cosmeticMediaSource(detail.images.crop)} alt={`Арт «${detail.name.en || detail.name.ru}»`} />}
         </div>
         <div className="cosmetics-detail-copy">
           <span className="cosmetics-kicker">Косметическая монета</span>
-          <h1>{detail.name.en || detail.name.ru}</h1>
+          <h2>{detail.name.en || detail.name.ru}</h2>
           <p className="cosmetics-detail-subtitle">{detail.name.ru}</p>
           <dl className="cosmetics-facts">
             <div><dt>ID</dt><dd>{detail.cardId}</dd></div>
@@ -781,13 +784,14 @@ function CoinDetailView({
 function PetDetailView({ detail, navigatePath }: { detail: PetDetail; navigatePath: (path: string) => void }) {
   return (
     <>
+      <SectionBanner title={detail.name} />
       <div className="cosmetics-detail-hero">
         <div className="cosmetics-detail-primary-media">
           {detail.images.card && <img src={cosmeticMediaSource(detail.images.card)} alt={`Питомец «${detail.name}»`} width="512" height="768" />}
         </div>
         <div className="cosmetics-detail-copy">
           <span className="cosmetics-kicker">{detail.pet.name || 'Питомец'} · раскраска {detail.level ?? '—'}</span>
-          <h1>{detail.name}</h1>
+          <h2>{detail.name}</h2>
           <dl className="cosmetics-facts">
             <div><dt>ID</dt><dd>{detail.cardId}</dd></div>
             <div><dt>DBF</dt><dd>{detail.dbf ?? '—'}</dd></div>
@@ -905,11 +909,7 @@ export default function Cosmetics({ currentPath, navigatePath, initialSearch, in
   return (
     <div className="route-parchment-page cosmetics-page">
       {!route.cardId && (
-        <header className="route-parchment-hero cosmetics-hero">
-          <span className="cosmetics-kicker">Коллекция Hearthstone</span>
-          <h1>{meta.title}</h1>
-          <p>{meta.description}</p>
-        </header>
+        <SectionBanner title={meta.title} />
       )}
       <CatalogTabs active={route.kind} navigatePath={navigatePath} />
       <section className="cosmetics-surface" aria-label="Каталог косметики Hearthstone">

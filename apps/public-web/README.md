@@ -40,6 +40,14 @@ behind its `public.ts`, not in `src/features/`.
 
 ## Rules
 
+- Public page headings share the heroes banner: use `SectionBanner` from
+  `src/shared/ui/EditorialRouteChrome.tsx` for simple titles. Its artwork and
+  responsive frame live in `src/shared/ui/PublicPageBanner.css`, loaded by
+  `src/index.css`; `TraditionalModeBanner.css` is a compatibility import for
+  existing headings with summaries. Detail pages put the H1 banner before
+  their art/facts layout, whose contextual names use H2. The home page keeps
+  its actions and class summary below the same banner. Admin headers remain
+  separate. See [public page header contract](../../docs/specs/public-page-headers.md).
 - Import siblings with `./`; import everything else as `@/<repository path>`
   (for example `@/src/modules/subscriptions/public`). Never `../`, never
   `server/`. `tests/next-import-paths.test.mjs` enforces this.
@@ -116,21 +124,18 @@ behind its `public.ts`, not in `src/features/`.
 - Plausible is loaded once by the document layout and its existing tracker
   observes History API navigation. No extra pageview calls are added:
   [official SPA contract](https://plausible.io/docs/spa-support).
-- The largest paint of most pages is a CSS background, which the browser
-  finds only after every stylesheet. `PublicPageShell` therefore preloads the
-  parchment page material (`--arena-parchment-texture`) at high priority; React
-  sends the hint in the `Link` response header, or at the top of `<head>` for a
-  prerendered page. A page whose measured phone LCP element is something else
-  passes `parchmentPreload="tablet-up"`, which adds
-  `media="(min-width: 768px)"`: from 768px the parchment is still the LCP
-  there, below it phones skip the early fetch and load the file once from the
-  CSS. These are text on `/tierlist/`, `/classes/` and `/legendaries/`, the
-  site header on `/guides-archive/`, cosmetics images, and the banner art on
-  `/standard/matchups/`, `/standard/archetypes/` and
-  `/standard/vicious-gold/`, which also render `<PageBannerPreload />`.
-  A preload on a page that paints something else first takes bandwidth from
-  that element and the CSS. `tests/next-lcp-image-preload.test.mjs` checks
-  both lists.
+- `PublicPageShell` preloads the parchment page material
+  (`--arena-parchment-texture`) at high priority. React sends the hint in the
+  `Link` response header, or at the top of `<head>` for a prerendered page.
+  A route can pass `parchmentPreload="tablet-up"` to restrict that hint to
+  `media="(min-width: 768px)"`; phones then load the material through CSS.
+  The current route assignments apply this restriction to `/tierlist/`,
+  `/classes/`, `/legendaries/`, `/guides-archive/`, cosmetics, and
+  `/standard/matchups/`, `/standard/archetypes/` and `/standard/vicious-gold/`.
+  The last three also render `<PageBannerPreload />` for the banner AVIF.
+  `tests/next-lcp-image-preload.test.mjs` checks these explicit assignments.
+  Remeasure LCP after a layout change before adding or removing a hint: the
+  unified public banner changes the candidate on formerly text-only pages.
 - Files in `public/` are served `immutable` for 30 days under names without a
   content hash: new bytes need a new file name (`arena-parchment-v2.webp`,
   `hsdisplay-2026-10.woff2`), never an overwrite. `assets.md` lists how each

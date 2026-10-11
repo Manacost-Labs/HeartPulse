@@ -1,5 +1,7 @@
 'use client';
 
+import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
+
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
@@ -8,7 +10,7 @@ import { navigate } from './navigation';
 
 function ConnectLoading() {
   return <section className="application-connect__loading" aria-busy="true">
-    <h1>Подключить Manacost Tracker</h1>
+    <SectionBanner title="Подключить Manacost Tracker" />
     <p>Загружаем безопасное подтверждение подключения…</p>
   </section>;
 }

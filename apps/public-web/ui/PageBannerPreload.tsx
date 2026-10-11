@@ -1,4 +1,4 @@
-/** The AVIF entry of the page banner's `image-set()` in `TraditionalModeBanner.css`. */
+/** The AVIF entry of the page banner's `image-set()` in `PublicPageBanner.css`. */
 const PAGE_BANNER_AVIF_URL = '/wallpaper/profile-hero-hth-1430.avif';
 
 /**

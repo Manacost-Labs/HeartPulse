@@ -1,3 +1,4 @@
+import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
 import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import React, { useEffect, useRef, useState } from 'react';
@@ -204,7 +205,6 @@ function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }
 
   const visibleCards = expanded ? cards : cards.slice(0, cardsPerRow);
   const hasMore = cards.length > cardsPerRow;
-
   return (
     <article className="constructed-card-detail__pool">
       <header><strong>{generatedPoolLabel(pool?.pool)}</strong><span>{cards.length} карт</span></header>
@@ -590,8 +590,8 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     });
   }, [card, cardId, format]);
 
-  if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><h1>Загружаем карту</h1></section>;
-  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>{error?.title || 'Данные карты временно недоступны'}</h1><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
+  if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><SectionBanner title="Загружаем карту" /></section>;
+  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><SectionBanner title={error?.title || 'Данные карты временно недоступны'} /><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
 
   const variants = collectConstructedCardVariants(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
@@ -652,10 +652,10 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
   return (
     <article className="constructed-cards constructed-card-detail">
+      <SectionBanner title={cardName(card)} />
       <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}/`, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}/`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
       <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button>
       {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
-
       <section className="constructed-card-detail__hero">
         <div className="constructed-card-detail__visual">
           <button type="button" className="constructed-card-detail__visual-button" onClick={() => openMedia(selectedImage)} aria-label={`Открыть ${cardName(card)} в полном размере`}>

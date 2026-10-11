@@ -1,3 +1,4 @@
+import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
@@ -1293,22 +1294,10 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
 
   return (
     <div className="bg-library-page space-y-6 text-[#26374f]">
-      <section className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-[0_16px_38px_rgba(68,88,122,0.14)] sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">Battlegrounds</p>
-            <h1 className="mt-2 font-hs text-3xl text-[#23314a] sm:text-4xl">Библиотека Полей Сражений</h1>
-            <p className="mt-2 max-w-3xl text-sm text-[#5e708a]">
-              {pool === 'archive' ? activeSection.archiveDescription : activeSection.description}
-            </p>
-          </div>
-          <div className="rounded-md border border-[#d6e1f1] bg-white px-4 py-3 text-sm text-[#5e708a]">
-            <span className="font-hs text-[#8a651f]">{pool === 'archive' ? 'Архив' : 'Актуальный пул'}</span>
-            <span className="mx-2 text-[#a4b1c3]">·</span>
-            <span>{activeSection.shortTitle}</span>
-          </div>
-        </div>
-      </section>
+      <SectionBanner title="Библиотека Полей Сражений" />
+      <p className="text-sm text-[#5e708a]">
+        {pool === 'archive' ? 'Архив' : 'Актуальный пул'} · {activeSection.shortTitle}
+      </p>
 
       <LibrarySectionSwitcher
         kind={kind}
@@ -1638,10 +1627,10 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
 
   return (
     <div className="bg-library-detail-page space-y-6 text-[#26374f]">
+      <SectionBanner title={currentCardName} />
       <button type="button" onClick={() => navigatePath(backPath)} className="inline-flex items-center gap-2 rounded-md border border-[#cbd9ed] bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#33445d] hover:border-[#d3af55]">
         <ArrowLeft size={16} /> Назад в {pool === 'archive' ? 'архив' : 'библиотеку'}
       </button>
-
       <section className="bg-library-card-dossier overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]">
         <div className="bg-library-card-dossier__layout grid gap-6 p-4 sm:p-6 lg:grid-cols-[320px_1fr]">
           <div className="bg-library-card-dossier__art relative mx-auto w-full max-w-xs flex-col">
@@ -1664,7 +1653,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
           <div className="bg-library-card-dossier__copy min-w-0 space-y-5">
             <div data-tour-id="bg-library-detail-dossier">
               <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">{section.shortTitle} · {pool === 'archive' ? 'Архив' : 'Активный пул'}</p>
-              <h1 className="bg-library-card-dossier__title mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h1>
+              <h2 className="bg-library-card-dossier__title mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h2>
               <p className="mt-1 text-lg text-[#657893]">{cardEnName(selectedVariantCard)}</p>
             </div>
 

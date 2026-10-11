@@ -1,3 +1,4 @@
+import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import type { ReactNode } from 'react';
 import AuthAvatar from './AuthAvatar';
 import './ProfileIdentityHero.css';
@@ -39,32 +40,34 @@ export default function ProfileIdentityHero({
   tourId,
 }: ProfileIdentityHeroProps) {
   return (
-    <section className="profile-hero" aria-labelledby={headingId}>
-      <div className="profile-hero__body">
-        <AuthAvatar
-          user={{ name, email: '', avatarInitials, photoUrl }}
-          size={92}
-        />
-        <div className="profile-hero__identity" data-tour-id={tourId}>
-          <p className="profile-hero__eyebrow">{eyebrow}</p>
-          <h1 id={headingId}>{name}</h1>
-          {contact && <p className="profile-hero__contact">{contact}</p>}
-          <p className="profile-hero__id" title={`Публичный ID ${publicProfileId}`}>
-            ID <code>/{publicProfileId}</code>
-          </p>
-          {actions}
-          {badges.length > 0 && (
-            <div className="profile-status-chips" aria-label="Сведения о профиле">
-              {badges.map(badge => (
-                <span key={badge.label} className="profile-status-chip">
-                  {badge.icon}
-                  {badge.label}
-                </span>
-              ))}
-            </div>
-          )}
+    <>
+      <SectionBanner title={name} titleId={headingId} />
+      <section className="profile-hero" aria-labelledby={headingId}>
+        <div className="profile-hero__body">
+          <AuthAvatar
+            user={{ name, email: '', avatarInitials, photoUrl }}
+            size={92}
+          />
+          <div className="profile-hero__identity" data-tour-id={tourId}>
+            <p className="profile-hero__eyebrow">{eyebrow}</p>
+            {contact && <p className="profile-hero__contact">{contact}</p>}
+            <p className="profile-hero__id" title={`Публичный ID ${publicProfileId}`}>
+              ID <code>/{publicProfileId}</code>
+            </p>
+            {actions}
+            {badges.length > 0 && (
+              <div className="profile-status-chips" aria-label="Сведения о профиле">
+                {badges.map(badge => (
+                  <span key={badge.label} className="profile-status-chip">
+                    {badge.icon}
+                    {badge.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
