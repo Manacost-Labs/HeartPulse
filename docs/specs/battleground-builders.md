@@ -16,6 +16,9 @@ slots, annotations and PNG/WebP exports remain available.
   number of placed cards, without scrolling past the entire catalog. The board
   appears before quick slots and community slots. Switching brings the selected
   panel into view below the sticky controls.
+- Guided tours retain all seven steps on mobile. While a tour is open, both
+  editor panels are visible so discovery and highlighting work. Closing the tour
+  restores the selected panel without changing the draft.
 - Export reports unavailable images and never silently omits a placed card.
   Export feedback is separate from draft-save feedback.
 - Desktop and mobile views have no horizontal overflow, unreadable controls or
@@ -85,6 +88,9 @@ No archetype product behavior or assertion is changed.
 - The existing guest/subscriber browser contract still checks access boundaries,
   anonymous SEO and image exports. Subscriber interactions now use the visible
   mobile panel and native tier selector.
+- Mobile browser tests open and dismiss both seven-step guided tours, preserving
+  the selected panel. The full observatory also checks tour navigation and
+  contrast, including the muted board hint and community-card counts.
 - An unavailable-art fixture verifies that export reports failure, restores its
   button and does not download an incomplete board. Draft status cannot overwrite
   that error.

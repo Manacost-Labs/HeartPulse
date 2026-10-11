@@ -66,6 +66,25 @@ async function noOverflow(page) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 }
 
+async function mobileTour(page) {
+  const view = await page.$eval('.strategy-builder-page', root => root.dataset.builderView);
+  const selector = '.builder-sidebar, .builder-canvas-panel, .hero-tier-board';
+  const visiblePanels = await page.$$eval(selector, panels => panels.map(panel => panel.getClientRects().length > 0));
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await page.locator('.global-faq-button').click();
+  await page.waitForSelector('.global-help-menu__item.is-tour', { visible: true });
+  await page.click('.global-help-menu__item.is-tour');
+  await page.waitForFunction(() => document.querySelector('.page-tour__progress-row')
+    ?.getAttribute('aria-label')?.startsWith('Шаг 1 из 7,'));
+  assert.equal(await page.$$eval('.builder-sidebar, .builder-canvas-panel, .hero-tier-board',
+    panels => panels.every(panel => getComputedStyle(panel).display !== 'none')), true);
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.page-tour', { hidden: true });
+  assert.equal(await page.$eval('.strategy-builder-page', root => root.dataset.builderView), view);
+  assert.deepEqual(await page.$$eval(selector, panels => panels.map(panel => panel.getClientRects().length > 0)), visiblePanels);
+  await noOverflow(page);
+}
+
 async function cardsDoNotOverlap(page) {
   assert.equal(await page.evaluate(() =>
     document.querySelector('.strategy-board').getBoundingClientRect().top <
@@ -130,13 +149,15 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
     await download(page, directory, '#tier-builder-download-all-webp', '.webp');
     await noOverflow(page);
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-    await noOverflow(page);
     await page.waitForSelector('.hero-tier-pool .tier-builder-card select');
+    await noOverflow(page);
+    await mobileTour(page);
     await page.select('.hero-tier-pool .tier-builder-card:first-child select', 'A');
     await page.waitForSelector('.tier-builder-dropzone[data-tier="A"] .tier-builder-card');
 
     await page.goto(`${runtime.origin}/battlegrounds/strategies/`);
     await page.waitForSelector('.builder-library .builder-card');
+    await mobileTour(page);
     assert.equal(await page.$$eval('.builder-library .builder-card', cards => cards.length), 60);
     await page.click('.builder-load-more');
     assert.equal(await page.$$eval('.builder-library .builder-card', cards => cards.length), 120);

@@ -6,8 +6,8 @@
   --panel-border: var(--bg-line, #b89a69);
   --text: var(--bg-ink, #30251c);
   --text-strong: var(--bg-ink, #30251c);
-  --muted: var(--bg-muted, #735e49);
-  --muted-soft: #735e49;
+  --muted: #66503b;
+  --muted-soft: #66503b;
   --gold: #9a6823;
   --gold-strong: #7b251e;
   --accent: #7b251e;
@@ -46,6 +46,11 @@
   border-color: var(--panel-border);
   border-radius: 4px;
   background: rgb(234 214 167 / 40%);
+}
+
+.arena-app-battlegrounds .strategy-builder-page .community-slot-count {
+  color: #fff4d5;
+  background: #7b251e;
 }
 
 .arena-app-battlegrounds .strategy-builder-page :is(.filter-heading, .control-label, .panel-title, .tier-title, .tier-builder-count, .annotation-toolbar-label, .quick-slots-title) {
@@ -295,8 +300,9 @@
     color: #fff4d5;
   }
 
-  .arena-app-battlegrounds .strategy-builder-page[data-builder-view='library'] :is(.builder-canvas-panel, .hero-tier-board),
-  .arena-app-battlegrounds .strategy-builder-page[data-builder-view='board'] .builder-sidebar {
+  /* The tour discovers visible targets before focusing each of its seven steps. */
+  body:not(:has(.page-tour)) .arena-app-battlegrounds .strategy-builder-page[data-builder-view='library'] :is(.builder-canvas-panel, .hero-tier-board),
+  body:not(:has(.page-tour)) .arena-app-battlegrounds .strategy-builder-page[data-builder-view='board'] .builder-sidebar {
     display: none;
   }
 }
