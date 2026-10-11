@@ -13,7 +13,7 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const pages = [
-  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий БГ Hearthstone',
+  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий БГ',
     script: 'strategy-builder.gridfix2.js', initialized: '#builder-comp-select', placeholder: 'Загружаю сборки...' },
   { path: '/battlegrounds/tier-builder/', heading: 'Конструктор тир-листов Полей сражений',
     script: 'hero-tier-builder.js', initialized: '#tier-builder-summary', placeholder: 'Загружаю библиотеку...' },
@@ -79,7 +79,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
       } else void request.continue();
     });
 
-    for (const width of [1440, 390, 320]) {
+    for (const width of [3560, 1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
       for (const { path, heading } of pages) {
         const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
@@ -91,6 +91,8 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
           mainCount: document.querySelectorAll('main').length,
           canonical: document.querySelector('link[rel="canonical"]')?.href,
           paywall: document.body.textContent.includes('доступен подписчикам'),
+          contentWidth: document.querySelector('.arena-content').getBoundingClientRect().width,
+          mainWidth: document.querySelector('main').getBoundingClientRect().width,
           overflow: document.documentElement.scrollWidth > innerWidth,
           violations: (await axe.run(document, { runOnly: { type: 'tag',
             values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(item => ({ id: item.id,
@@ -100,6 +102,8 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         assert.equal(state.mainCount, 1, path);
         assert.equal(state.canonical, `https://hearthpulse.net${path}`);
         assert.equal(state.paywall, true, path);
+        if (width >= 1024) assert.ok(state.contentWidth >= state.mainWidth - 48,
+          `${path} fills the workspace beside the sidebar at ${width}px`);
         assert.equal(state.overflow, false, path);
         assert.deepEqual(state.violations, [], path);
       }

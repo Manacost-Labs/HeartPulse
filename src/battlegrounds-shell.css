@@ -60,6 +60,7 @@
  * paid view's stylesheet, so its builder width and phone gutter live here. */
 .arena-app-bg-strategies .arena-content.arena-content-open,
 .arena-app-bg-tier-builder .arena-content.arena-content-open {
+  width: 100% !important;
   max-width: none !important;
   padding-inline: clamp(0.35rem, 0.8vw, 0.8rem) !important;
 }

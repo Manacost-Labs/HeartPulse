@@ -87,7 +87,7 @@ const intentContracts = [
   },
   {
     pathname: '/battlegrounds/strategies',
-    title: /Конструктор стратегий БГ Hearthstone/,
+    title: /Конструктор стратегий БГ/,
     description: /собир/i,
   },
   {
@@ -151,7 +151,7 @@ assert.equal(subscriptionPaywallHeading('Мета доступна подпис�
 
 const battlegroundsLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/BattlegroundsSearchIntros.tsx', import.meta.url), 'utf8');
 assert.match(battlegroundsLandingSource, /<SectionBanner title="Тир-лист БГ"/);
-assert.match(battlegroundsLandingSource, /<SectionBanner title="Конструктор стратегий БГ Hearthstone"/);
+assert.match(battlegroundsLandingSource, /<SectionBanner title="Конструктор стратегий БГ"/);
 assert.doesNotMatch(battlegroundsLandingSource, /<nav/);
 
 const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');

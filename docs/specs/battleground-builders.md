@@ -21,6 +21,8 @@ slots, annotations and PNG/WebP exports remain available.
   restores the selected panel without changing the draft.
 - Export reports unavailable images and never silently omits a placed card.
   Export feedback is separate from draft-save feedback.
+- Both builders fill the available desktop workspace beside the site sidebar,
+  including ultrawide screens. The strategy heading is «Конструктор стратегий БГ».
 - Desktop and mobile views have no horizontal overflow, unreadable controls or
   editor errors. Unmounting stops the editor's global listeners and timers.
 
@@ -29,8 +31,9 @@ slots, annotations and PNG/WebP exports remain available.
 New editor behavior belongs to `src/modules/battlegrounds`, exposed through its
 `public.ts` and a versioned bridge to the two classic scripts in
 `public/bg-legacy/`. `src/features/Battlegrounds.tsx` owns composition and the
-static markup. Styles remain scoped to `.strategy-builder-page`. No dependency,
-API, permission, production or subscription changes are required.
+static markup. Editor styles remain scoped to `.strategy-builder-page`; the
+public content width is owned by `src/battlegrounds-shell.css`. No dependency,
+API, permission, deployment infrastructure or subscription changes are required.
 
 Classic asset URLs remain stable. If a previously opened route loads a new
 script without its versioned bridge, the script reloads the page before opening
@@ -71,6 +74,11 @@ existing URLs and access checks. Production integration needs the owner's
 explicit authorization. Never modify sibling worktrees or user sessions.
 
 ## Verification evidence (2026-10-11)
+
+The shortened strategy heading and full-width shell are checked by
+`tests/next-bg-builders-browser.test.mjs` at 3560, 1440, 390 and 320 pixels.
+Chrome DevTools review confirms 3262 pixels of content in a 3302-pixel workspace
+at 3560×1942, with no horizontal overflow in either editor or at 390×844.
 
 The release suite exposed a flaky archetype-fixture click after the responsive
 viewport checks. Its locator now waits for stable bounds before the same native

@@ -161,7 +161,7 @@
     "/battlegrounds/strategies": {
       "policyRouteId": "bg-strategies",
       "navigationRouteId": "bg-strategies",
-      "title": "Конструктор стратегий БГ Hearthstone | HearthPulse",
+      "title": "Конструктор стратегий БГ | HearthPulse",
       "description": "Собирайте свои стратегии БГ Hearthstone из существ, заклинаний и аксессуаров Полей сражений.",
       "sitemap": true
     },

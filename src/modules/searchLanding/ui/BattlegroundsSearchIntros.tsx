@@ -5,5 +5,5 @@ export function BattlegroundsTierListSearchIntro() {
 }
 
 export function BattlegroundsStrategyBuilderSearchIntro() {
-  return <SectionBanner title="Конструктор стратегий БГ Hearthstone" />;
+  return <SectionBanner title="Конструктор стратегий БГ" />;
 }
