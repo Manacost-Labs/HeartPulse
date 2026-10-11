@@ -27,6 +27,8 @@ live in `src/shared/navigation/routePrefetch.ts`, with injected router, permissi
 and timer ports. DOM eligibility, connection reads and React transitions stay in
 the Next adapter. `src/shared/ui/NavigationProgress.tsx` owns only delayed status
 presentation, so changing feedback does not alter route or access policy.
+Its scoped stylesheet is included by `src/index.css`, already loaded by the
+persistent layout, to avoid an extra render-blocking request on every route.
 
 ## Public home
 

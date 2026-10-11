@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import './NavigationProgress.css';
 
 /** Delayed feedback reserves no layout space and never blocks another destination. */
 export function NavigationProgress({ pending }: { pending: boolean }) {
