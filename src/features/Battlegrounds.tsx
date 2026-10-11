@@ -1,3 +1,4 @@
+import '../modules/battlegrounds/public.css';
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { battlegroundMinionIconByRussianName as BG_DETAIL_RACE_ICON_BY_RU, battlegroundMinionIconBySlug as BG_DETAIL_RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,6 +14,7 @@ import {
   useBattlegroundHeroTierData,
   type BattlegroundHeroTierData,
   battlegroundHeroRosterBridgeV1,
+  battlegroundBuilderWorkbenchV1,
   preferredBattlegroundHeroImage,
   type BattlegroundHeroMmr,
   type BattlegroundHeroMode,
@@ -3767,7 +3769,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
         <div id="builder-source-filters" class="chip-row" aria-label="Фильтр по источнику"></div>
       </details>
 
-      <details class="filter-block collapsible-filter" id="builder-race-block" open>
+      <details class="filter-block collapsible-filter" id="builder-race-block">
         <summary class="filter-heading-row">
           <h3 class="filter-heading">Тип существа</h3>
           <span class="filter-toggle-marker" aria-hidden="true"></span>
@@ -3775,7 +3777,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
         <div id="builder-race-filters" class="chip-row" aria-label="Фильтр по типу существа"></div>
       </details>
 
-      <details class="filter-block collapsible-filter" id="builder-level-block" open>
+      <details class="filter-block collapsible-filter" id="builder-level-block">
         <summary class="filter-heading-row">
           <h3 class="filter-heading">Уровень таверны</h3>
           <span class="filter-toggle-marker" aria-hidden="true"></span>
@@ -3805,10 +3807,34 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   <section class="builder-canvas-panel builder-canvas-panel-compact">
     <div class="builder-canvas-head" data-tour-id="bg-strategy-builder-canvas">
       <div class="builder-canvas-title">
-        <p class="eyebrow">Board</p>
+        <p class="eyebrow">Рабочая область</p>
         <h2 class="panel-title">Полотно стратегии</h2>
       </div>
       <div id="builder-counter" class="filter-caption">0 карт на полотне</div>
+    </div>
+
+    <div class="board-with-annotations">
+      <div id="strategy-board" class="strategy-board strategy-board-compact">
+        <div class="strategy-board-grid" aria-hidden="true"></div>
+        <div class="strategy-board-hint">
+          Перетащи сюда героев, существ и заклинания из библиотеки слева
+        </div>
+      </div>
+
+      <aside id="annotation-panel" class="annotation-toolbar annotation-toolbar-vertical" aria-label="Аннотации">
+        <span class="annotation-toolbar-label" data-tour-id="bg-strategy-builder-annotations">Аннотации</span>
+        <button class="annotation-tool" data-ann-tool="arrow" type="button" aria-pressed="false"><span class="annotation-tool-glyph">→</span><span>Стрелка</span></button>
+        <button class="annotation-tool" data-ann-tool="plus" type="button" aria-pressed="false"><span class="annotation-tool-glyph">+</span><span>Плюс</span></button>
+        <button class="annotation-tool" data-ann-tool="equals" type="button" aria-pressed="false"><span class="annotation-tool-glyph">=</span><span>Равно</span></button>
+        <button class="annotation-tool" data-ann-tool="double-arrow" type="button" aria-pressed="false"><span class="annotation-tool-glyph">⇄</span><span>Связка</span></button>
+        <button class="annotation-tool" data-ann-tool="question" type="button" aria-pressed="false"><span class="annotation-tool-glyph">?</span><span>Вопрос</span></button>
+        <button class="annotation-tool" data-ann-tool="strike" type="button" aria-pressed="false"><span class="annotation-tool-glyph">⊘</span><span>Зачеркнуть</span></button>
+        <button class="annotation-tool" data-ann-tool="label-prokrutka" type="button" aria-pressed="false"><span class="annotation-tool-glyph">A</span><span>Прокрутка</span></button>
+        <button class="annotation-tool" data-ann-tool="label-key" type="button" aria-pressed="false"><span class="annotation-tool-glyph">A</span><span>Ключевая</span></button>
+        <button class="annotation-tool" data-ann-tool="erase" type="button" aria-pressed="false"><span class="annotation-tool-glyph">×</span><span>Удалить</span></button>
+        <button id="builder-clear-annotations" class="annotation-tool annotation-tool-clear" type="button">Очистить все</button>
+        <span id="builder-annotation-hint" class="annotation-hint"></span>
+      </aside>
     </div>
 
     <div class="board-toolbar" data-tour-id="bg-strategy-builder-tools">
@@ -3841,44 +3867,24 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
       <div id="quick-slots" class="quick-slots-list"></div>
     </div>
 
-    <div class="board-with-annotations">
-      <div id="strategy-board" class="strategy-board strategy-board-compact">
-        <div class="strategy-board-grid" aria-hidden="true"></div>
-        <div class="strategy-board-hint">
-          Перетащи сюда героев, существ и заклинания из библиотеки слева
-        </div>
-      </div>
 
-      <aside id="annotation-panel" class="annotation-toolbar annotation-toolbar-vertical" aria-label="Аннотации">
-        <span class="annotation-toolbar-label" data-tour-id="bg-strategy-builder-annotations">Аннотации</span>
-        <button class="annotation-tool" data-ann-tool="arrow" type="button" aria-pressed="false"><span class="annotation-tool-glyph">→</span><span>Стрелка</span></button>
-        <button class="annotation-tool" data-ann-tool="plus" type="button" aria-pressed="false"><span class="annotation-tool-glyph">+</span><span>Плюс</span></button>
-        <button class="annotation-tool" data-ann-tool="equals" type="button" aria-pressed="false"><span class="annotation-tool-glyph">=</span><span>Равно</span></button>
-        <button class="annotation-tool" data-ann-tool="double-arrow" type="button" aria-pressed="false"><span class="annotation-tool-glyph">⇄</span><span>Связка</span></button>
-        <button class="annotation-tool" data-ann-tool="question" type="button" aria-pressed="false"><span class="annotation-tool-glyph">?</span><span>Вопрос</span></button>
-        <button class="annotation-tool" data-ann-tool="strike" type="button" aria-pressed="false"><span class="annotation-tool-glyph">⊘</span><span>Зачеркнуть</span></button>
-        <button class="annotation-tool" data-ann-tool="label-prokrutka" type="button" aria-pressed="false"><span class="annotation-tool-glyph">A</span><span>Прокрутка</span></button>
-        <button class="annotation-tool" data-ann-tool="label-key" type="button" aria-pressed="false"><span class="annotation-tool-glyph">A</span><span>Ключевая</span></button>
-        <button class="annotation-tool" data-ann-tool="erase" type="button" aria-pressed="false"><span class="annotation-tool-glyph">×</span><span>Удалить</span></button>
-        <button id="builder-clear-annotations" class="annotation-tool annotation-tool-clear" type="button">Очистить все</button>
-        <span id="builder-annotation-hint" class="annotation-hint"></span>
-      </aside>
-    </div>
   </section>
 </div>`;
 
-const BG_STRATEGY_BUILDER_VERSION = '20260923-pool-3661-v2';
+const BG_STRATEGY_BUILDER_VERSION = '20261011-pool-3661-workbench-v1';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
 const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 
 type LegacyScriptOwner = 'strategy-builder' | 'tier-builder';
 
-function loadLegacyScript(src: string, owner: LegacyScriptOwner): Promise<HTMLScriptElement> {
+function loadLegacyScript(src: string, owner: LegacyScriptOwner, loadedScripts: HTMLScriptElement[], rootId: string): Promise<HTMLScriptElement> {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = src;
     script.async = false;
     script.dataset.bgLegacyOwner = owner;
+    script.dataset.bgBuilderRoot = rootId;
+    loadedScripts.push(script);
     script.onload = () => resolve(script);
     script.onerror = () => reject(new Error(`Не удалось загрузить ${src}`));
     document.body.appendChild(script);
@@ -3890,11 +3896,12 @@ function loadLegacyScripts(
   owner: LegacyScriptOwner,
   loadedScripts: HTMLScriptElement[],
   cancelled: () => boolean,
+  rootId: string,
 ): Promise<void> {
   return sources.reduce<Promise<void>>(
     (chain, source) => chain.then(async () => {
       if (cancelled()) return;
-      loadedScripts.push(await loadLegacyScript(source, owner));
+      await loadLegacyScript(source, owner, loadedScripts, rootId);
     }),
     Promise.resolve(),
   );
@@ -3905,6 +3912,8 @@ function BattlegroundStrategyBuilderEmbed() {
 
   useEffect(() => {
     battlegroundHeroRosterBridgeV1.install(window, { publicResourceUrl });
+    battlegroundBuilderWorkbenchV1.install(window);
+    const builderRoot = document.getElementById(mountId.current);
     const css = document.createElement('link');
     css.rel = 'stylesheet';
     css.href = BG_STRATEGY_BUILDER_CSS;
@@ -3922,16 +3931,17 @@ function BattlegroundStrategyBuilderEmbed() {
       BG_STRATEGY_BUILDER_JS,
     ];
 
-    void loadLegacyScripts(scripts, 'strategy-builder', loadedScripts, () => cancelled)
+    void loadLegacyScripts(scripts, 'strategy-builder', loadedScripts, () => cancelled, mountId.current)
       .catch(error => {
+      if (cancelled) return;
       console.error('Не удалось запустить конструктор стратегий.', error);
     });
 
     return () => {
       cancelled = true;
+      battlegroundBuilderWorkbenchV1.dispose(builderRoot);
       css.remove();
       loadedScripts.forEach(script => script.remove());
-      document.querySelectorAll<HTMLScriptElement>('script[data-bg-legacy-owner="strategy-builder"]').forEach(script => script.remove());
     };
   }, []);
 
@@ -3964,7 +3974,7 @@ const BG_TIER_BUILDER_HTML = String.raw`
         <div id="tier-builder-source-filters" class="chip-row" aria-label="Фильтр по источнику"></div>
       </details>
 
-      <details class="filter-block collapsible-filter" id="tier-builder-race-block" open>
+      <details class="filter-block collapsible-filter" id="tier-builder-race-block">
         <summary class="filter-heading-row" data-tour-id="bg-tier-builder-filters">
           <h3 class="filter-heading">Тип существа</h3>
           <span class="filter-toggle-marker" aria-hidden="true"></span>
@@ -3972,7 +3982,7 @@ const BG_TIER_BUILDER_HTML = String.raw`
         <div id="tier-builder-race-filters" class="chip-row" aria-label="Фильтр по типу существа"></div>
       </details>
 
-      <details class="filter-block collapsible-filter" id="tier-builder-level-block" open>
+      <details class="filter-block collapsible-filter" id="tier-builder-level-block">
         <summary class="filter-heading-row">
           <h3 class="filter-heading">Уровень таверны</h3>
           <span class="filter-toggle-marker" aria-hidden="true"></span>
@@ -4007,7 +4017,7 @@ const BG_TIER_BUILDER_HTML = String.raw`
   <section class="hero-tier-board">
     <div class="builder-canvas-head" data-tour-id="bg-tier-builder-board">
       <div>
-        <p class="eyebrow">Drag and Drop</p>
+        <p class="eyebrow">Рабочая область</p>
         <h2 class="panel-title">Конструктор тир-листов</h2>
       </div>
       <div id="tier-builder-counter" class="filter-caption">0 карт распределено</div>
@@ -4028,6 +4038,8 @@ function BattlegroundTierBuilderEmbed() {
 
   useEffect(() => {
     battlegroundHeroRosterBridgeV1.install(window, { publicResourceUrl });
+    battlegroundBuilderWorkbenchV1.install(window);
+    const builderRoot = document.getElementById(mountId.current);
     const css = document.createElement('link');
     css.rel = 'stylesheet';
     css.href = BG_STRATEGY_BUILDER_CSS;
@@ -4044,16 +4056,17 @@ function BattlegroundTierBuilderEmbed() {
       `/bg-legacy/hero-tier-builder.js?v=${version}`,
     ];
 
-    void loadLegacyScripts(scripts, 'tier-builder', loadedScripts, () => cancelled)
+    void loadLegacyScripts(scripts, 'tier-builder', loadedScripts, () => cancelled, mountId.current)
       .catch(error => {
+      if (cancelled) return;
       console.error('Не удалось запустить конструктор тир-листов.', error);
     });
 
     return () => {
       cancelled = true;
+      battlegroundBuilderWorkbenchV1.dispose(builderRoot);
       css.remove();
       loadedScripts.forEach(script => script.remove());
-      document.querySelectorAll<HTMLScriptElement>('script[data-bg-legacy-owner="tier-builder"]').forEach(script => script.remove());
     };
   }, []);
 

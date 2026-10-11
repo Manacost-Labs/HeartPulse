@@ -1,4 +1,8 @@
 (function () {
+  const rootId = document.currentScript?.dataset.bgBuilderRoot;
+  const builderRoot = rootId ? document.getElementById(rootId) : document.getElementById("tier-builder-rows")?.closest(".strategy-builder-page");
+  if (!builderRoot) return;
+  const elementById = (id) => builderRoot.querySelector(`[id="${id}"]`);
   const TIER_ORDER = ["S", "A", "B", "C", "D"];
   const UNASSIGNED_KEY = "POOL";
 
@@ -78,25 +82,35 @@
     libraryColumns: loadLibraryColumns()
   };
 
-  const rowsRoot = document.getElementById("tier-builder-rows");
-  const poolRoot = document.getElementById("tier-builder-pool");
-  const searchInput = document.getElementById("tier-builder-search");
-  const backgroundPickerEl = document.getElementById("tier-builder-background-picker");
-  const downloadAllPngButton = document.getElementById("tier-builder-download-all-png");
-  const downloadAllWebpButton = document.getElementById("tier-builder-download-all-webp");
-  const sourceFiltersEl = document.getElementById("tier-builder-source-filters");
-  const raceFiltersEl = document.getElementById("tier-builder-race-filters");
-  const levelFiltersEl = document.getElementById("tier-builder-level-filters");
-  const accessoryFiltersEl = document.getElementById("tier-builder-accessory-filters");
-  const raceBlockEl = document.getElementById("tier-builder-race-block");
-  const levelBlockEl = document.getElementById("tier-builder-level-block");
-  const accessoryBlockEl = document.getElementById("tier-builder-accessory-block");
-  const resetButton = document.getElementById("tier-builder-reset");
-  const unassignedButton = document.getElementById("tier-builder-unassigned");
-  const summary = document.getElementById("tier-builder-summary");
-  const counter = document.getElementById("tier-builder-counter");
-  const columnsInput = document.getElementById("tier-builder-library-columns");
-  const columnsValueEl = document.getElementById("tier-builder-library-columns-value");
+  const rowsRoot = elementById("tier-builder-rows");
+  const poolRoot = elementById("tier-builder-pool");
+  const searchInput = elementById("tier-builder-search");
+  const backgroundPickerEl = elementById("tier-builder-background-picker");
+  const downloadAllPngButton = elementById("tier-builder-download-all-png");
+  const downloadAllWebpButton = elementById("tier-builder-download-all-webp");
+  const sourceFiltersEl = elementById("tier-builder-source-filters");
+  const raceFiltersEl = elementById("tier-builder-race-filters");
+  const levelFiltersEl = elementById("tier-builder-level-filters");
+  const accessoryFiltersEl = elementById("tier-builder-accessory-filters");
+  const raceBlockEl = elementById("tier-builder-race-block");
+  const levelBlockEl = elementById("tier-builder-level-block");
+  const accessoryBlockEl = elementById("tier-builder-accessory-block");
+  const resetButton = elementById("tier-builder-reset");
+  const unassignedButton = elementById("tier-builder-unassigned");
+  const summary = elementById("tier-builder-summary");
+  const counter = elementById("tier-builder-counter");
+  const columnsInput = elementById("tier-builder-library-columns");
+  const columnsValueEl = elementById("tier-builder-library-columns-value");
+
+  const workbench = window.__hsArenaBgBuilderWorkbenchV1;
+  if (!workbench) {
+    // An older route bundle can receive this newer, unversioned classic asset.
+    window.location.reload();
+    return;
+  }
+  const session = workbench.createSession(rowsRoot.closest(".strategy-builder-page"), "hearthpulse-tier-draft-v1");
+  const poolCatalog = session.catalog(poolRoot, (card) => card.id, (card) => createCardElement(card.id));
+  let rowsSignature = null;
 
   const raceIcons = {
     ALL: "/bg-legacy/assset/общее.webp",
@@ -451,6 +465,7 @@
       return;
     }
 
+    if (!state.cardsById.has(cardId)) return;
     removeCardFromBuckets(cardId);
     state.placements[targetBucket].push(cardId);
     render();
@@ -482,6 +497,7 @@
     const element = document.createElement("article");
     element.className = "tier-builder-card";
     element.draggable = true;
+    element.setAttribute("aria-label", card.name);
     element.dataset.cardId = cardId;
     element.title = `${card.name} — ${getSourceLabel(card)} — ${getCardMeta(card)}`;
     element.innerHTML = `
@@ -494,6 +510,22 @@
         <button class="tier-builder-card-button" type="button" data-action="pool" aria-label="Вернуть в пул">×</button>
       </div>
     `;
+
+    const name = document.createElement("span");
+    name.className = "builder-card-name";
+    name.textContent = card.name;
+    const destination = document.createElement("select");
+    destination.className = "tier-builder-destination";
+    destination.setAttribute("aria-label", `Тир для ${card.name}`);
+    [UNASSIGNED_KEY, ...TIER_ORDER].forEach((tier) => {
+      const option = document.createElement("option");
+      option.value = tier;
+      option.textContent = tier === UNASSIGNED_KEY ? "В пуле" : `${tier}-тир`;
+      option.selected = tier === bucket;
+      destination.append(option);
+    });
+    destination.addEventListener("change", () => moveCard(cardId, destination.value));
+    element.append(name, destination);
 
     element.addEventListener("dragstart", (event) => {
       state.draggingCardId = cardId;
@@ -508,6 +540,8 @@
       document.querySelectorAll(".tier-builder-row").forEach((row) => row.classList.remove("is-over"));
     });
 
+    element.querySelector('[data-action="prev"]').disabled = state.placements[bucket].indexOf(cardId) <= 0;
+    element.querySelector('[data-action="next"]').disabled = state.placements[bucket].indexOf(cardId) >= state.placements[bucket].length - 1;
     element.querySelector('[data-action="prev"]').addEventListener("click", () => reorderCard(cardId, -1));
     element.querySelector('[data-action="next"]').addEventListener("click", () => reorderCard(cardId, 1));
     const poolButton = element.querySelector('[data-action="pool"]');
@@ -576,7 +610,7 @@
       }
     }));
     const entries = loaded.filter(Boolean);
-    if (!entries.length) return;
+    if (entries.length !== cards.length) throw new Error("Не удалось загрузить все изображения для экспорта.");
 
     const cardWidth = (EXPORT_WIDTH - SIDE_PADDING * 2 - COLUMN_GAP * (COLUMNS - 1)) / COLUMNS;
     const rows = Math.ceil(entries.length / COLUMNS);
@@ -695,6 +729,7 @@
         }
       }));
       const entries = loaded.filter(Boolean);
+      if (entries.length !== cards.length) throw new Error("Не удалось загрузить все изображения для экспорта.");
       if (entries.length) {
         tierSections.push({ tier, entries });
       }
@@ -768,25 +803,16 @@
   }
 
   function renderPool() {
-    poolRoot.innerHTML = "";
-
     const cards = state.placements[UNASSIGNED_KEY]
       .map((id) => state.cardsById.get(id))
       .filter((card) => matchesFilters(card));
-
+    poolCatalog.render(cards, [state.search, state.source, state.race, state.level, state.accessorySize].join("|"));
     if (!cards.length) {
       const empty = document.createElement("p");
       empty.className = "tier-builder-empty";
       empty.textContent = "В пуле нет карт по текущим фильтрам.";
       poolRoot.append(empty);
-      return;
     }
-
-    const fragment = document.createDocumentFragment();
-    cards.forEach((card) => {
-      fragment.append(createCardElement(card.id));
-    });
-    poolRoot.append(fragment);
   }
 
   function applyLibraryColumns() {
@@ -802,6 +828,9 @@
   }
 
   function renderRows() {
+    const signature = JSON.stringify(TIER_ORDER.map((tier) => state.placements[tier]));
+    if (signature === rowsSignature) return;
+    rowsSignature = signature;
     rowsRoot.innerHTML = "";
     const rowsFragment = document.createDocumentFragment();
 
@@ -832,7 +861,7 @@
       if (!cards.length) {
         const empty = document.createElement("p");
         empty.className = "tier-builder-empty";
-        empty.textContent = "Перетащи сюда карты из пула слева.";
+        empty.textContent = "Выберите этот тир на карточке или перетащите её сюда.";
         zone.append(empty);
       } else {
         const zoneFragment = document.createDocumentFragment();
@@ -841,8 +870,9 @@
       }
 
       row.append(zone);
-      row.querySelector('[data-export="png"]').addEventListener("click", () => exportTier(tier, "png"));
-      row.querySelector('[data-export="webp"]').addEventListener("click", () => exportTier(tier, "webp"));
+      row.querySelectorAll("button").forEach((button) => { button.disabled = !cards.length; });
+      row.querySelector('[data-export="png"]').addEventListener("click", (event) => session.export(event.currentTarget, () => exportTier(tier, "png")));
+      row.querySelector('[data-export="webp"]').addEventListener("click", (event) => session.export(event.currentTarget, () => exportTier(tier, "webp")));
       rowsFragment.append(row);
     });
     rowsRoot.append(rowsFragment);
@@ -859,6 +889,10 @@
       .length;
 
     counter.textContent = `${assignedCount} карт распределено`;
+    session.commit(state.placements);
+    session.setBoardCount(assignedCount);
+    downloadAllPngButton.disabled = assignedCount === 0;
+    downloadAllWebpButton.disabled = assignedCount === 0;
     summary.textContent = `В пуле ${visiblePoolCount} карт по текущим фильтрам. Всего распределено ${assignedCount}.`;
   }
 
@@ -871,6 +905,7 @@
         window.Shared.loadCurrentHeroesData()
       ]);
 
+      if (session.signal.aborted) return;
       const englishByKey = new Map();
       (englishNamesPayload.cards || []).forEach((card) => {
         if (card?.id != null) englishByKey.set(String(card.id), card);
@@ -905,11 +940,12 @@
         })
         : [];
       const accessoriesPayload = await window.Shared.loadCurrentAccessoriesData();
+      if (session.signal.aborted) return;
       const accessories = [...(accessoriesPayload.small || []), ...(accessoriesPayload.large || [])].map(normalizeAccessoryCard);
 
       state.cards = [...minions, ...spells, ...accessories, ...heroes];
       state.cardsById = new Map(state.cards.map((card) => [card.id, card]));
-      state.placements = createInitialPlacements(state.cards);
+      state.placements = workbench.restoreTierPlacements(state.cards.map((card) => card.id), session.readDraft());
       syncAccessorySizeFilter();
       renderSourceFilters();
       renderRaceFilters();
@@ -923,6 +959,7 @@
   }
 
   searchInput.addEventListener("input", window.Shared.debounce((event) => {
+    if (session.signal.aborted) return;
     state.search = event.target.value.trim();
     render();
   }, 120));
@@ -959,7 +996,7 @@
     render();
   });
 
-  document.addEventListener("wheel", (event) => {
+  session.listen(document, "wheel", (event) => {
     if (state.draggingCardId) {
       event.preventDefault();
       window.scrollBy({ top: event.deltaY, left: event.deltaX, behavior: "auto" });
@@ -981,7 +1018,7 @@
     }
     edgeScrollRAF = requestAnimationFrame(stepEdgeScroll);
   }
-  document.addEventListener("dragover", (event) => {
+  session.listen(document, "dragover", (event) => {
     if (!state.draggingCardId) return;
     const EDGE = 80;
     if (event.clientY < EDGE) edgeScrollDirection = -1;
@@ -991,8 +1028,8 @@
       edgeScrollRAF = requestAnimationFrame(stepEdgeScroll);
     }
   });
-  document.addEventListener("dragend", stopEdgeScroll);
-  document.addEventListener("drop", stopEdgeScroll);
+  session.listen(document, "dragend", stopEdgeScroll);
+  session.listen(document, "drop", stopEdgeScroll);
 
   renderBackgroundPicker();
   applyBoardBackground();
@@ -1039,11 +1076,16 @@
   }
 
   if (downloadAllPngButton) {
-    downloadAllPngButton.addEventListener("click", () => exportAllTiers("png"));
+    downloadAllPngButton.addEventListener("click", () => session.export(downloadAllPngButton, () => exportAllTiers("png")));
   }
   if (downloadAllWebpButton) {
-    downloadAllWebpButton.addEventListener("click", () => exportAllTiers("webp"));
+    downloadAllWebpButton.addEventListener("click", () => session.export(downloadAllWebpButton, () => exportAllTiers("webp")));
   }
 
+  session.mountUndo(rowsRoot.closest(".hero-tier-board").querySelector(".board-toolbar"), (draft) => {
+    state.placements = workbench.restoreTierPlacements(state.cards.map((card) => card.id), draft);
+    render();
+  });
+  session.onDispose(stopEdgeScroll);
   bootstrap();
 })();

@@ -20,3 +20,5 @@ export type { BattlegroundHeroTierData } from './model/heroTierResource';
 export { useBattlegroundHeroTierData } from './useHeroTierData';
 
 export { battlegroundMinionIconByRussianName, battlegroundMinionIconBySlug } from './model/minionTypeIcons';
+
+export { battlegroundBuilderWorkbenchV1 } from './legacy/builderWorkbench';

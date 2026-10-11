@@ -60,6 +60,17 @@ workspace stays in that feature until its separate migration.
 The module calls the existing Express contest API and depends only on the
 identity and subscription public contracts for participation state.
 
+## Battlegrounds builder workbench
+
+`src/modules/battlegrounds` owns bounded editor catalogs, validated browser-local
+placements, undo history and classic editor session lifetimes. `public.ts`
+exposes the versioned workbench port; `public.css` exposes scoped editor styles.
+`src/features/Battlegrounds.tsx` composes markup and classic script loading and
+must dispose its mounted root. Classic scripts keep rendering and export wiring;
+they consume the module port and stop their global listeners and animation frames
+on unmount. The draft and interaction contracts are documented in
+`docs/specs/battleground-builders.md`.
+
 ## Battlegrounds minion type icons
 
 `src/modules/battlegrounds/public.ts` exposes the Russian-name and slug icon

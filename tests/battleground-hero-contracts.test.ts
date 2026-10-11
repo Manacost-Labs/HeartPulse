@@ -80,6 +80,7 @@ const CONTRACT_NAMES = [
   'BattlegroundHeroTierSection',
 ] as const;
 const RUNTIME_CONTRACT_NAMES = [
+  'battlegroundBuilderWorkbenchV1',
   'battlegroundFullCardImage',
   'battlegroundHeroCardImage',
   'battlegroundHeroRosterBridgeV1',

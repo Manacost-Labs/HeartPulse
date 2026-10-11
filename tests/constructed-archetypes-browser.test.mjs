@@ -83,7 +83,8 @@ try {
   }
 
   await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 1 });
-  await page.click('.archetype-row__open');
+  // Responsive rows use content-visibility; wait for their bounds after resizing.
+  await page.locator('.archetype-row__open').click();
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');

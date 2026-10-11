@@ -126,8 +126,10 @@
         "docs/architecture/module-boundaries.md",
         "docs/architecture/modularization-plan.md",
         "docs/runbooks/battlegrounds-patch-refresh.md",
-        "docs/specs/battleground-hero-cache.md"
-      ]
+        "docs/specs/battleground-hero-cache.md",
+        "docs/specs/battleground-builders.md"
+      ],
+      "publicStyleEntry": "src/modules/battlegrounds/public.css"
     },
     {
       "id": "client.applicationConnect",

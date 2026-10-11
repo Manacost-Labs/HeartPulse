@@ -1073,12 +1073,13 @@
       "name": "frontend-battlegrounds",
       "status": "modular",
       "owner": "web-platform",
-      "purpose": "Owns hero catalog contracts, expiring tier data and recovery, portrait policy, roster normalization and the legacy-builder bridge, and shared minion type icon mappings.",
+      "purpose": "Owns hero catalog contracts, expiring tier data and recovery, portrait policy, roster normalization and the legacy-builder bridge, and shared minion type icon mappings, and builder catalog, draft, undo, styling and lifecycle contracts.",
       "paths": [
         "src/modules/battlegrounds"
       ],
       "publicEntrypoints": [
-        "src/modules/battlegrounds/public.ts"
+        "src/modules/battlegrounds/public.ts",
+        "src/modules/battlegrounds/public.css"
       ],
       "frontendRoutes": [],
       "backendRoutes": [],
@@ -1087,7 +1088,8 @@
         "docs/architecture/modularization-plan.md",
         "docs/runbooks/battlegrounds-patch-refresh.md",
         "docs/specs/battleground-hero-cache.md",
-        "docs/specs/battleground-aberrations.md"
+        "docs/specs/battleground-aberrations.md",
+        "docs/specs/battleground-builders.md"
       ],
       "jobs": [],
       "cacheNamespaces": [
@@ -1100,7 +1102,9 @@
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-accessories-browser.test.mjs",
         "tests/battleground-hero-cache.test.ts",
-        "src/features/BgLibrary.stories.tsx"
+        "src/features/BgLibrary.stories.tsx",
+        "tests/battleground-builder-workbench.test.ts",
+        "tests/battleground-builders-browser.test.mjs"
       ],
       "allowedDependencies": [],
       "forbiddenImports": [

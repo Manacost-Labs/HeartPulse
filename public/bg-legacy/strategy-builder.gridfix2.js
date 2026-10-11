@@ -1,38 +1,53 @@
 (function () {
-  const searchInput = document.getElementById("builder-search");
-  const sourceFiltersEl = document.getElementById("builder-source-filters");
-  const raceFiltersEl = document.getElementById("builder-race-filters");
-  const levelFiltersEl = document.getElementById("builder-level-filters");
-  const accessoryFiltersEl = document.getElementById("builder-accessory-filters");
-  const raceBlockEl = document.getElementById("builder-race-block");
-  const levelBlockEl = document.getElementById("builder-level-block");
-  const accessoryBlockEl = document.getElementById("builder-accessory-block");
-  const clearButton = document.getElementById("builder-clear");
-  const exportPngButton = document.getElementById("builder-export-png");
-  const exportWebpButton = document.getElementById("builder-export-webp");
-  const toggleGridButton = document.getElementById("builder-toggle-grid");
-  const backgroundPickerEl = document.getElementById("builder-background-picker");
-  const annotationToolButtons = document.querySelectorAll(".annotation-tool[data-ann-tool]");
-  const clearAnnotationsButton = document.getElementById("builder-clear-annotations");
-  const annotationHintEl = document.getElementById("builder-annotation-hint");
+  const rootId = document.currentScript?.dataset.bgBuilderRoot;
+  const builderRoot = rootId ? document.getElementById(rootId) : document.getElementById("strategy-board")?.closest(".strategy-builder-page");
+  if (!builderRoot) return;
+  const elementById = (id) => builderRoot.querySelector(`[id="${id}"]`);
+  const searchInput = elementById("builder-search");
+  const sourceFiltersEl = elementById("builder-source-filters");
+  const raceFiltersEl = elementById("builder-race-filters");
+  const levelFiltersEl = elementById("builder-level-filters");
+  const accessoryFiltersEl = elementById("builder-accessory-filters");
+  const raceBlockEl = elementById("builder-race-block");
+  const levelBlockEl = elementById("builder-level-block");
+  const accessoryBlockEl = elementById("builder-accessory-block");
+  const clearButton = elementById("builder-clear");
+  const exportPngButton = elementById("builder-export-png");
+  const exportWebpButton = elementById("builder-export-webp");
+  const toggleGridButton = elementById("builder-toggle-grid");
+  const backgroundPickerEl = elementById("builder-background-picker");
+  const annotationToolButtons = builderRoot.querySelectorAll(".annotation-tool[data-ann-tool]");
+  const clearAnnotationsButton = elementById("builder-clear-annotations");
+  const annotationHintEl = elementById("builder-annotation-hint");
+  let cancelActiveDrag = null;
   const ANNOTATION_COLOR = "#ff2121";
   const ANNOTATION_DARK = "#5a0b0b";
   const ANNOTATION_LIGHT = "#ffe7e7";
   const ANNOTATION_STROKE_RATIO = 0.058;
   const ANNOTATION_OUTLINE_RATIO = 0.22;
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const quickSlotsPanelEl = document.getElementById("quick-slots-panel");
-  const quickSlotsEl = document.getElementById("quick-slots");
-  const communitySlotsPanelEl = document.getElementById("community-slots-panel");
-  const communitySlotsEl = document.getElementById("community-slots");
-  const annotationPanelEl = document.getElementById("annotation-panel");
-  const hideQuickSlotsInput = document.getElementById("builder-hide-quick-slots");
-  const hideCommunitySlotsInput = document.getElementById("builder-hide-community-slots");
-  const hideAnnotationsInput = document.getElementById("builder-hide-annotations");
-  const statusEl = document.getElementById("builder-status");
-  const libraryEl = document.getElementById("builder-library");
-  const boardEl = document.getElementById("strategy-board");
-  const counterEl = document.getElementById("builder-counter");
+  const quickSlotsPanelEl = elementById("quick-slots-panel");
+  const quickSlotsEl = elementById("quick-slots");
+  const communitySlotsPanelEl = elementById("community-slots-panel");
+  const communitySlotsEl = elementById("community-slots");
+  const annotationPanelEl = elementById("annotation-panel");
+  const hideQuickSlotsInput = elementById("builder-hide-quick-slots");
+  const hideCommunitySlotsInput = elementById("builder-hide-community-slots");
+  const hideAnnotationsInput = elementById("builder-hide-annotations");
+  const statusEl = elementById("builder-status");
+  const libraryEl = elementById("builder-library");
+  const boardEl = elementById("strategy-board");
+  const counterEl = elementById("builder-counter");
+
+
+  const workbench = window.__hsArenaBgBuilderWorkbenchV1;
+  if (!workbench) {
+    // An older route bundle can receive this newer, unversioned classic asset.
+    window.location.reload();
+    return;
+  }
+  const session = workbench.createSession(boardEl.closest(".strategy-builder-page"), "hearthpulse-strategy-draft-v1");
+  const libraryCatalog = session.catalog(libraryEl, (card) => `${card.source}:${card.id}`, createLibraryCard);
 
   const BOARD_COLUMNS = 5;
   const BOARD_ROWS = 5;
@@ -192,6 +207,8 @@
       return normalizeAssetUrl(card?.image || card?.artUrl || card?.cropImage || "");
     }
 
+    const artUrl = normalizeAssetUrl(card?.artUrl || "");
+    if (artUrl) return artUrl;
     if (card?.id) {
       return `/api/card-art?id=${encodeURIComponent(card.id)}&locale=ruRU&size=${encodeURIComponent(size)}`;
     }
@@ -237,8 +254,11 @@
   }
 
   function syncCounter() {
-    counterEl.textContent = `${state.placed.length} карт на полотне`;
+    counterEl.textContent = `${state.placed.length} / ${BOARD_SLOT_COUNT} карт на полотне`;
+    exportPngButton.disabled = state.placed.length === 0;
+    exportWebpButton.disabled = state.placed.length === 0;
     boardEl.classList.toggle("is-empty", state.placed.length === 0);
+    session.setBoardCount(state.placed.length);
   }
 
   function applyBoardVisualSettings() {
@@ -431,18 +451,6 @@
     const column = Math.min(BOARD_COLUMNS - 1, Math.max(0, Math.floor(relativeX * BOARD_COLUMNS)));
     const row = Math.min(BOARD_ROWS - 1, Math.max(0, Math.floor(relativeY * BOARD_ROWS)));
     return row * BOARD_COLUMNS + column;
-  }
-
-  function getFirstFreeSlot() {
-    const occupied = new Set(state.placed.map((card) => card.slot));
-
-    for (let slot = 0; slot < BOARD_SLOT_COUNT; slot += 1) {
-      if (!occupied.has(slot)) {
-        return slot;
-      }
-    }
-
-    return null;
   }
 
   function getCardSearchText(card) {
@@ -649,22 +657,7 @@
     return "Существо";
   }
 
-  function renderLibrary() {
-    libraryEl.replaceChildren();
-
-    if (!state.filtered.length) {
-      setStatus("По текущим фильтрам ничего не найдено.");
-      return;
-    }
-
-    const heroCount = state.filtered.filter((card) => card.source === "HERO").length;
-    const minionCount = state.filtered.filter((card) => card.source === "MINION").length;
-    const spellCount = state.filtered.filter((card) => card.source === "SPELL").length;
-    const accessoryCount = state.filtered.filter((card) => card.source === "ACCESSORY").length;
-    setStatus(`Доступно ${state.filtered.length} карт: ${heroCount} героев, ${minionCount} существ, ${spellCount} заклинаний и ${accessoryCount} аксессуаров.`);
-
-    const fragment = document.createDocumentFragment();
-    state.filtered.forEach((card) => {
+  function createLibraryCard(card) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = `builder-card builder-card-tile${card.source === "SPELL" ? " is-spell" : ""}${card.source === "HERO" ? " is-hero" : ""}`;
@@ -679,7 +672,7 @@
       `;
       const art = button.querySelector(".builder-card-art");
       art.addEventListener("error", () => {
-        const fallback = getCardArtUrl(card, "256x");
+        const fallback = card.source === "MINION" ? `/api/card-art?id=${encodeURIComponent(card.id)}&locale=ruRU&size=256x` : getCardArtUrl(card, "256x");
         if (!art.dataset.fallback && art.getAttribute("src") !== fallback) {
           art.dataset.fallback = "1";
           art.src = fallback;
@@ -700,17 +693,37 @@
         state.draggingLibrary = false;
       });
 
+      const name = document.createElement("span");
+      name.className = "builder-card-name";
+      name.textContent = card.name;
+      button.append(name);
+      button.setAttribute("aria-label", `Добавить: ${card.name}`);
       button.addEventListener("click", () => addCardToBoard(card));
-      fragment.append(button);
+      return button;
+  }
+
+  function renderLibrary() {
+    libraryCatalog.render(state.filtered, [state.search, state.source, state.race, state.level, state.accessorySize].join("|"));
+    setStatus(state.filtered.length ? `Найдено ${state.filtered.length} карт. Нажмите на карту, чтобы добавить её на поле.` : "По текущим фильтрам ничего не найдено.");
+  }
+
+  function restoreDraft(draft) {
+    const restored = workbench.restoreStrategyDraft(state.cards, draft, BOARD_SLOT_COUNT);
+    state.placed = restored.placed.map((entry) => {
+      const card = findCard(entry.id, entry.source);
+      return { ...entry, name: card.name, artUrl: getCardArtUrl(card, "512x") };
     });
-    libraryEl.append(fragment);
+    state.annotations = restored.annotations;
+    state.activeId = null;
+    state.pendingAnnotation = null;
+    renderBoard();
   }
 
   function addCardToBoard(card, preferredSlot = null) {
-    const slot = preferredSlot ?? getFirstFreeSlot();
+    const slot = workbench.pickBuilderSlot(state.placed.map((entry) => entry.slot), preferredSlot, BOARD_SLOT_COUNT);
 
     if (slot === null) {
-      setStatus("Все 15 слотов заняты. Удали карту или переставь существующую.");
+      setStatus("Все 25 слотов заняты. Удали карту или переставь существующую.");
       return;
     }
 
@@ -754,26 +767,8 @@
     renderBoard();
   }
 
-  const tileTap = { uid: null, timer: null };
-  const DOUBLE_CLICK_MS = 260;
-
   function handleTileTap(uid) {
-    if (tileTap.uid === uid && tileTap.timer !== null) {
-      window.clearTimeout(tileTap.timer);
-      tileTap.timer = null;
-      tileTap.uid = null;
-      removePlacedCard(uid);
-      return;
-    }
-    if (tileTap.timer !== null) {
-      window.clearTimeout(tileTap.timer);
-    }
-    tileTap.uid = uid;
-    tileTap.timer = window.setTimeout(() => {
-      tileTap.timer = null;
-      tileTap.uid = null;
-      toggleHighlight(uid);
-    }, DOUBLE_CLICK_MS);
+    toggleHighlight(uid);
   }
 
   function movePlacedCardToSlot(uid, targetSlot) {
@@ -1281,7 +1276,7 @@
 
     const hint = document.createElement("div");
     hint.className = "strategy-board-hint";
-    hint.textContent = "Перетаскивай карты из библиотеки сюда.";
+    hint.textContent = "Нажмите на карту в библиотеке или перетащите её сюда.";
 
     if (!state.placed.length) {
       boardEl.append(hint);
@@ -1294,6 +1289,27 @@
       if (state.activeId === card.uid) classes.push("is-active");
       if (card.highlighted) classes.push("is-highlighted");
       tile.className = classes.join(" ");
+      tile.tabIndex = 0;
+      tile.setAttribute("aria-label", `${card.name}. Стрелки — переместить, Enter — выделить, Delete — удалить.`);
+      tile.addEventListener("keydown", (event) => {
+        if (event.target !== tile) return;
+        const directions = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -BOARD_COLUMNS, ArrowDown: BOARD_COLUMNS };
+        if (event.key in directions) {
+          event.preventDefault();
+          const target = Math.max(0, Math.min(BOARD_SLOT_COUNT - 1, card.slot + directions[event.key]));
+          movePlacedCardToSlot(card.uid, target);
+          boardEl.querySelector(`[data-uid="${card.uid}"]`)?.focus();
+        } else if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          if (state.annotationTool) handleAnnotationClick(card.uid);
+          else toggleHighlight(card.uid);
+          boardEl.querySelector(`[data-uid="${card.uid}"]`)?.focus();
+        } else if (event.key === "Delete" || event.key === "Backspace") {
+          event.preventDefault();
+          removePlacedCard(card.uid);
+        }
+      });
+      tile.dataset.uid = card.uid;
       tile.style.left = `${slotPosition.x * 100}%`;
       tile.style.top = `${slotPosition.y * 100}%`;
       tile.innerHTML = `
@@ -1315,6 +1331,7 @@
           return;
         }
 
+        cancelActiveDrag?.();
         const startX = event.clientX;
         const startY = event.clientY;
         const DRAG_THRESHOLD = 5;
@@ -1350,8 +1367,10 @@
         };
 
         const release = (releaseEvent) => {
+          cancelActiveDrag = null;
           window.removeEventListener("pointermove", move);
           window.removeEventListener("pointerup", release);
+          window.removeEventListener("pointercancel", cancel);
           if (rafId !== null) {
             cancelAnimationFrame(rafId);
             rafId = null;
@@ -1366,8 +1385,19 @@
           }
         };
 
-        window.addEventListener("pointermove", move);
-        window.addEventListener("pointerup", release);
+        const cancel = () => {
+          cancelActiveDrag = null;
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", release);
+          window.removeEventListener("pointercancel", cancel);
+          if (rafId !== null) cancelAnimationFrame(rafId);
+          state.draggingPlaced = false;
+          if (!session.signal.aborted) renderBoard();
+        };
+        cancelActiveDrag = cancel;
+        session.listen(window, "pointercancel", cancel);
+        session.listen(window, "pointermove", move);
+        session.listen(window, "pointerup", release);
       });
 
       tile.querySelector(".placed-card-remove").addEventListener("click", () => removePlacedCard(card.uid));
@@ -1382,6 +1412,10 @@
 
     renderAnnotationOverlay();
     syncCounter();
+    session.commit({
+      placed: state.placed.map(({ id, source, uid, slot, highlighted }) => ({ id, source, uid, slot, highlighted })),
+      annotations: state.annotations,
+    });
   }
 
   function drawAnnotationsOnCanvas(ctx, cardRects, cardWidth) {
@@ -1665,10 +1699,7 @@
     }));
     const entries = loadedEntries.filter(Boolean);
 
-    if (!entries.length) {
-      setStatus("Не удалось загрузить ни одной карты для экспорта.");
-      return;
-    }
+    if (entries.length !== state.placed.length) throw new Error("Не удалось загрузить все изображения для экспорта.");
 
     const occupiedRows = [...new Set(entries.map(({ card }) => Math.floor(card.slot / BOARD_COLUMNS)))].sort((a, b) => a - b);
     const rowMap = new Map(occupiedRows.map((row, index) => [row, index]));
@@ -1874,7 +1905,9 @@ function normalizeHeroCard(hero, tier) {
         window.Shared.loadCurrentHeroesData()
       ]);
 
+      if (session.signal.aborted) return;
       const englishCards = englishNamesPayload.cards || [];
+      if (session.signal.aborted) return;
       const englishByKey = new Map();
       englishCards.forEach((card) => {
         if (card?.id != null) {
@@ -1912,6 +1945,7 @@ function normalizeHeroCard(hero, tier) {
         })
         : [];
       const accessoriesPayload = await window.Shared.loadCurrentAccessoriesData();
+      if (session.signal.aborted) return;
       const accessories = [...(accessoriesPayload.small || []), ...(accessoriesPayload.large || [])].map(normalizeAccessoryCard);
 
       state.cards = [...heroes, ...minions, ...spells, ...accessories];
@@ -1921,7 +1955,7 @@ function normalizeHeroCard(hero, tier) {
       renderLevelFilters();
       renderAccessoryFilters();
       updateLibrary();
-      renderBoard();
+      restoreDraft(session.readDraft());
       renderQuickSlots();
       renderCommunitySlots();
       applyBoardVisualSettings();
@@ -1969,6 +2003,7 @@ function normalizeHeroCard(hero, tier) {
   }
 
   searchInput.addEventListener("input", window.Shared.debounce((event) => {
+    if (session.signal.aborted) return;
     state.search = event.target.value;
     updateLibrary();
   }, 120));
@@ -1994,7 +2029,7 @@ function normalizeHeroCard(hero, tier) {
   }
 
   let resizeRaf = null;
-  window.addEventListener("resize", () => {
+  session.listen(window, "resize", () => {
     if (!state.annotations.length && !state.pendingAnnotation) return;
     if (resizeRaf !== null) return;
     resizeRaf = requestAnimationFrame(() => {
@@ -2003,7 +2038,7 @@ function normalizeHeroCard(hero, tier) {
     });
   });
 
-  document.addEventListener("keydown", (event) => {
+  session.listen(document, "keydown", (event) => {
     if (event.key !== "Escape") return;
     if (state.annotationTool || state.pendingAnnotation) {
       state.annotationTool = null;
@@ -2016,8 +2051,8 @@ function normalizeHeroCard(hero, tier) {
 
   applyAnnotationToolUi();
 
-  exportPngButton.addEventListener("click", () => exportBoard("png"));
-  exportWebpButton.addEventListener("click", () => exportBoard("webp"));
+  exportPngButton.addEventListener("click", () => session.export(exportPngButton, () => exportBoard("png")));
+  exportWebpButton.addEventListener("click", () => session.export(exportWebpButton, () => exportBoard("webp")));
 
   if (toggleGridButton) {
     toggleGridButton.addEventListener("click", () => {
@@ -2027,7 +2062,7 @@ function normalizeHeroCard(hero, tier) {
   }
 
 
-  document.addEventListener("wheel", (event) => {
+  session.listen(document, "wheel", (event) => {
     if (state.draggingLibrary || state.draggingPlaced) {
       window.scrollBy({ top: event.deltaY, left: event.deltaX, behavior: "auto" });
     }
@@ -2038,8 +2073,8 @@ function normalizeHeroCard(hero, tier) {
   const LIBRARY_COLUMNS_STORAGE_KEY = "strategy-builder-library-columns-v1";
   const LIBRARY_COLUMNS_MIN = 2;
   const LIBRARY_COLUMNS_MAX = 5;
-  const libraryColumnsInput = document.getElementById("builder-library-columns");
-  const libraryColumnsValueEl = document.getElementById("builder-library-columns-value");
+  const libraryColumnsInput = elementById("builder-library-columns");
+  const libraryColumnsValueEl = elementById("builder-library-columns-value");
 
   function loadLibraryColumns() {
     try {
@@ -2087,10 +2122,10 @@ function normalizeHeroCard(hero, tier) {
 
   // --- Готовые сборки (HSReplay / Firestone) ---
 
-  const compSelect = document.getElementById("builder-comp-select");
-  const compApplyButton = document.getElementById("builder-comp-apply");
-  const compInfoEl = document.getElementById("builder-comp-info");
-  const compCardsEl = document.getElementById("builder-comp-cards");
+  const compSelect = elementById("builder-comp-select");
+  const compApplyButton = elementById("builder-comp-apply");
+  const compInfoEl = elementById("builder-comp-info");
+  const compCardsEl = elementById("builder-comp-cards");
   let compsList = [];
 
   function compCardArtUrl(compCard, size = "256x") {
@@ -2279,6 +2314,7 @@ function normalizeHeroCard(hero, tier) {
   async function initCompImport() {
     if (!compSelect || !compApplyButton) return;
     compsList = await loadComps();
+    if (session.signal.aborted) return;
     populateCompSelect();
     renderCompInfo();
     renderCommunitySlots();
@@ -2291,6 +2327,11 @@ function normalizeHeroCard(hero, tier) {
   bindPanelToggle(hideAnnotationsInput, "hideAnnotations", HIDE_ANNOTATIONS_STORAGE_KEY);
   applyPanelVisibility();
 
+  session.mountUndo(boardEl.closest(".builder-canvas-panel").querySelector(".board-toolbar"), restoreDraft);
+  session.onDispose(() => {
+    cancelActiveDrag?.();
+    if (resizeRaf !== null) cancelAnimationFrame(resizeRaf);
+  });
   initCompImport();
 
   bootstrap();

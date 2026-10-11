@@ -134,7 +134,8 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         assert.ok(preset, 'strategy presets are available');
         await page.select('#builder-comp-select', preset);
         await page.click('#builder-comp-apply');
-        await page.waitForFunction(() => !document.querySelector('#builder-counter')?.textContent.startsWith('0 карт'));
+        await page.waitForSelector('.placed-card');
+        await page.click('.builder-workspace-tab[data-view="board"]');
         await page.click('#builder-export-png');
         let exported = false;
         for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -152,11 +153,12 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         await page.reload({ waitUntil: 'networkidle2' });
         await page.waitForSelector('#tier-builder-library-columns');
         assert.equal(await page.$eval('#tier-builder-library-columns', input => input.value), '4');
-        await page.waitForSelector('#tier-builder-pool .tier-builder-card [data-action="pool"]');
-        await page.$eval('#tier-builder-pool .tier-builder-card [data-action="pool"]', button => button.click());
+        await page.waitForSelector('#tier-builder-pool .tier-builder-card select');
+        await page.select('#tier-builder-pool .tier-builder-card select', 'S');
+        await page.click('.builder-workspace-tab[data-view="board"]');
         assert.ok(await page.$('#tier-builder-rows .tier-builder-card'), 'card moves from pool to a tier');
         const beforeExport = readdirSync(downloads).length;
-        await page.$eval('#tier-builder-download-all-png', button => button.click());
+        await page.click('#tier-builder-download-all-png');
         let exported = false;
         for (let attempt = 0; attempt < 50; attempt += 1) {
           exported = readdirSync(downloads).length > beforeExport;
