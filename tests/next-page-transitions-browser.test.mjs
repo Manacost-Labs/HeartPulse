@@ -196,6 +196,12 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await page.waitForFunction(() => location.pathname === '/guides-archive/' && !document.querySelector('[data-navigation-progress="pending"]'));
     await new Promise(resolve => setTimeout(resolve, 1100));
     assert.equal(await page.evaluate(() => location.pathname), '/guides-archive/', 'a slow earlier route cannot replace the newer destination');
+    await page.click('.arena-sidebar a[href="/articles/"]');
+    await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
+    await page.goBack();
+    await page.waitForFunction(() => location.pathname === '/faq/' && !document.querySelector('[data-navigation-progress="pending"]'));
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    assert.equal(await page.evaluate(() => location.pathname), '/faq/', 'Back supersedes a pending destination');
     assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();
