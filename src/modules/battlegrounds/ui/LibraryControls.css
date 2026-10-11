@@ -1,0 +1,59 @@
+.arena-app-battlegrounds .bg-library-page > .bg-library-controls {
+  padding: 1rem;
+  border: 1px solid rgba(99, 56, 29, 0.32) !important;
+  border-radius: 0.5rem !important;
+  background: var(--arena-parchment-panel, #fff3d4) !important;
+  box-shadow: none !important;
+  color: #3a291d;
+}
+.arena-app-battlegrounds .bg-library-controls::after { display: none !important; }
+.bg-library-controls-heading, .bg-library-catalog-selects { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.bg-library-controls-heading { justify-content: space-between; margin-bottom: 0.75rem; }
+.bg-library-controls-heading p { margin: 0; font-size: 0.875rem; }
+.bg-library-control-select { display: grid; gap: 0.25rem; min-width: 0; font-size: 0.875rem; }
+.bg-library-control-select > span { font-weight: 700; }
+.bg-library-controls select { width: 100%; min-height: 44px; padding: 0.5rem 2rem 0.5rem 0.75rem; }
+.bg-library-control-search { position: relative; display: flex; align-items: center; margin-bottom: 0.75rem; }
+.bg-library-control-search > svg { position: absolute; left: 0.75rem; pointer-events: none; }
+.bg-library-controls .bg-library-control-search input { width: 100%; min-width: 0; min-height: 44px; padding: 0.5rem 0.75rem 0.5rem 2.5rem; border-radius: 0.25rem !important; }
+.bg-library-control-row { display: flex; align-items: baseline; gap: 0.75rem; border: 0; padding: 0; margin: 0.5rem 0; min-width: 0; }
+.bg-library-control-row legend { float: left; width: 7.5rem; flex-shrink: 0; padding: 0.75rem 0 0; font-size: 0.875rem; font-weight: 700; }
+.bg-library-control-row > div { display: flex; flex-wrap: wrap; gap: 0.375rem; min-width: 0; }
+.bg-library-controls button { cursor: pointer; }
+.arena-app-battlegrounds .bg-library-controls .bg-library-choice {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;
+  min-height: 44px; min-width: 44px; padding: 0.375rem 0.625rem;
+  border: 1px solid rgba(99, 56, 29, 0.28); border-radius: 0.25rem;
+  background: transparent !important; box-shadow: none; color: #3a291d !important;
+  font-size: 0.875rem; font-weight: 600; transition: background-color 120ms ease, border-color 120ms ease;
+}
+.arena-app-battlegrounds .bg-library-controls .bg-library-choice[aria-pressed='true'] { background: #641722 !important; color: #fff0c8 !important; border-color: #641722; }
+.bg-library-choice img { width: 1.25rem; height: 1.25rem; }
+.arena-app-battlegrounds .bg-library-controls .bg-library-control-advanced {
+  padding: 0; margin-top: 0.75rem; border: 0 !important; background: transparent !important; box-shadow: none !important;
+}
+.bg-library-control-advanced summary { display: flex; align-items: center; gap: 0.375rem; min-height: 44px; width: fit-content; cursor: pointer; font-weight: 700; font-size: 0.875rem; list-style: none; }
+.bg-library-control-advanced summary::-webkit-details-marker { display: none; }
+.bg-library-control-advanced[open] summary svg { transform: rotate(180deg); }
+.bg-library-control-advanced-fields { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; padding-top: 0.5rem; }
+.bg-library-control-duos { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; font-size: 0.875rem; }
+.bg-library-control-duos input { width: 1rem; height: 1rem; accent-color: #641722; }
+.bg-library-active-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid rgba(99, 56, 29, 0.2); margin-top: 0.5rem; padding-top: 0.5rem; }
+.bg-library-active-filters button { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px; max-width: 100%; overflow-wrap: anywhere; padding: 0.375rem 0.625rem; border: 0; border-radius: 0.25rem; background: rgba(99, 56, 29, 0.08); font-size: 0.875rem; }
+.bg-library-controls :is(button, input, select, summary):focus-visible { outline: 2px solid #641722; outline-offset: 3px; }
+@media (max-width: 640px) {
+  .bg-library-control-row { display: block; }
+  .bg-library-control-row legend { float: none; width: auto; padding: 0 0 0.375rem; }
+  .bg-library-catalog-selects { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
+  .bg-library-control-advanced-fields { display: grid; grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .bg-library-controls .bg-library-choice { transition: none; } }
+@media (max-width: 640px) {
+  .bg-library-control-row + .bg-library-control-row > div {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.375rem;
+    scrollbar-width: thin;
+  }
+  .bg-library-control-row + .bg-library-control-row .bg-library-choice { flex-shrink: 0; }
+}

@@ -48,10 +48,30 @@ export const AberrationFilter: Story = {
     await expect(canvas.getByText('2 найдено · 2 загружено')).toBeVisible();
     await expect(filter.querySelector('img')).toHaveAttribute('src', '/bg-legacy/assset/aberration.webp');
     await userEvent.click(filter);
+    await expect(filter).toHaveAttribute('aria-pressed', 'true');
     await expect(canvas.getByText('1 найдено · 2 загружено')).toBeVisible();
     await expect(canvas.queryByRole('link', { name: /Зверь для проверки фильтра/ })).not.toBeInTheDocument();
     const card = canvas.getByRole('link', { name: /Открыть страницу карты Счастье/ });
     await userEvent.click(card);
     await expect(args.navigatePath).toHaveBeenCalledWith(expect.stringMatching(/^\/library\/minions\/.+-131718$/));
+  },
+};
+
+export const CompactControls: Story = {
+  play: async ({ canvas }) => {
+    const filter = await canvas.findByRole('button', { name: 'Аберрация' });
+    await userEvent.click(filter);
+    await userEvent.type(canvas.getByRole('searchbox', { name: 'Поиск карт' }), 'Нет такой карты');
+    await expect(canvas.getByText('По выбранным фильтрам ничего не найдено.')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Сбросить фильтры' }));
+    await expect(canvas.getByRole('searchbox')).toHaveValue('');
+    await expect(canvas.getByText('2 найдено · 2 загружено')).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Аберрация' })).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(canvas.getByText('Дополнительно'));
+    await userEvent.click(canvas.getByRole('checkbox', { name: 'Показывать карты Duo' }));
+    await userEvent.click(canvas.getByText('Дополнительно'));
+    await expect(canvas.getByRole('button', { name: 'Убрать фильтр: Duo' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Убрать фильтр: Duo' }));
+    await expect(canvas.queryByRole('button', { name: 'Сбросить всё' })).not.toBeInTheDocument();
   },
 };
