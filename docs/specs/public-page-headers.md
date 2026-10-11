@@ -37,16 +37,21 @@ incremental-implementation, test-driven-development, frontend-design,
 TypeUI fundamentals, browser-testing-with-devtools, react-best-practices,
 frontend-testing-debugging, git-workflow-and-versioning,
 documentation-and-adrs, code-review-and-quality, code-simplification and
-shipping-and-launch.
+shipping-and-launch and ci-cd-and-automation.
 
 ## Bundle budget evidence
 
 The shared banner stylesheet and recovery headings are now present on every
-public route. Reviewed
-initial gzip sizes increased by less than 1.5 KiB beyond the previous ceiling
-on affected routes; only exceeded entries in `config/next-bundle-budgets.json`
-were rounded up to the next 256 bytes. Unaffected ceilings and the checks that
-keep administrator and paid Battlegrounds assets lazy remain unchanged.
+public route. Reviewed CI gzip sizes exceed the previous ceilings by up to
+1.7 KiB on affected routes. JavaScript entries that exceeded the limits use
+the existing budget updater's 2% margin and 1 KiB rounding, accounting for
+bundler/compression variation across installations. CSS ceilings retain their
+256-byte rounding. Unaffected entries and the checks that keep administrator
+and paid Battlegrounds assets lazy remain unchanged.
+
+The home browser check waits up to ten seconds for the three declared owner
+stylesheets after their streamed sections appear, then asserts the same owners
+and reports the full state on failure.
 
 ## Release verification
 

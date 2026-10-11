@@ -457,21 +457,28 @@ const CSS_OWNER_MARKERS = {
   siteFooter: '.arena-footer__columns', // src/components/SiteFooter.css
 };
 
-async function loadedCssOwners(page) {
-  return page.evaluate(markers => {
-    const selectors = new Set();
-    const collect = rules => {
-      for (const rule of rules) {
-        // Minifiers may merge rules, so each selector of a list counts.
-        for (const selector of rule.selectorText?.split(',') ?? []) selectors.add(selector.trim());
-        if (rule.cssRules) collect(rule.cssRules);
+async function loadedCssOwners(page, requiredOwners = []) {
+  const deadline = Date.now() + 10_000;
+  let state;
+  do {
+    state = await page.evaluate(markers => {
+      const selectors = new Set();
+      const collect = rules => {
+        for (const rule of rules) {
+          // Minifiers may merge rules, so each selector of a list counts.
+          for (const selector of rule.selectorText?.split(',') ?? []) selectors.add(selector.trim());
+          if (rule.cssRules) collect(rule.cssRules);
+        }
+      };
+      for (const sheet of document.styleSheets) {
+        try { collect(sheet.cssRules); } catch { /* A cross-origin sheet cannot own application CSS. */ }
       }
-    };
-    for (const sheet of document.styleSheets) {
-      try { collect(sheet.cssRules); } catch { /* A cross-origin sheet cannot own application CSS. */ }
-    }
-    return Object.fromEntries(Object.entries(markers).map(([owner, selector]) => [owner, selectors.has(selector)]));
-  }, CSS_OWNER_MARKERS);
+      return Object.fromEntries(Object.entries(markers).map(([owner, selector]) => [owner, selectors.has(selector)]));
+    }, CSS_OWNER_MARKERS);
+    if (requiredOwners.every(owner => state[owner])) return state;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  } while (Date.now() < deadline);
+  return state;
 }
 
 async function inspectLayout(page, { mobile }) {
@@ -4341,7 +4348,7 @@ for (const [device, viewport] of [
     if (Object.values(homeLandmarks).some(value => value === false)) {
       failures.push(`home landmarks: one or more primary elements disappeared (${JSON.stringify(homeLandmarks)})`);
     }
-    const cssOwners = await loadedCssOwners(page);
+    const cssOwners = await loadedCssOwners(page, ['homeArena', 'homeBattlegrounds', 'homeArticles']);
     const homeCssState = {
       routeCssLoaded: cssOwners.routeParchment,
       deferredRoutesCssLoaded: cssOwners.deferredRoutes,
@@ -4357,7 +4364,7 @@ for (const [device, viewport] of [
     };
     if (homeCssState.routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
     if (homeCssState.deferredRoutesCssLoaded) failures.push('home lazy sections: deferred route-owner CSS leaked into the initial home route');
-    if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push('home lazy sections: one or more owner CSS chunks did not load');
+    if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push(`home lazy sections: one or more owner CSS chunks did not load (${JSON.stringify(homeCssState)})`);
     if (await page.$('.home-faq-zone, #faq-heading, .home-page-index a[href="#faq-heading"]')) {
       failures.push('home lazy sections: retired FAQ block or index link is still rendered');
     }
