@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
 import {
   ConstructedArchetypesFixture, installConstructedArchetypeFixtures,
 } from '../../tests/fixtures/constructed-archetypes-harness';
@@ -17,3 +18,11 @@ const meta = {
 export default meta;
 
 export const Fixture: StoryObj<typeof meta> = {};
+export const ArchetypeDetail: StoryObj<typeof meta> = {
+  args: { initialPath: '/standard/archetypes/wild/thief-priest' },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole('heading', { level: 1, name: 'Воровской Жрец' })).toBeVisible();
+    await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    await expect(canvas.getByRole('heading', { name: 'История архетипа' })).toBeVisible();
+  },
+};

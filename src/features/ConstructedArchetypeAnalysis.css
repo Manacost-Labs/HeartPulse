@@ -387,7 +387,7 @@
   z-index: -2;
   inset-block: 1px;
   right: 0;
-  width: min(48%, 142px);
+  width: 100%;
   height: calc(100% - 2px);
   object-fit: cover;
   object-position: right center;

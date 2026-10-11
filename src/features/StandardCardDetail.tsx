@@ -652,7 +652,6 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
   return (
     <article className="constructed-cards constructed-card-detail">
-      <SectionBanner title={cardName(card)} />
       <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}/`, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}/`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
       <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button>
       {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}

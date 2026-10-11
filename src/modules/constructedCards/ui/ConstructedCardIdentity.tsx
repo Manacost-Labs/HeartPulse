@@ -12,7 +12,7 @@ export type ConstructedCardIdentityProps = {
 export function ConstructedCardIdentity(props: ConstructedCardIdentityProps) {
   return <div className="constructed-card-detail__identity">
     <div className="constructed-card-detail__title" data-tour-id="card-identity">
-      <img src={props.classIconUrl} alt="" /><div><h2>{props.name}</h2><p>{props.englishName}</p></div>
+      <img src={props.classIconUrl} alt="" /><div><h1>{props.name}</h1><p>{props.englishName}</p></div>
     </div>
     <dl className="constructed-card-detail__meta">
       {props.facts.map(fact => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}

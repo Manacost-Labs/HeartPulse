@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { constructedCardHorizontalArtwork, fallbackConstructedCardArtwork } from '../modules/constructedCards/public';
 import {
   ArrowDownUp,
   ChevronDown,
@@ -133,10 +134,6 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
-function cardTileUrl(cardId: string): string {
-  return `/api/card-image/${encodeURIComponent(cardId)}/tile.webp?v=card_tile_v1`;
-}
-
 function cardRenderUrl(cardId: string): string {
   return `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(cardId)}.png`;
 }
@@ -269,9 +266,10 @@ function CardTile({
       {row.cardId ? (
         <img
           className="constructed-card-tile__art"
-          src={cardTileUrl(row.cardId)}
-          width="256"
-          height="59"
+          src={constructedCardHorizontalArtwork(row.cardId)}
+          onError={event => fallbackConstructedCardArtwork(event.currentTarget, row.cardId)}
+          width="320"
+          height="64"
           loading="lazy"
           decoding="async"
           alt=""

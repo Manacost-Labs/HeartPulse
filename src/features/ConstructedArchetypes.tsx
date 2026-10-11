@@ -1,4 +1,3 @@
-import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -599,7 +598,6 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         <span aria-hidden="true">/</span>
         <strong>{item.archetypeLabel}</strong>
       </nav>
-      <SectionBanner title={item.archetypeLabel} />
       <section className="archetype-dossier" data-tour-id="archetype-summary">
         {heroArt ? (
           <img
@@ -613,7 +611,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         ) : null}
         <div className="archetype-dossier__identity">
           <img src={classIcon(item.classKey)} alt="" width="92" height="92" />
-          <h2>{item.archetypeLabel}</h2>
+          <h1>{item.archetypeLabel}</h1>
         </div>
         <dl className="archetype-dossier__metrics">
           <div><dt>Винрейт</dt><dd className={`metric-${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</dd></div>
@@ -624,6 +622,25 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           <div><dt>Средний ход</dt><dd>{formatNumber(item.turns)}</dd></div>
         </dl>
       </section>
+
+      {hasFullAccess ? (
+        <section className="archetype-history" aria-labelledby="archetype-history-title" data-tour-id="archetype-history">
+        <header className="archetype-section-heading">
+          <div>
+            <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
+            <h2 id="archetype-history-title">История архетипа</h2>
+            <p>Новый срез добавляется каждые 12 часов. Через несколько дней здесь будет виден тренд, а через месяц — полноценная история меты.</p>
+          </div>
+          <span className="archetype-section-heading__count">{history.length} срезов</span>
+        </header>
+        <div className="archetype-history__charts">
+          <TrendChart title="Винрейт" unit="%" points={history} value={point => point.winrate} color="#2f7a3e" />
+          <TrendChart title="Популярность" unit="%" points={history} value={point => point.popularity} color="#8d171d" />
+          <TrendChart title="Количество игр" unit="" points={history} value={point => point.games} color="#8a5b24" />
+        </div>
+        </section>
+      ) : null}
+
 
       {mainBuild && (
         <section className="archetype-main-build" data-tour-id="archetype-main-build">
@@ -677,23 +694,6 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
 
       {hasFullAccess ? <ConstructedArchetypeAnalysis analysis={detail.analysis} /> : null}
 
-      {hasFullAccess ? (
-        <section className="archetype-history" aria-labelledby="archetype-history-title" data-tour-id="archetype-history">
-        <header className="archetype-section-heading">
-          <div>
-            <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
-            <h2 id="archetype-history-title">История архетипа</h2>
-            <p>Новый срез добавляется каждые 12 часов. Через несколько дней здесь будет виден тренд, а через месяц — полноценная история меты.</p>
-          </div>
-          <span className="archetype-section-heading__count">{history.length} срезов</span>
-        </header>
-        <div className="archetype-history__charts">
-          <TrendChart title="Винрейт" unit="%" points={history} value={point => point.winrate} color="#2f7a3e" />
-          <TrendChart title="Популярность" unit="%" points={history} value={point => point.popularity} color="#8d171d" />
-          <TrendChart title="Количество игр" unit="" points={history} value={point => point.games} color="#8a5b24" />
-        </div>
-        </section>
-      ) : null}
 
       {hasFullAccess && secondaryBuilds.length > 0 && (
         <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-other-builds">

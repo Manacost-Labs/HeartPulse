@@ -44,7 +44,9 @@ behind its `public.ts`, not in `src/features/`.
   `src/shared/ui/EditorialRouteChrome.tsx` for simple titles. Its artwork and
   responsive frame live in `src/shared/ui/PublicPageBanner.css`, loaded by
   `src/index.css`; `TraditionalModeBanner.css` is a compatibility import for
-  existing headings with summaries. Detail pages put the H1 banner before
+  existing headings with summaries. Constructed card and archetype details
+  put their single H1 in the existing identity/metrics header, without a
+  duplicate tavern banner. Other detail pages keep the H1 banner before
   their art/facts layout, whose contextual names use H2. The home page keeps
   its original hero with the title, paladin, actions and class summary
   together. Admin headers remain
