@@ -110,7 +110,7 @@ function AccountMenu({ onLogout }: { onLogout: () => void }) {
 function AccountHeader({ user, name, contact, publicProfileHref, linkCopied, onCopyLink, onLogout }: Pick<AccountDashboardProps, 'user' | 'name' | 'contact' | 'publicProfileHref' | 'linkCopied' | 'onCopyLink' | 'onLogout'>) {
   return (
     <>
-      <SectionBanner title={name} titleId="account-title" />
+      <SectionBanner title="Личный кабинет" titleId="account-title" />
       <header className="account-header" data-tour-id="profile-summary">
         <AuthAvatar user={{ name, email: '', avatarInitials: user.avatarInitials, photoUrl: user.photoUrl }} size={68} />
         <div className="account-header__identity">

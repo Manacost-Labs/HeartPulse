@@ -28,7 +28,8 @@ export const ActiveSubscription: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByRole('heading', { name: 'Ваш доступ к HearthPulse' });
-    await expect(canvas.getByRole('link', { name: /^Арена/ })).toHaveAttribute('href', '/tierlist/');
+    await expect(canvas.getByRole('heading', { level: 1, name: 'Личный кабинет' })).toBeVisible();
+    await expect(await canvas.findByRole('link', { name: /^Арена/ })).toHaveAttribute('href', '/tierlist/');
     const contacts = canvasElement.querySelector('details');
     if (!contacts) throw new Error('Contacts disclosure is missing');
     await expect(contacts).not.toHaveAttribute('open');

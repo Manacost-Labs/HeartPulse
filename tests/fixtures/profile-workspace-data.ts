@@ -21,7 +21,7 @@ export function mockProfileRequests(active = true, failRefresh = false) {
     }
     if (url.pathname.startsWith('/api/subscription/')) {
       return Response.json({
-        hasAccess: active, checkedAt: '2026-09-21T09:30:00.000Z',
+        hasAccess: active, source: active ? 'boosty' : 'none', checkedAt: '2026-09-21T09:30:00.000Z',
         entitlements: { standard: active, arena: active, battlegrounds: active },
         message: active ? 'Подписка подтверждена. Вам доступны все разделы сайта.' : 'Подключите подписку, чтобы открыть закрытые разделы.',
         boosty: { hasAccess: active, levelName: 'Алмаз', price: 300, message: 'Подписка не подключена.' },

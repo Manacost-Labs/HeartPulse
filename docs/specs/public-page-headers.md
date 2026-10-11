@@ -18,7 +18,9 @@ its rank, period and access badges in the left copy column. Its module-owned
 `constructedCards/public.css` exposes only the banner presentation to the legacy
 page composition.
 
-Each page exposes one H1. Dynamic detail titles remain the entity's name;
+Each page exposes one H1. The private account banner is «Личный кабинет»,
+independent of the viewer's display name. Dynamic detail titles remain the
+entity's name;
 filters, subscription gates, facts, recovery actions and navigation remain
 available outside the title area. Long titles wrap without clipping at 320px,
 390px, 768px and 1440px. Artwork never covers text and carries no accessible
