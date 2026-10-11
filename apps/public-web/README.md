@@ -46,7 +46,8 @@ behind its `public.ts`, not in `src/features/`.
   `src/index.css`; `TraditionalModeBanner.css` is a compatibility import for
   existing headings with summaries. Detail pages put the H1 banner before
   their art/facts layout, whose contextual names use H2. The home page keeps
-  its actions and class summary below the same banner. Admin headers remain
+  its original hero with the title, paladin, actions and class summary
+  together. Admin headers remain
   separate. See [public page header contract](../../docs/specs/public-page-headers.md).
 - Import siblings with `./`; import everything else as `@/<repository path>`
   (for example `@/src/modules/subscriptions/public`). Never `../`, never

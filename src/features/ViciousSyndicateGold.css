@@ -20,9 +20,6 @@
   color: var(--vs-ink);
 }
 
-.traditional-mode-banner .vsgold__freshness { margin-top: 0.55rem; font-size: 0.8rem; }
-.vsgold__freshness a { color: var(--arena-gold-light); text-decoration: underline; text-underline-offset: 2px; }
-
 .vsgold__mobile-nav { display: none; }
 
 .vsgold__distribution-grid { display: grid; grid-template-columns: minmax(340px, 0.82fr) minmax(520px, 1.35fr); gap: 0.9rem; margin-top: 1rem; }

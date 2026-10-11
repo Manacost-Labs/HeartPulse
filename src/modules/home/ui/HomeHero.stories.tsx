@@ -24,7 +24,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const WithClassRatings: Story = {};
+export const WithClassRatings: Story = {
+  parameters: { docs: { description: { story: 'The original home hero combines its title, paladin, actions and ratings in one frame.' } } },
+};
 export const LoadingRatings: Story = {
   args: { homeSummaryData: null, loadingHomeSummary: true },
 };

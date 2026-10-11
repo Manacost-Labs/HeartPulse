@@ -105,7 +105,7 @@ for (const contract of intentContracts) {
 }
 
 const deferredRoutesSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
-assert.match(deferredRoutesSource, /SectionBanner title="Тир-лист карт Арены Hearthstone"/);
+assert.match(deferredRoutesSource, /SectionBanner title="Тир-лист карт"/);
 assert.doesNotMatch(deferredRoutesSource, /<ArenaTierListSearchIntro \/>/);
 
 const battlegroundsSource = readFileSync(new URL('../src/features/Battlegrounds.tsx', import.meta.url), 'utf8');
@@ -128,8 +128,8 @@ assert.match(paywallGateSource, /headingLevel: Heading = 'h1'/);
 assert.match(paywallGateSource, /<Heading[^>]*id="paywall-gate-title"/);
 assert.match(paywallGateSource, /subscriptionPaywallHeading\(title\)/);
 assert.doesNotMatch(paywallGateSource, /<h1 style=\{\{ margin: 0/);
-assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/tierlist/'), 'Тир-лист карт Арены Hearthstone');
-assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/battlegrounds/tier-list/'), 'Тир-лист БГ Hearthstone');
+assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/tierlist/'), 'Тир-лист карт');
+assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/battlegrounds/tier-list/'), 'Тир-лист БГ');
 assert.equal(
   subscriptionPaywallHeading(
     'Библиотека доступны подписчикам',
@@ -150,7 +150,7 @@ assert.equal(subscriptionPaywallHeading('Мета доступна подпис�
 
 
 const battlegroundsLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/BattlegroundsSearchIntros.tsx', import.meta.url), 'utf8');
-assert.match(battlegroundsLandingSource, /<SectionBanner title="Тир-лист БГ Hearthstone"/);
+assert.match(battlegroundsLandingSource, /<SectionBanner title="Тир-лист БГ"/);
 assert.match(battlegroundsLandingSource, /<SectionBanner title="Конструктор стратегий БГ Hearthstone"/);
 assert.doesNotMatch(battlegroundsLandingSource, /<nav/);
 
@@ -158,7 +158,7 @@ const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.ts
 assert.match(standardMetaSource, /<StandardMetaSearchIntro \/>/);
 assert.doesNotMatch(standardMetaSource, /StandardMetaRelatedLinks/);
 const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/StandardMetaSearchIntro.tsx', import.meta.url), 'utf8');
-assert.match(standardMetaLandingSource, /<h1>HSGuru: мета Hearthstone<\/h1>/);
+assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
 
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);

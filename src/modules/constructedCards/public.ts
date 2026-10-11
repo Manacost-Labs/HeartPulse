@@ -14,3 +14,4 @@ export type { CardCatalogPayload, PublicCatalogCard, PublicCardCatalogSeed } fro
 export { useCatalogLocation } from './useCatalogLocation';
 export { useCatalogData } from './useCatalogData';
 export { useCatalogIntentWarm } from './useCatalogIntentWarm';
+export { ConstructedCardsBanner } from './ui/ConstructedCardsBanner';

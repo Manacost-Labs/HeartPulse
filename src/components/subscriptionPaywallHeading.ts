@@ -12,8 +12,8 @@ export function subscriptionPaywallHeading(
   documentTitle = globalThis.document?.title,
 ): string {
   const normalizedPath = pathname?.replace(/\/$/, '') || '/';
-  if (normalizedPath === '/tierlist') return 'Тир-лист карт Арены Hearthstone';
-  if (normalizedPath === '/battlegrounds/tier-list') return 'Тир-лист БГ Hearthstone';
+  if (normalizedPath === '/tierlist') return 'Тир-лист карт';
+  if (normalizedPath === '/battlegrounds/tier-list') return 'Тир-лист БГ';
   if (ENTITY_DETAIL_PATH.test(normalizedPath)) return entityNameFromDocumentTitle(documentTitle) ?? title;
   return title;
 }

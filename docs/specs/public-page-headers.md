@@ -2,11 +2,21 @@
 
 ## Contract
 
-Every public page uses the heroes banner from the owner's visual reference:
+Public section and detail pages use the heroes banner from the owner's visual reference:
 burgundy material, the existing ornamental frame, tavern illustration on the
-right and the page's primary title on the left. The home page uses the same
-header, with its navigation actions and class summary below it. Admin screens
-keep their workspace headers.
+right and the page's primary title on the left. The home page retains its
+original hero, combining its title, paladin, navigation actions and class summary
+in one frame. Admin screens keep their workspace headers.
+
+Visible headings use concise labels: «Мета», «Тир-лист карт» and «Тир-лист БГ».
+The Fun decks banner omits its update date; the Vicious Syndicate Gold banner
+omits its source/update line. Data freshness and provider contracts are unchanged.
+Battlegrounds parchment typography must exclude banner descendants so its dark
+heading colors do not replace the cream banner text. The card catalog keeps
+its rank, period and access badges in the left copy column. Its module-owned
+`ConstructedCardsBanner` is exported through `constructedCards/public.ts`;
+`constructedCards/public.css` exposes only the banner presentation to the legacy
+page composition.
 
 Each page exposes one H1. Dynamic detail titles remain the entity's name;
 filters, subscription gates, facts, recovery actions and navigation remain
@@ -23,8 +33,9 @@ cover an arbitrarily tall list of access details.
 
 ## Working plan and documentation impact
 
-1. Share the existing artwork presentation and migrate public headings.
-2. Update component stories and header geometry checks.
+1. Restore the original home hero and shorten the requested section headings.
+2. Remove requested banner metadata and isolate route typography;
+   test subscriber skins.
 3. Build both applications and Storybook, run focused contracts and Semgrep,
    then review public routes and stories in Chrome DevTools MCP.
 

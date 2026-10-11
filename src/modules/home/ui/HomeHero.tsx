@@ -1,4 +1,3 @@
-import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import React, { useMemo } from 'react';
 import { ArrowRight, BarChart3 } from 'lucide-react';
 import { CLASS_ICON_BY_ID, type HomeSummaryData } from '../model/homeSummary';
@@ -23,11 +22,10 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
     [homeSummaryData?.topClasses],
   );
   return (
-    <div className="home-intro">
-      <SectionBanner title="Мета на сегодня" titleId="draft-home-title" />
       <section className="home-stage" aria-labelledby="draft-home-title">
         <div className="home-stage__copy">
           <span className="home-stage__label"><span aria-hidden="true" /> Данные обновляются автоматически</span>
+          <h1 id="draft-home-title">Мета <span>на сегодня</span></h1>
           <p>
             Лидеры Арены, свежесть данных и ключевые инструменты — на одном экране.
           </p>
@@ -112,6 +110,5 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
           </a>
         </aside>
       </section>
-    </div>
   );
 }

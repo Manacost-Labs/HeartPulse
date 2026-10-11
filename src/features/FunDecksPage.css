@@ -15,22 +15,6 @@
   color: var(--fun-ink);
 }
 
-.traditional-mode-banner__copy .fun-decks-freshness {
-  display: flex;
-  gap: 0.38rem;
-  align-items: center;
-  margin-top: 0.72rem;
-  color: #efc96f;
-  font-size: 0.72rem;
-  font-weight: 750;
-  letter-spacing: 0.025em;
-}
-
-.fun-decks-freshness svg {
-  width: 0.9rem;
-  height: 0.9rem;
-}
-
 .fun-decks-hero {
   position: relative;
   isolation: isolate;

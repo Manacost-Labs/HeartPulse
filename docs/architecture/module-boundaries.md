@@ -208,7 +208,8 @@ cards, Battlegrounds, decks, profiles, subscriptions and editorial content.
 - `ui/` renders typed data and emits user intent.
 - `public.ts` exposes the smallest stable contract needed outside the module.
 - `public.css`, when declared, is the only supported cross-boundary stylesheet
-  entry and delegates to module-owned CSS.
+  entry and delegates to module-owned CSS. The constructed-card module exposes
+  its catalog banner styles this way while its legacy route composition migrates.
 
 Other modules must not import an internal path such as
 `modules/cards/model/privatePolicy`. They use the narrow public contract. Avoid

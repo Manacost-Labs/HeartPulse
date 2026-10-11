@@ -173,7 +173,7 @@ export default function ViciousSyndicateGold() {
 
   return (
     <div className="vsgold">
-      <ViciousGoldBanner source={{ url: data.sourceUrl, updatedAt: data.updatedAt }}>
+      <ViciousGoldBanner>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка Vicious Syndicate Gold">
           <div><dt>Партий</dt><dd>{data.games.toLocaleString('ru-RU')}</dd></div>
           <div><dt>{buildState === 'loading' ? 'Догружаем сборки' : 'Готовых сборок'}</dt><dd>{buildState === 'loading' ? '…' : `${data.buildCoverage.found}/${data.buildCoverage.total}`}</dd></div>

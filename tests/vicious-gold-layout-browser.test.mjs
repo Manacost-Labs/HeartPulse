@@ -74,9 +74,7 @@ test('Vicious Gold reads as a ranked board and keeps its place while loading', {
     summary.classDistribution.forEach((item, index) => assert.ok(Math.abs(bars[index] - item.frequency / leader) < 0.02,
       `${item.classLabel} is drawn against the leader`));
 
-    const freshness = await page.$eval('.vsgold__freshness', node => ({ text: node.textContent, href: node.querySelector('a')?.href }));
-    assert.equal(freshness.href, summary.sourceUrl);
-    assert.match(freshness.text, /обновлено \d{2}\.\d{2}\.\d{4}/);
+    assert.equal(await page.$('.vsgold__freshness'), null, 'source and update date stay out of the banner');
 
     assertBands(await readBands(page), 'all ranks');
     assert.equal(await page.$$eval('.vsgold__tier-card', cards => cards.length), summary.tierList[0].decks.length);

@@ -14,10 +14,12 @@ type Story = StoryObj<typeof meta>;
 
 export const MetaOverview: Story = {
   parameters: {
-    docs: { description: { story: 'HSGuru artwork fades into the burgundy background without a visible image edge, including on narrow screens.' } },
+    docs: { description: { story: 'Meta artwork fades into the burgundy background without a visible image edge, including on narrow screens.' } },
   },
 };
 export const Cards: Story = { args: { index: 5 } };
 export const ArenaLongTitle: Story = { args: { index: 7 } };
-export const Home: Story = { args: { index: 9 } };
+export const BattlegroundsLibrary: Story = { args: { index: 9 } };
 export const BattlegroundsBuilder: Story = { args: { index: 10 } };
+
+export const BattlegroundsTierList: Story = { args: { index: 11 } };

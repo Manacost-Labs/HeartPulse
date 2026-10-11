@@ -90,10 +90,7 @@ try {
   assert.equal(await page.$eval('.fun-deck-card__identity h2', node => node.textContent), 'Фановая колода 6');
   assert.equal(await page.$eval('.fun-decks-tools__sort select', node => node.value), 'newest');
   assert.equal(await page.$eval('.fun-deck-card__identity span strong', node => node.textContent), 'Новая');
-  assert.equal(
-    await page.$eval('.fun-decks-freshness time', node => node.getAttribute('datetime')),
-    '2026-07-26T10:15:12.000Z',
-  );
+  assert.equal(await page.$('.fun-decks-freshness'), null);
   assert.equal(await page.$$eval('.arena-paywall__overlay', nodes => nodes.length), 0);
   assert.deepEqual(
     await page.$$eval('.arena-inline-paywall__provider', nodes => nodes.map(node => ({

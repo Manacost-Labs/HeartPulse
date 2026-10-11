@@ -4584,8 +4584,7 @@ for (const [device, viewport] of [
         labelDotWidth: labelDotStyles?.width || '',
         labelDotHeight: labelDotStyles?.height || '',
         labelDotBorder: labelDotStyles?.borderTopWidth || '',
-        sharedHeading: Boolean(pageHeading?.closest('.section-banner-modern')),
-        bannerGap: (stage?.getBoundingClientRect().top || 0) - (pageHeading?.closest('.section-banner-modern')?.getBoundingClientRect().bottom || 0),
+        headingWeight: getComputedStyle(pageHeading).fontWeight,
         actionMinHeight: actionStyles?.minHeight || '',
         actionRadius: actionStyles?.borderRadius || '',
         actionFontSize: actionStyles?.fontSize || '',
@@ -4611,6 +4610,8 @@ for (const [device, viewport] of [
       const copy = element.querySelector('.home-stage__copy');
       const label = element.querySelector('.home-stage__label');
       const labelDot = element.querySelector('.home-stage__label > span');
+      const heading = element.querySelector('h1');
+      const headingAccent = heading?.querySelector('span');
       const summary = element.querySelector('.home-stage__copy > p');
       const actions = element.querySelector('.home-stage__actions');
       const primary = element.querySelector('.home-action--primary');
@@ -4625,6 +4626,7 @@ for (const [device, viewport] of [
       const orbitEmpty = element.querySelector('[data-qa-home-orbit-empty-fixture]') || element.querySelector('.home-orbit-empty');
       const pageIndex = element.closest('.home-workbench')?.querySelector('.home-page-index');
       const copyStyles = copy ? getComputedStyle(copy) : null;
+      const headingStyles = heading ? getComputedStyle(heading) : null;
       const summaryStyles = summary ? getComputedStyle(summary) : null;
       const primaryStyles = primary ? getComputedStyle(primary) : null;
       const secondaryStyles = secondary ? getComputedStyle(secondary) : null;
@@ -4646,6 +4648,13 @@ for (const [device, viewport] of [
         labelColor: label ? getComputedStyle(label).color : '',
         labelDotBackground: labelDot ? getComputedStyle(labelDot).backgroundColor : '',
         labelDotShadow: labelDot ? getComputedStyle(labelDot).boxShadow : '',
+        headingMaxWidth: headingStyles?.maxWidth || '',
+        headingMarginTop: headingStyles?.marginTop || '',
+        headingColor: headingStyles?.color || '',
+        headingSize: headingStyles?.fontSize || '',
+        headingLineHeight: headingStyles?.lineHeight || '',
+        headingShadow: headingStyles?.textShadow || '',
+        headingAccent: headingAccent ? getComputedStyle(headingAccent).color : '',
         summaryMarginTop: summaryStyles?.marginTop || '',
         summaryColor: summaryStyles?.color || '',
         summarySize: summaryStyles?.fontSize || '',
@@ -4695,8 +4704,7 @@ for (const [device, viewport] of [
       || desktopShell.labelDotWidth !== '7px'
       || desktopShell.labelDotHeight !== '7px'
       || desktopShell.labelDotBorder !== '0px'
-      || !desktopShell.sharedHeading
-      || Math.abs(desktopShell.bannerGap - 16) > 1
+      || desktopShell.headingWeight !== '800'
       || desktopShell.actionMinHeight !== '44px'
       || desktopShell.actionRadius !== '3px'
       || desktopShell.actionFontSize !== '12.48px'
@@ -4731,6 +4739,13 @@ for (const [device, viewport] of [
       || desktopStageLayout.labelColor !== 'rgb(232, 190, 98)'
       || desktopStageLayout.labelDotBackground !== 'rgb(116, 183, 120)'
       || desktopStageLayout.labelDotShadow === 'none'
+      || desktopStageLayout.headingMaxWidth !== 'none'
+      || desktopStageLayout.headingMarginTop !== '8.8px'
+      || desktopStageLayout.headingColor !== 'rgb(255, 240, 200)'
+      || desktopStageLayout.headingSize !== '58.4px'
+      || desktopStageLayout.headingLineHeight !== '58.4px'
+      || desktopStageLayout.headingShadow === 'none'
+      || desktopStageLayout.headingAccent !== 'rgb(226, 184, 88)'
       || desktopStageLayout.summaryMarginTop !== '12.8px'
       || desktopStageLayout.summaryColor !== 'rgb(222, 202, 160)'
       || desktopStageLayout.summarySize !== '14.56px'
@@ -4973,12 +4988,14 @@ for (const [device, viewport] of [
     }
     const mobileStageLayout = await page.$eval('.home-stage', element => {
       const stageStyles = getComputedStyle(element);
+      const heading = element.querySelector('h1');
       const summary = element.querySelector('.home-stage__copy > p');
       const character = element.querySelector('.home-stage__character');
       const characterImage = character?.querySelector('img');
       const orbit = element.querySelector('.home-draft-orbit');
       const board = element.querySelector('.home-draft-orbit__board');
       const pageIndex = element.closest('.home-workbench')?.querySelector('.home-page-index');
+      const headingStyles = heading ? getComputedStyle(heading) : null;
       const characterStyles = character ? getComputedStyle(character) : null;
       const characterImageStyles = characterImage ? getComputedStyle(characterImage) : null;
       const orbitStyles = orbit ? getComputedStyle(orbit) : null;
@@ -4990,6 +5007,9 @@ for (const [device, viewport] of [
         padding: stageStyles.padding,
         borderWidth: stageStyles.borderTopWidth,
         borderImageWidth: stageStyles.borderImageWidth,
+        headingMaxWidth: headingStyles?.maxWidth || '',
+        headingSize: headingStyles?.fontSize || '',
+        headingLineHeight: headingStyles?.lineHeight || '',
         summarySize: summary ? getComputedStyle(summary).fontSize : '',
         characterPosition: characterStyles?.position || '',
         characterWidth: character?.getBoundingClientRect().width || 0,
@@ -5012,6 +5032,9 @@ for (const [device, viewport] of [
       || mobileStageLayout.padding !== '12.8px'
       || mobileStageLayout.borderWidth !== '9px'
       || mobileStageLayout.borderImageWidth !== '9px'
+      || mobileStageLayout.headingMaxWidth !== 'none'
+      || mobileStageLayout.headingSize !== '39px'
+      || mobileStageLayout.headingLineHeight !== '39px'
       || mobileStageLayout.summarySize !== '12.8px'
       || mobileStageLayout.characterPosition !== 'relative'
       || mobileStageLayout.characterWidth <= 0

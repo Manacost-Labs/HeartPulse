@@ -13,6 +13,3 @@ export const TitleOnly: Story = {};
 export const LongTitle: Story = {
   args: { title: 'Конструктор тир-листов Полей сражений Hearthstone' },
 };
-export const Home: Story = {
-  args: { title: 'Мета на сегодня', titleId: 'draft-home-title' },
-};

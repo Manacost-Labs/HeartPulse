@@ -6,7 +6,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Clock3,
   Copy,
   ExternalLink,
   RefreshCw,
@@ -26,7 +25,6 @@ import {
   type FunDecksSortMode,
 } from './funDecksPreview';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
-import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import '../shared/ui/LoadingSurface.css';
 import './FunDecksPage.css';
 
@@ -92,18 +90,6 @@ function percent(value: number | null, digits = 1): string {
 function score(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return '—';
   return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
-}
-
-function updatedLabel(value: string | null, timeZone: string | undefined): string {
-  const parsed = timestamp(value);
-  if (!parsed) return '';
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone,
-  }).format(parsed);
 }
 
 function metaDistance(value: number | null): string {
@@ -346,7 +332,6 @@ export default function FunDecksPage({
   // A guest whose complete list failed still has the preview it may see.
   const error = loadError && (hasFullAccess || !data.decks.length) ? loadError : '';
   const [arrivesLater] = useState(!initialPreview);
-  const timeZone = useViewerTimeZone();
   const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [query, setQuery] = useState('');
@@ -382,12 +367,6 @@ export default function FunDecksPage({
         <div className="traditional-mode-banner__copy">
           <h1>Фан-колоды</h1>
           <p>Необычные сборки Стандарта и Вольного режима для новых впечатлений от игры.</p>
-          {data.fetchedAt ? (
-            <p className="fun-decks-freshness">
-              <Clock3 aria-hidden="true" />
-              Обновлено <time dateTime={data.fetchedAt}>{updatedLabel(data.fetchedAt, timeZone)}</time>
-            </p>
-          ) : null}
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка подборки">
           <div><dt>Колод</dt><dd>{data.stats.total || '—'}</dd></div>

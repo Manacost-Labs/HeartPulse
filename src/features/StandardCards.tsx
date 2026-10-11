@@ -1,4 +1,4 @@
-import { constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { ConstructedCardsBanner, constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import { useCatalogLocation, useCatalogData, useCatalogIntentWarm, catalogLocationUrl, type CardCatalogPayload } from '../modules/constructedCards/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -10,7 +10,6 @@ import {
   LockKeyhole,
   RefreshCw,
   Search,
-  ShieldCheck,
   SlidersHorizontal,
 } from 'lucide-react';
 import './StandardCards.styles';
@@ -382,10 +381,8 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
 
   return (
     <div className="constructed-cards">
-      <header className="constructed-cards__header">
-        <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span>{hasStatsAccess ? <ShieldCheck size={14} /> : <LockKeyhole size={14} />} Статистика {visibleRankLabel}{!hasStatsAccess && ' · подписка Алмаз'}</span></div></div>
-        <p>{visibleRankLabel} · <strong>{visiblePeriodLabel}</strong>{loading && data ? <span className="constructed-cards__refreshing"> · обновляем</span> : null}</p>
-      </header>
+      <ConstructedCardsBanner rankLabel={visibleRankLabel} periodLabel={visiblePeriodLabel}
+        hasStatsAccess={hasStatsAccess} refreshing={Boolean(loading && data)} />
 
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт" data-loading={loading || undefined}>
         <ConstructedCardCatalogSearch

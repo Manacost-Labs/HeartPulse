@@ -57,19 +57,6 @@ export function classIcon(icon: string): string {
   return `/class_icon/ui/${icon.replace(/-/g, '')}-64.webp`;
 }
 
-export function formatDate(value: string | null): string {
-  if (!value) return 'нет данных';
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value;
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 const PERCENT_FORMATTER = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const THRESHOLD_FORMATTER = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
 
