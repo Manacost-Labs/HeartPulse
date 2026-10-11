@@ -60,6 +60,10 @@ bundler/compression variation across installations. CSS ceilings retain their
 256-byte rounding. Unaffected entries and the checks that keep administrator
 and paid Battlegrounds assets lazy remain unchanged.
 
+The catalog loading contract checks the blocking-loader guard (`loading &&
+!data`), independent of the banner component: filter refreshes keep the current
+catalog visible.
+
 The home browser check waits up to ten seconds for the three declared owner
 stylesheets after their streamed sections appear, then asserts the same owners
 and reports the full state on failure.

@@ -32,7 +32,7 @@ assert.match(catalogWarmSource, /saveData/, 'intent warming must respect Save-Da
 assert.equal((cardsSource.match(/onOptionIntent=\{value => warmCatalog\(\{ (?:rank|period): /g) ?? []).length, 2,
   'only the rank and period menus warm their options');
 assert.doesNotMatch(cardsSource, /useCatalogWarm\b/, 'the catalog must not warm neighbouring slices on every visit');
-assert.match(cardsSource, /loading && data \?/,
+assert.match(cardsSource, /loading && !data \?/,
   'filter refreshes must retain the visible catalog instead of replacing it with a blocking loader');
 assert.match(listPrefetchSource, /LIST_PREFETCH_LIMIT\s*=\s*16/,
   'the client list cache must remain bounded');
