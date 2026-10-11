@@ -25,8 +25,8 @@ slots, annotations and PNG/WebP exports remain available.
   including ultrawide screens. The strategy heading is «Конструктор стратегий БГ».
 - Desktop library width is adjustable with a range, draggable divider or arrow
   keys. Width persists locally; narrow screens keep the tabbed layout. Library
-  search and width controls stay visible while scrolling; filters scroll so they
-  do not cover the catalog on shorter screens.
+  search, width and filter controls stay outside the independently scrolling
+  catalog. No sticky overlay may obscure their touch targets.
 - Strategy boards support 1–10 rows of five slots. Reducing rows preserves every
   card and repacks displaced slots; the minimum row count fits all placed cards.
   Rows and grid visibility participate in draft restoration and undo. The visible
@@ -111,6 +111,7 @@ No archetype product behavior or assertion is changed.
   non-overlapping strategy cards and PNG/WebP signatures for both editors.
   Additional assertions cover divider dragging and keyboard resizing, safe row
   reduction, restoring row count and toggling the aligned grid.
+  A target-size audit verifies that catalog scrolling does not obscure filters.
 - The existing guest/subscriber browser contract still checks access boundaries,
   anonymous SEO and image exports. Subscriber interactions now use the visible
   mobile panel and native tier selector.

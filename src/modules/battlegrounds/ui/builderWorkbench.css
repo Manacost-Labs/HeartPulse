@@ -386,16 +386,6 @@
   width: auto;
 }
 
-@media (min-width: 901px) {
-  .arena-app-battlegrounds .strategy-builder-page .builder-sidebar {
-    position: sticky;
-    top: 0;
-    max-height: calc(100dvh - 96px);
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-  }
-}
-
 @media (max-width: 900px) {
   .arena-app-battlegrounds .strategy-builder-page :is(.builder-sidebar-size, .builder-sidebar-resize) {
     display: none;
@@ -411,9 +401,6 @@
 
 @media (min-width: 901px) {
   .arena-app-battlegrounds .strategy-builder-page .builder-library-head {
-    position: sticky;
-    top: 0;
-    z-index: 6;
     background: var(--panel);
     padding-bottom: 12px;
   }

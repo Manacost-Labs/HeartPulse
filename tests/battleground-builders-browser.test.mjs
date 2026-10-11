@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { qaCardImage } from '../scripts/qa/fixtures.mjs';
@@ -81,6 +82,23 @@ async function resizeLibrary(page) {
 
 async function noOverflow(page) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+}
+
+async function sourceControlsRemainClickable(page) {
+  await page.evaluate(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    const sidebar = document.querySelector('.builder-sidebar');
+    const header = document.querySelector('.builder-library-head').getBoundingClientRect();
+    const chip = document.querySelector('#builder-source-filters button:nth-child(3)').getBoundingClientRect();
+    sidebar.scrollTop += chip.top - header.bottom + chip.height - 17;
+  });
+  assert.equal(await page.$eval('.builder-sidebar', sidebar => sidebar.scrollTop), 0,
+    'filters must stay outside the scrollable catalog');
+  await page.addScriptTag({ path: createRequire(import.meta.url).resolve('axe-core/axe.min.js') });
+  const violations = await page.evaluate(async () => (await window.axe.run(document, {
+    runOnly: { type: 'rule', values: ['target-size'] }, resultTypes: ['violations'],
+  })).violations.map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target) })));
+  assert.deepEqual(violations, [], 'scrolling the library must not obscure filter touch targets');
 }
 
 async function mobileTour(page) {
@@ -240,6 +258,7 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
     await cardsDoNotOverlap(page);
     await resizeLibrary(page);
     const downloads = await readdir(directory);
+    await sourceControlsRemainClickable(page);
     breakImages();
     await page.reload();
     await page.waitForSelector('.placed-card');
