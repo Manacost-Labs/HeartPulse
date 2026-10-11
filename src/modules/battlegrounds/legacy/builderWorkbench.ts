@@ -1,4 +1,6 @@
 import { createBuilderHistory, createBuilderPage, restoreTierPlacements, restoreStrategyDraft, pickBuilderSlot } from '../model/builderWorkbench';
+import { normalizeWorkspaceRows, resizeStrategySlots, strategySlotPosition, nearestStrategySlot } from '../model/strategyWorkspace';
+import { mountBuilderSidebarResize } from './sidebarResize';
 
 const sessions = new WeakMap<HTMLElement, ReturnType<typeof createSession>>();
 
@@ -62,7 +64,8 @@ function mountWorkspaceSwitch(root: HTMLElement) {
     button.addEventListener('click', () => {
       root.dataset.builderView = view;
       buttons.forEach((control, name) => control.setAttribute('aria-pressed', String(name === view)));
-      panel.scrollIntoView({ block: 'start', behavior: 'instant' });
+      const target = view === 'board' ? panel.querySelector('.strategy-board, #tier-builder-rows') || panel : panel;
+      target.scrollIntoView({ block: 'start', behavior: 'instant' });
     });
     buttons.set(view, button);
     group.append(button);
@@ -82,7 +85,7 @@ function createSession(root: HTMLElement, storageKey: string) {
   const controller = new AbortController();
   const workspace = mountWorkspaceSwitch(root);
   const history = createBuilderHistory();
-  const disposers: (() => void)[] = [];
+  const disposers: (() => void)[] = [mountBuilderSidebarResize(root, controller.signal)];
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pending: unknown;
   let undoButton: HTMLButtonElement | undefined;
@@ -180,6 +183,7 @@ function createSession(root: HTMLElement, storageKey: string) {
 export const battlegroundBuilderWorkbenchV1 = Object.freeze({
   install(target: object) {
     Reflect.set(target, '__hsArenaBgBuilderWorkbenchV1', {
+      workspaceVersion: 2,
       createSession(root: HTMLElement, key: string) {
         sessions.get(root)?.dispose();
         const session = createSession(root, key);
@@ -189,6 +193,10 @@ export const battlegroundBuilderWorkbenchV1 = Object.freeze({
       restoreTierPlacements,
       restoreStrategyDraft,
       pickBuilderSlot,
+      normalizeWorkspaceRows,
+      resizeStrategySlots,
+      strategySlotPosition,
+      nearestStrategySlot,
     });
   },
   dispose(root: HTMLElement | null) {

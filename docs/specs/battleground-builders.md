@@ -23,6 +23,15 @@ slots, annotations and PNG/WebP exports remain available.
   Export feedback is separate from draft-save feedback.
 - Both builders fill the available desktop workspace beside the site sidebar,
   including ultrawide screens. The strategy heading is «Конструктор стратегий БГ».
+- Desktop library width is adjustable with a range, draggable divider or arrow
+  keys. Width persists locally; narrow screens keep the tabbed layout. Library
+  controls stay visible while scrolling the catalog.
+- Strategy boards support 1–10 rows of five slots. Reducing rows preserves every
+  card and repacks displaced slots; the minimum row count fits all placed cards.
+  Rows and grid visibility participate in draft restoration and undo. The visible
+  grid matches slot centers; exports retain the selected rows and grid.
+- Workspace and export controls appear above the board. Mobile Board navigation
+  brings the actual canvas into view below the sticky controls.
 - Desktop and mobile views have no horizontal overflow, unreadable controls or
   editor errors. Unmounting stops the editor's global listeners and timers.
 
@@ -34,6 +43,11 @@ New editor behavior belongs to `src/modules/battlegrounds`, exposed through its
 static markup. Editor styles remain scoped to `.strategy-builder-page`; the
 public content width is owned by `src/battlegrounds-shell.css`. No dependency,
 API, permission, deployment infrastructure or subscription changes are required.
+
+The separate [Manacost MCP](https://github.com/Manacost-Labs/mcp) owns server-side
+PNG tools `render_battlegrounds_strategy` and `render_battlegrounds_tier_list`.
+They resolve original cards from Koloda by ID, return native MCP image content
+and do not write browser drafts or bypass this site's subscriber access rules.
 
 Classic asset URLs remain stable. If a previously opened route loads a new
 script without its versioned bridge, the script reloads the page before opening
@@ -63,7 +77,7 @@ Commands: `npx tsx --test tests/battleground-builder-workbench.test.ts`,
 
 Drafts are local to this browser and versioned separately for each editor.
 They are not account storage or publication. Only placement identities, slots,
-highlights and annotations are saved; no
+row count, grid visibility, highlights and annotations are saved; no
 credentials, paid statistics or library payloads are copied. Storage failures
 keep the in-memory editor usable and must be communicated by the editor.
 
@@ -85,7 +99,8 @@ viewport checks. Its locator now waits for stable bounds before the same native
 click, as specified by [Puppeteer's interaction contract](https://pptr.dev/guides/page-interactions).
 No archetype product behavior or assertion is changed.
 
-- Five model tests cover bounded paging, history, valid tier identities, occupied
+- Seven model tests cover row resizing, grid centers, bounded paging, history,
+  valid tier identities, occupied
   slots and validated strategy drafts. Existing hero and accessory contracts pass.
 - The built Next.js browser test uses the subscriber QA fixture at 1440×900 and
   390×844. It checks 60-card paging, row reuse while searching, native tier moves,
@@ -93,6 +108,8 @@ No archetype product behavior or assertion is changed.
   undo after clearing, double taps, keyboard movement,
   readable catalog names and bringing the mobile board into view,
   non-overlapping strategy cards and PNG/WebP signatures for both editors.
+  Additional assertions cover divider dragging and keyboard resizing, safe row
+  reduction, restoring row count and toggling the aligned grid.
 - The existing guest/subscriber browser contract still checks access boundaries,
   anonymous SEO and image exports. Subscriber interactions now use the visible
   mobile panel and native tier selector.

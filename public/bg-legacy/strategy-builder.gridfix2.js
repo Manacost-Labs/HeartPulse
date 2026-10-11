@@ -41,7 +41,7 @@
 
 
   const workbench = window.__hsArenaBgBuilderWorkbenchV1;
-  if (!workbench) {
+  if (!workbench || workbench.workspaceVersion !== 2) {
     // An older route bundle can receive this newer, unversioned classic asset.
     window.location.reload();
     return;
@@ -50,8 +50,6 @@
   const libraryCatalog = session.catalog(libraryEl, (card) => `${card.source}:${card.id}`, createLibraryCard);
 
   const BOARD_COLUMNS = 5;
-  const BOARD_ROWS = 5;
-  const BOARD_SLOT_COUNT = BOARD_COLUMNS * BOARD_ROWS;
   const EXPORT_WIDTH = 2200;
   const EXPORT_SIDE_PADDING = 60;
   const EXPORT_TOP_PADDING = 32;
@@ -66,11 +64,6 @@
   const HIDE_ANNOTATIONS_STORAGE_KEY = "strategy-builder-hide-annotations-v1";
   const WALLPAPER_BLUR_PX = 14;
   const WALLPAPER_BRIGHTNESS = 0.45;
-  const SLOT_CARD_WIDTH = 0.13;
-  const BOARD_INSET_X = 0.048;
-  const BOARD_INSET_Y = 0.07;
-  const BOARD_COLUMN_GAP = 0.025;
-  const BOARD_ROW_GAP = 0.025;
 
   const raceNames = {
     NONE: "Нейтральные",
@@ -100,7 +93,8 @@
     activeId: null,
     draggingLibrary: false,
     draggingPlaced: false,
-    showGrid: false,
+    rows: 5,
+    showGrid: true,
     backgroundMode: loadBackgroundMode(),
     quickSlots: loadQuickSlots(),
     hideQuickSlots: loadBooleanSetting(HIDE_QUICK_SLOTS_STORAGE_KEY, false),
@@ -254,7 +248,7 @@
   }
 
   function syncCounter() {
-    counterEl.textContent = `${state.placed.length} / ${BOARD_SLOT_COUNT} карт на полотне`;
+    counterEl.textContent = `${state.placed.length} / ${(state.rows * BOARD_COLUMNS)} карт на полотне`;
     exportPngButton.disabled = state.placed.length === 0;
     exportWebpButton.disabled = state.placed.length === 0;
     boardEl.classList.toggle("is-empty", state.placed.length === 0);
@@ -262,6 +256,7 @@
   }
 
   function applyBoardVisualSettings() {
+    boardEl.style.setProperty("--builder-board-rows", String(state.rows));
     boardEl.classList.toggle("show-grid", state.showGrid);
     const hasWallpaper = state.backgroundMode !== "transparent";
     boardEl.classList.toggle("has-wallpaper", hasWallpaper);
@@ -433,24 +428,12 @@
   }
 
   function getSlotPosition(slot) {
-    const column = slot % BOARD_COLUMNS;
-    const row = Math.floor(slot / BOARD_COLUMNS);
-    const usableWidth = 1 - BOARD_INSET_X * 2 - BOARD_COLUMN_GAP * (BOARD_COLUMNS - 1);
-    const usableHeight = 1 - BOARD_INSET_Y * 2 - BOARD_ROW_GAP * (BOARD_ROWS - 1);
-
-    return {
-      x: BOARD_INSET_X + (usableWidth / BOARD_COLUMNS) * (column + 0.5) + BOARD_COLUMN_GAP * column,
-      y: BOARD_INSET_Y + (usableHeight / BOARD_ROWS) * (row + 0.5) + BOARD_ROW_GAP * row
-    };
+    return workbench.strategySlotPosition(slot, state.rows);
   }
 
   function getNearestSlot(clientX, clientY) {
     const rect = boardEl.getBoundingClientRect();
-    const relativeX = Math.min(0.999, Math.max(0, (clientX - rect.left) / rect.width));
-    const relativeY = Math.min(0.999, Math.max(0, (clientY - rect.top) / rect.height));
-    const column = Math.min(BOARD_COLUMNS - 1, Math.max(0, Math.floor(relativeX * BOARD_COLUMNS)));
-    const row = Math.min(BOARD_ROWS - 1, Math.max(0, Math.floor(relativeY * BOARD_ROWS)));
-    return row * BOARD_COLUMNS + column;
+    return workbench.nearestStrategySlot((clientX - rect.left) / rect.width, (clientY - rect.top) / rect.height, state.rows);
   }
 
   function getCardSearchText(card) {
@@ -708,7 +691,9 @@
   }
 
   function restoreDraft(draft) {
-    const restored = workbench.restoreStrategyDraft(state.cards, draft, BOARD_SLOT_COUNT);
+    state.rows = workbench.normalizeWorkspaceRows(draft?.rows);
+    state.showGrid = draft?.showGrid !== false;
+    const restored = workbench.restoreStrategyDraft(state.cards, draft, (state.rows * BOARD_COLUMNS));
     state.placed = restored.placed.map((entry) => {
       const card = findCard(entry.id, entry.source);
       return { ...entry, name: card.name, artUrl: getCardArtUrl(card, "512x") };
@@ -720,10 +705,10 @@
   }
 
   function addCardToBoard(card, preferredSlot = null) {
-    const slot = workbench.pickBuilderSlot(state.placed.map((entry) => entry.slot), preferredSlot, BOARD_SLOT_COUNT);
+    const slot = workbench.pickBuilderSlot(state.placed.map((entry) => entry.slot), preferredSlot, (state.rows * BOARD_COLUMNS));
 
     if (slot === null) {
-      setStatus("Все 25 слотов заняты. Удали карту или переставь существующую.");
+      setStatus(`Все ${state.rows * BOARD_COLUMNS} слотов заняты. Добавьте ряд или удалите карту.`);
       return;
     }
 
@@ -1267,6 +1252,8 @@
   }
 
   function renderBoard() {
+    applyBoardVisualSettings();
+    if (rowsSelect) rowsSelect.value = String(state.rows);
     boardEl.replaceChildren();
 
     const grid = document.createElement("div");
@@ -1296,7 +1283,7 @@
         const directions = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -BOARD_COLUMNS, ArrowDown: BOARD_COLUMNS };
         if (event.key in directions) {
           event.preventDefault();
-          const target = Math.max(0, Math.min(BOARD_SLOT_COUNT - 1, card.slot + directions[event.key]));
+          const target = Math.max(0, Math.min((state.rows * BOARD_COLUMNS) - 1, card.slot + directions[event.key]));
           movePlacedCardToSlot(card.uid, target);
           boardEl.querySelector(`[data-uid="${card.uid}"]`)?.focus();
         } else if (event.key === "Enter" || event.key === " ") {
@@ -1413,6 +1400,7 @@
     renderAnnotationOverlay();
     syncCounter();
     session.commit({
+      rows: state.rows, showGrid: state.showGrid,
       placed: state.placed.map(({ id, source, uid, slot, highlighted }) => ({ id, source, uid, slot, highlighted })),
       annotations: state.annotations,
     });
@@ -1701,7 +1689,7 @@
 
     if (entries.length !== state.placed.length) throw new Error("Не удалось загрузить все изображения для экспорта.");
 
-    const occupiedRows = [...new Set(entries.map(({ card }) => Math.floor(card.slot / BOARD_COLUMNS)))].sort((a, b) => a - b);
+    const occupiedRows = Array.from({ length: state.rows }, (_, row) => row);
     const rowMap = new Map(occupiedRows.map((row, index) => [row, index]));
     const exportRows = Math.max(1, occupiedRows.length);
     const cardWidth = (EXPORT_WIDTH - EXPORT_SIDE_PADDING * 2 - EXPORT_COLUMN_GAP * (BOARD_COLUMNS - 1)) / BOARD_COLUMNS;
@@ -1765,6 +1753,21 @@
       } catch (error) {
         console.warn("Не удалось отрисовать игровой фон:", error);
       }
+    }
+
+    if (state.showGrid) {
+      ctx.save();
+      ctx.strokeStyle = wallpaperUrl ? "rgba(255,244,213,0.8)" : "rgba(104,74,34,0.65)";
+      ctx.lineWidth = 2;
+      for (let column = 1; column < BOARD_COLUMNS; column++) {
+        const x = EXPORT_SIDE_PADDING + column * (cardWidth + EXPORT_COLUMN_GAP) - EXPORT_COLUMN_GAP / 2;
+        ctx.beginPath(); ctx.moveTo(x, EXPORT_TOP_PADDING); ctx.lineTo(x, cursorY); ctx.stroke();
+      }
+      for (let row = 1; row < exportRows; row++) {
+        const y = rowOffsets[row] - EXPORT_ROW_GAP / 2;
+        ctx.beginPath(); ctx.moveTo(EXPORT_SIDE_PADDING, y); ctx.lineTo(EXPORT_WIDTH - EXPORT_SIDE_PADDING, y); ctx.stroke();
+      }
+      ctx.restore();
     }
 
     const cardRects = new Map();
@@ -2057,7 +2060,7 @@ function normalizeHeroCard(hero, tier) {
   if (toggleGridButton) {
     toggleGridButton.addEventListener("click", () => {
       state.showGrid = !state.showGrid;
-      applyBoardVisualSettings();
+      renderBoard();
     });
   }
 
@@ -2085,7 +2088,7 @@ function normalizeHeroCard(hero, tier) {
     } catch (error) {
       // ignore
     }
-    return 3;
+    return 2;
   }
 
   let libraryColumns = loadLibraryColumns();
@@ -2278,6 +2281,7 @@ function normalizeHeroCard(hero, tier) {
     state.annotations = [];
     state.pendingAnnotation = null;
 
+    state.rows = Math.max(state.rows, Math.min(10, Math.ceil(comp.cards.length / BOARD_COLUMNS)));
     const missing = [];
     const added = new Set();
     let placedCount = 0;
@@ -2287,7 +2291,7 @@ function normalizeHeroCard(hero, tier) {
     ];
 
     for (const compCard of ordered) {
-      if (placedCount >= BOARD_SLOT_COUNT) {
+      if (placedCount >= (state.rows * BOARD_COLUMNS)) {
         break;
       }
       const libraryCard = findLibraryCardForCompCard(compCard);
@@ -2327,7 +2331,32 @@ function normalizeHeroCard(hero, tier) {
   bindPanelToggle(hideAnnotationsInput, "hideAnnotations", HIDE_ANNOTATIONS_STORAGE_KEY);
   applyPanelVisibility();
 
-  session.mountUndo(boardEl.closest(".builder-canvas-panel").querySelector(".board-toolbar"), restoreDraft);
+  const toolbar = boardEl.closest(".builder-canvas-panel").querySelector(".board-toolbar");
+  const rowsLabel = document.createElement("label");
+  rowsLabel.className = "builder-rows-control";
+  rowsLabel.textContent = "Рядов на поле";
+  const rowsSelect = document.createElement("select");
+  rowsSelect.className = "select-input builder-rows-select";
+  for (let rows = 1; rows <= 10; rows++) {
+    const option = document.createElement("option");
+    option.value = String(rows); option.textContent = String(rows);
+    rowsSelect.append(option);
+  }
+  rowsLabel.append(rowsSelect);
+  const workspaceControls = document.createElement("div");
+  workspaceControls.className = "builder-workspace-controls";
+  workspaceControls.append(rowsLabel);
+  if (toggleGridButton) workspaceControls.append(toggleGridButton);
+  boardEl.closest(".builder-canvas-panel").querySelector(".builder-canvas-head").append(workspaceControls);
+  toolbar.parentElement.insertBefore(toolbar, toolbar.parentElement.querySelector(".board-with-annotations"));
+  rowsSelect.addEventListener("change", () => {
+    const requested = Number(rowsSelect.value);
+    const result = workbench.resizeStrategySlots(state.placed, requested);
+    state.rows = result.rows; state.placed = result.placed;
+    renderBoard();
+    if (state.rows !== requested) setStatus(`Для ${state.placed.length} карт нужно минимум ${state.rows} ряда. Карты сохранены.`);
+  });
+  session.mountUndo(toolbar, restoreDraft);
   session.onDispose(() => {
     cancelActiveDrag?.();
     if (resizeRaf !== null) cancelAnimationFrame(resizeRaf);

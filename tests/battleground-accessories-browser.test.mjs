@@ -305,7 +305,7 @@ for (const [label, rosterBridge] of [
 test('Battlegrounds builder cache version includes the current pool and live hero synchronization', async () => {
   const battlegrounds = await source('src/features/Battlegrounds.tsx');
 
-  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20261011-pool-3661-workbench-v1'/);
+  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20261011-pool-3661-workspace-v2'/);
   assert.equal(
     [...battlegrounds.matchAll(/battlegroundHeroRosterBridgeV1\.install\(window, \{ publicResourceUrl \}\)/g)].length,
     2,

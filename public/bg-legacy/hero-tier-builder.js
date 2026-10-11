@@ -65,7 +65,7 @@
     } catch (error) {
       // localStorage may be unavailable in privacy modes.
     }
-    return 3;
+    return 2;
   }
 
   const state = {
@@ -103,7 +103,7 @@
   const columnsValueEl = elementById("tier-builder-library-columns-value");
 
   const workbench = window.__hsArenaBgBuilderWorkbenchV1;
-  if (!workbench) {
+  if (!workbench || workbench.workspaceVersion !== 2) {
     // An older route bundle can receive this newer, unversioned classic asset.
     window.location.reload();
     return;

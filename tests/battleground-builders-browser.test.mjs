@@ -62,6 +62,23 @@ async function loadFromOldRouteBundle(page, asset) {
   ]);
 }
 
+async function resizeLibrary(page) {
+  const previous = await page.$eval('.builder-sidebar', node => node.getBoundingClientRect().width);
+  const rect = await page.$eval('.builder-sidebar-resize', node => {
+    const box = node.getBoundingClientRect(); return { x: box.x, y: box.y };
+  });
+  await page.mouse.move(rect.x + 8, rect.y + 24);
+  await page.mouse.down();
+  await page.mouse.move(rect.x + 88, rect.y + 24, { steps: 5 });
+  await page.mouse.up();
+  const width = await page.$eval('.builder-sidebar', node => node.getBoundingClientRect().width);
+  assert.ok(width > previous + 50, 'dragging the divider widens the library');
+  await page.focus('.builder-sidebar-resize');
+  await page.keyboard.press('ArrowLeft');
+  assert.ok(await page.$eval('.builder-sidebar', node => node.getBoundingClientRect().width) < width);
+  await noOverflow(page);
+}
+
 async function noOverflow(page) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 }
@@ -129,6 +146,7 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
 
     await page.goto(`${runtime.origin}/battlegrounds/tier-builder/`);
     await page.waitForSelector('.hero-tier-pool .tier-builder-destination');
+    await resizeLibrary(page);
     assert.equal(await page.$$eval('.hero-tier-pool .tier-builder-card', cards => cards.length), 60);
     await page.select('.hero-tier-pool .tier-builder-card:first-child select', 'B');
     await page.waitForSelector('.tier-builder-dropzone[data-tier="B"] .tier-builder-card');
@@ -143,7 +161,7 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
     assert.equal(await page.$$eval('.tier-builder-rows .tier-builder-card', cards => cards.length), 2);
     await page.click('#tier-builder-unassigned');
     assert.equal(await page.$$eval('.tier-builder-rows .tier-builder-card', cards => cards.length), 0);
-    await page.click('.builder-undo');
+    await page.locator('.builder-undo').click();
     assert.equal(await page.$$eval('.tier-builder-rows .tier-builder-card', cards => cards.length), 2);
     await download(page, directory, '#tier-builder-download-all-png', '.png');
     await download(page, directory, '#tier-builder-download-all-webp', '.webp');
@@ -175,6 +193,9 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
       const rectangle = board.getBoundingClientRect();
       return rectangle.top >= 0 && rectangle.top < innerHeight * 0.6;
     }), true, 'switching to the board must bring placed cards into view');
+    await page.select('.builder-rows-select', '1');
+    assert.equal(await page.$eval('#builder-counter', node => node.textContent), '1 / 5 карт на полотне');
+    await page.select('.builder-rows-select', '5');
     await page.click('.placed-card', { clickCount: 2 });
     assert.equal(await page.$$eval('.placed-card', cards => cards.length), 1, 'double tap must not delete a card');
     await page.click('.builder-workspace-tab[data-view=library]');
@@ -187,10 +208,27 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
     await page.focus('.placed-card');
     await page.keyboard.press('ArrowRight');
     assert.equal(await page.$eval('.placed-card', card => document.activeElement === card), true);
+    await page.select('.builder-rows-select', '1');
+    assert.equal(await page.$eval('.builder-rows-select', node => node.value), '2');
+    assert.equal(await page.$$eval('.placed-card', cards => cards.length), 6);
+    await cardsDoNotOverlap(page);
+    await page.select('.builder-rows-select', '3');
+    await saved(page); await page.reload();
+    await page.waitForSelector('.placed-card');
+    await page.click('.builder-workspace-tab[data-view=board]');
+    assert.equal(await page.$eval('.builder-rows-select', node => node.value), '3');
+    assert.equal(await page.$$eval('.placed-card', cards => cards.length), 6);
+    assert.equal(await page.$eval('.strategy-board', node => node.classList.contains('show-grid')), true);
+    const grid = await page.$eval('.strategy-board-grid', node => ({ opacity: getComputedStyle(node).opacity, size: getComputedStyle(node).backgroundSize }));
+    assert.equal(grid.opacity, '1');
+    assert.match(grid.size, /20%.*33\.333/);
+    await page.click('#builder-toggle-grid');
+    assert.equal(await page.$eval('.strategy-board', node => node.classList.contains('show-grid')), false);
+    await page.select('.builder-rows-select', '5');
     await cardsDoNotOverlap(page);
     await page.click('#builder-clear');
     assert.equal(await page.$$eval('.placed-card', cards => cards.length), 0);
-    await page.click('.builder-undo');
+    await page.locator('.builder-undo').click();
     assert.equal(await page.$$eval('.placed-card', cards => cards.length), 6);
     await download(page, directory, '#builder-export-png', '.png');
     await download(page, directory, '#builder-export-webp', '.webp');
@@ -200,6 +238,7 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
     await page.waitForSelector('.placed-card');
     await noOverflow(page);
     await cardsDoNotOverlap(page);
+    await resizeLibrary(page);
     const downloads = await readdir(directory);
     breakImages();
     await page.reload();

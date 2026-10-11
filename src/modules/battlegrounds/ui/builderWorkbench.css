@@ -21,7 +21,8 @@
 .arena-app-battlegrounds .strategy-builder-page :is(.bg-strategy-builder-legacy, .bg-tier-builder-legacy) {
   width: 100%;
   max-width: none;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  grid-template-columns: var(--builder-sidebar-width, 320px) minmax(0, 1fr);
+  position: relative;
   gap: 18px;
   align-items: start;
 }
@@ -148,7 +149,7 @@
 .arena-app-battlegrounds .strategy-builder-page .strategy-board {
   min-height: 0;
   width: 100%;
-  aspect-ratio: 1 / 1.18;
+  aspect-ratio: 5 / calc(var(--builder-board-rows, 5) * 1.18);
   border: 1px solid var(--panel-border);
   border-radius: 4px;
   background: #ead6a7;
@@ -267,7 +268,7 @@
 }
 
 @media (max-width: 900px) {
-  .arena-app-battlegrounds .strategy-builder-page :is(.builder-sidebar, .builder-canvas-panel, .hero-tier-board) {
+  .arena-app-battlegrounds .strategy-builder-page :is(.builder-sidebar, .builder-canvas-panel, .hero-tier-board, .strategy-board, #tier-builder-rows) {
     scroll-margin-top: 190px;
   }
 
@@ -304,5 +305,115 @@
   body:not(:has(.page-tour)) .arena-app-battlegrounds .strategy-builder-page[data-builder-view='library'] :is(.builder-canvas-panel, .hero-tier-board),
   body:not(:has(.page-tour)) .arena-app-battlegrounds .strategy-builder-page[data-builder-view='board'] .builder-sidebar {
     display: none;
+  }
+}
+
+.arena-app-battlegrounds .strategy-builder-page .strategy-board-grid {
+  inset: 0;
+  border: 0;
+  background-image:
+    linear-gradient(to right, rgb(104 74 34 / 65%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(104 74 34 / 65%) 1px, transparent 1px);
+  background-size: 20% calc(100% / var(--builder-board-rows, 5));
+  mix-blend-mode: normal;
+}
+
+.arena-app-battlegrounds .strategy-builder-page .strategy-board.has-wallpaper .strategy-board-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 244 213 / 80%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 244 213 / 80%) 1px, transparent 1px);
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-sidebar-size {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-sidebar-size input {
+  grid-column: 1;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-sidebar-size output {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-sidebar-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 17px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 12;
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-sidebar-resize::before {
+  content: '';
+  position: absolute;
+  inset: 16px 7px;
+  border-radius: 2px;
+  background: var(--panel-border);
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-sidebar-resize:is(:hover, :focus-visible, .is-resizing)::before {
+  background: var(--accent);
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-sidebar-resize:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-rows-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-rows-select {
+  width: auto;
+}
+
+@media (min-width: 901px) {
+  .arena-app-battlegrounds .strategy-builder-page .builder-sidebar {
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (max-width: 900px) {
+  .arena-app-battlegrounds .strategy-builder-page :is(.builder-sidebar-size, .builder-sidebar-resize) {
+    display: none;
+  }
+}
+
+.arena-app-battlegrounds .strategy-builder-page .builder-workspace-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+@media (min-width: 901px) {
+  .arena-app-battlegrounds .strategy-builder-page .builder-controls {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: var(--panel);
   }
 }
