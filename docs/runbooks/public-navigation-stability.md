@@ -26,6 +26,16 @@ The canonical-card browser contract distinguishes RSC intent from the existing
 120 ms card-render warmup: hovering may fetch that card's full image once,
 but must not mount the destination or issue client requests for page data.
 
+Verification uses dependencies installed from `package-lock.json` in the task
+worktree. A shared `node_modules` can lag behind the locked Next version and
+underreport bundle size. The published 16.3.8 guest tier-list is 164,772 gzip
+bytes; navigation feedback and intent bring the combined release to 165,512
+bytes in CI. Its reviewed ceiling follows the existing 2% margin/1 KiB rule
+documented in `docs/specs/public-page-headers.md`.
+
+Archetype QA scrolls the main build into view before awaiting its lazy render.
+On phones the preceding statistics can put it outside the observer margin.
+
 The owning spec is `docs/specs/public-client-navigation.md`. Review the
 production-build navigation tests and existing bundle budgets before pushing;
 use the normal immutable main/CI deployment and observer gates. Rollback is a

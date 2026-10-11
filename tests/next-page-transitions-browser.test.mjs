@@ -78,6 +78,8 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     await rememberFrame(page);
     await assertGroupSwitchHasNoDelayedCollapse(page, '.arena-sidebar');
+    assert.equal(await page.$eval('#root', root => root.firstElementChild?.matches('.arena-skip-link')), true,
+      'the persistent skip link remains the first root element');
     await page.evaluate(() => { document.querySelector('.arena-sidebar').scrollTop = 180; });
     await page.hover('.arena-sidebar a[href="/guides-archive/"]');
     const scroll = await page.$eval('.arena-sidebar', node => node.scrollTop);
