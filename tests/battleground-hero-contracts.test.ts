@@ -113,8 +113,8 @@ for (const statement of publicEntry.statements) {
 }
 assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData'].sort(),
   'the Battlegrounds public entry exposes the hero catalog and tier-data contracts');
-assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES],
-  'the Battlegrounds public entry exposes the image policy, legacy bridge and tier resource');
+assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, 'LibraryControls'].sort(),
+  'the Battlegrounds public entry exposes the image policy, legacy bridge, tier resource and library controls');
 
 const heroCatalogModel = parsedSource(
   '../src/modules/battlegrounds/model/heroCatalog.ts',
@@ -181,6 +181,7 @@ function assertConsumerImports(
 }
 
 assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'], RUNTIME_CONTRACT_NAMES);
+assertConsumerImports('../src/features/BgLibrary.tsx', [], ['LibraryControls', 'battlegroundMinionIconBySlug']);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
   CONTRACT_NAMES.filter(name => name !== 'BattlegroundHeroRelatedCard'),
