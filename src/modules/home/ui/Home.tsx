@@ -11,7 +11,7 @@ import HomeArenaDirectory from './HomeArenaDirectory';
 import HomeBattlegrounds from './HomeBattlegrounds';
 
 // Latest articles stay lazy: a legacy host renders them without server data.
-// The directories and the FAQ are static links and text, so they render with
+// The directories are static links and text, so they render with
 // the page; behind a placeholder they shifted it and broke its index links.
 const HomeLatestArticles = React.lazy(() => import('./HomeLatestArticles'));
 

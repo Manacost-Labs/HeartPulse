@@ -20,6 +20,8 @@ and Battlegrounds views consume domain modules under `src/modules/`.
 Use the existing conditional-rendering pattern, for example
 `{state.status === 'error' && <p role="alert">…</p>}`. Add no dependencies,
 API calls or new shared abstractions. Keep `app -> modules -> shared` ownership.
+The architecture catalog lists only the remaining Battlegrounds and constructed
+meta heading entrypoints; the retired Arena introduction is no longer exported.
 
 1. Remove redundant Arena and hero blocks, then check TypeScript.
 2. Remove equivalent introductions/FAQ elsewhere; update SEO and tour references.
@@ -36,6 +38,10 @@ API calls or new shared abstractions. Keep `app -> modules -> shared` ownership.
 - `npm run build:static` and `npm run build:next`
 - `node --test tests/next-canonical-links-browser.test.mjs`
 - `npm run security:semgrep`
+- `npm run lint:architecture` checks the catalog after retiring the Arena intro.
+- `node --test tests/next-public-card-pilot.test.mjs` checks the compact SSR page.
+- `npm run qa:ci` covers the remaining home sections and local chunk recovery,
+  without waiting for the retired FAQ block.
 
 Documentation impact: `CHANGELOG.md`, `docs/specs/seo-query-clusters.md`,
 `docs/specs/public-home.md`,

@@ -170,7 +170,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal(classes.status, 200, runtime.output());
     const classesHtml = await classes.text();
     assert.match(classesHtml, /<h1>Классы<\/h1>/);
-    assert.match(classesHtml, /Винрейт классов на Арене Hearthstone/);
+    assert.doesNotMatch(classesHtml, /Винрейт классов на Арене Hearthstone/);
     assert.match(classesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/classes\/"/);
     assert.equal((classesHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(classesHtml, /arena-class-rank|card-reader@example|manacost_auth_token/);

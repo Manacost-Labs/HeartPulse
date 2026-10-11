@@ -4335,8 +4335,6 @@ for (const [device, viewport] of [
     await page.waitForSelector('#root .home-latest-articles', { visible: true });
     await page.waitForSelector('#root .home-bg-directory', { visible: true });
     await page.waitForSelector('#root .home-arena-directory', { visible: true });
-    await page.waitForSelector('#root .home-faq-zone', { visible: true });
-    await page.waitForSelector('#faq-heading');
     await page.waitForSelector('.arena-footer__link');
     const homeLandmarks = await page.evaluate(() => ({
       stage: Boolean(document.querySelector('.home-stage')),
@@ -4345,10 +4343,8 @@ for (const [device, viewport] of [
       battlegrounds: Boolean(document.querySelector('.home-bg-directory')),
       arena: Boolean(document.querySelector('.home-arena-directory')),
       community: Boolean(document.querySelector('.home-community')),
-      faq: Boolean(document.querySelector('#faq-heading')),
-      faqIndexHref: document.querySelector('.home-page-index a[href="#faq-heading"]')?.getAttribute('href') || '',
     }));
-    if (Object.entries(homeLandmarks).some(([, value]) => value === false) || homeLandmarks.faqIndexHref !== '#faq-heading') {
+    if (Object.values(homeLandmarks).some(value => value === false)) {
       failures.push(`home landmarks: one or more primary elements disappeared (${JSON.stringify(homeLandmarks)})`);
     }
     const cssOwners = await loadedCssOwners(page);
@@ -4358,7 +4354,6 @@ for (const [device, viewport] of [
       arenaCss: cssOwners.homeArena,
       battlegroundsCss: cssOwners.homeBattlegrounds,
       articlesCss: cssOwners.homeArticles,
-      faqCss: cssOwners.faq,
       supportCss: cssOwners.supportPrompt,
       footerCss: cssOwners.siteFooter,
       ...await page.evaluate(() => ({
@@ -4369,7 +4364,9 @@ for (const [device, viewport] of [
     if (homeCssState.routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
     if (homeCssState.deferredRoutesCssLoaded) failures.push('home lazy sections: deferred route-owner CSS leaked into the initial home route');
     if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push('home lazy sections: one or more owner CSS chunks did not load');
-    if (!homeCssState.faqCss) failures.push('home lazy sections: FAQ owner CSS did not load');
+    if (await page.$('.home-faq-zone, #faq-heading, .home-page-index a[href="#faq-heading"]')) {
+      failures.push('home lazy sections: retired FAQ block or index link is still rendered');
+    }
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
     const expectedFooterLinks = [
@@ -4388,7 +4385,7 @@ for (const [device, viewport] of [
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);
     }
     const initiallyVisibleHomeSections = await page.$$eval(
-      '.home-latest-articles, .home-bg-directory, .home-arena-directory, .home-community, .home-faq-zone',
+      '.home-latest-articles, .home-bg-directory, .home-arena-directory, .home-community',
       elements => elements.map(element => ({
         classes: element.className,
         opacity: Number(getComputedStyle(element).opacity),
@@ -5054,22 +5051,6 @@ for (const [device, viewport] of [
       failures.push(`home stage: mobile responsive layout changed (${JSON.stringify(mobileStageLayout)})`);
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
-    const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
-    if (!faqTrigger) {
-      failures.push('home lazy sections: FAQ trigger is missing');
-    } else {
-      const initialFaqState = await faqTrigger.evaluate(element => element.getAttribute('aria-expanded'));
-      if (initialFaqState !== 'false') failures.push(`home lazy sections: FAQ must start collapsed, got ${initialFaqState}`);
-      await faqTrigger.click();
-      const expandedFaqState = await faqTrigger.evaluate(element => ({
-        expanded: element.getAttribute('aria-expanded'),
-        panelHidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
-      }));
-      if (expandedFaqState.expanded !== 'true' || expandedFaqState.panelHidden !== false) {
-        failures.push('home lazy sections: FAQ trigger did not expose its controlled panel');
-      }
-      await faqTrigger.click();
-    }
     await page.evaluate(() => window.scrollTo(0, 900));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');
@@ -5173,7 +5154,6 @@ for (const [device, viewport] of [
     await page.waitForSelector('.home-bg-directory', { visible: true });
     await page.waitForSelector('.home-arena-directory', { visible: true });
     await page.waitForSelector('.home-community', { visible: true });
-    await page.waitForSelector('.home-faq-zone', { visible: true });
     const recoveryState = await page.$eval('[data-home-error]', element => {
       const button = element.querySelector('button');
       const styles = getComputedStyle(element);
