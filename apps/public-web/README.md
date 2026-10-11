@@ -12,6 +12,11 @@ Most pages still render legacy React views from `src/` on the client. Treat
 that as migration debt: new behavior belongs in `src/modules/<domain>`
 behind its `public.ts`, not in `src/features/`.
 
+`/standard/deck-builder/` is the anonymous deck workbench in the Constructors
+menu. `PublicDeckBuilderPageClient` composes `src/modules/deckBuilder/public.ts`
+with the existing deckstring, size and Deckview ports. The old `/deck-builder/`
+is a separate administrator workspace and retains its permission gate.
+
 ## Layout
 
 <!-- markdownlint-disable MD013 -->

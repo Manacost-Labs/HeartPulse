@@ -202,11 +202,13 @@ async function waitForAuthenticatedShell(page) {
     { timeout: 20_000 },
   );
   await page.waitForFunction(() => {
-    // Next owns the skip link in its persistent root; standalone shells own it locally.
+    // Pending feedback may precede the skip link, which stays first in keyboard order.
     const root = document.querySelector('#root');
     const shell = root?.firstElementChild?.matches('.arena-app-shell') ? root.firstElementChild : root;
-    const skipLink = shell?.firstElementChild;
-    return Boolean(skipLink?.matches('.arena-skip-link') && skipLink.isConnected);
+    const skipLink = shell?.querySelector(':scope > .arena-skip-link');
+    return Boolean(skipLink?.isConnected && shell.querySelector(
+      'a[href], button, input, select, textarea, [tabindex="0"]',
+    ) === skipLink);
   }, { timeout: 5_000 });
 }
 
@@ -232,7 +234,7 @@ async function smallestArchetypeOpenTarget(page) {
   return page.evaluate(async () => {
     const heights = [];
     for (const row of document.querySelectorAll('.archetype-row')) {
-      row.scrollIntoView({ block: 'center' });
+      row.scrollIntoView({ block: 'center', behavior: 'instant' });
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       heights.push(row.querySelector('.archetype-row__open')?.getBoundingClientRect().height ?? 0);
     }
@@ -5207,13 +5209,13 @@ for (const [device, viewport] of [
       const shell = root?.firstElementChild?.matches('.arena-app-shell') ? root.firstElementChild : root;
       return {
         className: element?.className || '',
-        firstAppChild: shell?.firstElementChild?.matches('.arena-skip-link') || false,
+        firstControl: shell?.querySelector('a[href], button, input, select, textarea, [tabindex="0"]') === element,
         width: rect?.width || 0,
         height: rect?.height || 0,
         top: rect?.top || 0,
       };
     });
-    if (!String(skipState.className).includes('arena-skip-link') || !skipState.firstAppChild) failures.push('keyboard: skip link is not the first application control');
+    if (!String(skipState.className).includes('arena-skip-link') || !skipState.firstControl) failures.push('keyboard: skip link is not the first application control');
     if (skipState.height < 44 || skipState.width < 44 || skipState.top < 0) failures.push(`keyboard: skip link is not visibly actionable (${skipState.width}×${skipState.height}, top ${skipState.top})`);
     await page.keyboard.press('Enter');
     await page.waitForFunction(

@@ -77,6 +77,13 @@
       "description": "Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.",
       "sitemap": true
     },
+    "/standard/deck-builder": {
+      "policyRouteId": "deck-builder",
+      "navigationRouteId": "deck-builder",
+      "title": "Конструктор колод Hearthstone | HearthPulse",
+      "description": "Соберите колоду Стандарта или Вольного режима: выберите класс, добавьте карты и сохраните картинку колоды.",
+      "sitemap": false
+    },
     "/standard/cards": {
       "policyRouteId": "standard-cards",
       "navigationRouteId": "standard-cards",

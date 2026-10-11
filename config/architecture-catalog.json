@@ -1540,6 +1540,43 @@
       "forbiddenImports": ["server/**", "other frontend module internals"]
     },
     {
+      "name": "frontend-deck-builder",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Owns the public constructed-deck workbench with anonymous catalog and injected rendering ports.",
+      "paths": [
+        "src/modules/deckBuilder"
+      ],
+      "publicEntrypoints": [
+        "src/modules/deckBuilder/public.ts"
+      ],
+      "frontendRoutes": [
+        "/standard/deck-builder"
+      ],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/specs/public-deck-builder.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/public-deck-builder.test.ts",
+        "tests/next-public-deck-builder-browser.test.mjs"
+      ],
+      "allowedDependencies": [
+        "React",
+        "Lucide icons",
+        "injected deck encoding, size and rendering ports"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "src/features/**",
+        "other frontend module internals"
+      ]
+    },
+    {
       "name": "frontend-constructed-cards",
       "status": "modular",
       "owner": "web-platform",

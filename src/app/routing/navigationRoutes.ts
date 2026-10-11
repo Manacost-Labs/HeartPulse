@@ -17,7 +17,7 @@ export const BG_BUILDER_TABS = group('bg-builder');
 export const MISC_TABS = group('misc');
 export const ADMIN_TABS = group('admin');
 export const ADMIN_ONLY_TAB_IDS = new Set<TabId>(TABS.filter(route => 'adminOnly' in route && route.adminOnly).map(route => route.id));
-export const BG_TAB_IDS = new Set<TabId>([...BG_PRIMARY_TABS, ...BG_BUILDER_TABS].map(route => route.id));
+export const BG_TAB_IDS = new Set<TabId>([...BG_PRIMARY_TABS, ...BG_BUILDER_TABS.filter(route => route.id !== 'deck-builder')].map(route => route.id));
 
 /** The navigation surface for a path; a path outside every section belongs to the home surface. */
 export function tabFromPath(path: string): TabId {

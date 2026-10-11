@@ -565,7 +565,7 @@ for (const route of inventory.routes) {
       `${route.id} filters and errors must retain their robots policy`);
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/vicious-gold', '/standard/archetypes'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }

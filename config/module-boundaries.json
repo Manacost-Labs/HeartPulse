@@ -722,6 +722,23 @@
       ]
     },
     {
+      "id": "client.deckBuilder",
+      "runtime": "client",
+      "root": "src/modules/deckBuilder",
+      "purpose": "Owns the anonymous constructed deck workbench, catalog adapter and selection lifecycle.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/deckBuilder/public.ts",
+      "publicStyleEntry": "src/modules/deckBuilder/public.css",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-deck-builder"
+      ],
+      "docs": [
+        "docs/specs/public-deck-builder.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "client.constructedCards",
       "runtime": "client",
       "root": "src/modules/constructedCards",
@@ -1096,6 +1113,7 @@
         "client.articles",
         "client.battlegrounds",
         "client.constructedCards",
+        "client.deckBuilder",
         "client.contests",
         "client.cosmetics",
         "client.home",

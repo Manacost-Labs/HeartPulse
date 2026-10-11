@@ -39,6 +39,7 @@ const EXPECTED_ROUTE_PATHS = [
   ['bg-library', '/library'],
   ['bg-tier-list', '/battlegrounds/tier-list'],
   ['bg-strategies', '/battlegrounds/strategies'],
+  ['deck-builder', '/standard/deck-builder'],
   ['bg-tier-builder', '/battlegrounds/tier-builder'],
   ['admin-panel', '/admin'],
 ] as const satisfies readonly (readonly [TabId, `/${string}`])[];
@@ -96,5 +97,7 @@ for (const id of ['standard-matchups', 'standard-meta', 'fun-decks', 'constructe
 }
 assert.equal(entitlementOf('standard-cards'), null,
   'the card catalog must remain public because only its statistics are gated');
+assert.equal(entitlementOf('deck-builder'), null, 'the constructed deck workbench must remain public');
+assert.equal(tabFromPath('/standard/deck-builder/'), 'deck-builder');
 
 console.log(`route registry assertions passed (${TABS.length} routes)`);

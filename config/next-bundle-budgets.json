@@ -97,6 +97,10 @@
     "/connect/": {
       "jsGzipBytes": 163840,
       "cssGzipBytes": 37632
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 174080,
+      "cssGzipBytes": 33792
     }
   }
 }

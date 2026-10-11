@@ -101,6 +101,9 @@ export const NAVIGATION_ROUTES = [
     id: 'bg-strategies', label: 'Конструктор стратегий', icon: Grid3X3, path: '/battlegrounds/strategies', group: 'bg-builder', entitlement: 'battlegrounds',
   },
   {
+    id: 'deck-builder', label: 'Конструктор колод', icon: LibraryBig, path: '/standard/deck-builder', group: 'bg-builder', entitlement: null,
+  },
+  {
     id: 'bg-tier-builder', label: 'Конструктор тир-листов', icon: List, path: '/battlegrounds/tier-builder', group: 'bg-builder', entitlement: 'battlegrounds',
   },
   {

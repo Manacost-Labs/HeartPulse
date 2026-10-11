@@ -394,6 +394,20 @@
       "entitlement": "standard"
     },
     {
+      "id": "deck-builder",
+      "pattern": "/standard/deck-builder",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "spa-shell",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "deck-builder",
+      "entitlement": null
+    },
+    {
       "id": "standard-cards",
       "pattern": "/standard/cards",
       "kind": "static",

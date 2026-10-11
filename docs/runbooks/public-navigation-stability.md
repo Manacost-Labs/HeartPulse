@@ -36,6 +36,10 @@ documented in `docs/specs/public-page-headers.md`.
 Archetype QA scrolls the main build into view before awaiting its lazy render.
 On phones the preceding statistics can put it outside the observer margin.
 
+Authenticated shell waits use the first focusable control; the keyboard
+smoke checks Tab/Enter focus and destination. The persistent-root DOM order
+has its own transition regression.
+
 The owning spec is `docs/specs/public-client-navigation.md`. Review the
 production-build navigation tests and existing bundle budgets before pushing;
 use the normal immutable main/CI deployment and observer gates. Rollback is a

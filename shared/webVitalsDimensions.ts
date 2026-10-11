@@ -51,6 +51,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/standard/cards/',
   '/standard/cards/[format]/',
   '/standard/cards/[format]/[cardId]/',
+  '/standard/deck-builder/',
   '/standard/fun-decks/',
   '/standard/matchups/',
   '/standard/meta/',

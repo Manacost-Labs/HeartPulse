@@ -13,6 +13,13 @@ Next.js metadata, canonical redirects and JSON-LD for current and archive URLs.
 
 ## Public navigation
 
+`src/modules/deckBuilder/public.ts` owns the anonymous constructed-deck
+workbench at `/standard/deck-builder/`: selection rules, catalog validation,
+filter lifetimes, responsive gallery and Koloda tile rows. The Next client
+composition injects existing deckstring encoding, size policy and Deckview
+rendering. No administrative resolver or permission gate enters this module.
+The existing administrative `/deck-builder/` keeps its separate owner.
+
 `apps/public-web/ui/PublicNavigationLayout.tsx` composes the persistent public
 menu and one shared viewer-access provider in the Next root layout.
 `src/app/shell/PublicNavigationController.tsx` owns drawer/group state and the

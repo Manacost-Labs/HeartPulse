@@ -246,6 +246,7 @@
     "test:arena-legendaries-client": "tsx tests/arena-legendaries-client.test.ts",
     "test:account-blocking": "node --test tests/account-blocking-integration.test.mjs",
     "test:auth-persistence": "node --test tests/auth-persistence-integration.test.mjs",
+    "test:public-deck-builder": "node --import tsx --test tests/public-deck-builder.test.ts",
     "test:constructed-card-urls": "tsx tests/constructed-card-urls.test.ts",
     "test:public-card-read-model": "tsx tests/public-card-read-model.test.ts",
     "dev:next": "NEXT_TELEMETRY_DISABLED=1 next dev apps/public-web --webpack --hostname 127.0.0.1 --port 4320",
