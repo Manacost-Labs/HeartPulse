@@ -22,6 +22,11 @@ A narrow context reports each page's update timestamp to the persistent menu.
 Page data stays in route/domain loaders; the layout adds no domain-wide barrel.
 `PublicNavigationBridge` adapts existing callback navigation and real public
 anchors to App Router, guarded by the canonical route-ownership policy.
+Framework-independent prefetch freshness, bounded markers and cancellable intent
+live in `src/shared/navigation/routePrefetch.ts`, with injected router, permission
+and timer ports. DOM eligibility, connection reads and React transitions stay in
+the Next adapter. `src/shared/ui/NavigationProgress.tsx` owns only delayed status
+presentation, so changing feedback does not alter route or access policy.
 
 ## Public home
 

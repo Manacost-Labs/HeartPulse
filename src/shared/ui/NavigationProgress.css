@@ -1,0 +1,19 @@
+.navigation-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  height: 3px;
+  pointer-events: none;
+  color: transparent;
+  font-size: 0;
+}
+
+.navigation-progress[data-navigation-progress="pending"] {
+  background: var(--color-gold, #d4af37);
+  box-shadow: 0 1px 3px #0006;
+  animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation-progress[data-navigation-progress="pending"] { animation: none; }
+}

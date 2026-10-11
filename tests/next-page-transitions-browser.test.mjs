@@ -5,7 +5,7 @@ import puppeteer from 'puppeteer';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
-async function startGateway(nextOrigin) {
+async function startGateway(nextOrigin, { rscDelayMs = 0 } = {}) {
   const next = new URL(nextOrigin);
   const requests = [];
   const server = http.createServer((request, response) => {
@@ -15,9 +15,14 @@ async function startGateway(nextOrigin) {
       response.end(JSON.stringify({ user: null }));
       return;
     }
-    const upstream = http.request(next, { method: request.method, path: request.url, headers: request.headers },
-      answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
-    request.pipe(upstream);
+    const forward = () => {
+      const upstream = http.request(next, { method: request.method, path: request.url, headers: request.headers },
+        answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+      upstream.on('error', () => response.destroy());
+      request.pipe(upstream);
+    };
+    if (request.headers.rsc && rscDelayMs) setTimeout(forward, rscDelayMs);
+    else forward();
   });
   return { server, origin: await listenLocal(server), requests };
 }
@@ -136,6 +141,62 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
     await page.close();
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    await closeLocal(legacy);
+  }
+});
+
+test('public transitions avoid accidental prefetch and keep usable content while a slower route loads', { timeout: 60_000 }, async () => {
+  const legacy = http.createServer((_request, response) => response.writeHead(401).end());
+  let next, gateway, browser;
+  try {
+    next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
+    gateway = await startGateway(next.origin, { rscDelayMs: 900 });
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+      headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.setViewport({ width: 1440, height: 700 });
+    await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
+    const link = '.arena-sidebar a[href="/guides-archive/"]';
+    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-misc"]');
+    await page.waitForFunction(() => document.getElementById('arena-sidebar-misc').getAnimations().length === 0);
+    await page.evaluate(() => { document.querySelector('.arena-sidebar').scrollTop = 180; });
+    await page.hover(link);
+    await page.mouse.move(800, 100);
+    await new Promise(resolve => setTimeout(resolve, 180));
+    assert.equal(gateway.requests.filter(request => request.rsc && request.path.startsWith('/guides-archive/')).length, 0,
+      'crossing a link must not download a route');
+    const content = await page.$eval('#main-content', node => node.getBoundingClientRect().top);
+    await rememberFrame(page);
+    await page.click(link);
+    await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
+    assert.equal(await page.evaluate(() => location.pathname), '/faq/', 'previous route remains usable until ready');
+    assert.equal(await page.$eval('#main-content', node => node.getBoundingClientRect().top), content);
+    assert.equal(await page.$eval('[data-navigation-progress]', node => node.textContent), 'Открываем страницу…');
+    await assertSameFrame(page);
+    await page.waitForFunction(() => location.pathname === '/guides-archive/' && !document.querySelector('[data-navigation-progress="pending"]'));
+    await page.goBack();
+    await page.waitForFunction(() => location.pathname === '/faq/');
+    await page.evaluate(() => Object.defineProperty(navigator, 'connection', {
+      configurable: true, value: { get saveData() { return true; }, get effectiveType() { return '4g'; } },
+    }));
+    const other = '.arena-sidebar a[href="/contests/"]';
+    await page.hover(other);
+    await new Promise(resolve => setTimeout(resolve, 180));
+    assert.equal(gateway.requests.filter(request => request.rsc && request.path.startsWith('/contests/')).length, 0,
+      'Save-Data suppresses speculation, including prototype-style connection getters');
+    await page.click(other);
+    await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
+    await page.click(link);
+    await page.waitForFunction(() => location.pathname === '/guides-archive/' && !document.querySelector('[data-navigation-progress="pending"]'));
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    assert.equal(await page.evaluate(() => location.pathname), '/guides-archive/', 'a slow earlier route cannot replace the newer destination');
+    assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);

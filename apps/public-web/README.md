@@ -25,7 +25,7 @@ behind its `public.ts`, not in `src/features/`.
 | `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
 | `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
 | `ui/PublicNavigationLayout.tsx` | Persistent menu and viewer access; composes the route-owned content without moving data loaders into the layout |
-| `ui/PublicNavigationBridge.tsx` | App Router adapter for legacy callbacks and public anchors; prefetches on pointer/focus intent; preserves native modified/external/download/identity/API/admin links |
+| `ui/PublicNavigationBridge.tsx` | App Router adapter for legacy callbacks and public anchors; cancellable intent and pending feedback; preserves native modified/external/download/identity/API/admin links |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` use the mounted App Router adapter; native document navigation remains the fallback |
 | `lib/authPrefetch.ts` | Inline head script that starts the session check (`/api/auth/me`) while the document parses |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
@@ -110,12 +110,18 @@ behind its `public.ts`, not in `src/features/`.
   pages, in the server HTML and after hydration, for a guest and a
   subscriber, and fails on a page URL without the slash.
 - Public links use App Router after hydration, preserving the actual menu DOM,
-  its scroll and expanded desktop groups. Hover/focus prefetches the route's RSC
-  response; it does not execute a hidden document. Mobile navigation releases
-  the drawer scroll lock before saving the history entry. Plain anchors still
-  work before JavaScript, and Ctrl/Cmd-click, external/download links, hashes,
+  its scroll and expanded desktop groups. A 120 ms pointer dwell or keyboard
+  focus prefetches the route's RSC response; touch, Save-Data, offline and 2G
+  connections skip speculation. The framework-independent lifecycle in
+  `src/shared/navigation/routePrefetch.ts` cancels abandoned intent and bounds
+  freshness markers to 32. It does not execute a hidden document. Mobile
+  navigation releases the drawer scroll lock before saving the history entry.
+  Plain anchors still work before JavaScript, and Ctrl/Cmd-click,
+  external/download links, hashes,
   authentication and API endpoints keep browser navigation. Page content stays
   visible until the next route is ready; no fade-through or entrance offset runs.
+  `NavigationProgress` shows a gold status line after 200 ms of a pending React
+  transition, without changing page geometry or blocking another destination.
   `tests/next-page-transitions-browser.test.mjs` covers this contract.
   See [navigation spec](../../docs/specs/public-client-navigation.md).
   The root access provider exposes a stable snapshot store, with guest state

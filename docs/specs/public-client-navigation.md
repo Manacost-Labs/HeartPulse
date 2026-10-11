@@ -73,6 +73,39 @@ production deployment on 2026-10-05. The normal main/CI deployment gates apply.
 
 ## Framework contract
 
+### Intent and pending feedback (2026-10-12)
+
+Improve public transitions without replacing the persistent menu or loading
+domain code into the root layout. Keep native link exclusions and canonical URLs.
+No dependency, API, access or telemetry change is required.
+
+1. Guard speculative loading: pointer intent must last 120 ms, leaving the
+   link cancels it, keyboard focus prepares immediately, and touch, offline,
+   Save-Data and 2G connections do not prefetch. Current-page links and fragment
+   variants share no redundant request. Keep at most 32 fresh route markers;
+   an old invalidation callback cannot clear a newer preparation.
+2. Route both real anchors and legacy callbacks through one React transition.
+   A reusable status surface appears after 200 ms of pending navigation and
+   disappears on completion. It announces loading, preserves content geometry,
+   allows a newer destination and respects reduced motion. Fast transitions
+   show no flashing indicator. Timers and listeners stop on unmount.
+3. Verify synthetic hover/cancel, freshness/eviction, slow route, rapid
+   replacement, Back and native modified-click cases before integration.
+
+Framework-independent prefetch lifecycle belongs in
+`src/shared/navigation/routePrefetch.ts`; Next destination policy and DOM/router
+adapters stay in `apps/public-web/ui/`. The status primitive belongs in
+`src/shared/ui/NavigationProgress.tsx` with colocated Storybook states.
+Use small named contracts and injected prefetch/clock/permission ports, with
+existing indentation and explicit imports. Tests stay in the registered
+navigation suites under `tests/`.
+
+Run the checks listed above, including a production build and the focused
+`tests/next-page-transitions-browser.test.mjs` regression; compare speculative
+request counts and existing bundle budgets. Review desktop and phone transitions
+in Chrome DevTools after automated checks. Record lab measurements separately
+from field Web Vitals; this task does not claim a field-score improvement.
+
 Next.js 16.3.8 and React 19.3.0 are the installed dependencies. App Router
 navigation uses `router.push` and `router.prefetch` from
 [`useRouter`](https://nextjs.org/docs/app/api-reference/functions/use-router).

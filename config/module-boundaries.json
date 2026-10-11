@@ -1124,7 +1124,7 @@
         "mode": "all"
       },
       "knownDebt": [
-        "Most pages are client wrappers that render large legacy views from src/features and navigate by full document loads.",
+        "Most pages are client wrappers that render large legacy views from src/features; public navigation uses the persistent App Router layout.",
         "Legacy global CSS from src/ is imported per route.",
         "The root `npm run lint` excludes this app; run `npm run lint:next` after changing it."
       ]

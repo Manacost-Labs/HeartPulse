@@ -1,5 +1,33 @@
 # Public navigation stability
 
+## Cancellable intent and pending feedback (2026-10-12)
+
+The public adapter now waits for 120 ms of pointer intent; abandoning a link
+cancels the timer. Keyboard focus remains immediate. Touch, hidden documents,
+offline, Save-Data and 2G skip speculative reads, while explicit navigation
+still works. Current-page intent does not prefetch. Freshness markers are
+bounded to 32 and versioned so an evicted route's old invalidation cannot
+remove a newer marker. All adapter timers/listeners have mounted lifetimes.
+
+Anchors and callbacks share one React transition. After 200 ms the shared
+`NavigationProgress` status shows a gold line and announces loading; it changes
+no page geometry, intercepts no input and stops when the transition completes.
+Reduced motion uses a static line. The next destination can supersede a slow
+route. Session verification and existing error/reload recovery are retained.
+
+The transient-hover browser regression made one speculative route request
+before the change and zero afterwards. With a 900 ms local RSC delay it checks
+the old content position, persistent menu, status completion, Save-Data,
+rapid replacement and Back. These are deterministic lab contracts, not a
+field Web Vitals speed claim. Unit coverage checks cancellation/disposal,
+network policy, nested pointer events and invalidation after marker eviction.
+
+The owning spec is `docs/specs/public-client-navigation.md`. Review the
+production-build navigation tests and existing bundle budgets before pushing;
+use the normal immutable main/CI deployment and observer gates. Rollback is a
+normal revert of the task commit through the same pipeline; there is no data
+migration or runtime configuration to reverse.
+
 Status: implemented in `codex/navigation-stability-20261005`; the owner
 authorized integration and production deployment on 2026-10-05. The immutable
 release is identified by this change's Git commit and verified by the

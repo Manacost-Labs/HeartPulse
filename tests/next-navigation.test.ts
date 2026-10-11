@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { clientPagePath, createRoutePrefetcher, installClientNavigation, navigate, navigateTab } from '../apps/public-web/ui/navigation';
 import { canonicalPagePath } from '../src/app/routing/canonicalPagePath';
+import { allowsRoutePrefetch, createRouteIntent } from '../src/shared/navigation/routePrefetch';
 
 function captureNavigation(run: () => void): string[] {
   const visited: string[] = [];
@@ -108,4 +109,61 @@ test('failed speculative preparation neither interrupts interaction nor prevents
   assert.doesNotThrow(() => prepare('/faq/'));
   assert.doesNotThrow(() => prepare('/faq/'));
   assert.equal(calls, 2);
+});
+
+test('fragment variants reuse one preparation and old invalidation cannot clear a replacement', () => {
+  const calls: string[] = [];
+  const invalidate: Array<() => void> = [];
+  const prepare = createRoutePrefetcher((path, options) => {
+    calls.push(path);
+    invalidate.push(options.onInvalidate);
+  }, { capacity: 2 });
+  prepare('/faq/#one');
+  prepare('/faq/#two');
+  assert.deepEqual(calls, ['/faq/']);
+  prepare('/terms/');
+  prepare('/privacy/');
+  prepare('/faq/');
+  invalidate[0]();
+  prepare('/faq/#three');
+  assert.deepEqual(calls, ['/faq/', '/terms/', '/privacy/', '/faq/']);
+});
+
+test('intent cancels transient hovers, rechecks network policy and stops on disposal', context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  const calls: string[] = [];
+  let online = true;
+  const intent = createRouteIntent(path => calls.push(path), () => online);
+  intent.hover('/faq/');
+  context.mock.timers.tick(119);
+  intent.cancel();
+  context.mock.timers.tick(1);
+  assert.deepEqual(calls, []);
+  intent.hover('/terms/');
+  context.mock.timers.tick(60);
+  intent.hover('/terms/');
+  context.mock.timers.tick(60);
+  assert.deepEqual(calls, ['/terms/'], 'nested pointer events do not postpone genuine intent');
+  intent.hover('/privacy/');
+  online = false;
+  context.mock.timers.tick(120);
+  intent.focus('/faq/');
+  assert.deepEqual(calls, ['/terms/']);
+  online = true;
+  intent.focus('/faq/');
+  intent.hover('/privacy/');
+  intent.dispose();
+  context.mock.timers.tick(120);
+  intent.focus('/terms/');
+  assert.deepEqual(calls, ['/terms/', '/faq/']);
+});
+
+test('speculation respects touch, offline, Save-Data and slow connections', () => {
+  assert.equal(allowsRoutePrefetch({ online: true }), true);
+  assert.equal(allowsRoutePrefetch({ online: true, effectiveType: '4g' }, 'pen'), true);
+  for (const connection of [{ online: false }, { online: true, saveData: true },
+    { online: true, effectiveType: 'slow-2g' }, { online: true, effectiveType: '2g' }]) {
+    assert.equal(allowsRoutePrefetch(connection), false);
+  }
+  assert.equal(allowsRoutePrefetch({ online: true }, 'touch'), false);
 });
