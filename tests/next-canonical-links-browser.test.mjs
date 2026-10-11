@@ -154,7 +154,12 @@ test('pages link to canonical trailing-slash URLs, so a card link is fetched whe
       await delay(50);
     }
     assert.deepEqual(recorder.documents, [], 'intent prefetch does not execute another document');
-    assert.deepEqual(recorder.apiRequests, [], 'intent prefetch does not execute client API calls');
+    // The card's existing 120 ms hover warms its full render independently of RSC intent.
+    const warmedImage = `/api/card-image/${href.split('/').at(-2)}/full.webp`;
+    assert.deepEqual(recorder.apiRequests.filter(path => path !== warmedImage), [],
+      'intent prefetch does not mount the destination or request its client data');
+    assert.ok(recorder.apiRequests.filter(path => path === warmedImage).length <= 1,
+      'hover warms only this card render, once');
     await page.click(card);
     assert.deepEqual(await arrival(page, href), { redirects: 0, prerendered: false });
     assert.equal(await page.evaluate(() => performance.timeOrigin), timeOrigin, 'the card visit reuses the document');

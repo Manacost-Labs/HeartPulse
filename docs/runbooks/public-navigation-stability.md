@@ -22,6 +22,10 @@ rapid replacement and Back. These are deterministic lab contracts, not a
 field Web Vitals speed claim. Unit coverage checks cancellation/disposal,
 network policy, nested pointer events and invalidation after marker eviction.
 
+The canonical-card browser contract distinguishes RSC intent from the existing
+120 ms card-render warmup: hovering may fetch that card's full image once,
+but must not mount the destination or issue client requests for page data.
+
 The owning spec is `docs/specs/public-client-navigation.md`. Review the
 production-build navigation tests and existing bundle budgets before pushing;
 use the normal immutable main/CI deployment and observer gates. Rollback is a
