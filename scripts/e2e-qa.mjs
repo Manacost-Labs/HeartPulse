@@ -940,12 +940,12 @@ const authenticatedRouteFilter = (process.env.QA_AUTH_ROUTE_FILTER || '')
 const authenticatedRoutes = [
   { path: '/articles', expected: 'Первая статья', selector: '.article-image-shell img' },
   { path: '/faq', expected: 'Частые вопросы', selector: '.faq-page__questions details' },
-  { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates', tour: { expectedSteps: 3 } },
+  { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates', tour: { expectedSteps: 2 } },
   { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card', tour: { expectedSteps: 5 } },
   { path: '/legendaries', expected: 'Медив Освященный', selector: '.legendary-group-card', tour: { expectedSteps: 3 } },
   { path: '/guides-archive', expected: 'Контрольный гайд Арены', selector: '.guide-archive-card' },
   { path: '/battlegrounds/tier-list?list=spells', expected: 'Тир-лист заклинаний', selector: '.bg-tier-list-page', tour: { minSteps: 2 } },
-  { path: '/heroes', expected: 'Контрольный герой', selector: '.battleground-hero-card', tour: { expectedSteps: 4 } },
+  { path: '/heroes', expected: 'Контрольный герой', selector: '.battleground-hero-card', tour: { expectedSteps: 3 } },
   { path: '/heroes/9001', expected: 'Контрольный герой', selector: '.bg-hero-detail-page', tour: { minSteps: 5 } },
   { path: '/library', expected: 'Библиотека Полей Сражений', selector: '.bg-library-page', tour: { expectedSteps: 4 } },
   { path: '/library/minions/kontrolnoe-sushchestvo-9101', expected: 'Контрольное существо', selector: '.bg-library-detail-page', tour: { expectedSteps: 4 } },
@@ -4296,7 +4296,7 @@ for (const [device, viewport] of [
   }
 }
 
-// The directories and the FAQ are in the document, so the page index works on
+// The directories are in the document, so the page index works on
 // the first click, before any section script loads. Its own page: a pointer
 // click would change which focus the next block's keyboard checks see.
 {
@@ -4305,12 +4305,12 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: true });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    const missingIndexTargets = await page.evaluate(() => ['#home-bg-heading', '#home-arena-directory-heading', '#faq-heading']
+    const missingIndexTargets = await page.evaluate(() => ['#home-bg-heading', '#home-arena-directory-heading']
       .filter(target => !document.querySelector(`#root ${target}`)));
     if (missingIndexTargets.length) throw new Error(`targets missing from the document: ${missingIndexTargets.join(', ')}`);
-    await page.click('.home-page-index a[href="#faq-heading"]');
+    await page.click('.home-page-index a[href="#home-arena-directory-heading"]');
     await page.waitForFunction(() => {
-      const top = document.getElementById('faq-heading')?.getBoundingClientRect().top ?? -1;
+      const top = document.getElementById('home-arena-directory-heading')?.getBoundingClientRect().top ?? -1;
       return top >= 0 && top < window.innerHeight;
     }, { timeout: 5_000 });
     console.log('✓ home page index reaches server-rendered sections on the first click');

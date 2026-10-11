@@ -41,7 +41,8 @@ meta heading entrypoints; the retired Arena introduction is no longer exported.
 - `npm run lint:architecture` checks the catalog after retiring the Arena intro.
 - `node --test tests/next-public-card-pilot.test.mjs` checks the compact SSR page.
 - `npm run qa:ci` covers the remaining home sections and local chunk recovery,
-  without waiting for the retired FAQ block.
+  without waiting for the retired FAQ block. Its page-index click uses the Arena
+  directory, and tour checks expect two class steps and three hero steps.
 
 Documentation impact: `CHANGELOG.md`, `docs/specs/seo-query-clusters.md`,
 `docs/specs/public-home.md`,
