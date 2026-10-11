@@ -1,7 +1,6 @@
 import React from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { battlegroundMinionIconBySlug } from '../model/minionTypeIcons';
-import './LibraryControls.css';
 
 type Option = { value: string; label: string; disabled?: boolean };
 type FilterSelection = { id: string; label: string; remove: () => void };

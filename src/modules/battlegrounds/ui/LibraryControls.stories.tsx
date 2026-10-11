@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import '../public.css';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent } from 'storybook/test';
 import { LibraryControls } from './LibraryControls';

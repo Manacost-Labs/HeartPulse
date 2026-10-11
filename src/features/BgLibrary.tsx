@@ -1,4 +1,5 @@
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
+import '../modules/battlegrounds/public.css';
 import { LibraryControls, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ExternalLink } from 'lucide-react';
