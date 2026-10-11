@@ -33,8 +33,18 @@ try {
   page.on('pageerror', error => runtimeErrors.push(error.message));
   await page.setRequestInterception(true);
   page.on('request', request => {
-    if (new URL(request.url()).pathname.startsWith('/api/card-image/')) {
-      cardTileRequests.push(new URL(request.url()).pathname);
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith('/api/public-resource/db/uploads/horizontal-art/constructed_card/')) {
+      cardTileRequests.push(path);
+      void request.respond({
+        status: path.endsWith('/JAIL_732.webp') ? 404 : 200,
+        contentType: 'image/gif',
+        body: path.endsWith('/JAIL_732.webp') ? '' : Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64'),
+      });
+      return;
+    }
+    if (path.startsWith('/api/card-image/')) {
+      cardTileRequests.push(path);
       void request.respond({
         status: 200,
         contentType: 'image/gif',
@@ -89,11 +99,19 @@ try {
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
   await page.waitForSelector('.constructed-card-stats tbody tr');
-  await page.$$eval('.constructed-card-tile__art', images => {
-    images.forEach(image => image.scrollIntoView({ block: 'center' }));
-  });
+  assert.equal(await page.$('.archetype-detail-page .section-banner-modern'), null);
+  assert.equal(await page.$eval('.archetype-dossier h1', title => title.textContent), 'Воровской Жрец');
+  assert.equal(await page.$eval('.archetype-dossier h1', title => getComputedStyle(title).color), 'rgb(255, 240, 200)');
+  assert.equal(await page.evaluate(() =>
+    document.querySelector('.archetype-history').compareDocumentPosition(document.querySelector('.archetype-main-build')) & Node.DOCUMENT_POSITION_FOLLOWING
+  ), 4, 'history must precede the largest confirmed build');
+  for (const image of await page.$$('.constructed-card-tile__art')) {
+    if (!await image.isVisible()) continue;
+    await image.scrollIntoView();
+    await page.waitForFunction(element => element.complete && element.naturalWidth > 0, { timeout: 10_000 }, image);
+  }
   await page.waitForNetworkIdle({ idleTime: 250, timeout: 10_000 });
-  const tileImageState = await page.$$eval('.constructed-card-tile__art', images => images.map(image => ({
+  const tileImageState = await page.$$eval('.constructed-card-tile__art', images => images.filter(image => image.getBoundingClientRect().width > 0).map(image => ({
     complete: image.complete,
     naturalWidth: image.naturalWidth,
     src: image.getAttribute('src'),
@@ -107,6 +125,8 @@ try {
     new Set(cardTileRequests).size >= 6,
     'every unique visible mulligan card must request a reliable same-origin tile image',
   );
+  assert.ok(cardTileRequests.some(path => path.includes('/horizontal-art/constructed_card/')), 'mulligan uses Koloda horizontal art');
+  assert.ok(cardTileRequests.includes('/api/card-image/JAIL_732/tile.webp'), 'missing Koloda art falls back to the existing tile');
   assert.equal(
     await page.$$eval('.constructed-card-tile__art', images => images.every(image => image.tagName === 'IMG')),
     true,
@@ -392,6 +412,7 @@ try {
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
+  await page.$eval('.archetype-main-build', section => section.scrollIntoView({ block: 'start' }));
   await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
   assert.equal(await page.$$eval('.deck-render-preview__switch', switches => switches.length), 0);
   await page.click('.archetype-main-build .deck-render-preview__open');

@@ -524,6 +524,7 @@
   gap: 1.2rem;
   align-items: center;
   overflow: hidden;
+  min-height: 260px;
   padding: clamp(1rem, 2.5vw, 1.75rem);
   border: 12px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
@@ -539,9 +540,9 @@
   background: linear-gradient(
     90deg,
     #4b0710 0%,
-    rgba(75, 7, 16, 0.96) 30%,
-    rgba(75, 7, 16, 0.62) 62%,
-    rgba(48, 4, 10, 0.82) 100%
+    rgba(75, 7, 16, 0.9) 30%,
+    rgba(75, 7, 16, 0.3) 62%,
+    rgba(48, 4, 10, 0.18) 100%
   );
   content: '';
   pointer-events: none;
@@ -550,15 +551,14 @@
 .archetype-dossier__art {
   position: absolute;
   z-index: 0;
-  top: 50%;
+  top: 0;
   right: 0;
   width: min(60%, 760px);
-  height: 180%;
+  height: 100%;
   object-fit: cover;
   object-position: 50% 34%;
-  opacity: 0.82;
-  filter: saturate(0.88) contrast(1.06);
-  transform: translateY(-50%);
+  opacity: 1;
+  mask-image: linear-gradient(90deg, transparent, #000 24%);
 }
 
 .archetype-dossier__identity {
@@ -579,10 +579,11 @@
 
 .archetype-dossier h1 {
   margin: 0;
+  color: #fff0c8;
   overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-size: clamp(1.9rem, 4vw, 3.3rem);
-  line-height: 0.95;
+  line-height: 1.05;
   text-shadow: 0 3px 14px rgba(21, 1, 5, 0.7);
 }
 
@@ -593,7 +594,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
   border: 1px solid rgba(239, 201, 111, 0.3);
-  background: rgba(29, 3, 8, 0.62);
+  background: rgba(29, 3, 8, 0.82);
 }
 
 .archetype-dossier__metrics div { min-width: 0; padding: 0.7rem; border-right: 1px solid rgba(239, 201, 111, 0.17); border-bottom: 1px solid rgba(239, 201, 111, 0.17); }
@@ -1139,8 +1140,8 @@
   .archetype-dossier::after {
     background: linear-gradient(
       180deg,
-      rgba(75, 7, 16, 0.7) 0%,
-      rgba(75, 7, 16, 0.9) 48%,
+      rgba(75, 7, 16, 0.58) 0%,
+      rgba(75, 7, 16, 0.68) 48%,
       #4b0710 100%
     );
   }

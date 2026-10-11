@@ -210,7 +210,7 @@ export function installConstructedArchetypeFixtures(): () => void {
 }
 
 /** The archetype catalog and its detail pages; `format=wild` in the query string opens the Wild catalog. */
-export function ConstructedArchetypesFixture() {
-  const [path, setPath] = useState('/standard/archetypes');
+export function ConstructedArchetypesFixture({ initialPath = '/standard/archetypes' }: { initialPath?: string }) {
+  const [path, setPath] = useState(initialPath);
   return <StrictMode><ConstructedArchetypes currentPath={path} navigatePath={setPath} /></StrictMode>;
 }

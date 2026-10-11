@@ -18,6 +18,7 @@ type Story = StoryObj<typeof meta>;
 export const PublicCard: Story = {
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('heading', { level: 1, name: 'Огненный дракон' })).toBeVisible();
+    await expect(within(canvasElement).getAllByRole('heading', { level: 1 })).toHaveLength(1);
     await expect(within(canvasElement).getByText('blizzard:12345')).toBeVisible();
   },
 };

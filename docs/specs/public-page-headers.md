@@ -2,7 +2,7 @@
 
 ## Contract
 
-Public section and detail pages use the heroes banner from the owner's visual reference:
+Public section pages use the heroes banner from the owner's visual reference:
 burgundy material, the existing ornamental frame, tavern illustration on the
 right and the page's primary title on the left. The home page retains its
 original hero, combining its title, paladin, navigation actions and class summary
@@ -25,6 +25,36 @@ filters, subscription gates, facts, recovery actions and navigation remain
 available outside the title area. Long titles wrap without clipping at 320px,
 390px, 768px and 1440px. Artwork never covers text and carries no accessible
 content. Reduced motion produces no banner animation.
+
+Constructed card and archetype detail pages expose their entity H1 in the
+existing identity/metrics header, without a second tavern banner. Archetype
+names use the cream display typeface. Art fills its crop without the white
+source-image margins; the fade protects text while leaving the illustration
+visible. For subscribers, accumulated history precedes the main build.
+
+Mulligan rows use Koloda horizontal artwork through the existing same-origin
+resource proxy (`db/uploads/horizontal-art/constructed_card/<cardId>.webp`).
+Missing artwork falls back once to the existing `/api/card-image/` tile.
+Names, mana, sorting, card previews and subscription boundaries stay intact.
+The source URL was verified from the public Koloda card search for `CAP_105`:
+[horizontal artwork](https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/CAP_105.webp).
+
+## Detail-page follow-up plan
+
+1. Remove duplicate card/archetype banners and restore entity H1 semantics;
+   verify card stories and the archetype browser regression.
+2. Adjust dossier contrast/crop and move history before the main build;
+   verify 320, 390, 768 and 1440px layouts and guest/subscriber access.
+3. Use module-owned Koloda tile URLs with a bounded fallback; verify missing
+   assets, sorting and previews in the existing browser test.
+
+Commands: `npm run lint`, `npm run lint:next`, `npm run lint:architecture`,
+`npm run test:storybook`, `npm run build-storybook`, `npm run build:next`,
+`node tests/constructed-archetypes-browser.test.mjs` and
+`node --test tests/next-archetype-details-browser.test.mjs`.
+Existing JSX/CSS conventions apply; new image policy belongs in the
+constructed-cards module. No dependencies, schema or authorization changes.
+Documentation impact: this spec, `apps/public-web/README.md` and `CHANGELOG.md`.
 
 Use the existing shared `SectionBanner` for simple titles and retain the
 compatible banner classes for headings with metrics. Banner presentation is
