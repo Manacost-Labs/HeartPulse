@@ -92,6 +92,12 @@ bundler/compression variation across installations. CSS ceilings retain their
 256-byte rounding. Unaffected entries and the checks that keep administrator
 and paid Battlegrounds assets lazy remain unchanged.
 
+The combined detail-header and navigation release measures the Battlegrounds
+tier-list JavaScript at 165,459 gzip bytes locally and 165,512 bytes in CI,
+exceeding its previous 164,864-byte ceiling. Its reviewed ceiling is 168,960
+bytes under the same 2% margin and 1 KiB rounding rule. No other route limits
+or lazy-asset assertions change.
+
 The catalog loading contract checks the blocking-loader guard (`loading &&
 !data`), independent of the banner component: filter refreshes keep the current
 catalog visible.
