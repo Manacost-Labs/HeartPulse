@@ -25,6 +25,10 @@ test('compact library supports tribe selection, empty-result reset and hidden ad
         overflow: document.documentElement.scrollWidth > innerWidth,
         advancedOpen: document.querySelector('.bg-library-control-advanced').open,
         height: document.querySelector('.bg-library-controls').getBoundingClientRect().height,
+        frame: getComputedStyle(document.querySelector('.bg-library-controls')).borderImageSource,
+        tavernBadges: document.querySelectorAll('button[aria-label^="Таверна "] img').length,
+        imagesLoaded: [...document.querySelectorAll('.bg-library-controls img')].every(image => image.complete && image.naturalWidth > 0),
+        roundRaces: [...document.querySelectorAll('.bg-library-race-icon')].every(image => getComputedStyle(image).borderRadius === '50%'),
         violations: (await axe.run(document.querySelector('.bg-library-controls'), {
           runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
         })).violations.map(violation => violation.id),
@@ -32,6 +36,10 @@ test('compact library supports tribe selection, empty-result reset and hidden ad
       assert.equal(state.overflow, false, `${width}px overflow`);
       assert.equal(state.advancedOpen, false);
       assert.deepEqual(state.violations, [], `${width}px accessibility`);
+      assert.match(state.frame, /main-page-rail-border\.png/);
+      assert.equal(state.tavernBadges, 7);
+      assert.equal(state.imagesLoaded, true, `${width}px game assets loaded`);
+      assert.equal(state.roundRaces, true, `${width}px round tribe icons`);
       if (width === 1440) assert.ok(state.height < 360, `toolbar height ${state.height}`);
       const search = await page.$('input[aria-label="Поиск карт"]');
       await search.type('Нет такой карты');

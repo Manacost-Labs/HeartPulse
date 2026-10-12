@@ -1,5 +1,5 @@
 .arena-app-battlegrounds .bg-library-page > .bg-library-controls {
-  padding: clamp(0.875rem, 2vw, 1.25rem);
+  padding: clamp(0.875rem, 2vw, 1rem);
   border: 12px solid transparent !important;
   border-radius: 0 !important;
   border-image: url('/wallpaper/main-page-rail-border.png') 13 / 12px / 0 stretch !important;
