@@ -162,3 +162,5 @@ actions close to the cards instead of below thirty full rows. Local Chrome
 DevTools checks find no application errors,
 failed images or overflow; the existing unused CSS preload warning remains.
 An unthrottled local trace reported LCP 58 ms and CLS 0.00 (lab evidence only).
+The browser regression awaits the cleared catalog response before selecting
+a card after resetting filters, avoiding actions against the previous result.

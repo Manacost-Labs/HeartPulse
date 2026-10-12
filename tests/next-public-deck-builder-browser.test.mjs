@@ -77,8 +77,15 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     await delay(300);
     assert.ok(queries.some(query => query.mana === '4' && query.set === 'CORE' && query.sort === 'set'
       && query.direction === 'desc' && query.mechanic === 'TAUNT'));
-    await page.click('.hp-builder-clear-filters');
-    await page.waitForSelector('.hp-builder-card');
+    await Promise.all([
+      page.waitForResponse(response => {
+        const url = new URL(response.url());
+        return url.pathname === '/api/constructed-cards' && url.searchParams.get('sort') === 'mana'
+          && !url.searchParams.has('mana') && !url.searchParams.has('set') && !url.searchParams.has('mechanic');
+      }),
+      page.click('.hp-builder-clear-filters'),
+    ]);
+    await page.waitForSelector('button[aria-label="Добавить: Огненный шар"]');
     await page.click('.hp-builder-extra-filters summary');
     assert.equal(await page.$eval('button[aria-label="Любая мана"]', node => node.getAttribute('aria-pressed')), 'true');
     await page.click('button[aria-label="Добавить: Огненный шар"]');
