@@ -1,13 +1,1 @@
-.constructed-cards__header > div { display: grid; gap: 1rem; min-width: 0; }
-.constructed-cards__beta { display: flex; gap: 0.45rem; align-items: center; }
-.constructed-cards__beta span { display: inline-flex; gap: 0.28rem; align-items: center; min-height: 30px; padding: 0.25rem 0.6rem; border: 1px solid #9d7135; background: rgba(255, 239, 188, 0.7); color: #5a3419; font-size: 0.68rem; font-weight: 900; }
-.constructed-cards__beta span:first-child { border-color: #8c2528; background: var(--cards-wine, #631119); color: #ffe6b0; }
-
-@media (max-width: 720px) {
-  .constructed-cards__header > div { display: grid; gap: 0.45rem; }
-}
-
-@media (max-width: 540px) {
-  .constructed-cards__beta { flex-wrap: wrap; }
-  .constructed-cards__beta span { min-height: 25px; font-size: 0.57rem; }
-}
+.constructed-cards__header > div { min-width: 0; }

@@ -1,4 +1,4 @@
-import { ConstructedCardsBanner, constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { ConstructedCardTile, ConstructedCardsBanner, constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import { useCatalogLocation, useCatalogData, useCatalogIntentWarm, catalogLocationUrl, type CardCatalogPayload } from '../modules/constructedCards/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -44,7 +44,6 @@ import {
 } from './constructedCardRequestState';
 import {
   CONSTRUCTED_CARD_RANK_OPTIONS,
-  constructedCardPeriodLabel,
   constructedCardPeriodOptions,
   constructedCardRankLabel,
   constructedCardStatsUrl,
@@ -52,7 +51,6 @@ import {
   type ConstructedCardRank,
 } from './constructedCardPeriods';
 import { constructedCardImage } from './constructedCardMedia';
-import { loadDeckView } from './hsReplayDeckViewRuntime';
 import { isPublicConstructedTerm } from '../../shared/constructedCardTranslations';
 import {
   cardName,
@@ -171,7 +169,7 @@ const GalleryCard = memo(function GalleryCard({ card, index, search, format, per
   const name = cardName(card);
   const fullImage = constructedCardImage(card);
   return (
-    <article className="constructed-cards__gallery-card" data-rarity={String(card.rarity || 'COMMON').toLowerCase()}>
+    <article className="constructed-cards__gallery-card" data-rarity={String(card.rarity || 'COMMON').trim().toLowerCase()}>
       <a
         href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format }, search)}
         className="constructed-cards__gallery-card-link"
@@ -226,44 +224,6 @@ function CardGallery({ cards, search, format, period, rank, sort, navigatePath, 
     </>
   );
 }
-function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const dbfIds = card.dbf === null || card.dbf === undefined ? '' : String(card.dbf);
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return undefined;
-    let cancelled = false;
-    let rendered = false;
-    // The card name stays as the cell's text until the renderer arrives, or
-    // for good when its chunk cannot load.
-    void loadDeckView().then(api => {
-      if (cancelled) return;
-      api.renderDeck(container, [{
-        id: card.card_id,
-        dbfId: card.dbf,
-        name: cardName(card),
-        cost: card.mana_cost ?? 0,
-        rarity: card.rarity || 'COMMON',
-        elite: String(card.rarity || '').toUpperCase() === 'LEGENDARY',
-        count: 1,
-        image: publicResourceUrl(card.images?.crop)
-          || `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
-      }], {
-        className: 'constructed-cards__hsrdv',
-        group: false,
-        sort: false,
-        clear: true,
-        showSingleCountBox: false,
-      });
-      rendered = true;
-    }).catch(() => undefined);
-    return () => {
-      cancelled = true;
-      if (rendered) container.replaceChildren();
-    };
-  }, [card]);
-  return <div ref={containerRef} className="constructed-cards__data-deck-card" data-deck-cards={dbfIds} data-card-id={card.card_id}><span>{cardName(card)}</span></div>;
-}
 
 function sortAria(sort: string, column: string, direction: Filters['direction']): React.AriaAttributes['aria-sort'] {
   if (sort !== column) return undefined;
@@ -315,7 +275,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
                   }}
                   onBlur={() => setPreview(null)}
                   onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
-                ><HsReplayDataDeckCard card={card} /></a></th>
+                ><ConstructedCardTile name={cardName(card)} cost={card.mana_cost ?? 0} tile={publicResourceUrl(card.images?.tile)} artwork={publicResourceUrl(card.images?.horizontal)} rarity={card.rarity} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
                 <td data-label="В % колод" data-tour-id={index === 0 ? 'cards-statistics' : undefined}>{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label="Победы колод">{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
@@ -372,17 +332,11 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
   const searchPending = Boolean(normalizedInputQuery) && (
     normalizedInputQuery !== requestQuery || loading
   );
-  const visibleRankLabel = loading
-    ? constructedCardRankLabel(rank)
-    : data?.rankLabel || constructedCardRankLabel(rank);
   const currentPatch = data?.period?.patch;
-  const visiblePeriodLabel = loading ? constructedCardPeriodLabel(period, currentPatch)
-    : data?.period?.label || constructedCardPeriodLabel(period, currentPatch);
 
   return (
     <div className="constructed-cards">
-      <ConstructedCardsBanner rankLabel={visibleRankLabel} periodLabel={visiblePeriodLabel}
-        hasStatsAccess={hasStatsAccess} refreshing={Boolean(loading && data)} />
+      <ConstructedCardsBanner />
 
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт" data-loading={loading || undefined}>
         <ConstructedCardCatalogSearch
@@ -397,6 +351,28 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
             <button type="button" aria-label="Стандарт" title="Стандарт" aria-pressed={format === 'standard'} onClick={() => changeFormat('standard')}><img src="/card-format-standard.webp" alt="" /><span className="sr-only">Стандарт</span></button>
             <button type="button" aria-label="Вольный" title="Вольный" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}><img src="/assets/card-format-wild-128.webp" alt="" /><span className="sr-only">Вольный</span></button>
           </div>
+          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)} tourId="cards-filters" options={classFilterOptions(facets.classes)} visual="class" />
+          <FilterSelect label="Тип" value={filters.type} onChange={value => updateFilter('type', value)} options={textFilterOptions('Все типы', facets.types, constructedTypeLabel)} />
+          <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)} options={setFilterOptions(sets)} visual="set" />
+          <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)} options={numericFilterOptions('Любая', '/assets/mana-64.webp')} visual="stat" />
+          <FilterSelect label="Редкость" value={filters.rarity} onChange={value => updateFilter('rarity', value)} options={rarityFilterOptions(facets.rarities)} visual="rarity" align="end" />
+          <div className="constructed-cards__view" aria-label="Вид списка" data-tour-id="cards-view-switcher">
+            <button type="button" aria-pressed={view === 'gallery'} onClick={() => setView('gallery')}><Grid3X3 size={16} /> Галерея</button>
+            <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}><List size={17} /> Таблица</button>
+          </div>
+          <button type="button" className="constructed-cards__reset" onClick={reset}><RefreshCw size={16} /> Сбросить</button>
+          <button
+            type="button"
+            className="constructed-cards__advanced-toggle"
+            data-tour-id="cards-filters"
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="constructed-cards-advanced-filters"
+            onClick={() => setMobileFiltersOpen(current => !current)}
+          >
+            <SlidersHorizontal size={17} /> {mobileFiltersOpen ? 'Скрыть' : 'Ещё фильтры'}
+          </button>
+        </div>
+        <div id="constructed-cards-advanced-filters" className={`constructed-cards__secondary-controls${mobileFiltersOpen ? ' is-open' : ''}`}>
           <FilterSelect
             className="constructed-cards__rank-filter"
             label="Ранг"
@@ -448,31 +424,9 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
             <span aria-hidden="true">{filters.direction === 'asc' ? '↑' : '↓'}</span>
             <span className="constructed-cards__direction-label">{filters.direction === 'asc' ? 'По возрастанию' : 'По убыванию'}</span>
           </button>
-          <div className="constructed-cards__view" aria-label="Вид списка" data-tour-id="cards-view-switcher">
-            <button type="button" aria-pressed={view === 'gallery'} onClick={() => setView('gallery')}><Grid3X3 size={16} /> Галерея</button>
-            <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}><List size={17} /> Таблица</button>
-          </div>
-          <button
-            type="button"
-            className="constructed-cards__advanced-toggle"
-            data-tour-id="cards-filters"
-            aria-expanded={mobileFiltersOpen}
-            aria-controls="constructed-cards-advanced-filters"
-            onClick={() => setMobileFiltersOpen(current => !current)}
-          >
-            <SlidersHorizontal size={17} /> {mobileFiltersOpen ? 'Скрыть фильтры' : 'Дополнительные фильтры'}
-          </button>
-        </div>
-        <div id="constructed-cards-advanced-filters" className={`constructed-cards__secondary-controls${mobileFiltersOpen ? ' is-open' : ''}`}>
-          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)} tourId="cards-filters" options={classFilterOptions(facets.classes)} visual="class" />
-          <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)} options={setFilterOptions(sets)} visual="set" />
-          <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)} options={numericFilterOptions('Любая', '/assets/mana-64.webp')} visual="stat" />
           <FilterSelect label="Атака" value={filters.attack} onChange={value => updateFilter('attack', value)} options={numericFilterOptions('Любая', '/constructed-filter-icons/attack.webp')} visual="stat" />
           <FilterSelect label="Здоровье" value={filters.health} onChange={value => updateFilter('health', value)} options={numericFilterOptions('Любое', '/constructed-filter-icons/health.webp')} visual="stat" />
           <FilterSelect label="Механики" value={filters.mechanic} onChange={value => updateFilter('mechanic', value)} options={textFilterOptions('Все механики', facets.mechanics, value => mechanicLabel(value, data?.mechanicTranslations))} />
-          <FilterSelect label="Тип" value={filters.type} onChange={value => updateFilter('type', value)} options={textFilterOptions('Все типы', facets.types, constructedTypeLabel)} />
-          <FilterSelect label="Редкость" value={filters.rarity} onChange={value => updateFilter('rarity', value)} options={rarityFilterOptions(facets.rarities)} visual="rarity" align="end" />
-          <button type="button" className="constructed-cards__reset" onClick={reset}><RefreshCw size={16} /> Сбросить</button>
         </div>
       </section>
 

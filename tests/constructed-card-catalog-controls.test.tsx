@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { ConstructedCardTile } from '../src/modules/constructedCards/public';
 import ConstructedCardCatalogSearch from '../src/features/ConstructedCardCatalogSearch.js';
 import ConstructedCardDownloadButton, {
   constructedCardDownloadFilename,
@@ -100,3 +101,15 @@ for (const rule of galleryHoverRules) {
 }
 
 console.log('constructed-card catalog search and download controls passed');
+
+const tileMarkup = renderToStaticMarkup(<ConstructedCardTile name="Речной кроколиск" cost={2} tile="/api/public-resource/db/uploads/card-tiles/constructed_card/TEST.png" />);
+assert.match(tileMarkup, /src="\/api\/public-resource\/db\/uploads\/card-tiles\/constructed_card\/TEST.png"/);
+assert.match(tileMarkup, /alt="Речной кроколиск"/);
+const missingTileMarkup = renderToStaticMarkup(<ConstructedCardTile name="Речной кроколиск" cost={2} tile="https://untrusted.example/tile.png" />);
+assert.match(missingTileMarkup, /Речной кроколиск/);
+assert.doesNotMatch(missingTileMarkup, /untrusted.example/);
+for (const rarity of [' COMMON ', 'RARE', 'Epic', 'legendary', 'FREE']) {
+  const markup = renderToStaticMarkup(<ConstructedCardTile name="Карта" cost={2} rarity={rarity} />);
+  assert.match(markup, new RegExp(`data-rarity="${rarity.trim().toLowerCase()}"`));
+}
+assert.match(missingTileMarkup, /data-rarity="common"/, 'missing rarity uses a neutral glow');

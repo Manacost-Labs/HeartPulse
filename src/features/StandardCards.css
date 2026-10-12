@@ -101,11 +101,6 @@
   text-align: center;
   text-decoration: none;
 }
-.constructed-cards__gallery-card[data-rarity='free'],
-.constructed-cards__gallery-card[data-rarity='common'] { --card-rarity-glow: rgba(218, 235, 247, 0.82); }
-.constructed-cards__gallery-card[data-rarity='rare'] { --card-rarity-glow: rgba(50, 139, 255, 0.9); }
-.constructed-cards__gallery-card[data-rarity='epic'] { --card-rarity-glow: rgba(157, 78, 235, 0.9); }
-.constructed-cards__gallery-card[data-rarity='legendary'] { --card-rarity-glow: rgba(255, 151, 38, 0.94); }
 .constructed-cards__gallery-card::before {
   content: '';
   position: absolute;
@@ -205,23 +200,6 @@
 .constructed-cards__table tbody th a { display: grid; color: var(--cards-ink); text-decoration: none; }
 .constructed-cards__table tbody th small { overflow: hidden; color: #86694c; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
 .constructed-cards__class-icon { width: 28px; height: 28px; margin-right: 0.35rem; object-fit: contain; vertical-align: middle; }
-.constructed-cards__data-deck-card { width: 100%; min-height: 40px; }
-.constructed-cards__data-deck-card > span { display: block; padding: 0.5rem; font-weight: 900; }
-.constructed-cards__data-deck-card:has(.hsrdv) > span { display: none; }
-.constructed-cards__data-deck-card .hsrdv {
-  --hsrdv-tile-height: 40px;
-  --hsrdv-gem-width: 40px;
-  --hsrdv-count-width: 34px;
-  --hsrdv-art-right: 30px;
-  --hsrdv-name-left: 8px;
-  width: 100%;
-  font-family: var(--font-body);
-}
-.constructed-cards__data-deck-card .hsrdv-card-cost { font-size: 1.3rem; }
-.constructed-cards__data-deck-card .hsrdv-card-name { font-size: clamp(0.72rem, 1.1vw, 0.95rem); }
-.constructed-cards__data-deck-card .hsrdv-card-tile { cursor: pointer; transition: filter var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease); }
-.constructed-cards__table tbody th a:hover .hsrdv-card-tile,
-.constructed-cards__table tbody th a:focus-visible .hsrdv-card-tile { filter: brightness(1.12); transform: translateX(2px); }
 
 .constructed-cards__pagination { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; justify-content: center; margin-top: 1.2rem; }
 .constructed-cards__page-summary { flex: 1 0 100%; margin-bottom: 0.25rem; color: #795a3d; font-size: 0.68rem; font-weight: 800; text-align: center; }

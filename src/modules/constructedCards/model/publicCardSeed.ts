@@ -15,6 +15,6 @@ export type PublicCardSeed = {
   durability: number | null;
   armor: number | null;
   artist: string | null;
-  images: { card: string | null; crop?: string | null };
+  images: { card: string | null; crop?: string | null; tile?: string | null; horizontal?: string | null };
   stats: null;
 };

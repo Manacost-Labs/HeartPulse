@@ -32,7 +32,7 @@ export function HeaderFixture({ index = 0 }: { index?: number }) {
   const summary = <dl className="traditional-mode-banner__summary" aria-label="Сводка"><div><dt>Архетипов</dt><dd>42</dd></div><div><dt>Игр в выборке</dt><dd>1 234 567</dd></div></dl>;
   return <div className={`arena-app-shell arena-app-game-data arena-app-${route}`}>
     <div className="arena-workspace arena-workspace-with-tools"><main className="arena-main"><div className="arena-content arena-content-open"><div className={container}>
-      {index >= 6 ? <SectionBanner title={title} subtitle={subtitle} /> : index === 5 ? <ConstructedCardsBanner rankLabel="Алмаз" periodLabel="Текущий патч" hasStatsAccess={false} refreshing={false} /> : <header className="traditional-mode-banner">
+      {index >= 6 ? <SectionBanner title={title} subtitle={subtitle} /> : index === 5 ? <ConstructedCardsBanner /> : <header className="traditional-mode-banner">
         {index === 0 ? <StandardMetaSearchIntro /> : <div className="traditional-mode-banner__copy"><h1>{title}</h1><p>{subtitle}</p></div>}
         {summary}
       </header>}
