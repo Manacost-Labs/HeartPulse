@@ -2,8 +2,9 @@
 
 Hero-tier data is cached by mode and MMR. A successful API response lasts five
 minutes. A solo fallback snapshot lasts thirty seconds and retains its explicit
-reserve-snapshot label. Duos never uses the solo snapshot. Expired entries
-cannot satisfy a new request without another API attempt.
+reserve-snapshot label. Only solo Top 50% can use that snapshot: Top 1%, 5%,
+20% and Duos preserve API errors instead of showing unfiltered rankings.
+Expired entries cannot satisfy a new request without another API attempt.
 
 An open hero list observes its selected entry and refreshes at its expiry.
 Snapshot recovery therefore does not require navigation or a browser reload.
@@ -20,3 +21,9 @@ Clock-controlled tests cover snapshot expiry, live expiry, recovery on an open
 view, request deduplication, mode isolation, denied solo fallback for duos,
 bounded retries and disposal during an in-flight request. The hero-list story
 exercises the live view and navigation with deterministic API fixtures.
+
+Opening the view loads the selected ranking. Pointer intent or keyboard focus
+may warm a filter through the same cache; opening a page does not prefetch all
+eight combinations. Optional localized library failures do not discard a
+successful live ranking. See `battleground-catalog-interactions.md` for the
+library request and rendering contract.

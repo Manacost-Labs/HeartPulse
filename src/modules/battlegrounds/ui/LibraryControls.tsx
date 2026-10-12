@@ -1,8 +1,9 @@
 import React from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, Search, Users, X } from 'lucide-react';
 import { battlegroundMinionIconBySlug } from '../model/minionTypeIcons';
 
 type Option = { value: string; label: string; disabled?: boolean };
+const QUICK_MECHANICS = new Set(['Боевой клич', 'Предсмертный хрип', 'Божественный щит', 'Провокация', 'Перерождение', 'Магнетизм']);
 type FilterSelection = { id: string; label: string; remove: () => void };
 export type LibraryControlsProps = {
   sections: Option[]; pools: Option[]; section: string; pool: string;
@@ -37,8 +38,11 @@ function CatalogSelect({ label, value, options, onChange }: {
 }
 
 export function LibraryControls(props: LibraryControlsProps) {
+  const advancedCount = Number(props.duos) + Number(props.mechanic !== 'ALL') + Number(props.group !== 'ALL');
+  const quickMechanics = props.mechanics.filter(([, label]) => QUICK_MECHANICS.has(label));
   return <section className="bg-library-controls" aria-label="Управление библиотекой">
     <div className="bg-library-controls-heading" data-tour-id="bg-library-directory">
+      <img className="bg-library-catalog-seal" src="/bg-library-catalog-seal-v1.svg" alt="" width={48} height={48} />
       <div className="bg-library-catalog-selects">
         <CatalogSelect label="Раздел" value={props.section} options={props.sections} onChange={props.onSection} />
         <CatalogSelect label="Пул" value={props.pool} options={props.pools} onChange={props.onPool} />
@@ -49,6 +53,7 @@ export function LibraryControls(props: LibraryControlsProps) {
       <Search size={18} aria-hidden="true" />
       <input type="search" aria-label="Поиск карт" placeholder="Название, ID или механика…"
         value={props.query} onChange={event => props.onQuery(event.target.value)} />
+      {props.query && <button type="button" className="bg-library-search-clear" aria-label="Очистить поиск" onClick={() => props.onQuery('')}><X size={16} aria-hidden="true" /></button>}
     </label>
     <div data-tour-id="bg-library-filters">
       <SelectionRow label="Таверна">
@@ -65,12 +70,19 @@ export function LibraryControls(props: LibraryControlsProps) {
       </SelectionRow>}
     </div>
     <details className="bg-library-control-advanced">
-      <summary>Дополнительно <ChevronDown size={16} aria-hidden="true" /></summary>
+      <summary><span>Дополнительно</span>
+        <span className="bg-library-advanced-count" data-empty={advancedCount === 0}
+          aria-hidden={advancedCount === 0} aria-label={advancedCount > 0 ? `Активных дополнительных фильтров: ${advancedCount}` : undefined}>{advancedCount || ''}</span>
+        <ChevronDown className="bg-library-advanced-chevron" size={16} aria-hidden="true" /></summary>
       <div className="bg-library-control-advanced-fields">
-        <label className="bg-library-control-duos"><input type="checkbox" checked={props.duos} onChange={props.onDuos} />Показывать карты Duo</label>
         <CatalogSelect label="Механика" value={props.mechanic} options={[{ value: 'ALL', label: 'Все механики' }, ...props.mechanics.map(([value, label]) => ({ value, label }))]} onChange={props.onMechanic} />
         {props.groups.length > 1 && <CatalogSelect label="Группа" value={props.group} options={[{ value: 'ALL', label: 'Все группы' }, ...props.groups.map(([value, label]) => ({ value, label }))]} onChange={props.onGroup} />}
+        <label className="bg-library-control-duos"><input type="checkbox" checked={props.duos} onChange={props.onDuos} /><Users size={18} aria-hidden="true" /><span>Показывать карты Duo</span></label>
       </div>
+      {quickMechanics.length > 0 && <div className="bg-library-quick-mechanics" aria-label="Быстрый выбор механики">
+        {quickMechanics.map(([value, label]) =>
+          <Choice key={value} active={props.mechanic === value} onClick={() => props.onMechanic(props.mechanic === value ? 'ALL' : value)}>{label}</Choice>)}
+      </div>}
     </details>
     {props.selections.length > 0 && <div className="bg-library-active-filters" aria-label="Выбранные фильтры">
       {props.selections.map(selection => <button key={selection.id} type="button" onClick={selection.remove} aria-label={`Убрать фильтр: ${selection.label}`}>

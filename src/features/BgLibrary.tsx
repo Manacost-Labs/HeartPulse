@@ -1,7 +1,7 @@
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import '../modules/battlegrounds/public.css';
-import { LibraryControls, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
-import React, { useEffect, useMemo, useState } from 'react';
+import { createBattlegroundLibraryResource, useBattlegroundLibraryData, LibraryControls, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ExternalLink } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
@@ -139,11 +139,12 @@ interface StrategyEntry {
 
 interface BgLibraryProps {
   currentPath: string;
+  cacheScope?: string;
   navigatePath: (path: string) => void;
 }
 
-const INITIAL_VISIBLE_CARDS = 96;
-const MORE_VISIBLE_CARDS = 96;
+const INITIAL_VISIBLE_CARDS = 36;
+const MORE_VISIBLE_CARDS = 36;
 const ARCHIVE_PAGE_SIZE = 72;
 
 interface LibrarySectionConfig {
@@ -866,47 +867,22 @@ function metricTone(value: unknown): string {
   return 'text-[#a33a3a]';
 }
 
-function useLibraryData(kind: LibraryKind, pool: PoolMode) {
-  const [cards, setCards] = useState<LibraryCard[]>([]);
-  const [meta, setMeta] = useState<LibraryMeta>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setError('');
-    const inPool = pool === 'current' ? '1' : '0';
-    const metaRequest = isBaseLibraryKind(kind) ? fetchJson<LibraryMeta>(versionedLibraryUrl('/api/bg/library/meta')) : Promise.resolve({});
-    const cardsRequest = isBaseLibraryKind(kind)
+const libraryResource = createBattlegroundLibraryResource(async (kindValue, poolValue) => {
+  const kind = kindValue as LibraryKind;
+  const pool = poolValue as PoolMode;
+  const inPool = pool === 'current' ? '1' : '0';
+  const [rawMeta, rawCards] = await Promise.all([
+    isBaseLibraryKind(kind) ? fetchJson<LibraryMeta>(versionedLibraryUrl('/api/bg/library/meta')).catch(() => ({} as LibraryMeta)) : Promise.resolve({} as LibraryMeta),
+    isBaseLibraryKind(kind)
       ? fetchJson<{ data: LibraryCard[] }>(versionedLibraryUrl('/api/bg/library/cards', { card_type: kind, in_pool: inPool })).then(result => result.data || [])
-      : fetchAuxiliaryLibraryCards(kind, pool);
-
-    Promise.all([metaRequest, cardsRequest])
-      .then(results => {
-        if (!alive) return;
-        const rawMeta = results[0] as LibraryMeta;
-        const normalizedCards: LibraryCard[] = [];
-        for (const card of results[1] as LibraryCard[]) {
-          if (card?.dbf || card?.card_id) {
-            normalizedCards.push({ ...card, mechanics: normalizeMechanics(card.mechanics) });
-          }
-        }
-        setMeta({ ...rawMeta, mechanics: normalizeMechanics(rawMeta.mechanics) });
-        setCards(dedupeLibraryCards(normalizedCards));
-      })
-      .catch(errorValue => {
-        if (alive) setError(errorValue?.message || 'Не удалось загрузить библиотеку');
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-
-    return () => { alive = false; };
-  }, [kind, pool]);
-
-  return { cards, meta, loading, error };
-}
+      : fetchAuxiliaryLibraryCards(kind, pool),
+  ]);
+  const cards = rawCards.filter(card => card?.dbf || card?.card_id)
+    .map(card => ({ ...card, mechanics: normalizeMechanics(card.mechanics) }));
+  return { meta: { ...rawMeta, mechanics: normalizeMechanics(rawMeta.mechanics) }, cards: dedupeLibraryCards(cards) };
+});
+const EMPTY_LIBRARY_CARDS: LibraryCard[] = [];
+const EMPTY_LIBRARY_META: LibraryMeta = {};
 
 function MetricCard({ label, value, caption, tone, tourId }: { label: string; value: string; caption?: string; tone?: string; tourId?: string }) {
   return (
@@ -983,7 +959,7 @@ function MiniChart({ points, color = '#f1d47b', unit = '', invert = false }: { p
   );
 }
 
-function LibraryCardTile({
+const LibraryCardTile = React.memo(function LibraryCardTile({
   card,
   pool,
   navigatePath,
@@ -995,6 +971,7 @@ function LibraryCardTile({
   navigatePath: (path: string) => void;
   tourId?: string;
 }) {
+  const [showGolden, setShowGolden] = useState(false);
   const href = cardPath(card, pool);
   const image = primaryCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
   const fallbacks = fallbackCardImages(card, image, false);
@@ -1006,6 +983,8 @@ function LibraryCardTile({
       href={href}
       onClick={(event) => { event.preventDefault(); navigatePath(href); }}
       data-library-card-tile
+      onPointerEnter={event => { if (event.pointerType === 'mouse') setShowGolden(true); }}
+      onFocus={() => setShowGolden(true)}
       data-tour-id={tourId}
       className="group relative block overflow-visible rounded-md p-1 text-center transition-transform hover:-translate-y-1"
       style={{ textDecoration: 'none' }}
@@ -1016,20 +995,22 @@ function LibraryCardTile({
           alt={cardRuName(card)}
           className="relative z-10 h-full w-full object-contain drop-shadow-[0_16px_20px_rgba(21,31,47,0.22)] transition duration-(--motion-base) group-hover:scale-[1.03] sm:group-hover:-translate-x-5"
           loading="lazy"
+          decoding="async"
           data-fallbacks={fallbacks.join('|') || undefined}
           onError={hideBrokenTileImage}
         />
-        {golden && (
+        {golden && showGolden && (
           <img
             src={golden}
             alt={`${cardRuName(card)}, золотая версия`}
-            className="pointer-events-none absolute inset-0 z-20 h-full w-full translate-x-2 object-contain opacity-0 drop-shadow-[0_20px_26px_rgba(21,31,47,0.28)] transition duration-(--motion-base) group-hover:translate-x-8 group-hover:opacity-100 sm:group-hover:translate-x-12"
-            loading="lazy"
+            className="bg-library-golden-image pointer-events-none absolute inset-0 z-20 h-full w-full translate-x-2 object-contain opacity-0 drop-shadow-[0_20px_26px_rgba(21,31,47,0.28)] transition duration-(--motion-base) group-hover:translate-x-8 group-hover:opacity-100 sm:group-hover:translate-x-12"
+            loading="eager"
+            decoding="async"
             onError={hideBrokenImage}
           />
         )}
       </div>
-      <div className="mx-auto mt-2 max-w-[220px] rounded-md border border-[#d6e1f1] bg-white/85 px-2 py-2 opacity-95 transition-colors group-hover:border-[#d3af55]">
+      <div className="bg-library-card-caption mx-auto mt-2 max-w-[220px] px-2 py-1">
         <p className="line-clamp-2 font-hs text-sm leading-tight text-[#26374f]">{cardRuName(card)}</p>
         {englishName && <p lang="en" className="mt-1 line-clamp-2 text-xs leading-tight text-[#657893]">{englishName}</p>}
         <div className="mt-1 flex flex-wrap justify-center gap-1">
@@ -1042,7 +1023,7 @@ function LibraryCardTile({
       <span className="sr-only">Открыть страницу карты {cardRuName(card)}</span>
     </a>
   );
-}
+});
 
 function ChartPanel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
@@ -1054,9 +1035,16 @@ function ChartPanel({ title, subtitle, children }: { title: string; subtitle?: s
   );
 }
 
-function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void }) {
-  const { cards, meta, loading, error } = useLibraryData(kind, pool);
+function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string }) {
+  const { data, loading, error } = useBattlegroundLibraryData(libraryResource, kind, pool, cacheScope);
+  const cards = data?.cards ?? EMPTY_LIBRARY_CARDS;
+  const meta = data?.meta ?? EMPTY_LIBRARY_META;
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+  const searchIndex = useMemo(() => cards.map(card => ({ card, search: searchText(card) })).sort((a, b) =>
+    (kind === 'darkmoon_prize' ? libraryTierSortValue(a.card) - libraryTierSortValue(b.card)
+      : Number(a.card.tavern_tier || 99) - Number(b.card.tavern_tier || 99))
+      || cardRuName(a.card).localeCompare(cardRuName(b.card), 'ru')), [cards, kind]);
   const [tavernFilters, setTavernFilters] = useState<string[]>([]);
   const [raceFilters, setRaceFilters] = useState<string[]>([]);
   const [groupFilter, setGroupFilter] = useState('ALL');
@@ -1126,13 +1114,13 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
   }, [cards]);
 
   const filtered = useMemo(() => {
-    const needle = cleanSearch(query);
+    const needle = cleanSearch(deferredQuery);
     const rows: LibraryCard[] = [];
     const tavernSet = new Set(tavernFilters);
     const raceSet = new Set(raceFilters);
-    for (const card of cards) {
+    for (const { card, search } of searchIndex) {
       if (!isArchiveDisplayCard(card, kind, pool)) continue;
-      if (needle && !containsSearchText(searchText(card), needle)) continue;
+      if (needle && !containsSearchText(search, needle)) continue;
       if (!includeDuos && card.duos_only) continue;
       if (tavernSet.size > 0 && !tavernSet.has(String(card.tavern_tier || ''))) continue;
       if (kind === 'minion' && raceSet.size > 0 && !raceSet.has(card.creature_type?.slug || '')) continue;
@@ -1140,13 +1128,8 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
       if (mechanic !== 'ALL' && !(card.mechanics || []).some(item => item.slug === mechanic)) continue;
       rows.push(card);
     }
-    return rows.sort((a, b) => {
-      if (kind === 'darkmoon_prize') {
-        return libraryTierSortValue(a) - libraryTierSortValue(b) || cardRuName(a).localeCompare(cardRuName(b), 'ru');
-      }
-      return Number(a.tavern_tier || 99) - Number(b.tavern_tier || 99) || cardRuName(a).localeCompare(cardRuName(b), 'ru');
-    });
-  }, [cards, groupFilter, includeDuos, kind, mechanic, pool, query, raceFilters, tavernFilters]);
+    return rows;
+  }, [cards, deferredQuery, groupFilter, includeDuos, kind, mechanic, pool, raceFilters, searchIndex, tavernFilters]);
 
   const archivePageCount = Math.max(1, Math.ceil(filtered.length / ARCHIVE_PAGE_SIZE));
   const normalizedArchivePage = Math.min(archivePage, archivePageCount);
@@ -1216,7 +1199,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
         onReset={resetFilters} resultCount={filtered.length} totalCount={cards.length}
       />
 
-      <section className="overflow-visible rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-sm sm:p-5">
+      <section className="bg-library-results overflow-visible p-1 sm:p-2" aria-busy={loading || query !== deferredQuery}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-hs text-xl text-[#26374f]">{kindTitle} · {poolTitle}</p>
@@ -1646,10 +1629,10 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
   );
 }
 
-export default function BgLibrary({ currentPath, navigatePath }: BgLibraryProps) {
+export default function BgLibrary({ currentPath, navigatePath, cacheScope }: BgLibraryProps) {
   const route = libraryRoute(currentPath);
   if (route.page === 'detail' && route.dbfId) {
     return <DetailPage kind={route.kind} pool={route.pool} dbfId={route.dbfId} navigatePath={navigatePath} />;
   }
-  return <LibraryListPage kind={route.kind} pool={route.pool} navigatePath={navigatePath} />;
+  return <LibraryListPage kind={route.kind} pool={route.pool} navigatePath={navigatePath} cacheScope={cacheScope} />;
 }

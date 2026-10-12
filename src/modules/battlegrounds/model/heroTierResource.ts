@@ -42,7 +42,7 @@ export function createBattlegroundHeroTierResource(dependencies: Dependencies) {
         data = await dependencies.loadLive(mode, mmr);
         if (!data.sections.length) throw new Error('Empty hero tier data');
       } catch (error) {
-        if (mode === 'duos') throw error;
+        if (mode !== 'solo' || mmr !== 'TOP_50_PERCENT') throw error;
         data = await dependencies.loadSnapshot();
         if (!data.sections.length) throw new Error('Empty hero snapshot');
         source = 'snapshot';

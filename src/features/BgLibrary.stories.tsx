@@ -17,7 +17,7 @@ const cards = [
   },
 ].map(card => ({
   ...card, card_type: { slug: 'minion' }, tavern_tier: 1,
-  in_pool: true, mechanics: [], images: {},
+  in_pool: true, mechanics: [], images: { card: '/arena-logo-icon.webp?v=arena-legacy-20260629', golden: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 330"%3E%3Crect width="240" height="330" fill="%23b98536"/%3E%3C/svg%3E' },
 }));
 
 const meta = {
@@ -72,6 +72,30 @@ export const CompactControls: Story = {
     await userEvent.click(canvas.getByText('Дополнительно'));
     await expect(canvas.getByRole('button', { name: 'Убрать фильтр: Duo' })).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Убрать фильтр: Duo' }));
+    const search = canvas.getByRole('searchbox', { name: 'Поиск карт' });
+    await userEvent.type(search, 'Счастье');
+    await userEvent.click(canvas.getByRole('button', { name: 'Очистить поиск' }));
+    await expect(search).toHaveValue('');
     await expect(canvas.queryByRole('button', { name: 'Сбросить всё' })).not.toBeInTheDocument();
+  },
+};
+
+export const LargeCatalog: Story = {
+  args: { cacheScope: 'large-catalog-preview' },
+  beforeEach: () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const path = new URL(String(input), location.origin).pathname;
+      if (path === '/api/bg/library/cards') return Response.json({ data: Array.from({ length: 120 }, (_, index) => ({
+        ...cards[index % cards.length], dbf: 200000 + index, card_id: `BG_FIXTURE_${index}`,
+        name: { ru: `Проверочная карта ${index + 1}`, en: `Catalog fixture ${index + 1}` },
+      })) });
+      return originalFetch(input, init);
+    };
+    return () => { globalThis.fetch = originalFetch; };
+  },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByText('120 найдено · 120 загружено')).toBeVisible();
+    await expect(canvas.getAllByRole('link', { name: /Открыть страницу карты/ })).toHaveLength(36);
   },
 };

@@ -41,14 +41,21 @@ test('compact library supports tribe selection, empty-result reset and hidden ad
       assert.equal(state.imagesLoaded, true, `${width}px game assets loaded`);
       assert.equal(state.roundRaces, true, `${width}px round tribe icons`);
       if (width === 1440) assert.ok(state.height < 360, `toolbar height ${state.height}`);
+      const summaryRect = () => page.$eval('.bg-library-control-advanced summary', element => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      });
+      const closedRect = await summaryRect();
       const search = await page.$('input[aria-label="Поиск карт"]');
       await search.type('Нет такой карты');
       await page.waitForSelector('button::-p-text(Сбросить фильтры)');
       await page.click('button::-p-text(Сбросить фильтры)');
       assert.equal(await page.$eval('input[aria-label="Поиск карт"]', element => element.value), '');
       await page.click('.bg-library-control-advanced summary');
+      assert.deepEqual(await summaryRect(), closedRect, 'opening advanced filters does not shift its toggle');
       await page.click('.bg-library-control-duos input');
       await page.click('.bg-library-control-advanced summary');
+      assert.deepEqual(await summaryRect(), closedRect, 'active filter counts do not change the toggle dimensions');
       await page.waitForSelector('button[aria-label="Убрать фильтр: Duo"]');
       await page.click('button[aria-label="Убрать фильтр: Duo"]');
       await page.click('button::-p-text(Аберрация)');
@@ -75,5 +82,28 @@ test('compact library supports tribe selection, empty-result reset and hidden ad
     }
     assert.deepEqual(errors, []);
     assert.deepEqual(failed, []);
+  } finally { await browser.close(); await runtime.close(); }
+});
+
+test('library bounds its first batch and loads golden artwork only for an intended card', async () => {
+  const runtime = await startStorybookStatic();
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${runtime.storyUrl('battlegrounds-library--large-catalog')}&args=cacheScope:batch-test`);
+    await page.waitForFunction(() => document.querySelector('.bg-library-controls [role=status]')?.textContent.includes('120 найдено'));
+    const count = await page.$$eval('[data-library-card-tile]', tiles => tiles.length);
+    assert.equal(count, 36, 'the initial DOM is bounded independently of catalog size');
+    const goldenBefore = await page.$$eval('.bg-library-golden-image', images => images.length);
+    assert.equal(goldenBefore, 0, 'hidden golden artwork does not enter the initial DOM');
+    const tile = await page.$('[data-library-card-tile]');
+    await tile.focus();
+    await page.waitForSelector('.bg-library-golden-image');
+    assert.equal(await page.$$eval('.bg-library-golden-image', images => images.length), 1);
+    assert.equal(await page.$eval('.bg-library-results', element => getComputedStyle(element).backgroundImage), 'none');
+    const before = await page.$$eval('[data-library-card-tile]', tiles => tiles.length);
+    await page.click('button::-p-text(Показать ещё)');
+    await page.waitForFunction(expected => document.querySelectorAll('[data-library-card-tile]').length === expected, {}, before + 36);
   } finally { await browser.close(); await runtime.close(); }
 });

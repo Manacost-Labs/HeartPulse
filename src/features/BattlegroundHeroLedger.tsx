@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import { publicResourceUrl } from '../publicResourceUrl';
 import type {
@@ -155,9 +155,10 @@ function LedgerRow({
   const heroPowerText = plainText(hero.heroPower?.text);
   return (
     <div className={`bg-hero-ledger__row${flat ? ' bg-hero-ledger__row--flat' : ''}`} role="row">
+      {!flat && <span className="sr-only" role="cell">Тир {tier}</span>}
       {flat && (
         <div className={`bg-hero-ledger__tier-cell bg-hero-ledger__tier-mark--${tier.toLowerCase()}`} role="cell">
-          <span className="bg-hero-ledger__tier-emblem"><strong>{tier}</strong></span>
+          <span className="bg-hero-ledger__tier-emblem"><img src={`/bg-tier-emblem-${tier.toLowerCase()}-v1.svg`} alt={`Тир ${tier}`} width={72} height={84} /></span>
         </div>
       )}
       <div className="bg-hero-ledger__hero" role="cell">
@@ -291,12 +292,13 @@ export default function BattlegroundHeroLedger({
   );
 
   return (
-    <div className="bg-hero-ledger" role="table" aria-label="Таблица героев Полей сражений">
+    <div className="bg-hero-ledger">
       <div className="bg-hero-ledger__mobile-sort" aria-label="Сортировка таблицы">
         <SortButton field="tier" label="Тир" sortKey={sortKey} sortDirection={sortDirection} onSort={onSort} />
         <SortButton field="pickRate" label="Выбор" sortKey={sortKey} sortDirection={sortDirection} onSort={onSort} />
         <SortButton field="averagePlace" label="Место" sortKey={sortKey} sortDirection={sortDirection} onSort={onSort} />
       </div>
+      <div role="table" aria-label="Таблица героев Полей сражений" aria-colcount={6}>
       <div className="bg-hero-ledger__header" role="row">
         <span role="columnheader" aria-sort={ariaSort('tier')}>
           <SortButton field="tier" label="Тир" sortKey={sortKey} sortDirection={sortDirection} onSort={onSort} />
@@ -313,31 +315,28 @@ export default function BattlegroundHeroLedger({
       </div>
       {sortKey === 'tier'
         ? orderedSections.map(section => (
-            <section key={section.tier} className="bg-hero-ledger__tier" role="rowgroup" aria-label={`Тир ${section.tier}`}>
-              <div className={`bg-hero-ledger__tier-mark bg-hero-ledger__tier-mark--${section.tier.toLowerCase()}`} role="rowheader">
-                <span className="bg-hero-ledger__tier-emblem"><strong>{section.tier}</strong></span>
+            <div key={section.tier} className="bg-hero-ledger__tier">
+              <div className={`bg-hero-ledger__tier-mark bg-hero-ledger__tier-mark--${section.tier.toLowerCase()}`} aria-hidden="true">
+                <span className="bg-hero-ledger__tier-emblem"><img src={`/bg-tier-emblem-${section.tier.toLowerCase()}-v1.svg`} alt={`Тир ${section.tier}`} width={72} height={84} /></span>
                 <span className="bg-hero-ledger__tier-count">{heroCountLabel(section.heroes.length)}</span>
               </div>
-              <div className="bg-hero-ledger__rows">
+              <div className="bg-hero-ledger__rows" role="rowgroup" aria-label={`Тир ${section.tier}`}>
                 {section.heroes.map(hero => (
-                  <React.Fragment key={`${section.tier}-${hero.dbfId || hero.name}`}>
-                    <LedgerRow
+                    <LedgerRow key={`${section.tier}-${hero.dbfId || hero.name}`}
                       hero={hero}
                       tier={section.tier}
                       composition={compositionFor(hero)}
                       compositionsLoading={compositionsLoading}
                       onNavigate={onNavigate}
                     />
-                  </React.Fragment>
                 ))}
               </div>
-            </section>
+            </div>
           ))
         : (
             <div className="bg-hero-ledger__flat" role="rowgroup">
               {sortedEntries.map(({ hero, tier }) => (
-                <React.Fragment key={`${tier}-${hero.dbfId || hero.name}`}>
-                  <LedgerRow
+                  <LedgerRow key={`${tier}-${hero.dbfId || hero.name}`}
                     hero={hero}
                     tier={tier}
                     composition={compositionFor(hero)}
@@ -345,10 +344,10 @@ export default function BattlegroundHeroLedger({
                     onNavigate={onNavigate}
                     flat
                   />
-                </React.Fragment>
               ))}
             </div>
           )}
+      </div>
     </div>
   );
 }
