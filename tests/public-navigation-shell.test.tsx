@@ -52,7 +52,7 @@ assert.match(html, /Материалы и события/);
 assert.match(html, /aria-expanded="true"/);
 assert.match(html, /id="arena-mobile-constructors"/);
 assert.match(html, /id="arena-sidebar-misc"/);
-assert.match(html, /Обновлено/);
+assert.doesNotMatch(html, /arena-sidebar-status|Дата обновления данных|Обновлено/);
 
 // The drawer is in the server HTML even while closed: a native popover the
 // toggle opens before React hydrates, with plain links inside.

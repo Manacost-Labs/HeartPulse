@@ -5249,8 +5249,6 @@ for (const [device, viewport] of [
       const activeLink = sidebar?.querySelector('.arena-sidebar-link-active');
       const inactiveIcon = inactiveLink?.querySelector('.arena-sidebar-link-icon');
       const status = sidebar?.querySelector('.arena-sidebar-status');
-      const statusLabel = status?.querySelector('span');
-      const statusValue = status?.querySelector('strong');
       const profile = sidebar?.querySelector('.arena-sidebar-profile');
       let profileIcon = profile?.querySelector('.arena-sidebar-profile-icon');
       let profileIconFixture = null;
@@ -5274,7 +5272,6 @@ for (const [device, viewport] of [
       const inactiveStyles = inactiveLink ? getComputedStyle(inactiveLink) : null;
       const inactiveIconStyles = inactiveIcon ? getComputedStyle(inactiveIcon) : null;
       const activeStyles = activeLink ? getComputedStyle(activeLink) : null;
-      const statusStyles = status ? getComputedStyle(status) : null;
       const profileStyles = profile ? getComputedStyle(profile) : null;
       const profileIconStyles = profileIcon ? getComputedStyle(profileIcon) : null;
       const shellStyles = shell ? getComputedStyle(shell) : null;
@@ -5338,12 +5335,7 @@ for (const [device, viewport] of [
         activeBackground: activeStyles?.backgroundImage || '',
         activeShadow: activeStyles?.boxShadow || '',
         activeBeforeDisplay: activeLink ? getComputedStyle(activeLink, '::before').display : '',
-        statusPadding: statusStyles?.padding || '',
-        statusBorderColor: statusStyles?.borderTopColor || '',
-        statusDotBackground: status ? getComputedStyle(status, '::before').backgroundColor : '',
-        statusDotShadow: status ? getComputedStyle(status, '::before').boxShadow : '',
-        statusLabelColor: statusLabel ? getComputedStyle(statusLabel).color : '',
-        statusValueColor: statusValue ? getComputedStyle(statusValue).color : '',
+        statusPresent: Boolean(status),
         profilePosition: profileStyles?.position || '',
         profileMinHeight: profileStyles?.minHeight || '',
         profilePadding: profileStyles?.padding || '',
@@ -5427,12 +5419,7 @@ for (const [device, viewport] of [
       || sidebarState.activeBackground === 'none'
       || sidebarState.activeShadow === 'none'
       || sidebarState.activeBeforeDisplay !== 'none'
-      || sidebarState.statusPadding !== '10.4px 7.2px 5.6px'
-      || sidebarState.statusBorderColor !== 'rgba(232, 192, 103, 0.23)'
-      || sidebarState.statusDotBackground !== 'rgb(114, 188, 117)'
-      || sidebarState.statusDotShadow === 'none'
-      || sidebarState.statusLabelColor !== 'rgb(197, 168, 115)'
-      || sidebarState.statusValueColor !== 'rgb(255, 240, 199)'
+      || sidebarState.statusPresent
       || sidebarState.profilePosition !== 'relative'
       || sidebarState.profileMinHeight !== '74px'
       || sidebarState.profilePadding !== '12.48px 16px'

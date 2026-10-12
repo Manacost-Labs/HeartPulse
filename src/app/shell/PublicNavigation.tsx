@@ -106,7 +106,7 @@ function MobileMenu({
 
 function DesktopSidebar({
   activeTab, appIsContestAdmin, onNavigate, onNavigateLogin, onToggleSidebarNavGroup,
-  profileLabel, sidebarNavGroup, sidebarProfile, updatedAtLabel, visibleArenaTabs, visibleMiscTabs,
+  profileLabel, sidebarNavGroup, sidebarProfile, visibleArenaTabs, visibleMiscTabs,
   wantsLogin,
 }: PublicNavigationProps) {
   const sidebarLinkProps = { activeTab, variant: 'sidebar' as const, onNavigate };
@@ -162,11 +162,6 @@ function DesktopSidebar({
               <NavigationRouteLinks routes={visibleMiscTabs} {...sidebarLinkProps} sublink />
             </NavigationGroupControl>
           </nav>
-
-          <div className="arena-sidebar-status" aria-label="Дата обновления данных">
-            <span>Обновлено</span>
-            <strong>{updatedAtLabel}</strong>
-          </div>
 
           <a
             href="/?login"

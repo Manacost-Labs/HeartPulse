@@ -12,6 +12,10 @@ The skip link remains the first DOM element in the public root, before the
 pending navigation indicator, so keyboard entry and shell readiness share the
 same accessibility contract.
 
+The public sidebar omits its global update-status block, including the empty
+«Нет данных» label. The profile control stays at the bottom; page data-loading
+and freshness reporting are unchanged.
+
 Switching navigation groups removes the old group's geometry immediately,
 before revealing the new one. Closing a group must not postpone layout until
 its fade finishes, move controls a second time, or leave hidden links visible.
