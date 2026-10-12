@@ -1,7 +1,7 @@
 import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Copy, ExternalLink, MoreHorizontal, X } from 'lucide-react';
+import { ArrowRight, Copy, ExternalLink, LifeBuoy, MoreHorizontal, X } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { AuthUser } from '../model/authUser';
 import AuthAvatar from './AuthAvatar';
@@ -114,7 +114,8 @@ function AccountHeader({ user, name, contact, publicProfileHref, linkCopied, onC
       <header className="account-header" data-tour-id="profile-summary">
         <AuthAvatar user={{ name, email: '', avatarInitials: user.avatarInitials, photoUrl: user.photoUrl }} size={68} />
         <div className="account-header__identity">
-          <p className="account-header__eyebrow">Личный кабинет</p>
+          <p className="account-header__eyebrow">Ваш аккаунт</p>
+          <h2 className="account-header__name">{name || 'Игрок HearthPulse'}</h2>
           {contact && <p className="account-header__contact">{contact}</p>}
         </div>
         <div className="account-header__actions">
@@ -141,6 +142,13 @@ export default function AccountDashboard(props: AccountDashboardProps) {
   return (
     <div className="account-dashboard">
       <AccountHeader {...props} />
+      <nav className="account-navigation" aria-label="Разделы личного кабинета">
+        <a href="#account-access">Обзор доступа</a>
+        <a href="#account-links">Способы входа</a>
+        <a href="#account-settings" onClick={openSettings}>Контакты</a>
+        <a href="#account-contests">Мои конкурсы</a>
+        <a href="/faq/">Помощь <ExternalLink size={15} aria-hidden="true" /></a>
+      </nav>
       <AccountMessage message={props.message} />
       <div className="account-dashboard__columns">
         <div className="account-dashboard__main">
@@ -153,11 +161,19 @@ export default function AccountDashboard(props: AccountDashboardProps) {
             boosty={props.boosty}
             patreonLinkUrl={props.patreonLinkUrl}
           />
+          <AccountSettings {...props.settings} />
           <AccountContests entries={props.contests.entries} loading={props.contests.loading} />
         </div>
         <div className="account-dashboard__side">
           <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} />
-          <AccountSettings {...props.settings} />
+          <aside className="account-help" aria-labelledby="account-help-title">
+            <LifeBuoy size={24} aria-hidden="true" />
+            <h2 id="account-help-title">Под рукой</h2>
+            <p>Ответы на вопросы о вашем аккаунте и подписке.</p>
+            <a href="/faq/#faq-access-missing">Оплатили, а доступ закрыт <ArrowRight size={16} aria-hidden="true" /></a>
+            <a href="/faq/#faq-telegram-link">Как привязать Telegram <ArrowRight size={16} aria-hidden="true" /></a>
+            <a href="/faq/#faq-public-profile">Что видно в публичном профиле <ArrowRight size={16} aria-hidden="true" /></a>
+          </aside>
         </div>
       </div>
       <button type="button" className="account-logout" onClick={props.onLogout}>Выйти из аккаунта</button>

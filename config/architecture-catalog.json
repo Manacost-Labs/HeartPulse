@@ -1609,6 +1609,43 @@
         "server/**",
         "other frontend module internals"
       ]
+    },
+    {
+      "name": "frontend-help-center",
+      "status": "modular",
+      "owner": "product-shell",
+      "purpose": "Own searchable public FAQ with server-rendered answers and stable question links.",
+      "paths": [
+        "src/modules/helpCenter"
+      ],
+      "publicEntrypoints": [
+        "src/modules/helpCenter/public.ts"
+      ],
+      "frontendRoutes": [
+        "/faq"
+      ],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/specs/help-center.md",
+        "docs/architecture/help-center.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/next-support-prompt-browser.test.mjs",
+        "tests/account-dashboard-model.test.ts"
+      ],
+      "allowedDependencies": [
+        "React",
+        "lucide-react",
+        "shared UI"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other domain internals"
+      ]
     }
   ],
   "legacyAreas": [

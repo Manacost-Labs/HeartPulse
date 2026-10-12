@@ -29,11 +29,13 @@ export const ActiveSubscription: Story = {
     const canvas = within(canvasElement);
     await canvas.findByRole('heading', { name: 'Ваш доступ к HearthPulse' });
     await expect(canvas.getByRole('heading', { level: 1, name: 'Личный кабинет' })).toBeVisible();
+    await expect(canvas.getByRole('heading', { name: 'Александр' })).toBeVisible();
+    await expect(canvas.getByRole('navigation', { name: 'Разделы личного кабинета' })).toBeVisible();
     await expect(await canvas.findByRole('link', { name: /^Арена/ })).toHaveAttribute('href', '/tierlist/');
     const contacts = canvasElement.querySelector('details');
     if (!contacts) throw new Error('Contacts disclosure is missing');
     await expect(contacts).not.toHaveAttribute('open');
-    await userEvent.click(canvas.getByText('Контакты и рассылка'));
+    await userEvent.click(canvas.getByRole('link', { name: /^Контакты$/ }));
     await expect(contacts).toHaveAttribute('open');
     await expect(canvas.getByRole('textbox', { name: 'Почта для связи' })).toBeVisible();
   },
@@ -52,7 +54,7 @@ export const RefreshFailure: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByRole('heading', { name: 'Ваш доступ к HearthPulse' });
-    await userEvent.click(canvas.getByRole('button', { name: 'Проверить снова' }));
+    await userEvent.click(await canvas.findByRole('button', { name: 'Проверить снова' }));
     // Messages float in document.body, outside the story canvas.
     const page = within(canvasElement.ownerDocument.body);
     await expect(await page.findByRole('alert')).toHaveTextContent('Не удалось проверить подписку');

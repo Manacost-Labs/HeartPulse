@@ -9,7 +9,9 @@ profile data stays public-only.
 
 ## Layout
 
-- A burgundy header with the avatar, the name as the page's only `h1`, the
+- The shared «Личный кабинет» banner supplies the only `h1`, with sizing
+  tokens of 210 px on desktop and 180 px on mobile. A compact parchment
+  identity row shows the avatar, owner name as `h2`, the
   main contact, «Публичный профиль», «Копировать ссылку» and a «⋯» menu
   with «Контакты и рассылка» and «Выйти из аккаунта».
 - The access card. With access it names the source (Boosty level and price,
@@ -17,11 +19,15 @@ profile data stays public-only.
   open sections; closed sections follow as plain items. Without access it
   offers the Boosty e-mail confirmation, Patreon (when configured) and a
   Boosty subscription link, then lists what a subscription opens.
+- Visible section links lead to access, sign-in methods, contacts and contests.
 - «Вход и привязки»: e-mail, Telegram, Boosty and Patreon (when configured),
   each with its state and the action that links it.
 - Contest entries, one quiet line while there are none.
-- «Контакты и рассылка» (prize contacts and the newsletter), folded by
-  default.
+- «Контакты и рассылка» is folded by default in the wide main column.
+  Its form separates prize contacts from newsletter consent. Contact fields
+  do not link Telegram, change the login email or confirm a subscription.
+- «Под рукой» links to specific FAQ answers about access, Telegram and the
+  public profile.
 - Results of saving, linking and checking float at the bottom of the
   screen. Successes hide after six seconds; errors stay until closed.
 
@@ -62,7 +68,7 @@ not sending.
   only through OIDC or the bot code.
 - At 320, 390 and 1440 px nothing overflows horizontally, the «⋯» menu stays
   on screen and every control is at least 40 px high; buttons and inputs are
-  44 px. Focus is a 3 px burgundy outline (gold in the header); Escape
+  44 px. Focus is a 3 px burgundy outline; Escape
   closes the menu and returns focus to its button.
 - `/?login` has the tab title «Личный кабинет — HearthPulse» and stays
   `noindex` through the public URL policy.

@@ -11,8 +11,8 @@
     "/faq": {
       "policyRouteId": "faq",
       "navigationRouteId": "faq",
-      "title": "FAQ и помощь по Manacost Stats — вход, подписка и доступ",
-      "description": "Подробная помощь по регистрации, входу, Boosty, Telegram, уровням подписки, paywall, статистике и разделам Manacost Stats.",
+      "title": "FAQ HearthPulse — аккаунт, подписка и игровые разделы",
+      "description": "Ответы на вопросы о входе, личном кабинете, Boosty, Telegram, Patreon, доступе, статистике, Арене, Полях сражений и колодах Hearthstone.",
       "sitemap": true
     },
     "/developers/api": {

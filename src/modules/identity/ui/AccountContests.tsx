@@ -26,7 +26,7 @@ function joinedLabel(value: string): string {
 /** Contest entries of the viewer; one quiet line until there are any. */
 export default function AccountContests({ entries, loading }: { entries: AccountContestEntry[]; loading: boolean }) {
   return (
-    <section className="account-card account-contests" aria-labelledby="account-contests-title" data-tour-id="profile-contests">
+    <section id="account-contests" className="account-card account-contests" aria-labelledby="account-contests-title" data-tour-id="profile-contests">
       <div className="account-contests__head">
         <h2 id="account-contests-title">Конкурсы</h2>
         <a href="/contests/">Текущие конкурсы</a>

@@ -23,9 +23,9 @@ export default function AccountLinks({ user, subscription, telegram, patreonLink
 }) {
   const rows = accountLinkRows(user, subscription);
   return (
-    <section className="account-card account-links" aria-labelledby="account-links-title">
+    <section id="account-links" className="account-card account-links" aria-labelledby="account-links-title">
       <h2 id="account-links-title">Вход и привязки</h2>
-      <p className="account-muted">Любой из этих способов ведёт в один и тот же аккаунт.</p>
+      <p className="account-muted">Привязывайте способы входа здесь, чтобы пользоваться одним аккаунтом.</p>
       <ul className="account-links__list">
         {rows.map(row => (
           <li key={row.id} className="account-links__row" data-tour-id={row.id === 'telegram' ? 'profile-telegram-access' : undefined}>
