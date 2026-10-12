@@ -325,3 +325,14 @@ the browser regression.
 
 References: [image loading](https://web.dev/articles/browser-level-image-lazy-loading),
 [LCP](https://web.dev/articles/lcp), [INP](https://web.dev/articles/inp).
+
+## Four-task release integration
+
+The combined catalog, builder, Arena and Battlegrounds changes measure 187,713
+gzip bytes of initial builder JavaScript and 33,094 bytes of CSS in the locked
+production Next build. The standalone builder measurement above does not include
+the concurrent shared catalog changes. Review confirms module-local dialog and
+deferred-gallery logic, no new dependency and no eager administrative import.
+Only this route's JavaScript ceiling increases from 183 to 184 KiB (188,416
+bytes), covering the 321-byte overrun with less than 1 KiB of headroom. All other
+route ceilings, the CSS ceiling and administrative-bundle guards stay unchanged.
