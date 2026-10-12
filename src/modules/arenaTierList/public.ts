@@ -13,3 +13,8 @@ export type {
   TierlistData,
   TierlistSource,
 } from './model/types';
+
+export { TierListControls, TierBadge } from './ui/TierListControls';
+export type { ManaFilterValue } from './ui/TierListControls';
+
+export { arenaCardImageSources } from './model/cardImages';

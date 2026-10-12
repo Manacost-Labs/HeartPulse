@@ -8,8 +8,12 @@ type Dependencies = { request: typeof fetch; storage?: StoragePort; now?: () => 
 
 /** Cache protected snapshots per account and source; never reuse them after an access denial. */
 export function createArenaTierListClient({ request, storage, now = Date.now }: Dependencies) {
-  const remove = (key: string) => { try { storage?.removeItem(key); } catch { /* Optional storage. */ } };
+  const memory = new Map<string, Cached>();
+  const remove = (key: string) => { memory.delete(key); try { storage?.removeItem(key); } catch { /* Optional storage. */ } };
   const read = (key: string, source: TierlistSource): Cached | null => {
+    const hot = memory.get(key);
+    if (hot && now() >= hot.ts && now() - hot.ts <= TIERLIST_CACHE_TTL_MS) return hot;
+    memory.delete(key);
     try {
       const raw = storage?.getItem(key);
       if (!raw) return null;
@@ -21,10 +25,13 @@ export function createArenaTierListClient({ request, storage, now = Date.now }: 
         remove(key);
         return null;
       }
-      return { data, ts: entry.ts, etag: 'etag' in entry && typeof entry.etag === 'string' ? entry.etag : null };
+      const cached = { data, ts: entry.ts, etag: 'etag' in entry && typeof entry.etag === 'string' ? entry.etag : null };
+      memory.set(key, cached);
+      return cached;
     } catch { return null; }
   };
   const write = (key: string, entry: Cached) => {
+    memory.set(key, entry);
     try { storage?.setItem(key, JSON.stringify(entry)); } catch { /* Storage is optional. */ }
   };
   return {
@@ -45,16 +52,20 @@ export function createArenaTierListClient({ request, storage, now = Date.now }: 
         if (response.status === 304 && !cached) {
           response = await request(baseUrl, { cache: 'no-store', signal: options.signal });
         }
+        if (options.signal?.aborted) return { status: 'error', data: null };
         if (response.status === 401 || response.status === 403) {
           remove(key);
           return { status: 'denied', data: null };
         }
         if (!response.ok && response.status !== 304) throw new Error('Arena tier-list request failed');
         const data = response.status === 304 ? cached?.data : parseArenaTierList(await response.json(), source);
+        if (options.signal?.aborted) return { status: 'error', data: null };
         if (!data) throw new Error('Invalid Arena tier-list response');
         const stale = /stale|fallback/.test(response.headers.get('X-Data-Cache') ?? '');
         const confirmed = stale ? { ...data, warning: 'stale' } : data;
-        write(key, { data: confirmed, ts: now(), etag: response.headers.get('ETag') ?? cached?.etag ?? null });
+        const entry = { data: confirmed, ts: now(), etag: response.headers.get('ETag') ?? cached?.etag ?? null };
+        if (response.status === 304 && !stale) memory.set(key, entry);
+        else write(key, entry);
         return arenaTierListState(confirmed, stale);
       } catch {
         return cached ? arenaTierListState({ ...cached.data, warning: 'stale' }, true)

@@ -22,6 +22,13 @@ Use the current user request, repository documentation and supplied visual
 references for task scope and design context. External task databases and
 design boards are not required to investigate, implement or verify work.
 
+For any tier-rating badge work, read the “Значки тиров — единый стандарт сайта”
+section of `assets.md`. All tier-rating badges across the site must use the
+bronze shield, tier colour and readable game-font letter implemented by
+`TierBadge`, including its compact variant. Do not introduce alternative badge
+styles or duplicate its JSX/CSS. Reuse through public contracts and preserve
+`docs/architecture/module-boundaries.md` when wiring other domains.
+
 ## Required Answer Style
 
 The owner reads every answer and wants it short and to the point. Answer in

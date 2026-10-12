@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import '../route-parchment.css';
 import './TraditionalModeBanner.css';
 import './DeferredRoutes.css';
-import { RefreshCw, AlertTriangle, X, Search, Star, BookOpen, Grid3X3, List, ThumbsUp, ThumbsDown, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
+import { RefreshCw, AlertTriangle, X, Search, Star, BookOpen, ThumbsUp, ThumbsDown, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import PaywallGate from '../components/PaywallGate';
 import { canAccessAdminWorkspace, type AuthUser } from '../modules/identity/public';
@@ -30,7 +30,7 @@ import {
 } from '../modules/subscriptions/public';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
-import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
+import { arenaCardImageSources, TierListControls, TierBadge, type ManaFilterValue } from '../modules/arenaTierList/public';
 import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '../modules/arenaClasses/public';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -210,17 +210,6 @@ const RARITY_ICON: Record<string, string> = {
 const MANA_ICON    = '/assets/mana-64.webp';
 const ARENA_ICON   = '/assets/arena_icon.webp';
 
-const TIER_COLORS: Record<string, string> = {
-  S: 'bg-gradient-to-br from-[#e63946] to-[#780000] text-[#fff0f0] border-[#ff9999]',
-  A: 'bg-gradient-to-br from-[#f4a261] to-[#b34700] text-[#fff9f0] border-[#ffd699]',
-  B: 'bg-gradient-to-br from-[#9b5de5] to-[#4a0080] text-[#f4f0ff] border-[#d9b3ff]',
-  C: 'bg-gradient-to-br from-[#2a9d8f] to-[#004d40] text-[#e0f2f1] border-[#80cbc4]',
-  D: 'bg-gradient-to-br from-[#457b9d] to-[#1d3557] text-[#e0f0ff] border-[#90c0e0]',
-  E: 'bg-gradient-to-br from-[#92400e] to-[#451a03] text-[#fef3c7] border-[#d97706]',
-  F: 'bg-gradient-to-br from-[#6b6b6b] to-[#2c2c2c] text-[#e0e0e0] border-[#aaaaaa]',
-  U: 'bg-gradient-to-br from-[#8b7355] to-[#4a3724] text-[#fff4d6] border-[#c4a46a]',
-};
-
 // ─── Fallback data ────────────────────────────────────────────────────────────
 
 
@@ -254,11 +243,12 @@ const SourceToggleButton: React.FC<{
   active: boolean;
   busy: boolean;
   onClick: () => void;
-}> = ({ source, label, active, busy, onClick }) => (
+  allowSwitchWhileBusy?: boolean;
+}> = ({ source, label, active, busy, onClick, allowSwitchWhileBusy = false }) => (
     <button
       type="button"
       onClick={onClick}
-      disabled={busy && !active}
+      disabled={busy && !active && !allowSwitchWhileBusy}
       title={label}
       aria-pressed={active}
       data-active={active ? 'true' : 'false'}
@@ -268,8 +258,8 @@ const SourceToggleButton: React.FC<{
         color: '#fcd34d',
         boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
       } : {
-        color: busy ? '#b8a080' : '#6b4c2a',
-        cursor: busy ? 'wait' : 'pointer',
+        color: busy && !allowSwitchWhileBusy ? '#b8a080' : '#6b4c2a',
+        cursor: busy && !allowSwitchWhileBusy ? 'wait' : 'pointer',
       }}
     >
       {active && busy && (
@@ -339,14 +329,14 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
   // Track touch start position to distinguish tap vs scroll
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
 
-  const modalSources = useMemo(() => uniqueSources([
+  const modalSources = useMemo(() => arenaCardImageSources(card, [
     card.cardId ? hsImgUrl(card.cardId, '512x') : null,
     card.imageRu,
     card.imageHa,
     card.cardId ? hsImgUrl(card.cardId, '512x', 'enUS') : null,
-  ]), [card.cardId, card.imageHa, card.imageRu]);
+  ], '512x'), [card]);
   const bigSrc = modalSources[srcIdx] ?? null;
-  const previewSrc = uniqueSources([
+  const previewSrc = arenaCardImageSources(card, [
     card.imageRu,
     card.imageHa,
     card.cardId ? hsImgUrl(card.cardId) : null,
@@ -431,9 +421,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
               <p className="card-modal-source text-[10px] font-black uppercase tracking-wide text-[#c4a46a]">{sourceLabel}</p>
               <h2 className="card-modal-title mt-1 font-hs text-xl leading-tight text-[#fcd34d]">{card.name}</h2>
             </div>
-            <div className={`card-modal-tier flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border-2 font-hs text-xl shadow-lg ${TIER_COLORS[tier] || TIER_COLORS.C}`}>
-              {tier}
-            </div>
+            <TierBadge tier={tier} small />
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
@@ -577,17 +565,18 @@ type HSCardProps = {
   previewEnabled?: boolean;
   onPreviewStart?: (card: CardData, anchor: HTMLElement) => void;
   onPreviewEnd?: () => void;
+  eager?: boolean;
 };
 
-export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = false, onPreviewStart, onPreviewEnd }) => {
+export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = false, onPreviewStart, onPreviewEnd, eager = false }) => {
   const localImageSrc = card.cardId ? hsImgUrl(card.cardId) : null;
   // Multi-step fallback: responsive Russian proxy first, then source images and English render.
-  const sources = useMemo(() => uniqueSources([
+  const sources = useMemo(() => arenaCardImageSources(card, [
     localImageSrc,
     card.imageRu  || null,
     card.imageHa  || null,
     card.cardId   ? hsImgUrl(card.cardId, '256x', 'enUS') : null,
-  ]), [card.cardId, card.imageHa, card.imageRu, localImageSrc]);
+  ]), [card, localImageSrc]);
 
   const [srcIdx, setSrcIdx] = useState(0);
   const cardRef = useRef<HTMLButtonElement | null>(null);
@@ -627,7 +616,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
       >
         <div className="hs-tier-card-inner">
           <img src={thumbSrc} srcSet={responsiveSrcSet} sizes="(max-width: 640px) 46vw, 230px"
-            alt={card.name} loading="lazy" decoding="async" width={230} height={349}
+            alt={card.name} loading={eager ? 'eager' : 'lazy'} decoding="async" width={230} height={349}
             onError={handleErr} />
         </div>
       </button>
@@ -750,156 +739,6 @@ export function WinratesView(props: WinratesProps & {
   </ArenaClassesPage>;
 }
 
-// ─── Class tabs ───────────────────────────────────────────────────────────────
-
-const ClassTabs: React.FC<{
-  sections: ClassSection[];
-  activeId: string;
-  onChange: (id: string) => void;
-  searchQuery: string;
-  onSearchChange: (q: string) => void;
-}> = memo(({ sections, activeId, onChange, searchQuery, onSearchChange }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = scrollRef.current?.querySelector(`[data-id="${activeId}"]`) as HTMLElement | null;
-    el?.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'nearest', inline: 'center' });
-  }, [activeId]);
-
-  return (
-    <div
-      className="tierlist-class-tabs flex items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-2xl overflow-x-auto scrollbar-hs"
-      style={{
-        background: 'linear-gradient(135deg,#f4e8cc,#ede0c0)',
-        border: '1.5px solid #c4a46a',
-        boxShadow: 'inset 0 1px 3px rgba(139,69,19,0.15), 0 2px 6px rgba(0,0,0,0.12)',
-      }}
-    >
-      {/* Icon buttons */}
-      <div ref={scrollRef} className="tierlist-class-scroll flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-        {/* "All cards" virtual tab */}
-        {(() => {
-          const isActive = activeId === ALL_CARDS_ID;
-          return (
-            <button
-              type="button"
-              key={ALL_CARDS_ID}
-              data-id={ALL_CARDS_ID}
-              aria-pressed={isActive}
-              onClick={() => onChange(ALL_CARDS_ID)}
-              title="Все карты"
-              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-(--motion-base)"
-              style={{
-                transform: isActive ? 'scale(1.15)' : 'scale(1)',
-                filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)',
-              }}
-            >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden flex items-center justify-center"
-                style={{
-                  boxShadow: isActive
-                    ? '0 0 0 2.5px #fcd34d, 0 3px 10px rgba(0,0,0,0.5)'
-                    : '0 2px 6px rgba(0,0,0,0.35)',
-                  border: '2px solid rgba(0,0,0,0.25)',
-                }}
-              >
-                <img src="/class_icon/ui/all-96.webp" alt="Все карты" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" draggable={false} />
-              </div>
-              {isActive && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#fcd34d]" />
-              )}
-            </button>
-          );
-        })()}
-        {sections.map(sec => {
-          const isActive = sec.id === activeId;
-          const iconSrc  = CLASS_ICON[sec.id];
-
-          return (
-            <button
-              type="button"
-              key={sec.id}
-              data-id={sec.id}
-              aria-pressed={isActive}
-              onClick={() => onChange(sec.id)}
-              title={sec.name}
-              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-(--motion-base)"
-              style={{
-                transform: isActive ? 'scale(1.15)' : 'scale(1)',
-                filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)',
-              }}
-            >
-              <div
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden"
-                style={{
-                  background: `radial-gradient(circle at 35% 35%, ${sec.color}ff, ${sec.color}aa)`,
-                  boxShadow: isActive
-                    ? `0 0 0 2.5px #fcd34d, 0 0 10px rgba(252,211,77,0.55), 0 3px 8px rgba(0,0,0,0.45)`
-                    : `0 0 0 1.5px rgba(0,0,0,0.35), 0 2px 5px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.2)`,
-                }}
-              >
-                {iconSrc ? (
-                  <img
-                    src={iconSrc}
-                    alt={sec.name}
-                    className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
-                    draggable={false}
-                  />
-                ) : (
-                  <span className="text-white/80 text-sm font-hs">⚔</span>
-                )}
-              </div>
-              {isActive && (
-                <div
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#fcd34d]"
-                  style={{ boxShadow: '0 0 4px rgba(252,211,77,0.8)' }}
-                />
-              )}
-              {sec.classPosition && (
-                <div
-                  className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none"
-                  style={{
-                    background: 'linear-gradient(135deg,#6b4c2a,#3a2210)',
-                    color: '#fcd34d',
-                    border: '1px solid rgba(252,211,77,0.5)',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
-                  }}
-                >
-                  {sec.classPosition}
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Divider */}
-      <div className="tierlist-class-divider w-px h-7 flex-shrink-0 bg-[#c4a46a]/50 mx-1" />
-
-      {/* Search */}
-      <div className="tierlist-class-search relative flex-grow min-w-[140px]">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b4513]/50 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Поиск: Йогг-Сарон, Рагнарос..."
-          value={searchQuery}
-          onChange={e => onSearchChange(e.target.value)}
-          className="w-full bg-transparent pl-8 pr-11 py-1.5 text-sm text-[#3d2a1e] placeholder-[#8b6c42]/60 outline-none"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            aria-label="Очистить поиск"
-            onClick={() => onSearchChange('')}
-            className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-[#8b4513]/50 hover:text-[#8b4513] transition-colors"
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}) as React.FC<{ sections: ClassSection[]; activeId: string; onChange: (id: string) => void; searchQuery: string; onSearchChange: (q: string) => void }>;
-
 // ─── TierList tab ─────────────────────────────────────────────────────────────
 
 // Kept outside the function — these never change and would be recreated every render
@@ -925,30 +764,11 @@ const TIER_DESC_MAP: Record<string, string> = {
   U: 'Карты без Arenasmith Score в текущем срезе HSReplay.',
 };
 
-const RARITY_OPTIONS = [
-  { id: 'all',       name: 'Все',        icon: null },
-  { id: 'common',    name: 'Обычная',    icon: '/assets/common.png' },
-  { id: 'rare',      name: 'Редкая',     icon: '/assets/rare.png' },
-  { id: 'epic',      name: 'Эпическая',  icon: '/assets/epic.png' },
-  { id: 'legendary', name: 'Легендарная',icon: '/assets/legendary.png' },
-];
-
-type ManaFilterValue = 'all' | number;
-
-const MANA_FILTER_OPTIONS: Array<{ id: ManaFilterValue; name: string; label: string }> = [
-  { id: 'all', name: 'Все стоимости', label: 'Все' },
-  ...Array.from({ length: 11 }, (_, cost) => ({
-    id: cost,
-    name: cost === 10 ? '10+ маны' : `${cost} маны`,
-    label: cost === 10 ? '10+' : String(cost),
-  })),
-];
-
 const ALL_CARDS_ID = '__all__';
 const INITIAL_TIERLIST_CARDS_MOBILE = 36;
-const INITIAL_TIERLIST_CARDS_DESKTOP = 180;
+const INITIAL_TIERLIST_CARDS_DESKTOP = 48;
 const TIERLIST_CARDS_STEP_MOBILE = 36;
-const TIERLIST_CARDS_STEP_DESKTOP = 180;
+const TIERLIST_CARDS_STEP_DESKTOP = 48;
 
 const TABLE_METRIC_COLUMNS = [
   { key: 'deckWinrate', label: 'Винрейт колоды', hint: 'Winrate of decks including the card.' },
@@ -1293,9 +1113,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
             className="tierlist-table-card rounded-xl border border-[#c4a46a]/70 bg-[#fff4d4]/85 p-2.5 shadow-[0_8px_22px_rgba(72,43,12,0.14)]"
           >
             <div className="flex items-center gap-2">
-              <span className={`inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-hs shadow ${TIER_COLORS[tier] || TIER_COLORS.C}`}>
-                {tier}
-              </span>
+              <TierBadge tier={tier} small />
               <div className="min-w-0 flex-1">
                 <HSTableCardThumb
                   card={card}
@@ -1357,9 +1175,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
                 />
               </td>
               <td className="px-2 py-1 text-center">
-                <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-hs shadow ${TIER_COLORS[tier] || TIER_COLORS.C}`}>
-                  {tier}
-                </span>
+                <TierBadge tier={tier} small />
               </td>
               {TABLE_METRIC_COLUMNS.map(col => {
                 const raw = col.key === 'deckWinrate' ? (card.deckWinrate ?? card.winrate) : card[col.key];
@@ -1409,7 +1225,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   );
   const cardPageSize = isSmallViewport ? INITIAL_TIERLIST_CARDS_MOBILE : INITIAL_TIERLIST_CARDS_DESKTOP;
   const cardPageStep = isSmallViewport ? TIERLIST_CARDS_STEP_MOBILE : TIERLIST_CARDS_STEP_DESKTOP;
-  const [visibleCardLimit, setVisibleCardLimit] = useState(INITIAL_TIERLIST_CARDS_DESKTOP);
+  const [visibleCardLimit, setVisibleCardLimit] = useState(() => cardPageSize);
 
   const sections = data.sections;
   const cards    = data.cards;
@@ -1568,7 +1384,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         subscriptionLoading={subscriptionLoading}
         onRefreshSubscription={onRefreshSubscription}
       >
-      {/* Source toggle + UpdateBadge row */}
+      {/* Source selection */}
       <div
         className="tierlist-source-row flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2"
         data-tour-id="arena-tier-source"
@@ -1585,12 +1401,12 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                 label={TIERLIST_SOURCE_LABEL[src]}
                 active={active}
                 busy={switchingTierlistSource}
-                onClick={() => { if (!active && !switchingTierlistSource) onTierlistSourceChange(src); }}
+                allowSwitchWhileBusy
+                onClick={() => { if (!active) onTierlistSourceChange(src); }}
               />
             );
           })}
         </div>
-        <UpdateBadge updatedAt={data.updatedAt} />
       </div>
 
       {!loading && <TierlistEarlyStatsNotice provisional={data.provisional} />}
@@ -1625,169 +1441,14 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         </div>
       ) : (
         <>
-          {/* Nav bar: class icons + search */}
-          <div className="tierlist-class-nav mb-5" data-tour-id="arena-tier-class">
-            <ClassTabs
-              sections={sections}
-              activeId={activeClassId}
-              onChange={handleClassChange}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-            />
-          </div>
-
-          {/* Active class header + rarity filter */}
-          <div
-            className="tierlist-active-header flex items-center justify-between gap-3 mb-5 flex-wrap"
-            data-tour-id="arena-tier-filters"
-          >
-            {activeSection && (
-              <div className="flex items-center gap-3">
-                {CLASS_ICON[activeSection.id] ? (
-                  <img src={CLASS_ICON[activeSection.id]} alt={activeSection.name}
-                    className="w-9 h-9 object-contain drop-shadow-md" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-lg"
-                    style={{ background: activeSection.color }}>⚔</div>
-                )}
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-hs text-lg sm:text-xl text-[#4a3018] leading-tight">{activeSection.name}</h3>
-                    {activeSection.classPosition && (
-                      <span
-                        className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full"
-                        style={{
-                          background: 'linear-gradient(135deg,#6b4c2a,#3a2210)',
-                          color: '#fcd34d',
-                          border: '1px solid rgba(252,211,77,0.35)',
-                        }}
-                      >
-                        Позиция: {activeSection.classPosition}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[#8b6c42] text-xs">
-                    {isAllCardsTab
-                      ? `${allCardsSection.totalCards} уникальных карт`
-                      : isNeutralTab
-                        ? `${activeSection.totalCards} нейтральных карт`
-                        : `${activeSection.tiers.flatMap(t => t.cards).filter(c => c.classKey !== 'any').length} карт класса`}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="tierlist-control-panel flex items-center gap-2 flex-wrap justify-end">
-              {canUseTableView && (
-                <div
-                  className="tierlist-view-toggle flex items-center gap-1 p-1 rounded-xl flex-shrink-0"
-                  data-tour-id="arena-tier-view"
-                  style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}>
-                  {([
-                    { id: 'gallery' as const, label: 'Галерея', icon: Grid3X3 },
-                    { id: 'table' as const, label: 'Таблица', icon: List },
-                  ]).map(item => {
-                    const active = viewMode === item.id;
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setViewMode(item.id)}
-                        data-active={active ? 'true' : 'false'}
-                        className="flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-hs transition-all"
-                        style={active ? {
-                          background: 'linear-gradient(135deg,#5a3000,#3d1e00)',
-                          color: '#fcd34d',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                        } : { color: '#6b4c2a' }}
-                      >
-                        <Icon size={14} />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {/* Rarity filter — icon buttons */}
-              <div className="tierlist-rarity-filter flex items-center gap-1 p-1 rounded-xl flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}>
-                {RARITY_OPTIONS.map(r => {
-                  const active = selectedRarity === r.id;
-                  return (
-                    <button
-                      type="button"
-                      key={r.id}
-                      onClick={() => setSelectedRarity(r.id)}
-                      title={r.name}
-                      aria-pressed={active}
-                      data-active={active ? 'true' : 'false'}
-                      className="tierlist-icon-filter-button flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-all"
-                      style={{
-                        padding: r.icon ? '4px' : '4px 10px',
-                        background: active ? 'rgba(30,64,102,0.12)' : 'transparent',
-                        boxShadow: active ? 'inset 0 0 0 1px rgba(96,165,250,0.35)' : 'none',
-                      }}
-                    >
-                      {r.icon
-                        ? <img src={r.icon} alt={r.name} className="w-6 h-6 object-contain"
-                            style={{ filter: active ? 'drop-shadow(0 2px 4px rgba(15,23,42,0.25))' : 'none', transition: 'filter var(--motion-base) var(--motion-ease)' }} />
-                        : <span className="tierlist-filter-label font-hs text-xs">Все</span>
-                      }
-                    </button>
-                  );
-                })}
-              </div>
-              <div
-                className="tierlist-mana-filter flex max-w-full items-center gap-1 overflow-x-auto p-1 rounded-xl flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}
-                aria-label="Фильтр по мане"
-              >
-                {MANA_FILTER_OPTIONS.map(mana => {
-                  const active = selectedManaCost === mana.id;
-                  const isAll = mana.id === 'all';
-                  return (
-                    <button
-                      key={String(mana.id)}
-                      type="button"
-                      onClick={() => setSelectedManaCost(mana.id)}
-                      title={mana.name}
-                      aria-pressed={active}
-                      data-active={active ? 'true' : 'false'}
-                      className={`tierlist-icon-filter-button relative flex h-11 w-11 items-center justify-center rounded-lg transition-all ${isAll ? 'px-2' : 'flex-shrink-0'}`}
-                      style={{
-                        background: active ? 'rgba(30,64,102,0.12)' : 'transparent',
-                        boxShadow: active ? 'inset 0 0 0 1px rgba(96,165,250,0.35)' : 'none',
-                      }}
-                    >
-                      {isAll ? (
-                        <span className="tierlist-filter-label font-hs text-xs leading-none">
-                          Все
-                        </span>
-                      ) : (
-                        <>
-                          <img
-                            src={MANA_ICON}
-                            alt=""
-                            aria-hidden="true"
-                            className="absolute inset-0 m-auto h-8 w-8 object-contain"
-                            style={{
-                              filter: active
-                                ? 'drop-shadow(0 2px 4px rgba(15,23,42,0.25))'
-                                : 'none',
-                              transition: 'filter var(--motion-base) var(--motion-ease)',
-                            }}
-                          />
-                          <span className={`relative font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] ${mana.id === 10 ? 'text-[8px]' : 'text-[11px]'}`}>
-                            {mana.label}
-                          </span>
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <TierListControls
+            sections={sections} activeClassId={activeClassId} onClassChange={handleClassChange}
+            search={searchQuery} onSearchChange={setSearchQuery}
+            rarity={selectedRarity} onRarityChange={setSelectedRarity}
+            mana={selectedManaCost} onManaChange={setSelectedManaCost}
+            view={viewMode} onViewChange={setViewMode} canUseTable={canUseTableView}
+            onReset={() => { setSearchQuery(''); setSelectedRarity('all'); setSelectedManaCost('all'); }}
+          />
 
           {/* Tiers */}
           {canUseTableView && viewMode === 'table' ? (
@@ -1799,7 +1460,6 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
           ) : (
           <div className="tierlist-groups space-y-10">
             {visibleTiers.length > 0 ? visibleTiers.map((tierGroup, tierIdx) => {
-              const tierTotal = tierGroup.totalCardsInTier ?? tierGroup.cards.length;
               return (
               <div key={tierGroup.tier} className="tierlist-group anim-fade-up"
                 style={{
@@ -1807,19 +1467,11 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                 }}>
                 {/* Tier header */}
                 <div className="tierlist-group-heading flex items-center gap-4 mb-5">
-                  <div className={`tier-rank-badge w-12 h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center text-2xl md:text-3xl font-hs rounded-full border-[3px] shadow-[0_4px_14px_rgba(0,0,0,0.7),inset_0_4px_6px_rgba(255,255,255,0.35),inset_0_-4px_6px_rgba(0,0,0,0.45)] ${TIER_COLORS[tierGroup.tier] || TIER_COLORS['C']}`}>
-                    <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">{tierGroup.tier}</span>
-                  </div>
+                  <TierBadge tier={tierGroup.tier} />
                   <div className="flex-grow">
                     <div className="flex items-baseline gap-2">
                       <h3 className="text-xl md:text-2xl font-hs text-[#3d2208] tracking-wide">{TIER_LABEL_FULL[tierGroup.tier] ?? tierGroup.label}</h3>
-                      <span className="text-xs font-medium text-[#8b6c42] bg-[#8b6c42]/10 px-2 py-0.5 rounded-full border border-[#8b6c42]/20">
-                        {tierGroup.cards.length === tierTotal
-                          ? `${tierGroup.cards.length} карт`
-                          : `${tierGroup.cards.length} из ${tierTotal} карт`}
-                      </span>
                     </div>
-                    <p className="text-sm text-[#6b4c2a] mt-0.5">{tierGroup.description}</p>
                   </div>
                 </div>
 
@@ -1837,6 +1489,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                     >
                       <HSCard
                         card={card}
+                        eager={tierIdx === 0 && idx < 6}
                         onClick={() => setModalCard({ card, tier: tierGroup.tier })}
                         previewEnabled={canHoverPreview && viewMode === 'gallery'}
                         onPreviewStart={showGalleryPreview}

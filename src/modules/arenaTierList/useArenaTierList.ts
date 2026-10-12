@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createArenaTierListClient } from './model/client';
 import type { ArenaTierListState } from './model/state';
 import type { TierlistData, TierlistSource } from './model/types';
 
 type ViewState = {
   accountId: string | null;
+  source: TierlistSource;
   status: 'loading' | ArenaTierListState['status'];
   data: TierlistData | null;
 };
@@ -15,7 +16,8 @@ function browserStorage(): Storage | undefined {
 
 export function useArenaTierList(accountId: string | undefined, enabled: boolean) {
   const [source, setSource] = useState<TierlistSource>('hsreplay');
-  const [view, setView] = useState<ViewState>({ accountId: null, status: 'loading', data: null });
+  const [view, setView] = useState<ViewState>({ accountId: null, source: 'hsreplay', status: 'loading', data: null });
+  const client = useMemo(() => createArenaTierListClient({ request: fetch, storage: browserStorage() }), [accountId, enabled]);
   const [request, setRequest] = useState({ sequence: 0, bust: false });
   const changeSource = useCallback((next: TierlistSource) => {
     if (next === source) return;
@@ -30,26 +32,25 @@ export function useArenaTierList(accountId: string | undefined, enabled: boolean
 
   useEffect(() => {
     if (!enabled || !accountId) {
-      setView({ accountId: null, status: 'loading', data: null });
+      setView({ accountId: null, source: 'hsreplay', status: 'loading', data: null });
       return;
     }
     const controller = new AbortController();
-    setView(previous => ({ accountId, status: 'loading',
+    setView(previous => ({ accountId, source: previous.source, status: 'loading',
       data: previous.accountId === accountId ? previous.data : null }));
     const accept = (next: ArenaTierListState) => {
       if (controller.signal.aborted) return;
       setView(previous => {
         if (controller.signal.aborted) return previous;
-        return next.status === 'error' && previous.accountId === accountId && previous.data
-          ? { accountId, status: 'stale', data: { ...previous.data, warning: 'stale' } }
-          : { accountId, ...next };
+        return next.status === 'error' && previous.accountId === accountId && previous.source === source && previous.data
+          ? { accountId, source, status: 'stale', data: { ...previous.data, warning: 'stale' } }
+          : { accountId, source, ...next };
       });
     };
-    const client = createArenaTierListClient({ request: fetch, storage: browserStorage() });
     void client.load(accountId, source, { signal: controller.signal,
       bust: request.bust, onCache: accept }).then(accept);
     return () => controller.abort();
-  }, [accountId, enabled, source, request.sequence, request.bust]);
+  }, [accountId, enabled, source, request.sequence, request.bust, client]);
 
   const state = enabled && accountId && view.accountId === accountId
     ? view : { status: 'loading' as const, data: null };
