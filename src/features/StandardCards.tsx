@@ -252,7 +252,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
   return (
     <>
       <div className="constructed-cards__table-wrap">
-        <table className="constructed-cards__table">
+        <table className="constructed-cards__table is-compact">
           <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
           <tbody>
             {cards.map((card, index) => (
@@ -275,7 +275,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
                   }}
                   onBlur={() => setPreview(null)}
                   onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
-                ><ConstructedCardTile name={cardName(card)} cost={card.mana_cost ?? 0} tile={publicResourceUrl(card.images?.tile)} artwork={publicResourceUrl(card.images?.horizontal)} rarity={card.rarity} /></a></th>
+                ><ConstructedCardTile name={cardName(card)} cost={card.mana_cost ?? null} artwork={publicResourceUrl(card.images?.horizontal)} rarity={card.rarity} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
                 <td data-label="В % колод" data-tour-id={index === 0 ? 'cards-statistics' : undefined}>{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label="Победы колод">{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>

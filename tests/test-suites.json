@@ -32,6 +32,7 @@
         "tests/public-media-assets.test.mjs",
         "tests/admin-overview-model.test.ts",
         "tests/admin-wild-archetypes-model.test.ts",
+        "tests/anchored-image-preview-layout.test.ts",
         "tests/agent-check.test.mjs",
         "tests/agent-impact.test.mjs",
         "tests/agent-navigation.test.mjs",

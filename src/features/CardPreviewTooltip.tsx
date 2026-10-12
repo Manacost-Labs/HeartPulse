@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
+import { AnchoredImagePreview } from '../shared/ui/AnchoredImagePreview';
 import { publicResourceUrl } from '../publicResourceUrl';
 import './CardPreviewTooltip.css';
 
@@ -10,10 +9,6 @@ export type CardPreviewTarget = {
   rect: DOMRect;
 };
 
-const TOOLTIP_WIDTH = 248;
-const TOOLTIP_HEIGHT = 350;
-const TOOLTIP_GAP = 10;
-
 export function fallbackCardRender(id: string): string {
   return `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(id)}.png`;
 }
@@ -21,39 +16,17 @@ export function fallbackCardRender(id: string): string {
 export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTarget }) {
   const fallback = fallbackCardRender(preview.id);
   const preferredSource = publicResourceUrl(preview.imageUrl) || fallback;
-  const [failedSources, setFailedSources] = useState<Record<string, true>>({});
-  const source = !failedSources[preferredSource]
-    ? preferredSource
-    : (!failedSources[fallback] ? fallback : '');
-
-  if (typeof document === 'undefined') return null;
-  if (!source) return null;
-
-  const canOpenRight = preview.rect.right + TOOLTIP_GAP + TOOLTIP_WIDTH <= window.innerWidth - TOOLTIP_GAP;
-  const left = canOpenRight
-    ? preview.rect.right + TOOLTIP_GAP
-    : Math.max(TOOLTIP_GAP, preview.rect.left - TOOLTIP_WIDTH - TOOLTIP_GAP);
-  const top = Math.max(
-    TOOLTIP_GAP,
-    Math.min(preview.rect.top + preview.rect.height / 2 - TOOLTIP_HEIGHT / 2, window.innerHeight - TOOLTIP_HEIGHT - TOOLTIP_GAP),
-  );
-
-  return createPortal(
-    <aside
+  return (
+    <AnchoredImagePreview
+      key={`${preview.id}:${preferredSource}`}
+      source={preferredSource}
+      fallbackSource={fallback}
+      name={preview.name}
+      accessibleName={`Полная карта ${preview.name}`}
+      anchorRect={preview.rect}
+      previewId={preview.id}
       className="card-preview-tooltip"
-      style={{ left, top, width: TOOLTIP_WIDTH }}
-      role="tooltip"
-      aria-label={`Полная карта ${preview.name}`}
       data-card-preview-id={preview.id}
-    >
-      <img
-        src={source}
-        alt={preview.name}
-        onError={() => {
-          setFailedSources(current => ({ ...current, [source]: true }));
-        }}
-      />
-    </aside>,
-    document.body,
+    />
   );
 }
