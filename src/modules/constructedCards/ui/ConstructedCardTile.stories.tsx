@@ -10,7 +10,12 @@ const meta = {
 } satisfies Meta<typeof ConstructedCardTile>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const MissingTile: Story = {};
+export const MissingTile: Story = {
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Владыка Темной империи')).toBeVisible();
+    await expect(canvas.getByText('7')).toBeVisible();
+  },
+};
 export const BrokenTile: Story = { args: { tile: '/api/public-resource/db/uploads/missing-tile.png' } };
 export const RarityGlow: Story = {
   render: args => <div style={{ display: 'grid', gap: 20 }}>

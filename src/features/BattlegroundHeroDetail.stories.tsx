@@ -30,6 +30,7 @@ type Story = StoryObj<typeof meta>;
 export const BuddyPairAndCharts: Story = {
   play: async ({ canvas, args }) => {
     await canvas.findByRole('tablist', { name: 'Статистика героя' });
+    await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     await userEvent.click(canvas.getByRole('tab', { name: 'Таверна' }));
     await expect(canvas.getByRole('heading', { name: 'Когда улучшать таверну' })).toBeVisible();
     await userEvent.click(canvas.getByRole('tab', { name: 'Обзор' }));

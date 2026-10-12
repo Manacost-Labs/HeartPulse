@@ -33,6 +33,8 @@ const meta = {
         return Response.json({ creature_types: cards.map(card => card.creature_type) });
       }
       if (path === '/api/bg/library/cards') return Response.json({ data: cards });
+      if (path === '/api/bg/library/cards/by-dbf/131718') return Response.json({ ...cards[0], tavern_tier: 4 });
+      if (path === '/api/bg/library/minions/131718') return Response.json(null);
       return originalFetch(input, init);
     };
     return () => { globalThis.fetch = originalFetch; };
@@ -97,5 +99,14 @@ export const LargeCatalog: Story = {
   play: async ({ canvas }) => {
     await expect(await canvas.findByText('120 найдено · 120 загружено')).toBeVisible();
     await expect(canvas.getAllByRole('link', { name: /Открыть страницу карты/ })).toHaveLength(36);
+  },
+};
+
+export const MinionDetail: Story = {
+  args: { currentPath: '/library/minions/счастье-131718/' },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole('heading', { level: 1, name: 'Счастье' })).toBeVisible();
+    await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    await expect(canvas.getByRole('button', { name: 'Назад в библиотеку' })).toBeVisible();
   },
 };

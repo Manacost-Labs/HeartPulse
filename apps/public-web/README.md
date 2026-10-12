@@ -59,14 +59,24 @@ is a separate administrator workspace and retains its permission gate.
   `src/index.css`; `TraditionalModeBanner.css` is a compatibility import for
   existing headings with summaries. Constructed card and archetype details
   put their single H1 in the existing identity/metrics header, without a
-  duplicate tavern banner. Other detail pages keep the H1 banner before
-  their art/facts layout, whose contextual names use H2. The home page keeps
+  duplicate tavern banner. Battleground hero and library details also put
+  the entity H1 in their
+  art/facts identity, without a duplicate tavern banner. Other detail pages
+  keep the H1 banner before their art/facts layout, whose contextual names
+  use H2. The home page keeps
   its original hero with the title, paladin, actions and class summary
   together. Admin headers remain
   separate. See [public page header contract](../../docs/specs/public-page-headers.md).
 - Import siblings with `./`; import everything else as `@/<repository path>`
   (for example `@/src/modules/subscriptions/public`). Never `../`, never
   `server/`. `tests/next-import-paths.test.mjs` enforces this.
+- The default constructed-card catalog reuses validated anonymous seeds for
+  30 seconds in the Next process, with at most one Standard and one Wild entry.
+  Concurrent default reads coalesce; expired entries never hide an upstream
+  failure. Filters, ranks, periods, sorts and later pages bypass this cache
+  when their normalized API request differs from the default. Table/gallery
+  presentation shares the same seed. See
+  [cache contract](../../docs/specs/public-card-catalog-response-cache.md).
 - Server components fetch only anonymous public projections through
   `fetchPublicExpress()`. A read that only puts data into the first paint
   (the meta and fun-deck guest previews, the archetype catalog teaser, the

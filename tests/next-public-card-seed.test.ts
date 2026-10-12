@@ -1,3 +1,4 @@
+import { createDefaultCatalogCache } from '../apps/public-web/lib/publicCatalogCache.js';
 import assert from 'node:assert/strict';
 import { publicCardSeed } from '../apps/public-web/lib/publicCardSeed';
 import { publicCatalogSeed } from '../apps/public-web/lib/publicCatalogSeed';
@@ -32,3 +33,27 @@ assert.equal(publicCatalogSeed({ ...catalog, cards: [], pagination: { ...catalog
 
 assert.equal(publicCatalog.cards[0].images.tile, catalog.cards[0].images.tile);
 assert.equal(publicCatalog.cards[0].images.horizontal, catalog.cards[0].images.horizontal);
+
+
+let time = 0;
+let reads = 0;
+let fail = false;
+const load = createDefaultCatalogCache(async format => {
+  reads++;
+  if (fail) throw new Error('catalog unavailable');
+  return { format, generation: reads };
+}, () => time);
+
+const concurrent = await Promise.all([load('standard'), load('standard')]);
+assert.equal(reads, 1, 'overlapping anonymous default reads share one request');
+assert.deepEqual(concurrent[0], concurrent[1]);
+assert.equal((await load('standard')).generation, 1, 'another page visit reuses the valid public seed');
+assert.equal((await load('wild')).format, 'wild', 'formats never share their seed');
+assert.equal(reads, 2);
+time = 30_001;
+fail = true;
+await assert.rejects(load('standard'), /catalog unavailable/, 'expired data cannot hide an upstream outage');
+fail = false;
+assert.equal((await load('standard')).generation, 4, 'a failed read is retried, not cached');
+assert.equal((await load('standard')).generation, 4);
+console.log('Default public catalog cache passed');

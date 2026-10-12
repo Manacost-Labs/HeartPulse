@@ -3,11 +3,23 @@ import { cache } from 'react';
 import { catalogLocation, constructedCardCatalogUrl, type CardFormat } from '@/src/modules/constructedCards/public';
 import { publicCatalogSeed } from './publicCatalogSeed';
 import { fetchPublicExpress } from './expressApi';
+import { createDefaultCatalogCache } from './publicCatalogCache';
 
-/** The upstream sees an anonymous request even when the page visitor is signed in. */
-export const loadPublicCatalog = cache(async (format: CardFormat, search: string) => {
+function catalogRequest(format: CardFormat, search: string) {
   const state = catalogLocation(format, search);
-  const response = await fetchPublicExpress(constructedCardCatalogUrl({ ...state, query: state.filters.query }));
+  return constructedCardCatalogUrl({ ...state, query: state.filters.query });
+}
+
+async function readCatalog(format: CardFormat, url: string) {
+  const response = await fetchPublicExpress(url);
   if (!response.ok) throw new Error('Public catalog temporarily unavailable');
   return publicCatalogSeed(await response.json(), format);
+}
+
+const defaultCatalog = createDefaultCatalogCache(format => readCatalog(format, catalogRequest(format, '')));
+
+/** Anonymous default projections reuse a validated seed for 30s; arbitrary filters are never cached here. */
+export const loadPublicCatalog = cache(async (format: CardFormat, search: string) => {
+  const url = catalogRequest(format, search);
+  return url === catalogRequest(format, '') ? defaultCatalog(format) : readCatalog(format, url);
 });

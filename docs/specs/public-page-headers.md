@@ -28,13 +28,17 @@ content. Reduced motion produces no banner animation.
 
 Constructed card and archetype detail pages expose their entity H1 in the
 existing identity/metrics header, without a second tavern banner. Archetype
-names use the cream display typeface. Art fills its crop without the white
+names use the cream display typeface. The identity sits above six aligned
+metrics: one row on wide screens, three columns on tablets and two on phones.
+Art fills its crop without the white
 source-image margins; the fade protects text while leaving the illustration
 visible. For subscribers, accumulated history precedes the main build.
 
-Mulligan rows use Koloda horizontal artwork through the existing same-origin
-resource proxy (`db/uploads/horizontal-art/constructed_card/<cardId>.webp`).
-Missing artwork falls back once to the existing `/api/card-image/` tile.
+Mulligan rows use Koloda card tiles through the existing same-origin resource
+proxy. Exact IDs and DBFs take precedence over one original/Core alias step.
+Clean full art is projected separately for the archetype header and resized
+through the proxy. Missing tiles retain art, name and a mana gem in the same
+compact geometry; a failed decorative header image is hidden.
 Names, mana, sorting, card previews and subscription boundaries stay intact.
 The source URL was verified from the public Koloda card search for `CAP_105`:
 [horizontal artwork](https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/CAP_105.webp).
@@ -113,3 +117,26 @@ the health endpoint reports the task commit and review representative live
 headers on desktop and mobile. On new clipping, navigation failures or client
 errors, revert the task commit through the same pipeline. This change replaces
 no asset bytes and needs no data migration.
+
+## Archetype polish and Battleground detail follow-up
+
+Goal: a compact archetype identity above six readable, aligned statistics;
+clean provider artwork without white margins, and Koloda mulligan tiles for
+original/Core card IDs. Exact card-ID and DBF matches take precedence over
+Core aliases. Media enrichment never rewrites the statistics identity.
+Missing or failed images retain a readable row and working card preview.
+
+Hero and library detail pages omit the duplicate tavern banner. The entity
+identity becomes the single H1 for subscribers and guests. Catalog banners,
+back links, statistics, variant selection and access gates stay available.
+
+Plan: (1) reproduce/fix media identity matching and add clean full-art URLs;
+(2) align the archetype heading/metrics and crop, update its story;
+(3) remove duplicate Battleground detail banners and promote identity H1;
+(4) verify relevant contracts, Storybook and Chrome at 320/390/768/1440px;
+(5) improve anonymous catalog response reuse and measure navigation again.
+No new page transition effect or dependency is introduced.
+
+Documentation impact: this spec, `apps/public-web/README.md`, `CHANGELOG.md`
+and `docs/specs/public-card-catalog-response-cache.md`.
+Work remains on `codex/archetype-polish-20261013` until review.

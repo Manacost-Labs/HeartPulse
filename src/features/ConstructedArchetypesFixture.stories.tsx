@@ -24,5 +24,7 @@ export const ArchetypeDetail: StoryObj<typeof meta> = {
     await expect(await canvas.findByRole('heading', { level: 1, name: 'Воровской Жрец' })).toBeVisible();
     await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     await expect(canvas.getByRole('heading', { name: 'История архетипа' })).toBeVisible();
+    await expect(canvas.getByText('Средний матч')).toBeVisible();
+    await expect(canvas.getByText('Популярность')).toBeVisible();
   },
 };

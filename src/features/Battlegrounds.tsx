@@ -1,5 +1,4 @@
 import '../modules/battlegrounds/public.css';
-import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { battlegroundMinionIconByRussianName as BG_DETAIL_RACE_ICON_BY_RU, battlegroundMinionIconBySlug as BG_DETAIL_RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -2599,7 +2598,6 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
 
   return (
     <div className="bg-hero-detail-page space-y-6 text-[#3d2a1e]">
-      <SectionBanner title={heroName} />
       <button type="button" onClick={() => onNavigate('/heroes')} className="inline-flex items-center gap-2 rounded-md border border-[#d7b66a]/70 bg-[#fff7e6]/80 px-3 py-2 text-sm font-bold text-[#3d2a1e] transition-colors hover:bg-[#fff3c4]">
         <ChevronLeft className="h-4 w-4" /> Все герои
       </button>
@@ -2627,7 +2625,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
           </div>
           <div className="bg-hero-reliquary__identity min-w-0">
             <p className="bg-hero-reliquary__kicker font-hs text-xs uppercase tracking-[0.18em]">Поля сражений · герой</p>
-            <h2 className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{heroName}</h2>
+            <h1 className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{heroName}</h1>
             <div
               className="bg-hero-stat-grid mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4"
               data-tour-id="bg-hero-detail-summary"

@@ -52,6 +52,7 @@ export type ConstructedCardStat = {
   cost: number | null;
   tile?: string | null;
   artwork?: string | null;
+  fullArtwork?: string | null;
   rarity?: string | null;
   mulliganImpact: number | null;
   mulliganCount: number;

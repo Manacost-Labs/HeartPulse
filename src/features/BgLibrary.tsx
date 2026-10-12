@@ -1417,7 +1417,6 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
 
   return (
     <div className="bg-library-detail-page space-y-6 text-[#26374f]">
-      <SectionBanner title={currentCardName} />
       <button type="button" onClick={() => navigatePath(backPath)} className="inline-flex items-center gap-2 rounded-md border border-[#cbd9ed] bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#33445d] hover:border-[#d3af55]">
         <ArrowLeft size={16} /> Назад в {pool === 'archive' ? 'архив' : 'библиотеку'}
       </button>
@@ -1443,7 +1442,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
           <div className="bg-library-card-dossier__copy min-w-0 space-y-5">
             <div data-tour-id="bg-library-detail-dossier">
               <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">{section.shortTitle} · {pool === 'archive' ? 'Архив' : 'Активный пул'}</p>
-              <h2 className="bg-library-card-dossier__title mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h2>
+              <h1 className="bg-library-card-dossier__title mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h1>
               <p className="mt-1 text-lg text-[#657893]">{cardEnName(selectedVariantCard)}</p>
             </div>
 

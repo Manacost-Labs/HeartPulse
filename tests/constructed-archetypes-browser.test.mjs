@@ -102,6 +102,9 @@ try {
   assert.equal(await page.$('.archetype-detail-page .section-banner-modern'), null);
   assert.equal(await page.$eval('.archetype-dossier h1', title => title.textContent), 'Воровской Жрец');
   assert.equal(await page.$eval('.archetype-dossier h1', title => getComputedStyle(title).color), 'rgb(255, 240, 200)');
+  const metricRows = await page.$$eval('.archetype-dossier__metrics > div', cells => cells.map(cell => Math.round(cell.getBoundingClientRect().top)));
+  assert.equal(new Set(metricRows).size, 1, 'six desktop statistics share one aligned row');
+  assert.equal(await page.$eval('.archetype-dossier__art', image => image.getAttribute('src')), '/wallpaper/home-paladin-hero-720.avif', 'the clean full artwork is used instead of a padded card image');
   assert.equal(await page.evaluate(() =>
     document.querySelector('.archetype-history').compareDocumentPosition(document.querySelector('.archetype-main-build')) & Node.DOCUMENT_POSITION_FOLLOWING
   ), 4, 'history must precede the largest confirmed build');
@@ -306,7 +309,7 @@ try {
   }
   assert.equal(
     await page.$eval('.archetype-dossier__art', image => new URL(image.src).pathname),
-    '/api/public-resource/hsjson/v1/512x/JAIL_732.jpg',
+    '/wallpaper/home-paladin-hero-720.avif',
   );
   assert.equal(await page.$$eval('.archetype-dossier .archetypes-eyebrow', nodes => nodes.length), 0);
   assert.equal(await page.$$eval('.archetype-dossier__identity p, .archetype-dossier__identity small', nodes => nodes.length), 0);
@@ -330,8 +333,8 @@ try {
     };
   });
   assert.ok(desktopCardStats.tableGap <= 1, `desktop table left a ${desktopCardStats.tableGap}px gap`);
-  assert.ok(desktopCardStats.manaWidth >= 24 && desktopCardStats.manaWidth <= 30);
-  assert.ok(desktopCardStats.manaHeight >= 24 && desktopCardStats.manaHeight <= 30);
+  assert.ok(desktopCardStats.manaWidth >= 32 && desktopCardStats.manaWidth <= 48);
+  assert.ok(desktopCardStats.manaHeight >= 36 && desktopCardStats.manaHeight <= 48);
   assert.equal(desktopCardStats.openBadges, 0);
   assert.ok(await page.$('.archetype-main-build .deck-list-view'));
   await page.evaluate(() => {

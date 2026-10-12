@@ -1,3 +1,4 @@
+import { publicResourceImageUrl } from '../publicResourceUrl';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -162,8 +163,8 @@ function archetypeHeroArt(slug: string, analysis: ConstructedAnalysis | null): s
     ),
     null,
   );
-  return representativeCard?.cardId
-    ? `/api/public-resource/hsjson/v1/512x/${encodeURIComponent(representativeCard.cardId)}.jpg`
+  return representativeCard
+    ? publicResourceImageUrl(representativeCard.fullArtwork || representativeCard.artwork, { width: 960, quality: 80 }) || null
     : null;
 }
 
@@ -601,7 +602,9 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
       <section className="archetype-dossier" data-tour-id="archetype-summary">
         {heroArt ? (
           <img
+            key={heroArt}
             className="archetype-dossier__art"
+            onError={event => { event.currentTarget.hidden = true; }}
             src={heroArt}
             alt=""
             aria-hidden="true"

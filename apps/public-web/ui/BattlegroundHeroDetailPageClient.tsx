@@ -20,9 +20,9 @@ export function BattlegroundHeroDetailPageClient({ hero }: { hero: PublicBattleg
       ? <BattlegroundHeroesRoute key={`${hero.dbfId}:${access.user?.id}`} path={pathname} onNavigate={navigate} />
       : <article className="space-y-5">
         <a href="/heroes/" className="inline-flex min-h-11 items-center rounded-md border border-[#d7b66a] px-3 py-2">Все герои</a>
-        <header className="traditional-mode-banner">
-          <div className="traditional-mode-banner__copy">
-            <h1>{hero.name}</h1>
+        <header className="grid gap-4 sm:grid-cols-[1fr_180px]">
+          <div className="space-y-3">
+            <h1 className="font-hs text-3xl sm:text-4xl">{hero.name}</h1>
             <p>Герой режима «Поля сражений» в Hearthstone.</p>
             {hero.heroPower && <p>Сила героя «{hero.heroPower.name}»{hero.heroPower.text ? `: ${hero.heroPower.text}` : '.'}</p>}
           </div>

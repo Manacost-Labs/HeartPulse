@@ -15,6 +15,22 @@ assert.equal(withCatalogCardMedia([{ cardId: 'TOY_330', dbfId: null }], [
   { card_id: 'TOY_330', images: { tile: 'same-card.png' } },
 ])[0].tile, 'same-card.png', 'card identity supplies media without a DBF');
 
+const coreMedia = { card_id: 'CORE_REV_990', dbf: 999, images: {
+  tile: 'core-tile.png', horizontal: 'core-horizontal.webp', art: 'core-full.jpg',
+} };
+const reissueRow = { cardId: 'REV_990', dbfId: 123, mulliganCount: 316 };
+const enriched = withCatalogCardMedia([reissueRow], [coreMedia])[0];
+assert.equal(enriched.tile, 'core-tile.png', 'Core reissues supply a tile for the original statistics ID');
+assert.equal(enriched.fullArtwork, 'core-full.jpg', 'headers receive clean full artwork');
+assert.equal(enriched.cardId, 'REV_990', 'media lookup preserves statistics identity');
+assert.equal(enriched.mulliganCount, 316);
+assert.equal(withCatalogCardMedia([reissueRow], [coreMedia, {
+  card_id: 'REV_990', images: { tile: 'original-tile.png' },
+}])[0].tile, 'original-tile.png', 'an exact edition always wins over a Core alias');
+assert.equal(withCatalogCardMedia([{ cardId: 'CORE_REV_990', dbfId: null }], [{
+  card_id: 'REV_990', images: { tile: 'original-tile.png' },
+}])[0].tile, 'original-tile.png', 'Core statistics can use the original edition media');
+
 const catalog: ConstructedArchetypeCatalog = {
   format: 'wild',
   formatLabel: 'Вольный',

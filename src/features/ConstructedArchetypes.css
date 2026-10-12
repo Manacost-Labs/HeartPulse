@@ -520,12 +520,11 @@
 .archetype-dossier {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(480px, 1.25fr);
-  gap: 1.2rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.1rem;
   align-items: center;
   overflow: hidden;
-  min-height: 260px;
-  padding: clamp(1rem, 2.5vw, 1.75rem);
+  padding: clamp(1rem, 2vw, 1.5rem);
   border: 12px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   color: #fff0c8;
@@ -553,10 +552,10 @@
   z-index: 0;
   top: 0;
   right: 0;
-  width: min(60%, 760px);
+  width: 64%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 34%;
+  object-position: center;
   opacity: 1;
   mask-image: linear-gradient(90deg, transparent, #000 24%);
 }
@@ -572,8 +571,8 @@
 
 .archetype-dossier__identity > img {
   flex: 0 0 auto;
-  width: 88px;
-  height: 88px;
+  width: 68px;
+  height: 68px;
   filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.32));
 }
 
@@ -582,8 +581,8 @@
   color: #fff0c8;
   overflow-wrap: anywhere;
   font-family: var(--font-display);
-  font-size: clamp(1.9rem, 4vw, 3.3rem);
-  line-height: 1.05;
+  font-size: clamp(1.75rem, 3vw, 2.7rem);
+  line-height: 1.15;
   text-shadow: 0 3px 14px rgba(21, 1, 5, 0.7);
 }
 
@@ -591,17 +590,16 @@
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
   margin: 0;
-  border: 1px solid rgba(239, 201, 111, 0.3);
-  background: rgba(29, 3, 8, 0.82);
+  border: 1px solid rgba(239, 201, 111, 0.24);
+  background: rgba(239, 201, 111, 0.18);
 }
 
-.archetype-dossier__metrics div { min-width: 0; padding: 0.7rem; border-right: 1px solid rgba(239, 201, 111, 0.17); border-bottom: 1px solid rgba(239, 201, 111, 0.17); }
-.archetype-dossier__metrics div:nth-child(3n) { border-right: 0; }
-.archetype-dossier__metrics div:nth-last-child(-n + 3) { border-bottom: 0; }
-.archetype-dossier__metrics dt { color: #c8a66e; font-size: 0.56rem; font-weight: 800; text-transform: uppercase; }
-.archetype-dossier__metrics dd { margin: 0.15rem 0 0; color: #fff0c8; font-family: var(--font-display); font-size: 1rem; }
+.archetype-dossier__metrics div { min-width: 0; padding: 0.8rem 1rem; background: #27060de8; }
+.archetype-dossier__metrics dt { color: #e2c58f; font-size: 0.65rem; font-weight: 700; line-height: 1.4; text-transform: uppercase; }
+.archetype-dossier__metrics dd { margin: 0.3rem 0 0; color: #fff0c8; font-variant-numeric: tabular-nums; font-size: 1.3rem; font-weight: 800; line-height: 1.2; }
 .archetype-dossier__metrics dd.metric-strong { color: #a9db9f; }
 .archetype-dossier__metrics dd.metric-even { color: #f0cc78; }
 .archetype-dossier__metrics dd.metric-weak { color: #f2a0a4; }
@@ -1093,7 +1091,7 @@
   .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; contain-intrinsic-size: auto 107px; }
   .archetype-row__metrics { grid-column: 1 / -1; grid-row: 2; }
   .archetype-row__open { grid-column: 4; grid-row: 1; }
-  .archetype-dossier { grid-template-columns: 1fr; }
+  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .archetype-history__charts { grid-template-columns: 1fr; }
   .archetype-trend svg { min-width: 0; }
   .archetype-deck-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1145,15 +1143,11 @@
       #4b0710 100%
     );
   }
-  .archetype-dossier__art { top: 0; width: 100%; height: 68%; object-position: 50% 30%; transform: none; }
+  .archetype-dossier__art { width: 100%; height: 100%; object-position: center; }
   .archetype-dossier__identity { align-items: flex-start; gap: 0.65rem; }
   .archetype-dossier__identity > img { width: 62px; height: 62px; }
   .archetype-dossier h1 { font-size: clamp(1.65rem, 9vw, 2.35rem); }
   .archetype-dossier__metrics { grid-template-columns: repeat(2, 1fr); }
-  .archetype-dossier__metrics div:nth-child(3n) { border-right: 1px solid rgba(239, 201, 111, 0.17); }
-  .archetype-dossier__metrics div:nth-child(2n) { border-right: 0; }
-  .archetype-dossier__metrics div:nth-last-child(-n + 3) { border-bottom: 1px solid rgba(239, 201, 111, 0.17); }
-  .archetype-dossier__metrics div:nth-last-child(-n + 2) { border-bottom: 0; }
   .archetype-main-build > header,
   .archetype-section-heading { align-items: flex-start; flex-direction: column; }
   .archetype-build-preview { grid-template-columns: 1fr; }
