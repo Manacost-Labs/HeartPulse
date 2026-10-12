@@ -76,6 +76,8 @@ test('public navigation preserves the frame, sidebar state and native link behav
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport({ width: 1440, height: 700 });
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
+    assert.equal(await page.$eval('.arena-content', node => node.getAnimations().length), 0,
+      'the first document paint must have no route entrance');
     await rememberFrame(page);
     await assertGroupSwitchHasNoDelayedCollapse(page, '.arena-sidebar');
     assert.equal(await page.$eval('#root', root => root.firstElementChild?.matches('.arena-skip-link')), true,
@@ -86,6 +88,14 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.ok(scroll > 0, 'fixture must exercise sidebar scroll');
     const documentCount = gateway.requests.filter(request => request.destination === 'document').length;
     await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
+    const motion = await page.$eval('.arena-content', node => {
+      const animation = node.getAnimations()[0];
+      return animation ? { duration: animation.effect.getTiming().duration,
+        frames: animation.effect.getKeyframes().map(({ opacity, transform }) => ({ opacity, transform })) } : null;
+    });
+    assert.deepEqual(motion, { duration: 220, frames: [{ opacity: '0.8' }, { opacity: '1' }] },
+      'each committed page settles with one short opacity-only animation');
+    await page.$eval('.arena-content', node => Promise.all(node.getAnimations().map(animation => animation.finished)));
     await assertSameFrame(page);
     assert.equal(await page.$eval('.arena-sidebar', node => node.scrollTop), scroll);
     assert.equal(await page.$eval('.arena-sidebar button[aria-controls="arena-sidebar-misc"]', node => node.getAttribute('aria-expanded')), 'true');
@@ -134,10 +144,13 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.deepEqual(errors, []);
 
     await page.setViewport({ width: 390, height: 844 });
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
     await page.click('.arena-mobile-nav-toggle');
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').matches(':popover-open'));
     await assertGroupSwitchHasNoDelayedCollapse(page, '#arena-mobile-menu');
     await visitByClick(page, '#arena-mobile-menu a[href="/tierlist/"]', '/tierlist/');
+    assert.equal(await page.$eval('.arena-content', node => node.getAnimations().length), 0,
+      'reduced motion skips the route animation on phones');
     await page.waitForFunction(() => !document.querySelector('#arena-mobile-menu').matches(':popover-open') && document.body.style.position !== 'fixed');
     await assertSameFrame(page);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -205,6 +218,37 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await new Promise(resolve => setTimeout(resolve, 1100));
     assert.equal(await page.evaluate(() => location.pathname), '/faq/', 'Back supersedes a pending destination');
     assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    await closeLocal(legacy);
+  }
+});
+
+test('hover prepares a complete dynamic page before click, including its route code', { timeout: 60_000 }, async () => {
+  const legacy = http.createServer((_request, response) => response.writeHead(401).end());
+  let next, gateway, browser;
+  try {
+    next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
+    gateway = await startGateway(next.origin, { rscDelayMs: 450 });
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+      headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
+    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-misc"]');
+    await page.$eval('.arena-sidebar', node => { node.scrollTop = 180; });
+    const link = '.arena-sidebar a[href="/guides-archive/"]';
+    await page.hover(link);
+    await page.waitForNetworkIdle({ idleTime: 250 });
+    assert.ok(gateway.requests.some(request => request.rsc && request.path.startsWith('/guides-archive/')),
+      'genuine hover must prepare the dynamic route');
+    const beforeClick = gateway.requests.length;
+    await visitByClick(page, link, '/guides-archive/');
+    assert.equal(gateway.requests.slice(beforeClick).filter(request => request.rsc).length, 0,
+      'a prepared dynamic page must not need a new route request after click');
+    assert.ok(await page.$('#main-content'), 'the prepared content must render');
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);

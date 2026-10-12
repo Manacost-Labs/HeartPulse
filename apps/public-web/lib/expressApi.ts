@@ -21,15 +21,17 @@ export function expressOrigin(): URL {
  * Anonymous read of a public Express JSON projection. It never sends viewer
  * cookies, never follows redirects and gives up after ten seconds, so paid or
  * personal data cannot reach shared server-rendered HTML. The path must be
- * origin-relative (`/api/...`) and may carry a query string.
+ * origin-relative (`/api/...`) and may carry a query string. A caller's signal
+ * can shorten the deadline and cancel a body that is still being read.
  */
-export function fetchPublicExpress(path: string): Promise<Response> {
+export function fetchPublicExpress(path: string, signal?: AbortSignal): Promise<Response> {
   // An absolute or protocol-relative URL would leave the loopback origin.
   if (!path.startsWith('/') || path.startsWith('//')) {
     throw new Error('Express path must be origin-relative');
   }
   return fetch(new URL(path, expressOrigin()), {
     cache: 'no-store', credentials: 'omit', redirect: 'error',
-    signal: AbortSignal.timeout(10_000), headers: { Accept: 'application/json' },
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
+    headers: { Accept: 'application/json' },
   });
 }

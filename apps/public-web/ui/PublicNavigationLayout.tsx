@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { PublicNavigationController } from '@/src/app/shell/PublicNavigationController';
 import { PublicNavigationContext } from '@/src/app/shell/PublicNavigationContext';
 import { tabFromPath } from '@/src/app/routing/navigationRoutes';
+import { RouteTransition } from '@/src/shared/ui/RouteTransition';
 import { PublicNavigationBridge } from './PublicNavigationBridge';
 import { PublicAccessContext, usePublicAccessState, usePublicAccessStore } from './usePublicAccess';
 import { navigate } from './navigation';
@@ -23,7 +24,7 @@ export function PublicNavigationLayout({ children }: { children: ReactNode }) {
           updatedAtLabel={updatedAt.pathname === pathname ? updatedAt.label : 'Нет данных'} />
       </>}
       <PublicNavigationBridge />
-      {children}
+      <RouteTransition routeKey={pathname}>{children}</RouteTransition>
     </PublicNavigationContext.Provider>
   </PublicAccessContext.Provider>;
 }

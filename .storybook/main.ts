@@ -2,9 +2,10 @@ import type { StorybookConfig } from '@storybook/react-vite';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { mergeConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
+  stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)', '../apps/public-web/ui/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
   addons: [
     '@storybook/addon-docs',
     '@storybook/addon-a11y',
@@ -23,6 +24,7 @@ const config: StorybookConfig = {
   // and the release constant is the one a local Next.js build uses.
   viteFinal: config => mergeConfig(config, {
     plugins: [react(), tailwindcss()],
+    resolve: { alias: { '@': fileURLToPath(new URL('../', import.meta.url)) } },
     define: { __APP_RELEASE_SHA__: JSON.stringify('development') },
   }),
   // Vite already serves and copies public/; a second copy can race during builds.

@@ -260,3 +260,296 @@ With the owner's commit/push/deploy authority, commit in this task worktree,
 run integration preflight on the clean branch and integrate
 through the normal pipeline and report the resulting commit and Production SHA.
 A public changelog post for this unreleased task must say it awaits integration.
+
+## Full intent preparation and soft content settlement (2026-10-13)
+
+Task branch: `codex/smooth-navigation-speed-20261013`. The task worktree is
+`/home/debian/.codex/worktrees/smooth-navigation-speed/arena.hs-manacost.ru`.
+The fetched integration base and task HEAD are
+`a25fb04889f426112bd52896059653771bd5dc15`. Changes await integration;
+this task has no new commit or Production SHA and performed no push or deploy.
+
+Next 16.3.8's default `AUTO` prefetch left the dynamic page's content for
+the click. The public adapter now requests `full` preparation on qualified
+pointer/focus intent. The existing 120 ms intent delay, cancellation,
+Save-Data/offline/2G/touch policy and invalidation remain in force.
+The Next-specific option stays in the public adapter rather than shared code.
+
+After a pathname commits, shared `RouteTransition` animates only the marked
+content from opacity 0.8 to 1 using the existing 220 ms motion token and ease.
+It preserves child identity, cancels superseded motion, leaves the first paint
+untouched and skips reduced motion, hash/query changes and same-route updates.
+The menu and utility header remain outside the effect; navigation never waits
+for an exit animation. No additional stylesheet or animation dependency is used.
+
+### Measurements and verification
+
+The before/after production-build fixture used three fresh desktop contexts,
+1440×900, a 450 ms delay on each RSC request, FAQ→guides and 1700 ms of hover
+preparation. Click-to-committed-content samples were 499/491/496 ms before
+and 44/55/43 ms after (medians 496→44 ms). Each old click issued another RSC
+request; each new click issued zero. Both runs issued three speculative RSC
+requests before clicking. This isolates a prepared navigation benefit and does
+not measure first-visit speed, field INP or production user traffic.
+
+Local warm-cache FAQ traces recorded LCP 101→184 ms, TTFB 4→5 ms and CLS 0→0
+without throttling. These single traces support no LCP improvement claim.
+Cold baseline Next build was 18.379 s; the final warm build was 9.469 s.
+Cache conditions differ, so this task makes no build-time improvement claim.
+
+The final budget check passed. Archetypes JavaScript measured 191563 gzip
+bytes (75 bytes over its old ceiling); classes measured 169135 (175 over).
+Only these two ceilings use the existing reviewed 2% margin/1 KiB rule:
+195584 and 173056 respectively. All other JavaScript and all CSS limits stay
+unchanged. The shared motion introduces a small runtime cost.
+
+Passed checks:
+
+- static and Next production builds; TypeScript and ordinary lint;
+- architecture, Next contracts, motion tokens and test registry;
+- seven focused browser tests for navigation, hydration, head and access;
+- existing bundle budgets; changed-source Semgrep with zero findings;
+- changed React diagnostics; Storybook contracts and production build;
+- changed-document Markdown checks and `git diff --check`.
+
+The browser suite covers full dynamic prefetch before click, committed motion,
+initial paint, reduced motion, slow/rapid navigation, history and native links.
+No new test file or registry entry was needed. The historical changelog is
+excluded from the repository Markdown gate; its unrelated legacy violations
+were left intact. The complete repository release gate was not run.
+
+Chrome DevTools MCP reviewed the local production fixture at 1440×900 and
+390×844 (mobile CPU 4x), including menu navigation and Back. No horizontal
+overflow, clipped primary controls, failed resources or application JavaScript
+errors were observed. Each page has one H1 and one main landmark. One existing
+Chromium warning about unused prefetched Next CSS remains; a direct desktop
+load had no console warnings. All four new stories and the five affected shell
+stories were previewed in the real browser without visible Storybook errors.
+Isolation, header redaction, telemetry opt-outs and URL/filesystem limits were
+kept enabled throughout the review.
+
+Storybook previews on the task's own development port:
+
+- <http://localhost:6026/?path=/story/shared-routetransition--initial>
+- <http://localhost:6026/?path=/story/shared-routetransition--navigation>
+- <http://localhost:6026/?path=/story/shared-routetransition--rapid-replacement>
+- <http://localhost:6026/?path=/story/shared-routetransition--same-route>
+- affected stories: <http://localhost:6026/?statuses=affected;modified;new>
+
+### Changed files and integration ownership
+
+Documentation impact: this runbook, the navigation spec, public-web README
+and Unreleased changelog. `docs/architecture/module-boundaries.md` was reviewed;
+its ownership rules remain accurate because the effect is a domain-independent
+shared primitive and Next-specific preparation remains in app composition.
+
+- `apps/public-web/ui/PublicNavigationBridge.tsx`
+- `apps/public-web/ui/PublicNavigationLayout.tsx`
+- `src/app/shell/PublicPageShell.tsx`
+- `src/shared/ui/RouteTransition.tsx`
+- `src/shared/ui/RouteTransition.stories.tsx`
+- `tests/next-page-transitions-browser.test.mjs`
+- `config/next-bundle-budgets.json`
+- `apps/public-web/README.md`
+- `docs/specs/public-client-navigation.md`
+- `docs/runbooks/public-navigation-stability.md`
+- `CHANGELOG.md`
+
+Session preflight passed before implementation. During work, README/changelog
+edits overlapped `archetype-polish-20261013` and
+`unified-table-card-tiles-20261013`; further edits to those documents were
+frozen. The final integration preflight fetched an unchanged `origin/main`
+and blocks the dirty task worktree plus the remaining changelog overlap with
+`unified-table-card-tiles-20261013`. No sibling files were modified or copied.
+The coordination chat
+«Проверить сессии Codex» must reconcile those document hunks and preserve
+previous tasks before committing/integrating this branch.
+
+Before any release, the coordinator must fetch and include current
+`origin/main`, rerun affected checks and integration preflight on a clean task
+branch, and confirm the previous release's Production SHA. Main push and
+deployment remain exclusively with that coordinator. This runbook records
+reviewed local results rather than authorizing publication or deployment.
+
+The mandatory public update was posted as the current version `v1.0.106`,
+explicitly awaiting integration: <https://t.me/changelogarena/539>.
+The helper used the existing server environment through passwordless sudo;
+no secret value or copied environment file was exposed or stored in the task.
+
+## Bounded home recovery and shared soft arrivals (2026-10-13)
+
+This continuation stays in `codex/smooth-navigation-speed-20261013` at
+`/home/debian/.codex/worktrees/smooth-navigation-speed/arena.hs-manacost.ru`.
+It preserves the preceding full intent preparation and route-transition work.
+No task commit, main push or deployment has been made; integration remains with
+«Проверить сессии Codex».
+
+### Confirmed problems and resulting behavior
+
+The home document previously awaited both feeds, each with a ten-second
+ceiling. A controlled articles response delayed by 1800 ms held the complete
+document: the failing regression measured TTFB 2108 ms. Both reads now share
+one 600 ms first-paint budget. A fast summary survives a slow articles feed;
+only missing feeds recover in the browser. Successfully empty articles remain
+`[]` and issue no retry. Account pages mount no home recovery hooks.
+
+The final browser suite measured 599 ms of server feed wait and 936 ms TTFB;
+an isolated follow-up run measured 596 ms and 925 ms respectively. Next startup
+and concurrent verification contribute to total TTFB, so these observations
+prove the bounded dependency wait, not a production percentage improvement.
+No field LCP/INP or build-time improvement is claimed.
+
+Shared first-paint reads now start no request after expiry and forward aborts
+through the anonymous Express adapter. Expiry cancels held headers and JSON
+bodies rather than merely discarding their eventual result. Browser recovery
+is cancelled when leaving home; a lazy recovery chunk arriving after its
+10-second lifetime cannot issue a stale request. That lifetime includes code
+loading and body parsing, preventing an indefinite loading placeholder.
+An additional held-503-body regression reproduced one live browser connection
+after failure (only the server read cancelled). Browser error responses now
+cancel their unread body immediately; the check requires both reads to release
+their connections within one second rather than waiting for the HTTP deadline.
+
+Nonurgent feed updates preserve streamed sections while their visual chunk
+loads. Only a pending feed settling uses the same 220 ms opacity 0.8→1 effect
+as committed routes. Prepared content has no entrance animation; reduced
+motion skips both effects. The home module supplies two explicit DOM ports,
+so app composition does not depend on private module CSS. Shared motion owns
+no product data and adds no animation library or layout offset.
+
+Recovery request code is loaded only for incomplete responses. Moving it out
+of the initial home bundle reduced JavaScript gzip from 167273 to 166117 bytes
+(1156 bytes); a fresh-context browser check confirms prepared pages never
+request that chunk. No further budget increase was needed:
+
+| Route | Final initial JS gzip, bytes | Existing task ceiling, bytes |
+| --- | ---: | ---: |
+| `/` | 166117 | 167936 |
+| `/standard/archetypes/` | 191616 | 195584 |
+| `/classes/` | 169188 | 173056 |
+
+The two changed ceilings belong to the preceding measured route-transition
+phase. All other JS and all CSS ceilings remain unchanged. There is no new
+dependency, global data cache, parser or telemetry change.
+
+### Final verification and browser evidence
+
+Passed on the final implementation:
+
+- Next production build, ordinary and Next TypeScript lint, architecture gates;
+- 24 Next contracts, first-paint loader contracts and motion-token checks;
+- eight browser tests covering hydration, navigation, document head and access;
+- bundle budgets, Storybook contracts and static Storybook build;
+- changed React diagnostics: 18 files, no issues;
+- changed-source Semgrep: 20 files, zero findings or parser errors.
+- changed-document Markdown checks and `git diff --check`.
+
+Test registry (22 checks) and agent tooling (62 checks) also passed after
+adding Storybook app composition discovery. The continuation uses existing
+registered test files. Tests reproduce slow feeds, expired reads, held bodies,
+lazy section preservation, cancellation on client navigation, no home reads on
+account pages, no duplicate fast-feed reads and expired lazy code. The complete
+repository release gate was not run.
+
+Chrome DevTools MCP reviewed the final local production fixture at 1440×900
+and 390×844 with mobile CPU 4x. Both have document width equal to viewport,
+no clipped primary controls, one H1 and one main landmark, zero console
+errors/warnings and zero failed resources (39/38 requests respectively).
+All six recovery stories and four route-transition stories were reviewed in a
+real browser; missing/failed feeds also received mobile review. No Storybook
+error surface or horizontal overflow was observed. The empty and failure
+messages retain the existing module behavior.
+
+The final warm-cache diagnostic trace recorded local mobile LCP 248 ms,
+TTFB 13 ms and CLS 0; production mobile LCP 845 ms, TTFB 449 ms and CLS 0.
+These use different data/network/cache conditions and are not a before/after
+comparison. Network throttling was unavailable with the required URL guard;
+CPU emulation worked. The isolated profile, URL/filesystem restrictions,
+header redaction and telemetry opt-outs stayed enabled.
+The final local trace is `/tmp/smooth-followup-final-mobile-trace.json.gz`.
+
+Final screenshots: `/tmp/smooth-followup-final-desktop.webp`,
+`/tmp/smooth-followup-final-mobile.webp` and
+`/tmp/smooth-followup-final-story-{missing-both-feeds,failed-feeds}.webp`.
+Check logs use `/tmp/smooth-followup-*.log`; the final browser suite is
+`/tmp/smooth-followup-browser.log`. These are local evidence, not release
+artifacts. Development Storybook remains on the task's own port 6026:
+
+- <http://localhost:6026/?path=/story/home-first-paint-recovery--server-prepared>
+- <http://localhost:6026/?path=/story/home-first-paint-recovery--missing-articles>
+- <http://localhost:6026/?path=/story/home-first-paint-recovery--missing-both-feeds>
+- <http://localhost:6026/?path=/story/home-first-paint-recovery--failed-feeds>
+- <http://localhost:6026/?path=/story/home-first-paint-recovery--leave-during-loading>
+- all affected states: <http://localhost:6026/?statuses=affected;modified;new>
+
+Code review followed by simplification checked stable SSR props, `null` versus
+empty data, bounded cancellation, lazy-code expiry, animation cleanup and
+`app -> modules -> shared` ownership. The implementation reuses validators,
+HTTP deadlines and motion tokens rather than adding a second loading system.
+
+### Changed files and documentation handoff
+
+Full task list, including the preceding phase (30 paths):
+
+- `.storybook/main.ts`
+- `CHANGELOG.md`
+- `apps/public-web/README.md`
+- `apps/public-web/lib/expressApi.ts`
+- `apps/public-web/lib/publicArchetypeCatalogTeaser.ts`
+- `apps/public-web/lib/publicCosmeticsCatalog.ts`
+- `apps/public-web/lib/publicFirstPaintRead.ts`
+- `apps/public-web/lib/publicFunDecksPreview.ts`
+- `apps/public-web/lib/publicHome.ts`
+- `apps/public-web/lib/publicStandardMetaTeaser.ts`
+- `apps/public-web/ui/HomePageClient.tsx`
+- `apps/public-web/ui/HomePageContent.stories.tsx`
+- `apps/public-web/ui/HomePageContent.tsx`
+- `apps/public-web/ui/PublicNavigationBridge.tsx`
+- `apps/public-web/ui/PublicNavigationLayout.tsx`
+- `apps/public-web/ui/homeFeedRequests.ts`
+- `apps/public-web/ui/useHomeFirstPaint.ts`
+- `config/next-bundle-budgets.json`
+- `docs/runbooks/public-navigation-stability.md`
+- `docs/specs/public-client-navigation.md`
+- `src/app/shell/PublicPageShell.tsx`
+- `src/modules/home/ui/HomeHero.tsx`
+- `src/modules/home/ui/HomeLatestArticles.tsx`
+- `src/shared/ui/RouteTransition.stories.tsx`
+- `src/shared/ui/RouteTransition.tsx`
+- `src/shared/ui/settleContent.ts`
+- `tests/next-express-api.test.ts`
+- `tests/next-home-hydration-browser.test.mjs`
+- `tests/next-page-transitions-browser.test.mjs`
+- `tests/next-public-first-paint-loaders.test.ts`
+
+Documentation impact: README, navigation spec and this runbook were updated
+with the loading, motion, failure and cancellation contracts. The architecture
+contract was reviewed and stays accurate. The preceding six-line Unreleased
+changelog edit is preserved. The additional entry below is prepared for the
+coordinator; it has not been inserted into the overlapping shared document:
+
+> Главная страница больше не ждёт медленные ленты дольше общего бюджета
+> первого показа: готовые данные сохраняются, недостающие дозагружаются с
+> мягким появлением. Просроченные и покинутые запросы отменяются, включая
+> чтение ответа; код дозагрузки исключён из стартового пакета.
+
+The latest integration preflight fetched
+`origin/main = a25fb04889f426112bd52896059653771bd5dc15`, equal to task HEAD.
+It blocks the 30 uncommitted task paths and `CHANGELOG.md` overlaps with
+`/home/debian/.codex-worktrees/unified-table-card-tiles-20261013` and
+`/srv/projects/tasks/hearthpulse-data-visualizations-20261013`.
+No sibling files were modified or copied. Documentation reconciliation and a
+clean committed branch are still required before this is integration-ready.
+The coordinator must include the then-current `origin/main`, preserve earlier
+tasks, rerun validation and integration preflight, and confirm the previous
+release's Production SHA before any next release. This task has no new commit
+or deployed Production SHA to report.
+
+A next measured target is article cover delivery: the observed production
+upload was 153830 bytes at 1176×597 for a roughly 407×211 displayed image.
+That image pipeline has not been changed by this task.
+
+The mandatory public continuation update uses the current `v1.0.106` and
+explicitly says it awaits integration and is not in production:
+<https://t.me/changelogarena/545>. It was sent through the existing local
+helper and server environment; no token or environment copy was exposed.

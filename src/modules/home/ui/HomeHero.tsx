@@ -63,7 +63,7 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
           </picture>
         </figure>
 
-        <aside className="home-draft-orbit" aria-live="polite" aria-label="Классы-лидеры текущей меты">
+        <aside data-home-feed="summary" className="home-draft-orbit" aria-live="polite" aria-label="Классы-лидеры текущей меты">
           <span className="home-draft-orbit__caption">Топ классов Арены</span>
           <div className="home-draft-orbit__board">
             {loadingHomeSummary && topClasses.length === 0

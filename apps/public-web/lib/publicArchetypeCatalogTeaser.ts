@@ -11,7 +11,7 @@ import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPai
  */
 export const loadPublicArchetypeCatalogTeaser = cache(async (search: string) => {
   const { format } = readInitialCatalogFilters(search, []);
-  const raw = await readFirstPaintJson(() => fetchPublicExpress(`/api/constructed-archetypes/teaser?format=${format}`),
+  const raw = await readFirstPaintJson(signal => fetchPublicExpress(`/api/constructed-archetypes/teaser?format=${format}`, signal),
     Date.now() + FIRST_PAINT_READ_BUDGET_MS);
   return raw === null ? null : publicArchetypeCatalog(raw, format);
 });

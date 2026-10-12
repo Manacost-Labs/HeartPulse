@@ -42,6 +42,25 @@ test('paths that could leave the loopback origin are rejected before any request
   }
 });
 
+test('the anonymous adapter propagates first-paint cancellation to fetch', async () => {
+  const controller = new AbortController();
+  let requestSignal: AbortSignal | undefined;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+    requestSignal = init?.signal ?? undefined;
+    return new Response('{}');
+  }) as typeof fetch;
+  try {
+    await fetchPublicExpress('/api/home/summary', controller.signal);
+    const reason = new Error('First-paint budget exhausted');
+    controller.abort(reason);
+    assert.equal(requestSignal?.aborted, true);
+    assert.equal(requestSignal?.reason, reason);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('the development fallback is the local API port', () => {
   assert.equal(withOrigin(undefined, expressOrigin).href, 'http://127.0.0.1:3001/');
 });

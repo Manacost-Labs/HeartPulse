@@ -5,8 +5,8 @@
 Public page links use the Next.js App Router after hydration. The navigation
 mounted by the root layout keeps its DOM, expanded groups and sidebar scroll
 position between public pages. The mobile drawer closes on navigation without
-losing the page's scroll position. Content changes without fading to the
-background or rising into place.
+losing the page's scroll position. Content remains visible until the destination
+is ready, then softly settles to full opacity without moving its geometry.
 
 The skip link remains the first DOM element in the public root, before the
 pending navigation indicator, so keyboard entry and shell readiness share the
@@ -50,8 +50,8 @@ lazy chunk loads, including when the guest profile check finishes first.
    page shell for Storybook and other isolated renders. Share the existing
    viewer access hook through the root provider. Register the App Router
    navigation adapter and prefetch public destinations on pointer/focus intent.
-3. Remove the document transition/entrance from the public layout and stop
-   page entrance animations from replaying during client navigation.
+3. Keep document loads and individual page sections free of entrance effects;
+   use one short content transition after a client route commits.
 4. Verify menu identity, scroll, groups, mobile closing, Back/Forward,
    modified clicks, viewer changes and route styles in real browser tests.
 
@@ -132,3 +132,101 @@ source-driven-development, doubt-driven-development, security-and-hardening,
 performance-optimization and web-quality performance/vitals/accessibility,
 documentation-and-adrs. Before handoff: code-review-and-quality and
 code-simplification.
+
+### Soft content and complete intent preparation (2026-10-13)
+
+The owner's goal is faster public navigation with simple, consistent motion.
+Keep the current Next.js/React versions, public URLs, native link exclusions,
+viewer verification and persistent navigation. Add no dependency or data cache.
+
+Acceptance and implementation order:
+
+1. Reproduce the dynamic-route prefetch gap with the existing navigation
+   browser suite: a prepared `/guides-archive/` must commit without a new RSC
+   request after click. The adapter explicitly requests full preparation using
+   the installed router's `kind: 'full'` option, through its public method type.
+   Preserve the 120 ms dwell, focus preparation, network restrictions,
+   freshness invalidation and capacity bound.
+2. The persistent layout composes `RouteTransition` from `src/shared/ui`.
+   A committed pathname change animates only the shell's `data-route-content`
+   surface from opacity 0.8 to 1, using `--motion-base` (220 ms) and
+   `--motion-ease`. No transform, exit delay, section staggering or document
+   snapshot is needed. The first document paint and query/hash-only updates
+   have no entrance effect. Reduced motion skips it; replacement/unmount
+   cancels the previous animation. The wrapper uses `display: contents` and
+   does not reserve layout space or remount the page tree.
+3. Verify prepared and slow routes, rapid replacement, native links, Back,
+   reduced motion and desktop/mobile geometry. Compare before/after timings
+   in the same production fixture with an explicit 450 ms RSC delay; these
+   are lab measurements, not field Web Vitals. Review initial bundles before
+   changing a ceiling; adjust only the two routes whose previous margin is
+   exhausted, using the existing 2% margin and 1 KiB rounding rule.
+
+Use the checks above and `node --test tests/motion-tokens.test.mjs`; test the
+new component's states in Storybook. Application adapters stay in
+`apps/public-web/ui`, shared motion stays in `src/shared/ui`, and shell markup
+stays in `src/app/shell`. No domain data loading moves into the layout.
+
+Documentation impact: this spec, `apps/public-web/README.md`,
+`docs/runbooks/public-navigation-stability.md`,
+`config/next-bundle-budgets.json` and `CHANGELOG.md`.
+Reviewed `docs/architecture/module-boundaries.md`: ownership and dependency
+direction remain accurate. Integration and production belong to the coordinating
+chat; no main push or deploy is part of this task.
+
+Skills selected for this follow-up: resource-index, using-agent-skills,
+context-engineering, codegraph, context7, spec-driven-development,
+planning-and-task-breakdown, incremental-implementation, test-driven-development,
+debugging-and-error-recovery, frontend-design, TypeUI fundamentals,
+browser-testing-with-devtools, react-best-practices, frontend-testing-debugging,
+performance-optimization, web-quality audit/performance/core-web-vitals/
+accessibility, source-driven-development, doubt-driven-development,
+documentation-and-adrs, git-workflow-and-versioning, ci-cd-and-automation and
+react-doctor. Handoff includes
+code-review-and-quality followed by code-simplification.
+
+### Bounded home first paint and cancelled speculative reads (2026-10-13)
+
+Continuation goal: remove confirmed waits and visual gaps before adding motion.
+The home page currently holds its entire content for both independent public
+feeds, each allowed ten seconds. Existing first-paint deadlines return `null`
+without forwarding cancellation to Express, leaving abandoned requests alive.
+
+Acceptance and order:
+
+1. Reproduce a slow home feed delaying the complete document, and an expired
+   first-paint read still starting a request, in the existing registered tests.
+2. Give both home feeds the existing shared 600 ms document budget. Preserve
+   independently completed data and distinguish a missing articles feed from
+   a successfully empty one. On hydration, fetch only missing feeds; account
+   pages issue no home reads. Cancel browser fallbacks on leaving the page.
+3. Forward the first-paint abort signal through the anonymous Express adapter,
+   including body reads, and cancel outstanding work at the deadline. Keep
+   the ten-second maximum, omitted cookies and redirect rejection.
+4. Retain rendered sections through nonurgent feed updates; keep the existing
+   loading geometry and the simple committed-route motion. Verify partial
+   failures, slow bodies, fast feeds, account navigation, rapid replacement,
+   desktop/mobile rendering and initial bundles.
+
+Source evidence: the installed React behavior and official
+[Suspense guidance](https://react.dev/reference/react/Suspense), plus Node 22
+[abort composition](https://nodejs.org/download/release/v22.17.0/docs/api/globals.html#static-method-abortsignalanysignals).
+No dependency, global data cache, auth rule or parser boundary changes.
+Documentation impact: this spec, `docs/runbooks/public-navigation-stability.md`,
+`apps/public-web/README.md` and `CHANGELOG.md`. Shared-document conflicts stay
+with the coordinator; do not edit another session's worktree or publish a release.
+The selected skills remain those listed in the preceding continuation plan.
+
+The home module exposes `data-home-feed="summary"` and
+`data-home-feed="articles"` as DOM ports for the composed recovery effect.
+The app uses those ports rather than the module's private CSS classes.
+Only a pending feed settling triggers the shared 220 ms opacity effect;
+prepared first paint and reduced motion remain immediate. Failure settlement
+uses the same motion and retains the module's existing empty/status messages.
+
+The browser loads `homeFeedRequests.ts` only when a feed is missing; prepared
+home pages do not request this chunk. Its ten-second recovery deadline includes
+code loading and response body parsing. Expiry settles the existing status and
+cancels the request; a chunk arriving after expiry must not start a late fetch.
+An unsuccessful response releases its unread body immediately, including a
+server that sends error headers and then stops streaming.
