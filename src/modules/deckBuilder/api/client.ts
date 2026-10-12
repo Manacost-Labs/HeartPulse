@@ -19,7 +19,7 @@ function resourcePath(value: unknown, host: string, prefix: string, source: stri
 
 const kolodaImage = (value: unknown) => resourcePath(value, 'api.kolodahearthstone.com', '/uploads/', 'db');
 
-function catalogCard(value: unknown, heroClass: string): BuilderCard | null {
+export function catalogCard(value: unknown, heroClass: string): BuilderCard | null {
   const card = record(value);
   if (typeof card.card_id !== 'string' || !/^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/.test(card.card_id)
     || !Number.isSafeInteger(card.dbf) || Number(card.dbf) <= 0 || Number(card.dbf) > 10_000_000) return null;
@@ -30,26 +30,34 @@ function catalogCard(value: unknown, heroClass: string): BuilderCard | null {
     .filter((value): value is string => typeof value === 'string').map(value => value.toUpperCase());
   if (!classes.includes(heroClass) && !classes.includes('NEUTRAL')) return null;
   const images = record(card.images);
+  const texts = record(card.text);
+  const text = typeof texts.ru === 'string' ? texts.ru : typeof texts.en === 'string' ? texts.en : '';
   return {
     id: card.card_id, dbfId: Number(card.dbf), name: name.slice(0, 200),
     cost: Number.isSafeInteger(card.mana_cost) && Number(card.mana_cost) >= 0 ? Number(card.mana_cost) : 0,
     rarity: typeof card.rarity === 'string' ? card.rarity.toUpperCase() : 'COMMON', classes,
     image: kolodaImage(images.card) || `/api/card-image/${encodeURIComponent(card.card_id)}/thumb.webp`,
     tile: kolodaImage(images.tile) || kolodaImage(card.tile_image_url),
+    attack: Number.isSafeInteger(card.attack) ? Number(card.attack) : undefined,
+    health: Number.isSafeInteger(card.health) ? Number(card.health) : undefined,
+    set: typeof card.card_set === 'string' ? card.card_set.toUpperCase() : undefined,
+    text: text.replace(/<[^>]*>/g, '').replace(/\[x\]/g, '').slice(0, 2000),
   };
 }
 
 /** Reads only anonymous catalog data; the caller owns cancellation on filter changes. */
 export async function loadDeckCatalog(query: BuilderCatalogQuery, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<BuilderCatalog> {
-  const params = new URLSearchParams({ format: query.format, deckClass: query.heroClass,
+  const guest = query.pool === 'tourist' ? query.guestClass : undefined;
+  const params = new URLSearchParams({ format: query.format, deckClass: guest ?? query.heroClass,
     page: String(query.page), perPage: '24', sort: query.sort || 'mana', direction: query.direction || 'asc' });
   if (query.query.trim()) params.set('query', query.query.trim());
   if (query.mana) params.set('mana', query.mana);
   if (query.rarity) params.set('rarity', query.rarity);
-  if (query.pool) params.set('class', query.pool === 'neutral' ? 'NEUTRAL' : query.heroClass);
+  if (query.pool) params.set('class', guest ?? (query.pool === 'neutral' ? 'NEUTRAL' : query.heroClass));
   for (const key of ['set', 'type', 'mechanic', 'minionType', 'spellSchool'] as const) {
     if (query[key]) params.set(key, query[key]);
   }
+  if (guest) params.set('set', 'ISLAND_VACATION');
   const response = await fetcher(`/api/constructed-cards?${params}`, {
     signal, credentials: 'same-origin', headers: { Accept: 'application/json' },
   });
@@ -67,7 +75,8 @@ export async function loadDeckCatalog(query: BuilderCatalogQuery, signal: AbortS
       .map(value => value.toUpperCase()))]])) as Record<BuilderFacet, string[]>;
   const mechanicTranslations = Object.fromEntries(Object.entries(record(data.mechanicTranslations))
     .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].length <= 200));
-  return { cards: data.cards.map(value => catalogCard(value, query.heroClass)).filter((value): value is BuilderCard => value !== null),
+  return { cards: data.cards.map(value => catalogCard(value, guest ?? query.heroClass)).filter((value): value is BuilderCard => value !== null)
+    .filter(card => !guest || card.classes.includes(guest) && card.set === 'ISLAND_VACATION'),
     total: Number(pagination.total), totalPages: Number(pagination.totalPages), facets, mechanicTranslations };
 }
 

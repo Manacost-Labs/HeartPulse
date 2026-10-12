@@ -41,8 +41,9 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
         queries.push(Object.fromEntries(url.searchParams));
         const query = url.searchParams.get('query') ?? '';
         if (query === 'slow') await delay(600);
-        const result = largePool ? Array.from({ length: 15 }, (_, index) => ({ ...cards[0],
-          card_id: `CARD_${index}`, dbf: 300 + index, name: { ru: `Карта ${index}` } }))
+        const result = largePool ? [...Array.from({ length: 20 }, (_, index) => ({ ...cards[0],
+          card_id: `CARD_${index}`, dbf: 300 + index, name: { ru: `Карта ${index}` } })),
+          { ...cards[2], card_id: 'REV_018', dbf: 79767, rarity: 'LEGENDARY', name: { ru: 'Принц Ренатал' } }]
           : query === 'slow' ? [{ ...cards[0], name: { ru: 'Устаревший ответ' } }]
           : cards.filter(card => card.name.ru.toLowerCase().includes(query.toLowerCase()));
         await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: result,
@@ -128,6 +129,12 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     assert.deepEqual(decoded.heroes, [637]);
     assert.equal(decoded.format, 2);
     assert.deepEqual(decoded.cards, [[315, 2], [129851, 1]]);
+    await page.click('.hp-builder-secondary-actions button:first-child');
+    await page.setViewport({ width: 320, height: 720 });
+    assert.equal(await page.$eval('.hp-builder-code-dialog', node => node.checkVisibility()), true,
+      'open code stays visible when desktop collection becomes the phone panel');
+    await page.keyboard.press('Escape');
+    await page.setViewport({ width: 1440, height: 900 });
     for (const width of [768, 390, 320]) {
       await page.setViewport({ width, height: 900 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `overflow at ${width}`);
@@ -161,11 +168,217 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
       return list.scrollHeight > list.clientHeight
         && save.getBoundingClientRect().bottom <= deck.getBoundingClientRect().bottom;
     }), true, 'full phone deck scrolls its list while keeping Save inside the panel');
+    for (const width of [1440, 1024, 768, 390, 320]) {
+      await page.setViewport({ width, height: 720 });
+      const layout = await page.evaluate(() => {
+        const list = document.querySelector('.hp-builder-deck-list');
+        const rows = [...list.children];
+        return { height: list.clientHeight, rowHeight: rows[0].getBoundingClientRect().height,
+          ordered: rows.every((row, index) => !index || row.offsetTop > rows[index - 1].offsetTop),
+          overflow: document.documentElement.scrollWidth > innerWidth };
+      });
+      assert.ok(layout.height >= layout.rowHeight * 3, `at least three full tiles visible at ${width}: ${JSON.stringify(layout)}`);
+      assert.equal(layout.ordered, true, 'selected cards run down the list');
+      assert.equal(layout.overflow, false);
+      await page.click('.hp-builder-secondary-actions button:first-child');
+      await page.waitForSelector('.hp-builder-code-dialog[open]');
+      assert.equal(await page.evaluate(() => {
+        const dialog = document.querySelector('.hp-builder-code-dialog').getBoundingClientRect();
+        const field = document.querySelector('.hp-builder-code-dialog textarea').getBoundingClientRect();
+        return dialog.left >= 0 && dialog.right <= innerWidth && dialog.top >= 0 && dialog.bottom <= innerHeight
+          && field.left >= dialog.left && field.right <= dialog.right && field.bottom <= dialog.bottom;
+      }), true, `deck code stays on screen at ${width}`);
+      await page.keyboard.press('Escape');
+    }
+    await page.click('.hp-builder-mobile-switch button:first-child');
+    await page.click('button[aria-label="Добавить: Принц Ренатал"]');
+    for (let index = 15; index < 20; index++) {
+      await page.click(`button[aria-label="Добавить: Карта ${index}"]`);
+      if (index < 19) await page.click(`button[aria-label="Добавить: Карта ${index}, в колоде 1"]`);
+    }
+    await page.click('.hp-builder-mobile-switch button:last-child');
+    assert.ok(await page.$('[aria-label="Карт в колоде: 40 из 40"]'));
+    await page.click('button[aria-label="Управление картой: Принц Ренатал"]');
+    await page.click('button[aria-label="Убрать: Принц Ренатал"]');
+    assert.ok(await page.$('[aria-label="Карт в колоде: 39 из 30"]'));
+    assert.equal(await page.$eval('.hp-builder-save', button => button.disabled), true);
+    assert.equal(await page.$eval('.hp-builder-secondary-actions button:first-child', button => button.disabled), true);
     assert.ok(queries.some(query => query.deckClass === 'MAGE' && query.format === 'standard'));
     assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();
     await runtime.close();
     rmSync(downloads, { recursive: true, force: true });
+  }
+});
+
+test('runes gate Death Knight cards and tourists expose only the permitted guest set', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true });
+  let browser;
+  try {
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    const page = await browser.newPage();
+    const queries = [];
+    const errors = [];
+    const runeCard = { ...cards[0], card_id: 'DK_CARD', dbf: 78338, class: 'DEATHKNIGHT', name: { ru: 'Чары крови' } };
+    const tourist = { ...cards[0], card_id: 'VAC_424', dbf: 107187, rarity: 'LEGENDARY', card_set: 'ISLAND_VACATION',
+      name: { ru: 'Райла' }, text: { ru: 'Турист-паладин' } };
+    const guest = { ...cards[0], card_id: 'VAC_435', dbf: 105679, class: 'PALADIN', card_set: 'ISLAND_VACATION', name: { ru: 'Гостевой заклинатель' } };
+    const chain = { ...guest, card_id: 'VAC_507', dbf: 105682, name: { ru: 'Линесса' }, text: { ru: 'Турист-разбойник' } };
+    page.on('pageerror', error => errors.push(error.message));
+    await page.setRequestInterception(true);
+    page.on('request', async request => {
+      const url = new URL(request.url());
+      if (url.hostname === 'api.hearthstonejson.com') {
+        await request.respond({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify([
+          { id: 'DK_CARD', runeCost: { blood: 2 } },
+          { id: 'VAC_424', set: 'ISLAND_VACATION', text: '<b>Paladin Tourist</b>' },
+          { id: 'VAC_507', set: 'ISLAND_VACATION', text: '<b>Rogue Tourist</b>' },
+        ]) });
+      } else if (url.pathname === '/api/constructed-cards') {
+        queries.push(Object.fromEntries(url.searchParams));
+        const pool = url.searchParams.get('deckClass') === 'DEATHKNIGHT' ? [runeCard, cards[2]]
+          : url.searchParams.get('deckClass') === 'PALADIN' ? [guest, chain, { ...guest, card_id: 'CORE_OTHER', dbf: 12, card_set: 'CORE', name: { ru: 'Другой набор' } }]
+          : [tourist, cards[2]];
+        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: pool,
+          pagination: { total: pool.length, totalPages: 1 } }) });
+      } else if (url.pathname.startsWith('/api/public-resource/db/')) {
+        await request.respond({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" fill="#715022"/></svg>' });
+      } else await request.continue();
+    });
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${runtime.origin}/standard/deck-builder/`, { waitUntil: 'networkidle2' });
+    await page.select('.hp-builder-context label:first-child select', 'DEATHKNIGHT');
+    await page.waitForSelector('button[aria-label="Добавить: Чары крови"]');
+    await page.waitForFunction(() => !document.querySelector('.hp-builder-legality [role="status"]'));
+    assert.equal(await page.$eval('button[aria-label="Добавить: Чары крови"]', button => button.disabled), true);
+    await page.select('.hp-builder-legality label:first-of-type select', '3');
+    assert.equal(await page.$eval('.hp-builder-legality label:nth-of-type(2) select', field => field.value), '0');
+    await page.click('button[aria-label="Добавить: Чары крови"]');
+    assert.equal(await page.$eval('.hp-builder-save', button => button.disabled), false);
+    await page.select('.hp-builder-legality label:nth-of-type(2) select', '2');
+    assert.equal(await page.$eval('.hp-builder-save', button => button.disabled), true);
+    await page.click('button[aria-label="Управление картой: Чары крови"]');
+    await page.click('button[aria-label="Убрать: Чары крови"]');
+    await page.select('.hp-builder-context label:first-child select', 'MAGE');
+    await page.waitForSelector('button[aria-label="Добавить: Райла"]');
+    await page.click('button[aria-label="Добавить: Райла"]');
+    await page.waitForFunction(() => document.querySelector('option[value="tourist"]'));
+    await page.click('.hp-builder-extra-filters summary');
+    await page.select('.hp-builder-extra-filters label:last-child select', 'tourist');
+    await page.waitForSelector('button[aria-label="Добавить: Гостевой заклинатель"]');
+    assert.equal(await page.$('button[aria-label="Добавить: Другой набор"]'), null);
+    assert.equal(await page.$eval('button[aria-label="Добавить: Линесса"]', button => button.disabled), true);
+    assert.equal(await page.$eval('.hp-builder-filter-toolbar > label select', field => field.disabled), true);
+    await page.click('button[aria-label="Добавить: Гостевой заклинатель"]');
+    assert.equal(await page.$eval('.hp-builder-save', button => button.disabled), false);
+    await page.click('button[aria-label="Управление картой: Райла"]');
+    await page.click('button[aria-label="Убрать: Райла"]');
+    assert.equal(await page.$eval('.hp-builder-save', button => button.disabled), true);
+    assert.ok(queries.some(query => query.deckClass === 'PALADIN' && query.class === 'PALADIN' && query.set === 'ISLAND_VACATION'));
+    await page.setViewport({ width: 320, height: 740 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    await runtime.close();
+  }
+});
+
+test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictions and can be edited on phones', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true });
+  let browser;
+  try {
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    const page = await browser.newPage();
+    const errors = [];
+    const renders = [];
+    let configFails = true;
+    const owners = [
+      { ...cards[2], card_id: 'ETC_080', dbf: 90749, name: { ru: 'E.T.C., менеджер группы' }, rarity: 'LEGENDARY' },
+      { ...cards[2], card_id: 'TOY_330', dbf: 102983, name: { ru: 'Зиллиакс Делюкс 3000' }, rarity: 'LEGENDARY', mana_cost: 0 },
+    ];
+    const pool = [...cards, ...owners, { ...cards[0], card_id: 'CS2_024', dbf: 662, name: { ru: 'Ледяная стрела' } }];
+    const modules = Array.from({ length: 8 }, (_, index) => ({ ...cards[2], card_id: `TOY_330t${92 + index}`,
+      dbf: 104944 + index, name: { ru: `Модуль ${index}` }, mana_cost: index + 1, attack: 1, health: 2 }));
+    const art = [0, 1].map(index => ({ ...cards[2], card_id: `TOY_330t${5 + index}`, dbf: 110440 + index, mana_cost: 0 }));
+    page.on('pageerror', error => errors.push(error.message));
+    await page.setRequestInterception(true);
+    page.on('request', async request => {
+      const url = new URL(request.url());
+      if (url.pathname === '/api/constructed-cards') {
+        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: pool,
+          pagination: { total: pool.length, totalPages: 1 } }) });
+      } else if (url.pathname === '/api/constructed-cards/ETC_080') {
+        await request.respond({ status: configFails ? 503 : 200, contentType: 'application/json', body: JSON.stringify({ card: {
+          ...owners[0], wiki: { generated_card_pools: [{ pool: "Cards banned from E.T.C.'s band", card_ids: ['ETC_080', 'TOY_330', 'REV_018'] }] },
+        } }) });
+      } else if (url.pathname === '/api/constructed-cards/TOY_330') {
+        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ card: {
+          ...owners[1], related_cards_localized: [{ cards: [...modules, ...art] }],
+        } }) });
+      } else if (url.pathname === '/api/deck/render') {
+        renders.push(JSON.parse(request.postData()));
+        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true,
+          ready: true, imageUrl: 'https://api.blizzcore.ru/static/generated/fixture.png' }) });
+      } else if (url.pathname.startsWith('/api/public-resource/deckview/')) {
+        await request.respond({ status: 200, contentType: 'image/png', body: image });
+      } else if (url.pathname.startsWith('/api/public-resource/db/')) {
+        await request.respond({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" fill="#715022"/></svg>' });
+      } else await request.continue();
+    });
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${runtime.origin}/standard/deck-builder/`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('button[aria-label="Добавить: E.T.C., менеджер группы"]');
+    await page.click('button[aria-label="Добавить: Огненный шар"]');
+    await page.click('button[aria-label="Добавить: E.T.C., менеджер группы"]');
+    assert.equal(await page.$eval('.hp-builder-save', button => button.disabled), true);
+    await page.click('button[aria-label="Настроить: E.T.C., менеджер группы"]');
+    await page.waitForSelector('.hp-builder-configuration [role="alert"]');
+    configFails = false;
+    await page.click('.hp-builder-configuration [role="alert"] button');
+    await page.waitForSelector('button[aria-label="Добавить в E.T.C.: Огненный шар"]');
+    assert.equal(await page.$eval('button[aria-label="Добавить в E.T.C.: Зиллиакс Делюкс 3000"]', button => button.disabled), true);
+    await page.click('button[aria-label="Добавить в E.T.C.: Огненный шар"]');
+    assert.equal(await page.$eval('button[aria-label="Добавить в E.T.C.: Огненный шар, в группе 1"]', button => button.disabled), true);
+    await page.click('button[aria-label="Добавить в E.T.C.: Речной кроколиск"]');
+    await page.click('button[aria-label="Добавить в E.T.C.: Ледяная стрела"]');
+    assert.equal(await page.$eval('[aria-label="Карт в колоде: 2 из 30"]', node => node.textContent), '2/30');
+    await page.click('.hp-builder-configuration-heading button');
+    assert.equal(await page.$eval('button[aria-label="Добавить: Огненный шар, в колоде 1"]', button => button.disabled), true);
+    await page.click('button[aria-label="Добавить: Зиллиакс Делюкс 3000"]');
+    await page.setViewport({ width: 390, height: 844 });
+    await page.click('.hp-builder-mobile-switch button:last-child');
+    await page.click('button[aria-label="Настроить: Зиллиакс Делюкс 3000"]');
+    await page.waitForSelector('button[aria-label="Модуль: Модуль 0"]');
+    assert.equal(await page.$eval('.hp-builder', node => node.dataset.panel), 'cards');
+    await page.click('button[aria-label="Модуль: Модуль 0"]');
+    await page.click('button[aria-label="Модуль: Модуль 7"]');
+    assert.equal(await page.$eval('button[aria-label="Модуль: Модуль 2"]', button => button.disabled), true);
+    await page.select('.hp-builder-art-choice select', '110441');
+    assert.equal(await page.$eval('.hp-builder-config-result', node => node.textContent.includes('9 маны')), true);
+    await page.click('.hp-builder-configuration-heading button');
+    await page.click('.hp-builder-mobile-switch button:last-child');
+    assert.equal(await page.$eval('[aria-label="Карт в колоде: 3 из 30"]', node => node.textContent), '3/30');
+    await page.click('.hp-builder-save');
+    await page.waitForFunction(() => document.querySelector('.hp-builder-feedback')?.textContent.includes('сохранена'));
+    const decoded = decode(renders.at(-1).deckCode);
+    assert.deepEqual(decoded.cards, [[315, 1], [90749, 1], [102983, 1]]);
+    assert.deepEqual(decoded.sideboards, [
+      { keyCardDbfId: 90749, cards: [[315, 1], [662, 1], [1368, 1]] },
+      { keyCardDbfId: 102983, cards: [[104944, 1], [104951, 1], [110441, 1]] },
+    ]);
+    await page.click('button[aria-label="Управление картой: Зиллиакс Делюкс 3000"]');
+    await page.click('button[aria-label="Убрать: Зиллиакс Делюкс 3000"]');
+    await page.click('.hp-builder-secondary-actions button:first-child');
+    assert.equal(decode(await page.$eval('.hp-builder-code-dialog textarea', field => field.value)).sideboards.length, 1);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    await runtime.close();
   }
 });

@@ -23,8 +23,6 @@ export const XL_DECK_DBF_IDS = new Set([
   79767, // Prince Renathal
   111689, // CORE Prince Renathal
   119432, // Rafaam, Time Thief
-  52119,
-  111455,
 ]);
 
 export function totalDeckCards(entries: Array<Pick<DeckBuilderEntry, 'count'>>): number {

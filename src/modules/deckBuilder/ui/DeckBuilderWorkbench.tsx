@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Copy, Download, Minus, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { BUILDER_CLASSES, type BuilderCard, type BuilderClass, type BuilderEntry, type BuilderFormat } from '../model/selection';
 import { useDeckBuilder, type DeckBuilderInitial, type DeckBuilderPorts } from '../useDeckBuilder';
+import { configurationKind, isZilliaxModule } from '../model/configuration';
+import { CardConfigurationEditor } from './CardConfigurationEditor';
 
 export type DeckBuilderWorkbenchProps = { ports: DeckBuilderPorts; initial?: DeckBuilderInitial };
 type Editor = ReturnType<typeof useDeckBuilder>;
@@ -19,17 +21,26 @@ function GalleryCard({ card, count, disabled, onAdd }: {
 
 function DeckRow({ card, editor }: { card: BuilderEntry; editor: Editor }) {
   const [failed, setFailed] = useState(false);
+  const [controls, setControls] = useState(false);
   return <li className="hp-builder-row">
-    <div className="hp-builder-tile">
+    <div className="hp-builder-row-tile">
+    <button type="button" className="hp-builder-tile" aria-label={`Управление картой: ${card.name}`}
+      aria-expanded={controls} onClick={() => setControls(value => !value)}>
       {card.tile && !failed ? <img src={card.tile} alt={`${card.cost} маны · ${card.name}`}
         width={320} height={64} loading="lazy" decoding="async" onError={() => setFailed(true)} />
         : <span className="hp-builder-tile-fallback"><b>{card.cost}</b><span>{card.name}</span></span>}
       {card.count > 1 ? <span className="hp-builder-copies" aria-label={`${card.count} копии`}>×{card.count}</span> : null}
-    </div>
-    <div className="hp-builder-row-controls">
+      {card.id === 'TOY_330' && card.sideboard?.length ? <span className="hp-builder-config-mana" aria-label={`${card.cost} маны`}>{card.cost}</span> : null}
+    </button>
+    <div className={`hp-builder-row-controls${controls ? ' is-open' : ''}`}>
       <button type="button" onClick={() => editor.change(card, -1)} aria-label={`Убрать: ${card.name}`}><Minus size={16} /></button>
       <button type="button" onClick={() => editor.change(card, 1)} disabled={!editor.canAdd(card)} aria-label={`Ещё копия: ${card.name}`}><Plus size={16} /></button>
     </div>
+    </div>
+    {configurationKind(card) ? <div className="hp-builder-row-configuration">
+      <button type="button" onClick={() => editor.configure(card)} aria-label={`Настроить: ${card.name}`}>{card.id === 'ETC_080' ? 'Группа E.T.C.' : 'Модули Зиллиакса'}</button>
+      {card.sideboard?.length ? <span>{card.sideboard.filter(item => card.id === 'ETC_080' || isZilliaxModule(item)).map(item => `${item.name}${item.count > 1 ? ` ×${item.count}` : ''}`).join(' · ')}</span> : null}
+    </div> : null}
   </li>;
 }
 
@@ -51,8 +62,9 @@ function CollectionFilters({ editor }: { editor: Editor }) {
           {value || 'Все'}</button>)}
     </div>
     <div className="hp-builder-filter-toolbar">
-      <label>Дополнение<select value={filters.set} onChange={event => editor.filter('set', event.target.value)}>
-        <option value="">Все дополнения</option>{facetOptions('set', catalog.facets?.sets)}</select></label>
+      <label>Дополнение<select value={filters.pool === 'tourist' ? 'ISLAND_VACATION' : filters.set} disabled={filters.pool === 'tourist'} onChange={event => editor.filter('set', event.target.value)}>
+        {filters.pool === 'tourist' ? <option value="ISLAND_VACATION">Райский отдых</option>
+          : <><option value="">Все дополнения</option>{facetOptions('set', catalog.facets?.sets)}</>}</select></label>
     <div className="hp-builder-sort">
       <label>Сортировка<select value={filters.sort} onChange={event => editor.filter('sort', event.target.value)}>
         <option value="mana">По мане</option><option value="set">По дополнению</option><option value="name">По названию</option>
@@ -80,14 +92,31 @@ function CollectionFilters({ editor }: { editor: Editor }) {
         <label>Школа магии<select value={filters.spellSchool} onChange={event => editor.filter('spellSchool', event.target.value)}>
           <option value="">Все школы</option>{facetOptions('spellSchool', catalog.facets?.spellSchools)}</select></label>
         <label>Карты<select value={filters.pool} onChange={event => editor.filter('pool', event.target.value)}>
-          <option value="">Класс + нейтральные</option><option value="class">Только класс</option><option value="neutral">Нейтральные</option></select></label>
+          <option value="">Класс + нейтральные</option><option value="class">Только класс</option><option value="neutral">Нейтральные</option>
+          {editor.legality.destination ? <option value="tourist">Гостевые карты: {BUILDER_CLASSES.find(card => card.id === editor.legality.destination)?.label}</option> : null}</select></label>
       </div>
     </details>
   </div>;
 }
 
+function RuneControls({ editor }: { editor: Editor }) {
+  const { legality } = editor;
+  if (!legality.needsRunes && !legality.loading && !legality.error && !legality.destination) return null;
+  return <div className="hp-builder-legality">
+    {legality.loading ? <p role="status">Загружаем требования к картам…</p> : null}
+    {legality.error ? <p role="alert">{legality.error} <button type="button" onClick={legality.retry}>Повторить</button></p> : null}
+    {legality.destination ? <p>Турист открывает карты класса «{BUILDER_CLASSES.find(card => card.id === legality.destination)?.label}» из «Райского отдыха» — выберите гостевые карты в фильтрах.</p> : null}
+    {legality.needsRunes ? <fieldset><legend>Руны Рыцаря смерти · {Object.values(legality.runes).reduce((sum, count) => sum + count, 0)}/3</legend>
+      {([['blood', 'Кровь'], ['frost', 'Лёд'], ['unholy', 'Нечестивость']] as const).map(([key, label]) =>
+        <label key={key}>{label}<select value={legality.runes[key]} onChange={event => legality.changeRunes(key, Number(event.target.value))}>
+          {[0, 1, 2, 3].map(count => <option key={count} value={count}>{count}</option>)}</select></label>)}
+    </fieldset> : null}
+  </div>;
+}
+
 function CardGallery({ editor }: { editor: Editor }) {
   const { filters } = editor;
+  if (editor.configurationCard) return <CardConfigurationEditor key={editor.configurationCard.dbfId} editor={editor} owner={editor.configurationCard} filters={<CollectionFilters editor={editor} />} />;
   return <section className="hp-builder-gallery" aria-labelledby="hp-builder-gallery-title">
     <div className="hp-builder-section-heading"><h2 id="hp-builder-gallery-title">Карты</h2>
       <span>{editor.loading ? 'Загрузка…' : `${editor.catalog.total} в коллекции`}</span></div>
@@ -109,9 +138,10 @@ function CardGallery({ editor }: { editor: Editor }) {
 }
 
 function SelectedDeck({ editor }: { editor: Editor }) {
+  const codeDialog = useRef<HTMLDialogElement>(null);
   const selectedClass = BUILDER_CLASSES.find(hero => hero.id === editor.filters.heroClass) ?? BUILDER_CLASSES[4];
   const sorted = [...editor.deck].sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name, 'ru'));
-  return <aside className="hp-builder-deck" aria-labelledby="hp-builder-deck-title">
+  return <><aside className="hp-builder-deck" aria-labelledby="hp-builder-deck-title">
     <div className="hp-builder-deck-header"><img src={`/class_icon/ui/${selectedClass.icon}-64.webp`} alt="" width={64} height={64} />
       <div><h2 id="hp-builder-deck-title">Ваша колода</h2><span>{selectedClass.label} · {editor.filters.format === 'standard' ? 'Стандарт' : 'Вольный'}</span></div>
       <strong className={editor.count > editor.limit ? 'is-overfull' : ''} aria-label={`Карт в колоде: ${editor.count} из ${editor.limit}`}>{editor.count}<small>/{editor.limit}</small></strong></div>
@@ -122,20 +152,28 @@ function SelectedDeck({ editor }: { editor: Editor }) {
       : <div className="hp-builder-empty"><Plus size={28} aria-hidden="true" /><strong>Начните с любимой карты</strong><p>Нажмите на карту в коллекции — она появится здесь.</p></div>}
     <div className="hp-builder-deck-actions">
       <button className="hp-builder-save" type="button" onClick={() => { void editor.saveImage(); }}
-        disabled={!editor.count || editor.count > editor.limit || editor.exporting}>
+        disabled={!editor.code || editor.count > editor.limit || editor.exporting}>
         <Download size={18} />{editor.exporting ? 'Собираем картинку…' : 'Сохранить картинку'}</button>
-      <div className="hp-builder-secondary-actions"><button type="button" onClick={() => { void editor.copyCode(); }} disabled={!editor.count}><Copy size={15} />Код колоды</button>
+      <div className="hp-builder-secondary-actions"><button type="button" onClick={() => codeDialog.current?.showModal()} disabled={!editor.code}><Copy size={15} />Код колоды</button>
         <button type="button" onClick={editor.clear} disabled={!editor.count}><Trash2 size={15} />Очистить</button></div>
       {editor.notice ? <p className="hp-builder-feedback" role="status">{editor.notice}</p> : null}
       {editor.exportError ? <p className="hp-builder-feedback is-error" role="alert">{editor.exportError}</p> : null}
-      {editor.count ? <details className="hp-builder-code"><summary>Показать код колоды</summary><textarea readOnly value={editor.code} aria-label="Код колоды для Hearthstone" /></details> : null}
+      {editor.issues.length ? <p className="hp-builder-feedback is-error" role="status">{editor.issues[0]}</p> : null}
     </div>
-  </aside>;
+  </aside>
+    <dialog ref={codeDialog} className="hp-builder-code-dialog" aria-labelledby="hp-builder-code-title">
+      <header><h2 id="hp-builder-code-title">Код колоды</h2><button type="button" onClick={() => codeDialog.current?.close()} aria-label="Закрыть код колоды"><X size={20} /></button></header>
+      <p>Скопируйте код и вставьте его в Hearthstone.</p>
+      <textarea readOnly value={editor.code} aria-label="Код колоды для Hearthstone" onFocus={event => event.currentTarget.select()} />
+      <button type="button" onClick={() => { void editor.copyCode(); }}><Copy size={16} />Скопировать код</button>
+      {editor.notice ? <p role="status">{editor.notice}</p> : null}
+    </dialog></>;
 }
 
 export function DeckBuilderWorkbench({ ports, initial }: DeckBuilderWorkbenchProps) {
   const editor = useDeckBuilder(ports, initial);
   const [panel, setPanel] = useState<'cards' | 'deck'>('cards');
+  const deckEditor = { ...editor, configure: (card: BuilderCard) => { editor.configure(card); setPanel('cards'); } };
   return <div className="hp-builder" data-panel={panel}>
     <header className="hp-builder-heading"><h1>Конструктор колод</h1>
       <p>Выбирайте карты и сохраняйте колоду одной картинкой.</p></header>
@@ -146,12 +184,13 @@ export function DeckBuilderWorkbench({ ports, initial }: DeckBuilderWorkbenchPro
         <option value="standard">Стандарт</option><option value="wild">Вольный</option></select></label>
       <a href="/standard/cards/">Открыть библиотеку карт ↗</a>
     </div>
+    <RuneControls editor={editor} />
     {editor.pending ? <div className="hp-builder-reset" role="alert"><div><strong>{editor.pending === 'clear' ? 'Очистить колоду?' : 'Начать новую колоду?'}</strong>
       <p>{editor.pending === 'clear' ? 'Все выбранные карты будут удалены.' : 'При смене класса или формата выбранные карты будут удалены.'}</p></div>
       <button type="button" onClick={editor.confirmReset}>Да, начать заново</button><button type="button" onClick={editor.cancelReset}>Оставить колоду</button></div> : null}
     <div className="hp-builder-mobile-switch" role="group" aria-label="Панель конструктора">
       <button type="button" aria-pressed={panel === 'cards'} onClick={() => setPanel('cards')}>Карты</button>
       <button type="button" aria-pressed={panel === 'deck'} onClick={() => setPanel('deck')}>Колода · {editor.count}/{editor.limit}</button></div>
-    <div className="hp-builder-workspace"><CardGallery editor={editor} /><SelectedDeck editor={editor} /></div>
+    <div className="hp-builder-workspace"><CardGallery editor={editor} /><SelectedDeck editor={deckEditor} /></div>
   </div>;
 }

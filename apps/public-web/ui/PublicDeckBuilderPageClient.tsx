@@ -12,7 +12,8 @@ import { usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
 const ports: DeckBuilderPorts = {
-  encode: (heroClass, format, cards) => encodeConstructedDeck({ heroClass, format, cards }),
+  encode: (heroClass, format, cards) => encodeConstructedDeck({ heroClass, format, cards,
+    sideboards: cards.flatMap(card => card.sideboard?.length ? [{ keyCardDbfId: card.dbfId, cards: card.sideboard }] : []) }),
   limit: deckSizeLimit,
   render: requestDeckRender,
   label: (kind, value) => ({ set: constructedSetLabel, type: constructedTypeLabel,

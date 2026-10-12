@@ -19,14 +19,18 @@ at the full width of the list, with readable fallback text if unavailable.
 The collection uses the existing wooden rail asset; the selected deck combines
 the rail, gold game frame and an inset blue glow. Full-height card renders are
 contained in a larger gallery (two columns on phones), never cropped. Desktop
-row controls appear on hover or keyboard focus; touch layouts show them below
-the tile. Rows expose add/remove
-controls and copy counts. Legendary cards allow one copy, other cards two.
+row controls appear on hover, keyboard focus or a tap on the tile. They overlay
+the tile instead of consuming an extra row. At least three full normal tiles
+remain visible at the checked widths. Rows expose add/remove controls and copy
+counts. Code opens in a bounded native dialog with selection, copy and Escape;
+it never changes the height of the list. Legendary cards allow one copy,
+other cards two.
 The existing constructed-deck size rule determines the 30/40-card limit.
 Changing class or format with a nonempty deck requires an explicit reset.
 The workspace is noindex/nofollow, outside the sitemap and has no canonical.
-The editor is a collection workbench, not a complete game legality validator
-(runes, special deckbuilding cards and sideboards are outside this release).
+The editor validates the supported deckbuilding rules below. It is not a
+complete game simulator or validator for every Fabled, start-of-game or
+card-specific effect.
 
 Save Image renders the nonempty current deck through the existing anonymous
 `POST /api/deck/render` integration with Deckview-TG and downloads the returned
@@ -52,31 +56,67 @@ the downloaded file belongs to the snapshot submitted when Save was pressed.
 Sources: [Deckview HTTP API](https://github.com/Manacost-Labs/Deckview-TG/blob/main/docs/API.md)
 and [React effect cleanup](https://react.dev/reference/react/useEffect#fetching-data-with-effects).
 
-## Implementation plan and verification
+## Configurable cards and legality
 
-1. Selection and catalog contract: meaningful unit tests for copy/size limits,
-   class legality, malformed responses and Koloda tile delivery.
-2. Public workbench and route: class/format controls, filters, deck rows and
-   explicit reset; desktop/phone Storybook states and interactions.
-3. Image download and navigation wiring: rendering failure/retry, actual
-   download, guest page flow and responsive browser review.
+- Zilliax Deluxe 3000 (`TOY_330`, DBF 102983) requires two different functional
+  modules and one cosmetic module. All eight functional modules and available
+  cosmetic variants come from the existing localized card-detail relations.
+  The first cosmetic variant is selected when a functional module is added;
+  users may change it. The preview sums module cost, attack and health.
+- E.T.C., Band Manager (`ETC_080`, DBF 90749) requires three band slots.
+  The main deck and band share rarity-based copy limits, class and rune rules.
+  The current exclusion pool comes from the existing card-detail projection;
+  missing or malformed restrictions block selection until a successful retry.
+- Boards live under their owner. Removing that owner removes its board.
+  Opening E.T.C. clears the band search; closing restores the main filters.
+  On phones Configure switches to the card panel automatically.
+- Sideboards do not occupy main-deck slots. Next composition passes the owner
+  DBF and selected card/count pairs to the existing deckstring encoder.
+  Incomplete configurations block code export and image rendering.
+- Tourists expose only the destination class's `ISLAND_VACATION` cards through
+  the Guest Cards filter, with the expansion fixed. A second Tourist cannot
+  be chained. Removing the Tourist keeps selected guest cards visible for
+  repair and blocks export until they are removed.
+- Death Knights, including a Death Knight Tourist destination, select three
+  Blood/Frost/Unholy runes. Increasing one count reduces other counts to stay
+  within three. Incompatible cards cannot be added, including inside E.T.C.
+  Changing runes may invalidate selected cards; these remain removable and
+  block export. Rune choices constrain selection; the game infers them from
+  card requirements rather than a separate deckstring field.
+- Rune costs and explicit Tourist keywords load lazily from the public
+  [HearthstoneJSON card definitions](https://github.com/HearthSim/hearthstonejson-client/blob/main/index.d.ts).
+  This HTTPS read uses `credentials: omit`, cancellation and a 30-second
+  timeout. It occurs only for Death Knights or a selected Tourist. Failure
+  offers retry and blocks affected exports rather than assuming legality.
+- The 40-card size rule recognizes Prince Renathal, its Core version and
+  Timethief Rafaam. Arch-Villain Rafaam does not change the deck size.
+  Removing a size modifier from a deck above 30 blocks export until repaired.
+
+The game contracts are described in Blizzard's
+[Zilliax expansion overview](https://hearthstone.blizzard.com/en-gb/expansions-adventures/whizbangs-workshop),
+[E.T.C. release notes](https://news.blizzard.com/en-gb/article/23921496/25-6-patch-notes)
+and [Tourist overview](https://hearthstone.blizzard.com/en-us/expansions-adventures/perils-in-paradise).
+Current exclusion data is consumed through the project's catalog projection.
+
+## Verification contract
+
+Unit tests cover copy/size limits, catalog identity and image boundaries,
+sideboard limits, owner cleanup, complete module pools, exclusion metadata,
+Tourist restrictions and rune compatibility. The guest browser checks actual
+encoded sideboards, rendering and image bytes, configuration failure/retry,
+mobile Configure, three visible tiles, code dialog bounds, 40-card repair and
+Rune/Tourist transitions at 320–1440 px. Storybook covers 15 distinct states
+with 10 interaction plays, including the code dialog and configuration errors.
 
 Commands: `npm run lint`, `npm run lint:next`, `npm run lint:architecture`,
-`node --import tsx --test tests/public-deck-builder.test.ts`,
+`npm run test:public-deck-builder`,
 `node --test tests/next-public-deck-builder-browser.test.mjs`,
 `npm run test:registry`, `npm run security:semgrep`,
 `npm run test:storybook`, `npm run build-storybook`, `npm run build:next`.
 
-Follow named exports, typed ports, sibling relative imports within the module
-and repository-root aliases in Next. Tests stay in `tests/` and are registered
-exactly once. Deployment requires integration and activation of the checked
-Nginx route under `docs/runbooks/nextjs-production-cutover.md`. Both the
-HTML route and canonical-host map include the builder so legacy hosts redirect
-to its slash-terminated URL in one hop.
-
-Documentation impact: this specification, `docs/architecture/module-boundaries.md`,
-`apps/public-web/README.md`, `CHANGELOG.md` and the integration repair in
-`docs/runbooks/public-navigation-stability.md`.
+Documentation impact: this specification, `docs/architecture/module-boundaries.md`
+and `CHANGELOG.md`. The existing public route, permissions and server API
+remain accurate; this change adds no endpoint or package dependency.
 
 ## Verification evidence
 
@@ -87,8 +127,8 @@ deck-builder, route, gateway, SEO and Nginx regression checks pass. TypeScript,
 architecture, registry, changed-file Semgrep and React checks pass; Next and
 Storybook builds succeed.
 
-All eight Storybook states were reviewed in the built workshop at desktop and
-phone widths; all four interaction plays pass. The shared Storybook development
+The built workshop is reviewed at desktop and phone widths; changed
+interaction plays must pass before publication. The shared Storybook development
 setup returns 404 for `vite-inject-mocker-entry.js`, also reproducible in the
 existing workshop; the built workshop has no such failure.
 
@@ -164,3 +204,31 @@ failed images or overflow; the existing unused CSS preload warning remains.
 An unthrottled local trace reported LCP 58 ms and CLS 0.00 (lab evidence only).
 The browser regression awaits the cleared catalog response before selecting
 a card after resetting filters, avoiding actions against the previous result.
+
+## Configuration and layout regression verification
+
+The configuration editors and rune/Tourist policy bring the builder route to
+182,989 gzip bytes of initial JavaScript and 33,490 bytes of CSS. The reviewed
+JS ceiling is 187,392 bytes (2% headroom rounded up to KiB); CSS and every
+other route retain their existing ceilings. No new package is added.
+
+Focused coverage includes 12 unit cases and three browser flows: the full
+30/40-card list at five viewport widths, bounded native code dialog, metadata
+failures and retries, rune/Tourist legality, module selection, three E.T.C.
+cards, decoded exported sideboards and owner removal. Storybook covers all
+15 authored states, including ten interaction scenarios.
+
+A live Deckview export accepts the encoded Zilliax board and shows its two
+modules and cosmetic card using the renderer’s existing sideboard layout.
+It does not synthesize a single combined card image; the exported code,
+main-deck count and builder mana/stat preview use the selected configuration.
+
+Final Chrome DevTools review uses the production Next build and real anonymous
+card/render APIs. The native code dialog remains visible, centered and inside
+the viewport at 1440, 1024, 768, 390 and 320 pixels, including a resize while
+open. No horizontal overflow, broken images, console errors or failed fetches
+were observed. A local unthrottled trace reports LCP 120 ms and CLS 0.00;
+these are lab measurements, not field performance. The current 15-state
+Storybook matrix passes all interaction scenarios at desktop and phone widths.
+The two indirectly affected administrative fixtures also render without
+overflow; the archetype-page fixture has its existing unmocked image 404s.

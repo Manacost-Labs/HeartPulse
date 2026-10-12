@@ -17,7 +17,11 @@ Next.js metadata, canonical redirects and JSON-LD for current and archive URLs.
 workbench at `/standard/deck-builder/`: selection rules, catalog validation,
 filter lifetimes, responsive gallery and Koloda tile rows. The Next client
 composition injects existing deckstring encoding, size policy and Deckview
-rendering. No administrative resolver or permission gate enters this module.
+rendering. The module owns nested Zilliax/E.T.C. sideboards, bounded code
+presentation, lazy public game-rule reads and Rune/Tourist selection policy.
+Catalog request cancellation lives in `useDeckCatalog`; legality metadata and
+Rune state live in `useDeckLegality`. No administrative resolver or permission
+gate enters this module.
 The existing administrative `/deck-builder/` keeps its separate owner.
 
 `apps/public-web/ui/PublicNavigationLayout.tsx` composes the persistent public
