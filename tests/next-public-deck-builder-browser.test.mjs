@@ -230,7 +230,7 @@ test('runes gate Death Knight cards and tourists expose only the permitted guest
     await page.setRequestInterception(true);
     page.on('request', async request => {
       const url = new URL(request.url());
-      if (url.hostname === 'api.hearthstonejson.com') {
+      if (url.pathname === '/api/public-resource/hsjson-api/v1/latest/enUS/cards.collectible.json') {
         await request.respond({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify([
           { id: 'DK_CARD', runeCost: { blood: 2 } },
           { id: 'VAC_424', set: 'ISLAND_VACATION', text: '<b>Paladin Tourist</b>' },

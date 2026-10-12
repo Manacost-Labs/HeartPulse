@@ -85,7 +85,7 @@ and [React effect cleanup](https://react.dev/reference/react/useEffect#fetching-
   card requirements rather than a separate deckstring field.
 - Rune costs and explicit Tourist keywords load lazily from the public
   [HearthstoneJSON card definitions](https://github.com/HearthSim/hearthstonejson-client/blob/main/index.d.ts).
-  This HTTPS read uses `credentials: omit`, cancellation and a 30-second
+  This same-origin proxy read uses `credentials: omit`, cancellation and a 30-second
   timeout. It occurs only for Death Knights or a selected Tourist. Failure
   offers retry and blocks affected exports rather than assuming legality.
 - The 40-card size rule recognizes Prince Renathal, its Core version and
@@ -212,11 +212,16 @@ The configuration editors and rune/Tourist policy bring the builder route to
 JS ceiling is 187,392 bytes (2% headroom rounded up to KiB); CSS and every
 other route retain their existing ceilings. No new package is added.
 
-Focused coverage includes 12 unit cases and three browser flows: the full
+Focused coverage includes 13 unit cases and three browser flows: the full
 30/40-card list at five viewport widths, bounded native code dialog, metadata
 failures and retries, rune/Tourist legality, module selection, three E.T.C.
 cards, decoded exported sideboards and owner removal. Storybook covers all
 15 authored states, including ten interaction scenarios.
+
+Rune/Tourist definitions use the existing anonymous `hsjson-api` public
+resource proxy, preserving its source allowlist, cache and credential stripping.
+The browser direct-host contract and a dedicated cancellation/credential test
+protect this boundary.
 
 A live Deckview export accepts the encoded Zilliax board and shows its two
 modules and cosmetic card using the renderer’s existing sideboard layout.

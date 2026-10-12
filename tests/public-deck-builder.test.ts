@@ -3,6 +3,7 @@ import test from 'node:test';
 import { changeDeckCopies, deckCount, type BuilderCard, type BuilderEntry } from '../src/modules/deckBuilder/model/selection';
 import { loadDeckCatalog, deckDownloadUrl } from '../src/modules/deckBuilder/api/client';
 import { changeSideboard, configurationIssues, configurationKind } from '../src/modules/deckBuilder/model/configuration';
+import { loadGameRules } from '../src/modules/deckBuilder/api/gameRules';
 import { loadCardConfiguration } from '../src/modules/deckBuilder/api/configuration';
 import { deckSizeLimit } from '../src/features/deckBuilderRules';
 import { gameRulesFromCards, isLegalDeckCard, legalityIssues, rebalanceRunes } from '../src/modules/deckBuilder/model/legality';
@@ -181,4 +182,20 @@ test('catalog sends all collection filters and sorting, and normalizes public fa
   assert.deepEqual(result.facets?.types, ['MINION']);
   assert.equal(result.mechanicTranslations?.TAUNT, 'Провокация');
   assert.equal(result.mechanicTranslations?.INVALID, undefined);
+});
+
+test('rune metadata uses the anonymous same-origin resource proxy and preserves cancellation', async () => {
+  const signal = new AbortController().signal;
+  const fetcher = (async (url, options) => {
+    assert.equal(url, '/api/public-resource/hsjson-api/v1/latest/enUS/cards.collectible.json');
+    assert.equal(options?.credentials, 'omit');
+    assert.equal(options?.signal, signal);
+    return new Response(JSON.stringify([
+      { id: 'DK_CARD', runeCost: { blood: 2 } },
+      { id: 'VAC_424', set: 'ISLAND_VACATION', text: '<b>Paladin Tourist</b>' },
+    ]));
+  }) as typeof fetch;
+  const rules = await loadGameRules(signal, fetcher);
+  assert.equal(rules.runes.DK_CARD.blood, 2);
+  assert.equal(rules.tourists.VAC_424, 'PALADIN');
 });
