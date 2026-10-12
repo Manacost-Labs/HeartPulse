@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
@@ -165,34 +166,34 @@ function standardMatchupTone(value: number | null): React.CSSProperties {
   }
   if (value >= 55) {
     return {
-      background: 'linear-gradient(135deg,#1d7b46,#145832)',
+      background: '#286743',
       border: '1px solid rgba(99,220,150,0.35)',
       color: '#fff7da',
     };
   }
   if (value >= 52) {
     return {
-      background: 'linear-gradient(135deg,#2f7d46,#236236)',
+      background: '#5c8059',
       border: '1px solid rgba(99,220,150,0.28)',
       color: '#fff7da',
     };
   }
   if (value >= 50) {
     return {
-      background: 'linear-gradient(135deg,#9a742d,#70511e)',
+      background: '#806739',
       border: '1px solid rgba(255,214,102,0.32)',
       color: '#fff7da',
     };
   }
   if (value >= 48) {
     return {
-      background: 'linear-gradient(135deg,#915d27,#68411a)',
+      background: '#946543',
       border: '1px solid rgba(255,190,110,0.28)',
       color: '#fff7da',
     };
   }
   return {
-    background: 'linear-gradient(135deg,#8d2932,#671d25)',
+    background: '#88454c',
     border: '1px solid rgba(255,135,135,0.26)',
     color: '#fff7da',
   };
@@ -813,21 +814,21 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                 style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
                 onScroll={event => syncMatrixScroll(event.currentTarget)}
               >
-              <table className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
+              <TableSurface title="Матрица матчапов" imageExport scrollable={false}><table className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
                 <thead>
                   <tr>
                     <th scope="col" className="sticky top-0 left-0 z-30 text-left px-3 sm:px-4 py-3 min-w-[190px] sm:min-w-[250px]"
-                      style={{ background: 'linear-gradient(135deg,#3a1b00,#220f00)', color: '#ffe7a3', boxShadow: '6px 0 12px rgba(43,20,4,0.18)' }}>
-                      <span className="block text-sm font-black" style={{ color: '#ffe7a3' }}>Архетип</span>
-                      <span className="block text-[11px] mt-0.5" style={{ color: '#d8bd73' }}>общий винрейт</span>
+                      style={{ background: '#efe0be', color: '#30251c', boxShadow: '6px 0 12px rgba(43,20,4,0.18)' }}>
+                      <span className="block text-sm font-black" style={{ color: '#30251c' }}>Архетип</span>
+                      <span className="block text-[11px] mt-0.5" style={{ color: '#735e49' }}>общий винрейт</span>
                     </th>
                     {columns.map(column => {
                       const columnLabel = getStandardArchetypeLabel(column.name, column.label);
                       return (
                         <th key={column.name} scope="col" className="sticky top-0 z-20 px-2 sm:px-3 py-3 text-center min-w-[96px] sm:min-w-[130px]"
                           style={{
-                            background: 'linear-gradient(135deg,#4a2400,#2a1200)',
-                            color: '#fff0bd',
+                            background: '#efe0be',
+                            color: '#30251c',
                             borderLeft: '1px solid rgba(252,211,77,0.16)',
                           }}>
                           <span
@@ -837,7 +838,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                           >
                             {columnLabel}
                           </span>
-                          {column.popularity && <span className="block text-[10px] mt-1" style={{ color: '#e4c979' }}>{column.popularity}</span>}
+                          {column.popularity && <span className="block text-[10px] mt-1" style={{ color: '#735e49' }}>{column.popularity}</span>}
                         </th>
                       );
                     })}
@@ -851,8 +852,8 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                         <th scope="row" className="sticky left-0 z-10 px-3 sm:px-4 py-2 text-left min-w-[190px] sm:min-w-[250px]"
                           style={{
                             background: rowIndex % 2 === 0
-                              ? 'linear-gradient(135deg,#f4e4ba,#e2c986)'
-                              : 'linear-gradient(135deg,#ead4a0,#d8b870)',
+                              ? '#fbf3de'
+                              : '#f3e7cb',
                             borderRight: '1px solid rgba(107,76,42,0.22)',
                             boxShadow: '6px 0 12px rgba(72,42,9,0.10)',
                           }}>
@@ -924,7 +925,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                     })}
                   </tr>
                 </tfoot>
-              </table>
+              </table></TableSurface>
               </div>
               {activeMatrixMatchup && (() => {
                 const assessment = standardMatchupAssessment(activeMatrixMatchup.cell.winrate);

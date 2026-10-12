@@ -60,7 +60,7 @@
   min-width: 0;
 }
 
-.bg-hero-statistics .bg-hero-chart-card {
+.bg-hero-statistics .analytics-chart {
   width: min(100%, 72rem);
   min-width: 0;
   justify-self: center;

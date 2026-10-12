@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { Suspense, useMemo, useRef, useState } from 'react';
 import { Download, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { adminContentClient, type AdminContentClient } from './adminContentClient';
@@ -91,7 +92,7 @@ export function ContestAdminGallery({ onMessage, client = adminContentClient }: 
       </p>
       {visible.length ? (
         <div className="admin-people-table-wrap" aria-busy={busy}>
-          <table className="admin-people-table is-gallery">
+          <TableSurface title="Галерея"><table className="admin-people-table is-gallery">
             <thead>
               <tr>
                 <th scope="col">Арт</th><th scope="col">Раздел</th><th scope="col">Файл</th><th scope="col">Добавлен</th>
@@ -101,7 +102,7 @@ export function ContestAdminGallery({ onMessage, client = adminContentClient }: 
             <tbody>
               {visible.map(item => <GalleryRow key={item.id} item={item} busy={busy} onDelete={remove} />)}
             </tbody>
-          </table>
+          </table></TableSurface>
         </div>
       ) : !list.loading && !list.loadError && (
         <p className="admin-people-empty">{items.length ? 'Арты не найдены по текущему запросу.' : 'В галерее пока нет артов. Нажмите «Добавить арт».'}</p>

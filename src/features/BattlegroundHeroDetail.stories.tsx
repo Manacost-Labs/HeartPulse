@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent } from 'storybook/test';
+import { expect, fn, userEvent, waitFor } from 'storybook/test';
 import { BattlegroundHeroesRoute } from './Battlegrounds';
 import { heroMotionApis } from '../../tests/fixtures/battleground-hero-motion-data';
 
@@ -32,7 +32,7 @@ export const BuddyPairAndCharts: Story = {
     await canvas.findByRole('tablist', { name: 'Статистика героя' });
     await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     await userEvent.click(canvas.getByRole('tab', { name: 'Таверна' }));
-    await expect(canvas.getByRole('heading', { name: 'Когда улучшать таверну' })).toBeVisible();
+    await waitFor(() => expect(canvas.getByRole('heading', { name: 'Когда улучшать таверну' })).toBeVisible());
     await userEvent.click(canvas.getByRole('tab', { name: 'Обзор' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Все герои' }));
     await expect(args.onNavigate).toHaveBeenCalledWith('/heroes');

@@ -404,7 +404,7 @@ button.constructed-card-tile:focus-visible {
 }
 
 .constructed-card-stats [data-impact='neutral'] {
-  color: #8b621d;
+  color: #79521b;
 }
 
 .constructed-card-stats [data-impact='unknown'] {

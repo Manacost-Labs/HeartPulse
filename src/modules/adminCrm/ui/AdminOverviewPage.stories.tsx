@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, fn, userEvent } from 'storybook/test';
 import { AdminOverviewPage, type AdminOverviewPageProps } from './AdminOverviewPage';
 import type { AdminCrmOverview } from './overviewModel';
 
@@ -34,11 +35,34 @@ const meta = {
   title: 'Admin/CRM/Overview',
   component: AdminOverviewPage,
   parameters: { layout: 'padded' },
-  args: { client: client(overview), onNavigate: () => undefined, onOpenSegment: () => undefined },
+  args: { client: client(overview), onNavigate: fn(), onOpenSegment: fn() },
 } satisfies Meta<typeof AdminOverviewPage>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const NeedsAttention: Story = {};
-export const AllCalm: Story = { args: { client: client({ ...overview, alerts: [] }) } };
+export const NeedsAttention: Story = {
+  play: async ({ canvas, args }) => {
+    await expect(await canvas.findByRole('img', { name: 'Регистрации по дням' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Скачать Регистрации по дням: SVG' })).toBeEnabled();
+    await userEvent.click(canvas.getByRole('button', { name: /С доступом сейчас/ }));
+    await expect(args.onOpenSegment).toHaveBeenCalledWith('paying');
+  },
+};
+export const AllCalm: Story = { args: { client: client({ ...overview, alerts: [] }) }, play: NeedsAttention.play };
+
+export const EmptyHistory: Story = {
+  args: { client: client({ ...overview, alerts: [], series: { days: [], paying: [], newUsers: [] } }) },
+  play: async ({ canvas }) => {
+    await expect((await canvas.findAllByText('Для графика пока нет данных.'))).toHaveLength(2);
+    await expect(canvas.getByRole('button', { name: 'Скачать Регистрации по дням: PNG' })).toBeDisabled();
+  },
+};
+
+export const SingleDay: Story = {
+  args: { client: client({ ...overview, alerts: [], series: { days: [days[0]], paying: [1240], newUsers: [0] } }) },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole('img', { name: 'Регистрации по дням' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Скачать Регистрации по дням: SVG' })).toBeEnabled();
+  },
+};

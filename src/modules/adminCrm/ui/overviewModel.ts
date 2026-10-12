@@ -1,5 +1,6 @@
 import { auditActionLabel, formatDate, upperFirst } from './adminClientCardModel';
 import type { OverviewActivity } from '../api/adminCrmContracts';
+import type { ChartPoint } from '../../../shared/ui/analytics/analyticsModel';
 
 export type { AdminCrmOverview, OverviewActivity, OverviewAlert } from '../api/adminCrmContracts';
 
@@ -29,16 +30,15 @@ export function trend(current: number, previous: number): { direction: 'up' | 'd
   return { direction: percent > 0 ? 'up' : percent < 0 ? 'down' : 'flat', percent };
 }
 
-/** SVG polyline points for a sparkline scaled to its own min/max inside width × height. */
-export function sparklinePoints(values: number[], width: number, height: number, padding = 3): string {
-  if (values.length < 2) return '';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const step = width / (values.length - 1);
-  return values
-    .map((value, index) => `${(index * step).toFixed(1)},${(height - padding - ((value - min) / span) * (height - padding * 2)).toFixed(1)}`)
-    .join(' ');
+/** Preserve UTC day coordinates and missing observations instead of inventing zero counts. */
+export function overviewChartPoints(days: string[], values: number[]): ChartPoint[] {
+  return days.flatMap((day, index) => {
+    const timestamp = Date.parse(day);
+    return Number.isFinite(timestamp) ? [{
+      x: timestamp, y: Number.isFinite(values[index]) ? values[index] : null,
+      label: new Date(timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', timeZone: 'UTC' }),
+    }] : [];
+  }).sort((a, b) => a.x - b.x);
 }
 
 export function relativeTime(at: string, now = Date.now()): string {

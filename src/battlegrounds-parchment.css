@@ -1844,7 +1844,7 @@
 }
 
 .arena-app-battlegrounds .bg-trinket-distribution__bars > i {
-  height: max(3px, var(--bg-trinket-bar-height));
+  height: var(--bg-trinket-bar-height);
   border-radius: 3px 3px 0 0;
   background: linear-gradient(180deg, #d8a0d5, #a96cac);
   box-shadow: inset 0 1px rgba(255, 238, 248, 0.2);
@@ -2008,7 +2008,7 @@
 }
 
 .arena-app-battlegrounds .bg-trinket-gallery-stats__distribution i {
-  height: max(2px, var(--bg-trinket-bar-height));
+  height: var(--bg-trinket-bar-height);
   border-radius: 2px 2px 0 0;
   background: linear-gradient(180deg, #aa709e, #75466f);
 }

@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useMemo, useState } from 'react';
 import { ConstructedCardTile, constructedCardHorizontalArtwork } from '../modules/constructedCards/public';
 import {
@@ -306,6 +307,15 @@ const MOBILE_METRICS = [
   { key: 'keptCount', label: 'Оставлений', impact: false },
 ] as const;
 
+// Cards can have multiple observations; key by source position before sorting.
+function cardStatKeys(rows: readonly ConstructedCardStat[]) {
+  return new Map(rows.map((row, sourcePosition) => [row, `${row.cardId || row.dbfId || row.cardName}-${sourcePosition}`]));
+}
+
+function cardPreviewData(row: ConstructedCardStat | null) {
+  return row?.cardId ? { id: row.cardId, name: row.cardName, imageUrl: cardRenderUrl(row.cardId) } : null;
+}
+
 function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) {
   const [sort, setSort] = useState<HsguruCardStatSort>({ key: 'mulliganImpact', direction: 'desc' });
   const [showAll, setShowAll] = useState(false);
@@ -315,16 +325,9 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
     () => sortHsguruCardStats(analysis?.cardStats ?? [], sort),
     [analysis?.cardStats, sort],
   );
+  const rowKeys = useMemo(() => cardStatKeys(analysis?.cardStats ?? []), [analysis?.cardStats]);
   const visibleRows = showAll ? rows : rows.slice(0, 15);
-  const selectedPreviewCard = useMemo(() => (
-    selectedCard?.cardId
-      ? {
-        id: selectedCard.cardId,
-        name: selectedCard.cardName,
-        imageUrl: cardRenderUrl(selectedCard.cardId),
-      }
-      : null
-  ), [selectedCard]);
+  const selectedPreviewCard = useMemo(() => cardPreviewData(selectedCard), [selectedCard]);
   const changeSort = (key: HsguruCardStatSortKey) => {
     setSort(current => current.key === key
       ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' }
@@ -369,7 +372,7 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
       {visibleRows.length ? (
         <>
           <div className="constructed-card-stats__scroll" role="region" aria-label="Сортируемая статистика карт" tabIndex={0}>
-            <table>
+            <TableSurface title="Стартовая рука" density="compact"><table>
               <thead>
                 <tr>
                   <th scope="col" className="constructed-card-stats__card-heading">Карта</th>
@@ -382,8 +385,8 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
                 </tr>
               </thead>
               <tbody>
-                {visibleRows.map((row, index) => (
-                  <tr key={row.cardId || row.dbfId || `${row.cardName}-${index}`}>
+                {visibleRows.map(row => (
+                  <tr key={rowKeys.get(row)}>
                     <th scope="row">{cardTile(row)}</th>
                     <td><ImpactValue value={row.mulliganImpact} /></td>
                     <td>{formatNumber(row.mulliganCount)}</td>
@@ -394,7 +397,7 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableSurface>
           </div>
 
           <div className="constructed-card-stats__mobile">
@@ -414,7 +417,7 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
             </fieldset>
             <ol className="constructed-card-stats__cards">
               {visibleRows.map((row, index) => (
-                <li key={`mobile-${row.cardId || row.dbfId || `${row.cardName}-${index}`}`}>
+                <li key={rowKeys.get(row)}>
                   <header>
                     <span className="constructed-card-stats__rank" aria-label={`Позиция ${index + 1}`}>{index + 1}</span>
                     {cardTile(row)}

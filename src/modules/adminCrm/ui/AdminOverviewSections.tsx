@@ -1,10 +1,12 @@
 import React from 'react';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { AdminCrmSegmentId } from '../api/adminCrmClient';
+import { LineChart } from '../../../shared/ui/analytics/LineChart';
+import '../../../shared/ui/analytics/Analytics.css';
 import {
   activityText,
   relativeTime,
-  sparklinePoints,
+  overviewChartPoints,
   trend,
   type AdminCrmOverview,
   type OverviewAlert,
@@ -47,31 +49,18 @@ export function OverviewAlerts({ alerts, onNavigate, onOpenSegment }: { alerts: 
   );
 }
 
-function Sparkline({ values, label }: { values: number[]; label: string }) {
-  const points = sparklinePoints(values, 120, 32);
-  if (!points) return null;
-  const last = points.split(' ').at(-1)?.split(',') ?? ['0', '0'];
-  return (
-    <svg className="admin-overview-spark" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label={label}>
-      <polygon points={`0,32 ${points} 120,32`} />
-      <polyline points={points} />
-      <circle cx={last[0]} cy={last[1]} r="2.5" />
-    </svg>
-  );
-}
-
 type KpisProps = { overview: AdminCrmOverview } & Pick<Navigate, 'onOpenSegment'>;
 
 export function OverviewKpis({ overview, onOpenSegment }: KpisProps) {
   const { kpis, series } = overview;
   const growth = trend(kpis.newUsers30d, kpis.newUsersPrevious30d);
   return (
+    <>
     <ul className="admin-overview-kpis" aria-label="Главные показатели за 30 дней">
       <li><button type="button" onClick={() => onOpenSegment('paying')}>
         <span>С доступом сейчас</span>
         <strong>{kpis.payingNow.toLocaleString('ru-RU')}</strong>
         <small>платят {kpis.payingProvider.toLocaleString('ru-RU')} · вручную {kpis.manualAccess.toLocaleString('ru-RU')}</small>
-        <Sparkline values={series.paying} label="Платящие подписчики по дням" />
       </button></li>
       <li><button type="button" onClick={() => onOpenSegment('new')}>
         <span>Новые пользователи</span>
@@ -81,7 +70,6 @@ export function OverviewKpis({ overview, onOpenSegment }: KpisProps) {
             ? <><b className={`is-${growth.direction}`}>{growth.percent > 0 ? '+' : ''}{growth.percent}%</b> к прошлым 30 дням</>
             : 'за 30 дней'}
         </small>
-        <Sparkline values={series.newUsers} label="Регистрации по дням" />
       </button></li>
       <li><button type="button" onClick={() => onOpenSegment('lapsed')}>
         <span>Потеряли доступ</span>
@@ -94,6 +82,11 @@ export function OverviewKpis({ overview, onOpenSegment }: KpisProps) {
         <small>ручной доступ, стоит продлить</small>
       </button></li>
     </ul>
+    <div className="admin-overview-charts">
+      <LineChart title="Платящие подписчики по дням" subtitle="Активный оплаченный доступ · 30 дней, UTC" points={overviewChartPoints(series.days, series.paying)} unit="count" domain={{ minimum: 0 }} />
+      <LineChart title="Регистрации по дням" subtitle="Новые пользователи · 30 дней, UTC" points={overviewChartPoints(series.days, series.newUsers)} unit="count" domain={{ minimum: 0 }} color="#28704a" />
+    </div>
+    </>
   );
 }
 

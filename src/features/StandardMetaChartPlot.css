@@ -50,7 +50,7 @@
 .standard-meta-chart__plot {
   display: block;
   width: 100%;
-  min-width: 700px;
+  min-width: 0;
   height: auto;
   font-family: var(--font-body);
 }
@@ -187,7 +187,7 @@
 
 @media (max-width: 720px) {
   .standard-meta-chart__hint { align-items: flex-start; line-height: 1.35; }
-  .standard-meta-chart__plot { min-width: 660px; }
+  .standard-meta-chart__plot { min-width: 0; }
   .standard-meta-chart__selection { grid-template-columns: auto minmax(0, 1fr); gap: 0.55rem; }
   .standard-meta-chart__selection dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
   .standard-meta-chart__selection dl div { min-width: 0; padding-inline: 0.45rem; }
@@ -200,3 +200,7 @@
   .standard-meta-chart__selection button,
   .standard-meta-chart__selection a { transition: none; }
 }
+
+.standard-meta-chart__controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-size: 13px; }
+.standard-meta-chart__controls label { display: flex; align-items: center; gap: 8px; max-width: 100%; }
+.standard-meta-chart__controls select { min-width: 0; max-width: 240px; min-height: 40px; border: 1px solid #cbb893; border-radius: 4px; padding: 6px; background: #fbf3de; }

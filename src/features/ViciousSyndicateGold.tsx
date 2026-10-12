@@ -1,3 +1,5 @@
+import { BarChart } from '../shared/ui/analytics/BarChart';
+import '../shared/ui/analytics/Analytics.css';
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw, Search } from 'lucide-react';
 import '../route-parchment.css';
@@ -8,7 +10,7 @@ import { BuildActions } from './viciousGold/BuildActions';
 import { PowerTierBoard } from './viciousGold/PowerTierBoard';
 import { ViciousGoldBanner, ViciousGoldLoading } from './viciousGold/ViciousGoldBanner';
 import {
-  classIcon, percent, shareOfLeader, thresholdPercent,
+  classIcon, percent, thresholdPercent,
   type BuildState, type DeckBuild, type ViciousGoldPayload,
 } from './viciousGold/viciousGoldModel';
 
@@ -117,7 +119,6 @@ export default function ViciousSyndicateGold() {
     };
   }, [revision]);
 
-  const leadingClassShare = Math.max(0, ...data.classDistribution.map(item => item.frequency));
   const visibleDecks = useMemo(() => {
     const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
     return data.deckDistribution.filter(deck => (
@@ -192,16 +193,7 @@ export default function ViciousSyndicateGold() {
             <img src="/main_assets/winrate-classes.png" alt="" width="52" height="52" decoding="async" />
             <div><span>Доля в партиях</span><h2>Распределение классов</h2></div>
           </header>
-          <div className="vsgold__class-bars">
-            {data.classDistribution.map(item => (
-              <button key={item.class} type="button" aria-pressed={deckClass === item.class} onClick={() => selectDeckClass(item.class)}>
-                <img src={classIcon(item.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
-                <span>{item.classLabel}</span>
-                <div><i style={{ width: shareOfLeader(item.frequency, leadingClassShare) }} /></div>
-                <strong>{percent(item.frequency)}</strong>
-              </button>
-            ))}
-          </div>
+          <BarChart title="Доля классов" subtitle="Выберите класс, чтобы отфильтровать колоды" rows={data.classDistribution.map(item => ({ label: item.classLabel, value: item.frequency }))} onSelect={index => selectDeckClass(data.classDistribution[index].class)} />
         </article>
 
         <article ref={deckSectionRef} className="vsgold__panel vsgold__decks" id="vsgold-decks" data-tour-id="vicious-decks">

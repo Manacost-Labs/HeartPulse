@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -725,7 +726,7 @@ function StandardMetaContent({
               <p className="standard-meta-table__mobile-hint">
                 <ChevronsUpDown size={15} /> Нажимайте заголовки для сортировки и листайте таблицу вбок
               </p>
-              <table className="standard-meta-table">
+              <TableSurface title="Мета: архетипы"><table className="standard-meta-table">
                 <caption className="sr-only">Мета Hearthstone: {data.formatLabel}, {data.rankLabel}</caption>
                 <thead>
                   <tr>
@@ -770,7 +771,7 @@ function StandardMetaContent({
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></TableSurface>
             </section>
           ) : (
             <AsyncSurfaceState

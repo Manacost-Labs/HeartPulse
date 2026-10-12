@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
 import { AdminFilterChips } from '../modules/adminCrm/public';
@@ -152,14 +153,14 @@ export function ContestAdminBoosty({ status, statusLoading, subscribers, subscri
       <p className="admin-people-summary" role="status">{summary}</p>
       {visible.length ? (
         <div className="admin-people-table-wrap" aria-busy={subscribersLoading}>
-          <table className="admin-people-table is-boosty">
+          <TableSurface title="Подписки Boosty"><table className="admin-people-table is-boosty">
             <thead>
               <tr><th scope="col">Подписчик</th><th scope="col">Уровень</th><th scope="col">Подписка</th><th scope="col">Доступ на сайте</th><th scope="col">Подписан</th></tr>
             </thead>
             <tbody>
               {visible.map(subscriber => <BoostyRow key={subscriber.id} subscriber={subscriber} entitlementLabels={entitlementLabels} />)}
             </tbody>
-          </table>
+          </table></TableSurface>
         </div>
       ) : subscribers && !subscribers.error && !subscribersLoading && (
         <p className="admin-people-empty">Подписчики Boosty не найдены по текущим фильтрам.</p>

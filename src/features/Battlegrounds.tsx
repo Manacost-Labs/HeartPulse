@@ -1,3 +1,5 @@
+import '../shared/ui/analytics/Analytics.css';
+import { HeroBarChart as BattlegroundHeroBarChart, HeroPowerChart as BattlegroundHeroLineChart, HeroTavernChart as BattlegroundHeroTavernStack, HeroDataTable as BattlegroundHeroDataTable, HeroCompositionAnalytics as BattlegroundHeroTopCompositions } from '../modules/battlegrounds/public';
 import '../modules/battlegrounds/public.css';
 import { battlegroundMinionIconByRussianName as BG_DETAIL_RACE_ICON_BY_RU, battlegroundMinionIconBySlug as BG_DETAIL_RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
@@ -1090,7 +1092,7 @@ function BattlegroundHeroDistribution({ values }: { values?: string[] }) {
             onFocus={() => setActiveIndex(index)}
             onClick={() => setActiveIndex(index)}
           >
-            <span style={{ height: `${Math.max(10, (value / maximum) * 100)}%` }} />
+            <span style={{ height: `${Math.max(0, (value / maximum) * 100)}%`, minHeight: 0 }} />
             <small>{index + 1}</small>
           </button>
         ))}
@@ -1210,7 +1212,6 @@ function BattlegroundHeroLedgerRow({
 
 
 
-const BG_TAVERN_BAR_COLORS = ['#e7c45d', '#74b3dc', '#7cc687', '#d98b54', '#b785d8', '#5fb7b0', '#f0d17a'];
 const BG_DETAIL_DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
   day: '2-digit',
   month: 'long',
@@ -1262,12 +1263,6 @@ type BattlegroundHeroSoundGroup = {
   clips?: BattlegroundHeroSoundClip[];
 };
 
-type BattlegroundHeroTableColumn = {
-  key: string;
-  label: string;
-  render?: (row: any) => React.ReactNode;
-};
-
 type BattlegroundHeroPatchNote = {
   label: string;
   value: string;
@@ -1282,15 +1277,6 @@ type BattlegroundHeroPatchEntry = {
 };
 
 const EMPTY_HERO_PATCH_ENTRIES: BattlegroundHeroPatchEntry[] = [];
-
-function bgHeroTableRowKey(row: any, columns: BattlegroundHeroTableColumn[]): string {
-  const parts: string[] = [];
-  for (const column of columns) {
-    const value = row?.[column.key];
-    if (value !== null && value !== undefined && value !== '') parts.push(String(value));
-  }
-  return parts.join('|') || JSON.stringify(row);
-}
 
 function bgDetailCardImage(card: any): string {
   return card?.image || card?.image_gold || card?.crop_image || '';
@@ -1635,198 +1621,6 @@ function BattlegroundHeroMediaCard({
   );
 }
 
-function BattlegroundHeroBarChart({ rows, title, valueLabel = 'Доля', tourId }: {
-  rows: Array<{ label: string; value: number; sub?: string; icon?: string }>;
-  title: string;
-  valueLabel?: string;
-  tourId?: string;
-}) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const max = Math.max(1, ...rows.map(row => row.value));
-  const activeRow = rows[activeIndex] || rows[0] || null;
-  return (
-    <section className="bg-hero-chart-card rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div
-        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
-        data-tour-id={tourId}
-      >
-        <h3 className="font-hs text-xl text-[#3d2a1e]">{title}</h3>
-        {activeRow && (
-          <div className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1 text-xs font-bold text-[#6b4c2a]">
-            {activeRow.label}: {activeRow.sub || bgDetailFormatPercent(activeRow.value)} {valueLabel ? `· ${valueLabel}` : ''}
-          </div>
-        )}
-      </div>
-      <div className="mt-4 space-y-2.5">
-        {rows.map((row, index) => (
-          <button
-            key={row.label}
-            type="button"
-            onMouseEnter={() => setActiveIndex(index)}
-            onFocus={() => setActiveIndex(index)}
-            onClick={() => setActiveIndex(index)}
-            className={`bg-hero-bar-row grid w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition-colors sm:gap-3 ${
-              activeIndex === index
-                ? 'border-[#d7b66a] bg-[#fff8ea]'
-                : 'border-transparent bg-white/30 hover:border-[#e2cf99] hover:bg-white/55'
-            }`}
-          >
-            <div className="flex items-center gap-2 text-xs font-bold text-[#4a3018]">
-              {row.icon && <img src={row.icon} alt="" className="h-7 w-7 object-contain" loading="lazy" />}
-              <span>{row.label}</span>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full bg-[#eadfbe]">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-[#60a5fa] via-[#22d3ee] to-[#f6ce68]"
-                style={{ width: `${Math.max(2, (row.value / max) * 100)}%` }}
-              />
-            </div>
-            <div className="col-span-2 text-left text-xs font-bold text-[#6b4c2a] sm:col-span-1 sm:text-right" title={valueLabel}>{row.sub || bgDetailFormatPercent(row.value)}</div>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function BattlegroundHeroTavernStack({ rows }: { rows: any[] }) {
-  const [activeLabel, setActiveLabel] = useState('');
-  const byTurn = new Map<number, any[]>();
-  rows.forEach(row => {
-    const turn = Number(row.turn);
-    if (!Number.isFinite(turn)) return;
-    if (!byTurn.has(turn)) byTurn.set(turn, []);
-    byTurn.get(turn)!.push(row);
-  });
-  const turns = Array.from(byTurn.keys()).sort((a, b) => a - b);
-  return (
-    <section className="bg-hero-chart-card rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="font-hs text-xl text-[#3d2a1e]">Таверна по ходам</h3>
-          {activeLabel && <p className="mt-1 text-xs font-bold text-[#6b4c2a]">{activeLabel}</p>}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[1,2,3,4,5,6,7].map(tier => (
-            <span key={tier} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6b4c2a]">
-              <img src={bgDetailTavernIcon(tier)} alt="" className="h-5 w-5 object-contain" loading="lazy" />
-              {tier}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="mt-4 space-y-2.5">
-        {turns.map(turn => {
-          const entries = (byTurn.get(turn) || []).slice().sort((a, b) => Number(a.tavern_tier) - Number(b.tavern_tier));
-          return (
-            <div key={turn} className="grid grid-cols-[46px_1fr] items-center gap-3">
-              <span className="font-hs text-sm text-[#8b4513]">Х{turn}</span>
-              <div className="flex h-8 overflow-hidden rounded-xl border border-[#e2cf99] bg-[#eadfbe]">
-                {entries.map(entry => {
-                  const tier = Number(entry.tavern_tier);
-                  const pct = Math.max(0, bgDetailPercent(entry.pct_at_tier));
-                  if (pct <= 0) return null;
-                  return (
-                    <button
-                      type="button"
-                      key={`${turn}-${tier}`}
-                      onMouseEnter={() => setActiveLabel(`Ход ${turn} · таверна ${tier} · ${bgDetailFormatPercent(pct)}`)}
-                      onFocus={() => setActiveLabel(`Ход ${turn} · таверна ${tier} · ${bgDetailFormatPercent(pct)}`)}
-                      onClick={() => setActiveLabel(`Ход ${turn} · таверна ${tier} · ${bgDetailFormatPercent(pct)}`)}
-                      className="flex min-w-[2px] items-center justify-center text-[10px] font-black text-[#3d2a1e] transition-[filter] hover:brightness-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
-                      style={{ width: `${pct}%`, background: BG_TAVERN_BAR_COLORS[(tier - 1) % BG_TAVERN_BAR_COLORS.length] }}
-                      title={`Ход ${turn}, таверна ${tier}: ${bgDetailFormatPercent(pct)}`}
-                    >
-                      {pct >= 10 ? tier : ''}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function BattlegroundHeroLineChart({ rows }: { rows: any[] }) {
-  const points = rows
-    .map(row => ({ turn: Number(row.turn), value: bgDetailPercent(row.invoked_rate), points: Number(row.total_data_points || 0) }))
-    .filter(row => Number.isFinite(row.turn))
-    .sort((a, b) => a.turn - b.turn);
-  const [activeTurn, setActiveTurn] = useState(points.findIndex(point => point.value >= 70) >= 0 ? points.findIndex(point => point.value >= 70) : Math.max(0, points.length - 1));
-  const maxTurn = Math.max(1, ...points.map(row => row.turn));
-  const maxValue = Math.max(100, ...points.map(row => row.value));
-  const width = 720;
-  const height = 178;
-  const pad = 28;
-  const xy = (row: { turn: number; value: number }) => {
-    const x = pad + ((row.turn - 1) / Math.max(1, maxTurn - 1)) * (width - pad * 2);
-    const y = height - pad - (row.value / maxValue) * (height - pad * 2);
-    return [x, y] as const;
-  };
-  const activePoint = points[activeTurn] || null;
-  const d = points.map((row, index) => {
-    const [x, y] = xy(row);
-    return `${index ? 'L' : 'M'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' ');
-  return (
-    <section className="bg-hero-chart-card rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <h3 className="font-hs text-xl text-[#3d2a1e]">Когда прожимать силу героя</h3>
-        {activePoint && (
-          <div className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1 text-xs font-bold text-[#6b4c2a]">
-            Ход {activePoint.turn} · {bgDetailFormatPercent(activePoint.value)} · {bgFormatCount(activePoint.points)} точек
-          </div>
-        )}
-      </div>
-      <div className="mt-4 overflow-hidden">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full touch-none" style={{ height: '11rem' }}>
-          <defs>
-            <linearGradient id="heroPowerLine" x1="0" x2="1">
-              <stop offset="0%" stopColor="#60a5fa" />
-              <stop offset="60%" stopColor="#22d3ee" />
-              <stop offset="100%" stopColor="#f6ce68" />
-            </linearGradient>
-          </defs>
-          {[0,25,50,75,100].map(value => {
-            const y = height - pad - (value / maxValue) * (height - pad * 2);
-            return <line key={value} x1={pad} x2={width - pad} y1={y} y2={y} stroke="rgba(139,108,66,0.16)" />;
-          })}
-          <path d={d} fill="none" stroke="url(#heroPowerLine)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          {points.map((row, index) => {
-            const [x, y] = xy(row);
-            return (
-              <g
-                key={row.turn}
-                onMouseEnter={() => setActiveTurn(index)}
-                onFocus={() => setActiveTurn(index)}
-              >
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={activeTurn === index ? '7' : '5'}
-                  fill="#f6ce68"
-                  stroke="#8b4513"
-                  strokeWidth="2"
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x={x} y={height - 8} textAnchor="middle" fill="#6b4c2a" fontSize="11" fontWeight="700">{row.turn}</text>
-                {activeTurn === index && (
-                  <text x={x} y={y - 12} textAnchor="middle" fill="#3d2a1e" fontSize="11" fontWeight="800">
-                    {Math.round(row.value)}%
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    </section>
-  );
-}
-
 function BattlegroundHeroCompositionLineup({ composition, cards, tourId }: {
   composition: any;
   cards: Record<string, any>;
@@ -1894,63 +1688,6 @@ function BattlegroundHeroCompositionLineup({ composition, cards, tourId }: {
             </article>
           );
         })}
-      </div>
-    </section>
-  );
-}
-
-function BattlegroundHeroDataTable({ title, rows, columns, tourId }: {
-  title: string;
-  rows: any[];
-  columns: Array<{ key: string; label: string; render?: (row: any) => React.ReactNode }>;
-  tourId?: string;
-}) {
-  return (
-    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <h3 className="font-hs text-xl text-[#3d2a1e]" data-tour-id={tourId}>{title}</h3>
-      <div className="mt-3 space-y-3 md:hidden">
-        {rows.map(row => {
-          const rowKey = bgHeroTableRowKey(row, columns);
-          return (
-          <div key={rowKey} className="rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 shadow-sm">
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-              {columns.map(column => (
-                <div key={column.key}>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b6c42]">{column.label}</p>
-                  <div className="mt-1 text-sm text-[#3d2a1e]">{column.render ? column.render(row) : row[column.key]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          );
-        })}
-      </div>
-      <div className="mt-3 hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[620px] border-separate border-spacing-0 text-left text-sm">
-          <thead>
-            <tr>
-              {columns.map(column => (
-                <th key={column.key} className="border-b border-[#d7b66a]/65 px-3 py-2 text-xs uppercase tracking-wide text-[#8b6c42]">
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(row => {
-              const rowKey = bgHeroTableRowKey(row, columns);
-              return (
-              <tr key={rowKey} className="odd:bg-white/36">
-                {columns.map(column => (
-                  <td key={column.key} className="border-b border-[#e2cf99] px-3 py-2 text-[#3d2a1e]">
-                    {column.render ? column.render(row) : row[column.key]}
-                  </td>
-                ))}
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </div>
     </section>
   );
@@ -2333,73 +2070,6 @@ function BattlegroundHeroGallery({
   );
 }
 
-function BattlegroundHeroTopCompositions({ rows }: { rows: any[] }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  if (!rows.length) return null;
-  const currentIndex = Math.min(activeIndex, rows.length - 1);
-  const maxGames = Math.max(1, ...rows.map(row => Number(row.num_games || 0)));
-  const active = rows[currentIndex] || rows[0];
-  return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h3 className="font-hs text-xl text-[#3d2a1e]">Топ составы героя</h3>
-          <p className="mt-1 text-xs font-bold text-[#6b4c2a]">
-            {active?.name || 'Состав'} · среднее {bgFormatDecimal(active?.avg_placement, 2)} · {active?.popularity || '—'} выбор
-          </p>
-        </div>
-        <span className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1 text-xs font-bold text-[#6b4c2a]">
-          {rows.length} вариантов
-        </span>
-      </div>
-      <div className="mt-4 grid gap-2.5">
-        {rows.map((row, index) => {
-          const games = Number(row.num_games || 0);
-          const width = Math.max(4, (games / maxGames) * 100);
-          return (
-            <button
-              key={`${row.name}-${row.num_games || 0}-${row.avg_placement || 0}`}
-              type="button"
-              onMouseEnter={() => setActiveIndex(index)}
-              onFocus={() => setActiveIndex(index)}
-              onClick={() => setActiveIndex(index)}
-              className={`rounded-2xl border px-3 py-3 text-left transition-all ${
-                currentIndex === index
-                  ? 'border-[#d7b66a] bg-[#fff8ea] shadow-[0_10px_22px_rgba(61,42,30,0.08)]'
-                  : 'border-[#e2cf99] bg-white/35 hover:bg-white/55'
-              }`}
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <img src={bgDetailRaceIcon(row.name)} alt="" className="h-7 w-7 object-contain" loading="lazy" />
-                    <span className="font-hs text-lg text-[#3d2a1e]">{row.name}</span>
-                  </div>
-                  <p className="mt-1 text-xs font-bold text-[#6b4c2a]">
-                    Среднее {bgFormatDecimal(row.avg_placement, 2)} · топ-4 {row.popularity_top_4 || '—'}
-                  </p>
-                </div>
-                <div className="sm:w-[240px]">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-[#6b4c2a]">
-                    <span>{row.popularity || '—'} выбор</span>
-                    <span>{bgFormatCount(row.num_games)} игр</span>
-                  </div>
-                  <div className="mt-1 h-3 overflow-hidden rounded-full bg-[#eadfbe]">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#60a5fa] via-[#22d3ee] to-[#f6ce68]"
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 function bgHeroDetailPortrait(
   libraryHero: { card_id?: unknown; images?: { hero?: unknown } } | null | undefined,
   dbfId: string,
@@ -2692,10 +2362,10 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
           <BattlegroundHeroLineChart rows={stats.hero_power_by_turn || []} />
           <BattlegroundHeroDataTable
             title="Сила героя по таверне"
-            rows={(stats.hero_power || []).slice(0, 24)}
+            rows={stats.hero_power || []}
             columns={[
               { key: 'turn', label: 'Ход' },
-              { key: 'tavern_tier', label: 'Таверна', render: row => <span className="inline-flex items-center gap-2"><img src={bgDetailTavernIcon(row.tavern_tier)} alt="" className="h-6 w-6" />{row.tavern_tier}</span> },
+              { key: 'tavern_tier', label: 'Таверна', render: row => <span className="inline-flex items-center gap-2"><img src={bgDetailTavernIcon(row.tavern_tier)} alt="" className="h-6 w-6" />{String(row.tavern_tier)}</span> },
               { key: 'gold', label: 'Золото' },
               { key: 'invoked_rate', label: 'Сила героя', render: row => bgDetailFormatPercent(row.invoked_rate) },
               { key: 'times_invoked', label: 'Прожато', render: row => bgFormatCount(row.times_invoked) },

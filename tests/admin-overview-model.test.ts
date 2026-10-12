@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { activityText, relativeTime, sparklinePoints, trend } from '../src/modules/adminCrm/ui/overviewModel.js';
+import { activityText, relativeTime, overviewChartPoints, trend } from '../src/modules/adminCrm/ui/overviewModel.js';
 
 assert.deepEqual(activityText({ id: 'r', kind: 'registration', at: '', name: 'igrok', userId: 'u1' }), { title: 'Новый пользователь', detail: 'igrok' });
 assert.deepEqual(
@@ -25,9 +25,13 @@ assert.deepEqual(trend(12, 10), { direction: 'up', percent: 20 });
 assert.deepEqual(trend(9, 10), { direction: 'down', percent: -10 });
 assert.deepEqual(trend(10, 10), { direction: 'flat', percent: 0 });
 
-assert.equal(sparklinePoints([1], 100, 30), '');
-assert.equal(sparklinePoints([0, 10], 100, 30), '0.0,27.0 100.0,3.0');
-assert.equal(sparklinePoints([5, 5, 5], 100, 30), '0.0,27.0 50.0,27.0 100.0,27.0');
+assert.deepEqual(overviewChartPoints([], []), []);
+const history = overviewChartPoints(['2026-10-03', '2026-10-01', '2026-10-09', 'invalid'], [8, 0]);
+assert.deepEqual(history.map(point => [point.x, point.y]), [
+  [Date.parse('2026-10-01'), 0], [Date.parse('2026-10-03'), 8], [Date.parse('2026-10-09'), null],
+]);
+assert.match(history[0].label ?? '', /1 окт/);
+assert.equal(overviewChartPoints(['2026-10-01'], [NaN])[0].y, null);
 
 const now = Date.parse('2026-09-29T12:00:00.000Z');
 assert.equal(relativeTime('2026-09-29T11:59:40.000Z', now), 'только что');

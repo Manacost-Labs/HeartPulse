@@ -144,6 +144,12 @@ reason. `GET /api/admin/boosty/analytics` and its `articles=0` option stay.
 доступом сейчас», «Новые пользователи», «Потеряли доступ» and «Истекает за 7
 дней»; each opens the matching people segment.
 
+Two shared line charts below the KPI cards show paying subscribers and new
+registrations by their UTC dates. They use count scales starting at zero,
+keyboard/date selection and local PNG/SVG export. Missing observations remain
+missing; an empty history disables downloads. The KPI segment buttons remain
+separate from chart controls.
+
 Response:
 
 ```ts

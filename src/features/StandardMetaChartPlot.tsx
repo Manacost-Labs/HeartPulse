@@ -1,3 +1,6 @@
+import { ChartFrame } from '../shared/ui/analytics/ChartFrame';
+import { usePlotWidth } from '../shared/ui/analytics/usePlotWidth';
+import '../shared/ui/analytics/Analytics.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, MousePointer2 } from 'lucide-react';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
@@ -16,14 +19,9 @@ export type StandardMetaChartPoint = {
   climbingSpeed: number | null;
 };
 
-const VIEWBOX_WIDTH = 1000;
-const VIEWBOX_HEIGHT = 500;
-const PLOT = { left: 76, right: 30, top: 28, bottom: 62 };
-const PLOT_WIDTH = VIEWBOX_WIDTH - PLOT.left - PLOT.right;
-const PLOT_HEIGHT = VIEWBOX_HEIGHT - PLOT.top - PLOT.bottom;
 
 function formatPercent(value: number): string {
-  return `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
+  return `${value.toLocaleString('ru-RU', { maximumFractionDigits: value > 0 && value < 0.1 ? 2 : 1 })}%`;
 }
 
 function domain(values: number[], includeZero = false): [number, number] {
@@ -88,6 +86,13 @@ export default function StandardMetaChartPlot({ points, popularPoints, format, f
 }) {
   const [selectedId, setSelectedId] = useState(popularPoints[0]?.id ?? '');
   const [hoveredId, setHoveredId] = useState('');
+  const [popularOnly, setPopularOnly] = useState(false);
+  const { ref: viewportRef, width: VIEWBOX_WIDTH } = usePlotWidth();
+  const VIEWBOX_HEIGHT = VIEWBOX_WIDTH < 500 ? 340 : 400;
+  const PLOT = { left: 60, right: 24, top: 28, bottom: 58 };
+  const PLOT_WIDTH = VIEWBOX_WIDTH - PLOT.left - PLOT.right;
+  const PLOT_HEIGHT = VIEWBOX_HEIGHT - PLOT.top - PLOT.bottom;
+  const visiblePoints = useMemo(() => popularOnly ? points.filter(item => item.popularity >= 0.5) : points, [points, popularOnly]);
   const pointRefs = useRef(new Map<string, SVGGElement>());
 
   useEffect(() => {
@@ -95,28 +100,28 @@ export default function StandardMetaChartPlot({ points, popularPoints, format, f
     setHoveredId('');
   }, [formatLabel, rankLabel, popularPoints]);
 
-  const selectedItem = points.find(item => item.id === (hoveredId || selectedId)) ?? popularPoints[0] ?? null;
-  const xDomain = useMemo(() => domain(points.map(item => item.winrate)), [points]);
-  const yDomain = useMemo(() => domain(points.map(item => item.popularity), true), [points]);
-  const xTicks = useMemo(() => ticks(xDomain), [xDomain]);
+  const selectedItem = visiblePoints.find(item => item.id === (hoveredId || selectedId)) ?? visiblePoints[0] ?? null;
+  const xDomain = useMemo(() => domain(visiblePoints.map(item => item.winrate)), [visiblePoints]);
+  const yDomain = useMemo(() => domain(visiblePoints.map(item => item.popularity), true), [visiblePoints]);
+  const xTicks = useMemo(() => ticks(xDomain, VIEWBOX_WIDTH < 500 ? 2 : 5), [xDomain, VIEWBOX_WIDTH]);
   const yTicks = useMemo(() => ticks(yDomain), [yDomain]);
-  const labelIds = useMemo(() => new Set(popularPoints.slice(0, 3).map(item => item.id)), [popularPoints]);
 
   const xPosition = (value: number) => PLOT.left + ((value - xDomain[0]) / (xDomain[1] - xDomain[0])) * PLOT_WIDTH;
   const yPosition = (value: number) => PLOT.top + PLOT_HEIGHT - ((value - yDomain[0]) / (yDomain[1] - yDomain[0])) * PLOT_HEIGHT;
 
   const moveFocus = (index: number, direction: number) => {
-    const nextIndex = Math.max(0, Math.min(points.length - 1, index + direction));
-    const next = points[nextIndex];
+    const nextIndex = Math.max(0, Math.min(visiblePoints.length - 1, index + direction));
+    const next = visiblePoints[nextIndex];
     setSelectedId(next.id);
     window.requestAnimationFrame(() => pointRefs.current.get(next.id)?.focus());
   };
 
   return (
-    <>
+    <ChartFrame title="Винрейт и популярность" subtitle={`${formatLabel} · ${rankLabel} · ${visiblePoints.length} архетипов`}>
+    <div className="standard-meta-chart__controls"><label><input type="checkbox" checked={popularOnly} onChange={event => setPopularOnly(event.target.checked)} /> Популярность от 0,5%</label><label>Архетип <select aria-label="Выбрать архетип на карте меты" value={selectedItem?.id ?? ""} onChange={event => { setSelectedId(event.target.value); setHoveredId(''); }}>{visiblePoints.map(item => <option key={item.id} value={item.id}>{item.archetypeLabel}</option>)}</select></label></div>
     <p className="standard-meta-chart__hint"><MousePointer2 size={15} /> Наведите или выберите точку. Чем выше и правее, тем популярнее и сильнее архетип.</p>
-    <div className="standard-meta-chart__viewport" tabIndex={0} aria-label="Интерактивный график; на узком экране прокручивается по горизонтали">
-      <svg className="standard-meta-chart__plot" viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} aria-labelledby="standard-meta-chart-svg-title standard-meta-chart-svg-desc">
+    <div ref={viewportRef} className="standard-meta-chart__viewport">
+      <svg data-chart className="standard-meta-chart__plot" viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} aria-labelledby="standard-meta-chart-svg-title standard-meta-chart-svg-desc">
         <title id="standard-meta-chart-svg-title">Винрейт и популярность архетипов</title>
         <desc id="standard-meta-chart-svg-desc">По горизонтали указан винрейт, по вертикали популярность. Точки доступны с клавиатуры.</desc>
 
@@ -141,7 +146,7 @@ export default function StandardMetaChartPlot({ points, popularPoints, format, f
         {xDomain[0] < 50 && xDomain[1] > 50 && (
           <g className="standard-meta-chart__reference">
             <line x1={xPosition(50)} x2={xPosition(50)} y1={PLOT.top} y2={PLOT.top + PLOT_HEIGHT} />
-            <text x={xPosition(50) + 8} y={PLOT.top + 16}>50% винрейта</text>
+            <text x={xPosition(50) + (xPosition(50) > VIEWBOX_WIDTH * 0.6 ? -8 : 8)} y={PLOT.top + 16} textAnchor={xPosition(50) > VIEWBOX_WIDTH * 0.6 ? 'end' : 'start'}>50% винрейта</text>
           </g>
         )}
         <line className="standard-meta-chart__axis" x1={PLOT.left} x2={PLOT.left} y1={PLOT.top} y2={PLOT.top + PLOT_HEIGHT} />
@@ -149,9 +154,9 @@ export default function StandardMetaChartPlot({ points, popularPoints, format, f
         <text className="standard-meta-chart__axis-title" x={PLOT.left + PLOT_WIDTH / 2} y={VIEWBOX_HEIGHT - 10} textAnchor="middle">Винрейт</text>
         <text className="standard-meta-chart__axis-title" transform={`translate(19 ${PLOT.top + PLOT_HEIGHT / 2}) rotate(-90)`} textAnchor="middle">Популярность</text>
 
-        {points.map((item, index) => {
+        {visiblePoints.map((item, index) => {
           const active = selectedItem?.id === item.id;
-          const labelled = labelIds.has(item.id) || active;
+          const labelled = active;
           const x = xPosition(item.winrate);
           const y = yPosition(item.popularity);
           return (
@@ -163,7 +168,7 @@ export default function StandardMetaChartPlot({ points, popularPoints, format, f
               }}
               className={`standard-meta-chart__point${active ? ' standard-meta-chart__point--active' : ''}`}
               role="button"
-              tabIndex={selectedId === item.id ? 0 : -1}
+              tabIndex={selectedItem?.id === item.id ? 0 : -1}
               aria-label={`${item.archetypeLabel}: винрейт ${formatPercent(item.winrate)}, популярность ${formatPercent(item.popularity)}, игр ${item.games?.toLocaleString('ru-RU') ?? 'нет данных'}`}
               transform={`translate(${x} ${y})`}
               onMouseEnter={() => setHoveredId(item.id)}
@@ -174,13 +179,13 @@ export default function StandardMetaChartPlot({ points, popularPoints, format, f
                 const step = POINT_KEY_STEPS[event.key];
                 if (event.key !== 'Enter' && event.key !== ' ' && !step) return;
                 event.preventDefault();
-                if (step) moveFocus(index, step(index, points.length));
+                if (step) moveFocus(index, step(index, visiblePoints.length));
                 else setSelectedId(item.id);
               }}
             >
-              <circle className="standard-meta-chart__point-halo" r={active ? 16 : 13} />
-              <circle className="standard-meta-chart__point-core" r={active ? 8 : 6} />
-              {labelled && <text x="11" y="-10">{item.archetypeLabel}</text>}
+              <circle className="standard-meta-chart__point-halo" r={active ? 12 : 7} />
+              <circle className="standard-meta-chart__point-core" r={active ? 6 : 3.5} />
+              {labelled && <text x={x > VIEWBOX_WIDTH / 2 ? -11 : 11} y="-14" textAnchor={x > VIEWBOX_WIDTH / 2 ? "end" : "start"}>{item.archetypeLabel.length > (VIEWBOX_WIDTH < 500 ? 20 : 36) ? `${item.archetypeLabel.slice(0, VIEWBOX_WIDTH < 500 ? 18 : 34)}…` : item.archetypeLabel}</text>}
             </g>
           );
         })}
@@ -188,6 +193,6 @@ export default function StandardMetaChartPlot({ points, popularPoints, format, f
     </div>
 
     {selectedItem && <ChartSelection item={selectedItem} format={format} />}
-    </>
+    </ChartFrame>
   );
 }

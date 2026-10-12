@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
@@ -337,7 +338,7 @@ function TranslationWorkspaceView({
           </div>
 
           <div className="admin-translation-table-wrap" aria-busy={loading}>
-            <table className="admin-translation-table">
+            <TableSurface title="Переводы карт"><table className="admin-translation-table">
               <caption className="sr-only">Управляемые переводы архетипов</caption>
               <thead><tr><th>English</th><th>Русский</th><th>Источник</th><th aria-label="Действия" /></tr></thead>
               <tbody>
@@ -350,7 +351,7 @@ function TranslationWorkspaceView({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableSurface>
             {!loading && !data.items.length && <p className="contest-muted admin-translation-empty" role="status">По заданным условиям переводы не найдены.</p>}
             {loading && <p className="contest-muted admin-translation-empty" role="status">Загружаем переводы…</p>}
           </div>

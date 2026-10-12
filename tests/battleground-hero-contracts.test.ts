@@ -92,6 +92,7 @@ const RUNTIME_CONTRACT_NAMES = [
   'useBattlegroundHeroTierData',
 ] as const;
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const ANALYTICS_CONTRACT_NAMES = ['HeroBarChart', 'HeroPowerChart', 'HeroTavernChart', 'HeroDataTable', 'HeroCompositionAnalytics', 'RoundAnalytics'];
 
 function parsedSource(relativePath: string, scriptKind: ts.ScriptKind): ts.SourceFile {
   const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
@@ -113,7 +114,7 @@ for (const statement of publicEntry.statements) {
 }
 assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData'].sort(),
   'the Battlegrounds public entry exposes the hero catalog and tier-data contracts');
-assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData'].sort(),
+assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData'].sort(),
   'the Battlegrounds public entry exposes the image policy, legacy bridge, tier resource and library controls');
 
 const heroCatalogModel = parsedSource(
@@ -180,8 +181,8 @@ function assertConsumerImports(
   return sourceFile;
 }
 
-assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'], RUNTIME_CONTRACT_NAMES);
-assertConsumerImports('../src/features/BgLibrary.tsx', [], ['LibraryControls', 'battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData']);
+assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'], [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES.filter(name => name !== 'RoundAnalytics')]);
+assertConsumerImports('../src/features/BgLibrary.tsx', [], ['LibraryControls', 'RoundAnalytics', 'battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData']);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
   CONTRACT_NAMES.filter(name => name !== 'BattlegroundHeroRelatedCard'),

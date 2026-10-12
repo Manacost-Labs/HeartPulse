@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { Suspense, useCallback, useState } from 'react';
 import { RefreshCw, Search, X } from 'lucide-react';
 import { ContestAdminUserRow, type AdminUserPatch, type AdminUserSearchResult } from './ContestAdminUserRow';
@@ -121,7 +122,7 @@ export function ContestAdminUsers({
       </p>
       {users.length ? (
         <div className="admin-people-table-wrap" aria-busy={loading}>
-          <table className="admin-people-table is-users">
+          <TableSurface title="Пользователи"><table className="admin-people-table is-users">
             <thead>
               <tr>
                 <th scope="col">Человек</th>
@@ -137,7 +138,7 @@ export function ContestAdminUsers({
                 <ContestAdminUserRow key={user.id} currentUserId={currentUserId} user={user} actionId={actionId} openMenuId={openMenuId} menuRef={menuRef} menuTriggerMap={menuTriggerMap} onToggleMenu={onToggleMenu} onOpenAccessDialog={openAccessDialog} onUpdateUser={onUpdateUser} onOpenPerson={user => setPersonId(user.id)} />
               ))}
             </tbody>
-          </table>
+          </table></TableSurface>
         </div>
       ) : !loading && (
         <p className="admin-people-empty">

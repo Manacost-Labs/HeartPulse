@@ -1,3 +1,5 @@
+import '../shared/ui/analytics/Analytics.css';
+import { RoundAnalytics } from '../modules/battlegrounds/public';
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import '../modules/battlegrounds/public.css';
 import { createBattlegroundLibraryResource, useBattlegroundLibraryData, LibraryControls, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
@@ -894,71 +896,6 @@ function MetricCard({ label, value, caption, tone, tourId }: { label: string; va
   );
 }
 
-function MiniChart({ points, color = '#f1d47b', unit = '', invert = false }: { points: Array<{ x: string | number; y: number }>; color?: string; unit?: string; invert?: boolean }) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const clean = points.filter(point => Number.isFinite(Number(point.y)));
-  if (clean.length < 2) return <div className="flex h-44 items-center justify-center text-sm text-[#657893]">Недостаточно точек для графика</div>;
-  const width = 560;
-  const height = 190;
-  const padX = 34;
-  const padY = 24;
-  const values = clean.map(point => Number(point.y));
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const xFor = (index: number) => padX + (index / Math.max(1, clean.length - 1)) * (width - padX * 2);
-  const yFor = (value: number) => {
-    const normalized = (value - min) / range;
-    const plotted = invert ? normalized : 1 - normalized;
-    return padY + plotted * (height - padY * 2);
-  };
-  const path = clean.map((point, index) => `${index === 0 ? 'M' : 'L'}${xFor(index).toFixed(1)} ${yFor(Number(point.y)).toFixed(1)}`).join(' ');
-  const last = clean[clean.length - 1];
-  const active = clean[activeIndex ?? clean.length - 1];
-  const activeSafeIndex = Math.max(0, activeIndex ?? clean.length - 1);
-  const activeX = xFor(activeSafeIndex);
-  const activeY = yFor(Number(active.y));
-  const activeValue = `${formatDecimal(active.y, unit === '%' ? 1 : 2)}${unit}`;
-  const moveActivePoint = (event: React.PointerEvent<SVGSVGElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const position = Math.min(Math.max(event.clientX - rect.left, 0), rect.width);
-    const ratio = position / Math.max(1, rect.width);
-    const index = Math.round(ratio * (clean.length - 1));
-    setActiveIndex(Math.min(clean.length - 1, Math.max(0, index)));
-  };
-  return (
-    <div className="relative overflow-hidden rounded-md border border-[#d3deef] bg-[#fbfdff]">
-      <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-md border border-[#cbd9ed] bg-white/95 px-3 py-2 text-sm shadow-sm">
-        <p className="font-semibold text-[#26374f]">Ход: {String(active.x).slice(0, 10)}</p>
-        <p className="mt-1 text-[#657893]"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />{activeValue}</p>
-      </div>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label="График статистики карты по раундам"
-        className="h-48 w-full touch-none cursor-crosshair"
-        onPointerMove={moveActivePoint}
-        onPointerLeave={() => setActiveIndex(null)}
-        onPointerDown={moveActivePoint}
-      >
-        {[0, 1, 2, 3].map(line => {
-          const y = padY + (line / 3) * (height - padY * 2);
-          return <line key={line} x1={padX} x2={width - padX} y1={y} y2={y} stroke="rgba(89,103,126,0.18)" />;
-        })}
-        <line x1={activeX} x2={activeX} y1={padY} y2={height - padY} stroke="rgba(38,55,79,0.24)" strokeDasharray="4 6" />
-        <path d={path} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {clean.map((point, index) => (
-          <circle key={`${point.x}-${index}`} cx={xFor(index)} cy={yFor(Number(point.y))} r="4" fill={color} stroke="#fbfdff" strokeWidth="2" />
-        ))}
-        <circle cx={activeX} cy={activeY} r="7" fill={color} stroke="#26374f" strokeWidth="2" />
-        <text x={padX} y={height - 6} fill="#657893" fontSize="13">{String(clean[0].x).slice(0, 10)}</text>
-        <text x={width - padX} y={height - 6} textAnchor="end" fill="#657893" fontSize="13">{String(last.x).slice(0, 10)}</text>
-        <text x={width - padX} y={padY - 7} textAnchor="end" fill="#26374f" fontSize="14">{formatDecimal(last.y, unit === '%' ? 1 : 2)}{unit}</text>
-      </svg>
-    </div>
-  );
-}
-
 const LibraryCardTile = React.memo(function LibraryCardTile({
   card,
   pool,
@@ -1024,16 +961,6 @@ const LibraryCardTile = React.memo(function LibraryCardTile({
     </a>
   );
 });
-
-function ChartPanel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-md border border-[#cbd9ed] bg-[#f8fbff] p-4">
-      <h3 className="font-hs text-xl text-[#26374f]">{title}</h3>
-      {subtitle && <p className="mb-3 mt-1 text-sm text-[#657893]">{subtitle}</p>}
-      {children}
-    </div>
-  );
-}
 
 function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string }) {
   const { data, loading, error } = useBattlegroundLibraryData(libraryResource, kind, pool, cacheScope);
@@ -1499,47 +1426,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
             <BarChart3 className="text-[#8a651f]" />
             <h2 className="font-hs text-2xl text-[#26374f]">Раунды и динамика</h2>
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ChartPanel title="Влияние по раундам" subtitle="Насколько наличие существа меняет среднее место">
-              <MiniChart points={rounds.map(row => ({ x: row.combat_round, y: row.impact }))} color="#b58a2d" />
-            </ChartPanel>
-            <ChartPanel title="Доля побед в боях" subtitle="Combat winrate по раундам">
-              <MiniChart points={rounds.map(row => ({ x: row.combat_round, y: row.combat_winrate }))} color="#3f9b52" unit="%" />
-            </ChartPanel>
-            <ChartPanel title="Среднее место" subtitle="Меньше значение лучше">
-              <MiniChart points={rounds.map(row => ({ x: row.combat_round, y: row.avg_placement_with }))} color="#3e7fc1" invert />
-            </ChartPanel>
-            <ChartPanel title="Размер выборки" subtitle="Сколько игр включено в раундовую точку">
-              <MiniChart points={rounds.map(row => ({ x: row.combat_round, y: row.games_with_minion }))} color="#8a5fb8" />
-            </ChartPanel>
-          </div>
-
-          <div className="mt-5 overflow-hidden rounded-md border border-[#cbd9ed]">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead className="bg-[#eef4fd] text-left text-[#26374f]">
-                <tr>
-                  <th className="px-3 py-2">Раунд</th>
-                  <th className="px-3 py-2">Impact</th>
-                  <th className="px-3 py-2">Combat WR</th>
-                  <th className="px-3 py-2">Среднее место</th>
-                  <th className="px-3 py-2">Игры с картой</th>
-                  <th className="px-3 py-2">W/L</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#d6e1f1] bg-[#ffffff]">
-                {rounds.map(row => (
-                  <tr key={row.combat_round}>
-                    <td className="px-3 py-2 font-semibold text-[#8a651f]">{row.combat_round}</td>
-                    <td className={`px-3 py-2 ${metricTone(row.impact)}`}>{formatDecimal(row.impact, 2)}</td>
-                    <td className="px-3 py-2">{formatPercent(row.combat_winrate, 1)}</td>
-                    <td className="px-3 py-2">{formatDecimal(row.avg_placement_with, 2)}</td>
-                    <td className="px-3 py-2">{formatCount(row.games_with_minion)}</td>
-                    <td className="px-3 py-2">{formatCount(row.wins)} / {formatCount(row.losses)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RoundAnalytics rows={rounds} />
         </section>
       )}
 

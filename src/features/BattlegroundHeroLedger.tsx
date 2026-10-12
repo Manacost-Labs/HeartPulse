@@ -93,7 +93,7 @@ function PlacementDistribution({ values }: { values?: string[] }) {
             onFocus={() => setActiveIndex(index)}
             onClick={() => setActiveIndex(index)}
           >
-            <span style={{ height: `${Math.max(10, (value / maximum) * 100)}%` }} />
+            <span style={{ height: `${Math.max(0, (value / maximum) * 100)}%`, minHeight: 0 }} />
             <small>{index + 1}</small>
           </button>
         ))}

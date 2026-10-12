@@ -48,6 +48,16 @@ type Story = StoryObj<typeof meta>;
 
 export const Collapsed: Story = {};
 
+export const DenseSmallValues: Story = {
+  args: { points: Array.from({ length: 208 }, (_, index) => ({ ...history[0], recordedAt: new Date(Date.UTC(2026, 6, 27, index * 8)).toISOString(), deckPopularity: index % 17 === 0 ? 0.03 : index % 11 === 0 ? 0.01 : 0 })) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText('Динамика карты'));
+    await expect(canvas.getByRole('slider', { name: /Выбрать точку/ })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: /Скачать Использование в колодах: SVG/ })).toBeVisible();
+  },
+};
+
 export const Loading: Story = {
   args: { loading: true, points: [] },
 };
