@@ -25,6 +25,12 @@ The runtime keeps model credentials and caches outside the repository.
 
 ## Reuse existing code and check search quality
 
+Modules may declare an optional `publicIndexEntry` at their canonical
+`<module-root>/public/index.ts`. The boundary validator requires a regular
+repository file and keeps other module internals private. `agent:context`
+reports this entry's exports separately from the main public API, allowing
+focused consumers to avoid a shared presentation barrel.
+
 After `npm run agent:context -- <module-or-path>` identifies a bounded area, use
 the installed CLI before broad source reads:
 

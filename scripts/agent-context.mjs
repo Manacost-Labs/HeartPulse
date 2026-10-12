@@ -311,6 +311,8 @@ export function loadAgentContext({ repositoryRoot: root, selector }) {
     purpose: module.purpose,
     owner: module.owner,
     publicApi: publicApiFor(module, resolvedRoot),
+    publicIndexApi: module.publicIndexEntry
+      ? publicApiFor({ ...module, publicEntry: module.publicIndexEntry }, resolvedRoot) : null,
     publicStyleEntry: publicStyleEntryFor(module, resolvedRoot),
     dependencies: [...module.dependencies],
     focusedTests: [...module.focusedTests],
@@ -421,6 +423,8 @@ export function formatAgentContext(context) {
     `Public API entry: ${context.publicApi.entry}`,
     ...(context.publicStyleEntry ? [`Public style entry: ${context.publicStyleEntry}`] : []),
     ...publicApiLines,
+    ...(context.publicIndexApi ? [`Public index entry: ${context.publicIndexApi.entry}`,
+      ...linesFor('Public index API', context.publicIndexApi.exports)] : []),
     ...linesFor('Dependencies', context.dependencies),
     ...linesFor('Focused tests', context.focusedTests),
     ...linesFor('Documentation', context.docs),

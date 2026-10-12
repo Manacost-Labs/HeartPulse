@@ -9,6 +9,7 @@ const projectRoot = resolve(import.meta.dirname, '..');
 const nextRoot = join(projectRoot, 'apps/public-web/.next');
 const budgetsPath = join(projectRoot, 'config/next-bundle-budgets.json');
 const budgets = JSON.parse(readFileSync(budgetsPath, 'utf8'));
+const CARD_GALLERY_MARKER = 'img[data-card-image-src]';
 
 // Every chunk the server-rendered document references, including the React
 // Server Components payload, is fetched before the page becomes interactive.
@@ -57,6 +58,10 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
       const assets = initialAssets(await response.text());
       measured[path] = { jsGzipBytes: gzipBytes(assets.js), cssGzipBytes: gzipBytes(assets.css) };
       assert.deepEqual(adminShellAssets(assets), [], `${path} must not load the administrator workspace shell`);
+      if (path === '/standard/archetypes/') {
+        assert.deepEqual(assets.js.filter(file => readFileSync(join(nextRoot, file), 'utf8').includes(CARD_GALLERY_MARKER)), [],
+          'the archetype page must not load the card gallery observer');
+      }
     }
 
     for (const path of PAID_BATTLEGROUNDS_ROUTES) {
@@ -73,6 +78,9 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
 
     // The markers must exist in the build, or the two checks above prove nothing.
     const built = readdirSync(join(nextRoot, 'static'), { recursive: true });
+    assert.ok(built.some(file => file.endsWith('.js')
+      && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(CARD_GALLERY_MARKER)),
+    'no built JavaScript contains the gallery observer marker: update the marker');
     for (const kind of ['js', 'css']) {
       assert.ok(built.some(file => file.endsWith(`.${kind}`)
         && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])),

@@ -1585,21 +1585,24 @@
         "src/modules/constructedCards"
       ],
       "publicEntrypoints": [
-        "src/modules/constructedCards/public.ts"
+        "src/modules/constructedCards/public.ts",
+        "src/modules/constructedCards/public/index.ts"
       ],
       "frontendRoutes": [
         "/standard/cards/:format/:cardId"
       ],
       "backendRoutes": [],
       "contracts": [
-        "docs/specs/constructed-card-urls.md"
+        "docs/specs/constructed-card-urls.md",
+        "docs/specs/card-catalog-image-loading.md"
       ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
       "tests": [
-        "tests/constructed-card-urls.test.ts"
+        "tests/constructed-card-urls.test.ts",
+        "tests/card-catalog-image-loading.test.ts"
       ],
       "allowedDependencies": [],
       "forbiddenImports": [

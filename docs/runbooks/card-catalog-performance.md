@@ -22,7 +22,7 @@ Run these commands after rebuilding the candidate:
 
 ```sh
 npm run build:static
-npm run build:next
+RELEASE_SHA="$(git rev-parse HEAD)" npm run build:next
 npx tsx tests/card-catalog-image-loading.test.ts
 npx tsx tests/constructed-card-catalog-controls.test.tsx
 node --test tests/next-cards-browser.test.mjs tests/next-runtime-config-browser.test.mjs
@@ -47,11 +47,17 @@ no overflow, source selection, search/filter interactions, scrolling to the last
 card, menu navigation/Back, console and accessibility structure. Inspect the
 three image stories and the existing public catalog story. Record image request
 counts and bytes, with browser-cache state specified.
+The full release SHA is embedded in client error metadata. Use it for local
+release measurements; the development label produces smaller gzip totals.
+Chunk identifiers can also shift gzip measurements between environments.
+Keep margin below the existing ceilings; CI is the final release gate.
 
 Browser regressions exercise first-row selection without JavaScript at every
 breakpoint, mobile hydration, scrolling/resizing, and a failed CDN source whose
 origin retry must remain selected after resizing. Existing gallery hover,
 table renderer and filter-warming tests remain required.
+The bundle gate also proves that the archetype page does not load the gallery
+observer, while checking that the marker still exists in the compiled gallery.
 
 ## Release and rollback
 

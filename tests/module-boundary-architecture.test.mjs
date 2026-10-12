@@ -34,6 +34,7 @@ const LIBRARY_LAYERS = new Map([
   ['module-boundary-graph.mjs', 2],
   ['module-boundary-report.mjs', 1],
   ['module-boundary-source-scan.mjs', 2],
+  ['module-public-entry-policy.mjs', 2],
   ['module-import-graph.mjs', 2],
   ['module-inventory.mjs', 2],
   ['public-route-inventory.mjs', 2],

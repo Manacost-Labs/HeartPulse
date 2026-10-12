@@ -162,6 +162,8 @@ test('agent context resolves a module by id or root and reports its public API a
       '',
     ].join('\n'));
     writeFileSync(join(root, 'src/modules/accountRoute/public.css'), '@import "./account.css";\n');
+    mkdirSync(join(root, 'src/modules/accountRoute/public'), { recursive: true });
+    writeFileSync(join(root, 'src/modules/accountRoute/public/index.ts'), 'export const galleryPolicy = 2;\n');
     writeFileSync(
       join(root, 'src/modules/applicationConnect/public.ts'),
       'export const applicationConnect = true;\n',
@@ -177,6 +179,7 @@ test('agent context resolves a module by id or root and reports its public API a
         purpose: 'Account-facing route composition.',
         owner: 'identity-platform',
         publicEntry: 'src/modules/accountRoute/public.ts',
+        publicIndexEntry: 'src/modules/accountRoute/public/index.ts',
         publicStyleEntry: 'src/modules/accountRoute/public.css',
         dependencies: ['client.applicationConnect'],
         focusedTests: ['npm run test:application-connect', 'npm run test:routes'],
@@ -226,6 +229,8 @@ test('agent context resolves a module by id or root and reports its public API a
       exports: ['ACCOUNT_ROUTE_PATH', 'AccountRouteProps', 'default'],
     });
     assert.equal(byId.publicStyleEntry, 'src/modules/accountRoute/public.css');
+    assert.deepEqual(byId.publicIndexApi, { entry: 'src/modules/accountRoute/public/index.ts',
+      exists: true, exports: ['galleryPolicy'] });
     assert.deepEqual(byId.dependencies, ['client.applicationConnect']);
     assert.deepEqual(byId.focusedTests, [
       'npm run test:application-connect',
@@ -238,6 +243,8 @@ test('agent context resolves a module by id or root and reports its public API a
     assert.match(output, /Owner: identity-platform/);
     assert.match(output, /Public API entry: src\/modules\/accountRoute\/public\.ts/);
     assert.match(output, /Public style entry: src\/modules\/accountRoute\/public\.css/);
+    assert.match(output, /Public index entry: src\/modules\/accountRoute\/public\/index\.ts/);
+    assert.match(output, /- galleryPolicy/);
     assert.match(output, /- AccountRouteProps/);
     assert.match(output, /- client\.applicationConnect/);
     assert.match(output, /npm run test:routes/);

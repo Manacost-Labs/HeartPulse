@@ -3,13 +3,6 @@ export const CARD_GALLERY_IMAGE_PLACEHOLDER =
   'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 export const CARD_GALLERY_HIGH_PRIORITY_COUNT = 2;
 
-export function cardGalleryPriorityCount(viewportWidth: number): number {
-  if (viewportWidth <= 640) return 2;
-  if (viewportWidth <= 900) return 4;
-  if (viewportWidth <= 1240) return 5;
-  return 6;
-}
-
 /** The browser selects wider first-row candidates without a different hydration tree. */
 export function cardGalleryEagerMinWidth(index: number): number | undefined {
   if (index === 2 || index === 3) return 641;

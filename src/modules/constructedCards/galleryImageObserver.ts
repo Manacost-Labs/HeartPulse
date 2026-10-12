@@ -2,7 +2,7 @@ import { activateDeferredCardImage, CARD_GALLERY_IMAGE_ROOT_MARGIN } from './mod
 
 /** Starts proximity loading for a mounted gallery; the caller owns the returned cleanup. */
 export function observeCardGalleryImages(gallery: HTMLElement): () => void {
-  const deferredImages = [...gallery.querySelectorAll<HTMLImageElement>('img[data-card-image-src]')];
+  const deferredImages = gallery.querySelectorAll<HTMLImageElement>('img[data-card-image-src]');
   if (!('IntersectionObserver' in window)) {
     deferredImages.forEach(image => activateDeferredCardImage(image, 'lazy'));
     return () => undefined;

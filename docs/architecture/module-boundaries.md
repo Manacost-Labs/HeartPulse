@@ -111,6 +111,10 @@ feature composes the presentation from the Next.js server seed.
 Responsive thumbnail selection and observer lifetimes belong to
 `src/modules/constructedCards/model/galleryImageLoading.ts` and
 `galleryImageObserver.ts`; the legacy image composition owns markup and React refs.
+Its declared `public/index.ts` entry separates gallery loading from the existing
+presentation/hooks barrel, keeping image code out of unrelated initial bundles.
+The inventory declares it as `publicIndexEntry`; validation requires that exact
+canonical regular file and does not permit imports from other internal paths.
 The legacy image adapter owns the platform CDN retry, including pre-hydration
 failures; it adds no selection policy. The module stylesheet enters through
 `public.css`, keeping the catalog's existing CSS request graph.
@@ -332,7 +336,7 @@ Source imports follow these boundaries:
 
 | Source | May import |
 | --- | --- |
-| `app` composition | a module's `public.ts`, declared `public.css`, `shared` |
+| `app` composition | `public.ts`/`public/index.ts`, `public.css`, `shared` |
 | Module route | its hooks/services, adapters, UI and model |
 | Module hook or service | its model and explicit ports |
 | Module API or repository adapter | its model/schema and `shared` |

@@ -745,6 +745,7 @@
       "purpose": "Owns constructed card routes and public presentation.",
       "owner": "web-platform",
       "publicEntry": "src/modules/constructedCards/public.ts",
+      "publicIndexEntry": "src/modules/constructedCards/public/index.ts",
       "publicStyleEntry": "src/modules/constructedCards/public.css",
       "dependencies": [],
       "focusedTests": [
@@ -752,6 +753,7 @@
       ],
       "docs": [
         "docs/specs/constructed-card-urls.md",
+        "docs/specs/card-catalog-image-loading.md",
         "docs/architecture/module-boundaries.md"
       ]
     }

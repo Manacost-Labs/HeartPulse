@@ -17,8 +17,3 @@ export { useCatalogLocation } from './useCatalogLocation';
 export { useCatalogData } from './useCatalogData';
 export { useCatalogIntentWarm } from './useCatalogIntentWarm';
 export { ConstructedCardsBanner } from './ui/ConstructedCardsBanner';
-export { observeCardGalleryImages } from './galleryImageObserver';
-export {
-  activateDeferredCardImage, cardGalleryPriorityCount, cardGalleryEagerMinWidth,
-  CARD_GALLERY_HIGH_PRIORITY_COUNT, CARD_GALLERY_IMAGE_PLACEHOLDER, CARD_GALLERY_IMAGE_ROOT_MARGIN,
-} from './model/galleryImageLoading';

@@ -22,6 +22,38 @@ const {
   validateModuleInventoryMetadata,
 } = boundaryModule;
 
+test('a declared public index permits its contract while model internals stay private', () => {
+  const alpha = { ...moduleEntry('client.alpha', 'client', 'src/modules/alpha'),
+    publicIndexEntry: 'src/modules/alpha/public/index.ts' };
+  const root = fixture(baseConfig([alpha]));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};');
+    writeFixture(root, 'src/modules/alpha/model.ts', 'export const value = 1;');
+    writeFixture(root, alpha.publicIndexEntry, "export { value } from '../model';");
+    writeFixture(root, 'src/gallery.ts', "import { value } from './modules/alpha/public/index'; export { value };");
+    const valid = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.equal(valid.ok, true, formatModuleBoundaryReport(valid));
+    writeFixture(root, 'src/gallery.ts', "import { value } from './modules/alpha/model'; export { value };");
+    assert.equal(analyzeModuleBoundaries({ rootDir: root, now: NOW }).counts.internalImport, 1);
+    writeFixture(root, 'src/gallery.ts', "import { value } from './modules/alpha/public/index'; export { value };");
+    writeFixture(root, 'config/module-boundaries.json', JSON.stringify(baseConfig([{ ...alpha, publicIndexEntry: undefined }])));
+    assert.equal(analyzeModuleBoundaries({ rootDir: root, now: NOW }).counts.internalImport, 1);
+  } finally { cleanup(root); }
+});
+
+test('the optional public index must be its canonical regular file', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  for (const entry of ['src/modules/alpha/model.ts', 'src/modules/other/public/index.ts', 'src/modules/alpha/public/index.ts']) {
+    const root = fixture(baseConfig([{ ...alpha, publicIndexEntry: entry }]));
+    try {
+      writeFixture(root, alpha.publicEntry, 'export {};');
+      if (entry.endsWith('/model.ts')) writeFixture(root, entry, 'export {};');
+      const report = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+      assert.ok(report.errors.some(error => error.code === 'invalid-public-index-entry'), entry);
+    } finally { cleanup(root); }
+  }
+});
+
 test('inventory must exactly match module directories and reference existing ownership artifacts', () => {
   const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
   const root = fixture(baseConfig([alpha]));

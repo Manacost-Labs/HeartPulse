@@ -1,3 +1,4 @@
+import { validatePublicEntries } from './module-public-entry-policy.mjs';
 import { existsSync, readdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
@@ -105,36 +106,7 @@ export function validateModules(config, rootDir, discoveredRoots, errors) {
     ids.add(module.id);
     roots.add(module.root);
 
-    const expectedPublicEntry = `${module.root}/public.ts`;
-    if (module.publicEntry !== expectedPublicEntry) {
-      addInventoryError(errors, 'invalid-public-entry', `module ${module.id} publicEntry must be ${expectedPublicEntry}`);
-    } else {
-      const absolutePublicEntry = join(rootDir, expectedPublicEntry);
-      if (existsSync(absolutePublicEntry)
-        && repositoryEntryKind(rootDir, expectedPublicEntry) !== 'file') {
-        addInventoryError(
-          errors,
-          'invalid-public-entry',
-          `module ${module.id} publicEntry must be a regular repository file`,
-        );
-      }
-    }
-    if (module.publicStyleEntry !== undefined) {
-      const expectedPublicStyleEntry = `${module.root}/public.css`;
-      if (module.runtime !== 'client' || module.publicStyleEntry !== expectedPublicStyleEntry) {
-        addInventoryError(
-          errors,
-          'invalid-public-style-entry',
-          `client module ${module.id} publicStyleEntry must be ${expectedPublicStyleEntry}`,
-        );
-      } else if (repositoryEntryKind(rootDir, expectedPublicStyleEntry) !== 'file') {
-        addInventoryError(
-          errors,
-          'invalid-public-style-entry',
-          `module ${module.id} publicStyleEntry must be a regular file`,
-        );
-      }
-    }
+    validatePublicEntries(module, rootDir, errors);
 
     const dependencies = Array.isArray(module.dependencies) ? module.dependencies : [];
     const focusedTests = Array.isArray(module.focusedTests) ? module.focusedTests : [];

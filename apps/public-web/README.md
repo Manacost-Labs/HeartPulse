@@ -50,6 +50,8 @@ is a separate administrator workspace and retains its permission gate.
   Its first server/client tree is identical: only two thumbnails are
   unconditional, and wider-row candidates live in `<picture>` sources.
   The module owns the observer lifetime; the legacy adapter supplies CDN retry.
+  Import the gallery contract from its declared `public/index.ts` entry to
+  avoid adding its code to pages sharing the module's presentation barrel.
   See [image-loading contract](../../docs/specs/card-catalog-image-loading.md).
 - Public page headings share the heroes banner: use `SectionBanner` from
   `src/shared/ui/EditorialRouteChrome.tsx` for simple titles. Its artwork and

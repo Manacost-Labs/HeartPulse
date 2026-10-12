@@ -8,6 +8,7 @@ import {
   validateModuleInventoryMetadata,
 } from './lib/module-inventory-validation.mjs';
 import { CANONICAL_SHARED_ROOTS } from './lib/module-boundary-contracts.mjs';
+import { isPublicModuleEntry } from './lib/module-public-entry-policy.mjs';
 import { validateExceptionGraph } from './lib/module-boundary-exceptions.mjs';
 import {
   compareEdges,
@@ -39,11 +40,6 @@ function moduleForPath(modules, path) {
   return modules
     .filter(module => isInside(path, module.root))
     .sort((left, right) => right.root.length - left.root.length)[0] || null;
-}
-
-function isPublicModuleEntry(module, path) {
-  return path === module.publicEntry
-    || (typeof module.publicStyleEntry === 'string' && path === module.publicStyleEntry);
 }
 
 function sharedRuntimeForPath(sharedRoots, path) {
