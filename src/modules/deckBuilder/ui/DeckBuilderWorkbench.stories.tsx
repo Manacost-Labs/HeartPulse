@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 import { DeckBuilderWorkbench } from './DeckBuilderWorkbench';
 import type { BuilderCard } from '../model/selection';
 import type { DeckBuilderPorts } from '../useDeckBuilder';
@@ -62,7 +62,9 @@ export const FullDeck: Story = {
   play: async ({ canvas }) => {
     await openDeck(canvas);
     const save = await canvas.findByRole('button', { name: 'Сохранить картинку' });
-    await expect(save.closest('.hp-builder-deck')?.getBoundingClientRect().height).toBeLessThanOrEqual(window.innerHeight);
+    const list = save.closest('.hp-builder-deck')?.querySelector('.hp-builder-deck-list');
+    if (!list) throw new Error('Full deck must render its selected card list');
+    await expect(list.scrollHeight).toBeLessThanOrEqual(list.clientHeight + 1);
     save.scrollIntoView({ block: 'center', behavior: 'instant' });
     await expect(save.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
   },
@@ -98,8 +100,7 @@ export const ZilliaxModules: Story = {
     await userEvent.click(await canvas.findByRole('button', { name: 'Модуль: Модуль 1' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Модуль: Модуль 2' }));
     await expect(canvas.getByRole('button', { name: 'Модуль: Модуль 3' })).toBeDisabled();
-    await openDeck(canvas);
-    await expect(canvas.getByRole('button', { name: 'Сохранить картинку' })).toBeEnabled();
+    await expect(canvas.getByText('Выбор сохранён в колоде')).toBeVisible();
   },
 };
 export const EtcBand: Story = {
@@ -120,6 +121,7 @@ export const ConfigurationError: Story = {
     await openDeck(canvas);
     await userEvent.click(await canvas.findByRole('button', { name: `Настроить: ${zilliax.name}` }));
     await expect(await canvas.findByRole('button', { name: 'Повторить загрузку настроек' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Готово' }));
     await openDeck(canvas);
     await expect(canvas.getByRole('button', { name: 'Сохранить картинку' })).toBeDisabled();
   },
@@ -160,5 +162,35 @@ export const RenderError: Story = {
     await openDeck(canvas);
     await userEvent.click(canvas.getByRole('button', { name: 'Сохранить картинку' }));
     await expect(await canvas.findByText('Не удалось сохранить картинку. Попробуйте ещё раз.')).toBeInTheDocument();
+  },
+};
+
+export const ConfigurationFilters: Story = {
+  args: { initial: { cards: [{ ...etc, count: 1 }, { ...zilliax, count: 1 }] },
+    ports: { ...ports, loadConfiguration: async owner => owner.id === 'ETC_080'
+      ? { kind: 'etc', modules: [], art: [], banned: ['ETC_080', 'TOY_330'] }
+      : { kind: 'zilliax', modules, art, banned: [] },
+      load: async query => ({ cards: cards.filter(card => card.name.includes(query.query)), total: 3, totalPages: 1,
+        facets: { sets: query.query ? [] : ['CORE'], types: [], mechanics: [], minionTypes: [], spellSchools: [] } }) } },
+  play: async ({ canvas }) => {
+    await canvas.findByRole('option', { name: 'Основной набор' });
+    await userEvent.selectOptions(canvas.getByLabelText('Дополнение'), 'CORE');
+    await userEvent.type(canvas.getByRole('searchbox', { name: 'Поиск карт' }), 'Огненный');
+    await expect(await canvas.findByRole('option', { name: 'Основной набор' })).toBeInTheDocument();
+    await openDeck(canvas);
+    await userEvent.click(canvas.getByRole('button', { name: `Настроить: ${etc.name}` }));
+    const band = within(await canvas.findByRole('dialog', { name: 'Группа E.T.C.' }));
+    await expect(band.getByRole('searchbox')).toHaveValue('');
+    await userEvent.type(band.getByRole('searchbox'), 'Изисет');
+    await userEvent.click(band.getByRole('button', { name: 'Готово' }));
+    await userEvent.click(canvas.getByRole('button', { name: `Настроить: ${zilliax.name}` }));
+    await canvas.findByRole('button', { name: 'Модуль: Модуль 1' });
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(canvas.getByRole('button', { name: `Настроить: ${etc.name}` }));
+    await expect(within(await canvas.findByRole('dialog', { name: 'Группа E.T.C.' })).getByRole('searchbox')).toHaveValue('Изисет');
+    await userEvent.click(canvas.getByRole('button', { name: 'Готово' }));
+    if (window.innerWidth < 768) await userEvent.click(canvas.getByRole('button', { name: 'Карты' }));
+    await expect(canvas.getByRole('searchbox')).toHaveValue('Огненный');
+    await expect(canvas.getByLabelText('Дополнение')).toHaveValue('CORE');
   },
 };

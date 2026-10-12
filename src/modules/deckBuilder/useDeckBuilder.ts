@@ -22,17 +22,21 @@ export type DeckBuilderInitial = {
   heroClass?: BuilderClass; format?: BuilderFormat; cards?: BuilderEntry[];
 };
 
-const sameFilters = (left: BuilderCatalogQuery, right: BuilderCatalogQuery) =>
-  Object.entries(right).every(([key, value]) => left[key as keyof BuilderCatalogQuery] === value);
+const emptyFilters = (heroClass: BuilderClass, format: BuilderFormat): BuilderCatalogQuery => ({
+  heroClass, format, query: '', mana: '', rarity: '', pool: '', page: 1,
+  set: '', type: '', mechanic: '', minionType: '', spellSchool: '', sort: 'mana', direction: 'asc',
+});
 
 export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInitial = {}) {
-  const [filters, setFilters] = useState<BuilderCatalogQuery>({ heroClass: initial.heroClass ?? 'MAGE',
-    format: initial.format ?? 'standard', query: '', mana: '', rarity: '', pool: '', page: 1,
-    set: '', type: '', mechanic: '', minionType: '', spellSchool: '', sort: 'mana', direction: 'asc' });
+  const [collectionFilters, setCollectionFilters] = useState(() => emptyFilters(initial.heroClass ?? 'MAGE', initial.format ?? 'standard'));
+  const [bandFilters, setBandFilters] = useState(collectionFilters);
   const [deck, setDeck] = useState<BuilderEntry[]>(initial.cards ?? []);
   const [configurationOwner, setConfigurationOwner] = useState<number | null>(null);
-  const mainFilters = useRef<BuilderCatalogQuery | null>(null);
-  const legality = useDeckLegality(deck, filters.heroClass, ports.loadRules);
+  const configurationCard = deck.find(card => card.dbfId === configurationOwner) ?? null;
+  const editingBand = configurationCard?.id === 'ETC_080';
+  const filters = editingBand ? bandFilters : collectionFilters;
+  const setFilters = editingBand ? setBandFilters : setCollectionFilters;
+  const legality = useDeckLegality(deck, collectionFilters.heroClass, ports.loadRules);
   const [name, setName] = useState('Моя колода');
   const [pending, setPending] = useState<'clear' | { heroClass: BuilderClass; format: BuilderFormat } | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -48,24 +52,28 @@ export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInit
   const count = deckCount(deck);
   const limit = ports.limit(deck);
   const issues = [...configurationIssues(deck), ...legality.issues];
-  const code = deck.length && count <= limit && !issues.length ? ports.encode(filters.heroClass, filters.format, deck) : '';
+  const code = deck.length && count <= limit && !issues.length ? ports.encode(collectionFilters.heroClass, collectionFilters.format, deck) : '';
   function filter<K extends keyof BuilderCatalogQuery>(key: K, value: BuilderCatalogQuery[K]) {
     setFilters(current => ({ ...current, [key]: value, page: key === 'page' ? Number(value) : 1 }));
   }
   function context(heroClass: BuilderClass, format: BuilderFormat) {
     if (heroClass === filters.heroClass && format === filters.format) return;
     if (deck.length) setPending({ heroClass, format });
-    else { setFilters(current => ({ ...current, heroClass, format, pool: '', set: '', page: 1 })); legality.reset(); }
+    else {
+      setCollectionFilters(current => ({ ...current, heroClass, format, pool: '', set: '', page: 1 }));
+      setBandFilters(emptyFilters(heroClass, format));
+      legality.reset();
+    }
   }
   function confirmReset() {
     setDeck([]);
     setConfigurationOwner(null);
-    mainFilters.current = null;
     legality.reset();
     setNotice('');
     setExportError('');
     if (pending && pending !== 'clear') {
-      setFilters(current => ({ ...current, ...pending, pool: '', set: '', page: 1 }));
+      setCollectionFilters(current => ({ ...current, ...pending, pool: '', set: '', page: 1 }));
+      setBandFilters(emptyFilters(pending.heroClass, pending.format));
     }
     setPending(null);
   }
@@ -73,7 +81,8 @@ export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInit
     setDeck(current => changeDeckCopies(current, card, delta, filters.heroClass, ports.limit, legality.legal));
     if (delta < 0 && card.dbfId === configurationOwner && (deck.find(entry => entry.dbfId === card.dbfId)?.count ?? 0) <= 1) closeConfiguration();
     if (delta < 0 && /турист|tourist/i.test(card.text ?? '')) {
-      setFilters(current => current.pool === 'tourist' ? { ...current, pool: '', page: 1 } : current);
+      setCollectionFilters(current => current.pool === 'tourist' ? { ...current, pool: '', page: 1 } : current);
+      setBandFilters(current => current.pool === 'tourist' ? { ...current, pool: '', page: 1 } : current);
     }
     setNotice('');
     setExportError('');
@@ -84,24 +93,8 @@ export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInit
     setNotice('');
     setExportError('');
   }
-  function configure(card: BuilderCard) {
-    if (!mainFilters.current) mainFilters.current = filters;
-    setConfigurationOwner(card.dbfId);
-    if (card.id === 'ETC_080') setFilters(current => {
-      const next = { ...current, query: '', mana: '', rarity: '', pool: '', set: '',
-        type: '', mechanic: '', minionType: '', spellSchool: '', page: 1 };
-      return sameFilters(current, next) ? current : next;
-    });
-  }
-  function closeConfiguration() {
-    setConfigurationOwner(null);
-    if (mainFilters.current) {
-      const next = { ...mainFilters.current,
-        pool: mainFilters.current.pool === 'tourist' && !legality.destination ? '' : mainFilters.current.pool };
-      setFilters(current => sameFilters(current, next) ? current : next);
-    }
-    mainFilters.current = null;
-  }
+  function configure(card: BuilderCard) { setConfigurationOwner(card.dbfId); }
+  function closeConfiguration() { setConfigurationOwner(null); }
   async function saveImage() {
     if (!code || count > limit || exportLock.current) return;
     exportLock.current = true;
@@ -126,12 +119,11 @@ export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInit
     catch { setNotice('Не удалось скопировать код. Выделите его в поле ниже.'); }
   }
   return { filters, filter, context, deck, count, limit, code, name, setName, catalog, loading, error,
-    issues, configurationCard: deck.find(card => card.dbfId === configurationOwner) ?? null,
+    issues, configurationCard,
     configure, closeConfiguration, legality,
     loadConfiguration: ports.loadConfiguration ?? loadCardConfiguration, changeConfiguration,
     label: ports.label ?? ((_kind: string, value: string) => value),
-    resetFilters: () => setFilters(current => ({ ...current, query: '', mana: '', rarity: '', pool: '',
-      set: '', type: '', mechanic: '', minionType: '', spellSchool: '', sort: 'mana', direction: 'asc', page: 1 })),
+    resetFilters: () => setFilters(emptyFilters(filters.heroClass, filters.format)),
     retry, pending, cancelReset: () => setPending(null),
     clear: () => setPending('clear'), confirmReset, change,
     canAdd: (card: BuilderCard) => canAddDeckCard(deck, card, filters.heroClass, ports.limit, legality.legal),

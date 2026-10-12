@@ -4,7 +4,8 @@
 
 `/standard/deck-builder/` is available anonymously from the Constructors menu.
 Users choose one of the eleven classes and Standard or Wild, browse the same
-public catalog as `/standard/cards/`, and add cards to a sticky deck on the right.
+public catalog as `/standard/cards/`, and add cards to a naturally growing
+deck on the right.
 Search, mana, rarity, class/neutral, expansion, type, mechanic, minion type and
 spell-school filters paginate the catalog in batches of 24. Mana shortcuts
 show 0–10+; clicking the selected shortcut clears it. Extra tag filters are
@@ -20,8 +21,10 @@ The collection uses the existing wooden rail asset; the selected deck combines
 the rail, gold game frame and an inset blue glow. Full-height card renders are
 contained in a larger gallery (two columns on phones), never cropped. Desktop
 row controls appear on hover, keyboard focus or a tap on the tile. They overlay
-the tile instead of consuming an extra row. At least three full normal tiles
-remain visible at the checked widths. Rows expose add/remove controls and copy
+the tile instead of consuming an extra row. The deck frame grows to fit every
+selected row. The page owns scrolling;
+there is no height cap, sticky deck or inner list scrollbar. Rows expose
+add/remove controls and copy
 counts. Code opens in a bounded native dialog with selection, copy and Escape;
 it never changes the height of the list. Legendary cards allow one copy,
 other cards two.
@@ -196,9 +199,8 @@ about 175 KiB of initial gzip JavaScript and 33 KiB of CSS in the locked
 Next build. Only this route's JS ceiling is recalibrated to 182,272 bytes
 (2% margin rounded to KiB); other route and CSS ceilings stay unchanged.
 
-The final 30-card preview keeps Save Image within the desktop viewport.
-Phone deck panels also bound the independently scrolling list, keeping the
-actions close to the cards instead of below thirty full rows. Local Chrome
+The earlier bounded-list layout is superseded by the natural-height layout
+below, following the owner’s review. Local Chrome
 DevTools checks find no application errors,
 failed images or overflow; the existing unused CSS preload warning remains.
 An unthrottled local trace reported LCP 58 ms and CLS 0.00 (lab evidence only).
@@ -237,3 +239,39 @@ these are lab measurements, not field performance. The current 15-state
 Storybook matrix passes all interaction scenarios at desktop and phone widths.
 The two indirectly affected administrative fixtures also render without
 overflow; the archetype-page fixture has its existing unmocked image 404s.
+
+## Natural-height layout and independent configuration filters
+
+- Use the shared public heroes banner, as on the strategy constructor. Reduce
+  redundant outer padding so the gallery uses the available wide shell.
+- A 30/40-card deck extends the frame down the page with all rows visible;
+  export actions follow the last row and the document scrolls normally.
+- E.T.C. and Zilliax open in a wide native dialog with Escape, a clear close
+  control and a persistent Done action. The background cannot change class or
+  filters while configuration is open. Selected modules/band cards are visible
+  as removable slots; module stats update immediately. Art choices have previews.
+- E.T.C. search, tags, sorting and pagination are independent from the main
+  collection and persist between editor visits. Zilliax does not reset either
+  filter set. Changing deck context resets the band’s contextual filters.
+- Preserve a selected facet option when a filtered response omits its code, so
+  the control never claims a different selection from the request.
+- Verify full-deck natural height at 1440/1024/768/390/320 px, configuration
+  keyboard focus/Escape, filter isolation, sideboard encoding and image download.
+
+Implementation stays inside the deckBuilder module; the shared banner is a
+domain-independent UI primitive. No dependencies or external API contracts change.
+React dialog synchronization follows the official effect/ref example:
+[dialog example](https://react.dev/reference/react/useEffect#controlling-a-non-react-widget).
+
+The natural-height revision is checked in the production Next build and the
+built workshop. Chrome DevTools confirms that all 15 rows of a full 30-card
+fixture fit inside the list at 1440, 1024, 768, 390 and 320 px, with no nested
+scrolling or horizontal overflow. The module dialog fits a 320×720 viewport,
+keeps Done visible and keyboard focus inside the dialog. The 16-state workshop
+matrix passes at desktop and phone widths (32 renders).
+
+The unchanged route ceilings pass: 183,709 gzip JavaScript bytes and 33,783
+CSS bytes. No budget or dependency changes are required. React Doctor and
+changed-file Semgrep report no findings. A local, unthrottled Chrome trace
+reports LCP 91 ms and CLS 0.00; this is lab evidence. Application requests and
+images succeed; the existing shell CSS preload warning remains.

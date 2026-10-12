@@ -3,6 +3,7 @@ import { Copy, Download, Minus, Plus, Search, SlidersHorizontal, Trash2, X } fro
 import { BUILDER_CLASSES, type BuilderCard, type BuilderClass, type BuilderEntry, type BuilderFormat } from '../model/selection';
 import { useDeckBuilder, type DeckBuilderInitial, type DeckBuilderPorts } from '../useDeckBuilder';
 import { configurationKind, isZilliaxModule } from '../model/configuration';
+import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import { CardConfigurationEditor } from './CardConfigurationEditor';
 
 export type DeckBuilderWorkbenchProps = { ports: DeckBuilderPorts; initial?: DeckBuilderInitial };
@@ -50,7 +51,7 @@ function CollectionFilters({ editor }: { editor: Editor }) {
     .filter(key => filters[key as keyof typeof filters]).length;
   const hasFilters = !!(filters.query || filters.mana || filters.pool || filters.set || advancedCount);
   const facetOptions = (kind: 'set' | 'type' | 'minionType' | 'spellSchool', values: string[] = []) =>
-    values.map(value => <option key={value} value={value}>{editor.label(kind, value)}</option>);
+    [...new Set([...(filters[kind] ? [filters[kind]] : []), ...values])].map(value => <option key={value} value={value}>{editor.label(kind, value)}</option>);
   return <div className="hp-builder-filters">
     <label className="hp-builder-search"><Search size={18} aria-hidden="true" />
       <input type="search" value={filters.query} maxLength={100} onChange={event => editor.filter('query', event.target.value)}
@@ -85,7 +86,7 @@ function CollectionFilters({ editor }: { editor: Editor }) {
           <option value="">Любая</option><option value="COMMON">Обычная</option><option value="RARE">Редкая</option>
           <option value="EPIC">Эпическая</option><option value="LEGENDARY">Легендарная</option></select></label>
         <label>Механика<select value={filters.mechanic} onChange={event => editor.filter('mechanic', event.target.value)}>
-          <option value="">Все механики</option>{catalog.facets?.mechanics.map(value =>
+          <option value="">Все механики</option>{[...new Set([...(filters.mechanic ? [filters.mechanic] : []), ...(catalog.facets?.mechanics ?? [])])].map(value =>
             <option key={value} value={value}>{catalog.mechanicTranslations?.[value] || value}</option>)}</select></label>
         <label>Тип существа<select value={filters.minionType} onChange={event => editor.filter('minionType', event.target.value)}>
           <option value="">Все существа</option>{facetOptions('minionType', catalog.facets?.minionTypes)}</select></label>
@@ -116,7 +117,7 @@ function RuneControls({ editor }: { editor: Editor }) {
 
 function CardGallery({ editor }: { editor: Editor }) {
   const { filters } = editor;
-  if (editor.configurationCard) return <CardConfigurationEditor key={editor.configurationCard.dbfId} editor={editor} owner={editor.configurationCard} filters={<CollectionFilters editor={editor} />} />;
+  if (editor.configurationCard) return <section className="hp-builder-gallery" aria-label="Коллекция карт" />;
   return <section className="hp-builder-gallery" aria-labelledby="hp-builder-gallery-title">
     <div className="hp-builder-section-heading"><h2 id="hp-builder-gallery-title">Карты</h2>
       <span>{editor.loading ? 'Загрузка…' : `${editor.catalog.total} в коллекции`}</span></div>
@@ -173,10 +174,8 @@ function SelectedDeck({ editor }: { editor: Editor }) {
 export function DeckBuilderWorkbench({ ports, initial }: DeckBuilderWorkbenchProps) {
   const editor = useDeckBuilder(ports, initial);
   const [panel, setPanel] = useState<'cards' | 'deck'>('cards');
-  const deckEditor = { ...editor, configure: (card: BuilderCard) => { editor.configure(card); setPanel('cards'); } };
   return <div className="hp-builder" data-panel={panel}>
-    <header className="hp-builder-heading"><h1>Конструктор колод</h1>
-      <p>Выбирайте карты и сохраняйте колоду одной картинкой.</p></header>
+    <SectionBanner title="Конструктор колод" subtitle="Выбирайте карты, собирайте колоду и сохраняйте картинку." />
     <div className="hp-builder-context">
       <label>Класс<select value={editor.filters.heroClass} onChange={event => editor.context(event.target.value as BuilderClass, editor.filters.format)}>
         {BUILDER_CLASSES.map(hero => <option key={hero.id} value={hero.id}>{hero.label}</option>)}</select></label>
@@ -191,6 +190,7 @@ export function DeckBuilderWorkbench({ ports, initial }: DeckBuilderWorkbenchPro
     <div className="hp-builder-mobile-switch" role="group" aria-label="Панель конструктора">
       <button type="button" aria-pressed={panel === 'cards'} onClick={() => setPanel('cards')}>Карты</button>
       <button type="button" aria-pressed={panel === 'deck'} onClick={() => setPanel('deck')}>Колода · {editor.count}/{editor.limit}</button></div>
-    <div className="hp-builder-workspace"><CardGallery editor={editor} /><SelectedDeck editor={deckEditor} /></div>
+    <div className="hp-builder-workspace"><CardGallery editor={editor} /><SelectedDeck editor={editor} /></div>
+    {editor.configurationCard ? <CardConfigurationEditor key={editor.configurationCard.dbfId} editor={editor} owner={editor.configurationCard} filters={<CollectionFilters editor={editor} />} /> : null}
   </div>;
 }

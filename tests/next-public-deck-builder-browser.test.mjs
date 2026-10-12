@@ -140,7 +140,7 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `overflow at ${width}`);
       if (width < 768) {
         await page.click('.hp-builder-mobile-switch button:last-child');
-        assert.equal(await page.$eval('.hp-builder-deck', node => getComputedStyle(node).display), 'flex');
+        assert.equal(await page.$eval('.hp-builder-deck', node => node.checkVisibility()), true);
         await page.click('button[aria-label="Убрать: Огненный шар"]');
         await page.click('.hp-builder-mobile-switch button:first-child');
         assert.equal(await page.$eval('.hp-builder-gallery', node => getComputedStyle(node).display), 'block');
@@ -165,20 +165,24 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
       const list = document.querySelector('.hp-builder-deck-list');
       const deck = document.querySelector('.hp-builder-deck');
       const save = document.querySelector('.hp-builder-save');
-      return list.scrollHeight > list.clientHeight
+      return list.scrollHeight <= list.clientHeight + 1
+        && getComputedStyle(deck).maxHeight === 'none'
         && save.getBoundingClientRect().bottom <= deck.getBoundingClientRect().bottom;
-    }), true, 'full phone deck scrolls its list while keeping Save inside the panel');
+    }), true, 'full phone deck grows to fit all rows with actions after the list');
     for (const width of [1440, 1024, 768, 390, 320]) {
       await page.setViewport({ width, height: 720 });
       const layout = await page.evaluate(() => {
         const list = document.querySelector('.hp-builder-deck-list');
         const rows = [...list.children];
         return { height: list.clientHeight, rowHeight: rows[0].getBoundingClientRect().height,
+          allRowsFit: rows.at(-1).getBoundingClientRect().bottom <= list.getBoundingClientRect().bottom,
+          natural: list.scrollHeight <= list.clientHeight + 1,
           ordered: rows.every((row, index) => !index || row.offsetTop > rows[index - 1].offsetTop),
           overflow: document.documentElement.scrollWidth > innerWidth };
       });
       assert.ok(layout.height >= layout.rowHeight * 3, `at least three full tiles visible at ${width}: ${JSON.stringify(layout)}`);
       assert.equal(layout.ordered, true, 'selected cards run down the list');
+      assert.equal(layout.allRowsFit && layout.natural, true, `all cards fit without nested scrolling at ${width}`);
       assert.equal(layout.overflow, false);
       await page.click('.hp-builder-secondary-actions button:first-child');
       await page.waitForSelector('.hp-builder-code-dialog[open]');
@@ -241,7 +245,7 @@ test('runes gate Death Knight cards and tourists expose only the permitted guest
         const pool = url.searchParams.get('deckClass') === 'DEATHKNIGHT' ? [runeCard, cards[2]]
           : url.searchParams.get('deckClass') === 'PALADIN' ? [guest, chain, { ...guest, card_id: 'CORE_OTHER', dbf: 12, card_set: 'CORE', name: { ru: 'Другой набор' } }]
           : [tourist, cards[2]];
-        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: pool,
+        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: pool, facets: { sets: url.searchParams.get('query') ? [] : ['CORE'] },
           pagination: { total: pool.length, totalPages: 1 } }) });
       } else if (url.pathname.startsWith('/api/public-resource/db/')) {
         await request.respond({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" fill="#715022"/></svg>' });
@@ -309,7 +313,7 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
     page.on('request', async request => {
       const url = new URL(request.url());
       if (url.pathname === '/api/constructed-cards') {
-        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: pool,
+        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: pool, facets: { sets: url.searchParams.get('query') ? [] : ['CORE'] },
           pagination: { total: pool.length, totalPages: 1 } }) });
       } else if (url.pathname === '/api/constructed-cards/ETC_080') {
         await request.respond({ status: configFails ? 503 : 200, contentType: 'application/json', body: JSON.stringify({ card: {
@@ -335,11 +339,17 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
     await page.click('button[aria-label="Добавить: Огненный шар"]');
     await page.click('button[aria-label="Добавить: E.T.C., менеджер группы"]');
     assert.equal(await page.$eval('.hp-builder-save', button => button.disabled), true);
+    await page.waitForSelector('.hp-builder-filter-toolbar > label select option[value="CORE"]');
+    await page.select('.hp-builder-filter-toolbar > label select', 'CORE');
+    await page.type('input[aria-label="Поиск карт"]', 'основная');
     await page.click('button[aria-label="Настроить: E.T.C., менеджер группы"]');
     await page.waitForSelector('.hp-builder-configuration [role="alert"]');
     configFails = false;
     await page.click('.hp-builder-configuration [role="alert"] button');
     await page.waitForSelector('button[aria-label="Добавить в E.T.C.: Огненный шар"]');
+    assert.equal(await page.$eval('.hp-builder-configuration input[type=search]', field => field.value), '');
+    await page.type('.hp-builder-configuration input[type=search]', 'группа');
+    await page.waitForSelector('button[aria-label="Добавить в E.T.C.: Зиллиакс Делюкс 3000"]');
     assert.equal(await page.$eval('button[aria-label="Добавить в E.T.C.: Зиллиакс Делюкс 3000"]', button => button.disabled), true);
     await page.click('button[aria-label="Добавить в E.T.C.: Огненный шар"]');
     assert.equal(await page.$eval('button[aria-label="Добавить в E.T.C.: Огненный шар, в группе 1"]', button => button.disabled), true);
@@ -347,18 +357,34 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
     await page.click('button[aria-label="Добавить в E.T.C.: Ледяная стрела"]');
     assert.equal(await page.$eval('[aria-label="Карт в колоде: 2 из 30"]', node => node.textContent), '2/30');
     await page.click('.hp-builder-configuration-heading button');
+    await page.waitForSelector('button[aria-label="Добавить: Огненный шар, в колоде 1"]');
     assert.equal(await page.$eval('button[aria-label="Добавить: Огненный шар, в колоде 1"]', button => button.disabled), true);
+    assert.equal(await page.$eval('input[aria-label="Поиск карт"]', field => field.value), 'основная');
+    assert.equal(await page.$eval('.hp-builder-filter-toolbar > label select', field => field.value), 'CORE');
+    await page.click('button[aria-label="Настроить: E.T.C., менеджер группы"]');
+    await page.waitForSelector('.hp-builder-configuration input[type=search]');
+    assert.equal(await page.$eval('.hp-builder-configuration input[type=search]', field => field.value), 'группа');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('button[aria-label="Добавить: Зиллиакс Делюкс 3000"]');
     await page.click('button[aria-label="Добавить: Зиллиакс Делюкс 3000"]');
     await page.setViewport({ width: 390, height: 844 });
     await page.click('.hp-builder-mobile-switch button:last-child');
     await page.click('button[aria-label="Настроить: Зиллиакс Делюкс 3000"]');
     await page.waitForSelector('button[aria-label="Модуль: Модуль 0"]');
-    assert.equal(await page.$eval('.hp-builder', node => node.dataset.panel), 'cards');
+    assert.equal(await page.$eval('.hp-builder', node => node.dataset.panel), 'deck');
     await page.click('button[aria-label="Модуль: Модуль 0"]');
     await page.click('button[aria-label="Модуль: Модуль 7"]');
     assert.equal(await page.$eval('button[aria-label="Модуль: Модуль 2"]', button => button.disabled), true);
-    await page.select('.hp-builder-art-choice select', '110441');
+    await page.click('button[aria-label="Облик Зиллиакса: 2"]');
+    assert.equal(await page.$eval('button[aria-label="Облик Зиллиакса: 2"]', node => node.getAttribute('aria-pressed')), 'true');
     assert.equal(await page.$eval('.hp-builder-config-result', node => node.textContent.includes('9 маны')), true);
+    await page.addScriptTag({ content: axe });
+    const violations = await page.evaluate(async () => (await axe.run(document, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+    })).violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) })));
+    assert.deepEqual(violations, [], 'module dialog is accessible on phones');
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => !!document.activeElement.closest('.hp-builder-configuration')), true, 'keyboard focus stays in the modal');
     await page.click('.hp-builder-configuration-heading button');
     await page.click('.hp-builder-mobile-switch button:last-child');
     assert.equal(await page.$eval('[aria-label="Карт в колоде: 3 из 30"]', node => node.textContent), '3/30');
