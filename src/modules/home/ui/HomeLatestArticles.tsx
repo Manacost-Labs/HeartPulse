@@ -71,7 +71,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
         <p>Свежие мета-отчёты, разборы патчей и практические гайды редакции.</p>
       </div>
 
-      <div className="home-latest-articles__board" aria-busy={loading}>
+      <div data-home-feed="articles" className="home-latest-articles__board" aria-busy={loading}>
         {loading && latest.length === 0
           ? [0, 1, 2].map(index => <div key={index} className="home-latest-article home-latest-article--loading" />)
           : latest.map((article, index) => (

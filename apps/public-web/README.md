@@ -29,8 +29,10 @@ is a separate administrator workspace and retains its permission gate.
 | `ui/usePublicAccess.ts` | Shared browser session, subscription and admin state in the persistent layout; quietly re-checks on route changes and on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
 | `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
 | `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
+| `ui/HomePageContent.tsx`, `ui/useHomeFirstPaint.ts`, `ui/homeFeedRequests.ts` | Home feed recovery: only missing anonymous feeds load in the browser, with cancelled lifetimes and soft settlement through the home module's DOM ports; request code loads only when recovery is needed |
 | `ui/PublicNavigationLayout.tsx` | Persistent menu and viewer access; composes the route-owned content without moving data loaders into the layout |
 | `ui/PublicNavigationBridge.tsx` | App Router adapter for legacy callbacks and public anchors; cancellable intent and pending feedback; preserves native modified/external/download/identity/API/admin links |
+| `src/shared/ui/RouteTransition.tsx` | Short opacity-only settlement of marked content after a committed pathname change; first document paint and reduced motion stay immediate |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` use the mounted App Router adapter; native document navigation remains the fallback |
 | `lib/authPrefetch.ts` | Inline head script that starts the session check (`/api/auth/me`) while the document parses |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
@@ -126,7 +128,8 @@ is a separate administrator workspace and retains its permission gate.
   subscriber, and fails on a page URL without the slash.
 - Public links use App Router after hydration, preserving the actual menu DOM,
   its scroll and expanded desktop groups. A 120 ms pointer dwell or keyboard
-  focus prefetches the route's RSC response; touch, Save-Data, offline and 2G
+  focus fully prefetches the route's RSC response and client code, including
+  dynamic pages; touch, Save-Data, offline and 2G
   connections skip speculation. The framework-independent lifecycle in
   `src/shared/navigation/routePrefetch.ts` cancels abandoned intent and bounds
   freshness markers to 32. It does not execute a hidden document. Mobile
@@ -134,7 +137,11 @@ is a separate administrator workspace and retains its permission gate.
   Plain anchors still work before JavaScript, and Ctrl/Cmd-click,
   external/download links, hashes,
   authentication and API endpoints keep browser navigation. Page content stays
-  visible until the next route is ready; no fade-through or entrance offset runs.
+  visible until the next route is ready. Once its pathname commits,
+  `RouteTransition` settles the shell's `data-route-content` surface from
+  opacity 0.8 to 1 over `--motion-base` (220 ms), without an offset or exit delay.
+  It skips first paint, query/hash-only changes and reduced motion, and cancels
+  earlier motion on replacement or unmount. The persistent menu remains still.
   `NavigationProgress` shows a gold status line after 200 ms of a pending React
   transition, without changing page geometry or blocking another destination.
   `tests/next-page-transitions-browser.test.mjs` covers this contract.
@@ -143,6 +150,22 @@ is a separate administrator workspace and retains its permission gate.
   for SSR/hydration and verified updates before paint. Changing profile state
   must not invalidate unrelated unloaded Suspense boundaries or replace their
   server HTML with a loader (`tests/next-home-hydration-browser.test.mjs`).
+- Home's independent summary/articles reads share the existing 600 ms
+  first-paint budget. Missing feeds are `null`; successfully empty articles
+  stay `[]` and do not retry. Only missing feeds load after hydration, without
+  viewer cookies. Leaving home (including the account screen) cancels them.
+  Recovery request code is lazy and absent from prepared pages; its ten-second
+  lifetime includes code loading and body parsing, so late code cannot start an
+  expired request. Unsuccessful responses cancel their unread bodies immediately.
+  Feed updates use React transitions to preserve streamed sections while
+  lazy code arrives. On settlement, the marked summary/article surfaces use
+  the same 220 ms opacity effect as committed pages; prepared first paint
+  and reduced motion remain immediate. Shared first-paint readers forward
+  their abort signal through `fetchPublicExpress`, covering stalled bodies
+  and headers, and start no request after an expired budget.
+- Storybook includes pure client UI stories from `apps/public-web/ui` alongside
+  `src`; its `@/` alias has the same repository root as Next. Server route
+  files and production do not load Storybook.
 - Plausible is loaded once by the document layout and its existing tracker
   observes History API navigation. No extra pageview calls are added:
   [official SPA contract](https://plausible.io/docs/spa-support).

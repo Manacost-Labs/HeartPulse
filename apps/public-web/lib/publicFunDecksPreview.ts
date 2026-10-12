@@ -9,6 +9,6 @@ import { publicFunDecksPreview } from './publicFunDecksPreviewData';
  * `null` to let the browser load it. Only the free decks enter the HTML.
  */
 export const loadPublicFunDecksPreview = cache(async () => {
-  const raw = await readFirstPaintJson(() => fetchPublicExpress('/api/fun-decks'), Date.now() + FIRST_PAINT_READ_BUDGET_MS);
+  const raw = await readFirstPaintJson(signal => fetchPublicExpress('/api/fun-decks', signal), Date.now() + FIRST_PAINT_READ_BUDGET_MS);
   return raw === null ? null : publicFunDecksPreview(raw);
 });

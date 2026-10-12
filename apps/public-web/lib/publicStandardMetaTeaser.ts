@@ -12,7 +12,7 @@ let lastPeriod: StandardMetaPeriod | null = null;
 /** Anonymous meta teaser for the server-rendered guest view, or `null` to let the browser load it. */
 export const loadPublicStandardMetaTeaser = cache(async () => {
   const deadline = Date.now() + FIRST_PAINT_READ_BUDGET_MS;
-  const seed = await loadStandardMetaTeaserSeed(path => readFirstPaintJson(() => fetchPublicExpress(path), deadline),
+  const seed = await loadStandardMetaTeaserSeed(path => readFirstPaintJson(signal => fetchPublicExpress(path, signal), deadline),
     lastPeriod);
   if (seed) lastPeriod = seed.period;
   return seed;

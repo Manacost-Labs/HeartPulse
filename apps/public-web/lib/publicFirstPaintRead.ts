@@ -3,25 +3,32 @@
  * document. It resolves to the parsed JSON, or to `null` when the request
  * fails, answers non-OK or misses the shared deadline; the page then falls
  * back to its client-side request. A late response body is cancelled so the
- * abandoned read does not keep its socket.
+ * abandoned read does not keep its socket. Forward the supplied signal to
+ * the request to cancel it before headers arrive or while JSON is streaming.
  */
-export async function readFirstPaintJson(request: () => Promise<Response>, deadline: number): Promise<unknown> {
-  let pending: Promise<Response>;
+export async function readFirstPaintJson(request: (signal: AbortSignal) => Promise<Response>, deadline: number): Promise<unknown> {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) return null;
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), remaining);
   try {
-    pending = request();
+    const pending = request(controller.signal);
+    const response = await withinDeadline(pending, deadline);
+    if (!response) {
+      void pending.then(late => late.body?.cancel(), () => undefined).catch(() => undefined);
+      return null;
+    }
+    if (!response.ok) {
+      void response.body?.cancel().catch(() => undefined);
+      return null;
+    }
+    return await withinDeadline(response.json(), deadline);
   } catch {
     return null;
+  } finally {
+    clearTimeout(abortTimer);
+    controller.abort();
   }
-  const response = await withinDeadline(pending, deadline);
-  if (!response) {
-    void pending.then(late => late.body?.cancel(), () => undefined);
-    return null;
-  }
-  if (!response.ok) {
-    void response.body?.cancel();
-    return null;
-  }
-  return withinDeadline(response.json(), deadline);
 }
 
 async function withinDeadline<T>(promise: Promise<T>, deadline: number): Promise<T | null> {

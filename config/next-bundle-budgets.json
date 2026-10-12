@@ -23,7 +23,7 @@
       "cssGzipBytes": 59648
     },
     "/standard/archetypes/": {
-      "jsGzipBytes": 191488,
+      "jsGzipBytes": 195584,
       "cssGzipBytes": 65536
     },
     "/standard/vicious-gold/": {
@@ -39,7 +39,7 @@
       "cssGzipBytes": 50176
     },
     "/classes/": {
-      "jsGzipBytes": 168960,
+      "jsGzipBytes": 173056,
       "cssGzipBytes": 43008
     },
     "/tierlist/": {

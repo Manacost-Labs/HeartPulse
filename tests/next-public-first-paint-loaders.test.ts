@@ -22,6 +22,27 @@ const started = Date.now();
 assert.equal(await readFirstPaintJson(() => new Promise(() => {}), Date.now() + 60), null);
 assert.ok(Date.now() - started < 1000, 'a stalled Express read is abandoned at the deadline');
 assert.equal(await readFirstPaintJson(async () => json({ ok: 1 }), Date.now() - 1), null);
+let expiredRequests = 0;
+await readFirstPaintJson(async () => { expiredRequests++; return json({ ok: 1 }); }, Date.now() - 1);
+assert.equal(expiredRequests, 0, 'an exhausted shared budget must not start another request');
+let abandonedSignal: AbortSignal | undefined;
+await readFirstPaintJson(signal => {
+  abandonedSignal = signal;
+  return new Promise(() => {});
+}, Date.now() + 30);
+assert.equal(abandonedSignal?.aborted, true, 'the deadline must cancel outstanding request work');
+let bodyAborted = false;
+const stalledBody = await readFirstPaintJson(async signal => new Response(new ReadableStream({
+  start(body) {
+    body.enqueue(new TextEncoder().encode('{"pending":'));
+    signal.addEventListener('abort', () => {
+      bodyAborted = true;
+      body.error(signal.reason);
+    }, { once: true });
+  },
+})), Date.now() + 30);
+assert.equal(stalledBody, null);
+assert.equal(bodyAborted, true, 'the deadline covers a stalled JSON body, not only response headers');
 
 // Meta: the guest's slice, resolved to the current period like the page does.
 const metaItem = (index: number) => ({

@@ -22,8 +22,11 @@ export function PublicNavigationBridge() {
   useEffect(() => {
     const push = (path: string) => { intent.cancel(); startTransition(() => router.push(path)); };
     const dispose = installClientNavigation(push);
-    // Next 16.3's type requires the legacy `kind`; its runtime defaults it to AUTO.
-    const prepare = createRoutePrefetcher(router.prefetch as Parameters<typeof createRoutePrefetcher>[0]);
+    // AUTO leaves dynamic pages without their content; full intent preparation
+    // avoids another server round trip on click. Keep the Next enum out of shared code.
+    const prepare = createRoutePrefetcher((path, options) => router.prefetch(path, {
+      ...options, kind: 'full' as NonNullable<Parameters<typeof router.prefetch>[1]>['kind'],
+    }));
     const allowed = () => {
       const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
       return document.visibilityState === 'visible' && allowsRoutePrefetch({ online: navigator.onLine,
