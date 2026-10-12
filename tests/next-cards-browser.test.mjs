@@ -154,6 +154,8 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       await new Promise(resolve => setTimeout(resolve, 3500));
       assert.deepEqual(listRequests.map(String), [], 'an anonymous visit reads the server-rendered catalog and warms nothing');
 
+      await page.click('.constructed-cards__advanced-toggle');
+      assert.equal(await page.$eval('.constructed-cards__advanced-toggle', button => button.getAttribute('aria-expanded')), 'true');
       await page.click('.constructed-cards__rank-filter .constructed-cards__filter-trigger');
       const option = await page.waitForSelector('.constructed-cards__rank-filter [role="option"][aria-selected="false"]');
       const box = await option.boundingBox();
@@ -168,7 +170,7 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       assert.equal(listRequests.length, 1, 'choosing the warmed option reuses the in-flight request');
     }));
 
-    await t.test('the gallery hovers without card requests and the table brings its renderer', () => withPage(runtime, { width: 1440, height: 900 }, async page => {
+    await t.test('gallery hovers and catalog tiles avoid the deck renderer and card-detail requests', () => withPage(runtime, { width: 1440, height: 900 }, async page => {
       const detailRequests = [];
       page.on('request', request => {
         if (/^\/api\/constructed-cards\/./.test(new URL(request.url()).pathname)) detailRequests.push(request.url());
@@ -191,10 +193,14 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
 
       await page.click('.constructed-cards__view button:nth-child(2)');
       assert.equal(await page.$eval('.constructed-cards__view button:nth-child(2)', button => button.getAttribute('aria-pressed')), 'true');
-      await page.waitForSelector('.constructed-cards__table .constructed-cards__data-deck-card .hsrdv');
+      await page.waitForSelector('.constructed-cards__table .constructed-catalog-tile');
       assert.equal(new URL(page.url()).searchParams.get('view'), 'table');
-      assert.equal(await page.$eval('.constructed-cards__data-deck-card .hsrdv', element => getComputedStyle(element).getPropertyValue('--hsrdv-tile-height').trim()), '40px',
-        'the catalog overrides keep winning over the lazily loaded renderer stylesheet');
+      assert.equal(await page.evaluate(() => typeof window.HSReplayDeckView), 'undefined',
+        'the table uses catalog tiles without downloading the deck renderer');
+      assert.equal(await page.$('.constructed-cards__table .hsrdv'), null);
+      assert.ok(await page.$eval('.constructed-catalog-tile', element => element.getBoundingClientRect().height >= 44),
+        'the catalog tile stays readable in the table');
+      assert.deepEqual(detailRequests, [], 'switching to catalog tiles must not fetch card details');
 
       await page.click('.constructed-cards__view button:nth-child(1)');
       await page.waitForSelector('.constructed-cards__gallery');
