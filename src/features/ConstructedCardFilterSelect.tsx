@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Layers } from 'lucide-react';
 import type { ConstructedCardFilterOption } from './constructedCardFilterOptions';
 import './ConstructedCardFilterSelect.css';
 
@@ -48,6 +48,12 @@ function enabledIndex(
   return -1;
 }
 
+function FilterIcon({ icon, alt = '', fallback = false }: { icon?: string; alt?: string; fallback?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  if (icon && !failed) return <img src={icon} alt={alt} ref={image => { if (image?.complete && image.naturalWidth === 0) setFailed(true); }} onError={() => setFailed(true)} />;
+  return fallback ? <Layers size={26} aria-hidden="true" /> : null;
+}
+
 export default function ConstructedCardFilterSelect({
   label,
   value,
@@ -65,8 +71,9 @@ export default function ConstructedCardFilterSelect({
   const listRef = useRef<HTMLUListElement | null>(null);
   const [open, setOpen] = useState(false);
   const [resolvedAlign, setResolvedAlign] = useState(align);
+  const [menuOffset, setMenuOffset] = useState(0);
   const selectedIndex = useMemo(
-    () => Math.max(0, options.findIndex(option => option.value === value)),
+    () => Math.max(0, options.findIndex(option => option.value.toUpperCase() === value.toUpperCase())),
     [options, value],
   );
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
@@ -75,25 +82,25 @@ export default function ConstructedCardFilterSelect({
   const labelId = `${generatedId}-label`;
   const buttonId = `${generatedId}-button`;
   const listboxId = `${generatedId}-listbox`;
-
   const resolveMenuAlignment = useCallback(() => {
     const rootBox = rootRef.current?.getBoundingClientRect();
     if (!rootBox) return;
-    const menuWidth = Math.min(336, window.innerWidth - 32);
+    const menuWidth = listRef.current?.getBoundingClientRect().width ?? Math.min(336, window.innerWidth - 32);
     const startOverflow = Math.max(0, rootBox.left + menuWidth - (window.innerWidth - 8));
     const endOverflow = Math.max(0, 8 - (rootBox.right - menuWidth));
     if (startOverflow === 0 && endOverflow === 0) {
       setResolvedAlign(align);
+      setMenuOffset(0);
     } else {
-      setResolvedAlign(startOverflow <= endOverflow ? 'start' : 'end');
+      const nextAlign = startOverflow <= endOverflow ? 'start' : 'end';
+      setResolvedAlign(nextAlign);
+      setMenuOffset(nextAlign === 'start' ? -startOverflow : endOverflow);
     }
   }, [align]);
-
   useEffect(() => {
     if (!open) return undefined;
     resolveMenuAlignment();
-    listRef.current?.focus();
-
+    listRef.current?.focus({ preventScroll: true });
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -112,7 +119,6 @@ export default function ConstructedCardFilterSelect({
     setActiveIndex(initial);
     setOpen(true);
   };
-
   const selectIndex = (index: number) => {
     const option = options[index];
     if (!option || option.disabled) return;
@@ -120,11 +126,9 @@ export default function ConstructedCardFilterSelect({
     setOpen(false);
     requestAnimationFrame(() => buttonRef.current?.focus());
   };
-
   const moveActive = (direction: 1 | -1) => {
     setActiveIndex(current => enabledIndex(options, current, direction));
   };
-
   const onButtonKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
@@ -143,7 +147,6 @@ export default function ConstructedCardFilterSelect({
       else openFromButton();
     }
   };
-
   const onListKeyDown = (event: React.KeyboardEvent<HTMLUListElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
@@ -168,14 +171,12 @@ export default function ConstructedCardFilterSelect({
     }
     if (event.key === 'Tab') setOpen(false);
   };
-
   useEffect(() => {
-    if (!open || activeIndex < 0) return;
-    listRef.current
-      ?.querySelector<HTMLElement>(`[data-option-index="${activeIndex}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
+    const menu = listRef.current;
+    const option = menu?.querySelector<HTMLElement>(`[data-option-index="${activeIndex}"]`);
+    if (!open || !menu || !option) return;
+    menu.scrollTop = Math.min(option.offsetTop, Math.max(menu.scrollTop, option.offsetTop + option.offsetHeight - menu.clientHeight));
   }, [activeIndex, open]);
-
   return (
     <div
       ref={rootRef}
@@ -198,8 +199,8 @@ export default function ConstructedCardFilterSelect({
         onKeyDown={onButtonKeyDown}
       >
         <span className="constructed-cards__filter-value">
-          {selectedOption?.icon && (
-            <img src={selectedOption.icon} alt={selectedOption.iconAlt ?? ''} />
+          {(selectedOption?.icon || (visual === 'set' && selectedOption?.value)) && (
+            <span className="constructed-cards__filter-option-icon"><FilterIcon key={selectedOption?.icon ?? selectedOption?.value} icon={selectedOption?.icon} alt={selectedOption?.iconAlt} fallback={visual === 'set'} /></span>
           )}
           <span>{selectedOption?.label ?? 'Не выбрано'}</span>
         </span>
@@ -210,6 +211,7 @@ export default function ConstructedCardFilterSelect({
           ref={listRef}
           id={listboxId}
           className="constructed-cards__filter-menu"
+          style={{ transform: `translateX(${menuOffset}px)` }}
           role="listbox"
           tabIndex={-1}
           aria-labelledby={labelId}
@@ -217,7 +219,7 @@ export default function ConstructedCardFilterSelect({
           onKeyDown={onListKeyDown}
         >
           {options.map((option, index) => {
-            const selected = option.value === value;
+            const selected = option.value.toUpperCase() === value.toUpperCase();
             const active = index === activeIndex;
             return (
               <li
@@ -233,7 +235,7 @@ export default function ConstructedCardFilterSelect({
                 onClick={() => selectIndex(index)}
               >
                 <span className="constructed-cards__filter-option-icon">
-                  {option.icon && <img src={option.icon} alt={option.iconAlt ?? ''} />}
+                  <FilterIcon key={option.icon ?? option.value} icon={option.icon} alt={option.iconAlt} fallback={visual === 'set' && Boolean(option.value)} />
                 </span>
                 <span>{option.label}</span>
                 <Check className="constructed-cards__filter-check" size={17} aria-hidden="true" />

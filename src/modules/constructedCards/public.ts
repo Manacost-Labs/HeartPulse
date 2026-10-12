@@ -17,3 +17,5 @@ export { useCatalogLocation } from './useCatalogLocation';
 export { useCatalogData } from './useCatalogData';
 export { useCatalogIntentWarm } from './useCatalogIntentWarm';
 export { ConstructedCardsBanner } from './ui/ConstructedCardsBanner';
+export { constructedFacetValues } from './model/filterFacets';
+export { ConstructedCardTile } from './ui/ConstructedCardTile';

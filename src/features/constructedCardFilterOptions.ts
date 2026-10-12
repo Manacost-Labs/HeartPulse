@@ -1,3 +1,4 @@
+import { constructedFacetValues } from '../modules/constructedCards/public';
 import { CONSTRUCTED_SET_LABELS, constructedSetLabel } from './constructedCardLabels';
 
 export type ConstructedCardFilterOption = {
@@ -47,7 +48,7 @@ export const CONSTRUCTED_TYPE_LABELS: Record<string, string> = {
   ENCHANTMENT: 'Эффект',
 };
 
-const SETS_WITH_LOCAL_LOGOS = new Set(Object.keys(CONSTRUCTED_SET_LABELS));
+const SETS_WITH_LOCAL_LOGOS = new Set(Object.keys(CONSTRUCTED_SET_LABELS).filter(value => value !== 'BE'));
 const RARITY_ICONS: Record<string, string> = {
   FREE: '/assets/common.png',
   COMMON: '/assets/common.png',
@@ -57,7 +58,7 @@ const RARITY_ICONS: Record<string, string> = {
 };
 
 function translatedCode(value: string, labels: Record<string, string>): string {
-  return labels[value] || value
+  return labels[value.trim().toUpperCase()] || value
     .toLocaleLowerCase('ru-RU')
     .replace(/_/g, ' ')
     .replace(/(^|\s)\S/g, letter => letter.toLocaleUpperCase('ru-RU'));
@@ -83,7 +84,7 @@ export function constructedClassIcon(value?: string | null): string {
 export function classFilterOptions(values: string[]): ConstructedCardFilterOption[] {
   return [
     { value: '', label: 'Все классы', icon: '/class_icon/ui/all-96.webp', iconAlt: '' },
-    ...values.map(value => ({
+    ...constructedFacetValues(values).map(value => ({
       value,
       label: constructedClassLabel(value),
       icon: constructedClassIcon(value),
@@ -95,7 +96,7 @@ export function classFilterOptions(values: string[]): ConstructedCardFilterOptio
 export function setFilterOptions(values: string[]): ConstructedCardFilterOption[] {
   return [
     { value: '', label: 'Все дополнения' },
-    ...values.map(value => ({
+    ...constructedFacetValues(values).map(value => ({
       value,
       label: constructedSetLabel(value),
       icon: SETS_WITH_LOCAL_LOGOS.has(value)
@@ -124,7 +125,7 @@ export function numericFilterOptions(
 export function rarityFilterOptions(values: string[]): ConstructedCardFilterOption[] {
   return [
     { value: '', label: 'Любая' },
-    ...values.map(value => ({
+    ...constructedFacetValues(values).map(value => ({
       value,
       label: constructedRarityLabel(value),
       icon: RARITY_ICONS[value],
@@ -148,6 +149,6 @@ export function textFilterOptions(
 ): ConstructedCardFilterOption[] {
   return [
     { value: '', label: anyLabel },
-    ...values.map(value => ({ value, label: label(value) })),
+    ...constructedFacetValues(values).map(value => ({ value, label: label(value) })),
   ];
 }

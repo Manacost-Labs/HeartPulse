@@ -12,7 +12,7 @@ console.log('public SSR input allowlisting passed');
 
 const catalog = {
   format: 'wild', rank: 'legend', period: { id: '1d', label: 'Последний день', patch: null, timeRange: 'LAST_1_DAY' },
-  cards: [{ card_id: 'CARD_1', name: { ru: 'Карта' }, class: 'MAGE', card_type: { slug: 'MINION' }, images: { card: '/arena-logo-icon.webp', crop: '/card-format-standard.webp' }, mechanics: ['BATTLECRY'], stats: { deckWinrate: 53 }, decks: ['PRIVATE_DECK'] }],
+  cards: [{ card_id: 'CARD_1', name: { ru: 'Карта' }, class: 'MAGE', card_type: { slug: 'MINION' }, images: { card: '/arena-logo-icon.webp', crop: '/card-format-standard.webp', tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/CARD_1.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/CARD_1.webp' }, mechanics: ['BATTLECRY'], stats: { deckWinrate: 53 }, decks: ['PRIVATE_DECK'] }],
   facets: { classes: ['MAGE'], sets: ['CORE'], mechanics: ['BATTLECRY'], types: ['MINION'], rarities: ['COMMON'] },
   pagination: { page: 1, perPage: 60, total: 1, totalPages: 1 },
   statsAccess: true, account: 'PRIVATE_ACCOUNT', datasetVersion: 'fixture', dataStatus: 'fresh',
@@ -29,3 +29,6 @@ assert.throws(() => publicCatalogSeed({ ...catalog, cards: [{}] }, 'wild'), /Inv
 assert.throws(() => publicCatalogSeed({ ...catalog, pagination: { ...catalog.pagination, total: -1 } }, 'wild'), /Invalid/);
 assert.throws(() => publicCatalogSeed({ ...catalog, dataStatus: 'unavailable' }, 'wild'), /Invalid/);
 assert.equal(publicCatalogSeed({ ...catalog, cards: [], pagination: { ...catalog.pagination, total: 0 } }, 'wild').cards.length, 0, 'empty search results are valid');
+
+assert.equal(publicCatalog.cards[0].images.tile, catalog.cards[0].images.tile);
+assert.equal(publicCatalog.cards[0].images.horizontal, catalog.cards[0].images.horizontal);

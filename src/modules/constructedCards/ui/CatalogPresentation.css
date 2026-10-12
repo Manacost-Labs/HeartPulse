@@ -1,0 +1,96 @@
+.constructed-cards .constructed-cards__controls {
+  border: 12px solid #674326;
+  border-image: url('/wallpaper/main-page-rail-border.png') 13 / 12px / 0 stretch;
+  padding: 0.85rem;
+  background: linear-gradient(135deg, rgba(255, 246, 217, 0.88), rgba(234, 204, 151, 0.75));
+  box-shadow: 0 6px 16px rgba(62, 33, 13, 0.18);
+}
+.constructed-cards .constructed-cards__primary-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.constructed-cards .constructed-cards__view { box-sizing: border-box; height: 44px; padding: 3px; }
+.constructed-cards .constructed-cards__view button { min-height: 0; height: 100%; }
+.constructed-cards .constructed-cards__reset,
+.constructed-cards .constructed-cards__advanced-toggle { box-sizing: border-box; height: 44px; min-height: 44px; }
+.constructed-cards .constructed-cards__primary-controls > .constructed-cards__filter {
+  flex: 1 1 140px;
+  min-width: 120px;
+}
+.constructed-cards .constructed-cards__primary-controls > .constructed-cards__filter[data-visual='set'] {
+  flex-basis: 220px;
+}
+.constructed-cards .constructed-cards__advanced-toggle {
+  display: inline-flex;
+  min-height: 44px;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem;
+  border: 1px solid #986d3f;
+  color: #50321f;
+  background: rgba(255, 247, 223, 0.75);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.constructed-cards .constructed-cards__secondary-controls { display: none; }
+.constructed-cards .constructed-cards__secondary-controls.is-open {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(107, 68, 33, 0.3);
+}
+.constructed-cards .constructed-cards__secondary-controls .constructed-cards__sort-lock { display: none; }
+.constructed-cards .constructed-cards__secondary-controls .constructed-cards__direction {
+  width: 100%;
+  gap: 0.4rem;
+  min-height: 44px;
+}
+.constructed-cards .constructed-cards__secondary-controls .constructed-cards__direction-label { display: inline; font-size: 0.68rem; }
+:is(.constructed-cards__gallery-card, .constructed-card-tile)[data-rarity='free'],
+:is(.constructed-cards__gallery-card, .constructed-card-tile)[data-rarity='common'] { --card-rarity-glow: rgba(218, 235, 247, 0.82); }
+:is(.constructed-cards__gallery-card, .constructed-card-tile)[data-rarity='rare'] { --card-rarity-glow: rgba(50, 139, 255, 0.9); }
+:is(.constructed-cards__gallery-card, .constructed-card-tile)[data-rarity='epic'] { --card-rarity-glow: rgba(157, 78, 235, 0.9); }
+:is(.constructed-cards__gallery-card, .constructed-card-tile)[data-rarity='legendary'] { --card-rarity-glow: rgba(255, 151, 38, 0.94); }
+.constructed-card-tile { --card-rarity-glow: rgba(218, 235, 247, 0.82); position: relative; display: block; width: 100%; min-height: 48px; }
+.constructed-card-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--card-rarity-glow);
+  box-shadow: 0 0 10px var(--card-rarity-glow), inset 0 0 6px var(--card-rarity-glow);
+  opacity: 0;
+  transition: opacity var(--motion-fast, 150ms) ease-out;
+  pointer-events: none;
+}
+.constructed-card-tile:hover::after,
+.constructed-cards__table tr:hover .constructed-card-tile::after,
+a:focus-visible > .constructed-card-tile::after { opacity: 0.75; }
+@media (prefers-reduced-motion: reduce) { .constructed-card-tile::after { transition: none; } }
+.constructed-card-tile__image { display: block; width: 100%; height: auto; aspect-ratio: 5 / 1; object-fit: contain; }
+.constructed-card-tile__fallback {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  min-height: 48px;
+  align-items: center;
+  gap: 0.5rem;
+  border: 2px solid #a67b45;
+  color: #fff0d0;
+  background: #39261b;
+  box-shadow: inset 0 0 0 1px #211309;
+}
+.constructed-card-tile__art { position: absolute; inset: 0 0 0 auto; width: 70%; height: 100%; object-fit: cover; mask-image: linear-gradient(90deg, transparent, #000 65%); }
+.constructed-card-tile__mana { z-index: 1; display: grid; flex: 0 0 36px; min-height: 36px; margin: 3px; place-items: center; border: 1px solid #9bb7ce; border-radius: 50%; background: #234b76; font-size: 1.1rem; }
+.constructed-card-tile__name { z-index: 1; padding: 0.3rem 0.6rem 0.3rem 0; font-weight: 900; font-size: 0.82rem; line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
+@media (max-width: 640px) {
+  .constructed-cards .constructed-cards__controls { border-image-width: 8px; border-width: 8px; padding: 0.65rem; }
+  .constructed-cards .constructed-cards__primary-controls,
+  .constructed-cards .constructed-cards__secondary-controls.is-open { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .constructed-cards .constructed-cards__primary-controls > .constructed-cards__filter { min-width: 0; }
+  .constructed-cards .constructed-cards__primary-controls > .constructed-cards__filter[data-visual='set'] { grid-column: 1 / -1; }
+  .constructed-cards .constructed-cards__advanced-toggle { grid-column: auto; }
+}

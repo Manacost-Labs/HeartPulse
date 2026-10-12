@@ -123,6 +123,11 @@ The legacy image adapter owns the platform CDN retry, including pre-hydration
 failures; it adds no selection policy. The module stylesheet enters through
 `public.css`, keeping the catalog's existing CSS request graph.
 
+The constructed-card module also owns case-normalized facet values and the
+Koloda tile presentation. Legacy catalog composition supplies public tile/art
+URLs, card names and mana; the module renders a readable fallback on image failure.
+The Next catalog seed preserves only the public tile and horizontal image fields.
+
 The Battlegrounds module owns hero-tier cache lifetimes and mounted-consumer
 retry scheduling and the React subscription hook. The legacy feature
 (`src/features/Battlegrounds.tsx`) injects live API and local snapshot loaders;

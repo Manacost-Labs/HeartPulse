@@ -53,6 +53,8 @@ export type CardRecord = {
     signature?: string | null;
     diamond?: string | null;
     crop?: string | null;
+    tile?: string | null;
+    horizontal?: string | null;
     animated?: Record<string, string | null>;
   };
   mechanics?: string[];

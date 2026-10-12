@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import ConstructedCardFilterSelect from './ConstructedCardFilterSelect';
 import {
   classFilterOptions,
@@ -16,7 +16,7 @@ const meta = {
   component: ConstructedCardFilterSelect,
   decorators: [
     Story => (
-      <div className="constructed-cards" style={{ width: 320, minHeight: 480, padding: 24 }}>
+      <div className="constructed-cards" style={{ width: 'min(320px, calc(100vw - 32px))', boxSizing: 'border-box', minHeight: 480, padding: 24 }}>
         <Story />
       </div>
     ),
@@ -55,9 +55,14 @@ export const KeyboardSelection: Story = {
     const canvas = within(canvasElement);
     const trigger = canvas.getByRole('button', { name: /Класс Все классы/i });
     await userEvent.click(trigger);
-    await expect(canvas.getByRole('listbox', { name: 'Класс' })).toBeVisible();
+    await waitFor(() => expect(canvas.getByRole('listbox', { name: 'Класс' })).toBeVisible());
+    const menu = canvas.getByRole('listbox', { name: 'Класс' });
+    await waitFor(() => {
+      expect(menu.getBoundingClientRect().left).toBeGreaterThanOrEqual(7);
+      expect(menu.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth - 7);
+    });
     await userEvent.keyboard('{ArrowDown}{Enter}');
-    await expect(canvas.getByRole('button', { name: /Класс Рыцарь смерти/i })).toHaveFocus();
+    await waitFor(() => expect(canvas.getByRole('button', { name: /Класс Рыцарь смерти/i })).toHaveFocus());
     await userEvent.click(canvas.getByRole('button', { name: /Класс Рыцарь смерти/i }));
     await userEvent.keyboard('{Escape}');
     await expect(canvas.queryByRole('listbox', { name: 'Класс' })).not.toBeInTheDocument();
@@ -67,7 +72,7 @@ export const KeyboardSelection: Story = {
 export const ExpansionLogos: Story = {
   args: {
     label: 'Дополнение',
-    options: setFilterOptions(['ESCAPEFROM_VIOLET_HOLD', 'CATACLYSM', 'TIME_TRAVEL']),
+    options: setFilterOptions(['ESCAPEFROM_VIOLET_HOLD', 'CATACLYSM', 'TIME_TRAVEL', 'CORE', 'BE']),
     visual: 'set',
   },
 };
@@ -75,7 +80,7 @@ export const ExpansionLogos: Story = {
 export const ExistingRarityGems: Story = {
   args: {
     label: 'Редкость',
-    options: rarityFilterOptions(['COMMON', 'RARE', 'EPIC', 'LEGENDARY']),
+    options: rarityFilterOptions(['common', 'COMMON', 'rare', 'RARE', 'EPIC', 'epic', 'LEGENDARY', 'legendary']),
     visual: 'rarity',
   },
 };

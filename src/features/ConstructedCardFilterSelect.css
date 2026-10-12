@@ -62,8 +62,8 @@
 
 .constructed-cards__filter[data-visual='set'] .constructed-cards__filter-value img,
 .constructed-cards__filter[data-visual='set'] .constructed-cards__filter-option-icon img {
-  width: 58px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
 }
 
 .constructed-cards__filter[data-visual='rarity'] .constructed-cards__filter-value img,
@@ -122,7 +122,7 @@
 }
 
 .constructed-cards__filter[data-visual='set'] .constructed-cards__filter-menu li {
-  grid-template-columns: 64px minmax(0, 1fr) 20px;
+  grid-template-columns: 40px minmax(0, 1fr) 20px;
 }
 
 .constructed-cards__filter[data-visual='text'] .constructed-cards__filter-menu li {
@@ -175,3 +175,16 @@
     transition: none;
   }
 }
+
+.constructed-cards__filter[data-visual='set'] .constructed-cards__filter-option-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(114, 77, 39, 0.35);
+  background: #dec698;
+  color: #50321f;
+}
+
+.constructed-cards__filter[data-visual='set'] .constructed-cards__filter-option-icon img { filter: brightness(0); }
+
+.constructed-cards__filter[data-visual='set'] .constructed-cards__filter-option-icon:empty { border-color: transparent; background: transparent; }

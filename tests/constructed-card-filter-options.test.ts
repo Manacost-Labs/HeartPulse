@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   classFilterOptions,
+  constructedTypeLabel,
   numericFilterOptions,
   rarityFilterOptions,
   setFilterOptions,
@@ -84,3 +85,11 @@ assert.doesNotMatch(filterSource, /<select\b/,
   'the custom filter must not fall back to a browser-native select');
 
 console.log('constructed-card filter option contracts passed');
+
+const mixedRarities = rarityFilterOptions(['common', 'COMMON', 'EPIC', 'epic', 'LEGENDARY', 'legendary', 'rare', 'RARE']);
+assert.deepEqual(mixedRarities.map(option => option.label), ['Любая', 'Обычная', 'Эпическая', 'Легендарная', 'Редкая']);
+assert.equal(mixedRarities[1].value, 'COMMON');
+assert.equal(mixedRarities[1].icon, '/assets/common.png');
+const mixedTypes = textFilterOptions('Все типы', ['location', 'LOCATION', 'MINION', 'minion', 'SPELL', 'spell', 'WEAPON', 'weapon'], constructedTypeLabel);
+assert.deepEqual(mixedTypes.map(option => option.label), ['Все типы', 'Локация', 'Существо', 'Заклинание', 'Оружие']);
+assert.equal(setFilterOptions(['BE'])[1].icon, undefined, 'missing set artwork must use the consistent fallback, never a broken URL');
