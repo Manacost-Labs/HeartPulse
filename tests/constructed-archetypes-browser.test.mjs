@@ -32,7 +32,7 @@ try {
   const cardTileRequests = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
   page.on('console', message => {
-    if (message.type() === 'error' && /TestingLibraryElementError|AssertionError/.test(message.text())) runtimeErrors.push(message.text());
+    if (message.type() === 'error' && new URL(page.url()).searchParams.get('id') === 'browser-test-fixtures-constructed-archetypes--archetype-detail') runtimeErrors.push(message.text());
   });
   await page.setRequestInterception(true);
   page.on('request', request => {
