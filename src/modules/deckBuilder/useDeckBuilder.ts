@@ -9,6 +9,7 @@ export type DeckBuilderPorts = {
   render: (code: string, name: string) => Promise<{ imageUrl: string }>;
   load?: typeof loadDeckCatalog;
   download?: typeof downloadDeckImage;
+  label?: (kind: 'set' | 'type' | 'minionType' | 'spellSchool', value: string) => string;
 };
 export type DeckBuilderInitial = {
   heroClass?: BuilderClass; format?: BuilderFormat; cards?: BuilderEntry[];
@@ -16,7 +17,8 @@ export type DeckBuilderInitial = {
 
 export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInitial = {}) {
   const [filters, setFilters] = useState<BuilderCatalogQuery>({ heroClass: initial.heroClass ?? 'MAGE',
-    format: initial.format ?? 'standard', query: '', mana: '', rarity: '', pool: '', page: 1 });
+    format: initial.format ?? 'standard', query: '', mana: '', rarity: '', pool: '', page: 1,
+    set: '', type: '', mechanic: '', minionType: '', spellSchool: '', sort: 'mana', direction: 'asc' });
   const [deck, setDeck] = useState<BuilderEntry[]>(initial.cards ?? []);
   const [name, setName] = useState('Моя колода');
   const [catalog, setCatalog] = useState<BuilderCatalog>({ cards: [], total: 0, totalPages: 1 });
@@ -58,14 +60,14 @@ export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInit
   function context(heroClass: BuilderClass, format: BuilderFormat) {
     if (heroClass === filters.heroClass && format === filters.format) return;
     if (deck.length) setPending({ heroClass, format });
-    else setFilters(current => ({ ...current, heroClass, format, pool: '', page: 1 }));
+    else setFilters(current => ({ ...current, heroClass, format, pool: '', set: '', page: 1 }));
   }
   function confirmReset() {
     setDeck([]);
     setNotice('');
     setExportError('');
     if (pending && pending !== 'clear') {
-      setFilters(current => ({ ...current, ...pending, pool: '', page: 1 }));
+      setFilters(current => ({ ...current, ...pending, pool: '', set: '', page: 1 }));
     }
     setPending(null);
   }
@@ -98,6 +100,9 @@ export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInit
     catch { setNotice('Не удалось скопировать код. Выделите его в поле ниже.'); }
   }
   return { filters, filter, context, deck, count, limit, code, name, setName, catalog, loading, error,
+    label: ports.label ?? ((_kind: string, value: string) => value),
+    resetFilters: () => setFilters(current => ({ ...current, query: '', mana: '', rarity: '', pool: '',
+      set: '', type: '', mechanic: '', minionType: '', spellSchool: '', sort: 'mana', direction: 'asc', page: 1 })),
     retry: () => setReload(value => value + 1), pending, cancelReset: () => setPending(null),
     clear: () => setPending('clear'), confirmReset, change,
     canAdd: (card: BuilderCard) => canAddDeckCard(deck, card, filters.heroClass, ports.limit),

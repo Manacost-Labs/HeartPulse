@@ -13,7 +13,11 @@ const cards: BuilderCard[] = [
 ];
 const ports: DeckBuilderPorts = {
   encode: () => 'AAECAf0EAA==', limit: () => 30,
-  load: async query => ({ cards: cards.filter(card => card.name.toLowerCase().includes(query.query.toLowerCase())), total: 3, totalPages: 1 }),
+  label: (_kind, value) => ({ CORE: 'Основной набор', MINION: 'Существо', SPELL: 'Заклинание',
+    BEAST: 'Зверь', FIRE: 'Огонь' })[value] || value,
+  load: async query => ({ cards: cards.filter(card => card.name.toLowerCase().includes(query.query.toLowerCase())), total: 3, totalPages: 1,
+    facets: { sets: ['CORE'], types: ['MINION', 'SPELL'], mechanics: ['TAUNT'], minionTypes: ['BEAST'], spellSchools: ['FIRE'] },
+    mechanicTranslations: { TAUNT: 'Провокация' } }),
   render: fn(async () => ({ imageUrl: '/api/public-resource/deckview/static/generated/deck.jpg' })),
   download: fn(async () => {}),
 };
@@ -25,6 +29,26 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {};
+export const Filters: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.selectOptions(await canvas.findByLabelText('Дополнение'), 'CORE');
+    await userEvent.click(canvas.getByRole('button', { name: 'Мана: 4' }));
+    await userEvent.click(canvas.getByText('Ещё фильтры'));
+    await userEvent.selectOptions(canvas.getByLabelText('Механика'), 'TAUNT');
+    await expect(canvas.getByLabelText('Механика')).toHaveValue('TAUNT');
+    await userEvent.click(canvas.getByRole('button', { name: 'Сбросить' }));
+    await expect(canvas.getByLabelText('Дополнение')).toHaveValue('');
+    await expect(canvas.getByRole('button', { name: 'Любая мана' })).toHaveAttribute('aria-pressed', 'true');
+  },
+};
+export const FullDeck: Story = {
+  args: { initial: { cards: Array.from({ length: 15 }, (_, index) => ({ ...cards[index % 3],
+    dbfId: index + 20, rarity: 'COMMON', count: 2 })) } },
+  play: async ({ canvas }) => {
+    const save = await canvas.findByRole('button', { name: 'Сохранить картинку' });
+    await expect(save.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
+  },
+};
 export const Selected: Story = {
   args: { initial: { cards: cards.map(card => ({ ...card, count: 1 })) } },
   play: async ({ canvas }) => {

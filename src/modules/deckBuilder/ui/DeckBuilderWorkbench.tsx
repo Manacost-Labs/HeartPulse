@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Download, Minus, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, Download, Minus, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { BUILDER_CLASSES, type BuilderCard, type BuilderClass, type BuilderEntry, type BuilderFormat } from '../model/selection';
 import { useDeckBuilder, type DeckBuilderInitial, type DeckBuilderPorts } from '../useDeckBuilder';
 
@@ -11,8 +11,8 @@ function GalleryCard({ card, count, disabled, onAdd }: {
 }) {
   return <button type="button" className={`hp-builder-card${count ? ' is-selected' : ''}`}
     onClick={onAdd} disabled={disabled} aria-label={`Добавить: ${card.name}${count ? `, в колоде ${count}` : ''}`}>
-    <img src={card.image} alt="" loading="lazy" decoding="async" width={180} height={250} />
-    <span className="hp-builder-card-name">{card.name}</span>
+    <img src={card.image} alt="" loading="lazy" decoding="async" width={360} height={497} />
+    <span className="hp-builder-card-name sr-only">{card.name}</span>
     <span className="hp-builder-card-action" aria-hidden="true">{count ? `В колоде: ${count}` : <><Plus size={14} /> Добавить</>}</span>
   </button>;
 }
@@ -33,25 +33,65 @@ function DeckRow({ card, editor }: { card: BuilderEntry; editor: Editor }) {
   </li>;
 }
 
+function CollectionFilters({ editor }: { editor: Editor }) {
+  const { filters, catalog } = editor;
+  const advancedCount = ['type', 'rarity', 'mechanic', 'minionType', 'spellSchool', 'pool']
+    .filter(key => filters[key as keyof typeof filters]).length;
+  const hasFilters = !!(filters.query || filters.mana || filters.pool || filters.set || advancedCount);
+  const facetOptions = (kind: 'set' | 'type' | 'minionType' | 'spellSchool', values: string[] = []) =>
+    values.map(value => <option key={value} value={value}>{editor.label(kind, value)}</option>);
+  return <div className="hp-builder-filters">
+    <label className="hp-builder-search"><Search size={18} aria-hidden="true" />
+      <input type="search" value={filters.query} maxLength={100} onChange={event => editor.filter('query', event.target.value)}
+        placeholder="Поиск по названию или тексту" aria-label="Поиск карт" /></label>
+    <div className="hp-builder-mana" role="group" aria-label="Стоимость маны">
+      {['', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10+'].map(value =>
+        <button key={value} type="button" aria-label={value ? `Мана: ${value}` : 'Любая мана'}
+          aria-pressed={filters.mana === value} onClick={() => editor.filter('mana', filters.mana === value ? '' : value)}>
+          {value || 'Все'}</button>)}
+    </div>
+    <div className="hp-builder-filter-toolbar">
+      <label>Дополнение<select value={filters.set} onChange={event => editor.filter('set', event.target.value)}>
+        <option value="">Все дополнения</option>{facetOptions('set', catalog.facets?.sets)}</select></label>
+    <div className="hp-builder-sort">
+      <label>Сортировка<select value={filters.sort} onChange={event => editor.filter('sort', event.target.value)}>
+        <option value="mana">По мане</option><option value="set">По дополнению</option><option value="name">По названию</option>
+        <option value="attack">По атаке</option><option value="health">По здоровью</option>
+        <option value="class">По классу</option><option value="mechanics">По механикам</option></select></label>
+      <button type="button" aria-label={filters.direction === 'desc' ? 'Порядок: по убыванию' : 'Порядок: по возрастанию'}
+        onClick={() => editor.filter('direction', filters.direction === 'desc' ? 'asc' : 'desc')}>
+        <span aria-hidden="true">{filters.direction === 'desc' ? '↓' : '↑'}</span></button>
+      {hasFilters ? <button className="hp-builder-clear-filters" type="button" onClick={editor.resetFilters}><X size={16} />Сбросить</button> : null}
+    </div>
+    </div>
+    <details className="hp-builder-extra-filters">
+      <summary><SlidersHorizontal size={16} aria-hidden="true" />Ещё фильтры{advancedCount ? ` · ${advancedCount}` : ''}</summary>
+      <div className="hp-builder-filter-selects">
+        <label>Тип карты<select value={filters.type} onChange={event => editor.filter('type', event.target.value)}>
+          <option value="">Все типы</option>{facetOptions('type', catalog.facets?.types)}</select></label>
+        <label>Редкость<select value={filters.rarity} onChange={event => editor.filter('rarity', event.target.value)}>
+          <option value="">Любая</option><option value="COMMON">Обычная</option><option value="RARE">Редкая</option>
+          <option value="EPIC">Эпическая</option><option value="LEGENDARY">Легендарная</option></select></label>
+        <label>Механика<select value={filters.mechanic} onChange={event => editor.filter('mechanic', event.target.value)}>
+          <option value="">Все механики</option>{catalog.facets?.mechanics.map(value =>
+            <option key={value} value={value}>{catalog.mechanicTranslations?.[value] || value}</option>)}</select></label>
+        <label>Тип существа<select value={filters.minionType} onChange={event => editor.filter('minionType', event.target.value)}>
+          <option value="">Все существа</option>{facetOptions('minionType', catalog.facets?.minionTypes)}</select></label>
+        <label>Школа магии<select value={filters.spellSchool} onChange={event => editor.filter('spellSchool', event.target.value)}>
+          <option value="">Все школы</option>{facetOptions('spellSchool', catalog.facets?.spellSchools)}</select></label>
+        <label>Карты<select value={filters.pool} onChange={event => editor.filter('pool', event.target.value)}>
+          <option value="">Класс + нейтральные</option><option value="class">Только класс</option><option value="neutral">Нейтральные</option></select></label>
+      </div>
+    </details>
+  </div>;
+}
+
 function CardGallery({ editor }: { editor: Editor }) {
   const { filters } = editor;
   return <section className="hp-builder-gallery" aria-labelledby="hp-builder-gallery-title">
     <div className="hp-builder-section-heading"><h2 id="hp-builder-gallery-title">Карты</h2>
       <span>{editor.loading ? 'Загрузка…' : `${editor.catalog.total} в коллекции`}</span></div>
-    <div className="hp-builder-filters">
-      <label className="hp-builder-search"><Search size={18} aria-hidden="true" />
-        <input type="search" value={filters.query} maxLength={100} onChange={event => editor.filter('query', event.target.value)}
-          placeholder="Поиск по названию или тексту" aria-label="Поиск карт" /></label>
-      <div className="hp-builder-filter-selects">
-        <label>Карты<select value={filters.pool} onChange={event => editor.filter('pool', event.target.value)}>
-          <option value="">Класс + нейтральные</option><option value="class">Только класс</option><option value="neutral">Нейтральные</option></select></label>
-        <label>Мана<select value={filters.mana} onChange={event => editor.filter('mana', event.target.value)}>
-          <option value="">Любая</option>{['0','1','2','3','4','5','6','7','8','9','10+'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>
-        <label>Редкость<select value={filters.rarity} onChange={event => editor.filter('rarity', event.target.value)}>
-          <option value="">Любая</option><option value="COMMON">Обычная</option><option value="RARE">Редкая</option>
-          <option value="EPIC">Эпическая</option><option value="LEGENDARY">Легендарная</option></select></label>
-      </div>
-    </div>
+    <CollectionFilters editor={editor} />
     {editor.error ? <div className="hp-builder-message" role="alert"><p>{editor.error}</p><button type="button" onClick={editor.retry}>Повторить загрузку</button></div>
       : editor.loading ? <div className="hp-builder-skeletons" role="status" aria-label="Загрузка карт">
         {Array.from({ length: 12 }, (_, i) => <div key={i} />)}</div>
@@ -72,7 +112,7 @@ function SelectedDeck({ editor }: { editor: Editor }) {
   const selectedClass = BUILDER_CLASSES.find(hero => hero.id === editor.filters.heroClass) ?? BUILDER_CLASSES[4];
   const sorted = [...editor.deck].sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name, 'ru'));
   return <aside className="hp-builder-deck" aria-labelledby="hp-builder-deck-title">
-    <div className="hp-builder-deck-header"><img src={`/class_icon/ui/${selectedClass.icon}-64.webp`} alt="" width={48} height={48} />
+    <div className="hp-builder-deck-header"><img src={`/class_icon/ui/${selectedClass.icon}-64.webp`} alt="" width={64} height={64} />
       <div><h2 id="hp-builder-deck-title">Ваша колода</h2><span>{selectedClass.label} · {editor.filters.format === 'standard' ? 'Стандарт' : 'Вольный'}</span></div>
       <strong className={editor.count > editor.limit ? 'is-overfull' : ''} aria-label={`Карт в колоде: ${editor.count} из ${editor.limit}`}>{editor.count}<small>/{editor.limit}</small></strong></div>
     <label className="hp-builder-deck-name">Название колоды<input value={editor.name} maxLength={100} onChange={event => editor.setName(event.target.value)} /></label>
@@ -97,8 +137,8 @@ export function DeckBuilderWorkbench({ ports, initial }: DeckBuilderWorkbenchPro
   const editor = useDeckBuilder(ports, initial);
   const [panel, setPanel] = useState<'cards' | 'deck'>('cards');
   return <div className="hp-builder" data-panel={panel}>
-    <header className="hp-builder-heading"><span className="hp-builder-eyebrow">Коллекция → колода → картинка</span>
-      <h1>Конструктор колод</h1><p>Соберите свою колоду и сохраните её одной картинкой.</p></header>
+    <header className="hp-builder-heading"><h1>Конструктор колод</h1>
+      <p>Выбирайте карты и сохраняйте колоду одной картинкой.</p></header>
     <div className="hp-builder-context">
       <label>Класс<select value={editor.filters.heroClass} onChange={event => editor.context(event.target.value as BuilderClass, editor.filters.format)}>
         {BUILDER_CLASSES.map(hero => <option key={hero.id} value={hero.id}>{hero.label}</option>)}</select></label>

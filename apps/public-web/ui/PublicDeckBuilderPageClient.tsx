@@ -5,6 +5,9 @@ import { DeckBuilderWorkbench, type DeckBuilderPorts } from '@/src/modules/deckB
 import { encodeConstructedDeck } from '@/src/features/constructedDeckCode';
 import { deckSizeLimit } from '@/src/features/deckBuilderRules';
 import { requestDeckRender } from '@/src/features/deckrender/deckRenderClient';
+import { constructedSetLabel } from '@/src/features/constructedCardLabels';
+import { constructedTypeLabel } from '@/src/features/constructedCardFilterOptions';
+import { constructedTribeLabel, constructedSpellSchoolLabel } from '@/shared/constructedCardTranslations';
 import { usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
@@ -12,6 +15,8 @@ const ports: DeckBuilderPorts = {
   encode: (heroClass, format, cards) => encodeConstructedDeck({ heroClass, format, cards }),
   limit: deckSizeLimit,
   render: requestDeckRender,
+  label: (kind, value) => ({ set: constructedSetLabel, type: constructedTypeLabel,
+    minionType: constructedTribeLabel, spellSchool: constructedSpellSchoolLabel })[kind](value),
 };
 
 export function PublicDeckBuilderPageClient() {

@@ -23,8 +23,14 @@ export type DeckLimit = (cards: Array<{ dbfId: number }>) => number;
 export type BuilderCatalogQuery = {
   heroClass: BuilderClass; format: BuilderFormat; query: string; mana: string;
   rarity: string; pool: string; page: number;
+  set?: string; type?: string; mechanic?: string; minionType?: string; spellSchool?: string;
+  sort?: string; direction?: 'asc' | 'desc';
 };
-export type BuilderCatalog = { cards: BuilderCard[]; total: number; totalPages: number };
+export type BuilderFacet = 'sets' | 'types' | 'mechanics' | 'minionTypes' | 'spellSchools';
+export type BuilderCatalog = {
+  cards: BuilderCard[]; total: number; totalPages: number;
+  facets?: Record<BuilderFacet, string[]>; mechanicTranslations?: Record<string, string>;
+};
 
 export function deckCount(deck: BuilderEntry[]): number {
   return deck.reduce((total, card) => total + card.count, 0);

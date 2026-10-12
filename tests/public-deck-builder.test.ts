@@ -68,3 +68,23 @@ test('downloads accept only the same-origin Deckview resource boundary', () => {
   assert.throws(() => deckDownloadUrl('//evil.test/file.jpg'));
   assert.throws(() => deckDownloadUrl('javascript:alert(1)'));
 });
+
+test('catalog sends all collection filters and sorting, and normalizes public facets', async () => {
+  let requested = '';
+  const result = await loadDeckCatalog({ heroClass: 'DRUID', format: 'wild', query: '',
+    mana: '10+', rarity: 'LEGENDARY', pool: 'class', page: 2,
+    set: 'CORE', type: 'MINION', mechanic: 'TAUNT', minionType: 'BEAST', spellSchool: '',
+    sort: 'set', direction: 'desc' }, new AbortController().signal, async input => {
+    requested = String(input);
+    return Response.json({ cards: [], pagination: { totalPages: 3, total: 70 },
+      facets: { sets: ['CORE'], types: ['minion', 'MINION', 123], mechanics: ['TAUNT'], minionTypes: ['BEAST'] },
+      mechanicTranslations: { TAUNT: 'Провокация', INVALID: 7 } });
+  });
+  const params = new URL(requested, 'https://hearthpulse.net').searchParams;
+  for (const [key, value] of Object.entries({ set: 'CORE', type: 'MINION', mechanic: 'TAUNT', minionType: 'BEAST',
+    sort: 'set', direction: 'desc', mana: '10+', class: 'DRUID', page: '2' })) assert.equal(params.get(key), value);
+  assert.equal(params.has('spellSchool'), false);
+  assert.deepEqual(result.facets?.types, ['MINION']);
+  assert.equal(result.mechanicTranslations?.TAUNT, 'Провокация');
+  assert.equal(result.mechanicTranslations?.INVALID, undefined);
+});

@@ -43,6 +43,8 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
         const result = query === 'slow' ? [{ ...cards[0], name: { ru: 'Устаревший ответ' } }]
           : cards.filter(card => card.name.ru.toLowerCase().includes(query.toLowerCase()));
         await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: result,
+          facets: { sets: ['CORE'], types: ['MINION', 'SPELL'], mechanics: ['TAUNT'], minionTypes: ['BEAST'], spellSchools: ['FIRE'] },
+          mechanicTranslations: { TAUNT: 'Провокация' },
           pagination: { total: result.length, totalPages: 1 } }) }).catch(() => {});
       } else if (url.pathname === '/api/deck/render') {
         renders.push(JSON.parse(request.postData()));
@@ -61,6 +63,21 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     await page.goto(`${runtime.origin}/standard/deck-builder/`, { waitUntil: 'networkidle2' });
     await page.waitForSelector('.hp-builder-card');
     assert.equal(await page.$('.arena-paywall'), null);
+    await page.click('button[aria-label="Мана: 4"]');
+    await page.waitForFunction(() => document.querySelector('button[aria-label="Мана: 4"]').getAttribute('aria-pressed') === 'true');
+    await page.select('.hp-builder-filter-toolbar > label select', 'CORE');
+    await page.select('.hp-builder-sort select', 'set');
+    await page.click('button[aria-label="Порядок: по возрастанию"]');
+    await page.click('.hp-builder-extra-filters summary');
+    await page.select('.hp-builder-extra-filters label:nth-child(3) select', 'TAUNT');
+    await page.waitForFunction(() => !document.querySelector('.hp-builder-skeletons'));
+    await delay(300);
+    assert.ok(queries.some(query => query.mana === '4' && query.set === 'CORE' && query.sort === 'set'
+      && query.direction === 'desc' && query.mechanic === 'TAUNT'));
+    await page.click('.hp-builder-clear-filters');
+    await page.waitForSelector('.hp-builder-card');
+    await page.click('.hp-builder-extra-filters summary');
+    assert.equal(await page.$eval('button[aria-label="Любая мана"]', node => node.getAttribute('aria-pressed')), 'true');
     await page.click('button[aria-label="Добавить: Огненный шар"]');
     await page.click('button[aria-label="Добавить: Огненный шар, в колоде 1"]');
     assert.equal(await page.$eval('button[aria-label="Добавить: Огненный шар, в колоде 2"]', node => node.disabled), true);
@@ -68,6 +85,8 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     assert.equal(await page.$eval('button[aria-label="Добавить: Изисет, в колоде 1"]', node => node.disabled), true);
     assert.equal(await page.$eval('[aria-label="Карт в колоде: 3 из 30"]', node => node.textContent), '3/30');
     assert.match(await page.$eval('.hp-builder-tile img', node => node.src), /\/api\/public-resource\/db\/uploads\/card-tiles\//);
+    assert.equal(await page.evaluate(() => Math.abs(document.querySelector('.hp-builder-tile').getBoundingClientRect().width
+      - document.querySelector('.hp-builder-row').getBoundingClientRect().width) < 1), true);
     await page.type('input[aria-label="Поиск карт"]', 'slow');
     await page.waitForFunction(() => document.querySelector('.hp-builder-skeletons') !== null);
     await delay(300);

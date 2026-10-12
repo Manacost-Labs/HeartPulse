@@ -5,12 +5,22 @@
 `/standard/deck-builder/` is available anonymously from the Constructors menu.
 Users choose one of the eleven classes and Standard or Wild, browse the same
 public catalog as `/standard/cards/`, and add cards to a sticky deck on the right.
-Search, mana, rarity and class/neutral filters paginate the catalog. On phones,
+Search, mana, rarity, class/neutral, expansion, type, mechanic, minion type and
+spell-school filters paginate the catalog in batches of 24. Mana shortcuts
+show 0–10+; clicking the selected shortcut clears it. Extra tag filters are
+collapsed initially. Reset clears collection filters without changing the deck.
+Sorting supports mana, expansion, name, attack, health, class and mechanics,
+with ascending/descending order. Changing format also clears the expansion. On phones,
 Cards and Deck switch the visible panel without losing either panel's state.
 
 The deck is sorted by mana and name. Each row uses the catalog's Koloda
 `images.tile` / `tile_image_url` through the existing public-resource proxy,
-with readable fallback text if the tile is unavailable. Rows expose add/remove
+at the full width of the list, with readable fallback text if unavailable.
+The collection uses the existing wooden rail asset; the selected deck combines
+the rail, gold game frame and an inset blue glow. Full-height card renders are
+contained in a larger gallery (two columns on phones), never cropped. Desktop
+row controls appear on hover or keyboard focus; touch layouts show them below
+the tile. Rows expose add/remove
 controls and copy counts. Legendary cards allow one copy, other cards two.
 The existing constructed-deck size rule determines the 30/40-card limit.
 Changing class or format with a nonempty deck requires an explicit reset.
@@ -29,7 +39,10 @@ the downloaded file belongs to the snapshot submitted when Save was pressed.
 - `src/modules/deckBuilder/public.ts`: public editor, catalog adapter, selection
   model and hook. Domain UI performs no raw network calls.
 - Next composition injects existing deckstring encoding, deck-size policy and
-  Deckview rendering. Administrative `/deck-builder/` remains separate.
+  Deckview rendering and the existing Russian collection labels.
+  Administrative `/deck-builder/` remains separate.
+- Facets and mechanic translations come from the same catalog response; codes
+  are deduplicated case-insensitively before they enter the controls.
 - Catalog: anonymous `GET /api/constructed-cards`, `deckClass` restricts the
   pool to the selected class and neutral cards; `format` controls rotation.
 - Only validated identities, integer costs/DBFs and allowlisted image paths
@@ -74,8 +87,8 @@ deck-builder, route, gateway, SEO and Nginx regression checks pass. TypeScript,
 architecture, registry, changed-file Semgrep and React checks pass; Next and
 Storybook builds succeed.
 
-All six Storybook states were reviewed in the built workshop at desktop and
-phone widths; both interaction plays pass. The shared Storybook development
+All eight Storybook states were reviewed in the built workshop at desktop and
+phone widths; all four interaction plays pass. The shared Storybook development
 setup returns 404 for `vite-inject-mocker-entry.js`, also reproducible in the
 existing workshop; the built workshop has no such failure.
 
@@ -129,3 +142,21 @@ repair. Server build/recovery smoke tests and the corrected authenticated/mobile
 browser observatory pass. The representative responsive matrix also passes;
 its independent keyboard assertion was then corrected and verified in the
 final observatory run. Hosted release validation remains the deployment gate.
+
+## Game-style collection update
+
+Acceptance: existing wood/gold/mana assets, complete card and tile images,
+responsive tagged collection controls, and unchanged selection/export behavior.
+Focused checks cover query parameters, normalized facets, reset, tile width,
+mobile overflow, accessibility and actual image download. Storybook includes
+filter interactions and a full 30-card deck alongside existing load/error states.
+
+The expanded filter controls and reused Russian label dictionaries measure
+about 175 KiB of initial gzip JavaScript and 33 KiB of CSS in the locked
+Next build. Only this route's JS ceiling is recalibrated to 182,272 bytes
+(2% margin rounded to KiB); other route and CSS ceilings stay unchanged.
+
+The final 30-card preview keeps Save Image within the desktop viewport; only
+the card list scrolls. Local Chrome DevTools checks find no application errors,
+failed images or overflow; the existing unused CSS preload warning remains.
+An unthrottled local trace reported LCP 58 ms and CLS 0.00 (lab evidence only).
