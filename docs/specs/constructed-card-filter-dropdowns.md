@@ -90,8 +90,8 @@
 повторную обработку изображений остальных плиток таблицы.
 
 Баннер каталога содержит только заголовок «Карты». Статистический контекст
-выбирается в фильтрах. Таблица показывает `images.tile` Колоды, а при отсутствии
-или ошибке — строку с названием, маной и доступным `images.horizontal`.
+выбирается в фильтрах. Таблица использует единое оформление названия и маны
+с артом `images.horizontal` Колоды; отсутствующий арт не скрывает название.
 Оба поля сохраняются в публичном SSR-входе и загружаются через существующий
 `/api/public-resource/db/uploads/` proxy. Недоверенные внешние адреса не
 используются для плиток. Название и ссылка доступны и без изображений.
@@ -111,8 +111,10 @@ tiles and the absence of the HSReplay deck renderer.
 
 ## Compact catalog and mulligan tiles
 
-The catalog table limits the card link to 280 × 56 px and desktop rows to
-62 px, including cell padding and borders. Archetype mulligan
+The catalog table limits the card link to 224 × 44.8 px and desktop rows to
+50 px, including cell padding and borders. It uses the same text/mana layout
+for every card; the [compact table contract](constructed-card-compact-table.md)
+defines its artwork and typography. Archetype mulligan
 statistics reuse `ConstructedCardTile` through the constructed-card public
 contract, including lazy image loading and its readable artwork/name fallback.
 Both ready and missing tiles reserve the same 5:1 frame (at most 320 × 64 px),
