@@ -99,3 +99,6 @@ a:focus-visible > .constructed-catalog-tile::after { opacity: 0.75; }
 
 .constructed-cards .constructed-cards__table tbody th { width: 280px; min-width: 280px; }
 .constructed-cards .constructed-cards__table tbody th a { width: 280px; max-width: 100%; }
+@media (min-width: 641px) {
+  .constructed-cards .constructed-cards__table tbody th { padding-block: 2px; }
+}

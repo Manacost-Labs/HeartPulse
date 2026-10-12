@@ -111,7 +111,8 @@ tiles and the absence of the HSReplay deck renderer.
 
 ## Compact catalog and mulligan tiles
 
-The catalog table limits the card link to 280 × 56 px. Archetype mulligan
+The catalog table limits the card link to 280 × 56 px and desktop rows to
+62 px, including cell padding and borders. Archetype mulligan
 statistics reuse `ConstructedCardTile` through the constructed-card public
 contract, including lazy image loading and its readable artwork/name fallback.
 Both ready and missing tiles reserve the same 5:1 frame (at most 320 × 64 px),
