@@ -87,6 +87,7 @@ a:focus-visible > .constructed-catalog-tile::after { opacity: 0.75; }
 .constructed-catalog-tile__mana { z-index: 1; display: grid; flex: 0 0 36px; min-height: 36px; margin: 3px; place-items: center; border: 1px solid #9bb7ce; border-radius: 50%; background: #234b76; font-size: 1.1rem; }
 .constructed-catalog-tile__name { z-index: 1; padding: 0.3rem 0.6rem 0.3rem 0; font-weight: 900; font-size: 0.82rem; line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
 @media (max-width: 640px) {
+  .constructed-cards .constructed-cards__view { height: 52px; }
   .constructed-cards .constructed-cards__controls { border-image-width: 8px; border-width: 8px; padding: 0.65rem; }
   .constructed-cards .constructed-cards__primary-controls,
   .constructed-cards .constructed-cards__secondary-controls.is-open { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }

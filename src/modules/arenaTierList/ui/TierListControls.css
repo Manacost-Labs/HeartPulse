@@ -45,7 +45,7 @@
   flex: 1 1 260px;
   min-width: 0;
   min-height: 44px;
-  height: 44px;
+  height: 46px;
   box-sizing: border-box;
   padding: 0 12px;
   border: 1px solid #ae8853;
@@ -55,7 +55,7 @@
 .arena-tier-search input {
   width: 100%;
   min-width: 0;
-  height: 42px;
+  height: 44px;
   background: transparent;
   font-size: 14px;
   color: #3d291d;
@@ -63,7 +63,7 @@
 }
 .arena-tier-search input::placeholder { color: #745b40; }
 .arena-tier-search input::-webkit-search-cancel-button { display: none; }
-.arena-tier-search button { display: grid; place-items: center; min-width: 44px; height: 42px; cursor: pointer; }
+.arena-tier-search button { display: grid; place-items: center; min-width: 44px; height: 44px; cursor: pointer; }
 .arena-tier-controls-bottom {
   display: flex;
   flex-wrap: wrap;

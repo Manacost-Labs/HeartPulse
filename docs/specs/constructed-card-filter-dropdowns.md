@@ -99,3 +99,12 @@
 Открытое меню измеряется по фактической ширине и сдвигается внутрь viewport,
 если справа и слева от кнопки недостаточно места. Клавиатурная Storybook-проверка
 контролирует границы меню, выбор и возврат фокуса.
+
+## Combined release verification
+
+The additional controls are collapsed on desktop and phone and open through
+«Ещё фильтры». Browser QA opens that disclosure before selecting rank or sorting.
+The compact banner has no rank or subscription badge; locked statistical sort
+options continue to enforce the existing subscription contract. Mobile view
+buttons retain at least a 44 px touch target. Table checks cover readable Koloda
+tiles and the absence of the HSReplay deck renderer.

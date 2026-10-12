@@ -214,6 +214,8 @@ async function waitForAuthenticatedShell(page) {
 
 async function chooseConstructedCardFilter(page, tourId, optionLabel) {
   const rootSelector = `[data-tour-id="${tourId}"]`;
+  if (await page.$(`.constructed-cards__secondary-controls ${rootSelector}`)
+    && await page.$('.constructed-cards__advanced-toggle[aria-expanded="false"]')) await page.click('.constructed-cards__advanced-toggle');
   await page.click(`${rootSelector} .constructed-cards__filter-trigger`);
   await page.waitForSelector(`${rootSelector} [role="listbox"]`, { visible: true, timeout: 5_000 });
   const selected = await page.$$eval(`${rootSelector} [role="option"]`, (options, label) => {
@@ -994,8 +996,8 @@ async function assertArenaDataRoutePresentation(page, path, device) {
         kind: 'tierlist',
         sourceShell: snapshot(style('.tierlist-source-toggle')),
         activeSource: snapshot(style(".tierlist-source-toggle .source-toggle-button[data-active='true']")),
-        classTabs: snapshot(style('.tierlist-class-tabs')),
-        activeFilter: snapshot(style(".tierlist-rarity-filter > button[data-active='true']")),
+        classTabs: snapshot(style('.arena-tier-controls')),
+        activeFilter: snapshot(style(".arena-tier-select select")),
         heading: snapshot(style('.tierlist-group-heading h3')),
         gridColumns: grid ? getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
         gridGap: grid ? getComputedStyle(grid).gap : '',
@@ -1064,16 +1066,17 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     return;
   }
   if (state.kind === 'tierlist' || state.kind === 'legendaries') {
-    if (!state.sourceShell?.backgroundImage.includes('arena-parchment-v2.webp') || state.sourceShell?.borderRadius !== '2px') {
+    if (state.kind === 'legendaries' && (!state.sourceShell?.backgroundImage.includes('arena-parchment-v2.webp') || state.sourceShell?.borderRadius !== '2px')) {
       failures.push(`${prefix}: source switcher lost its parchment frame`);
     }
     if (state.activeSource?.backgroundColor !== 'rgb(109, 17, 23)' || state.activeSource?.color !== 'rgb(255, 240, 196)') {
       failures.push(`${prefix}: active source material changed (${JSON.stringify(state.activeSource)})`);
     }
-    if (!state.classTabs?.borderImageSource.includes('linear-gradient')) failures.push(`${prefix}: class tabs lost the wooden divider`);
+    if (!state.classTabs?.borderImageSource.includes(state.kind === 'tierlist' ? 'main-page-rail-border.png' : 'linear-gradient')) failures.push(`${prefix}: class controls lost their frame`);
   }
   if (state.kind === 'tierlist') {
-    if (state.activeFilter?.backgroundColor !== 'rgb(109, 17, 23)' || state.activeFilter?.color !== 'rgb(255, 240, 196)') {
+    if (state.sourceShell?.backgroundColor !== 'rgba(255, 244, 216, 0.55)' || state.sourceShell?.borderRadius !== '6px') failures.push(`${prefix}: compact source switcher material changed`);
+    if (state.activeFilter?.backgroundColor !== 'rgb(255, 244, 217)' || state.activeFilter?.color !== 'rgb(61, 41, 29)') {
       failures.push(`${prefix}: active filter material changed (${JSON.stringify(state.activeFilter)})`);
     }
     if (state.heading?.color !== 'rgb(61, 41, 29)') failures.push(`${prefix}: tier heading color changed (${state.heading?.color || 'missing'})`);
@@ -1299,11 +1302,11 @@ for (const route of authenticatedRoutes) {
         await page.waitForSelector('.card-modal-lightbox', { hidden: true });
       }
       if (route.path === '/tierlist' && device === 'mobile') {
-        await page.type('.tierlist-class-search input', 'Медив');
+        await page.type('.arena-tier-search input', 'Медив');
         await page.waitForSelector('[aria-label="Очистить поиск"]');
         const searchTargets = await page.evaluate(() => {
           const bounds = selector => document.querySelector(selector)?.getBoundingClientRect();
-          const input = bounds('.tierlist-class-search input');
+          const input = bounds('.arena-tier-search input');
           const clear = bounds('[aria-label="Очистить поиск"]');
           return { input: input ? [input.width, input.height] : null, clear: clear ? [clear.width, clear.height] : null };
         });
@@ -1312,12 +1315,12 @@ for (const route of authenticatedRoutes) {
           failures.push(`/tierlist [mobile]: search targets are smaller than 44px (${JSON.stringify(searchTargets)})`);
         }
         await page.click('[aria-label="Очистить поиск"]');
-        await page.waitForFunction(() => document.querySelector('.tierlist-class-search input')?.value === '');
-        await page.click('.tierlist-view-toggle button:last-child');
+        await page.waitForFunction(() => document.querySelector('.arena-tier-search input')?.value === '');
+        await page.click('.arena-tier-view button:last-child');
         await page.waitForSelector('.hsrdv-table-card');
         const tableCardHeight = await page.$eval('.hsrdv-table-card', element => element.getBoundingClientRect().height);
         if (tableCardHeight < 44) failures.push(`/tierlist [mobile]: table card target is ${tableCardHeight}px high`);
-        await page.click('.tierlist-view-toggle button:first-child');
+        await page.click('.arena-tier-view button:first-child');
         await page.waitForSelector('.hs-tier-card');
       }
       if (route.path === '/legendaries' && device === 'desktop') {
@@ -3520,11 +3523,11 @@ for (const [device, viewport] of [
       };
     });
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
-      || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
+      || !constructedCardsState.controlsVisible || constructedCardsState.rankText.trim() !== 'Карты'
       || constructedCardsState.coveragePresent || constructedCardsState.resultsHeaderPresent
       || constructedCardsState.formatControls !== 1 || constructedCardsState.setMetricLabels !== 8 || constructedCardsState.defaultSort !== 'Новые дополнения'
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
-      || !constructedCardsState.secondaryLabels.includes('Класс') || !constructedCardsState.secondaryLabels.includes('Дополнение')
+      || !constructedCardsState.secondaryLabels.includes('Ранг') || !constructedCardsState.secondaryLabels.includes('Механики')
       || !constructedCardsState.rarity || /^(rgba\(0, 0, 0, 0\)|transparent|)$/.test(constructedCardsState.rarityGlow) || constructedCardsState.hoverTransition === '0s'
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
       || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44
@@ -3544,7 +3547,7 @@ for (const [device, viewport] of [
     }
     const constructedTourViolationCount = await auditPageTour(page, {
       label: `constructed cards [${device}]`,
-      expectedSteps: 6,
+      expectedSteps: 5,
       mobile: device === 'mobile',
     });
     await chooseConstructedCardFilter(page, 'cards-sort', 'Победы колод');
@@ -3601,30 +3604,18 @@ for (const [device, viewport] of [
         columns: table?.querySelectorAll('thead th').length ?? 0,
         internallyScrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-        dataDeckCards: table?.querySelectorAll('[data-deck-cards]').length ?? 0,
-        renderedDeckTiles: table?.querySelectorAll('.hsrdv-card-tile').length ?? 0,
+        catalogTiles: table?.querySelectorAll('.constructed-catalog-tile').length ?? 0,
+        deckRenderer: typeof window.HSReplayDeckView,
         englishSubtitles: table?.querySelectorAll('tbody th small').length ?? 0,
         maximumRowHeight: Math.max(...[...table?.querySelectorAll('tbody tr') || []].map(row => row.getBoundingClientRect().height)),
-        firstArtHeightCoverage: (() => {
-          const frame = table?.querySelector('.hsrdv-card-frame');
-          const art = table?.querySelector('.hsrdv-card-art');
-          return frame && art ? art.getBoundingClientRect().height / frame.getBoundingClientRect().height : 0;
-        })(),
-        firstArtWidthCoverage: (() => {
-          const frame = table?.querySelector('.hsrdv-card-frame');
-          const art = table?.querySelector('.hsrdv-card-art');
-          return frame && art ? art.getBoundingClientRect().width / frame.getBoundingClientRect().width : 0;
-        })(),
+        readableNames: table?.querySelectorAll('.constructed-catalog-tile__name, .constructed-catalog-tile__image[alt]').length ?? 0,
         activeSort: table?.querySelector('thead th[aria-sort]')?.textContent?.trim() || '',
         mobileRows: table ? getComputedStyle(table.querySelector('tbody')).display : '',
       };
     });
     if (constructedTableState.rows !== 8 || constructedTableState.columns !== 9 || constructedTableState.documentOverflow
-      || constructedTableState.dataDeckCards !== 8 || constructedTableState.renderedDeckTiles !== 8 || constructedTableState.englishSubtitles !== 0
-      // HSReplay's tile frame reserves a one-pixel border on both axes, so
-      // the visible art is intentionally about 95% of the measured frame.
-      || constructedTableState.firstArtHeightCoverage < 0.94
-      || constructedTableState.firstArtWidthCoverage < 0.05 || constructedTableState.firstArtWidthCoverage > 0.9
+      || constructedTableState.catalogTiles !== 8 || constructedTableState.deckRenderer !== 'undefined' || constructedTableState.englishSubtitles !== 0
+      || constructedTableState.readableNames !== 8
       || constructedTableState.activeSort !== 'Победы колод'
       || (device === 'desktop' && constructedTableState.maximumRowHeight > 62)
       || (device === 'mobile' && (constructedTableState.internallyScrollable || constructedTableState.mobileRows !== 'grid'))) {
@@ -4111,6 +4102,7 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
   try {
     await page.goto(`${BASE}/standard/cards`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.constructed-cards__gallery-card', { visible: true, timeout: 20_000 });
+    await page.click('.constructed-cards__advanced-toggle');
     await page.click('[data-tour-id="cards-sort"] .constructed-cards__filter-trigger');
     await page.waitForSelector('[data-tour-id="cards-sort"] [role="listbox"]', { visible: true, timeout: 5_000 });
     const state = await page.evaluate(() => ({
@@ -4122,7 +4114,7 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     await page.keyboard.press('Escape');
-    if (state.fullPaywall || !state.lockedBadge || state.lockedSorts !== 3 || state.defaultSort !== 'Новые дополнения' || state.overflow) {
+    if (state.fullPaywall || state.lockedSorts !== 3 || state.defaultSort !== 'Новые дополнения' || state.overflow) {
       failures.push(`/standard/cards [mobile guest]: partial statistics paywall regressed (${JSON.stringify(state)})`);
     }
     await page.type('.global-search input', 'контроль');
