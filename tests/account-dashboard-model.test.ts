@@ -121,3 +121,35 @@ test('Telegram linking offers actions only through OIDC or a configured bot', ()
   assert.equal(hasTelegramLinkActions('disabled', ''), false);
   assert.equal(hasTelegramLinkActions('legacy-widget', ''), false);
 });
+
+import { HELP_SECTIONS } from '../src/modules/helpCenter/model/helpContent';
+import { matchesHelpSearch } from '../src/modules/helpCenter/model/helpSearch';
+
+test('contextual account help links resolve to unique published questions', () => {
+  const ids = HELP_SECTIONS.flatMap(section => section.items.map(item => item.id));
+  assert.equal(new Set(ids).size, ids.length);
+  for (const id of ['newsletter', 'telegram-link', 'access-missing', 'public-profile']) assert.ok(ids.includes(id));
+  assert.ok(ids.length >= 45);
+});
+
+test('help search accepts Russian provider names, ё and whitespace-separated terms', () => {
+  const boosty = HELP_SECTIONS.flatMap(section => section.items).find(item => item.id === 'boosty-access')!;
+  assert.ok(matchesHelpSearch(`${boosty.question} ${boosty.answer} ${boosty.keywords}`, '  БУСТИ   почту  '));
+  assert.ok(matchesHelpSearch('Ещё не пришёл код', 'ЕЩЕ КОД'));
+  assert.ok(matchesHelpSearch('Тир-лист карт Арены', 'тир лист арены'));
+  assert.ok(matchesHelpSearch('Любой вопрос', '   '));
+  assert.equal(matchesHelpSearch('Статистика карт', 'статистика героев'), false);
+  assert.equal(matchesHelpSearch('Статистика карт', '<script>alert(1)</script>'), false);
+});
+
+import seoContent from '../config/public-seo-structured-data.json';
+
+test('FAQ structured answers match the visible help content', () => {
+  const questions = HELP_SECTIONS.flatMap(section => section.items);
+  const faq = seoContent.pages['/faq'].find(node => node['@type'] === 'FAQPage');
+  assert.ok(faq && 'mainEntity' in faq);
+  assert.equal(faq.mainEntity.length, questions.length);
+  for (const entity of faq.mainEntity) {
+    assert.equal(questions.find(question => question.question === entity.name)?.answer, entity.acceptedAnswer.text);
+  }
+});

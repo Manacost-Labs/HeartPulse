@@ -756,6 +756,23 @@
         "docs/specs/card-catalog-image-loading.md",
         "docs/architecture/module-boundaries.md"
       ]
+    },
+    {
+      "id": "client.helpCenter",
+      "runtime": "client",
+      "root": "src/modules/helpCenter",
+      "purpose": "Own public help content, local question search and server-compatible FAQ presentation.",
+      "owner": "product-shell",
+      "publicEntry": "src/modules/helpCenter/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:next-contracts"
+      ],
+      "docs": [
+        "docs/specs/help-center.md",
+        "docs/architecture/help-center.md"
+      ],
+      "publicStyleEntry": "src/modules/helpCenter/public.css"
     }
   ],
   "migrationAreas": [
@@ -1122,7 +1139,8 @@
         "client.identity",
         "client.legalPages",
         "client.standardMatchups",
-        "client.subscriptions"
+        "client.subscriptions",
+        "client.helpCenter"
       ],
       "focusedTests": [
         "npm run test:next-contracts",

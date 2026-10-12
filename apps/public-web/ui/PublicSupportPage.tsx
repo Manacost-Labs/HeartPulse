@@ -1,4 +1,5 @@
-import FAQPage from '@/src/features/FAQPage';
+import FAQPage from '@/src/modules/helpCenter/public';
+import '@/src/route-parchment.css';
 import LegalPage from '@/src/modules/legalPages/public';
 import { PublicSupportShell } from './PublicSupportShell';
 

@@ -175,3 +175,14 @@ test('prize contacts stay folded and every field has its label', () => {
   }
   assert.doesNotMatch(markup, /type="url"/, 'a VK name without https:// must stay valid');
 });
+
+test('the account offers section navigation and help with clear contact groups', () => {
+  const markup = renderToStaticMarkup(
+    <AccountSettings values={{ country: '', telegram: '', vkUrl: '', contactEmail: '', newsletter: false }}
+      countries={[]} saving={false} onChange={noop} onSubmit={noop} />,
+  );
+  assert.match(markup, /<fieldset/);
+  assert.match(markup, /<legend>Контакты для призов<\/legend>/);
+  assert.match(markup, /<legend>Рассылка<\/legend>/);
+  assert.match(markup, /href="\/faq\/#faq-newsletter"/);
+});
