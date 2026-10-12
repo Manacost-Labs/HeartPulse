@@ -31,6 +31,7 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     const cdp = await page.createCDPSession();
     await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
     const errors = []; const queries = []; const renders = []; let renderFails = true;
+    let largePool = false;
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (['error', 'warn'].includes(message.type())) errors.push(message.text()); });
     await page.setRequestInterception(true);
@@ -40,7 +41,9 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
         queries.push(Object.fromEntries(url.searchParams));
         const query = url.searchParams.get('query') ?? '';
         if (query === 'slow') await delay(600);
-        const result = query === 'slow' ? [{ ...cards[0], name: { ru: 'Устаревший ответ' } }]
+        const result = largePool ? Array.from({ length: 15 }, (_, index) => ({ ...cards[0],
+          card_id: `CARD_${index}`, dbf: 300 + index, name: { ru: `Карта ${index}` } }))
+          : query === 'slow' ? [{ ...cards[0], name: { ru: 'Устаревший ответ' } }]
           : cards.filter(card => card.name.ru.toLowerCase().includes(query.toLowerCase()));
         await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: result,
           facets: { sets: ['CORE'], types: ['MINION', 'SPELL'], mechanics: ['TAUNT'], minionTypes: ['BEAST'], spellSchools: ['FIRE'] },
@@ -136,6 +139,21 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     await page.click('.hp-builder-reset button:first-of-type');
     await page.waitForFunction(() => document.querySelector('.hp-builder-context label:nth-child(2) select').value === 'wild');
     assert.equal(await page.$$('.hp-builder-row').then(rows => rows.length), 0);
+    largePool = true;
+    await page.reload({ waitUntil: 'networkidle2' });
+    await page.waitForSelector('button[aria-label="Добавить: Карта 0"]');
+    for (let index = 0; index < 15; index++) {
+      await page.click(`button[aria-label="Добавить: Карта ${index}"]`);
+      await page.click(`button[aria-label="Добавить: Карта ${index}, в колоде 1"]`);
+    }
+    await page.click('.hp-builder-mobile-switch button:last-child');
+    assert.equal(await page.evaluate(() => {
+      const list = document.querySelector('.hp-builder-deck-list');
+      const deck = document.querySelector('.hp-builder-deck');
+      const save = document.querySelector('.hp-builder-save');
+      return list.scrollHeight > list.clientHeight
+        && save.getBoundingClientRect().bottom <= deck.getBoundingClientRect().bottom;
+    }), true, 'full phone deck scrolls its list while keeping Save inside the panel');
     assert.ok(queries.some(query => query.deckClass === 'MAGE' && query.format === 'standard'));
     assert.deepEqual(errors, []);
   } finally {

@@ -156,7 +156,8 @@ about 175 KiB of initial gzip JavaScript and 33 KiB of CSS in the locked
 Next build. Only this route's JS ceiling is recalibrated to 182,272 bytes
 (2% margin rounded to KiB); other route and CSS ceilings stay unchanged.
 
-The final 30-card preview keeps Save Image within the desktop viewport; only
-the card list scrolls. Local Chrome DevTools checks find no application errors,
+The final 30-card preview keeps Save Image within the desktop viewport.
+Phone deck panels also bound the independently scrolling list, keeping the
+actions close to the cards instead of below thirty full rows. Local Chrome DevTools checks find no application errors,
 failed images or overflow; the existing unused CSS preload warning remains.
 An unthrottled local trace reported LCP 58 ms and CLS 0.00 (lab evidence only).

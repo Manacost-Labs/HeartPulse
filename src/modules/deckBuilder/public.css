@@ -122,8 +122,8 @@
   .hp-builder-mobile-switch button { min-height: 48px; background: #f0dfb8; border: 0; color: var(--builder-ink); font-weight: 800; }
   .hp-builder-mobile-switch button[aria-pressed=true] { background: var(--builder-wine); color: #fff0d1; }
   .hp-builder[data-panel=cards] .hp-builder-deck, .hp-builder[data-panel=deck] .hp-builder-gallery { display: none; }
-  .hp-builder-deck { position: static; max-height: none; }
-  .hp-builder-deck-list { overflow: visible; }
+  .hp-builder-deck { position: static; max-height: max(520px, calc(100dvh - 220px)); }
+  .hp-builder-deck-list { overflow-y: auto; }
   .hp-builder-gallery { padding: 12px 8px; border-width: 10px; border-image-width: 10px; }
   .hp-builder-card-grid, .hp-builder-skeletons { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
   .hp-builder-card { padding-inline: 0; }
