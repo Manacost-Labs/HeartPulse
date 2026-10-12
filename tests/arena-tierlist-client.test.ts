@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { arenaCardImageSources } from '../src/modules/arenaTierList/model/cardImages';
 import { createArenaTierListClient } from '../src/modules/arenaTierList/model/client';
 import { companionIdsFromLegendaries, loadArenaCompanionIds } from '../src/modules/arenaTierList/model/companionIds';
 
@@ -34,6 +35,17 @@ assert.equal(calls.length, 0, 'missing account must never call the protected API
 assert.equal((await load()).status, 'ready');
 assert.match(calls[0].url, /^\/api\/tierlist\?source=hsreplay&v=ru_cards_v3$/);
 assert.equal(entries.size, 1);
+let reads = 0;
+const fastClient = createArenaTierListClient({ now: () => clock,
+  storage: { ...storage, getItem: key => { reads++; return storage.getItem(key); } },
+  request: async () => new Response(null, { status: 304 }),
+});
+let firstSnapshot: unknown;
+await fastClient.load('user-1', 'hsreplay', { onCache: state => { firstSnapshot = state.data; } });
+await fastClient.load('user-1', 'hsreplay', { onCache: state => {
+  assert.equal(state.data, firstSnapshot, 'source revisit reuses the validated snapshot without reparsing');
+} });
+assert.equal(reads, 1, 'source revisit avoids another synchronous storage read');
 let cached = false;
 response = () => Promise.resolve(new Response(null, { status: 304 }));
 assert.equal((await client.load('user-1', 'hsreplay', { onCache: () => { cached = true; } })).status, 'ready');
@@ -78,4 +90,28 @@ const protectedCompanions = await loadArenaCompanionIds(() => Promise.resolve(ne
 assert.deepEqual([...protectedCompanions], [], 'protected data never falls back to a public companion list');
 const loadedCompanions = await loadArenaCompanionIds(() => Promise.resolve(Response.json(legendaryGroups)));
 assert.deepEqual([...loadedCompanions], ['COMP_B']);
-console.log('Arena tier-list client access, cache and refresh contract passed');
+
+const heroCard = { ...dataset.sections[0].tiers[0].cards[0], cardId: 'CATA_190h',
+  type: 'hero', imageHa: 'https://cdn.heartharena.com/images/renders/ruRU/CATA_190h.webp',
+  imageRu: 'https://example.test/portrait.png' };
+const heroSources = arenaCardImageSources(heroCard, ['/api/card-image/CATA_190h/thumb.webp', heroCard.imageRu]);
+assert.equal(heroSources[0], heroCard.imageHa);
+assert.ok(heroSources.every(url => !url.includes('portrait') && !url.includes('/card-image/')),
+  'Deathwing must use complete card renders in the gallery');
+assert.match(arenaCardImageSources(heroCard, [], '512x')[1], /512x\/CATA_190h\.png/);
+assert.deepEqual(arenaCardImageSources({ ...heroCard, type: 'MINION', cardId: 'NEW1_030' }, ['proxy', 'proxy', null]), ['proxy']);
+
+const abortController = new AbortController();
+const isolatedStorage = new Map<string, string>();
+const abortClient = createArenaTierListClient({ request: async () => {
+  abortController.abort();
+  return Response.json(dataset);
+}, storage: {
+  getItem: key => isolatedStorage.get(key) ?? null,
+  setItem: (key, value) => { isolatedStorage.set(key, value); },
+  removeItem: key => { isolatedStorage.delete(key); },
+} });
+await abortClient.load('user-1', 'hsreplay', { signal: abortController.signal });
+assert.equal(isolatedStorage.size, 0, 'cancelled source selection never populates its cache');
+
+console.log('Arena tier-list client access, cache, cancellation and hero render contract passed');

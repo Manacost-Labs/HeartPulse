@@ -138,8 +138,10 @@ shell shows only the update timestamp.
 contract plus an account-scoped browser client, companion-card filter and React
 loading hooks with response validation, ETag refresh and stale fallback. The
 Next.js page composes the Arena presentation of `DeferredRoutes.tsx` through a
-client adapter (`apps/public-web/ui/TierListPageClient.tsx`); the presentation
-has not moved into the module yet.
+client adapter (`apps/public-web/ui/TierListPageClient.tsx`). Class/search and
+rarity/mana controls plus tier badges are module-owned UI; the legacy view
+supplies state, result counts and callbacks. Card grids and source switching
+remain in the legacy presentation.
 
 `src/modules/arenaLegendaries` owns the Arena legendary-group response types
 used by the Next.js page. The client request, response validation,
