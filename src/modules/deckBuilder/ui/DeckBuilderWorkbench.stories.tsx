@@ -43,6 +43,27 @@ async function openDeck(canvas: { getByRole: (role: 'button', options: { name: R
 }
 
 export const Empty: Story = {};
+export const RefreshingCollection: Story = {
+  args: { ports: { ...ports, load: async (query, signal) => {
+    if (query.query) await new Promise(resolve => setTimeout(resolve, 800));
+    const result = ports.load ? await ports.load(query, signal) : { cards: [], total: 0, totalPages: 1 };
+    return { ...result, total: result.cards.length };
+  } } },
+  play: async ({ canvas, canvasElement }) => {
+    await canvas.findByRole('button', { name: 'Добавить: Речной кроколиск' });
+    const gallery = canvasElement.querySelector('.hp-builder-gallery');
+    const grid = canvasElement.querySelector('.hp-builder-card-grid');
+    await userEvent.type(canvas.getByRole('searchbox', { name: 'Поиск карт' }), 'Огненный');
+    await expect(gallery).toHaveAttribute('aria-busy', 'true');
+    await expect(canvas.getByRole('button', { name: 'Добавить: Речной кроколиск' })).toBeDisabled();
+    await expect(canvasElement.querySelector('.hp-builder-card-grid')).toBe(grid);
+    await expect(canvasElement.querySelector('.hp-builder-skeletons')).toBeNull();
+    await expect(canvas.getByRole('searchbox', { name: 'Поиск карт' })).toHaveFocus();
+    await canvas.findByText('1 в коллекции', {}, { timeout: 3000 });
+    await expect(canvas.getByRole('button', { name: 'Добавить: Огненный шар' })).toBeEnabled();
+    await expect(gallery).toHaveAttribute('aria-busy', 'false');
+  },
+};
 export const Filters: Story = {
   play: async ({ canvas }) => {
     await canvas.findByRole('option', { name: 'Основной набор' });

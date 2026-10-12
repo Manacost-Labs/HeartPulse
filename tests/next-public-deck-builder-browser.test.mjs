@@ -17,7 +17,7 @@ const cards = [
 const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1WQAAAAASUVORK5CYII=', 'base64');
 const axe = readFileSync(import.meta.resolve('axe-core').replace('file://', ''), 'utf8');
 
-test('guest builder keeps selection across filters and mobile panels, confirms reset and downloads Deckview images', async () => {
+test('guest builder keeps selection across filters and mobile panels, confirms reset and downloads Deckview images', async context => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true });
   const downloads = mkdtempSync(join(tmpdir(), 'public-deck-builder-'));
   let browser;
@@ -33,7 +33,12 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     const errors = []; const queries = []; const renders = []; let renderFails = true;
     let largePool = false;
     page.on('pageerror', error => errors.push(error.message));
-    page.on('console', message => { if (['error', 'warn'].includes(message.type())) errors.push(message.text()); });
+    page.on('console', message => {
+      // The existing lazy shell emits this preload warning when its support surface appears.
+      if (message.type() === 'warn' && /^The resource http:\/\/127\.0\.0\.1:\d+\/_next\/static\/css\/[a-f0-9]+\.css was preloaded using link preload but not used within a few seconds from the window's load event\./.test(message.text())) {
+        context.diagnostic(`Existing shell CSS preload warning: ${message.text()}`);
+      } else if (['error', 'warn'].includes(message.type())) errors.push(message.text());
+    });
     await page.setRequestInterception(true);
     page.on('request', async request => {
       const url = new URL(request.url());
@@ -99,7 +104,10 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     assert.equal(await page.evaluate(() => Math.abs(document.querySelector('.hp-builder-tile').getBoundingClientRect().width
       - document.querySelector('.hp-builder-row').getBoundingClientRect().width) < 1), true);
     await page.type('input[aria-label="Поиск карт"]', 'slow');
-    await page.waitForFunction(() => document.querySelector('.hp-builder-skeletons') !== null);
+    await page.waitForFunction(() => document.querySelector('.hp-builder-gallery').getAttribute('aria-busy') === 'true');
+    assert.equal(await page.$('.hp-builder-skeletons'), null);
+    assert.ok(await page.$('button[aria-label="Добавить: Речной кроколиск"]'));
+    assert.equal(await page.$eval('button[aria-label="Добавить: Речной кроколиск"]', node => node.disabled), true);
     await delay(300);
     await page.focus('input[aria-label="Поиск карт"]');
     await page.keyboard.down('Control');
@@ -135,6 +143,14 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
       'open code stays visible when desktop collection becomes the phone panel');
     await page.keyboard.press('Escape');
     await page.setViewport({ width: 1440, height: 900 });
+    await page.keyboard.down('Control');
+    await page.keyboard.press('End');
+    await page.keyboard.up('Control');
+    await page.waitForSelector('.support-prompt');
+    assert.equal(await page.$eval('.support-prompt', node => getComputedStyle(node).position), 'static');
+    assert.equal(await page.evaluate(() => document.querySelector('.support-prompt').getBoundingClientRect().top
+      >= document.querySelector('#main-content').getBoundingClientRect().bottom), true,
+    'the delayed support invitation stays below the workbench instead of covering deck cards');
     for (const width of [768, 390, 320]) {
       await page.setViewport({ width, height: 900 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `overflow at ${width}`);
@@ -156,10 +172,13 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     largePool = true;
     await page.reload({ waitUntil: 'networkidle2' });
     await page.waitForSelector('button[aria-label="Добавить: Карта 0"]');
+    assert.ok(await page.$('button[aria-label="Добавить: Карта 14"] img[data-gallery-src]'),
+      'distant full card renders wait until the user approaches them');
     for (let index = 0; index < 15; index++) {
       await page.click(`button[aria-label="Добавить: Карта ${index}"]`);
       await page.click(`button[aria-label="Добавить: Карта ${index}, в колоде 1"]`);
     }
+    await page.waitForFunction(() => !document.querySelector('button[aria-label="Добавить: Карта 14, в колоде 2"] img').hasAttribute('data-gallery-src'));
     await page.click('.hp-builder-mobile-switch button:last-child');
     assert.equal(await page.evaluate(() => {
       const list = document.querySelector('.hp-builder-deck-list');
@@ -346,9 +365,15 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
     await page.waitForSelector('.hp-builder-configuration [role="alert"]');
     configFails = false;
     await page.click('.hp-builder-configuration [role="alert"] button');
-    await page.waitForSelector('button[aria-label="Добавить в E.T.C.: Огненный шар"]');
+    await page.waitForFunction(() => {
+      const card = document.querySelector('button[aria-label="Добавить в E.T.C.: Огненный шар"]');
+      return card && !card.disabled;
+    });
     assert.equal(await page.$eval('.hp-builder-configuration input[type=search]', field => field.value), '');
+    const bandGrid = await page.$('.hp-builder-configuration .hp-builder-card-grid');
     await page.type('.hp-builder-configuration input[type=search]', 'группа');
+    assert.equal(await bandGrid.evaluate(node => node.isConnected), true);
+    await page.waitForFunction(() => document.querySelector('.hp-builder-configuration-body [aria-busy]').getAttribute('aria-busy') === 'false');
     await page.waitForSelector('button[aria-label="Добавить в E.T.C.: Зиллиакс Делюкс 3000"]');
     assert.equal(await page.$eval('button[aria-label="Добавить в E.T.C.: Зиллиакс Делюкс 3000"]', button => button.disabled), true);
     await page.click('button[aria-label="Добавить в E.T.C.: Огненный шар"]');
@@ -365,7 +390,10 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
     await page.waitForSelector('.hp-builder-configuration input[type=search]');
     assert.equal(await page.$eval('.hp-builder-configuration input[type=search]', field => field.value), 'группа');
     await page.keyboard.press('Escape');
-    await page.waitForSelector('button[aria-label="Добавить: Зиллиакс Делюкс 3000"]');
+    await page.waitForFunction(() => {
+      const card = document.querySelector('button[aria-label="Добавить: Зиллиакс Делюкс 3000"]');
+      return card && !card.disabled;
+    });
     await page.click('button[aria-label="Добавить: Зиллиакс Делюкс 3000"]');
     await page.setViewport({ width: 390, height: 844 });
     await page.click('.hp-builder-mobile-switch button:last-child');

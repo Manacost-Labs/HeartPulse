@@ -275,3 +275,53 @@ CSS bytes. No budget or dependency changes are required. React Doctor and
 changed-file Semgrep report no findings. A local, unthrottled Chrome trace
 reports LCP 91 ms and CLS 0.00; this is lab evidence. Application requests and
 images succeed; the existing shell CSS preload warning remains.
+
+## Collection responsiveness and streamer review
+
+The workbench keeps the shared wood/art banner with a compact 128 px minimum
+height on desktop and phone. The main collection fits its first full row in
+the checked 1920×1080 viewport. The card list still grows naturally downwards.
+Deck-row tooltips expose full names, and remaining/extra counts use neutral
+labels that remain grammatical for a single card.
+The support invitation stays in normal document flow below the footer on this
+route, so its delayed appearance cannot cover deck rows or export controls.
+
+Refreshing the collection or E.T.C. filters retains the current grid and input
+focus until the new response arrives. `aria-busy` identifies the update; old
+cards cannot be added during that interval. Initial loading, empty results,
+failure/retry and cancellation keep their existing separate states.
+
+Two main-collection renders start eagerly at high priority. Remaining renders,
+E.T.C. cards, and Zilliax module/art choices activate within 160 px of the
+viewport or configuration scroll area. `useGalleryImages` owns and disconnects
+the observer. A transparent image preserves geometry before activation; browsers
+without IntersectionObserver fall back to normal image loading. Original full
+card images and provider tiles are preserved; no new image service or dependency
+is introduced. This reduces the native lazy-loading lookahead's competition for
+the first useful cards on a constrained connection.
+
+Cold-browser laboratory comparisons use the production Next build with the
+anonymous API, three runs per profile: 1920×1080 without throttling, and 390×844
+at 200,000 B/s download, 150 ms latency and 4× CPU slowdown. Median desktop
+interaction duration falls from 408 to 48 ms; image transfers across the same
+selection/search scenario fall from 2,270,919 to 1,025,800 bytes. On the phone,
+first-row image readiness improves from 5,710 to 4,455 ms and image transfers
+fall from 931,330 to 201,872 bytes. Final phone LCP median is 784 ms, interaction
+median 72 ms and maximum measured CLS 0.00037. These are lab measurements;
+first-row readiness is reported separately because the banner's LCP does not
+mean the catalog is already usable. One earlier cold phone run recorded a 0.50
+layout-shift outlier; the final three phone runs remain below 0.001.
+
+The 17-state workshop matrix passes at desktop and phone widths (34 renders).
+Browser regressions cover retained grids, disabled stale results, cancellation,
+filter isolation, native modal keyboard/accessibility checks, sideboard encoding
+and actual fixture downloads. They also check deferred images activating on
+scroll and the support invitation's placement below the main content.
+The final production build remains within the existing route ceilings:
+184,360 gzip JavaScript bytes and 33,783 gzip CSS bytes. No telemetry,
+permissions or API contracts change. The existing lazy shell CSS preload warning
+is reported separately; application errors and other console warnings still fail
+the browser regression.
+
+References: [image loading](https://web.dev/articles/browser-level-image-lazy-loading),
+[LCP](https://web.dev/articles/lcp), [INP](https://web.dev/articles/inp).

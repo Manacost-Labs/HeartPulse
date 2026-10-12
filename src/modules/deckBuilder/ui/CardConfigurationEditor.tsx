@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { isZilliaxArt, isZilliaxModule, type CardConfiguration } from '../model/configuration';
 import { deckCount, type BuilderCard, type BuilderEntry } from '../model/selection';
 import type { useDeckBuilder } from '../useDeckBuilder';
+import { GALLERY_IMAGE_PLACEHOLDER, useGalleryImages } from './useGalleryImages';
 
 import { X } from 'lucide-react';
 
@@ -25,9 +26,10 @@ function ConfigurationSlots({ owner, slots, slotCount, change }: Pick<Choices, '
 
 function ZilliaxChoices({ editor, owner, configuration, change }: Choices) {
   const board = owner.sideboard ?? [];
+  const gallery = useGalleryImages(configuration.modules);
   const modules = board.filter(isZilliaxModule);
   const selectedArt = board.find(isZilliaxArt);
-  return <>
+  return <div ref={gallery}>
         <h3>Выберите 2 разных модуля · {modules.length}/2</h3>
         <p className="hp-builder-config-result" role="status">{modules.reduce((sum, card) => sum + card.cost, 0)} маны
           {' · '}{modules.reduce((sum, card) => sum + (card.attack ?? 0), 0)} атаки
@@ -38,30 +40,32 @@ function ZilliaxChoices({ editor, owner, configuration, change }: Choices) {
             aria-label={`Модуль: ${card.name}`} aria-pressed={selected} title={card.text}
             disabled={!selected && !editor.canAddToConfiguration(card, owner.dbfId, configuration)}
             onClick={() => change(card, selected ? -1 : 1)}>
-            <img src={card.image} alt="" width={360} height={497} loading="lazy" />
+            <img src={GALLERY_IMAGE_PLACEHOLDER} data-gallery-src={card.image} alt="" width={360} height={497} decoding="async" />
             <span className="hp-builder-card-action">{selected ? '✓ Выбран' : 'Выбрать модуль'}</span>
           </button>;
         })}</div>
         <div className="hp-builder-art-options" role="group" aria-label="Облики Зиллиакса">{configuration.art.map((card, index) =>
           <button type="button" key={card.dbfId} aria-label={`Облик Зиллиакса: ${index + 1}`} aria-pressed={selectedArt?.dbfId === card.dbfId}
-            onClick={() => change(card, 1)}><img src={card.image} alt="" width={360} height={497} /><span>Облик {index + 1}</span></button>)}</div>
-</>;
+            onClick={() => change(card, 1)}><img src={GALLERY_IMAGE_PLACEHOLDER} data-gallery-src={card.image} alt="" width={360} height={497} decoding="async" /><span>Облик {index + 1}</span></button>)}</div>
+</div>;
 }
 
 function EtcChoices({ editor, owner, configuration, change, filters }: Choices & { filters: ReactNode }) {
   const board = owner.sideboard ?? [];
+  const gallery = useGalleryImages(editor.catalog.cards);
   return <>
         <h3>Выберите 3 карты · {deckCount(board)}/3</h3>
         <p>Лимиты копий общие с основной колодой. Недоступные для E.T.C. карты выбрать нельзя.</p>
         {filters}
-        {editor.loading ? <p role="status">Загружаем карты…</p> : editor.error ? <div role="alert"><p>{editor.error}</p><button type="button" onClick={editor.retry}>Повторить загрузку</button></div>
+        <div aria-busy={editor.loading} ref={gallery}>
+        {editor.loading && !editor.catalog.cards.length ? <p role="status">Загружаем карты…</p> : editor.error ? <div role="alert"><p>{editor.error}</p><button type="button" onClick={editor.retry}>Повторить загрузку</button></div>
           : !editor.catalog.cards.length ? <p className="hp-builder-message">Карты не найдены. Измените поиск или фильтры.</p>
           : <div className="hp-builder-card-grid">{editor.catalog.cards.map(card => {
             const copies = board.find(item => item.dbfId === card.dbfId)?.count ?? 0;
             return <button key={card.dbfId} type="button" className={`hp-builder-card${copies ? ' is-selected' : ''}`}
               aria-label={`Добавить в E.T.C.: ${card.name}${copies ? `, в группе ${copies}` : ''}`}
-              disabled={!editor.canAddToConfiguration(card, owner.dbfId, configuration)} onClick={() => change(card, 1)}>
-              <img src={card.image} alt="" width={360} height={497} loading="lazy" />
+              disabled={editor.loading || !editor.canAddToConfiguration(card, owner.dbfId, configuration)} onClick={() => change(card, 1)}>
+              <img src={GALLERY_IMAGE_PLACEHOLDER} data-gallery-src={card.image} alt="" width={360} height={497} loading="lazy" decoding="async" />
               <span className="hp-builder-card-action">{copies ? `В группе: ${copies}` : 'В группу E.T.C.'}</span>
             </button>;
           })}</div>}
@@ -70,6 +74,7 @@ function EtcChoices({ editor, owner, configuration, change, filters }: Choices &
           <span>{editor.filters.page} / {editor.catalog.totalPages}</span>
           <button type="button" disabled={editor.filters.page >= editor.catalog.totalPages} onClick={() => editor.filter('page', editor.filters.page + 1)}>Далее</button>
         </nav> : null}
+        </div>
 </>;
 }
 

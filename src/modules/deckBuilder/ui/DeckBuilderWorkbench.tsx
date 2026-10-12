@@ -5,17 +5,18 @@ import { useDeckBuilder, type DeckBuilderInitial, type DeckBuilderPorts } from '
 import { configurationKind, isZilliaxModule } from '../model/configuration';
 import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import { CardConfigurationEditor } from './CardConfigurationEditor';
+import { GALLERY_IMAGE_PLACEHOLDER, useGalleryImages } from './useGalleryImages';
 
 export type DeckBuilderWorkbenchProps = { ports: DeckBuilderPorts; initial?: DeckBuilderInitial };
 type Editor = ReturnType<typeof useDeckBuilder>;
 
-function GalleryCard({ card, count, disabled, onAdd }: {
-  card: BuilderCard; count: number; disabled: boolean; onAdd: () => void;
+function GalleryCard({ card, count, disabled, eager, onAdd }: {
+  card: BuilderCard; count: number; disabled: boolean; eager: boolean; onAdd: () => void;
 }) {
   return <button type="button" className={`hp-builder-card${count ? ' is-selected' : ''}`}
     onClick={onAdd} disabled={disabled} aria-label={`Добавить: ${card.name}${count ? `, в колоде ${count}` : ''}`}>
-    <img src={card.image} alt="" loading="lazy" decoding="async" width={360} height={497} />
-    <span className="hp-builder-card-name sr-only">{card.name}</span>
+    <img src={eager ? card.image : GALLERY_IMAGE_PLACEHOLDER} data-gallery-src={eager ? undefined : card.image} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" width={360} height={497} />
+    <span className="sr-only">{card.name}</span>
     <span className="hp-builder-card-action" aria-hidden="true">{count ? `В колоде: ${count}` : <><Plus size={14} /> Добавить</>}</span>
   </button>;
 }
@@ -26,7 +27,7 @@ function DeckRow({ card, editor }: { card: BuilderEntry; editor: Editor }) {
   return <li className="hp-builder-row">
     <div className="hp-builder-row-tile">
     <button type="button" className="hp-builder-tile" aria-label={`Управление картой: ${card.name}`}
-      aria-expanded={controls} onClick={() => setControls(value => !value)}>
+      title={card.name} aria-expanded={controls} onClick={() => setControls(value => !value)}>
       {card.tile && !failed ? <img src={card.tile} alt={`${card.cost} маны · ${card.name}`}
         width={320} height={64} loading="lazy" decoding="async" onError={() => setFailed(true)} />
         : <span className="hp-builder-tile-fallback"><b>{card.cost}</b><span>{card.name}</span></span>}
@@ -115,20 +116,26 @@ function RuneControls({ editor }: { editor: Editor }) {
   </div>;
 }
 
+function GalleryGrid({ editor }: { editor: Editor }) {
+  const gallery = useGalleryImages(editor.catalog.cards);
+  return <div className="hp-builder-card-grid" ref={gallery}>
+    {editor.catalog.cards.map((card, index) => <GalleryCard key={card.dbfId} card={card} eager={index < 2}
+      count={editor.deck.find(entry => entry.dbfId === card.dbfId)?.count ?? 0} disabled={editor.loading || !editor.canAdd(card)}
+      onAdd={() => editor.change(card, 1)} />)}
+  </div>;
+}
+
 function CardGallery({ editor }: { editor: Editor }) {
   const { filters } = editor;
   if (editor.configurationCard) return <section className="hp-builder-gallery" aria-label="Коллекция карт" />;
-  return <section className="hp-builder-gallery" aria-labelledby="hp-builder-gallery-title">
+  return <section className="hp-builder-gallery" aria-labelledby="hp-builder-gallery-title" aria-busy={editor.loading}>
     <div className="hp-builder-section-heading"><h2 id="hp-builder-gallery-title">Карты</h2>
-      <span>{editor.loading ? 'Загрузка…' : `${editor.catalog.total} в коллекции`}</span></div>
+      <span role="status">{editor.loading ? 'Загрузка…' : `${editor.catalog.total} в коллекции`}</span></div>
     <CollectionFilters editor={editor} />
     {editor.error ? <div className="hp-builder-message" role="alert"><p>{editor.error}</p><button type="button" onClick={editor.retry}>Повторить загрузку</button></div>
-      : editor.loading ? <div className="hp-builder-skeletons" role="status" aria-label="Загрузка карт">
+      : editor.loading && !editor.catalog.cards.length ? <div className="hp-builder-skeletons" role="status" aria-label="Загрузка карт">
         {Array.from({ length: 12 }, (_, i) => <div key={i} />)}</div>
-      : editor.catalog.cards.length ? <div className="hp-builder-card-grid">
-        {editor.catalog.cards.map(card => <GalleryCard key={card.dbfId} card={card}
-          count={editor.deck.find(entry => entry.dbfId === card.dbfId)?.count ?? 0} disabled={!editor.canAdd(card)}
-          onAdd={() => editor.change(card, 1)} />)}</div>
+      : editor.catalog.cards.length ? <GalleryGrid editor={editor} />
       : <div className="hp-builder-message"><h3>Карты не найдены</h3><p>Измените поиск или фильтры.</p></div>}
     {!editor.loading && !editor.error && editor.catalog.totalPages > 1 ? <nav className="hp-builder-pagination" aria-label="Страницы карт">
       <button type="button" disabled={filters.page <= 1} onClick={() => editor.filter('page', filters.page - 1)}>Назад</button>
@@ -148,7 +155,7 @@ function SelectedDeck({ editor }: { editor: Editor }) {
       <strong className={editor.count > editor.limit ? 'is-overfull' : ''} aria-label={`Карт в колоде: ${editor.count} из ${editor.limit}`}>{editor.count}<small>/{editor.limit}</small></strong></div>
     <label className="hp-builder-deck-name">Название колоды<input value={editor.name} maxLength={100} onChange={event => editor.setName(event.target.value)} /></label>
     <p className="hp-builder-progress" role="status">{editor.count === editor.limit ? 'Все карты на месте' : editor.count > editor.limit
-      ? `Уберите ${editor.count - editor.limit} лишних карт` : `Добавьте ещё ${editor.limit - editor.count} карт`}</p>
+      ? `Лишних карт: ${editor.count - editor.limit}` : `Свободных мест: ${editor.limit - editor.count}`}</p>
     {sorted.length ? <ul className="hp-builder-deck-list">{sorted.map(card => <DeckRow key={card.dbfId} card={card} editor={editor} />)}</ul>
       : <div className="hp-builder-empty"><Plus size={28} aria-hidden="true" /><strong>Начните с любимой карты</strong><p>Нажмите на карту в коллекции — она появится здесь.</p></div>}
     <div className="hp-builder-deck-actions">
