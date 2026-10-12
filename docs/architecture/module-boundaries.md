@@ -90,6 +90,9 @@ on unmount. The draft and interaction contracts are documented in
 The Battlegrounds client module owns compact library controls. The legacy
 listing supplies catalog state, navigation and selection callbacks; the control
 view performs no data requests or permission checks.
+The surface reuses the site's timber border asset, renders the seven tavern-tier
+badges with accessible button names, and clips creature icons to circular badges.
+These presentation rules preserve the library query and pool membership contracts.
 
 ## Battlegrounds minion type icons
 

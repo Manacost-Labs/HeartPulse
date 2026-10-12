@@ -1,9 +1,10 @@
 .arena-app-battlegrounds .bg-library-page > .bg-library-controls {
-  padding: 1rem;
-  border: 1px solid rgba(99, 56, 29, 0.32) !important;
-  border-radius: 0.5rem !important;
+  padding: clamp(0.875rem, 2vw, 1.25rem);
+  border: 12px solid transparent !important;
+  border-radius: 0 !important;
+  border-image: url('/wallpaper/main-page-rail-border.png') 13 / 12px / 0 stretch !important;
   background: var(--arena-parchment-panel, #fff3d4) !important;
-  box-shadow: none !important;
+  box-shadow: 0 5px 12px rgba(59, 28, 12, 0.14) !important;
   color: #3a291d;
 }
 .arena-app-battlegrounds .bg-library-controls::after { display: none !important; }
@@ -16,19 +17,22 @@
 .bg-library-control-search { position: relative; display: flex; align-items: center; margin-bottom: 0.75rem; }
 .bg-library-control-search > svg { position: absolute; left: 0.75rem; pointer-events: none; }
 .bg-library-controls .bg-library-control-search input { width: 100%; min-width: 0; min-height: 44px; padding: 0.5rem 0.75rem 0.5rem 2.5rem; border-radius: 0.25rem !important; }
-.bg-library-control-row { display: flex; align-items: baseline; gap: 0.75rem; border: 0; padding: 0; margin: 0.5rem 0; min-width: 0; }
+.bg-library-control-row { display: flex; align-items: flex-start; gap: 0.75rem; border: 0; padding: 0; margin: 0.625rem 0; min-width: 0; }
 .bg-library-control-row legend { float: left; width: 7.5rem; flex-shrink: 0; padding: 0.75rem 0 0; font-size: 0.875rem; font-weight: 700; }
 .bg-library-control-row > div { display: flex; flex-wrap: wrap; gap: 0.375rem; min-width: 0; }
 .bg-library-controls button { cursor: pointer; }
 .arena-app-battlegrounds .bg-library-controls .bg-library-choice {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;
-  min-height: 44px; min-width: 44px; padding: 0.375rem 0.625rem;
-  border: 1px solid rgba(99, 56, 29, 0.28); border-radius: 0.25rem;
-  background: transparent !important; box-shadow: none; color: #3a291d !important;
+  min-height: 48px; min-width: 48px; padding: 0.375rem 0.75rem;
+  border: 1px solid rgba(99, 56, 29, 0.34); border-radius: 0.375rem;
+  background: rgba(255, 248, 228, 0.72) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.65), 0 1px 2px rgba(59, 28, 12, 0.08); color: #3a291d !important;
   font-size: 0.875rem; font-weight: 600; transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
 }
-.arena-app-battlegrounds .bg-library-controls .bg-library-choice[aria-pressed='true'] { background: #641722 !important; color: #fff0c8 !important; border-color: #641722; }
-.bg-library-choice img { width: 1.25rem; height: 1.25rem; }
+.arena-app-battlegrounds .bg-library-controls .bg-library-choice:hover { border-color: #8b593b; background: #fff8e4 !important; }
+.arena-app-battlegrounds .bg-library-controls .bg-library-choice[aria-pressed='true'] { background: #641722 !important; color: #fff0c8 !important; border-color: #641722; box-shadow: inset 0 1px rgba(255, 238, 199, 0.2), 0 1px 2px rgba(59, 28, 12, 0.12); }
+.bg-library-choice .bg-library-race-icon { width: 1.5rem; height: 1.5rem; flex-shrink: 0; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px rgba(99, 56, 29, 0.3); }
+.bg-library-choice .bg-library-tavern-icon { width: 2rem; height: 2.25rem; flex-shrink: 0; object-fit: contain; }
 .arena-app-battlegrounds .bg-library-controls .bg-library-control-advanced {
   padding: 0; margin-top: 0.75rem; border: 0 !important; background: transparent !important; box-shadow: none !important;
 }
@@ -42,6 +46,7 @@
 .bg-library-active-filters button { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px; max-width: 100%; overflow-wrap: anywhere; padding: 0.375rem 0.625rem; border: 0; border-radius: 0.25rem; background: rgba(99, 56, 29, 0.08); font-size: 0.875rem; }
 .bg-library-controls :is(button, input, select, summary):focus-visible { outline: 2px solid #641722; outline-offset: 3px; }
 @media (max-width: 640px) {
+  .arena-app-battlegrounds .bg-library-page > .bg-library-controls { border-width: 8px !important; border-image-width: 8px !important; padding: 0.75rem; }
   .bg-library-control-row { display: block; }
   .bg-library-control-row legend { float: none; width: auto; padding: 0 0 0.375rem; }
   .bg-library-catalog-selects { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
@@ -52,7 +57,9 @@
   .bg-library-control-row + .bg-library-control-row > div {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 0.375rem;
+    overscroll-behavior-x: contain;
+    padding: 0.375rem;
+    margin: -0.375rem;
     scrollbar-width: thin;
   }
   .bg-library-control-row + .bg-library-control-row .bg-library-choice { flex-shrink: 0; }

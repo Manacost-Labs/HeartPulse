@@ -22,8 +22,8 @@ function SelectionRow({ label, children }: { label: string; children: React.Reac
   return <fieldset className="bg-library-control-row"><legend>{label}</legend><div>{children}</div></fieldset>;
 }
 
-function Choice({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" className="bg-library-choice" aria-pressed={active} onClick={onClick}>{children}</button>;
+function Choice({ active, onClick, children, label }: { active: boolean; onClick: () => void; children: React.ReactNode; label?: string }) {
+  return <button type="button" className="bg-library-choice" aria-pressed={active} aria-label={label} title={label} onClick={onClick}>{children}</button>;
 }
 
 function CatalogSelect({ label, value, options, onChange }: {
@@ -53,14 +53,14 @@ export function LibraryControls(props: LibraryControlsProps) {
     <div data-tour-id="bg-library-filters">
       <SelectionRow label="Таверна">
         <Choice active={!props.tiers.length} onClick={props.onClearTiers}>Все</Choice>
-        {[1, 2, 3, 4, 5, 6, 7].map(tier => <Choice key={tier} active={props.tiers.includes(String(tier))} onClick={() => props.onTier(String(tier))}>
-          <span aria-label={`Таверна ${tier}`}>{tier}</span>
+        {[1, 2, 3, 4, 5, 6, 7].map(tier => <Choice key={tier} label={`Таверна ${tier}`} active={props.tiers.includes(String(tier))} onClick={() => props.onTier(String(tier))}>
+          <img className="bg-library-tavern-icon" src={`/bg-legacy/assset/tier${tier}.png`} alt="" width={32} height={36} />
         </Choice>)}
       </SelectionRow>
       {props.races.length > 0 && <SelectionRow label="Тип существа">
         <Choice active={!props.selectedRaces.length} onClick={props.onClearRaces}>Все типы</Choice>
         {props.races.map(([slug, label]) => <Choice key={slug} active={props.selectedRaces.includes(slug)} onClick={() => props.onRace(slug)}>
-          {battlegroundMinionIconBySlug[slug] && <img src={battlegroundMinionIconBySlug[slug]} alt="" loading="lazy" />}{label}
+          {battlegroundMinionIconBySlug[slug] && <img className="bg-library-race-icon" src={battlegroundMinionIconBySlug[slug]} alt="" width={24} height={24} />}{label}
         </Choice>)}
       </SelectionRow>}
     </div>

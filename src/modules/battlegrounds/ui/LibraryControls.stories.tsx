@@ -36,11 +36,28 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Compact: Story = {
   play: async ({ canvas }) => {
+    const tavern = canvas.getByRole('button', { name: /^Таверна 3$/ });
+    await userEvent.click(tavern);
+    await expect(tavern).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(canvas.getByRole('button', { name: /^Все$/ }));
+    await expect(tavern).toHaveAttribute('aria-pressed', 'false');
     const race = canvas.getByRole('button', { name: 'Аберрация' });
     await userEvent.click(race);
     await expect(race).toHaveAttribute('aria-pressed', 'true');
     await expect(canvas.getByRole('status')).toHaveTextContent('25 найдено');
     await userEvent.click(canvas.getByRole('button', { name: 'Сбросить всё' }));
     await expect(race).toHaveAttribute('aria-pressed', 'false');
+  },
+};
+
+export const AdvancedFilters: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByText('Дополнительно'));
+    const duos = canvas.getByRole('checkbox', { name: 'Показывать карты Duo' });
+    await userEvent.click(duos);
+    await expect(duos).toBeChecked();
+    const mechanic = canvas.getByRole('combobox', { name: 'Механика' });
+    await userEvent.selectOptions(mechanic, 'BATTLECRY');
+    await expect(mechanic).toHaveValue('BATTLECRY');
   },
 };
