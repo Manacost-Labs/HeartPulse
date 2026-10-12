@@ -31,6 +31,9 @@ try {
   const runtimeErrors = [];
   const cardTileRequests = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error' && /TestingLibraryElementError|AssertionError/.test(message.text())) runtimeErrors.push(message.text());
+  });
   await page.setRequestInterception(true);
   page.on('request', request => {
     const path = new URL(request.url()).pathname;
@@ -513,6 +516,8 @@ try {
     return result.violations.filter(violation => ['serious', 'critical'].includes(violation.impact));
   });
   assert.deepEqual(violations, []);
+  await page.goto(storybook.storyUrl('browser-test-fixtures-constructed-archetypes--archetype-detail'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.archetype-dossier__metrics');
   assert.deepEqual(runtimeErrors, []);
   console.log('Constructed archetype catalog/detail browser tests passed');
 } finally {
