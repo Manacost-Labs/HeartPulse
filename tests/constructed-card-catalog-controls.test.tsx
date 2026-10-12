@@ -86,7 +86,8 @@ assert.match(standardCardsCss, /@media\s*\(hover:\s*none\)\s*and\s*\(pointer:\s*
   'the download action must remain available on touch devices without hover');
 
 const galleryCardRule = standardCardsCss.match(/\.constructed-cards__gallery-card\s*\{[^}]*\}/)?.[0] ?? '';
-const galleryImageRule = standardCardsCss.match(/\.constructed-cards__gallery-card-link > img\s*\{[^}]*\}/)?.[0] ?? '';
+const galleryImageCss = readFileSync(new URL('../src/modules/constructedCards/ui/CardGalleryImage.css', import.meta.url), 'utf8');
+const galleryImageRule = galleryImageCss.match(/\.constructed-cards__gallery-image\s*\{[^}]*\}/)?.[0] ?? '';
 assert.match(galleryCardRule, /transition:\s*transform var\(--motion-base\)/);
 assert.match(galleryImageRule, /transition:\s*transform var\(--motion-slow\)/);
 for (const rule of [galleryCardRule, galleryImageRule]) {

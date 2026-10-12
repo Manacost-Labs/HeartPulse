@@ -83,6 +83,33 @@ test('server HTML and the hydrated page share the runtime switches for card imag
       assert.equal(JSON.stringify(card.reports).includes('CARD_QA_0002'), false, 'reports never carry the card id');
       assert.ok(card.cdnRequests.length > 0, 'the browser loads the card image from the CDN');
       assert.deepEqual(card.errors, []);
+
+      const gallery = await browser.newPage();
+      try {
+        await gallery.setViewport({ width: 1440, height: 900 });
+        const cdnAttempts = new Map();
+        await gallery.setRequestInterception(true);
+        gallery.on('request', async request => {
+          const url = new URL(request.url());
+          if (url.origin === CDN) {
+            cdnAttempts.set(url.pathname, (cdnAttempts.get(url.pathname) ?? 0) + 1);
+            await request.abort('failed');
+          } else if (url.pathname.startsWith('/api/card-image/')) {
+            await request.respond({ status: 200, contentType: 'image/webp', body: readFileSync('public/arena-logo-icon.webp') });
+          } else await request.continue();
+        });
+        await gallery.goto(`${withCdn.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
+        const firstRowLoaded = () => [...document.querySelectorAll('.constructed-cards__gallery img')].slice(0, 6)
+          .every(image => image.naturalWidth > 1 && new URL(image.currentSrc).origin === location.origin);
+        await gallery.waitForFunction(firstRowLoaded);
+        const documentStartedAt = await gallery.evaluate(() => performance.timeOrigin);
+        await gallery.setViewport({ width: 390, height: 844 });
+        await gallery.waitForFunction(firstRowLoaded);
+        assert.equal(await gallery.evaluate(() => performance.timeOrigin), documentStartedAt);
+        assert.ok(cdnAttempts.size >= 6, 'the fixture must exercise the desktop picture sources');
+        assert.ok([...cdnAttempts.values()].every(count => count === 1),
+          'proximity activation and resizing must not retry a failed CDN source');
+      } finally { await gallery.close(); }
     } finally {
       await withCdn.close();
     }

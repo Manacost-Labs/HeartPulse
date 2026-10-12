@@ -1,0 +1,9 @@
+.constructed-cards__gallery-picture { display: contents; }
+.constructed-cards__gallery-image {
+  width: 100%;
+  max-width: var(--card-image-max-width, 360px);
+  aspect-ratio: 0.72;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 8px rgba(56, 29, 12, 0.24));
+  transition: transform var(--motion-slow) var(--motion-ease);
+}

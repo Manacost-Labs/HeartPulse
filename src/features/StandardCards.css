@@ -135,16 +135,8 @@
    the main thread every frame, so the image shadow stays static and the
    ::before glow, a blurred card-sized plate behind the art, carries the
    rarity colour; card art is never recoloured. */
-.constructed-cards__gallery-card-link > img {
-  width: 100%;
-  max-width: var(--card-image-max-width);
-  aspect-ratio: 0.72;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 8px rgba(56, 29, 12, 0.24));
-  transition: transform var(--motion-slow) var(--motion-ease);
-}
-.constructed-cards__gallery-card:hover .constructed-cards__gallery-card-link > img,
-.constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible) .constructed-cards__gallery-card-link > img { transform: scale(1.025); }
+.constructed-cards__gallery-card:hover .constructed-cards__gallery-image,
+.constructed-cards__gallery-card:has(> .constructed-cards__gallery-card-link:focus-visible) .constructed-cards__gallery-image { transform: scale(1.025); }
 .constructed-cards__gallery-card > .constructed-card-download {
   position: absolute;
   z-index: 3;
@@ -514,7 +506,7 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-card-detail__related-card-image img,
   .constructed-cards__gallery-card,
   .constructed-cards__gallery-card::before,
-  .constructed-cards__gallery-card-link > img,
+  .constructed-cards__gallery-image,
   .constructed-cards__data-deck-card .hsrdv-card-tile { transition: none; }
   .constructed-cards__spinner { animation-duration: 1.8s; }
 }

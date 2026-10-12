@@ -11,8 +11,13 @@
 
 - React 19 и TypeScript 5.8;
 - `src/features/StandardCards.tsx` — галерея каталога;
-- `src/features/cardGalleryImageLoading.ts` — чистая политика количества
+- `src/modules/constructedCards/model/galleryImageLoading.ts` — чистая политика
   приоритетных изображений и активации отложенного `src`;
+- `src/features/ConstructedCardGalleryImage.tsx` — компактная React-композиция
+  responsive-разметки и платформенного CDN fallback;
+- `src/modules/constructedCards/galleryImageObserver.ts` — жизненный цикл
+  observer; legacy-файлы в `src/features/` адаптируют публичный контракт и
+  существующий CDN fallback, включая ошибки до hydration;
 - `tests/card-catalog-image-loading.test.ts` — unit и source-contract проверки.
 
 ## Контракт качества
@@ -28,15 +33,14 @@
   соединения). Строка, чей `dbf` не совпадает с числом в ID, оставляет свой
   рендер (`src/features/constructedCardImageIdentity.ts`);
 - размеры, aspect ratio, подписи и интерактивная область карточки не меняются;
-- первая строка получает `loading="eager"`; `fetchPriority="high"` есть
-  только у первых двух карт (`CARD_GALLERY_HIGH_PRIORITY_COUNT`, самая узкая
-  строка). Сервер не знает ширину экрана и отдаёт реальный `src` шести картам
-  самой широкой строки; React выносит их в `<link rel=preload>`, и карты 3–6
-  остаются с обычным приоритетом, который Chrome поднимает, если раскладка
-  ставит их в viewport (на десктопе да, на телефоне первая строка ниже
-  сгиба). Так телефон не тратит первые секунды на шесть карт;
+- первые две карты получают реальный `src`, `loading="eager"` и
+  `fetchPriority="high"`. Карты 3–6 используют `<picture><source media>`:
+  реальное изображение доступно сразу только на ширине своей первой строки,
+  а на более узком экране остаётся placeholder до observer-активации.
+  React не создаёт безусловный preload для `<picture>`. Сервер и первый
+  браузерный render имеют одинаковую разметку и не читают `window.innerWidth`;
 - остальные изображения получают реальный `src` только на расстоянии 320 px
-  от viewport, после чего загружаются с низким сетевым приоритетом;
+  от viewport; карты начиная с седьмой загружаются с низким сетевым приоритетом;
 - если `IntersectionObserver` недоступен, остаётся безопасный native-lazy
   fallback со всеми настоящими URL.
 
@@ -50,7 +54,14 @@
 - шире 1240 px — 6.
 
 После изменения размера окна дополнительные изображения активируются обычным
-observer-путём; уже загруженные изображения не сбрасываются.
+observer-путём или подходящим media-source; уже активированный `src` не сбрасывается.
+После ошибки CDN fallback обновляет `img.src`, отложенный URL и `source.srcset`,
+чтобы выбор `<picture>` и изменение ширины не возвращали неработающий CDN.
+После mount проверяется уже завершившееся неудачей изображение: ошибка preload
+могла произойти до подключения React-обработчика и тоже должна запустить fallback.
+
+Подробности владения: [модуль загрузки](../architecture/card-gallery-image-loading.md).
+Замер и проверка: [инструкция](../runbooks/card-catalog-performance.md).
 
 ## Команды проверки
 

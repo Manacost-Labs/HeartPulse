@@ -18,7 +18,7 @@ import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip
 import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import ConstructedCardGalleryImage, { useCardGalleryImageLoading } from './ConstructedCardGalleryImage';
-import { CARD_GALLERY_HIGH_PRIORITY_COUNT } from './cardGalleryImageLoading';
+import { CARD_GALLERY_HIGH_PRIORITY_COUNT, cardGalleryEagerMinWidth } from './cardGalleryImageLoading';
 import FilterSelect from './ConstructedCardFilterSelect';
 import {
   loadConstructedCardList,
@@ -182,7 +182,7 @@ const GalleryCard = memo(function GalleryCard({ card, index, search, format, per
         onBlur={onHide}
         onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
       >
-        <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={immediate} highPriority={index < CARD_GALLERY_HIGH_PRIORITY_COUNT} />
+        <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={immediate} highPriority={index < CARD_GALLERY_HIGH_PRIORITY_COUNT} minWidth={cardGalleryEagerMinWidth(index)} />
         <span className="constructed-cards__gallery-name">{name}</span>
         <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
       </a>

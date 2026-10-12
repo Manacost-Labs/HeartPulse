@@ -108,6 +108,12 @@ for existing callers; server and browser adapters share the same pure model.
 The module also owns catalog URL/history synchronization, debounced request
 lifecycle and bounded idle warming through injected transport ports. The legacy
 feature composes the presentation from the Next.js server seed.
+Responsive thumbnail selection and observer lifetimes belong to
+`src/modules/constructedCards/model/galleryImageLoading.ts` and
+`galleryImageObserver.ts`; the legacy image composition owns markup and React refs.
+The legacy image adapter owns the platform CDN retry, including pre-hydration
+failures; it adds no selection policy. The module stylesheet enters through
+`public.css`, keeping the catalog's existing CSS request graph.
 
 The Battlegrounds module owns hero-tier cache lifetimes and mounted-consumer
 retry scheduling and the React subscription hook. The legacy feature

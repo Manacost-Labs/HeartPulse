@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
@@ -28,6 +28,50 @@ async function withPage(runtime, viewport, fn) {
     await browser.close();
   }
 }
+
+test('catalog first-row image selection works before hydration and defers mobile rows', { timeout: 120_000 }, async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true });
+  const thumbnail = readFileSync('public/arena-logo-icon.webp');
+  const withImages = async (page, requests) => {
+    await page.setRequestInterception(true);
+    page.on('request', async request => {
+      if (new URL(request.url()).pathname.startsWith('/api/card-image/')) {
+        requests.push(request.url());
+        await request.respond({ status: 200, contentType: 'image/webp', body: thumbnail });
+      } else await request.continue();
+    });
+  };
+  try {
+    for (const [width, expected] of [[640, 2], [641, 4], [900, 4], [901, 5], [1240, 5], [1241, 6]]) {
+      await withPage(runtime, { width, height: 844 }, async page => {
+        const requests = [];
+        await withImages(page, requests);
+        await page.setJavaScriptEnabled(false);
+        await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
+        assert.equal(requests.length, expected, `at ${width}px only the matching first row loads before JavaScript`);
+      });
+    }
+    await withPage(runtime, { width: 390, height: 844, isMobile: true }, async page => {
+      const requests = [];
+      const exceptions = [];
+      page.on('pageerror', error => exceptions.push(error.message));
+      await withImages(page, requests);
+      await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
+      assert.equal(requests.length, 2, 'hydration must not start the four desktop-only images on a phone');
+      await page.$eval('.constructed-cards__gallery-card:last-child', card => card.scrollIntoView());
+      await page.waitForFunction(() => {
+        const image = document.querySelector('.constructed-cards__gallery-card:last-child img');
+        return image?.naturalWidth > 1 && !image.dataset.cardImageSrc;
+      });
+      await page.setViewport({ width: 1440, height: 900, isMobile: true });
+      await page.evaluate(() => scrollTo(0, 0));
+      await page.waitForFunction(() => [...document.querySelectorAll('.constructed-cards__gallery img')].slice(0, 6)
+        .every(image => image.naturalWidth > 1 && !image.currentSrc.startsWith('data:')));
+      assert.deepEqual(exceptions, []);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    });
+  } finally { await runtime.close(); }
+});
 
 test('card pages load their heavy parts only when a visitor asks for them', { timeout: 120_000 }, async t => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
