@@ -1,4 +1,6 @@
-import { useMemo, type CSSProperties } from 'react';
+import { useMemo } from 'react';
+import { BarChart } from '../shared/ui/analytics/BarChart';
+import '../shared/ui/analytics/Analytics.css';
 
 type ManaCurveCard = {
   cost: number;
@@ -16,25 +18,5 @@ export default function DeckManaCurve({ cards }: { cards: ManaCurveCard[] }) {
     }
     return counts;
   }, [cards]);
-  const maximum = Math.max(1, ...values);
-
-  return (
-    <section className="deck-builder__mana-curve" aria-labelledby="deck-builder-mana-curve-title">
-      <div>
-        <span className="deck-builder__eyebrow">Баланс колоды</span>
-        <h3 id="deck-builder-mana-curve-title">Кривая маны</h3>
-      </div>
-      <ol>
-        {BUCKETS.map((bucket, index) => (
-          <li key={bucket} aria-label={`${bucket} маны: ${values[index]} карт`}>
-            <span className="deck-builder__mana-bar">
-              <i style={{ '--mana-height': values[index] / maximum } as CSSProperties} />
-            </span>
-            <strong>{values[index]}</strong>
-            <small>{bucket}</small>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
+  return <BarChart title="Кривая маны" subtitle="Количество карт по стоимости" unit="count" rows={BUCKETS.map((bucket, index) => ({ label: `${bucket} маны`, value: values[index], color: '#39729b' }))} />;
 }

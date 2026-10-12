@@ -1,4 +1,6 @@
 import { WinrateMeterFill } from './WinrateMeterFill';
+import { BarChart } from '../../../shared/ui/analytics/BarChart';
+import '../../../shared/ui/analytics/Analytics.css';
 import type { ArenaClassesState } from '../model/state';
 import './ArenaClassesBoard.css';
 
@@ -22,7 +24,6 @@ export function ArenaClassesBoard({ state, onRetry }: {
   state: ArenaClassesState; onRetry: () => void;
 }) {
   const classes = state.data?.classes ?? [];
-  const maxWinrate = Math.max(...classes.map(item => item.winrate), 1);
   return (
     <section aria-label="Статистика классов" aria-busy={state.status === 'loading'}>
       {state.status === 'loading' && <div role="status">Загрузка статистики классов…</div>}
@@ -33,7 +34,7 @@ export function ArenaClassesBoard({ state, onRetry }: {
       {classes.length > 0 && <ol aria-label="Рейтинг классов" className="arena-classes-board space-y-2.5 sm:space-y-3 relative">
         {classes.map((cls, index) => {
               const icon    = CLASS_ICON_BY_ID[cls.id];
-              const barPct = Math.max((cls.winrate / maxWinrate) * 100, 6);
+              const barPct = Math.min(100, Math.max(0, cls.winrate));
 
               return (
                 <li
@@ -85,6 +86,13 @@ export function ArenaClassesBoard({ state, onRetry }: {
               );
             })}
       </ol>}
+      {classes.length > 0 && <details className="arena-classes-chart">
+        <summary>График классов и скачивание</summary>
+        <BarChart title="Винрейт классов Арены" subtitle="Доля побед · шкала от 0 до 100%" rows={classes.map(cls => ({
+          label: cls.name, value: cls.winrate, color: cls.color,
+          detail: cls.games == null ? 'Размер выборки не указан' : `${cls.games.toLocaleString('ru-RU')} игр`,
+        }))} />
+      </details>}
       {(state.status === 'error' || state.status === 'empty') && <button type="button" className="arena-classes-retry" onClick={onRetry}>
         Повторить загрузку
       </button>}

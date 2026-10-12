@@ -108,6 +108,20 @@ cached and pending reads, and disposed observers ignore late results.
 mappings owned by the Battlegrounds module. The library and card detail views
 consume this contract so new minion types keep consistent icons.
 
+## Analytics surfaces
+
+`src/shared/ui/analytics/` owns domain-independent SVG charts, observed scales,
+keyboard selection, TanStack row models, native-table surfaces and browser-local
+PNG/SVG/CSV export. Views import individual components rather than an eager
+application-wide barrel. Native-table surfaces preserve domain-owned pagination
+and sorting; they export the rendered rows and label that scope explicitly.
+
+`src/modules/battlegrounds/model/heroAnalytics.ts` normalizes hero values and
+tavern distributions. Its `ui/HeroAnalytics.tsx` and `ui/RoundAnalytics.tsx`
+compose shared charts and tables behind explicit exports in `public.ts`.
+Legacy Battlegrounds views own loading, tabs and permission checks. Analytics
+adapters perform no requests and introduce no new access path.
+
 ## Purpose
 
 The constructed-cards client module owns catalog URL state and API query

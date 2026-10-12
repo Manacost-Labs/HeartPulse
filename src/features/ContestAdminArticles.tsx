@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, ExternalLink, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { AdminFilterChips } from '../modules/adminCrm/public';
@@ -180,7 +181,7 @@ export function ContestAdminArticles({ onMessage, client = adminContentClient }:
       <p ref={summaryRef} className="admin-people-summary" role="status" tabIndex={-1}>{summary}</p>
       {visible.length ? (
         <div className="admin-people-table-wrap" aria-busy={busy}>
-          <table className="admin-people-table is-articles">
+          <TableSurface title="Статьи"><table className="admin-people-table is-articles">
             <thead>
               <tr>
                 <th scope="col">Статья</th><th scope="col">Раздел</th><th scope="col">Доступ</th><th scope="col">Дата</th><th scope="col">Читали</th>
@@ -190,7 +191,7 @@ export function ContestAdminArticles({ onMessage, client = adminContentClient }:
             <tbody>
               {visible.map(article => <ArticleRow key={article.id} article={article} reads={reads} stats={readsIndex.get(article.id)} busy={busy} onEdit={item => setEditingId(item.id)} onDelete={remove} />)}
             </tbody>
-          </table>
+          </table></TableSurface>
         </div>
       ) : !list.loading && !list.loadError && (
         <p className="admin-people-empty">{articles.length ? 'Статьи не найдены по текущим фильтрам.' : 'Статей пока нет. Нажмите «Новая статья», чтобы добавить первую.'}</p>

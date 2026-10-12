@@ -1,3 +1,4 @@
+import { TableSurface } from '../../shared/ui/analytics/TableSurface';
 import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -113,7 +114,7 @@ export function ParserRunsCard({
         )}
         {runs.length ? (
           <div className="admin-parser-run-table-wrap">
-            <table>
+            <TableSurface title="Запуски парсера"><table>
               <thead>
                 <tr>
                   <th scope="col">Запуск</th>
@@ -167,7 +168,7 @@ export function ParserRunsCard({
                   );
                 })}
               </tbody>
-            </table>
+            </table></TableSurface>
           </div>
         ) : !loadError ? <p className="admin-parser-empty" role="status">Ручных запусков ещё не было.</p> : null}
       </div>

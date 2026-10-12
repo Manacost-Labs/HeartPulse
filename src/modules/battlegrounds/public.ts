@@ -27,3 +27,6 @@ export { LibraryControls } from './ui/LibraryControls';
 
 export { createBattlegroundLibraryResource } from './model/libraryResource';
 export { useBattlegroundLibraryData } from './useLibraryData';
+
+export { HeroBarChart, HeroPowerChart, HeroTavernChart, HeroDataTable, HeroCompositionAnalytics } from './ui/HeroAnalytics';
+export { RoundAnalytics } from './ui/RoundAnalytics';

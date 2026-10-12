@@ -65,14 +65,13 @@ test('Vicious Gold reads as a ranked board and keeps its place while loading', {
     assert.ok(await page.evaluate(() => window.__layoutShift) < 0.02,
       'the access check, the loader and the statistics must share one banner and one place');
 
-    const bars = await page.$$eval('.vsgold__class-bars button', rows => rows.map(row => {
-      const track = row.querySelector('div').getBoundingClientRect().width;
-      return row.querySelector('i').getBoundingClientRect().width / track;
+    const bars = await page.$$eval('.vsgold__classes svg g[role=button]', rows => rows.map(row => {
+      const [track, value] = row.querySelectorAll('rect');
+      return value.getBoundingClientRect().width / track.getBoundingClientRect().width;
     }));
-    const leader = Math.max(...summary.classDistribution.map(item => item.frequency));
-    assert.ok(bars[0] > 0.98, 'the most popular class fills its bar');
-    summary.classDistribution.forEach((item, index) => assert.ok(Math.abs(bars[index] - item.frequency / leader) < 0.02,
-      `${item.classLabel} is drawn against the leader`));
+    assert.equal(bars.length, summary.classDistribution.length);
+    summary.classDistribution.forEach((item, index) => assert.ok(Math.abs(bars[index] - item.frequency / 100) < 0.002,
+      `${item.classLabel} is drawn on an honest 0–100% scale`));
 
     assert.equal(await page.$('.vsgold__freshness'), null, 'source and update date stay out of the banner');
 

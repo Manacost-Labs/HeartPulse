@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
 import { AdminFilterChips, loadAdminClientCard } from '../modules/adminCrm/public';
@@ -135,14 +136,14 @@ export function ContestAdminTelegram({ payload, loading, onReload, formatDate, e
       <p className="admin-people-summary" role="status">{summary}</p>
       {visible.length ? (
         <div className="admin-people-table-wrap" aria-busy={loading}>
-          <table className="admin-people-table is-telegram">
+          <TableSurface title="Telegram"><table className="admin-people-table is-telegram">
             <thead>
               <tr><th scope="col">Человек</th><th scope="col">Telegram</th><th scope="col">Доступ</th><th scope="col">VIP-группы</th></tr>
             </thead>
             <tbody>
               {visible.map(account => <TelegramRow key={account.id} account={account} formatDate={formatDate} entitlementLabels={entitlementLabels} onOpenPerson={setPersonId} />)}
             </tbody>
-          </table>
+          </table></TableSurface>
         </div>
       ) : payload && !payload.error && !loading && (
         <p className="admin-people-empty">Telegram-аккаунты не найдены по текущим фильтрам.</p>

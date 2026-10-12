@@ -57,7 +57,7 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     const visiblePanels = () => page.$$eval('[role="tabpanel"]', panels => panels.filter(panel => !panel.hidden).length);
     assert.equal(await visiblePanels(), 1);
     const statisticsLayout = await page.$eval('.bg-hero-statistics', element => {
-      const chart = element.querySelector('.bg-hero-chart-card');
+      const chart = element.querySelector('.analytics-chart');
       const panel = element.querySelector('[role="tabpanel"]:not([hidden])');
       return {
         rootWidth: element.getBoundingClientRect().width,

@@ -9,6 +9,12 @@ account identity, subscription state and class percentages are never embedded
 in shared HTML. The browser loads statistics only after entitlement or
 administrator access succeeds.
 
+Ranking meters use the actual 0–100% winrate, including a zero-width fill for
+zero wins. The expandable «График классов и скачивание» reuses the shared bar
+chart with labelled axes, source sample counts and local PNG/SVG export.
+Class icons, ranking order and loading/error/retry states remain in the compact
+ranking; unavailable sample counts are explicit rather than shown as zero.
+
 The view distinguishes initial loading, real results, an empty dataset, a
 failed request with no usable data and stale real data. A stale notice means
 that the latest update could not be confirmed, the server reports a fallback,

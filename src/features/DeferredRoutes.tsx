@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -1148,7 +1149,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
         onMouseLeave={hidePreview}
         onScroll={hidePreviewAfterViewportShift}
       >
-        <table className="min-w-[1060px] w-full border-collapse text-[13px]">
+        <TableSurface title="Рейтинг карт"><table className="min-w-[1060px] w-full border-collapse text-[13px]">
         <thead>
           <tr className="bg-gradient-to-r from-[#7a4a16] via-[#5a3000] to-[#7a4a16] text-[#ffe7a8]">
             <th className="sticky left-0 z-20 w-[340px] bg-[#6b3b0b] px-2.5 py-1.5 text-left font-hs text-xs tracking-wide">Карта</th>
@@ -1189,7 +1190,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
             </tr>
           ))}
         </tbody>
-        </table>
+        </table></TableSurface>
       </div>
     </>
   );

@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useCallback, useEffect, useState } from 'react';
 import type { AdminMessage } from './adminWorkspaceState';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
@@ -124,7 +125,7 @@ export function ContestAdminMechanicTranslations({ onMessage }: { onMessage: (me
         </div>
 
         <div className="admin-translation-table-wrap" aria-busy={loading}>
-          <table className="admin-translation-table admin-mechanic-table">
+          <TableSurface title="Переводы механик"><table className="admin-translation-table admin-mechanic-table">
             <caption className="sr-only">Переводы механик и тегов карт</caption>
             <thead><tr><th>English</th><th>Пример карты</th><th>Русский перевод</th><th aria-label="Действия" /></tr></thead>
             <tbody>{data.items.map(item => (
@@ -135,7 +136,7 @@ export function ContestAdminMechanicTranslations({ onMessage }: { onMessage: (me
                 <td><button type="button" className="contest-primary-button admin-mechanic-save" disabled={savingKey === item.key || !(drafts[item.key] || '').trim()} onClick={() => void save(item)}>{savingKey === item.key ? 'Сохраняем…' : 'Сохранить'}</button></td>
               </tr>
             ))}</tbody>
-          </table>
+          </table></TableSurface>
           {!loading && !data.items.length && <p className="contest-muted admin-translation-empty" role="status">Термины не найдены.</p>}
           {loading && <p className="contest-muted admin-translation-empty" role="status">Загружаем механики и примеры карт…</p>}
         </div>

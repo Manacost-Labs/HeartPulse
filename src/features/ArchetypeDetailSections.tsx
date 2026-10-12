@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowDownUp,
@@ -286,7 +287,7 @@ export function ArchetypeMulliganPanel({
           aria-label="Сортируемая статистика муллигана"
           tabIndex={0}
         >
-          <table className="archetype-mulligan-table">
+          <TableSurface title="Стартовая рука" density="compact"><table className="archetype-mulligan-table">
             <thead>
               <tr>
                 <th scope="col" aria-sort={ariaSort('hsreplay_rank')}>
@@ -349,7 +350,7 @@ export function ArchetypeMulliganPanel({
                 );
               })}
             </tbody>
-          </table>
+          </table></TableSurface>
         </div>
       ) : (
         <p className="archetype-analysis-panel__empty">Для текущего среза статистика муллигана ещё не собрана.</p>

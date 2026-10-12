@@ -1,3 +1,5 @@
+import '../shared/ui/analytics/Analytics.css';
+import { LineChart } from '../shared/ui/analytics/LineChart';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -247,76 +249,11 @@ function TrendChart({
   value: (point: HistoryPoint) => number | null;
   color: string;
 }) {
-  const usable = points
-    .map(point => ({ point, value: value(point) }))
-    .filter((entry): entry is { point: HistoryPoint; value: number } => entry.value !== null && Number.isFinite(entry.value));
-  const width = 620;
-  const height = 190;
-  const left = 42;
-  const right = 18;
-  const top = 18;
-  const bottom = 34;
-  const values = usable.map(entry => entry.value);
-  const rawMin = values.length ? Math.min(...values) : 0;
-  const rawMax = values.length ? Math.max(...values) : 1;
-  const padding = Math.max((rawMax - rawMin) * 0.16, unit === '%' ? 0.5 : Math.max(rawMax * 0.025, 1));
-  const min = rawMin - padding;
-  const max = rawMax + padding;
-  const span = Math.max(max - min, 1);
-  const x = (index: number) => left + (usable.length <= 1 ? (width - left - right) / 2 : (index / (usable.length - 1)) * (width - left - right));
-  const y = (entryValue: number) => top + (1 - ((entryValue - min) / span)) * (height - top - bottom);
-  const path = usable.map((entry, index) => `${index ? 'L' : 'M'} ${x(index).toFixed(1)} ${y(entry.value).toFixed(1)}`).join(' ');
-  const latest = usable.at(-1);
-
-  return (
-    <section className="archetype-trend">
-      <header>
-        <div>
-          <span>{title}</span>
-          <strong>{latest ? formatNumber(latest.value, unit) : '—'}</strong>
-        </div>
-        <small>{usable.length > 1 ? `${usable.length} срезов` : 'История накапливается'}</small>
-      </header>
-      <div
-        className="archetype-trend__viewport"
-        tabIndex={0}
-        aria-label={`${title}: прокручиваемый график`}
-      >
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title}: ${usable.length} исторических точек`}>
-          <title>{title} во времени</title>
-          <desc>График пополняется после каждого двенадцатичасового обновления HSGuru.</desc>
-          {[0, 0.5, 1].map(fraction => {
-            const rowY = top + fraction * (height - top - bottom);
-            const label = max - fraction * span;
-            return (
-              <g key={fraction} className="archetype-trend__grid">
-                <line x1={left} x2={width - right} y1={rowY} y2={rowY} />
-                <text x={left - 8} y={rowY + 4} textAnchor="end">{formatNumber(label, unit, unit === '%' ? 1 : 0)}</text>
-              </g>
-            );
-          })}
-          {usable.length > 1 && <path d={path} className="archetype-trend__line" style={{ stroke: color }} />}
-          {usable.map((entry, index) => (
-            <circle
-              key={`${entry.point.recordedAt}-${entry.value}`}
-              cx={x(index)}
-              cy={y(entry.value)}
-              r={index === usable.length - 1 ? 5 : 3.5}
-              style={{ fill: color }}
-            >
-              <title>{`${formatDate(entry.point.recordedAt)} — ${formatNumber(entry.value, unit)}`}</title>
-            </circle>
-          ))}
-          {usable[0] && <text className="archetype-trend__date" x={left} y={height - 8}>{formatDate(usable[0].point.recordedAt)}</text>}
-          {usable.length > 1 && (
-            <text className="archetype-trend__date" x={width - right} y={height - 8} textAnchor="end">
-              {formatDate(usable.at(-1)?.point.recordedAt ?? null)}
-            </text>
-          )}
-        </svg>
-      </div>
-    </section>
-  );
+  return <LineChart title={title} subtitle={`${points.length} срезов · история архетипа`}
+    unit={unit === '%' ? '%' : 'count'} color={color} domain={unit === '%' ? undefined : { minimum: 0 }}
+    points={points.filter(point => Number.isFinite(Date.parse(point.recordedAt)))
+      .map(point => ({ x: Date.parse(point.recordedAt), y: value(point), label: formatDate(point.recordedAt) }))
+      .sort((a, b) => a.x - b.x)} />;
 }
 
 type ArchetypeCatalogProps = {

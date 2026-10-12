@@ -1,3 +1,4 @@
+import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import { ConstructedCardTile, ConstructedCardsBanner, constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import { useCatalogLocation, useCatalogData, useCatalogIntentWarm, catalogLocationUrl, type CardCatalogPayload } from '../modules/constructedCards/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
@@ -252,7 +253,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
   return (
     <>
       <div className="constructed-cards__table-wrap">
-        <table className="constructed-cards__table">
+        <TableSurface title="Карты" density="compact"><table className="constructed-cards__table">
           <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
           <tbody>
             {cards.map((card, index) => (
@@ -282,7 +283,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableSurface>
       </div>
       {preview && <CardPreviewTooltip preview={preview} />}
     </>

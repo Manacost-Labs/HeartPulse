@@ -162,6 +162,25 @@ The public shell groups secondary destinations instead of filling the rail with 
 - Multi-column archetype galleries initially show the first five rows; an explicit `44px` control expands or collapses the complete deck without discarding cards or hiding the copy action. Fun Decks remain the complete six-column comparison: every main-deck and sideboard entry is visible and no reveal control is used. Their default order is newest `firstSeenAt` first, with an optional fun-score order, a visible dataset refresh time and a “Новая” badge for entries added within 72 hours of that refresh.
 - The interactive deck builder may keep `44px` rows solely to preserve its controls, while retaining the same HSReplay visual structure.
 
+## Statistics And Data Visualization
+
+Use the shared `src/shared/ui/analytics/` surfaces for charts and tables.
+Keep one quiet parchment card per chart, a visible title, labelled units and
+tabular numerals. Use solid violet, green, blue and gold series colours rather
+than gradients. Percentage bars use a stated 0–100% scale; sample counts never
+acquire a negative axis. Average Battleground placement uses the 1–8 scale.
+
+Dense histories show one selected marker. Missing observations break the line;
+numeric turn gaps keep their distance. Pointer and range controls share the
+selected value, and the range remains available to keyboard users. Charts fit
+the viewport with readable text; wide tables scroll inside a labelled region.
+
+Chart headers expose PNG and SVG downloads. The exported image includes its
+title, units, selected observation when available and HearthPulse attribution.
+Tables offer CSV with the export scope stated; native tables preserve their
+existing server sorting and pagination. The meta map labels its selected point
+and provides a selector and a popularity filter to reduce crowded clusters.
+
 ## Navigation
 
 - Desktop rail uses red texture, a compact HearthPulse fire-mark, gold icons and expressive cream text.

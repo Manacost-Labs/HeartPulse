@@ -172,7 +172,8 @@
         "tests/loading-keyframes.test.mjs",
         "tests/loading-surface.test.tsx",
         "tests/next-public-first-paint-loaders.test.ts",
-        "tests/battleground-builder-workbench.test.ts"
+        "tests/battleground-builder-workbench.test.ts",
+        "tests/data-visualizations.test.ts"
       ]
     },
     {
