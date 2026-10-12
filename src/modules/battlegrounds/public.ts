@@ -24,3 +24,6 @@ export { battlegroundMinionIconByRussianName, battlegroundMinionIconBySlug } fro
 export { battlegroundBuilderWorkbenchV1 } from './legacy/builderWorkbench';
 
 export { LibraryControls } from './ui/LibraryControls';
+
+export { createBattlegroundLibraryResource } from './model/libraryResource';
+export { useBattlegroundLibraryData } from './useLibraryData';

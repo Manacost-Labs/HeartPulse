@@ -212,7 +212,6 @@ const BG_DUO_FALLBACK_DETAIL_IDS = new Set(['107183', '104981', '104982']);
 let bgHeroLibraryClientCache: Map<number, any> | null = null;
 let bgHeroLibraryRequest: Promise<Map<number, any>> | null = null;
 let bgHeroImageMapClientCache: Record<string, string> | null = null;
-let bgHeroPrefetchStarted = false;
 const BattlegroundHeroLedger = React.lazy(() => import('./BattlegroundHeroLedger'));
 
 function bgHeroModeFromValue(value: unknown): BattlegroundHeroMode {
@@ -456,7 +455,7 @@ async function bgFetchLiveHeroSlice(
       if (!response.ok || payload?.ok === false) throw new Error(payload?.error || 'API героев временно недоступен');
       return payload;
     }),
-    bgLoadHeroLibrary(),
+    bgLoadHeroLibrary().catch(() => new Map()),
     bgLoadHeroImageMap(),
   ]);
   const sections = groupBgHeroesFromApi(apiPayload, imageByDbfId, libraryByDbfId);
@@ -480,43 +479,6 @@ const bgHeroTierResource = createBattlegroundHeroTierResource({
   loadLive: bgFetchLiveHeroSlice,
   loadSnapshot: bgLoadHeroSnapshot,
 });
-
-function bgScheduleHeroPrefetch(
-  selectedMode: BattlegroundHeroMode,
-  selectedMmr: BattlegroundHeroMmr,
-): () => void {
-  if (typeof window === 'undefined' || bgHeroPrefetchStarted) return () => {};
-  bgHeroPrefetchStarted = true;
-  let cancelled = false;
-  const otherMode: BattlegroundHeroMode = selectedMode === 'solo' ? 'duos' : 'solo';
-  const targets: Array<[BattlegroundHeroMode, BattlegroundHeroMmr]> = [
-    ...BG_HERO_MMR_OPTIONS.filter(option => option.id !== selectedMmr).map(
-      option => [selectedMode, option.id] as [BattlegroundHeroMode, BattlegroundHeroMmr],
-    ),
-    [otherMode, selectedMmr],
-    ...BG_HERO_MMR_OPTIONS.filter(option => option.id !== selectedMmr).map(
-      option => [otherMode, option.id] as [BattlegroundHeroMode, BattlegroundHeroMmr],
-    ),
-  ];
-
-  const timer = window.setTimeout(() => {
-    const queue = targets.filter(([targetMode, targetMmr]) => !bgHeroTierResource.peek(targetMode, targetMmr));
-    const worker = async () => {
-      while (!cancelled) {
-        const target = queue.shift();
-        if (!target) return;
-        await bgHeroTierResource.load(target[0], target[1]).catch(() => undefined);
-      }
-    };
-    void Promise.all([worker(), worker()]);
-  }, 350);
-
-  return () => {
-    cancelled = true;
-    bgHeroPrefetchStarted = false;
-    window.clearTimeout(timer);
-  };
-}
 
 function bgHeroLibraryForDetail(libraryHero: any, dbfId: number): any {
   const skinGroups = Array.isArray(libraryHero?.wiki?.hero_skins) ? libraryHero.wiki.hero_skins : [];
@@ -3533,8 +3495,6 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
   const { sections, loading, error } = useBattlegroundHeroTierData(bgHeroTierResource, mode, mmr);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
-  useEffect(() => bgScheduleHeroPrefetch(initialUrlState.mode, initialUrlState.mmr), [initialUrlState.mmr, initialUrlState.mode]);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
@@ -3583,6 +3543,8 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
                   type="button"
                   aria-pressed={mode === option.id}
                   title={option.hint}
+                  onPointerEnter={() => { void bgHeroTierResource.load(option.id, mmr).catch(() => undefined); }}
+                  onFocus={() => { void bgHeroTierResource.load(option.id, mmr).catch(() => undefined); }}
                   onClick={() => setMode(option.id)}
                 >
                   {option.label}
@@ -3599,6 +3561,8 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
                   key={option.id}
                   type="button"
                   aria-pressed={mmr === option.id}
+                  onPointerEnter={() => { void bgHeroTierResource.load(mode, option.id).catch(() => undefined); }}
+                  onFocus={() => { void bgHeroTierResource.load(mode, option.id).catch(() => undefined); }}
                   onClick={() => setMmr(option.id)}
                 >
                   {option.label}

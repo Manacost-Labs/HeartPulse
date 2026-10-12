@@ -1,22 +1,22 @@
 .arena-app-battlegrounds .bg-library-page > .bg-library-controls {
   padding: clamp(0.875rem, 2vw, 1rem);
-  border: 12px solid transparent !important;
+  border: 8px solid transparent !important;
   border-radius: 0 !important;
-  border-image: url('/wallpaper/main-page-rail-border.png') 13 / 12px / 0 stretch !important;
+  border-image: url('/wallpaper/main-page-rail-border.png') 13 / 8px / 0 stretch !important;
   background: var(--arena-parchment-panel, #fff3d4) !important;
   box-shadow: 0 5px 12px rgba(59, 28, 12, 0.14) !important;
   color: #3a291d;
 }
 .arena-app-battlegrounds .bg-library-controls::after { display: none !important; }
 .bg-library-controls-heading, .bg-library-catalog-selects { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
-.bg-library-controls-heading { justify-content: space-between; margin-bottom: 0.75rem; }
-.bg-library-controls-heading p { margin: 0; font-size: 0.875rem; }
+.bg-library-controls-heading { justify-content: flex-start; margin-bottom: 0.75rem; }
+.bg-library-controls-heading p { margin: 0 0 0 auto; font-size: 0.875rem; }
 .bg-library-control-select { display: grid; gap: 0.25rem; min-width: 0; font-size: 0.875rem; }
 .bg-library-control-select > span { font-weight: 700; }
 .bg-library-controls select { width: 100%; min-height: 44px; padding: 0.5rem 2rem 0.5rem 0.75rem; }
 .bg-library-control-search { position: relative; display: flex; align-items: center; margin-bottom: 0.75rem; }
 .bg-library-control-search > svg { position: absolute; left: 0.75rem; pointer-events: none; }
-.bg-library-controls .bg-library-control-search input { width: 100%; min-width: 0; min-height: 44px; padding: 0.5rem 0.75rem 0.5rem 2.5rem; border-radius: 0.25rem !important; }
+.bg-library-controls .bg-library-control-search input { width: 100%; min-width: 0; min-height: 44px; padding: 0.5rem 2.75rem 0.5rem 2.5rem; border-radius: 0.25rem !important; }
 .bg-library-control-row { display: flex; align-items: flex-start; gap: 0.75rem; border: 0; padding: 0; margin: 0.625rem 0; min-width: 0; }
 .bg-library-control-row legend { float: left; width: 7.5rem; flex-shrink: 0; padding: 0.75rem 0 0; font-size: 0.875rem; font-weight: 700; }
 .bg-library-control-row > div { display: flex; flex-wrap: wrap; gap: 0.375rem; min-width: 0; }
@@ -36,10 +36,18 @@
 .arena-app-battlegrounds .bg-library-controls .bg-library-control-advanced {
   padding: 0; margin-top: 0.75rem; border: 0 !important; background: transparent !important; box-shadow: none !important;
 }
-.bg-library-control-advanced summary { display: flex; align-items: center; gap: 0.375rem; min-height: 44px; width: fit-content; cursor: pointer; font-weight: 700; font-size: 0.875rem; list-style: none; }
+.arena-app-battlegrounds .bg-library-controls .bg-library-control-advanced > summary {
+  display: flex; align-items: center; gap: 0.5rem; min-height: 44px; width: 14rem; max-width: 100%;
+  padding: 0 0.75rem; margin: 0; border: 1px solid #c7ad86 !important; border-radius: 0.375rem;
+  background: #f5e8c9; color: #493225; cursor: pointer; font-weight: 700; font-size: 0.875rem;
+  line-height: 1.25; list-style: none; transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.arena-app-battlegrounds .bg-library-controls .bg-library-control-advanced > summary:hover { background: #efdfba; }
+.arena-app-battlegrounds .bg-library-controls .bg-library-control-advanced > summary:focus-visible { outline-offset: 2px; }
 .bg-library-control-advanced summary::-webkit-details-marker { display: none; }
-.bg-library-control-advanced[open] summary svg { transform: rotate(180deg); }
-.bg-library-control-advanced-fields { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; padding-top: 0.5rem; }
+.bg-library-advanced-chevron { margin-left: auto; flex: 0 0 auto; transition: none; }
+.bg-library-control-advanced[open] .bg-library-advanced-chevron { transform: rotate(180deg); }
+.bg-library-control-advanced-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 0.75rem; align-items: end; padding-top: 0.75rem; }
 .bg-library-control-duos { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; font-size: 0.875rem; }
 .bg-library-control-duos input { width: 1rem; height: 1rem; accent-color: #641722; }
 .bg-library-active-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid rgba(99, 56, 29, 0.2); margin-top: 0.5rem; padding-top: 0.5rem; }
@@ -64,3 +72,25 @@
   }
   .bg-library-control-row + .bg-library-control-row .bg-library-choice { flex-shrink: 0; }
 }
+
+.bg-library-catalog-seal { flex: 0 0 auto; }
+.bg-library-search-clear { position: absolute; right: 0.25rem; display: grid; place-items: center; width: 40px; height: 40px; background: transparent; border: 0; }
+.arena-app-battlegrounds .bg-library-controls .bg-library-advanced-count { display: grid; place-items: center; flex: 0 0 22px; height: 22px; background: #e4cea2; color: #493225 !important; border-radius: 4px; font-size: 0.75rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.bg-library-advanced-count[data-empty='true'] { visibility: hidden; }
+.bg-library-quick-mechanics { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.75rem; }
+.bg-library-controls .bg-library-control-duos { padding: 0.5rem 0.625rem; border: 1px dashed rgba(99, 56, 29, 0.34); border-radius: 0.375rem; }
+.arena-app-battlegrounds .bg-library-page > .bg-library-results { background: transparent !important; border: 0; box-shadow: none !important; }
+.arena-app-battlegrounds .bg-library-page > .bg-library-results::after { display: none; }
+.arena-app-battlegrounds .bg-library-card-caption { background: transparent; border: 0; box-shadow: none; }
+@media (max-width: 640px) {
+  .bg-library-catalog-seal { width: 36px; height: 36px; }
+  .bg-library-controls-heading .bg-library-catalog-selects { flex: 1; width: auto; }
+  .bg-library-controls-heading p { width: 100%; margin: 0; }
+}
+@media (max-width: 480px) {
+  .bg-library-controls-heading .bg-library-catalog-selects { order: -1; flex-basis: 100%; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .bg-library-controls-heading p { flex: 1; width: auto; }
+  .bg-library-catalog-seal { width: 28px; height: 28px; }
+}
+
+.arena-app-battlegrounds [data-library-card-tile]:focus-visible .bg-library-golden-image { opacity: 1; transform: translateX(2rem); }

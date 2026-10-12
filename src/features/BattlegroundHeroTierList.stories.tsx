@@ -25,8 +25,8 @@ type Story = StoryObj<typeof meta>;
 export const LiveRankings: Story = {
   play: async ({ canvas, args }) => {
     const hero = await canvas.findByRole('link', { name: /Алекстраза/ });
-    await expect(canvas.getByText(/HSReplay · Соло/)).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Топ 50%' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.click(hero);
-    await expect(args.onNavigate).toHaveBeenCalledWith('/heroes/61488');
+    await expect(args.onNavigate).toHaveBeenCalledWith('/heroes/61488/');
   },
 };

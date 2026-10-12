@@ -114,6 +114,8 @@ fontTools 4.66.1: `TTFont("2318-font.otf")`, `flavor = "woff2"`, `save(...)`.
 | Компактная деревянная рама | `wallpaper/deck-border.png` | <https://arena.hs-manacost.ru/wallpaper/deck-border.png> | Поиск, статусы, небольшие карточки |
 | BG-внешняя рама | `wallpaper/wiki-battlegrounds-skin.webp` | <https://arena.hs-manacost.ru/wallpaper/wiki-battlegrounds-skin.webp> | Конструкторы и крупные BG-поверхности |
 | BG-вывеска | `wallpaper/battlegrounds-bartender-header.webp` | <https://arena.hs-manacost.ru/wallpaper/battlegrounds-bartender-header.webp> | Заголовок Полей Сражений |
+| Медальон библиотеки BG | `bg-library-catalog-seal-v1.svg` | <https://hearthpulse.net/bg-library-catalog-seal-v1.svg> | Локальный авторский SVG книги в бронзовой оправе, декоративный значок фильтров; фиксированные размеры, без внешних запросов |
+| Щиты тиров героев BG | `bg-tier-emblem-{s,a,b,c,d}-v1.svg` | <https://hearthpulse.net/bg-tier-emblem-s-v1.svg> | Пять локальных авторских SVG с буквами S–D, бронзовой оправой и разными цветами эмали; без скриптов и внешних ресурсов |
 | Орнамент заголовка | `wallpaper/main-page-header.svg` | <https://arena.hs-manacost.ru/wallpaper/main-page-header.svg> | Mask для коротких заголовков |
 | Персонаж главной | `wallpaper/home-paladin-hero.webp` | <https://arena.hs-manacost.ru/wallpaper/home-paladin-hero.webp> | Мурал главного Arena-блока; сайт отдаёт `home-paladin-hero-{720,960,1280}.avif` через `<picture>` (18–43 KB вместо 157 KB) |
 | Профильная таверна | `wallpaper/profile-hero-hth.webp` | <https://arena.hs-manacost.ru/wallpaper/profile-hero-hth.webp> | Фон профиля и арт баннера страниц; баннер берёт `profile-hero-hth-1430.avif` (46 KB вместо 65 KB) там, где браузер понимает `image-set()` с `type()` |

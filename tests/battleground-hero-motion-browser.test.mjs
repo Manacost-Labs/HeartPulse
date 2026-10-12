@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
+
+const axe = readFileSync(new URL(import.meta.resolve('axe-core')), 'utf8');
 
 test('hero detail keeps buddies aligned and statistics navigable without a chart wall', async () => {
   // The stories render the heroes route on fixture data: a hero with a buddy
@@ -138,4 +140,86 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     await browser?.close();
     await storybook.close();
   }
+});
+
+test('hero ledger keeps SVG tier ranks, sorting and readable cells on desktop and mobile', async () => {
+  const runtime = await startStorybookStatic();
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    page.on('pageerror', error => errors.push(error.message));
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewport({ width, height: 900 });
+      await page.goto(runtime.storyUrl('battlegrounds-hero-ledger--tier-groups'), { waitUntil: 'networkidle0' });
+      await page.waitForSelector('.bg-hero-ledger__tier-mark img');
+      await page.evaluate(axe);
+      const state = await page.evaluate(async () => ({
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        ranks: [...document.querySelectorAll('.bg-hero-ledger__tier-mark img')].map(image => ({ alt: image.alt, loaded: image.complete && image.naturalWidth > 0 })),
+        cells: [...document.querySelectorAll('.bg-hero-ledger__row')].map(row => row.querySelectorAll('[role=cell]').length),
+        violations: (await axe.run(document.querySelector('.bg-hero-ledger'), { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(item => item.id),
+      }));
+      assert.equal(state.overflow, false, `${width}px table overflow`);
+      assert.deepEqual(state.ranks.map(rank => rank.alt), ['Тир S', 'Тир A', 'Тир B', 'Тир C', 'Тир D']);
+      assert.ok(state.ranks.every(rank => rank.loaded));
+      assert.ok(state.cells.every(count => count === 6));
+      assert.deepEqual(state.violations, [], `${width}px table accessibility`);
+      const sort = width <= 1120 ? '.bg-hero-ledger__mobile-sort' : '.bg-hero-ledger__header';
+      await page.click(`${sort} button::-p-text(${width <= 1120 ? 'Место' : 'Среднее место'})`);
+      await page.waitForSelector('.bg-hero-ledger__row--flat');
+      assert.equal(await page.$$eval('.bg-hero-ledger__row--flat', rows => rows.length), 5);
+      assert.equal(await page.$eval('.bg-hero-ledger__row--flat .bg-hero-ledger__tier-emblem img', image => image.alt), 'Тир S');
+      await page.click(`${sort} button::-p-text(${width <= 1120 ? 'Место' : 'Среднее место'})`);
+      await page.waitForFunction(() => document.querySelector('.bg-hero-ledger__row--flat .bg-hero-ledger__tier-emblem img')?.alt === 'Тир D');
+    }
+    assert.deepEqual(errors, [], 'table stories and sorting produce no console errors');
+  } finally { await browser.close(); await runtime.close(); }
+});
+
+test('hero filters preserve Top 1% errors and discard late responses after a fast switch', async () => {
+  const runtime = await startStorybookStatic();
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    const consoleErrors = [];
+    page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+    page.on('pageerror', error => consoleErrors.push(error.message));
+    await page.goto(runtime.storyUrl('battlegrounds-hero-tier-list--live-rankings'));
+    await page.waitForSelector('.bg-heroes-page a[href="/heroes/61488/"]');
+    await page.evaluate(() => {
+      const originalFetch = globalThis.fetch;
+      globalThis.heroFilterRequests = [];
+      globalThis.fetch = async (input, init) => {
+        const url = new URL(String(input), location.origin);
+        if (url.pathname === '/bg-legacy/tier-data.js') {
+          globalThis.heroFilterRequests.push('snapshot');
+          throw new Error('Unfiltered snapshot must not be requested');
+        }
+        if (url.pathname !== '/api/bg/heroes') return originalFetch(input, init);
+        const mmr = url.searchParams.get('mmr');
+        globalThis.heroFilterRequests.push(mmr);
+        if (mmr === 'TOP_1_PERCENT') return Response.json({ ok: false, error: 'Нет данных для Топ 1% (проверка)' }, { status: 503 });
+        if (mmr === 'TOP_20_PERCENT') await new Promise(resolve => setTimeout(resolve, 300));
+        return Response.json({ ok: true, fetched_at: '2026-10-12T12:00:00Z', heroes: [{
+          dbfId: 61488, hero: 'Алекстраза', tier: 'A', pick_rate: '12%',
+          avg_placement: mmr === 'TOP_5_PERCENT' ? 3.51 : 4.91,
+        }] });
+      };
+    });
+    await page.click('button::-p-text(Топ 1%)');
+    await page.waitForFunction(() => document.querySelector('.bg-heroes-page [role=alert]')?.textContent.includes('Нет данных для Топ 1%'));
+    assert.equal(await page.$$eval('.bg-heroes-page a[href="/heroes/61488/"]', links => links.length), 0);
+    await page.click('button::-p-text(Топ 20%)');
+    await page.click('button::-p-text(Топ 5%)');
+    await page.waitForFunction(() => document.querySelector('.bg-heroes-page').innerText.includes('3,51'));
+    // Wait beyond the deliberately delayed Top 20% response.
+    await new Promise(resolve => setTimeout(resolve, 400));
+    assert.ok(await page.$eval('.bg-heroes-page', element => element.innerText.includes('3,51') && !element.innerText.includes('4,91')));
+    assert.equal(await page.$eval('button::-p-text(Топ 5%)', button => button.getAttribute('aria-pressed')), 'true');
+    assert.ok(new URL(page.url()).searchParams.get('mmr') === 'TOP_5_PERCENT');
+    assert.deepEqual(await page.evaluate(() => globalThis.heroFilterRequests), ['TOP_1_PERCENT', 'TOP_20_PERCENT', 'TOP_5_PERCENT']);
+    assert.deepEqual(consoleErrors, [], 'the live-ranking story and rapid switches produce no console errors');
+  } finally { await browser.close(); await runtime.close(); }
 });

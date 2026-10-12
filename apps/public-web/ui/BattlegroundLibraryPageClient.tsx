@@ -19,7 +19,7 @@ export function BattlegroundLibraryPageClient({ pathname, heading, description }
   return <PublicPageShell activeTab="bg-library" pathname={pathname}
     access={access} navigate={navigate} wide>
     {allowed
-      ? <BgLibrary key={`${pathname}:${access.user?.id}`} currentPath={pathname} navigatePath={navigate} />
+      ? <BgLibrary key={`${pathname}:${access.user?.id}`} currentPath={pathname} navigatePath={navigate} cacheScope={access.user ? String(access.user.id) : undefined} />
       : <section className="space-y-5">
         <SectionBanner title={heading} subtitle={description} />
         {access.checking

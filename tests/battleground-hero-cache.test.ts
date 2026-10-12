@@ -89,4 +89,12 @@ assert.ok(complete);
 complete(data('live'));
 await flush();
 assert.deepEqual(lateUpdates, [], 'an unmounted consumer receives no late callbacks');
-console.log('Battlegrounds snapshot expiry, retry, recovery and disposal tests passed');
+
+recovered = false;
+for (const filteredMmr of ['TOP_20_PERCENT', 'TOP_5_PERCENT', 'TOP_1_PERCENT'] as const) {
+  const beforeSnapshots = snapshotCalls;
+  await assert.rejects(resource.load('solo', filteredMmr), /offline/, 'filtered rankings cannot use an unfiltered snapshot');
+  assert.equal(snapshotCalls, beforeSnapshots);
+  assert.equal(resource.peek('solo', filteredMmr), null);
+}
+console.log('Battlegrounds snapshot expiry, filter isolation, retry, recovery and disposal tests passed');

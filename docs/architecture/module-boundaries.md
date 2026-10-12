@@ -97,6 +97,10 @@ view performs no data requests or permission checks.
 The surface reuses the site's timber border asset, renders the seven tavern-tier
 badges with accessible button names, and clips creature icons to circular badges.
 These presentation rules preserve the library query and pool membership contracts.
+The same module owns the injected browser-memory library resource and its React
+observer. The legacy listing supplies transport and normalization; Next composition
+supplies the viewer scope after the permission gate. Scope changes invalidate
+cached and pending reads, and disposed observers ignore late results.
 
 ## Battlegrounds minion type icons
 
