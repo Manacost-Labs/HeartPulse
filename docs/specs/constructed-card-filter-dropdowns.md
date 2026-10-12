@@ -108,3 +108,23 @@ The compact banner has no rank or subscription badge; locked statistical sort
 options continue to enforce the existing subscription contract. Mobile view
 buttons retain at least a 44 px touch target. Table checks cover readable Koloda
 tiles and the absence of the HSReplay deck renderer.
+
+## Compact catalog and mulligan tiles
+
+The catalog table limits the card link to 280 × 56 px. Archetype mulligan
+statistics reuse `ConstructedCardTile` through the constructed-card public
+contract, including lazy image loading and its readable artwork/name fallback.
+Both ready and missing tiles reserve the same 5:1 frame (at most 320 × 64 px),
+so a provider tile cannot enlarge one row. The full card stays available on
+hover, focus and opening the card.
+
+The protected archetype detail response adds optional `tile`, `artwork` and
+`rarity` fields to each analysis card. One cached catalog read supplies these
+fields, matched by card ID or DBF ID. Catalog failure leaves statistics intact;
+missing `images.tile` uses the existing horizontal artwork fallback. Provider
+images pass through the existing allowlisted public-resource proxy.
+
+Verification: `npx tsx tests/constructed-archetype-routes.test.ts`,
+`node tests/constructed-archetypes-browser.test.mjs`, `npm run lint`,
+`npm run lint:architecture`, `npm run build-storybook`, and real-browser review
+at desktop and mobile widths.

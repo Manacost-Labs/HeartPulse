@@ -7588,12 +7588,12 @@ app.use('/api', createStandardMetaRouter({
     error instanceof Error ? error.message : error,
   ),
 }));
-
 app.use('/api', createConstructedArchetypeRouter({
   accessGuard: requireStandardAccess,
   loadCatalog: loadConstructedArchetypeCatalog,
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
+  loadCardCatalog: constructedCardDataService.loadCards,
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-archetypes] ${scope} failed:`,

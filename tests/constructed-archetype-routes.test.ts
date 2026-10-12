@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
+import { withCatalogCardMedia } from '../server/modules/constructedCards/public.js';
 import {
   createConstructedArchetypeRouter,
   constructedArchetypeSlug,
   type ConstructedArchetypeCatalog,
   type ConstructedArchetypeRouterDependencies,
 } from '../server/constructedArchetypeRoutes.js';
+
+assert.equal(withCatalogCardMedia([{ cardId: null, dbfId: null }], [
+  { card_id: null, dbf: null, images: { tile: 'wrong-card.png' } },
+])[0].tile, null, 'missing identities must never match an unrelated catalog card');
+assert.equal(withCatalogCardMedia([{ cardId: 'TOY_330', dbfId: null }], [
+  { card_id: 'TOY_330', images: { tile: 'same-card.png' } },
+])[0].tile, 'same-card.png', 'card identity supplies media without a DBF');
 
 const catalog: ConstructedArchetypeCatalog = {
   format: 'wild',
@@ -49,6 +57,7 @@ const accessGuard: RequestHandler = (request, response, next) => {
   next();
 };
 
+let mediaAvailable = true;
 const dependencies: ConstructedArchetypeRouterDependencies = {
   accessGuard,
   setPrivateNoStore: response => {
@@ -65,6 +74,7 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
     durationMinutes: 8,
     climbingSpeed: 1.24,
   }],
+  loadCardCatalog: async () => { if (!mediaAvailable) throw new Error('Catalog unavailable'); return { cards: [{ card_id: 'different-id', dbf: 123, rarity: 'EPIC', images: { tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TOY_330.webp' } }] }; },
   loadAnalysis: async () => ({
     rank: 'legend',
     period: 'past_week',
@@ -155,6 +165,14 @@ try {
   assert.equal(detailBody.analysis.classMatchups[0].classKey, 'mage');
   assert.equal(detailBody.analysis.cardStats[0].mulliganImpact, 4.8);
   assert.equal(detailBody.analysis.cardStats[0].cost, 3);
+  assert.equal(detailBody.analysis.cardStats[0].tile, 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png');
+  assert.equal(detailBody.analysis.cardStats[0].rarity, 'EPIC');
+  mediaAvailable = false;
+  const withoutMedia = await fetch(`${origin}/wild/thief-priest`, { headers });
+  assert.equal(withoutMedia.status, 200);
+  const withoutMediaBody = await withoutMedia.json() as any;
+  assert.equal(withoutMediaBody.analysis.cardStats[0].tile, null);
+  assert.equal(withoutMediaBody.analysis.cardStats[0].mulliganImpact, 4.8);
 
   assert.equal((await fetch(`${origin}/classic/thief-priest`, { headers })).status, 400);
   assert.equal((await fetch(`${origin}/wild/missing`, { headers })).status, 404);

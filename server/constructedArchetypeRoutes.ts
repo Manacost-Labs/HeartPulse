@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
+import { withCatalogCardMedia, loadCatalogCardMedia, type CatalogCardMedia } from './modules/constructedCards/public.js';
 
 export type ConstructedArchetypeFormat = 'standard' | 'wild';
 
@@ -62,7 +63,7 @@ export type ConstructedArchetypeCardStat = {
   drawnCount: number | null;
   keptImpact: number | null;
   keptCount: number | null;
-};
+} & CatalogCardMedia;
 
 export type ConstructedArchetypeAnalysis = {
   rank: 'legend';
@@ -97,11 +98,9 @@ export type ConstructedArchetypeRouterDependencies = {
     format: ConstructedArchetypeFormat,
     archetype: string,
   ) => Promise<ConstructedArchetypeHistoryPoint[]>;
-  loadAnalysis: (
-    format: ConstructedArchetypeFormat,
-    archetype: string,
-  ) => Promise<ConstructedArchetypeAnalysis | null>;
-  onError?: (scope: 'catalog' | 'detail' | 'history' | 'analysis', error: unknown) => void;
+  loadCardCatalog?: (format: ConstructedArchetypeFormat) => Promise<{ cards: Record<string, unknown>[] }>;
+  loadAnalysis: (format: ConstructedArchetypeFormat, archetype: string) => Promise<ConstructedArchetypeAnalysis | null>;
+  onError?: (scope: 'catalog' | 'detail' | 'history' | 'analysis' | 'media', error: unknown) => void;
 };
 
 const FORMATS = new Set<ConstructedArchetypeFormat>(['standard', 'wild']);
@@ -146,7 +145,6 @@ export function createConstructedArchetypeRouter(
   dependencies: ConstructedArchetypeRouterDependencies,
 ): Router {
   const router = Router();
-
   router.get('/constructed-archetypes/teaser', async (request, response) => {
     const format = readFormat(request.query.format);
     if (!format) return response.status(400).json({ error: 'Неизвестный формат' });
@@ -238,12 +236,13 @@ export function createConstructedArchetypeRouter(
       const catalog = await dependencies.loadCatalog(format);
       const item = catalog.items.find(row => row.slug === slug);
       if (!item) return response.status(404).json({ error: 'Архетип не найден в текущей мете' });
-      const [history, analysis] = await Promise.all([
+      const [history, analysis, cardCatalog] = await Promise.all([
         dependencies.loadHistory(format, item.archetype),
         dependencies.loadAnalysis(format, item.archetype).catch(error => {
           dependencies.onError?.('analysis', error);
           return null;
         }),
+        loadCatalogCardMedia(format, dependencies.loadCardCatalog, error => dependencies.onError?.('media', error)),
       ]);
       return response.json({
         format: catalog.format,
@@ -253,7 +252,7 @@ export function createConstructedArchetypeRouter(
         updatedAt: catalog.updatedAt,
         item,
         history,
-        analysis,
+        analysis: analysis ? { ...analysis, cardStats: withCatalogCardMedia(analysis.cardStats, cardCatalog) } : null,
       });
     } catch (error) {
       dependencies.onError?.('detail', error);

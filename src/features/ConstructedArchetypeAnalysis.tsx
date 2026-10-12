@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { constructedCardHorizontalArtwork, fallbackConstructedCardArtwork } from '../modules/constructedCards/public';
+import { ConstructedCardTile, constructedCardHorizontalArtwork } from '../modules/constructedCards/public';
 import {
   ArrowDownUp,
   ChevronDown,
@@ -18,6 +18,8 @@ import {
   type HsguruCardStatSort,
   type HsguruCardStatSortKey,
 } from './archetypeDetailModel';
+import { publicResourceUrl } from '../publicResourceUrl';
+import '../modules/constructedCards/public.css';
 import './ConstructedArchetypeAnalysis.css';
 
 const CardPreviewSheet = React.lazy(() => import('./CardPreviewSheet'));
@@ -48,6 +50,9 @@ export type ConstructedCardStat = {
   dbfId: number | null;
   cardName: string;
   cost: number | null;
+  tile?: string | null;
+  artwork?: string | null;
+  rarity?: string | null;
   mulliganImpact: number | null;
   mulliganCount: number;
   drawnImpact: number | null;
@@ -262,24 +267,13 @@ function CardTile({
   onPreviewEnd: () => void;
 }) {
   const content = (
-    <>
-      {row.cardId ? (
-        <img
-          className="constructed-card-tile__art"
-          src={constructedCardHorizontalArtwork(row.cardId)}
-          onError={event => fallbackConstructedCardArtwork(event.currentTarget, row.cardId)}
-          width="320"
-          height="64"
-          loading="lazy"
-          decoding="async"
-          alt=""
-          aria-hidden="true"
-        />
-      ) : null}
-      <span className="constructed-card-tile__fade" aria-hidden="true" />
-      <span className="constructed-card-tile__mana" aria-hidden="true">{row.cost ?? '—'}</span>
-      <strong>{row.cardName}</strong>
-    </>
+    <ConstructedCardTile
+      name={row.cardName}
+      cost={row.cost}
+      tile={publicResourceUrl(row.tile)}
+      artwork={publicResourceUrl(row.artwork) || (row.cardId ? constructedCardHorizontalArtwork(row.cardId) : null)}
+      rarity={row.rarity}
+    />
   );
 
   if (!row.cardId) {

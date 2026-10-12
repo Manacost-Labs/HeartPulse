@@ -113,6 +113,7 @@ const detail = {
       dbfId: card.dbfId,
       cardName: card.name,
       cost: card.cost,
+      tile: index % 6 === 0 ? null : `https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/${card.id}-fixture.png`,
       mulliganImpact: 6.8 - index * 0.62,
       mulliganCount: 3_480 - index * 91,
       drawnImpact: 4.9 - index * 0.51,

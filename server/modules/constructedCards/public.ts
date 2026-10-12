@@ -50,3 +50,5 @@ export { isIndexableConstructedCard, projectPublicConstructedCardSeoData } from 
 export type { PublicConstructedCardSeoData } from './publicCardProjection.js';
 export { createConstructedCardReader } from './publicCardReader.js';
 export { createPublicCardRouter } from './publicCardRoutes.js';
+export { withCatalogCardMedia, loadCatalogCardMedia } from './catalogCardMedia.js';
+export type { CatalogCardMedia } from './catalogCardMedia.js';

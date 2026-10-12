@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
 import { ConstructedCardTile } from './ConstructedCardTile';
 import './CatalogPresentation.css';
 
@@ -18,4 +19,14 @@ export const RarityGlow: Story = {
         <ConstructedCardTile {...args} name={rarity} rarity={rarity} />
       </a>)}
   </div>,
+};
+
+export const CompactRow: Story = {
+  args: { name: 'Очень длинное название карты в компактной таблице' },
+  decorators: [Story => <div style={{ width: 280 }}><Story /></div>],
+  play: async ({ canvasElement }) => {
+    const tile = canvasElement.querySelector('.constructed-catalog-tile');
+    await expect(tile?.getBoundingClientRect().width).toBe(280);
+    await expect(tile?.getBoundingClientRect().height).toBe(56);
+  },
 };

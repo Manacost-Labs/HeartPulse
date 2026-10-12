@@ -34,7 +34,7 @@ try {
   await page.setRequestInterception(true);
   page.on('request', request => {
     const path = new URL(request.url()).pathname;
-    if (path.startsWith('/api/public-resource/db/uploads/horizontal-art/constructed_card/')) {
+    if (path.startsWith('/api/public-resource/db/uploads/horizontal-art/constructed_card/') || path.startsWith('/api/public-resource/db/uploads/card-tiles/constructed_card/')) {
       cardTileRequests.push(path);
       void request.respond({
         status: path.endsWith('/JAIL_732.webp') ? 404 : 200,
@@ -105,13 +105,13 @@ try {
   assert.equal(await page.evaluate(() =>
     document.querySelector('.archetype-history').compareDocumentPosition(document.querySelector('.archetype-main-build')) & Node.DOCUMENT_POSITION_FOLLOWING
   ), 4, 'history must precede the largest confirmed build');
-  for (const image of await page.$$('.constructed-card-tile__art')) {
+  for (const image of await page.$$('.constructed-catalog-tile__image, .constructed-catalog-tile__art')) {
     if (!await image.isVisible()) continue;
     await image.scrollIntoView();
-    await page.waitForFunction(element => element.complete && element.naturalWidth > 0, { timeout: 10_000 }, image);
+    await page.waitForFunction(element => !element.isConnected || (element.complete && element.naturalWidth > 0), { timeout: 10_000 }, image);
   }
   await page.waitForNetworkIdle({ idleTime: 250, timeout: 10_000 });
-  const tileImageState = await page.$$eval('.constructed-card-tile__art', images => images.filter(image => image.getBoundingClientRect().width > 0).map(image => ({
+  const tileImageState = await page.$$eval('.constructed-catalog-tile__image, .constructed-catalog-tile__art', images => images.filter(image => image.getBoundingClientRect().width > 0).map(image => ({
     complete: image.complete,
     naturalWidth: image.naturalWidth,
     src: image.getAttribute('src'),
@@ -126,9 +126,15 @@ try {
     'every unique visible mulligan card must request a reliable same-origin tile image',
   );
   assert.ok(cardTileRequests.some(path => path.includes('/horizontal-art/constructed_card/')), 'mulligan uses Koloda horizontal art');
-  assert.ok(cardTileRequests.includes('/api/card-image/JAIL_732/tile.webp'), 'missing Koloda art falls back to the existing tile');
+  assert.ok(cardTileRequests.some(path => path.includes('/card-tiles/constructed_card/')), 'mulligan uses provider tiles');
+  assert.ok(await page.$('.constructed-catalog-tile__fallback'), 'missing provider media keeps a readable row');
+  const compactRows = await page.$$eval('.constructed-card-stats tbody .constructed-catalog-tile', tiles =>
+    tiles.map(tile => { const { width, height } = tile.getBoundingClientRect(); return { width, height }; }));
+  assert.ok(compactRows.every(({ width, height }) => width <= 320 && height <= 64
+    && Math.abs(width / height - 5) < 0.01), 'provider and fallback tiles must share a compact 5:1 frame');
+
   assert.equal(
-    await page.$$eval('.constructed-card-tile__art', images => images.every(image => image.tagName === 'IMG')),
+    await page.$$eval('.constructed-catalog-tile__image, .constructed-catalog-tile__art', images => images.every(image => image.tagName === 'IMG')),
     true,
     'mulligan art must use observable image elements instead of silent CSS background failures',
   );
@@ -305,17 +311,17 @@ try {
   assert.equal(await page.$$eval('.archetype-dossier .archetypes-eyebrow', nodes => nodes.length), 0);
   assert.equal(await page.$$eval('.archetype-dossier__identity p, .archetype-dossier__identity small', nodes => nodes.length), 0);
   assert.equal(
-    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-card-tile strong', node => node.textContent),
+    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-catalog-tile__name', node => node.textContent),
     'Душа Бездны',
   );
   assert.equal(
-    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-card-tile__mana', node => node.textContent),
+    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-catalog-tile__mana', node => node.textContent),
     '1',
   );
   const desktopCardStats = await page.evaluate(() => {
     const scroll = document.querySelector('.constructed-card-stats__scroll');
     const table = scroll?.querySelector('table');
-    const mana = table?.querySelector('.constructed-card-tile__mana');
+    const mana = table?.querySelector('.constructed-catalog-tile__mana');
     return {
       tableGap: Math.abs((scroll?.clientWidth ?? 0) - (table?.getBoundingClientRect().width ?? 0)),
       manaWidth: mana?.getBoundingClientRect().width ?? 0,
@@ -324,8 +330,8 @@ try {
     };
   });
   assert.ok(desktopCardStats.tableGap <= 1, `desktop table left a ${desktopCardStats.tableGap}px gap`);
-  assert.ok(desktopCardStats.manaWidth >= 24 && desktopCardStats.manaWidth <= 28);
-  assert.ok(desktopCardStats.manaHeight >= 24 && desktopCardStats.manaHeight <= 28);
+  assert.ok(desktopCardStats.manaWidth >= 24 && desktopCardStats.manaWidth <= 30);
+  assert.ok(desktopCardStats.manaHeight >= 24 && desktopCardStats.manaHeight <= 30);
   assert.equal(desktopCardStats.openBadges, 0);
   assert.ok(await page.$('.archetype-main-build .deck-list-view'));
   await page.evaluate(() => {

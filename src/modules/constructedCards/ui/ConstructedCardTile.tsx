@@ -6,7 +6,7 @@ function kolodaTileSource(value?: string | null): string {
   return source.startsWith('/api/public-resource/db/uploads/') ? source : '';
 }
 
-type TileProps = { name: string; cost: number; tile?: string | null; artwork?: string | null; rarity?: string | null };
+type TileProps = { name: string; cost: number | null; tile?: string | null; artwork?: string | null; rarity?: string | null };
 
 function CardTileImage({ name, cost, tile, artwork, rarity }: TileProps) {
   const [failed, setFailed] = useState(false);
@@ -19,7 +19,7 @@ function CardTileImage({ name, cost, tile, artwork, rarity }: TileProps) {
           loading="lazy" decoding="async" ref={image => { if (image?.complete && image.naturalWidth === 0) setFailed(true); }} onError={() => setFailed(true)} />
       : <span className="constructed-catalog-tile__fallback">
           {artSource && !artFailed && <img className="constructed-catalog-tile__art" src={artSource} alt="" loading="lazy" decoding="async" ref={image => { if (image?.complete && image.naturalWidth === 0) setArtFailed(true); }} onError={() => setArtFailed(true)} />}
-          <b className="constructed-catalog-tile__mana">{cost}</b><span className="constructed-catalog-tile__name">{name}</span>
+          <b className="constructed-catalog-tile__mana">{cost ?? '—'}</b><span className="constructed-catalog-tile__name">{name}</span>
         </span>}
   </span>;
 }

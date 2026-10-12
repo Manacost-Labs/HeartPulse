@@ -503,3 +503,9 @@ decoding is a domain-independent `shared/text` primitive.
 `npm run lint:domains` enables strict TypeScript checks for the extracted Arena,
 BG rankings, card and account slices. `lint:next` checks the isolated Next app;
 its ambient types do not change the legacy server/test compiler contract.
+
+The constructed-card server public contract `withCatalogCardMedia` attaches
+Koloda catalog tiles to archetype analysis rows by card ID or DBF ID without
+mutating statistics. Archetype HTTP composition injects the cached catalog
+reader; the mulligan view reuses `ConstructedCardTile` through the client public
+contract rather than duplicating its image/fallback presentation.
