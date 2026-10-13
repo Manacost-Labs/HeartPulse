@@ -66,7 +66,7 @@ test('Vicious Gold reads as a ranked board and keeps its place while loading', {
       'the access check, the loader and the statistics must share one banner and one place');
 
     const bars = await page.$$eval('.vsgold__classes svg g[role=button]', rows => rows.map(row => {
-      const [track, value] = row.querySelectorAll('rect');
+      const [track, value] = row.querySelectorAll('rect:not([aria-hidden])');
       return value.getBoundingClientRect().width / track.getBoundingClientRect().width;
     }));
     assert.equal(bars.length, summary.classDistribution.length);
@@ -105,6 +105,8 @@ test('Vicious Gold reads as a ranked board and keeps its place while loading', {
     // Unrendered tier cards reserve their mean height, so the scrollbar barely moves while they render.
     assert.ok(growth < 250, `the page height changed by ${growth}px while scrolling`);
     assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const touchRows = await phone.$$eval('.vsgold__classes svg g[role=button]', rows => rows.map(row => row.getBoundingClientRect().height));
+    assert.ok(touchRows.length > 0 && touchRows.every(height => height >= 44), 'every interactive class row retains a 44px touch target');
     assert.ok(await phone.evaluate(() => window.__layoutShift) < 0.02);
     await phone.close();
   } finally {
