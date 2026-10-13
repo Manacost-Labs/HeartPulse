@@ -4,7 +4,6 @@ import { Check, Copy } from 'lucide-react';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
 import type { AdminMessage } from './adminWorkspaceState';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
-
 export type ArchetypeTranslation = {
   id: number;
   blizzcoreId: number | null;

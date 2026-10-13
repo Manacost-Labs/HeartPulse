@@ -23,7 +23,6 @@ import DeckListView, { type DeckListCard } from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import type { HistoryPoint } from './ArchetypeHistoryChart';
 import './ArchetypeDetailSections.css';
-
 export type ArchetypeSnapshot = {
   name?: string | null;
   nameRu?: string | null;

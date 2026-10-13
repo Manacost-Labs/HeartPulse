@@ -41,7 +41,6 @@ import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import '../shared/ui/LoadingSurface.css';
 import './StandardMeta.css';
-
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_legend';
