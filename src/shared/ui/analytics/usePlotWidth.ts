@@ -8,7 +8,7 @@ export function usePlotWidth() {
     if (!element) return;
     const observer = new ResizeObserver(entries => {
       const measured = Math.round(entries[0].contentRect.width);
-      if (measured > 0) setWidth(Math.max(280, measured));
+      if (measured > 0) setWidth(Math.max(180, measured));
     });
     observer.observe(element);
     return () => observer.disconnect();

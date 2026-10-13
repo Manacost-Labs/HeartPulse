@@ -115,3 +115,8 @@ integration preflight; wait for the preceding release's confirmed Production SHA
 `TableSurface` and CRM overview sections remain importable in Node without a
 stylesheet loader. Their owning page styles import the shared `Analytics.css`
 contract; standalone analytics stories load it explicitly.
+
+Interactive class bars include a full-width 44 px hit area per row. The plot
+uses its actual container width on narrow screens so SVG scaling does not
+shrink those targets below 44 px. Native mulligan sorting labels inherit
+their table header ink to preserve contrast on the common light surface.

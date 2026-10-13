@@ -1663,7 +1663,7 @@ for (const [device, viewport] of [
         kpis: [...document.querySelectorAll('.admin-overview-kpis > li > button')].map(element => ({
           label: text(element.querySelector('span')), value: text(element.querySelector('strong')),
         })),
-        sparklines: document.querySelectorAll('.admin-overview-kpis svg polyline').length,
+        historyCharts: document.querySelectorAll('.admin-overview-charts .analytics-chart').length,
         activity: [...document.querySelectorAll('.admin-overview-feed > li')].map(element => text(element.querySelector('div'))),
         quickActions: [...document.querySelectorAll('.admin-overview-actions button')].map(element => text(element)),
         commandBarHeight: document.querySelector('.admin-command-bar')?.getBoundingClientRect().height ?? 0,
@@ -1690,7 +1690,7 @@ for (const [device, viewport] of [
     if (JSON.stringify(state.kpis) !== JSON.stringify(expectedKpis)) {
       failures.push(`admin overview [${device}]: KPI mismatch ${JSON.stringify(state.kpis)}`);
     }
-    if (state.sparklines !== 2) failures.push(`admin overview [${device}]: expected 2 sparklines, got ${state.sparklines}`);
+    if (state.historyCharts !== 2) failures.push(`admin overview [${device}]: expected 2 history charts, got ${state.historyCharts}`);
     if (state.activity.length !== 2 || !state.activity[0].includes('Новый пользователь')) {
       failures.push(`admin overview [${device}]: activity feed mismatch ${JSON.stringify(state.activity)}`);
     }
@@ -2639,7 +2639,7 @@ for (const [device, viewport] of [
     });
     if (profileState.title !== 'Личный кабинет — HearthPulse'
       || profileState.headings.join() !== 'account-title'
-      || profileState.headerBackground !== 'rgb(122, 30, 34)'
+      || profileState.headerBackground !== 'rgb(255, 248, 230)'
       || profileState.openSections < 1
       || profileState.publicProfileActions.join('|') !== 'Публичный профиль|Копировать ссылку'
       || profileState.contactsOpen !== false
@@ -2753,7 +2753,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
 
     await tapFirstArchetypeRow(page);
-    await page.waitForSelector('.archetype-detail-page .archetype-trend', { timeout: 20_000 });
+    await page.waitForSelector('.archetype-detail-page .archetype-history .analytics-chart', { timeout: 20_000 });
     await page.waitForSelector('.archetype-main-build', { timeout: 20_000 });
     await page.$eval('.archetype-main-build', node => node.scrollIntoView({ block: 'start' }));
     await page.waitForSelector('.archetype-deck-card .deck-render-preview[data-render-state="ready"]', { timeout: 20_000 });
@@ -2762,7 +2762,7 @@ for (const [device, viewport] of [
       const copyButton = document.querySelector('.archetype-main-build .archetype-deck-card__copy');
       return {
         title: root?.querySelector('h1')?.textContent?.trim() || '',
-        charts: root?.querySelectorAll('.archetype-trend').length ?? 0,
+        charts: root?.querySelectorAll('.archetype-history .analytics-chart').length ?? 0,
         builds: root?.querySelectorAll('.archetype-deck-card').length ?? 0,
         deckCards: root?.querySelectorAll('.archetype-deck-card .deck-tile').length ?? 0,
         renderSurfaces: root?.querySelectorAll('.archetype-deck-card .deck-render-preview').length ?? 0,
@@ -3903,18 +3903,19 @@ for (const width of [320, 430]) {
       const hero = document.querySelector('.vsgold__hero');
       const navTargets = [...document.querySelectorAll('.vsgold__mobile-nav a')];
       const inputs = [...document.querySelectorAll('.vsgold__deck-tools input, .vsgold__deck-tools select')];
-      const classTargets = [...document.querySelectorAll('.vsgold__class-bars button')];
+      const classTargets = [...document.querySelectorAll('#vsgold-classes .analytics-chart [role="button"]')];
       return {
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         heroHeight: hero?.getBoundingClientRect().height ?? 0,
         smallestNavTarget: Math.min(...navTargets.map(target => target.getBoundingClientRect().height)),
+        classTargetCount: classTargets.length,
         smallestClassTarget: Math.min(...classTargets.map(target => target.getBoundingClientRect().height)),
         smallestInputFont: Math.min(...inputs.map(input => parseFloat(getComputedStyle(input).fontSize))),
       };
     });
     if (viciousNarrowState.rootOverflow || viciousNarrowState.documentOverflow || viciousNarrowState.heroHeight > 390
-      || viciousNarrowState.smallestNavTarget < 44 || viciousNarrowState.smallestClassTarget < 44
+      || viciousNarrowState.classTargetCount < 1 || viciousNarrowState.smallestNavTarget < 44 || viciousNarrowState.smallestClassTarget < 44
       || viciousNarrowState.smallestInputFont < 16) {
       failures.push(`vicious gold [${width}px]: narrow mobile layout regressed (${JSON.stringify(viciousNarrowState)})`);
     }

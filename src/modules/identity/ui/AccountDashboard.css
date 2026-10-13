@@ -339,7 +339,7 @@ a.account-access__tile:hover { border-color: var(--account-accent); color: var(-
 .account-settings__contacts > p { grid-column: 1 / -1; }
 .account-settings__field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .account-settings__form .account-settings__newsletter { border-top: 1px solid var(--account-line); margin-top: 8px; }
-.account-settings__newsletter a { color: var(--account-accent); text-decoration: underline; }
+.account-settings__newsletter a { display: inline-flex; align-items: center; min-height: 44px; color: var(--account-accent); text-decoration: underline; }
 .account-settings__form > .account-button { align-self: flex-start; margin-top: 12px; }
 
 @media (max-width: 600px) {
