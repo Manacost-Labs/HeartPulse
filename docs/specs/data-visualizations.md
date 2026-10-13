@@ -128,3 +128,7 @@ WCAG AA contrast, including the hover brightness state.
 Translation workspaces use shrinkable grid columns inside the native table
 surface. Mobile translation cards wrap long names and retain their own cell
 padding so the shared table cannot widen the page.
+
+Generic sticky-first-column styling applies only to the shared data table.
+Native `TableSurface` children own their sticky positions; mobile people cards
+must keep the action button reachable without another cell covering it.

@@ -63,8 +63,8 @@
 .analytics-table table, .analytics-chart__data table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13px; line-height: 1.4; }
 .analytics-table th, .analytics-chart__data th { background: #e9ddc2; color: #503650; font-weight: 600; }
 .analytics-table th, .analytics-table td, .analytics-chart__data th, .analytics-chart__data td { padding: 10px 14px; border-bottom: 1px solid #dfd0b4; white-space: nowrap; }
-.analytics-table th:first-child, .analytics-table td:first-child { position: sticky; left: 0; z-index: 1; background: #fbf3de; }
-.analytics-table th:first-child { background: #e9ddc2; z-index: 2; }
+.analytics-table:not(.analytics-table--native) th:first-child, .analytics-table:not(.analytics-table--native) td:first-child { position: sticky; left: 0; z-index: 1; background: #fbf3de; }
+.analytics-table:not(.analytics-table--native) th:first-child { background: #e9ddc2; z-index: 2; }
 .analytics-table th button { padding: 0; min-height: 32px; border: 0; color: inherit; font-size: 12px; white-space: nowrap; }
 .analytics-table th.is-numeric button { width: 100%; justify-content: flex-end; }
 .analytics-table .is-numeric { text-align: right; }

@@ -1,5 +1,6 @@
 import { createRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, within } from 'storybook/test';
 import { ContestAdminUsers, type AdminUserSearchResult } from './ContestAdminUsers';
 import './contests.css';
 import '../modules/adminWorkspace/public.css';
@@ -47,7 +48,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const People: Story = {};
+export const People: Story = {
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Действия с пользователем igrok_7731' });
+    button.scrollIntoView({ block: 'center', inline: 'nearest' });
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const rect = button.getBoundingClientRect();
+    await expect(button.contains(canvasElement.ownerDocument.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))).toBe(true);
+  },
+};
 export const MenuOpen: Story = { args: { openMenuId: 'u-10482' } };
 export const EmptyFilter: Story = { args: { users: [], total: 0, pageCount: 1, segment: 'expiring' } };
 export const Loading: Story = { args: { users: [], total: 0, pageCount: 1, loading: true } };
