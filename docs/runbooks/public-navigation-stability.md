@@ -575,3 +575,8 @@ hidden tooltip at widths up to 700 px, where touch navigation is retained.
 Browser QA checks the compact FAQ hero independently from section banners.
 After asserting translation-save feedback, it dismisses the mobile toast before
 clicking the next table action so the notification cannot intercept that click.
+
+Meta-chart QA checks that the responsive SVG fits its viewport. Native table
+scroll checks use `TableSurface`’s inner scroll region. Class-distribution
+interactions target SVG buttons and assert the resulting deck filter and scroll
+position rather than the retired HTML bar controls.

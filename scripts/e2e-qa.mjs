@@ -2941,7 +2941,8 @@ for (const [device, viewport] of [
         firstPointRole: points[0]?.getAttribute('role') || '',
         archetypeLinkHeight: archetypeLink?.getBoundingClientRect().height ?? 0,
         archetypeHref: archetypeLink?.getAttribute('href') || '',
-        viewportScrollable: (viewport?.scrollWidth ?? 0) > (viewport?.clientWidth ?? 0),
+        plotContained: Boolean(viewport && viewport.querySelector('svg')
+          && viewport.querySelector('svg').getBoundingClientRect().width <= viewport.clientWidth + 1),
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
         chartVisible: Boolean(chart && chart.getBoundingClientRect().height > 0),
       };
@@ -2952,7 +2953,7 @@ for (const [device, viewport] of [
       || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.archetypeLinkHeight < 44
       || standardMetaChartState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock/'
       || !standardMetaChartState.chartVisible || standardMetaChartState.pageOverflow
-      || (device === 'mobile' && !standardMetaChartState.viewportScrollable)) {
+      || !standardMetaChartState.plotContained) {
       failures.push(`standard meta chart [${device}]: data, interaction or responsive containment regressed (${JSON.stringify(standardMetaChartState)})`);
     }
     await page.click('.standard-meta-chart__header-actions button');
@@ -2971,7 +2972,7 @@ for (const [device, viewport] of [
     await page.click('[data-meta-view="table"]');
     await page.waitForSelector('.standard-meta-table');
     const standardMetaTableState = await page.evaluate(() => {
-      const wrapper = document.querySelector('.standard-meta-table-wrap');
+      const wrapper = document.querySelector('.standard-meta-table-wrap .analytics-table__scroll');
       const table = document.querySelector('.standard-meta-table');
       const stickyCell = document.querySelector('.standard-meta-table__archetype');
       const archetypeLink = document.querySelector('.standard-meta-table__deck-button');
@@ -3388,7 +3389,7 @@ for (const [device, viewport] of [
       const title = document.querySelector('.traditional-mode-banner h1');
       const mobileNav = document.querySelector('.vsgold__mobile-nav');
       const deckSearch = document.querySelector('.vsgold__deck-tools input');
-      const classButton = document.querySelector('.vsgold__class-bars button');
+      const classButton = document.querySelector('#vsgold-classes .analytics-chart [role="button"]');
       const buildButton = document.querySelector('.vsgold__build button');
       const copyImage = buildButton?.querySelector('img');
       const deckList = document.querySelector('.vsgold__deck-list');
@@ -3469,15 +3470,15 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/vicious-gold-copy-${device}.png`, fullPage: false });
     if (device === 'mobile') {
-      await page.click('.vsgold__class-bars button');
+      await page.click('#vsgold-classes .analytics-chart [role="button"]');
       await new Promise(resolve => setTimeout(resolve, 250));
       const classFilterState = await page.evaluate(() => ({
         selectedClass: document.querySelector('.vsgold__deck-tools select')?.value || '',
-        pressed: document.querySelector('.vsgold__class-bars button')?.getAttribute('aria-pressed') || '',
+        buttonRole: document.querySelector('#vsgold-classes .analytics-chart [role="button"]')?.getAttribute('role') || '',
         deckSectionTop: document.querySelector('#vsgold-decks')?.getBoundingClientRect().top ?? -1,
         navHeight: document.querySelector('.vsgold__mobile-nav')?.getBoundingClientRect().height ?? 0,
       }));
-      if (classFilterState.selectedClass !== 'warlock' || classFilterState.pressed !== 'true'
+      if (classFilterState.selectedClass !== 'warlock' || classFilterState.buttonRole !== 'button'
         || classFilterState.deckSectionTop < classFilterState.navHeight - 2
         || classFilterState.deckSectionTop > classFilterState.navHeight + 90) {
         failures.push(`vicious gold [${device}]: class-to-deck mobile flow regressed (${JSON.stringify(classFilterState)})`);
