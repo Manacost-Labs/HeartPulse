@@ -109,3 +109,9 @@ Work in the isolated task worktree. Preserve integrated changes and existing API
 sources, subscriptions and credentials. The coordinating chat owns main pushes
 and deployment. Before release include current origin/main, repeat validation and
 integration preflight; wait for the preceding release's confirmed Production SHA.
+
+## Style composition
+
+`TableSurface` and CRM overview sections remain importable in Node without a
+stylesheet loader. Their owning page styles import the shared `Analytics.css`
+contract; standalone analytics stories load it explicitly.

@@ -1,6 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { csvDocument } from './analyticsModel';
-import './Analytics.css';
 
 /** Preserves domain-owned sorting and pagination; exports only rendered, accessible rows. */
 export function TableSurface({ title, children, imageExport = false, scrollable = true, density = 'comfortable' }: { title: string; children: ReactNode; imageExport?: boolean; scrollable?: boolean; density?: 'comfortable' | 'compact' }) {

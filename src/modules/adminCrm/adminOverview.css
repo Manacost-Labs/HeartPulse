@@ -1,3 +1,4 @@
+@import "../../shared/ui/analytics/Analytics.css";
 /* Admin overview: alerts first, then KPIs, then activity and shortcuts. Uses the CRM tokens from adminCrm.css. */
 .admin-overview { display: grid; gap: 16px; min-width: 0; color: var(--crm-ink); }
 .admin-overview-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }

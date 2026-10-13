@@ -1,3 +1,4 @@
+@import "../shared/ui/analytics/Analytics.css";
 .constructed-analysis-stack {
   display: grid;
   gap: 1rem;

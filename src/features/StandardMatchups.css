@@ -1,3 +1,4 @@
+@import "../shared/ui/analytics/Analytics.css";
 @import './TraditionalModeBanner.css';
 
 .arena-app-standard-matchups .standard-matchups__mode-toolbar {

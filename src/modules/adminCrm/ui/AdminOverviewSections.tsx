@@ -2,7 +2,6 @@ import React from 'react';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { AdminCrmSegmentId } from '../api/adminCrmClient';
 import { LineChart } from '../../../shared/ui/analytics/LineChart';
-import '../../../shared/ui/analytics/Analytics.css';
 import {
   activityText,
   relativeTime,

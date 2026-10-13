@@ -1,3 +1,4 @@
+@import "../shared/ui/analytics/Analytics.css";
 @import './TraditionalModeBanner.css';
 
 .arena-app-shell.arena-app-standard-meta .arena-workspace .arena-main {

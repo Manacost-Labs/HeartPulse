@@ -1,3 +1,4 @@
+@import "../shared/ui/analytics/Analytics.css";
 @import '../modules/constructedCards/public.css';
 
 .arena-app-shell.arena-app-standard-cards .arena-workspace .arena-main { padding: 0; }

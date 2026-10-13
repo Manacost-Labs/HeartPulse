@@ -1,3 +1,4 @@
+@import "../shared/ui/analytics/Analytics.css";
 .contests-page {
   width: min(100%, 1660px);
   margin: 0 auto;
