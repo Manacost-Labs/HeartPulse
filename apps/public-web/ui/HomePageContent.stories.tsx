@@ -61,7 +61,7 @@ export const MissingBothFeeds: Story = {
   args: { summary: null, articles: null },
   play: async ({ canvas }) => {
     await expect(await canvas.findByText(articles[0].title)).toBeVisible();
-    await expect(canvas.getByText('Маг')).toBeVisible();
+    await expect(await canvas.findByText('Маг')).toBeVisible();
     await expect(read).toHaveBeenCalledTimes(2);
   },
 };

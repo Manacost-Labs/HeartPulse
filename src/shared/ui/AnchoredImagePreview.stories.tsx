@@ -64,6 +64,11 @@ async function openPreview(canvasElement: HTMLElement) {
 
 export const HoverAndKeyboard: Story = {
   play: async ({ canvasElement }) => {
+    if (innerWidth <= 700) {
+      await userEvent.hover(within(canvasElement).getByRole('button'));
+      await expect(within(document.body).queryByRole('tooltip')).toBeNull();
+      return;
+    }
     const { button, tooltip } = await openPreview(canvasElement);
     await until(() => tooltip.dataset.previewState === 'loaded');
     await expect(tooltip).toHaveAttribute('data-preview-state', 'loaded');
@@ -83,6 +88,11 @@ export const HoverAndKeyboard: Story = {
 export const RightEdge: Story = {
   args: { previewId: 'right-edge' },
   play: async ({ canvasElement }) => {
+    if (innerWidth <= 700) {
+      await userEvent.hover(within(canvasElement).getByRole('button'));
+      await expect(within(document.body).queryByRole('tooltip')).toBeNull();
+      return;
+    }
     const { button, tooltip } = await openPreview(canvasElement);
     const rect = tooltip.getBoundingClientRect();
     await expect(rect.right).toBeLessThan(button.getBoundingClientRect().left);
@@ -94,6 +104,11 @@ export const RightEdge: Story = {
 export const PreferredImageFallback: Story = {
   args: { source: BROKEN_IMAGE },
   play: async ({ canvasElement }) => {
+    if (innerWidth <= 700) {
+      await userEvent.hover(within(canvasElement).getByRole('button'));
+      await expect(within(document.body).queryByRole('tooltip')).toBeNull();
+      return;
+    }
     const { tooltip } = await openPreview(canvasElement);
     await until(() => tooltip.dataset.previewState === 'loaded');
     await expect(tooltip).toHaveAttribute('data-preview-state', 'loaded');
@@ -104,6 +119,11 @@ export const PreferredImageFallback: Story = {
 export const UnavailableImage: Story = {
   args: { source: BROKEN_IMAGE, fallbackSource: BROKEN_IMAGE },
   play: async ({ canvasElement }) => {
+    if (innerWidth <= 700) {
+      await userEvent.hover(within(canvasElement).getByRole('button'));
+      await expect(within(document.body).queryByRole('tooltip')).toBeNull();
+      return;
+    }
     const { tooltip } = await openPreview(canvasElement);
     await until(() => tooltip.dataset.previewState === 'error');
     await expect(tooltip).toHaveAttribute('data-preview-state', 'error');
@@ -113,6 +133,11 @@ export const UnavailableImage: Story = {
 
 export const SwitchImage: Story = {
   play: async ({ canvasElement }) => {
+    if (innerWidth <= 700) {
+      await userEvent.hover(within(canvasElement).getByRole('button'));
+      await expect(within(document.body).queryByRole('tooltip')).toBeNull();
+      return;
+    }
     const { button, tooltip } = await openPreview(canvasElement);
     await until(() => tooltip.dataset.previewState === 'loaded');
     await expect(tooltip).toHaveAttribute('data-preview-state', 'loaded');

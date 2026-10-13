@@ -553,3 +553,21 @@ The mandatory public continuation update uses the current `v1.0.106` and
 explicitly says it awaits integration and is not in production:
 <https://t.me/changelogarena/545>. It was sent through the existing local
 helper and server environment; no token or environment copy was exposed.
+
+## Combined release v1.0.107
+
+The five-task integration preserves the home first-paint reduction: its measured
+initial JavaScript is 166,206 gzip bytes and CSS is 33,151 bytes, within the
+existing home ceilings. Shared navigation and the new chart/table/preview UI
+add 203–973 bytes over the earlier JavaScript ceilings on FAQ/privacy, meta,
+cards and Arena tiers. Those selected ceilings rise by 1–2 KiB; other routes
+keep their limits. Removing duplicate analytics CSS imports saves 1,081 bytes
+on archetypes. Its remaining measured CSS is 66,794 bytes, with a reviewed
+66 KiB ceiling; the tier/legendary CSS ceiling becomes 50 KiB for the shared
+preview styles (measured 51,089 bytes). These are release measurements, not
+field performance results.
+
+The account composition reserves one small viewport height across lazy
+loading; the slow-chunk regression test covers 390 and 1440 px. Storybook
+recovery assertions await both independent feeds. Hover stories verify a
+hidden tooltip at widths up to 700 px, where touch navigation is retained.
