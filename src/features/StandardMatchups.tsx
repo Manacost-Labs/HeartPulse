@@ -173,7 +173,7 @@ function standardMatchupTone(value: number | null): React.CSSProperties {
   }
   if (value >= 52) {
     return {
-      background: '#5c8059',
+      background: '#526f4f',
       border: '1px solid rgba(99,220,150,0.28)',
       color: '#fff7da',
     };

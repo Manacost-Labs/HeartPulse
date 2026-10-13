@@ -120,3 +120,7 @@ Interactive class bars include a full-width 48 px hit area per row. The plot
 uses its actual container width on narrow screens so SVG scaling does not
 shrink those targets below 44 px. Native mulligan sorting labels inherit
 their table header ink to preserve contrast on the common light surface.
+
+Matchup matrices preserve the dark sticky footer inside the native table
+surface. Midrange winrate cells use a darker green so small labels retain
+WCAG AA contrast, including the hover brightness state.

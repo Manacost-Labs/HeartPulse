@@ -301,7 +301,7 @@
   transform: translateY(-1px);
 }
 
-.arena-app-standard-matchups .standard-matchups__matrix-footer th {
+.arena-app-standard-matchups .analytics-table--native .standard-matchups__matrix-footer th {
   position: sticky;
   z-index: 24;
   bottom: 0;
@@ -313,7 +313,7 @@
     0 -6px 12px rgba(43, 20, 4, 0.18);
 }
 
-.arena-app-standard-matchups .standard-matchups__matrix-footer th:first-child {
+.arena-app-standard-matchups .analytics-table--native .standard-matchups__matrix-footer th:first-child {
   z-index: 31;
   left: 0;
   border-left: 0;

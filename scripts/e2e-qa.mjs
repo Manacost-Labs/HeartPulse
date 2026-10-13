@@ -620,7 +620,7 @@ function assertLayout(path, layout) {
     failures.push(`${path}: banner decoration is not contained (${layout.bannerOverflow})`);
   }
   if (layout.bannerHeight) {
-    const expectedHeight = layout.mobile ? 360 : 320;
+    const expectedHeight = path === '/faq' ? (layout.mobile ? 180 : 210) : (layout.mobile ? 360 : 320);
     if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
       failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
     }
@@ -1340,12 +1340,13 @@ for (const route of authenticatedRoutes) {
         const faqPageState = await page.evaluate(() => ({
           sections: document.querySelectorAll('.faq-page__section').length,
           questions: document.querySelectorAll('.faq-page__questions details').length,
-          quickSteps: document.querySelectorAll('.faq-page__start li').length,
+          search: Boolean(document.querySelector('#faq-search[type=search]')),
+          topics: document.querySelectorAll('#faq-topic option').length,
           authLinks: document.querySelectorAll('a[href="/?login"]').length,
           activeHeaderLink: document.querySelector('.global-help-menu a[href="/faq/"]')?.getAttribute('aria-current') || '',
           overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         }));
-        if (faqPageState.sections !== 5 || faqPageState.questions < 18 || faqPageState.quickSteps !== 3
+        if (faqPageState.sections !== 8 || faqPageState.questions !== 52 || !faqPageState.search || faqPageState.topics !== 9
           || faqPageState.authLinks < 1 || faqPageState.activeHeaderLink !== 'page' || faqPageState.overflow) {
           failures.push(`/faq [${device}]: standalone help content regressed (${JSON.stringify(faqPageState)})`);
         }
@@ -1629,7 +1630,9 @@ for (const [device, viewport] of [
   ['desktop', { width: 1440, height: 900 }],
   ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
 ]) {
-  const page = await createQaPage();
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   const runtimeErrors = collectRuntimeErrors(page);
   const adminState = {
     galleryEmpty: false,
@@ -3810,7 +3813,7 @@ for (const [device, viewport] of [
     })).catch(() => ({ body: 'unavailable body', stats: [], url: page.url() }));
     failures.push(`admin dashboard [${device}]: ${error.message}; runtime: ${runtimeErrors.join(' | ') || 'none'}; state: ${JSON.stringify(diagnostic)}`);
   } finally {
-    await page.close();
+    await context.close();
   }
 }
 
