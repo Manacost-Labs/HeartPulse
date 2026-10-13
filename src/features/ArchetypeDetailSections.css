@@ -1120,3 +1120,6 @@ button.archetype-mulligan-card:focus-visible {
     transition: none;
   }
 }
+.analytics-table--native .archetype-mulligan-table thead button :is(span, small) {
+  color: inherit;
+}
