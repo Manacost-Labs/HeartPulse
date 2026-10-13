@@ -98,7 +98,7 @@ try {
   await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 1 });
   // Responsive rows use content-visibility; wait for their bounds after resizing.
   await page.locator('.archetype-row__open').click();
-  await page.waitForSelector('.archetype-detail-page .archetype-trend');
+  await page.waitForSelector('.archetype-detail-page .archetype-history .analytics-chart');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
   await page.waitForSelector('.constructed-card-stats tbody tr');
@@ -144,6 +144,7 @@ try {
     true,
     'mulligan art must use observable image elements instead of silent CSS background failures',
   );
+  await (await page.$('.archetype-main-build')).scrollIntoView();
   await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
   assert.equal(
     await page.$eval('.archetype-main-build .deck-render-preview__image img', image => image.getAttribute('loading')),
@@ -213,7 +214,7 @@ try {
   });
   await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
   assert.equal(await page.$eval('#storybook-root h1', heading => heading.textContent), 'Воровской Жрец');
-  assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
+  assert.equal(await page.$$eval('.archetype-history .analytics-chart', charts => charts.length), 3);
   assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
   assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 35);
   assert.equal(await page.$$eval('.archetype-deck-card .deck-list-view__expand', buttons => buttons.length), 7);
@@ -325,7 +326,7 @@ try {
     '1',
   );
   const desktopCardStats = await page.evaluate(() => {
-    const scroll = document.querySelector('.constructed-card-stats__scroll');
+    const scroll = document.querySelector('.constructed-card-stats__scroll .analytics-table__scroll');
     const table = scroll?.querySelector('table');
     const mana = table?.querySelector('.constructed-catalog-tile__mana');
     return {
@@ -421,7 +422,7 @@ try {
     return settled;
   }, { polling: 'raf' });
   await page.click('.archetype-row__open');
-  await page.waitForSelector('.archetype-detail-page .archetype-trend');
+  await page.waitForSelector('.archetype-detail-page .archetype-history .analytics-chart');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
   await page.$eval('.archetype-main-build', section => section.scrollIntoView({ block: 'start' }));
@@ -447,7 +448,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
   const detailMobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    chartCount: document.querySelectorAll('.archetype-trend').length,
+    chartCount: document.querySelectorAll('.archetype-history .analytics-chart').length,
     copyHeight: document.querySelector('.archetype-main-build .archetype-deck-card__copy')?.getBoundingClientRect().height ?? 0,
     deckTileHeight: document.querySelector('.archetype-deck-card .deck-tile')?.getBoundingClientRect().height ?? 0,
     deckGemWidth: document.querySelector('.archetype-deck-card .hsrdv-card-gem')?.getBoundingClientRect().width ?? 0,

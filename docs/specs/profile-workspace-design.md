@@ -96,3 +96,11 @@ auth blocks of `scripts/e2e-qa.mjs` check both views in a browser at both
 widths, including the floating messages, the tour and axe. The Storybook
 stories «Profile/Account workspace» use synthetic data with intercepted API
 calls.
+
+## Loading geometry
+
+The Next.js account composition reserves at least one small viewport height
+while its lazy identity view and access state load. The footer stays outside
+the initial viewport instead of appearing below a short loader and jumping
+when the dashboard arrives. `tests/next-account-surface-browser.test.mjs`
+holds the account chunk on mobile and desktop to check this transition.
