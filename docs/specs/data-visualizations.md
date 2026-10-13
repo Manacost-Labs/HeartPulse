@@ -124,3 +124,7 @@ their table header ink to preserve contrast on the common light surface.
 Matchup matrices preserve the dark sticky footer inside the native table
 surface. Midrange winrate cells use a darker green so small labels retain
 WCAG AA contrast, including the hover brightness state.
+
+Translation workspaces use shrinkable grid columns inside the native table
+surface. Mobile translation cards wrap long names and retain their own cell
+padding so the shared table cannot widen the page.

@@ -11,4 +11,4 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Overview: Story = {};
-export const Matrix: Story = { play: async ({ canvasElement }) => { const canvas = within(canvasElement); await userEvent.click(canvas.getByRole('button', { name: /^Матрица/ })); await expect(canvas.getByRole('button', { name: 'Скачать Матрица матчапов: SVG' })).toBeVisible(); await expect(getComputedStyle(canvasElement.querySelector('.standard-matchups__matrix-footer th')!).backgroundImage).toContain('linear-gradient'); } };
+export const Matrix: Story = { play: async ({ canvasElement }) => { const canvas = within(canvasElement); await userEvent.click(canvas.getByRole('button', { name: /^Матрица/ })); await expect(canvas.getByRole('button', { name: 'Скачать Матрица матчапов: SVG' })).toBeVisible(); await expect(getComputedStyle(canvas.getByText('Соперники').closest('th') ?? canvasElement).backgroundImage).toContain('linear-gradient'); } };

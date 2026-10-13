@@ -571,3 +571,7 @@ The account composition reserves one small viewport height across lazy
 loading; the slow-chunk regression test covers 390 and 1440 px. Storybook
 recovery assertions await both independent feeds. Hover stories verify a
 hidden tooltip at widths up to 700 px, where touch navigation is retained.
+
+Browser QA checks the compact FAQ hero independently from section banners.
+After asserting translation-save feedback, it dismisses the mobile toast before
+clicking the next table action so the notification cannot intercept that click.

@@ -1552,6 +1552,8 @@
 
 .admin-translation-workspace {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 0.85rem;
 }
 
@@ -3422,7 +3424,7 @@
   }
 
   .admin-workspace-page .admin-translation-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-translation-form {
@@ -3613,7 +3615,9 @@
     background: #fff;
   }
 
-  .admin-translation-table td {
+  .admin-translation-table-wrap .analytics-table--native .admin-translation-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
     padding: 0.32rem 0;
     border: 0;
   }

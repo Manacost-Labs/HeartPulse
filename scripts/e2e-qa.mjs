@@ -620,7 +620,7 @@ function assertLayout(path, layout) {
     failures.push(`${path}: banner decoration is not contained (${layout.bannerOverflow})`);
   }
   if (layout.bannerHeight) {
-    const expectedHeight = path === '/faq' ? (layout.mobile ? 180 : 210) : (layout.mobile ? 360 : 320);
+    const expectedHeight = path.split(' ')[0].replace(/\/$/, '') === '/faq' ? (layout.mobile ? 180 : 210) : (layout.mobile ? 360 : 320);
     if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
       failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
     }
@@ -1630,9 +1630,7 @@ for (const [device, viewport] of [
   ['desktop', { width: 1440, height: 900 }],
   ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
 ]) {
-  const context = await browser.createBrowserContext();
-  const page = await context.newPage();
-  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
   const adminState = {
     galleryEmpty: false,
@@ -1953,6 +1951,7 @@ for (const [device, viewport] of [
       failures.push(`admin translations [${device}]: save overrode active search or left stale editor values (${JSON.stringify(translationPositionAfterSave)})`);
     }
     await page.screenshot({ path: `${OUT}/admin-translations-after-add-${device}.png`, fullPage: false });
+    await page.click('.admin-toast button[aria-label="Закрыть уведомление"]');
     await page.click('.admin-translation-search-control button[aria-label="Очистить поиск"]');
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
     await page.click('.admin-translation-table tbody tr:first-child button');
@@ -3813,7 +3812,7 @@ for (const [device, viewport] of [
     })).catch(() => ({ body: 'unavailable body', stats: [], url: page.url() }));
     failures.push(`admin dashboard [${device}]: ${error.message}; runtime: ${runtimeErrors.join(' | ') || 'none'}; state: ${JSON.stringify(diagnostic)}`);
   } finally {
-    await context.close();
+    await page.close();
   }
 }
 
