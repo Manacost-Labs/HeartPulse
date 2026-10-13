@@ -9,7 +9,7 @@
   color: #432a16;
   box-shadow: 0 12px 32px #24130659, 0 2px 6px #24130633;
   pointer-events: none;
-  animation: anchored-image-preview-in 140ms var(--motion-ease, ease-out) both;
+  animation: anchored-image-preview-in var(--motion-fast) var(--motion-ease) both;
 }
 
 .anchored-image-preview__name {
