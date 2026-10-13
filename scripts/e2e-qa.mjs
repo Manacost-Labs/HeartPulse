@@ -808,6 +808,15 @@ async function createQaPage() {
   return page;
 }
 
+async function waitForClassDistributionLayout(page) {
+  await page.waitForFunction(() => {
+    const svg = document.querySelector('#vsgold-classes svg[data-chart]');
+    if (!svg) return false;
+    const width = svg.getBoundingClientRect().width;
+    return width > 0 && Math.abs(svg.viewBox.baseVal.width - width) <= 1;
+  });
+}
+
 const shellViewportMatrix = [
   ['compact portrait', { width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
   ['mobile portrait', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
@@ -3382,6 +3391,7 @@ for (const [device, viewport] of [
       const image = document.querySelector('.vsgold__build-copy-button img');
       return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
     });
+    await waitForClassDistributionLayout(page);
     const viciousGoldState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.vsgold');
       const hero = document.querySelector('.traditional-mode-banner');
@@ -3470,6 +3480,16 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/vicious-gold-copy-${device}.png`, fullPage: false });
     if (device === 'mobile') {
+      await page.$eval('#vsgold-classes .analytics-chart [role="button"]', button => {
+        const rect = button.getBoundingClientRect();
+        window.scrollBy(0, rect.top + rect.height / 2 - innerHeight / 2);
+      });
+      await page.waitForFunction(() => {
+        const button = document.querySelector('#vsgold-classes .analytics-chart [role="button"]');
+        if (!button) return false;
+        const rect = button.getBoundingClientRect();
+        return button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+      });
       await page.click('#vsgold-classes .analytics-chart [role="button"]');
       await new Promise(resolve => setTimeout(resolve, 250));
       const classFilterState = await page.evaluate(() => ({
@@ -3901,6 +3921,7 @@ for (const width of [320, 430]) {
 
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
+    await waitForClassDistributionLayout(page);
     const viciousNarrowState = await page.evaluate(() => {
       const root = document.querySelector('.vsgold');
       const hero = document.querySelector('.vsgold__hero');

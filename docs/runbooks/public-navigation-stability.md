@@ -580,3 +580,8 @@ Meta-chart QA checks that the responsive SVG fits its viewport. Native table
 scroll checks use `TableSurface`’s inner scroll region. Class-distribution
 interactions target SVG buttons and assert the resulting deck filter and scroll
 position rather than the retired HTML bar controls.
+
+SVG interaction checks wait until the observed plot width matches its SVG
+viewBox. They center the measured SVG target and verify its hit point before
+clicking; Chromium’s automatic SVG scrolling can otherwise place it under the
+fixed mobile header.
