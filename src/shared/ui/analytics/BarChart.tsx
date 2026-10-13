@@ -14,7 +14,7 @@ export function BarChart({ title, subtitle, rows, unit = '%', maximum, tourId, o
   const max = maximum ?? (unit === '%' ? 100 : Math.max(1, ...valid.map(row => row.value)));
   const labelWidth = width < 480 ? 104 : 160;
   const plotWidth = Math.max(1, width - labelWidth - 70);
-  const rowHeight = onSelect ? 44 : 36;
+  const rowHeight = onSelect ? 48 : 36;
   const active = valid[Math.min(activeIndex, valid.length - 1)];
   return <ChartFrame title={title} subtitle={subtitle} tourId={tourId} exportable={valid.length > 0}>
     <div ref={ref} className="analytics-chart__plot">
