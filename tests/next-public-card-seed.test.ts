@@ -1,5 +1,6 @@
 import { createDefaultCatalogCache } from '../apps/public-web/lib/publicCatalogCache.js';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { publicCardSeed } from '../apps/public-web/lib/publicCardSeed';
 import { publicCatalogSeed } from '../apps/public-web/lib/publicCatalogSeed';
 const seed = publicCardSeed({ card: { id: 'CARD_1', name: '<script>test</script>', image: 'https://hearthpulse.net/arena-logo-icon.webp', stats: { private: 53 } }, account: 'PRIVATE_ACCOUNT', decks: ['PRIVATE_DECK'] }, 'CARD_1');
@@ -57,3 +58,51 @@ fail = false;
 assert.equal((await load('standard')).generation, 4, 'a failed read is retried, not cached');
 assert.equal((await load('standard')).generation, 4);
 console.log('Default public catalog cache passed');
+
+test('a stalled default read expires for every waiter and the next request recovers', async context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  let calls = 0;
+  let signal: AbortSignal | undefined;
+  let finishLate: ((value: string) => void) | undefined;
+  const recover = createDefaultCatalogCache<string>((_format, requestSignal) => {
+    calls++;
+    signal = requestSignal;
+    return calls === 1 ? new Promise(resolve => { finishLate = resolve; }) : Promise.resolve('fresh');
+  });
+  const first = recover('standard');
+  const second = recover('standard');
+  let settled = false;
+  const rejected = Promise.all([assert.rejects(first, /timed out/), assert.rejects(second, /timed out/)])
+    .then(() => { settled = true; });
+  await Promise.resolve();
+  context.mock.timers.tick(10_000);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(settled, true, 'a shared read must not leave every default catalog request pending forever');
+  await rejected;
+  assert.equal(calls, 1, 'waiters still share one read');
+  assert.equal(signal?.aborted, true, 'the abandoned request must be cancelled');
+  assert.equal(await recover('standard'), 'fresh');
+  finishLate?.('obsolete');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(await recover('standard'), 'fresh', 'late completion cannot replace the recovered cache');
+});
+
+test('a late failure from an expired read cannot evict its replacement', async context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  let time = 0;
+  let calls = 0;
+  let rejectOld: ((error: Error) => void) | undefined;
+  const recover = createDefaultCatalogCache<string>(() => {
+    calls++;
+    return calls === 1 ? new Promise((_resolve, reject) => { rejectOld = reject; }) : Promise.resolve('replacement');
+  }, () => time);
+  const oldRead = recover('standard');
+  await Promise.resolve();
+  time = 10_001;
+  assert.equal(await recover('standard'), 'replacement');
+  const rejected = assert.rejects(oldRead, /old request/);
+  rejectOld?.(new Error('old request'));
+  await rejected;
+  assert.equal(await recover('standard'), 'replacement');
+  assert.equal(calls, 2, 'the old failure must not delete the new completed entry');
+});

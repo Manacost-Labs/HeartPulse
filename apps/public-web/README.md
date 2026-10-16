@@ -75,7 +75,9 @@ is a separate administrator workspace and retains its permission gate.
 - The default constructed-card catalog reuses validated anonymous seeds for
   30 seconds in the Next process, with at most one Standard and one Wild entry.
   Concurrent default reads coalesce; expired entries never hide an upstream
-  failure. Filters, ranks, periods, sorts and later pages bypass this cache
+  failure. A shared read has its own ten-second deadline and AbortSignal;
+  timed-out reads are evicted and cannot leave subsequent visits pending.
+  Filters, ranks, periods, sorts and later pages bypass this cache
   when their normalized API request differs from the default. Table/gallery
   presentation shares the same seed. See
   [cache contract](../../docs/specs/public-card-catalog-response-cache.md).

@@ -10,13 +10,13 @@ function catalogRequest(format: CardFormat, search: string) {
   return constructedCardCatalogUrl({ ...state, query: state.filters.query });
 }
 
-async function readCatalog(format: CardFormat, url: string) {
-  const response = await fetchPublicExpress(url);
+async function readCatalog(format: CardFormat, url: string, signal?: AbortSignal) {
+  const response = await fetchPublicExpress(url, signal);
   if (!response.ok) throw new Error('Public catalog temporarily unavailable');
   return publicCatalogSeed(await response.json(), format);
 }
 
-const defaultCatalog = createDefaultCatalogCache(format => readCatalog(format, catalogRequest(format, '')));
+const defaultCatalog = createDefaultCatalogCache((format, signal) => readCatalog(format, catalogRequest(format, ''), signal));
 
 /** Anonymous default projections reuse a validated seed for 30s; arbitrary filters are never cached here. */
 export const loadPublicCatalog = cache(async (format: CardFormat, search: string) => {
