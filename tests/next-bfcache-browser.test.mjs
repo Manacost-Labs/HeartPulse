@@ -68,7 +68,7 @@ async function watchRestore(page) {
     if (window.__restoreWatched) return;
     window.__restoreWatched = true;
     const snapshot = () => ({
-      paid: Boolean(document.querySelector('.bg-tier-list-page, .arena-classes-board')),
+      paid: Boolean(document.querySelector('.bg-tier-list-page, ol.arena-classes-board')),
       reader: document.body.textContent.includes('Читатель Кэша'),
       avatar: Boolean(document.querySelector('.arena-sidebar-profile-avatar')),
     });
@@ -219,7 +219,7 @@ test('Back restores public pages from the back/forward cache and never shows a s
 
     // The same on /classes/: its statistics leave in the render that hides the viewer.
     gateway.sessions.add('reader');
-    const classes = await openReader(browser, gateway.origin, 'reader', '/classes/', '.arena-classes-board');
+    const classes = await openReader(browser, gateway.origin, 'reader', '/classes/', 'ol.arena-classes-board');
     await follow(classes.page, '/?login');
     const classesLogout = await classes.page.waitForSelector('.account-logout', { timeout: 15000 });
     await classesLogout.evaluate(button => button.click());
@@ -309,14 +309,14 @@ test('client routes revalidate shared access after revocation and account change
     const { page, pageErrors } = await openReader(browser, gateway.origin, 'reader');
     await page.evaluate(() => { window.__sharedMenu = document.querySelector('.arena-sidebar'); });
     await page.click('.arena-sidebar a[href="/classes/"]');
-    await page.waitForSelector('.arena-classes-board');
+    await page.waitForSelector('ol.arena-classes-board');
     assert.equal(await page.evaluate(() => window.__sharedMenu === document.querySelector('.arena-sidebar')), true);
     gateway.sessions.delete('reader');
     await page.click('.arena-sidebar a[href="/tierlist/"]');
     await page.waitForFunction(() => location.pathname === '/tierlist/' && !document.body.textContent.includes('Читатель Кэша'));
     await page.evaluate(() => history.back());
     await page.waitForFunction(() => location.pathname === '/classes/');
-    assert.equal(await page.$('.arena-classes-board'), null, 'revoked access must not reappear on client Back');
+    assert.equal(await page.$('ol.arena-classes-board'), null, 'revoked access must not reappear on client Back');
     await page.setCookie({ name: 'bf_session', value: 'other', url: gateway.origin });
     await page.click('.arena-sidebar a[href="/battlegrounds/tier-list/"]');
     await page.waitForFunction(() => location.pathname === '/battlegrounds/tier-list/' && document.body.textContent.includes('Другой Посетитель'));
