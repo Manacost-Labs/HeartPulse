@@ -21,6 +21,7 @@ export const LongText: Story = { args: { articles: articles.map(article => ({ ..
 export const Loading: Story = { args: { loading: true, articles: [] }, play: async ({ canvas }) => {
   await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем последние статьи');
   await expect(canvas.getAllByRole('link')).toHaveLength(1);
+  await expect(canvas.getByRole('status').closest('[aria-busy="true"]')).toBeNull();
 } };
 export const Refreshing: Story = { args: { loading: true }, play: async ({ canvas }) => {
   await expect(canvas.getAllByRole('link', { name: /Новый сезон Hearthstone/ })).toHaveLength(3);
