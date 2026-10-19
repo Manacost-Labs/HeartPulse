@@ -56,8 +56,11 @@ subscription gates, navigation or the ready view's typography.
   matchup groups.
 - **Vicious Gold**: Existing one-viewport reserve and 104 px rows; result count
   stays data-dependent.
-- **Home deferred sections**: Existing 18 rem region while optional code/data
-  arrives.
+- **Home latest articles**: Real responsive lead/secondary grid, 16:8.5 covers,
+  metadata, headline, excerpt and action; keep known articles during refresh.
+  The lead spans the full tablet row.
+- **Home deferred code**: Existing 18 rem region until the optional section
+  layout is known.
 - **Recoverable/lazy surfaces**: Generic status panel only until the owning
   layout is known; page/section containment owns its minimum height.
 

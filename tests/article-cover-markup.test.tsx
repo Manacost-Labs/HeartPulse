@@ -1,9 +1,19 @@
 import assert from 'node:assert/strict';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { registerHooks } from 'node:module';
 import { ARTICLE_COVER_WIDTHS as SERVER_WIDTHS } from '../server/articleCoverRoutes.js';
-import { ArticlesTab, type Article } from '../src/modules/articles/public';
+import type { Article } from '../src/modules/articles/public';
 import { ARTICLE_COVER_WIDTHS, responsiveArticleCover } from '../src/modules/articles/model/articleCover';
 import { HOME_ARTICLE_COVER_WIDTHS, responsiveHomeCover } from '../src/modules/home/model/articleCover';
+
+// Node checks markup; CSS geometry is verified by the paired browser test.
+const styles = registerHooks({ resolve(specifier, context, nextResolve) {
+  return specifier.endsWith('.css')
+    ? { url: 'data:text/javascript,export{}', shortCircuit: true }
+    : nextResolve(specifier, context);
+} });
+const { ArticlesTab } = await import('../src/modules/articles/public');
+styles.deregister();
 
 // The article UI and the home teasers keep their own copy of the width list
 // (module boundaries prefer that to a cross-module import); the server

@@ -26,7 +26,7 @@ test('loading cards and class rows fit their loaded counterparts at public page 
         const { width, height } = element.getBoundingClientRect();
         const part = selector => element.querySelector(selector)?.getBoundingClientRect().height ?? null;
         return { width, height, heading: part('.article-body-modern h3'),
-          media: part('.article-image-shell'), metadata: part('.article-meta-modern'), votes: part('.article-vote-row') };
+          media: part('.article-image-shell, .home-latest-article__image'), metadata: part('.article-meta-modern'), votes: part('.article-vote-row') };
       }));
     }
     for (const width of [1350, 1024, 768, 412, 360]) {
@@ -66,12 +66,17 @@ test('loading cards and class rows fit their loaded counterparts at public page 
         ['guides', 'guides-measured-loading-geometry--ready', 'guides-measured-loading-geometry--short-text', 'guides-measured-loading-geometry--loading', '.guide-archive-card'],
         ['gallery', 'gallery-measured-loading-geometry--long-text', 'gallery-measured-loading-geometry--ready', 'gallery-measured-loading-geometry--loading', '.gallery-card'],
         ['matchups', 'meta-matchup-matrix--populated-overview', 'meta-matchup-matrix--overview', 'meta-matchup-matrix--loading', '.standard-matchups__picker'],
+        ['home articles', 'home-measured-article-loading--long-text', 'home-measured-article-loading--ready', 'home-measured-article-loading--loading', '.home-latest-article'],
       ]) {
         const ready = await geometry(readyStory, selector);
         const short = await geometry(shortStory, selector);
         const loading = await geometry(loadingStory, selector);
         for (const [index, item] of ready.entries()) {
           assert.ok(Math.abs(item.width - loading[index].width) <= 2, `${name} card width at ${width}px`);
+          if (name === 'home articles') {
+            assert.notEqual(loading[index].media, null, 'home loading cards reserve the real cover');
+            assert.ok(Math.abs(item.media - loading[index].media) <= 2, `home cover at ${width}px`);
+          }
           assert.ok(loading[index].height >= short[index].height - 2 && loading[index].height <= item.height + 2,
             `${name} card at ${width}px: skeleton ${loading[index].height}, real text range ${short[index].height}–${item.height}`);
         }

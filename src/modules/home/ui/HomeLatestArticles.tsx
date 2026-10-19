@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { LoadingBlock } from '../../../shared/ui/LoadingSurface';
+import '../../../shared/ui/LoadingSurface.css';
 import { HOME_COVER_SIZES, HOME_LEAD_COVER_SIZES, responsiveHomeCover } from '../model/articleCover';
 import './HomeLatestArticles.css';
 
@@ -49,6 +51,18 @@ function articleSectionLabel(article: HomeArticle): string {
   return 'Manacost';
 }
 
+function HomeArticleSkeleton() {
+  return <div className="home-latest-article home-latest-article--loading" aria-hidden="true">
+    <LoadingBlock className="home-latest-article__image" />
+    <span className="home-latest-article__body">
+      <span className="home-latest-article__meta"><LoadingBlock /><LoadingBlock /></span>
+      <strong className="home-article-skeleton-title"><LoadingBlock /><LoadingBlock /></strong>
+      <span className="home-article-skeleton-excerpt"><LoadingBlock /><LoadingBlock /></span>
+      <b><LoadingBlock className="home-article-skeleton-action" /></b>
+    </span>
+  </div>;
+}
+
 export default function HomeLatestArticles({ articles, loading, onNavigate }: {
   articles: HomeArticle[];
   loading: boolean;
@@ -60,6 +74,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
       .slice(0, 3),
     [articles],
   );
+  const initialLoading = loading && latest.length === 0;
 
   return (
     <section className="home-latest-articles home-reveal" aria-labelledby="home-articles-heading">
@@ -71,9 +86,10 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
         <p>Свежие мета-отчёты, разборы патчей и практические гайды редакции.</p>
       </div>
 
-      <div data-home-feed="articles" className="home-latest-articles__board" aria-busy={loading}>
-        {loading && latest.length === 0
-          ? [0, 1, 2].map(index => <div key={index} className="home-latest-article home-latest-article--loading" />)
+      {initialLoading && <span className="sr-only" role="status">Загружаем последние статьи</span>}
+      <div data-home-feed="articles" className="home-latest-articles__board" aria-busy={loading && !initialLoading}>
+        {initialLoading
+          ? [0, 1, 2].map(index => <HomeArticleSkeleton key={index} />)
           : latest.map((article, index) => (
             <a
               key={article.id}

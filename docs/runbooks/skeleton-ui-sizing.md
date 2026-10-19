@@ -59,10 +59,16 @@ as production failures. Additional ready/loading stories covered public
 gallery cards, contests, expanded card history, the meta chart and guide
 detail. Expanded history, meta, guide and matchup states were measured at
 five widths; gallery and contest references used three widths before fitting.
-The paired regression then covers all five widths.
+The paired regression then covers all five widths: 60 state pairs across
+12 layout families. A follow-up Playwright pass measured the home feed in
+ready, long text, initial loading, refresh and empty states at all five widths
+before replacing its fixed-height placeholders.
 
 Selected mismatches that motivated the changes:
 
+- **Home latest articles**: Fixed 390 px cards → The real grid and cover;
+  the tablet lead measures about 569 px at 768 px and 700 px at 1024 px.
+  Short/long articles bound the reference body; refresh retains real cards.
 - **Archetype rows**: 76 px at every width → 88 px desktop, about 130 px tablet,
   175–192 px phone depending on title.
 - **Class leader**: 72 px desktop / 64 px phone → About 85 / 118 px.

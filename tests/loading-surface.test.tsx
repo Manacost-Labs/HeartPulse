@@ -43,7 +43,7 @@ assert.match(styles, /@starting-style\s*\{\s*\.data-arrive\s*\{\s*opacity:\s*0\.
 const index = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 assert.doesNotMatch(index, /LoadingSurface\.css|\.data-surface/);
 for (const view of ['features/StandardMeta.tsx', 'features/HsReplayDeckList.tsx', 'features/ConstructedArchetypes.tsx',
-  'features/Cosmetics.tsx', 'features/FunDecksPage.tsx', 'features/StandardMatchups.tsx', 'modules/contests/ui/ContestsPage.tsx']) {
+  'features/Cosmetics.tsx', 'features/FunDecksPage.tsx', 'features/StandardMatchups.tsx', 'modules/contests/ui/ContestsSkeleton.tsx']) {
   assert.match(readFileSync(new URL(`../src/${view}`, import.meta.url), 'utf8'), /^import '[./]+shared\/ui\/LoadingSurface\.css';$/m,
     `${view} loads the loading surface stylesheet`);
 }

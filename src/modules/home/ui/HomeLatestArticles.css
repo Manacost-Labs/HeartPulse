@@ -145,10 +145,15 @@
 }
 
 .arena-app-home .home-latest-article--loading {
-  min-height: 390px;
-  background: var(--loading-fill);
-  animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
+  pointer-events: none;
 }
+.arena-app-home .home-latest-article--loading .home-latest-article__image { background: var(--loading-fill); border-radius: 0; }
+.arena-app-home .home-latest-article--loading .home-latest-article__meta .loading-block { height: 1lh; width: 40%; }
+.arena-app-home .home-latest-article--loading .home-article-skeleton-title { display: grid; align-content: space-around; block-size: 2.36em; }
+.arena-app-home .home-latest-article--loading .home-article-skeleton-excerpt { display: grid; align-content: space-around; block-size: 3em; }
+.home-article-skeleton-title .loading-block, .home-article-skeleton-excerpt .loading-block { height: 0.65em; }
+.home-article-skeleton-title .loading-block:last-child, .home-article-skeleton-excerpt .loading-block:last-child { width: 75%; }
+.home-article-skeleton-action { height: 1lh; width: 6rem; }
 
 .arena-app-home .home-latest-articles__empty {
   min-height: 190px;
