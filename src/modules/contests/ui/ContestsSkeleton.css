@@ -1,0 +1,5 @@
+.contest-card--loading { pointer-events: none; }
+.contest-skeleton-kicker, .contest-skeleton-meta { height: 26px; width: 75%; }
+.contest-skeleton-title { height: 4.35rem; }
+.contest-skeleton-description { height: 3rem; width: 90%; }
+.contest-skeleton-action { height: 42px; }

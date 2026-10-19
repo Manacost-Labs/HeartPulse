@@ -32,3 +32,5 @@
 .arena-classes-chart { margin-top: 16px; }
 .arena-classes-chart > summary { width: fit-content; min-height: 44px; padding: 12px 0; color: #503650; cursor: pointer; font-weight: 600; }
 .arena-classes-chart > summary:focus-visible { outline: 3px solid #795013; outline-offset: 3px; }
+
+.arena-class-placeholder-icon { grid-area: icon; }

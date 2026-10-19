@@ -11,6 +11,7 @@ import {
   type ConstructedCardHistoryPoint,
 } from './constructedCardHistoryModel';
 import './ConstructedCardHistoryChart.css';
+import { ConstructedCardHistorySkeleton } from './ConstructedCardHistorySkeleton';
 
 type ConstructedCardHistoryChartProps = {
   points: ConstructedCardHistoryPoint[];
@@ -117,10 +118,7 @@ export default function ConstructedCardHistoryChart({
         </div>
 
         {loading ? (
-          <div className="constructed-card-history__state" aria-busy="true">
-            <span className="constructed-card-history__skeleton" />
-            <strong>Загружаем историю</strong>
-          </div>
+          <ConstructedCardHistorySkeleton label={metricDefinition.label} />
         ) : error ? (
           <div className="constructed-card-history__state" role="status">
             <ChartLine size={28} />

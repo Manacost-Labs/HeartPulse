@@ -1,0 +1,14 @@
+.matchups-skeleton-body { gap: 0; }
+.matchups-skeleton-view { height: 50px; margin-bottom: 16px; }
+.matchups-skeleton-heading { visibility: hidden; }
+.matchups-skeleton-select { height: 64px; flex-shrink: 0; }
+.matchups-skeleton-quick { height: 42px; margin-top: 12px; }
+.matchups-skeleton-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.matchups-skeleton-tools .loading-block { height: 44px; }
+.matchups-skeleton-group { display: grid; align-content: space-around; gap: 12px; height: 105px; padding: 12px; border: 1px solid var(--arena-paper-line); }
+.matchups-skeleton-group .loading-block:first-child { height: 24px; width: 70%; }
+.matchups-skeleton-group .loading-block:last-child { height: 32px; }
+@media (max-width: 720px) {
+  .matchups-skeleton-view { height: 60.5625px; }
+  .matchups-skeleton-tools { grid-template-columns: 1fr; }
+}

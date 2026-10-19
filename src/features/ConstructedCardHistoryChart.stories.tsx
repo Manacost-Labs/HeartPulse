@@ -60,6 +60,7 @@ export const DenseSmallValues: Story = {
 
 export const Loading: Story = {
   args: { loading: true, points: [] },
+  play: async ({ canvas }) => { await userEvent.click(canvas.getByText('Динамика карты')); await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем историю'); },
 };
 
 export const Accumulating: Story = {

@@ -35,6 +35,13 @@ export const Loading: Story = {
     await expect(canvas.queryByRole('list')).not.toBeInTheDocument();
   },
 };
+export const Refreshing: Story = {
+  args: { state: { status: 'loading', data } },
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvas.getByRole('list', { name: 'Рейтинг классов' })).toBeVisible();
+    await expect(canvasElement.querySelector('.arena-classes-loading')).toBeNull();
+  },
+};
 export const Empty: Story = {
   args: { state: { status: 'empty', data: { ...data, classes: [] } } },
   play: async ({ canvas, args }) => {

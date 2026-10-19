@@ -249,14 +249,19 @@
 }
 
 .cosmetics-grid-loading {
-  min-height: 760px;
+  align-content: start;
 }
 
-/* Geometry only: the fill and pulse come from LoadingBlock. */
-.cosmetics-skeleton {
-  aspect-ratio: 2 / 3;
-  border: 1px solid var(--arena-paper-line);
+.cosmetics-skeleton { pointer-events: none; }
+.cosmetics-skeleton .cosmetics-card-media { background: var(--loading-fill); }
+.cosmetics-card-name.cosmetics-skeleton-name {
+  display: grid;
+  align-content: space-around;
+  width: 90%;
+  min-height: calc(2.4em + 6px);
 }
+.cosmetics-skeleton-name .loading-block { height: 0.65em; }
+.cosmetics-skeleton-name .loading-block:last-child { width: 72%; justify-self: center; }
 
 .cosmetics-pagination {
   display: flex;

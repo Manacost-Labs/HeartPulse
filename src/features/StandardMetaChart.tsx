@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChartScatter, ChevronDown, ChevronUp } from 'lucide-react';
-import { LoadingSurface } from '../shared/ui/LoadingSurface';
+import { StandardMetaChartSkeleton } from './StandardMetaChartSkeleton';
 import type { StandardMetaChartPoint } from './StandardMetaChartPlot';
 
 export type StandardMetaChartItem = {
@@ -63,7 +63,7 @@ export default function StandardMetaChart({ items, format, formatLabel, rankLabe
 
       {expanded && (
         <div id="standard-meta-chart-content" className="standard-meta-chart__content">
-          <React.Suspense fallback={<LoadingSurface label="Загружаем карту меты" layout="rows" count={1} className="standard-meta-chart__loading" />}>
+          <React.Suspense fallback={<StandardMetaChartSkeleton formatLabel={formatLabel} rankLabel={rankLabel} count={points.length} />}>
             <StandardMetaChartPlot points={points} popularPoints={popularPoints} format={format}
               formatLabel={formatLabel} rankLabel={rankLabel} />
           </React.Suspense>

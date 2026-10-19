@@ -1,5 +1,6 @@
 import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
 import { publicResourceImageUrl } from '../publicResourceUrl';
+import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
 import '../shared/ui/analytics/Analytics.css';
 import { LineChart } from '../shared/ui/analytics/LineChart';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
@@ -210,8 +211,9 @@ function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutra
 }
 
 function LoadingState({ detail = false }: { detail?: boolean }) {
-  return <LoadingSurface label={detail ? 'Загружаем архетип' : 'Загружаем архетипы'} quiet layout="rows"
-    className={`archetypes-loading${detail ? ' archetypes-loading--detail' : ''}`} />;
+  if (!detail) return <ArchetypesCatalogSkeleton />;
+  return <LoadingSurface label="Загружаем архетип" quiet layout="rows"
+    className="archetypes-loading archetypes-loading--detail" />;
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {

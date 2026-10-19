@@ -1,8 +1,27 @@
 import { WinrateMeterFill } from './WinrateMeterFill';
+import type { CSSProperties } from 'react';
 import { BarChart } from '../../../shared/ui/analytics/BarChart';
 import '../../../shared/ui/analytics/Analytics.css';
 import type { ArenaClassesState } from '../model/state';
 import './ArenaClassesBoard.css';
+
+const ROW_CLASS_NAME = 'arena-class-row group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4';
+const ROW_STYLE: CSSProperties = {
+  background: 'linear-gradient(135deg, #ede0c0 0%, #e2cfa0 50%, #d8c090 100%)',
+  border: '1.5px solid #c9a86c', padding: '10px 14px',
+  gridTemplateColumns: '28px 36px minmax(82px,96px) minmax(0,1fr)',
+};
+
+function ArenaClassesSkeleton() {
+  return <div aria-hidden="true" className="arena-classes-board arena-classes-loading space-y-2.5 sm:space-y-3 relative">
+    {Array.from({ length: 11 }, (_, index) => <div key={index} className={ROW_CLASS_NAME} style={ROW_STYLE} data-rank={index + 1}>
+      <span className="arena-class-rank skeleton" />
+      <span className="arena-class-placeholder-icon skeleton w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-full" />
+      <div className="min-w-0 sm:flex-shrink-0 sm:w-40"><span className="skeleton block h-4 w-24" /></div>
+      <div className="arena-class-meter skeleton relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow" style={{ minWidth: 118 }} />
+    </div>)}
+  </div>;
+}
 
 const CLASS_ICON_BY_ID: Record<string, string> = {
   dk:             '/class_icon/ui/deathknight-96.webp',
@@ -24,13 +43,13 @@ export function ArenaClassesBoard({ state, onRetry }: {
   state: ArenaClassesState; onRetry: () => void;
 }) {
   const classes = state.data?.classes ?? [];
+  const initialLoading = state.status === 'loading' && classes.length === 0;
   return (
-    <section aria-label="Статистика классов" aria-busy={state.status === 'loading'}>
-      {state.status === 'loading' && <div role="status">Загрузка статистики классов…</div>}
+    <section aria-label="Статистика классов" aria-busy={state.status === 'loading' && !initialLoading}>
+      {initialLoading && <div role="status" className="sr-only">Загрузка статистики классов…</div>}
       {state.status === 'error' && <p role="alert" className="arena-classes-notice">Не удалось загрузить статистику классов. Повторите попытку.</p>}
       {state.status === 'empty' && <p role="status" className="arena-classes-notice">Статистики классов пока нет.</p>}
-      {state.status === 'loading' && <div aria-hidden="true">{Array.from({ length: 11 }, (_, index) =>
-        <div key={index} className="skeleton h-16 sm:h-[72px] w-full mb-3" />)}</div>}
+      {initialLoading && <ArenaClassesSkeleton />}
       {classes.length > 0 && <ol aria-label="Рейтинг классов" className="arena-classes-board space-y-2.5 sm:space-y-3 relative">
         {classes.map((cls, index) => {
               const icon    = CLASS_ICON_BY_ID[cls.id];
@@ -41,13 +60,8 @@ export function ArenaClassesBoard({ state, onRetry }: {
                   key={cls.id}
                   data-rank={index + 1}
                   data-tour-id={index === 0 ? 'arena-classes-ranking' : undefined}
-                  className="arena-class-row group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
-                  style={{
-                    background: 'linear-gradient(135deg, #ede0c0 0%, #e2cfa0 50%, #d8c090 100%)',
-                    border: '1.5px solid #c9a86c',
-                    padding: '10px 14px',
-                    gridTemplateColumns: '28px 36px minmax(82px,96px) minmax(0,1fr)',
-                  }}
+                  className={ROW_CLASS_NAME}
+                  style={ROW_STYLE}
                 >
                   <span className="arena-class-rank" aria-label={`Место ${index + 1}`}>{index + 1}</span>
                   {icon && (

@@ -6,6 +6,8 @@ import type { SubscriptionStatus } from '../../subscriptions/public';
 import { submitArticleVote } from '../api/articleRequests';
 import type { Article, ArticlesData } from '../model/types';
 import { ArticleCard, canAccessArticle } from './ArticleCard';
+import { ArticleCardSkeleton } from './ArticleCardSkeleton';
+import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
 
 function ArticlesToolbar({ articleSearch, articleTag, articleTags, setArticleSearch, setArticleTag }: {
   articleSearch: string; articleTag: string; articleTags: string[];
@@ -122,9 +124,10 @@ export function ArticlesTab({
         setArticleSearch={setArticleSearch} setArticleTag={setArticleTag} />
 
       {loading ? (
-        <div className="articles-grid-modern grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1,2,3].map(i => <div key={i} className="skeleton h-72 rounded-2xl" />)}
-        </div>
+        <LoadingSurface label="Загружаем статьи" quiet layout="rows"
+          blocksClassName="articles-grid-modern grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3].map(index => <ArticleCardSkeleton key={index} />)}
+        </LoadingSurface>
       ) : visibleArticles.length === 0 ? (
         <div className="articles-empty-modern text-center py-16">
           <BookOpen size={42} aria-hidden="true" className="mx-auto mb-3" />

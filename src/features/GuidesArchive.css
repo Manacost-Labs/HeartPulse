@@ -186,6 +186,25 @@
   gap: 1.1rem;
 }
 
+.guide-archive-card-skeleton { pointer-events: none; }
+.guide-archive-skeleton-meta { height: 1.5rem; width: 70%; }
+.guide-archive-skeleton-title { display: grid; gap: 0.35rem; padding-block: 0.2rem; }
+.guide-archive-skeleton-title .loading-block { height: 0.8rem; }
+.guide-archive-skeleton-description { display: grid; gap: 0.4rem; padding-block: 0.2rem; }
+.guide-archive-skeleton-description .loading-block { height: 0.65rem; }
+.guide-archive-skeleton-title .loading-block:last-child,
+.guide-archive-skeleton-description .loading-block:last-child { width: 74%; }
+.guide-archive-skeleton-section { height: 1.15rem; width: 52%; margin-top: auto; }
+.guide-detail-skeleton { min-height: 100svh; }
+.guide-detail-skeleton__back { width: 10rem; height: 46px; }
+.guide-detail-skeleton__banner { height: var(--site-page-hero-min-height); margin-bottom: var(--site-page-hero-content-gap); flex-shrink: 0; }
+@media (max-width: 720px) {
+  .guide-detail-skeleton__banner { height: var(--site-page-hero-mobile-min-height); }
+}
+.guide-detail-skeleton__reader { display: grid; align-content: start; gap: 1.2rem; min-height: 360px; }
+.guide-detail-skeleton__reader .loading-block { height: 1rem; }
+.guide-detail-skeleton__reader .loading-block:nth-child(3n) { width: 74%; }
+
 .guide-archive-card {
   display: flex;
   flex-direction: column;

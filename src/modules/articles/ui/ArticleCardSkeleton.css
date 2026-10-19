@@ -1,0 +1,15 @@
+.article-card-skeleton { pointer-events: none; }
+.article-card-skeleton .article-image-shell { aspect-ratio: 1176 / 597; }
+.article-card-skeleton__cover { position: absolute; inset: 0; }
+
+.article-card-skeleton__heading {
+  display: grid;
+  align-content: space-evenly;
+  block-size: 3lh;
+}
+
+.article-card-skeleton__line { block-size: 0.65em; }
+.article-card-skeleton__line:nth-child(2) { inline-size: 90%; }
+.article-card-skeleton__line:nth-child(3) { inline-size: 64%; }
+.article-card-skeleton__meta { block-size: 1rem; inline-size: 28%; }
+.article-card-skeleton__vote { block-size: 44px; inline-size: 64px; }

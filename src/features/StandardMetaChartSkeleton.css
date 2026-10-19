@@ -1,0 +1,16 @@
+.meta-loading-frame { container-type: inline-size; }
+.meta-loading-frame .analytics-chart__header > * { visibility: hidden; }
+.meta-loading-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.meta-loading-controls .loading-block:first-child { width: 180px; height: 19.5px; }
+.meta-loading-controls .loading-block:last-child { width: 260px; max-width: 100%; height: 40px; }
+.meta-loading-hint { display: flex; gap: 0.38rem; align-items: center; margin: 0 0 0.55rem; color: transparent; font-size: 0.68rem; }
+.meta-loading-hint > span { flex: 0 0 15px; height: 15px; }
+/* Same responsive plot and selection dimensions measured in the lazy view;
+   its renderer and stylesheet remain deferred. */
+.meta-loading-viewport { height: 402px; }
+@container (max-width: 500px) { .meta-loading-viewport { height: 342px; } }
+.meta-loading-selection { height: 67.75px; margin-top: 0.65rem; }
+@media (max-width: 720px) {
+  .meta-loading-hint { align-items: flex-start; line-height: 1.35; }
+  .meta-loading-selection { height: 169.125px; }
+}

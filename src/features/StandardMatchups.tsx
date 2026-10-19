@@ -6,7 +6,7 @@ import '../route-parchment.css';
 import '../shared/ui/LoadingSurface.css';
 import './StandardMatchups.css';
 import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
-import { LoadingSurface } from '../shared/ui/LoadingSurface';
+import { MatchupsSkeleton } from './MatchupsSkeleton';
 import { activeMatrixMatchupAt, type ActiveMatrixMatchup, useCloseMatrixMatchup,
   useTooltipViewportPosition } from './standardMatchupsTooltip';
 import type {
@@ -576,7 +576,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
       <div className="grid grid-cols-1 gap-5">
         <section
           className="standard-matchups__ledger rounded-2xl p-4 sm:p-5"
-          aria-busy={loading}
+          aria-busy={loading && rows.length > 0}
           style={{
             background: 'linear-gradient(135deg,#f4e8cc,#e4c98f)',
             border: '1.5px solid #b8904a',
@@ -609,7 +609,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
           )}
 
           {loading && rows.length === 0 ? (
-            <LoadingSurface label="Загружаем матчапы" layout="rows" count={6} />
+            <MatchupsSkeleton />
           ) : rows.length === 0 ? (
             <div className="py-16 text-center text-[#7a5a35]">Данные матчапов пока недоступны.</div>
           ) : (

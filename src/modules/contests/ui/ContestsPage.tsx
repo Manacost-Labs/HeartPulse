@@ -8,8 +8,7 @@ import type { AuthUser } from '../../identity/public';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { Contest } from '../model/types';
 import { requestContestJoin, requestContests } from '../api/contestRequests';
-import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
-import '../../../shared/ui/LoadingSurface.css';
+import { ContestsSkeleton } from './ContestsSkeleton';
 
 type PageMessage = { type: 'ok' | 'err'; text: string };
 
@@ -180,7 +179,7 @@ export function ContestsPage({
       </div>
 
       {loading ? (
-        <LoadingSurface label="Загружаем конкурсы" layout="grid" count={3} />
+        <ContestsSkeleton />
       ) : contests.length ? (
         <div className="contest-grid">
           {contests.map(contest => (

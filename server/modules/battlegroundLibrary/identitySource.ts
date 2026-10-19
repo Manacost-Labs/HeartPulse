@@ -14,7 +14,7 @@ export async function readBattlegroundLibraryIdentity<Card extends { dbfId: numb
       if (result.ok) {
         const card = project(await result.json());
         if (card?.dbfId === dbfId) return card;
-      }
+      } else await result.body?.cancel();
     } catch (error) {
       if (controller.signal.aborted) throw error;
     }
@@ -40,4 +40,3 @@ export async function withBattlegroundLibraryDeadline<T>(promise: Promise<T>, ti
     if (timer) clearTimeout(timer);
   }
 }
-

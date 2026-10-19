@@ -27,6 +27,7 @@ import {
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import '../shared/ui/LoadingSurface.css';
 import './FunDecksPage.css';
+import { FunDecksSkeleton } from './FunDecksSkeleton';
 
 type FormatFilter = 'all' | 'standard' | 'wild';
 type SortMode = FunDecksSortMode;
@@ -462,8 +463,7 @@ export default function FunDecksPage({
       </section>
 
       {loading ? (
-        <LoadingSurface label="Собираем фан-колоды" detail="Загружаем свежую подборку и составы карт."
-          layout="grid" count={3} className="fun-decks-page__loading" blocksClassName="fun-decks-grid" />
+        <FunDecksSkeleton />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">
           <TriangleAlert aria-hidden="true" />

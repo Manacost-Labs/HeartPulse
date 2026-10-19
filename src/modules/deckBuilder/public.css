@@ -34,7 +34,9 @@
 .hp-builder-card:hover:not(:disabled) { background: #fff3d7; border-color: #bd8b39; }
 .hp-builder-card.is-selected { background: #e4ce9d; border-color: #bd8b39; }
 .hp-builder-card:disabled.is-selected { opacity: 1; }
-.hp-builder-skeletons div { aspect-ratio: 180 / 280; border-radius: 8px; background: #dfcda8; }
+/* The real card adds a 32px action and 8px bottom padding below its image. */
+.hp-builder-skeletons > div { padding-bottom: 40px; border: 1px solid transparent; border-radius: 4px; background: #dfcda8; }
+.hp-builder-skeletons > div::before { content: ''; display: block; aspect-ratio: 360 / 497; }
 .hp-builder-message { padding: 40px 16px; text-align: center; color: var(--builder-soft); }
 .hp-builder-message h3 { font-size: 20px; color: var(--builder-ink); }
 .hp-builder-message button, .hp-builder-pagination button { min-height: 44px; padding: 8px 16px; background: #fff3d7; color: var(--builder-ink); border: 1px solid #b29264; border-radius: 6px; font-weight: 700; }

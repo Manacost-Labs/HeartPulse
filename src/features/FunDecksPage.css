@@ -695,15 +695,6 @@
   height: 16px;
 }
 
-/* Three deck-card tiles: the loader keeps the grid the decks fill. */
-.fun-decks-page__loading {
-  --loading-tile-ratio: 3 / 5;
-}
-
-.fun-decks-page__loading .loading-block {
-  border: 1px solid var(--arena-paper-line);
-}
-
 @media (max-width: 1120px) {
   .fun-decks-hero {
     grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);

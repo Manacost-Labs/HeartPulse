@@ -5,6 +5,7 @@ import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import '../route-parchment.css';
 import './TraditionalModeBanner.css';
 import './DeferredRoutes.css';
+import { GallerySkeleton } from './GallerySkeleton';
 
 type GalleryItem = {
   id: string;
@@ -133,11 +134,7 @@ export default function GalleryTab({
       </section>
 
       {loading ? (
-        <div className="gallery-grid">
-          {[1, 2, 3, 4, 5, 6].map(item => (
-            <div key={item} className="gallery-card gallery-card-skeleton" />
-          ))}
-        </div>
+        <GallerySkeleton />
       ) : items.length === 0 ? (
         <div className="gallery-empty">
           <ImageIcon size={42} aria-hidden="true" />

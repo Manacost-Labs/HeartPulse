@@ -1,0 +1,7 @@
+.constructed-card-history-loading dd .loading-block { height: 1lh; width: 65%; }
+/* Real frame typography wraps the same title; the measured plot and scrubber
+   reserve their controls without constructing a chart from fabricated data. */
+.history-loading-plot { height: 240px; }
+.history-loading-value { height: 24px; }
+.history-loading-scrubber { height: 54.5px; }
+.constructed-card-history-loading .analytics-chart__header > * { visibility: hidden; }

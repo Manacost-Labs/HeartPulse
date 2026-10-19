@@ -1294,9 +1294,6 @@
 
 .standard-meta-chart__content { padding: 0.75rem; }
 
-/* The expanded plot's loader keeps about the plot's height. */
-.standard-meta-chart__loading { --loading-row-height: clamp(18rem, 45vw, 30rem); }
-
 @media (max-width: 720px) {
   .standard-meta-chart { margin-top: 0.65rem; border-width: 5px; }
   .standard-meta-chart__header { display: grid; gap: 0.6rem; min-height: 0; padding: 0.65rem; }

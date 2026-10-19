@@ -430,7 +430,8 @@
         "tests/soft-paywall-browser.test.mjs",
         "tests/vicious-gold-progressive-browser.test.mjs",
         "tests/vicious-gold-layout-browser.test.mjs",
-        "tests/battleground-builders-browser.test.mjs"
+        "tests/battleground-builders-browser.test.mjs",
+        "tests/skeleton-geometry-browser.test.mjs"
       ]
     },
     {

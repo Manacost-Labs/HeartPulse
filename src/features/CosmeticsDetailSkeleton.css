@@ -1,0 +1,14 @@
+.cosmetics-detail-skeleton__back { width: min(100%, 9.2rem); height: 44px; }
+.cosmetics-detail-skeleton__heading { height: var(--site-page-hero-min-height); margin-bottom: var(--site-page-hero-content-gap); }
+@media (max-width: 720px) {
+  .cosmetics-detail-skeleton__heading { height: var(--site-page-hero-mobile-min-height); }
+}
+/* Loaded portrait/pet art measured 10:13; coins use the existing square crop. */
+.cosmetics-detail-skeleton .cosmetics-detail-primary-media { aspect-ratio: 10 / 13; }
+.cosmetics-detail-skeleton .cosmetics-detail-crop { aspect-ratio: 1; }
+.cosmetics-detail-skeleton__copy { min-height: 254px; align-content: space-around; }
+.cosmetics-detail-skeleton--heroes .cosmetics-detail-skeleton__copy { min-height: clamp(418px, 32.6vw, 440px); }
+.cosmetics-detail-skeleton--pets .cosmetics-detail-skeleton__copy { min-height: clamp(154px, 13.1vw, 177px); }
+.cosmetics-detail-skeleton__copy .loading-block { height: 1.2rem; }
+.cosmetics-detail-skeleton__copy .loading-block:nth-child(2) { height: 2.8rem; width: 85%; }
+.cosmetics-detail-skeleton__copy .loading-block:last-child { width: 65%; }

@@ -36,7 +36,8 @@ import {
   type CosmeticKind,
   type CosmeticsCatalogFilters,
 } from '../modules/cosmetics/public';
-import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
+import { CosmeticsGridSkeleton } from './CosmeticsGridSkeleton';
+import { CosmeticsDetailSkeleton } from './CosmeticsDetailSkeleton';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import { useCatalogRequest, type CatalogRequestState } from './cosmeticsCatalogRequest';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
@@ -503,14 +504,6 @@ function HeroFiltersPanel({
   );
 }
 
-function LoadingGrid() {
-  return (
-    <LoadingSurface label="Загружаем косметику" quiet layout="grid" blocksClassName="cosmetics-grid cosmetics-grid-loading">
-      {Array.from({ length: 12 }, (_, index) => <LoadingBlock key={index} className="cosmetics-skeleton" />)}
-    </LoadingSurface>
-  );
-}
-
 function EmptyState() {
   return (
     <div className="cosmetics-empty">
@@ -578,7 +571,7 @@ function CatalogView({
       )}
 
       {error && !payload && <div className="cosmetics-error" role="alert">{error}</div>}
-      {!payload && loading ? <LoadingGrid /> : (
+      {!payload && loading ? <CosmeticsGridSkeleton /> : (
         <>
           <div className="cosmetics-results-meta" aria-live="polite">
             <span>{payload?.pagination.total.toLocaleString('ru-RU') ?? 0} объектов</span>
@@ -882,7 +875,7 @@ function DetailView({
   }, [kind, cardId, detail, initialDetail]);
 
   if (error) return <div className="cosmetics-error" role="alert">{error}</div>;
-  if (!detail) return <LoadingGrid />;
+  if (!detail) return <CosmeticsDetailSkeleton kind={kind} />;
   return (
     <article className="cosmetics-detail">
       <a

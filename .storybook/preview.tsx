@@ -4,6 +4,8 @@
 import '../src/index.css';
 import '../src/parchment-theme.css';
 import '../src/features/StandardCards.styles';
+import '../src/features/DeferredRoutes.css';
+import '../src/features/contests.css';
 import '../src/route-parchment.css';
 import './preview.css';
 import type { Preview } from '@storybook/react-vite';

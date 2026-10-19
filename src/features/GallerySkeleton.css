@@ -1,0 +1,5 @@
+.gallery-card--loading { pointer-events: none; }
+.gallery-skeleton-tag { height: 1.6rem; width: 32%; margin-bottom: 8px; }
+.gallery-skeleton-title { height: 2.592rem; }
+.gallery-skeleton-description { height: 2.61rem; margin-top: 7px; width: 85%; }
+.gallery-skeleton-meta { height: 1.23rem; width: 70%; }

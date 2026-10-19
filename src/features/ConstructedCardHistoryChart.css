@@ -122,18 +122,11 @@
 }
 .constructed-card-history__state svg { margin-bottom: 0.55rem; color: #704b8f; }
 .constructed-card-history__state strong { color: #46301f; font-family: var(--font-display); font-size: 1rem; }
-.constructed-card-history__state span:not(.constructed-card-history__skeleton) {
+.constructed-card-history__state span {
   width: min(100%, 560px);
   margin-top: 0.4rem;
   font-size: 0.72rem;
   line-height: 1.45;
-}
-.constructed-card-history__skeleton {
-  width: min(100%, 620px);
-  height: 120px;
-  margin-bottom: 0.75rem;
-  background: var(--loading-fill);
-  animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
 }
 
 .constructed-card-history__content { padding: 0.75rem 0.8rem 0.85rem; }
@@ -209,7 +202,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .constructed-card-history__skeleton { animation: none; }
   .constructed-card-history__disclosure svg { transition: none; }
 }
 
