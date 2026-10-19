@@ -101,6 +101,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
+import { assertArchetypeCatalogSource, createArchetypeCatalogCache } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
@@ -346,7 +347,6 @@ const tierlistApiCache = new Map<string, MemoryCacheEntry>();
 const legendariesApiCache = new Map<string, MemoryCacheEntry>();
 const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
-const constructedArchetypeCatalogCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeHistoryCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeAnalysisCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
@@ -6082,12 +6082,15 @@ async function loadStandardMeta(
   }
 }
 
-async function loadConstructedArchetypeCatalog(
+const constructedArchetypeCatalogCache = createArchetypeCatalogCache({
+  read: fetchConstructedArchetypeCatalog, ttlMs: EXTERNAL_DATASET_CACHE_MS,
+  onRefreshError: (format, error) => console.warn(`[constructed-archetypes] ${format} refresh failed:`, error instanceof Error ? error.message : 'Unknown error'),
+});
+const loadConstructedArchetypeCatalog = constructedArchetypeCatalogCache.load;
+
+async function fetchConstructedArchetypeCatalog(
   format: ConstructedArchetypeFormat,
 ): Promise<ConstructedArchetypeCatalog> {
-  const now = Date.now();
-  const cached = constructedArchetypeCatalogCache.get(format);
-  if (cached && cached.expiresAt > now) return cached.data as ConstructedArchetypeCatalog;
   const query = new URLSearchParams({
     format,
     min_games: '50',
@@ -6100,6 +6103,7 @@ async function loadConstructedArchetypeCatalog(
     fetchDataset(`v1/hsguru/archetypes?${query}`, 20_000),
     getStandardArchetypeTranslations(),
   ]);
+  assertArchetypeCatalogSource(payload);
   const items = (Array.isArray(payload?.data) ? payload.data : []).flatMap((row: any) => {
     const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
     if (!archetype) return [];
@@ -6147,11 +6151,6 @@ async function loadConstructedArchetypeCatalog(
     coverage: payload?.coverage && typeof payload.coverage === 'object' ? payload.coverage : {},
     items,
   };
-  constructedArchetypeCatalogCache.set(format, {
-    data: catalog,
-    etag: catalog.updatedAt ?? `hsguru-${format}`,
-    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
-  });
   return catalog;
 }
 
@@ -7506,8 +7505,7 @@ if (staticSitemapArtifact) {
 }
 
 app.use(createConstructedCardSeoRouter({
-  loadCards: constructedCardDataService.loadCards,
-  loadCardDetail: constructedCardDataService.loadCardDetail,
+  ...constructedCardDataService,
   frontendAssets: constructedCardFrontendAssets,
   onError: error => console.error(
     '[constructed-card-seo] catalog failed:',
@@ -7563,7 +7561,7 @@ app.use('/api', createDeckRenderRouter({ renderDeck: async (deckCode, deckName, 
 
 app.use('/api', createGlobalSearchRouter({
   loadArticles: () => loadDataCached('articles.json'),
-  loadCards: constructedCardDataService.loadCards,
+  loadCards: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
   getArticleMode: article => articleMode(article),
   isVipArticleUrl: isKhaVipArticleUrl,
   cacheHeader: 'public, max-age=60, stale-while-revalidate=120',
@@ -7593,7 +7591,7 @@ app.use('/api', createConstructedArchetypeRouter({
   loadCatalog: loadConstructedArchetypeCatalog,
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
-  loadCardCatalog: constructedCardDataService.loadCards,
+  loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-archetypes] ${scope} failed:`,

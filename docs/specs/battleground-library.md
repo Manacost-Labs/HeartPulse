@@ -42,3 +42,16 @@ additional and archive detail routes consume these projections, render public
 identity and entity JSON-LD, and load protected statistics only after an
 entitlement or administrator check. Unsupported kinds and missing IDs produce
 real 404 HTML; upstream outages produce retryable 503 HTML.
+
+## Bounded catalog refresh for public details
+
+The anonymous minion/spell catalog keeps its five-minute fresh lifetime and
+coalesces one active/archive fetch pair per kind. A known identity may use the
+last successful snapshot for fifteen more minutes while that pair refreshes.
+An archive lookup is known only if its cached card is already outside the pool.
+Missing identities and newly archived cards wait for fresh confirmation; a
+failed source produces 503 rather than a stale 404. Failure retries have a
+30-second cooldown. Empty, conflicting or invalid replacement identities cannot
+replace a good catalog; failures never extend its maximum lifetime. The existing
+source deadline still applies. The cache is process-local and contains no viewer
+data. A cold process still needs a successful source read.

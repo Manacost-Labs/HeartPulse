@@ -321,6 +321,24 @@
       ]
     },
     {
+      "id": "server.constructedArchetypes",
+      "runtime": "server",
+      "root": "server/modules/constructedArchetypes",
+      "purpose": "Owns archetype catalog snapshots, source validation and independently readable protected detail sections; composition injects source and enrichment ports.",
+      "owner": "traditional-data",
+      "publicEntry": "server/modules/constructedArchetypes/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:archetypes-catalog-cache",
+        "npm run test:constructed-archetype-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/runbooks/constructed-archetypes-performance.md",
+        "docs/specs/soft-paywall-meta-archetype.md"
+      ]
+    },
+    {
       "id": "server.constructedCards",
       "runtime": "server",
       "root": "server/modules/constructedCards",
@@ -773,6 +791,23 @@
         "docs/architecture/help-center.md"
       ],
       "publicStyleEntry": "src/modules/helpCenter/public.css"
+    },
+    {
+      "id": "client.constructedArchetypes",
+      "runtime": "client",
+      "root": "src/modules/constructedArchetypes",
+      "purpose": "Owns independent archetype detail reads, cancellation, viewer isolation and section loading/error states.",
+      "owner": "traditional-data",
+      "publicEntry": "src/modules/constructedArchetypes/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:archetype-detail-loading"
+      ],
+      "docs": [
+        "docs/specs/soft-paywall-meta-archetype.md",
+        "docs/architecture/module-boundaries.md",
+        "docs/runbooks/constructed-archetypes-performance.md"
+      ]
     }
   ],
   "migrationAreas": [
@@ -896,7 +931,8 @@
         "client.cosmetics",
         "client.home",
         "client.identity",
-        "client.subscriptions"
+        "client.subscriptions",
+        "client.constructedArchetypes"
       ],
       "focusedTests": [
         "npm run test:routes",
@@ -983,7 +1019,8 @@
         "server.identity",
         "server.publicApi",
         "server.publicProfile",
-        "server.telegramAuth"
+        "server.telegramAuth",
+        "server.constructedArchetypes"
       ],
       "focusedTests": [
         "npm run test:server-build"
@@ -1057,7 +1094,8 @@
         "server.identity",
         "server.publicApi",
         "server.publicProfile",
-        "server.telegramAuth"
+        "server.telegramAuth",
+        "server.constructedArchetypes"
       ],
       "focusedTests": [
         "npm run test:server-build"
@@ -1140,7 +1178,8 @@
         "client.legalPages",
         "client.standardMatchups",
         "client.subscriptions",
-        "client.helpCenter"
+        "client.helpCenter",
+        "client.constructedArchetypes"
       ],
       "focusedTests": [
         "npm run test:next-contracts",

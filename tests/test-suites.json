@@ -41,6 +41,7 @@
         "tests/archetype-deck-codes-schema.test.ts",
         "tests/archetype-deck-identity.test.ts",
         "tests/archetype-detail-model.test.ts",
+        "tests/constructed-archetype-catalog-cache.test.ts",
         "tests/architecture-baseline.test.mjs",
         "tests/architecture-catalog.test.mjs",
         "tests/arena-class-statistics-normalizer.test.ts",
@@ -174,7 +175,9 @@
         "tests/loading-surface.test.tsx",
         "tests/next-public-first-paint-loaders.test.ts",
         "tests/battleground-builder-workbench.test.ts",
-        "tests/data-visualizations.test.ts"
+        "tests/data-visualizations.test.ts",
+        "tests/battleground-library-catalog-cache.test.ts",
+        "tests/constructed-card-catalog-readers.test.ts"
       ]
     },
     {

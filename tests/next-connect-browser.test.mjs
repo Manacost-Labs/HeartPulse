@@ -46,6 +46,12 @@ test('Next device connection keeps the code private and uses the existing authen
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setCacheEnabled(false);
+    await page.evaluateOnNewDocument(() => {
+      window.__connectCls = 0;
+      new PerformanceObserver(list => {
+        for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__connectCls += entry.value;
+      }).observe({ type: 'layout-shift', buffered: true });
+    });
     const inspectRequests = []; const decisions = [];
     await page.setRequestInterception(true);
     page.on('request', request => {
@@ -98,6 +104,7 @@ test('Next device connection keeps the code private and uses the existing authen
       assert.equal(state.code, code);
       assert.equal(state.overflow, false);
       assert.deepEqual(state.violations, []);
+      assert.ok(await page.evaluate(() => window.__connectCls < 0.1), `connect CLS exceeded 0.1 at ${width}px`);
     }
     assert.deepEqual(inspectRequests, [], 'guest must not inspect an authorization');
     assert.deepEqual(decisions, [], 'guest must not decide an authorization');

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
+import { setImmediate as flush } from 'node:timers/promises';
+import { createArchetypeCatalogCache } from '../server/modules/constructedArchetypes/public.js';
 import { withCatalogCardMedia } from '../server/modules/constructedCards/public.js';
 import {
   createConstructedArchetypeRouter,
@@ -74,14 +76,25 @@ const accessGuard: RequestHandler = (request, response, next) => {
 };
 
 let mediaAvailable = true;
+let historyReads = 0, analysisReads = 0, mediaReads = 0;
+let historyFails = false, analysisFails = false;
+let catalogTime = 0, catalogReads = 0;
+let refresh: Promise<ConstructedArchetypeCatalog> | null = null;
+const catalogCache = createArchetypeCatalogCache({
+  ttlMs: 100, staleMs: 100, retryMs: 100, now: () => catalogTime,
+  read: async format => {
+    catalogReads += 1;
+    return refresh ?? { ...catalog, format, formatLabel: format === 'standard' ? 'Стандарт' : 'Вольный' };
+  },
+});
 const dependencies: ConstructedArchetypeRouterDependencies = {
   accessGuard,
   setPrivateNoStore: response => {
     response.set('Cache-Control', 'no-store');
     response.vary('Cookie');
   },
-  loadCatalog: async format => ({ ...catalog, format, formatLabel: format === 'standard' ? 'Стандарт' : 'Вольный' }),
-  loadHistory: async () => [{
+  loadCatalog: catalogCache.load,
+  loadHistory: async () => { historyReads++; if (historyFails) throw new Error('History unavailable'); return [{
     recordedAt: '2026-07-24T12:38:57.727Z',
     games: 31_959,
     winrate: 58.3,
@@ -89,9 +102,9 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
     turns: 7.9,
     durationMinutes: 8,
     climbingSpeed: 1.24,
-  }],
-  loadCardCatalog: async () => { if (!mediaAvailable) throw new Error('Catalog unavailable'); return { cards: [{ card_id: 'different-id', dbf: 123, rarity: 'EPIC', images: { tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TOY_330.webp' } }] }; },
-  loadAnalysis: async () => ({
+  }]; },
+  loadCardCatalog: async () => { mediaReads++; if (!mediaAvailable) throw new Error('Catalog unavailable'); return { cards: [{ card_id: 'different-id', dbf: 123, rarity: 'EPIC', images: { tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TOY_330.webp' } }] }; },
+  loadAnalysis: async () => { analysisReads++; if (analysisFails) throw new Error('Analysis unavailable'); return ({
     rank: 'legend',
     period: 'past_week',
     state: 'ok',
@@ -121,7 +134,7 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
       keptImpact: 6.1,
       keptCount: 740,
     }],
-  }),
+  }); },
 };
 
 const app = express();
@@ -172,6 +185,33 @@ try {
   assert.deepEqual(listingBody.items[0].builds, []);
   assert.equal(listing.headers.get('cache-control'), 'no-store');
 
+  for (const section of ['core', 'history', 'analysis']) {
+    assert.equal((await fetch(`${origin}/wild/thief-priest?section=${section}`)).status, 403);
+  }
+  const core = await fetch(`${origin}/wild/thief-priest?section=core`, { headers });
+  const coreBody = await core.json() as any;
+  assert.equal(core.status, 200);
+  assert.equal(coreBody.item.builds[0].deckCode, catalog.items[0].builds[0].deckCode);
+  assert.deepEqual(coreBody.history, []);
+  assert.equal(coreBody.analysis, null);
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [0, 0, 0], 'core must not start optional work');
+  assert.equal(core.headers.get('cache-control'), 'no-store');
+  const history = await fetch(`${origin}/wild/thief-priest?section=history`, { headers });
+  assert.equal((await history.json() as any).history.length, 1);
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 0, 0]);
+  const analysis = await fetch(`${origin}/wild/thief-priest?section=analysis`, { headers });
+  assert.equal((await analysis.json() as any).analysis.cardStats[0].rarity, 'EPIC');
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 1, 1]);
+  historyFails = true; analysisFails = true;
+  assert.equal((await fetch(`${origin}/wild/thief-priest?section=core`, { headers })).status, 200);
+  assert.equal((await fetch(`${origin}/wild/thief-priest?section=history`, { headers })).status, 502);
+  assert.equal((await fetch(`${origin}/wild/thief-priest?section=analysis`, { headers })).status, 502);
+  historyFails = false; analysisFails = false;
+  for (const section of ['wrong', 'core&section=history']) {
+    assert.equal((await fetch(`${origin}/wild/thief-priest?section=${section}`, { headers })).status, 400);
+  }
+  assert.equal((await fetch(`${origin}/wild/missing?section=analysis`, { headers })).status, 404);
+
   const detail = await fetch(`${origin}/wild/thief-priest`, { headers });
   assert.equal(detail.status, 200);
   const detailBody = await detail.json() as any;
@@ -192,6 +232,30 @@ try {
 
   assert.equal((await fetch(`${origin}/classic/thief-priest`, { headers })).status, 400);
   assert.equal((await fetch(`${origin}/wild/missing`, { headers })).status, 404);
+
+  let finishRefresh!: (value: ConstructedArchetypeCatalog) => void;
+  refresh = new Promise(resolve => { finishRefresh = resolve; });
+  catalogTime = 100;
+  try {
+    const responses = await Promise.all([
+      fetch(`${origin}/teaser/wild/thief-priest`, { signal: AbortSignal.timeout(2_000) }),
+      fetch(`${origin}/wild/thief-priest`, { headers, signal: AbortSignal.timeout(2_000) }),
+      fetch(`${origin}/wild/thief-priest`),
+    ]);
+    assert.deepEqual(responses.map(response => response.status), [200, 200, 403]);
+    const guest = await responses[0].json() as any;
+    const member = await responses[1].json() as any;
+    assert.deepEqual(guest.item.builds, [], 'refresh must preserve the public projection');
+    assert.equal(member.item.builds[0].deckCode, catalog.items[0].builds[0].deckCode);
+    assert.equal(responses[1].headers.get('cache-control'), 'no-store');
+    assert.equal(catalogReads, 2, 'guest and protected routes share a single refresh');
+  } finally {
+    finishRefresh({ ...catalog, updatedAt: '2026-07-24T13:00:00.000Z' });
+    await flush();
+  }
+  const refreshed = await fetch(`${origin}?format=wild`, { headers });
+  assert.equal((await refreshed.json() as any).updatedAt, '2026-07-24T13:00:00.000Z');
 } finally {
+  catalogCache.clear();
   await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
 }

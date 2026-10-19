@@ -35,7 +35,7 @@ export function ArticlesPageClient({ initialData }: { initialData: ArticlesData 
     return () => controller.abort();
   }, [access.checking, userId, retry]);
 
-  return <PublicPageShell activeTab="articles" pathname="/articles/" access={access} navigate={navigate} editorial>
+  return <PublicPageShell activeTab="articles" pathname="/articles/" access={access} navigate={navigate} editorial parchmentPreload="tablet-up">
     {personalError && <div role="status" className="articles-personal-error mb-4 rounded-lg border p-3">
       Не удалось обновить ваши голоса. Показаны общедоступные данные.
       <button type="button" className="articles-personal-retry underline" onClick={() => setRetry(value => value + 1)}>Повторить</button>

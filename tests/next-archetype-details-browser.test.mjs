@@ -27,7 +27,11 @@ const teaser = {
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const placeholder = readFileSync(new URL('../public/arena-logo-icon.webp', import.meta.url));
 
-test('Next archetype detail variants SSR only public data and return real 404s', async () => {
+test('Next archetype details isolate access and load builds before independent optional sections', async () => {
+  let member = false, optionalMode = 'hold', coreFails = false;
+  let releaseOptional;
+  let optionalGate = new Promise(resolve => { releaseOptional = resolve; });
+  const sectionCalls = [];
   const legacy = http.createServer((request, response) => {
     response.setHeader('Content-Type', 'application/json');
     const pathname = new URL(request.url, 'http://fixture').pathname;
@@ -37,6 +41,23 @@ test('Next archetype detail variants SSR only public data and return real 404s',
     if (pathname.startsWith('/api/constructed-archetypes/teaser/')) {
       response.writeHead(404).end('{"error":"missing"}'); return;
     }
+    if (pathname === '/api/constructed-archetypes/wild/thief-priest') {
+      const section = new URL(request.url, 'http://fixture').searchParams.get('section');
+      sectionCalls.push(section);
+      if (!member) { response.writeHead(403).end('{"error":"denied"}'); return; }
+      if (section === 'core') {
+        if (coreFails) { response.writeHead(502).end('{"error":"Сборки временно недоступны"}'); return; }
+        response.end(JSON.stringify({ ...teaser, item: { ...teaser.item, builds: [{ deckCode: 'AAEBAa0GValidDeckCode', games: 2216, winrate: 57.1, sourceUrl: '', classKey: 'priest' }] }, history: [], analysis: null })); return;
+      }
+      if (optionalMode === 'denied' && section === 'analysis') { response.writeHead(403).end('{"error":"access revoked"}'); return; }
+      if (optionalMode === 'error') { response.writeHead(502).end('{"error":"Временная ошибка истории"}'); return; }
+      const answer = () => { if (!response.destroyed) response.end(JSON.stringify(section === 'history' ? { history: [] } : { analysis: null })); };
+      if (optionalMode === 'hold' || optionalMode === 'denied') void optionalGate.then(answer); else answer(); return;
+    }
+    if (pathname === '/api/subscription/status') { response.end(JSON.stringify({ hasAccess: member, entitlements: { standard: member }, active: member })); return; }
+    if (pathname === '/api/deck/render') { response.end(JSON.stringify({ ok: true, ready: true, imageUrl: '/arena-logo-icon.webp', renderer: 'rust', style: 'parchment' })); return; }
+    if (pathname === '/api/deck/resolve') { response.end(JSON.stringify({ ok: true, cards: [], sideboards: [], totalCards: 30, deckSizeLimit: 30 })); return; }
+    if (pathname === '/api/auth/me' && member) { response.end(JSON.stringify({ user: { id: 'test-member', name: 'Тест', email: 'member@example.test', role: 'user' } })); return; }
     if (pathname === '/api/auth/me') {
       response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return;
     }
@@ -110,8 +131,61 @@ test('Next archetype detail variants SSR only public data and return real 404s',
     for (const path of ['/standard/archetypes/invalid/thief-priest/', '/standard/meta/wild/missing/']) {
       assert.equal((await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' })).status(), 404);
     }
+    member = true;
+    await page.evaluateOnNewDocument(() => {
+      window.__detailCls = 0;
+      new PerformanceObserver(list => {
+        for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__detailCls += entry.value;
+      }).observe({ type: 'layout-shift', buffered: true });
+    });
+    const started = Date.now();
+    await page.goto(`${origin}/standard/archetypes/wild/thief-priest/`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.archetype-main-build', { timeout: 5_000 });
+    assert.ok(Date.now() - started < 5_000, 'builds must render while optional responses remain held');
+    assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец');
+    await page.waitForFunction(() => document.querySelectorAll('section[aria-busy=true]').length === 2);
+    await delay(10_000);
+    assert.ok(await page.$('.archetype-main-build'), 'ten seconds of optional latency must not hide the build');
+    assert.deepEqual(sectionCalls.slice(-3).sort(), ['analysis', 'core', 'history']);
+    assert.ok(await page.evaluate(() => window.__detailCls < 0.1), 'core loading must not push visible optional placeholders away');
+    releaseOptional();
+    await page.waitForFunction(() => document.querySelectorAll('section[aria-busy=true]').length === 0);
+    optionalMode = 'error';
+    await page.reload({ waitUntil: 'networkidle2' });
+    await page.waitForFunction(() => document.querySelectorAll('button').length > 0 && [...document.querySelectorAll('button')].some(node => node.textContent === 'Повторить загрузку'));
+    assert.ok(await page.$('.archetype-main-build'), 'optional errors leave the build usable');
+    assert.ok(await page.$eval('section[aria-label="История архетипа"] button', node => node.getBoundingClientRect().height >= 44));
+    await page.evaluate(axe);
+    assert.deepEqual(await page.evaluate(async () => (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(item => item.id)), []);
+    const coreCalls = sectionCalls.filter(section => section === 'core').length;
+    optionalMode = 'ready';
+    const retry = await page.$('section[aria-label="История архетипа"] button'); await retry.click();
+    await page.waitForSelector('.archetype-history');
+    assert.equal(sectionCalls.filter(section => section === 'core').length, coreCalls, 'retry only the failed block');
+    coreFails = true;
+    await page.reload({ waitUntil: 'networkidle2' });
+    assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец', 'public identity survives a core failure');
+    const optionalCalls = sectionCalls.filter(section => section !== 'core').length;
+    coreFails = false;
+    await page.click('section[aria-label="Сборки архетипа"] button');
+    await page.waitForSelector('.archetype-main-build');
+    assert.equal(sectionCalls.filter(section => section !== 'core').length, optionalCalls);
+    optionalGate = new Promise(resolve => { releaseOptional = resolve; });
+    optionalMode = 'denied';
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => document.body.textContent.includes('Доступ изменился'));
+    assert.equal(await page.$('.archetype-main-build'), null, 'a rejected section immediately removes all protected data');
+    releaseOptional();
+    await delay(300);
+    assert.equal(await page.$('.archetype-history'), null, 'a late cancelled history reply must not restore paid data');
+    optionalMode = 'ready';
+    member = false;
+    await page.reload({ waitUntil: 'networkidle2' });
+    assert.equal(await page.$('.archetype-main-build'), null, 'logout removes protected builds');
+    assert.equal(await page.$('.archetype-history'), null, 'logout removes protected history');
     await page.close();
   } finally {
+    releaseOptional();
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway);
     if (child.exitCode === null) { const exited = once(child, 'exit'); child.kill('SIGTERM'); await exited; }

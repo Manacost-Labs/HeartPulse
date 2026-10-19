@@ -20,6 +20,7 @@ export function projectPublicConstructedCardSeoData(card: JsonRecord, origin?: s
 }
 
 export type ConstructedCardSeoRouterDependencies = {
+  loadPublicCards?: ConstructedCardSeoRouterDependencies['loadCards'];
   loadCards: (format: ConstructedCardFormat) => Promise<ConstructedCardCollection>;
   loadCardDetail: (
     format: ConstructedCardFormat,
@@ -474,7 +475,9 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
 
   const readCard = createConstructedCardReader({ ...dependencies, catalogTimeoutMs });
-  router.use(createPublicCardRouter(readCard, card => projectPublicConstructedCardSeoData(card, origin)));
+  const readPublicCard = createConstructedCardReader({ ...dependencies, loadCards: dependencies.loadPublicCards ?? dependencies.loadCards,
+    catalogTimeoutMs, includeDetail: false });
+  router.use(createPublicCardRouter(readPublicCard, card => projectPublicConstructedCardSeoData(card, origin)));
   const handler: RequestHandler = async (request, response) => {
     const rawFormat = String(request.params.format ?? '');
     const cardId = String(request.params.cardId ?? '');

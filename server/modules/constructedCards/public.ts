@@ -4,6 +4,7 @@ export {
   normalizeConstructedCardStats,
   validateConstructedCardStatsDataset,
 } from './catalogStatistics.js';
+export { createConstructedCardCatalogReaders, constructedCatalogReaderForAccess } from './catalogReaders.js';
 export type {
   ConstructedCardStatisticsSource,
   ConstructedCardWithStatistics,

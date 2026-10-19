@@ -1,3 +1,4 @@
+import { createArchetypeDetailHandler } from './modules/constructedArchetypes/public.js';
 import { createHash } from 'node:crypto';
 import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
@@ -226,39 +227,18 @@ export function createConstructedArchetypeRouter(
     }
   });
 
-  router.get('/constructed-archetypes/:format/:slug', async (request, response) => {
-    const format = readFormat(request.params.format);
-    const slug = String(request.params.slug ?? '').trim().toLowerCase();
-    if (!format || !/^[a-z0-9-]{1,90}$/.test(slug)) {
-      return response.status(400).json({ error: 'Некорректный адрес архетипа' });
-    }
-    try {
-      const catalog = await dependencies.loadCatalog(format);
-      const item = catalog.items.find(row => row.slug === slug);
-      if (!item) return response.status(404).json({ error: 'Архетип не найден в текущей мете' });
-      const [history, analysis, cardCatalog] = await Promise.all([
-        dependencies.loadHistory(format, item.archetype),
-        dependencies.loadAnalysis(format, item.archetype).catch(error => {
-          dependencies.onError?.('analysis', error);
-          return null;
-        }),
+  router.get('/constructed-archetypes/:format/:slug', createArchetypeDetailHandler({
+    loadCatalog: dependencies.loadCatalog,
+    loadHistory: dependencies.loadHistory,
+    loadAnalysis: async (format, archetype) => {
+      const [analysis, cardCatalog] = await Promise.all([
+        dependencies.loadAnalysis(format, archetype),
         loadCatalogCardMedia(format, dependencies.loadCardCatalog, error => dependencies.onError?.('media', error)),
       ]);
-      return response.json({
-        format: catalog.format,
-        formatLabel: catalog.formatLabel,
-        patch: catalog.patch,
-        minimumGames: catalog.minimumGames,
-        updatedAt: catalog.updatedAt,
-        item,
-        history,
-        analysis: analysis ? { ...analysis, cardStats: withCatalogCardMedia(analysis.cardStats, cardCatalog) } : null,
-      });
-    } catch (error) {
-      dependencies.onError?.('detail', error);
-      return response.status(502).json({ error: 'Страница архетипа временно недоступна' });
-    }
-  });
+      return analysis ? { ...analysis, cardStats: withCatalogCardMedia(analysis.cardStats, cardCatalog) } : null;
+    },
+    onError: dependencies.onError,
+  }));
 
   return router;
 }

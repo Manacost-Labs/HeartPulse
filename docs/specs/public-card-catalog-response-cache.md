@@ -28,3 +28,10 @@ Browser review compares full RSC navigation, history and pending feedback;
 no page transition, prefetch, document caching or permission policy changes.
 
 Documentation impact: this spec, `apps/public-web/README.md` and `CHANGELOG.md`.
+
+The backend's anonymous catalog reader now skips statistics retrieval and
+history recording. Entitled browser requests retain the full statistics reader
+and its separate cache. The anonymous `updatedAt` describes catalog publication;
+period/rank descriptors remain available. This removes an unrelated source
+from the SSR critical path without extending the 30-second seed lifetime or
+serving an expired seed after a failure.

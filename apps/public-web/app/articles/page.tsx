@@ -1,3 +1,4 @@
+import { PageBannerPreload } from '@/apps/public-web/ui/PageBannerPreload';
 import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import '@/src/features/DeferredRoutes.css';
@@ -11,6 +12,7 @@ export const generateMetadata = seoPageMetadata('/articles', 'HearthPulse — с
 
 export default async function Page() {
   return <>
+    <PageBannerPreload />
     <SeoStructuredData path="/articles" />
     <ArticlesPageClient initialData={await loadPublicArticles()} />
   </>;

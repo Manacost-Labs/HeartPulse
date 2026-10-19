@@ -341,6 +341,16 @@ database queries.
 
 ### `server/modules/<domain>`
 
+`constructedArchetypes` owns the per-format catalog snapshot cache and source
+document guard. Composition injects the existing normalized source reader;
+HTTP routes still own access checks and teaser serialization. Its public
+cache contract includes bounded stale reads, coalesced background refresh,
+source deadlines and invalidation of pending reads. The protected detail
+handler owns compatible core/history/analysis projections
+through injected reads; access guards and media enrichment remain in composition.
+Legacy source normalization remains outside this extracted slice. See the
+[operating contract](../runbooks/constructed-archetypes-performance.md).
+
 `battlegroundLibrary` owns the anonymous minion/spell projection route. The
 legacy catalog loader is injected, so this module cannot access protected
 statistics or process-wide session state.
@@ -523,3 +533,17 @@ Koloda catalog tiles to archetype analysis rows by card ID or DBF ID without
 mutating statistics. Archetype HTTP composition injects the cached catalog
 reader; the mulligan view reuses `ConstructedCardTile` through the client public
 contract rather than duplicating its image/fallback presentation.
+
+### `src/modules/constructedArchetypes`
+
+Owns anonymous catalog reuse and independent core/history/analysis lifetimes,
+section loading/error states, cancellation and synchronous hiding of protected
+responses when access changes. The legacy page remains its presentation adapter;
+Next composition keys protected detail mounts by viewer and entitlement. There
+is no shared or persistent protected client cache.
+
+The server `constructedCards` module owns separate public/full catalog readers,
+statistics joins and the anonymous card projection. Legacy composition injects
+catalog, patch, descriptor and cache-generation ports. Both result variants
+share source catalogs, isolate their cached rows and honor parser invalidation.
+Public identity does not depend on statistics or write statistics history.

@@ -1,0 +1,14 @@
+.archetype-detail-read__retry {
+  min-height: 44px;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #8d171d;
+  background: #fff0c8;
+  color: #6f1117;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.archetype-detail-read__retry:hover { background: #f6dfaa; }
+.archetype-detail-read__retry:focus-visible { outline: 3px solid #8d171d; outline-offset: 3px; }

@@ -410,10 +410,47 @@
       ]
     },
     {
+      "name": "backend-constructed-archetypes",
+      "status": "transitional",
+      "owner": "traditional-data",
+      "purpose": "Owns bounded catalog snapshots, validation and compatible core/history/analysis detail reads with injected source and media ports.",
+      "paths": [
+        "server/modules/constructedArchetypes"
+      ],
+      "publicEntrypoints": [
+        "server/modules/constructedArchetypes/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/runbooks/constructed-archetypes-performance.md",
+        "docs/specs/soft-paywall-meta-archetype.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [
+        "constructed-archetypes:catalog:<format> (in-process)"
+      ],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/constructed-archetype-catalog-cache.test.ts",
+        "tests/constructed-archetype-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "server/shared",
+        "shared browser-safe contracts"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "legacy normalization internals",
+        "session or viewer state"
+      ]
+    },
+    {
       "name": "backend-constructed-cards",
       "status": "transitional",
       "owner": "constructed-cards",
-      "purpose": "Own the extracted related-card transformation while the main constructed API remains a compatibility module.",
+      "purpose": "Own constructed catalog/statistics readers, anonymous identity and related-card transformations while HTTP composition remains in compatibility adapters.",
       "paths": [
         "server/modules/constructedCards"
       ],
@@ -428,7 +465,8 @@
       "dataStores": [],
       "externalServices": [],
       "tests": [
-        "tests/constructed-card-ui-status.test.ts"
+        "tests/constructed-card-ui-status.test.ts",
+        "tests/constructed-card-catalog-readers.test.ts"
       ],
       "allowedDependencies": [
         "server/shared",
@@ -1645,6 +1683,40 @@
       "forbiddenImports": [
         "server/**",
         "other domain internals"
+      ]
+    },
+    {
+      "name": "frontend-constructed-archetypes",
+      "status": "transitional",
+      "owner": "traditional-data",
+      "purpose": "Owns independent detail reads and section states; legacy page remains the rendering adapter.",
+      "paths": [
+        "src/modules/constructedArchetypes"
+      ],
+      "publicEntrypoints": [
+        "src/modules/constructedArchetypes/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/specs/soft-paywall-meta-archetype.md",
+        "docs/runbooks/constructed-archetypes-performance.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/next-archetype-details-browser.test.mjs"
+      ],
+      "allowedDependencies": [
+        "React",
+        "src/shared"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "legacy features",
+        "protected browser persistence"
       ]
     }
   ],

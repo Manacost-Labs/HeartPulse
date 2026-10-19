@@ -5,6 +5,8 @@ type Dependencies = {
   loadCards: (format: ConstructedCardFormat) => Promise<ConstructedCardCollection>;
   loadCardDetail: (format: ConstructedCardFormat, cardId: string) => Promise<ConstructedCardDetailResult | null>;
   catalogTimeoutMs?: number;
+  /** Anonymous projections need catalog identity, not separately loaded wiki/decks/statistics. */
+  includeDetail?: boolean;
 };
 
 /** Null means authoritative absence. Stale/ambiguous membership and timeouts reject. */
@@ -27,6 +29,7 @@ export function createConstructedCardReader(dependencies: Dependencies) {
         return null;
       }
       if (Date.now() >= deadline) throw new Error('Constructed-card catalog deadline exceeded');
+      if (dependencies.includeDetail === false) return card;
       const detail = await dependencies.loadCardDetail(format, cardId);
       if (detail?.card && detail.card.card_id !== cardId) throw new Error('Card detail identity mismatch');
       return detail?.card && isIndexableConstructedCard(detail.card) ? detail.card : card;

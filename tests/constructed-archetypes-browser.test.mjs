@@ -109,8 +109,8 @@ try {
   assert.equal(new Set(metricRows).size, 1, 'six desktop statistics share one aligned row');
   assert.equal(await page.$eval('.archetype-dossier__art', image => image.getAttribute('src')), '/wallpaper/home-paladin-hero-720.avif', 'the clean full artwork is used instead of a padded card image');
   assert.equal(await page.evaluate(() =>
-    document.querySelector('.archetype-history').compareDocumentPosition(document.querySelector('.archetype-main-build')) & Node.DOCUMENT_POSITION_FOLLOWING
-  ), 4, 'history must precede the largest confirmed build');
+    document.querySelector('.archetype-main-build').compareDocumentPosition(document.querySelector('.archetype-history')) & Node.DOCUMENT_POSITION_FOLLOWING
+  ), 4, 'the independently loaded main build precedes optional history');
   for (const image of await page.$$('.constructed-catalog-tile__image, .constructed-catalog-tile__art')) {
     if (!await image.isVisible()) continue;
     await image.scrollIntoView();

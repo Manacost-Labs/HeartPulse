@@ -49,6 +49,8 @@ test('catalog first-row image selection works before hydration and defers mobile
         await page.setJavaScriptEnabled(false);
         await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'networkidle0' });
         assert.equal(requests.length, expected, `at ${width}px only the matching first row loads before JavaScript`);
+        assert.equal(await page.$$eval('.constructed-cards__gallery-image[fetchpriority="high"]', images => images.length), 0,
+          'the LCP banner has priority over first-row thumbnails');
       });
     }
     await withPage(runtime, { width: 390, height: 844, isMobile: true }, async page => {
@@ -110,6 +112,31 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       const played = page.waitForRequest(request => request.url().endsWith('/VO_QA_Play_01.wav'), { timeout: 10_000 });
       await page.$eval('.constructed-card-detail__sounds audio', audio => { audio.muted = true; void audio.play().catch(() => undefined); });
       await played;
+    }));
+
+    await t.test('a late statistics warning does not move the card hero', () => withPage(runtime, { width: 1350, height: 940 }, async page => {
+      let release;
+      const held = new Promise(resolve => { release = resolve; });
+      await page.setRequestInterception(true);
+      page.on('request', async request => {
+        const url = new URL(request.url());
+        if (url.pathname.startsWith('/api/constructed-cards/blizzard')) {
+          const payload = await (await fetch(runtime.origin + url.pathname + url.search)).json();
+          payload.warning = 'Статистика карт временно недоступна.';
+          await held;
+          await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+        } else await request.continue();
+      });
+      try {
+        await page.goto(runtime.origin + CARD_PATH, { waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('.constructed-card-detail__hero');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const before = await page.$eval('.constructed-card-detail__hero', node => node.getBoundingClientRect().top);
+        release();
+        await page.waitForSelector('.constructed-card-detail__data-warning');
+        const after = await page.$eval('.constructed-card-detail__hero', node => node.getBoundingClientRect().top);
+        assert.ok(Math.abs(after - before) < 1, `a late warning moved the hero by ${after - before}px`);
+      } finally { release(); }
     }));
 
     // A phone stacks the art above the facts. An unsized image grows from 0 to

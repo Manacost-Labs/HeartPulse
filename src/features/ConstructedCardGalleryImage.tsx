@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { observeCardGalleryImages, CARD_GALLERY_HIGH_PRIORITY_COUNT, CARD_GALLERY_IMAGE_PLACEHOLDER } from '../modules/constructedCards/public/index';
+import { observeCardGalleryImages, CARD_GALLERY_EAGER_COUNT, CARD_GALLERY_IMAGE_PLACEHOLDER } from '../modules/constructedCards/public/index';
 import { fallbackCardImageElementToOrigin } from '../config/publicAssetDelivery';
 export function useCardGalleryImageLoading(cards: readonly unknown[]) {
   const galleryRef = useRef<HTMLDivElement | null>(null);
@@ -7,7 +7,7 @@ export function useCardGalleryImageLoading(cards: readonly unknown[]) {
     if (galleryRef.current) return observeCardGalleryImages(galleryRef.current);
     return undefined;
   }, [cards]);
-  return { galleryRef, immediateImageCount: CARD_GALLERY_HIGH_PRIORITY_COUNT };
+  return { galleryRef, immediateImageCount: CARD_GALLERY_EAGER_COUNT };
 }
 
 type GalleryImageProps = { src: string; alt: string; immediate: boolean; highPriority: boolean; minWidth?: number };

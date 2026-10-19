@@ -70,6 +70,12 @@ export type ConstructedCardCatalogHealth = {
 };
 
 export type ConstructedCardDataService = {
+  /** Anonymous catalog identity and descriptors, without statistics reads or history writes. */
+  loadPublicCards?: (
+    format: ConstructedCardFormat,
+    period?: ConstructedCardPeriod,
+    rank?: ConstructedCardRank,
+  ) => Promise<ConstructedCardCollection>;
   loadCards: (
     format: ConstructedCardFormat,
     period?: ConstructedCardPeriod,

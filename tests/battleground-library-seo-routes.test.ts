@@ -344,20 +344,29 @@ try {
   assert.equal((await fetch(cachePath)).status, 200);
   assert.equal(cacheFetches, 2, 'a request within the TTL must use the validated projected catalog');
 
+  const absentPath = `${cacheApp.origin}/library/minions/missing-999999999/`;
   cacheNow += 101;
   assert.equal((await fetch(cachePath)).status, 200);
-  assert.equal(cacheFetches, 4, 'the first request after expiry must refresh both catalogs');
+  assert.equal((await fetch(absentPath)).status, 404, 'absence waits for the refreshed catalog');
+  assert.equal(cacheFetches, 4, 'concurrent refresh uses one active/archive pair');
 
   cacheRefreshFails = true;
   cacheNow += 101;
-  assert.equal((await fetch(cachePath)).status, 503,
-    'an expired cache must fail closed when either relevant catalog cannot refresh');
+  assert.equal((await fetch(cachePath)).status, 200, 'a known card survives a background source failure');
+  assert.equal((await fetch(absentPath)).status, 503, 'stale absence cannot become a false 404');
   assert.equal(cacheFetches, 6);
+  assert.equal((await fetch(cachePath)).status, 200);
+  assert.equal(cacheFetches, 6, 'a source failure has a retry cooldown');
 
   cacheRefreshFails = false;
-  assert.equal((await fetch(cachePath)).status, 200,
-    'a failed refresh must not be cached and must retry the complete pair');
+  cacheNow += 30_001;
+  assert.equal((await fetch(cachePath)).status, 200);
+  assert.equal((await fetch(absentPath)).status, 404);
   assert.equal(cacheFetches, 8);
+  cacheRefreshFails = true;
+  cacheNow += 100 + 15 * 60_000;
+  assert.equal((await fetch(cachePath)).status, 503, 'the last-good snapshot has a hard maximum age');
+
 } finally {
   await cacheApp.close();
 }

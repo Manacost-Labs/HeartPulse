@@ -122,6 +122,7 @@
     "test:constructed-card-media": "tsx tests/constructed-card-media.test.ts && tsx tests/card-catalog-image-loading.test.ts",
     "test:constructed-card-image-prewarm": "tsx tests/constructed-card-image-overrides.test.ts && tsx tests/constructed-card-image-prewarmer.test.ts",
     "test:standard-meta-routes": "tsx tests/standard-meta-routes.test.ts && tsx tests/standard-meta-contract.test.ts && tsx tests/hsguru-deck-info.test.ts && tsx tests/standard-meta-recommendation-cache.test.ts",
+    "test:archetypes-catalog-cache": "node --import=tsx --test tests/constructed-archetype-catalog-cache.test.ts",
     "test:constructed-archetype-routes": "tsx tests/constructed-archetype-routes.test.ts && node tests/constructed-archetypes-browser.test.mjs",
     "test:archetypes-detail": "tsx tests/constructed-deck-code.test.ts && tsx tests/archetype-detail-model.test.ts && tsx tests/archetype-deck-identity.test.ts && tsx tests/admin-archetypes-routes.test.ts && node tests/archetypes-detail-browser.test.mjs",
     "test:standard-meta-contract": "tsx tests/standard-meta-contract.test.ts",
@@ -268,7 +269,8 @@
     "quality:cache-stats": "context-economy --project . cache-stats",
     "quality:pilot-report": "context-economy --project . pilot-report",
     "quality:usage-report": "context-economy --project . report --end-to-end",
-    "design:verify": "python3 scripts/quality/quality-guard.py --family design"
+    "design:verify": "python3 scripts/quality/quality-guard.py --family design",
+    "test:archetype-detail-loading": "node --test tests/next-archetype-details-browser.test.mjs"
   },
   "dependencies": {
     "@firestone-hs/deckstrings": "^2.2.8",

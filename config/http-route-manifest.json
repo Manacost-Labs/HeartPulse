@@ -1614,7 +1614,7 @@
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "<inline-handler>",
+      "handler": "createArchetypeDetailHandler(...)",
       "guardSignals": [],
       "source": "server/constructedArchetypeRoutes.ts",
       "sourceOrder": 4

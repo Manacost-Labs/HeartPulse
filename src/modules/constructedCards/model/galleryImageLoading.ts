@@ -1,7 +1,9 @@
 export const CARD_GALLERY_IMAGE_ROOT_MARGIN = '320px 0px';
 export const CARD_GALLERY_IMAGE_PLACEHOLDER =
   'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-export const CARD_GALLERY_HIGH_PRIORITY_COUNT = 2;
+export const CARD_GALLERY_EAGER_COUNT = 2;
+// The page banner is LCP; thumbnails keep native priority even when loaded eagerly.
+export const CARD_GALLERY_HIGH_PRIORITY_COUNT = 0;
 
 /** The browser selects wider first-row candidates without a different hydration tree. */
 export function cardGalleryEagerMinWidth(index: number): number | undefined {

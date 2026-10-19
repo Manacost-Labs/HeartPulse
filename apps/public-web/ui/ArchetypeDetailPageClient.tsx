@@ -14,7 +14,7 @@ export function ArchetypeDetailPageClient({ pathname, detail }: { pathname: stri
   return <PublicPageShell activeTab="constructed-archetypes" pathname={pathname}
     access={access} navigate={navigate} wide>
     <ConstructedArchetypes key={pageKey} currentPath={pathname} navigatePath={navigate}
-      initialDetail={detail} embedded hasFullAccess={allowed}
+      initialDetail={detail} embedded hasFullAccess={allowed} accessPending={access.checking}
       paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />
   </PublicPageShell>;

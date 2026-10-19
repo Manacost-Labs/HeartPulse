@@ -1,3 +1,4 @@
+import { PageBannerPreload } from './PageBannerPreload';
 import type { Metadata } from 'next';
 import { constructedCardPath, type CardFormat } from '@/src/modules/constructedCards/public';
 import { loadPublicCatalog } from '@/apps/public-web/lib/publicCatalog';
@@ -29,6 +30,7 @@ export async function CardCatalogPage({ format, pathname, searchParams }: { form
     itemListElement: catalog.cards.map((card, index) => ({ '@type': 'ListItem', position: (catalog.pagination.page - 1) * catalog.pagination.perPage + index + 1, name: card.name.ru, url: `https://hearthpulse.net${constructedCardPath(format, card.card_id)}/` })),
   } };
   return <>
+    <PageBannerPreload />
     <script type="application/ld+json" data-server-entity-jsonld data-entity-path={pathname}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} />
     <LegacyCardPage catalog={catalog} pathname={pathname} initialSearch={query} />

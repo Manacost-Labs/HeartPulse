@@ -6,7 +6,7 @@ import {
   activateDeferredCardImage,
   cardGalleryPriorityCount,
   cardGalleryEagerMinWidth,
-  CARD_GALLERY_HIGH_PRIORITY_COUNT,
+  CARD_GALLERY_EAGER_COUNT, CARD_GALLERY_HIGH_PRIORITY_COUNT,
   CARD_GALLERY_IMAGE_ROOT_MARGIN,
 } from '../src/features/cardGalleryImageLoading.js';
 import ConstructedCardGalleryImage, { useCardGalleryImageLoading } from '../src/features/ConstructedCardGalleryImage.js';
@@ -38,12 +38,12 @@ assert.equal(cardGalleryPriorityCount(1240), 5);
 assert.equal(cardGalleryPriorityCount(1241), 6);
 assert.equal(cardGalleryPriorityCount(Number.POSITIVE_INFINITY), 6);
 assert.equal(CARD_GALLERY_IMAGE_ROOT_MARGIN, '320px 0px');
-assert.equal(CARD_GALLERY_HIGH_PRIORITY_COUNT, cardGalleryPriorityCount(320),
-  'only the narrowest first row may ask for high priority before the viewport is known');
+assert.equal(CARD_GALLERY_EAGER_COUNT, cardGalleryPriorityCount(320), 'the narrowest first row still loads eagerly');
+assert.equal(CARD_GALLERY_HIGH_PRIORITY_COUNT, 0, 'the LCP banner is not competing with forced-high thumbnails');
 assert.deepEqual(Array.from({ length: 8 }, (_, index) => cardGalleryEagerMinWidth(index)),
   [undefined, undefined, 641, 641, 901, 1241, undefined, undefined]);
 for (const width of [320, 640, 641, 900, 901, 1240, 1241, 1440]) {
-  const candidates = CARD_GALLERY_HIGH_PRIORITY_COUNT + Array.from({ length: 6 }, (_, index) => cardGalleryEagerMinWidth(index))
+  const candidates = CARD_GALLERY_EAGER_COUNT + Array.from({ length: 6 }, (_, index) => cardGalleryEagerMinWidth(index))
     .filter(minWidth => minWidth !== undefined && minWidth <= width).length;
   assert.equal(candidates, cardGalleryPriorityCount(width));
 }

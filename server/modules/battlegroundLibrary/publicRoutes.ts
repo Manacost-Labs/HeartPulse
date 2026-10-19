@@ -1,10 +1,11 @@
 import { Router, type RequestHandler } from 'express';
+import type { BattlegroundLibraryLookup } from './catalogCache.js';
 
 type Kind = 'minion' | 'spell';
 type PublicCard = { dbfId: number; kind: Kind; nameRu: string; inPool: boolean };
 
 type Dependencies<Card extends PublicCard> = {
-  loadCatalog: (kind: Kind) => Promise<Card[]>;
+  loadCatalog: (kind: Kind, identity?: BattlegroundLibraryLookup) => Promise<Card[]>;
   retryAfterSeconds: number;
   onError?: (error: unknown) => void;
 };
@@ -28,7 +29,7 @@ export function createBattlegroundLibraryPublicRouter<Card extends PublicCard>(d
       return response.status(404).json({ error: 'Card not found' });
     }
     try {
-      const card = (await dependencies.loadCatalog(kind)).find(candidate =>
+      const card = (await dependencies.loadCatalog(kind, { dbfId: id, archive })).find(candidate =>
         candidate.dbfId === id && (!archive || !candidate.inPool));
       if (!card) return response.status(404).json({ error: 'Card not found' });
       const kindPath = kind === 'minion' ? 'minions' : 'spells';

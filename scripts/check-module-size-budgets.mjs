@@ -99,7 +99,7 @@ const moduleBudgets = [
   },
   {
     path: 'server/index.ts',
-    maxLines: 9_649,
+    maxLines: 9_647,
     owner: 'server composition root',
   },
   {
@@ -124,7 +124,7 @@ const moduleBudgets = [
   },
   {
     path: 'server/constructedCardRoutes.ts',
-    maxLines: 1_234,
+    maxLines: 1_177,
     owner: 'constructed-card API',
   },
   {

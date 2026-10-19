@@ -20,10 +20,25 @@ const catalog = JSON.stringify({
   })),
 });
 
+let delayNextCatalog = false, failNextBrowserCatalog = false;
+let authGate = Promise.resolve();
 function answerApi(request, response) {
-  const body = request.url.startsWith('/api/constructed-archetypes/teaser') ? catalog : JSON.stringify({ user: null });
-  response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-  response.end(body);
+  const url = new URL(request.url, 'http://fixture');
+  const format = url.searchParams.get('format') === 'wild' ? 'wild' : 'standard';
+  let payload;
+  if (url.pathname === '/api/constructed-archetypes/teaser') {
+    payload = JSON.parse(catalog); payload.format = format;
+    payload.formatLabel = format === 'wild' ? 'Вольный' : 'Стандарт';
+    payload.items = payload.items.map(item => ({ ...item, format }));
+  } else if (url.pathname === '/api/subscription/status') payload = { entitlements: { standard: true }, active: true };
+  else payload = { user: { id: 'catalog-reader', name: 'Игрок', email: 'reader@example.test', role: 'user' } };
+  const answer = () => { if (!response.destroyed) { response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(payload)); } };
+  if (url.pathname === '/api/auth/me') { void authGate.then(answer); return; }
+  if (url.pathname === '/api/constructed-archetypes/teaser' && delayNextCatalog) {
+    delayNextCatalog = false; setTimeout(answer, 800); return;
+  }
+  if (url.pathname === '/api/constructed-archetypes/teaser' && failNextBrowserCatalog) { failNextBrowserCatalog = false; response.writeHead(502).end('{"error":"Каталог временно недоступен"}'); return; }
+  answer();
 }
 
 async function startGateway(nextOrigin) {
@@ -49,6 +64,10 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     browser = await puppeteer.launch({ executablePath: chromiumPath,
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
+    const dataReads = [];
+    page.on('request', request => {
+      if (new URL(request.url()).pathname.startsWith('/api/constructed-archetypes')) dataReads.push(request.url());
+    });
     await page.setViewport({ width: 390, height: 844, isMobile: true });
     await page.evaluateOnNewDocument(() => {
       window.__layoutShift = 0;
@@ -89,6 +108,47 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     assert.equal(await page.$eval('.archetype-row:last-child h2', title => title.checkVisibility({ contentVisibilityAuto: true })), true,
       'the last row renders once it is scrolled into view');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    assert.deepEqual(dataReads, [], 'subscribers reuse the anonymous server summary without a protected catalog read');
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.click('.archetypes-format-switch button:nth-child(2)');
+    await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
+    await page.click('.archetypes-format-switch button:first-child');
+    await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
+    assert.equal(dataReads.length, 1, 'returning to a fresh format reuses its public snapshot');
+    await page.type('input[placeholder="Найти архетип..."]', 'Архетип 2');
+    await page.waitForFunction(() => document.querySelectorAll('.archetype-row').length > 0 && document.querySelectorAll('.archetype-row').length < 90);
+    assert.equal(dataReads.length, 1, 'local search does not read the server');
+    delayNextCatalog = true;
+    let releaseAuth;
+    authGate = new Promise(resolve => { releaseAuth = resolve; });
+    try {
+      const pending = await browser.newPage();
+      await pending.goto(`${gateway.origin}/standard/archetypes/`, { waitUntil: 'domcontentloaded' });
+      await pending.waitForSelector('.archetype-row', { timeout: 3000 });
+      assert.equal(await pending.$$eval('.archetype-row', rows => rows.length), 90, 'missing-seed recovery must not await authentication');
+      releaseAuth();
+      await pending.close();
+    } finally { releaseAuth(); }
+    delayNextCatalog = true; failNextBrowserCatalog = true;
+    const recovery = await browser.newPage(); const recoveryReads = [];
+    recovery.on('request', request => { if (new URL(request.url()).pathname === '/api/constructed-archetypes/teaser') recoveryReads.push(request.url()); });
+    await recovery.goto(`${gateway.origin}/standard/archetypes/`, { waitUntil: 'domcontentloaded' });
+    await recovery.waitForSelector('.archetypes-state [role="alert"], .archetypes-state[role="alert"]');
+    await recovery.click('.archetypes-state button');
+    await recovery.waitForSelector('.archetype-row');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(recoveryReads.length, 2, 'one failed read and one explicit retry');
+    await recovery.type('input[placeholder="Найти архетип..."]', 'Архетип 2');
+    await recovery.waitForFunction(() => document.querySelectorAll('.archetype-row').length > 0 && document.querySelectorAll('.archetype-row').length < 90);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(recoveryReads.length, 2, 'search after retry must not restart a settled catalog read');
+    await recovery.click('.archetypes-format-switch button:nth-child(2)');
+    await recovery.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
+    await recovery.click('.archetypes-format-switch button:first-child');
+    await recovery.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(recoveryReads.length, 3, 'retry must not invalidate other fresh format snapshots');
+    await recovery.close();
     await page.close();
   } finally {
     if (browser) await browser.close();

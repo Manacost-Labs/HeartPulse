@@ -59,3 +59,13 @@ and Blizzard identities, metadata, sitemap locations and local HTTP crawling.
 `test:nginx-routing` and `test:nginx-canonical-hosts` exercise temporary Nginx
 instances for alias redirects, query preservation, upstream forwarding and
 double-encoding rejection.
+
+## Anonymous first paint and delayed warnings
+
+The public `/api/public/constructed-cards/:format/:cardId` projection resolves
+identity and public facts from the validated format catalog without waiting for
+separate wiki/detail, decks or statistics reads. Missing identity still requires
+a fresh authoritative catalog; ambiguous identities, invalid catalogs and source
+timeouts remain retryable errors. Legacy enriched HTML and the browser detail
+API retain their existing readers. A late data-status warning follows the card
+hero, preserving the first screen's art and identity position.

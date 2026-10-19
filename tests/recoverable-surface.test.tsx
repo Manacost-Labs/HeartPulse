@@ -93,10 +93,7 @@ assert.match(metaSource, /'\/api\/standard-meta\/teaser'/);
 
 const archetypesSource = readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8');
 assert.match(archetypesSource, /scope="constructed-archetypes"/);
-assert.match(archetypesSource, /setRevision\(value => value \+ 1\)/);
 assert.match(archetypesSource, /variant="empty"/);
-assert.match(archetypesSource, /'\/api\/constructed-archetypes'/);
-assert.match(archetypesSource, /'\/api\/constructed-archetypes\/teaser'/);
 assert.match(archetypesSource, /detailMatch = currentPath\.match/);
 assert.match(archetypesSource, /\(standard\|wild\)/);
 

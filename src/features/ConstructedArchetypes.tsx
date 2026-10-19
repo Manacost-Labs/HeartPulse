@@ -1,3 +1,4 @@
+import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
 import { publicResourceImageUrl } from '../publicResourceUrl';
 import '../shared/ui/analytics/Analytics.css';
 import { LineChart } from '../shared/ui/analytics/LineChart';
@@ -31,7 +32,6 @@ import {
 } from './recovery/RecoverableSurface';
 import { LoadingSurface } from '../shared/ui/LoadingSurface';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
-import { useSeededRequest } from './useSeededRequest';
 import {
   readInitialCatalogFilters,
   replaceCatalogUrl,
@@ -170,16 +170,6 @@ function archetypeHeroArt(slug: string, analysis: ConstructedAnalysis | null): s
     : null;
 }
 
-async function apiJson<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, {
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-    signal,
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || 'Сервер временно недоступен');
-  return payload as T;
-}
 
 function classIcon(classKey: ArchetypeClass | null): string {
   return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
@@ -259,15 +249,13 @@ function TrendChart({
 
 type ArchetypeCatalogProps = {
   navigatePath: (path: string) => void;
-  hasFullAccess: boolean;
-  accessPending: boolean;
   initialSearch: string;
   embedded: boolean;
-  /** Server-rendered teaser: it answers a guest's first request; a subscriber keeps it on screen, busy, until the full catalog replaces it. */
+  /** Anonymous summary, shared by guests and subscribers. */
   initialCatalog: ArchetypeCatalog | null;
 };
 
-function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, initialSearch, embedded, initialCatalog }: ArchetypeCatalogProps) {
+function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCatalog }: ArchetypeCatalogProps) {
   const Root = embedded ? 'section' : 'main';
   const { format: initialFormat, classFilter: initialClass } = readInitialCatalogFilters(initialSearch, CLASS_FILTERS);
   const seed = initialCatalog?.format === initialFormat ? initialCatalog : null;
@@ -277,16 +265,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
   const deferredQuery = useDeferredValue(query);
   const [sort, setSort] = useState<SortKey>('games');
   const [arrivesLater] = useState(!seed);
-  const [revision, setRevision] = useState(0);
-  const requestKey = `${format}:${revision}:${hasFullAccess ? 'full' : 'teaser'}`;
-  const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
-  const { data: catalog, loading, error } = useSeededRequest<ArchetypeCatalog>(requestKey, {
-    seed, seedKey: seed && !hasFullAccess ? `${seed.format}:0:teaser` : '',
-    // Until the account is known the page cannot tell a teaser from full data.
-    ready: !accessPending,
-    load: signal => apiJson<ArchetypeCatalog>(`${endpoint}?format=${format}`, signal),
-    fallbackError: 'Не удалось загрузить каталог',
-  });
+  const { data: catalog, loading, error, retry } = useArchetypeCatalog(format, seed);
 
   const selectFormat = (next: ArchetypeFormat) => {
     setFormat(next);
@@ -405,7 +384,7 @@ function ArchetypeCatalogPage({ navigatePath, hasFullAccess, accessPending, init
       </section>
 
       {loading && !catalog && <LoadingState />}
-      {!loading && error && <ErrorState message={error} onRetry={() => setRevision(value => value + 1)} />}
+      {!loading && error && <ErrorState message={error} onRetry={retry} />}
       {!loading && !error && items.length === 0 && (
         <AsyncSurfaceState
           variant="empty"
@@ -469,52 +448,30 @@ type ArchetypeDetailProps = {
   paywall: PaywallAccessState;
   initialDetail: ArchetypeDetail | null;
   embedded: boolean;
+  accessPending: boolean;
 };
 
-function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded }: ArchetypeDetailProps) {
+function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending }: ArchetypeDetailProps) {
   const Root = embedded ? 'section' : 'main';
-  const [detail, setDetail] = useState<ArchetypeDetail | null>(initialDetail);
-  const [revision, setRevision] = useState(0);
   const [visibleBuilds, setVisibleBuilds] = useState(6);
-  const requestKey = `${format}:${slug}:${revision}:${hasFullAccess ? 'full' : 'teaser'}`;
-  const [resolvedRequestKey, setResolvedRequestKey] = useState(initialDetail && !hasFullAccess ? `${format}:${slug}:0:teaser` : '');
-  const [requestError, setRequestError] = useState<{ key: string; message: string } | null>(null);
-  const loading = resolvedRequestKey !== requestKey;
-  const error = requestError?.key === requestKey ? requestError.message : '';
-
+  const { detail, core, history: historyRead, analysis: analysisRead, fullAccess, denied } = useArchetypeDetail({
+    format, slug, hasFullAccess, accessPending, seed: initialDetail,
+  });
+  const archetypeLabel = detail?.item.archetypeLabel;
   useEffect(() => {
-    if (initialDetail && !hasFullAccess && revision === 0) return;
-    const controller = new AbortController();
-    const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
-    void apiJson<ArchetypeDetail>(`${endpoint}/${format}/${slug}`, controller.signal)
-      .then(payload => {
-        setDetail(payload);
-        document.title = `${payload.item.archetypeLabel} — сборки и статистика | Manacost Stats`;
-      })
-      .catch(cause => {
-        if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
-          setRequestError({
-            key: requestKey,
-            message: cause instanceof Error ? cause.message : 'Не удалось открыть архетип',
-          });
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setResolvedRequestKey(requestKey);
-      });
-    return () => controller.abort();
-  }, [format, slug, revision, hasFullAccess, requestKey, initialDetail]);
+    if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | Manacost Stats`;
+  }, [archetypeLabel]);
 
-  if (loading) {
+  if (core.loading && !detail) {
     return <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}><LoadingState detail /></Root>;
   }
-  if (error || !detail) {
+  if (!detail) {
     return (
       <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
         <button type="button" className="archetype-back" onClick={() => navigatePath('/standard/archetypes')}>
           <ArrowLeft size={18} /> Все архетипы
         </button>
-        <ErrorState message={error || 'Архетип не найден'} onRetry={() => setRevision(value => value + 1)} />
+        <ErrorState message={core.error || 'Архетип не найден'} onRetry={core.retry} />
       </Root>
     );
   }
@@ -563,24 +520,10 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </dl>
       </section>
 
-      {hasFullAccess ? (
-        <section className="archetype-history" aria-labelledby="archetype-history-title" data-tour-id="archetype-history">
-        <header className="archetype-section-heading">
-          <div>
-            <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
-            <h2 id="archetype-history-title">История архетипа</h2>
-            <p>Новый срез добавляется каждые 12 часов. Через несколько дней здесь будет виден тренд, а через месяц — полноценная история меты.</p>
-          </div>
-          <span className="archetype-section-heading__count">{history.length} срезов</span>
-        </header>
-        <div className="archetype-history__charts">
-          <TrendChart title="Винрейт" unit="%" points={history} value={point => point.winrate} color="#2f7a3e" />
-          <TrendChart title="Популярность" unit="%" points={history} value={point => point.popularity} color="#8d171d" />
-          <TrendChart title="Количество игр" unit="" points={history} value={point => point.games} color="#8a5b24" />
-        </div>
-        </section>
+      {fullAccess && (core.loading || core.error) ? (
+        <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={core.loading} error={core.error} onRetry={core.retry} />
       ) : null}
-
+      {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}
 
       {mainBuild && (
         <section className="archetype-main-build" data-tour-id="archetype-main-build">
@@ -607,7 +550,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       )}
 
-      {!hasFullAccess && detail.featuredBuild ? (
+      {!fullAccess && detail.featuredBuild ? (
         <section className="archetype-build-preview" aria-labelledby="archetype-build-preview-title">
           <div>
             <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
@@ -621,7 +564,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       ) : null}
 
-      {!hasFullAccess ? (
+      {!fullAccess ? (
         <PaywallGate
           active
           presentation="inline"
@@ -632,10 +575,33 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         />
       ) : null}
 
-      {hasFullAccess ? <ConstructedArchetypeAnalysis analysis={detail.analysis} /> : null}
+      {fullAccess && !core.loading ? (
+        <ArchetypeDetailSection title="История архетипа" loading={historyRead.loading} error={historyRead.error} onRetry={historyRead.retry}>
+        <section className="archetype-history" aria-labelledby="archetype-history-title" data-tour-id="archetype-history">
+        <header className="archetype-section-heading">
+          <div>
+            <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
+            <h2 id="archetype-history-title">История архетипа</h2>
+            <p>Новый срез добавляется каждые 12 часов. Через несколько дней здесь будет виден тренд, а через месяц — полноценная история меты.</p>
+          </div>
+          <span className="archetype-section-heading__count">{history.length} срезов</span>
+        </header>
+        <div className="archetype-history__charts">
+          <TrendChart title="Винрейт" unit="%" points={history} value={point => point.winrate} color="#2f7a3e" />
+          <TrendChart title="Популярность" unit="%" points={history} value={point => point.popularity} color="#8d171d" />
+          <TrendChart title="Количество игр" unit="" points={history} value={point => point.games} color="#8a5b24" />
+        </div>
+        </section>
+        </ArchetypeDetailSection>
+      ) : null}
+
+      {fullAccess && !core.loading ? <ArchetypeDetailSection title="Матчапы и муллиган" loading={analysisRead.loading}
+        error={analysisRead.error} onRetry={analysisRead.retry}>
+        <ConstructedArchetypeAnalysis analysis={detail.analysis} />
+      </ArchetypeDetailSection> : null}
 
 
-      {hasFullAccess && secondaryBuilds.length > 0 && (
+      {fullAccess && secondaryBuilds.length > 0 && (
         <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-other-builds">
           <header className="archetype-section-heading">
             <div>
@@ -660,13 +626,13 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       )}
 
-      <section className="archetype-methodology">
+      {!core.loading ? <section className="archetype-methodology">
         <BarChart3 size={24} aria-hidden="true" />
         <div>
           <h2>Как читать данные</h2>
           <p>Статистика архетипа относится к текущему патчу и учитывает архетипы от {detail.minimumGames} игр. Сборки используют выборку HSGuru за последние 30 дней, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
         </div>
-      </section>
+      </section> : null}
     </Root>
   );
 }
@@ -702,10 +668,11 @@ export default function ConstructedArchetypes({
         hasFullAccess={hasFullAccess}
         paywall={paywall}
         initialDetail={initialDetail}
+        accessPending={accessPending}
         embedded={embedded}
       />
     )
-    : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} accessPending={accessPending}
+    : <ArchetypeCatalogPage navigatePath={navigatePath}
       initialSearch={initialSearch} embedded={embedded} initialCatalog={initialCatalog} />;
   return (
     <RecoverableSurfaceBoundary scope="constructed-archetypes">

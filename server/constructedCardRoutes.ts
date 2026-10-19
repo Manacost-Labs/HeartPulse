@@ -9,6 +9,8 @@ import {
 import {
   ConstructedCardCatalogUnavailableError,
   createConstructedCardCatalogQuery,
+  createConstructedCardCatalogReaders,
+  constructedCatalogReaderForAccess,
   ConstructedCardDetailUnavailableError,
   ConstructedCardHistoryStore,
   ConstructedCardUpstreamError,
@@ -717,74 +719,15 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     return job;
   };
 
-  const loadCards = async (
-    format: ConstructedCardFormat,
-    period: ConstructedCardPeriod = '1d',
-    rank: ConstructedCardRank = 'legend',
-  ): Promise<ConstructedCardCollection> => {
-    const key = `${format}:${rank}:${period}`;
-    const current = now();
-    const cached = cache.get(key);
-    if (cached && cached.expiresAt > current) return cached.value;
-    const active = jobs.get(key);
-    if (active) return active;
-
-    const jobGeneration = generation;
-    const job = (async () => {
-      const [catalog, patches] = await Promise.all([loadCatalog(format), loadPatches()]);
-      const statsDataset = statsDatasetFor(dependencies, format, period, rank);
-      let statsPayload: JsonRecord = {};
-      let statsCards: JsonRecord[] = [];
-      let statsWarning = false;
-      try {
-        statsPayload = await dependencies.fetchJson(`${dependencies.statsBaseUrl.replace(/\/$/, '')}/${statsDataset}`);
-        statsCards = Array.isArray(statsPayload?.view?.cards) ? statsPayload.view.cards : [];
-        validateConstructedCardStatsDataset(statsCards);
-      } catch {
-        statsWarning = true;
-        statsCards = [];
-      }
-      const warnings = [
-        catalog.dataStatus === 'stale' ? 'Показывается последняя сохранённая версия библиотеки карт.' : '',
-        catalog.warning ?? '',
-        statsWarning ? 'Статистика карт временно недоступна.' : '',
-      ].filter((warning, index, values) => Boolean(warning) && values.indexOf(warning) === index);
-      const value: ConstructedCardCollection = {
-        cards: mergeConstructedCardRows(catalog.document.cards, statsCards),
-        updatedAt: String(statsPayload?.fetched_at ?? '') || null,
-        sourceUrl: String(statsPayload?.url ?? statsPayload?.view?.source ?? '') || dependencies.catalogBaseUrl,
-        warning: warnings.join(' ') || null,
-        cacheSource: catalog.cacheSource,
-        dataStatus: catalog.dataStatus,
-        partial: false,
-        datasetVersion: catalog.document.datasetVersion,
-        catalogVerifiedAt: catalog.document.verifiedAt,
-        catalogPublishedAt: catalog.document.publishedAt,
-        period: periodDescriptor(period, {
-          ...statsPayload,
-          patch: currentConstructedPatchVersion(patches.value) ?? statsPayload?.patch,
-        }),
-        rank: rankDescriptor(rank, statsPayload),
-      };
-      if (!statsWarning) {
-        try {
-          historyStore.recordSnapshot(
-            format,
-            period,
-            rank,
-            value.updatedAt,
-            value.cards,
-          );
-        } catch (error) {
-          dependencies.onHistoryError?.(error);
-        }
-      }
-      if (generation === jobGeneration) cache.set(key, { value, expiresAt: now() + cacheTtlMs });
-      return value;
-    })().finally(() => { if (jobs.get(key) === job) jobs.delete(key); });
-    jobs.set(key, job);
-    return job;
-  };
+  const { loadCards, loadPublicCards } = createConstructedCardCatalogReaders({
+    catalog: loadCatalog, patch: () => loadPatches().then(result => currentConstructedPatchVersion(result.value)),
+    statistics: (format, period, rank) => dependencies.fetchJson(
+      `${dependencies.statsBaseUrl.replace(/\/$/, '')}/${statsDatasetFor(dependencies, format, period, rank)}`,
+    ),
+    period: periodDescriptor, rank: rankDescriptor,
+    record: (...args) => historyStore.recordSnapshot(...args), onHistoryError: dependencies.onHistoryError,
+    cache, jobs, generation: () => generation, now, ttlMs: cacheTtlMs, origin: dependencies.catalogBaseUrl,
+  });
 
   const composeDetailResult = (
     detail: JsonRecord,
@@ -1021,7 +964,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     decksJob = null;
   };
 
-  return { loadCards, loadCardDetail, loadCardHistory, getCatalogHealth, invalidate };
+  return { loadCards, loadPublicCards, loadCardDetail, loadCardHistory, getCatalogHealth, invalidate };
 }
 
 export function createConstructedCardRouter(dependencies: ConstructedCardRouterDependencies): Router {
@@ -1068,7 +1011,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     const perPage = readPositiveInteger(request.query.perPage, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     try {
       const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
-      const collection = await dependencies.loadCards(format, period, rank);
+      const collection = await constructedCatalogReaderForAccess(dependencies, statsAccess)(format, period, rank);
       const requestedSort = String(request.query.sort ?? '');
       const safeQuery = !statsAccess && STATISTIC_SORTS.has(requestedSort)
         ? { ...request.query, sort: 'set', direction: 'asc' }

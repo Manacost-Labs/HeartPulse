@@ -12,8 +12,12 @@ assert.match(metaSource, /'\/api\/standard-meta\/teaser'/);
 assert.match(metaSource, /surface="meta"/);
 assert.match(metaSource, /filteredItems\.slice\(0,\s*3\)/);
 
-assert.match(archetypesSource, /hasFullAccess\s*\?\s*'\/api\/constructed-archetypes'/);
-assert.match(archetypesSource, /'\/api\/constructed-archetypes\/teaser'/);
+const detailDataSource = readFileSync(new URL('../src/modules/constructedArchetypes/useArchetypeDetail.ts', import.meta.url), 'utf8');
+const catalogDataSource = readFileSync(new URL('../src/modules/constructedArchetypes/useArchetypeCatalog.ts', import.meta.url), 'utf8');
+assert.match(detailDataSource, /hasFullAccess && !denied/);
+assert.match(detailDataSource, /hasFullAccess \? '' : '\/teaser'/);
+assert.match(catalogDataSource, /\/api\/constructed-archetypes\/teaser\?format=/);
+assert.doesNotMatch(catalogDataSource, /hasFullAccess|subscription/, 'public summaries do not depend on entitlements');
 assert.match(archetypesSource, /surface="archetype"/);
 assert.match(archetypesSource, /featuredBuild/);
 

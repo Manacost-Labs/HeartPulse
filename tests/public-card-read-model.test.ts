@@ -13,6 +13,7 @@ let collection: ConstructedCardCollection = {
 let detailCalls = 0;
 const reader = createConstructedCardReader({
   loadCards: async () => collection,
+  includeDetail: false,
   loadCardDetail: async () => { detailCalls++; return null; },
 });
 const app = express();
@@ -32,6 +33,7 @@ try {
     assert.equal(JSON.parse(body).card.id, card.card_id);
     assert.equal(JSON.parse(body).card.set, 'Власть Темной империи');
   }
+  assert.equal(detailCalls, 0, 'anonymous first paint must not wait for optional wiki/detail data');
   const calls = detailCalls;
   assert.equal((await fetch(`${origin}/api/public/constructed-cards/wild/ABSENT_CARD`)).status, 404);
   assert.equal(detailCalls, calls);

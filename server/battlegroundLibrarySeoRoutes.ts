@@ -2,7 +2,7 @@ import { Router, type Request, type RequestHandler, type Response } from 'expres
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
-import { canonicalBattlegroundCardSlug, createBattlegroundLibraryAuxiliaryPublicRouter,
+import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryAuxiliaryPublicRouter,
   createBattlegroundLibraryPublicRouter } from './modules/battlegroundLibrary/public.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
@@ -511,20 +511,14 @@ export function createBattlegroundLibrarySeoRouter(
   const catalogCacheTtlMs = Math.max(1, Math.min(3_600_000, Math.floor(dependencies.catalogCacheTtlMs ?? 300_000)));
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
   const now = dependencies.now ?? Date.now;
-  const catalogCache = new Map<BattlegroundLibraryKind, {
-    expiresAt: number;
-    cards: PublicBattlegroundLibraryCard[];
-  }>();
-  const catalogInflight = new Map<BattlegroundLibraryKind, Promise<PublicBattlegroundLibraryCard[]>>();
+  const catalogCache = createBattlegroundLibraryCatalogCache({
+    read: readCatalog, ttlMs: catalogCacheTtlMs, now, onRefreshError: dependencies.onError,
+  });
+  const loadCatalog = catalogCache.load;
 
-  const loadCatalog = (kind: BattlegroundLibraryKind): Promise<PublicBattlegroundLibraryCard[]> => {
-    const cached = catalogCache.get(kind);
-    if (cached && cached.expiresAt > now()) return Promise.resolve(cached.cards);
-    const inflight = catalogInflight.get(kind);
-    if (inflight) return inflight;
-
+  function readCatalog(kind: BattlegroundLibraryKind): Promise<PublicBattlegroundLibraryCard[]> {
     const controller = new AbortController();
-    const pending = withDeadline(Promise.all([true, false].map(async inPool => {
+    return withDeadline(Promise.all([true, false].map(async inPool => {
       const upstream = await fetchImpl(catalogUrl(kind, inPool), {
         signal: controller.signal,
         headers: {
@@ -540,14 +534,9 @@ export function createBattlegroundLibrarySeoRouter(
       if (uniqueIds.size !== cards.length) {
         throw new Error(`Battleground ${kind} active/archive catalogs contain conflicting identifiers`);
       }
-      catalogCache.set(kind, { cards, expiresAt: now() + catalogCacheTtlMs });
       return cards;
-    }).finally(() => {
-      if (catalogInflight.get(kind) === pending) catalogInflight.delete(kind);
     });
-    catalogInflight.set(kind, pending);
-    return pending;
-  };
+  }
 
   router.use(createBattlegroundLibraryPublicRouter({ loadCatalog, retryAfterSeconds, onError: dependencies.onError }));
   router.use(createBattlegroundLibraryAuxiliaryPublicRouter({
@@ -569,7 +558,7 @@ export function createBattlegroundLibrarySeoRouter(
     }
 
     try {
-      const cards = await loadCatalog(kind);
+      const cards = await loadCatalog(kind, { dbfId: detail.dbfId });
       const card = cards.find(candidate => candidate.dbfId === detail.dbfId);
       if (!card) {
         return sendHtml(response, 404, NOINDEX_ROBOTS, renderNoindexDocument({
