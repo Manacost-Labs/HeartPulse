@@ -233,12 +233,13 @@ try {
   assert.equal(jsonLd['@graph'][1].alternateName, 'Lullabot & Friends');
   assertNoPrivateData(html, 'existing minion');
 
-  const requestedUrls = calls.slice(0, 2).map(call => call.url).sort();
+  const catalogCalls = calls.filter(call => call.url.includes('/cards?')).slice(0, 2);
+  const requestedUrls = catalogCalls.map(call => call.url).sort();
   assert.deepEqual(requestedUrls, [
     'http://127.0.0.1:3108/api/bg/library/cards?card_type=minion&in_pool=0',
     'http://127.0.0.1:3108/api/bg/library/cards?card_type=minion&in_pool=1',
   ]);
-  for (const call of calls.slice(0, 2)) {
+  for (const call of calls) {
     const headers = new Headers(call.init?.headers);
     assert.equal(headers.get('cookie'), null);
     assert.equal(headers.get('authorization'), null);
@@ -324,6 +325,7 @@ let cacheNow = 1_000;
 let cacheFetches = 0;
 let cacheRefreshFails = false;
 const cacheApp = await startApp(async url => {
+  if (String(url).includes('/cards/by-dbf/')) return new Response('not supported', { status: 502 });
   cacheFetches += 1;
   await new Promise(resolve => setTimeout(resolve, 15));
   const parsed = new URL(String(url));
@@ -413,5 +415,24 @@ await assertUnavailable('HTTP failure', async url => {
 await assertUnavailable('invalid payload', async () => new Response(JSON.stringify({ data: 'broken' }), { status: 200 }));
 await assertUnavailable('empty catalog', async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
 await assertUnavailable('timeout', () => new Promise<Response>(() => {}), '15');
+
+let singleReads = 0, bulkReads = 0;
+const identityApp = await startApp(async url => {
+  if (String(url).endsWith('/cards/by-dbf/98582')) {
+    singleReads++;
+    return new Response(JSON.stringify(minion));
+  }
+  bulkReads++;
+  return new Promise<Response>(() => {});
+}, { timeout: 40 });
+try {
+  for (const path of ['/api/bg/library/public/minion/98582', '/library/minions/баюбот-alert-x-98582/']) {
+    const result = await fetch(`${identityApp.origin}${path}`);
+    assert.equal(result.status, 200, 'one known card must not wait for every active/archive catalog page');
+    assertNoPrivateData(await result.text(), 'single-card projection');
+  }
+  assert.equal(singleReads, 1, 'public and legacy detail share the validated identity snapshot');
+  assert.equal(bulkReads, 0);
+} finally { await identityApp.close(); }
 
 console.log('battleground library SEO route tests passed');

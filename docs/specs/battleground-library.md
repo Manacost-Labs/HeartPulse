@@ -24,11 +24,27 @@ canonical card URL. Catalog outages return non-cacheable 503 HTML with
 categories and all supported card details goes to Next.js.
 
 The anonymous `/api/bg/library/public/:kind/:dbfId` endpoint projects only
-public minion and spell identity from the same verified active and archive
-catalogs as the existing detail HTML. It returns a canonical path and public
+public minion and spell identity as the existing detail HTML. Both detail
+readers first request the established local `/api/bg/library/cards/by-dbf/:id`
+projection, validate its exact DBF, kind, pool and required public fields, and
+discard statistical fields. A malformed or unsuccessful single-card response
+falls back to the complete validated active/archive catalogs; the local proxy
+maps upstream absence to 502, so that response alone cannot prove a 404.
+It returns a canonical path and public
 card fields, 404 for invalid or absent IDs, and retryable 503 when the catalog
 cannot be verified. Cookies and authorization do not affect its response;
 private statistics are never included.
+
+Single-card snapshots share concurrent reads by kind and DBF, across anonymous
+public and legacy detail readers. At most 512 identities or in-flight reads are
+retained per process; settled least-recently-used entries can be evicted. The
+default fresh interval is five minutes and the stale grace is 15 minutes after
+expiry. Known compatible cards may be served during one background refresh,
+with a 30-second failure cooldown. Failure does not renew their age. Missing
+identities are not negatively cached; an expired active snapshot cannot prove
+archive absence. Each source read, including a catalog fallback, retains the
+existing 20-second overall deadline. A cold process still needs a successful
+source response; there is no new disk snapshot, timer or protected API call.
 
 The `/api/bg/library/public/archive/:kind/:dbfId` endpoint projects
 only out-of-pool minions and spells with an archive canonical path. The

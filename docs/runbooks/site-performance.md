@@ -22,6 +22,10 @@
 - Battleground library: known identities survive bounded background refresh;
   missing/archive identities still need authoritative confirmation. See
   [library contract](../specs/battleground-library.md).
+  Detail readers use the validated single-card endpoint before a full catalog
+  fallback. This avoids paging through both pools to render one card. Positive
+  snapshots are shared, limited to 512 identities and retain the same bounded
+  stale grace; unavailable or malformed single-card data cannot prove absence.
 - Card/article banner: preload the AVIF chosen by the existing CSS image-set.
   Phones no longer compete with a high-priority parchment preload. Older image
   formats retain the CSS fallback; no image quality change is required.
@@ -57,6 +61,17 @@ then waited for the complete source rebuild. This triggered the page deadline
 before fallback completed. The bounded warm public snapshot closes that wait;
 the original failed crawl is retained and a corrected release needs a full
 repeat before its availability result can be accepted.
+
+That crawl also found 18 Battleground minion 503s and six edge 502s. The origin
+journal at 15:07–15:09 UTC reports the catalog deadline. The serving edge log
+links the six 502s to all three upstream routes becoming temporarily disabled
+after retryable failures. A direct local active catalog read took 17.7 seconds;
+the archive exceeded 25 seconds. The local single-card read of DBF 100535 took
+0.101 seconds and returned the same enriched public identity. The correction
+uses that existing endpoint, with exact identity/type validation, bounded
+positive caching and authoritative full-catalog fallback. No Nginx setting or
+external BG service was changed. Repeat the full crawl on the deployed SHA;
+these probes alone do not prove all transient errors resolved.
 
 ## Candidate verification
 

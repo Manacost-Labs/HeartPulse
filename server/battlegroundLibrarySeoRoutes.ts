@@ -2,7 +2,7 @@ import { Router, type Request, type RequestHandler, type Response } from 'expres
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
-import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryAuxiliaryPublicRouter,
+import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryIdentityReader, createBattlegroundLibraryAuxiliaryPublicRouter,
   createBattlegroundLibraryPublicRouter } from './modules/battlegroundLibrary/public.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
@@ -500,6 +500,31 @@ function originalSearch(request: Request, origin: string): string {
   }
 }
 
+async function readPublicIdentity({ fetchImpl, kind, dbfId, timeoutMs, fallback }: {
+  fetchImpl: typeof fetch; kind: BattlegroundLibraryKind; dbfId: number; timeoutMs: number;
+  fallback: () => Promise<PublicBattlegroundLibraryCard[]>;
+}): Promise<PublicBattlegroundLibraryCard | undefined> {
+  const controller = new AbortController();
+  return withDeadline((async () => {
+    try {
+      const result = await fetchImpl(`${CATALOG_ORIGIN}/api/bg/library/cards/by-dbf/${dbfId}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundLibrarySEO' },
+      });
+      if (result.ok) {
+        const raw = record(await result.json());
+        const card = projectPublicBattlegroundLibraryCard(raw, kind, raw.in_pool === true);
+        if (card?.dbfId === dbfId) return card;
+      }
+    } catch (error) {
+      if (controller.signal.aborted) throw error;
+    }
+    // The legacy single-card proxy maps upstream absence to 502. Only the
+    // complete validated catalogs can confirm absence in that case.
+    return (await fallback()).find(card => card.dbfId === dbfId);
+  })(), timeoutMs, controller);
+}
+
 export function createBattlegroundLibrarySeoRouter(
   dependencies: BattlegroundLibrarySeoRouterDependencies = {},
 ): Router {
@@ -514,7 +539,13 @@ export function createBattlegroundLibrarySeoRouter(
   const catalogCache = createBattlegroundLibraryCatalogCache({
     read: readCatalog, ttlMs: catalogCacheTtlMs, now, onRefreshError: dependencies.onError,
   });
-  const loadCatalog = catalogCache.load;
+  const loadIdentity = createBattlegroundLibraryIdentityReader({
+    ttlMs: catalogCacheTtlMs, now,
+    read: (kind, dbfId) => readPublicIdentity({ fetchImpl, kind, dbfId, timeoutMs: catalogTimeoutMs,
+      fallback: () => catalogCache.load(kind, { dbfId }) }),
+  });
+  const loadCatalog: typeof catalogCache.load = (kind, identity) => identity
+    ? loadIdentity(kind, identity) : catalogCache.load(kind);
 
   function readCatalog(kind: BattlegroundLibraryKind): Promise<PublicBattlegroundLibraryCard[]> {
     const controller = new AbortController();
