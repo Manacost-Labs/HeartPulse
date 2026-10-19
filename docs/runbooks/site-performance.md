@@ -64,6 +64,12 @@ loopback results do not establish production timings or meet the LCP target.
 One earlier catalog sample failed with HTTP 500 and remains in the evidence;
 it is excluded from successful timing medians.
 
+Run React Doctor against the pre-task base after new modules are tracked.
+The final scan has no errors and five warnings: four complexity warnings and
+one async effect-state warning. Request cancellation, resource keys and the
+revocation/late-response browser cases verify the latter; no rule is disabled.
+Public format snapshots use immutable state rather than render-time ref writes.
+
 The existing immutable-release deployer provides rollback to the previous
 healthy release if either API or Next readiness fails. No database migration,
 Nginx contract change or production data replacement is required. After a
