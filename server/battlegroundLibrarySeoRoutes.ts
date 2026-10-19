@@ -3,7 +3,7 @@ import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryIdentityReader, createBattlegroundLibraryAuxiliaryPublicRouter,
-  createBattlegroundLibraryPublicRouter } from './modules/battlegroundLibrary/public.js';
+  createBattlegroundLibraryPublicRouter, readBattlegroundLibraryIdentity, withBattlegroundLibraryDeadline as withDeadline } from './modules/battlegroundLibrary/public.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -471,23 +471,6 @@ function parseDetailParameter(value: unknown): { slug: string; dbfId: number } |
   return { slug: match[1], dbfId: Number(match[2]) };
 }
 
-async function withDeadline<T>(promise: Promise<T>, timeoutMs: number, controller: AbortController): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => {
-          controller.abort();
-          reject(new Error('Battleground library catalog deadline exceeded'));
-        }, timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
-
 function catalogUrl(kind: BattlegroundLibraryKind, inPool: boolean): string {
   return `${CATALOG_ORIGIN}/api/bg/library/cards?card_type=${kind}&in_pool=${Number(inPool)}`;
 }
@@ -498,31 +481,6 @@ function originalSearch(request: Request, origin: string): string {
   } catch {
     return '';
   }
-}
-
-async function readPublicIdentity({ fetchImpl, kind, dbfId, timeoutMs, fallback }: {
-  fetchImpl: typeof fetch; kind: BattlegroundLibraryKind; dbfId: number; timeoutMs: number;
-  fallback: () => Promise<PublicBattlegroundLibraryCard[]>;
-}): Promise<PublicBattlegroundLibraryCard | undefined> {
-  const controller = new AbortController();
-  return withDeadline((async () => {
-    try {
-      const result = await fetchImpl(`${CATALOG_ORIGIN}/api/bg/library/cards/by-dbf/${dbfId}`, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundLibrarySEO' },
-      });
-      if (result.ok) {
-        const raw = record(await result.json());
-        const card = projectPublicBattlegroundLibraryCard(raw, kind, raw.in_pool === true);
-        if (card?.dbfId === dbfId) return card;
-      }
-    } catch (error) {
-      if (controller.signal.aborted) throw error;
-    }
-    // The legacy single-card proxy maps upstream absence to 502. Only the
-    // complete validated catalogs can confirm absence in that case.
-    return (await fallback()).find(card => card.dbfId === dbfId);
-  })(), timeoutMs, controller);
 }
 
 export function createBattlegroundLibrarySeoRouter(
@@ -541,7 +499,8 @@ export function createBattlegroundLibrarySeoRouter(
   });
   const loadIdentity = createBattlegroundLibraryIdentityReader({
     ttlMs: catalogCacheTtlMs, now,
-    read: (kind, dbfId) => readPublicIdentity({ fetchImpl, kind, dbfId, timeoutMs: catalogTimeoutMs,
+    read: (kind, dbfId) => readBattlegroundLibraryIdentity({ fetchImpl, catalogOrigin: CATALOG_ORIGIN, dbfId, timeoutMs: catalogTimeoutMs,
+      project: raw => projectPublicBattlegroundLibraryCard(raw, kind, record(raw).in_pool === true),
       fallback: () => catalogCache.load(kind, { dbfId }) }),
   });
   const loadCatalog: typeof catalogCache.load = (kind, identity) => identity
