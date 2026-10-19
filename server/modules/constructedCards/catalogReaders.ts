@@ -21,16 +21,35 @@ type Ports = {
   generation: () => number; now: () => number; ttlMs: number; origin: string;
 };
 
-/** Public identity never waits for statistics. Both variants share source catalogs but isolate their result caches. */
+function stalePublicCatalog(value: ConstructedCardCollection): ConstructedCardCollection {
+  const warning = 'Показывается последняя сохранённая версия библиотеки карт.';
+  return { ...value, dataStatus: 'stale', cacheSource: 'LKG',
+    warning: value.warning?.includes(warning) ? value.warning : [warning, value.warning].filter(Boolean).join(' ') };
+}
+
+/**
+ * Anonymous identity may reuse a bounded, explicitly stale snapshot while one
+ * refresh runs. Full statistics still await their read; the result caches stay isolated.
+ */
 export function createConstructedCardCatalogReaders(ports: Ports) {
+  const publicBackoff = new Map<string, { generation: number; until: number; error: unknown }>();
   const load = async (withStatistics: boolean, format: ConstructedCardFormat,
     period: ConstructedCardPeriod, rank: ConstructedCardRank): Promise<ConstructedCardCollection> => {
     const key = `${withStatistics ? '' : 'public:'}${format}:${rank}:${period}`;
+    const generation = ports.generation();
     const cached = ports.cache.get(key);
     if (cached && cached.expiresAt > ports.now()) return cached.value;
+    // Source rebuilds may outlast the page deadline. Only public identity can
+    // reuse the verified snapshot; its stale flag still prevents a false 404.
+    const previous = !withStatistics && cached
+      && cached.expiresAt + Math.min(15 * 60_000, ports.ttlMs * 3) > ports.now() ? cached.value : undefined;
+    const backoff = !withStatistics ? publicBackoff.get(key) : undefined;
+    if (backoff?.generation === generation && backoff.until > ports.now()) {
+      if (previous) return stalePublicCatalog(previous);
+      throw backoff.error;
+    }
     const active = ports.jobs.get(key);
-    if (active) return active;
-    const generation = ports.generation();
+    if (active) return previous ? stalePublicCatalog(previous) : active;
     const job = (async () => {
       const [catalog, patch] = await Promise.all([ports.catalog(format), ports.patch()]);
       let statsPayload: Statistics = {}, statsCards: Row[] = [];
@@ -60,10 +79,20 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
         try { ports.record(format, period, rank, value.updatedAt, value.cards); }
         catch (error) { ports.onHistoryError?.(error); }
       }
-      if (ports.generation() === generation) ports.cache.set(key, { value, expiresAt: ports.now() + ports.ttlMs });
+      if (ports.generation() === generation) {
+        ports.cache.set(key, { value, expiresAt: ports.now() + ports.ttlMs });
+        publicBackoff.delete(key);
+      }
       return value;
     })().finally(() => { if (ports.jobs.get(key) === job) ports.jobs.delete(key); });
-    ports.jobs.set(key, job); return job;
+    ports.jobs.set(key, job);
+    if (previous) {
+      void job.catch(error => {
+        if (ports.generation() === generation) publicBackoff.set(key, { generation, until: ports.now() + 30_000, error });
+      });
+      return stalePublicCatalog(previous);
+    }
+    return job;
   };
   return {
     loadCards: (format: ConstructedCardFormat, period: ConstructedCardPeriod = '1d', rank: ConstructedCardRank = 'legend') => load(true, format, period, rank),

@@ -15,7 +15,10 @@
 - Public card identity: the first-paint API reads the validated format catalog
   without the separate enriched detail read. Anonymous lists also skip the
   statistics fetch and history recording; entitled requests preserve them.
-  Legacy HTML still uses enrichment.
+  Legacy HTML still uses enrichment. A warm anonymous result remains available
+  during one background catalog refresh, explicitly marked stale. The grace
+  interval is three result TTLs, capped at 15 minutes after expiry; a failed
+  refresh has a 30-second cooldown. Full statistics keep awaiting their read.
 - Battleground library: known identities survive bounded background refresh;
   missing/archive identities still need authoritative confirmation. See
   [library contract](../specs/battleground-library.md).
@@ -46,6 +49,14 @@ restarted, or infrastructure changed for the investigation.
 A cold process or an unavailable authoritative source can still return 503.
 There is no permanent disk snapshot or new background schedule. New code must
 not turn uncertainty about a missing card into a cached 404.
+
+The follow-up crawl of release `e98cfb35` found two groups of three Wild-card
+503s about five minutes apart, each after roughly 10.2 seconds. The validated
+backend catalog and anonymous result both expired after five minutes; callers
+then waited for the complete source rebuild. This triggered the page deadline
+before fallback completed. The bounded warm public snapshot closes that wait;
+the original failed crawl is retained and a corrected release needs a full
+repeat before its availability result can be accepted.
 
 ## Candidate verification
 

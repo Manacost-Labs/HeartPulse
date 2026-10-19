@@ -10,6 +10,12 @@ absence, identity mismatches, upstream failures and deadline expiry return 503.
 Existing records from the last known good catalog may still be served. The
 reader does not hold a database transaction or cache credentials.
 
+Warm anonymous membership remains available during bounded background
+revalidation of its result cache; the collection is marked stale and keeps
+its source timestamps. A stale missing identity still rejects rather than
+returning 404. The [backend refresh contract](public-card-catalog-response-cache.md#backend-identity-refresh)
+defines its grace interval, cooldown and invalidation behavior.
+
 The public API emits only the explicit projection: identity, names, rules,
 flavor, localized public facts and image, plus validated class code and DBF.
 It never serializes the source record, statistics, decks, subscriptions or

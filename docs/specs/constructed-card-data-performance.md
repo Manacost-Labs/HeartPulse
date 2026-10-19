@@ -12,6 +12,11 @@ from several upstream services even when only statistics changed.
 
 - Catalog and statistics use the bounded dataset cache lifetime (normally a
   few minutes).
+- A warm anonymous identity result can be reused during one background refresh,
+  marked stale, for three result TTLs after expiry with a 15-minute cap. A failed
+  warm refresh has a 30-second cooldown and cannot extend the old expiry.
+  Full-statistics reads keep awaiting their source. See the
+  [anonymous catalog contract](public-card-catalog-response-cache.md#backend-identity-refresh).
 - Successfully enriched card details remain in process for six hours by
   default, with a hard maximum of 24 hours.
 - Each response still composes the cached detail with the current statistics,

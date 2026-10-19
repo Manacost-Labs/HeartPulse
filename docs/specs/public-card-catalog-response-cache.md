@@ -35,3 +35,24 @@ and its separate cache. The anonymous `updatedAt` describes catalog publication;
 period/rank descriptors remain available. This removes an unrelated source
 from the SSR critical path without extending the 30-second seed lifetime or
 serving an expired seed after a failure.
+
+## Backend identity refresh
+
+The backend's warm anonymous result can be returned while one source refresh
+runs. The grace interval after result expiry is three result TTLs, capped at
+15 minutes: with the default five-minute TTL, refresh can use the warm result
+for up to another 15 minutes. This is a bound on waiting for revalidation, not
+a new limit on the validated source store's existing LKG policy.
+
+The returned result keeps its original publication and verification times and
+is explicitly `dataStatus: stale`, `cacheSource: LKG`. A refresh failure starts
+a 30-second cooldown without moving the old expiry. Past the grace interval,
+the reader fails rather than extending that copy. A successful source read
+replaces membership; invalidation generations reject late writes and cooldowns.
+Only anonymous results use this path: paid statistics retain their awaited,
+isolated read and history behavior. Missing identities in stale data still
+reject rather than becoming an authoritative 404.
+
+The Next seed's separate 30-second lifetime and validation stay unchanged.
+It never renews an expired seed on failure; any backend LKG result arrives
+through a new validated read with truthful source metadata.
