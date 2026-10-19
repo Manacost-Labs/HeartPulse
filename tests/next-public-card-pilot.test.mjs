@@ -173,7 +173,9 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.doesNotMatch(classesHtml, /Винрейт классов на Арене Hearthstone/);
     assert.match(classesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/classes\/"/);
     assert.equal((classesHtml.match(/<main\b/g) || []).length, 1);
-    assert.doesNotMatch(classesHtml, /arena-class-rank|card-reader@example|manacost_auth_token/);
+    assert.match(classesHtml, /arena-classes-loading/);
+    assert.doesNotMatch(classesHtml, /aria-label="Рейтинг классов"|aria-label="Место \d+"|card-reader@example|manacost_auth_token/,
+      'SSR may reserve empty class rows, but must not contain an account, real rank or ready rating');
 
     const tierlist = await fetch(`${runtime.origin}/tierlist/`, { headers: cookie });
     assert.equal(tierlist.status, 200, runtime.output());
