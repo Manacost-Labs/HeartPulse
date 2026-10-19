@@ -11,6 +11,11 @@ executes the selected checks with their declared limits. Explicit heavy/network
 permission is required for the full browser/release/audit set. Missing tools,
 timeouts and omitted required checks must not be reported as a passing gate.
 
+The hosted release-validation job has 30 minutes for dependency installation,
+the full `verify:release` gate and immutable packaging/upload. This leaves
+headroom after the test registry and builds; the browser observatory retains
+its separate 25-minute budget. A canceled validation never authorizes deploy.
+
 The project client uses `~/.local/share/codex-context-economy/current` and its
 Python environment by default. Set `MANACOST_QUALITY_ROOT` to a separately
 prepared release for candidate validation; this does not switch the installed

@@ -22,7 +22,8 @@ jobs:
   validate:
     name: Typecheck, test, build and budgets
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Leave time for immutable packaging after the full registry and builds.
+    timeout-minutes: 30
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       CLEAN_CODE_EVENT: ${{ github.event_name }}
