@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -54,10 +54,10 @@ test('Next archetype details isolate access and load builds before independent o
       const answer = () => { if (!response.destroyed) response.end(JSON.stringify(section === 'history' ? { history: [] } : { analysis: null })); };
       if (optionalMode === 'hold' || optionalMode === 'denied') void optionalGate.then(answer); else answer(); return;
     }
-    if (pathname === '/api/subscription/status') { response.end(JSON.stringify({ hasAccess: member, entitlements: { standard: member }, active: member })); return; }
+    if (pathname === '/api/subscription/status') { response.end(JSON.stringify({ hasAccess: member === true, entitlements: { standard: member === true }, active: member === true })); return; }
     if (pathname === '/api/deck/render') { response.end(JSON.stringify({ ok: true, ready: true, imageUrl: '/arena-logo-icon.webp', renderer: 'rust', style: 'parchment' })); return; }
     if (pathname === '/api/deck/resolve') { response.end(JSON.stringify({ ok: true, cards: [], sideboards: [], totalCards: 30, deckSizeLimit: 30 })); return; }
-    if (pathname === '/api/auth/me' && member) { response.end(JSON.stringify({ user: { id: 'test-member', name: 'Тест', email: 'member@example.test', role: 'user' } })); return; }
+    if (pathname === '/api/auth/me' && member) { response.end(JSON.stringify({ user: { id: 'test-member', name: 'Тест', email: 'member@example.test', role: member === 'admin' ? 'admin' : 'user', adminAllowed: member === 'admin' } })); return; }
     if (pathname === '/api/auth/me') {
       response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return;
     }
@@ -179,10 +179,33 @@ test('Next archetype details isolate access and load builds before independent o
     await delay(300);
     assert.equal(await page.$('.archetype-history'), null, 'a late cancelled history reply must not restore paid data');
     optionalMode = 'ready';
+    const chunkDirectory = new URL('../apps/public-web/.next/static/chunks/', import.meta.url);
+    const analysisChunks = readdirSync(chunkDirectory, { recursive: true }).filter(file => file.endsWith('.js')
+      && readFileSync(new URL(file, chunkDirectory), 'utf8').includes('constructed-analysis-stack'));
+    assert.ok(analysisChunks.length > 0, 'the build must contain the optional analysis chunk');
+    const chunkPage = await browser.newPage();
+    const blockedChunks = [];
+    await chunkPage.setCacheEnabled(false);
+    await chunkPage.setRequestInterception(true);
+    chunkPage.on('request', request => {
+      const blocked = analysisChunks.some(file => new URL(request.url()).pathname.endsWith(`/${file}`));
+      if (blocked) blockedChunks.push(request.url());
+      void (blocked ? request.abort() : request.continue()).catch(() => {});
+    });
+    await chunkPage.goto(`${origin}/standard/archetypes/wild/thief-priest/`, { waitUntil: 'networkidle2' });
+    await chunkPage.waitForSelector('section[aria-label="Матчапы и муллиган"] [data-recovery-state="error"]');
+    assert.ok(blockedChunks.length > 0, 'the analysis chunk failure must actually be exercised');
+    assert.ok(await chunkPage.$('.archetype-main-build'), 'an optional code failure must not remove the build');
+    assert.equal(await chunkPage.$eval('h1', node => node.textContent), 'Воровской Жрец');
+    await chunkPage.close();
     member = false;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(await page.$('.archetype-main-build'), null, 'logout removes protected builds');
     assert.equal(await page.$('.archetype-history'), null, 'logout removes protected history');
+    member = 'admin';
+    await page.reload({ waitUntil: 'networkidle2' });
+    await page.waitForSelector('.archetype-main-build');
+    assert.ok(await page.$('.archetype-history'), 'administrator access remains independent of a subscription');
     await page.close();
   } finally {
     releaseOptional();

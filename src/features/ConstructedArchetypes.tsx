@@ -22,9 +22,7 @@ import '../shared/ui/LoadingSurface.css';
 import './ConstructedArchetypes.css';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
-import ConstructedArchetypeAnalysis, {
-  type ConstructedAnalysis,
-} from './ConstructedArchetypeAnalysis';
+import type { ConstructedAnalysis } from './ConstructedArchetypeAnalysis';
 import ConstructedArchetypeDeckGallery from './ConstructedArchetypeDeckGallery';
 import {
   AsyncSurfaceState,
@@ -39,6 +37,8 @@ import {
   type ArchetypeClassFilter,
   type ArchetypeFormat,
 } from './constructedArchetypeCatalogUrl';
+
+const ConstructedArchetypeAnalysis = React.lazy(() => import('./ConstructedArchetypeAnalysis'));
 
 type ArchetypeBuild = {
   deckCode: string;
@@ -597,7 +597,11 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
 
       {fullAccess && !core.loading ? <ArchetypeDetailSection title="Матчапы и муллиган" loading={analysisRead.loading}
         error={analysisRead.error} onRetry={analysisRead.retry}>
-        <ConstructedArchetypeAnalysis analysis={detail.analysis} />
+        <RecoverableSurfaceBoundary scope="constructed-archetype-analysis" title="Аналитика архетипа временно недоступна">
+          <React.Suspense fallback={<LoadingSurface label="Загружаем аналитику архетипа" quiet layout="rows" />}>
+            <ConstructedArchetypeAnalysis analysis={detail.analysis} />
+          </React.Suspense>
+        </RecoverableSurfaceBoundary>
       </ArchetypeDetailSection> : null}
 
 

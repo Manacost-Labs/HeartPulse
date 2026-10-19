@@ -2700,9 +2700,12 @@ for (const [device, viewport] of [
       + await auditAccessibility(page, `profile message [${device}]`, '.account-message');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
 
-    adminState.constructedArchetypeReadFailureOnce = true;
     await page.goto(`${BASE}/standard/archetypes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/archetypes');
+    await page.waitForSelector('.archetype-row', { timeout: 20_000 });
+    // The SSR summary needs no browser read; an uncached format exercises recovery.
+    adminState.constructedArchetypeReadFailureOnce = true;
+    await page.click('.archetypes-format-switch button:nth-child(2)');
     await page.waitForSelector('.archetypes-page [data-recovery-state="error"]', { timeout: 20_000 });
     await page.evaluate(() => { window.__qaStandardMetaDocumentMarker = 'preserve-on-retry'; });
     const archetypeErrorState = await page.evaluate(() => {
@@ -2729,6 +2732,8 @@ for (const [device, viewport] of [
     if (archetypeRetryState.marker !== 'preserve-on-retry' || archetypeRetryState.errorPresent || archetypeRetryState.shellRecoveryPresent) {
       failures.push(`archetype catalog recovery [${device}]: retry reloaded the document or opened shell recovery (${JSON.stringify(archetypeRetryState)})`);
     }
+    await page.click('.archetypes-format-switch button:first-child');
+    await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
     const archetypeCatalogLayout = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');
       const hero = document.querySelector('.traditional-mode-banner');

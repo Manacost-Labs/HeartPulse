@@ -10,6 +10,7 @@ const nextRoot = join(projectRoot, 'apps/public-web/.next');
 const budgetsPath = join(projectRoot, 'config/next-bundle-budgets.json');
 const budgets = JSON.parse(readFileSync(budgetsPath, 'utf8'));
 const CARD_GALLERY_MARKER = 'img[data-card-image-src]';
+const ARCHETYPE_ANALYSIS_MARKER = 'constructed-analysis-stack';
 
 // Every chunk the server-rendered document references, including the React
 // Server Components payload, is fetched before the page becomes interactive.
@@ -61,6 +62,8 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
       if (path === '/standard/archetypes/') {
         assert.deepEqual(assets.js.filter(file => readFileSync(join(nextRoot, file), 'utf8').includes(CARD_GALLERY_MARKER)), [],
           'the archetype page must not load the card gallery observer');
+        assert.deepEqual(assets.js.filter(file => readFileSync(join(nextRoot, file), 'utf8').includes(ARCHETYPE_ANALYSIS_MARKER)), [],
+          'the catalog must defer the optional archetype analysis code');
       }
     }
 
@@ -81,6 +84,9 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
     assert.ok(built.some(file => file.endsWith('.js')
       && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(CARD_GALLERY_MARKER)),
     'no built JavaScript contains the gallery observer marker: update the marker');
+    assert.ok(built.some(file => file.endsWith('.js')
+      && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(ARCHETYPE_ANALYSIS_MARKER)),
+    'the optional analysis code must remain available in the build');
     for (const kind of ['js', 'css']) {
       assert.ok(built.some(file => file.endsWith(`.${kind}`)
         && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])),

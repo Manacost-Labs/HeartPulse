@@ -3,7 +3,7 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
-test('Next subscribers pages preserve administrator API access without a subscription', async () => {
+test('Next preserves administrator API access and anonymous archetype summaries without a subscription', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {
@@ -18,13 +18,13 @@ test('Next subscribers pages preserve administrator API access without a subscri
       headless: true, args: ['--no-sandbox'] });
     const context = await browser.createBrowserContext();
     const [name, value] = runtime.cookie.split('=');
-    for (const [path, api] of [
+    for (const [path, api, protectedRead = true] of [
       ['/classes/', '/api/winrates'],
       ['/tierlist/', '/api/tierlist'],
       ['/legendaries/', '/api/legendaries'],
       ['/standard/matchups/', '/api/standard/matchups'],
       ['/standard/meta/', '/api/standard-meta'],
-      ['/standard/archetypes/', '/api/constructed-archetypes'],
+      ['/standard/archetypes/', '/api/constructed-archetypes', false],
       ['/guides-archive/', '/api/guides-archive'],
       ['/heroes/', '/api/bg/heroes'],
       ['/library/', '/api/bg/library/meta'],
@@ -43,7 +43,11 @@ test('Next subscribers pages preserve administrator API access without a subscri
         void request.respond({ status: 403, contentType: 'application/json', body: '{"error":"fixture"}' });
       });
       await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
-      assert.ok(requests > 0, `${path} must request its protected API for an administrator`);
+      if (protectedRead) assert.ok(requests > 0, `${path} must request its protected API for an administrator`);
+      else {
+        assert.equal(requests, 0, 'the archetype catalog uses the public summary for every viewer');
+        assert.ok(await page.$('.archetypes-format-switch'), 'the public archetype catalog must render');
+      }
       await page.close();
     }
     const funDecks = await context.newPage();

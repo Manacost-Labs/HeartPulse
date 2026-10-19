@@ -25,15 +25,15 @@ let runtime;
 before(async () => { runtime = await startPublicCardPilot({ pagesEnabled: true }); });
 after(async () => { await runtime?.close(); });
 
-test('pages preload the image that is their measured LCP element, and only that one', async () => {
-  for (const path of ['/', '/faq/', '/standard/meta/', '/heroes/?view=table']) {
+test('image hints follow measured mobile LCP and the wider-screen parchment policy', async () => {
+  for (const path of ['/', '/faq/', '/standard/meta/', '/heroes/?view=table', '/standard/archetypes/']) {
     const { hints } = await imageHints(runtime.origin, path);
     const parchment = hintsFor(hints, PARCHMENT);
     assert.ok(parchment.length >= 1 && parchment.every(isHigh), `${path} preloads the parchment at high priority`);
     assert.ok(parchment.every(hint => !/media=/.test(hint.text)), `${path} paints the parchment first at every width`);
   }
   // Phones paint text, banner art or an image first here; from 768px the parchment.
-  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/standard/matchups/', '/standard/archetypes/']) {
+  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/standard/matchups/', '/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/', '/articles/']) {
     const { hints } = await imageHints(runtime.origin, path);
     const parchment = hintsFor(hints, PARCHMENT);
     assert.ok(parchment.length >= 1, `${path} preloads the parchment for wider screens`);
@@ -42,7 +42,7 @@ test('pages preload the image that is their measured LCP element, and only that 
       assert.match(hint.text, TABLET_UP, `${path} must not fetch the parchment early on phones`);
     }
   }
-  for (const path of ['/standard/matchups/', '/standard/archetypes/']) {
+  for (const path of ['/standard/matchups/', '/standard/archetypes/', '/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/', '/articles/']) {
     const { hints } = await imageHints(runtime.origin, path);
     const banner = hintsFor(hints, BANNER);
     assert.ok(banner.length >= 1, `${path} preloads its banner`);
@@ -51,7 +51,7 @@ test('pages preload the image that is their measured LCP element, and only that 
       assert.match(hint.text, /type="image\/avif"/, 'a browser without AVIF must skip the hint');
     }
   }
-  for (const path of ['/tierlist/', '/standard/matchups/', '/heroes/?view=table']) {
+  for (const path of ['/tierlist/', '/standard/matchups/', '/heroes/?view=table', '/standard/cards/', '/articles/']) {
     const { hints } = await imageHints(runtime.origin, path);
     // The WebP is only the image-set() fallback: preloading it would download both files.
     assert.equal(hintsFor(hints, '/wallpaper/profile-hero-hth.webp').length, 0, path);

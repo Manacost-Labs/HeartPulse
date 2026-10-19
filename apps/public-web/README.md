@@ -188,8 +188,12 @@ is a separate administrator workspace and retains its permission gate.
   `media="(min-width: 768px)"`; phones then load the material through CSS.
   The current route assignments apply this restriction to `/tierlist/`,
   `/classes/`, `/legendaries/`, `/guides-archive/`, cosmetics, and
-  `/standard/matchups/`, `/standard/archetypes/` and `/standard/vicious-gold/`.
-  The last three also render `<PageBannerPreload />` for the banner AVIF.
+  `/standard/matchups/`, `/standard/vicious-gold/`, `/standard/cards/` and
+  its format catalogs, and `/articles/`. Matchups, Vicious Gold, card catalogs
+  and articles render `<PageBannerPreload />` for the banner AVIF.
+  `/standard/archetypes/` retains the parchment hint at every width: its
+  format switch is the measured mobile LCP element. It also keeps its existing
+  banner hint.
   `tests/next-lcp-image-preload.test.mjs` checks these explicit assignments.
   Remeasure LCP after a layout change before adding or removing a hint: the
   unified public banner changes the candidate on formerly text-only pages.

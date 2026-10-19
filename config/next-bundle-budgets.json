@@ -23,8 +23,8 @@
       "cssGzipBytes": 59648
     },
     "/standard/archetypes/": {
-      "jsGzipBytes": 195584,
-      "cssGzipBytes": 67584
+      "jsGzipBytes": 190464,
+      "cssGzipBytes": 63488
     },
     "/standard/vicious-gold/": {
       "jsGzipBytes": 180224,
@@ -47,7 +47,7 @@
       "cssGzipBytes": 51200
     },
     "/legendaries/": {
-      "jsGzipBytes": 190464,
+      "jsGzipBytes": 191488,
       "cssGzipBytes": 51200
     },
     "/heroes/": {
@@ -99,7 +99,7 @@
       "cssGzipBytes": 37632
     },
     "/standard/deck-builder/": {
-      "jsGzipBytes": 188416,
+      "jsGzipBytes": 189440,
       "cssGzipBytes": 33792
     }
   }

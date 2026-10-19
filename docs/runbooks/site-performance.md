@@ -5,6 +5,12 @@
 - Archetypes: bounded catalog refresh, anonymous summaries before account
   verification, two public format entries for 30 seconds per mounted page,
   independent protected core/history/analysis reads and local block retries.
+  Optional analysis code loads separately; its own recovery boundary leaves
+  builds visible if that code fails to load. The catalog budgets tighten by
+  5 KiB JavaScript and 4 KiB CSS. Two near-limit routes, legendaries and the
+  Standard deck builder, gain 1 KiB JavaScript each for roughly 0.1 KiB of
+  shared async-loader growth and release-ID variation. The aggregate ceilings
+  therefore fall by 3 KiB JavaScript and 4 KiB CSS; other limits stay fixed.
   See [archetype runbook](constructed-archetypes-performance.md).
 - Public card identity: the first-paint API reads the validated format catalog
   without the separate enriched detail read. Anonymous lists also skip the
@@ -51,10 +57,12 @@ subscriber SSR reuse, format return, local search and recovery while auth is
 held. Card/connect browser tests check the measured geometry regressions.
 Perform desktop and phone runtime review with the isolated Chrome DevTools MCP.
 
-The 19 October candidate passed 160 unit files, 60 contract files, 14 Next
-browser cases, the server/Next/Storybook builds, type checks and the architecture
-and privacy gates. The isolated browser review covered both viewports, delayed
-optional blocks, local retry, logout, access revocation and late responses.
+The 19 October candidate passed 160 unit files, 60 contract files, 20 production
+smoke files and all 55 registered browser files, the server/Next/Storybook builds,
+type checks and the architecture and privacy gates. The browser suite uses
+Google Chrome 150, matching CI and the original audit. The isolated browser
+review covered both viewports, delayed optional blocks, local retry, logout,
+access revocation and late responses.
 
 In the controlled local mobile profile, three successful samples per variant
 gave card-catalog LCP medians of 4.301 and 3.983 seconds after thumbnail priority
@@ -69,6 +77,8 @@ The final scan has no errors and five warnings: four complexity warnings and
 one async effect-state warning. Request cancellation, resource keys and the
 revocation/late-response browser cases verify the latter; no rule is disabled.
 Public format snapshots use immutable state rather than render-time ref writes.
+The full browser observatory injects the catalog failure on an uncached format
+switch; a valid SSR summary intentionally performs no initial browser read.
 
 The existing immutable-release deployer provides rollback to the previous
 healthy release if either API or Next readiness fails. No database migration,
