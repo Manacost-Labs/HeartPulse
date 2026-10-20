@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically prewarm Limburg HearthPulse edge media
+
+[Timer]
+OnBootSec=10m
+OnUnitActiveSec=6h
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

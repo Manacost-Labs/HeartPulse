@@ -3,12 +3,28 @@ set -euo pipefail
 
 source_root="${ARENA_CARD_IMAGE_SOURCE_ROOT:-/var/www/koloda/data/www/hs-arena.ru/shared/server-data/card-images}"
 release_root="${ARENA_CARD_IMAGE_RELEASE_ROOT:-/var/www/koloda/data/www/hs-arena.ru/current}"
-known_hosts="${ARENA_CARD_IMAGE_KNOWN_HOSTS:-/home/debian/.ssh/known_hosts}"
-edge_specs=(
-  "debian@162.19.220.14|/home/debian/.ssh/koloda_proxy_ed25519"
-  "root@194.67.92.242|/home/debian/.ssh/koloda_proxy_ed25519"
-  "root@186.246.28.244|/root/.ssh/koloda_proxy_ru-novosibirsk_ed25519"
-)
+config_file="${ARENA_CARD_IMAGE_SYNC_CONFIG:-/etc/hs-arena/edge-static-sync.conf}"
+if [[ ! -r "$config_file" ]]; then
+  echo "Edge topology configuration is not readable: $config_file" >&2
+  exit 2
+fi
+
+# Card images follow the same root-managed "user@host|identity" topology as the
+# frontend sync, so a quarantined or replaced edge is changed in one place.
+# shellcheck source=/dev/null
+source "$config_file"
+if declare -p ARENA_CARD_IMAGE_EDGE_SPECS >/dev/null 2>&1; then
+  edge_specs=("${ARENA_CARD_IMAGE_EDGE_SPECS[@]}")
+elif declare -p ARENA_STATIC_EDGE_SPECS >/dev/null 2>&1; then
+  edge_specs=("${ARENA_STATIC_EDGE_SPECS[@]}")
+else
+  edge_specs=()
+fi
+if [[ ${#edge_specs[@]} -eq 0 ]]; then
+  echo "No card image edges are configured in $config_file" >&2
+  exit 2
+fi
+known_hosts="${ARENA_CARD_IMAGE_KNOWN_HOSTS:-${ARENA_STATIC_KNOWN_HOSTS:-/home/debian/.ssh/known_hosts}}"
 
 version="$(node --input-type=module -e \
   "import('${release_root}/build/server/cardImageCache.js').then(m => process.stdout.write(m.CARD_IMAGE_CACHE_VERSION))")"

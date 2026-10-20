@@ -81,10 +81,10 @@ The origin runs these systemd timers:
 
 - `arena-card-image-sync.timer` — card images every 15 minutes;
 - `arena-static-sync.timer` — frontend assets every 3 minutes;
-- `arena-public-resource-warm.timer` — Limburg full-art/public-resource warm;
-- `arena-public-resource-warm-ru.timer` — Moscow full-art/public-resource warm;
-- `arena-public-resource-warm-ru-novosibirsk.timer` — Novosibirsk
-  full-art/public-resource warm;
+- `arena-public-resource-warm.timer` — Limburg media and asset warm;
+- `arena-public-resource-warm-ru.timer` — Moscow media and asset warm;
+- `arena-public-resource-warm-ru-novosibirsk.timer` — Novosibirsk media and
+  asset warm;
 - `arena-geodns-monitor.timer` — DNS and edge checks every 5 minutes.
 
 The versioned units and scripts are:
@@ -98,11 +98,61 @@ The versioned units and scripts are:
   `/etc/nginx/conf.d/34-arena-edge-cache-path.conf` on every edge;
 - `deploy/systemd/arena-static-sync.{service,timer}` → `/etc/systemd/system/`;
 - `deploy/edge-static-sync.conf.example` documents the root-only topology file
-  `/etc/hs-arena/edge-static-sync.conf`.
+  `/etc/hs-arena/edge-static-sync.conf`;
+- `deploy/arena-card-image-sync.sh` → `/usr/local/sbin/sync-arena-card-images`;
+- `deploy/warm-arena-public-resources.sh` →
+  `/usr/local/sbin/warm-arena-public-resources`;
+- `deploy/systemd/arena-card-image-sync.{service,timer}` and
+  `deploy/systemd/arena-public-resource-warm{,-ru,-ru-novosibirsk}.{service,timer}`
+  → `/etc/systemd/system/`.
 
 After changing these files, run `npm run test:deployment`, install the scripts
 with mode `0755`, reload systemd, start the service once, and confirm that its
 second run reports every edge as already current without invoking rsync.
+
+### Card-image sync and media warm
+
+The card-image sync reads the same `/etc/hs-arena/edge-static-sync.conf` as the
+frontend sync (`ARENA_STATIC_EDGE_SPECS`, or a dedicated
+`ARENA_CARD_IMAGE_EDGE_SPECS` when card images need a different set). Removing
+an edge from that file removes it from both syncs; the service no longer fails
+every 15 minutes on a withdrawn node.
+
+Each warm unit pins one edge with `curl --resolve` for `hearthpulse.net` and
+`cdn.hearthpulse.net`. The retired `arena.hs-manacost.ru` only answers `301`,
+so a warm through it caches nothing; redirects now count as failures. A run
+warms what pages load:
+
+- the hashed `/_next/static` files named by the current build's manifests;
+- public images that the edge vhost caches (`wallpaper/`, `class_icon/`,
+  `bg-legacy/`, logos, favicons and the other listed directories);
+- every card image as `cdn.hearthpulse.net/api/card-image/<id>/{thumb,full}.webp`
+  with the server's `CARD_IMAGE_CACHE_VERSION`;
+- article covers, banners, hero skins and catalog card URLs found on the pages
+  of `/sitemaps/static.xml`;
+- proxied full art and battleground images from release bundles and server
+  data.
+
+`/api/public-resource/` and `/api/article-cover` share the visitor
+public-media rate limit, so they run at concurrency 4 with a 0.45 s pause.
+Everything else runs at concurrency 8 with a 5 s connect and 20 s request
+limit. A failed probe of the edge stops the run within seconds, and a 40-minute
+deadline keeps it inside the unit's 45-minute timeout. A region named in
+`HEARTHPULSE_MONITOR_QUARANTINED_REGIONS` of
+`/etc/hs-arena/hearthpulse-shadow-monitor.env` is skipped with exit 0; removing
+it from the quarantine resumes warming without editing units.
+
+Each run writes `/var/lib/arena-edge/public-warm/<edge>/latest/summary` with
+the `X-Proxy-Cache` counts. A second run reports mostly `HIT` for the cached
+families; `BYPASS` for `/api/*` and `/uploads/` on `hearthpulse.net` is
+expected, because that vhost does not cache them and the warm then only fills
+origin-side caches. Inspect a run with
+`ARENA_WARM_DRY_RUN=1 warm-arena-public-resources <edge-ip>`, which builds the
+URL lists without requesting them.
+
+Limburg (`162.19.220.14`) has been unreachable on ICMP, SSH and HTTPS from the
+origin and from Moscow since about 2026-10-05; it stays quarantined and out of
+the topology file until the node itself is restored.
 
 The guarded activator defaults to a fail-closed floor of 300 files and 10 MB.
 The static root that `npm run build:static` assembles has about 385 files and

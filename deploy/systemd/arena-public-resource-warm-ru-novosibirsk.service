@@ -1,0 +1,12 @@
+[Unit]
+Description=Prewarm Novosibirsk edge cache for HearthPulse media and assets
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/warm-arena-public-resources 186.246.28.244
+TimeoutStartSec=45min
+Nice=15
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

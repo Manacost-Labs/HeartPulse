@@ -1,0 +1,12 @@
+[Unit]
+Description=Synchronize generated card images to the configured edge nodes
+After=network-online.target hs-arena.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/sync-arena-card-images
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=30min

@@ -1,0 +1,12 @@
+[Unit]
+Description=Prewarm Limburg edge cache for HearthPulse media and assets
+After=network-online.target hs-arena.service arena-static-sync.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/warm-arena-public-resources 162.19.220.14
+TimeoutStartSec=45min
+Nice=15
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

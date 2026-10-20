@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically prewarm Moscow arena public media
+
+[Timer]
+OnBootSec=12min
+OnUnitInactiveSec=6h
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
