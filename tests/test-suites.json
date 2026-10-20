@@ -459,6 +459,7 @@
         "tests/edge-cdn-operations-contract.test.mjs",
         "tests/edge-media-maintenance.test.mjs",
         "tests/edge-static-sync.test.mjs",
+        "tests/hearthpulse-edge-nginx-install.test.mjs",
         "tests/hearthpulse-cert-deploy.test.mjs",
         "tests/hearthpulse-cutover-contract.test.mjs",
         "tests/hearthpulse-shadow-monitor.test.mjs",

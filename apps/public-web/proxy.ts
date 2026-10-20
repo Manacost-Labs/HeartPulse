@@ -9,7 +9,7 @@ import { encodePublicProjection, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION
   PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
 import { fetchPublicExpress } from './lib/expressApi';
-import { isPublicHomeDocument, PUBLIC_DOCUMENT_CACHE_CONTROL } from './documentCaching.mjs';
+import { isPublicHomeDocument, PUBLIC_DOCUMENT_RESPONSE_HEADERS } from './documentCaching.mjs';
 
 type BattlegroundDetailProbe =
   | { type: 'hero'; dbfId: string; apiPath: string }
@@ -141,7 +141,7 @@ export async function proxy(request: NextRequest) {
     if (cosmeticsUnavailable) return cosmeticsUnavailable;
     // The other public families get this header from `next.config.mjs`.
     if (isPublicHomeDocument(request.nextUrl.pathname, request.nextUrl.searchParams)) {
-      return NextResponse.next({ request: { headers }, headers: { 'Cache-Control': PUBLIC_DOCUMENT_CACHE_CONTROL } });
+      return NextResponse.next({ request: { headers }, headers: PUBLIC_DOCUMENT_RESPONSE_HEADERS });
     }
   }
   return NextResponse.next({ request: { headers } });

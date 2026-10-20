@@ -499,6 +499,15 @@ for (const route of inventory.routes) {
     const root = locations.find(location => location.modifier === '=' && location.pattern === '/');
     assert.match(root?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:4321;/,
       'home document must come from Next.js');
+    // A second, unconditional no-store would keep the home page out of the
+    // back/forward cache; only the login query adds it.
+    assert.doesNotMatch(root?.body || '', /add_header\s+(?:Cache-Control|Pragma|Expires)\s+"/,
+      'the public home must keep the single Cache-Control header Next sends');
+    for (const [header, variable] of [['Cache-Control', 'arena_home_cache_control'], ['Pragma', 'arena_home_pragma'],
+      ['Expires', 'arena_home_expires']]) {
+      assert.match(root?.body || '', new RegExp(`add_header\\s+${header}\\s+\\$${variable}\\s+always;`));
+      assert.match(mapSource, new RegExp(`map \\$arena_home_login_query \\$${variable} \\{\\s+default "";`));
+    }
     continue;
   }
   if (route.id === 'application-connect') {
@@ -714,7 +723,7 @@ async function startCardSeoUpstream() {
   const responses = new Map([
     ['/', {
       status: 200,
-      headers: { 'Cache-Control': 'private, no-store' },
+      headers: { 'Cache-Control': 'private, no-cache' },
       body: '<!doctype html><title>Next home</title>',
     }],
     ['/admin/', {
@@ -1298,6 +1307,19 @@ http {
     assert.equal(home.status, 200, 'canonical home must resolve');
     assert.match(home.body, /<title>Next home<\/title>/, 'home must return the Next document');
     assert.equal(home.headers['x-robots-tag'], undefined, 'ordinary home must remain indexable');
+    for (const path of ['/', '/?utm_source=qa', '/?loginless=1']) {
+      const publicHome = await requestNginx(port, path);
+      assert.equal(publicHome.headers['cache-control'], 'private, no-cache',
+        `${path} must keep the one restorable header of Next`);
+      assert.equal(publicHome.headers.pragma, undefined, path);
+      assert.equal(publicHome.headers.expires, undefined, path);
+    }
+    for (const path of ['/?login', '/?login=1', '/?utm_source=qa&login']) {
+      const account = await requestNginx(port, path);
+      assert.match(account.headers['cache-control'] || '', /no-store/, `${path} is the account page`);
+      assert.equal(account.headers.pragma, 'no-cache', path);
+      assert.equal(account.headers.expires, '0', path);
+    }
 
     const connectRedirect = await requestNginx(port, '/connect?user_code=ABCD-2345');
     assert.equal(connectRedirect.status, 301);

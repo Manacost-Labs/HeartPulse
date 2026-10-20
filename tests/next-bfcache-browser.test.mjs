@@ -128,11 +128,18 @@ test('public documents allow the back/forward cache and account documents keep n
       await response.arrayBuffer();
       return `${response.status} ${response.headers.get('cache-control')}`;
     };
+    // Only anonymous public documents invite the regional edge to keep a copy.
+    const edge = async path => (await fetch(`${next.origin}${path}`, { redirect: 'manual' })).headers.get('x-hearthpulse-edge-cache');
     for (const path of ['/', '/tierlist/', '/classes/', '/standard/matchups/', '/heroes/', '/library/minions/',
       '/battlegrounds/tier-list/', '/guides-archive/', '/cosmetics/']) {
       assert.equal(await header(path), '200 private, no-cache', path);
     }
     assert.equal(await header('/tierlist/', { method: 'HEAD' }), '200 private, no-cache');
+    for (const path of ['/', '/?utm_source=x', '/tierlist/', '/standard/matchups/']) assert.equal(await edge(path), 'anonymous', path);
+    for (const path of ['/?login', '/?login=1', '/admin/', '/id/abc/', '/faq/']) assert.equal(await edge(path), null, path);
+    // Like Cache-Control, the marker rides on every status of a listed family;
+    // the edge stores only a 200, so this 503 is never kept.
+    assert.equal(await edge('/heroes/123/'), 'anonymous');
     // The account page, cookie-dependent admin documents, profiles and errors keep Next's no-store.
     const noStore = 'private, no-cache, no-store, max-age=0, must-revalidate';
     for (const path of ['/?login', '/admin/', '/deck-builder/', '/archetypes/']) {

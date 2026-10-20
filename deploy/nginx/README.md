@@ -60,6 +60,16 @@ server, set `$arena_proxy_region` to that node's stable label, define
 with the cache snippet include. The region-forward snippet must remain at
 server scope so every proxied location overwrites a client-supplied region.
 
+`arena-edge-cache-path.conf` also declares the `hearthpulse_documents` zone
+(1 GB, dropped after an hour without a visit) and the two maps that decide
+whether `hearthpulse-shadow-app.conf` may read or fill it: only a cookieless
+request and only a `200` the application marks
+`X-HearthPulse-Edge-Cache: anonymous` with the expected `Vary`. Install both
+files together; the vhost references the zone and the maps.
+`deploy/install-hearthpulse-edge-nginx.sh --check|--install [EDGE...]` diffs
+or installs them with `hearthpulse-shadow-cdn.conf` on the configured edges.
+Rollout, checks and rollback: `docs/runbooks/hearthpulse-edge-caching.md`.
+
 The client-region map requires `ngx_http_geoip2_module` and the managed
 `/var/lib/GeoIP/dbip-country-lite.mmdb` file to be readable by Nginx. It
 derives only a coarse region from `$remote_addr`. Never derive the metric

@@ -36,6 +36,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
       assert.equal(catalog.status, 200, runtime.output());
       // Anonymous catalog HTML may be restored from the back/forward cache (apps/public-web/documentCaching.mjs).
       assert.equal(catalog.headers.get('cache-control'), 'private, no-cache');
+      assert.equal(catalog.headers.get('x-hearthpulse-edge-cache'), 'anonymous');
       const catalogHtml = await catalog.text();
       assert.match(catalogHtml, /<h1>Карты<\/h1>/);
       assert.match(catalogHtml, /Публичная карта 1/);

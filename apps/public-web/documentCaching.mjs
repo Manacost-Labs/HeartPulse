@@ -19,6 +19,21 @@
  */
 export const PUBLIC_DOCUMENT_CACHE_CONTROL = 'private, no-cache';
 
+/**
+ * Tells the regional edge (`deploy/nginx/hearthpulse-shadow-app.conf`) that a
+ * `200` of this document may be kept for every visitor that sends no cookie.
+ * The edge stores only what a cookieless request received and hides this
+ * header from the browser; `Cache-Control` stays `private` for browsers.
+ */
+export const PUBLIC_DOCUMENT_EDGE_CACHE_HEADER = 'X-HearthPulse-Edge-Cache';
+export const PUBLIC_DOCUMENT_EDGE_CACHE_VALUE = 'anonymous';
+
+/** Response headers of an anonymous public document. */
+export const PUBLIC_DOCUMENT_RESPONSE_HEADERS = Object.freeze({
+  'Cache-Control': PUBLIC_DOCUMENT_CACHE_CONTROL,
+  [PUBLIC_DOCUMENT_EDGE_CACHE_HEADER]: PUBLIC_DOCUMENT_EDGE_CACHE_VALUE,
+});
+
 export const PUBLIC_DOCUMENT_SOURCES = [
   '/:section(articles|classes|contests|gallery|legendaries|tierlist)/',
   '/battlegrounds/:tool(strategies|tier-builder|tier-list)/',
@@ -30,7 +45,7 @@ export const PUBLIC_DOCUMENT_SOURCES = [
 export function publicDocumentHeaders() {
   return PUBLIC_DOCUMENT_SOURCES.map(source => ({
     source,
-    headers: [{ key: 'Cache-Control', value: PUBLIC_DOCUMENT_CACHE_CONTROL }],
+    headers: Object.entries(PUBLIC_DOCUMENT_RESPONSE_HEADERS).map(([key, value]) => ({ key, value })),
   }));
 }
 

@@ -47,6 +47,9 @@ if [[ "$*" == *" --head "* ]]; then
   if [[ "$url" == https://cdn.hearthpulse.net/* ]]; then
     printf 'Content-Type: image/webp\\r\\n'
     printf 'Access-Control-Allow-Origin: *\\r\\n'
+    card_cache=HIT
+    [[ -z "\${FAKE_BYPASS_NOVOSIBIRSK:-}" || "$*" != *186.246.28.244* ]] || card_cache=BYPASS
+    printf 'X-Proxy-Cache: %s\\r\\n' "$card_cache"
   elif [[ "$url" == https://www.hearthpulse.net/* ]]; then
     printf 'Location: https://hearthpulse.net%s\\r\\n' "\${url#https://www.hearthpulse.net}"
   elif [[ "$url" == https://cdn.arena.hs-manacost.ru/* ]]; then
@@ -55,6 +58,11 @@ if [[ "$*" == *" --head "* ]]; then
     printf 'Location: https://hearthpulse.net%s\\r\\n' "\${url#https://arena.hs-manacost.ru}"
   else
     printf 'Strict-Transport-Security: max-age=%s\\r\\n' "\${FAKE_HSTS_MAX_AGE:-31536000}"
+  fi
+  if [[ "$url" == https://hearthpulse.net/favicon.ico ]]; then
+    edge_cache=HIT
+    [[ -z "\${FAKE_BYPASS_NOVOSIBIRSK:-}" || "$*" != *186.246.28.244* ]] || edge_cache=BYPASS
+    printf 'X-Proxy-Cache: %s\\r\\n' "$edge_cache"
   fi
   printf '\\r\\n'
 elif [[ "$url" == */api/subscription/status ]]; then
@@ -121,6 +129,11 @@ try {
   const unknownRegion = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGION: 'unknown' });
   assert.notEqual(unknownRegion.status, 0);
   assert.match(unknownRegion.stderr, /unsupported quarantined region/);
+
+  const drifted = runMonitor({ FAKE_BYPASS_NOVOSIBIRSK: '1' });
+  assert.notEqual(drifted.status, 0, 'an edge that skips its cache for public files must fail');
+  assert.match(drifted.stderr, /novosibirsk 186\.246\.28\.244 serves public files without its edge cache: BYPASS/);
+  assert.match(drifted.stderr, /novosibirsk 186\.246\.28\.244 serves CDN cards without its edge cache: BYPASS/);
 
   const brokenConcurrentPage = runMonitor({ FAKE_FAIL_FANOUT: '1' });
   assert.notEqual(brokenConcurrentPage.status, 0);

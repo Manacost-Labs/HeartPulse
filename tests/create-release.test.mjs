@@ -50,6 +50,7 @@ const operationalFiles = [
   'deploy/arena-card-image-sync.sh',
   'deploy/monitor-arena-geodns.sh',
   'deploy/monitor-hearthpulse-shadow.sh',
+  'deploy/install-hearthpulse-edge-nginx.sh',
   'deploy/deploy-hearthpulse-cert.sh',
   'deploy/systemd/hearthpulse-shadow-monitor.service',
   'deploy/systemd/hearthpulse-shadow-monitor.timer',

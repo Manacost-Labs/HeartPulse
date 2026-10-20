@@ -43,7 +43,7 @@ is a separate administrator workspace and retains its permission gate.
 | `lib/publicFirstPaintRead.ts` | `readFirstPaintJson()`: a server read that only improves the first paint; `null` after 600 ms or on any failure, so the page falls back to its browser request |
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
 | `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, and the home page's `Cache-Control` |
-| `documentCaching.mjs` | Which public documents send `private, no-cache` instead of `no-store` (`next.config.mjs` `headers()`) |
+| `documentCaching.mjs` | Which public documents send `private, no-cache` instead of `no-store` and the edge-cache marker (`next.config.mjs` `headers()`) |
 <!-- markdownlint-enable MD013 -->
 
 ## Rules
@@ -235,9 +235,12 @@ is a separate administrator workspace and retains its permission gate.
 - Anonymous public documents send `Cache-Control: private, no-cache`
   (`documentCaching.mjs`, applied by `next.config.mjs` and, for `/`, by
   `proxy.ts`), so Back restores them from the back/forward cache instead of
-  reloading them; every normal visit still revalidates, and no shared cache
-  stores them. Add a new public route family there only if its server
-  modules read no cookies (`tests/next-document-caching.test.mjs`); anything
+  reloading them; every normal visit still revalidates. Their
+  `X-HearthPulse-Edge-Cache: anonymous` lets the regional edge keep the `200`
+  of a cookieless request for a minute and serve it to cookieless visitors;
+  no other shared cache stores them. Add a new public route family there only
+  if its server modules read no cookies
+  (`tests/next-document-caching.test.mjs`); anything
   not listed keeps the header Next chooses (`no-store` on dynamic pages), as
   `/?login`, `/admin/`, `/deck-builder/`, `/archetypes/`, `/id/`,
   `/profiles/` and the `503` of `proxy.ts` do; Nginx forces `no-store` on the
@@ -252,8 +255,7 @@ is a separate administrator workspace and retains its permission gate.
   Plausible counts no new pageview for a restored page. The contract is in
   `docs/specs/public-document-caching.md`;
   `tests/next-bfcache-browser.test.mjs` checks the headers, restores,
-  sign-out and an account switch followed by Back. Production Nginx still
-  adds `no-store` to `/` (see `docs/runbooks/nextjs-production-cutover.md`).
+  sign-out and an account switch followed by Back.
 - `lib/authPrefetch.ts` starts `/api/auth/me` from the document head; the
   first `fetchCurrentAuthUser()` call adopts that response once, within ten
   seconds, and every later call fetches. A page that never checks the session

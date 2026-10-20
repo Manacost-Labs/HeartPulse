@@ -110,13 +110,22 @@ for edge_entry in "${edges[@]}"; do
 	[[ "$robots_body" == *'Sitemap: https://hearthpulse.net/sitemap.xml'* ]] ||
 		fail "$region $edge robots.txt has no HearthPulse sitemap"
 
+	# An edge that runs an outdated application vhost proxies every public file
+	# through the origin tunnel; its answers then say BYPASS.
+	asset_cache="$(resolved_headers "$application_domain" "$edge" /favicon.ico 2>/dev/null | header_value X-Proxy-Cache || true)"
+	[[ "$asset_cache" =~ ^(HIT|MISS|EXPIRED|STALE|UPDATING|REVALIDATED)$ ]] ||
+		fail "$region $edge serves public files without its edge cache: ${asset_cache:-missing}"
+
 	card_headers="$(resolved_headers "$cdn_domain" "$edge" "$known_card_path" 2>/dev/null || true)"
 	card_status="$(http_status <<<"$card_headers")"
 	card_type="$(header_value Content-Type <<<"$card_headers")"
 	card_cors="$(header_value Access-Control-Allow-Origin <<<"$card_headers")"
+	card_cache="$(header_value X-Proxy-Cache <<<"$card_headers")"
 	[[ "$card_status" == 200 ]] || fail "$region $edge CDN card returned HTTP ${card_status:-unavailable}"
 	[[ "$card_type" == image/* ]] || fail "$region $edge CDN card returned ${card_type:-no content type}"
 	[[ "$card_cors" == '*' ]] || fail "$region $edge CDN card returned unsafe CORS: ${card_cors:-missing}"
+	[[ "$card_cache" =~ ^(LOCAL|HIT|MISS|EXPIRED|STALE|UPDATING|REVALIDATED)$ ]] ||
+		fail "$region $edge serves CDN cards without its edge cache: ${card_cache:-missing}"
 
 	private_status="$(resolved_status "$cdn_domain" "$edge" /api/subscription/status 2>/dev/null || printf 000)"
 	[[ "$private_status" == 404 ]] || fail "$region $edge CDN exposed private API with HTTP $private_status"

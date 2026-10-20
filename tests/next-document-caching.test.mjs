@@ -3,7 +3,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import test from 'node:test';
 import { createRequire } from 'node:module';
-import { isPublicHomeDocument, publicDocumentHeaders, PUBLIC_DOCUMENT_CACHE_CONTROL } from '../apps/public-web/documentCaching.mjs';
+import { isPublicHomeDocument, publicDocumentHeaders, PUBLIC_DOCUMENT_CACHE_CONTROL,
+  PUBLIC_DOCUMENT_RESPONSE_HEADERS } from '../apps/public-web/documentCaching.mjs';
 
 // Next matches `headers()` sources with this matcher (strict trailing slash).
 const { getPathMatch } = createRequire(import.meta.url)('next/dist/shared/lib/router/utils/path-match');
@@ -11,8 +12,14 @@ const rules = publicDocumentHeaders().map(rule => ({ ...rule, match: getPathMatc
 const cached = path => rules.some(rule => rule.match(path) !== false);
 
 test('anonymous public route families may be restored from the back/forward cache', () => {
-  for (const rule of rules) assert.deepEqual(rule.headers, [{ key: 'Cache-Control', value: 'private, no-cache' }]);
+  for (const rule of rules) {
+    assert.deepEqual(rule.headers, [{ key: 'Cache-Control', value: 'private, no-cache' },
+      { key: 'X-HearthPulse-Edge-Cache', value: 'anonymous' }]);
+  }
   assert.equal(PUBLIC_DOCUMENT_CACHE_CONTROL, 'private, no-cache');
+  // The edge (deploy/nginx/hearthpulse-shadow-app.conf) matches this exact value.
+  assert.deepEqual(PUBLIC_DOCUMENT_RESPONSE_HEADERS, { 'Cache-Control': 'private, no-cache',
+    'X-HearthPulse-Edge-Cache': 'anonymous' });
   for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/articles/', '/contests/', '/gallery/',
     '/standard/meta/', '/standard/meta/standard/aggro-paladin/', '/standard/matchups/', '/standard/archetypes/',
     '/standard/archetypes/standard/aggro-paladin/', '/standard/cards/', '/standard/cards/standard/',
