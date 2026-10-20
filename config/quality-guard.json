@@ -82,6 +82,16 @@
   },
   "checks": [
     {
+      "id": "oxlint",
+      "tier": "fast",
+      "argv": [
+        "npm",
+        "run",
+        "lint:oxlint"
+      ],
+      "paths": []
+    },
+    {
       "id": "types",
       "argv": [
         "npm",

@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-control-regex": "warn",
+    "no-useless-escape": "warn",
+    "no-unsafe-optional-chaining": "warn",
+    "no-unsafe-finally": "warn",
+    "unicorn/no-new-array": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn",
+    "unicorn/prefer-string-starts-ends-with": "warn",
+    "unicorn/no-useless-spread": "warn",
+    "unicorn/no-invalid-fetch-options": "warn"
+  }
+}

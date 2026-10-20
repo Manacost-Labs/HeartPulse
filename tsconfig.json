@@ -21,7 +21,9 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "strict": false,
+    "noUncheckedSideEffectImports": false
   },
   "exclude": [
     "node_modules",

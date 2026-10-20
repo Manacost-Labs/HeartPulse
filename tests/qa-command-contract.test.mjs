@@ -43,6 +43,24 @@ assert.ok(
   'verify:ci must not trigger the standalone command and rebuild a second time',
 );
 
+// tsgo (TypeScript 7) is the default checker; `config.typescript_checker`
+// switches every typecheck script back to tsc in one line.
+assert.ok(['tsgo', 'tsc'].includes(packageJson.config?.typescript_checker),
+  'config.typescript_checker must select tsgo or tsc');
+for (const name of ['lint', 'lint:next', 'lint:domains']) {
+  assert.match(scripts[name], /^\$npm_package_config_typescript_checker --noEmit\b/,
+    `${name} must typecheck through the configured checker`);
+}
+for (const name of ['verify:release', 'verify:ci']) {
+  const steps = scripts[name].split(' && ');
+  assert.ok(steps.includes('npm run lint:oxlint')
+    && steps.indexOf('npm run lint:oxlint') < steps.indexOf('npm run lint'),
+  `${name} must run oxlint as the first lint pass`);
+  for (const typecheck of ['npm run lint', 'npm run lint:next']) {
+    assert.ok(steps.includes(typecheck), `${name} must keep ${typecheck}`);
+  }
+}
+
 for (const viewport of [
   'width: 320, height: 568',
   'width: 390, height: 844',
