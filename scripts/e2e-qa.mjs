@@ -15,6 +15,12 @@ import { replaceControlledInputValue } from './controlled-input.mjs';
 import { inspectHorizontalLayoutFault } from './mobile-layout-diagnostics.mjs';
 import { adminFixtures, qaArchetypeItems, qaDeckCards, subscriber } from './qa/fixtures.mjs';
 import { createQaApiHandler, qaSessionCookie } from './qa/mockApi.mjs';
+
+// Below 768px tokens.css paints the parchment from an inline AVIF instead of the WebP file.
+const PHONE_PARCHMENT_PREFIX = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8')
+  .match(/--arena-parchment-texture-phone: url\('(data:image\/avif;base64,[A-Za-z0-9+/]{48})/)[1];
+const hasParchmentTexture = background => background.includes('arena-parchment-v2.webp')
+  || background.includes(PHONE_PARCHMENT_PREFIX);
 import responsiveInventory from '../config/responsive-route-fixtures.json' with { type: 'json' };
 
 const require = createRequire(import.meta.url);
@@ -607,7 +613,7 @@ function assertLayout(path, layout) {
       failures.push(`${path}: route content padding changed (${layout.contentPadding}; expected ${expectedPadding})`);
     }
   }
-  if (layout.battlegroundsSurface && !layout.battlegroundsBackground.includes('arena-parchment')) {
+  if (layout.battlegroundsSurface && !hasParchmentTexture(layout.battlegroundsBackground)) {
     failures.push(`${path}: route-owned Battlegrounds parchment CSS was not loaded`);
   }
   if (layout.battlegroundsSurface && layout.battlegroundsSign !== 'none') {
@@ -1034,7 +1040,7 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     }
     if (routePath === '/articles') {
       const image = document.querySelector('.article-image-shell img');
-      const shell = image?.parentElement;
+      const shell = image?.closest('.article-image-shell');
       const imageStyle = image ? getComputedStyle(image) : null;
       const shellRect = shell?.getBoundingClientRect();
       return {
@@ -1075,7 +1081,7 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     return;
   }
   if (state.kind === 'tierlist' || state.kind === 'legendaries') {
-    if (state.kind === 'legendaries' && (!state.sourceShell?.backgroundImage.includes('arena-parchment-v2.webp') || state.sourceShell?.borderRadius !== '2px')) {
+    if (state.kind === 'legendaries' && (!hasParchmentTexture(state.sourceShell?.backgroundImage ?? '') || state.sourceShell?.borderRadius !== '2px')) {
       failures.push(`${prefix}: source switcher lost its parchment frame`);
     }
     if (state.activeSource?.backgroundColor !== 'rgb(109, 17, 23)' || state.activeSource?.color !== 'rgb(255, 240, 196)') {
@@ -4195,11 +4201,11 @@ for (const [device, viewport] of [
       };
     });
     const prefix = `/library [${device} guest]`;
-    if (!surface.appBackground.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: BG route shell parchment is missing`);
+    if (!hasParchmentTexture(surface.appBackground)) failures.push(`${prefix}: BG route shell parchment is missing`);
     if (surface.appVeilBackground !== 'none') failures.push(`${prefix}: legacy blue shell veil remains above the parchment`);
     if (surface.workspaceBackground !== 'rgba(0, 0, 0, 0)' || surface.workspaceImage !== 'none') failures.push(`${prefix}: workspace paints a white frame`);
     if (surface.mainBackground !== 'rgba(0, 0, 0, 0)' || surface.mainImage !== 'none') failures.push(`${prefix}: main canvas paints a white frame`);
-    if (!surface.contentBackground.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: content parchment does not cover the locked route`);
+    if (!hasParchmentTexture(surface.contentBackground)) failures.push(`${prefix}: content parchment does not cover the locked route`);
     await page.screenshot({ path: `${OUT}/library-guest-${device}.png`, fullPage: true });
     const violationCount = await auditAccessibility(page, prefix);
     console.log(`✓ ${prefix} continuous parchment + axe (${violationCount} violations)`);
@@ -5853,7 +5859,7 @@ async function assertCardTooltipPresentation(page, label) {
   });
   const prefix = `card tooltip ${label}`;
   if (!material.borderImage.includes('main-page-rail-border.png') || material.borderWidth < 8) failures.push(`${prefix}: wooden frame is missing`);
-  if (!material.background.includes('arena-parchment-v2.webp')) failures.push(`${prefix}: parchment surface is missing`);
+  if (!hasParchmentTexture(material.background)) failures.push(`${prefix}: parchment surface is missing`);
   if (!material.headerBackground.includes('arena-rail-red.jpg')) failures.push(`${prefix}: red header texture is missing`);
   if (material.rowBackground !== 'rgba(255, 244, 216, 0.28)' || material.rowRadius !== '0px') failures.push(`${prefix}: row material changed`);
   if (material.rect.width <= 0 || material.rect.height <= 0) failures.push(`${prefix}: preview has no rendered area`);
