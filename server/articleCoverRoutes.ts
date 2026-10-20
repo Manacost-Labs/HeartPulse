@@ -1,6 +1,4 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { Router, type Request, type Response as ExpressResponse } from 'express';
 import { ArticleCoverCache, canonicalArticleCoverUrl, type ArticleCoverEntry } from './articleCoverCache.js';
 import {
@@ -10,22 +8,16 @@ import {
   encodeArticleCoverVariant,
   isTransformableCoverType,
 } from './articleCoverVariant.js';
+import {
+  ARTICLE_COVER_WIDTHS, UPLOAD_NAME, parseAllowedUrl, parseVariant, readLimitedBody, type CoverVariant,
+} from './articleCoverSource.js';
 
-/**
- * Widths `?w=` may request. Any other value is rejected, so the number of
- * re-encodes and cache entries per cover stays bounded. The article UI
- * (src/modules/articles, src/modules/home) builds its srcset from the same
- * list; tests/article-cover-markup.test.tsx keeps the copies equal.
- */
-export const ARTICLE_COVER_WIDTHS = [480, 720, 960] as const;
+export { ARTICLE_COVER_WIDTHS, adminUploadReader } from './articleCoverSource.js';
 
 const CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=604800';
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CACHE_MAX_BYTES = 32 * 1024 * 1024;
 const DEFAULT_CACHE_MAX_ENTRIES = 512;
-/** The only names server/adminImageUploadRoutes.ts generates; anything else could leave the upload directory. */
-const UPLOAD_NAME = /^[a-z0-9-]+\.webp$/;
-
 export type ArticleCoverRouterDependencies = {
   allowedHosts: ReadonlySet<string>;
   maxBytes: number;
@@ -48,16 +40,6 @@ export type ArticleCoverRouterDependencies = {
   readUpload?: (name: string) => Promise<Buffer | null>;
 };
 
-type CoverVariant = { width: number | null; format: ArticleCoverFormat };
-
-/** `readUpload` for the admin upload directory. The router admits only generated names, so the join stays inside it. */
-export function adminUploadReader(directory: string): (name: string) => Promise<Buffer | null> {
-  return name => readFile(join(directory, name)).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return null;
-    throw error;
-  });
-}
-
 type LoadDependencies = Required<Pick<ArticleCoverRouterDependencies, 'fetchImpl' | 'timeoutMs' | 'maxRedirects'>>
   & Pick<ArticleCoverRouterDependencies, 'allowedHosts' | 'maxBytes'>
   & { encode: (source: Buffer, width: number, format: ArticleCoverFormat) => Promise<Buffer | null> };
@@ -65,35 +47,6 @@ type LoadDependencies = Required<Pick<ArticleCoverRouterDependencies, 'fetchImpl
 type CoverResult =
   | { kind: 'cover'; entry: ArticleCoverEntry; cacheable: boolean }
   | { kind: 'error'; status: number; error: string };
-
-function parseAllowedUrl(value: string, allowedHosts: ReadonlySet<string>): URL | null {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    return allowedHosts.has(url.hostname.toLowerCase()) ? url : null;
-  } catch {
-    return null;
-  }
-}
-
-/** `null` asks for the original bytes; `false` is a width outside the allowlist. */
-function parseCoverWidth(value: unknown): number | null | false {
-  if (value === undefined) return null;
-  return ARTICLE_COVER_WIDTHS.find(width => String(width) === value) ?? false;
-}
-
-/** WebP unless `avif` is asked for; a format is a re-encode, so it needs a width. */
-function parseCoverFormat(value: unknown, width: number | null): ArticleCoverFormat | false {
-  if (value === undefined) return 'webp';
-  return value === 'avif' && width !== null ? 'avif' : false;
-}
-
-function parseVariant(query: Request['query']): CoverVariant | null {
-  const width = parseCoverWidth(query.w);
-  if (width === false) return null;
-  const format = parseCoverFormat(query.format, width);
-  return format === false ? null : { width, format };
-}
 
 async function fetchAllowedImage(
   initialUrl: URL,
@@ -120,30 +73,6 @@ async function fetchAllowedImage(
     currentUrl = redirectedUrl;
   }
   throw new Error('Слишком много перенаправлений');
-}
-
-async function readLimitedBody(response: Response, maxBytes: number): Promise<Buffer> {
-  if (!response.body) return Buffer.alloc(0);
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalBytes += value.byteLength;
-      if (totalBytes > maxBytes) {
-        await reader.cancel('article cover exceeds byte limit');
-        const error = new Error('Обложка слишком большая');
-        error.name = 'ArticleCoverTooLargeError';
-        throw error;
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  return Buffer.concat(chunks, totalBytes);
 }
 
 function coverEtag(identity: string, source: Buffer, variant: string): string {
