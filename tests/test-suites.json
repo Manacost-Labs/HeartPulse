@@ -125,6 +125,7 @@
         "tests/next-bg-library-card-data.test.ts",
         "tests/next-import-paths.test.mjs",
         "tests/next-document-caching.test.mjs",
+        "tests/next-prerendered-robots.test.mjs",
         "tests/public-restored-page-access.test.ts",
         "tests/next-search-params.test.ts",
         "tests/next-express-api.test.ts",

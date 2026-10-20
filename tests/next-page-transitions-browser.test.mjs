@@ -9,7 +9,8 @@ async function startGateway(nextOrigin, { rscDelayMs = 0 } = {}) {
   const next = new URL(nextOrigin);
   const requests = [];
   const server = http.createServer((request, response) => {
-    requests.push({ path: request.url, destination: request.headers['sec-fetch-dest'], rsc: request.headers.rsc });
+    requests.push({ path: request.url, destination: request.headers['sec-fetch-dest'], rsc: request.headers.rsc,
+      prefetch: request.headers['next-router-prefetch'], segment: request.headers['next-router-segment-prefetch'] });
     if (request.url.startsWith('/api/')) {
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' });
       response.end(JSON.stringify({ user: null }));
@@ -32,22 +33,27 @@ async function visitByClick(page, selector, pathname) {
   await page.waitForFunction(path => location.pathname === path && document.querySelector('#main-content'), {}, pathname);
 }
 
-/** Records the content box's view-transition animations from the next commit on. */
+/** Records the entrance animations inside the content box from the next commit on. */
 async function watchRouteMotion(page) {
   await page.evaluate(() => {
     window.__routeMotion = [];
     window.__otherMotion = [];
+    const seen = new Set();
     const started = performance.now();
     const record = () => {
       for (const animation of document.getAnimations()) {
+        if (seen.has(animation)) continue;
+        seen.add(animation);
+        const target = animation.effect?.target;
         const pseudo = animation.effect?.pseudoElement ?? '';
-        if (pseudo.startsWith('::view-transition') && !pseudo.includes('route-content') && animation.playState === 'running'
-          && !window.__otherMotion.includes(pseudo)) window.__otherMotion.push(pseudo);
-        if (!pseudo.includes('route-content') || window.__routeMotion.some(entry => entry.pseudo === pseudo)) continue;
+        if (pseudo.startsWith('::view-transition')) window.__otherMotion.push(pseudo);
+        if (!target?.closest?.('[data-route-content]')) continue;
         const timing = animation.effect.getTiming();
         const frames = animation.effect.getKeyframes();
-        window.__routeMotion.push({ pseudo, duration: timing.duration, delay: timing.delay,
-          from: frames[0]?.opacity, to: frames.at(-1)?.opacity });
+        if (frames[0]?.opacity !== '0') continue;
+        window.__routeMotion.push({ target: target.matches('[data-route-content] > *') ? 'content' : 'section',
+          skeleton: Boolean(target.closest('.loading-block, [data-loading-surface]') || target.querySelector('.loading-block')),
+          duration: timing.duration, delay: timing.delay, from: frames[0]?.opacity, to: frames.at(-1)?.opacity });
       }
       if (performance.now() - started < 3000) requestAnimationFrame(record);
     };
@@ -56,14 +62,14 @@ async function watchRouteMotion(page) {
 }
 
 const transitionRunning = () => document.getAnimations().some(animation => animation.playState === 'running'
-  && animation.effect?.pseudoElement?.startsWith('::view-transition'));
+  && animation.effect?.target?.closest?.('[data-route-content]') && animation.effect.getKeyframes()[0]?.opacity === '0');
 
 async function routeMotion(page) {
   await page.waitForFunction(`!(${transitionRunning})()`);
-  const { route, other } = await page.evaluate(() => ({
-    route: window.__routeMotion.toSorted((a, b) => a.delay - b.delay), other: window.__otherMotion }));
-  assert.deepEqual(other, [], 'only the content box may animate');
-  return route;
+  const { route, other } = await page.evaluate(() => ({ route: window.__routeMotion, other: window.__otherMotion }));
+  assert.deepEqual(other, [], 'no view transition captures the page');
+  // One entrance per element: duplicates of the same timing collapse.
+  return [...new Map(route.map(entry => [JSON.stringify(entry), entry])).values()];
 }
 
 async function rememberFrame(page) {
@@ -129,12 +135,10 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await watchRouteMotion(page);
     await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
     assert.deepEqual(await routeMotion(page), [
-      { pseudo: '::view-transition-old(route-content)', duration: 90, delay: 0, from: '1', to: '0' },
-      { pseudo: '::view-transition-new(route-content)', duration: 140, delay: 90, from: '0', to: '1' },
-    ], 'the outgoing content clears, then the destination fades in; nothing else moves');
-    assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--route-old-shift')), `${-readingOffset}px`,
-      'the outgoing snapshot stays where the reader saw it');
+      { target: 'content', skeleton: false, duration: 140, delay: 0, from: '0', to: '1' },
+    ], 'the ready destination fades in once, at commit, over --motion-fast; nothing else moves');
     assert.equal(await page.evaluate(() => scrollY), 0, 'the destination opens at its top');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content', 'focus continues at the new page');
     await assertSameFrame(page);
     assert.equal(await page.$eval('.arena-sidebar', node => node.scrollTop), scroll);
     assert.equal(await page.$eval('.arena-sidebar button[aria-controls="arena-sidebar-misc"]', node => node.getAttribute('aria-expanded')), 'true');
@@ -225,15 +229,18 @@ test('public transitions avoid accidental prefetch and keep usable content while
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport({ width: 1440, height: 700 });
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
-    const link = '.arena-sidebar a[href="/guides-archive/"]';
+    // A dynamic page: a visible menu link learns only its route tree.
+    const link = '.arena-sidebar a[href="/gallery/"]';
     await page.click('.arena-sidebar button[aria-controls="arena-sidebar-misc"]');
     await page.waitForFunction(() => document.getElementById('arena-sidebar-misc').getAnimations().length === 0);
     await page.evaluate(() => { document.querySelector('.arena-sidebar').scrollTop = 180; });
     await page.hover(link);
     await page.mouse.move(800, 100);
     await new Promise(resolve => setTimeout(resolve, 180));
-    assert.equal(gateway.requests.filter(request => request.rsc && request.path.startsWith('/guides-archive/')).length, 0,
-      'crossing a link must not download a route');
+    const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
+    assert.equal(pageRequests('/gallery/').length, 0, 'crossing a link must not download a page');
+    assert.ok(gateway.requests.some(request => request.segment && request.path.startsWith('/tierlist/')),
+      'a visible menu link learns its route while the browser is idle');
     const content = await page.$eval('#main-content', node => node.getBoundingClientRect().top);
     await rememberFrame(page);
     await page.click(link);
@@ -242,7 +249,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
     assert.equal(await page.$eval('#main-content', node => node.getBoundingClientRect().top), content);
     assert.equal(await page.$eval('[data-navigation-progress]', node => node.textContent), 'Открываем страницу…');
     await assertSameFrame(page);
-    await page.waitForFunction(() => location.pathname === '/guides-archive/' && !document.querySelector('[data-navigation-progress="pending"]'));
+    await page.waitForFunction(() => location.pathname === '/gallery/' && !document.querySelector('[data-navigation-progress="pending"]'));
     await page.goBack();
     await page.waitForFunction(() => location.pathname === '/faq/');
     await page.evaluate(() => Object.defineProperty(navigator, 'connection', {
@@ -251,14 +258,14 @@ test('public transitions avoid accidental prefetch and keep usable content while
     const other = '.arena-sidebar a[href="/contests/"]';
     await page.hover(other);
     await new Promise(resolve => setTimeout(resolve, 180));
-    assert.equal(gateway.requests.filter(request => request.rsc && request.path.startsWith('/contests/')).length, 0,
+    assert.equal(pageRequests('/contests/').length, 0,
       'Save-Data suppresses speculation, including prototype-style connection getters');
     await page.click(other);
     await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
     await page.click(link);
-    await page.waitForFunction(() => location.pathname === '/guides-archive/' && !document.querySelector('[data-navigation-progress="pending"]'));
+    await page.waitForFunction(() => location.pathname === '/gallery/' && !document.querySelector('[data-navigation-progress="pending"]'));
     await new Promise(resolve => setTimeout(resolve, 1100));
-    assert.equal(await page.evaluate(() => location.pathname), '/guides-archive/', 'a slow earlier route cannot replace the newer destination');
+    assert.equal(await page.evaluate(() => location.pathname), '/gallery/', 'a slow earlier route cannot replace the newer destination');
     await page.click('.arena-sidebar a[href="/articles/"]');
     await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
     await page.goBack();
@@ -287,16 +294,36 @@ test('hover prepares a complete dynamic page before click, including its route c
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     await page.click('.arena-sidebar button[aria-controls="arena-sidebar-misc"]');
     await page.$eval('.arena-sidebar', node => { node.scrollTop = 180; });
-    const link = '.arena-sidebar a[href="/guides-archive/"]';
+    const link = '.arena-sidebar a[href="/gallery/"]';
+    const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
     await page.hover(link);
     await page.waitForNetworkIdle({ idleTime: 250 });
-    assert.ok(gateway.requests.some(request => request.rsc && request.path.startsWith('/guides-archive/')),
-      'genuine hover must prepare the dynamic route');
-    const beforeClick = gateway.requests.length;
-    await visitByClick(page, link, '/guides-archive/');
-    assert.equal(gateway.requests.slice(beforeClick).filter(request => request.rsc).length, 0,
-      'a prepared dynamic page must not need a new route request after click');
+    assert.equal(pageRequests('/gallery/').length, 1, 'genuine hover must prepare the dynamic route');
+    await visitByClick(page, link, '/gallery/');
+    assert.equal(pageRequests('/gallery/').length, 1, 'a prepared dynamic page must not need a new route request after click');
     assert.ok(await page.$('#main-content'), 'the prepared content must render');
+    // A click while the hover's page is still downloading joins it instead of asking again.
+    const contests = '.arena-sidebar a[href="/contests/"]';
+    await page.hover(contests);
+    for (let attempt = 0; attempt < 100 && pageRequests('/contests/').length === 0; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    assert.equal(pageRequests('/contests/').length, 1, 'fixture must click while the prefetch is on its way');
+    await visitByClick(page, contests, '/contests/');
+    assert.equal(pageRequests('/contests/').length, 1, 'the click reuses the prefetch that was still downloading');
+    // Back while a click waits for its prefetch wins at once, and the late prefetch never navigates.
+    const articles = '.arena-sidebar a[href="/articles/"]';
+    await page.hover(articles);
+    for (let attempt = 0; attempt < 100 && pageRequests('/articles/').length === 0; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    await page.click(articles);
+    const backAt = Date.now();
+    await page.evaluate(() => history.back());
+    await page.waitForFunction(() => location.pathname === '/gallery/');
+    assert.ok(Date.now() - backAt < 400, 'Back is not held by the waiting click');
+    await new Promise(resolve => setTimeout(resolve, 900));
+    assert.equal(await page.evaluate(() => location.pathname), '/gallery/');
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);

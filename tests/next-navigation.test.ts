@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { clientPagePath, createRoutePrefetcher, installClientNavigation, navigate, navigateTab } from '../apps/public-web/ui/navigation';
 import { canonicalPagePath } from '../src/app/routing/canonicalPagePath';
+import { observeRouteResponses } from '../apps/public-web/ui/routeResponses';
+import { installPageNavigator, openPage } from '../src/shared/navigation/pageNavigation';
 import { allowsRoutePrefetch, createRouteIntent } from '../src/shared/navigation/routePrefetch';
+import { createViewportPrefetch } from '../src/shared/navigation/viewportPrefetch';
 
 function captureNavigation(run: () => void): string[] {
   const visited: string[] = [];
@@ -177,12 +180,94 @@ test('a press prepares at once, replaces a pending hover and honours the network
   assert.deepEqual(calls, ['/terms/']);
 });
 
-test('speculation respects touch, offline, Save-Data and slow connections', () => {
+test('speculation respects offline, Save-Data and slow connections; touch is allowed as a press', () => {
   assert.equal(allowsRoutePrefetch({ online: true }), true);
-  assert.equal(allowsRoutePrefetch({ online: true, effectiveType: '4g' }, 'pen'), true);
+  assert.equal(allowsRoutePrefetch({ online: true, effectiveType: '4g' }), true);
   for (const connection of [{ online: false }, { online: true, saveData: true },
     { online: true, effectiveType: 'slow-2g' }, { online: true, effectiveType: '2g' }]) {
     assert.equal(allowsRoutePrefetch(connection), false);
   }
-  assert.equal(allowsRoutePrefetch({ online: true }, 'touch'), false);
+});
+
+test('the hover dwell follows the configured motion token', context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  const calls: string[] = [];
+  const intent = createRouteIntent(path => calls.push(path), () => true, { dwellMs: 140 });
+  intent.hover('/faq/');
+  context.mock.timers.tick(139);
+  assert.deepEqual(calls, []);
+  context.mock.timers.tick(1);
+  assert.deepEqual(calls, ['/faq/']);
+});
+
+test('visible links are prepared once each, only while the network allows it', () => {
+  let callback: (entries: Array<{ isIntersecting: boolean; target: Element }>) => void = () => {};
+  const observed = new Set<Element>();
+  const calls: string[] = [];
+  let allowed = true;
+  const viewport = createViewportPrefetch(path => calls.push(path), () => allowed,
+    link => link.getAttribute('href'), next => {
+      callback = next;
+      return { observe: target => observed.add(target), unobserve: target => observed.delete(target), disconnect: () => observed.clear() };
+    });
+  const link = (href: string | null) => ({ getAttribute: () => href }) as unknown as HTMLAnchorElement;
+  const [menu, other, native, offline] = [link('/tierlist/'), link('/classes/'), link(null), link('/heroes/')];
+  viewport.scan([menu, other, native, offline]);
+  viewport.scan([menu]);
+  assert.equal(observed.size, 4, 'a rescan does not observe a link twice');
+  callback([{ isIntersecting: false, target: other }, { isIntersecting: true, target: menu }, { isIntersecting: true, target: native }]);
+  allowed = false;
+  callback([{ isIntersecting: true, target: offline }]);
+  assert.deepEqual(calls, ['/tierlist/']);
+  assert.deepEqual([...observed], [other], 'a link stops being observed once it was visible');
+  viewport.dispose();
+  assert.equal(observed.size, 0);
+});
+
+test('complete page responses on their way are joined by path; partial prefetches and other requests are not', async () => {
+  const finish: Array<() => void> = [];
+  const target = {
+    fetch: (() => new Promise<Response>(resolve => finish.push(() => resolve(new Response('payload'))))) as typeof fetch,
+  };
+  const original = target.fetch;
+  (globalThis as { location?: unknown }).location = { href: 'https://hearthpulse.net/faq/' };
+  try {
+    const responses = observeRouteResponses(target);
+    const page = target.fetch('/standard/cards/?_rsc=a', { headers: { RSC: '1' } });
+    void target.fetch('/standard/cards/standard/?class=mage&_rsc=d', { headers: { RSC: '1' } });
+    void target.fetch('/tierlist/?_rsc=b', { headers: { RSC: '1', 'Next-Router-Prefetch': '1', 'Next-Router-Segment-Prefetch': '/_tree' } });
+    void target.fetch('/articles/?_rsc=c', { headers: { RSC: '1', 'Next-Router-Prefetch': '1' } });
+    void target.fetch('/api/auth/me/');
+    assert.equal(responses.pending('/tierlist/'), null, 'the router already joins segment prefetches');
+    assert.equal(responses.pending('/articles/'), null, 'a partial prefetch is not the page');
+    assert.ok(responses.pending('/standard/cards/standard/?class=mage'), 'the query is part of the page');
+    assert.equal(responses.pending('/standard/cards/standard/'), null, 'another query is another page');
+    const joined = responses.pending('/standard/cards/');
+    assert.ok(joined);
+    let settled = false;
+    void joined.then(() => { settled = true; });
+    finish[0]();
+    assert.equal(await (await page).text(), 'payload', 'the router still reads the whole body');
+    await joined;
+    assert.equal(settled, true);
+    assert.equal(responses.pending('/standard/cards/'), null);
+    responses.dispose();
+    assert.equal(target.fetch, original);
+  } finally {
+    delete (globalThis as { location?: unknown }).location;
+  }
+});
+
+test('openPage uses the installed router and falls back to document navigation', () => {
+  const routed: string[] = [];
+  const dispose = installPageNavigator(path => routed.push(path));
+  const stale = installPageNavigator(path => routed.push(`stale ${path}`));
+  stale();
+  assert.deepEqual(captureNavigation(() => openPage('/?login')), ['/?login'], 'a disposed navigator is gone');
+  const again = installPageNavigator(path => routed.push(path));
+  openPage('/?login');
+  dispose();
+  openPage('/tierlist/');
+  again();
+  assert.deepEqual(routed, ['/?login', '/tierlist/'], 'an older cleanup does not detach the newer navigator');
 });

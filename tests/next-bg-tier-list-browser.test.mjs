@@ -80,7 +80,8 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     for (const width of [1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
       const guest = await page.goto(`${nextOrigin}/battlegrounds/tier-list/`, { waitUntil: 'networkidle2' });
-      assert.equal(guest.status(), 200);
+      // The page is prerendered: a repeat visit revalidates its ETag (304).
+      assert.ok([200, 304].includes(guest.status()), `${guest.status()}`);
       await page.waitForFunction(() => !document.body.textContent.includes('Проверяем доступ к тир-листу...'));
       await page.evaluate(axe);
       const state = await page.evaluate(async () => ({
@@ -103,13 +104,16 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     malformedAuthResponsesRemaining = 3;
     const member = await page.goto(`${nextOrigin}/battlegrounds/tier-list/?list=strategies&source=hsreplay`,
       { waitUntil: 'networkidle2' });
-    assert.equal(member.status(), 200);
+    assert.ok([200, 304].includes(member.status()), `${member.status()}`);
     for (let attempt = 0; malformedAuthResponsesRemaining > 0 && attempt < 30; attempt += 1) await delay(100);
     assert.equal(malformedAuthResponsesRemaining, 0, 'all three bounded auth attempts must fail');
     await delay(100);
     assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
       'a remembered session must stay pending after a transient auth failure');
-    assert.equal(await page.$eval('meta[name="robots"]', node => node.content), 'noindex, follow');
+    // The prerendered page cannot vary its meta by query; the response header carries the policy.
+    const deepLink = await fetch(`${nextOrigin}/battlegrounds/tier-list/?list=strategies&source=hsreplay`);
+    await deepLink.arrayBuffer();
+    assert.equal(deepLink.headers.get('x-robots-tag'), 'noindex, follow');
     assert.equal(await page.$eval('link[rel="canonical"]', node => node.href),
       'https://hearthpulse.net/battlegrounds/tier-list/');
     const strategy = await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]',

@@ -217,7 +217,7 @@ export default function GlobalUtilityHeader({
   const openArticle = async (article: SearchArticle) => {
     if (articleRequiresAccess(article, access)) {
       closePanels();
-      window.location.href = '/?login';
+      onNavigate('/?login');
       return;
     }
     if (!article.vip) {
@@ -332,7 +332,7 @@ export default function GlobalUtilityHeader({
                           className="global-search-result"
                           onClick={() => {
                             closePanels();
-                            window.location.href = card.path;
+                            onNavigate(card.path);
                           }}
                         >
                           <span className="global-search-result__thumb is-card">

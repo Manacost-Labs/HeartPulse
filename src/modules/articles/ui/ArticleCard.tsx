@@ -5,6 +5,7 @@ import { hasSubscriptionEntitlement, type SubscriptionEntitlementKey, type Subsc
 import { requestArticleAccessLink } from '../api/articleRequests';
 import { ARTICLE_CARD_COVER_SIZES, responsiveArticleCover } from '../model/articleCover';
 import type { Article } from '../model/types';
+import { openPage } from '../../../shared/navigation/pageNavigation';
 
 function isKolodaArticleUrl(value?: string): boolean {
   const raw = String(value ?? '').trim();
@@ -58,7 +59,7 @@ function useArticleLink(article: Article, authUser?: AuthUser | null, subscripti
       window.open(article.url, '_blank', 'noopener,noreferrer');
       return;
     }
-    if (!authUser) { window.location.href = '/?login'; return; }
+    if (!authUser) { openPage('/?login'); return; }
     if (subscriptionLoading) return;
     if (!hasArticleAccess) {
       window.alert('Для VIP-статьи нужна подписка подходящего режима.');

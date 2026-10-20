@@ -3,43 +3,43 @@
   "description": "Gzip ceilings for the JavaScript and CSS that each public Next.js route references in its server-rendered document, checked by tests/next-bundle-budgets.test.mjs. Regenerate with `npm run budget:next:update` only after reviewing a size change.",
   "routes": {
     "/": {
-      "jsGzipBytes": 167936,
+      "jsGzipBytes": 172032,
       "cssGzipBytes": 39936
     },
     "/articles/": {
-      "jsGzipBytes": 168960,
+      "jsGzipBytes": 173056,
       "cssGzipBytes": 49152
     },
     "/faq/": {
-      "jsGzipBytes": 163840,
+      "jsGzipBytes": 167936,
       "cssGzipBytes": 43008
     },
     "/standard/matchups/": {
-      "jsGzipBytes": 182272,
+      "jsGzipBytes": 183296,
       "cssGzipBytes": 50176
     },
     "/standard/meta/": {
-      "jsGzipBytes": 189440,
+      "jsGzipBytes": 190464,
       "cssGzipBytes": 62464
     },
     "/standard/archetypes/": {
-      "jsGzipBytes": 190464,
+      "jsGzipBytes": 194560,
       "cssGzipBytes": 66560
     },
     "/standard/vicious-gold/": {
-      "jsGzipBytes": 184320,
+      "jsGzipBytes": 185344,
       "cssGzipBytes": 61440
     },
     "/standard/cards/": {
-      "jsGzipBytes": 194560,
+      "jsGzipBytes": 195584,
       "cssGzipBytes": 54272
     },
     "/standard/cards/standard/": {
-      "jsGzipBytes": 194560,
+      "jsGzipBytes": 195584,
       "cssGzipBytes": 54272
     },
     "/classes/": {
-      "jsGzipBytes": 173056,
+      "jsGzipBytes": 177152,
       "cssGzipBytes": 48128
     },
     "/tierlist/": {
@@ -67,7 +67,7 @@
       "cssGzipBytes": 43008
     },
     "/gallery/": {
-      "jsGzipBytes": 165888,
+      "jsGzipBytes": 171008,
       "cssGzipBytes": 50176
     },
     "/cosmetics/": {
@@ -75,7 +75,7 @@
       "cssGzipBytes": 46080
     },
     "/contests/": {
-      "jsGzipBytes": 171008,
+      "jsGzipBytes": 172032,
       "cssGzipBytes": 59392
     },
     "/guides-archive/": {
@@ -91,7 +91,7 @@
       "cssGzipBytes": 34816
     },
     "/privacy/": {
-      "jsGzipBytes": 163840,
+      "jsGzipBytes": 167936,
       "cssGzipBytes": 43008
     },
     "/connect/": {
@@ -99,7 +99,7 @@
       "cssGzipBytes": 43008
     },
     "/standard/deck-builder/": {
-      "jsGzipBytes": 193536,
+      "jsGzipBytes": 194560,
       "cssGzipBytes": 36864
     }
   }

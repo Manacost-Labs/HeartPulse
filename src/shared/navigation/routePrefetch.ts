@@ -16,9 +16,9 @@ export function createRoutePrefetcher(prefetch: Prefetch, { capacity = 32 } = {}
   };
 }
 
-export function allowsRoutePrefetch(connection: { online: boolean; saveData?: boolean; effectiveType?: string }, pointerType = 'mouse') {
-  return connection.online && !connection.saveData && pointerType !== 'touch'
-    && !['slow-2g', '2g'].includes(connection.effectiveType ?? '');
+/** Speculation is skipped offline, with Save-Data and on 2G; touch is a press, never a hover. */
+export function allowsRoutePrefetch(connection: { online: boolean; saveData?: boolean; effectiveType?: string }) {
+  return connection.online && !connection.saveData && !['slow-2g', '2g'].includes(connection.effectiveType ?? '');
 }
 
 type Clock = {
@@ -26,9 +26,15 @@ type Clock = {
   clearTimeout: (timer: ReturnType<typeof setTimeout> | undefined) => void;
 };
 
-/** One cancellable hover per mounted adapter; focus and a press bypass the dwell delay. */
+const systemClock: Clock = { setTimeout: (callback, delay) => setTimeout(callback, delay), clearTimeout: timer => clearTimeout(timer) };
+
+/**
+ * One cancellable hover per mounted adapter; focus and a press bypass the
+ * dwell. `dwellMs` (the adapter passes `--motion-fast`) separates a pointer
+ * resting on a link from one crossing it.
+ */
 export function createRouteIntent(prepare: (path: string) => void, allowed: () => boolean,
-  clock: Clock = { setTimeout: (callback, delay) => setTimeout(callback, delay), clearTimeout: timer => clearTimeout(timer) }) {
+  { dwellMs = 120, clock = systemClock }: { dwellMs?: number; clock?: Clock } = {}) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let hovering: string | undefined;
   let disposed = false;
@@ -47,10 +53,10 @@ export function createRouteIntent(prepare: (path: string) => void, allowed: () =
       timer = clock.setTimeout(() => {
         timer = undefined;
         if (!disposed && allowed()) prepare(path);
-      }, 120);
+      }, dwellMs);
     },
     focus: now,
-    // The click follows a press by about 100 ms: the route can already be on its way.
+    // The click follows a mouse press or a touch by about 100 ms: the route can already be on its way.
     press: now,
     cancel,
     dispose() { disposed = true; cancel(); },

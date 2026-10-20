@@ -1,6 +1,26 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { publicDocumentHeaders } from './documentCaching.mjs';
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
+
+/**
+ * Prerendered pages with a query policy: their HTML cannot vary its robots
+ * meta by query, so Next sends the policy as `X-Robots-Tag` (nginx's SEO map
+ * sends the same header in production). tests/next-prerendered-robots.test.mjs
+ * fails when a prerendered page with a query policy is missing here.
+ */
+const PRERENDERED_QUERY_ROBOTS = ['/battlegrounds/tier-list', '/guides-archive'];
+
+function prerenderedQueryRobotsHeaders() {
+  const inventory = JSON.parse(readFileSync(new URL('../../src/shared/seo/publicRouteInventory.json', import.meta.url), 'utf8'));
+  return inventory.queryPolicies.flatMap(policy => policy.appliesTo
+    .filter(pattern => PRERENDERED_QUERY_ROBOTS.includes(pattern))
+    .flatMap(pattern => policy.parameters.map(key => ({
+      source: `${pattern}/`,
+      has: [{ type: 'query', key }],
+      headers: [{ key: 'X-Robots-Tag', value: policy.indexPolicy === 'noindex-nofollow' ? 'noindex, nofollow' : 'noindex, follow' }],
+    }))));
+}
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -18,7 +38,7 @@ const config = {
   agentRules: false,
   // Anonymous public documents may be restored from the back/forward cache.
   async headers() {
-    return publicDocumentHeaders();
+    return [...publicDocumentHeaders(), ...prerenderedQueryRobotsHeaders()];
   },
   poweredByHeader: false,
   reactStrictMode: true,

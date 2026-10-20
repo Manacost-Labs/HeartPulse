@@ -32,7 +32,8 @@ is a separate administrator workspace and retains its permission gate.
 | `ui/HomePageContent.tsx`, `ui/useHomeFirstPaint.ts`, `ui/homeFeedRequests.ts` | Home feed recovery: only missing anonymous feeds load in the browser, with cancelled lifetimes and soft settlement through the home module's DOM ports; request code loads only when recovery is needed |
 | `ui/PublicNavigationLayout.tsx` | Persistent menu and viewer access; composes the route-owned content without moving data loaders into the layout |
 | `ui/PublicNavigationBridge.tsx` | App Router adapter for legacy callbacks and public anchors; cancellable intent and pending feedback; preserves native modified/external/download/identity/API/admin links |
-| `src/shared/ui/RouteTransition.tsx` | Fade-through of the shell's content box on a route navigation (React `ViewTransition`); first document paint, Back/Forward, query/hash-only changes and reduced motion stay immediate |
+| `src/shared/ui/RouteTransition.tsx`, `routeEntrance.ts` | One 140 ms entrance of a navigated page's content, at commit or as each section replaces its skeleton; no document snapshot, nothing waits for it; first paint, Back/Forward, query/hash-only changes and reduced motion stay immediate |
+| `ui/routeResponses.ts` | Observes the router's full page fetches so a click joins a prefetch still downloading instead of rendering the page twice |
 | `ui/navigation.ts` | `navigate()` and `navigateTab()` use the mounted App Router adapter; native document navigation remains the fallback |
 | `lib/authPrefetch.ts` | Inline head script that starts the session check (`/api/auth/me`) while the document parses |
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
@@ -139,28 +140,34 @@ is a separate administrator workspace and retains its permission gate.
   pages, in the server HTML and after hydration, for a guest and a
   subscriber, and fails on a page URL without the slash.
 - Public links use App Router after hydration, preserving the actual menu DOM,
-  its scroll and expanded desktop groups. A 120 ms pointer dwell, a mouse press
-  or keyboard focus fully prefetches the route's RSC response and client code,
-  including dynamic pages; touch, Save-Data, offline and 2G
-  connections skip speculation. The framework-independent lifecycle in
-  `src/shared/navigation/routePrefetch.ts` cancels abandoned intent and bounds
-  freshness markers to 32. It does not execute a hidden document. Mobile
+  its scroll and expanded desktop groups. A pointer dwell of `--motion-fast`,
+  a primary mouse press, a touch on a menu link, or keyboard focus fully
+  prefetches the route's RSC response and client code, including dynamic
+  pages. Visible menu links (and links marked `data-route-prefetch`), and on a
+  phone every drawer link, learn their route once when the browser is idle: a
+  prerendered page completely, a dynamic page only its tree. Save-Data,
+  offline and 2G connections skip all speculation. A click during a full
+  prefetch waits for that response (`ui/routeResponses.ts`)
+  instead of requesting the page again. The framework-independent lifecycle in
+  `src/shared/navigation/` cancels abandoned intent and bounds freshness
+  markers to 32. It does not execute a hidden document. Mobile
   navigation releases the drawer scroll lock before saving the history entry.
   Plain anchors still work before JavaScript, and Ctrl/Cmd-click,
   external/download links, hashes,
-  authentication and API endpoints keep browser navigation. Page content stays
+  authentication and API endpoints keep browser navigation. Code that cannot
+  render a link (search results, the sign-in step of an action) calls
+  `openPage()` from `src/shared/navigation/pageNavigation.ts`. Page content stays
   visible until the next route is ready; the chosen menu item is marked current
-  at once (`useOptimistic`). When the pathname commits, the shell's
-  `data-route-content` box fades through: the outgoing box clears in
-  `--motion-instant` (90 ms) where the reader saw it, then the destination fades
-  in over `--motion-fast` (140 ms). Only that box is captured, so navigation,
-  header and footer stay live and clickable; the box itself takes clicks again
-  once it has faded in. First paint, Back/Forward, query/hash-only changes and
-  reduced motion stay immediate. A page opened in the last 30 seconds is shown
-  from the router cache (`staleTimes.dynamic`), because public pages render
-  anonymously. `NavigationProgress` shows a gold line after 200 ms of a pending
-  React transition that grows while the route loads, then fills and fades,
-  without changing page geometry or blocking another destination.
+  at once (`useOptimistic`). When the pathname commits, the content of the
+  shell's `data-route-content` box fades in once over `--motion-fast`; a page
+  committed with skeletons shows them at once and fades each section in as it
+  replaces them. Focus moves to `#main-content`. First paint, Back/Forward,
+  query/hash-only changes and reduced motion stay immediate. A page opened in
+  the last 30 seconds is shown from the router cache (`staleTimes.dynamic`),
+  because public pages render anonymously. `NavigationProgress` shows a gold
+  line after `--motion-base` of a pending navigation that grows while the route
+  loads, then fills and fades, without changing page geometry or blocking
+  another destination.
   `tests/next-page-transitions-browser.test.mjs` covers this contract.
   See [navigation spec](../../docs/specs/public-client-navigation.md).
   The root access provider exposes a stable snapshot store, with guest state
@@ -176,8 +183,9 @@ is a separate administrator workspace and retains its permission gate.
   expired request. Unsuccessful responses cancel their unread bodies immediately.
   Feed updates use React transitions to preserve streamed sections while
   lazy code arrives. On settlement, the marked summary/article surfaces use
-  the shared 220 ms opacity settle (`settleContent`); prepared first paint
-  and reduced motion remain immediate. Shared first-paint readers forward
+  the shared 220 ms opacity settle (`settleContent`); after a menu navigation
+  the route entrance fades them in instead, once. Prepared first paint and
+  reduced motion remain immediate. Shared first-paint readers forward
   their abort signal through `fetchPublicExpress`, covering stalled bodies
   and headers, and start no request after an expired budget.
 - Storybook includes pure client UI stories from `apps/public-web/ui` alongside
@@ -276,8 +284,10 @@ is a separate administrator workspace and retains its permission gate.
    the page in `config/public-seo-pages.json` (`"sitemap": true` when
    indexable, `false` for noindex pages). `seoPageMetadata()` fails when its
    module loads for an unregistered path. A page that ignores the query
-   string and has no other request input uses `seoStaticPageMetadata()`
-   instead and drops `dynamic`, so Next prerenders it.
+   string and has no other request input (its data loads in the browser) uses
+   `seoStaticPageMetadata()` and `export const revalidate = 300` instead of
+   `dynamic`, so Next prerenders it and a menu link can prepare it cheaply
+   (as `/tierlist/` does). The template below is for a page with server reads.
 2. Create `app/<route>/page.tsx`:
 
    ```tsx

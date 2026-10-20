@@ -8,6 +8,7 @@ import type { Article, ArticlesData } from '../model/types';
 import { ArticleCard, canAccessArticle } from './ArticleCard';
 import { ArticleCardSkeleton } from './ArticleCardSkeleton';
 import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
+import { openPage } from '../../../shared/navigation/pageNavigation';
 
 function ArticlesToolbar({ articleSearch, articleTag, articleTags, setArticleSearch, setArticleTag }: {
   articleSearch: string; articleTag: string; articleTags: string[];
@@ -87,7 +88,7 @@ export function ArticlesTab({
 
   const handleArticleVote = useCallback(async (article: Article, vote: 'like' | 'dislike') => {
     if (!authUser) {
-      window.location.href = '/?login';
+      openPage('/?login');
       return;
     }
     if (subscriptionLoading) return;

@@ -52,11 +52,12 @@
 
   /* Motion: every transition and entrance takes its tempo from here, so the
      whole site moves alike. Endless loops (control spinners) keep their own
-     period; the loading pulse breathes once per --motion-loop.
+     period; the loading pulse breathes once per --motion-loop. Script timers
+     read these through src/shared/ui/motionTokens.ts.
      tests/motion-tokens.test.mjs rejects literal timings. */
-  --motion-instant: 90ms; /* press feedback, the outgoing page */
-  --motion-fast: 140ms; /* hover, focus, colour and small state changes */
-  --motion-base: 220ms; /* menus, tooltips, dialogs, disclosures */
+  --motion-instant: 90ms; /* press feedback; the progress bar filling at the end */
+  --motion-fast: 140ms; /* hover, focus, colour and small state changes; the hover dwell before a route prefetch; a navigated page's entrance */
+  --motion-base: 220ms; /* menus, tooltips, dialogs, disclosures; how long a navigation may take before its progress bar shows */
   --motion-slow: 360ms; /* page entrance, large surfaces, data bars */
   --motion-stagger: 60ms; /* gap between the steps of one entrance */
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1); /* arrive and settle */

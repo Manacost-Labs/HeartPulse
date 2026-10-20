@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { motionMs } from './motionTokens';
 
 type Phase = 'idle' | 'pending' | 'done';
 
 /**
  * Delayed feedback reserves no layout space and never blocks another destination.
- * A shown bar grows while the route loads, then fills and fades instead of vanishing.
+ * A navigation shorter than `--motion-base` shows nothing; a shown bar grows
+ * while the route loads, then fills and fades (`NavigationProgress.css`).
  */
 export function NavigationProgress({ pending }: { pending: boolean }) {
   const [phase, setPhase] = useState<Phase>('idle');
@@ -12,12 +14,14 @@ export function NavigationProgress({ pending }: { pending: boolean }) {
     if (!pending) { setPhase(current => current === 'pending' ? 'done' : current); return; }
     // A fading bar is dropped, so the next one grows from the start again.
     setPhase(current => current === 'done' ? 'idle' : current);
-    const timer = setTimeout(() => setPhase('pending'), 200);
+    const timer = setTimeout(() => setPhase('pending'), motionMs('--motion-base'));
     return () => clearTimeout(timer);
   }, [pending]);
   useEffect(() => {
     if (phase !== 'done') return;
-    const timer = setTimeout(() => setPhase(current => current === 'done' ? 'idle' : current), 400);
+    // The fill and the fade of the `done` state, in sequence.
+    const timer = setTimeout(() => setPhase(current => current === 'done' ? 'idle' : current),
+      motionMs('--motion-instant') + motionMs('--motion-fast'));
     return () => clearTimeout(timer);
   }, [phase]);
   const active = pending && phase === 'pending';

@@ -13,6 +13,8 @@ export function PublicNavigationLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // The chosen destination is marked current at once; the committed route replaces it.
   const [shownPathname, showPathname] = useOptimistic(pathname);
+  // A destination that waits for its own prefetch is marked current meanwhile.
+  const [joiningPathname, setJoiningPathname] = useState<string | null>(null);
   const access = usePublicAccessState(pathname);
   const accessStore = usePublicAccessStore(access);
   const [updatedAt, setUpdatedAt] = useState({ pathname, label: 'Нет данных' });
@@ -22,10 +24,10 @@ export function PublicNavigationLayout({ children }: { children: ReactNode }) {
     <PublicNavigationContext.Provider value={publicPage ? reportUpdatedAt : null}>
       {publicPage && <>
         <a className="arena-skip-link" href="#main-content">К основному содержимому</a>
-        <PublicNavigationController activeTab={tabFromPath(shownPathname)} pathname={pathname} access={access} navigate={navigate}
+        <PublicNavigationController activeTab={tabFromPath(joiningPathname ?? shownPathname)} pathname={pathname} access={access} navigate={navigate}
           updatedAtLabel={updatedAt.pathname === pathname ? updatedAt.label : 'Нет данных'} />
       </>}
-      <PublicNavigationBridge onNavigationStart={showPathname} />
+      <PublicNavigationBridge onNavigationStart={showPathname} onJoining={setJoiningPathname} routeKey={pathname} />
       <RouteTransition routeKey={pathname}>{children}</RouteTransition>
     </PublicNavigationContext.Provider>
   </PublicAccessContext.Provider>;

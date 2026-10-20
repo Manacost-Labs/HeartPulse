@@ -6,7 +6,8 @@ Public page links use the Next.js App Router after hydration. The navigation
 mounted by the root layout keeps its DOM, expanded groups and sidebar scroll
 position between public pages. The mobile drawer closes on navigation without
 losing the page's scroll position. Content remains visible until the destination
-is ready, then softly settles to full opacity without moving its geometry.
+is ready; the destination's content then fades in once, never a skeleton, without
+moving its geometry.
 
 The skip link remains the first DOM element in the public root, before the
 pending navigation indicator, so keyboard entry and shell readiness share the
@@ -87,10 +88,11 @@ Improve public transitions without replacing the persistent menu or loading
 domain code into the root layout. Keep native link exclusions and canonical URLs.
 No dependency, API, access or telemetry change is required.
 
-1. Guard speculative loading: pointer intent must last 120 ms, leaving the
-   link cancels it, keyboard focus prepares immediately, and touch, offline,
-   Save-Data and 2G connections do not prefetch. Current-page links and fragment
-   variants share no redundant request. Keep at most 32 fresh route markers;
+1. Guard speculative loading: pointer intent must last 120 ms (since
+   2026-10-20 `--motion-fast`), leaving the link cancels it, keyboard focus
+   prepares immediately, and touch (since 2026-10-20 a press), offline,
+   Save-Data and 2G connections do not prefetch. Current-page links and
+   fragment variants share no redundant request. Keep at most 32 fresh route markers;
    an old invalidation callback cannot clear a newer preparation.
 2. Route both real anchors and legacy callbacks through one React transition.
    A reusable status surface appears after 200 ms of pending navigation and
@@ -145,7 +147,7 @@ Acceptance and implementation order:
    browser suite: a prepared `/guides-archive/` must commit without a new RSC
    request after click. The adapter explicitly requests full preparation using
    the installed router's `kind: 'full'` option, through its public method type.
-   Preserve the 120 ms dwell, focus preparation, network restrictions,
+   Preserve the hover dwell, focus preparation, network restrictions,
    freshness invalidation and capacity bound.
 2. The persistent layout composes `RouteTransition` from `src/shared/ui`.
    A committed pathname change animates only the shell's `data-route-content`
@@ -231,55 +233,123 @@ cancels the request; a chunk arriving after expiry must not start a late fetch.
 An unsuccessful response releases its unread body immediately, including a
 server that sends error headers and then stops streaming.
 
-### Fade-through, immediate feedback and revisits (2026-10-18)
+### Entrance, immediate feedback and revisits (2026-10-18, revised 2026-10-20)
 
 The owner found the committed-route settle (opacity 0.8 to 1) reading as a
-flicker and the site slow and unstable. From four previewed variants the owner
-chose the fade-through: the outgoing content clears, then the destination
-fades in, while navigation, header and background stay still.
+flicker and the site slow and unstable, and chose a fade-through from four
+previewed variants. The 2026-10-18 draft built it on a React `ViewTransition`
+around the content box. Measured against `react-dom-client` of Next 16.3.8,
+that boundary had costs no animation may have:
 
-1. `RouteContent` wraps the shell's `data-route-content` box in a React 19.3
-   `ViewTransition` named `route-content`. Its class applies only to
-   transitions typed `route-navigation`, which the bridge adds with
-   `addTransitionType` when the pathname changes. Back/Forward, refreshes,
-   query/hash-only pushes, in-page transitions and reduced motion never start
-   a view transition. The old box clears in `--motion-instant`, the new one
-   fades in over `--motion-fast` after it (230 ms in total).
-2. Only the box is captured (`html { view-transition-name: none }` and
-   `::view-transition { pointer-events: none }`), so the rest of the page stays
-   live: menu clicks during the transition navigate. Chromium does not deliver
-   pointer input to a captured element, so the box itself takes clicks again
-   once it has faded in. The persistent `RouteTransition` reads the outgoing
-   box position before the commit (`getSnapshotBeforeUpdate`) and, after the
-   router has scrolled the destination to the top, sets `--route-old-shift`
-   so a page left from below the fold fades out where the reader saw it.
-3. The persistent layout marks the chosen destination current at once with
-   `useOptimistic`; the committed pathname replaces it. A mouse press prepares
-   the route immediately, like keyboard focus, so a quick click does not wait
-   for the 120 ms dwell. Next reuses an in-flight full prefetch only after its
-   route tree has arrived (`navigateUsingPrefetchedRouteTree` waits on pending
-   segments; an unknown route issues its own request), so earlier preparation
-   narrows the window in which a click duplicates the server render.
-4. `staleTimes.dynamic` is 30 seconds: public pages render anonymously (only
+- every `<img>` inside a `ViewTransition` (all page content) becomes
+  "suspensey": a transition commit, so every navigation and in-page filter,
+  waits up to 800 ms for new eager images, and the view-transition update
+  waits up to 500 ms more for visible ones;
+- any transition commit waits for a running view transition to finish;
+- the transition played on a page committed with skeletons, after which the
+  real content replaced them without motion, and the home feed settled again.
+
+The revised contract keeps the owner's rhythm without those costs:
+
+1. `RouteTransition` (shared) gives the committed destination one entrance:
+   the children of the shell's `data-route-content` box fade from opacity 0
+   over `--motion-fast` (140 ms) with `--motion-ease`. The outgoing content is
+   replaced at the commit; there is no document snapshot, so nothing is
+   captured, every click stays live and no commit waits for motion.
+2. Only a link navigation started by the bridge (`expectRouteEntrance`) gets an
+   entrance, and only when its pathname commits. Back/Forward, refreshes,
+   query/hash-only pushes, a superseded destination, the first document paint
+   and reduced motion change the page without motion.
+3. A destination committed with skeletons (`.loading-block`,
+   `[data-loading-surface]` of `LoadingSurface`) shows them at once, without
+   an entrance. Each section fades in when it replaces its skeleton (the new
+   outermost elements; more than eight new siblings fade as their parent), for
+   at most 10 seconds and until no skeleton remains. While that runs,
+   `routeEntranceActive()` is true and the home feed's own settle stands aside,
+   so home content animates once after a navigation and keeps its settle after
+   a first paint.
+4. The persistent layout marks the chosen destination current at once with
+   `useOptimistic`; the committed pathname replaces it.
+5. `staleTimes.dynamic` is 30 seconds: public pages render anonymously (only
    `adminAccess.ts` reads cookies), so a page opened within that time is shown
    from the router cache. Back/Forward already reused it.
-5. `NavigationProgress` keeps its 200 ms delay, then grows from the start edge
-   while the route loads and fills and fades on completion instead of
-   vanishing; the infinite pulse is removed. Reduced motion shows it without
-   motion.
+6. `NavigationProgress` appears after `--motion-base` of a pending navigation,
+   grows from the start edge while the route loads, then fills
+   (`--motion-instant`) and fades (`--motion-fast`). Script timers read the
+   tokens through `src/shared/ui/motionTokens.ts`. Reduced motion shows it
+   without motion.
 
-React starts a document view transition for every transition commit that
-mounts a `ViewTransition`, so Back/Forward and reduced motion also run one, but
-with nothing captured it shows no motion. Inside the boundary React holds a
-transition commit until new eager images have decoded when they can arrive
-soon (at most 800 ms, 50 ms for heavy images), so pictures do not pop in after
-the swap. The captured box takes no pointer input until it has faded in.
-Verification: `tests/next-page-transitions-browser.test.mjs`
-asserts the two pseudo-element animations and their timing and that nothing
-else animates, the shift of a scrolled page, a menu click during the
-transition, and Back and reduced motion without any view-transition motion;
-`tests/next-navigation.test.ts` covers press preparation.
-Eight route ceilings in `config/next-bundle-budgets.json` were raised by the
-2% and 1 KiB rule for the added stylesheet (at most 180 gzip bytes per route).
-Reviewed `docs/architecture/module-boundaries.md`: ownership and dependency
-direction remain accurate.
+Verification: `tests/next-page-transitions-browser.test.mjs` asserts one
+140 ms content entrance at commit, no view-transition animation anywhere, Back
+and reduced motion without motion and a menu click during the entrance;
+`RouteTransition.stories.tsx` covers the skeleton-then-content entrance.
+
+### Phone navigation speed (2026-10-20)
+
+Production (release 51d3637b, 412×915, 4× CPU, Slow 4G) took a median 1.56 s
+from a menu tap to the destination, with the old page frozen: no preparation on
+touch, then the RSC response, then the route's code requested only after it.
+On desktop a click during a hover prefetch downloaded the page twice.
+
+1. A primary mouse press prepares the route at once with the full strategy,
+   about 100 ms before its click; the hover dwell is `--motion-fast`. A touch
+   may start a scroll, so it prepares only a menu or opted-in link whose route
+   is not already being learned, and never counts as a hover.
+2. Menu links (`.arena-sidebar`, the open `#arena-mobile-menu`) and links a page
+   marks with `data-route-prefetch` learn their route once each when visible,
+   after the browser is idle, with Next's `AUTO` strategy: a prerendered page
+   with its RSC payload and code, a dynamic page only its tree (about 1.5 KB).
+   On a phone the drawer opens about half a second before a tap, too late for
+   a slow network, so all drawer links learn their routes at idle after load.
+   Offline, Save-Data and 2G suppress all speculation.
+3. Next does not join a navigation to a full prefetch still downloading; it
+   renders the page again. `observeRouteResponses` (public adapter) observes
+   the router's own complete page fetches by path and query, and a click to
+   that page waits for the response on its way (at most 2.5 s) instead of
+   requesting it again. The wait runs outside React, so Back or a newer click
+   wins at once; the menu marks the waiting destination and the progress bar
+   shows. Partial and segment prefetches are left to Next.
+4. `/tierlist`, `/classes`, `/legendaries`, `/heroes`, `/standard/matchups`,
+   `/standard/vicious-gold`, `/battlegrounds/tier-list` and `/guides-archive`
+   load their data in the browser, so they are prerendered with
+   `seoStaticPageMetadata` and regenerated every 300 s (`revalidate`), which
+   also replaces the build's disabled runtime switches. Their document keeps
+   `private, no-cache` from `documentCaching.mjs`. The query robots of
+   `/battlegrounds/tier-list` and `/guides-archive` are sent as `X-Robots-Tag`
+   by `next.config.mjs` (from the route inventory) and by the nginx SEO map;
+   `tests/next-prerendered-robots.test.mjs` fails when a prerendered page with
+   a query policy lacks the header. Pages with server reads, cookies,
+   `headers()` or query-dependent server output stay dynamic.
+5. After a link navigation commits, focus moves to `#main-content` without
+   scrolling, unless the reader has focused something else meanwhile. Header
+   search card results and the sign-in step of header, article list and article
+   card actions use the router (`openPage` in
+   `src/shared/navigation/pageNavigation.ts`) instead of a document load.
+6. Evaluated and deferred: `loading.tsx` per route family would let a tap paint
+   at once, but the header, footer and frame are rendered by every page
+   (`PublicPageShell`), so each fallback would duplicate that shell with
+   per-page width variants, and it would replace the contract that content stays
+   until the destination is ready. Moving the shell into the persistent layout
+   needs every page client to declare its frame options; both are follow-ups.
+   A build-time route-to-chunk map could start route code for a page that was
+   not prepared; prepared and prerendered pages already have it.
+
+Measured on one local stand (production build of each tree, public API reads
+from production, 412×915, 4× CPU, Slow 4G; 3 runs × 6 menu taps), tap to
+committed destination: origin/main median 1.53 s (`/tierlist/` 2.3–2.6 s,
+`/classes/` and `/legendaries/` 1.4–1.5 s, `/guides-archive/` 1.4–1.5 s);
+this change median 0.36 s (those pages 0.21–0.45 s). `/standard/cards/`
+(2.1–2.4 s) and `/articles/` (1.6–1.8 s) render their data on the server and
+are unchanged; no page was downloaded twice. Idle route learning on a phone
+costs about two small requests per drawer link. The adapter adds 0.3–1.3 KB
+gzip of JavaScript per route; exceeded ceilings in
+`config/next-bundle-budgets.json` were raised by the 2% and 1 KiB rule.
+
+Verification: `tests/next-navigation.test.ts` covers press, dwell, viewport
+preparation, joining by path and query and `openPage`; the browser suite
+asserts idle menu preparation, no page download on a crossed link or under
+Save-Data, a click during a hover prefetch with a single page request, and
+Back winning at once over a waiting click. Reviewed
+`docs/architecture/module-boundaries.md`: shared navigation primitives stay
+framework-independent; the Next-specific response observer stays in the
+public adapter.
