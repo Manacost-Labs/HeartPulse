@@ -4,7 +4,7 @@
   "routes": {
     "/": {
       "jsGzipBytes": 167936,
-      "cssGzipBytes": 36864
+      "cssGzipBytes": 39936
     },
     "/articles/": {
       "jsGzipBytes": 168960,
@@ -19,7 +19,7 @@
       "cssGzipBytes": 50176
     },
     "/standard/meta/": {
-      "jsGzipBytes": 184320,
+      "jsGzipBytes": 189440,
       "cssGzipBytes": 62464
     },
     "/standard/archetypes/": {
@@ -40,15 +40,15 @@
     },
     "/classes/": {
       "jsGzipBytes": 173056,
-      "cssGzipBytes": 46080
+      "cssGzipBytes": 48128
     },
     "/tierlist/": {
-      "jsGzipBytes": 190464,
-      "cssGzipBytes": 55296
+      "jsGzipBytes": 196608,
+      "cssGzipBytes": 58368
     },
     "/legendaries/": {
-      "jsGzipBytes": 191488,
-      "cssGzipBytes": 55296
+      "jsGzipBytes": 197632,
+      "cssGzipBytes": 58368
     },
     "/heroes/": {
       "jsGzipBytes": 167936,
@@ -71,15 +71,15 @@
       "cssGzipBytes": 50176
     },
     "/cosmetics/": {
-      "jsGzipBytes": 176128,
-      "cssGzipBytes": 45056
+      "jsGzipBytes": 182272,
+      "cssGzipBytes": 46080
     },
     "/contests/": {
-      "jsGzipBytes": 166912,
+      "jsGzipBytes": 171008,
       "cssGzipBytes": 59392
     },
     "/guides-archive/": {
-      "jsGzipBytes": 171008,
+      "jsGzipBytes": 176128,
       "cssGzipBytes": 46080
     },
     "/standard/fun-decks/": {
@@ -96,7 +96,7 @@
     },
     "/connect/": {
       "jsGzipBytes": 163840,
-      "cssGzipBytes": 39936
+      "cssGzipBytes": 43008
     },
     "/standard/deck-builder/": {
       "jsGzipBytes": 189440,
