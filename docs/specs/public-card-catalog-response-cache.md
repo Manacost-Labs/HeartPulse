@@ -53,6 +53,15 @@ Only anonymous results use this path: paid statistics retain their awaited,
 isolated read and history behavior. Missing identities in stale data still
 reject rather than becoming an authoritative 404.
 
+A source refresh reads every catalog page. A page that fails with a transport
+error, a timeout, invalid JSON, HTTP 429 or HTTP 5xx is requested once more
+before the refresh is abandoned. During Kolodahs sync jobs, single uncached
+pages take 5–8 seconds and sometimes cross the 8-second request limit. Without
+the retry, one slow page would show the stale-library banner over a catalog
+that was verified minutes earlier. HTTP 4xx pages are not retried. A page that
+fails twice still produces the `stale`/`LKG` result above. The failure reason
+is logged as `[constructed-cards] <format> catalog refresh failed`.
+
 The Next seed's separate 30-second lifetime and validation stay unchanged.
 It never renews an expired seed on failure; any backend LKG result arrives
 through a new validated read with truthful source metadata.

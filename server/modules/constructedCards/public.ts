@@ -23,6 +23,7 @@ export type {
   ConstructedCardFacetCounts,
   ConstructedCardFacets,
 } from './catalogQuery.js';
+export { fetchConstructedCatalogPage } from './catalogPages.js';
 export {
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,

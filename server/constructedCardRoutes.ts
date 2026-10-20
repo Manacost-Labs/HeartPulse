@@ -16,6 +16,7 @@ import {
   ConstructedCardUpstreamError,
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
+  fetchConstructedCatalogPage,
   mergeConstructedCardRows as mergeConstructedCardRowsModel,
   MIN_RELIABLE_CONSTRUCTED_CARD_GAMES as minimumReliableConstructedCardGames,
   normalizeConstructedCardStats as normalizeConstructedCardStatsModel,
@@ -125,6 +126,7 @@ type DataServiceDependencies = {
   catalogStore?: ConstructedCardCatalogStore;
   historyStore?: ConstructedCardHistoryStore;
   onHistoryError?: (error: unknown) => void;
+  onCatalogError?: (format: ConstructedCardFormat, error: unknown) => void;
   negativeDetailCacheMaxEntries?: number;
   catalogPageConcurrency?: number;
   cacheTtlMs?: number;
@@ -476,13 +478,9 @@ export function enrichConstructedCardPatches(detail: JsonRecord, patches: JsonRe
   return { ...detail, wiki: { ...detail.wiki, patch_changes: patchChanges } };
 }
 
-async function fetchCatalogPage(dependencies: DataServiceDependencies, format: ConstructedCardFormat, page: number): Promise<any> {
-  const url = new URL(`${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards`);
-  url.searchParams.set('format', format);
-  url.searchParams.set('collectible', '1');
-  url.searchParams.set('per_page', '200');
-  url.searchParams.set('page', String(page));
-  return dependencies.fetchJson(url.toString());
+function logCatalogError(format: ConstructedCardFormat, error: unknown): void {
+  console.warn(`[constructed-cards] ${format} catalog refresh failed; serving the last verified copy:`,
+    error instanceof Error ? error.message : error);
 }
 
 async function mapWithConcurrency<T, R>(
@@ -668,7 +666,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     const job = (async () => {
       let value: CatalogLoad;
       try {
-        const firstPage = await fetchCatalogPage(dependencies, format, 1);
+        const firstPage = await fetchConstructedCatalogPage(dependencies, format, 1);
         const totalPages = Number(firstPage?.pagination?.total_pages);
         if (!Number.isSafeInteger(totalPages) || totalPages < 1 || totalPages > 100) {
           throw new ConstructedCardCatalogCandidateError('Constructed catalog page count is invalid');
@@ -676,7 +674,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         const remainingPages = await mapWithConcurrency(
           Array.from({ length: totalPages - 1 }, (_, index) => index + 2),
           catalogPageConcurrency,
-          page => fetchCatalogPage(dependencies, format, page),
+          page => fetchConstructedCatalogPage(dependencies, format, page),
         );
         const candidate = completeConstructedCatalogCandidate([firstPage, ...remainingPages], format);
         const document = catalogStore.publish(format, candidate.cards, {
@@ -695,6 +693,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
             : null,
         };
       } catch (error) {
+        (dependencies.onCatalogError ?? logCatalogError)(format, error);
         const lastKnownGood = catalogStore.readUsable(format);
         if (!lastKnownGood) {
           throw new ConstructedCardCatalogUnavailableError(undefined, { cause: error });

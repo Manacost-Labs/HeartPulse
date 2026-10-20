@@ -9,6 +9,7 @@ import {
   statisticSortOptions,
   textFilterOptions,
 } from '../src/features/constructedCardFilterOptions.js';
+import { compareConstructedSets } from '../src/features/constructedCardLabels.js';
 
 const classOptions = classFilterOptions(['DEATHKNIGHT', 'MAGE']);
 assert.deepEqual(classOptions.map(option => option.label), [
@@ -34,6 +35,11 @@ assert.equal(
   setFilterOptions(['BE'])[1].label,
   'Власть Темной империи',
   'the current provider set code must use the published Russian expansion name',
+);
+assert.deepEqual(
+  ['CORE', 'ESCAPEFROM_VIOLET_HOLD', 'BE', 'CATACLYSM'].sort(compareConstructedSets),
+  ['BE', 'ESCAPEFROM_VIOLET_HOLD', 'CATACLYSM', 'CORE'],
+  'the newest expansion must lead the set filter instead of trailing the evergreen sets',
 );
 
 const manaOptions = numericFilterOptions('Любая', '/assets/mana.png');
