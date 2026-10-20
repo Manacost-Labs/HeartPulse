@@ -11,7 +11,8 @@ const ARTICLES = Array.from({ length: 6 }, (_, index) => ({
   id: `cover-${index + 1}`,
   title: `Статья с обложкой ${index + 1}`,
   date: `2026-09-${String(28 - index).padStart(2, '0')}`,
-  image: proxied(`cover-${index + 1}`),
+  // The second article has an admin upload as its cover, as most current articles do.
+  image: index === 1 ? '/uploads/admin/mvau7mzp-b38fa86861.webp' : proxied(`cover-${index + 1}`),
   excerpt: 'Короткое описание статьи.',
   tag: 'Арена',
   mode: 'arena',
@@ -23,12 +24,13 @@ const ARTICLES = Array.from({ length: 6 }, (_, index) => ({
 async function startApi() {
   const coverRequests = [];
   const covers = new Map();
-  const cover = width => {
-    if (!covers.has(width)) {
-      covers.set(width, sharp({ create: { width, height: Math.round(width * 597 / 1176), channels: 3, background: '#7a2a9c' } })
-        .webp().toBuffer());
+  const cover = (width, format) => {
+    const key = `${width}-${format}`;
+    if (!covers.has(key)) {
+      const image = sharp({ create: { width, height: Math.round(width * 597 / 1176), channels: 3, background: '#7a2a9c' } });
+      covers.set(key, format === 'avif' ? image.avif().toBuffer() : image.webp().toBuffer());
     }
-    return covers.get(width);
+    return covers.get(key);
   };
   const handle = async (request, response) => {
     const url = new URL(request.url, 'http://api.local');
@@ -38,8 +40,9 @@ async function startApi() {
     }
     if (url.pathname === '/api/article-cover') {
       coverRequests.push(url.search);
-      const body = await cover(Number(url.searchParams.get('w')) || 1176);
-      response.writeHead(200, { 'Content-Type': 'image/webp', 'Cache-Control': 'no-store' }).end(body);
+      const format = url.searchParams.get('format') === 'avif' ? 'avif' : 'webp';
+      const body = await cover(Number(url.searchParams.get('w')) || 1176, format);
+      response.writeHead(200, { 'Content-Type': `image/${format}`, 'Cache-Control': 'no-store' }).end(body);
       return;
     }
     response.writeHead(401, { 'Content-Type': 'application/json' }).end('{"error":"Unavailable"}');
@@ -103,8 +106,9 @@ async function openCovers(browser, url, viewport, selector) {
 }
 
 const widthOf = src => new URL(src).searchParams.get('w');
+const formatOf = src => new URL(src).searchParams.get('format');
 
-test('article covers request the WebP variant that fits the card, and the first /articles/ cover loads first', async () => {
+test('article covers request the AVIF variant that fits the card, and the first /articles/ cover loads first', async () => {
   const api = await startApi();
   const next = await startNextServer({ legacyOrigin: api.origin });
   const gateway = await startGateway(next.origin, api);
@@ -131,6 +135,9 @@ test('article covers request the WebP variant that fits the card, and the first 
       assert.equal(cover.fetchPriority, null);
     }
     assert.equal(widthOf(lead.currentSrc), '960', 'a 346 px card at DPR 3 takes the widest variant');
+    assert.equal(formatOf(lead.currentSrc), 'avif', 'Chrome takes the AVIF <source>');
+    assert.match(phone[1].srcset, /^\/api\/article-cover\?upload=mvau7mzp-b38fa86861\.webp&w=480 480w, /,
+      'an admin upload is resized like the editorial covers');
 
     const desktop = await openCovers(browser, `${gateway.origin}/articles/`,
       { width: 1440, height: 900, deviceScaleFactor: 1 }, articleCovers);
@@ -149,7 +156,7 @@ test('article covers request the WebP variant that fits the card, and the first 
 
     assert.ok(api.coverRequests.length > 0);
     for (const search of api.coverRequests) {
-      assert.match(search, /&w=(?:480|720|960)$/, `cover requested without an allowlisted width: ${search}`);
+      assert.match(search, /&w=(?:480|720|960)&format=avif$/, `cover requested without an allowlisted AVIF variant: ${search}`);
     }
   } finally {
     if (browser) await browser.close();

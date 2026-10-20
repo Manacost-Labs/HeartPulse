@@ -33,8 +33,19 @@ External navigation links and optional analytics are outside this contract.
 
 ## Article covers
 
-Editorial covers use `/api/article-cover?url=<source>[&w=<width>]`
+Editorial covers use `/api/article-cover?url=<source>[&w=<width>][&format=avif]`
+and admin uploads `/api/article-cover?upload=<name>[&w=<width>][&format=avif]`
 (`server/articleCoverRoutes.ts`).
+
+- `upload` is a name that `server/adminImageUploadRoutes.ts` generates
+  (`[a-z0-9-]+.webp`); any other name, a repeated `upload` or one combined
+  with `url` is a 400. The file is read from the admin upload directory; a
+  missing file is a 404 and is not cached. Upload names are unique per file,
+  so their variants share the LRU below. Admin uploads are stored up to
+  1800 px wide, while cards display them at about 560 px.
+- `format=avif` needs a `w` and returns an AVIF (quality 55, effort 2) with
+  the same width rules; any other `format` is a 400. The format is part of the
+  URL, so there is still no `Vary`.
 
 - `url` must be on the article host allowlist; redirects must stay on it.
   Only images are relayed, never SVG, and never more than the byte limit.
@@ -51,7 +62,7 @@ Editorial covers use `/api/article-cover?url=<source>[&w=<width>]`
   re-encode falls back to the original. At most two re-encodes run at once
   per API process; the others queue.
 - Responses keep `public, max-age=86400, stale-while-revalidate=604800`, an
-  ETag per source and width, and `nosniff`. No `Vary` is sent: the output
+  ETag per source, width and format, and `nosniff`. No `Vary` is sent: the output
   does not depend on request headers.
 - Cacheable sources are kept in an in-memory LRU per API process (24 h,
   32 MiB, 512 entries; one entry at most 4 MiB), and concurrent misses share

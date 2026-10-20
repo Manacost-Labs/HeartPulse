@@ -61,7 +61,7 @@ import {
   battlegroundImageTransformFromQuery,
   optimizeBattlegroundImage,
 } from './battlegroundImageOptimization.js';
-import { createArticleCoverRouter } from './articleCoverRoutes.js';
+import { adminUploadReader, createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 import { createArticleRouter } from './articleRoutes.js';
 import { articleAccessEntitlement, type ArticleAccessMode } from './articleAccess.js';
@@ -7875,7 +7875,7 @@ app.use('/api', createGuidesArchiveRouter({
 
 app.use('/api', createArticleCoverRouter({
   allowedHosts: ARTICLE_COVER_ALLOWED_HOSTS,
-  maxBytes: ARTICLE_COVER_MAX_BYTES,
+  maxBytes: ARTICLE_COVER_MAX_BYTES, readUpload: adminUploadReader(ADMIN_UPLOAD_DIR),
 }));
 
 async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: express.Response, upstreamPath: string) {

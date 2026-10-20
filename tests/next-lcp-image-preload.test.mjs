@@ -4,6 +4,7 @@ import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 const PARCHMENT = '/wallpaper/arena-parchment-v2.webp';
 const BANNER = '/wallpaper/profile-hero-hth-1430.avif';
+const PHONE_BANNER = '/wallpaper/profile-hero-hth-860.avif';
 
 // React sends a high-priority image preload in the Link response header and may
 // repeat it as a <link> in the document; either one makes the browser fetch early.
@@ -25,41 +26,48 @@ let runtime;
 before(async () => { runtime = await startPublicCardPilot({ pagesEnabled: true }); });
 after(async () => { await runtime?.close(); });
 
-test('image hints follow measured mobile LCP and the wider-screen parchment policy', async () => {
+test('image hints fetch each width only the parchment and banner files it paints', async () => {
+  // The shell's `always` pages still preload the WebP at every width.
   for (const path of ['/', '/faq/', '/standard/meta/', '/heroes/?view=table', '/standard/archetypes/']) {
     const { hints } = await imageHints(runtime.origin, path);
     const parchment = hintsFor(hints, PARCHMENT);
     assert.ok(parchment.length >= 1 && parchment.every(isHigh), `${path} preloads the parchment at high priority`);
-    assert.ok(parchment.every(hint => !/media=/.test(hint.text)), `${path} paints the parchment first at every width`);
   }
-  // Phones paint text, banner art or an image first here; from 768px the parchment.
-  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/standard/matchups/', '/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/', '/articles/']) {
+  // Phones paint the parchment inline from tokens.css; these pages fetch the file only from 768px.
+  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/standard/matchups/', '/standard/cards/',
+    '/standard/cards/standard/', '/standard/cards/wild/', '/articles/', '/cosmetics/']) {
     const { hints } = await imageHints(runtime.origin, path);
     const parchment = hintsFor(hints, PARCHMENT);
     assert.ok(parchment.length >= 1, `${path} preloads the parchment for wider screens`);
     for (const hint of parchment) {
       assert.ok(isHigh(hint), path);
-      assert.match(hint.text, TABLET_UP, `${path} must not fetch the parchment early on phones`);
+      assert.match(hint.text, TABLET_UP, `${path} must not fetch the parchment file on phones`);
     }
   }
-  for (const path of ['/standard/matchups/', '/standard/archetypes/', '/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/', '/articles/']) {
+  // Pages whose measured LCP is the banner preload the file each width paints.
+  for (const path of ['/standard/matchups/', '/standard/archetypes/', '/standard/cards/', '/standard/cards/standard/',
+    '/standard/cards/wild/', '/articles/']) {
     const { hints } = await imageHints(runtime.origin, path);
-    const banner = hintsFor(hints, BANNER);
-    assert.ok(banner.length >= 1, `${path} preloads its banner`);
-    for (const hint of banner) {
-      assert.ok(isHigh(hint), path);
-      assert.match(hint.text, /type="image\/avif"/, 'a browser without AVIF must skip the hint');
+    for (const [href, media] of [[BANNER, /media="\(min-width: 721px\)"/], [PHONE_BANNER, /media="\(max-width: 720px\)"/]]) {
+      const banner = hintsFor(hints, href);
+      assert.ok(banner.length >= 1, `${path} preloads ${href}`);
+      for (const hint of banner) {
+        assert.ok(isHigh(hint), path);
+        assert.match(hint.text, media, `${path}: each width fetches one banner file`);
+        assert.match(hint.text, /type="image\/avif"/, 'a browser without AVIF must skip the hint');
+      }
     }
+  }
+  // Here a banner hint delayed the phone first paint, sharing bandwidth with the stylesheets.
+  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/heroes/?view=table', '/cosmetics/']) {
+    const { hints } = await imageHints(runtime.origin, path);
+    assert.equal(hintsFor(hints, BANNER).length + hintsFor(hints, PHONE_BANNER).length, 0, path);
   }
   for (const path of ['/tierlist/', '/standard/matchups/', '/heroes/?view=table', '/standard/cards/', '/articles/']) {
     const { hints } = await imageHints(runtime.origin, path);
     // The WebP is only the image-set() fallback: preloading it would download both files.
     assert.equal(hintsFor(hints, '/wallpaper/profile-hero-hth.webp').length, 0, path);
   }
-  const tierList = await imageHints(runtime.origin, '/tierlist/');
-  assert.equal(hintsFor(tierList.hints, BANNER).length, 0, 'the tier list paints text first, never the banner');
-  const heroes = await imageHints(runtime.origin, '/heroes/?view=table');
-  assert.equal(hintsFor(heroes.hints, BANNER).length, 0, 'the parchment, not the banner, is the LCP of /heroes/');
 });
 
 test('the home mural offers AVIF by width and keeps the WebP image as the fallback', async () => {

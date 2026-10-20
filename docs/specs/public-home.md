@@ -7,7 +7,8 @@ visitor's cookie. The serialized summary contains only the class id, name and
 win rate needed by the hero; article data uses the existing public projection.
 
 The latest articles appear in the server HTML. Their covers stay lazy and
-offer the `/api/article-cover` WebP variants through `srcset`; the lead
+offer the `/api/article-cover` AVIF and WebP variants (admin uploads too)
+through a `<picture>` and `srcset`; the lead
 teaser and the other two have separate `sizes` that follow the board's
 container-query columns. The Battlegrounds and Arena directories render with
 the page. FAQ content lives on `/faq/`, without an extra accordion on the home

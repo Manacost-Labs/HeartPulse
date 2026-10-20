@@ -9,8 +9,11 @@
   --arena-parchment: #ead6a7;
   --arena-parchment-light: #f5e7c6;
   /* The page material. A new file name ships new bytes: /wallpaper/ is served
-     immutable for 30 days. The newsletter keeps the JPEG (no WebP in mail). */
-  --arena-parchment-texture: url('/wallpaper/arena-parchment-v2.webp');
+     immutable for 30 days. The newsletter keeps the JPEG (no WebP in mail).
+     Phones take the inline tile below; this resolves on :root, so every
+     element inherits the file its width paints. */
+  --arena-parchment-texture-webp: url('/wallpaper/arena-parchment-v2.webp');
+  --arena-parchment-texture: var(--arena-parchment-texture-phone, var(--arena-parchment-texture-webp));
   --arena-ink: #30251c;
   --arena-muted-ink: #74624d;
   --arena-red: #7b151b;
@@ -82,3 +85,19 @@
   --draft-coral: #ec6b6b;
   --draft-navy: #081a33;
 }
+
+/* Phones paint the parchment from the stylesheet itself: a CSS background is
+   requested only after styles apply, so the 18 KB file painted about two
+   seconds after the text on Slow 4G and became the late phone LCP. This
+   2.5 KB AVIF is the same 865x878 tile (sharp avif quality 25, effort 9);
+   under the shell's 72-78% cream gradient it matches the WebP. Keep the full
+   size: Chrome scales an upscaled image's LCP area down, so a half-size tile
+   let the late banner art become the LCP again. It costs every page about
+   3.3 KB of gzip CSS. A browser without AVIF keeps the parchment colour and
+   gradient. Phones need no request for the WebP. */
+@media (max-width: 767px) {
+  :root {
+    --arena-parchment-texture-phone: url('data:image/avif;base64,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');
+  }
+}
+

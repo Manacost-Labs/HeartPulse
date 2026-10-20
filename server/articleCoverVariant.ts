@@ -1,19 +1,39 @@
 import sharp from 'sharp';
 import { optimizeBattlegroundImage } from './battlegroundImageOptimization.js';
 
-/** Text on covers stays legible at this quality; part of every variant validator. */
-export const ARTICLE_COVER_VARIANT_ENCODING = 'webp-q78-v1';
+export type ArticleCoverFormat = 'webp' | 'avif';
+
+/**
+ * Text on covers stays legible at these settings; each is part of its variant
+ * validator. AVIF quality 55 matched the WebP by eye on real covers at about
+ * 40 % fewer bytes. Effort 2 kept a 720 px encode near 120 ms of one thread,
+ * against about one second at the default effort, for 0.5 % more bytes.
+ */
+export const ARTICLE_COVER_VARIANT_ENCODING: Record<ArticleCoverFormat, string> = {
+  webp: 'webp-q78-v1',
+  avif: 'avif-q55-e2-v1',
+};
 const VARIANT_QUALITY = 78;
+const AVIF_QUALITY = 55;
+const AVIF_EFFORT = 2;
+const MAX_INPUT_PIXELS = 24_000_000;
 const TRANSFORMABLE_TYPE = /^image\/(?:jpeg|png|webp|avif)(?:;|$)/i;
 
 export function isTransformableCoverType(contentType: string): boolean {
   return TRANSFORMABLE_TYPE.test(contentType);
 }
 
-/** A WebP no wider than `width`, or null for an animated source, which a resize would cut to its first frame. */
-export async function encodeArticleCoverVariant(source: Buffer, width: number): Promise<Buffer | null> {
+/** A WebP or AVIF no wider than `width`, or null for an animated source, which a resize would cut to its first frame. */
+export async function encodeArticleCoverVariant(source: Buffer, width: number, format: ArticleCoverFormat = 'webp'): Promise<Buffer | null> {
   const { pages = 1 } = await sharp(source).metadata();
   if (pages > 1) return null;
+  if (format === 'avif') {
+    return sharp(source, { limitInputPixels: MAX_INPUT_PIXELS })
+      .rotate()
+      .resize({ width, withoutEnlargement: true, fit: 'inside' })
+      .avif({ quality: AVIF_QUALITY, effort: AVIF_EFFORT })
+      .toBuffer();
+  }
   const { body } = await optimizeBattlegroundImage(source, { width, quality: VARIANT_QUALITY, format: 'webp' });
   return body;
 }

@@ -14,16 +14,25 @@ export const HOME_LEAD_COVER_SIZES =
 export const HOME_COVER_SIZES =
   '(min-width: 1800px) 410px, (min-width: 1422px) calc(29vw - 112px), (min-width: 1041px) calc(45vw - 140px), (min-width: 1024px) calc(100vw - 360px), (min-width: 768px) calc(50vw - 44px), calc(100vw - 48px)';
 
+/** `/uploads/admin/<name>`: the names server/adminImageUploadRoutes.ts generates. */
+const ADMIN_UPLOAD_COVER = /^\/uploads\/admin\/([a-z0-9-]+\.webp)$/;
+
 /**
- * A proxied cover as WebP variants for `srcSet`; `src` is the widest variant
- * for browsers that ignore `srcSet`. Other sources are returned unchanged.
+ * A proxied cover or an admin upload as WebP and AVIF variants for `srcSet`;
+ * `src` is the widest WebP for browsers that ignore `srcSet`. Admin uploads
+ * are stored up to 1800 px wide, about three times a teaser. Other sources
+ * are returned unchanged.
  */
-export function responsiveHomeCover(src: string): { src: string; srcSet?: string } {
+export function responsiveHomeCover(src: string): { src: string; srcSet?: string; avifSrcSet?: string } {
+  const upload = src.match(ADMIN_UPLOAD_COVER)?.[1];
+  const base = upload ? `/api/article-cover?upload=${upload}` : src;
   // A comma or space would split a srcset candidate.
-  if (!src.startsWith('/api/article-cover?') || /[\s,]/.test(src)) return { src };
-  const variant = (width: number) => `${src}&w=${width}`;
+  if (!base.startsWith('/api/article-cover?') || /[\s,]/.test(base)) return { src };
+  const variant = (width: number, format = '') => `${base}&w=${width}${format}`;
+  const srcSet = (format: string) => HOME_ARTICLE_COVER_WIDTHS.map(width => `${variant(width, format)} ${width}w`).join(', ');
   return {
     src: variant(HOME_ARTICLE_COVER_WIDTHS[HOME_ARTICLE_COVER_WIDTHS.length - 1]),
-    srcSet: HOME_ARTICLE_COVER_WIDTHS.map(width => `${variant(width)} ${width}w`).join(', '),
+    srcSet: srcSet(''),
+    avifSrcSet: srcSet('&format=avif'),
   };
 }

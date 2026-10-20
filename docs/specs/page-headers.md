@@ -23,13 +23,19 @@ disabled with `prefers-reduced-motion: reduce`.
 
 The artwork is `/wallpaper/profile-hero-hth-1430.avif` (46 KB) in browsers
 that read `image-set()` with `type()`, and `profile-hero-hth.webp` (65 KB) in
-the rest. The AVIF sits in an `@supports` rule: the CSS build merges a fallback
-declaration in the same rule away. On phones the banner is the largest paint
-of `/standard/matchups/`, `/standard/archetypes/` and
-`/standard/vicious-gold/`, so those pages preload the AVIF with
-`PageBannerPreload` and keep the shell's parchment preload only from 768px,
-where the parchment paints first; on the other banner pages the parchment or
-text paints first and the banner is not preloaded.
+the rest. Up to 720px, where the art is at most about 400 CSS px wide,
+`profile-hero-hth-860.avif` (24 KB) replaces the 1430 px AVIF. The AVIF sits
+in an `@supports` rule: the CSS build merges a fallback declaration in the same
+rule away. On phones the banner is the largest paint of
+`/standard/matchups/`, `/standard/archetypes/` and `/standard/vicious-gold/`;
+the art is also the cards and articles banner. Those pages preload it with
+`PageBannerPreload`, whose two hints carry `media` for the 720px breakpoint,
+so each width fetches only the file it paints. Phones paint the parchment
+inline from `tokens.css`, so the parchment is never fetched there. Other banner
+pages (tier list, classes, legendaries, heroes, cosmetics) do not preload the
+art: on a Slow 4G phone the hint delayed their first paint by 0.3-0.6 s,
+sharing bandwidth with the stylesheets; the smaller phone file arrives sooner
+from the CSS instead.
 
 ## Implementation and verification
 

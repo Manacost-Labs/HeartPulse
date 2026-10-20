@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import express from 'express';
 import sharp from 'sharp';
-import { ARTICLE_COVER_WIDTHS, createArticleCoverRouter } from '../server/articleCoverRoutes.js';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ARTICLE_COVER_WIDTHS, adminUploadReader, createArticleCoverRouter } from '../server/articleCoverRoutes.js';
 import { encodeArticleCoverVariant } from '../server/articleCoverVariant.js';
 
 const coverPng = await sharp({
@@ -152,6 +155,19 @@ app.use('/counted-encodes/api', createArticleCoverRouter({
     } finally {
       activeEncodes -= 1;
     }
+  },
+}));
+// Admin uploads come from the upload directory, not over HTTP.
+const uploads = new Map<string, Buffer>([['mvau7mzp-b38fa86861.webp', await sharp(coverPng).webp().toBuffer()]]);
+const uploadReads: string[] = [];
+app.use('/uploads/api', createArticleCoverRouter({
+  allowedHosts: coverHosts,
+  maxBytes: 1024 * 1024,
+  fetchImpl: localFetch,
+  readUpload: async name => {
+    uploadReads.push(name);
+    if (name === 'broken-disk.webp') throw new Error('EIO');
+    return uploads.get(name) ?? null;
   },
 }));
 const server = app.listen(0, '127.0.0.1');
@@ -370,6 +386,71 @@ try {
   const notKept = await fetch(coverUrl('/cover.png', '&w=480', '/tiny-bytes'));
   assert.equal(notKept.status, 200);
   assert.equal(notKept.headers.get('x-article-cover-cache'), 'MISS', 'the byte budget bounds the cache');
+
+  // AVIF variants: the same widths, a separate validator, never enlarged.
+  const webpVariant = await fetch(coverUrl('/cover.png', '&w=720'));
+  const avifVariant = await fetch(coverUrl('/cover.png', '&w=720&format=avif'));
+  assert.equal(avifVariant.status, 200);
+  assert.equal(avifVariant.headers.get('content-type'), 'image/avif');
+  assert.equal(avifVariant.headers.get('vary'), null, 'the format is part of the URL, not negotiated');
+  const avifBody = Buffer.from(await avifVariant.arrayBuffer());
+  const avifMeta = await sharp(avifBody).metadata();
+  assert.equal(avifMeta.format, 'heif');
+  assert.equal(avifMeta.width, 720);
+  assert.notEqual(avifVariant.headers.get('etag'), webpVariant.headers.get('etag'));
+  const avifAgain = await fetch(coverUrl('/cover.png', '&w=720&format=avif'));
+  assert.equal(avifAgain.headers.get('x-article-cover-cache'), 'HIT');
+  for (const query of ['&format=avif', '&w=480&format=png', '&w=480&format=webp', '&w=480&format=avif&format=avif']) {
+    const rejected = await fetch(coverUrl('/cover.png', query));
+    assert.equal(rejected.status, 400, `${query} must be rejected`);
+  }
+
+  // Admin uploads: only generated names, read once per variant, then cached.
+  const uploadUrl = (name: string, query = '') => `${serverOrigin}/uploads/api/article-cover?upload=${encodeURIComponent(name)}${query}`;
+  const uploadVariant = await fetch(uploadUrl('mvau7mzp-b38fa86861.webp', '&w=480'));
+  assert.equal(uploadVariant.status, 200);
+  assert.equal(uploadVariant.headers.get('content-type'), 'image/webp');
+  assert.equal((await sharp(Buffer.from(await uploadVariant.arrayBuffer())).metadata()).width, 480);
+  const uploadAvif = await fetch(uploadUrl('mvau7mzp-b38fa86861.webp', '&w=960&format=avif'));
+  assert.equal(uploadAvif.headers.get('content-type'), 'image/avif');
+  assert.equal((await sharp(Buffer.from(await uploadAvif.arrayBuffer())).metadata()).width, 960);
+  const uploadCached = await fetch(uploadUrl('mvau7mzp-b38fa86861.webp', '&w=480'));
+  assert.equal(uploadCached.headers.get('x-article-cover-cache'), 'HIT');
+  const uploadEtag = uploadCached.headers.get('etag');
+  assert.ok(uploadEtag);
+  const uploadNotModified = await fetch(uploadUrl('mvau7mzp-b38fa86861.webp', '&w=480'), { headers: { 'If-None-Match': uploadEtag } });
+  assert.equal(uploadNotModified.status, 304);
+  assert.deepEqual(uploadReads, ['mvau7mzp-b38fa86861.webp', 'mvau7mzp-b38fa86861.webp']);
+  const uploadOriginal = await fetch(uploadUrl('mvau7mzp-b38fa86861.webp'));
+  assert.deepEqual(Buffer.from(await uploadOriginal.arrayBuffer()), uploads.get('mvau7mzp-b38fa86861.webp'));
+
+  for (const name of ['../secret.webp', '..%2Fsecret.webp', 'cover.png', 'Cover.webp', 'a/b.webp', '.webp', 'cover.webp.tmp']) {
+    const rejected = await fetch(uploadUrl(name, '&w=480'));
+    assert.equal(rejected.status, 400, `${name} is not a generated upload name`);
+  }
+  const both = await fetch(`${uploadUrl('mvau7mzp-b38fa86861.webp', '&w=480')}&url=${encodeURIComponent('https://covers.test/wp-content/uploads/cover.png')}`);
+  assert.equal(both.status, 400);
+  const repeated = await fetch(`${uploadUrl('mvau7mzp-b38fa86861.webp', '&w=480')}&upload=other.webp`);
+  assert.equal(repeated.status, 400);
+  const badUploadWidth = await fetch(uploadUrl('mvau7mzp-b38fa86861.webp', '&w=500'));
+  assert.equal(badUploadWidth.status, 400);
+  const missingUpload = await fetch(uploadUrl('missing.webp', '&w=480'));
+  assert.equal(missingUpload.status, 404);
+  await fetch(uploadUrl('missing.webp', '&w=480'));
+  assert.equal(uploadReads.filter(name => name === 'missing.webp').length, 2, 'a missing upload is not cached');
+  const brokenDisk = await fetch(uploadUrl('broken-disk.webp', '&w=480'));
+  assert.equal(brokenDisk.status, 502);
+  const uploadDir = await mkdtemp(join(tmpdir(), 'article-cover-uploads-'));
+  try {
+    await writeFile(join(uploadDir, 'stored.webp'), Buffer.from('bytes'));
+    const readStored = adminUploadReader(uploadDir);
+    assert.deepEqual(await readStored('stored.webp'), Buffer.from('bytes'));
+    assert.equal(await readStored('absent.webp'), null, 'a missing file is a 404, not a server error');
+  } finally {
+    await rm(uploadDir, { recursive: true, force: true });
+  }
+  const notWired = await fetch(`${serverOrigin}/api/article-cover?upload=mvau7mzp-b38fa86861.webp&w=480`);
+  assert.equal(notWired.status, 400, 'a router without readUpload rejects uploads');
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   await new Promise<void>((resolve, reject) => upstream.close(error => error ? reject(error) : resolve()));

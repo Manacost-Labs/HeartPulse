@@ -111,10 +111,14 @@ export function ArticleCard({
         className="flex flex-col flex-grow w-full text-left bg-transparent border-0 p-0 cursor-pointer">
         <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
           {!imgErr ? (
-            <img src={cover.src} srcSet={cover.srcSet} sizes={cover.srcSet && ARTICLE_CARD_COVER_SIZES}
-              width={1176} height={597} alt={article.title}
-              loading={isFeatured ? 'eager' : 'lazy'} fetchPriority={isFeatured ? 'high' : undefined}
-              onError={() => setImgErr(true)} className="w-full h-full object-contain" />
+            <picture className="contents">
+              {cover.avifSrcSet && <source type="image/avif" srcSet={cover.avifSrcSet} sizes={ARTICLE_CARD_COVER_SIZES} />}
+              <img src={cover.src} srcSet={cover.srcSet} sizes={cover.srcSet && ARTICLE_CARD_COVER_SIZES}
+                width={1176} height={597} alt={article.title}
+                loading={isFeatured ? 'eager' : 'lazy'} fetchPriority={isFeatured ? 'high' : undefined}
+                decoding={isFeatured ? undefined : 'async'}
+                onError={() => setImgErr(true)} className="w-full h-full object-contain" />
+            </picture>
           ) : (
             <div className="article-image-fallback w-full h-full flex items-center justify-center">
               <BookOpen size={36} aria-hidden="true" />

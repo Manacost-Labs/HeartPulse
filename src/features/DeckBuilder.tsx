@@ -14,7 +14,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
-import { publicResourceUrl } from '../publicResourceUrl';
+import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import DeckManaCurve from './DeckManaCurve';
 import {
   CONSTRUCTED_HERO_BY_DBF,
@@ -1193,7 +1193,7 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
                   title={disabledReason ? `${cardName(card)} — ${disabledReason}` : cardName(card)}
                 >
                   <img
-                    src={entry?.cardImage || ''}
+                    src={entry?.cardImage ? publicResourceImageUrl(entry.cardImage, { width: 384, quality: 82 }) : ''}
                     alt={cardName(card)}
                     loading="lazy"
                     decoding="async"

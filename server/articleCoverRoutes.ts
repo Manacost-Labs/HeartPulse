@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { Router, type Request, type Response as ExpressResponse } from 'express';
 import { ArticleCoverCache, canonicalArticleCoverUrl, type ArticleCoverEntry } from './articleCoverCache.js';
 import {
   ARTICLE_COVER_VARIANT_ENCODING,
+  type ArticleCoverFormat,
   createConcurrencyLimit,
   encodeArticleCoverVariant,
   isTransformableCoverType,
@@ -20,6 +23,8 @@ const CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=604800';
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CACHE_MAX_BYTES = 32 * 1024 * 1024;
 const DEFAULT_CACHE_MAX_ENTRIES = 512;
+/** The only names server/adminImageUploadRoutes.ts generates; anything else could leave the upload directory. */
+const UPLOAD_NAME = /^[a-z0-9-]+\.webp$/;
 
 export type ArticleCoverRouterDependencies = {
   allowedHosts: ReadonlySet<string>;
@@ -34,12 +39,28 @@ export type ArticleCoverRouterDependencies = {
   now?: () => number;
   /** Re-encodes run at most this many at a time (default 2); the rest wait their turn. */
   maxConcurrentEncodes?: number;
-  encodeVariant?: (source: Buffer, width: number) => Promise<Buffer | null>;
+  encodeVariant?: (source: Buffer, width: number, format: ArticleCoverFormat) => Promise<Buffer | null>;
+  /**
+   * Bytes of the admin upload `/uploads/admin/<name>`, or null when it does
+   * not exist. Without it `?upload=` is rejected. Upload names are unique per
+   * file, so their variants are cached like the canonical editorial covers.
+   */
+  readUpload?: (name: string) => Promise<Buffer | null>;
 };
+
+type CoverVariant = { width: number | null; format: ArticleCoverFormat };
+
+/** `readUpload` for the admin upload directory. The router admits only generated names, so the join stays inside it. */
+export function adminUploadReader(directory: string): (name: string) => Promise<Buffer | null> {
+  return name => readFile(join(directory, name)).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  });
+}
 
 type LoadDependencies = Required<Pick<ArticleCoverRouterDependencies, 'fetchImpl' | 'timeoutMs' | 'maxRedirects'>>
   & Pick<ArticleCoverRouterDependencies, 'allowedHosts' | 'maxBytes'>
-  & { encode: (source: Buffer, width: number) => Promise<Buffer | null> };
+  & { encode: (source: Buffer, width: number, format: ArticleCoverFormat) => Promise<Buffer | null> };
 
 type CoverResult =
   | { kind: 'cover'; entry: ArticleCoverEntry; cacheable: boolean }
@@ -59,6 +80,19 @@ function parseAllowedUrl(value: string, allowedHosts: ReadonlySet<string>): URL 
 function parseCoverWidth(value: unknown): number | null | false {
   if (value === undefined) return null;
   return ARTICLE_COVER_WIDTHS.find(width => String(width) === value) ?? false;
+}
+
+/** WebP unless `avif` is asked for; a format is a re-encode, so it needs a width. */
+function parseCoverFormat(value: unknown, width: number | null): ArticleCoverFormat | false {
+  if (value === undefined) return 'webp';
+  return value === 'avif' && width !== null ? 'avif' : false;
+}
+
+function parseVariant(query: Request['query']): CoverVariant | null {
+  const width = parseCoverWidth(query.w);
+  if (width === false) return null;
+  const format = parseCoverFormat(query.format, width);
+  return format === false ? null : { width, format };
 }
 
 async function fetchAllowedImage(
@@ -112,28 +146,28 @@ async function readLimitedBody(response: Response, maxBytes: number): Promise<Bu
   return Buffer.concat(chunks, totalBytes);
 }
 
-function coverEtag(finalUrl: URL, source: Buffer, variant: string): string {
-  const hash = createHash('sha1').update(finalUrl.href).update(source);
+function coverEtag(identity: string, source: Buffer, variant: string): string {
+  const hash = createHash('sha1').update(identity).update(source);
   if (variant) hash.update(variant);
   return `"article-cover-${hash.digest('hex')}"`;
 }
 
 async function withVariant(
-  original: ArticleCoverEntry, source: Buffer, finalUrl: URL, width: number | null, encode: LoadDependencies['encode'],
+  original: ArticleCoverEntry, source: Buffer, identity: string, { width, format }: CoverVariant, encode: LoadDependencies['encode'],
 ): Promise<CoverResult> {
   if (width === null || !isTransformableCoverType(original.contentType)) return { kind: 'cover', entry: original, cacheable: true };
   try {
-    const body = await encode(source, width);
+    const body = await encode(source, width, format);
     if (!body) return { kind: 'cover', entry: original, cacheable: true };
-    const etag = coverEtag(finalUrl, source, `w${width}-${ARTICLE_COVER_VARIANT_ENCODING}`);
-    return { kind: 'cover', entry: { body, contentType: 'image/webp', etag }, cacheable: true };
+    const etag = coverEtag(identity, source, `w${width}-${ARTICLE_COVER_VARIANT_ENCODING[format]}`);
+    return { kind: 'cover', entry: { body, contentType: `image/${format}`, etag }, cacheable: true };
   } catch {
     // A decoder failure may be transient, so the fallback is not cached.
     return { kind: 'cover', entry: original, cacheable: false };
   }
 }
 
-async function loadCover(target: URL, width: number | null, dependencies: LoadDependencies): Promise<CoverResult> {
+async function loadCover(target: URL, variant: CoverVariant, dependencies: LoadDependencies): Promise<CoverResult> {
   try {
     const { response: upstream, finalUrl } = await fetchAllowedImage(target, dependencies);
     const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
@@ -148,8 +182,8 @@ async function loadCover(target: URL, width: number | null, dependencies: LoadDe
       return { kind: 'error', ...rejection };
     }
     const source = await readLimitedBody(upstream, dependencies.maxBytes);
-    const original = { body: source, contentType, etag: coverEtag(finalUrl, source, '') };
-    return await withVariant(original, source, finalUrl, width, dependencies.encode);
+    const original = { body: source, contentType, etag: coverEtag(finalUrl.href, source, '') };
+    return await withVariant(original, source, finalUrl.href, variant, dependencies.encode);
   } catch (error) {
     if (error instanceof Error && error.name === 'ArticleCoverTooLargeError') {
       return { kind: 'error', status: 413, error: 'Обложка слишком большая' };
@@ -158,7 +192,23 @@ async function loadCover(target: URL, width: number | null, dependencies: LoadDe
   }
 }
 
-/** The response never varies by request header: the variant format is fixed WebP, so no Vary is sent. */
+async function loadUpload(
+  name: string, variant: CoverVariant, readUpload: (name: string) => Promise<Buffer | null>, dependencies: LoadDependencies,
+): Promise<CoverResult> {
+  let source: Buffer | null;
+  try {
+    source = await readUpload(name);
+  } catch {
+    return { kind: 'error', status: 502, error: 'Не удалось загрузить обложку' };
+  }
+  if (!source) return { kind: 'error', status: 404, error: 'Обложка недоступна' };
+  if (source.length > dependencies.maxBytes) return { kind: 'error', status: 413, error: 'Обложка слишком большая' };
+  const identity = `/uploads/admin/${name}`;
+  const original = { body: source, contentType: 'image/webp', etag: coverEtag(identity, source, '') };
+  return withVariant(original, source, identity, variant, dependencies.encode);
+}
+
+/** The response never varies by request header: the format is part of the URL (`?format=avif`), so no Vary is sent. */
 function sendCover(request: Request, response: ExpressResponse, entry: ArticleCoverEntry, cacheStatus: 'HIT' | 'MISS') {
   response.set('Cache-Control', CACHE_CONTROL);
   response.set('ETag', entry.etag);
@@ -170,8 +220,9 @@ function sendCover(request: Request, response: ExpressResponse, entry: ArticleCo
 }
 
 /**
- * Relays allowlisted editorial covers. `?w=` returns a WebP no wider than an
- * allowlisted width. HTTPS upload files (canonicalArticleCoverUrl) are kept in
+ * Relays allowlisted editorial covers (`?url=`) and admin uploads
+ * (`?upload=<name>`). `?w=` returns a WebP no wider than an allowlisted width,
+ * `&format=avif` an AVIF instead. HTTPS upload files (canonicalArticleCoverUrl) are kept in
  * a bounded in-memory LRU and concurrent misses share one upstream fetch, so a
  * cached cover or its revalidation never reaches the upstream. Only responses
  * that passed the host, redirect, type and size checks are ever cached.
@@ -186,7 +237,7 @@ export function createArticleCoverRouter(dependencies: ArticleCoverRouterDepende
     fetchImpl: dependencies.fetchImpl ?? fetch,
     timeoutMs: dependencies.timeoutMs ?? 10_000,
     maxRedirects: dependencies.maxRedirects ?? 3,
-    encode: (source, width) => encodeLimit(() => encodeVariant(source, width)),
+    encode: (source, width, format) => encodeLimit(() => encodeVariant(source, width, format)),
   };
   const cache = new ArticleCoverCache({
     ttlMs: dependencies.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS,
@@ -195,10 +246,10 @@ export function createArticleCoverRouter(dependencies: ArticleCoverRouterDepende
   }, dependencies.now ?? Date.now);
   const inFlight = new Map<string, Promise<CoverResult>>();
 
-  const loadOnce = (key: string, source: URL, width: number | null, cacheable: boolean): Promise<CoverResult> => {
+  const loadOnce = (key: string, load: () => Promise<CoverResult>, cacheable: boolean): Promise<CoverResult> => {
     const pending = inFlight.get(key);
     if (pending) return pending;
-    const loading = loadCover(source, width, loadDependencies).then(result => {
+    const loading = load().then(result => {
       if (cacheable && result.kind === 'cover' && result.cacheable) cache.set(key, result.entry);
       return result;
     }).finally(() => inFlight.delete(key));
@@ -206,22 +257,41 @@ export function createArticleCoverRouter(dependencies: ArticleCoverRouterDepende
     return loading;
   };
 
+  const respond = async (request: Request, response: ExpressResponse, key: string, load: () => Promise<CoverResult>, cacheable: boolean) => {
+    const cached = cacheable ? cache.get(key) : undefined;
+    if (cached) return sendCover(request, response, cached, 'HIT');
+    const result = await loadOnce(key, load, cacheable);
+    if (result.kind === 'error') return response.status(result.status).json({ error: result.error });
+    return sendCover(request, response, result.entry, 'MISS');
+  };
+
   router.get('/article-cover', async (request, response) => {
+    const { upload } = request.query;
+    if (upload !== undefined) {
+      if (request.query.url !== undefined || !dependencies.readUpload || typeof upload !== 'string' || !UPLOAD_NAME.test(upload)) {
+        return response.status(400).json({ error: 'Недопустимая обложка' });
+      }
+      const variant = parseVariant(request.query);
+      if (!variant) return response.status(400).json({ error: 'Недопустимая ширина или формат обложки' });
+      const { readUpload } = dependencies;
+      const key = `upload:${upload}|${variant.width ?? 'original'}|${variant.format}`;
+      return respond(request, response, key, () => loadUpload(upload, variant, readUpload, loadDependencies), true);
+    }
+
     const requested = String(request.query.url ?? '').trim();
     const target = parseAllowedUrl(requested, dependencies.allowedHosts);
     if (!target) return response.status(400).json({ error: 'Домен обложки не разрешён' });
-    const width = parseCoverWidth(request.query.w);
-    if (width === false) return response.status(400).json({ error: 'Недопустимая ширина обложки' });
+    const variant = parseVariant(request.query);
+    if (!variant) return response.status(400).json({ error: 'Недопустимая ширина или формат обложки' });
 
     // Anything else is relayed as before: uncached and never re-encoded.
     const canonical = canonicalArticleCoverUrl(requested, target, dependencies.allowedHosts);
-    const key = canonical ? `${canonical.href}|${width ?? 'original'}` : `${target.href}|original`;
-    const cached = canonical ? cache.get(key) : undefined;
-    if (cached) return sendCover(request, response, cached, 'HIT');
-
-    const result = await loadOnce(key, canonical ?? target, canonical ? width : null, Boolean(canonical));
-    if (result.kind === 'error') return response.status(result.status).json({ error: result.error });
-    return sendCover(request, response, result.entry, 'MISS');
+    if (!canonical) {
+      return respond(request, response, `${target.href}|original`,
+        () => loadCover(target, { width: null, format: 'webp' }, loadDependencies), false);
+    }
+    const key = `${canonical.href}|${variant.width ?? 'original'}|${variant.format}`;
+    return respond(request, response, key, () => loadCover(canonical, variant, loadDependencies), true);
   });
 
   return router;

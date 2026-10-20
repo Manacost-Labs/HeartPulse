@@ -26,19 +26,23 @@ function ArticleImage({ src, title, lead }: { src: string; title: string; lead: 
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <span className="home-latest-article__image-fallback" aria-hidden="true">M</span>;
   const cover = responsiveHomeCover(src);
+  const sizes = lead ? HOME_LEAD_COVER_SIZES : HOME_COVER_SIZES;
   return (
-    <img
-      src={cover.src}
-      srcSet={cover.srcSet}
-      sizes={cover.srcSet && (lead ? HOME_LEAD_COVER_SIZES : HOME_COVER_SIZES)}
-      alt=""
-      width={560}
-      height={300}
-      loading="lazy"
-      decoding="async"
-      onError={() => setFailed(true)}
-      title={title}
-    />
+    <picture className="contents">
+      {cover.avifSrcSet && <source type="image/avif" srcSet={cover.avifSrcSet} sizes={sizes} />}
+      <img
+        src={cover.src}
+        srcSet={cover.srcSet}
+        sizes={cover.srcSet && sizes}
+        alt=""
+        width={560}
+        height={300}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+        title={title}
+      />
+    </picture>
   );
 }
 

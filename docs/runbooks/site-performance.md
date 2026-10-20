@@ -38,6 +38,67 @@
   so the footer does not appear and then jump away when the form arrives.
   The code and identity remain excluded from shared HTML.
 
+## Images and phone LCP (20 October 2026)
+
+The audit of release `51d3637b` found that the phone LCP of most public pages
+was the decorative parchment. As a CSS background it was requested only after
+the stylesheets applied, so it painted one to two seconds after the text.
+Images were about two thirds of the home and articles weight.
+
+- Parchment: below 768px `--arena-parchment-texture` resolves to an inline
+  2.5 KB AVIF of the same 865x878 tile (`src/styles/tokens.css`), so it paints
+  with the first frame and needs no request. It costs every route about
+  3.3 KB of gzip CSS; the CSS ceilings in `config/next-bundle-budgets.json`
+  rose by that much and no JavaScript ceiling changed. A half-size tile was
+  rejected: Chrome scales an upscaled image's LCP area down, so the late
+  banner art became the `/classes/` LCP again (4.2-4.7 s).
+- `PublicPageShell` still preloads the WebP on phones for its `always` pages,
+  where it is now unused. The change that limits that preload to 768px belongs
+  to the shell owner and was requested separately.
+- Banner: phones take `profile-hero-hth-860.avif` (24 KB instead of 46 KB).
+  A phone preload on the tier list, classes and legendaries delayed their
+  first paint by 0.3-0.6 s and was reverted; see
+  [page headers](../specs/page-headers.md).
+- Article covers: admin uploads (stored up to 1800 px) now use the
+  `/api/article-cover?upload=` variants, and every cover offers AVIF first. On
+  two production covers the 720 px variant phones take is 38-40 KB AVIF,
+  against 150-168 KB for the original WebP served before.
+- Deck builder grid: WebP 384 px through the existing public-resource
+  transform instead of the full PNG render (90 KB measured on production).
+  The hover preview keeps the full render.
+- `favicon.ico`: PNG entries instead of raw bitmaps, 43.5 KB to 8.6 KB with
+  pixel-identical 16, 32 and 96 px images.
+
+Unchanged: card catalog thumbnails and their first-row contract,
+Battlegrounds image transforms, cosmetics, image cache headers and skeletons.
+
+### Measurement
+
+A local candidate and a base build of `51d3637b`, both on the public card
+fixture behind the HTTP/1.1 gateway, were loaded alternately in headless
+Chrome 150. The phone profile was 412x915 at DPR 1.75, 4x CPU and Slow 4G
+(562.5 ms, 1.44 Mbit/s); `/api/telemetry/` and analytics hosts were blocked
+and the cache disabled. Medians of three cold loads, base then candidate:
+
+| Page | FCP, ms | LCP, ms | Image KB |
+| --- | --- | --- | --- |
+| `/` | 1896 / 1856 | 1896 / 1856 | 178 / 144 |
+| `/articles/` | 2016 / 1960 | 4220 / 1960 | 142 / 69 |
+| `/tierlist/` | 2172 / 2152 | 4392 / 2152 | 153 / 80 |
+| `/classes/` | 2072 / 2048 | 4000 / 2048 | 148 / 75 |
+| `/legendaries/` | 2100 / 2092 | 4264 / 2092 | 182 / 109 |
+| `/cosmetics/` | 1996 / 1944 | 3952 / 1944 | 142 / 69 |
+| `/heroes/` | 1536 / 2088 | 2072 / 2088 | 148 / 93 |
+
+Every candidate LCP is the parchment at first paint; CLS stayed at most
+0.001. The fixture has no article covers, so the cover savings above are
+per-file measurements, not page loads. On desktop (1440x900, 150 ms RTT,
+9 Mbit/s) LCP stayed within run-to-run noise on the tier list, classes,
+legendaries, cards, articles, cosmetics, heroes and the deck builder. The
+machine ran other builds (load average 25-40), and single runs varied by about
+0.3 s. A production repeat with the original audit profile is still required
+after integration.
+
 ## Original error evidence and limits
 
 The 19 October 2026 audit observed 71 transient 5xx responses: 46 detail 503,

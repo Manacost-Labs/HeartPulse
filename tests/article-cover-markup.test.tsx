@@ -22,15 +22,21 @@ assert.deepEqual([...ARTICLE_COVER_WIDTHS], [...SERVER_WIDTHS]);
 assert.deepEqual([...HOME_ARTICLE_COVER_WIDTHS], [...SERVER_WIDTHS]);
 
 const proxied = '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.com%2Fwp-content%2Fuploads%2F2026%2F09%2Fcover.png';
-const variants = {
-  src: `${proxied}&w=960`,
-  srcSet: `${proxied}&w=480 480w, ${proxied}&w=720 720w, ${proxied}&w=960 960w`,
-};
+const variantsOf = (base: string) => ({
+  src: `${base}&w=960`,
+  srcSet: `${base}&w=480 480w, ${base}&w=720 720w, ${base}&w=960 960w`,
+  avifSrcSet: `${base}&w=480&format=avif 480w, ${base}&w=720&format=avif 720w, ${base}&w=960&format=avif 960w`,
+});
+const variants = variantsOf(proxied);
 
 for (const responsive of [responsiveArticleCover, responsiveHomeCover]) {
   assert.deepEqual(responsive(proxied), variants, 'a proxied cover offers every allowlisted width');
-  assert.deepEqual(responsive('/uploads/admin/cover.webp'), { src: '/uploads/admin/cover.webp' },
-    'uploaded covers are not resized by the proxy');
+  // Admin uploads are stored up to 1800 px wide; production covers were 1176 px for a 560 px card.
+  assert.deepEqual(responsive('/uploads/admin/mvau7mzp-b38fa86861.webp'),
+    variantsOf('/api/article-cover?upload=mvau7mzp-b38fa86861.webp'), 'an admin upload offers every allowlisted width');
+  for (const other of ['/uploads/admin/Cover.webp', '/uploads/admin/cover.png', '/uploads/admin/a/b.webp', '/uploads/other/cover.webp']) {
+    assert.deepEqual(responsive(other), { src: other }, `${other} is not a generated upload name`);
+  }
   assert.deepEqual(responsive('https://evil.example/cover.png'), { src: 'https://evil.example/cover.png' });
   assert.deepEqual(responsive(''), { src: '' });
   assert.deepEqual(responsive('/api/article-cover?url=a,b'), { src: '/api/article-cover?url=a,b' },
@@ -56,6 +62,12 @@ const html = renderToStaticMarkup(
     loading={false} onNavigate={() => undefined} />,
 );
 const images = [...html.matchAll(/<img [^>]*>/g)].map(match => match[0]);
+const pictures = [...html.matchAll(/<picture class="contents"><source type="image\/avif" srcSet="([^"]+)" sizes="([^"]+)"\/><img /g)];
+assert.equal(pictures.length, 3, 'every cover offers AVIF first, inside a box-less <picture>');
+for (const [, srcSet, sizes] of pictures) {
+  assert.equal(srcSet.replace(/&amp;/g, '&'), variants.avifSrcSet);
+  assert.ok(sizes.length > 0);
+}
 assert.equal(images.length, 3);
 const [lead, ...rest] = images;
 assert.match(lead, /loading="eager"/, 'the first cover is the LCP candidate and loads eagerly');
@@ -71,6 +83,7 @@ assert.equal(cards[0].includes('anim-scale-in'), false, 'the card holding the LC
 assert.ok(cards.slice(1).every(classes => classes.includes('anim-scale-in')), 'the other cards keep their entrance');
 for (const image of rest) {
   assert.match(image, /loading="lazy"/, 'covers after the first stay lazy');
+  assert.match(image, /decoding="async"/);
   assert.doesNotMatch(image, /fetchPriority/i);
 }
 

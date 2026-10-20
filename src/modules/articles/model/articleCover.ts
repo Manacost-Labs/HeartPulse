@@ -36,17 +36,28 @@ export function articleImageSrc(value?: string): string {
   return raw;
 }
 
+/** `/uploads/admin/<name>`: the names server/adminImageUploadRoutes.ts generates. */
+const ADMIN_UPLOAD_COVER = /^\/uploads\/admin\/([a-z0-9-]+\.webp)$/;
+
+export type ResponsiveCover = { src: string; srcSet?: string; avifSrcSet?: string };
+
 /**
- * A proxied cover as WebP variants for `srcSet`; `src` is the widest variant
- * for browsers that ignore `srcSet`. Other sources are returned unchanged.
+ * A proxied cover or an admin upload as WebP and AVIF variants for `srcSet`;
+ * `src` is the widest WebP for browsers that ignore `srcSet`. Admin uploads
+ * are stored up to 1800 px wide, about three times a card. Other sources are
+ * returned unchanged.
  */
-export function responsiveArticleCover(value?: string): { src: string; srcSet?: string } {
+export function responsiveArticleCover(value?: string): ResponsiveCover {
   const src = articleImageSrc(value);
+  const upload = src.match(ADMIN_UPLOAD_COVER)?.[1];
+  const base = upload ? `/api/article-cover?upload=${upload}` : src;
   // A comma or space would split a srcset candidate.
-  if (!src.startsWith('/api/article-cover?') || /[\s,]/.test(src)) return { src };
-  const variant = (width: number) => `${src}&w=${width}`;
+  if (!base.startsWith('/api/article-cover?') || /[\s,]/.test(base)) return { src };
+  const variant = (width: number, format = '') => `${base}&w=${width}${format}`;
+  const srcSet = (format: string) => ARTICLE_COVER_WIDTHS.map(width => `${variant(width, format)} ${width}w`).join(', ');
   return {
     src: variant(ARTICLE_COVER_WIDTHS[ARTICLE_COVER_WIDTHS.length - 1]),
-    srcSet: ARTICLE_COVER_WIDTHS.map(width => `${variant(width)} ${width}w`).join(', '),
+    srcSet: srcSet(''),
+    avifSrcSet: srcSet('&format=avif'),
   };
 }
