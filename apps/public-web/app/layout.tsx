@@ -20,12 +20,12 @@ export const metadata: Metadata = {
   verification: { google: 'aGEyRvNTeG7FHSUUER0Tsfyyyd3sdRywc4qLycYIcpo' },
   icons: {
     icon: [
-      { url: '/favicon-16.png?v=hearthstone-cute-20260727', type: 'image/png', sizes: '16x16' },
-      { url: '/favicon-32.png?v=hearthstone-cute-20260727', type: 'image/png', sizes: '32x32' },
-      { url: '/favicon-96.png?v=hearthstone-cute-20260727', type: 'image/png', sizes: '96x96' },
-      { url: '/favicon.ico?v=hearthstone-cute-20260727', type: 'image/x-icon' },
+      { url: '/favicon-16.png?v=hearthstone-cute-20261020', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon-32.png?v=hearthstone-cute-20261020', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-96.png?v=hearthstone-cute-20261020', type: 'image/png', sizes: '96x96' },
+      { url: '/favicon.ico?v=hearthstone-cute-20261020', type: 'image/x-icon' },
     ],
-    apple: { url: '/apple-touch-icon.png?v=hearthstone-cute-20260727', type: 'image/png', sizes: '180x180' },
+    apple: { url: '/apple-touch-icon.png?v=hearthstone-cute-20261020', type: 'image/png', sizes: '180x180' },
   },
 };
 

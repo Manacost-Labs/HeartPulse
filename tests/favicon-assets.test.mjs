@@ -48,7 +48,7 @@ for (const sourceFile of sourceFiles) {
     assert.match(source, new RegExp(`${filename.replace('.', '\\.')}[^\\n>]*sizes[=:]\\s*["']${size}["']`),
       `${sourceFile} must advertise the ${size} favicon`);
   }
-  assert.match(source, /favicon\.ico\?v=hearthstone-cute-20260727/,
+  assert.match(source, /favicon\.ico\?v=hearthstone-cute-20261020/,
     `${sourceFile} must expose the multi-size ICO fallback`);
 }
 
