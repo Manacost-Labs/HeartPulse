@@ -28,7 +28,7 @@ const metaPayload = (format: 'standard' | 'wild') => ({
   rank: 'diamond_legend',
   rankLabel: 'Алмаз — Легенда',
   period: 'patch_36.0.3',
-  availablePeriods: ['patch_36.0.3', 'violet_hold', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks'],
+  availablePeriods: ['black_empire', 'patch_36.0.3', 'past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days'],
   currentPatchPeriod: 'patch_36.0.3',
   coin: 'any_player',
   minGames: 100,

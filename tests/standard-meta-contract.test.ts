@@ -299,6 +299,23 @@ assert.deepEqual(parseStandardMetaApiResponse(candidate(), now).data.availablePe
   'violet_hold',
 ]);
 assert.equal(parseStandardMetaApiResponse(candidate(), now).data.currentPatchPeriod, 'patch_36.0.3');
+const blackEmpirePeriods = [
+  'past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days',
+  'patch_36.6.3', 'black_empire',
+];
+const blackEmpire = parseStandardMetaApiResponse(candidate({
+  period: 'black_empire',
+  availablePeriods: blackEmpirePeriods,
+  currentPeriod: 'black_empire',
+  currentPatchPeriod: 'patch_36.6.3',
+}), now).data;
+assert.equal(blackEmpire.period, 'black_empire');
+assert.equal(blackEmpire.currentPeriod, 'black_empire');
+assert.deepEqual(blackEmpire.availablePeriods, blackEmpirePeriods);
+assert.throws(
+  () => parseStandardMetaApiResponse(candidate({ period: 'past_year' }), now),
+  /period is unsupported/,
+);
 assert.throws(
   () => parseStandardMetaApiResponse(candidate({ coin: 'on_coin' }), now),
   /coin is unsupported/,

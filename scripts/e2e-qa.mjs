@@ -2933,8 +2933,10 @@ for (const [device, viewport] of [
         'Топ-1000',
       ])
       || standardMetaState.formatCount !== 2
-      || !standardMetaState.periodLabels.includes('За весь патч 36.0.3')
-      || !standardMetaState.periodLabels.includes('За всё дополнение — Побег из Аметистовой крепости')
+      || !standardMetaState.periodLabels.includes('Патч 36.0.3')
+      || !standardMetaState.periodLabels.includes('Тёмная империя')
+      || !standardMetaState.periodLabels.includes('3 часа')
+      || !standardMetaState.periodLabels.includes('30 дней')
       || (device === 'mobile' && !standardMetaState.rankSelectVisible)
       || (device !== 'mobile' && standardMetaState.rankSelectVisible)
       || standardMetaState.legacyOrnamentPresent || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')

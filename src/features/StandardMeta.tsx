@@ -30,10 +30,12 @@ import {
   parseStandardMetaApiResponse,
   type StandardMetaPeriod,
 } from '../../shared/standardMetaContract';
+import { STANDARD_META_ROLLING_PERIODS } from '../../shared/standardMetaPeriods';
 import DeckListView, { type DeckListCard } from './decklist/DeckListView';
 import {
   orderStandardMetaPeriods,
   resolveStandardMetaDefaultPeriod,
+  standardMetaPeriodLabel,
 } from './standardMetaFilterModel';
 import StandardMetaChart from './StandardMetaChart';
 import { metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed } from './standardMetaTeaser';
@@ -149,20 +151,6 @@ const RANK_GROUPS: Array<{ label: string; icon: typeof Gem; ranks: MetaRank[] }>
   { label: 'Легенда', icon: Crown, ranks: ['legend', 'top_5k', 'top_legend'] },
 ];
 
-const PERIOD_LABELS: Partial<Record<MetaPeriod, string>> = {
-  past_day: 'За прошедший день',
-  past_3_days: 'За последние 3 дня',
-  past_week: 'За последнюю неделю',
-  past_2_weeks: 'За последние 2 недели',
-  violet_hold: 'За всё дополнение — Побег из Аметистовой крепости',
-  most_wanted: 'За мини-набор — В розыске',
-};
-
-function standardMetaPeriodLabel(period: MetaPeriod): string {
-  if (period.startsWith('patch_')) return `За весь патч ${period.slice('patch_'.length)}`;
-  return PERIOD_LABELS[period] ?? period;
-}
-
 const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
 const DECK_CLASS_COLORS: Record<MetaClass, string> = {
   deathknight: '#43596b',
@@ -184,7 +172,7 @@ const EMPTY_DATA: MetaPayload = {
   rank: 'diamond_legend',
   rankLabel: 'Алмаз — Легенда',
   period: 'past_day',
-  availablePeriods: ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'],
+  availablePeriods: [...STANDARD_META_ROLLING_PERIODS],
   currentPeriod: null,
   currentPatchPeriod: null,
   coin: 'any_player',

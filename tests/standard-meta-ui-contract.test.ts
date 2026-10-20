@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 import {
   orderStandardMetaPeriods,
   resolveStandardMetaDefaultPeriod,
+  standardMetaPeriodLabel,
 } from '../src/features/standardMetaFilterModel.js';
+import type { StandardMetaPeriod } from '../shared/standardMetaPeriods.js';
 
 const metaSource = readFileSync(
   new URL('../src/features/StandardMeta.tsx', import.meta.url),
@@ -18,30 +20,32 @@ const metaStyles = readFileSync(
   'utf8',
 );
 
+// HSGuru's menu order: expansion, patch, then rolling windows shortest first.
 assert.deepEqual(
   orderStandardMetaPeriods(
-    ['past_day', 'past_3_days', 'patch_36.0.3', 'violet_hold', 'past_week'],
-    'patch_36.0.3',
-    'patch_36.0.3',
+    ['past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days',
+      'patch_36.6.3', 'black_empire'],
+    'black_empire',
+    'patch_36.6.3',
   ),
-  ['patch_36.0.3', 'violet_hold', 'past_day', 'past_3_days', 'past_week'],
+  ['black_empire', 'patch_36.6.3', 'past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week',
+    'past_2_weeks', 'past_30_days'],
 );
-
 assert.deepEqual(
   orderStandardMetaPeriods(
-    ['past_day', 'patch_36.2.2', 'violet_hold', 'most_wanted'],
-    'most_wanted',
-    'patch_36.2.2',
+    ['past_day', 'past_3_days', 'patch_36.0.3', 'past_week'],
+    'patch_36.0.3',
+    'patch_36.0.3',
   ),
-  ['most_wanted', 'patch_36.2.2', 'violet_hold', 'past_day'],
+  ['patch_36.0.3', 'past_day', 'past_3_days', 'past_week'],
 );
 assert.equal(
   resolveStandardMetaDefaultPeriod(
-    ['past_day', 'patch_36.2.2', 'most_wanted'],
-    'most_wanted',
-    'patch_36.2.2',
+    ['past_day', 'patch_36.6.3', 'black_empire'],
+    'black_empire',
+    'patch_36.6.3',
   ),
-  'most_wanted',
+  'black_empire',
 );
 
 // The page opens on Diamond–Legend; a server-rendered teaser also fixes the
@@ -59,10 +63,10 @@ assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<PaywallGat
 assert.match(metaSource, /option\.asset/);
 assert.match(metaSource, /\/card-format-standard\.webp/);
 assert.match(metaSource, /\/assets\/card-format-wild-128\.webp/);
-assert.match(
-  metaSource,
-  /most_wanted:\s*'За мини-набор — В розыске'/,
-  'the current mini-set must use its official Russian name',
+assert.deepEqual(
+  ['black_empire', 'patch_36.6.3', 'past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week',
+    'past_2_weeks', 'past_30_days'].map(period => standardMetaPeriodLabel(period as StandardMetaPeriod)),
+  ['Тёмная империя', 'Патч 36.6.3', '3 часа', '6 часов', 'Сутки', '3 дня', 'Неделя', '2 недели', '30 дней'],
 );
 assert.doesNotMatch(metaSource, /standard-meta__season-context/);
 assert.doesNotMatch(metaStyles, /\.standard-meta__season-context/);

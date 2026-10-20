@@ -176,21 +176,32 @@ try {
   assert.deepEqual(calls, ['meta:wild:legend:patch_36.0.3:any_player:500']);
   calls.length = 0;
 
-  const expansionMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=violet_hold&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  const expansionMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=black_empire&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
   assert.equal(expansionMeta.status, 200);
-  assert.equal((await expansionMeta.json() as any).period, 'violet_hold');
-  assert.deepEqual(calls, ['meta:standard:legend:violet_hold:any_player:500']);
+  assert.equal((await expansionMeta.json() as any).period, 'black_empire');
+  assert.deepEqual(calls, ['meta:standard:legend:black_empire:any_player:500']);
   calls.length = 0;
 
-  const mostWantedMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=most_wanted&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
-  assert.equal(mostWantedMeta.status, 200);
-  assert.equal((await mostWantedMeta.json() as any).period, 'most_wanted');
-  assert.deepEqual(calls, ['meta:standard:legend:most_wanted:any_player:500']);
-  calls.length = 0;
+  // Retired release windows keep old links working by opening the current expansion.
+  for (const retired of ['violet_hold', 'most_wanted']) {
+    const retiredMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=${retired}&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+    assert.equal(retiredMeta.status, 200);
+    assert.equal((await retiredMeta.json() as any).period, 'black_empire');
+    assert.deepEqual(calls, ['meta:standard:legend:black_empire:any_player:500']);
+    calls.length = 0;
+  }
 
-  const removedSixHourMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=past_6_hours&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
-  assert.equal(removedSixHourMeta.status, 400);
+  for (const rolling of ['past_3_hours', 'past_6_hours', 'past_30_days']) {
+    const rollingMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=${rolling}&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+    assert.equal(rollingMeta.status, 200);
+    assert.deepEqual(calls, [`meta:wild:legend:${rolling}:any_player:500`]);
+    calls.length = 0;
+  }
+
+  const unknownPeriodMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=past_year&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(unknownPeriodMeta.status, 400);
   assert.deepEqual(calls, []);
+
 
   const invalid = await fetch(`${origin}/admin/standard-meta?format=classic&rank=bronze`, { headers: adminHeaders });
   assert.equal(invalid.status, 400);

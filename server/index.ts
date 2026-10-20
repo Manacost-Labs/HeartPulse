@@ -101,7 +101,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createMetaSliceCache, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
+import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createMetaSliceCache, loadWithRetiredPatchFallback, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
@@ -5988,9 +5988,12 @@ function loadStandardMeta(
   period: StandardMetaPeriod,
   coin: StandardMetaCoin,
   minGames: StandardMetaMinGames,
-) {
-  return standardMetaSliceCache.load(`${format}:${rank}:${period}:${coin}:${minGames}`,
-    previous => readStandardMetaSlice(format, rank, period, coin, minGames, previous));
+): Promise<unknown> {
+  const load = (slicePeriod: StandardMetaPeriod) => standardMetaSliceCache.load(
+    `${format}:${rank}:${slicePeriod}:${coin}:${minGames}`,
+    previous => readStandardMetaSlice(format, rank, slicePeriod, coin, minGames, previous),
+  );
+  return loadWithRetiredPatchFallback(period => load(period as StandardMetaPeriod), period);
 }
 
 async function readStandardMetaSlice(

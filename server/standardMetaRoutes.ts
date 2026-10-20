@@ -3,12 +3,12 @@ import type { StandardMetaClassKey } from './standardMetaClasses.js';
 import type { DeckCardData } from './deckCardData.js';
 import { createStandardMetaEnvelope } from './standardMetaDataset.js';
 import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
+import { resolveStandardMetaRequestPeriod, type StandardMetaPeriod } from '../shared/standardMetaPeriods.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_legend';
-export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
-  | 'violet_hold' | 'most_wanted' | `patch_${string}`;
+export type { StandardMetaPeriod };
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 
@@ -67,14 +67,6 @@ const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
 const RANKS = new Set<StandardMetaRank>([
   'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
 ]);
-const PERIODS = new Set<StandardMetaPeriod>([
-  'past_day',
-  'past_3_days',
-  'past_week',
-  'past_2_weeks',
-  'violet_hold',
-  'most_wanted',
-]);
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 
@@ -89,10 +81,7 @@ function readRank(value: unknown): StandardMetaRank | null {
 }
 
 function readPeriod(value: unknown): StandardMetaPeriod | null {
-  const period = String(value ?? 'past_day');
-  return PERIODS.has(period as StandardMetaPeriod) || /^patch_\d+(?:\.\d+){1,3}$/.test(period)
-    ? period as StandardMetaPeriod
-    : null;
+  return resolveStandardMetaRequestPeriod(String(value ?? 'past_day'));
 }
 
 function readCoin(value: unknown): StandardMetaCoin | null {

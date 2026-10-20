@@ -4,6 +4,11 @@ import {
   type DatasetMode,
   parseDatasetEnvelope,
 } from './datasetEnvelope.js';
+import {
+  isStandardMetaPeriod,
+  STANDARD_META_ROLLING_PERIODS,
+  type StandardMetaPeriod,
+} from './standardMetaPeriods.js';
 
 export const STANDARD_META_DATASET = 'standard-meta';
 export const STANDARD_META_MEDIA_TYPE = 'application/vnd.manacost.standard-meta.v1+json';
@@ -17,8 +22,7 @@ export type StandardMetaServingRank = Exclude<
   StandardMetaRank,
   'diamond_all' | 'top_500' | 'top_100'
 >;
-export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
-  | 'violet_hold' | 'most_wanted' | `patch_${string}`;
+export type { StandardMetaPeriod } from './standardMetaPeriods.js';
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 export type StandardMetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin'
@@ -64,15 +68,7 @@ const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
 const RANKS = new Set<StandardMetaServingRank>([
   'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
 ]);
-const FIXED_PERIODS = new Set<StandardMetaPeriod>([
-  'past_day',
-  'past_3_days',
-  'past_week',
-  'past_2_weeks',
-  'violet_hold',
-  'most_wanted',
-]);
-const DEFAULT_PERIODS: StandardMetaPeriod[] = ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'];
+const DEFAULT_PERIODS: StandardMetaPeriod[] = [...STANDARD_META_ROLLING_PERIODS];
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 const CLASSES = new Set<StandardMetaClass>([
@@ -82,11 +78,6 @@ const CLASSES = new Set<StandardMetaClass>([
 
 function invalid(message: string): never {
   throw new DatasetContractError('INVALID_DATA', `standard-meta: ${message}`);
-}
-
-function isPeriod(value: unknown): value is StandardMetaPeriod {
-  return typeof value === 'string'
-    && (FIXED_PERIODS.has(value as StandardMetaPeriod) || /^patch_\d+(?:\.\d+){1,3}$/.test(value));
 }
 
 function dataRecord(value: unknown, label: string): Record<string, unknown> {
@@ -145,7 +136,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   const period = (data.period ?? 'past_day') as StandardMetaPeriod;
   const coin = (data.coin ?? 'any_player') as StandardMetaCoin;
   const minGames = Number(data.minGames ?? 100) as StandardMetaMinGames;
-  if (!isPeriod(period)) invalid('period is unsupported');
+  if (!isStandardMetaPeriod(period)) invalid('period is unsupported');
   if (!COINS.has(coin)) invalid('coin is unsupported');
   if (!MIN_GAMES.has(minGames)) invalid('minGames is unsupported');
   if (!Array.isArray(data.items)) invalid('items must be an array');
@@ -167,13 +158,13 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
     invalid('availablePeriods must be an array with at most 12 entries');
   }
   const availablePeriods = rawAvailablePeriods.map((value, index) => {
-    if (!isPeriod(value)) invalid(`availablePeriods[${index}] is unsupported`);
+    if (!isStandardMetaPeriod(value)) invalid(`availablePeriods[${index}] is unsupported`);
     return value;
   });
   if (!availablePeriods.includes(period)) availablePeriods.push(period);
   const rawCurrentPatchPeriod = data.currentPatchPeriod ?? null;
   if (rawCurrentPatchPeriod !== null && (
-    !isPeriod(rawCurrentPatchPeriod)
+    !isStandardMetaPeriod(rawCurrentPatchPeriod)
     || !rawCurrentPatchPeriod.startsWith('patch_')
     || !availablePeriods.includes(rawCurrentPatchPeriod)
   )) {
@@ -181,7 +172,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   }
   const rawCurrentPeriod = data.currentPeriod ?? rawCurrentPatchPeriod;
   if (rawCurrentPeriod !== null && (
-    !isPeriod(rawCurrentPeriod)
+    !isStandardMetaPeriod(rawCurrentPeriod)
     || !availablePeriods.includes(rawCurrentPeriod)
   )) {
     invalid('currentPeriod must reference an available period');

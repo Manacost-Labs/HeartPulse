@@ -102,3 +102,22 @@ export async function warmMetaEntrySlices(load: (period: string) => Promise<unkn
     console.warn('[standard-meta] prewarm failed:', error instanceof Error ? error.message : error);
   }
 }
+
+/**
+ * The source answers HTTP 422 for a patch it no longer collects. An old link
+ * to such a patch opens the current patch (named by the `past_day` slice)
+ * instead of failing; every other error is rethrown unchanged.
+ */
+export async function loadWithRetiredPatchFallback(
+  load: (period: string) => Promise<unknown>,
+  period: string,
+): Promise<unknown> {
+  try {
+    return await load(period);
+  } catch (error) {
+    if (!period.startsWith('patch_') || !(error instanceof Error) || error.message !== 'Upstream HTTP 422') throw error;
+    const current = ((await load('past_day')) as { currentPatchPeriod?: unknown } | null)?.currentPatchPeriod;
+    if (typeof current !== 'string' || !current.startsWith('patch_') || current === period) throw error;
+    return load(current);
+  }
+}

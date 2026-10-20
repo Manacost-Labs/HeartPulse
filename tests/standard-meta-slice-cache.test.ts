@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setImmediate as flush } from 'node:timers/promises';
-import { createMetaSliceCache, warmMetaEntrySlices } from '../server/modules/constructedArchetypes/public.js';
+import { createMetaSliceCache, loadWithRetiredPatchFallback, warmMetaEntrySlices } from '../server/modules/constructedArchetypes/public.js';
 
 type Slice = { key: string; version: number };
 
@@ -116,4 +116,23 @@ test('warming reads the default period, then the current period it names', async
   assert.deepEqual(loaded, ['past_day']);
   await warmMetaEntrySlices(async () => { throw new Error('upstream down'); });
   assert.equal(warn.mock.callCount(), 1, 'a failed warm-up is logged, never thrown');
+});
+
+test('a link to a patch the source no longer collects opens the current patch', async () => {
+  const fallbackCalls: string[] = [];
+  const retiredPatch = await loadWithRetiredPatchFallback(async period => {
+    fallbackCalls.push(period);
+    if (period === 'patch_36.2.0') throw new Error('Upstream HTTP 422');
+    return { period, currentPatchPeriod: 'patch_36.6.3' };
+  }, 'patch_36.2.0');
+  assert.deepEqual(retiredPatch, { period: 'patch_36.6.3', currentPatchPeriod: 'patch_36.6.3' });
+  assert.deepEqual(fallbackCalls, ['patch_36.2.0', 'past_day', 'patch_36.6.3']);
+  await assert.rejects(
+    loadWithRetiredPatchFallback(async () => { throw new Error('Upstream HTTP 503'); }, 'patch_36.2.0'),
+    /Upstream HTTP 503/,
+  );
+  await assert.rejects(
+    loadWithRetiredPatchFallback(async () => { throw new Error('Upstream HTTP 422'); }, 'past_day'),
+    /Upstream HTTP 422/,
+  );
 });
