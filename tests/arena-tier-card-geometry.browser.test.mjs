@@ -24,7 +24,8 @@ test('tier-list cards share one box per row and glow by rarity at phone and desk
         for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__layoutShift += entry.value;
       }).observe({ type: 'layout-shift', buffered: true });
     });
-    for (const [width, height] of [[1440, 900], [412, 915]]) {
+    // At 560px a phone-capped 190px frame sits inside a wider card button.
+    for (const [width, height] of [[1440, 900], [412, 915], [560, 900]]) {
       await page.setViewport({ width, height });
       await page.goto(storybook.storyUrl(STORY), { waitUntil: 'networkidle0' });
       await page.waitForSelector('.tierlist-card-grid .hs-tier-card img');
@@ -82,7 +83,8 @@ test('tier-list cards share one box per row and glow by rarity at phone and desk
             const box = card.getBoundingClientRect();
             const glow = getComputedStyle(card, '::before');
             const image = card.querySelector('img');
-            return { name: card.getAttribute('aria-label'), rarity: card.dataset.rarity, frame: card.dataset.cardFrame ?? null,
+            const frame = card.querySelector('.hs-tier-card-inner').getBoundingClientRect();
+            return { frameWidth: frame.width, name: card.getAttribute('aria-label'), rarity: card.dataset.rarity, frame: card.dataset.cardFrame ?? null,
               left: box.left, top: box.top, width: box.width, height: box.height, right: box.right, bottom: box.bottom,
               glow: { color: glow.backgroundColor, opacity: glow.opacity, width: parseFloat(glow.width) },
               art: image ? visibleArt(image) : null };
@@ -108,7 +110,7 @@ test('tier-list cards share one box per row and glow by rarity at phone and desk
         assert.ok(RARITIES.includes(card.rarity), `${width}px ${card.name}: carries its rarity`);
         assert.equal(card.glow.color, layout.tokens[card.rarity], `${width}px ${card.name}: glows in the ${card.rarity} colour`);
         assert.equal(card.glow.opacity, '0', `${width}px ${card.name}: the glow waits for hover or focus`);
-        assert.ok(card.glow.width < card.width, `${width}px ${card.name}: the glow stays behind the card`);
+        assert.ok(card.glow.width < card.frameWidth, `${width}px ${card.name}: the glow stays behind the card frame`);
         if (!card.art) continue;
         // Dragon-framed legendaries and location frames stay inside the card box.
         assert.ok(card.art.left >= card.left - 1 && card.art.right <= card.right + 1

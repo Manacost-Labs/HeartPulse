@@ -513,25 +513,27 @@
     --card-rarity-glow: var(--card-rarity-glow-common);
     display: grid;
     width: 100%;
-    max-width: var(--tier-card-max-width, 230px);
+    max-width: 230px;
     place-items: center;
     isolation: isolate;
   }
 
   /* The card library's rarity glow (StandardCards.css): a blurred plate behind
-     the art that only transform and opacity animate. The button is exactly
-     the 512:776 frame, and a 360:497 render is width-bound and centred in it,
-     so the plate starts 9% of the card width below the render's top edge.
-     Margin percentages resolve against the width. */
+     the art that only transform and opacity animate. It is sized from the
+     512:776 frame, which phones cap below the button's width; a 360:497
+     render is width-bound and centred in that frame, so the plate starts 9%
+     of the frame width below the render's top edge. Margin percentages
+     resolve against the button's width. */
   .hs-tier-card::before {
+    --tier-card-frame-width: min(100%, var(--tier-card-max-width, 230px));
     content: '';
     position: absolute;
     z-index: -1;
     top: 0;
     right: 0;
     left: 0;
-    width: 82%;
-    margin: calc((776 / 512 - 497 / 360) * 50% + 9%) auto 0;
+    width: calc(var(--tier-card-frame-width) * 0.82);
+    margin: calc(var(--tier-card-frame-width) * ((776 / 512 - 497 / 360) / 2 + 0.09)) auto 0;
     aspect-ratio: 0.75;
     border-radius: 9%;
     background: var(--card-rarity-glow);
