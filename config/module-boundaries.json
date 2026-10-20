@@ -324,12 +324,13 @@
       "id": "server.constructedArchetypes",
       "runtime": "server",
       "root": "server/modules/constructedArchetypes",
-      "purpose": "Owns archetype catalog snapshots, source validation and independently readable protected detail sections; composition injects source and enrichment ports.",
+      "purpose": "Owns archetype catalog and Standard meta slice snapshots, source validation and independently readable protected detail sections; composition injects source and enrichment ports.",
       "owner": "traditional-data",
       "publicEntry": "server/modules/constructedArchetypes/public.ts",
       "dependencies": [],
       "focusedTests": [
         "npm run test:archetypes-catalog-cache",
+        "npm run test:standard-meta-cache",
         "npm run test:constructed-archetype-routes"
       ],
       "docs": [

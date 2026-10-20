@@ -42,6 +42,7 @@
         "tests/archetype-deck-identity.test.ts",
         "tests/archetype-detail-model.test.ts",
         "tests/constructed-archetype-catalog-cache.test.ts",
+        "tests/standard-meta-slice-cache.test.ts",
         "tests/architecture-baseline.test.mjs",
         "tests/architecture-catalog.test.mjs",
         "tests/arena-class-statistics-normalizer.test.ts",

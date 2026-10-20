@@ -16,6 +16,13 @@ See [the operating contract](../../../docs/runbooks/constructed-archetypes-perfo
 Verification: `node --import=tsx --test tests/constructed-archetype-catalog-cache.test.ts`
 and `node --import=tsx tests/constructed-archetype-routes.test.ts`.
 
+`createMetaSliceCache` applies the same policy to the Standard meta slices
+(`/api/standard-meta`, its teaser and the public meta API), keyed by format,
+rank, period, coin and minimum games. Composition passes the legacy reader;
+the cache hands it the last good slice for the continuity check and keeps that
+slice when a read fails or is rejected. Verification:
+`npm run test:standard-meta-cache`.
+
 The detail handler serves compatible `core`, `history`, `analysis` and default
 full projections through injected readers. Mount it after access/private
 response guards. It never starts optional reads for `core` and surfaces optional

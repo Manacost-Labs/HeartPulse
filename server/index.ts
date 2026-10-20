@@ -101,7 +101,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { assertArchetypeCatalogSource, createArchetypeCatalogCache } from './modules/constructedArchetypes/public.js';
+import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createMetaSliceCache, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
@@ -346,7 +346,6 @@ const winratesApiCache = new Map<string, MemoryCacheEntry>();
 const tierlistApiCache = new Map<string, MemoryCacheEntry>();
 const legendariesApiCache = new Map<string, MemoryCacheEntry>();
 const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
-const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeHistoryCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeAnalysisCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
@@ -5980,106 +5979,98 @@ function transformHsguruMeta(
   };
 }
 
-async function loadStandardMeta(
+const standardMetaSliceCache = createMetaSliceCache<unknown>({ ttlMs: EXTERNAL_DATASET_CACHE_MS, onRefreshError: (slice, error) => console.warn(
+  `[standard-meta] ${slice} refresh failed; serving last known good when available:`, error instanceof Error ? error.message : error) });
+
+function loadStandardMeta(
   format: StandardMetaFormat,
   rank: StandardMetaRank,
   period: StandardMetaPeriod,
   coin: StandardMetaCoin,
   minGames: StandardMetaMinGames,
 ) {
-  const cacheKey = `${format}:${rank}:${period}:${coin}:${minGames}`;
+  return standardMetaSliceCache.load(`${format}:${rank}:${period}:${coin}:${minGames}`,
+    previous => readStandardMetaSlice(format, rank, period, coin, minGames, previous));
+}
+
+async function readStandardMetaSlice(
+  format: StandardMetaFormat,
+  rank: StandardMetaRank,
+  period: StandardMetaPeriod,
+  coin: StandardMetaCoin,
+  minGames: StandardMetaMinGames,
+  previous: unknown,
+) {
   const now = Date.now();
-  const cached = standardMetaApiCache.get(cacheKey);
-  if (cached && cached.expiresAt > now) return cached.data;
-  try {
-    const query = new URLSearchParams({
-      format,
-      rank: STANDARD_META_UPSTREAM_RANK[rank],
-      period,
-      coin,
-      min_games: String(minGames),
-    });
-    const [payload, translations] = await Promise.all([
-      fetchDataset(`v1/hsguru/meta?${query}`, 20_000),
-      getStandardArchetypeTranslations(now),
-    ]);
-    const sourceUpdatedAt = payload?.meta?.fetched_at ?? null;
-    if (!sourceUpdatedAt || !Number.isFinite(Date.parse(sourceUpdatedAt))) {
-      throw new Error('HSGuru matrix timestamp is invalid');
-    }
-    const rows = Array.isArray(payload?.data?.items) ? payload.data.items : [];
-    const availablePeriods = (Array.isArray(payload?.meta?.available_periods)
-      ? payload.meta.available_periods
-      : ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'])
-      .map((value: unknown) => String(value));
-    const currentPatchPeriod = typeof payload?.meta?.current_patch_period === 'string'
-      ? payload.meta.current_patch_period
-      : null;
-    const currentPeriod = typeof payload?.meta?.current_period === 'string'
-      ? payload.meta.current_period
-      : currentPatchPeriod;
-    const data = {
-      publicationMode: 'stable' as const,
-      publishedAt: sourceUpdatedAt,
-      format,
-      formatLabel: STANDARD_META_FORMAT_LABEL[format],
-      rank,
-      rankLabel: STANDARD_META_RANK_LABEL[rank],
-      period,
-      availablePeriods,
-      currentPeriod,
-      currentPatchPeriod,
-      coin,
-      minGames,
-      source: 'hsguru',
-      sourceId: 'hsguru_meta_matrix',
-      sourceUrl: String(payload?.data?.source_url ?? ''),
-      translationSource: translations.source,
-      updatedAt: sourceUpdatedAt,
-      items: rows.flatMap((row: any) => {
-        const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
-        if (!archetype) return [];
-        const archetypeLabel = translateStandardArchetype(archetype, translations.map);
-        return [{
-          id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
-          slug: constructedArchetypeSlug(archetype),
-          archetype,
-          archetypeLabel,
-          translated: archetypeLabel !== archetype,
-          classKey: inferStandardMetaClass(archetype),
-          winrate: parseNumber(row.winrate),
-          popularity: parseNumber(row.popularity),
-          games: parseCount(row.games),
-          turns: parseNumber(row.turns),
-          durationMinutes: parseNumber(row.duration_minutes),
-          climbingSpeed: parseNumber(row.climbing_speed),
-        }];
-      }),
-    };
-    const selected = selectStandardMetaCandidate(data, cached?.data ?? null, now);
-    if (selected.rejectedError) {
-      if (!cached) throw selected.rejectedError;
-      cached.expiresAt = now + 60_000;
-      console.warn(
-        '[standard-meta] candidate rejected; serving last known good:',
-        selected.rejectedError instanceof Error ? selected.rejectedError.message : selected.rejectedError,
-      );
-      return selected.data;
-    }
-    standardMetaApiCache.set(cacheKey, {
-      data: selected.data,
-      etag: selected.envelope.datasetVersion,
-      expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
-    });
-    return selected.data;
-  } catch (error) {
-    if (!cached) throw error;
-    // Keep the last validated in-process document visible while retrying the
-    // source on a short cadence. Its envelope reports the real stale age.
-    cached.expiresAt = now + 60_000;
-    console.warn('[standard-meta] candidate rejected; serving last known good:', error instanceof Error ? error.message : error);
-    return cached.data;
+  const query = new URLSearchParams({
+    format,
+    rank: STANDARD_META_UPSTREAM_RANK[rank],
+    period,
+    coin,
+    min_games: String(minGames),
+  });
+  const [payload, translations] = await Promise.all([
+    fetchDataset(`v1/hsguru/meta?${query}`, 20_000),
+    getStandardArchetypeTranslations(now),
+  ]);
+  const sourceUpdatedAt = payload?.meta?.fetched_at ?? null;
+  if (!sourceUpdatedAt || !Number.isFinite(Date.parse(sourceUpdatedAt))) {
+    throw new Error('HSGuru matrix timestamp is invalid');
   }
+  const rows = Array.isArray(payload?.data?.items) ? payload.data.items : [];
+  const availablePeriods = (Array.isArray(payload?.meta?.available_periods)
+    ? payload.meta.available_periods
+    : ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'])
+    .map((value: unknown) => String(value));
+  const currentPatchPeriod = typeof payload?.meta?.current_patch_period === 'string'
+    ? payload.meta.current_patch_period
+    : null;
+  const currentPeriod = typeof payload?.meta?.current_period === 'string'
+    ? payload.meta.current_period
+    : currentPatchPeriod;
+  const data = {
+    publicationMode: 'stable' as const,
+    publishedAt: sourceUpdatedAt,
+    format,
+    formatLabel: STANDARD_META_FORMAT_LABEL[format],
+    rank,
+    rankLabel: STANDARD_META_RANK_LABEL[rank],
+    period,
+    availablePeriods,
+    currentPeriod,
+    currentPatchPeriod,
+    coin,
+    minGames,
+    source: 'hsguru',
+    sourceId: 'hsguru_meta_matrix',
+    sourceUrl: String(payload?.data?.source_url ?? ''),
+    translationSource: translations.source,
+    updatedAt: sourceUpdatedAt,
+    items: rows.flatMap((row: any) => {
+      const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
+      if (!archetype) return [];
+      const archetypeLabel = translateStandardArchetype(archetype, translations.map);
+      return [{
+        id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
+        slug: constructedArchetypeSlug(archetype),
+        archetype,
+        archetypeLabel,
+        translated: archetypeLabel !== archetype,
+        classKey: inferStandardMetaClass(archetype),
+        winrate: parseNumber(row.winrate),
+        popularity: parseNumber(row.popularity),
+        games: parseCount(row.games),
+        turns: parseNumber(row.turns),
+        durationMinutes: parseNumber(row.duration_minutes),
+        climbingSpeed: parseNumber(row.climbing_speed),
+      }];
+    }),
+  };
+  // A rejected candidate keeps the last validated slice in the cache; its
+  // envelope reports the real stale age.
+  const selected = selectStandardMetaCandidate(data, previous, now);
+  if (selected.rejectedError) throw selected.rejectedError;
+  return selected.data;
 }
 
 const constructedArchetypeCatalogCache = createArchetypeCatalogCache({
@@ -7571,6 +7562,7 @@ app.use('/api', createGlobalSearchRouter({
   ),
 }));
 
+if (BACKGROUND_JOBS_ENABLED) void warmMetaEntrySlices(period => loadStandardMeta('standard', 'diamond_legend', period as StandardMetaPeriod, 'any_player', 100));
 app.use('/api', createStandardMetaRouter({
   adminGuard: adminIdGuard,
   accessGuard: requireStandardAccess,
@@ -9433,7 +9425,7 @@ function standardOperationsStatus() {
     publicRoutes: ['/standard/cards'],
     diamondRoutes: ['/standard/matchups', '/standard/meta', '/standard/vicious-gold'],
     caches: {
-      meta: { entries: standardMetaApiCache.size, fresh: freshCount(standardMetaApiCache) },
+      meta: standardMetaSliceCache.stats(),
       viciousGold: { entries: viciousSyndicateGoldApiCache.size, fresh: freshCount(viciousSyndicateGoldApiCache) },
       viciousGoldBuilds: { entries: viciousSyndicateGoldBuildsApiCache.size, fresh: freshCount(viciousSyndicateGoldBuildsApiCache) },
       recommendations: { entries: standardMetaRecommendationCache.size, active: standardMetaRecommendationJobs.size },
@@ -9458,7 +9450,7 @@ function standardOperationsStatus() {
 
 function resetStandardCache(target: StandardCacheTarget) {
   if (target === 'meta' || target === 'all') {
-    standardMetaApiCache.clear();
+    standardMetaSliceCache.clear();
     viciousSyndicateGoldApiCache.clear();
     viciousSyndicateGoldBuildsApiCache.clear();
     viciousSyndicateGoldBuildsGeneration += 1;
@@ -9527,7 +9519,7 @@ async function invalidateParserControlledDataCaches(): Promise<void> {
       tierlistApiCache,
       legendariesApiCache,
       standardMatchupsApiCache,
-      standardMetaApiCache,
+      standardMetaSliceCache,
       constructedArchetypeCatalogCache,
       constructedArchetypeHistoryCache,
       constructedArchetypeAnalysisCache,
