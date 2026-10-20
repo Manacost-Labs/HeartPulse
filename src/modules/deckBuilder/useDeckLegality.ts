@@ -22,7 +22,7 @@ export function useDeckLegality(deck: BuilderEntry[], heroClass: BuilderClass, l
   }, [load, needsRules, rules, retry]);
   const destination = touristDestination(deck, heroClass, rules ?? empty);
   const issues = legalityIssues(deck, heroClass, rules ?? empty, runes);
-  if (needsRules && !rules) issues.unshift(error || 'Загружаем требования к картам…');
+  if (needsRules && !rules) issues.unshift(error || 'Загружаем требования к картам');
   return { destination, runes, error: needsRules ? error : '', needsRunes: heroClass === 'DEATHKNIGHT' || destination === 'DEATHKNIGHT',
     issues, loading: needsRules && !rules && !error,
     legal: (card: BuilderCard, current = deck) => !(needsRules && !rules) && isLegalDeckCard(card, heroClass, current, rules ?? empty, runes),

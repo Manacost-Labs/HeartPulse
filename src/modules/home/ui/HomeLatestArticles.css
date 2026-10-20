@@ -199,3 +199,9 @@
 
   .arena-app-home .home-latest-article__body { min-height: 172px; }
 }
+
+/* The section's loading fallback (HomeLatestArticlesSkeleton) flows exactly
+   like the loaded section; its link row only reserves its line. */
+.home-latest-articles.loading-surface,
+.home-latest-articles > .loading-surface__blocks { display: block; }
+.home-latest-articles__all--loading { visibility: hidden; }

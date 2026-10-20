@@ -484,3 +484,5 @@ export default function ConstructedArchetypeAnalysis({
     </div>
   );
 }
+
+export { ArchetypeAnalysisSkeleton } from './ConstructedArchetypeAnalysisSkeleton';

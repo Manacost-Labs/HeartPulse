@@ -977,7 +977,6 @@
   background: rgba(239, 201, 111, 0.1);
 }
 
-.archetype-deck-card__skeletons { gap: 0.35rem; }
 
 .archetype-deck-card__state--error {
   place-items: center;

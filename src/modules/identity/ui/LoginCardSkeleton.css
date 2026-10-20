@@ -1,0 +1,131 @@
+/*
+ * Loading state of the sign-in card (LoginCardSkeleton.tsx). LoginPanel.css is
+ * a lazy route stylesheet, so this small eager file repeats only the frame
+ * geometry of .login-page and .login-card; keep the two in step.
+ */
+.login-card-skeleton {
+  min-height: calc(100vh - 3rem);
+  padding: clamp(1.5rem, 5vw, 4rem) 0;
+  background-color: #ead6a7;
+  background-image:
+    linear-gradient(rgba(249, 235, 202, 0.72), rgba(236, 213, 166, 0.78)),
+    var(--arena-parchment-texture);
+  background-position: center;
+  background-size: cover;
+}
+
+.login-card-skeleton__card {
+  display: block;
+  width: min(100%, 440px);
+  margin: 0 auto;
+  padding: 32px 28px 28px;
+  border: 2px solid #6b4a2a;
+  border-radius: 16px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.45;
+  background: #fbf3dc;
+  box-shadow: 0 0 0 5px #e3cb94, 0 20px 44px rgba(58, 36, 18, 0.28);
+}
+
+.login-card-skeleton__stack,
+.login-card-skeleton__form,
+.login-card-skeleton__header {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-card-skeleton__stack { gap: 18px; }
+.login-card-skeleton__form { gap: 12px; }
+
+.login-card-skeleton__header {
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.login-card-skeleton__emblem {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+}
+
+/* Text placeholders set the real copy as transparent generated content: each
+   line gets its own fill, and the block wraps like the text at every width
+   and font, with no text in the DOM. */
+.login-card-skeleton__text {
+  display: inline;
+  color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.login-card-skeleton__text[data-text]::before,
+.login-card-skeleton__text [data-text]::before { content: attr(data-text); }
+
+.login-card-skeleton__title {
+  display: block;
+  font: 800 clamp(1.6rem, 6vw, 2rem) / 1.1 var(--font-hs);
+}
+
+.login-card-skeleton__intro,
+.login-card-skeleton__hint,
+.login-card-skeleton__legal { display: block; }
+
+/* The mode switch: 44 px tabs in a 4 px inset and a 1.5 px border, which
+   snaps to device pixels like the real one. */
+.login-card-skeleton__tabs {
+  box-sizing: content-box;
+  height: 44px;
+  padding: 4px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+}
+
+.login-card-skeleton__field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.login-card-skeleton__input,
+.login-card-skeleton__submit {
+  height: 48px;
+  border-radius: 10px;
+}
+
+.login-card-skeleton__hint { font-size: 0.95rem; }
+
+.login-card-skeleton__link {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  align-self: center;
+  font-weight: 700;
+}
+
+.login-card-skeleton__legal {
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.login-card-skeleton__legal b { font-weight: 700; }
+
+@media (max-width: 420px) {
+  .login-card-skeleton__card { padding: 24px 18px 20px; }
+}
+
+/* The narrow account frame that IdentityProfile.css (lazy, with the card)
+   gives the shell, applied while the skeleton holds the page, so the frame
+   does not move when the card arrives. */
+@media (max-width: 1023px) {
+  .arena-app-profile .arena-main:has(.login-card-skeleton) {
+    padding-inline: 0;
+    padding-bottom: 0;
+  }
+
+  .arena-app-profile .arena-content.bg-parchment:has(.login-card-skeleton) {
+    max-width: 100%;
+    padding: 0 1rem 2rem;
+  }
+}

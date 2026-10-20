@@ -9,6 +9,7 @@ import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { Contest } from '../model/types';
 import { requestContestJoin, requestContests } from '../api/contestRequests';
 import { ContestsSkeleton } from './ContestsSkeleton';
+import './ContestsPage.css';
 
 type PageMessage = { type: 'ok' | 'err'; text: string };
 
@@ -114,18 +115,25 @@ export function ContestsPage({
   initialContests?: Contest[];
 }) {
   const [contests, setContests] = useState<Contest[]>(initialContests ?? []);
-  const [loading, setLoading] = useState(!initialContests);
+  // `loaded`: there is a list on screen (the server's public one or a fetched one).
+  // A later request for the viewer's own entries keeps it visible, dimmed and
+  // aria-busy, instead of swapping it back to the skeleton.
+  const [loaded, setLoaded] = useState(Boolean(initialContests));
+  const [pending, setPending] = useState(!initialContests);
+  const [loadError, setLoadError] = useState('');
   const [joiningId, setJoiningId] = useState('');
   const [message, setMessage] = useState<PageMessage | null>(null);
 
   const loadContests = useCallback(async () => {
-    setLoading(true);
+    setPending(true);
+    setLoadError('');
     try {
       setContests(await requestContests());
+      setLoaded(true);
     } catch (error: unknown) {
-      setMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось загрузить конкурсы' });
+      setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить конкурсы');
     } finally {
-      setLoading(false);
+      setPending(false);
     }
   }, []);
 
@@ -178,10 +186,17 @@ export function ContestsPage({
         <div><strong>3</strong><span>После завершения появятся ID победителей</span></div>
       </div>
 
-      {loading ? (
-        <ContestsSkeleton />
+      {loadError && (
+        <div className={`contest-message contest-message-err contest-message--retry${loaded ? '' : ' contest-load-error'}`} role="alert">
+          <span>{loaded ? `Не удалось обновить конкурсы. ${loadError}` : loadError}</span>
+          <button type="button" className="contest-message-retry" onClick={() => void loadContests()}>Повторить</button>
+        </div>
+      )}
+
+      {!loaded ? (
+        pending ? <ContestsSkeleton /> : null
       ) : contests.length ? (
-        <div className="contest-grid">
+        <div className="contest-grid data-surface" aria-busy={pending}>
           {contests.map(contest => (
             <ContestCard
               key={contest.id}
@@ -195,7 +210,7 @@ export function ContestsPage({
           ))}
         </div>
       ) : (
-        <div className="contest-empty">
+        <div className="contest-empty data-surface" aria-busy={pending}>
           <Gift size={34} />
           <strong>Сейчас активных конкурсов нет</strong>
           <span>Когда конкурс будет создан, он появится на этой странице.</span>

@@ -3,7 +3,7 @@
  * the components layer, so the owning surface's own (unlayered) class can set
  * the geometry of its content: reserve the same size, and a swap from loader
  * to content does not move the page. Only views that render a loader load
- * this file; the pulse keyframes are global (src/index.css).
+ * this file; the pulse and reveal keyframes are global (src/index.css).
  */
 @layer components {
   .loading-surface {
@@ -40,6 +40,22 @@
     gap: 0.6rem;
   }
 
+  /* A response that arrives within the reveal delay (a cached or fast API)
+     swaps straight to content: the reserved geometry is there from the first
+     frame, but the placeholder fill only fades in once the wait is
+     noticeable. Opacity only, so the delay never moves anything; the dimming
+     of a refreshing .data-surface waits for the same delay. */
+  .loading-surface,
+  .data-surface {
+    --loading-reveal-delay: 160ms;
+  }
+
+  .loading-surface--panel,
+  .loading-surface__blocks,
+  .loading-surface__caption:not(.sr-only) {
+    animation: loading-reveal var(--motion-fast) var(--motion-ease) var(--loading-reveal-delay) backwards;
+  }
+
   /* Default blocks only: custom blocks take their size from their own class. */
   .loading-block--line { block-size: 0.85rem; }
   .loading-block--line:nth-child(2) { inline-size: 86%; }
@@ -66,11 +82,16 @@
      While the section refreshes it stays on screen, dimmed and aria-busy,
      instead of turning back into a loader. */
   .data-surface { transition: opacity var(--motion-base) var(--motion-ease); }
-  .data-surface[aria-busy="true"] { opacity: 0.62; }
+  .data-surface[aria-busy="true"] { opacity: 0.62; transition-delay: var(--loading-reveal-delay); }
 
   @starting-style {
     .data-arrive { opacity: 0.24; }
   }
+
+  /* An inert subtree (a guest's blurred, locked preview) never finishes
+     loading and is decorative: a looping pulse there would repaint the blurred
+     layer every frame for the whole visit, so its placeholders stay still. */
+  [inert] .loading-block { animation: none; }
 
   @media (prefers-reduced-motion: reduce) {
     .loading-block { animation: none; }

@@ -30,9 +30,12 @@ export const Ready: Story = {
 };
 export const Loading: Story = {
   args: { state: { status: 'loading', data: null } },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('status')).toHaveTextContent('Загрузка статистики');
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем статистику классов');
+    await expect(canvas.getAllByRole('status')).toHaveLength(1);
     await expect(canvas.queryByRole('list')).not.toBeInTheDocument();
+    await expect(canvasElement.querySelectorAll('.arena-classes-loading .arena-class-row')).toHaveLength(11);
+    await expect(canvasElement.querySelector('.skeleton')).toBeNull();
   },
 };
 export const Refreshing: Story = {

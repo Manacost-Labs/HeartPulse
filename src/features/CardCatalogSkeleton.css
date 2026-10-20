@@ -1,0 +1,25 @@
+/* Placeholder tiles take padding, grid and the 0.72 art box from the real
+   gallery classes; only the text lines need a measured height. */
+.card-catalog-skeleton__card { pointer-events: none; }
+.card-catalog-skeleton__card .constructed-cards__gallery-image { filter: none; }
+/* The name line: 0.82rem at line-height 1.1, raised 0.1rem like the real one. */
+.card-catalog-skeleton__name { width: 72%; height: 0.902rem; margin-top: -0.1rem; }
+/* One line of label and value; a long set name can wrap to a second line. */
+.card-catalog-skeleton__stat { width: 6.2rem; height: 0.962rem; }
+
+/* The table view inside the real wrap: the table section's 1 px border,
+   its 61 px tools bar, the 42 px header and 49.8 px compact rows. Phones
+   show each row as a 223.8 px card without a header. */
+.card-catalog-skeleton__table { display: grid; gap: 0; padding: 1px; }
+.card-catalog-skeleton__table .loading-block { border-radius: 0; }
+.card-catalog-skeleton__table-tools { height: 61px; }
+.card-catalog-skeleton__table-head { height: 42px; }
+.card-catalog-skeleton__table-rows { display: grid; gap: 0; }
+.card-catalog-skeleton__table-rows .loading-block { height: 49.8px; border-bottom: 1px solid var(--arena-paper-line); }
+
+@media (max-width: 640px) {
+  .card-catalog-skeleton__table-tools { height: 65px; }
+  .card-catalog-skeleton__table-head { display: none; }
+  .card-catalog-skeleton__table-rows { gap: 0.65rem; }
+  .card-catalog-skeleton__table-rows .loading-block { height: 223.8px; border-bottom: 0; }
+}

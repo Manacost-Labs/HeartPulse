@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpenText, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import './Archetypes.css';
+import { LoadingSurface } from '../shared/ui/LoadingSurface';
+import '../shared/ui/LoadingSurface.css';
+import './ArchetypesLoading.css';
 import {
   ArchetypeDecksPanel,
   ArchetypeMatchupsPanel,
@@ -13,6 +16,7 @@ import {
   normalizeClassKey,
   useNeutralClassIcon,
 } from './classIcons';
+import { formatArchetypeCount } from './archetypeCount';
 
 type ArchetypeRow = {
   id: number | null;
@@ -42,18 +46,6 @@ type ArchetypesResponse = {
 
 const formatPercent = (value: unknown) => typeof value === 'number' ? `${value.toFixed(2)}%` : '—';
 const formatNumber = (value: unknown) => typeof value === 'number' ? value.toLocaleString('ru-RU') : '—';
-const formatArchetypeCount = (count: number) => {
-  const lastTwo = count % 100;
-  const last = count % 10;
-  const noun = lastTwo >= 11 && lastTwo <= 14
-    ? 'архетипов'
-    : last === 1
-      ? 'архетип'
-      : last >= 2 && last <= 4
-        ? 'архетипа'
-        : 'архетипов';
-  return `${count} ${noun}`;
-};
 
 export default function ArchetypesPage({
   isAdmin = false,
@@ -189,7 +181,7 @@ export default function ArchetypesPage({
           </div>
           <div className="archetypes-format-badge"><Sparkles aria-hidden="true" /><span>Формат</span><strong>Стандарт</strong></div>
         </header>
-        {loading && <div className="archetypes-status">Загрузка статистики…</div>}
+        {loading && <LoadingSurface label="Загружаем статистику архетипа" className="archetypes-loading-panel" />}
         {error && !loading && <p className="archetypes-error">{error}</p>}
         {detailUnavailable && !loading && <div className="archetypes-status">{detailUnavailable}</div>}
         {detail && !loading && (
@@ -262,7 +254,7 @@ export default function ArchetypesPage({
           </label>
         </div>
 
-        {loading && <div className="archetypes-status">Загрузка архетипов…</div>}
+        {loading && <LoadingSurface label="Загружаем архетипы" layout="rows" count={6} className="archetypes-loading-panel" />}
       {error && !loading && (
         <p className="archetypes-error">
           {error}

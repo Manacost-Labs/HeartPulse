@@ -204,6 +204,9 @@
 .guide-detail-skeleton__reader { display: grid; align-content: start; gap: 1.2rem; min-height: 360px; }
 .guide-detail-skeleton__reader .loading-block { height: 1rem; }
 .guide-detail-skeleton__reader .loading-block:nth-child(3n) { width: 74%; }
+/* Only the body is missing (the teaser header is on screen): reserve the first reading viewport. */
+.guide-detail-skeleton__reader--viewport { min-height: max(360px, 100svh); }
+.guide-archive-summary-count-skeleton { width: 6.5rem; height: 1lh; }
 
 .guide-archive-card {
   display: flex;

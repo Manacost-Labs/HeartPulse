@@ -1160,9 +1160,9 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
             </div>
           ) : null}
 
-          <div className="deck-builder__gallery" aria-busy={cardsLoading}>
+          <div className="deck-builder__gallery" aria-busy={cardsLoading && cards.length > 0}>
             {cardsLoading && !cards.length ? (
-              <p className="deck-builder__empty">Загружаем карты…</p>
+              <p className="deck-builder__empty" role="status">Загружаем карты</p>
             ) : cards.length === 0 ? (
               <p className="deck-builder__empty">Карт по фильтрам не найдено.</p>
             ) : cards.map(card => {

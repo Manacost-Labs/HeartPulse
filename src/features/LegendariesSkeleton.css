@@ -1,0 +1,39 @@
+/* Legendary groups loading state (LegendariesSkeleton.tsx). The grid, card
+   frame, padding, divider and footer grid come from the loaded view's classes;
+   these rules size only the blocks. */
+.legendary-group-card--loading { pointer-events: none; }
+
+/* Card renders keep the 512:776 ratio of the loaded thumbnails. */
+.legendary-skeleton-key-card,
+.legendary-skeleton-card {
+  flex-shrink: 0;
+  aspect-ratio: 512 / 776;
+  border-radius: 8px;
+}
+
+/* One 16px name line and the text-xs win rate badge with its border. */
+.legendary-skeleton-name { inline-size: min(11rem, 80%); block-size: 1rem; margin-block: 0.125rem; }
+.legendary-skeleton-badge { inline-size: 6.5rem; block-size: calc(1rem + 0.5rem + 2px); border-radius: 2px; }
+
+/* Two 9px name lines below each companion card. */
+.legendary-skeleton-card-name {
+  display: grid;
+  grid-auto-rows: calc(9px * 1.25);
+  align-items: center;
+  justify-items: center;
+  inline-size: 5rem;
+}
+.legendary-skeleton-card-name > .loading-block { inline-size: 88%; block-size: 7px; }
+.legendary-skeleton-card-name > .loading-block:last-child { inline-size: 60%; }
+
+/* The metric cells: a 10px label line and a 14px value line. */
+.legendary-skeleton-metric {
+  display: grid;
+  grid-template-rows: calc(10px * 1.25) calc(14px * 1.25);
+  align-items: center;
+  justify-items: center;
+  border: 1px solid rgba(97, 56, 24, 0.22);
+  background: rgba(247, 232, 191, 0.55);
+}
+.legendary-skeleton-metric-label { inline-size: 70%; block-size: 8px; }
+.legendary-skeleton-metric-value { inline-size: 45%; block-size: 12px; }

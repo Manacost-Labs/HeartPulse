@@ -27,7 +27,7 @@ export function LegendariesPageClient() {
   return <PublicPageShell activeTab="legendaries" pathname="/legendaries/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     <Legendaries data={data} loading={legendaries.loading || access.checking}
-      error={legendaries.error} legendarySource={legendaries.source}
+      error={legendaries.error} onRetry={legendaries.retry} legendarySource={legendaries.source}
       onLegendarySourceChange={legendaries.changeSource}
       switchingLegendarySource={legendaries.switching} onNavigate={navigateTab}
       authUser={access.user} subscriptionStatus={access.subscription}

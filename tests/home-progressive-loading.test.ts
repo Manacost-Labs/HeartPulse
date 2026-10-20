@@ -10,7 +10,7 @@ assert.match(
   'below-the-fold home sections must wait for viewport proximity before mounting their lazy modules',
 );
 
-assert.match(homeSource, /<DeferredHomeSection label="Последние статьи" eager=\{serverArticles\}>/,
+assert.match(homeSource, /<DeferredHomeSection label="Последние статьи" fallback=\{<HomeLatestArticlesSkeleton \/>\} eager=\{serverArticles\}>/,
   'Next can include latest articles in server HTML without changing legacy lazy loading');
 
 // The two directories are static links and text. A placeholder
@@ -28,8 +28,14 @@ assert.doesNotMatch(homeSource, /React\.lazy\(\(\) => import\('\.\/Home(ArenaDir
 for (const anchor of ['home-articles-heading', 'home-bg-heading', 'home-arena-directory-heading']) {
   assert.match(homeSource, new RegExp(`href="#${anchor}"`), `the page index links to #${anchor}`);
 }
-assert.match(homeSource, /<LoadingSurface[^>]*label=\{`Загружаем раздел «\$\{label\}»`\}/,
-  'the remaining deferred section waits behind the shared loading surface');
+// The deferred articles section waits behind its own fitted skeleton, which
+// loads eagerly with the section stylesheet, not behind a generic 18 rem panel.
+assert.match(homeSource, /<React\.Suspense fallback=\{<HomeLatestArticlesSkeleton \/>\}>/,
+  'the lazy articles section falls back to its fitted skeleton');
+assert.match(homeSource, /^import \{ HomeLatestArticlesSkeleton \} from '\.\/HomeLatestArticlesSkeleton';$/m);
+const skeletonSource = readFileSync(new URL('../src/modules/home/ui/HomeLatestArticlesSkeleton.tsx', import.meta.url), 'utf8');
+assert.match(skeletonSource, /^import '\.\/HomeLatestArticles\.css';$/m, 'the fallback has the section geometry before the lazy chunk arrives');
+assert.match(skeletonSource, /<LoadingSurface label="Загружаем последние статьи" quiet/);
 
 console.log('home progressive-loading contracts passed');
 

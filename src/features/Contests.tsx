@@ -15,6 +15,8 @@ import {
   Users,
 } from 'lucide-react';
 import './contests.css';
+import '../shared/ui/LoadingSurface.css';
+import { LoadingSurface } from '../shared/ui/LoadingSurface';
 import {
   subscriptionEntitlementLabels,
   type SubscriptionStatus,
@@ -144,8 +146,11 @@ function addHoursForDateInput(hours: number): string {
   return formatDateTimeInput(new Date(Date.now() + hours * 60 * 60 * 1000).toISOString());
 }
 
+/** The shared loading panel, holding the height of the admin section that replaces it. */
 function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
-  return <div className="route-fallback" aria-busy="true" aria-label="Загрузка раздела" style={{ minHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b6c42', fontFamily: 'var(--font-display)' }}>Загрузка...</div>;
+  return <div style={{ width: '100%', ['--loading-surface-min-block' as string]: `${minHeight}px` }}>
+    <LoadingSurface label="Загружаем раздел" />
+  </div>;
 }
 
 // The server waits up to 15 s (status) and 25 s (subscribers) for boosty-auth before it answers.

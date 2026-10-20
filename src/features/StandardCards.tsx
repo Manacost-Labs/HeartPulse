@@ -65,6 +65,7 @@ import {
   type StandardCardsProps,
 } from './constructedCardRecord';
 import { LockedStatsRows, StatsRows, StatsUnlockNotice, type StatsGateProps } from './ConstructedCardStats';
+import { CardCatalogSkeleton } from './CardCatalogSkeleton';
 
 type ViewMode = 'gallery' | 'table';
 
@@ -342,7 +343,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт" data-loading={loading || undefined}>
         <ConstructedCardCatalogSearch
           query={filters.query}
-          total={data?.pagination.total ?? 0}
+          total={data?.pagination.total ?? null}
           pending={searchPending}
           onChange={value => updateFilter('query', value)}
           onClear={clearSearch}
@@ -434,9 +435,9 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
       {dataNotice && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
       {hasStatsAccess && data?.warning && !dataNotice && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
 
-      {loading && !data ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
+      {loading && !data ? <CardCatalogSkeleton view={contentView} />
         : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={retry}><RefreshCw size={16} /> Повторить</button>}</section>
-          : data && data.cards.length > 0 ? <>{contentView === 'gallery' ? <CardGallery search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
+          : data && data.cards.length > 0 ? <div className="data-surface" aria-busy={loading}>{contentView === 'gallery' ? <CardGallery search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></div>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );

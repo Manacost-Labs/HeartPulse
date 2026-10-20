@@ -1,0 +1,92 @@
+/*
+ * Vicious Gold placeholder (ViciousGoldSkeleton.tsx). Panels, rows, cards and
+ * grids use the dashboard's own classes; this file sizes the stand-ins for its
+ * images, headings, controls and text. The fill and pulse are LoadingBlock's.
+ */
+
+.vsgold-skeleton__body { min-width: 0; }
+
+/* Text-shaped bars for static copy, one-line bars for data. They take the font of their holder. */
+.vsgold-skeleton :is(.vsgold-skeleton__words, .vsgold-skeleton__value) { font: inherit; letter-spacing: inherit; }
+.vsgold-skeleton .vsgold-skeleton__words {
+  display: inline;
+  border-radius: 3px;
+  color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  user-select: none;
+}
+.vsgold-skeleton__value { width: 3.2em; max-width: 100%; height: 1lh; }
+.vsgold-skeleton__value--wide { width: 8em; }
+/* Inside an inline label (the tier card's class), so the label keeps its line box. */
+.vsgold-skeleton__value--inline { display: inline-block; vertical-align: baseline; }
+
+/* The section headings: 52 px framed icon and the h2 box. */
+.vsgold-skeleton__heading-icon { flex: 0 0 auto; width: 52px; height: 52px; }
+.vsgold-skeleton__title {
+  margin: 0.08rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.3vw, 1.9rem);
+  line-height: 1;
+}
+
+/* BarChart: a 48 px row per class below a 32 px axis, then the data disclosure. */
+.vsgold-skeleton .analytics-chart__header > * { visibility: hidden; }
+.vsgold-skeleton__bars { display: grid; gap: 28px; padding: 32px 0 28px; }
+.vsgold-skeleton__bar { height: 20px; }
+.vsgold-skeleton__chart-data { height: 30px; margin-top: 12px; }
+
+.vsgold-skeleton__tool { min-height: 40px; }
+.vsgold-skeleton .vsgold__deck-list { overflow: hidden; }
+.vsgold-skeleton__deck-icon { width: 36px; height: 36px; }
+/* The copy control is its 1557 × 571 artwork inside the button's padding and border. */
+.vsgold-skeleton__copy { display: grid; min-height: 42px; padding: 0.2rem 0.42rem; border: 1px solid transparent; place-items: center; }
+.vsgold-skeleton__copy-art { display: block; width: 100%; aspect-ratio: 1557 / 571; }
+.vsgold-skeleton__open { min-height: 34px; }
+
+/* Rank and class filters, as the dashboard's tab buttons lay them out. */
+.vsgold-skeleton__tab {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+  align-items: center;
+  min-height: 37px;
+  padding: 0 0.8rem;
+  border: 1px solid rgba(163, 118, 68, 0.4);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+.vsgold__class-tabs .vsgold-skeleton__tab { min-height: 34px; padding: 0 0.65rem; }
+.vsgold-skeleton__tab-icon { width: 23px; height: 23px; }
+
+.vsgold-skeleton__band-title { font-family: var(--font-display); font-size: 1.3rem; line-height: 1.1; }
+.vsgold-skeleton__tier-icon { width: 42px; height: 42px; }
+.vsgold-skeleton__tier-name { margin: 0.05rem 0; font-family: var(--font-display); font-size: 1rem; line-height: 1.1; }
+
+/* In the loaded page the first section's top margin collapses into the
+   banner's; inside the loader's grid it would add to it. */
+.vsgold-skeleton .vsgold__mobile-nav { margin-top: 0; }
+@media (min-width: 721px) {
+  .vsgold-skeleton .vsgold__distribution-grid { margin-top: 0; }
+}
+
+@media (max-width: 720px) {
+  .vsgold-skeleton .vsgold__mobile-nav { position: static; }
+  .vsgold-skeleton__nav-item { min-height: 44px; }
+  .vsgold-skeleton__heading-icon { width: 42px; height: 42px; }
+  .vsgold-skeleton__title { font-size: 1.28rem; }
+  .vsgold-skeleton .vsgold__deck-tools { position: static; }
+  .vsgold-skeleton__tool { min-height: 48px; }
+  .vsgold-skeleton__deck-icon { grid-area: icon; width: 38px; height: 38px; }
+  .vsgold-skeleton__copy { min-height: 48px; padding: 0.3rem 0.55rem; }
+  .vsgold-skeleton__copy-art { width: min(100%, 150px); max-height: 38px; }
+  .vsgold-skeleton__open { min-height: 44px; }
+  .vsgold-skeleton__tab,
+  .vsgold__class-tabs .vsgold-skeleton__tab { min-height: 44px; }
+  .vsgold-skeleton__tier-icon { grid-area: icon; width: 38px; height: 38px; }
+  .vsgold-skeleton__tier-name { font-size: 0.95rem; }
+}
+
+@media (max-width: 480px) {
+  .vsgold-skeleton__tier-icon { width: 34px; height: 34px; }
+}

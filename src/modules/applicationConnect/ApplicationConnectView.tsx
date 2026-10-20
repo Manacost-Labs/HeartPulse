@@ -16,6 +16,7 @@ import {
   type ConnectState,
   type DeviceAuthorization,
 } from './applicationConnectModel';
+import './applicationConnectFrame.css';
 import './applicationConnect.css';
 
 export type ApplicationConnectViewProps = {

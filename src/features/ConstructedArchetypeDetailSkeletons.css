@@ -1,0 +1,53 @@
+/*
+ * Archetype detail placeholders (ConstructedArchetypeDetailSkeletons.tsx).
+ * Frames, paddings and grids come from the loaded view's own classes; this
+ * file adds only the placeholder parts. The fill and pulse are LoadingBlock's.
+ */
+
+/* The bars are spans: the loaded view's `… span` rules must not restyle them,
+   they take the font of the element that holds them. */
+.archetype-detail-skeleton :is(.archetype-skeleton__words, .archetype-skeleton__value) { font: inherit; letter-spacing: inherit; }
+
+/* Static copy: text-shaped bars in the real font, so they wrap like the copy. */
+.archetype-detail-skeleton .archetype-skeleton__words {
+  display: inline;
+  border-radius: 3px;
+  color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  user-select: none;
+}
+
+/* A one-line data value in the font of its holder. */
+.archetype-skeleton__value { width: 3.2em; height: 1lh; }
+.archetype-skeleton__value--wide { width: 6em; }
+
+/* Icons keep their room but are not drawn: the bars carry the shape. */
+.archetype-detail-skeleton svg { visibility: hidden; }
+
+/* The section titles' boxes (the loaded views style their h2 elements). */
+.archetype-skeleton__title {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+}
+
+.archetype-skeleton__title--analysis {
+  margin-top: 0.32rem;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+}
+
+/* The build card is dark: its bars use the card's own gold tint. */
+.archetype-detail-skeleton .archetype-deck-card .loading-block { background: rgba(239, 201, 111, 0.14); }
+.archetype-detail-skeleton .archetype-deck-card__copy { background: transparent; cursor: default; }
+.archetype-detail-skeleton .archetype-deck-card__number { color: transparent; }
+
+/* Chart frames: the real header keeps its wrapping, unseen; LineChart draws a
+   240 px plot, its value line and its 32 px range above the date labels. */
+.archetype-detail-skeleton .analytics-chart__header > * { visibility: hidden; }
+.archetype-skeleton__plot { height: 240px; }
+.archetype-skeleton__selection-value { height: 24px; }
+.archetype-skeleton__range { display: inline-block; width: 100%; height: 32px; }
+
+/* The analysis section while its lazy chunk loads: the first screen only. */
+.archetype-analysis-reserve { min-block-size: min(100svh, 48rem); }

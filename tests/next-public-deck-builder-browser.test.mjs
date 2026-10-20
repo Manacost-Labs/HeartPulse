@@ -104,7 +104,7 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     assert.equal(await page.evaluate(() => Math.abs(document.querySelector('.hp-builder-tile').getBoundingClientRect().width
       - document.querySelector('.hp-builder-row').getBoundingClientRect().width) < 1), true);
     await page.type('input[aria-label="Поиск карт"]', 'slow');
-    await page.waitForFunction(() => document.querySelector('.hp-builder-gallery').getAttribute('aria-busy') === 'true');
+    await page.waitForFunction(() => document.querySelector('.hp-builder-card-grid')?.getAttribute('aria-busy') === 'true');
     assert.equal(await page.$('.hp-builder-skeletons'), null);
     assert.ok(await page.$('button[aria-label="Добавить: Речной кроколиск"]'));
     assert.equal(await page.$eval('button[aria-label="Добавить: Речной кроколиск"]', node => node.disabled), true);

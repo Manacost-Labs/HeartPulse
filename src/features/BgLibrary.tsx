@@ -21,6 +21,9 @@ import {
   visibleEnglishLibraryName,
   type BgLibraryCatalogKind,
 } from './bgLibraryCatalogModel';
+import { BgLibraryDetailSkeleton, BgLibraryListSkeleton, type BgLibraryCardTeaser } from './BgLibrarySkeletons';
+import { BattlegroundLoadError } from './BattlegroundsSkeletons';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
@@ -143,6 +146,8 @@ interface BgLibraryProps {
   currentPath: string;
   cacheScope?: string;
   navigatePath: (path: string) => void;
+  /** Public identity the server page already rendered; it seeds the card page while statistics load. */
+  teaser?: BgLibraryCardTeaser;
 }
 
 const INITIAL_VISIBLE_CARDS = 36;
@@ -336,7 +341,7 @@ function libraryKindLabel(kind: LibraryKind): string {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, { cache: 'no-store' });
+  const response = await fetchWithDeadline(url, { cache: 'no-store' });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
   return payload as T;
@@ -962,7 +967,7 @@ const LibraryCardTile = React.memo(function LibraryCardTile({
   );
 });
 
-function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string }) {
+function LibraryListPage({ kind, pool, navigatePath, cacheScope, onRetry }: { kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string; onRetry: () => void }) {
   const { data, loading, error } = useBattlegroundLibraryData(libraryResource, kind, pool, cacheScope);
   const cards = data?.cards ?? EMPTY_LIBRARY_CARDS;
   const meta = data?.meta ?? EMPTY_LIBRARY_META;
@@ -1126,15 +1131,15 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
         onReset={resetFilters} resultCount={filtered.length} totalCount={cards.length}
       />
 
-      <section className="bg-library-results overflow-visible p-1 sm:p-2" aria-busy={loading || query !== deferredQuery}>
+      <section className="bg-library-results overflow-visible p-1 sm:p-2" aria-busy={!loading && query !== deferredQuery}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-hs text-xl text-[#26374f]">{kindTitle} · {poolTitle}</p>
           </div>
-          {loading && <span className="font-hs text-[#8a651f]">Загружаю...</span>}
         </div>
 
-        {error && <div className="rounded-md border border-[#efb4b4] bg-[#fff1f1] p-4 text-[#8f2424]">{error}</div>}
+        {loading && <BgLibraryListSkeleton />}
+        {error && <BattlegroundLoadError message={error} onRetry={onRetry} />}
         {!loading && !error && filtered.length === 0 && <div className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-8 text-center text-[#657893]"><p>По выбранным фильтрам ничего не найдено.</p><button type="button" className="mt-3 min-h-[44px] underline" onClick={resetFilters}>Сбросить фильтры</button></div>}
 
         <div className="space-y-8">
@@ -1196,7 +1201,7 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
   );
 }
 
-function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; pool: PoolMode; dbfId: number; navigatePath: (path: string) => void }) {
+function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: LibraryKind; pool: PoolMode; dbfId: number; navigatePath: (path: string) => void; teaser?: BgLibraryCardTeaser }) {
   const [card, setCard] = useState<LibraryCard | null>(null);
   const [detail, setDetail] = useState<MinionDetail | null>(null);
   const [spellStats, setSpellStats] = useState<FirestoneSpellStat[]>([]);
@@ -1206,6 +1211,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
   const [selectedVariant, setSelectedVariant] = useState<BattlegroundCardVariant>('normal');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -1222,7 +1228,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
     const baseRequests: Array<Promise<unknown>> = [
       cardRequest,
       isBaseLibraryKind(kind) && pool === 'current'
-        ? fetch('/bg-legacy/comps-data.js', { cache: 'force-cache' }).then(response => response.ok ? response.text() : '')
+        ? fetchWithDeadline('/bg-legacy/comps-data.js', { cache: 'force-cache' }).then(response => response.ok ? response.text() : '')
         : Promise.resolve(''),
       isBaseLibraryKind(kind) && pool === 'current'
         ? fetchJson<{ data: LibraryCard[] }>(versionedLibraryUrl('/api/bg/library/cards', { card_type: kind, in_pool: 1 })).then(result => result.data || []).catch(() => [])
@@ -1293,7 +1299,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
         if (alive) setLoading(false);
       });
     return () => { alive = false; };
-  }, [dbfId, kind, pool]);
+  }, [attempt, dbfId, kind, pool]);
 
   const spellStat = useMemo(() => spellStats.find(item => Number(item.dbfId) === Number(dbfId)), [dbfId, spellStats]);
   const usedStrategies = useMemo(() => card ? strategies.filter(strategy => cardMatchesStrategy(card, strategy)).slice(0, 10) : [], [card, strategies]);
@@ -1317,8 +1323,12 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
       .map(row => row.item);
   }, [card, relatedCards]);
 
-  if (loading) return <div className="py-16 text-center font-hs text-[#6b4c2a]">Загружаем страницу карты...</div>;
-  if (error || !card) return <div className="rounded-lg border border-[#efb4b4] bg-[#fff1f1] p-6 text-[#8f2424]">{error || 'Карта не найдена'}</div>;
+  if (loading) {
+    return <BgLibraryDetailSkeleton kicker={`${sectionFor(kind).shortTitle} · ${pool === 'archive' ? 'Архив' : 'Активный пул'}`}
+      stats={pool === 'current' && isBaseLibraryKind(kind)} teaser={teaser} />;
+  }
+  if (error) return <BattlegroundLoadError message={error} onRetry={() => setAttempt(value => value + 1)} />;
+  if (!card) return <div className="rounded-lg border border-[#efb4b4] bg-[#fff1f1] p-6 text-[#8f2424]">Карта не найдена</div>;
 
   const backPath = sectionHref(kind, pool);
   const rounds = detail?.rounds || [];
@@ -1515,10 +1525,14 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
   );
 }
 
-export default function BgLibrary({ currentPath, navigatePath, cacheScope }: BgLibraryProps) {
+export default function BgLibrary({ currentPath, navigatePath, cacheScope, teaser }: BgLibraryProps) {
   const route = libraryRoute(currentPath);
+  const [listAttempt, setListAttempt] = useState(0);
   if (route.page === 'detail' && route.dbfId) {
-    return <DetailPage kind={route.kind} pool={route.pool} dbfId={route.dbfId} navigatePath={navigatePath} />;
+    return <DetailPage kind={route.kind} pool={route.pool} dbfId={route.dbfId} navigatePath={navigatePath}
+      teaser={teaser?.dbfId === route.dbfId ? teaser : undefined} />;
   }
-  return <LibraryListPage kind={route.kind} pool={route.pool} navigatePath={navigatePath} cacheScope={cacheScope} />;
+  // A retry remounts the list, whose data hook then requests the failed catalog again.
+  return <LibraryListPage key={listAttempt} kind={route.kind} pool={route.pool} navigatePath={navigatePath} cacheScope={cacheScope}
+    onRetry={() => setListAttempt(value => value + 1)} />;
 }

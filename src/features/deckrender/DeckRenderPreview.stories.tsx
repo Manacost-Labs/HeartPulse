@@ -31,12 +31,21 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+/**
+ * The square placeholder is a plain block: the gallery or page around the
+ * preview owns the one loading status, so the preview is neither a status nor busy.
+ */
 export const LoadingWithoutListFlash: Story = {
   play: async ({ canvas, canvasElement }) => {
     const preview = canvasElement.querySelector('.deck-render-preview');
     await expect(preview).not.toBeNull();
     await expect(preview).toHaveAttribute('data-render-state', 'loading');
-    await expect(preview).toHaveAttribute('aria-busy', 'true');
+    await expect(preview).not.toHaveAttribute('aria-busy');
+    await expect(canvas.queryByRole('status')).toBeNull();
+    const placeholder = canvasElement.querySelector('.deck-render-preview__loading');
+    await expect(placeholder).toHaveAttribute('aria-hidden', 'true');
+    const box = placeholder?.getBoundingClientRect();
+    await expect(Math.abs((box?.width ?? 0) - (box?.height ?? 1))).toBeLessThanOrEqual(1);
     await expect(canvas.queryByText('Резервный список карт')).not.toBeVisible();
   },
 };

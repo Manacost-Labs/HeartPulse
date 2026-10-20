@@ -1,16 +1,19 @@
 import React, { useId } from 'react';
 import { LoaderCircle, Search, X } from 'lucide-react';
+import { LoadingBlock } from '../shared/ui/LoadingSurface';
 
 type ConstructedCardCatalogSearchProps = {
   query: string;
-  total: number;
+  /** Null until the first page arrives: the count is unknown, not zero. */
+  total: number | null;
   pending: boolean;
   onChange: (value: string) => void;
   onClear: () => void;
 };
 
-function resultCopy(query: string, total: number, pending: boolean): string {
+function resultCopy(query: string, total: number | null, pending: boolean): React.ReactNode {
   if (pending) return 'Ищем…';
+  if (total === null) return <LoadingBlock className="constructed-card-search__count-skeleton" />;
   if (!query.trim()) return `${total.toLocaleString('ru-RU')} карт`;
   return total > 0 ? `Найдено: ${total.toLocaleString('ru-RU')}` : 'Ничего не найдено';
 }

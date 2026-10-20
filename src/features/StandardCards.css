@@ -215,8 +215,6 @@
 .constructed-cards__state button { display: inline-flex; gap: 0.35rem; align-items: center; margin-top: 1rem; min-height: 42px; padding: 0 0.9rem; border: 1px solid #713118; color: #fff0c4; background: #713118; font-weight: 900; }
 .constructed-cards__state-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: center; }
 .constructed-card-detail__data-warning { margin: 0 0 0.9rem; border-radius: 2px; font-size: 0.88rem; }
-.constructed-cards__spinner { animation: constructed-cards-spin 0.85s linear infinite; }
-@keyframes constructed-cards-spin { to { transform: rotate(360deg); } }
 
 /* Detail page */
 .constructed-card-detail__breadcrumb { display: flex; gap: 0.45rem; align-items: center; margin: 0 !important; padding: 0.15rem 0.25rem 0.45rem !important; color: #806044; font-size: 0.7rem; }
@@ -487,7 +485,6 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-cards__gallery-card::before,
   .constructed-cards__gallery-image,
   .constructed-cards__data-deck-card .hsrdv-card-tile { transition: none; }
-  .constructed-cards__spinner { animation-duration: 1.8s; }
 }
 
 @media (hover: none) and (pointer: coarse) {

@@ -67,8 +67,7 @@
   --motion-zoom: 1.03; /* how much a content card's picture grows on hover and focus */
   --motion-loop: 1.1s; /* one beat of the loading pulse */
 
-  /* Loading surface (src/shared/ui/LoadingSurface.tsx and the legacy
-     .skeleton): one placeholder fill for every data section, about 1.5:1
+  /* Loading surface (src/shared/ui/LoadingSurface.tsx): one placeholder fill for every data section, about 1.5:1
      against parchment so a block reads even at the pulse's faint end. */
   --loading-fill: rgba(128, 86, 40, 0.3);
 

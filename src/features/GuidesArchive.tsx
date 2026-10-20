@@ -1,51 +1,15 @@
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Search, Tag } from 'lucide-react';
 import '../route-parchment.css';
 import './GuidesArchive.css';
-import { GuideDetailSkeleton, GuidesArchiveSkeleton } from './GuidesArchiveSkeleton';
+import './recovery/RecoverableSurface.css';
+import { AsyncSurfaceState } from './recovery/RecoverableSurface';
+import { LoadingBlock } from '../shared/ui/LoadingSurface';
+import { GuideDetailSkeleton, GuideReaderSkeleton, GuidesArchiveSkeleton } from './GuidesArchiveSkeleton';
+import { type GuideArchiveItem, type GuideDetailSeed, useGuideDetail, useGuidesArchivePage } from './GuidesArchiveData';
 
-interface GuideFilter {
-  slug: string;
-  label: string;
-  count: number;
-}
-
-interface GuideArchiveItem {
-  id: number;
-  slug: string;
-  title: string;
-  description: string;
-  image: string | null;
-  publishedAt: string | null;
-  menuName: string | null;
-  menuCode: string | null;
-  kind: string | null;
-  kindSlug: string | null;
-  oldUrl: string | null;
-}
-
-interface GuidesArchiveResponse {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  items: GuideArchiveItem[];
-  filters: {
-    kinds: GuideFilter[];
-    menus: GuideFilter[];
-  };
-}
-
-interface GuideDetail extends GuideArchiveItem {
-  keywords: string | null;
-  replyCount: number;
-  contentHtml: string;
-  fallbackText: string;
-  sourceUrl: string | null;
-}
-
-const PAGE_SIZE = 18;
+export type { GuideDetailSeed } from './GuidesArchiveData';
 
 function formatGuideDate(value: string | null): string {
   if (!value) return '';
@@ -101,39 +65,11 @@ function GuideArchiveCard({ guide, navigatePath }: { key?: React.Key; guide: Gui
 }
 
 function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => void }) {
-  const [data, setData] = useState<GuidesArchiveResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [kind, setKind] = useState('');
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(PAGE_SIZE),
-    });
-    if (submittedQuery.trim()) params.set('q', submittedQuery.trim());
-    if (kind) params.set('kind', kind);
-
-    try {
-      const response = await fetch(`/api/guides-archive?${params.toString()}`);
-      if (!response.ok) throw new Error('Не удалось загрузить архив');
-      const payload = await response.json();
-      setData(payload);
-    } catch (err: any) {
-      setError(err?.message || 'Не удалось загрузить архив гайдов');
-    } finally {
-      setLoading(false);
-    }
-  }, [kind, page, submittedQuery]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data, pending, error, retry } = useGuidesArchivePage(page, submittedQuery, kind);
 
   const visibleKinds = useMemo(() => data?.filters.kinds.filter(item => item.count > 0) ?? [], [data]);
 
@@ -188,16 +124,25 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
       </div>
 
       <div className="guide-archive-summary">
-        <span><BookOpen size={17} /> {data?.total ?? 0} материалов</span>
+        {/* The count is unknown until the page arrives: a placeholder, never «0 материалов». */}
+        {(pending || data) && (
+          <span>
+            <BookOpen size={17} />
+            {pending || !data ? <LoadingBlock className="guide-archive-summary-count-skeleton" /> : ` ${data.total} материалов`}
+          </span>
+        )}
         {submittedQuery && <span><Search size={17} /> Поиск: {submittedQuery}</span>}
         {kind && <span><Tag size={17} /> {visibleKinds.find(item => item.slug === kind)?.label ?? kind}</span>}
       </div>
-      {error && <div className="guide-archive-error">{error}</div>}
-      {loading && <GuidesArchiveSkeleton />}
+      {error && (
+        <AsyncSurfaceState variant="error" compact={Boolean(data)} title="Не удалось загрузить архив гайдов"
+          message={error} actionLabel="Повторить" onAction={retry} />
+      )}
+      {!data && pending && <GuidesArchiveSkeleton />}
 
-      {!loading && data && (
+      {data && (
         <>
-          <div className="guide-archive-grid">
+          <div className="guide-archive-grid data-surface" aria-busy={pending}>
             {data.items.map(item => (
               <GuideArchiveCard key={item.id} guide={item} navigatePath={navigatePath} />
             ))}
@@ -206,7 +151,7 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
           <div className="guide-archive-pagination">
             <button
               type="button"
-              disabled={page <= 1}
+              disabled={page <= 1 || pending}
               onClick={() => setPage(current => Math.max(1, current - 1))}
             >
               <ChevronLeft size={18} />
@@ -215,7 +160,7 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
             <span>Страница {data.page} из {data.totalPages}</span>
             <button
               type="button"
-              disabled={page >= data.totalPages}
+              disabled={page >= data.totalPages || pending}
               onClick={() => setPage(current => Math.min(data.totalPages, current + 1))}
             >
               Вперед
@@ -228,55 +173,19 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
   );
 }
 
-function GuidesArchiveDetail({ slug, navigatePath }: { slug: string; navigatePath: (path: string) => void }) {
-  const [guide, setGuide] = useState<GuideDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError('');
-    fetch(`/api/guides-archive/${encodeURIComponent(slug)}`)
-      .then(response => {
-        if (!response.ok) throw new Error(response.status === 404 ? 'Гайд не найден' : 'Не удалось загрузить гайд');
-        return response.json();
-      })
-      .then(payload => {
-        if (!cancelled) setGuide(payload);
-      })
-      .catch(err => {
-        if (!cancelled) setError(err?.message || 'Не удалось загрузить гайд');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
-
-  if (loading) return <section className="guide-archive-page"><GuideDetailSkeleton /></section>;
-  if (error || !guide) {
-    return (
-      <section className="guide-archive-page">
-        <button type="button" className="guide-archive-back" onClick={() => navigatePath('/guides-archive')}>
-          <ArrowLeft size={18} />
-          К архиву
-        </button>
-        <div className="guide-archive-error">{error || 'Гайд не найден'}</div>
-      </section>
-    );
-  }
-
+function GuideBackButton({ navigatePath }: { navigatePath: (path: string) => void }) {
   return (
-    <article className="guide-archive-detail">
-      <button type="button" className="guide-archive-back" onClick={() => navigatePath('/guides-archive')}>
-        <ArrowLeft size={18} />
-        К архиву
-      </button>
+    <button type="button" className="guide-archive-back" onClick={() => navigatePath('/guides-archive')}>
+      <ArrowLeft size={18} />
+      К архиву
+    </button>
+  );
+}
 
+/** The banner and header of a guide: the same markup for the server teaser and the full guide. */
+export function GuideArchiveDetailHeader({ guide }: { guide: GuideDetailSeed }) {
+  return (
+    <>
       <SectionBanner title={guide.title} />
       <header className="guide-archive-detail-header">
         {guide.image && (
@@ -291,8 +200,37 @@ function GuidesArchiveDetail({ slug, navigatePath }: { slug: string; navigatePat
           {guide.description && <p>{guide.description}</p>}
         </div>
       </header>
+    </>
+  );
+}
 
-      {guide.contentHtml ? (
+/**
+ * A guide for a reader with access. The server teaser (`seed`) is already on
+ * screen when access is confirmed: its back control, banner and header stay
+ * as they are and only the body, which the teaser never has, waits for the
+ * request. Without a teaser the whole detail waits in its fitted skeleton.
+ */
+function GuidesArchiveDetail({ slug, navigatePath, seed }: {
+  slug: string;
+  navigatePath: (path: string) => void;
+  seed?: GuideDetailSeed | null;
+}) {
+  const { guide, error, missing, retry } = useGuideDetail(slug);
+  const [seedSlug] = useState(slug);
+  const header = guide ?? (slug === seedSlug ? seed : null);
+
+  if (!guide && !error && !header) return <section className="guide-archive-page"><GuideDetailSkeleton /></section>;
+
+  return (
+    <article className="guide-archive-detail">
+      <GuideBackButton navigatePath={navigatePath} />
+      {header && <GuideArchiveDetailHeader guide={header} />}
+      {error ? (
+        <AsyncSurfaceState variant="error" title={missing ? 'Гайд не найден' : 'Не удалось загрузить гайд'}
+          message={missing ? undefined : error} actionLabel={missing ? undefined : 'Повторить'} onAction={missing ? undefined : retry} />
+      ) : !guide ? (
+        <GuideReaderSkeleton />
+      ) : guide.contentHtml ? (
         <div className="guide-archive-reader" dangerouslySetInnerHTML={{ __html: guide.contentHtml }} />
       ) : (
         <div className="guide-archive-reader">
@@ -303,8 +241,13 @@ function GuidesArchiveDetail({ slug, navigatePath }: { slug: string; navigatePat
   );
 }
 
-export default function GuidesArchive({ currentPath, navigatePath }: { currentPath: string; navigatePath: (path: string) => void }) {
+export default function GuidesArchive({ currentPath, navigatePath, detailSeed }: {
+  currentPath: string;
+  navigatePath: (path: string) => void;
+  /** The server-rendered teaser of the guide at `currentPath`, kept on screen while its body loads. */
+  detailSeed?: GuideDetailSeed | null;
+}) {
   const slug = detailSlugFromPath(currentPath);
-  if (slug) return <GuidesArchiveDetail slug={slug} navigatePath={navigatePath} />;
+  if (slug) return <GuidesArchiveDetail slug={slug} navigatePath={navigatePath} seed={detailSeed} />;
   return <GuidesArchiveList navigatePath={navigatePath} />;
 }

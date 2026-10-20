@@ -20,7 +20,7 @@ test('Next Arena pages show the shared subscription paywall to guests', async ()
         `${path} must render exactly one paywall`);
       // A guest's preview never loads; its blurred loaders must not loop for the whole visit.
       const preview = await page.$eval('.arena-paywall__preview', node => ({
-        loaders: node.querySelectorAll('.skeleton, [class*="animate-"]').length,
+        loaders: node.querySelectorAll('.loading-block, [class*="animate-"]').length,
         running: document.getAnimations().filter(animation => animation.playState === 'running'
           && node.contains(animation.effect?.target)).map(animation => animation.animationName),
       }));

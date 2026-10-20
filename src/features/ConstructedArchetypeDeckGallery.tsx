@@ -8,8 +8,10 @@ import DeckListView, {
   type DeckListCard,
   type DeckListSideboard,
 } from './decklist/DeckListView';
-import DeckRenderPreview from './deckrender/DeckRenderPreview';
+import DeckRenderPreview, { type DeckRenderState } from './deckrender/DeckRenderPreview';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
+import '../shared/ui/LoadingSurface.css';
+import { usePendingDecks, useReportedPending } from './archetypeDeckGalleryPending';
 
 type ArchetypeFormat = 'standard' | 'wild';
 
@@ -88,6 +90,7 @@ function DeckBuildCard({
   format,
   archetype,
   classKey,
+  onPendingChange,
 }: {
   key?: React.Key;
   build: ArchetypeBuild;
@@ -95,9 +98,12 @@ function DeckBuildCard({
   format: ArchetypeFormat;
   archetype: string;
   classKey: string | null;
+  onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
   const [deck, setDeck] = useState<ResolvedDeck | null>(null);
   const [error, setError] = useState('');
+  const [renderState, setRenderState] = useState<DeckRenderState>('idle');
+  useReportedPending(build.deckCode, renderState === 'loading' || (renderState === 'error' && !deck && !error), onPendingChange);
   const [revision, setRevision] = useState(0);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const classColor = CLASS_COLORS[classKey || ''] || '#67131c';
@@ -155,7 +161,7 @@ function DeckBuildCard({
         </dl>
       </header>
 
-      <DeckRenderPreview deckCode={build.deckCode} deckName={`${archetype} — сборка ${index + 1}`}>
+      <DeckRenderPreview deckCode={build.deckCode} deckName={`${archetype} — сборка ${index + 1}`} onRenderStateChange={setRenderState}>
         {deck ? (
           <DeckListView
             cards={deck.cards}
@@ -180,10 +186,9 @@ function DeckBuildCard({
             </button>
           </div>
         ) : (
-          <LoadingSurface label={`Загружается сборка ${index + 1}`} quiet layout="rows"
-            className="archetype-deck-card__state" blocksClassName="archetype-deck-card__skeletons">
+          <div className="archetype-deck-card__state" aria-hidden="true">
             {Array.from({ length: 5 }, (_, row) => <LoadingBlock key={row} className="archetype-deck-card__skeleton" />)}
-          </LoadingSurface>
+          </div>
         )}
       </DeckRenderPreview>
 
@@ -211,18 +216,26 @@ export default function ConstructedArchetypeDeckGallery({
   archetype: string;
   classKey: string | null;
 }) {
+  const [pendingDecks, setDeckPending] = usePendingDecks();
+  // The gallery owns one status while any card shows a placeholder; the cards'
+  // placeholders are plain blocks. It sits outside the grid so card order and
+  // nth-child positions do not change.
   return (
-    <div className="archetype-deck-gallery">
-      {builds.map((build, index) => (
-        <DeckBuildCard
-          key={build.deckCode}
-          build={build}
-          index={index}
-          format={format}
-          archetype={archetype}
-          classKey={classKey}
-        />
-      ))}
-    </div>
+    <>
+      {pendingDecks.size > 0 ? <LoadingSurface label="Загружаем сборки" quiet layout="rows" className="sr-only"><></></LoadingSurface> : null}
+      <div className="archetype-deck-gallery">
+        {builds.map((build, index) => (
+          <DeckBuildCard
+            key={build.deckCode}
+            build={build}
+            index={index}
+            format={format}
+            archetype={archetype}
+            classKey={classKey}
+            onPendingChange={setDeckPending}
+          />
+        ))}
+      </div>
+    </>
   );
 }

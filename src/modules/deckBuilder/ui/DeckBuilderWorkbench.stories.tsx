@@ -54,14 +54,17 @@ export const RefreshingCollection: Story = {
     const gallery = canvasElement.querySelector('.hp-builder-gallery');
     const grid = canvasElement.querySelector('.hp-builder-card-grid');
     await userEvent.type(canvas.getByRole('searchbox', { name: 'Поиск карт' }), 'Огненный');
-    await expect(gallery).toHaveAttribute('aria-busy', 'true');
+    // Only the refreshing cards are busy; the heading status and the search box stay outside.
+    await expect(grid).toHaveAttribute('aria-busy', 'true');
+    await expect(gallery).not.toHaveAttribute('aria-busy');
+    await expect(within(gallery as HTMLElement).getByRole('status')).toHaveTextContent('Загружаем карты');
     await expect(canvas.getByRole('button', { name: 'Добавить: Речной кроколиск' })).toBeDisabled();
     await expect(canvasElement.querySelector('.hp-builder-card-grid')).toBe(grid);
     await expect(canvasElement.querySelector('.hp-builder-skeletons')).toBeNull();
     await expect(canvas.getByRole('searchbox', { name: 'Поиск карт' })).toHaveFocus();
     await canvas.findByText('1 в коллекции', {}, { timeout: 3000 });
     await expect(canvas.getByRole('button', { name: 'Добавить: Огненный шар' })).toBeEnabled();
-    await expect(gallery).toHaveAttribute('aria-busy', 'false');
+    await expect(grid).toHaveAttribute('aria-busy', 'false');
   },
 };
 export const Filters: Story = {
@@ -174,7 +177,13 @@ export const RulesUnavailable: Story = {
     loadRules: async () => { throw new Error('Fixture unavailable'); },
     load: async () => ({ cards: [bloodCard], total: 1, totalPages: 1 }) } },
 };
-export const Loading: Story = { args: { ports: { ...ports, load: () => new Promise(() => {}) } } };
+export const Loading: Story = { args: { ports: { ...ports, load: () => new Promise(() => {}) } },
+  play: async ({ canvasElement }) => {
+    const gallery = within(canvasElement.querySelector('.hp-builder-gallery') as HTMLElement);
+    await expect(gallery.getByRole('status')).toHaveTextContent('Загружаем карты');
+    await expect(canvasElement.querySelector('[aria-busy="true"]')).toBeNull();
+    await expect(canvasElement.querySelectorAll('.hp-builder-skeletons > .hp-builder-card')).toHaveLength(12);
+  } };
 export const CatalogError: Story = { args: { ports: { ...ports, load: async () => { throw new Error('Unavailable'); } } } };
 export const NoCards: Story = { args: { ports: { ...ports, load: async () => ({ cards: [], total: 0, totalPages: 1 }) } } };
 export const RenderError: Story = {

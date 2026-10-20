@@ -52,6 +52,10 @@ import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
 import { BattlegroundHeroStatistics } from './BattlegroundHeroStatistics';
+import { BattlegroundHeroDetailSkeleton, BattlegroundHeroListSkeleton, BattlegroundLoadError, type BattlegroundHeroTeaser } from './BattlegroundsSkeletons';
+import { BattlegroundTierListSkeleton } from './BattlegroundTierListSkeleton';
+import { useBattlegroundHeroDetail } from './useBattlegroundHeroDetail';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
@@ -272,7 +276,7 @@ async function bgLoadHeroLibrary(): Promise<Map<number, any>> {
   if (bgHeroLibraryClientCache) return bgHeroLibraryClientCache;
   if (bgHeroLibraryRequest) return bgHeroLibraryRequest;
 
-  bgHeroLibraryRequest = fetch('/api/bg/library/extra/heroes?per_page=200')
+  bgHeroLibraryRequest = fetchWithDeadline('/api/bg/library/extra/heroes?per_page=200')
     .then(async response => {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.error || 'Русская библиотека героев недоступна');
@@ -295,7 +299,7 @@ async function bgLoadHeroLibrary(): Promise<Map<number, any>> {
 async function bgLoadHeroImageMap(): Promise<Record<string, string>> {
   if (bgHeroImageMapClientCache) return bgHeroImageMapClientCache;
   try {
-    const response = await fetch('/bg-legacy/hero-tiers-data.js?v=heroes-20260626');
+    const response = await fetchWithDeadline('/bg-legacy/hero-tiers-data.js?v=heroes-20260626');
     if (!response.ok) return {};
     const parsed = parseLegacyHeroStatic(await response.text());
     bgHeroImageMapClientCache = parsed.imageByDbfId || {};
@@ -451,7 +455,7 @@ async function bgFetchLiveHeroSlice(
   mmr: BattlegroundHeroMmr,
 ): Promise<BattlegroundHeroTierData> {
   const [apiPayload, libraryByDbfId, imageByDbfId] = await Promise.all([
-    fetch(bgHeroApiUrl(mode, mmr)).then(async response => {
+    fetchWithDeadline(bgHeroApiUrl(mode, mmr)).then(async response => {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload?.ok === false) throw new Error(payload?.error || 'API героев временно недоступен');
       return payload;
@@ -469,7 +473,7 @@ async function bgFetchLiveHeroSlice(
 }
 
 async function bgLoadHeroSnapshot(): Promise<BattlegroundHeroTierData> {
-  const response = await fetch('/bg-legacy/tier-data.js?v=heroes-20260626', { cache: 'no-store' });
+  const response = await fetchWithDeadline('/bg-legacy/tier-data.js?v=heroes-20260626', { cache: 'no-store' });
   if (!response.ok) throw new Error('Не удалось загрузить резервный тир-лист героев');
   const sections = parseLegacyHeroTierData(await response.text());
   if (!sections.length) throw new Error('В резервном тир-листе героев нет данных');
@@ -538,7 +542,7 @@ async function bgHeroDetailFallback(dbfId: string): Promise<BattlegroundHeroDeta
 
   const cardId = String(libraryHeroRaw?.card_id || '');
   const mode: BattlegroundHeroMode = cardId.startsWith('BGDUO_') ? 'duos' : 'solo';
-  const response = await fetch(bgHeroApiUrl(mode, 'TOP_50_PERCENT'));
+  const response = await fetchWithDeadline(bgHeroApiUrl(mode, 'TOP_50_PERCENT'));
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload?.ok === false) {
     throw new Error(payload?.error || 'Статистика героя временно недоступна');
@@ -2082,12 +2086,18 @@ function bgHeroDetailPortrait(
   });
 }
 
-function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNavigate: (path: string) => void }) {
-  const [state, setState] = useState<{ payload: BattlegroundHeroDetailPayload | null; loading: boolean; error: string }>({
-    payload: null,
-    loading: true,
-    error: '',
-  });
+function bgLoadHeroDetail(dbfId: string): Promise<BattlegroundHeroDetailPayload> {
+  return BG_DUO_FALLBACK_DETAIL_IDS.has(dbfId) ? bgHeroDetailFallback(dbfId) : fetchWithDeadline(`/api/bg/heroes/${dbfId}/details`)
+    .then(async response => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.ok) throw new Error(data?.error || 'Не удалось загрузить героя');
+      return data as BattlegroundHeroDetailPayload;
+    })
+    .catch(() => bgHeroDetailFallback(dbfId));
+}
+
+function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: string; onNavigate: (path: string) => void; teaser?: BattlegroundHeroTeaser }) {
+  const { payload, loading, error, retry } = useBattlegroundHeroDetail(dbfId, BG_HERO_DETAIL_CLIENT_CACHE, bgLoadHeroDetail);
   const [lightboxItems, setLightboxItems] = useState<BattlegroundHeroMediaItem[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const openMediaGallery = useCallback((items: BattlegroundHeroMediaItem[], index: number) => {
@@ -2096,38 +2106,6 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
     setLightboxIndex(index);
   }, []);
   const closeLightbox = useCallback(() => setLightboxIndex(-1), []);
-
-  useEffect(() => {
-    let alive = true;
-    const cached = BG_HERO_DETAIL_CLIENT_CACHE.get(dbfId);
-    if (cached) {
-      setState({ payload: cached, loading: false, error: '' });
-      return () => { alive = false; };
-    }
-
-    setState(current => current.loading && !current.payload ? current : { payload: null, loading: true, error: '' });
-    const detailRequest = BG_DUO_FALLBACK_DETAIL_IDS.has(dbfId)
-      ? bgHeroDetailFallback(dbfId)
-      : fetch(`/api/bg/heroes/${dbfId}/details`)
-          .then(async response => {
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data?.ok) throw new Error(data?.error || 'Не удалось загрузить героя');
-            return data as BattlegroundHeroDetailPayload;
-          })
-          .catch(() => bgHeroDetailFallback(dbfId));
-
-    detailRequest
-      .then(data => {
-        BG_HERO_DETAIL_CLIENT_CACHE.set(dbfId, data);
-        if (alive) setState({ payload: data, loading: false, error: '' });
-      })
-      .catch((err: any) => {
-        if (alive) setState({ payload: null, loading: false, error: err?.message || 'Не удалось загрузить героя' });
-      });
-    return () => { alive = false; };
-  }, [dbfId]);
-
-  const { payload, loading, error } = state;
 
   useEffect(() => {
     const hero = payload?.stats?.hero;
@@ -2151,14 +2129,14 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
     });
   }, [dbfId, payload]);
 
-  if (loading) return <div className="py-16 text-center font-hs text-[#6b4c2a]">Загружаем страницу героя...</div>;
+  if (loading) return <BattlegroundHeroDetailSkeleton teaser={teaser} />;
   if (error || !payload?.stats?.hero) {
     return (
       <div className="space-y-4">
         <button type="button" onClick={() => onNavigate('/heroes')} className="inline-flex items-center gap-2 rounded-md border border-[#d7b66a] px-3 py-2 text-sm font-bold text-[#3d2a1e]">
           <ChevronLeft className="h-4 w-4" /> Все герои
         </button>
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-700">{error || 'Герой не найден'}</div>
+        {error ? <BattlegroundLoadError message={error} onRetry={retry} /> : <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-700">Герой не найден</div>}
       </div>
     );
   }
@@ -2450,16 +2428,19 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
   );
 }
 
-function BattlegroundHeroesRoute({ path, onNavigate }: { path: string; onNavigate: (path: string) => void }) {
+/** `teaser` is the public identity the server page already rendered; it seeds the detail while statistics load. */
+function BattlegroundHeroesRoute({ path, onNavigate, teaser }: { path: string; onNavigate: (path: string) => void; teaser?: BattlegroundHeroTeaser }) {
   const detailId = bgHeroDetailPathFromPath(path);
+  const [listAttempt, setListAttempt] = useState(0);
   if (detailId) {
     return (
       <React.Fragment key={detailId}>
-        <BattlegroundHeroDetailPage dbfId={detailId} onNavigate={onNavigate} />
+        <BattlegroundHeroDetailPage dbfId={detailId} onNavigate={onNavigate} teaser={teaser && String(teaser.dbfId) === detailId ? teaser : undefined} />
       </React.Fragment>
     );
   }
-  return <BattlegroundHeroTierList onNavigate={onNavigate} />;
+  // A retry remounts the list: its observer then requests the failed slice again.
+  return <BattlegroundHeroTierList key={listAttempt} onNavigate={onNavigate} onRetry={() => setListAttempt(value => value + 1)} />;
 }
 
 function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, tourId, trinketView = 'table' }: {
@@ -2614,6 +2595,7 @@ function BattlegroundTierList() {
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   const [lightboxItems, setLightboxItems] = useState<BattlegroundLightboxItem[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [minionRaceFilter, setMinionRaceFilter] = useState('ALL');
@@ -2660,7 +2642,7 @@ function BattlegroundTierList() {
       setData(null);
       setLoading(true);
     }
-    fetch(requestUrl)
+    fetchWithDeadline(requestUrl)
       .then(async res => {
         const payload = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(payload.error || 'Не удалось загрузить BG тир-лист');
@@ -2677,7 +2659,7 @@ function BattlegroundTierList() {
         if (alive && tierListRequestKeyRef.current === cacheKey) setLoading(false);
       });
     return () => { alive = false; };
-  }, [activeList, strategySource, trinketMmr, trinketTimeRange]);
+  }, [activeList, attempt, strategySource, trinketMmr, trinketTimeRange]);
 
   const activeData = data?.list === activeList ? data : null;
   const tiers = useMemo(() => activeData?.tiers || {}, [activeData?.tiers]);
@@ -2878,10 +2860,8 @@ function BattlegroundTierList() {
           </div>
         </div>
 
-        {loading && <div className="py-12 text-center font-hs text-[#6b4c2a]">Загружаем BG данные...</div>}
-        {error && !loading && (
-          <div className="my-4 rounded-lg border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</div>
-        )}
+        {loading && <BattlegroundTierListSkeleton list={activeList} />}
+        {error && !loading && <div className="my-4"><BattlegroundLoadError message={error} onRetry={() => setAttempt(value => value + 1)} /></div>}
         {!loading && !error && (
           <div className="mt-4 space-y-5">
             {activeList === 'minions' && (
@@ -3152,7 +3132,7 @@ function BattlegroundTierList() {
   );
 }
 
-function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) => void }) {
+function BattlegroundHeroTierList({ onNavigate, onRetry }: { onNavigate: (path: string) => void; onRetry: () => void }) {
   const initialUrlState = useMemo(bgHeroListUrlState, []);
   const [mode, setMode] = useState<BattlegroundHeroMode>(initialUrlState.mode);
   const [mmr, setMmr] = useState<BattlegroundHeroMmr>(initialUrlState.mmr);
@@ -3304,15 +3284,13 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
         </label>
       </section>
 
-      {loading && sections.length === 0 && <div className="py-12 text-center font-hs text-[#6b4c2a]" role="status">Загружаем героев...</div>}
+      {loading && sections.length === 0 && <BattlegroundHeroListSkeleton />}
       {loading && sections.length > 0 && (
         <div className="bg-heroes-refresh-status" role="status" aria-live="polite">
           Обновляем рейтинг…
         </div>
       )}
-      {error && !loading && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-700" role="alert">{error}</div>
-      )}
+      {error && !loading && <BattlegroundLoadError message={error} onRetry={onRetry} />}
       {sections.length > 0 && !error && (
         <div className={view === 'grid' ? 'space-y-5' : ''} aria-busy={loading}>
           {filteredSections.length === 0 && (

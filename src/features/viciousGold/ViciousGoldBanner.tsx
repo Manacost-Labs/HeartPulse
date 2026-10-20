@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LoadingSurface } from '../../shared/ui/LoadingSurface';
+import { ViciousGoldSkeleton } from './ViciousGoldSkeleton';
 
 /** The page banner. Access checks, guests, loading and statistics share it, so the title never moves between them. */
 export function ViciousGoldBanner({ children }: {
@@ -16,7 +16,7 @@ export function ViciousGoldBanner({ children }: {
   );
 }
 
+/** The statistics' place under the banner: the access check and the first load share it. */
 export function ViciousGoldLoading() {
-  return <LoadingSurface label="Загружаем Vicious Syndicate Gold" detail="Собираем распределения, Power Tier и коды колод."
-    layout="rows" count={5} className="vsgold__loading" />;
+  return <ViciousGoldSkeleton />;
 }

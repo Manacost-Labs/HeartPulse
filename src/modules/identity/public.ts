@@ -13,6 +13,8 @@ export {
 } from './model/publicProfilePath';
 export type { PublicProfile } from './model/publicProfile';
 export { default as AuthAvatar } from './ui/AuthAvatar';
+/** The sign-in card's loading state; its renderer imports `ui/LoginCardSkeleton.css` and `LoadingSurface.css`. */
+export { LoginCardSkeleton } from './ui/LoginCardSkeleton';
 
 /** Keeps the account UI out of the initial application bundle. */
 export const loadLoginPanel = () => import('./ui/LoginPanel')

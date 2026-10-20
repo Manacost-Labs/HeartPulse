@@ -805,12 +805,17 @@
 
 /* ─── Keyframe animations ─────────────────────────────────────────────────── */
 
-/* The one loading animation (src/shared/ui/LoadingSurface.tsx, .skeleton):
+/* The one loading animation (src/shared/ui/LoadingSurface.tsx):
    an opacity pulse on the placeholder itself, so the compositor runs it
    without a repaint per frame. */
 @keyframes loading-pulse {
   from { opacity: 1; }
   to { opacity: 0.55; }
+}
+
+/* The shared loading surface fades its placeholder in only after a short wait. */
+@keyframes loading-reveal {
+  from { opacity: 0; }
 }
 
 /* ─── Utility classes ─────────────────────────────────────────────────────── */
@@ -867,13 +872,6 @@
   .anim-fade-up,
   .anim-scale-in {
     animation: none;
-  }
-
-  /* Legacy skeleton block: the same fill and pulse as LoadingBlock. */
-  .skeleton {
-    background: var(--loading-fill);
-    animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
-    border-radius: 0.5rem;
   }
 
   .route-fallback {

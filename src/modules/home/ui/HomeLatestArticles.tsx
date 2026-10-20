@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { LoadingBlock } from '../../../shared/ui/LoadingSurface';
-import '../../../shared/ui/LoadingSurface.css';
+import { HomeArticleSkeleton } from './HomeLatestArticlesSkeleton';
 import { HOME_COVER_SIZES, HOME_LEAD_COVER_SIZES, responsiveHomeCover } from '../model/articleCover';
 import './HomeLatestArticles.css';
 
@@ -53,18 +52,6 @@ function articleSectionLabel(article: HomeArticle): string {
   if (article.mode === 'wild') return 'Вольный';
   if (article.mode === 'arena') return 'Арена';
   return 'Manacost';
-}
-
-function HomeArticleSkeleton() {
-  return <div className="home-latest-article home-latest-article--loading" aria-hidden="true">
-    <LoadingBlock className="home-latest-article__image" />
-    <span className="home-latest-article__body">
-      <span className="home-latest-article__meta"><LoadingBlock /><LoadingBlock /></span>
-      <strong className="home-article-skeleton-title"><LoadingBlock /><LoadingBlock /></strong>
-      <span className="home-article-skeleton-excerpt"><LoadingBlock /><LoadingBlock /></span>
-      <b><LoadingBlock className="home-article-skeleton-action" /></b>
-    </span>
-  </div>;
 }
 
 export default function HomeLatestArticles({ articles, loading, onNavigate }: {

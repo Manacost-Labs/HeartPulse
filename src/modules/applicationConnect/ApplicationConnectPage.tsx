@@ -1,4 +1,4 @@
-import type { AuthUser } from '../identity/public';
+import { LoginCardSkeleton, type AuthUser } from '../identity/public';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   applicationConnectApi,
@@ -115,7 +115,7 @@ export default function ApplicationConnectPage({
 
   const loginPanel = !user && wantsLogin
     ? (
-      <React.Suspense fallback={<div className="application-connect__loading">Загрузка формы входа…</div>}>
+      <React.Suspense fallback={<LoginCardSkeleton />}>
         <LoginPanelComponent
           initialAuthUser={initialAuthUser}
           parentAuthChecking={parentAuthChecking}

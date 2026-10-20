@@ -8,6 +8,6 @@ const meta = {
 } satisfies Meta<typeof FunDecksSkeleton>;
 export default meta;
 export const Loading: StoryObj<typeof meta> = { play: async ({ canvas }) => {
-  await expect(canvas.getByRole('status')).toHaveTextContent('Собираем фан-колоды');
+  await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем фан-колоды');
   await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
 } };

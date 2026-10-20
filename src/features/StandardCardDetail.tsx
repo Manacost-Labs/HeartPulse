@@ -13,6 +13,8 @@ import {
   Volume2,
 } from 'lucide-react';
 import './StandardCards.styles';
+import { CardDetailSkeleton } from './CardDetailSkeleton';
+import { useScrollToTopOnCardChange } from './useScrollToTopOnCardChange';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { fallbackCardImageToOrigin } from '../config/publicAssetDelivery';
 import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
@@ -414,9 +416,9 @@ function ConstructedDeckCard({ deck, format }: {
               totalCards={resolvedDeck.totalCards} deckSizeLimit={resolvedDeck.deckSizeLimit}
             />
           ) : (
-            <div className="constructed-card-detail__deck-list-state" aria-busy={!resolveError}>
+            <div className="constructed-card-detail__deck-list-state" role={resolveError ? 'alert' : 'status'}>
               <Layers3 size={28} />
-              <span>{resolveError || 'Загружаем состав колоды…'}</span>
+              <span>{resolveError || 'Загружаем состав колоды'}</span>
               {resolveError && <button type="button" onClick={() => setRetryToken(value => value + 1)}><RefreshCw size={14} /> Повторить</button>}
             </div>
           )}
@@ -458,20 +460,6 @@ const cardIdentityFacts = (card: CardRecord, format: CardFormat) => [
   { label: 'Форматы', value: card.formats?.map(item => item.name_ru || item.name_en || item.slug).join(', ') || (format === 'standard' ? 'Стандартный, Вольный' : 'Вольный') },
   { label: 'ID карты', value: <><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</> },
 ];
-
-// Another card starts at its top. Loading the same card again (the full
-// detail after the server-rendered seed, a period or rank change) keeps the
-// reader where they scrolled.
-function useScrollToTopOnCardChange(shownCardId: string | null) {
-  const previousShownCardIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    const previousCardId = previousShownCardIdRef.current;
-    if (shownCardId) previousShownCardIdRef.current = shownCardId;
-    if (!shownCardId || !previousCardId || previousCardId === shownCardId) return undefined;
-    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
-    return () => cancelAnimationFrame(frame);
-  }, [shownCardId]);
-}
 
 function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
   const [period, setPeriod] = useConstructedCardPeriod(initialSearch);
@@ -590,7 +578,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     });
   }, [card, cardId, format]);
 
-  if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><SectionBanner title="Загружаем карту" /></section>;
+  if (loading) return <CardDetailSkeleton />;
   if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><SectionBanner title={error?.title || 'Данные карты временно недоступны'} /><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
 
   const variants = collectConstructedCardVariants(card);

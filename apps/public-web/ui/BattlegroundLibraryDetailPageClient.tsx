@@ -16,7 +16,7 @@ export function BattlegroundLibraryDetailPageClient({ card }: { card: PublicBatt
   return <PublicPageShell activeTab="bg-library" pathname={card.canonicalPath}
     access={access} navigate={navigate} wide>
     {allowed
-      ? <BgLibrary key={`${card.dbfId}:${access.user?.id}`} currentPath={card.canonicalPath} navigatePath={navigate} />
+      ? <BgLibrary key={`${card.dbfId}:${access.user?.id}`} currentPath={card.canonicalPath} navigatePath={navigate} teaser={card} />
       : <article className="space-y-5">
         <a href="/library/" className="inline-flex min-h-11 items-center rounded-md border border-[#d7b66a] px-3 py-2">Все карты Полей сражений</a>
         <header className="grid gap-4 sm:grid-cols-[1fr_180px]">

@@ -57,8 +57,8 @@ function EtcChoices({ editor, owner, configuration, change, filters }: Choices &
         <h3>Выберите 3 карты · {deckCount(board)}/3</h3>
         <p>Лимиты копий общие с основной колодой. Недоступные для E.T.C. карты выбрать нельзя.</p>
         {filters}
-        <div aria-busy={editor.loading} ref={gallery}>
-        {editor.loading && !editor.catalog.cards.length ? <p role="status">Загружаем карты…</p> : editor.error ? <div role="alert"><p>{editor.error}</p><button type="button" onClick={editor.retry}>Повторить загрузку</button></div>
+        <div aria-busy={editor.loading && editor.catalog.cards.length > 0} ref={gallery}>
+        {editor.loading && !editor.catalog.cards.length ? <p role="status">Загружаем карты</p> : editor.error ? <div role="alert"><p>{editor.error}</p><button type="button" onClick={editor.retry}>Повторить загрузку</button></div>
           : !editor.catalog.cards.length ? <p className="hp-builder-message">Карты не найдены. Измените поиск или фильтры.</p>
           : <div className="hp-builder-card-grid">{editor.catalog.cards.map(card => {
             const copies = board.find(item => item.dbfId === card.dbfId)?.count ?? 0;
@@ -114,7 +114,7 @@ export function CardConfigurationEditor({ editor, owner, filters }: Props) {
     <p>Эти карты входят в код колоды, но не занимают основные слоты.</p>
     <ConfigurationSlots owner={owner} slots={slots} slotCount={slotCount} change={change} />
     {error ? <div className="hp-builder-message" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Повторить загрузку настроек</button></div>
-      : !configuration ? <p role="status">Загружаем настройки карты…</p>
+      : !configuration ? <p role="status">Загружаем настройки карты</p>
       : configuration.kind === 'zilliax' ? <ZilliaxChoices editor={editor} owner={owner} configuration={configuration} change={change} /> : <EtcChoices editor={editor} owner={owner} configuration={configuration} change={change} filters={filters} />}
     </div>
     <footer className="hp-builder-configuration-footer"><span role="status">{slots.length === slotCount ? 'Выбор сохранён в колоде' : `Выбрано ${slots.length} из ${slotCount}`}</span>

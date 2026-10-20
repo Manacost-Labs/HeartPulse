@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from '../../../shared/http/fetchWithDeadline';
 import type { Contest } from '../model/types';
 import { contestsFromResponse } from '../model/contestProjection';
 
@@ -8,8 +9,9 @@ function responseError(value: unknown, fallback: string): string {
   return fallback;
 }
 
+/** A stalled request ends at the shared request deadline with a readable error, never an endless loader. */
 export async function requestContests(): Promise<Contest[]> {
-  const response = await fetch('/api/contests', {
+  const response = await fetchWithDeadline('/api/contests', {
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
   });
   const data: unknown = await response.json().catch(() => ({}));
@@ -18,7 +20,7 @@ export async function requestContests(): Promise<Contest[]> {
 }
 
 export async function requestContestJoin(contestId: string): Promise<void> {
-  const response = await fetch(`/api/contests/${encodeURIComponent(contestId)}/join`, {
+  const response = await fetchWithDeadline(`/api/contests/${encodeURIComponent(contestId)}/join`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
   });

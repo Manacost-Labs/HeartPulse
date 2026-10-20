@@ -34,3 +34,10 @@
 .arena-classes-chart > summary:focus-visible { outline: 3px solid #795013; outline-offset: 3px; }
 
 .arena-class-placeholder-icon { grid-area: icon; }
+/* The loading meter keeps the loaded meter's minimum width; phones reset it with the meter. */
+.arena-class-meter--loading { min-width: 118px; }
+/* The loading board and the closed chart disclosure stack as on the loaded page. */
+.arena-classes-skeleton { gap: 0; }
+/* The closed summary: 44 px minimum, 12 px padding around a 24 px line. */
+.arena-classes-chart--loading { display: flex; align-items: center; min-height: 48px; }
+.arena-classes-chart--loading > .loading-block { inline-size: 14rem; max-inline-size: 100%; block-size: 1rem; }

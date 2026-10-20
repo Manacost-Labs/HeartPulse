@@ -5,6 +5,7 @@ import { useDeckBuilder, type DeckBuilderInitial, type DeckBuilderPorts } from '
 import { configurationKind, isZilliaxModule } from '../model/configuration';
 import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 import { CardConfigurationEditor } from './CardConfigurationEditor';
+import { DeckBuilderCardsSkeleton } from './DeckBuilderCardsSkeleton';
 import { GALLERY_IMAGE_PLACEHOLDER, useGalleryImages } from './useGalleryImages';
 
 export type DeckBuilderWorkbenchProps = { ports: DeckBuilderPorts; initial?: DeckBuilderInitial };
@@ -105,7 +106,7 @@ function RuneControls({ editor }: { editor: Editor }) {
   const { legality } = editor;
   if (!legality.needsRunes && !legality.loading && !legality.error && !legality.destination) return null;
   return <div className="hp-builder-legality">
-    {legality.loading ? <p role="status">Загружаем требования к картам…</p> : null}
+    {legality.loading ? <p role="status">Загружаем требования к картам</p> : null}
     {legality.error ? <p role="alert">{legality.error} <button type="button" onClick={legality.retry}>Повторить</button></p> : null}
     {legality.destination ? <p>Турист открывает карты класса «{BUILDER_CLASSES.find(card => card.id === legality.destination)?.label}» из «Райского отдыха» — выберите гостевые карты в фильтрах.</p> : null}
     {legality.needsRunes ? <fieldset><legend>Руны Рыцаря смерти · {Object.values(legality.runes).reduce((sum, count) => sum + count, 0)}/3</legend>
@@ -118,7 +119,7 @@ function RuneControls({ editor }: { editor: Editor }) {
 
 function GalleryGrid({ editor }: { editor: Editor }) {
   const gallery = useGalleryImages(editor.catalog.cards);
-  return <div className="hp-builder-card-grid" ref={gallery}>
+  return <div className="hp-builder-card-grid" ref={gallery} aria-busy={editor.loading}>
     {editor.catalog.cards.map((card, index) => <GalleryCard key={card.dbfId} card={card} eager={index < 2}
       count={editor.deck.find(entry => entry.dbfId === card.dbfId)?.count ?? 0} disabled={editor.loading || !editor.canAdd(card)}
       onAdd={() => editor.change(card, 1)} />)}
@@ -128,13 +129,14 @@ function GalleryGrid({ editor }: { editor: Editor }) {
 function CardGallery({ editor }: { editor: Editor }) {
   const { filters } = editor;
   if (editor.configurationCard) return <section className="hp-builder-gallery" aria-label="Коллекция карт" />;
-  return <section className="hp-builder-gallery" aria-labelledby="hp-builder-gallery-title" aria-busy={editor.loading}>
+  // One status for the collection: the heading counter, outside the grid
+  // that is busy while its existing cards refresh.
+  return <section className="hp-builder-gallery" aria-labelledby="hp-builder-gallery-title">
     <div className="hp-builder-section-heading"><h2 id="hp-builder-gallery-title">Карты</h2>
-      <span role="status">{editor.loading ? 'Загрузка…' : `${editor.catalog.total} в коллекции`}</span></div>
+      <span role="status">{editor.loading ? 'Загружаем карты' : `${editor.catalog.total} в коллекции`}</span></div>
     <CollectionFilters editor={editor} />
     {editor.error ? <div className="hp-builder-message" role="alert"><p>{editor.error}</p><button type="button" onClick={editor.retry}>Повторить загрузку</button></div>
-      : editor.loading && !editor.catalog.cards.length ? <div className="hp-builder-skeletons" role="status" aria-label="Загрузка карт">
-        {Array.from({ length: 12 }, (_, i) => <div key={i} />)}</div>
+      : editor.loading && !editor.catalog.cards.length ? <DeckBuilderCardsSkeleton />
       : editor.catalog.cards.length ? <GalleryGrid editor={editor} />
       : <div className="hp-builder-message"><h3>Карты не найдены</h3><p>Измените поиск или фильтры.</p></div>}
     {!editor.loading && !editor.error && editor.catalog.totalPages > 1 ? <nav className="hp-builder-pagination" aria-label="Страницы карт">

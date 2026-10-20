@@ -143,13 +143,13 @@ test('Next archetype details isolate access and load builds before independent o
     await page.waitForSelector('.archetype-main-build', { timeout: 5_000 });
     assert.ok(Date.now() - started < 5_000, 'builds must render while optional responses remain held');
     assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец');
-    await page.waitForFunction(() => document.querySelectorAll('section[aria-busy=true]').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('section[data-loading=true]').length === 2);
     await delay(10_000);
     assert.ok(await page.$('.archetype-main-build'), 'ten seconds of optional latency must not hide the build');
     assert.deepEqual(sectionCalls.slice(-3).sort(), ['analysis', 'core', 'history']);
     assert.ok(await page.evaluate(() => window.__detailCls < 0.1), 'core loading must not push visible optional placeholders away');
     releaseOptional();
-    await page.waitForFunction(() => document.querySelectorAll('section[aria-busy=true]').length === 0);
+    await page.waitForFunction(() => document.querySelectorAll('section[data-loading=true]').length === 0);
     optionalMode = 'error';
     await page.reload({ waitUntil: 'networkidle2' });
     await page.waitForFunction(() => document.querySelectorAll('button').length > 0 && [...document.querySelectorAll('button')].some(node => node.textContent === 'Повторить загрузку'));

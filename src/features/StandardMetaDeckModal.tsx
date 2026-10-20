@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
+import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
+import '../shared/ui/LoadingSurface.css';
 import './StandardMetaModal.css';
 
 type MetaClass =
@@ -61,6 +63,32 @@ function classIcon(classKey: MetaClass | null): string {
 
 function formatPercent(value: number | null): string {
   return value === null ? '—' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%`;
+}
+
+const DECK_ROWS = 12;
+
+/**
+ * The recommendation before it arrives: the real content grid with the
+ * presentation switch, the deck-list stage and the details column, so the
+ * dialog keeps its layout when the deck replaces it.
+ */
+function RecommendationSkeleton() {
+  return <LoadingSurface label="Загружаем сборку" quiet layout="rows" className="standard-meta-modal__loading" blocksClassName="standard-meta-modal__content">
+    <div className="standard-meta-modal__presentation">
+      <LoadingBlock className="standard-meta-modal__switch-skeleton" />
+      <LoadingBlock className="standard-meta-modal__switch-skeleton" />
+    </div>
+    <div className="standard-meta-modal__image-stage">
+      <div className="standard-meta-modal__deck-skeleton">
+        {Array.from({ length: DECK_ROWS }, (_, index) => <LoadingBlock key={index} />)}
+      </div>
+    </div>
+    <div className="standard-meta-modal__details">
+      <div className="standard-meta-modal__deck-meta">{Array.from({ length: 3 }, (_, index) => <LoadingBlock key={index} className="standard-meta-modal__chip-skeleton" />)}</div>
+      <LoadingBlock className="standard-meta-modal__code-skeleton" />
+      <LoadingBlock className="standard-meta-modal__copy-skeleton" />
+    </div>
+  </LoadingSurface>;
 }
 
 /** Preserved shared modal for deck-card and nested-lightbox regression fixtures. */
@@ -124,13 +152,7 @@ export function DeckModal({
           <p>{state.item.archetype}</p>
         </div>
       </header>
-      {state.loadingRecommendation && (
-        <div className="standard-meta-modal__status standard-meta-modal__status--full" role="status">
-          <RefreshCw className="standard-meta-modal__spinner" size={30} />
-          <strong>Подбираем свежую сборку</strong>
-          <span>Сравниваем доступные колоды и размер выборки.</span>
-        </div>
-      )}
+      {state.loadingRecommendation && <RecommendationSkeleton />}
       {!state.loadingRecommendation && state.error && (
         <div className="standard-meta-modal__status standard-meta-modal__status--warning standard-meta-modal__status--full" role="alert">
           <AlertTriangle size={30} />
@@ -153,11 +175,9 @@ export function DeckModal({
                 <span><Maximize2 size={16} /> Полный размер</span>
               </a>
             ) : state.loadingPreview || (state.preview && !state.preview.ready && state.preview.state !== 'error') ? (
-              <div className="standard-meta-modal__status" role="status">
-                <RefreshCw className="standard-meta-modal__spinner" size={30} />
-                <strong>DeckView рисует колоду</strong>
-                <span>Окно обновится автоматически.</span>
-              </div>
+              <LoadingSurface label="Загружаем изображение колоды" quiet layout="rows" className="standard-meta-modal__image-loading">
+                <LoadingBlock className="standard-meta-modal__image-skeleton" />
+              </LoadingSurface>
             ) : (
               <div className="standard-meta-modal__status standard-meta-modal__status--warning">
                 <AlertTriangle size={30} />

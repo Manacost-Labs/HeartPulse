@@ -24,10 +24,11 @@ import {
   type FunDecksPayload,
   type FunDecksSortMode,
 } from './funDecksPreview';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import '../shared/ui/LoadingSurface.css';
 import './FunDecksPage.css';
-import { FunDecksSkeleton } from './FunDecksSkeleton';
+import { FUN_DECKS_FIRST_PAGE, FunDecksSkeleton } from './FunDecksSkeleton';
 
 type FormatFilter = 'all' | 'standard' | 'wild';
 type SortMode = FunDecksSortMode;
@@ -294,7 +295,8 @@ function useFunDecksData(initialPreview: FunDecksPayload | null) {
   const load = useCallback(async () => {
     setError('');
     try {
-      const response = await fetch('/api/fun-decks', {
+      // A stalled request ends at the shared deadline in the error state with its retry.
+      const response = await fetchWithDeadline('/api/fun-decks', {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       });
@@ -336,7 +338,7 @@ export default function FunDecksPage({
   const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [query, setQuery] = useState('');
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(FUN_DECKS_FIRST_PAGE);
   const deferredQuery = useDeferredValue(query);
 
   const filteredDecks = useMemo(() => {
@@ -426,7 +428,7 @@ export default function FunDecksPage({
               aria-pressed={formatFilter === filter.id}
               onClick={() => {
                 setFormatFilter(filter.id);
-                setVisibleCount(6);
+                setVisibleCount(FUN_DECKS_FIRST_PAGE);
               }}
             >
               {filter.label}
@@ -442,7 +444,7 @@ export default function FunDecksPage({
             value={query}
             onChange={event => {
               setQuery(event.target.value);
-              setVisibleCount(6);
+              setVisibleCount(FUN_DECKS_FIRST_PAGE);
             }}
             placeholder="Найти колоду или класс"
           />
@@ -453,7 +455,7 @@ export default function FunDecksPage({
             value={sortMode}
             onChange={event => {
               setSortMode(event.target.value as SortMode);
-              setVisibleCount(6);
+              setVisibleCount(FUN_DECKS_FIRST_PAGE);
             }}
           >
             <option value="newest">Новые</option>
@@ -495,7 +497,7 @@ export default function FunDecksPage({
           </section>
           {hasFullAccess && visibleCount < filteredDecks.length ? (
             <div className="fun-decks-page__more">
-              <button type="button" onClick={() => setVisibleCount(count => count + 6)}>
+              <button type="button" onClick={() => setVisibleCount(count => count + FUN_DECKS_FIRST_PAGE)}>
                 Показать ещё
                 <span>{filteredDecks.length - visibleCount}</span>
               </button>

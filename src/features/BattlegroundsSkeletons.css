@@ -1,0 +1,117 @@
+/* Battlegrounds loading geometry (BattlegroundsSkeletons.tsx). The wrappers
+   carry the real card and panel classes; these rules only size the blocks
+   that stand in for data. Unlayered, so they win over LoadingSurface's
+   components-layer defaults. */
+/* One text line inside a real text element. Inline-block and top-aligned,
+   it sits in that element's own line box, so `lh` reserves exactly its
+   line height (two in a row wrap to two lines). */
+.bg-skeleton-line {
+  display: inline-block;
+  vertical-align: top;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  block-size: 0.72lh;
+  margin-block-start: 0.14lh;
+}
+
+.bg-skeleton-w-short { inline-size: 62%; }
+
+/* Texts that wrap to one more line only in the narrow phone column. */
+@media (min-width: 40rem) { .bg-skeleton-line--phone { display: none; } }
+.bg-skeleton-w-value { inline-size: 4.5rem; }
+.bg-skeleton-w-title { inline-size: 9rem; }
+.bg-skeleton-w-name { inline-size: min(100%, 22rem); }
+
+.bg-skeleton-fill {
+  display: block;
+  block-size: 100%;
+  margin-block: 0;
+}
+
+.bg-skeleton-badge {
+  flex-shrink: 0;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border-radius: 999px;
+}
+
+.bg-hero-skeleton-back__fill {
+  inline-size: 5.8rem;
+  block-size: 1.25rem;
+}
+
+.bg-hero-skeleton-portrait {
+  inline-size: 210px;
+  max-inline-size: 100%;
+  aspect-ratio: 256 / 272;
+}
+
+.bg-hero-skeleton-pill {
+  inline-size: 5.2rem;
+  block-size: 1.65rem;
+  border-radius: 999px;
+}
+
+.bg-hero-skeleton-link {
+  block-size: 2.75rem;
+  border-radius: 0.75rem;
+}
+
+/* The back control's placeholder doubles as the page's loading status. */
+.bg-skeleton-back { inline-size: fit-content; }
+
+.bg-heroes-skeleton,
+.bg-tier-skeleton { gap: 1.25rem; }
+
+.bg-heroes-skeleton__card { pointer-events: none; }
+
+.bg-heroes-skeleton__metric {
+  inline-size: 3rem;
+  block-size: 1.5rem;
+}
+
+.bg-tier-skeleton__chip {
+  inline-size: 5rem;
+  block-size: 1.375rem;
+}
+
+.bg-tier-skeleton__trinket { block-size: 5rem; }
+
+.bg-library-skeleton { display: block; }
+.bg-library-skeleton__tile { pointer-events: none; }
+
+.bg-library-skeleton__icon {
+  flex-shrink: 0;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+}
+
+.bg-library-skeleton__count {
+  inline-size: 2.25rem;
+  block-size: 1.625rem;
+  border-radius: 999px;
+}
+
+.bg-library-detail-skeleton__back {
+  inline-size: 10.2rem;
+  block-size: 1.25rem;
+}
+
+.bg-library-detail-skeleton__art {
+  inline-size: 100%;
+  aspect-ratio: 512 / 775;
+}
+
+.bg-library-detail-skeleton__chip {
+  inline-size: 8rem;
+  block-size: 3.125rem;
+}
+
+.bg-library-detail-skeleton__panel { block-size: 16rem; }
+
+/* Placeholder panels beside the page's LoadingSurface (the back control) fade
+   in with the same delayed reveal, so a fast response swaps straight to content. */
+.bg-hero-skeleton > [aria-hidden="true"],
+.bg-library-detail-skeleton > [aria-hidden="true"] {
+  animation: loading-reveal var(--motion-fast) var(--motion-ease) var(--loading-reveal-delay, 160ms) backwards;
+}

@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Maximize2, X } from 'lucide-react';
-import ModalSurface from '../../components/ModalSurface/ModalSurface';
+import React, { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
+import { Maximize2 } from 'lucide-react';
+import { LoadingBlock } from '../../shared/ui/LoadingSurface';
 import {
   cachedDeckRender,
   deckRenderImageRetryUrl,
@@ -15,7 +15,11 @@ import {
   recoverExhaustedImageLoad,
   type DeckImageLoadState,
 } from './deckImageLoadState';
+import '../../shared/ui/LoadingSurface.css';
 import './DeckRenderPreview.css';
+import { DeckRenderLightbox } from './DeckRenderLightbox';
+
+export type DeckRenderState = 'idle' | 'loading' | 'ready' | 'error';
 
 type DeckRenderPreviewProps = {
   deckCode: string;
@@ -24,6 +28,12 @@ type DeckRenderPreviewProps = {
   className?: string;
   eager?: boolean;
   initialAsset?: DeckRenderAsset | null;
+  /**
+   * Reports the preview's state. The square placeholder is a plain block and
+   * announces nothing: the gallery or page that owns the previews keeps the
+   * one loading status, and uses this to know when its previews are ready.
+   */
+  onRenderStateChange?: (state: DeckRenderState) => void;
 };
 
 
@@ -43,6 +53,13 @@ export default function DeckRenderPreview({
   );
 }
 
+// A render or a retry replaces the image rather than refreshing it in place,
+// so the preview is never aria-busy (see LoadingSurface).
+function useReportedRenderState(renderState: DeckRenderState, onChange?: (state: DeckRenderState) => void) {
+  const report = useEffectEvent((next: DeckRenderState) => onChange?.(next));
+  useEffect(() => { report(renderState); }, [renderState]);
+}
+
 type PreviewState = DeckImageLoadState & {
   renderRecoveryAttempt: number;
   requestVersion: number;
@@ -55,9 +72,9 @@ function DeckRenderPreviewInstance({
   className = '',
   eager = false,
   initialAsset = null,
+  onRenderStateChange,
 }: DeckRenderPreviewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const imageRetryTimerRef = useRef<number | null>(null);
   const [visible, setVisible] = useState(eager);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -164,12 +181,13 @@ function DeckRenderPreviewInstance({
   const showImage = state.imageReady;
   const showFallback = Boolean(state.error);
   const showLoading = !showImage && !showFallback;
+  const renderState: DeckRenderState = state.error ? 'error' : state.imageReady ? 'ready' : visible ? 'loading' : 'idle';
+  useReportedRenderState(renderState, onRenderStateChange);
   return (
     <div
       ref={rootRef}
       className={`deck-render-preview ${className}`.trim()}
-      data-render-state={state.error ? 'error' : state.imageReady ? 'ready' : visible ? 'loading' : 'idle'}
-      aria-busy={showLoading}
+      data-render-state={renderState}
     >
       <div className="deck-render-preview__image" hidden={!showImage}>
         {state.previewImageUrl ? (
@@ -199,9 +217,7 @@ function DeckRenderPreviewInstance({
           </button>
         ) : null}
       </div>
-      <div className="deck-render-preview__loading" hidden={!showLoading} aria-hidden="true">
-        <span>Собираем изображение колоды…</span>
-      </div>
+      {showLoading ? <LoadingBlock className="deck-render-preview__loading" /> : null}
       <div className="deck-render-preview__list" hidden={!showFallback}>
         {children}
       </div>
@@ -211,31 +227,7 @@ function DeckRenderPreviewInstance({
       ) : null}
 
       {lightboxOpen && state.fullImageUrl ? (
-        <ModalSurface
-          className="deck-render-lightbox"
-          panelClassName="deck-render-lightbox__panel"
-          backdropClassName="deck-render-lightbox__backdrop"
-          ariaLabel={`Колода «${deckName}» в полном размере`}
-          closeLabel="Закрыть просмотр колоды"
-          initialFocusRef={closeButtonRef}
-          onClose={() => setLightboxOpen(false)}
-        >
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="deck-render-lightbox__close"
-            aria-label="Закрыть"
-            onClick={() => setLightboxOpen(false)}
-          >
-            <X aria-hidden="true" />
-          </button>
-          <img
-            className="deck-render-lightbox__image"
-            src={state.fullImageUrl}
-            alt={`Колода «${deckName}» в стиле «Пергамент»`}
-            decoding="async"
-          />
-        </ModalSurface>
+        <DeckRenderLightbox deckName={deckName} imageUrl={state.fullImageUrl} onClose={() => setLightboxOpen(false)} />
       ) : null}
     </div>
   );

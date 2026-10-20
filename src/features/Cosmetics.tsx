@@ -46,7 +46,10 @@ import {
   RelatedCardGallery,
   type RelatedCard,
 } from './CosmeticsRelatedCardGallery';
+import { cachedCosmetics, fetchCosmetics } from './cosmeticsFetch';
+import { AsyncSurfaceState } from './recovery/RecoverableSurface';
 import '../shared/ui/LoadingSurface.css';
+import './recovery/RecoverableSurface.css';
 import './Cosmetics.css';
 
 export type HeroSummary = {
@@ -214,24 +217,6 @@ const KIND_META: Record<CosmeticKind, {
     icon: PawPrint,
   },
 };
-
-const requestCache = new Map<string, { etag: string | null; payload: any }>();
-
-async function fetchCosmetics<T>(url: string, signal: AbortSignal): Promise<T> {
-  const cached = requestCache.get(url);
-  const response = await fetch(url, {
-    signal,
-    headers: cached?.etag ? { 'If-None-Match': cached.etag } : undefined,
-  });
-  if (response.status === 304 && cached) return cached.payload as T;
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body?.error || `HTTP ${response.status}`);
-  }
-  const payload = await response.json() as T;
-  requestCache.set(url, { etag: response.headers.get('etag'), payload });
-  return payload;
-}
 
 function normalizedPath(path: string) {
   return path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/cosmetics';
@@ -514,6 +499,41 @@ function EmptyState() {
   );
 }
 
+/**
+ * The catalog page to show for `request`. A page this visit already fetched
+ * shows at once from memory while it revalidates; while another page loads,
+ * the previous one stays on screen, dimmed (aria-busy), instead of the
+ * skeleton; a failed request offers a retry of the same address.
+ */
+function useCatalogPage(
+  request: { query: string; url: string },
+  page: number,
+  correctPage: (page: number) => void,
+  initialCatalog: CosmeticsCatalogSeed | null | undefined,
+) {
+  const [attempt, setAttempt] = useState(0);
+  const [retryOf, setRetryOf] = useState<CatalogRequestState<CatalogPayload> | null>(null);
+  // A new fetcher per retry runs the request effect again for the same address.
+  const fetchCatalog = useCallback(
+    (url: string, signal: AbortSignal) => fetchCosmetics<CatalogPayload>(url, signal),
+    [attempt],
+  );
+  const requestState: CatalogRequestState<CatalogPayload> = useCatalogRequest(request, page, correctPage, initialCatalog,
+    fetchCatalog);
+  const retrying = retryOf === requestState;
+  const currentRequest = requestState.requestUrl === request.url && !retrying ? requestState : null;
+  const retry = useCallback(() => {
+    setRetryOf(requestState);
+    setAttempt(value => value + 1);
+  }, [requestState]);
+  return {
+    payload: currentRequest?.payload ?? cachedCosmetics<CatalogPayload>(request.url) ?? requestState.payload,
+    error: currentRequest?.error ?? null,
+    loading: currentRequest === null,
+    retry,
+  };
+}
+
 function CatalogView({
   kind,
   navigatePath,
@@ -535,12 +555,7 @@ function CatalogView({
   const request = useMemo(() => cosmeticsCatalogRequest(kind, deferredQuery, filters, page),
     [kind, deferredQuery, filters.classSlug, filters.rarity, filters.category, page]);
   const correctPage = useCallback((next: number) => dispatchControls({ type: 'page', page: next }), []);
-  const requestState: CatalogRequestState<CatalogPayload> = useCatalogRequest(request, page, correctPage, initialCatalog,
-    fetchCosmetics<CatalogPayload>);
-  const currentRequest = requestState.requestUrl === request.url ? requestState : null;
-  const payload = currentRequest?.payload ?? null;
-  const error = currentRequest?.error ?? null;
-  const loading = currentRequest === null;
+  const { payload, error, loading, retry } = useCatalogPage(request, page, correctPage, initialCatalog);
 
   const updateFilters = (patch: Partial<HeroFilters>) => {
     dispatchControls({ type: 'filters', patch });
@@ -570,8 +585,11 @@ function CatalogView({
         </section>
       )}
 
-      {error && !payload && <div className="cosmetics-error" role="alert">{error}</div>}
-      {!payload && loading ? <CosmeticsGridSkeleton /> : (
+      {error && (
+        <AsyncSurfaceState variant="error" compact={Boolean(payload)} title="Не удалось загрузить каталог"
+          message={error} actionLabel="Повторить" onAction={retry} />
+      )}
+      {!payload ? (loading && <CosmeticsGridSkeleton />) : (
         <>
           <div className="cosmetics-results-meta" aria-live="polite">
             <span>{payload?.pagination.total.toLocaleString('ru-RU') ?? 0} объектов</span>
@@ -822,21 +840,25 @@ function DetailView({
   initialDetail?: DetailPayload;
 }) {
   const requestKey = `${kind}:${cardId}`;
+  const detailUrl = `/api/cosmetics/${kind}/${encodeURIComponent(cardId)}`;
+  const [attempt, setAttempt] = useState(0);
   const [requestState, setRequestState] = useState<DetailRequestState>({
     requestKey: initialDetail ? requestKey : '',
     detail: initialDetail ?? null,
     error: null,
   });
   const currentRequest = requestState.requestKey === requestKey ? requestState : null;
-  const detail = currentRequest?.detail ?? null;
+  // An item this visit already opened shows at once from memory while it revalidates.
+  const detail = currentRequest?.detail ?? cachedCosmetics<DetailPayload>(detailUrl);
   const error = currentRequest?.error ?? null;
+  const retry = useCallback(() => {
+    setRequestState({ requestKey: '', detail: null, error: null });
+    setAttempt(value => value + 1);
+  }, []);
   useEffect(() => {
     if (initialDetail) return;
     const controller = new AbortController();
-    fetchCosmetics<DetailPayload>(
-      `/api/cosmetics/${kind}/${encodeURIComponent(cardId)}`,
-      controller.signal,
-    )
+    fetchCosmetics<DetailPayload>(detailUrl, controller.signal)
       .then(result => setRequestState({ requestKey, detail: result, error: null }))
       .catch(requestError => {
         if (requestError?.name !== 'AbortError') {
@@ -848,7 +870,7 @@ function DetailView({
         }
       });
     return () => controller.abort();
-  }, [kind, cardId, requestKey, initialDetail]);
+  }, [detailUrl, requestKey, initialDetail, attempt]);
 
   useEffect(() => {
     if (!detail || initialDetail) return;
@@ -874,7 +896,10 @@ function DetailView({
     });
   }, [kind, cardId, detail, initialDetail]);
 
-  if (error) return <div className="cosmetics-error" role="alert">{error}</div>;
+  if (!detail && error) {
+    return <AsyncSurfaceState variant="error" title="Не удалось загрузить страницу" message={error}
+      actionLabel="Повторить" onAction={retry} />;
+  }
   if (!detail) return <CosmeticsDetailSkeleton kind={kind} />;
   return (
     <article className="cosmetics-detail">

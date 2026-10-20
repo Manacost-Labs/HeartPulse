@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn } from 'storybook/test';
 import HomeLatestArticles from './HomeLatestArticles';
+import { HomeLatestArticlesSkeleton } from './HomeLatestArticlesSkeleton';
 import './Home.css';
 
 const image = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="560" height="300"%3E%3Crect width="560" height="300" fill="%23784d30"/%3E%3C/svg%3E';
@@ -28,3 +29,9 @@ export const Refreshing: Story = { args: { loading: true }, play: async ({ canva
   await expect(canvas.queryByRole('status')).not.toBeInTheDocument();
 } };
 export const Empty: Story = { args: { articles: [] }, play: async ({ canvas }) => { await expect(canvas.getByRole('status')).toHaveTextContent('Новые публикации скоро появятся'); } };
+/** The section while its lazy code loads: the same heading, board and link row as the loaded section. */
+export const SectionFallback: Story = { render: () => <HomeLatestArticlesSkeleton />, play: async ({ canvas }) => {
+  await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем последние статьи');
+  await expect(canvas.queryByRole('heading')).not.toBeInTheDocument();
+  await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
+} };

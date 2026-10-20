@@ -1,0 +1,6 @@
+/* The admin archetype list and detail while they load (Archetypes.tsx): the
+   shared LoadingSurface, in the place of the archetypes-status notice. */
+.archetypes-loading-panel {
+  width: auto;
+  margin: 1.2rem;
+}

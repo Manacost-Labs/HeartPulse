@@ -30,6 +30,10 @@ import {
   type SubscriptionStatus,
 } from '../modules/subscriptions/public';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
+import { TierListSkeleton } from './TierListSkeleton';
+import { LegendariesSkeleton } from './LegendariesSkeleton';
+import { AsyncSurfaceState } from './recovery/RecoverableSurface';
+import './recovery/RecoverableSurface.css';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import { arenaCardImageSources, TierListControls, TierBadge, type ManaFilterValue } from '../modules/arenaTierList/public';
 import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '../modules/arenaClasses/public';
@@ -663,11 +667,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
   );
 }) as React.FC<HSCardProps>;
 
-// ─── Skeleton / misc ──────────────────────────────────────────────────────────
-
-const Skeleton: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className = '', style }) => (
-  <div className={`skeleton ${className}`} style={style} />
-);
+// ─── Misc ─────────────────────────────────────────────────────────────────────
 
 const UpdateBadge: React.FC<{ updatedAt: string | null }> =
   ({ updatedAt }) => {
@@ -1430,16 +1430,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
       )}
 
       {loading ? (
-        <div className="flex flex-col items-center py-20 gap-5">
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-4 border-[#a88a45]/20" />
-            {/* Classes, not inline styles: the locked preview of PaywallGate stops them. */}
-            <div className="absolute inset-0 rounded-full border-4 border-t-[#fcd34d] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-            <div className="absolute inset-2 rounded-full border-2 border-t-transparent border-r-[#a88a45]/60 border-b-transparent border-l-transparent animate-[spin_0.7s_linear_infinite_reverse]" />
-          </div>
-          <p className="font-hs text-[#6b4c2a] text-xl tracking-wide">Загрузка тир-листа…</p>
-          <p className="text-[#8b6c42] text-sm">Получаем данные из API статистики</p>
-        </div>
+        <TierListSkeleton canUseTable={canUseTableView} />
       ) : (
         <>
           <TierListControls
@@ -1660,8 +1651,10 @@ function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey, active
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
 }
 
-export function Legendaries({ data, loading, error, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
+export function Legendaries({ data, loading, error, onRetry, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
   data: LegendariesData; loading: boolean; error: boolean;
+  /** Repeats a failed request; without it the failure has no retry action. */
+  onRetry?: () => void;
   legendarySource: LegendarySource;
   onLegendarySourceChange: (src: LegendarySource) => void;
   switchingLegendarySource: boolean;
@@ -1750,6 +1743,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
   }), []);
   const paywallActive = !subscriptionLoading
     && !(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
+  const hasGroups = (data.groups?.length ?? 0) > 0;
 
   return (
     <div className="arena-legendaries-page">
@@ -1788,7 +1782,9 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
             );
           })}
         </div>
-        <div className="legendary-count-pill text-sm font-bold px-3 py-1.5 rounded-full flex-shrink-0"
+        {/* The count is data: while groups load it keeps its place but shows no number. */}
+        <div className={`legendary-count-pill text-sm font-bold px-3 py-1.5 rounded-full flex-shrink-0${loading ? ' invisible' : ''}`}
+          aria-hidden={loading || undefined}
           style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a' }}>
           {filtered.length} групп
         </div>
@@ -1932,11 +1928,14 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         </div>
       </div>
 
-      {error && (
+      {error && (hasGroups ? (
         <div className="flex items-center gap-2 text-[#8b6c42] text-xs mb-5 px-3 py-2 rounded-lg bg-[#8b4513]/10 border border-[#8b4513]/20">
-          <AlertTriangle size={13} /><span>Нет данных — возможно, scraper ещё не запущен</span>
+          <AlertTriangle size={13} /><span>Не удалось обновить легендарные группы. Показываем то, что есть.</span>
         </div>
-      )}
+      ) : (
+        <AsyncSurfaceState variant="error" className="mb-5" title="Не удалось загрузить легендарные группы"
+          message="Проверьте соединение и попробуйте ещё раз." actionLabel="Повторить" onAction={onRetry} />
+      ))}
 
       {data.warning && !loading && (
         <div className="flex items-center gap-2 text-[#8b6c42] text-xs mb-5 px-3 py-2 rounded-lg bg-[#1a2a3a]/10 border border-[#60a5fa]/20">
@@ -1945,19 +1944,15 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       )}
 
       {loading ? (
-        <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="skeleton h-64 w-full rounded-2xl" style={{ animationDelay: `calc(var(--motion-stagger) * ${i})` }} />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
+        <LegendariesSkeleton />
+      ) : filtered.length === 0 ? (error && !hasGroups ? null : (
         <div className="legendary-empty text-center py-14 rounded-2xl"
           style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '2px dashed #c4a46a' }}>
-          <div className="text-4xl mb-3">⭐</div>
-          <p className="text-xl font-hs text-[#8b4513] tracking-wide">Нет данных</p>
-          <p className="text-[#8b6c42] mt-2 text-sm">Запустите npm run scrape для загрузки легендарных групп.</p>
+          <div className="text-4xl mb-3" aria-hidden="true">⭐</div>
+          <p className="text-xl font-hs text-[#8b4513] tracking-wide">Легендарных групп пока нет</p>
+          <p className="text-[#8b6c42] mt-2 text-sm">Данные появятся после следующего обновления статистики. Попробуйте выбрать другой класс или зайдите позже.</p>
         </div>
-      ) : (
+      )) : (
         <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((group, idx) => {
             const stats = legendaryGroupStats(group, activeClass);

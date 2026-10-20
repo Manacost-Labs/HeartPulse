@@ -56,8 +56,20 @@
 .standard-meta-modal__status--warning { color: #efc568; }
 .standard-meta-modal__copy-button { display: inline-flex; gap: 0.5rem; align-items: center; justify-content: center; min-height: 48px; padding: 0.65rem 1rem; border: 1px solid rgba(239, 197, 104, 0.58); color: #fff0c4; background: var(--meta-purple); font-size: 0.78rem; font-weight: 900; cursor: pointer; }
 .standard-meta-modal__copy-button--copied { border-color: rgba(202, 230, 160, 0.72); background: #35512f; }
-.standard-meta-modal__spinner { animation: standard-meta-modal-spin 850ms linear infinite; }
-@keyframes standard-meta-modal-spin { to { transform: rotate(360deg); } }
+/* Loading: the recommendation keeps the content grid, switch, stage and
+   details column (measured: 89/124 px switch buttons, 486 px deck tiles of
+   62 px, 33 px chips, code block and copy button); the preview fills the
+   stage like the contained image. */
+.standard-meta-modal__loading { grid-template-rows: minmax(0, 1fr); align-content: stretch; min-height: 0; }
+.standard-meta-modal__switch-skeleton { width: 89.3px; height: 44px; }
+.standard-meta-modal__switch-skeleton + .standard-meta-modal__switch-skeleton { width: 123.7px; }
+.standard-meta-modal__deck-skeleton { display: grid; align-content: start; gap: 1px; align-self: start; width: min(100%, 486px); max-height: 100%; overflow: hidden; }
+.standard-meta-modal__deck-skeleton .loading-block { flex: none; height: 62px; }
+.standard-meta-modal__chip-skeleton { width: 78.8px; height: 33.2px; }
+.standard-meta-modal__code-skeleton { height: 107.8px; }
+.standard-meta-modal__copy-skeleton { width: 167.3px; height: 48px; }
+.standard-meta-modal__image-loading { width: 100%; height: 100%; grid-template-rows: minmax(0, 1fr); align-content: stretch; }
+.standard-meta-modal__image-skeleton { width: 100%; height: 100%; }
 
 @media (max-width: 720px) {
   .standard-meta-modal { padding: 0.5rem; }
@@ -69,8 +81,10 @@
   .standard-meta-modal__image-stage { flex: 0 0 clamp(270px, 43dvh, 390px); height: auto; padding: 0.18rem; border-width: 5px; }
   .standard-meta-modal__details { flex: 0 0 auto; overflow: visible; }
   .standard-meta-modal__copy-button { width: 100%; }
+  .standard-meta-modal__code-skeleton { height: 76.3px; }
+  .standard-meta-modal__copy-skeleton { width: 100%; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .standard-meta-modal__spinner { animation-duration: 1.8s; }
+@media (max-width: 520px) {
+  .standard-meta-modal__deck-skeleton .loading-block { height: 52px; }
 }

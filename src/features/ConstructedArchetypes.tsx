@@ -1,6 +1,9 @@
 import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
 import { publicResourceImageUrl } from '../publicResourceUrl';
 import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
+import {
+  ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
+} from './ConstructedArchetypeDetailSkeletons';
 import '../shared/ui/analytics/Analytics.css';
 import { LineChart } from '../shared/ui/analytics/LineChart';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
@@ -39,7 +42,7 @@ import {
   type ArchetypeFormat,
 } from './constructedArchetypeCatalogUrl';
 
-const ConstructedArchetypeAnalysis = React.lazy(() => import('./ConstructedArchetypeAnalysis'));
+const ConstructedArchetypeAnalysis = React.lazy(loadArchetypeAnalysis);
 
 type ArchetypeBuild = {
   deckCode: string;
@@ -459,6 +462,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
   const { detail, core, history: historyRead, analysis: analysisRead, fullAccess, denied } = useArchetypeDetail({
     format, slug, hasFullAccess, accessPending, seed: initialDetail,
   });
+  // The analysis chunk loads beside the analysis request, so its placeholder and view are usually ready first.
+  useEffect(() => { if (fullAccess && !accessPending) void loadArchetypeAnalysis(); }, [fullAccess, accessPending]);
   const archetypeLabel = detail?.item.archetypeLabel;
   useEffect(() => {
     if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | Manacost Stats`;
@@ -523,7 +528,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
       </section>
 
       {fullAccess && (core.loading || core.error) ? (
-        <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={core.loading} error={core.error} onRetry={core.retry} />
+        <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={core.loading} error={core.error} onRetry={core.retry}
+          skeleton={<ArchetypeBuildsSkeleton />} />
       ) : null}
       {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}
 
@@ -578,7 +584,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
       ) : null}
 
       {fullAccess && !core.loading ? (
-        <ArchetypeDetailSection title="История архетипа" loading={historyRead.loading} error={historyRead.error} onRetry={historyRead.retry}>
+        <ArchetypeDetailSection title="История архетипа" loading={historyRead.loading} error={historyRead.error} onRetry={historyRead.retry}
+          skeleton={<ArchetypeHistorySkeleton />}>
         <section className="archetype-history" aria-labelledby="archetype-history-title" data-tour-id="archetype-history">
         <header className="archetype-section-heading">
           <div>
@@ -598,9 +605,9 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
       ) : null}
 
       {fullAccess && !core.loading ? <ArchetypeDetailSection title="Матчапы и муллиган" loading={analysisRead.loading}
-        error={analysisRead.error} onRetry={analysisRead.retry}>
+        error={analysisRead.error} onRetry={analysisRead.retry} skeleton={<ArchetypeAnalysisLoading />}>
         <RecoverableSurfaceBoundary scope="constructed-archetype-analysis" title="Аналитика архетипа временно недоступна">
-          <React.Suspense fallback={<LoadingSurface label="Загружаем аналитику архетипа" quiet layout="rows" />}>
+          <React.Suspense fallback={<ArchetypeAnalysisReserve />}>
             <ConstructedArchetypeAnalysis analysis={detail.analysis} />
           </React.Suspense>
         </RecoverableSurfaceBoundary>

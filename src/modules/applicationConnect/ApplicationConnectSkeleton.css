@@ -1,0 +1,99 @@
+/*
+ * Loading state of the connect view (ApplicationConnectSkeleton.tsx). The frame,
+ * header, step strip and code section come from applicationConnectFrame.css; this
+ * file sizes only the placeholders that stand in for its form controls.
+ */
+.application-connect-skeleton {
+  display: block;
+  color: inherit;
+}
+
+.application-connect-skeleton__parts { display: block; }
+
+/* The dark header needs a lighter placeholder fill. */
+.application-connect-skeleton .application-connect__header { --loading-fill: rgba(255, 236, 190, 0.2); }
+
+/* Text placeholders set the real copy as transparent generated content: each
+   line gets its own fill, and the block wraps like the text at every width
+   and font, with no text in the DOM. */
+.application-connect-skeleton__text,
+.application-connect-skeleton__button { color: transparent; }
+
+.application-connect-skeleton [data-text]::before { content: attr(data-text); }
+
+.application-connect-skeleton__text {
+  display: inline;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.application-connect-skeleton__icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+/* The real 17 px icon is a flex item that shrinks with the wrapping label. */
+.application-connect__trust .application-connect-skeleton__icon {
+  width: 17px;
+  min-width: 0;
+  height: 17px;
+  flex: 0 1 auto;
+}
+
+.application-connect-skeleton__heading {
+  display: block;
+  font: 700 1.45rem/1.15 var(--font-display);
+}
+
+/* The code form: label, input and submit row, hint (`.application-connect__code form`). */
+.application-connect-skeleton__form {
+  display: grid;
+  gap: 0.45rem;
+  font-family: var(--font-body);
+}
+
+.application-connect-skeleton__label {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.application-connect-skeleton__row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.application-connect-skeleton__form > small { font-size: 0.75rem; }
+
+.application-connect-skeleton__input,
+.application-connect-skeleton__button {
+  min-height: 3rem;
+  border-radius: 0.3rem;
+}
+
+.application-connect-skeleton__input {
+  min-width: 0;
+  flex: 1 1 13rem;
+}
+
+.application-connect-skeleton__button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding-inline: calc(1.15rem + 1px);
+  font-size: 1rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+@media (max-width: 540px) {
+  .application-connect-skeleton__row { flex-direction: column; }
+
+  .application-connect-skeleton__input {
+    width: 100%;
+    height: 3rem;
+    flex: 0 0 auto;
+  }
+
+  .application-connect-skeleton__button { width: 100%; }
+}

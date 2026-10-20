@@ -1,0 +1,25 @@
+/* A failed contest request keeps the page's message style and offers a retry. */
+.contest-message--retry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+
+.contest-message-retry {
+  min-height: 40px;
+  padding: 0.45rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Nothing was loaded: the alert stands in for the card grid. */
+.contest-load-error {
+  min-height: 220px;
+  align-content: center;
+}

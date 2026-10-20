@@ -173,6 +173,7 @@
         "tests/content-card-hover.test.mjs",
         "tests/loading-keyframes.test.mjs",
         "tests/loading-surface.test.tsx",
+        "tests/arena-loading-skeletons.test.tsx",
         "tests/next-public-first-paint-loaders.test.ts",
         "tests/battleground-builder-workbench.test.ts",
         "tests/data-visualizations.test.ts",
@@ -431,7 +432,10 @@
         "tests/vicious-gold-progressive-browser.test.mjs",
         "tests/vicious-gold-layout-browser.test.mjs",
         "tests/battleground-builders-browser.test.mjs",
-        "tests/skeleton-geometry-browser.test.mjs"
+        "tests/skeleton-geometry-browser.test.mjs",
+        "tests/skeleton-route-geometry-browser.test.mjs",
+        "tests/archetype-vicious-skeleton-geometry-browser.test.mjs",
+        "tests/public-loader-deadline-browser.test.mjs"
       ]
     },
     {

@@ -5,6 +5,7 @@ import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import './ConstructedCardCatalogControls.css';
 import './StandardCards.css';
+import '../shared/ui/LoadingSurface.css';
 
 const meta = {
   title: 'Constructed cards/Catalog controls',
@@ -54,6 +55,16 @@ export const SearchPending: Story = {
       onClear={() => undefined}
     />
   ),
+};
+
+/** Before the first page arrives the count is unknown: a placeholder, never «0 карт». */
+export const CountLoading: Story = {
+  render: () => <ConstructedCardCatalogSearch query="" total={null} pending={false} onChange={() => undefined} onClear={() => undefined} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByText(/0 карт/)).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector('output .loading-block')).not.toBeNull();
+  },
 };
 
 export const PointerTyping: Story = {

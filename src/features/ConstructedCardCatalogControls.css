@@ -111,3 +111,6 @@
   .constructed-card-download { transition: none; }
   .constructed-card-search__spinner { animation-duration: 1.6s; }
 }
+
+/* The count is unknown until the first page arrives: reserve its line, never «0 карт». */
+.constructed-card-search__count-skeleton { display: inline-block; inline-size: 5.5em; block-size: 1em; vertical-align: middle; }

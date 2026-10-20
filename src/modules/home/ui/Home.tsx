@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Send, Sparkles } from 'lucide-react';
 import type { HomeArticle } from './HomeLatestArticles';
 import type { HomeSummaryData } from '../model/homeSummary';
-import { LoadingSurface } from '../../../shared/ui/LoadingSurface';
 import { HomeHero } from './HomeHero';
 import './Home.css';
+import { HomeLatestArticlesSkeleton } from './HomeLatestArticlesSkeleton';
 // After Home.css: the directories' own rules win ties with its older ones,
 // as they did when the directories loaded later as separate chunks.
 import HomeArenaDirectory from './HomeArenaDirectory';
@@ -15,13 +15,11 @@ import HomeBattlegrounds from './HomeBattlegrounds';
 // the page; behind a placeholder they shifted it and broke its index links.
 const HomeLatestArticles = React.lazy(() => import('./HomeLatestArticles'));
 
-function HomeSectionFallback({ label }: { label: string }) {
-  return <LoadingSurface label={`Загружаем раздел «${label}»`} className="home-section-loading" />;
-}
-
 const HOME_SECTION_PRELOAD_MARGIN = '720px 0px';
 
-function DeferredHomeSection({ children, label, eager = false }: React.PropsWithChildren<{ label: string; eager?: boolean }>) {
+function DeferredHomeSection({ children, label, fallback, eager = false }: React.PropsWithChildren<{
+  label: string; fallback: React.ReactNode; eager?: boolean;
+}>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [nearViewport, setNearViewport] = useState(eager);
 
@@ -45,7 +43,7 @@ function DeferredHomeSection({ children, label, eager = false }: React.PropsWith
     <div ref={containerRef} data-home-deferred-section={label}>
       {nearViewport
         ? <HomeSectionBoundary label={label}>{children}</HomeSectionBoundary>
-        : <HomeSectionFallback label={label} />}
+        : fallback}
     </div>
   );
 }
@@ -92,8 +90,8 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <a href="#home-arena-directory-heading">Арена</a>
       </nav>
 
-      <DeferredHomeSection label="Последние статьи" eager={serverArticles}>
-        <React.Suspense fallback={<HomeSectionFallback label="Последние статьи" />}>
+      <DeferredHomeSection label="Последние статьи" fallback={<HomeLatestArticlesSkeleton />} eager={serverArticles}>
+        <React.Suspense fallback={<HomeLatestArticlesSkeleton />}>
           <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
         </React.Suspense>
       </DeferredHomeSection>

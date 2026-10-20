@@ -31,15 +31,28 @@ test('loading cards and class rows fit their loaded counterparts at public page 
     }
     for (const width of [1350, 1024, 768, 412, 360]) {
       await page.setViewport({ width, height: 940 });
-      for (const [name, readyStory, loadingStory, readySelector, loadingSelector] of [
-        ['articles', 'articles-measured-loading-geometry--ready', 'articles-measured-loading-geometry--loading', '.article-card-modern', '.articles-grid-modern > .skeleton, .article-card-skeleton'],
+      for (const [name, readyStory, loadingStory, readySelector, loadingSelector, fromWidth = 0] of [
+        ['articles', 'articles-measured-loading-geometry--ready', 'articles-measured-loading-geometry--loading', '.article-card-modern', '.article-card-skeleton'],
         ['deck builder', 'constructed-deckbuilder--empty', 'constructed-deckbuilder--loading', '.hp-builder-card', '.hp-builder-skeletons > div'],
         ['classes', 'arena-classes-data--ready', 'arena-classes-data--loading', '.arena-class-row', '.arena-classes-loading .arena-class-row'],
         ['contests', 'contests-measured-loading-geometry--ready', 'contests-measured-loading-geometry--loading', '.contest-card', '.contest-card--loading'],
         ['archetypes', 'constructed-archetype-catalog-loading--ready', 'constructed-archetype-catalog-loading--loading', '.archetype-row', '.archetypes-loading__row'],
         ['card history', 'cards-statistics-history--dense-small-values', 'cards-statistics-history--loading', '.constructed-card-history__content', '.constructed-card-history__content'],
         ['meta chart', 'meta-chart-loading-geometry--expanded', 'meta-chart-loading-geometry--loading', '.standard-meta-chart__content', '.standard-meta-chart__content'],
+        ['tier controls', 'tier-list-measured-loading-geometry--ready', 'tier-list-measured-loading-geometry--loading', '.arena-tier-controls', '.arena-tier-controls'],
+        ['tier group', 'tier-list-measured-loading-geometry--ready', 'tier-list-measured-loading-geometry--loading', '.tierlist-group', '.tierlist-group'],
+        ['card table', 'card-catalog-measured-loading-geometry--table-ready', 'card-catalog-measured-loading-geometry--table-loading', '.constructed-cards__table-wrap', '.constructed-cards__table-wrap'],
+        ['meta deck modal', 'constructed-meta-deck-modal--ready', 'constructed-meta-deck-modal--loading-recommendation', '.standard-meta-modal__content', '.standard-meta-modal__content'],
+        ['login card', 'identity-measured-loading-geometry--ready', 'identity-measured-loading-geometry--loading', '.login-card', '.login-card-skeleton__card'],
+        ['connect view', 'application-connect-measured-loading-geometry--ready', 'application-connect-measured-loading-geometry--loading', '.application-connect', '.application-connect'],
+        // Phone widths wrap variable action-card and chip text, so these frames are exact from the given width up.
+        ['bg hero frame', 'battlegrounds-hero-detail-measured-loading-geometry--ready', 'battlegrounds-hero-detail-measured-loading-geometry--loading', '.bg-hero-reliquary', '.bg-hero-reliquary', 768],
+        ['bg hero frame from teaser', 'battlegrounds-hero-detail-measured-loading-geometry--ready', 'battlegrounds-hero-detail-measured-loading-geometry--loading-from-teaser', '.bg-hero-reliquary', '.bg-hero-reliquary', 768],
+        ['bg hero ledger', 'battlegrounds-hero-detail-measured-loading-geometry--ready', 'battlegrounds-hero-detail-measured-loading-geometry--loading', '.bg-hero-detail-page > section:nth-of-type(3)', '.bg-hero-detail-page > section:nth-of-type(3)'],
+        ['bg card dossier', 'battlegrounds-card-detail-measured-loading-geometry--ready', 'battlegrounds-card-detail-measured-loading-geometry--loading', '.bg-library-card-dossier', '.bg-library-card-dossier', 412],
+        ['bg card dossier from teaser', 'battlegrounds-card-detail-measured-loading-geometry--ready', 'battlegrounds-card-detail-measured-loading-geometry--loading-from-teaser', '.bg-library-card-dossier', '.bg-library-card-dossier', 412],
       ]) {
+        if (width < fromWidth) continue;
         const ready = await geometry(readyStory, readySelector);
         const loading = await geometry(loadingStory, loadingSelector);
         const short = name === 'articles' ? await geometry('articles-measured-loading-geometry--short-headlines', readySelector) : null;
@@ -67,6 +80,11 @@ test('loading cards and class rows fit their loaded counterparts at public page 
         ['gallery', 'gallery-measured-loading-geometry--long-text', 'gallery-measured-loading-geometry--ready', 'gallery-measured-loading-geometry--loading', '.gallery-card'],
         ['matchups', 'meta-matchup-matrix--populated-overview', 'meta-matchup-matrix--overview', 'meta-matchup-matrix--loading', '.standard-matchups__picker'],
         ['home articles', 'home-measured-article-loading--long-text', 'home-measured-article-loading--ready', 'home-measured-article-loading--loading', '.home-latest-article'],
+        ['home articles section', 'home-measured-article-loading--long-text', 'home-measured-article-loading--ready', 'home-measured-article-loading--section-fallback', '.home-latest-articles'],
+        ['legendaries', 'legendaries-measured-loading-geometry--ready', 'legendaries-measured-loading-geometry--short-text', 'legendaries-measured-loading-geometry--loading', '.legendary-group-card'],
+        ['card catalog', 'card-catalog-measured-loading-geometry--ready', 'card-catalog-measured-loading-geometry--short-text', 'card-catalog-measured-loading-geometry--loading', '.constructed-cards__gallery-card'],
+        ['card detail', 'card-detail-measured-loading-geometry--ready', 'card-detail-measured-loading-geometry--short-text', 'card-detail-measured-loading-geometry--loading', '.constructed-card-detail__hero'],
+        ['bg heroes', 'battlegrounds-heroes-measured-loading-geometry--ready', 'battlegrounds-heroes-measured-loading-geometry--short-text', 'battlegrounds-heroes-measured-loading-geometry--loading', '.battleground-hero-card'],
       ]) {
         const ready = await geometry(readyStory, selector);
         const short = await geometry(shortStory, selector);

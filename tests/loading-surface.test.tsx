@@ -39,9 +39,21 @@ assert.doesNotMatch(styles, /@keyframes|background-position|!important/);
 assert.match(styles, /\.data-surface \{ transition: opacity var\(--motion-base\) var\(--motion-ease\); \}/);
 assert.match(styles, /@starting-style\s*\{\s*\.data-arrive\s*\{\s*opacity:\s*0\.24;/);
 
+// A fast or cached response never flashes a placeholder: the geometry is
+// reserved at once, the fill fades in only after the reveal delay, and a
+// refreshing section dims only after the same delay.
+assert.match(styles, /animation: loading-reveal [^;]*var\(--loading-reveal-delay\) backwards;/);
+assert.match(styles, /\.data-surface\[aria-busy="true"\] \{[^}]*transition-delay: var\(--loading-reveal-delay\);/);
+
+// A guest's locked preview is inert and never finishes loading: its
+// placeholders stay still instead of repainting the blurred layer forever.
+assert.match(styles, /\[inert\] \.loading-block \{ animation: none; \}/);
+
 // The stylesheet loads with the views that render a loader, not on every route.
 const index = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 assert.doesNotMatch(index, /LoadingSurface\.css|\.data-surface/);
+assert.doesNotMatch(index, /\.skeleton\b/, 'the legacy placeholder class is gone; every loader is a LoadingBlock');
+assert.match(index, /@keyframes loading-reveal \{\s*from \{ opacity: 0; \}/);
 for (const view of ['features/StandardMeta.tsx', 'features/HsReplayDeckList.tsx', 'features/ConstructedArchetypes.tsx',
   'features/Cosmetics.tsx', 'features/FunDecksPage.tsx', 'features/StandardMatchups.tsx', 'modules/contests/ui/ContestsSkeleton.tsx']) {
   assert.match(readFileSync(new URL(`../src/${view}`, import.meta.url), 'utf8'), /^import '[./]+shared\/ui\/LoadingSurface\.css';$/m,

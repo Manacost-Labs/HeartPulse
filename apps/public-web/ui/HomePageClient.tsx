@@ -3,13 +3,16 @@
 import dynamic from 'next/dynamic';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import type { HomeArticle, HomeSummaryData } from '@/src/modules/home/public';
+import { LoginCardSkeleton } from '@/src/modules/identity/public';
+import '@/src/shared/ui/LoadingSurface.css';
+import '@/src/modules/identity/ui/LoginCardSkeleton.css';
 import { usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
 import { HomePageContent } from './HomePageContent';
 
 const ReaderAccountRoute = dynamic(() => import('@/src/modules/browserIdentity/public'), {
   ssr: false,
-  loading: () => <div role="status">Загружается вход…</div>,
+  loading: () => <LoginCardSkeleton />,
 });
 
 export function HomePageClient({ summary, articles, login }: {

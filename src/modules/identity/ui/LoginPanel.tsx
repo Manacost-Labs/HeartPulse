@@ -4,7 +4,6 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import {
   logoutCurrentAuthSession,
@@ -25,8 +24,11 @@ import { canAccessAdminWorkspace } from '../model/authAccess';
 import { publicProfilePath } from '../model/publicProfilePath';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
 import './IdentityProfile.css';
+import '../../../shared/ui/LoadingSurface.css';
+import './LoginCardSkeleton.css';
 import AccountDashboard from './AccountDashboard';
 import LoginCard from './LoginCard';
+import { LoginCardSkeleton } from './LoginCardSkeleton';
 import { isRealAuthEmail } from '../model/accountDashboard';
 import { continueToCoverAfterLogin, coverSsoReturnTo } from '../../coverAdminSso/public';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
@@ -150,60 +152,6 @@ const COUNTRY_OPTIONS = [
   'Другая страна',
 ];
 
-
-function AuthCheckingCard({ delayMs = 180 }: { delayMs?: number }) {
-  const [visible, setVisible] = useState(delayMs <= 0);
-
-  useEffect(() => {
-    if (delayMs <= 0) {
-      setVisible(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setVisible(true), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [delayMs]);
-
-  // Inline on purpose: this card renders before the route stylesheet loads.
-  return (
-    <div style={{
-      minHeight: 220,
-      padding: '18px 0',
-      opacity: visible ? 1 : 0,
-      transition: 'opacity var(--motion-base) var(--motion-ease)',
-    }}>
-      <div style={{
-        maxWidth: 440,
-        margin: '0 auto',
-        borderRadius: 16,
-        border: '2px solid #6b4a2a',
-        background: '#fbf3dc',
-        boxShadow: '0 0 0 5px #e3cb94, 0 20px 44px rgba(58,36,18,0.28)',
-        padding: '28px 24px',
-        textAlign: 'center',
-        color: '#3d2a1e',
-      }}>
-        <div style={{
-          width: 56,
-          height: 56,
-          margin: '0 auto 14px',
-          borderRadius: 14,
-          display: 'grid',
-          placeItems: 'center',
-          background: '#7a1e22',
-          color: '#f1c76e',
-        }}>
-          <RefreshCw size={28} className="animate-spin" aria-hidden="true" />
-        </div>
-        <strong style={{ display: 'block', fontFamily: 'var(--font-hs)', fontSize: '1.25rem' }}>
-          Проверяем профиль
-        </strong>
-        <p style={{ margin: '8px 0 0', color: '#6a513a', fontSize: '0.95rem', lineHeight: 1.45 }}>
-          Подключаем сессию Экосистемы Манакоста.
-        </p>
-      </div>
-    </div>
-  );
-}
 
 let loginPresentationStyles: Promise<unknown> | null = null;
 
@@ -527,12 +475,10 @@ export function LoginPanel({
   const telegramLoginUrl = authUrlWithReturnTo(telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl, coverSsoReturnTo() || '/?login&telegram=ok');
   const patreonLinkUrl = authUrlWithReturnTo('/api/auth/patreon/start', '/?login&patreon=linked');
 
-  if (authChecking && !authUser) {
-    return <AuthCheckingCard />;
-  }
-
-  if (!authUser && !loginStylesReady) {
-    return <AuthCheckingCard delayMs={0} />;
+  // While the session is checked or the card's lazy stylesheet loads, the
+  // card's fitted skeleton holds its place (its own eager stylesheet).
+  if ((authChecking || !loginStylesReady) && !authUser) {
+    return <LoginCardSkeleton />;
   }
 
   if (authUser) {

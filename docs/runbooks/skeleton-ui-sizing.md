@@ -32,6 +32,11 @@ An attempt overlapping that rebuild is invalid evidence and must be repeated.
 ```bash
 npm run build-storybook
 CHROMIUM_PATH=/usr/bin/google-chrome node --test tests/skeleton-geometry-browser.test.mjs
+CHROMIUM_PATH=/usr/bin/google-chrome node --test tests/archetype-vicious-skeleton-geometry-browser.test.mjs
+CHROMIUM_PATH=/usr/bin/google-chrome node --test tests/public-loader-deadline-browser.test.mjs
+npm run build:next
+SKELETON_SCREENSHOT_DIR=<artifact-dir> CHROMIUM_PATH=/usr/bin/google-chrome \
+  node --test tests/skeleton-route-geometry-browser.test.mjs
 npm run test:storybook
 npm run test:registry
 npm run lint
@@ -49,6 +54,26 @@ Storybook instructions come from the local MCP; preview each changed state.
 The Storybook bootstrap loads route styles before parchment overrides, as the
 public app does. Domain stories must not import legacy page CSS across module
 boundaries. Keep that composition in `.storybook/preview.tsx`.
+
+## Real-route measurement
+
+The route test serves the production Next build behind the public gateway
+against a fixture backend, blocks every non-local request and telemetry, holds
+each route's data request to capture the skeleton, then releases it. A route
+is a row in `tests/helpers/skeletonRouteFixtures.mjs`: path, fixture answers,
+the held request, optional click navigation and the measured parts (`fixed`,
+`text` with a short-text fixture, `viewport` or `width`). `SKELETON_ROUTES`
+selects rows; `SKELETON_SCREENSHOT_DIR` keeps skeleton and loaded screenshots;
+`SKELETON_REPORT` writes the measurements. Fixtures must use the real API ids
+and the real first-page size, or the comparison measures the fixture.
+
+## 20 October 2026 evidence
+
+On release `51d3637b` the route test found grids shorter than the first page
+(fun decks 3 of 6 cards, guides 6 of 18, cosmetics 12 of 48 and no results
+line) with CLS 0.12, 0.07 and 0.09 at 1440×900, and a class row that grew when
+«Охотник на демонов» wrapped. After fitting, every covered route swaps with
+CLS 0 at 412×915 and 1440×900.
 
 ## 19 October 2026 evidence
 
