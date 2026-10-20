@@ -52,7 +52,8 @@ test('gated pages keep the gate height while the access check runs', async () =>
       headless: true, args: ['--no-sandbox'] });
     const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
     for (const viewport of viewports) {
-      for (const path of ['/heroes/', '/library/', '/battlegrounds/tier-list/', '/battlegrounds/strategies/', '/guides-archive/']) {
+      for (const path of ['/heroes/', '/library/', '/battlegrounds/tier-list/', '/battlegrounds/strategies/', '/guides-archive/',
+        '/standard/matchups/', '/standard/vicious-gold/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {
@@ -68,6 +69,9 @@ test('gated pages keep the gate height while the access check runs', async () =>
         const pending = await page.waitForSelector('.arena-paywall-pending', { timeout: 10_000 }).catch(() => null);
         assert.ok(pending, `${path} must render the reserved placeholder while access is checked`);
         assert.equal(await page.$('.arena-paywall'), null, `${path} must not show the gate before the check ends`);
+        // No locked preview either: a subscriber would see it, and so would the cached server HTML.
+        assert.equal(await page.evaluate(() => document.body.textContent.includes('Раздел подписчиков')), false,
+          `${path} must not show the subscribers' preview while access is checked`);
         await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10_000 });
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const shifts = await page.evaluate(() => window.__layoutShifts);

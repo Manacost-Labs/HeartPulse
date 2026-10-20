@@ -398,17 +398,20 @@ const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
   onRefreshSubscription: async () => null,
 };
 
+type StandardMetaPageProps = {
+  hasFullAccess?: boolean;
+  accessPending?: boolean;
+  paywall?: PaywallAccessState;
+  embedded?: boolean;
+  initialTeaser?: StandardMetaTeaserSeed | null;
+};
+
 function StandardMetaContent({
   hasFullAccess,
   accessPending,
   paywall,
   initialTeaser,
-}: {
-  hasFullAccess: boolean;
-  accessPending: boolean;
-  paywall: PaywallAccessState;
-  initialTeaser: StandardMetaTeaserSeed | null;
-}) {
+}: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
   const [format, setFormat] = useState<MetaFormat>(TEASER_SEED_FILTERS.format);
   const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
   const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
@@ -437,8 +440,10 @@ function StandardMetaContent({
   useEffect(() => {
     // The server-rendered teaser already answers the guest's first slice.
     if (requestKey === answeredKey.current) return undefined;
-    // Until the account is known the page cannot tell a teaser from full data.
-    if (accessPending) return undefined;
+    // Without one, the public teaser loads during the access check too; full
+    // access, once known, replaces it. The request starts a microtask later,
+    // so a remembered subscriber's access, applied right after hydration,
+    // cancels the teaser before it reaches the network.
     answeredKey.current = '';
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
@@ -451,10 +456,10 @@ function StandardMetaContent({
     });
     if (period) params.set('period', period);
     const endpoint = hasFullAccess ? '/api/standard-meta' : '/api/standard-meta/teaser';
-    void apiJson<unknown>(`${endpoint}?${params}`, {
+    void Promise.resolve().then(() => apiJson<unknown>(`${endpoint}?${params}`, {
       signal: controller.signal,
       headers: { Accept: STANDARD_META_MEDIA_TYPE },
-    })
+    }))
       .then(payload => {
         const verified = parseStandardMetaApiResponse(payload);
         if (currentRequest === requestId.current) {
@@ -485,7 +490,7 @@ function StandardMetaContent({
         }
       });
     return () => controller.abort();
-  }, [format, rank, period, minGames, metaRevision, hasFullAccess, accessPending, requestKey]);
+  }, [format, rank, period, minGames, metaRevision, hasFullAccess, requestKey]);
 
   const filteredItems = useMemo(() => {
     const normalized = deferredQuery.toLowerCase().trim();
@@ -804,13 +809,7 @@ export default function StandardMetaPage({
   paywall = DEFAULT_PAYWALL_ACCESS,
   embedded = false,
   initialTeaser = null,
-}: {
-  hasFullAccess?: boolean;
-  accessPending?: boolean;
-  paywall?: PaywallAccessState;
-  embedded?: boolean;
-  initialTeaser?: StandardMetaTeaserSeed | null;
-}) {
+}: StandardMetaPageProps) {
   const Root = embedded ? 'section' : 'main';
   return (
     <Root className="standard-meta" id={embedded ? undefined : 'main-content'}>
@@ -819,7 +818,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent hasFullAccess={hasFullAccess} accessPending={accessPending} paywall={paywall} initialTeaser={initialTeaser} />
+        <StandardMetaContent {...{ hasFullAccess, accessPending, paywall, initialTeaser }} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

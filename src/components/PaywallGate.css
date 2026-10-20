@@ -380,6 +380,42 @@
   min-height: var(--subscription-gate-min-height);
 }
 
+/* A browser that remembers this session's viewer (`data-hp-viewer`, set by
+   the head script in apps/public-web/lib/authPrefetch.ts) shows the viewer's
+   pages as soon as it hydrates. Until then the placeholder keeps its height
+   but says nothing, instead of announcing an access check to a subscriber. */
+html[data-hp-viewer='remembered'] .arena-paywall-pending > p {
+  visibility: hidden;
+}
+
+/* A failed access check: what happened and a retry, in the gate's place. */
+.arena-access-unavailable {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+html[data-hp-viewer='remembered'] .arena-access-unavailable > p {
+  visibility: visible;
+}
+.arena-access-unavailable > p { margin: 0; color: #42566f; font-size: 0.9rem; }
+.arena-access-unavailable > button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 1rem;
+  border: 1px solid #60a5fa;
+  border-radius: 8px;
+  color: #e5f2ff;
+  background: linear-gradient(135deg, #12365d, #0a1c32);
+  font-weight: 700;
+  cursor: pointer;
+}
+.arena-access-unavailable > button:disabled { cursor: wait; opacity: 0.7; }
+
 /* A guest's locked preview never leaves its loading state, and the preview is
    decorative (aria-hidden, inert, blurred). A looping loader inside it would
    restyle and repaint the blurred layer on every frame for the whole visit, so

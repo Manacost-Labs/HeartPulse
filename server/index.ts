@@ -41,7 +41,7 @@ import {
   createPatreonTokenCipher,
   type PatreonAuthorization,
 } from './patreonOAuth.js';
-import { createBrowserSessionCookieHandlers, legacyArenaCookieDomain } from './modules/browserSessionCookies/public.js';
+import { createBrowserSessionCookieHandlers, legacyArenaCookieDomain, requestViewerSession, requestViewerTag } from './modules/browserSessionCookies/public.js';
 import { createCoverAdminSsoRouter } from './modules/coverAdminSso/public.js';
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
@@ -8721,12 +8721,10 @@ app.use('/api', createAuthProfileRouter({
     if (!activeSession) return null;
     const { token } = activeSession;
     return {
-      user: activeSession.user,
-      touch: res => {
-        if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
-          saveAuthStore(activeSession.store);
-        }
-        setAuthCookie(req, res, token);
+      user: activeSession.user, viewerSession: requestViewerSession(req, token), expiresAt: () => activeSession.session.expiresAt,
+      // Extends the server session only; its cookies are written at sign-in.
+      touch: () => {
+        if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) saveAuthStore(activeSession.store);
       },
     };
   },
@@ -8757,7 +8755,7 @@ app.use('/api', createAuthProfileRouter({
     store.sessions = store.sessions.filter(item => item.tokenHash !== tokenHash);
     saveAuthStore(store);
   },
-  clearAuthCookie,
+  clearAuthCookie, requestViewerTag,
   normalizeContactEmail,
   normalizeContactTelegram,
   normalizeContactVkUrl,

@@ -26,7 +26,7 @@ is a separate administrator workspace and retains its permission gate.
 | `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx` | Document shell with the site-wide head tags, analytics script and field focus mode; real 404 and the generic error page for every route |
 | `ui/*PageClient.tsx` | Client page: viewer access, data hooks and the legacy view inside `PublicPageShell` |
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
-| `ui/usePublicAccess.ts` | Shared browser session, subscription and admin state in the persistent layout; quietly re-checks on route changes and on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
+| `ui/usePublicAccess.ts` | Shared browser session, subscription and admin state in the persistent layout; shows the remembered viewer of this session at once (`ui/viewerHint.ts`), quietly re-checks on route changes and on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
 | `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
 | `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
 | `ui/HomePageContent.tsx`, `ui/useHomeFirstPaint.ts`, `ui/homeFeedRequests.ts` | Home feed recovery: only missing anonymous feeds load in the browser, with cancelled lifetimes and soft settlement through the home module's DOM ports; request code loads only when recovery is needed |
@@ -245,12 +245,11 @@ is a separate administrator workspace and retains its permission gate.
   family carries the same header: it is never restored from the
   back/forward cache, but Back can show it from the HTTP cache until the
   visitor reloads. Every server answer about the viewer is recorded in this
-  browser (`ui/restoredPageAccess.ts`); a restored page that shows another
-  viewer than the last recorded one hides it and any paid view synchronously
-  before it checks the session, and a re-check that cannot reach the server
-  hides as well. A view that keeps viewer data must derive it from the
-  current viewer in render, not in an effect. Plausible counts no new
-  pageview for a restored page. The contract and its remaining gap are in
+  browser (`ui/restoredPageAccess.ts`); a restored page that shows a viewer
+  hides it and any paid view synchronously before it checks the session, and
+  shows it again only once the server confirms it. A view that keeps viewer
+  data must derive it from the current viewer in render, not in an effect.
+  Plausible counts no new pageview for a restored page. The contract is in
   `docs/specs/public-document-caching.md`;
   `tests/next-bfcache-browser.test.mjs` checks the headers, restores,
   sign-out and an account switch followed by Back. Production Nginx still
@@ -259,6 +258,21 @@ is a separate administrator workspace and retains its permission gate.
   first `fetchCurrentAuthUser()` call adopts that response once, within ten
   seconds, and every later call fetches. A page that never checks the session
   wastes one small request.
+- Instant access (`docs/specs/instant-viewer-access.md`): a viewer this
+  browser verified for the current session (`ui/viewerHint.ts`, bound to the
+  server's readable `hp_viewer` cookie) is shown before the first client
+  paint with `provisional: true` and `checking: false`, then confirmed or
+  replaced by the session check. Access is one explicit state
+  (`ui/accessState.ts`). Gate a paid page with `paidAccess(access,
+  entitlement)`: render the paid view and its paid data only when
+  `allowed`, the pending state while `pending`, and `PaywallGate` otherwise;
+  it shows a retry when `unavailable` and the lock only for a refusal the
+  server confirmed (`denied`). An
+  account page that needs the full profile also waits while `provisional`.
+  Never read the hint on the server or render from it in server HTML. A
+  session answer is used only while the browser still holds the session it
+  names (`viewerSession`). A check that keeps failing or hangs ends after ten
+  seconds with a gate whose button retries (`subscription.unavailable`).
 - Titles, descriptions, indexing, canonical URLs and robots come from
   `src/shared/seo/publicRouteInventory.json` and
   `config/public-seo-pages.json`; do not hand-write them in a page. A registry

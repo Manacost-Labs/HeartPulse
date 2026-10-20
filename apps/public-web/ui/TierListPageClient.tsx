@@ -5,8 +5,7 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { TierList } from '@/src/features/DeferredRoutes';
 import { useArenaCompanionIds, useArenaTierList,
   type TierlistData } from '@/src/modules/arenaTierList/public';
-import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
-import { usePublicAccess } from './usePublicAccess';
+import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
 
 const EMPTY_DATA: TierlistData = {
@@ -15,7 +14,7 @@ const EMPTY_DATA: TierlistData = {
 
 export function TierListPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'arena'));
+  const { allowed, pending } = paidAccess(access, 'arena');
   const tierlist = useArenaTierList(access.user?.id, allowed);
   const companionIds = useArenaCompanionIds(access.user?.id, allowed && tierlist.source !== 'hsreplay');
   const data = tierlist.state.data ?? { ...EMPTY_DATA, source: tierlist.source };
@@ -30,12 +29,12 @@ export function TierListPageClient() {
 
   return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
-    <TierList data={data} loading={tierlist.loading || access.checking}
+    <TierList data={data} loading={tierlist.loading || pending}
       error={tierlist.error} companionIds={companionIds}
       tierlistSource={tierlist.source} onTierlistSourceChange={tierlist.changeSource}
       switchingTierlistSource={tierlist.switching} onNavigate={navigateTab}
       authUser={access.user} subscriptionStatus={access.subscription}
-      subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}
+      subscriptionLoading={pending} onRefreshSubscription={access.refresh}
       accessGranted={allowed} />
   </PublicPageShell>;
 }

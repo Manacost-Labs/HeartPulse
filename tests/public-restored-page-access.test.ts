@@ -12,7 +12,7 @@ const storage = {
 };
 Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true });
 
-const { GUEST_VIEWER, recordVerifiedAccount, recordVerifiedGrants, recordVerifiedViewer, restoredPageMustHideViewer, verifiedViewer, viewerState } =
+const { GUEST_VIEWER, recordVerifiedAccount, recordVerifiedGrants, recordVerifiedViewer, verifiedViewer, viewerState } =
   await import('../apps/public-web/ui/restoredPageAccess.ts');
 
 const alpha = { id: 'alpha', email: 'alpha@example.test', name: 'Альфа', role: 'user' };
@@ -30,15 +30,12 @@ assert.equal(viewerState(alpha, subscribed),
   viewerState(alpha, { ...subscribed, entitlements: { arena: true, battlegrounds: true, standard: false } }));
 assert.ok(!viewerState(alpha, subscribed).includes('alpha'));
 
-// A's restored paid page while the server last confirmed A: it stays.
+// The record holds exactly the last confirmed viewer.
 recordVerifiedViewer(viewerState(alpha, subscribed));
-assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), false);
-
-// Any other confirmed viewer hides it at once: a guest (signed out or the
-// session ended), another account (redirect sign-in), or A without the entitlement.
+assert.equal(verifiedViewer(), viewerState(alpha, subscribed));
 for (const other of [GUEST_VIEWER, viewerState(beta, null), viewerState(beta, subscribed), viewerState(alpha, lapsed)]) {
   recordVerifiedViewer(other);
-  assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true, other);
+  assert.equal(verifiedViewer(), other);
 }
 
 // A session answer records another account (or a guest) at once, before its
@@ -48,19 +45,36 @@ recordVerifiedAccount(alpha);
 assert.equal(verifiedViewer(), viewerState(alpha, subscribed));
 recordVerifiedAccount(beta);
 assert.equal(verifiedViewer(), viewerState(beta, null));
-assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
 recordVerifiedAccount(null);
 assert.equal(verifiedViewer(), GUEST_VIEWER);
 assert.equal(viewerState(beta, null), viewerState(beta, lapsed), 'no grants and unknown grants record the same');
 
-// Unknown (nothing recorded, or storage unreadable) hides too.
+// Unreadable storage records nothing (and remembers no viewer).
 store.clear();
-assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
 storageBroken = true;
 recordVerifiedViewer(viewerState(alpha, subscribed));
 assert.equal(verifiedViewer(), null);
-assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
 storageBroken = false;
+
+// A session answer that left before another tab confirmed another viewer is
+// not about the current viewer; the same account refining its grants is.
+{
+  const { recordNamesAnotherViewer } = await import('../apps/public-web/ui/restoredPageAccess.ts');
+  recordVerifiedViewer(viewerState(alpha, subscribed));
+  const before = verifiedViewer();
+  assert.equal(recordNamesAnotherViewer(alpha, before), false);
+  recordVerifiedAccount(beta);
+  assert.equal(recordNamesAnotherViewer(alpha, before), true, 'another account signed in meanwhile');
+  recordVerifiedAccount(null);
+  assert.equal(recordNamesAnotherViewer(alpha, before), true, 'signed out meanwhile');
+  assert.equal(recordNamesAnotherViewer(null, before), false, 'a guest answer agrees with a guest record');
+  recordVerifiedViewer(viewerState(alpha, lapsed));
+  assert.equal(recordNamesAnotherViewer(alpha), false, 'the same account with other grants');
+  recordVerifiedViewer(viewerState(beta, null));
+  assert.equal(recordNamesAnotherViewer(alpha, verifiedViewer()), false, 'unchanged since the answer left: the answer decides');
+  store.clear();
+  assert.equal(recordNamesAnotherViewer(alpha), false, 'nothing recorded');
+}
 
 // A late subscription answer for A (another tab meanwhile ended A's session
 // and signed B in) must not overwrite B's record: grants are written only
@@ -68,7 +82,6 @@ storageBroken = false;
 recordVerifiedAccount(beta);
 recordVerifiedGrants(viewerState(alpha, subscribed));
 assert.equal(verifiedViewer(), viewerState(beta, null));
-assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
 recordVerifiedGrants(viewerState(beta, subscribed));
 assert.equal(verifiedViewer(), viewerState(beta, subscribed));
 recordVerifiedAccount(null);
@@ -76,31 +89,44 @@ recordVerifiedGrants(viewerState(beta, subscribed));
 assert.equal(verifiedViewer(), GUEST_VIEWER, 'a guest record is never upgraded by a late answer');
 
 // A write that fails (quota, privacy mode) must not leave the previous
-// viewer's record behind: it is removed, so a restored page hides.
+// viewer's record behind: it is removed, so no remembered viewer matches it.
 recordVerifiedViewer(viewerState(alpha, subscribed));
 const setItem = storage.setItem;
 storage.setItem = () => { throw new Error('QuotaExceededError'); };
 recordVerifiedAccount(beta);
 storage.setItem = setItem;
 assert.equal(verifiedViewer(), null);
-assert.equal(restoredPageMustHideViewer(viewerState(alpha, subscribed), verifiedViewer()), true);
 
-// A guest page shows nothing private; it only re-checks.
-assert.equal(restoredPageMustHideViewer(GUEST_VIEWER, viewerState(beta, subscribed)), false);
-
-// The hook records every server answer, hides synchronously before re-checking,
-// and a quiet re-check that cannot reach the server hides as well.
+// The hook records every server answer. A restored page that shows a viewer
+// hides it synchronously before re-checking, whatever the record says, since a
+// frozen page cannot know whether the session was revoked meanwhile; a quiet
+// re-check that cannot reach the server hides as well.
 const accessSource = readFileSync(new URL('../apps/public-web/ui/usePublicAccess.ts', import.meta.url), 'utf8');
 assert.match(accessSource, /addEventListener\('pageshow', onPageShow\)/);
 assert.match(accessSource, /removeEventListener\('pageshow', onPageShow\)/);
-assert.match(accessSource, /if \(!event\.persisted\) return;/);
-assert.match(accessSource, /restoredPageMustHideViewer\(shownViewer\.current, verifiedViewer\(\)\)/);
-assert.match(accessSource, /flushSync\(\(\) => \{\s*showUser\(null\);\s*setSubscription\(null\);\s*setChecking\(true\);\s*\}\);\s*void verifySession\(\);/);
-assert.equal((accessSource.match(/recordVerifiedAccount\(current\);/g) ?? []).length, 2,
+// Every restored page, a guest's too, hides and turns pending before its first
+// frame, and every check until one confirms both answers stays atomic.
+assert.match(accessSource, /if \(!event\.persisted\) return;\s*atomicUntilConfirmed = true;\s*flushSync\(\(\) => apply\(\{ type: 'hidden' \}\)\);\s*void verifySession\(false, \{[^}]*atomic: true \}\);/);
+assert.match(accessSource, /const atomic = series\.atomic \|\| atomicUntilConfirmed;/, 'a retry after a restore stays atomic');
+assert.match(accessSource, /apply\(\{ type: 'session', viewer: answer, publish: !atomic, quiet \}\);/);
+assert.match(accessSource, /apply\(\{ type: 'unavailable', viewer: atomic \? null : confirmed \}\);/);
+assert.equal((accessSource.match(/recordVerifiedAccount\((answer|signedIn)\);/g) ?? []).length, 2,
   'every session answer and every sign-in or sign-out records the viewer');
-assert.match(accessSource, /recordVerifiedGrants\(viewerState\(current, value\)\);\s*setSubscription\(value\);/);
+assert.match(accessSource, /rememberVerifiedViewer\(answer, value, confirmedTag, sessionExpiresAt\);\s*apply\(\{ type: 'confirmed', viewer: answer, grants: value \}\);/);
+// A stale answer, a 401 included, is dropped before it can touch anything.
+assert.match(accessSource, /if \(sessionChanged\(\)\) \{\s*confirmed = null;\s*throw new Error\('The session changed during the check'\);\s*\}\s*if \(response\.status === 401\)/);
+assert.match(accessSource, /const stillCurrent = \(\) => generation === requestGeneration\.current\s*&& sessionTag\(\) === sessionAtChange && !recordNamesAnotherViewer\(signedIn\);/);
+assert.match(accessSource, /if \(!stillCurrent\(\)\) return stale\(\);\s*if \(response\.status === 401\)/);
+// After every await, right before acting: the sign-in's body and the refresh's body too.
+assert.match(accessSource, /await response\.json\(\) as SubscriptionStatus : null;\s*if \(!stillCurrent\(\)\) return stale\(\);/);
+assert.match(accessSource, /const value = await response\.json\(\) as SubscriptionStatus;\s*if \(!stillCurrent\(\)\)/);
+assert.match(accessSource, /const loseSession = useCallback\(\(\) => \{\s*clearAuthSessionHint\(\);\s*clearViewerHint\(\);\s*recordVerifiedAccount\(null\);/);
+assert.match(accessSource, /function rememberVerifiedViewer[^}]*recordVerifiedGrants\(viewerState\(user, subscription\)\);/);
 assert.doesNotMatch(accessSource, /recordVerifiedViewer\(/, 'subscription answers write grants only for the recorded account');
-assert.match(accessSource, /if \(quiet\) \{\s*showUser\(null\);\s*setSubscription\(null\);\s*\}/);
+// A quiet re-check that fails hides the viewer like any other.
+assert.match(accessSource, /if \(quiet\) apply\(\{ type: 'hidden' \}\);/);
+// Whatever the browser remembers, an unfinished check ends unavailable, not as a guest.
+assert.doesNotMatch(accessSource, /hasAuthSessionHint/);
 
 // Viewer-specific parts of public pages follow the viewer in the same render,
 // so a restored page that hides its viewer also drops them.

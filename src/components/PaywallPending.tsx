@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { RefreshCw } from 'lucide-react';
 import './PaywallGate.css';
 
 /**
@@ -12,4 +13,21 @@ export default function PaywallPending({ children, className }: { children: Reac
   return <div className="arena-paywall-pending" role="status">
     <p className={className} aria-busy="true">{children}</p>
   </div>;
+}
+
+/**
+ * A failed access check, in the gate's place: what happened and a retry. It is
+ * neither a grant nor a refusal, so it shows no lock and no subscription pitch.
+ */
+export function AccessUnavailable({ message, loading, onRetry }: {
+  message?: string; loading: boolean; onRetry: () => Promise<unknown>;
+}) {
+  return (
+    <section className="arena-paywall-pending arena-access-unavailable" role="alert">
+      <p>{message || 'Не удалось проверить доступ.'}</p>
+      <button type="button" onClick={() => { void onRetry(); }} disabled={loading}>
+        <RefreshCw size={15} aria-hidden="true" />{loading ? 'Проверяем…' : 'Повторить проверку'}
+      </button>
+    </section>
+  );
 }

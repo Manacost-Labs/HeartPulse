@@ -4,12 +4,14 @@ import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import './PaywallGate.css';
 import SubscriptionPurchaseButtons from './SubscriptionPurchaseButtons';
+import { AccessUnavailable } from './PaywallPending';
 import { subscriptionPaywallHeading } from './subscriptionPaywallHeading';
 export type PaywallGateProps = {
   active: boolean;
   title: string;
   authUser: object | null;
-  subscriptionStatus: { message?: string } | null;
+  /** `unavailable`: the access check gave up; the gate offers to run it again. */
+  subscriptionStatus: { message?: string; unavailable?: boolean } | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<unknown>;
   variant?: 'default' | 'standard';
@@ -38,6 +40,7 @@ const ACTION_STYLE = {
   padding: '8px 12px', fontSize: '13px', cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '44px', boxSizing: 'border-box',
 } as const;
+const PRIMARY_ACTION_STYLE = { ...ACTION_STYLE, background: 'linear-gradient(135deg,#12365d,#0a1c32)', color: '#e5f2ff', borderColor: '#60a5fa' } as const;
 
 export default function PaywallGate({
   active,
@@ -59,6 +62,10 @@ export default function PaywallGate({
 }: PaywallGateProps) {
   const preview = children ?? <SubscriptionLockedPreview title={previewTitle || title} />;
   if (!active) return <>{preview}</>;
+  // A failed check is neither a grant nor a refusal: no lock, no pitch.
+  if (subscriptionStatus?.unavailable) {
+    return <AccessUnavailable message={subscriptionStatus.message} loading={subscriptionLoading} onRetry={onRefreshSubscription} />;
+  }
   if (presentation === 'inline') {
     return (
       <InlineSubscriptionPaywall
@@ -158,25 +165,17 @@ export default function PaywallGate({
           </p>
           <SubscriptionPurchaseButtons />
           <div className="arena-paywall__actions" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {!authUser ? (
-              <a href="/?login" style={{ ...ACTION_STYLE, textDecoration: 'none', background: 'linear-gradient(135deg,#12365d,#0a1c32)', color: '#e5f2ff', borderColor: '#60a5fa' }}>
-                Войти в профиль
+            {authUser ? (
+              <button type="button" onClick={() => { void onRefreshSubscription(); }} disabled={subscriptionLoading}
+                style={{ ...PRIMARY_ACTION_STYLE, cursor: subscriptionLoading ? 'wait' : 'pointer' }}>
+                {subscriptionLoading ? 'Проверяем...' : 'Обновить подписку'}
+              </button>
+            ) : <a href="/?login" style={{ ...PRIMARY_ACTION_STYLE, textDecoration: 'none' }}>Войти в профиль</a>}
+            {authUser ? (
+              <a href="/?login" style={{ ...ACTION_STYLE, textDecoration: 'none', background: '#f8faff', color: '#1f3b63', borderColor: '#9db4d5' }}>
+                Открыть профиль
               </a>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => { void onRefreshSubscription(); }}
-                  disabled={subscriptionLoading}
-                  style={{ ...ACTION_STYLE, background: 'linear-gradient(135deg,#12365d,#0a1c32)', color: '#e5f2ff', borderColor: '#60a5fa', cursor: subscriptionLoading ? 'wait' : 'pointer' }}
-                >
-                  {subscriptionLoading ? 'Проверяем...' : 'Обновить подписку'}
-                </button>
-                <a href="/?login" style={{ ...ACTION_STYLE, textDecoration: 'none', background: '#f8faff', color: '#1f3b63', borderColor: '#9db4d5' }}>
-                  Открыть профиль
-                </a>
-              </>
-            )}
+            ) : null}
           </div>
           {subscriptionStatus?.message && (
             <p className="arena-paywall__status" style={{ margin: '12px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.4 }}>
@@ -208,7 +207,7 @@ function InlineSubscriptionPaywall({
   actionLabel?: string;
   providerButtons: boolean;
   authUser: object | null;
-  subscriptionStatus: { message?: string } | null;
+  subscriptionStatus: PaywallGateProps['subscriptionStatus'];
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<unknown>;
 }) {

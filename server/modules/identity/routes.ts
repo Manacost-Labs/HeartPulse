@@ -9,6 +9,13 @@ export type AuthProfileRouterDependencies<User extends { id: string }> =
   AuthProfileContactNormalizers & {
     getSession: (request: Request) => {
       user: User;
+      /**
+       * The session's `hp_viewer` tag when the request carried it: which
+       * session this answer is about; null for a session without its tag.
+       */
+      viewerSession: string | null;
+      /** When the server session expires (epoch ms), after `touch`. */
+      expiresAt: () => number;
       touch: (response: Response) => void;
     } | null;
     authenticate: (request: Request) => User | null;
@@ -19,6 +26,8 @@ export type AuthProfileRouterDependencies<User extends { id: string }> =
     tokenFromRequest: (request: Request) => string;
     revokeSession: (token: string) => void;
     clearAuthCookie: (request: Request, response: Response) => void;
+    /** The viewer tag the request carried: a guest answer names it, so it is never taken for a newer session. */
+    requestViewerTag: (request: Request) => string | null;
     setPrivateNoStore: (response: Response) => void;
   };
 
@@ -36,13 +45,16 @@ export function createAuthProfileRouter<User extends { id: string }>(
     try {
       const session = dependencies.getSession(request);
       if (!session) {
-        return response.json({ user: null, adminAllowed: false, contestAdminAllowed: false });
+        return response.json({ user: null, adminAllowed: false, contestAdminAllowed: false,
+          viewerSession: dependencies.requestViewerTag(request) });
       }
       session.touch(response);
       return response.json({
         user: dependencies.serializeUser(session.user),
         adminAllowed: dependencies.isAdmin(session.user),
         contestAdminAllowed: dependencies.isContestAdmin(session.user),
+        viewerSession: session.viewerSession,
+        sessionExpiresAt: session.expiresAt(),
       });
     } catch {
       return response.status(503).json({ error: 'Не удалось проверить текущую сессию' });

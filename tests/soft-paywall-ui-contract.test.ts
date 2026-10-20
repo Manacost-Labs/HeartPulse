@@ -71,7 +71,9 @@ for (const pageClient of ['BattlegroundHeroesPageClient', 'BattlegroundHeroDetai
   'BattlegroundLibraryDetailPageClient', 'BattlegroundTierListPageClient', 'BattlegroundTierBuilderPageClient',
   'BattlegroundStrategiesPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
   const source = readFileSync(new URL(`../apps/public-web/ui/${pageClient}.tsx`, import.meta.url), 'utf8');
-  assert.match(source, /access\.checking\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is checked`);
+  // `pending` (paidAccess) covers the check and a refusal the server has not confirmed yet.
+  assert.match(source, /const \{ allowed, pending \} = paidAccess\(access, '\w+'\);/, `${pageClient} must decide with paidAccess`);
+  assert.match(source, /pending\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is pending`);
   assert.ok(!/<p[^>]*aria-busy/.test(source), `${pageClient} must not render a bare pending line`);
 }
 

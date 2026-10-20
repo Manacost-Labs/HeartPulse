@@ -4,15 +4,14 @@ import { useEffect, useState } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { Legendaries } from '@/src/features/DeferredRoutes';
 import { useArenaLegendaries, type LegendariesData } from '@/src/modules/arenaLegendaries/public';
-import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
-import { usePublicAccess } from './usePublicAccess';
+import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
 
 const EMPTY_DATA: LegendariesData = { groups: [], updatedAt: null, source: 'hsreplay.net' };
 
 export function LegendariesPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'arena'));
+  const { allowed, pending } = paidAccess(access, 'arena');
   const legendaries = useArenaLegendaries(access.user?.id, allowed);
   const data = legendaries.state.data ?? EMPTY_DATA;
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
@@ -26,12 +25,12 @@ export function LegendariesPageClient() {
 
   return <PublicPageShell activeTab="legendaries" pathname="/legendaries/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
-    <Legendaries data={data} loading={legendaries.loading || access.checking}
+    <Legendaries data={data} loading={legendaries.loading || pending}
       error={legendaries.error} onRetry={legendaries.retry} legendarySource={legendaries.source}
       onLegendarySourceChange={legendaries.changeSource}
       switchingLegendarySource={legendaries.switching} onNavigate={navigateTab}
       authUser={access.user} subscriptionStatus={access.subscription}
-      subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}
+      subscriptionLoading={pending} onRefreshSubscription={access.refresh}
       accessGranted={allowed} />
   </PublicPageShell>;
 }

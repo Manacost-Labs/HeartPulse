@@ -112,6 +112,8 @@ app.use('/api', createAuthProfileRouter({
     return request.headers.authorization === 'Bearer valid-token'
       ? {
         user: storedUser,
+        viewerSession: 'tag-of-valid-token',
+        expiresAt: () => 1_800_000_000_000,
         touch: response => {
           if (touchFailure) throw new Error('session refresh internals and secret details');
           touchedSessions += 1;
@@ -154,6 +156,7 @@ app.use('/api', createAuthProfileRouter({
     if (revokeFailure) throw new Error('session store secret details');
     revokedTokens.push(token);
   },
+  requestViewerTag: request => /hp_viewer=([A-Za-z0-9_-]{22})/.exec(String(request.headers.cookie ?? ''))?.[1] ?? null,
   clearAuthCookie: (_request, response) => {
     clearedCookies += 1;
     response.append('Set-Cookie', 'auth=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
@@ -209,8 +212,15 @@ try {
   const guest = await api('/auth/me', {}, false);
   assert.equal(guest.status, 200);
   assertPrivateResponseHeaders(guest);
-  assert.deepEqual(await guest.json(), { user: null, adminAllowed: false, contestAdminAllowed: false });
+  assert.deepEqual(await guest.json(), { user: null, adminAllowed: false, contestAdminAllowed: false, viewerSession: null });
   assert.equal(touchedSessions, 0, 'guest requests must not refresh a session');
+  assert.equal(guest.headers.get('set-cookie'), null, 'a guest without a viewer tag gets no cookie');
+  // A guest answer names the tag the request carried (a session that ended),
+  // so the browser can tell it from a newer session; it writes no cookie.
+  const staleTag = await api('/auth/me', { headers: { Cookie: 'hp_viewer=stale-session-tag-0001' } }, false);
+  assert.deepEqual(await staleTag.json(), { user: null, adminAllowed: false, contestAdminAllowed: false,
+    viewerSession: 'stale-session-tag-0001' });
+  assert.equal(staleTag.headers.get('set-cookie'), null);
 
   const me = await api('/auth/me');
   assert.equal(me.status, 200);
@@ -226,6 +236,8 @@ try {
     },
     adminAllowed: false,
     contestAdminAllowed: false,
+    viewerSession: 'tag-of-valid-token',
+    sessionExpiresAt: 1_800_000_000_000,
   });
 
   adminAllowed = true;
@@ -242,6 +254,8 @@ try {
     },
     adminAllowed: true,
     contestAdminAllowed: true,
+    viewerSession: 'tag-of-valid-token',
+    sessionExpiresAt: 1_800_000_000_000,
   });
 
   adminAllowed = false;
@@ -257,6 +271,8 @@ try {
     },
     adminAllowed: false,
     contestAdminAllowed: true,
+    viewerSession: 'tag-of-valid-token',
+    sessionExpiresAt: 1_800_000_000_000,
   });
   contestAdminAllowed = false;
 

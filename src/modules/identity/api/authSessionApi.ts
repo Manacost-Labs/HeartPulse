@@ -66,7 +66,21 @@ function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   });
 }
 
-async function requestCurrentAuthUser(signal: AbortSignal, early: Promise<Response | null> | null): Promise<AuthUser | null> {
+/**
+ * A session answer and the session it is about: the `hp_viewer` tag of the
+ * session the server read (null for a guest). The browser compares it with its
+ * current tag, so an answer that arrives after another sign-in or a sign-out
+ * in another tab is not taken for the current session.
+ */
+export type CurrentAuthSession = {
+  user: AuthUser | null;
+  /** Undefined when the server does not name the session (an older API build). */
+  viewerSession: string | null | undefined;
+  /** When the server session expires (epoch ms), when the server says. */
+  sessionExpiresAt?: number;
+};
+
+async function requestCurrentAuthSession(signal: AbortSignal, early: Promise<Response | null> | null): Promise<CurrentAuthSession> {
   const [response, { authErrorFromPayload, authSessionFromPayload }] = await Promise.all([
     early ? untilAborted(early, signal)
       : fetch('/api/auth/me', { credentials: 'same-origin', cache: 'no-store', signal }),
@@ -79,17 +93,26 @@ async function requestCurrentAuthUser(signal: AbortSignal, early: Promise<Respon
   }
   const session = authSessionFromPayload(payload);
   if (!session) throw new Error('Не удалось проверить текущую сессию');
-  return session.user;
+  const named = payload as { viewerSession?: unknown; sessionExpiresAt?: unknown };
+  const viewerSession = !Object.hasOwn(named, 'viewerSession') ? undefined
+    : typeof named.viewerSession === 'string' && named.viewerSession ? named.viewerSession : null;
+  const sessionExpiresAt = typeof named.sessionExpiresAt === 'number' && Number.isFinite(named.sessionExpiresAt)
+    ? named.sessionExpiresAt : undefined;
+  return { user: session.user, viewerSession, ...(sessionExpiresAt === undefined ? {} : { sessionExpiresAt }) };
 }
 
-/** Preserves the shell's bounded retry policy for transient session failures. */
-export async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | null> {
+/**
+ * Preserves the shell's bounded retry policy for transient session failures.
+ * Aborting `signal` ends the whole check at once, including a response body
+ * that never finishes (the head's early request has no signal of its own).
+ */
+export async function fetchCurrentAuthSession(signal: AbortSignal): Promise<CurrentAuthSession> {
   let lastError: unknown = new Error('Не удалось проверить текущую сессию');
   // The head's early response, when there is one, is the first attempt.
   const early = takeEarlyAuthResponse();
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      return await requestCurrentAuthUser(signal, attempt === 0 ? early : null);
+      return await untilAborted(requestCurrentAuthSession(signal, attempt === 0 ? early : null), signal);
     } catch (error) {
       if (signal.aborted) throw error;
       lastError = error;
@@ -97,4 +120,8 @@ export async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUse
     }
   }
   throw lastError;
+}
+
+export async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | null> {
+  return (await fetchCurrentAuthSession(signal)).user;
 }

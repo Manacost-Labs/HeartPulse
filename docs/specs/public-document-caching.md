@@ -29,35 +29,44 @@ viewer's account or paid data to another.
   session check, sign-in, sign-out and subscription read) is recorded in
   `localStorage` as one digest of the account, its administrator roles and
   its entitlements, or `guest` (`apps/public-web/ui/restoredPageAccess.ts`).
-- On a persisted `pageshow`, a page that shows a viewer compares that viewer
-  with the record. If they differ, or the record cannot be read, it hides the
-  viewer and every paid view synchronously, before its first frame, and then
-  checks the session. If they match, it checks quietly and keeps the page.
+- On a persisted `pageshow`, a page that shows a viewer hides it, with every
+  paid view, synchronously before its first frame, whatever the record says:
+  while the page was frozen the session may have been revoked or replaced
+  without any page of ours hearing of it. It shows the viewer again only when
+  the session and subscription checks both confirm it, and then both at once,
+  within the check's deadline; a check that fails or runs out of time leaves
+  the page without the viewer. A page restored as a guest turns pending too
+  (someone may have signed in meanwhile), so its old gate never shows a lock
+  to a subscriber. Every check of a restored page, its retry included, shows
+  a viewer only with a confirmed subscription until one check confirms both.
 - A quiet check that cannot reach the server hides the viewer as well: a
-  remembered session then shows the pending state and retries, a guest sees
+  remembered session then shows the pending state and retries within a
+  bounded deadline before it offers a gate with a retry action, a guest sees
   the gate.
+- A new page may show the viewer this browser remembers for the current
+  session before its session check answers, under the rules of
+  [instant viewer access](instant-viewer-access.md).
 - Views that hold viewer data derive it from the current viewer in the same
   render (`/classes/` statistics, article votes, contest entries), so hiding
   the viewer drops them.
 
 ## Remaining gap
 
-The record holds what one of our pages last heard from the server. A change
-that no page of ours has observed yet, such as a session that expired or was
-revoked on another device while every open page was in the back/forward
-cache, leaves the record unchanged. A restored page then shows its previous
-viewer, a viewer this browser was already showing, until its quiet check
-answers (one round trip), or until that check fails and the page hides.
+None known for restored pages: they never show a viewer before the server
+confirms it again. The cost is a short pending state when a signed-in visitor
+goes Back.
 
 ## Verification
 
 `tests/next-bfcache-browser.test.mjs` checks the headers, a guest restore
-with its scroll position, a subscriber restore, sign-out then Back on the
-Battlegrounds tier list and on `/classes/`, a revoked session followed by a
-redirect sign-in of another account then two steps Back (online and
+with its scroll position, a subscriber restore (hidden, then confirmed), a
+session revoked on the server while the page was frozen, a late and a hung
+subscription answer after a restore, sign-out then Back
+on the Battlegrounds tier list and on `/classes/`, a revoked session followed
+by a redirect sign-in of another account then two steps Back (online and
 offline), and an offline restore of an unchanged viewer.
-`tests/public-restored-page-access.test.ts` checks the record and the
-decision.
+`tests/public-restored-page-access.test.ts` checks the record and that the
+hook hides a restored viewer before it checks again.
 
 ## Documentation impact
 

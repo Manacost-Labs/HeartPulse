@@ -527,9 +527,11 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </dl>
       </section>
 
-      {fullAccess && (core.loading || core.error) ? (
-        <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={core.loading} error={core.error} onRetry={core.retry}
-          skeleton={<ArchetypeBuildsSkeleton />} />
+      {/* While access is checked the paid sections hold their loading place; the
+          preview and the paywall belong to a confirmed answer without access. */}
+      {accessPending || (fullAccess && (core.loading || core.error)) ? (
+        <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={accessPending || core.loading}
+          error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton />} />
       ) : null}
       {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}
 
@@ -558,7 +560,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       )}
 
-      {!fullAccess && detail.featuredBuild ? (
+      {!fullAccess && !accessPending && !paywall.subscriptionStatus?.unavailable && detail.featuredBuild ? (
         <section className="archetype-build-preview" aria-labelledby="archetype-build-preview-title">
           <div>
             <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
@@ -572,7 +574,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       ) : null}
 
-      {!fullAccess ? (
+      {!fullAccess && !accessPending ? (
         <PaywallGate
           active
           presentation="inline"

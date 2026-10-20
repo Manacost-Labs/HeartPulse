@@ -248,7 +248,7 @@ const publicEntrySource = readFileSync(
 );
 
 assert.doesNotMatch(accessSource, /['"]\/api\/auth\/me['"]/, 'public pages must delegate session I/O');
-assert.match(accessSource, /fetchCurrentAuthUser\(controller\.signal\)/);
+assert.match(accessSource, /fetchCurrentAuthSession\(attempt\.signal\)/);
 assert.doesNotMatch(
   loginPanelSource,
   /['"]\/api\/auth\/(?:profile|logout)['"]/,

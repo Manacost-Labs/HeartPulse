@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { fetchCurrentAuthUser } from '../src/modules/identity/public.js';
+import { fetchCurrentAuthSession, fetchCurrentAuthUser } from '../src/modules/identity/public.js';
 import { AUTH_PREFETCH } from '../apps/public-web/lib/authPrefetch.ts';
 
 // The document head starts the session check (apps/public-web/lib/authPrefetch.ts);
@@ -58,6 +58,32 @@ try {
   await assert.rejects(pending, error => error instanceof DOMException && error.name === 'AbortError');
   release(json(200, signedIn));
   assert.equal(fetched, 0, 'an aborted check starts no retry');
+
+  // The early request has no signal of its own: a body that never finishes
+  // still ends the check when its deadline aborts it.
+  fetched = 0;
+  const hungBody = new Response(new ReadableStream({ start(stream) { stream.enqueue(new TextEncoder().encode('{"user":')); } }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } });
+  early(Promise.resolve(hungBody));
+  const deadline = new AbortController();
+  const hung = fetchCurrentAuthUser(deadline.signal);
+  setTimeout(() => deadline.abort(), 50);
+  await assert.rejects(hung, error => error instanceof DOMException && error.name === 'AbortError');
+  assert.equal(fetched, 0, 'the deadline ends the check without another attempt');
+
+  // The answer names the session it read, so the caller can tell a late answer
+  // about a previous session from one about the current session.
+  fetchAnswering(() => json(200, { ...signedIn, viewerSession: 'tag-of-session-a' }));
+  assert.deepEqual(await fetchCurrentAuthSession(new AbortController().signal),
+    { user: { ...user, adminAllowed: false, contestAdminAllowed: false }, viewerSession: 'tag-of-session-a' });
+  fetchAnswering(() => json(200, { user: null, adminAllowed: false, contestAdminAllowed: false, viewerSession: null }));
+  assert.deepEqual(await fetchCurrentAuthSession(new AbortController().signal), { user: null, viewerSession: null });
+  fetchAnswering(() => json(200, { ...signedIn, viewerSession: 42 }));
+  assert.equal((await fetchCurrentAuthSession(new AbortController().signal)).viewerSession, null);
+  // An API build that does not name the session yet (during a deploy) is told
+  // apart from a guest answer: the caller trusts it but remembers nothing.
+  fetchAnswering(() => json(200, signedIn));
+  assert.equal((await fetchCurrentAuthSession(new AbortController().signal)).viewerSession, undefined);
 } finally {
   globalThis.fetch = originalFetch;
   delete holder.__hpAuthMe;

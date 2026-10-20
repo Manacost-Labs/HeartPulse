@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { scryptSync } from 'node:crypto';
+import { createHash, scryptSync } from 'node:crypto';
 import { startCredentialBackend } from './helpers/credentialBackend.mjs';
 
 const registration = email => ({
@@ -97,3 +97,52 @@ for (const mutation of ['profile', 'block', 'password']) {
     }
   });
 }
+
+// A session check never writes the session's cookies (sign-in does): an
+// answer that reaches the browser after another tab signed out or in must
+// not put the previous session back, even when it extends the session
+// (instant viewer access, docs/specs/instant-viewer-access.md).
+test('a session check names its session and never re-issues session cookies, even when extending it', async () => {
+  const backend = await startCredentialBackend();
+  try {
+    const now = new Date().toISOString();
+    backend.database.prepare(`INSERT INTO users (id, email, name, password_hash, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)`).run('viewer', 'viewer@example.com', 'Viewer', 'unused', now, now);
+    const seedSession = (token, lifetimeMs) => backend.database.prepare(`INSERT INTO sessions
+      (token_hash, user_id, email, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .run(createHash('sha256').update(token).digest('hex'), 'viewer', 'viewer@example.com', Date.now() + lifetimeMs, now);
+    const tagOf = token => createHash('sha256').update(`hearthpulse-viewer-session:${token}`).digest('base64url').slice(0, 22);
+    const me = cookie => backend.request('/api/auth/me', undefined, { Cookie: cookie });
+
+    seedSession('long-lived-session', 365 * 24 * 60 * 60 * 1000);
+    const untagged = await me('manacost_auth_token=long-lived-session');
+    const untaggedBody = await untagged.json();
+    assert.equal(untaggedBody.viewerSession, null, 'a session from before the tag is not bound');
+    assert.ok(untaggedBody.sessionExpiresAt > Date.now());
+    assert.deepEqual(untagged.headers.getSetCookie(), []);
+    const tagged = await me(`manacost_auth_token=long-lived-session; hp_viewer=${tagOf('long-lived-session')}`);
+    assert.equal((await tagged.json()).viewerSession, tagOf('long-lived-session'));
+    assert.deepEqual(tagged.headers.getSetCookie(), []);
+
+    // A → B: tab 1's check for an ageing session A extends it on the server;
+    // its answer reaches the browser after tab 2 signed B in. It carries no
+    // cookie, so the browser keeps B's session.
+    seedSession('ageing-session', 60_000);
+    const extended = await me(`manacost_auth_token=ageing-session; hp_viewer=${tagOf('ageing-session')}`);
+    const extendedBody = await extended.json();
+    assert.deepEqual(extended.headers.getSetCookie(), [], 'an extended session gets no cookie either');
+    assert.ok(extendedBody.sessionExpiresAt > Date.now() + 60 * 60 * 1000, 'the server session was extended');
+    const jar = new Map([['manacost_auth_token', 'session-b'], ['hp_viewer', tagOf('session-b')]]);
+    for (const cookie of extended.headers.getSetCookie()) jar.set(cookie.slice(0, cookie.indexOf('=')), 'overwritten');
+    assert.deepEqual(Object.fromEntries(jar), { manacost_auth_token: 'session-b', hp_viewer: tagOf('session-b') });
+
+    // A guest answer writes no cookie either (it may reach the browser after
+    // another sign-in); it names the tag the request carried.
+    const guest = await me(`manacost_auth_token=unknown-session; hp_viewer=${tagOf('ended-session')}`);
+    assert.deepEqual(await guest.json(), { user: null, adminAllowed: false, contestAdminAllowed: false,
+      viewerSession: tagOf('ended-session') });
+    assert.deepEqual(guest.headers.getSetCookie(), []);
+  } finally {
+    await backend.close();
+  }
+});

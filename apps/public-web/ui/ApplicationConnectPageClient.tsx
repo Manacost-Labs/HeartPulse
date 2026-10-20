@@ -28,7 +28,7 @@ export function ApplicationConnectPageClient() {
     {/* No Suspense of its own: dynamic() already shows ConnectLoading. A second
         boundary around the large skeleton made the streamed HTML carry both. */}
     <div style={{ minHeight: '100svh' }}>
-      <AccountRoute connect profileId={null} user={access.user} checking={access.checking}
+      <AccountRoute connect profileId={null} user={access.user} checking={access.checking || access.provisional}
         onChange={access.onAuthChange} />
     </div>
   </PublicPageShell>;

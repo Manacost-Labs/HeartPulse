@@ -7,7 +7,7 @@ const paywallSource = readFileSync(new URL('../src/components/PaywallGate.tsx', 
 
 assert.match(
   accessSource,
-  /fetchCurrentAuthUser\(controller\.signal\)/,
+  /fetchCurrentAuthSession\(attempt\.signal\)/,
   'public pages must consume the validated identity session contract',
 );
 assert.match(

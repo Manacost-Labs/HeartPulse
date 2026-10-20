@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import PaywallGate from '@/src/components/PaywallGate';
+import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMatchupsPage from '@/src/features/StandardMatchups';
 import { useStandardMatchups } from '@/src/modules/standardMatchups/public';
-import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
-import { usePublicAccess } from './usePublicAccess';
+import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
 export function StandardMatchupsPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'standard'));
+  const { allowed, pending } = paidAccess(access, 'standard');
   const matchups = useStandardMatchups(access.user?.id, allowed);
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
   useEffect(() => {
@@ -36,10 +36,12 @@ export function StandardMatchupsPageClient() {
             <p>Сравнение силы актуальных архетипов против каждого соперника.</p>
           </div>
         </header>
-        <PaywallGate active={!access.checking}
-          title="Подтвердите подписку Манакоста для доступа к матчапам"
-          variant="standard" headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
-          subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />
+        {pending
+          ? <PaywallPending>Проверяем доступ к матчапам…</PaywallPending>
+          : <PaywallGate active
+            title="Подтвердите подписку Манакоста для доступа к матчапам"
+            variant="standard" headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
+            subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}
       </section>}
   </PublicPageShell>;
 }

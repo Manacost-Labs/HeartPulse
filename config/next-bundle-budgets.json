@@ -15,7 +15,7 @@
       "cssGzipBytes": 43008
     },
     "/standard/matchups/": {
-      "jsGzipBytes": 182272,
+      "jsGzipBytes": 186368,
       "cssGzipBytes": 50176
     },
     "/standard/meta/": {
@@ -24,18 +24,18 @@
     },
     "/standard/archetypes/": {
       "jsGzipBytes": 196608,
-      "cssGzipBytes": 66560
+      "cssGzipBytes": 68608
     },
     "/standard/vicious-gold/": {
-      "jsGzipBytes": 184320,
+      "jsGzipBytes": 188416,
       "cssGzipBytes": 61440
     },
     "/standard/cards/": {
-      "jsGzipBytes": 194560,
+      "jsGzipBytes": 198656,
       "cssGzipBytes": 56320
     },
     "/standard/cards/standard/": {
-      "jsGzipBytes": 194560,
+      "jsGzipBytes": 198656,
       "cssGzipBytes": 56320
     },
     "/classes/": {
@@ -71,15 +71,15 @@
       "cssGzipBytes": 50176
     },
     "/cosmetics/": {
-      "jsGzipBytes": 182272,
+      "jsGzipBytes": 186368,
       "cssGzipBytes": 46080
     },
     "/contests/": {
-      "jsGzipBytes": 171008,
+      "jsGzipBytes": 175104,
       "cssGzipBytes": 59392
     },
     "/guides-archive/": {
-      "jsGzipBytes": 176128,
+      "jsGzipBytes": 180224,
       "cssGzipBytes": 47104
     },
     "/standard/fun-decks/": {
@@ -95,11 +95,11 @@
       "cssGzipBytes": 43008
     },
     "/connect/": {
-      "jsGzipBytes": 167936,
+      "jsGzipBytes": 171008,
       "cssGzipBytes": 43008
     },
     "/standard/deck-builder/": {
-      "jsGzipBytes": 193536,
+      "jsGzipBytes": 197632,
       "cssGzipBytes": 36864
     }
   }

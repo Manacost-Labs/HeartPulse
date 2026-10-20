@@ -12,6 +12,8 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
   state: CatalogLocation; seed?: T; statsAccess: boolean; load: CatalogLoader<T>;
 }) {
   const [data, setData] = useState<T | null>(seed ?? null);
+  // The access the shown data was requested with (the server-rendered seed has none).
+  const [loadedWithAccess, setLoadedWithAccess] = useState<boolean | null>(seed ? false : null);
   const [loading, setLoading] = useState(!seed);
   const [error, setError] = useState<{ status: number } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -31,7 +33,10 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
     setLoading(true); setError(null);
     void load(url, statsAccess, { bust: reloadToken > 0 }).then(result => {
       if (!active) return;
-      if (result.ok) setData(result.payload);
+      if (result.ok) {
+        setData(result.payload);
+        setLoadedWithAccess(statsAccess);
+      }
       else setError({ status: result.status });
     }).catch(() => { if (active) setError({ status: 0 }); })
       .finally(() => { if (active) setLoading(false); });
@@ -39,5 +44,5 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
   }, [url, statsAccess, reloadToken, load, seed]);
   // A previous paid response must disappear as soon as access is lost.
   const visibleData = !statsAccess && data?.statsAccess ? null : data;
-  return { data: visibleData, loading, error, requestQuery, retry: () => setReloadToken(value => value + 1) };
+  return { data: visibleData, loading, error, requestQuery, loadedWithAccess, retry: () => setReloadToken(value => value + 1) };
 }

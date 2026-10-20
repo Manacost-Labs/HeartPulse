@@ -18,7 +18,9 @@ const PARCHMENT_TEXTURE_URL = '/wallpaper/arena-parchment-v2.webp';
 /** Below this width tokens.css paints the parchment inline; phones need no request for the file. */
 const PARCHMENT_TABLET_UP = '(min-width: 768px)';
 
-type Access = { user: AuthUser | null; checking: boolean; admin: boolean; contestAdmin: boolean; subscription: SubscriptionStatus | null };
+type Access = { user: AuthUser | null; checking: boolean; admin: boolean; contestAdmin: boolean; subscription: SubscriptionStatus | null;
+  /** The access state's phase: locks show only once the server confirmed the access. */
+  state?: { phase: string } };
 // Route styles are scoped by these classes: account pages and the home page
 // have their own surfaces; every other page is editorial, Battlegrounds or
 // game data plus its tab.
@@ -46,7 +48,8 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
     <div className="arena-layout-shell">
       {!reportUpdatedAt && <PublicNavigationController activeTab={activeTab} pathname={pathname} access={access} navigate={navigate} updatedAtLabel={updatedAtLabel} />}
       <div className={`arena-workspace arena-workspace-with-tools ${wide ? 'arena-workspace-wide' : ''}`}>
-        <GlobalUtilityHeader accessStatus={access.admin || access.subscription} onNavigate={navigate} pagePath={pathname} auth={Boolean(access.user)} />
+        <GlobalUtilityHeader accessStatus={access.admin || access.subscription} onNavigate={navigate} pagePath={pathname} auth={Boolean(access.user)}
+          accessConfirmed={access.state ? access.state.phase === 'confirmed' : !access.checking} />
         <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${wide ? 'arena-main-wide' : ''}`}>
           <div data-route-content className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${wide ? 'arena-content-wide' : ''} arena-content-open`}>
             {/* The head's `rel=expect` waits for this marker only: the content box exists

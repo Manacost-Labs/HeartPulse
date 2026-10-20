@@ -51,6 +51,7 @@ type SearchResponse = {
 };
 
 export type GlobalSearchAccess = {
+  confirmed: boolean;
   admin: boolean;
   anySubscription: boolean;
   standard: boolean;
@@ -61,6 +62,9 @@ export type GlobalSearchAccess = {
 type HeaderSubscription = SubscriptionAccess | null;
 
 function articleRequiresAccess(article: SearchArticle, access: GlobalSearchAccess): boolean {
+  // A lock only for a refusal the server confirmed; while access is pending or
+  // unavailable the article opens (the server checks it) and shows no lock.
+  if (!access.confirmed) return false;
   if (!article.vip || access.admin) return false;
   if (article.mode === 'standard' || article.mode === 'wild') return !access.standard;
   if (article.mode === 'arena') return !access.arenaArticles;
@@ -85,9 +89,9 @@ export default function GlobalUtilityHeader({
   accessStatus,
   onNavigate,
   pagePath,
-  auth,
+  auth, accessConfirmed = true, // until the server confirms access, nothing shows a lock
 }: {
-  accessStatus: true | HeaderSubscription;
+  accessStatus: true | HeaderSubscription; accessConfirmed?: boolean;
   onNavigate: (path: string) => void;
   pagePath: string;
   auth: boolean;
@@ -109,7 +113,7 @@ export default function GlobalUtilityHeader({
   const admin = accessStatus === true;
   const subscriptionStatus = admin ? null : accessStatus;
   const access: GlobalSearchAccess = {
-    admin,
+    confirmed: accessConfirmed, admin,
     anySubscription: admin || hasSubscriptionEntitlement(subscriptionStatus, null),
     standard: admin || hasSubscriptionEntitlement(subscriptionStatus, 'standard'),
     arenaArticles: admin || hasSubscriptionEntitlement(subscriptionStatus, 'arenaArticles'),
@@ -342,7 +346,7 @@ export default function GlobalUtilityHeader({
                             <strong>{card.name}</strong>
                             <small>{card.mana !== null ? `${card.mana} маны · ` : ''}{cardFormatsLabel(card.formats)}</small>
                           </span>
-                          {!access.standard && <span className="global-search-result__diamond"><LockKeyhole size={12} aria-hidden="true" /> Статистика</span>}
+                          {access.confirmed && !access.standard && <span className="global-search-result__diamond"><LockKeyhole size={12} aria-hidden="true" /> Статистика</span>}
                           <ChevronRight size={16} aria-hidden="true" />
                         </button>
                       ))}

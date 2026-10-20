@@ -18,6 +18,7 @@ const ACCOUNTS = { reader: { user: READER, subscription: SUBSCRIBED }, other: { 
 // server ends a session on sign-out or revocation (`sessions.delete`).
 async function startGateway(nextOrigin) {
   const sessions = new Set(Object.keys(ACCOUNTS));
+  const gateway = { subscriptionDelay: 0, meDelay: 0 };
   const next = new URL(nextOrigin);
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://gateway');
@@ -25,13 +26,20 @@ async function startGateway(nextOrigin) {
     const account = name && sessions.has(name) ? ACCOUNTS[name] : null;
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json',
       'Cache-Control': 'private, no-store' }).end(JSON.stringify(payload));
-    if (url.pathname === '/api/auth/me') return json(200, { user: account?.user ?? null });
+    if (url.pathname === '/api/auth/me') {
+      // `meDelay`: the session answer is late too.
+      return setTimeout(() => json(200, { user: account?.user ?? null }), gateway.meDelay);
+    }
     if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
       sessions.delete(name);
       return json(200, { ok: true });
     }
     if (url.pathname === '/api/subscription/status') {
-      return account ? json(200, account.subscription) : json(401, { error: 'guest' });
+      if (!account) return json(401, { error: 'guest' });
+      // `subscriptionDelay`: the subscription answer is late, or never comes ('hang').
+      if (gateway.subscriptionDelay === 'hang') return undefined;
+      if (gateway.subscriptionDelay === 'error') return json(503, { error: 'unavailable' });
+      return setTimeout(() => json(200, account.subscription), gateway.subscriptionDelay);
     }
     if (url.pathname === '/api/bg/tier-lists') {
       return account?.subscription.entitlements.battlegrounds
@@ -47,7 +55,7 @@ async function startGateway(nextOrigin) {
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
     request.pipe(upstream);
   });
-  return { server, origin: await listenLocal(server), sessions };
+  return Object.assign(gateway, { server, origin: await listenLocal(server), sessions });
 }
 
 // Navigates like a link the visitor follows (renderer-initiated, not prerendered).
@@ -72,9 +80,16 @@ async function watchRestore(page) {
       reader: document.body.textContent.includes('Читатель Кэша'),
       avatar: Boolean(document.querySelector('.arena-sidebar-profile-avatar')),
     });
+    // Whether a lock (the gate) shows, sampled every frame after the restore.
+    const gates = () => { window.__restoredGates.push(Boolean(document.querySelector('.arena-paywall'))); };
     addEventListener('pageshow', event => {
       if (!event.persisted) return;
       window.__restored = { event: snapshot(), later: [] };
+      window.__restoredGates = [];
+      gates();
+      const until = performance.now() + 1500;
+      const sample = () => { gates(); if (performance.now() < until) requestAnimationFrame(sample); };
+      requestAnimationFrame(sample);
       requestAnimationFrame(() => { window.__restored.frame = snapshot(); });
       for (const wait of [300, 1000, 2500, 6500]) setTimeout(() => window.__restored.later.push(snapshot()), wait);
     });
@@ -189,14 +204,116 @@ test('Back restores public pages from the back/forward cache and never shows a s
     }), { menu: false, expanded: 'false', locked: false });
     await phone.close();
 
-    // A subscriber's restored page keeps the paid view: nothing changed in between.
+    // A subscriber's restored page hides the viewer before its first frame,
+    // since a frozen page cannot know whether the session still holds, and
+    // shows the paid view again once the server confirms it.
     const { page: reader, pageErrors } = await openReader(browser, gateway.origin, 'reader');
     await follow(reader, '/classes/');
     await back(reader);
-    const kept = await restoredState(reader, 1);
+    const kept = await restoredState(reader, 2);
     assert.equal(kept.marker, true, 'the subscriber page must be restored');
-    assert.deepEqual({ event: kept.restored.event, frame: kept.restored.frame, later: kept.restored.later[0] },
-      { event: SHOWN, frame: SHOWN, later: SHOWN }, 'an unchanged session keeps the restored paid view');
+    assert.deepEqual({ event: kept.restored.event, frame: kept.restored.frame, later: kept.restored.later[1] },
+      { event: HIDDEN, frame: HIDDEN, later: SHOWN }, 'an unchanged session gets the paid view back after the check');
+
+    // The session is revoked on the server while the page is frozen, and no
+    // page of ours hears of it: the restored page still never shows the viewer.
+    await watchRestore(reader);
+    await follow(reader, '/classes/');
+    await reader.waitForSelector('ol.arena-classes-board', { timeout: 15000 });
+    gateway.sessions.delete('reader');
+    await back(reader);
+    const revoked = await restoredState(reader, 3);
+    assert.equal(revoked.marker, true);
+    for (const [moment, shown] of [['event', revoked.restored.event], ['frame', revoked.restored.frame],
+      ...revoked.restored.later.map((shown, index) => [`check ${index}`, shown])]) {
+      assert.deepEqual(shown, HIDDEN, `revoked while frozen, ${moment}: the viewer and the paid view stay hidden`);
+    }
+    await reader.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
+    gateway.sessions.add('reader');
+
+    // The session answers at once but the subscription late, or never: the
+    // restored page shows the account only together with its subscription.
+    for (const subscriptionDelay of [2500, 'hang']) {
+      await reader.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
+      await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+      await watchRestore(reader);
+      await follow(reader, '/classes/');
+      await reader.waitForSelector('ol.arena-classes-board', { timeout: 15000 });
+      gateway.subscriptionDelay = subscriptionDelay;
+      await back(reader);
+      const partial = await restoredState(reader, 2);
+      for (const [moment, shown] of [['event', partial.restored.event], ['frame', partial.restored.frame],
+        ['300 ms', partial.restored.later[0]], ['1 s', partial.restored.later[1]]]) {
+        assert.deepEqual(shown, HIDDEN, `subscription ${subscriptionDelay}, ${moment}: no account before its subscription`);
+      }
+      if (subscriptionDelay === 'hang') {
+        await reader.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
+        assert.equal(await reader.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false,
+          'a subscription that never answers leaves the restored page without the account');
+      } else {
+        await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+      }
+      gateway.subscriptionDelay = 0;
+    }
+
+    // A page frozen as a guest; meanwhile the visitor signs in elsewhere. Back
+    // shows the account only together with its subscription, or not at all.
+    for (const subscriptionDelay of [2500, 'error']) {
+      const context = await browser.createBrowserContext();
+      const guestPage = await context.newPage();
+      await guestPage.setViewport({ width: 1440, height: 900 });
+      await guestPage.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
+      await guestPage.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
+      await watchRestore(guestPage);
+      await follow(guestPage, '/classes/');
+      await guestPage.setCookie({ name: 'bf_session', value: 'reader', url: gateway.origin });
+      gateway.subscriptionDelay = subscriptionDelay;
+      gateway.meDelay = 1200;
+      await back(guestPage);
+      const signedIn = await restoredState(guestPage, 2);
+      assert.equal(signedIn.marker, true);
+      for (const [moment, shown] of [['event', signedIn.restored.event], ['frame', signedIn.restored.frame],
+        ['300 ms', signedIn.restored.later[0]], ['1 s', signedIn.restored.later[1]]]) {
+        assert.equal(shown.reader, false, `guest page, subscription ${subscriptionDelay}, ${moment}: no account before its subscription`);
+      }
+      // The guest's old gate goes before the first frame: no lock while both answers are on their way.
+      assert.deepEqual(await guestPage.evaluate(() => window.__restoredGates.filter(Boolean).length), 0,
+        `guest page, subscription ${subscriptionDelay}: no lock frame after the restore`);
+      gateway.meDelay = 0;
+      if (subscriptionDelay === 'error') {
+        await guestPage.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
+        assert.equal(await guestPage.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false,
+          'a failed subscription check leaves the restored page without the account');
+        // «Повторить проверку» stays atomic: the account shows only with its subscription.
+        // Still restored and unconfirmed: a retry that fails again, then one that is late but succeeds.
+        for (const retry of ['error', 2500]) {
+          gateway.subscriptionDelay = retry;
+          await guestPage.evaluate(() => {
+            window.__afterRetry = [];
+            document.querySelector('.arena-access-unavailable button').click();
+            for (const wait of [300, 1000, 2000]) {
+              setTimeout(() => window.__afterRetry.push(document.body.textContent.includes('Читатель Кэша')), wait);
+            }
+          });
+          await guestPage.waitForFunction(() => window.__afterRetry.length === 3, { timeout: 10000 });
+          assert.deepEqual(await guestPage.evaluate(() => window.__afterRetry), [false, false, false],
+            `retry with subscription ${retry}: no account before its subscription`);
+          if (retry === 'error') {
+            await guestPage.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
+            assert.equal(await guestPage.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false);
+          } else {
+            await guestPage.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+          }
+        }
+      } else {
+        await guestPage.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+      }
+      gateway.subscriptionDelay = 0;
+      await context.close();
+    }
+    await reader.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
+    await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+    await watchRestore(reader);
 
     // The subscriber signs out on the account page, then goes Back.
     await watchRestore(reader);
@@ -288,7 +405,7 @@ test('a page restored after an account switch or offline never shows the previou
     await back(page);
     const offlineState = await restoredState(page, 3);
     assert.equal(offlineState.marker, true);
-    assert.deepEqual(offlineState.restored.event, SHOWN, 'the last verified viewer may stay while the page re-checks');
+    assert.deepEqual(offlineState.restored.event, HIDDEN, 'a restored page hides its viewer until the server confirms it');
     assert.equal(offlineState.restored.later[2].paid, false, 'an unconfirmed restored page must not keep the paid view');
     await context.close();
   } finally {

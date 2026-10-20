@@ -2,11 +2,11 @@ import { canAccessAdminWorkspace, canManageContests, type AuthUser } from '@/src
 import type { SubscriptionStatus } from '@/src/modules/subscriptions/public';
 
 // Public documents may come back from the back/forward cache with the viewer
-// state they had when the visitor left (see documentCaching.mjs). The session
-// cookie is HttpOnly, so every page writes what the server last told it about
-// the viewer: who it is and what it may open. A restored page shows its old
-// viewer only while that record still names exactly that viewer. The record
-// grants nothing; it only decides whether the page hides before asking again.
+// state they had when the visitor left (see documentCaching.mjs); such a page
+// hides its viewer until the server confirms it again (usePublicAccess.ts).
+// The session cookie is HttpOnly, so every page writes what the server last
+// told it about the viewer: who it is and what it may open. The record grants
+// nothing; a remembered viewer (viewerHint.ts) is shown only while it agrees.
 const VERIFIED_VIEWER_KEY = 'hs_arena_verified_viewer';
 export const GUEST_VIEWER = 'guest';
 
@@ -76,6 +76,18 @@ export function recordVerifiedAccount(user: AuthUser | null): void {
   recordVerifiedViewer(state);
 }
 
+/**
+ * Whether another page of this browser has confirmed a different viewer than
+ * `user` (another account, or a guest), since `since` was read when given. A
+ * session answer that left before another tab signed out or in can arrive
+ * after it; such an answer is not about the current viewer.
+ */
+export function recordNamesAnotherViewer(user: AuthUser | null, since?: string | null): boolean {
+  const recorded = verifiedViewer();
+  if (recorded === null || (since !== undefined && recorded === since)) return false;
+  return accountOf(recorded) !== accountOf(viewerState(user, null));
+}
+
 /** The viewer the server last confirmed to any page, or null when unknown. */
 export function verifiedViewer(): string | null {
   try {
@@ -83,13 +95,4 @@ export function verifiedViewer(): string | null {
   } catch {
     return null;
   }
-}
-
-/**
- * A restored page that shows a viewer hides it, with every paid view, unless
- * the server's last answer in this browser named exactly that viewer. A guest
- * page has nothing to hide.
- */
-export function restoredPageMustHideViewer(shownViewer: string, lastVerifiedViewer: string | null): boolean {
-  return shownViewer !== GUEST_VIEWER && shownViewer !== lastVerifiedViewer;
 }

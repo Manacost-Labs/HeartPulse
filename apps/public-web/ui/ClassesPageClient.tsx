@@ -3,15 +3,14 @@
 import PaywallGate from '@/src/components/PaywallGate';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { ArenaClassesPage, ArenaClassesResults, useArenaClasses } from '@/src/modules/arenaClasses/public';
-import { hasSubscriptionEntitlement } from '@/src/modules/subscriptions/public';
-import { usePublicAccess } from './usePublicAccess';
+import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
 
 const ignoreUpdatedAt = (_value: string | null) => undefined;
 
 export function ClassesPageClient() {
   const access = usePublicAccess();
-  const allowed = !access.checking && (access.admin || hasSubscriptionEntitlement(access.subscription, 'arena'));
+  const { allowed, pending } = paidAccess(access, 'arena');
   const { state, retry } = useArenaClasses(access.user?.id, allowed, ignoreUpdatedAt);
   const updatedAtLabel = state.data?.updatedAt
     ? new Date(state.data.updatedAt).toLocaleString('ru-RU', {
@@ -22,7 +21,7 @@ export function ClassesPageClient() {
   return <PublicPageShell activeTab="winrates" pathname="/classes/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     <ArenaClassesPage onNavigate={navigateTab}>
-      <PaywallGate active={!access.checking && !allowed}
+      <PaywallGate active={!pending && !allowed}
         title="Подтвердите подписку Манакоста для доступа к классам"
         headingLevel="h2"
         authUser={access.user} subscriptionStatus={access.subscription}

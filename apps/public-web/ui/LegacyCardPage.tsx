@@ -2,7 +2,7 @@
 import StandardCards from '@/src/features/StandardCards';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import type { PublicCardCatalogSeed } from '@/src/modules/constructedCards/public';
-import { usePublicAccess } from './usePublicAccess';
+import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
 /** The card catalog. The card page is `LegacyCardDetailPage`, a separate bundle. */
@@ -10,6 +10,7 @@ export function LegacyCardPage({ catalog, pathname, initialSearch }: { catalog: 
   const access = usePublicAccess();
   return <PublicPageShell activeTab="standard-cards" pathname={pathname} access={access} navigate={navigate} wide parchmentPreload="tablet-up">
     <StandardCards currentPath={pathname} initialCatalog={catalog} initialSearch={initialSearch} navigatePath={navigate}
-      statsAccess={access.statsAccess} statsAccessLoading={access.checking} authUser={access.user} onRefreshSubscription={access.refresh} />
+      statsAccess={access.statsAccess} statsAccessLoading={paidAccess(access, 'standard').pending}
+      statsAccessUnavailable={paidAccess(access, 'standard').unavailable} authUser={access.user} onRefreshSubscription={access.refresh} />
   </PublicPageShell>;
 }

@@ -36,7 +36,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // PageTour and ModalSurface make `#root` inert and aria-hidden while their
   // portaled dialogs are open; without it the page behind them stays reachable.
   // Wait only for the content box, rather than the entire streamed document.
-  return <html lang="ru"><head>
+  // The head script (lib/authPrefetch.ts) may mark <html> with data-hp-viewer
+  // before hydration; that attribute is the only expected difference.
+  return <html lang="ru" suppressHydrationWarning><head>
     <link rel="expect" href="#route-content-start" blocking="render" />
     <script dangerouslySetInnerHTML={{ __html: AUTH_PREFETCH }} />
   </head><body>

@@ -161,6 +161,12 @@
 .constructed-cards__stats div:last-child { border-bottom: 0; }
 .constructed-cards__stats dt { color: #795a3e; font-size: 0.68rem; }
 .constructed-cards__stats dd { margin: 0; font-size: 0.78rem; font-weight: 900; }
+/* A value on its way keeps the line height of the value it becomes. */
+.constructed-cards__stat-pending { display: inline-block; width: 3.6em; height: 1em; vertical-align: middle; }
+.constructed-card-detail__statistics-unavailable { display: grid; gap: 0.6rem; justify-items: start; }
+.constructed-card-detail__statistics-unavailable > p { margin: 0; color: #71141a; font-size: 0.82rem; }
+.constructed-card-detail__statistics-unavailable > button { min-height: 44px; padding: 0 0.9rem; border: 1px solid #a57d3c; color: #fff0c4; background: #43050a; font-weight: 800; cursor: pointer; }
+.constructed-card-detail__statistics-unavailable > button:disabled { cursor: wait; opacity: 0.6; }
 .constructed-cards__stats--compact { margin-top: 0; border-color: rgba(91, 50, 23, 0.22); }
 .constructed-cards__stats--compact div { min-height: 35px; border-color: rgba(91, 50, 23, 0.18); background: rgba(255, 244, 216, 0.26); }
 .constructed-cards__stats--compact dt { color: #68543e; }

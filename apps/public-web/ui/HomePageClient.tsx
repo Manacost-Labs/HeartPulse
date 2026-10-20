@@ -25,7 +25,7 @@ export function HomePageClient({ summary, articles, login }: {
     access={access} navigate={navigate}>
     {login ? <div style={{ minHeight: '100svh' }}>
       <ReaderAccountRoute connect={false} profileId={null} user={access.user}
-        checking={access.checking} onChange={access.onAuthChange} />
+        checking={access.checking || access.provisional} onChange={access.onAuthChange} />
     </div>
       : <HomePageContent summary={summary} articles={articles} onNavigate={navigateTab} />}
   </PublicPageShell>;

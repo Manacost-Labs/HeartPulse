@@ -306,11 +306,11 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
   );
 }
 
-function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCatalog' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
+function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigatePath, statsAccess, statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCatalog' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'statsAccessUnavailable' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
   const { state, update, updateFilter, reset, clearSearch } = useCatalogLocation(initialFormat, initialSearch);
   const { format, period, rank, view, filters, perPage } = state;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const { data, loading, error: failure, requestQuery, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList });
+  const { data, loading, error: failure, requestQuery, loadedWithAccess, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList });
   const warmCatalog = useCatalogIntentWarm(state, statsAccess, prefetchConstructedCardList);
   const error = failure ? constructedCardRequestError('list', failure.status, '') : null;
   useEffect(() => {
@@ -323,7 +323,12 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
   const changeFormat = (format: CardFormat) => navigatePath(catalogLocationUrl(`/standard/cards/${format}`, { ...state, format, page: 1 }, window.location.search));
   const facets = data?.facets ?? EMPTY_FACETS;
   const sets = [...facets.sets].sort(compareConstructedSets);
-  const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
+  // While access is being checked, or a subscriber's statistics are on their
+  // way, statistics stay blank instead of locked: locks belong to a confirmed
+  // answer without access.
+  const loadedWithStats = data ? Boolean(data.statsAccess) : statsAccess;
+  const hasStatsAccess = loadedWithStats || statsAccessLoading || Boolean(statsAccessUnavailable)
+    || (statsAccess && loadedWithAccess !== true && !failure);
   const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
   const dataNotice = data ? constructedCardDataNotice(data) : null;
   // The pressed button paints at once; the other view (about 1,800 table

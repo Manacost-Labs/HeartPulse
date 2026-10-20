@@ -93,6 +93,8 @@ export type StandardCardsProps = {
   navigatePath: (path: string) => void;
   statsAccess: boolean;
   statsAccessLoading: boolean;
+  /** The access check failed: neither a grant nor a refusal, so no lock. */
+  statsAccessUnavailable?: boolean;
   authUser: object | null;
   onRefreshSubscription: () => Promise<unknown>;
 };

@@ -82,7 +82,7 @@ import {
   type ConstructedDeck,
   type StandardCardsProps,
 } from './constructedCardRecord';
-import { LockedStatsRows, StatsRows, StatsUnlockNotice } from './ConstructedCardStats';
+import { LockedStatsPanel, PendingStatsRows, StatsRows, statisticsPending } from './ConstructedCardStats';
 
 type ResolvedConstructedDeck = {
   ok: boolean;
@@ -462,7 +462,7 @@ const cardIdentityFacts = (card: CardRecord, format: CardFormat) => [
   { label: 'ID карты', value: <><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</> },
 ];
 
-function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
+function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, statsAccess, statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'statsAccessUnavailable' | 'authUser' | 'onRefreshSubscription'>) {
   const [period, setPeriod] = useConstructedCardPeriod(initialSearch);
   const [rank, setRank] = useConstructedCardRank(initialSearch);
   const [statsFormat, setStatsFormat] = useState<CardFormat>(() => (
@@ -471,7 +471,9 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   const [periodLabel, setPeriodLabel] = useState(() => constructedCardPeriodLabel(period));
   const [currentPatch, setCurrentPatch] = useState<string | null>(null);
   const [card, setCard] = useState<CardRecord | null>(initialCard ?? null);
-  const [serverStatsAccess, setServerStatsAccess] = useState(false);
+  const [loadedStatsAccess, setServerStatsAccess] = useState(false);
+  const serverStatsAccess = loadedStatsAccess && statsAccess; // paid statistics only while the viewer is granted now
+  const [loadedWithAccess, setLoadedWithAccess] = useState<boolean | null>(initialCard ? false : null); // the seed has no statistics
   const [loading, setLoading] = useState(!initialCard);
   const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
   const [dataState, setDataState] = useState<{
@@ -540,6 +542,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
         }
         setCard(loadedCard);
         setServerStatsAccess(payload.statsAccess === true);
+        setLoadedWithAccess(statsAccess);
         setPeriodLabel(payload.period?.label || constructedCardPeriodLabel(period));
         setCurrentPatch(payload.period?.patch || null);
         setDataState({
@@ -608,6 +611,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   };
   const dataNotice = constructedCardDataNotice(dataState);
   const rankLabel = constructedCardRankLabel(rank);
+  const statsPending = statisticsPending({ open: serverStatsAccess, failed: Boolean(error), statsAccessLoading, statsAccess, loadedWithAccess });
   const statsFormatLabel = constructedCardStatsFormatLabel(statsFormat);
   const standardStatisticsAvailable = cardSupportsStandardStatistics(card.formats);
   const changeStatistics = (next: {
@@ -657,8 +661,8 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           flavorText={plainText(card.flavor?.ru || card.flavor?.en)}
           facts={cardIdentityFacts(card, format)}
         />
-        <div className={`constructed-card-detail__statistics${serverStatsAccess ? '' : ' is-locked'}`}>
-          <div data-tour-id="card-statistics"><h2>Статистика · {rankLabel}</h2><span>{statsFormatLabel} · {periodLabel}{serverStatsAccess ? ` · обновлено ${formatDate(card.statsUpdatedAt)}` : ' · тариф «Алмаз»'}</span></div>
+        <div className={`constructed-card-detail__statistics${serverStatsAccess || statsPending || statsAccessUnavailable ? '' : ' is-locked'}`}>
+          <div data-tour-id="card-statistics"><h2>Статистика · {rankLabel}</h2><span>{statsFormatLabel} · {periodLabel}{serverStatsAccess ? ` · обновлено ${formatDate(card.statsUpdatedAt)}` : statsPending || statsAccessUnavailable ? '' : ' · тариф «Алмаз»'}</span></div>
           <div className="constructed-card-detail__statistics-controls" aria-label="Выбор статистики карты">
             <div className="constructed-card-detail__statistics-format" role="group" aria-label="Формат статистики">
               {standardStatisticsAvailable && <button type="button" aria-pressed={statsFormat === 'standard'} onClick={() => changeStatistics({ format: 'standard' })}><img src="/card-format-standard.webp" alt="" />Стандарт</button>}
@@ -677,12 +681,8 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
               options={constructedCardPeriodOptions(currentPatch).map(option => ({ value: option.id, label: option.label }))}
             />
           </div>
-          {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : (
-            <div className="constructed-card-detail__statistics-gate">
-              <div className="constructed-card-detail__statistics-blur" aria-hidden="true" inert><LockedStatsRows /></div>
-              <StatsUnlockNotice statsAccessLoading={statsAccessLoading} authUser={authUser} onRefreshSubscription={onRefreshSubscription} />
-            </div>
-          )}
+          {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : statsPending ? <PendingStatsRows />
+            : <LockedStatsPanel {...{ statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }} />}
         </div>
       </section>
 
