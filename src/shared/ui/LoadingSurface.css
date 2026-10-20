@@ -47,7 +47,7 @@
      of a refreshing .data-surface waits for the same delay. */
   .loading-surface,
   .data-surface {
-    --loading-reveal-delay: 160ms;
+    --loading-reveal-delay: var(--motion-reveal-delay);
   }
 
   .loading-surface--panel,
@@ -93,7 +93,7 @@
   .loading-block:not(:where(.loading-surface .loading-block)) {
     animation:
       loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate,
-      loading-reveal var(--motion-fast) var(--motion-ease) 160ms backwards;
+      loading-reveal var(--motion-fast) var(--motion-ease) var(--motion-reveal-delay) backwards;
   }
 
   /* A guest's blurred, locked preview never finishes loading and is

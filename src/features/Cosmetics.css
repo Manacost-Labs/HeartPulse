@@ -154,7 +154,7 @@
 /* A refresh dims the grid through the shared .data-surface rule, after its
    reveal delay; the note waits as long, so a fast revalidation shows nothing. */
 .cosmetics-results-meta__refresh {
-  animation: loading-reveal var(--motion-fast) var(--motion-ease) 160ms backwards;
+  animation: loading-reveal var(--motion-fast) var(--motion-ease) var(--motion-reveal-delay) backwards;
 }
 
 .cosmetics-card {

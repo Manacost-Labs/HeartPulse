@@ -113,5 +113,5 @@
    in with the same delayed reveal, so a fast response swaps straight to content. */
 .bg-hero-skeleton > [aria-hidden="true"],
 .bg-library-detail-skeleton > [aria-hidden="true"] {
-  animation: loading-reveal var(--motion-fast) var(--motion-ease) var(--loading-reveal-delay, 160ms) backwards;
+  animation: loading-reveal var(--motion-fast) var(--motion-ease) var(--motion-reveal-delay) backwards;
 }

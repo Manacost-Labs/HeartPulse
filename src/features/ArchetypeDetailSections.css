@@ -757,7 +757,9 @@ button.archetype-mulligan-card:focus-visible {
   width: 112px;
 }
 
-.archetype-mulligan-table thead button {
+/* `th` outranks the shared `.analytics-table th button` rule, whichever of the
+   two stylesheets a bundle happens to load last. */
+.archetype-mulligan-table thead th button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.05rem 0.3rem;

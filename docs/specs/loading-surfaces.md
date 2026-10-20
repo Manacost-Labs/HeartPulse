@@ -32,8 +32,9 @@ navigation or the ready view's typography.
 ## Timing and deadlines
 
 The reserved geometry appears at once, but the placeholder fill fades in only
-after `--loading-reveal-delay` (160 ms), and a refreshing `data-surface` dims
-after the same delay, so a cached or fast response never flashes a skeleton.
+after the `--motion-reveal-delay` token (160 ms), and a refreshing
+`data-surface` dims after the same delay, so a cached or fast response never
+flashes a skeleton.
 Data already held in memory (cosmetics ETag cache) renders on the first
 frame. Client loaders use `fetchWithDeadline`; a stalled request ends in an
 error state with «Повторить» instead of an endless placeholder. An inert

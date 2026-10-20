@@ -48,7 +48,7 @@ assert.match(styles, /\.data-surface\[aria-busy="true"\] \{[^}]*transition-delay
 // A guest's locked preview never finishes loading: its
 // placeholders stay still instead of repainting the blurred layer forever.
 assert.match(styles, /\.arena-paywall__preview \.loading-block \{ animation: none; \}/);
-assert.match(styles, /\.loading-block:not\(:where\(\.loading-surface \.loading-block\)\) \{[^}]*loading-reveal[^}]*160ms backwards;/,
+assert.match(styles, /\.loading-block:not\(:where\(\.loading-surface \.loading-block\)\) \{[^}]*loading-reveal[^}]*var\(--motion-reveal-delay\) backwards;/,
   'a standalone placeholder waits for the reveal delay too');
 
 // The stylesheet loads with the views that render a loader, not on every route.
