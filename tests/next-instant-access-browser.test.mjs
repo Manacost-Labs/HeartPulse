@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
-import test from 'node:test';
+import { after, describe, test } from 'node:test';
 import puppeteer from 'puppeteer';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
@@ -37,8 +37,11 @@ const TAGS = { 1: TAG, b: 'another-session-tag-02' };
 function startGateway(nextOrigin) {
   const next = new URL(nextOrigin);
   const requests = [];
-  // Extra cookies a sign-in sets (`statusdelay=1`, `fail=status401`).
-  const gateway = { loginCookies: [] };
+  // Extra cookies a sign-in sets come from the test's own `signin` cookie
+  // (`statusdelay`, `status401`, `bodydelay`), so concurrent tests do not share
+  // gateway state; requests are recorded with the test's `t` cookie.
+  const SIGN_IN_COOKIES = { statusdelay: 'statusdelay=1', status401: 'fail=status401', bodydelay: 'bodydelay=1' };
+  const gateway = {};
   const server = http.createServer((request, response) => {
     const cookies = Object.fromEntries(String(request.headers.cookie ?? '').split(/;\s*/).filter(Boolean)
       .map(pair => [pair.slice(0, pair.indexOf('=')), pair.slice(pair.indexOf('=') + 1)]));
@@ -46,7 +49,7 @@ function startGateway(nextOrigin) {
     const reader = account === SUBSCRIBER;
     const json = (payload, status = 200, headers = {}) => response.writeHead(status, { 'Content-Type': 'application/json',
       'Cache-Control': 'no-store', ...headers }).end(JSON.stringify(payload));
-    if (request.url.startsWith('/api/')) requests.push(request.url);
+    if (request.url.startsWith('/api/')) requests.push({ url: request.url, t: cookies.t ?? '' });
     if (request.url === '/api/auth/me') {
       if (cookies.fail === 'session') return json({ error: 'down' }, 503);
       if (cookies.fail === 'hang') {
@@ -66,7 +69,8 @@ function startGateway(nextOrigin) {
     if (request.url === '/api/auth/login' && request.method === 'POST') {
       request.resume();
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store',
-        'Set-Cookie': ['reader=1; Path=/', `hp_viewer=${TAG}; Path=/`, ...gateway.loginCookies.map(cookie => `${cookie}; Path=/`)] });
+        'Set-Cookie': ['reader=1; Path=/', `hp_viewer=${TAG}; Path=/`,
+          ...(SIGN_IN_COOKIES[cookies.signin] ? [`${SIGN_IN_COOKIES[cookies.signin]}; Path=/`] : [])] });
       response.end(JSON.stringify({ success: true, message: 'ok', authenticated: true, user: SUBSCRIBER,
         adminAllowed: false, contestAdminAllowed: false }));
       return;
@@ -132,21 +136,33 @@ function recordFrames() {
   requestAnimationFrame(sample);
 }
 
-async function withBrowser(run) {
-  const express = http.createServer((request, response) => response.writeHead(401).end());
-  let next; let gateway; let browser;
-  try {
-    next = await startNextServer({ legacyOrigin: await listenLocal(express) });
-    gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+// One Next server, gateway and browser for the whole file; every test works
+// in its own browser context (its own cookies and storage), so tests can run
+// side by side.
+let shared = null;
+function sharedRuntime() {
+  shared ??= (async () => {
+    const express = http.createServer((request, response) => response.writeHead(401).end());
+    const next = await startNextServer({ legacyOrigin: await listenLocal(express) });
+    const gateway = await startGateway(next.origin);
+    const browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
-    await run({ browser, gateway });
-  } finally {
-    if (browser) await browser.close();
-    if (gateway) await closeLocal(gateway.server);
-    if (next) await next.close();
-    await closeLocal(express);
-  }
+    return { express, next, gateway, browser };
+  })();
+  return shared;
+}
+after(async () => {
+  if (!shared) return;
+  const { express, next, gateway, browser } = await shared;
+  await browser.close();
+  await closeLocal(gateway.server);
+  await next.close();
+  await closeLocal(express);
+});
+
+async function withBrowser(run) {
+  const { browser, gateway } = await sharedRuntime();
+  await run({ browser, gateway });
 }
 
 async function setCookies(page, origin, cookies) {
@@ -186,6 +202,9 @@ async function filmstrip(page, name) {
 
 const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
 
+// Scenarios are independent (each has its own browser context and cookies),
+// so they run side by side on the shared runtime to keep the browser suite short.
+describe('instant viewer access', { concurrency: 4 }, () => {
 test('a remembered subscriber sees the account and the paid pages without a gate or an access check', async () => {
   await withBrowser(async ({ browser, gateway }) => {
     for (const viewport of viewports) {
@@ -285,15 +304,16 @@ test('a session check that keeps failing ends in a gate that can retry', async (
   await withBrowser(async ({ browser, gateway }) => {
     // With and without this browser's own memory of a session: a failed check
     // is unavailable either way, never a guest's lock.
-    for (const [fail, expectsViewer, remembered] of [['session', false, true], ['status', true, true], ['session', false, false]]) {
+    // The variants wait out the same deadline, so they run side by side.
+    await Promise.all([['session', false, true], ['status', true, true], ['session', false, false]].map(async ([fail, expectsViewer, remembered]) => {
       const context = await browser.createBrowserContext();
       const page = await context.newPage();
       await page.setViewport(viewports[1]);
-      await setCookies(page, gateway.origin, { reader: '1', fail });
+      const t = `failing-${fail}-${remembered}`;
+      await setCookies(page, gateway.origin, { reader: '1', fail, t });
       if (remembered) await page.evaluateOnNewDocument(() => localStorage.setItem('hs_arena_auth_cookie_hint', '1'));
       await page.evaluateOnNewDocument(recordFrames);
       const started = Date.now();
-      gateway.requests.length = 0;
       await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('.arena-paywall-pending', { timeout: 10_000 });
       await page.waitForSelector('.arena-access-unavailable', { timeout: 20_000 });
@@ -308,10 +328,12 @@ test('a session check that keeps failing ends in a gate that can retry', async (
       const header = await page.evaluate(() => document.body.textContent.includes('Подписчица'));
       assert.equal(header, expectsViewer, `${fail}: header shows the confirmed account only`);
       // Bounded: no endless polling once the gate is shown.
-      const checks = gateway.requests.filter(url => url === (fail === 'session' ? '/api/auth/me' : '/api/subscription/status')).length;
-      await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 6_000)));
-      assert.equal(gateway.requests.filter(url => url === (fail === 'session' ? '/api/auth/me' : '/api/subscription/status')).length,
-        checks, `${fail}: no more checks after giving up`);
+      const counted = () => gateway.requests.filter(request => request.t === t
+        && request.url === (fail === 'session' ? '/api/auth/me' : '/api/subscription/status')).length;
+      const checks = counted();
+      // Longer than the longest retry delay (3 s): nothing is scheduled any more.
+      await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 3_500)));
+      assert.equal(counted(), checks, `${fail}: no more checks after giving up`);
       assert.ok(checks <= 10, `${fail}: ${checks} checks`);
       // The retry action runs the check again; a recovered server lets the subscriber in.
       await page.deleteCookie({ name: 'fail', url: gateway.origin });
@@ -319,7 +341,7 @@ test('a session check that keeps failing ends in a gate that can retry', async (
       await page.waitForSelector('.bg-tier-list-page', { timeout: 10_000 });
       await page.close();
       await context.close();
-    }
+    }));
   });
 });
 
@@ -464,23 +486,32 @@ test('a remembered refusal stays pending until the server confirms it', async ()
   });
 });
 
-async function signIn(page, origin) {
-  await page.goto(`${origin}/?login`, { waitUntil: 'domcontentloaded' });
+async function signIn(page, origin, signin = '') {
+  if (signin) await setCookies(page, origin, { signin });
+  // Typed only once the form has hydrated (a controlled input typed into
+  // earlier loses its value), and submitted again if the first press was lost.
+  await page.goto(`${origin}/?login`, { waitUntil: 'networkidle0' });
   const email = await page.waitForSelector('.login-field input[type="email"]', { timeout: 15_000 });
   await email.type('reader@example.test');
   await page.type('input[autocomplete="current-password"]', 'secret-password');
-  await page.click('.login-submit');
-  await page.waitForFunction(() => document.cookie.includes('reader=1'), { timeout: 20_000 });
+  await page.waitForFunction(() => document.querySelector('input[autocomplete="current-password"]')?.value === 'secret-password',
+    { timeout: 10_000 });
+  for (let attempt = 0; ; attempt += 1) {
+    await page.click('.login-submit');
+    const signedIn = await page.waitForFunction(() => document.cookie.includes('reader=1'), { timeout: 7_000 })
+      .then(() => true, () => false);
+    if (signedIn) return;
+    assert.ok(attempt < 2, 'the sign-in form must submit');
+  }
 }
 
 test('a sign-in whose subscription answers late shows no lock on the next paid page', async () => {
   await withBrowser(async ({ browser, gateway }) => {
-    gateway.loginCookies = ['statusdelay=1'];
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
     await page.setViewport(viewports[0]);
     await page.evaluateOnNewDocument(recordFrames);
-    await signIn(page, gateway.origin);
+    await signIn(page, gateway.origin, 'statusdelay');
     await page.evaluate(() => { window.__frames.length = 0; });
     await page.click('.arena-sidebar a[href="/battlegrounds/tier-list/"]');
     await page.waitForSelector('.bg-tier-list-page', { timeout: 30_000 });
@@ -492,11 +523,10 @@ test('a sign-in whose subscription answers late shows no lock on the next paid p
 
 test('a sign-in whose subscription answer is 401 leaves a guest everywhere', async () => {
   await withBrowser(async ({ browser, gateway }) => {
-    gateway.loginCookies = ['fail=status401'];
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
     await page.setViewport(viewports[0]);
-    await signIn(page, gateway.origin);
+    await signIn(page, gateway.origin, 'status401');
     await page.waitForFunction(() => localStorage.getItem('hs_arena_verified_viewer') === 'guest', { timeout: 15_000 });
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 300)));
     const state = await page.evaluate(() => ({
@@ -530,7 +560,8 @@ test('a late 401 about the previous session leaves the new session\'s memory alo
     const before = await second.evaluate(() => ({ ...localStorage }));
     // Tab 1's 401 arrives (and its check runs again for the new session).
     await first.bringToFront();
-    await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 6_000)));
+    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
+    await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
     const after = await first.evaluate(() => ({ ...localStorage }));
     assert.equal(after.hs_arena_auth_cookie_hint, '1', 'the session hint stays');
     assert.equal(JSON.parse(after.hs_arena_viewer_hint ?? 'null')?.user.id, 'instant-other', 'the new viewer stays remembered');
@@ -557,7 +588,9 @@ test('a late guest answer does not take the new session\'s tag away', async () =
     await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
     await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 10_000 });
     await first.bringToFront();
-    await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 6_000)));
+    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
+    // Past the late guest answer (3 s after tab 1 asked).
+    await first.waitForFunction(started => performance.now() - started > 3_500, { timeout: 10_000 }, 0);
     assert.match(await first.evaluate(() => document.cookie), new RegExp(`hp_viewer=${TAGS.b}`), 'the new session keeps its tag');
     assert.ok(await first.evaluate(() => document.body.textContent.includes('Другая Читательница')));
     // B has no subscription: its own, confirmed refusal is the gate tab 1 now shows.
@@ -575,8 +608,7 @@ for (const path of ['session check', 'sign-in']) {
       const first = await context.newPage();
       await first.setViewport(viewport);
       if (path === 'sign-in') {
-        gateway.loginCookies = ['bodydelay=1'];
-        await signIn(first, gateway.origin);
+        await signIn(first, gateway.origin, 'bodydelay');
       } else {
         await setCookies(first, gateway.origin, { reader: '1', hp_viewer: TAG, bodydelay: '1' });
         await first.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
@@ -600,7 +632,7 @@ for (const path of ['session check', 'sign-in']) {
       // The same document: its late body must not publish the subscriber here.
       await first.bringToFront();
       await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
-      await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 3_000)));
+      await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 1_000)));
       const state = await first.evaluate(() => ({ paid: Boolean(document.querySelector('.bg-tier-list-page')),
         hint: JSON.parse(localStorage.getItem('hs_arena_viewer_hint') ?? 'null') }));
       assert.equal(state.paid, false, `${path}: the subscriber's grants never reach the other account`);
@@ -636,4 +668,5 @@ test('search shows no subscription lock while a remembered refusal is unconfirme
     assert.equal(await page.evaluate(() => window.__searchLocks.filter(Boolean).length), 0, 'no lock before the server refuses');
     await context.close();
   });
+});
 });

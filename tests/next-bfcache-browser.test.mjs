@@ -231,86 +231,6 @@ test('Back restores public pages from the back/forward cache and never shows a s
     await reader.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
     gateway.sessions.add('reader');
 
-    // The session answers at once but the subscription late, or never: the
-    // restored page shows the account only together with its subscription.
-    for (const subscriptionDelay of [2500, 'hang']) {
-      await reader.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
-      await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
-      await watchRestore(reader);
-      await follow(reader, '/classes/');
-      await reader.waitForSelector('ol.arena-classes-board', { timeout: 15000 });
-      gateway.subscriptionDelay = subscriptionDelay;
-      await back(reader);
-      const partial = await restoredState(reader, 2);
-      for (const [moment, shown] of [['event', partial.restored.event], ['frame', partial.restored.frame],
-        ['300 ms', partial.restored.later[0]], ['1 s', partial.restored.later[1]]]) {
-        assert.deepEqual(shown, HIDDEN, `subscription ${subscriptionDelay}, ${moment}: no account before its subscription`);
-      }
-      if (subscriptionDelay === 'hang') {
-        await reader.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
-        assert.equal(await reader.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false,
-          'a subscription that never answers leaves the restored page without the account');
-      } else {
-        await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
-      }
-      gateway.subscriptionDelay = 0;
-    }
-
-    // A page frozen as a guest; meanwhile the visitor signs in elsewhere. Back
-    // shows the account only together with its subscription, or not at all.
-    for (const subscriptionDelay of [2500, 'error']) {
-      const context = await browser.createBrowserContext();
-      const guestPage = await context.newPage();
-      await guestPage.setViewport({ width: 1440, height: 900 });
-      await guestPage.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
-      await guestPage.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
-      await watchRestore(guestPage);
-      await follow(guestPage, '/classes/');
-      await guestPage.setCookie({ name: 'bf_session', value: 'reader', url: gateway.origin });
-      gateway.subscriptionDelay = subscriptionDelay;
-      gateway.meDelay = 1200;
-      await back(guestPage);
-      const signedIn = await restoredState(guestPage, 2);
-      assert.equal(signedIn.marker, true);
-      for (const [moment, shown] of [['event', signedIn.restored.event], ['frame', signedIn.restored.frame],
-        ['300 ms', signedIn.restored.later[0]], ['1 s', signedIn.restored.later[1]]]) {
-        assert.equal(shown.reader, false, `guest page, subscription ${subscriptionDelay}, ${moment}: no account before its subscription`);
-      }
-      // The guest's old gate goes before the first frame: no lock while both answers are on their way.
-      assert.deepEqual(await guestPage.evaluate(() => window.__restoredGates.filter(Boolean).length), 0,
-        `guest page, subscription ${subscriptionDelay}: no lock frame after the restore`);
-      gateway.meDelay = 0;
-      if (subscriptionDelay === 'error') {
-        await guestPage.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
-        assert.equal(await guestPage.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false,
-          'a failed subscription check leaves the restored page without the account');
-        // «Повторить проверку» stays atomic: the account shows only with its subscription.
-        // Still restored and unconfirmed: a retry that fails again, then one that is late but succeeds.
-        for (const retry of ['error', 2500]) {
-          gateway.subscriptionDelay = retry;
-          await guestPage.evaluate(() => {
-            window.__afterRetry = [];
-            document.querySelector('.arena-access-unavailable button').click();
-            for (const wait of [300, 1000, 2000]) {
-              setTimeout(() => window.__afterRetry.push(document.body.textContent.includes('Читатель Кэша')), wait);
-            }
-          });
-          await guestPage.waitForFunction(() => window.__afterRetry.length === 3, { timeout: 10000 });
-          assert.deepEqual(await guestPage.evaluate(() => window.__afterRetry), [false, false, false],
-            `retry with subscription ${retry}: no account before its subscription`);
-          if (retry === 'error') {
-            await guestPage.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
-            assert.equal(await guestPage.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false);
-          } else {
-            await guestPage.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
-          }
-        }
-      } else {
-        await guestPage.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
-      }
-      gateway.subscriptionDelay = 0;
-      await context.close();
-    }
     await reader.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
     await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
     await watchRestore(reader);
@@ -351,6 +271,102 @@ test('Back restores public pages from the back/forward cache and never shows a s
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    await closeLocal(express);
+  }
+});
+
+// A restored page shows an account only together with its confirmed
+// subscription: late or missing subscription answers, a page frozen as a guest
+// whose visitor signed in elsewhere, and the retry after a failed check. The
+// scenarios wait out answers and deadlines, so they run side by side, each
+// with its own gateway and browser context, on one Next server.
+test('a restored page shows an account only with its confirmed subscription', async () => {
+  const express = http.createServer((request, response) => response.writeHead(401).end());
+  let next; let browser; const gateways = [];
+  try {
+    next = await startNextServer({ legacyOrigin: await listenLocal(express) });
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+      headless: true, args: ['--no-sandbox'] });
+    const scenario = async run => {
+      const gateway = await startGateway(next.origin);
+      gateways.push(gateway);
+      const context = await browser.createBrowserContext();
+      try { await run(gateway, context); } finally { await context.close(); }
+    };
+
+    // The session answers at once but the subscription late, or never.
+    const subscriber = subscriptionDelay => scenario(async (gateway, context) => {
+      const { page: reader } = await openReader(context, gateway.origin, 'reader');
+      await follow(reader, '/classes/');
+      await reader.waitForSelector('ol.arena-classes-board', { timeout: 15000 });
+      gateway.subscriptionDelay = subscriptionDelay;
+      await back(reader);
+      const partial = await restoredState(reader, 2);
+      for (const [moment, shown] of [['event', partial.restored.event], ['frame', partial.restored.frame],
+        ['300 ms', partial.restored.later[0]], ['1 s', partial.restored.later[1]]]) {
+        assert.deepEqual(shown, HIDDEN, `subscription ${subscriptionDelay}, ${moment}: no account before its subscription`);
+      }
+      if (subscriptionDelay === 'hang') {
+        await reader.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
+        assert.equal(await reader.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false,
+          'a subscription that never answers leaves the restored page without the account');
+      } else {
+        await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+      }
+    });
+
+    // A page frozen as a guest; meanwhile the visitor signs in elsewhere.
+    const signedInElsewhere = subscriptionDelay => scenario(async (gateway, context) => {
+      const guestPage = await context.newPage();
+      await guestPage.setViewport({ width: 1440, height: 900 });
+      await guestPage.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
+      await guestPage.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
+      await watchRestore(guestPage);
+      await follow(guestPage, '/classes/');
+      await guestPage.setCookie({ name: 'bf_session', value: 'reader', url: gateway.origin });
+      gateway.subscriptionDelay = subscriptionDelay;
+      gateway.meDelay = 1200;
+      await back(guestPage);
+      const signedIn = await restoredState(guestPage, 2);
+      assert.equal(signedIn.marker, true);
+      for (const [moment, shown] of [['event', signedIn.restored.event], ['frame', signedIn.restored.frame],
+        ['300 ms', signedIn.restored.later[0]], ['1 s', signedIn.restored.later[1]]]) {
+        assert.equal(shown.reader, false, `guest page, subscription ${subscriptionDelay}, ${moment}: no account before its subscription`);
+      }
+      // The guest's old gate goes before the first frame: no lock while both answers are on their way.
+      assert.deepEqual(await guestPage.evaluate(() => window.__restoredGates.filter(Boolean).length), 0,
+        `guest page, subscription ${subscriptionDelay}: no lock frame after the restore`);
+      gateway.meDelay = 0;
+      if (subscriptionDelay !== 'error') {
+        await guestPage.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+        return;
+      }
+      await guestPage.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
+      assert.equal(await guestPage.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false,
+        'a failed subscription check leaves the restored page without the account');
+      // «Повторить проверку» stays atomic while the page is still unconfirmed:
+      // a retry that fails again, then one that is late but succeeds.
+      for (const retry of ['error', 2500]) {
+        gateway.subscriptionDelay = retry;
+        await guestPage.evaluate(() => {
+          window.__afterRetry = [];
+          document.querySelector('.arena-access-unavailable button').click();
+          for (const wait of [300, 1000, 2000]) {
+            setTimeout(() => window.__afterRetry.push(document.body.textContent.includes('Читатель Кэша')), wait);
+          }
+        });
+        await guestPage.waitForFunction(() => window.__afterRetry.length === 3, { timeout: 10000 });
+        assert.deepEqual(await guestPage.evaluate(() => window.__afterRetry), [false, false, false],
+          `retry with subscription ${retry}: no account before its subscription`);
+        await guestPage.waitForSelector(retry === 'error' ? '.arena-access-unavailable' : '.bg-tier-list-page', { timeout: 20000 });
+      }
+    });
+
+    await Promise.all([subscriber(2500), subscriber('hang'), signedInElsewhere(2500), signedInElsewhere('error')]);
+  } finally {
+    if (browser) await browser.close();
+    for (const gateway of gateways) await closeLocal(gateway.server);
     if (next) await next.close();
     await closeLocal(express);
   }

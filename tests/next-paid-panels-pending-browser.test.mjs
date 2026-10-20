@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import test from 'node:test';
+import { after, describe, test } from 'node:test';
 import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
@@ -17,6 +17,18 @@ const LOCKS = ['.constructed-cards__stats-lock', '.constructed-cards__locked-val
   '.arena-inline-paywall', '.arena-paywall', '.archetype-build-preview'];
 const LOCK_TEXT = ['Статистика доступна с тарифом', 'доступны подписчикам'];
 const executablePath = process.env.CHROMIUM_PATH || '/usr/bin/google-chrome';
+
+// One card pilot (real backend, Next and gateway) with a subscriber's grant
+// for the card tests; each test opens its own browser.
+let sharedPilot = null;
+function cardPilot() {
+  sharedPilot ??= startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true }).then(runtime => {
+    runtime.grant();
+    return runtime;
+  });
+  return sharedPilot;
+}
+after(async () => { if (sharedPilot) await (await sharedPilot).close(); });
 
 function recordLocks(selectors, texts) {
   window.__locks = [];
@@ -54,11 +66,12 @@ async function assertNeverLocked(page, label, settled) {
   };
 }
 
+// The scenarios are independent, so they run side by side to keep the browser suite short.
+describe('paid panels while access is pending', { concurrency: 4 }, () => {
 test('constructed card statistics stay in their loading state, never locked, for a late subscription answer', { timeout: 180_000 }, async () => {
-  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  const runtime = await cardPilot();
   let browser;
   try {
-    runtime.grant();
     browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
@@ -81,7 +94,6 @@ test('constructed card statistics stay in their loading state, never locked, for
     }
   } finally {
     if (browser) await browser.close();
-    await runtime.close();
   }
 });
 
@@ -90,10 +102,9 @@ test('constructed card statistics stay in their loading state, never locked, for
 // API confirms access by itself here, so its statistics appear; without that
 // the panel would offer a retry.
 test('card statistics never lock when the subscription answer fails', { timeout: 180_000 }, async () => {
-  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  const runtime = await cardPilot();
   let browser;
   try {
-    runtime.grant();
     browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
     const context = await browser.createBrowserContext();
@@ -118,7 +129,6 @@ test('card statistics never lock when the subscription answer fails', { timeout:
     await context.close();
   } finally {
     if (browser) await browser.close();
-    await runtime.close();
   }
 });
 
@@ -126,7 +136,7 @@ test('card statistics never lock when the subscription answer fails', { timeout:
 // paid data for the viewer then; until the server confirms the viewer again
 // they must not show, whether the answers are late or fail.
 test('a restored card page hides its paid statistics until access is confirmed again', { timeout: 240_000 }, async () => {
-  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  const runtime = await cardPilot();
   const target = new URL(runtime.origin);
   const proxy = { mode: 'pass' };
   const server = http.createServer((request, response) => {
@@ -150,7 +160,6 @@ test('a restored card page hides its paid statistics until access is confirmed a
   });
   let browser;
   try {
-    runtime.grant();
     const origin = await listenLocal(server);
     browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
@@ -191,7 +200,6 @@ test('a restored card page hides its paid statistics until access is confirmed a
   } finally {
     if (browser) await browser.close();
     await closeLocal(server);
-    await runtime.close();
   }
 });
 
@@ -245,4 +253,5 @@ test('archetype detail keeps its paid sections loading, without preview or paywa
     if (next) await next.close();
     await closeLocal(legacy);
   }
+});
 });
