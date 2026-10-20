@@ -6,6 +6,35 @@ import { useArenaTierList } from '../modules/arenaTierList/public';
 import type { TierCard, TierlistData, TierlistSource } from '../modules/arenaTierList/public';
 
 const deathwingRender = new URL('./fixtures/deathwing-card.webp', import.meta.url).href;
+const frameRenders = {
+  spell: new URL('./fixtures/fireball-render.webp', import.meta.url).href,
+  minion: new URL('./fixtures/skeleton-crew-render.webp', import.meta.url).href,
+  location: new URL('./fixtures/horizons-edge-render.webp', import.meta.url).href,
+  legendary: new URL('./fixtures/leeroy-render.webp', import.meta.url).href,
+};
+const FRAME_ROTATION = [
+  { rarity: 'common', type: 'SPELL', image: frameRenders.spell },
+  { rarity: 'rare', type: 'MINION', image: frameRenders.minion },
+  { rarity: 'rare', type: 'LOCATION', image: frameRenders.location },
+  { rarity: 'epic', type: 'MINION', image: frameRenders.minion },
+  { rarity: 'legendary', type: 'MINION', image: frameRenders.legendary },
+  { rarity: 'legendary', type: 'LOCATION', image: frameRenders.location },
+] as const;
+/** Two tiers whose rows mix every frame and rarity, in each class section. */
+function rarityFrameData(): TierlistData {
+  const tierCards = (tier: string, count: number) => Array.from({ length: count }, (_, index) => {
+    const frame = FRAME_ROTATION[index % FRAME_ROTATION.length];
+    return { cardId: `${tier}_frame_${index}`, name: `${tier}: ${frame.type} ${index}`, score: 80 - index,
+      rarity: frame.rarity, classKey: 'any' };
+  });
+  const tiers = [{ tier: 'S', count: 6 }, { tier: 'A', count: 9 }];
+  return { ...data, cards: Object.fromEntries(tiers.flatMap(({ tier, count }) => Array.from({ length: count }, (_, index) => {
+    const frame = FRAME_ROTATION[index % FRAME_ROTATION.length];
+    return [`${tier}_frame_${index}`, { cost: index, imageHa: '', imageRu: frame.image, type: frame.type }];
+  }))), sections: data.sections.map(section => ({ ...section, totalCards: 15, tiers: tiers.map(({ tier, count }) => ({
+    tier, label: tier, description: '', cards: tierCards(tier, count),
+  })) })) };
+}
 
 const cards: TierCard[] = [
   { cardId: 'zero', name: 'Карта за ноль маны', score: 90, rarity: 'common', classKey: 'mage' },
@@ -27,7 +56,7 @@ const data: TierlistData = {
     cost: [0, 5, 10, 12][index], imageHa: '', imageRu: null, type: 'MINION',
   }])),
 };
-function PageExample({ deathwing = false, switching = false, manyCards = false }: { deathwing?: boolean; switching?: boolean; manyCards?: boolean }) {
+function PageExample({ deathwing = false, switching = false, manyCards = false, rarityFrames = false }: { deathwing?: boolean; switching?: boolean; manyCards?: boolean; rarityFrames?: boolean }) {
   const [source, setSource] = useState<TierlistSource>('hsreplay');
   const exampleData = deathwing ? { ...data, cards: { CATA_190h: {
     cost: 10, imageHa: deathwingRender,
@@ -38,7 +67,7 @@ function PageExample({ deathwing = false, switching = false, manyCards = false }
   }] })) } : manyCards ? { ...data, sections: data.sections.map(section => ({ ...section,
     totalCards: 200, tiers: [{ tier: 'S', label: 'Отлично', description: '',
       cards: Array.from({ length: 200 }, (_, index) => ({ ...cards[0], cardId: `fixture_${index}`, name: `Карта ${index}` })) }],
-  })) } : data;
+  })) } : rarityFrames ? rarityFrameData() : data;
   return <div className="arena-app-shell arena-app-game-data arena-app-tierlist" style={{ padding: 16 }}>
     <TierList data={exampleData} loading={false} error={null} companionIds={new Set<string>()}
       tierlistSource={source} onTierlistSourceChange={setSource} switchingTierlistSource={switching}
@@ -86,6 +115,8 @@ export const DeathwingCard: Story = {
     await userEvent.keyboard('{Escape}');
   },
 };
+/** Locations, dragon-framed legendaries and every rarity glow in two tiers. */
+export const RarityFrames: Story = { args: { rarityFrames: true } };
 export const SwitchingSources: Story = {
   args: { switching: true },
   play: async ({ canvas }) => {

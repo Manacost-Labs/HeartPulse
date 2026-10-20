@@ -45,6 +45,12 @@
      arrive, so loading art never moves the facts below it; object-fit
      contains variants of other proportions inside the same box. */
   --card-render-aspect-ratio: 404 / 558;
+  /* The hover glow behind a card render, by rarity: the card library and the
+     Arena tier list paint the same colours, never recolouring the art. */
+  --card-rarity-glow-common: rgba(218, 235, 247, 0.82);
+  --card-rarity-glow-rare: rgba(50, 139, 255, 0.9);
+  --card-rarity-glow-epic: rgba(157, 78, 235, 0.9);
+  --card-rarity-glow-legendary: rgba(255, 151, 38, 0.94);
   /* The subscription gate's height; the access-check placeholder reserves it. */
   --subscription-gate-min-height: 760px;
   --site-page-hero-padding-block: clamp(1.25rem, 2.5vw, 2rem);

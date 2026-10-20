@@ -603,6 +603,10 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
   }, [hidePreview, onClick]);
 
   useEffect(() => setSrcIdx(0), [sources]);
+  // Only Blizzard renders draw locations oversized (see DeferredRoutes.css);
+  // HearthArena and HearthstoneJSON fallbacks frame them like other cards.
+  const blizzardRender = thumbSrc === localImageSrc || thumbSrc === card.imageRu;
+  const frame = blizzardRender && card.type?.toLowerCase() === 'location' ? 'location' : undefined;
 
   if (thumbSrc) {
     return (
@@ -611,6 +615,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
         ref={cardRef}
         className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999] appearance-none border-0 bg-transparent p-0 text-left"
         data-rarity={String(card.rarity || 'common').toLowerCase()}
+        data-card-frame={frame}
         onClick={handleClick}
         onMouseEnter={showPreview}
         onMouseMove={showPreview}

@@ -51,11 +51,11 @@
 }
 .constructed-cards .constructed-cards__secondary-controls .constructed-cards__direction-label { display: inline; font-size: 0.68rem; }
 :is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='free'],
-:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='common'] { --card-rarity-glow: rgba(218, 235, 247, 0.82); }
-:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='rare'] { --card-rarity-glow: rgba(50, 139, 255, 0.9); }
-:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='epic'] { --card-rarity-glow: rgba(157, 78, 235, 0.9); }
-:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='legendary'] { --card-rarity-glow: rgba(255, 151, 38, 0.94); }
-.constructed-catalog-tile { --card-rarity-glow: rgba(218, 235, 247, 0.82); position: relative; display: block; width: 100%; max-width: 320px; aspect-ratio: 5 / 1; }
+:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='common'] { --card-rarity-glow: var(--card-rarity-glow-common); }
+:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='rare'] { --card-rarity-glow: var(--card-rarity-glow-rare); }
+:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='epic'] { --card-rarity-glow: var(--card-rarity-glow-epic); }
+:is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='legendary'] { --card-rarity-glow: var(--card-rarity-glow-legendary); }
+.constructed-catalog-tile { --card-rarity-glow: var(--card-rarity-glow-common); position: relative; display: block; width: 100%; max-width: 320px; aspect-ratio: 5 / 1; }
 .constructed-catalog-tile::after {
   content: '';
   position: absolute;

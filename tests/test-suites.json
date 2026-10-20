@@ -381,6 +381,7 @@
       "files": [
         "tests/archetypes-detail-browser.test.mjs",
         "tests/arena-card-motion.browser.test.mjs",
+        "tests/arena-tier-card-geometry.browser.test.mjs",
         "tests/battleground-accessories-browser.test.mjs",
         "tests/battleground-hero-motion-browser.test.mjs",
         "tests/constructed-archetypes-browser.test.mjs",
