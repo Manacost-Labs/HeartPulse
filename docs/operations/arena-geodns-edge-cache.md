@@ -147,9 +147,10 @@ the `X-Proxy-Cache` counts. A second run reports mostly `HIT` for the cached
 families. `BYPASS` for `/api/public-resource/`, `/api/article-cover` and
 `/uploads/` on `hearthpulse.net` means the edge vhost does not cache these
 families yet; the warm then fills only origin-side caches. `BYPASS` for
-`/_next/static/` or for CDN card images means the edge runs an outdated vhost. Inspect a run with
-`ARENA_WARM_DRY_RUN=1 warm-arena-public-resources <edge-ip>`, which builds the
-URL lists without requesting them.
+`/_next/static/` or for CDN card images means the edge runs an outdated vhost.
+Inspect a run with
+`ARENA_WARM_DRY_RUN=1 warm-arena-public-resources <edge-ip>`, which builds
+the URL lists without requesting them.
 
 Limburg (`162.19.220.14`) has been unreachable on ICMP, SSH and HTTPS from the
 origin and from Moscow since about 2026-10-05; it stays quarantined and out of
