@@ -1,0 +1,8 @@
+# Install as /etc/hs-arena/card-image-optional-edges.conf with mode 0600.
+# Best-effort card-image edges: synchronized on every run, but a failure is
+# only logged and recorded under /var/lib/arena-edge/card-sync and never makes
+# arena-card-image-sync.service fail. Move an edge to the required topology in
+# /etc/hs-arena/edge-static-sync.conf once it serves production traffic.
+ARENA_CARD_IMAGE_OPTIONAL_EDGE_SPECS=(
+  "debian@eu-edge.example.test|/root/.ssh/arena_eu_ed25519"
+)

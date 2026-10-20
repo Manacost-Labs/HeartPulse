@@ -34,7 +34,7 @@ assert.doesNotMatch(sync, /162\.19\.220\.14/,
 assert.match(sync, /ARENA_STATIC_EDGE_SPECS/,
   'card images must follow the same edge topology as the frontend sync');
 
-for (const unit of ['arena-public-resource-warm', 'arena-public-resource-warm-ru', 'arena-public-resource-warm-ru-novosibirsk']) {
+for (const unit of ['arena-public-resource-warm', 'arena-public-resource-warm-ru', 'arena-public-resource-warm-ru-novosibirsk', 'arena-public-resource-warm-eu-london']) {
   const service = readFileSync(join(root, `deploy/systemd/${unit}.service`), 'utf8');
   assert.match(service, /TimeoutStartSec=45min/, `${unit} must keep a bounded run time`);
   assert.match(service, /ExecStart=\/usr\/local\/sbin\/warm-arena-public-resources \d+\.\d+\.\d+\.\d+$/m,
@@ -85,6 +85,32 @@ try {
   const log = readFileSync(calls, 'utf8');
   assert.match(log, /root@edge-a\.test sudo \/usr\/local\/sbin\/activate-arena-card-images prepare 'card_img_v9_test'/);
   assert.doesNotMatch(log, /162\.19\.220\.14/, 'a removed edge must not be contacted');
+
+  // A failing best-effort edge is logged and recorded but never fails the run.
+  const failingBin = join(fixture, 'failing-bin');
+  mkdirSync(failingBin, { recursive: true });
+  writeFileSync(join(failingBin, 'ssh'),
+    `#!/usr/bin/env bash\nprintf 'ssh %s\\n' "$*" >> '${calls}'\n[[ "$*" == *edge-eu.test* ]] && exit 255\nexit 0\n`);
+  chmodSync(join(failingBin, 'ssh'), 0o755);
+  const optional = join(fixture, 'optional.conf');
+  writeFileSync(optional, 'ARENA_CARD_IMAGE_OPTIONAL_EDGE_SPECS=(\n  "debian@edge-eu.test|/dev/null"\n)\n');
+  const statusDir = join(fixture, 'status');
+  const bestEffort = spawnSync('bash', [syncScript], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      PATH: `${failingBin}:${bin}:${process.env.PATH}`,
+      ARENA_CARD_IMAGE_SYNC_CONFIG: config,
+      ARENA_CARD_IMAGE_OPTIONAL_CONFIG: optional,
+      ARENA_CARD_IMAGE_STATUS_DIR: statusDir,
+      ARENA_CARD_IMAGE_RELEASE_ROOT: release,
+      ARENA_CARD_IMAGE_SOURCE_ROOT: fixture,
+    },
+  });
+  assert.equal(bestEffort.status, 0, 'a best-effort edge must not fail the sync');
+  assert.match(bestEffort.stderr, /Best-effort card image edge failed and is not counted: debian@edge-eu\.test/);
+  assert.match(readFileSync(join(statusDir, 'debian@edge-eu.test.status'), 'utf8'), /^failed card_img_v9_test /);
+  assert.match(readFileSync(join(statusDir, 'root@edge-a.test.status'), 'utf8'), /^ok card_img_v9_test /);
 
   writeFileSync(config, 'ARENA_STATIC_EDGE_SPECS=()\n');
   const empty = spawnSync('bash', [syncScript], {

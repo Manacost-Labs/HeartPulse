@@ -12,6 +12,7 @@ case "$edge_ip" in
   162.19.220.14) edge_name="eu-limburg"; edge_region="limburg" ;;
   194.67.92.242) edge_name="ru-moscow"; edge_region="moscow" ;;
   186.246.28.244) edge_name="ru-novosibirsk"; edge_region="novosibirsk" ;;
+  57.129.183.118) edge_name="eu-london"; edge_region="london" ;;
   *) echo "Unsupported edge IP: $edge_ip" >&2; exit 2 ;;
 esac
 

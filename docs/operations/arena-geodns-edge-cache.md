@@ -115,7 +115,7 @@ The versioned units and scripts are:
 - `deploy/warm-arena-public-resources.sh` →
   `/usr/local/sbin/warm-arena-public-resources`;
 - `deploy/systemd/arena-card-image-sync.{service,timer}` and
-  `deploy/systemd/arena-public-resource-warm{,-ru,-ru-novosibirsk}.{service,timer}`
+  `deploy/systemd/arena-public-resource-warm{,-ru,-ru-novosibirsk,-eu-london}.*`
   → `/etc/systemd/system/`.
 
 After changing these files, run `npm run test:deployment`, install the scripts
@@ -129,6 +129,17 @@ frontend sync (`ARENA_STATIC_EDGE_SPECS`, or a dedicated
 `ARENA_CARD_IMAGE_EDGE_SPECS` when card images need a different set). Removing
 an edge from that file removes it from both syncs; the service no longer fails
 every 15 minutes on a withdrawn node.
+
+An edge that is still being brought up belongs in the root-only
+`/etc/hs-arena/card-image-optional-edges.conf`
+(`deploy/card-image-optional-edges.conf.example`). It is synchronized on every
+run, but a failure only logs `Best-effort card image edge failed` and is
+recorded in `/var/lib/arena-edge/card-sync/<edge>.status`; the exit status
+counts required edges only. The new London EU edge (`57.129.183.118`) starts
+there and has its own `arena-public-resource-warm-eu-london` unit, so its
+failures never block a deploy or another edge. It needs
+`deploy/activate-arena-card-images.sh` installed as
+`/usr/local/sbin/activate-arena-card-images` before its first sync.
 
 Each warm unit pins one edge with `curl --resolve` for `hearthpulse.net` and
 `cdn.hearthpulse.net`. The retired `arena.hs-manacost.ru` only answers `301`,

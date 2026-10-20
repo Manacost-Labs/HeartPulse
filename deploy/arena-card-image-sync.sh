@@ -26,6 +26,20 @@ if [[ ${#edge_specs[@]} -eq 0 ]]; then
 fi
 known_hosts="${ARENA_CARD_IMAGE_KNOWN_HOSTS:-${ARENA_STATIC_KNOWN_HOSTS:-/home/debian/.ssh/known_hosts}}"
 
+# Best-effort edges (for example a node that is being brought up) are synced on
+# every run, but their failures are only logged and recorded in the status
+# directory: they never make the service, or a deploy that starts it, fail.
+optional_config="${ARENA_CARD_IMAGE_OPTIONAL_CONFIG:-/etc/hs-arena/card-image-optional-edges.conf}"
+optional_specs=()
+if [[ -r "$optional_config" ]]; then
+  # shellcheck source=/dev/null
+  source "$optional_config"
+  if declare -p ARENA_CARD_IMAGE_OPTIONAL_EDGE_SPECS >/dev/null 2>&1; then
+    optional_specs=("${ARENA_CARD_IMAGE_OPTIONAL_EDGE_SPECS[@]}")
+  fi
+fi
+status_dir="${ARENA_CARD_IMAGE_STATUS_DIR:-/var/lib/arena-edge/card-sync}"
+
 version="$(node --input-type=module -e \
   "import('${release_root}/build/server/cardImageCache.js').then(m => process.stdout.write(m.CARD_IMAGE_CACHE_VERSION))")"
 if [[ ! "$version" =~ ^card_img_v[0-9]+(_[A-Za-z0-9_]+)?$ ]]; then
@@ -33,10 +47,9 @@ if [[ ! "$version" =~ ^card_img_v[0-9]+(_[A-Za-z0-9_]+)?$ ]]; then
   exit 1
 fi
 
-failures=0
-for edge_spec in "${edge_specs[@]}"; do
-  IFS='|' read -r edge identity <<< "$edge_spec"
-  ssh_options=(
+sync_edge() {
+  local edge="$1" identity="$2" rsync_log
+  local ssh_options=(
     -i "$identity"
     -o BatchMode=yes
     -o StrictHostKeyChecking=yes
@@ -46,8 +59,7 @@ for edge_spec in "${edge_specs[@]}"; do
   if ! ssh "${ssh_options[@]}" "$edge" \
       "sudo /usr/local/sbin/activate-arena-card-images prepare '$version'"; then
     echo "Card image prepare failed on $edge" >&2
-    failures=$((failures + 1))
-    continue
+    return 1
   fi
 
   rsync_log="$(mktemp /tmp/arena-card-rsync.XXXXXX)"
@@ -60,22 +72,48 @@ for edge_spec in "${edge_specs[@]}"; do
       "$edge:/srv/arena/card-images/versions/$version/raw/" > "$rsync_log"; then
     echo "Card image sync failed on $edge" >&2
     rm -f -- "$rsync_log"
-    failures=$((failures + 1))
-    continue
+    return 1
   fi
 
   if ! grep -Eq '^(>|\*deleting)' "$rsync_log" && ssh "${ssh_options[@]}" "$edge" \
       "sudo /usr/local/sbin/activate-arena-card-images current '$version'"; then
     rm -f -- "$rsync_log"
     echo "Card images already current on $edge"
-    continue
+    return 0
   fi
   rm -f -- "$rsync_log"
 
   if ! ssh "${ssh_options[@]}" "$edge" \
       "sudo /usr/local/sbin/activate-arena-card-images activate '$version'"; then
     echo "Card image activation failed on $edge" >&2
+    return 1
+  fi
+}
+
+record_status() {
+  local edge="$1" result="$2"
+  install -d -m 0755 "$status_dir" 2>/dev/null || return 0
+  printf '%s %s %s\n' "$result" "$version" "$(date -u +%FT%TZ)" > "$status_dir/${edge//[^A-Za-z0-9.@_-]/_}.status" || true
+}
+
+failures=0
+for edge_spec in "${edge_specs[@]}"; do
+  IFS='|' read -r edge identity <<< "$edge_spec"
+  if sync_edge "$edge" "$identity"; then
+    record_status "$edge" ok
+  else
+    record_status "$edge" failed
     failures=$((failures + 1))
+  fi
+done
+
+for edge_spec in "${optional_specs[@]}"; do
+  IFS='|' read -r edge identity <<< "$edge_spec"
+  if sync_edge "$edge" "$identity"; then
+    record_status "$edge" ok
+  else
+    record_status "$edge" failed
+    echo "Best-effort card image edge failed and is not counted: $edge" >&2
   fi
 done
 

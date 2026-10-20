@@ -1,0 +1,12 @@
+[Unit]
+Description=Prewarm London EU edge cache for HearthPulse media and assets
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/warm-arena-public-resources 57.129.183.118
+TimeoutStartSec=45min
+Nice=15
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
