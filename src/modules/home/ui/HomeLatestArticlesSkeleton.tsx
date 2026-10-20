@@ -32,7 +32,7 @@ export function HomeLatestArticlesSkeleton() {
       </div>
       <p>Свежие мета-отчёты, разборы патчей и практические гайды редакции.</p>
     </div>
-    <div className="home-latest-articles__board">
+    <div className="home-latest-articles-skeleton__board">
       {[0, 1, 2].map(index => <HomeArticleSkeleton key={index} />)}
     </div>
     <span className="home-latest-articles__all home-latest-articles__all--loading" aria-hidden="true">

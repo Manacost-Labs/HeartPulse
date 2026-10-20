@@ -2,7 +2,8 @@
 
 /* ─── Latest articles ─────────────────────────────────────────────────── */
 
-.arena-app-home .home-latest-articles__board {
+.arena-app-home .home-latest-articles__board,
+.arena-app-home .home-latest-articles-skeleton__board {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
@@ -181,18 +182,21 @@
 }
 
 @container home-workbench (min-width: 42rem) {
-  .arena-app-home .home-latest-articles__board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arena-app-home .home-latest-articles__board,
+  .arena-app-home .home-latest-articles-skeleton__board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .arena-app-home .home-latest-article:first-child { grid-column: 1 / -1; }
   .arena-app-home .home-latest-article + .home-latest-article { border-top: 0; border-left: 1px solid var(--arena-paper-line); }
 }
 
 @container home-workbench (min-width: 64rem) {
-  .arena-app-home .home-latest-articles__board { grid-template-columns: 1.2fr 0.9fr 0.9fr; }
+  .arena-app-home .home-latest-articles__board,
+  .arena-app-home .home-latest-articles-skeleton__board { grid-template-columns: 1.2fr 0.9fr 0.9fr; }
   .arena-app-home .home-latest-article:first-child { grid-column: auto; }
 }
 
 @media (max-width: 480px) {
-  .arena-app-home .home-latest-articles__board {
+  .arena-app-home .home-latest-articles__board,
+  .arena-app-home .home-latest-articles-skeleton__board {
     border-width: 8px;
     border-image-width: 8px;
   }
@@ -201,7 +205,9 @@
 }
 
 /* The section's loading fallback (HomeLatestArticlesSkeleton) flows exactly
-   like the loaded section; its link row only reserves its line. */
+   like the loaded section; its link row only reserves its line. Its board has
+   its own class: the eager skeleton must not carry the lazy section's
+   markers (the observatory finds that chunk by home-latest-articles__board). */
 .home-latest-articles.loading-surface,
 .home-latest-articles > .loading-surface__blocks { display: block; }
 .home-latest-articles__all--loading { visibility: hidden; }
