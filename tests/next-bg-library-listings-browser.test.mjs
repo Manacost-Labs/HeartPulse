@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
+import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const listings = [
@@ -36,7 +37,7 @@ test('Next Battleground library listings preserve anonymous SEO without private 
     const errors = []; const failed = []; const privateRequests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failed.push(request.url()));
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
     page.on('request', request => {
       if (new URL(request.url()).pathname.startsWith('/api/bg/library/')) privateRequests.push(request.url());
     });

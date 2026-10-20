@@ -9,6 +9,7 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const placeholder = readFileSync(new URL('../public/arena-logo-icon.webp', import.meta.url));
@@ -101,7 +102,7 @@ test('Next Battleground card detail keeps public identity and real missing-card 
     });
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failed.push(request.url()));
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
     for (const width of [1440, 390]) {
       await page.setViewport({ width, height: 900 });
       const response = await page.goto(`${origin}/library/minions/баюбот-98582/`, { waitUntil: 'networkidle2' });

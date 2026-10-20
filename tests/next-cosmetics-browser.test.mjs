@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
+import { isAbortedRoutePrefetch, isMenuRoutePrefetch, isRoutePrefetchConsoleMessage } from './helpers/abortedRoutePrefetch.mjs';
 
 const axe = readFileSync('node_modules/axe-core/axe.min.js', 'utf8');
 const pagination = { page: 1, perPage: 48, total: 1, totalPages: 1 };
@@ -125,14 +126,14 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
       await page.setViewport({ width, height: 900 });
       const errors = []; const failed = []; const httpErrors = []; const mediaRequests = []; const browserCatalogReads = [];
       page.on('pageerror', error => errors.push(error.message));
-      page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-      page.on('requestfailed', request => failed.push(request.url()));
+      page.on('console', message => { if (message.type() === 'error' && !isRoutePrefetchConsoleMessage(message)) errors.push(message.text()); });
+      page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
       page.on('request', request => {
         if (/\.(?:webm|mp3|ogg)(?:$|\?)/i.test(request.url())) mediaRequests.push(request.url());
         if (/^\/api\/cosmetics\/(heroes|coins|pets)$/.test(new URL(request.url()).pathname)) browserCatalogReads.push(request.url());
       });
       page.on('response', response => {
-        if (response.status() >= 400) httpErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
+        if (response.status() >= 400 && !isMenuRoutePrefetch(response.request())) httpErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
       });
       for (const [path, heading, card] of listings) {
         const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });

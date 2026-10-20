@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
+import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 
@@ -15,7 +16,7 @@ test('compact library supports tribe selection, empty-result reset and hidden ad
     const errors = []; const failed = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failed.push(request.url()));
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewport({ width, height: 900 });
       await page.goto(runtime.storyUrl('battlegrounds-library--compact-controls'), { waitUntil: 'networkidle0' });

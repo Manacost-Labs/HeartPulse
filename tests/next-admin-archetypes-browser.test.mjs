@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
+import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
 const standardCatalog = { count: 1, translated: 1, items: [{
   id: 856, nameEn: 'Tempo Mage', nameRu: 'Темпо-маг', translated: true,
@@ -45,7 +46,7 @@ test('Next admin archetype routes keep the full-admin boundary and Wild deck dee
     const failed = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failed.push(request.url()));
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
     const [name, value] = runtime.cookie.split('=');
     await page.setCookie({ name, value, url: runtime.origin });
     await page.setRequestInterception(true);

@@ -9,6 +9,7 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
 const teaser = {
   slug: 'arena-100-percent', title: 'Арена 100% побед', description: 'Подробное описание',
@@ -67,7 +68,7 @@ test('Next guide detail renders an anonymous teaser, canonicalizes old IDs and r
     const errors = []; const failed = []; const protectedCalls = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failed.push(request.url()));
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
     page.on('request', request => {
       if (/^\/api\/guides-archive\/(?!teaser\/)/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
     });

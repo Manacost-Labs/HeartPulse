@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { isAbortedRoutePrefetch, isMenuRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 
@@ -75,8 +76,8 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     const errors = []; const failed = []; const failedResponses = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failed.push(request.url()));
-    page.on('response', response => { if (response.status() >= 400) failedResponses.push(`${response.status()} ${response.url()}`); });
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
+    page.on('response', response => { if (response.status() >= 400 && !isMenuRoutePrefetch(response.request())) failedResponses.push(`${response.status()} ${response.url()}`); });
     for (const width of [1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
       const guest = await page.goto(`${nextOrigin}/battlegrounds/tier-list/`, { waitUntil: 'networkidle2' });

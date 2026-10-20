@@ -9,6 +9,7 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
 const teaser = {
   format: 'wild', formatLabel: 'Вольный', patch: '36.0.3', minimumGames: 50,
@@ -96,7 +97,7 @@ test('Next archetype details isolate access and load builds before independent o
     const errors = []; const failed = []; const protectedCalls = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failed.push(request.url()));
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
     page.on('request', request => {
       if (/^\/api\/constructed-archetypes\/(?!teaser\/)/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
     });
