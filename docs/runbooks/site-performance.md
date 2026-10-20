@@ -52,9 +52,9 @@ Images were about two thirds of the home and articles weight.
   rose by that much and no JavaScript ceiling changed. A half-size tile was
   rejected: Chrome scales an upscaled image's LCP area down, so the late
   banner art became the `/classes/` LCP again (4.2-4.7 s).
-- `PublicPageShell` still preloads the WebP on phones for its `always` pages,
-  where it is now unused. The change that limits that preload to 768px belongs
-  to the shell owner and was requested separately.
+- `PublicPageShell` preloads the WebP at high priority only from 768px on
+  every page; its `parchmentPreload` prop no longer has an effect and its call
+  sites can drop it.
 - Banner: phones take `profile-hero-hth-860.avif` (24 KB instead of 46 KB).
   A phone preload on the tier list, classes and legendaries delayed their
   first paint by 0.3-0.6 s and was reverted; see

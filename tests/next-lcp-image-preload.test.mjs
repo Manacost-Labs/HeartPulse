@@ -27,20 +27,15 @@ before(async () => { runtime = await startPublicCardPilot({ pagesEnabled: true }
 after(async () => { await runtime?.close(); });
 
 test('image hints fetch each width only the parchment and banner files it paints', async () => {
-  // The shell's `always` pages still preload the WebP at every width.
-  for (const path of ['/', '/faq/', '/standard/meta/', '/heroes/?view=table', '/standard/archetypes/']) {
-    const { hints } = await imageHints(runtime.origin, path);
-    const parchment = hintsFor(hints, PARCHMENT);
-    assert.ok(parchment.length >= 1 && parchment.every(isHigh), `${path} preloads the parchment at high priority`);
-  }
-  // Phones paint the parchment inline from tokens.css; these pages fetch the file only from 768px.
-  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/standard/matchups/', '/standard/cards/',
-    '/standard/cards/standard/', '/standard/cards/wild/', '/articles/', '/cosmetics/']) {
+  // Phones paint the parchment inline from tokens.css, so no page fetches the file below 768px.
+  for (const path of ['/', '/faq/', '/standard/meta/', '/heroes/?view=table', '/standard/archetypes/', '/tierlist/',
+    '/classes/', '/legendaries/', '/standard/matchups/', '/standard/cards/', '/standard/cards/standard/',
+    '/standard/cards/wild/', '/articles/', '/cosmetics/']) {
     const { hints } = await imageHints(runtime.origin, path);
     const parchment = hintsFor(hints, PARCHMENT);
     assert.ok(parchment.length >= 1, `${path} preloads the parchment for wider screens`);
     for (const hint of parchment) {
-      assert.ok(isHigh(hint), path);
+      assert.ok(isHigh(hint), `${path} keeps the wider-screen parchment hint at high priority`);
       assert.match(hint.text, TABLET_UP, `${path} must not fetch the parchment file on phones`);
     }
   }
