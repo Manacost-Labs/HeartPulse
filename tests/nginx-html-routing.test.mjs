@@ -1245,12 +1245,12 @@ async function runNginxContractCheck() {
     const ownerLog = join(root, 'html-owner.log');
     writeFileSync(testRouting, routingSource
       .replaceAll('/etc/nginx/snippets/arena-security-headers.conf', securitySnippet)
-      .replaceAll('http://127.0.0.1:3101', `http://127.0.0.1:${upstream.port}`)
-      .replaceAll('http://127.0.0.1:4321', `http://127.0.0.1:${upstream.port}`)
+      // One pass: a random port that starts with 4321 must not be rewritten again.
+      .replace(/http:\/\/127\.0\.0\.1:(?:3101|4321)(?!\d)/g, `http://127.0.0.1:${upstream.port}`)
       .replaceAll('/var/www/httpd-logs/arena-html-owner.log', ownerLog)
       .replace('buffer=32k flush=5s ', ''));
     const testMap = join(root, 'arena-seo-map.conf');
-    writeFileSync(testMap, mapSource.replaceAll(':4321', `:${upstream.port}`));
+    writeFileSync(testMap, mapSource.replace(/:4321(?!\d)/g, `:${upstream.port}`));
     const testEdgeRegionMap = join(root, 'arena-edge-region-map.conf');
     writeFileSync(testEdgeRegionMap, edgeRegionMapSource);
 
