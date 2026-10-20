@@ -151,8 +151,10 @@
   padding-block: 8px;
 }
 
-.cosmetics-grid[aria-busy="true"] {
-  opacity: 0.68;
+/* A refresh dims the grid through the shared .data-surface rule, after its
+   reveal delay; the note waits as long, so a fast revalidation shows nothing. */
+.cosmetics-results-meta__refresh {
+  animation: loading-reveal var(--motion-fast) var(--motion-ease) 160ms backwards;
 }
 
 .cosmetics-card {

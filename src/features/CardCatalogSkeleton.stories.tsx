@@ -4,7 +4,7 @@ import StandardCards from './StandardCards';
 import { loadConstructedCardList, prefetchConstructedCardList } from './constructedCardListPrefetch';
 import type { PublicCardCatalogSeed } from '../modules/constructedCards/public';
 
-// The real catalog page with 18 cards, and the same page before its first
+// The real first catalog page (60 cards), and the same page before its first
 // response: the paired browser test compares the gallery tiles (and the
 // table frame) of both states at the public page widths. The tile statistic
 // line varies: Ready (a set name) and ShortText (mana) bound it.
@@ -23,8 +23,8 @@ const seed = (count: number): PublicCardCatalogSeed => ({
   facets: { classes: ['MAGE'], sets: ['CORE'], mechanics: [], types: ['MINION'], rarities: ['COMMON'] },
   cards: Array.from({ length: count }, (_, index) => ({ ...card, card_id: `blizzard:${12345 + index}`, dbf: 12345 + index })),
 });
-const gallery = seed(18);
-const table = seed(10);
+const gallery = seed(60);
+const table = seed(60);
 
 const meta = {
   title: 'Card catalog/Measured loading geometry', component: StandardCards,
@@ -44,7 +44,7 @@ const pending = () => { mocked(loadConstructedCardList).mockReturnValue(new Prom
 const loader = (canvasElement: HTMLElement) => canvasElement.querySelector('.loading-surface[role="status"]');
 
 export const Ready: Story = { play: async ({ canvas }) => {
-  await expect(canvas.getAllByRole('article')).toHaveLength(18);
+  await expect(canvas.getAllByRole('article')).toHaveLength(60);
 } };
 // The default set sort shows «Дополнение · Основной набор», which wraps on narrow tiles; mana is one short line.
 export const ShortText: Story = { args: { initialSearch: 'sort=mana' } };

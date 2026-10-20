@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import './StandardCards.styles';
 import { CardDetailSkeleton } from './CardDetailSkeleton';
+import { LoadingBlock } from '../shared/ui/LoadingSurface';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import { useScrollToTopOnCardChange } from './useScrollToTopOnCardChange';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { fallbackCardImageToOrigin } from '../config/publicAssetDelivery';
@@ -378,8 +380,7 @@ function ConstructedDeckCard({ deck, format }: {
           format,
           archetype: deckTitle,
         });
-        const response = await fetch(`/api/deck/resolve?${query}`, {
-          credentials: 'same-origin',
+        const response = await fetchWithDeadline(`/api/deck/resolve?${query}`, {
           headers: { Accept: 'application/json' },
           signal: controller.signal,
         });
@@ -416,11 +417,11 @@ function ConstructedDeckCard({ deck, format }: {
               totalCards={resolvedDeck.totalCards} deckSizeLimit={resolvedDeck.deckSizeLimit}
             />
           ) : (
-            <div className="constructed-card-detail__deck-list-state" role={resolveError ? 'alert' : 'status'}>
+            resolveError ? <div className="constructed-card-detail__deck-list-state" role="alert">
               <Layers3 size={28} />
-              <span>{resolveError || 'Загружаем состав колоды'}</span>
-              {resolveError && <button type="button" onClick={() => setRetryToken(value => value + 1)}><RefreshCw size={14} /> Повторить</button>}
-            </div>
+              <span>{resolveError}</span>
+              <button type="button" onClick={() => setRetryToken(value => value + 1)}><RefreshCw size={14} /> Повторить</button>
+            </div> : <div className="constructed-card-detail__deck-list-state" aria-hidden="true"><LoadingBlock className="constructed-card-detail__deck-list-skeleton" /></div>
           )}
         </DeckRenderPreview>
       </div>

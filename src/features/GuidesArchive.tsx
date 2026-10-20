@@ -9,13 +9,14 @@ import { LoadingBlock } from '../shared/ui/LoadingSurface';
 import { GuideDetailSkeleton, GuideReaderSkeleton, GuidesArchiveSkeleton } from './GuidesArchiveSkeleton';
 import { type GuideArchiveItem, type GuideDetailSeed, useGuideDetail, useGuidesArchivePage } from './GuidesArchiveData';
 
+import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 export type { GuideDetailSeed } from './GuidesArchiveData';
 
-function formatGuideDate(value: string | null): string {
+function formatGuideDate(value: string | null, timeZone?: string): string {
   if (!value) return '';
   const date = new Date(value.includes('T') ? value : value.replace(' ', 'T'));
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric', timeZone });
 }
 
 function detailSlugFromPath(path: string): string | null {
@@ -184,6 +185,8 @@ function GuideBackButton({ navigatePath }: { navigatePath: (path: string) => voi
 
 /** The banner and header of a guide: the same markup for the server teaser and the full guide. */
 export function GuideArchiveDetailHeader({ guide }: { guide: GuideDetailSeed }) {
+  // The guest teaser is server-rendered: one zone until hydration, then the viewer's.
+  const timeZone = useViewerTimeZone();
   return (
     <>
       <SectionBanner title={guide.title} />
@@ -194,7 +197,7 @@ export function GuideArchiveDetailHeader({ guide }: { guide: GuideDetailSeed }) 
         <div>
           <span className="guide-archive-eyebrow">{guideKindLabel(guide.kind)}</span>
           <div className="guide-archive-detail-meta">
-            {guide.publishedAt && <span><CalendarDays size={17} /> {formatGuideDate(guide.publishedAt)}</span>}
+            {guide.publishedAt && <span><CalendarDays size={17} /> {formatGuideDate(guide.publishedAt, timeZone)}</span>}
             {guide.menuName && <span><Tag size={17} /> {guide.menuName}</span>}
           </div>
           {guide.description && <p>{guide.description}</p>}

@@ -88,10 +88,18 @@
     .data-arrive { opacity: 0.24; }
   }
 
-  /* An inert subtree (a guest's blurred, locked preview) never finishes
-     loading and is decorative: a looping pulse there would repaint the blurred
-     layer every frame for the whole visit, so its placeholders stay still. */
-  [inert] .loading-block { animation: none; }
+  /* A placeholder used on its own (a deck preview, a count) waits for the
+     same reveal delay; :where keeps the reduced-motion rule below in force. */
+  .loading-block:not(:where(.loading-surface .loading-block)) {
+    animation:
+      loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate,
+      loading-reveal var(--motion-fast) var(--motion-ease) 160ms backwards;
+  }
+
+  /* A guest's blurred, locked preview never finishes loading and is
+     decorative: a looping pulse there would repaint the blurred layer every
+     frame for the whole visit, so its placeholders stay still. */
+  .arena-paywall__preview .loading-block { animation: none; }
 
   @media (prefers-reduced-motion: reduce) {
     .loading-block { animation: none; }

@@ -463,7 +463,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
     format, slug, hasFullAccess, accessPending, seed: initialDetail,
   });
   // The analysis chunk loads beside the analysis request, so its placeholder and view are usually ready first.
-  useEffect(() => { if (fullAccess && !accessPending) void loadArchetypeAnalysis(); }, [fullAccess, accessPending]);
+  useEffect(() => { if (fullAccess && !accessPending) loadArchetypeAnalysis().catch(() => undefined); }, [fullAccess, accessPending]);
   const archetypeLabel = detail?.item.archetypeLabel;
   useEffect(() => {
     if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | Manacost Stats`;

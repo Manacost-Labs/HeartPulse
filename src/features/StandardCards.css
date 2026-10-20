@@ -338,6 +338,8 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 .constructed-card-detail__deck-list { width: 100%; min-width: 0; height: auto; overflow: visible; border-bottom: 1px solid rgba(121, 79, 38, 0.22); background: #160d0b; }
 .constructed-card-detail__deck-list .deck-list-view { min-height: 0; }
 .constructed-card-detail__deck-list-state { display: grid; width: 100%; min-height: 520px; gap: 0.55rem; align-content: center; justify-items: center; padding: 1rem; color: #eed8a8; background: radial-gradient(circle at 50% 38%, #513321, #160d0b 72%); font-size: 0.67rem; font-weight: 800; text-align: center; }
+/* Deck tiles resolving their lists: one hidden fill per tile; the decks section has no per-tile status. */
+.constructed-card-detail__deck-list-skeleton { width: min(100%, 16rem); height: 22rem; --loading-fill: rgba(238, 216, 168, 0.16); }
 .constructed-card-detail__deck-list-state button { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 34px; padding: 0 0.65rem; border: 1px solid #b8864e; color: #fff0c5; background: #713118; font-size: 0.64rem; font-weight: 900; }
 .constructed-card-detail__deck-copy { display: grid; grid-template-rows: auto auto 1fr; gap: 0.3rem; padding: 0.7rem; }
 .constructed-card-detail__deck-copy h3 { display: -webkit-box; min-height: 2.3em; margin: 0; overflow: hidden; font-family: var(--font-display); font-size: 1rem; line-height: 1.15; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }

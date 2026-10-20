@@ -967,8 +967,10 @@ const LibraryCardTile = React.memo(function LibraryCardTile({
   );
 });
 
-function LibraryListPage({ kind, pool, navigatePath, cacheScope, onRetry }: { kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string; onRetry: () => void }) {
-  const { data, loading, error } = useBattlegroundLibraryData(libraryResource, kind, pool, cacheScope);
+function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string }) {
+  // A retry asks the data hook again; the search and filters stay as they were.
+  const [attempt, setAttempt] = useState(0);
+  const { data, loading, error } = useBattlegroundLibraryData(libraryResource, kind, pool, cacheScope, attempt);
   const cards = data?.cards ?? EMPTY_LIBRARY_CARDS;
   const meta = data?.meta ?? EMPTY_LIBRARY_META;
   const [query, setQuery] = useState('');
@@ -1139,7 +1141,7 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope, onRetry }: { ki
         </div>
 
         {loading && <BgLibraryListSkeleton />}
-        {error && <BattlegroundLoadError message={error} onRetry={onRetry} />}
+        {error && <BattlegroundLoadError message={error} onRetry={() => setAttempt(value => value + 1)} />}
         {!loading && !error && filtered.length === 0 && <div className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-8 text-center text-[#657893]"><p>По выбранным фильтрам ничего не найдено.</p><button type="button" className="mt-3 min-h-[44px] underline" onClick={resetFilters}>Сбросить фильтры</button></div>}
 
         <div className="space-y-8">
@@ -1527,12 +1529,9 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
 
 export default function BgLibrary({ currentPath, navigatePath, cacheScope, teaser }: BgLibraryProps) {
   const route = libraryRoute(currentPath);
-  const [listAttempt, setListAttempt] = useState(0);
   if (route.page === 'detail' && route.dbfId) {
     return <DetailPage kind={route.kind} pool={route.pool} dbfId={route.dbfId} navigatePath={navigatePath}
       teaser={teaser?.dbfId === route.dbfId ? teaser : undefined} />;
   }
-  // A retry remounts the list, whose data hook then requests the failed catalog again.
-  return <LibraryListPage key={listAttempt} kind={route.kind} pool={route.pool} navigatePath={navigatePath} cacheScope={cacheScope}
-    onRetry={() => setListAttempt(value => value + 1)} />;
+  return <LibraryListPage kind={route.kind} pool={route.pool} navigatePath={navigatePath} cacheScope={cacheScope} />;
 }

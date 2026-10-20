@@ -85,7 +85,10 @@ export function ArchetypeHistorySkeleton() {
 
 /** The lazy analysis chunk: its view and its placeholder share it, with the analysis stylesheet in its own cascade place. */
 export const loadArchetypeAnalysis = () => import('./ConstructedArchetypeAnalysis');
-const LazyAnalysisSkeleton = React.lazy(() => loadArchetypeAnalysis().then(module => ({ default: module.ArchetypeAnalysisSkeleton })));
+// A placeholder must never throw: if the chunk fails, the reserve stays and
+// the view's own error boundary reports the failure.
+const LazyAnalysisSkeleton = React.lazy(() => loadArchetypeAnalysis()
+  .then(module => ({ default: module.ArchetypeAnalysisSkeleton }), () => ({ default: ArchetypeAnalysisReserve })));
 
 /** While the analysis chunk itself loads: one status and a first-screen reserve, no copied frame. */
 export function ArchetypeAnalysisReserve() {

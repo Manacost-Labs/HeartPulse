@@ -45,9 +45,11 @@ assert.match(styles, /@starting-style\s*\{\s*\.data-arrive\s*\{\s*opacity:\s*0\.
 assert.match(styles, /animation: loading-reveal [^;]*var\(--loading-reveal-delay\) backwards;/);
 assert.match(styles, /\.data-surface\[aria-busy="true"\] \{[^}]*transition-delay: var\(--loading-reveal-delay\);/);
 
-// A guest's locked preview is inert and never finishes loading: its
+// A guest's locked preview never finishes loading: its
 // placeholders stay still instead of repainting the blurred layer forever.
-assert.match(styles, /\[inert\] \.loading-block \{ animation: none; \}/);
+assert.match(styles, /\.arena-paywall__preview \.loading-block \{ animation: none; \}/);
+assert.match(styles, /\.loading-block:not\(:where\(\.loading-surface \.loading-block\)\) \{[^}]*loading-reveal[^}]*160ms backwards;/,
+  'a standalone placeholder waits for the reveal delay too');
 
 // The stylesheet loads with the views that render a loader, not on every route.
 const index = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');

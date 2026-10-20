@@ -593,9 +593,9 @@ function CatalogView({
         <>
           <div className="cosmetics-results-meta" aria-live="polite">
             <span>{payload?.pagination.total.toLocaleString('ru-RU') ?? 0} объектов</span>
-            {loading && <span>Обновляем…</span>}
+            {loading && <span className="cosmetics-results-meta__refresh">Обновляем</span>}
           </div>
-          <div className={`cosmetics-grid cosmetics-grid-${kind}`} aria-busy={loading}>
+          <div className={`cosmetics-grid cosmetics-grid-${kind} data-surface`} aria-busy={loading}>
             {kind === 'heroes' && (items as HeroSummary[]).map((item, index) => (
               <HeroSkinCard key={item.cardId} item={item} navigatePath={navigatePath} index={index} />
             ))}

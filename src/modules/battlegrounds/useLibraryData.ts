@@ -5,6 +5,8 @@ import type { createBattlegroundLibraryResource } from './model/libraryResource'
 export function useBattlegroundLibraryData<T>(
   resource: ReturnType<typeof createBattlegroundLibraryResource<T>>,
   kind: string, pool: string, viewerScope?: string,
+  /** Incremented by a retry: the failed catalog is requested again without remounting its view. */
+  attempt = 0,
 ) {
   const localScope = useId();
   const scope = viewerScope ?? localScope;
@@ -18,7 +20,7 @@ export function useBattlegroundLibraryData<T>(
       if (active) setState({ key, data: null, error: error instanceof Error ? error.message : 'Не удалось загрузить библиотеку' });
     });
     return () => { active = false; };
-  }, [resource, kind, pool, scope, key]);
+  }, [resource, kind, pool, scope, key, attempt]);
   const current = state.key === key ? state : { key, data: resource.peek(scope, kind, pool), error: '' };
   return { data: current.data, error: current.error, loading: !current.data && !current.error };
 }
