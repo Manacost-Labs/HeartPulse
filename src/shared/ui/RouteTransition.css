@@ -1,0 +1,43 @@
+/* Route navigation fades through (RouteTransition.tsx): the outgoing content
+   box clears in --motion-instant, then the destination fades in over
+   --motion-fast, so two pages never overlap. Navigation, header, background
+   and footer switch without motion, and the new box does not travel from
+   where the old one was. The outgoing snapshot is shifted back to where the
+   reader saw it and clipped at the top of the new box, so a page left from
+   below the fold fades out in place instead of flashing its top.
+   Only the box is captured: the rest of the page stays live, so the
+   navigation remains clickable while the destination fades in. The box
+   itself takes no click until then: the reader cannot see what is under it. */
+html {
+  view-transition-name: none;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(.route-content) {
+  animation: none;
+  pointer-events: auto;
+}
+
+::view-transition-old(.route-content) {
+  inset-inline-start: 50%;
+  inline-size: auto;
+  block-size: auto;
+  translate: -50% var(--route-old-shift, 0px);
+  clip-path: inset(max(0px, calc(-1 * var(--route-old-shift, 0px))) 0 0 0);
+  animation: route-content-leave var(--motion-instant) var(--motion-ease-exit) both;
+}
+
+::view-transition-new(.route-content) {
+  animation: route-content-enter var(--motion-fast) var(--motion-ease) var(--motion-instant) both;
+}
+
+@keyframes route-content-leave {
+  to { opacity: 0; }
+}
+
+@keyframes route-content-enter {
+  from { opacity: 0; }
+}

@@ -26,7 +26,7 @@ type Clock = {
   clearTimeout: (timer: ReturnType<typeof setTimeout> | undefined) => void;
 };
 
-/** One cancellable hover per mounted adapter; focus bypasses the dwell delay. */
+/** One cancellable hover per mounted adapter; focus and a press bypass the dwell delay. */
 export function createRouteIntent(prepare: (path: string) => void, allowed: () => boolean,
   clock: Clock = { setTimeout: (callback, delay) => setTimeout(callback, delay), clearTimeout: timer => clearTimeout(timer) }) {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -37,6 +37,7 @@ export function createRouteIntent(prepare: (path: string) => void, allowed: () =
     timer = undefined;
     hovering = undefined;
   };
+  const now = (path: string) => { cancel(); if (!disposed && allowed()) prepare(path); };
   return {
     hover(path: string) {
       if (disposed || hovering === path) return;
@@ -48,7 +49,9 @@ export function createRouteIntent(prepare: (path: string) => void, allowed: () =
         if (!disposed && allowed()) prepare(path);
       }, 120);
     },
-    focus(path: string) { cancel(); if (!disposed && allowed()) prepare(path); },
+    focus: now,
+    // The click follows a press by about 100 ms: the route can already be on its way.
+    press: now,
     cancel,
     dispose() { disposed = true; cancel(); },
   };

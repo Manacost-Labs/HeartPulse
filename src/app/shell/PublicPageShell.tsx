@@ -5,6 +5,7 @@ import { PublicNavigationContext } from './PublicNavigationContext';
 import GlobalUtilityHeader from '../../components/GlobalUtilityHeader';
 import SiteFooter from '../../components/SiteFooter';
 import { OptionalSurface } from '../../components/OptionalSurface';
+import { RouteContent } from '../../shared/ui/RouteTransition';
 import { BG_TAB_IDS, type TabId } from '../routing/navigationRoutes';
 import type { AuthUser } from '../../modules/identity/public';
 import type { SubscriptionStatus } from '../../modules/subscriptions/public';
@@ -48,12 +49,12 @@ export function PublicPageShell({ children, activeTab, pathname, access, navigat
       <div className={`arena-workspace arena-workspace-with-tools ${wide ? 'arena-workspace-wide' : ''}`}>
         <GlobalUtilityHeader accessStatus={access.admin || access.subscription} onNavigate={navigate} pagePath={pathname} auth={Boolean(access.user)} />
         <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${wide ? 'arena-main-wide' : ''}`}>
-          <div data-route-content className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${wide ? 'arena-content-wide' : ''} arena-content-open`}>
+          <RouteContent><div data-route-content className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${wide ? 'arena-content-wide' : ''} arena-content-open`}>
             {/* The head's `rel=expect` waits for this marker only: the content box exists
                 before first paint without waiting for the rest of the stream. */}
             <span id="route-content-start" hidden />
             {children}
-          </div>
+          </div></RouteContent>
         </main>
         <SiteFooter />
         <OptionalSurface scope="support-prompt"><Suspense fallback={null}><SupportPrompt /></Suspense></OptionalSurface>

@@ -25,6 +25,9 @@ const config = {
   trailingSlash: true,
   // Resolve metadata and absence before the response starts, including browsers.
   htmlLimitedBots: /.*/,
+  // Public pages render anonymously, so a page opened in the last 30 seconds is
+  // shown again from the router cache instead of waiting for a new server render.
+  experimental: { staleTimes: { dynamic: 30 } },
   outputFileTracingRoot: repositoryRoot,
   turbopack: { root: repositoryRoot },
 };

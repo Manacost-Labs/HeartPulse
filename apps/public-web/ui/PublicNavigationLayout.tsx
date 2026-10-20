@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useOptimistic, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { PublicNavigationController } from '@/src/app/shell/PublicNavigationController';
 import { PublicNavigationContext } from '@/src/app/shell/PublicNavigationContext';
@@ -11,6 +11,8 @@ import { navigate } from './navigation';
 
 export function PublicNavigationLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  // The chosen destination is marked current at once; the committed route replaces it.
+  const [shownPathname, showPathname] = useOptimistic(pathname);
   const access = usePublicAccessState(pathname);
   const accessStore = usePublicAccessStore(access);
   const [updatedAt, setUpdatedAt] = useState({ pathname, label: 'Нет данных' });
@@ -20,10 +22,10 @@ export function PublicNavigationLayout({ children }: { children: ReactNode }) {
     <PublicNavigationContext.Provider value={publicPage ? reportUpdatedAt : null}>
       {publicPage && <>
         <a className="arena-skip-link" href="#main-content">К основному содержимому</a>
-        <PublicNavigationController activeTab={tabFromPath(pathname)} pathname={pathname} access={access} navigate={navigate}
+        <PublicNavigationController activeTab={tabFromPath(shownPathname)} pathname={pathname} access={access} navigate={navigate}
           updatedAtLabel={updatedAt.pathname === pathname ? updatedAt.label : 'Нет данных'} />
       </>}
-      <PublicNavigationBridge />
+      <PublicNavigationBridge onNavigationStart={showPathname} />
       <RouteTransition routeKey={pathname}>{children}</RouteTransition>
     </PublicNavigationContext.Provider>
   </PublicAccessContext.Provider>;

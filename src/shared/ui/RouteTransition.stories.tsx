@@ -1,63 +1,67 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useState } from 'react';
-import { expect, userEvent } from 'storybook/test';
-import { RouteTransition } from './RouteTransition';
+import { startTransition, useState } from 'react';
+import { expect, userEvent, waitFor } from 'storybook/test';
+import { markRouteTransition, RouteContent, RouteTransition } from './RouteTransition';
 
 const meta = {
   title: 'Shared/RouteTransition',
   component: RouteTransition,
-  args: { routeKey: '/faq/', children: <article data-route-content><h1>Помощь</h1><p>Первое открытие страницы без анимации.</p></article> },
+  args: { routeKey: '/faq/', children: <RouteContent><article data-route-content><h1>Помощь</h1><p>Первое открытие страницы без анимации.</p></article></RouteContent> },
 } satisfies Meta<typeof RouteTransition>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function routeContent(canvasElement: HTMLElement) {
-  const content = canvasElement.querySelector('[data-route-content]');
-  if (!content) throw new Error('Missing marked route content');
-  return content;
+const animatesRoutes = () => typeof document.startViewTransition === 'function'
+  && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function routeAnimations() {
+  return document.getAnimations().filter(animation => {
+    const pseudo = (animation.effect as KeyframeEffect | null)?.pseudoElement ?? '';
+    return pseudo.startsWith('::view-transition-old(route-content)') || pseudo.startsWith('::view-transition-new(route-content)');
+  });
 }
 
 function Preview({ sameRoute = false }: { sameRoute?: boolean }) {
   const [page, setPage] = useState(0);
+  const routeKey = sameRoute ? '/guides/' : `/guides/${page}/`;
   return <>
-    <button onClick={() => setPage(value => value + 1)}>Открыть следующую страницу</button>
-    <RouteTransition routeKey={sameRoute ? '/guides/' : `/guides/${page}/`}>
-      <article data-route-content><h1>Гайды — страница {page + 1}</h1><p>Меню остаётся на месте, контент мягко проявляется.</p></article>
+    <button onClick={() => startTransition(() => { if (!sameRoute) markRouteTransition(); setPage(value => value + 1); })}>
+      Открыть следующую страницу
+    </button>
+    <RouteTransition routeKey={routeKey}>
+      <RouteContent key={routeKey}>
+        <article data-route-content><h1>Гайды — страница {page + 1}</h1><p>Меню остаётся на месте, контент мягко сменяется.</p></article>
+      </RouteContent>
     </RouteTransition>
   </>;
 }
 
 export const Initial: Story = {
-  play: async ({ canvasElement }) => {
-    await expect(routeContent(canvasElement).getAnimations()).toHaveLength(0);
-  },
+  play: async () => { await expect(routeAnimations()).toHaveLength(0); },
 };
 export const Navigation: Story = {
   render: () => <Preview />,
-  play: async ({ canvas, canvasElement }) => {
+  play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Открыть следующую страницу' }));
     await expect(canvas.getByRole('heading', { name: 'Гайды — страница 2' })).toBeVisible();
-    const content = routeContent(canvasElement);
-    await expect(content.getAnimations()).toHaveLength(matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1);
-    await Promise.all(content.getAnimations().map(animation => animation.finished));
-    await expect(getComputedStyle(content).opacity).toBe('1');
+    if (animatesRoutes()) await waitFor(() => expect(routeAnimations().length).toBeGreaterThan(0));
+    await Promise.all(routeAnimations().map(animation => animation.finished));
   },
 };
 export const RapidReplacement: Story = {
   render: () => <Preview />,
-  play: async ({ canvas, canvasElement }) => {
+  play: async ({ canvas }) => {
     const button = canvas.getByRole('button', { name: 'Открыть следующую страницу' });
     await userEvent.click(button);
     await userEvent.click(button);
     await expect(canvas.getByRole('heading', { name: 'Гайды — страница 3' })).toBeVisible();
-    await expect(routeContent(canvasElement).getAnimations().length).toBeLessThanOrEqual(1);
   },
 };
 export const SameRoute: Story = {
   render: () => <Preview sameRoute />,
-  play: async ({ canvas, canvasElement }) => {
+  play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Открыть следующую страницу' }));
     await expect(canvas.getByRole('heading', { name: 'Гайды — страница 2' })).toBeVisible();
-    await expect(routeContent(canvasElement).getAnimations()).toHaveLength(0);
+    await expect(routeAnimations()).toHaveLength(0);
   },
 };

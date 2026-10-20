@@ -1,5 +1,10 @@
 # Page transition motion
 
+> Since 2026-10-05 public pages navigate inside one Next.js document; the
+> cross-document view transition and speculation rules below are history.
+> The current fade-through of the content box is specified in
+> [public client navigation](public-client-navigation.md#fade-through-immediate-feedback-and-revisits-2026-10-18).
+
 ## Objective
 
 Moving between pages should feel continuous without making HearthPulse slower

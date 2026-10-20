@@ -158,6 +158,25 @@ test('intent cancels transient hovers, rechecks network policy and stops on disp
   assert.deepEqual(calls, ['/terms/', '/faq/']);
 });
 
+test('a press prepares at once, replaces a pending hover and honours the network policy', context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  const calls: string[] = [];
+  let online = true;
+  const intent = createRouteIntent(path => calls.push(path), () => online);
+  intent.hover('/faq/');
+  context.mock.timers.tick(40);
+  intent.press('/terms/');
+  assert.deepEqual(calls, ['/terms/'], 'the press does not wait for the hover dwell');
+  context.mock.timers.tick(120);
+  assert.deepEqual(calls, ['/terms/'], 'the abandoned hover never fires');
+  online = false;
+  intent.press('/privacy/');
+  online = true;
+  intent.dispose();
+  intent.press('/privacy/');
+  assert.deepEqual(calls, ['/terms/']);
+});
+
 test('speculation respects touch, offline, Save-Data and slow connections', () => {
   assert.equal(allowsRoutePrefetch({ online: true }), true);
   assert.equal(allowsRoutePrefetch({ online: true, effectiveType: '4g' }, 'pen'), true);

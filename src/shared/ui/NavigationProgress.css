@@ -6,14 +6,27 @@
   pointer-events: none;
   color: transparent;
   font-size: 0;
-}
-
-.navigation-progress[data-navigation-progress="pending"] {
   background: var(--color-gold, #d4af37);
   box-shadow: 0 1px 3px #0006;
-  animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+}
+
+/* Fast at first, then slowing: the bar never claims the page is complete. */
+.navigation-progress[data-navigation-progress="pending"] {
+  transform: scaleX(0.85);
+  opacity: 1;
+  transition: transform calc(var(--motion-loop) * 3) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
+}
+
+.navigation-progress[data-navigation-progress="done"] {
+  transform: scaleX(1);
+  opacity: 0;
+  transition: transform var(--motion-instant) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease-exit) var(--motion-instant);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .navigation-progress[data-navigation-progress="pending"] { animation: none; }
+  .navigation-progress[data-navigation-progress] { transition: none; }
+  .navigation-progress[data-navigation-progress="pending"] { transform: none; }
 }

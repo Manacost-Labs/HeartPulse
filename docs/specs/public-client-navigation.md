@@ -230,3 +230,56 @@ code loading and response body parsing. Expiry settles the existing status and
 cancels the request; a chunk arriving after expiry must not start a late fetch.
 An unsuccessful response releases its unread body immediately, including a
 server that sends error headers and then stops streaming.
+
+### Fade-through, immediate feedback and revisits (2026-10-18)
+
+The owner found the committed-route settle (opacity 0.8 to 1) reading as a
+flicker and the site slow and unstable. From four previewed variants the owner
+chose the fade-through: the outgoing content clears, then the destination
+fades in, while navigation, header and background stay still.
+
+1. `RouteContent` wraps the shell's `data-route-content` box in a React 19.3
+   `ViewTransition` named `route-content`. Its class applies only to
+   transitions typed `route-navigation`, which the bridge adds with
+   `addTransitionType` when the pathname changes. Back/Forward, refreshes,
+   query/hash-only pushes, in-page transitions and reduced motion never start
+   a view transition. The old box clears in `--motion-instant`, the new one
+   fades in over `--motion-fast` after it (230 ms in total).
+2. Only the box is captured (`html { view-transition-name: none }` and
+   `::view-transition { pointer-events: none }`), so the rest of the page stays
+   live: menu clicks during the transition navigate. Chromium does not deliver
+   pointer input to a captured element, so the box itself takes clicks again
+   once it has faded in. The persistent `RouteTransition` reads the outgoing
+   box position before the commit (`getSnapshotBeforeUpdate`) and, after the
+   router has scrolled the destination to the top, sets `--route-old-shift`
+   so a page left from below the fold fades out where the reader saw it.
+3. The persistent layout marks the chosen destination current at once with
+   `useOptimistic`; the committed pathname replaces it. A mouse press prepares
+   the route immediately, like keyboard focus, so a quick click does not wait
+   for the 120 ms dwell. Next reuses an in-flight full prefetch only after its
+   route tree has arrived (`navigateUsingPrefetchedRouteTree` waits on pending
+   segments; an unknown route issues its own request), so earlier preparation
+   narrows the window in which a click duplicates the server render.
+4. `staleTimes.dynamic` is 30 seconds: public pages render anonymously (only
+   `adminAccess.ts` reads cookies), so a page opened within that time is shown
+   from the router cache. Back/Forward already reused it.
+5. `NavigationProgress` keeps its 200 ms delay, then grows from the start edge
+   while the route loads and fills and fades on completion instead of
+   vanishing; the infinite pulse is removed. Reduced motion shows it without
+   motion.
+
+React starts a document view transition for every transition commit that
+mounts a `ViewTransition`, so Back/Forward and reduced motion also run one, but
+with nothing captured it shows no motion. Inside the boundary React holds a
+transition commit until new eager images have decoded when they can arrive
+soon (at most 800 ms, 50 ms for heavy images), so pictures do not pop in after
+the swap. The captured box takes no pointer input until it has faded in.
+Verification: `tests/next-page-transitions-browser.test.mjs`
+asserts the two pseudo-element animations and their timing and that nothing
+else animates, the shift of a scrolled page, a menu click during the
+transition, and Back and reduced motion without any view-transition motion;
+`tests/next-navigation.test.ts` covers press preparation.
+Eight route ceilings in `config/next-bundle-budgets.json` were raised by the
+2% and 1 KiB rule for the added stylesheet (at most 180 gzip bytes per route).
+Reviewed `docs/architecture/module-boundaries.md`: ownership and dependency
+direction remain accurate.

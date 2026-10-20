@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { clientPagePath, createRoutePrefetcher, installClientNavigation } from './navigation';
 import { allowsRoutePrefetch, createRouteIntent } from '@/src/shared/navigation/routePrefetch';
 import { NavigationProgress } from '@/src/shared/ui/NavigationProgress';
+import { markRouteTransition } from '@/src/shared/ui/RouteTransition';
 
 function publicAnchorPath(target: EventTarget | null): string | null {
   const anchor = target instanceof Element ? target.closest<HTMLAnchorElement>('a[href]') : null;
@@ -15,12 +16,24 @@ function publicAnchorPath(target: EventTarget | null): string | null {
   return path;
 }
 
-/** Legacy views keep real links; the persistent layout supplies App Router navigation. */
-export function PublicNavigationBridge() {
+/**
+ * Legacy views keep real links; the persistent layout supplies App Router navigation.
+ * `onNavigationStart` receives the destination pathname inside the navigation's transition.
+ */
+export function PublicNavigationBridge({ onNavigationStart }: { onNavigationStart?: (pathname: string) => void }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   useEffect(() => {
-    const push = (path: string) => { intent.cancel(); startTransition(() => router.push(path)); };
+    const push = (path: string) => {
+      intent.cancel();
+      const { pathname } = new URL(path, location.href);
+      startTransition(() => {
+        // Query and fragment changes keep the page in place.
+        if (pathname !== location.pathname) markRouteTransition();
+        onNavigationStart?.(pathname);
+        router.push(path);
+      });
+    };
     const dispose = installClientNavigation(push);
     // AUTO leaves dynamic pages without their content; full intent preparation
     // avoids another server round trip on click. Keep the Next enum out of shared code.
@@ -48,11 +61,18 @@ export function PublicNavigationBridge() {
       }
       else if ((event as PointerEvent).pointerType !== 'touch') intent.hover(destination);
     };
+    const press = (event: PointerEvent) => {
+      if (event.button !== 0 || !event.isPrimary || event.pointerType === 'touch'
+        || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const destination = publicAnchorPath(event.target);
+      if (destination && destination.split('#')[0] !== `${location.pathname}${location.search}`) intent.press(destination);
+    };
     const leave = (event: PointerEvent) => {
       if (publicAnchorPath(event.target) !== publicAnchorPath(event.relatedTarget)) intent.cancel();
     };
     document.addEventListener('click', click);
     document.addEventListener('pointerover', prefetch);
+    document.addEventListener('pointerdown', press);
     document.addEventListener('focusin', prefetch);
     document.addEventListener('pointerout', leave);
     window.addEventListener('pagehide', intent.cancel);
@@ -61,10 +81,11 @@ export function PublicNavigationBridge() {
       intent.dispose();
       document.removeEventListener('click', click);
       document.removeEventListener('pointerover', prefetch);
+      document.removeEventListener('pointerdown', press);
       document.removeEventListener('focusin', prefetch);
       document.removeEventListener('pointerout', leave);
       window.removeEventListener('pagehide', intent.cancel);
     };
-  }, [router, startTransition]);
+  }, [router, startTransition, onNavigationStart]);
   return <NavigationProgress pending={pending} />;
 }

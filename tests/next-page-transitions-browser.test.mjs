@@ -32,6 +32,40 @@ async function visitByClick(page, selector, pathname) {
   await page.waitForFunction(path => location.pathname === path && document.querySelector('#main-content'), {}, pathname);
 }
 
+/** Records the content box's view-transition animations from the next commit on. */
+async function watchRouteMotion(page) {
+  await page.evaluate(() => {
+    window.__routeMotion = [];
+    window.__otherMotion = [];
+    const started = performance.now();
+    const record = () => {
+      for (const animation of document.getAnimations()) {
+        const pseudo = animation.effect?.pseudoElement ?? '';
+        if (pseudo.startsWith('::view-transition') && !pseudo.includes('route-content') && animation.playState === 'running'
+          && !window.__otherMotion.includes(pseudo)) window.__otherMotion.push(pseudo);
+        if (!pseudo.includes('route-content') || window.__routeMotion.some(entry => entry.pseudo === pseudo)) continue;
+        const timing = animation.effect.getTiming();
+        const frames = animation.effect.getKeyframes();
+        window.__routeMotion.push({ pseudo, duration: timing.duration, delay: timing.delay,
+          from: frames[0]?.opacity, to: frames.at(-1)?.opacity });
+      }
+      if (performance.now() - started < 3000) requestAnimationFrame(record);
+    };
+    requestAnimationFrame(record);
+  });
+}
+
+const transitionRunning = () => document.getAnimations().some(animation => animation.playState === 'running'
+  && animation.effect?.pseudoElement?.startsWith('::view-transition'));
+
+async function routeMotion(page) {
+  await page.waitForFunction(`!(${transitionRunning})()`);
+  const { route, other } = await page.evaluate(() => ({
+    route: window.__routeMotion.toSorted((a, b) => a.delay - b.delay), other: window.__otherMotion }));
+  assert.deepEqual(other, [], 'only the content box may animate');
+  return route;
+}
+
 async function rememberFrame(page) {
   await page.evaluate(() => {
     window.__navigationFrame = { sidebar: document.querySelector('.arena-sidebar'), topbar: document.querySelector('.arena-mobile-topbar') };
@@ -87,15 +121,20 @@ test('public navigation preserves the frame, sidebar state and native link behav
     const scroll = await page.$eval('.arena-sidebar', node => node.scrollTop);
     assert.ok(scroll > 0, 'fixture must exercise sidebar scroll');
     const documentCount = gateway.requests.filter(request => request.destination === 'document').length;
-    await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
-    const motion = await page.$eval('.arena-content', node => {
-      const animation = node.getAnimations()[0];
-      return animation ? { duration: animation.effect.getTiming().duration,
-        frames: animation.effect.getKeyframes().map(({ opacity, transform }) => ({ opacity, transform })) } : null;
+    const readingOffset = await page.evaluate(() => {
+      scrollTo(0, Math.min(240, document.documentElement.scrollHeight - innerHeight));
+      return scrollY;
     });
-    assert.deepEqual(motion, { duration: 220, frames: [{ opacity: '0.8' }, { opacity: '1' }] },
-      'each committed page settles with one short opacity-only animation');
-    await page.$eval('.arena-content', node => Promise.all(node.getAnimations().map(animation => animation.finished)));
+    assert.ok(readingOffset > 0, 'fixture must leave a scrolled page');
+    await watchRouteMotion(page);
+    await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
+    assert.deepEqual(await routeMotion(page), [
+      { pseudo: '::view-transition-old(route-content)', duration: 90, delay: 0, from: '1', to: '0' },
+      { pseudo: '::view-transition-new(route-content)', duration: 140, delay: 90, from: '0', to: '1' },
+    ], 'the outgoing content clears, then the destination fades in; nothing else moves');
+    assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--route-old-shift')), `${-readingOffset}px`,
+      'the outgoing snapshot stays where the reader saw it');
+    assert.equal(await page.evaluate(() => scrollY), 0, 'the destination opens at its top');
     await assertSameFrame(page);
     assert.equal(await page.$eval('.arena-sidebar', node => node.scrollTop), scroll);
     assert.equal(await page.$eval('.arena-sidebar button[aria-controls="arena-sidebar-misc"]', node => node.getAttribute('aria-expanded')), 'true');
@@ -103,8 +142,10 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.ok(gateway.requests.some(request => request.rsc === '1' && request.path.startsWith('/guides-archive/')));
     assert.equal(await page.evaluate(() => document.querySelector('script[type="speculationrules"]') === null
       && !document.documentElement.hasAttribute('data-page-enter') && getComputedStyle(document.querySelector('.arena-content')).opacity === '1'), true);
+    await watchRouteMotion(page);
     await page.evaluate(() => history.back());
     await page.waitForFunction(() => location.pathname === '/faq/');
+    assert.deepEqual(await routeMotion(page), [], 'Back restores the page without a transition');
     await assertSameFrame(page);
     await page.evaluate(() => history.forward());
     await page.waitForFunction(() => location.pathname === '/guides-archive/');
@@ -126,6 +167,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
       document.querySelector('.arena-content').prepend(fragment);
     });
     const beforeFragment = gateway.requests.length;
+    await routeMotion(page); // the content box takes clicks once it has faded in
     await page.click('#native-fragment');
     assert.equal(await page.evaluate(() => location.hash), '#main-content');
     assert.equal(gateway.requests.slice(beforeFragment).some(request => request.rsc === '1'), false,
@@ -141,6 +183,12 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.evaluate(() => location.pathname), '/faq/');
     await popup.close();
     await page.bringToFront();
+    // The navigation stays usable while the content box is still fading in.
+    await visitByClick(page, '.arena-sidebar a[href="/tierlist/"]', '/tierlist/');
+    assert.equal(await page.evaluate(transitionRunning), true, 'fixture must click during the transition');
+    await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
+    await routeMotion(page);
+    await assertSameFrame(page);
     assert.deepEqual(errors, []);
 
     await page.setViewport({ width: 390, height: 844 });
@@ -148,9 +196,9 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await page.click('.arena-mobile-nav-toggle');
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').matches(':popover-open'));
     await assertGroupSwitchHasNoDelayedCollapse(page, '#arena-mobile-menu');
+    await watchRouteMotion(page);
     await visitByClick(page, '#arena-mobile-menu a[href="/tierlist/"]', '/tierlist/');
-    assert.equal(await page.$eval('.arena-content', node => node.getAnimations().length), 0,
-      'reduced motion skips the route animation on phones');
+    assert.deepEqual(await routeMotion(page), [], 'reduced motion skips the route animation on phones');
     await page.waitForFunction(() => !document.querySelector('#arena-mobile-menu').matches(':popover-open') && document.body.style.position !== 'fixed');
     await assertSameFrame(page);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
