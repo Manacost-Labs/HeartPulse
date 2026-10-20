@@ -144,9 +144,10 @@ it from the quarantine resumes warming without editing units.
 
 Each run writes `/var/lib/arena-edge/public-warm/<edge>/latest/summary` with
 the `X-Proxy-Cache` counts. A second run reports mostly `HIT` for the cached
-families; `BYPASS` for `/api/*` and `/uploads/` on `hearthpulse.net` is
-expected, because that vhost does not cache them and the warm then only fills
-origin-side caches. Inspect a run with
+families. `BYPASS` for `/api/public-resource/`, `/api/article-cover` and
+`/uploads/` on `hearthpulse.net` means the edge vhost does not cache these
+families yet; the warm then fills only origin-side caches. `BYPASS` for
+`/_next/static/` or for CDN card images means the edge runs an outdated vhost. Inspect a run with
 `ARENA_WARM_DRY_RUN=1 warm-arena-public-resources <edge-ip>`, which builds the
 URL lists without requesting them.
 
