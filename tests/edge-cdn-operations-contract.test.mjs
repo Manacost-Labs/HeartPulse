@@ -12,6 +12,17 @@ for (const address of ['162.19.220.14', '2001:41d0:701:1100::709b', '194.67.92.2
     `origin real-IP trust must cover ${address}`);
 }
 
+// The OVH London edge (2026-10-20) replaces quarantined Limburg for European
+// visitors through Cloudflare geo steering; the origin must trust its socket and
+// label its Web Vitals with the existing EU region until a dedicated label ships.
+const edgeRegionMap = readFileSync('deploy/nginx/arena-edge-region-map.conf', 'utf8');
+for (const address of ['57.129.183.118', '2001:41d0:801:2000::8de2']) {
+  assert.match(originRealIp, new RegExp(`set_real_ip_from ${address.replaceAll('.', '\\.')};`),
+    `origin real-IP trust must cover the EU edge ${address}`);
+  assert.match(edgeRegionMap, new RegExp(`${address.replaceAll('.', '\\.')} eu-germany-limburg;`),
+    `edge region map must label the EU edge ${address}`);
+}
+
 assert.doesNotMatch(originRealIp, /^\s*real_ip_header\b/m,
   'the Arena trust list must not override the shared validated CF-Connecting-IP header');
 

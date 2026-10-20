@@ -15,7 +15,19 @@ path.
 
 ## Routing
 
-The parent zone delegates `arena.hs-manacost.ru` to:
+Since 2026-10-20 the public hosts `hearthpulse.net`, `cdn.hearthpulse.net`,
+`kolodahearthstone.com` and `hs-manacost.ru` use Cloudflare Load Balancing
+geo steering in DNS-only mode (TTL 60, location from ECS, else the resolver
+address). Russia and the CIS (RU, BY, KZ, KG, UZ, TJ, AM, AZ, GE, MD, MN)
+receive only the RF pool (`194.67.92.242`, `186.246.28.244`); every other
+region prefers the EU pool, the OVH London edge `57.129.183.118`. The RF
+pool is also the fallback pool. Rollback: delete the load balancer; the
+original A records of the same name resume. The London edge reaches the
+origin directly over HTTPS (no SSH tunnels) and reuses the
+`eu-germany-limburg` Web Vitals label until a dedicated label ships.
+
+The legacy delegation of `arena.hs-manacost.ru` described below is retired.
+The parent zone delegated `arena.hs-manacost.ru` to:
 
 - `geo-ru.hs-manacost.ru` — `194.67.92.242`;
 - `geo-eu.hs-manacost.ru` — `162.19.220.14` and
