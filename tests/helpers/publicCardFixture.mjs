@@ -5,7 +5,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { startCredentialBackend } from './credentialBackend.mjs';
-import { patchNotesFixture } from './patchNotesFixture.mjs';
+import { battlegroundTrinketsFixture, patchNotesFixture } from './patchNotesFixture.mjs';
 
 export async function listenLocal(server) {
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
@@ -41,6 +41,8 @@ export async function publicCardFixture() {
       response.end(JSON.stringify({ data: card ? { ...card, wiki: { patch_changes: [] } } : null }));
     } else if (url.pathname === '/v1/constructed/decks') {
       response.end(JSON.stringify({ data: [], meta: { count: 0, offset: 0, limit: 200 } }));
+    } else if (url.pathname === '/api/v1/trinkets') {
+      response.end(JSON.stringify({ data: battlegroundTrinketsFixture, pagination: { page: 1, has_next: false } }));
     } else if (url.pathname === '/api/patches') {
       response.end(JSON.stringify({ total: patchNotesFixture.length, patches: patchNotesFixture }));
     } else if (url.pathname.startsWith('/demo/view/')) {

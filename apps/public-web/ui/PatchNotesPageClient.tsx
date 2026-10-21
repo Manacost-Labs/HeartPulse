@@ -49,9 +49,9 @@ export function PatchNotesPageClient({ version, initial }: { version: string | n
 
   return <PublicPageShell activeTab="patch-notes" pathname="/standard/patches/" access={access} navigate={navigate} wide>
     <section className="space-y-5">
-      <SectionBanner title="Патчноуты Hearthstone" subtitle="Что изменилось в картах: было → стало, усиления и ослабления по классам" />
+      <SectionBanner title="Патчноуты Hearthstone" subtitle="Что изменилось в картах Стандарта, Арены и Полей сражений: было → стало, усиления и ослабления" />
       {state.patch
-        ? <PatchNotesView patch={state.patch} archive={state.archive ?? []} />
+        ? <PatchNotesView patch={state.patch} archive={state.archive ?? []} onSelectVersion={navigate} />
         : state.error === 'missing'
           ? <p className="hp-patch-notes__notice" role="status">
             Патч {version} не найден в архиве. <a href={patchNotesHref(null)}>Открыть последний патч</a>

@@ -23,7 +23,7 @@ async function pageState(page) {
   }));
 }
 
-test('patch notes render the stored article as VaryloUI patch notes, and the home board ranks the public meta teaser', { timeout: 240000 }, async () => {
+test('patch notes render the stored article as compact change cards, and the home board ranks the public meta teaser', { timeout: 240000 }, async () => {
   const pilot = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
   try {
@@ -41,23 +41,26 @@ test('patch notes render the stored article as VaryloUI patch notes, and the hom
     for (const [width, height] of [[1440, 900], [412, 915]]) {
       await page.setViewport({ width, height, isMobile: width < 600, hasTouch: width < 600 });
       await page.goto(`${pilot.origin}/standard/patches/`, { waitUntil: 'networkidle2' });
-      await page.waitForSelector('.ui-patch-notes__entry');
+      await page.waitForSelector('.hp-patch-card');
       const state = await pageState(page);
       assert.deepEqual(state.h1, ['Патчноуты Hearthstone']);
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);
       assert.deepEqual(state.violations, [], `axe at ${width}px`);
     }
-    assert.deepEqual(await page.$$eval('.ui-patch-notes__entry', entries => entries.map(entry => [
-      entry.querySelector('.ui-patch-notes__name')?.textContent, entry.dataset.kind])), [
-      // Unmatched constructed cards (the fixture blocks HearthstoneJSON) close the list as "other changes".
-      ['Baleful Incense', 'buff'], ['Hammer of Twilight', 'nerf'], ['Змей ветреных вершин', 'rework'], ['Паучок', 'nerf'],
+    assert.deepEqual(await page.$$eval('.hp-patch-card', cards => cards.map(card => [
+      card.querySelector('.hp-patch-card__name')?.textContent, card.dataset.kind])), [
+      // The fixture blocks HearthstoneJSON, so Constructed cards stay unmatched; trinkets resolve through the catalog.
+      ['Змей ветреных вершин', 'rework'], ['Паучок', 'nerf'], ['Пагубные благовония', 'buff'], ['Молот Сумерек', 'nerf'],
     ]);
-    assert.equal(await page.$$eval('.ui-patch-notes__entry del', nodes => nodes.some(node => node.textContent?.includes('(3)'))), true,
+    assert.match(await page.$eval('.hp-patch-card[data-kind="buff"] .hp-patch-card__meta', node => node.textContent ?? ''),
+      /Малый аксессуар · Baleful Incense/, 'the article\'s English name stays as a caption');
+    assert.equal(await page.$$eval('.hp-patch-card del', nodes => nodes.some(node => node.textContent?.includes('(3)'))), true,
       'the old text is struck out');
-    await page.click('.ui-patch-notes__chip[data-kind="nerf"]');
-    await page.waitForFunction(() => document.querySelectorAll('.ui-patch-notes__entry').length === 2);
-    await page.click('.hp-patch-archive a[href*="version=35.6.2"]');
-    await page.waitForFunction(() => document.querySelector('.ui-patch-notes__title')?.textContent?.includes('35.6.2'));
+    await page.click('.hp-patch-kinds button[data-kind="nerf"]');
+    await page.waitForFunction(() => document.querySelectorAll('.hp-patch-card').length === 2);
+    // At 412 px the archive is a version select in the header.
+    await page.select('.hp-patch-picker select', '35.6.2');
+    await page.waitForFunction(() => document.querySelector('.hp-patch-hero__title')?.textContent?.includes('35.6.2'));
     assert.equal(await page.$eval('.hp-patch-archive [aria-current="page"]', node => node.textContent?.includes('35.6.2')), true);
     assert.equal(new URL(page.url()).searchParams.get('version'), '35.6.2');
     assert.equal((await fetch(`${pilot.origin}/api/patch-notes/9.9.9`)).status, 404);

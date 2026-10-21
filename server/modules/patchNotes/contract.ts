@@ -5,7 +5,8 @@
  * Nothing here is invented: a value the article does not state is absent.
  */
 
-export type PatchNotesMode = 'constructed' | 'arena' | 'battlegrounds';
+/** `other` is a retired or side mode (Duels, Twist, Mercenaries); its entry subtitle names it. */
+export type PatchNotesMode = 'constructed' | 'arena' | 'battlegrounds' | 'other';
 
 /** One stated value change. `before` is absent when the article gives only the new value. */
 export type PatchNotesChange = {
@@ -18,12 +19,22 @@ export type PatchNotesChange = {
 
 export type PatchNotesEntry = {
   id: string;
+  /** Russian name: the article's, or the catalog's when the article names the card in English. */
   name: string;
+  /** The article's own spelling when it differs from `name` (Battlegrounds trinket lists are in English). */
+  sourceName: string | null;
   mode: PatchNotesMode;
-  /** Resolved collectible card, when the name matches exactly one card name. */
+  /**
+   * Resolved card: a collectible card matched by its exact Russian name, or a
+   * Battlegrounds card matched by its Russian or English catalog name.
+   */
   cardId: string | null;
   /** HearthstoneJSON class enum of the resolved card (`WARRIOR`, `NEUTRAL`…). */
   cardClass: string | null;
+  /** Lower-case card type of the resolved card: `minion`, `spell`, `weapon`, `trinket`, `hero`… */
+  cardType: string | null;
+  /** Full card render from the Battlegrounds catalog; Constructed cards use the HearthstoneJSON render. */
+  renderUrl: string | null;
   /** Line under the name: "Малый аксессуар", "Броня героя". */
   subtitle: string | null;
   changes: PatchNotesChange[];
@@ -43,11 +54,19 @@ export type PatchNotesSummary = {
   changeCount: number;
 };
 
+/** An article heading of changes that the article shows only as pictures, so no entry carries them. */
+export type PatchNotesPictureSection = { mode: PatchNotesMode; title: string };
+
+/** Rule changes the article states as plain sentences under a "general changes" heading. */
+export type PatchNotesGeneralChanges = { mode: PatchNotesMode; lines: string[] };
+
 export type PatchNotesDetail = PatchNotesSummary & {
   summary: string | null;
   entries: PatchNotesEntry[];
   /** Entries whose article text had a new value but no "before" value. */
   missingBefore: number;
+  pictureSections: PatchNotesPictureSection[];
+  generalChanges: PatchNotesGeneralChanges[];
 };
 
 export type PatchNotesArchive = {

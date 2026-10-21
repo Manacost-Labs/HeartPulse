@@ -26,3 +26,10 @@ export const patchNotesFixture = [
     content_text: 'Изменения Hearthstone\nСейсмопод\nДо изменения: [Стоимость 9] 9 атаки, 9 здоровья\nПосле: [Стоимость 8] 8 атаки, 8 здоровья',
   },
 ];
+
+/** Battlegrounds catalog rows (`/api/v1/trinkets`) for the English trinket names of the 36.6.3 article. */
+export const battlegroundTrinketsFixture = [
+  { card_id: 'BG32_MagicItem_802', name: { ru: 'Пагубные благовония', en: 'Baleful Incense' }, group: { slug: 'lesser' }, images: {} },
+  { card_id: 'BG36_MagicItem_403', name: { ru: 'Молот Сумерек', en: 'Hammer of Twilight' }, group: { slug: 'lesser' }, images: {} },
+  { card_id: 'BG36_MagicItem_403t', name: { ru: 'Молот Сумерек', en: 'Hammer of Twilight' }, group: { slug: 'greater' }, images: {} },
+];

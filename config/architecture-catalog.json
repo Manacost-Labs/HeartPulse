@@ -1732,7 +1732,7 @@
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["api.kolodahearthstone.com patch archive (/api/patches)", "api.hearthstonejson.com ruRU collectible cards"],
+      "externalServices": ["api.kolodahearthstone.com patch archive (/api/patches)", "api.hearthstonejson.com ruRU collectible cards", "api.kolodahearthstone.com Battlegrounds catalog (/api/v1 cards, trinkets, heroes and other lists)"],
       "tests": ["tests/patch-notes.test.ts"],
       "allowedDependencies": ["Express at the routes boundary"],
       "forbiddenImports": ["src/**", "other server module internals"]
@@ -1741,7 +1741,7 @@
       "name": "frontend-patch-notes",
       "status": "modular",
       "owner": "traditional-data",
-      "purpose": "Map patch notes to the VaryloUI patch-notes view: class sections, card pictures and archive links.",
+      "purpose": "Shape patch notes for the page: mode sections, class and card-type groups, buff/nerf kinds, filters, card pictures and archive links.",
       "paths": ["src/modules/patchNotes"],
       "publicEntrypoints": ["src/modules/patchNotes/public.ts"],
       "frontendRoutes": ["/standard/patches"],

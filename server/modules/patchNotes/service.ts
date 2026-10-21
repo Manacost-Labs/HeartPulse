@@ -1,14 +1,18 @@
 import { shortPatchVersion, type PatchNotesDetail, type PatchNotesSummary } from './contract.js';
-import { parsePatchArticle, type PatchCardResolver } from './parser.js';
+import { cleanArticleText, parsePatchArticle, type PatchCardResolver } from './parser.js';
+import { createBattlegroundNameResolver, type BattlegroundCatalogCard } from './battlegroundCatalog.js';
 
 type Row = Record<string, unknown>;
+type CardName = { name?: unknown; playerClass?: unknown; type?: unknown };
 
 export type PatchNotesServiceDependencies = {
   /** Reads hs-data-api `/api/patches?include_content=1`. */
   fetchJson: (url: string) => Promise<unknown>;
   patchesUrl: string;
   /** Russian collectible card names; an empty map leaves entries without pictures. */
-  loadCardNames: () => Promise<Record<string, { name?: unknown; playerClass?: unknown }>>;
+  loadCardNames: () => Promise<Record<string, CardName>>;
+  /** Battlegrounds catalog; without it Battlegrounds entries keep the article's names and no pictures. */
+  loadBattlegroundCards?: () => Promise<BattlegroundCatalogCard[]>;
   ttlMs: number;
   now?: () => number;
 };
@@ -33,19 +37,27 @@ const nameKey = (value: string) => value.toLocaleLowerCase('ru-RU').replace(/ё/
   .replace(/\s+/g, ' ').trim();
 
 /** A name that belongs to cards of two classes is ambiguous and stays unresolved. */
-export function createCardNameResolver(cards: Record<string, { name?: unknown; playerClass?: unknown }>): PatchCardResolver {
-  const byName = new Map<string, { id: string; cardClass: string | null } | null>();
+export function createCardNameResolver(cards: Record<string, CardName>): PatchCardResolver {
+  const byName = new Map<string, { id: string; cardClass: string | null; cardType: string | null } | null>();
   for (const [id, card] of Object.entries(cards)) {
     const name = typeof card?.name === 'string' ? nameKey(card.name) : '';
     if (!name) continue;
     const cardClass = typeof card.playerClass === 'string' ? card.playerClass : null;
+    const cardType = typeof card.type === 'string' ? card.type.toLowerCase() : null;
     const known = byName.get(name);
-    if (known === undefined) byName.set(name, { id, cardClass });
+    if (known === undefined) byName.set(name, { id, cardClass, cardType });
     else if (known && known.cardClass !== cardClass) byName.set(name, null);
     // Reprints share a name and class; the original set id keeps its art.
-    else if (known && known.id.startsWith('CORE_') && !id.startsWith('CORE_')) byName.set(name, { id, cardClass });
+    else if (known && known.id.startsWith('CORE_') && !id.startsWith('CORE_')) byName.set(name, { id, cardClass, cardType });
   }
   return name => byName.get(nameKey(name)) ?? null;
+}
+
+/** Battlegrounds names resolve against the Battlegrounds catalog, every other mode against collectible cards. */
+export function createPatchCardResolver(cards: Record<string, CardName>, battlegrounds: BattlegroundCatalogCard[]): PatchCardResolver {
+  const collectible = createCardNameResolver(cards);
+  const battleground = createBattlegroundNameResolver(battlegrounds);
+  return (name, context) => (context?.mode === 'battlegrounds' ? battleground(name, context) : collectible(name, context));
 }
 
 function sections(value: unknown): { level?: unknown; title?: unknown }[] {
@@ -61,10 +73,45 @@ function publishedAt(row: Row): string | null {
   return text(row.official_published_at) ?? text(row.published_at);
 }
 
+const titleVersions = (row: Row) => [...String(row.title ?? '').matchAll(/\d{1,3}\.\d{1,3}(?:\.\d{1,3})?/g)]
+  .map(match => shortPatchVersion(match[0]));
+
+/**
+ * hs-data-api has matched some pre-release builds (2.3.0.8108) to a modern
+ * article, which then shows up twice in the archive under a bogus version.
+ * When builds of different versions share one article, the article belongs
+ * to the version its title names, else to the highest version.
+ */
+export function dropForeignArticleBuilds(rows: Row[]): Row[] {
+  const byArticle = new Map<string, Row[]>();
+  for (const row of rows) {
+    const url = text(row.source_url);
+    if (url && row.match_state === 'matched') byArticle.set(url, [...(byArticle.get(url) ?? []), row]);
+  }
+  const foreign = new Set<Row>();
+  for (const group of byArticle.values()) {
+    if (new Set(group.map(row => shortPatchVersion(row.version))).size < 2) continue;
+    const named = group.filter(row => titleVersions(row).includes(shortPatchVersion(row.version)));
+    const owners = named.length ? named : [group.reduce((best, row) => (compareVersions(row.version, best.version) > 0 ? row : best))];
+    for (const row of group) if (!owners.includes(row)) foreign.add(row);
+  }
+  return rows.filter(row => !foreign.has(row));
+}
+
+function compareVersions(left: unknown, right: unknown): number {
+  const parts = (value: unknown) => (String(value ?? '').match(/\d+/g) ?? []).map(Number);
+  const [a, b] = [parts(left), parts(right)];
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    const difference = (a[index] ?? 0) - (b[index] ?? 0);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
 /** Parses every stored article once per refresh; the newest build of a version wins. */
 export function buildPatchNotesSnapshot(rows: Row[], resolve: PatchCardResolver, updatedAt: string): PatchNotesSnapshot {
   const newest = new Map<string, Row>();
-  for (const row of rows) {
+  for (const row of dropForeignArticleBuilds(rows)) {
     const key = shortPatchVersion(row.version) || shortPatchVersion(row.hs_manacost_version);
     if (!key) continue;
     const known = newest.get(key);
@@ -72,7 +119,9 @@ export function buildPatchNotesSnapshot(rows: Row[], resolve: PatchCardResolver,
   }
   const patches = [...newest.entries()].map(([version, row]): PatchNotesDetail => {
     const content = row.match_state === 'matched' ? String(row.content_text ?? '') : '';
-    const parsed = content ? parsePatchArticle(content, sections(row.sections), resolve) : { entries: [], missingBefore: 0 };
+    const parsed = content
+      ? parsePatchArticle(content, sections(row.sections), resolve)
+      : { entries: [], missingBefore: 0, pictureSections: [], generalChanges: [] };
     return {
       version,
       build: text(row.version) ?? version,
@@ -81,9 +130,12 @@ export function buildPatchNotesSnapshot(rows: Row[], resolve: PatchCardResolver,
       sourceUrl: httpUrl(row.source_url),
       officialUrl: httpUrl(row.official_url),
       changeCount: parsed.entries.length,
-      summary: text(row.summary),
+      // The stored summary runs on into the first heading; its first paragraph is the lead.
+      summary: text(cleanArticleText(String(row.summary ?? '').split('\n').find(line => line.trim()) ?? '')),
       entries: parsed.entries,
       missingBefore: parsed.missingBefore,
+      pictureSections: parsed.pictureSections,
+      generalChanges: parsed.generalChanges,
     };
   });
   // Undated patches sort last; NaN would make the comparator inconsistent.
@@ -109,13 +161,14 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   let pending: Promise<PatchNotesSnapshot> | null = null;
 
   const refresh = async () => {
-    const [payload, cards] = await Promise.all([
+    const [payload, cards, battlegrounds] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
       dependencies.loadCardNames().catch(() => ({})),
+      (dependencies.loadBattlegroundCards?.() ?? Promise.resolve([])).catch(() => []),
     ]);
     const rows = (payload as { patches?: unknown })?.patches;
     if (!Array.isArray(rows)) throw new Error('Patch archive payload has no patches');
-    const value = buildPatchNotesSnapshot(rows as Row[], createCardNameResolver(cards), new Date(now()).toISOString());
+    const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString());
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     return value;
   };
