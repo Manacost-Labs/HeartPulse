@@ -37,9 +37,9 @@ function Preview({ sameRoute = false }: { sameRoute?: boolean }) {
 }
 
 /** The destination commits with a skeleton; its content arrives a moment later. */
-function ArrivalPreview() {
+function ArrivalPreview({ firstLoad = false }: { firstLoad?: boolean }) {
   const [page, setPage] = useState(0);
-  const [ready, setReady] = useState(true);
+  const [ready, setReady] = useState(!firstLoad);
   useEffect(() => {
     if (ready) return;
     const timer = setTimeout(() => setReady(true), 300);
@@ -102,6 +102,22 @@ export const SkeletonThenContent: Story = {
     await expect(await canvas.findByRole('list', { name: 'Классы' })).toBeInTheDocument();
     if (animates()) {
       await expect(entrances(canvasElement).map(animation => (animation.effect as KeyframeEffect).target?.tagName)).toEqual(['OL']);
+    }
+    await waitFor(() => expect(canvas.getByRole('list', { name: 'Классы' })).toBeVisible());
+  },
+};
+
+/** The first document with a skeleton: its server content stays still, the arriving list fades and rises in. */
+export const FirstDocumentArrival: Story = {
+  render: () => <ArrivalPreview firstLoad />,
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvas.getByRole('heading', { name: 'Тир-лист 1' })).toBeVisible();
+    await expect(entrances(canvasElement)).toHaveLength(0);
+    await expect(await canvas.findByRole('list', { name: 'Классы' })).toBeInTheDocument();
+    if (animates()) {
+      const [arrival] = entrances(canvasElement);
+      await expect((arrival.effect as KeyframeEffect).target?.tagName).toBe('OL');
+      await expect(String((arrival.effect as KeyframeEffect).getKeyframes()[0].transform)).toMatch(/^translateY\(/);
     }
     await waitFor(() => expect(canvas.getByRole('list', { name: 'Классы' })).toBeVisible());
   },

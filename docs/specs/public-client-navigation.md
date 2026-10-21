@@ -51,8 +51,9 @@ lazy chunk loads, including when the guest profile check finishes first.
    page shell for Storybook and other isolated renders. Share the existing
    viewer access hook through the root provider. Register the App Router
    navigation adapter and prefetch public destinations on pointer/focus intent.
-3. Keep document loads and individual page sections free of entrance effects;
-   use one short content transition after a client route commits.
+3. Keep the first document paint and server-rendered content free of entrance
+   effects; use one short content transition after a client route commits,
+   and the arrival below for sections that replace a placeholder.
 4. Verify menu identity, scroll, groups, mobile closing, Back/Forward,
    modified clicks, viewer changes and route styles in real browser tests.
 
@@ -264,9 +265,15 @@ The revised contract keeps the owner's rhythm without those costs:
    and reduced motion change the page without motion.
 3. A destination committed with skeletons (`.loading-block`,
    `[data-loading-surface]` of `LoadingSurface`) shows them at once, without
-   an entrance. Each section fades in when it replaces its skeleton (the new
-   outermost elements; more than eight new siblings fade as their parent), for
-   at most 10 seconds and until no skeleton remains. While that runs,
+   an entrance. Each section arrives when it replaces its skeleton (the new
+   outermost elements; more than eight new siblings arrive as their parent):
+   opacity 0 to 1 and a rise by `--motion-rise` over `--motion-base`, the
+   sections of one batch `--motion-stagger` apart (at most three steps), for
+   at most 10 seconds and until no skeleton remains. The first document does
+   the same from hydration on, for sections that replace a skeleton or the
+   access check's `PaywallPending`; its server HTML stays still, and a link
+   navigation ends those arrivals. Transform and opacity only: no layout shift
+   is counted. While that runs,
    `routeEntranceActive()` is true and the home feed's own settle stands aside,
    so home content animates once after a navigation and keeps its settle after
    a first paint.

@@ -1,0 +1,23 @@
+{
+  "reason": "Появление блоков на месте скелетона (RouteTransition, общий layout): короткий подъём с каскадом, в том числе при первом открытии страницы. Около 0,3 КБ gzip JS на каждой странице; лениво не загрузить — наблюдатель должен стоять до прихода данных, с гидрации. Новых модулей и стилей нет.",
+  "routes": {
+    "/connect/": {
+      "jsGzipBytes": 256
+    },
+    "/cosmetics/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 256
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 256
+    }
+  }
+}

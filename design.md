@@ -347,8 +347,10 @@ Rules:
   timed by `--motion-loop`, static under reduced motion. Do not add page
   spinners, shimmers that move `background-position`, or plain «Загрузка…»
   text; spinners stay inside controls (search fields, buttons) and modals.
-- Data that replaces a loader after the page has painted fades in by opacity
-  alone (`.data-surface.data-arrive`, `--motion-base`), and stays on screen,
+- Data that replaces a loader after the page has painted arrives once: a fade
+  and a rise by `--motion-rise` over `--motion-base`, neighbours a
+  `--motion-stagger` step apart (`RouteTransition`), or by opacity alone
+  (`.data-surface.data-arrive`), and stays on screen,
   dimmed and `aria-busy`, while it refreshes. Never on a header, a likely
   largest paint (the card and cosmetics grids) or content the server already
   rendered; public data the page can read anonymously is server-rendered and
