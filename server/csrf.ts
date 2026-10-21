@@ -45,6 +45,17 @@ const CROSS_SITE_ENDPOINTS = new Set([
   '/api/ecosystem/internal/subscription',
 ]);
 
+/**
+ * The raw path of a request target as Express routes it. An absolute-form
+ * target (`POST https://hearthpulse.net/api/…`, as a proxy would send it)
+ * routes by its path, so scheme and host are dropped; nothing else is
+ * decoded or resolved, so exemptions still need the exact spelling.
+ */
+export function requestTargetPath(originalUrl: string): string {
+  const target = originalUrl.split(/[?#]/, 1)[0];
+  return target.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '') || '/';
+}
+
 function crossSiteEndpoint(rawPath: string): boolean {
   const lower = rawPath.toLowerCase();
   return CROSS_SITE_ENDPOINTS.has(lower.endsWith('/') ? lower.slice(0, -1) : lower);

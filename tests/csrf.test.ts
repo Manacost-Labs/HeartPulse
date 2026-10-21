@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { csrfRequestAllowed, mutationNeedsCsrfProtection, normalizedRequestPath } from '../server/csrf.js';
+import { csrfRequestAllowed, mutationNeedsCsrfProtection, normalizedRequestPath, requestTargetPath } from '../server/csrf.js';
 
 const base = {
   method: 'POST',
@@ -76,5 +76,14 @@ for (const path of ['/api/auth/telegram/bot/webhook', '/api/newsletter/unsubscri
   '/api/v1/oauth/revoke', '/api/v1/tracker/events/batch', '/api/ecosystem/internal/subscription']) {
   assert.equal(csrfRequestAllowed({ ...crossSite, path }), true, path);
 }
+
+// An absolute-form target routes by its path: scheme and host are dropped, nothing else changes.
+assert.equal(requestTargetPath('/api/account/sessions/revoke-others?x=1'), '/api/account/sessions/revoke-others');
+assert.equal(requestTargetPath('https://hearthpulse.net/api/account/sessions/revoke-others?x=1'), '/api/account/sessions/revoke-others');
+assert.equal(requestTargetPath('HTTP://evil.example:8080/api/v1/oauth/token'), '/api/v1/oauth/token');
+assert.equal(requestTargetPath('https://hearthpulse.net'), '/');
+assert.equal(requestTargetPath('https://h/api/v1/oauth/x/../token'), '/api/v1/oauth/x/../token', 'dot segments stay as sent');
+assert.equal(csrfRequestAllowed({ ...base, path: requestTargetPath('https://hearthpulse.net/api/account/sessions/revoke-others'), csrfHeader: '' }), false,
+  'the listed path still needs the header in absolute form');
 
 console.log('cookie mutation CSRF boundary tests passed');
