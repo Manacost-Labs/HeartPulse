@@ -37,7 +37,7 @@ hunter mage paladin priest rogue shaman warlock warrior`. Для каждого 
 | `SegmentedControl` | `src/vendor/varylo-ui/navigation/SegmentedControl.tsx` | `options: { value, label }[]`, `value`, `onValueChange`, `size?`, `fullWidth?`, `aria-label` |
 | `LineChart` | `src/shared/ui/analytics/LineChart.tsx` | `title, points: ChartPoint[], unit?, color?, domain?, segmentLabel?, bandLabel?` |
 | `rankHeatCell(winrate, games)` | `src/features/archetypeRankHeatModel.ts` | → `{ fill, ink, tone, significant, low, high }` |
-| `MetricComparison` | `src/vendor/valyro-ui/charts/MetricComparison.tsx` | см. snippets §7 |
+| `MetricComparison` | `src/vendor/valyro-ui/charts/MetricComparison.tsx` | `metrics`, `bars`, `currentLabel`, `previousLabel`, `labels` — см. образец ниже |
 | `CardTile` | `src/features/ConstructedArchetypeCardStatsCells.tsx` | `{ row: { cardId, cardName, cost, rarity, artwork } }` — плитка карты как в колоде |
 | `DeckListView` | `src/features/decklist/DeckListView.tsx` | список колоды по контракту `.hsrdv` (design.md) |
 | `LoadingSurface` | `src/shared/ui/LoadingSurface.tsx` | `label` (что грузится), `detail?`, `quiet?`; появляется после `--motion-reveal-delay` (160 ms) |
@@ -85,8 +85,9 @@ hunter mage paladin priest rogue shaman warlock warrior`. Для каждого 
 
 - Русское имя архетипа — поле `archetypeLabel`, английское — `archetype`;
   `translated: false` → показывай английское и «перевод ожидается».
-- Изменение за период бери из готовых трендов (`/standard-meta/trends`,
-  вложенные окна HSGuru), а не считай сам по двум снимкам. Сравнение через
+- Изменение за период = `item.winrate − trend.previous.winrate` из
+  `/standard-meta/trends` (вложенные окна HSGuru), как в
+  `StandardMetaArchetypeTable.tsx`. Другие формулы и свои снимки не делай. Сравнение через
   смену периода (патч → дополнение) не делай.
 - Для «топов» (рост, падение, лучшие) отсекай строки с `lowSample` —
   приглушение для таблицы, исключение для рейтинга.
@@ -105,3 +106,50 @@ curl -s 'https://hearthpulse.net/api/standard-meta/teaser?format=standard&rank=d
 Публичные ответы можно сохранять как есть. Для платных ручек бери уже
 сохранённые фикстуры из `tests/fixtures/` (`ls tests/fixtures | grep <тема>`)
 или срежь публичную часть; персональные данные в фикстуры не кладут.
+
+## Образец: сравнение двух вещей
+
+`MetricComparison` из `src/vendor/valyro-ui/charts/MetricComparison.tsx`.
+Пример: `src/features/ArchetypeBuildComparison.tsx`.
+
+```tsx
+import { MetricComparison, type ComparisonMetric } from '../vendor/valyro-ui/charts/MetricComparison';
+import '../vendor/varylo-ui/styles/index.css';
+import './archetypeVaryloTheme.css';
+
+<div className="hp-varylo">
+  <MetricComparison
+    metrics={metrics}                       // ComparisonMetric[]
+    bars="paired"
+    currentLabel={`A · ${nameA}`}
+    previousLabel={`Б · ${nameB}`}
+    locale="ru-RU"
+    labels={{ metric: 'Показатель', change: 'Вывод', new: 'Новое',
+      increase: 'Больше', decrease: 'Меньше' }}
+    ariaLabel={`${nameA} против ${nameB}`}
+  />
+</div>
+```
+
+## Образец: доли (treemap + список)
+
+Пример: `shareTree()` и `MetaShareList` в
+`src/features/StandardMetaChartPlot.tsx`. Правило: treemap не бывает один —
+рядом всегда список «иконка класса · название · полоса доли · %» с фильтром
+по классу; клик по классу в treemap фильтрует список. Плитки архетипов —
+оттенки цвета класса, подпись в мелкой плитке прячется в подсказку.
+
+## Образец: телефон (матрица → список)
+
+```css
+@media (max-width: 767px) {
+  .page-matrix { display: none; }
+  .page-matrix-list { display: grid; gap: .5rem; }
+}
+.page-table-scroll { overflow-x: auto; }          /* скролл внутри, не у страницы */
+.page-table-scroll th:first-child,
+.page-table-scroll td:first-child { position: sticky; left: 0; }
+```
+
+Пример переключения: `src/features/StandardMatchupMatrix.tsx` (матрица) и
+`src/features/StandardMatchupsOverview.tsx` (список полос от 50%).

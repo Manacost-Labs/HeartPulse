@@ -1,15 +1,17 @@
 ---
 name: hearthpulse-page-workflow
-description: Порядок работы над страницей HearthPulse от задачи до продакшена. Использовать, когда просят сделать, переделать или улучшить страницу, раздел или компонент на hearthpulse.net, и при сдаче такой работы (READY, CI, бюджеты, nginx, changelog). Внешний вид — в скилле hearthpulse-page-design.
+description: Порядок работы над страницей HearthPulse от задачи до READY. Использовать, когда просят сделать, переделать, редизайн или улучшить страницу, раздел, блок, компонент, таблицу или график на hearthpulse.net, и при сдаче такой работы (READY, CI, Storybook, бюджеты, LCP/CLS/INP, nginx, changelog). Внешний вид — в скилле hearthpulse-page-design.
 ---
 
 # HearthPulse: как сделать страницу и сдать её
 
-Обязательные правила проекта — в `AGENTS.md`; этот скилл — порядок шагов
-для UI-задачи. Внешний вид — `hearthpulse-page-design`, движение —
-`hearthpulse-motion`.
+Выполняй шаги по порядку. Шаг не пропускай.
+Внешний вид — скилл `hearthpulse-page-design`. Анимации — `hearthpulse-motion`.
+Общие правила проекта — `AGENTS.md`.
 
-## Шаг 1. Своя рабочая копия
+## Шаг 1. Создай свою рабочую копию
+
+Замени `<task>` на короткое имя задачи латиницей, `<YYYYMMDD>` на дату.
 
 ```bash
 git -C /srv/projects/web/arena.hs-manacost.ru fetch origin
@@ -17,84 +19,147 @@ git -C /srv/projects/web/arena.hs-manacost.ru worktree add \
   -b claude/<task>-<YYYYMMDD> \
   /srv/projects/tasks/hearthpulse-<task>-<YYYYMMDD> origin/main
 cd /srv/projects/tasks/hearthpulse-<task>-<YYYYMMDD>
+npm ci
 npm run agent:session:preflight
 ```
 
-Основная копия `/srv/projects/web/arena.hs-manacost.ru` — общая, в ней не
-работай: только своя папка в `/srv/projects/tasks/`. Трогай только свои
-файлы. Если другая сессия владеет страницей, не правь её файлы —
-договорись или ограничься точкой подключения.
+1. Работай только в этой папке.
+2. В `/srv/projects/web/arena.hs-manacost.ru` ничего не правь.
+3. Не делай `git stash`, `git reset`, `git checkout` в чужих папках.
+4. Файл правит другая сессия — не трогай его, спроси ведущую сессию.
 
-## Шаг 2. Аудит до правок
+## Шаг 2. Посмотри, что есть сейчас
 
-1. Открой страницу на проде как гость (и как подписчик в локальном стенде,
-   если страница платная). Скриншоты 1440×900 и 412×915 — «до».
-2. Найди код: `git grep` по тексту со страницы, маршрут в
-   `apps/public-web/app/`, компоненты в `src/features/`, данные в `server/`.
-3. Выпиши, что плохо: иерархия, повторы, читаемость, телефон, данные.
-   Сверь со списком анти-паттернов в `hearthpulse-page-design`.
+1. Сделай скриншоты страницы на проде: 1440×900 и 412×915. Это «до».
+2. Найди код по тексту со страницы: `git grep -n '<текст со страницы>' -- src apps`.
+3. Маршрут: `apps/public-web/app/`. Компоненты: `src/features/`. Данные: `server/`.
+4. Выпиши списком, что нарушает «Правило №1» из `hearthpulse-page-design`.
 
-## Шаг 3. Промежуточный отчёт до полировки
+## Шаг 3. Остановись и спроси, если
 
-Для заметных переделок сначала пришли черновик: скриншоты 1440 и 412 и
-список «что убираю / сворачиваю / оставляю». Полируй после ответа.
-Это экономит круги: владелец часто правит направление по черновику.
+1. Нужных данных нет в API.
+2. Нужно менять paywall, логику доступа или маршрут.
+3. Нужно менять `deploy/nginx/*`.
+4. Файлы страницы правит другая сессия.
+5. Ситуации нет в таблице «Фиксированные решения» скилла дизайна.
 
-Куда: сообщением сессии, которая дала задачу (`SendMessage` её id), с
-абсолютными путями к скриншотам в своём scratchpad; если работаешь с
-владельцем напрямую — ему в ответе. Не жди молча: после черновика закончи
-ход и продолжай, когда придёт ответ.
+Как спросить: `SendMessage` в сессию, которая дала задачу. Одним сообщением.
+Потом закончи ход и жди ответа.
 
-**Стоп-условия — спроси, прежде чем делать:**
+## Шаг 4. Пришли черновик
 
-- нужных данных нет в API (новый эндпоинт, новый расчёт на сервере);
-- задача требует менять paywall, маршрут или nginx;
-- файлы страницы сейчас правит другая сессия;
-- эталона для такого блока нет, а решение не из таблицы
-  `hearthpulse-page-design`.
+Нужен, если меняется больше одного блока.
 
-## Шаг 4. Реализация
+1. Сделай черновик без полировки.
+2. Сделай скриншоты 1440 и 412 в свой scratchpad.
+3. Отправь сессии, которая дала задачу:
+   - абсолютные пути к скриншотам;
+   - список «убираю / сворачиваю / оставляю / добавляю».
+4. Закончи ход. Полируй после ответа.
 
-- Новый визуальный компонент — со Storybook-историей рядом
-  (`*.stories.tsx`), на реальных фикстурах.
-- Модель данных (интервалы, цвета, группировки) — отдельный `*Model.ts`
-  с unit-тестом. Компонент только рисует.
-- Файл больше 250 строк не пройдёт `quality:clean-code` — дели заранее.
-- **Paywall не трогай.** Логика доступа — `apps/public-web/ui/accessState.ts`
-  и `usePublicAccess.ts`; только читай из них.
-- Тайминги анимаций — токены (`hearthpulse-motion`), `prefers-reduced-motion`.
-- Картинки: первая на экране — `fetchpriority="high"` и `sizes`, остальные
-  `loading="lazy"` с зарезервированным размером (нет CLS).
+## Шаг 5. Сделай
 
-## Шаблоны для копирования
+1. Логику (отбор, сортировка, интервалы) положи в `src/features/<page>Model.ts`.
+2. Компонент только рисует. Код бери из шаблонов скилла дизайна.
+3. Файл длиннее 250 строк раздели на два.
+4. Paywall не трогай. `apps/public-web/ui/accessState.ts` и
+   `usePublicAccess.ts` только читай.
+5. Первая картинка на экране: `fetchPriority="high"` и `sizes`.
+6. Остальные картинки: `loading="lazy"`, `width` и `height`.
+7. Напиши тест модели (шаблон 1).
+8. Напиши Storybook-историю (шаблон 2).
+9. Добавь фрагмент changelog (шаблон 3).
 
-**Модель + unit-тест.** Логика (интервалы, группировки, цвета) — в
-`src/features/<page>Model.ts`, тест — `tests/<page>-model.test.ts`, и путь
-теста добавь в `tests/test-suites.json` → набор `"unit"` (иначе
-`test:discovery` упадёт). Образец: `src/features/standardMetaTableModel.ts`
-и `tests/standard-meta-table-model.test.ts`.
+## Шаг 6. Проверь
+
+```bash
+npm run lint
+npm run lint:oxlint
+npm run lint:architecture
+npm run lint:docs
+npx tsx --test tests/<page>-model.test.ts
+npm run test:discovery
+npm run build-storybook && npm run test:storybook
+npm run budget:next
+npm run changelog:assemble -- --check
+npm run qa:ci
+npm run agent:integration:preflight
+```
+
+1. Команда упала — исправь причину. Тест не ослабляй. Правило не отключай.
+2. `budget:next` упал — см. шаг 8 в `varylo-valyro.md` скилла дизайна.
+3. Замерь LCP, CLS, INP на телефоне (Slow 4G, CPU ×4), медиана 3 прогонов,
+   до и после. Стало хуже — не сдавай, исправь.
+
+## Шаг 7. Маршрут или nginx (только если менял)
+
+1. Обнови `deploy/nginx/arena-html-routing.conf`.
+2. Обнови `deploy/nginx/arena-seo-map.conf`.
+3. Запусти `npm run architecture:http-manifest:update`.
+4. Упал `tests/workflow-contract.test.mjs` на хэше — пересчитай
+   `--allow-nginx-contract-hash` в `.github/workflows/ci.yml` и в тесте.
+5. В отчёте напиши строку «nginx изменён: <файлы>».
+
+## Шаг 8. Сдай (READY)
+
+```bash
+git add <только свои файлы>
+git commit -m "<тип>(<область>): <что сделано>"
+git fetch origin && git rebase origin/main
+git push -u origin claude/<task>-<YYYYMMDD>
+gh workflow run "Validate and deploy application" \
+  --ref claude/<task>-<YYYYMMDD>
+gh run list --workflow "Validate and deploy application" \
+  --branch claude/<task>-<YYYYMMDD> --limit 1
+gh run watch <run-id> --exit-status
+```
+
+1. Прогон красный — исправь, закоммить, повтори шаг 8.
+2. В `main` не пушь. Пушит ведущая сессия.
+3. Отчёт по-русски, коротко:
+
+   ```text
+   READY claude/<task>-<YYYYMMDD> <sha>
+   CI: <ссылка на зелёный прогон>
+   До/после: <пути к скриншотам 1440 и 412>
+   LCP/CLS/INP: <до> → <после>
+   nginx: не менялся | изменён: <файлы>
+   Не хватило данных: нет | <что>
+   ```
+
+4. Останови свои dev-серверы (Storybook, `next dev`).
+
+## Шаблон 1. Тест модели
+
+Файл `tests/<page>-model.test.ts`. Путь добавь в `tests/test-suites.json`,
+набор `"unit"`, массив `files`. Иначе `test:discovery` упадёт.
+Образец: `tests/standard-meta-table-model.test.ts`.
 
 ```ts
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pageRows } from '../src/features/pageModel';
+import { topByChange } from '../src/features/<page>Model';
 
-test('rows below the sample threshold are muted, not dropped', () => {
-  const rows = pageRows([{ name: 'A', games: 40, winrate: 55 }]);
-  assert.equal(rows[0].lowSample, true);
+test('low-sample rows are excluded from the top', () => {
+  const rows = [
+    { id: 'a', winrate: 55, games: 40, change: 3 },
+    { id: 'b', winrate: 54, games: 900, change: 2 },
+  ];
+  assert.deepEqual(topByChange(rows as never, 'up').map(row => row.id), ['b']);
 });
 ```
 
-**Storybook-история** рядом с компонентом, на реальной фикстуре из
-`tests/fixtures/`, с проверкой в `play`. Образец:
-`src/features/ArchetypeHistoryCharts.stories.tsx`.
+## Шаблон 2. Storybook-история
+
+Файл рядом с компонентом: `src/features/<Block>.stories.tsx`.
+Данные — реальная фикстура из `tests/fixtures/`.
+Образец: `src/features/ArchetypeHistoryCharts.stories.tsx`.
 
 ```tsx
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { PageBlock } from './PageBlock';
 import real from '../../tests/fixtures/<page>-real-<YYYYMMDD>.json';
-import './PageBlock.css';
 
 const meta = {
   title: '<Раздел>/<Блок>',
@@ -107,88 +172,33 @@ type Story = StoryObj<typeof meta>;
 
 export const Real: Story = {
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll('tbody tr').length).toBeGreaterThan(0);
+    await expect(canvasElement.querySelectorAll('li').length).toBeGreaterThan(0);
   },
 };
+
 export const Phone: Story = {
   parameters: { viewport: { defaultViewport: 'mobile1' } },
 };
 ```
 
-**Одобрение роста бандла** —
-`config/next-bundle-budgets/approvals/<slug>.json`:
+## Шаблон 3. Фрагмент changelog
 
-```json
-{
-  "reason": "Что добавлено и почему это нельзя загрузить лениво.",
-  "routes": {
-    "/standard/archetypes/": { "jsGzipBytes": 1024, "cssGzipBytes": 256 }
-  }
-}
-```
-
-**Фрагмент changelog** — `changelog.d/<YYYY-MM-DD>-<slug>.md`, одной
-строкой по-русски, без заголовка и маркера списка:
+Файл `changelog.d/<YYYY-MM-DD>-<slug>.md`. Одна строка по-русски.
+Без заголовка. Без маркера списка. `CHANGELOG.md` не правь.
 
 ```text
-Мета: таблица на всю ширину, винрейт с интервалом, тиры S–D с пояснением.
+Мета: блок «Итоги недели» — архетипы с самым большим ростом и падением винрейта.
 ```
 
-## Шаг 5. Проверки
+## Сделано, если
 
-```bash
-npm run lint && npm run lint:architecture && npm run lint:docs
-npm run build-storybook && npm run test:storybook
-npm run budget:next
-npm run qa:ci            # сборки + браузерная обсерватория, как в CI
-npm run agent:integration:preflight
-```
-
-- Бюджет бандла превышен осознанно → файл одобрения (шаблон выше).
-  Базовые значения руками не правь.
-- Замерь LCP, CLS и INP на телефоне (Slow 4G, CPU ×4) до и после;
-  медиана 3 прогонов. Хуже стало — не сдавай.
-- Видимое изменение → фрагмент `changelog.d/<YYYY-MM-DD>-<slug>.md`
-  (русский текст, без заголовка); проверка
-  `npm run changelog:assemble -- --check`. `CHANGELOG.md` не правь.
-
-## Шаг 6. Маршрут или nginx
-
-Новый маршрут или изменение `deploy/nginx/*`:
-
-- обнови `deploy/nginx/arena-html-routing.conf` и
-  `deploy/nginx/arena-seo-map.conf` (и manifest:
-  `npm run architecture:http-manifest:update`);
-- в отчёте **явно** напиши, что nginx изменился: ведущая сессия ставит эти
-  файлы на origin до пуша, иначе деплой упадёт на проверке расхождения;
-- если `tests/workflow-contract.test.mjs` падает на хэше контракта —
-  пересчитай `--allow-nginx-contract-hash` в `.github/workflows/ci.yml` и
-  в тесте тем же коммитом.
-
-## Шаг 7. Сдача (READY)
-
-1. `git fetch origin && git rebase origin/main` прямо перед сдачей.
-2. Прогон CI на своей ветке:
-   `gh workflow run "Validate and deploy application" --ref <branch>`;
-   дождись зелёного (деплой в dispatch пропускается). Упало — чини причину,
-   тесты не ослабляй.
-3. Отчёт по-русски, коротко: `READY <branch> <sha>` (fast-forward над
-   `origin/main`), ссылка на зелёный прогон, скриншоты до/после 1440 и 412,
-   цифры LCP/CLS/INP, что изменилось в nginx, чего не хватило в данных.
-4. **В `main` не пушь.** Пушит ведущая сессия или merge queue
-   (`npm run agent:integrate`, `docs/runbooks/agent-integration.md`).
-5. После деплоя проверь страницу на проде, останови все свои dev-серверы
-   (Storybook, next dev) и закрой рабочую копию.
-
-## Проверь перед READY
-
-- [ ] Рабочая копия своя, preflight пройден, чужие файлы не тронуты.
-- [ ] Был черновик и ответ на него (для заметных переделок).
-- [ ] Storybook-история и тест модели есть.
-- [ ] `qa:ci`, `budget:next`, `lint:*`, integration preflight зелёные.
+- [ ] Рабочая копия своя, preflight пройден.
+- [ ] Чужие файлы не тронуты.
+- [ ] Черновик отправлен и получен ответ (если менялось больше одного блока).
+- [ ] Тест модели и Storybook-история есть.
+- [ ] Все команды шага 6 зелёные.
 - [ ] Paywall не тронут.
-- [ ] LCP/CLS/INP не хуже, без горизонтального скролла на 412.
-- [ ] `changelog.d/` фрагмент добавлен.
-- [ ] Изменения nginx названы в отчёте.
-- [ ] Ветка перебазирована, зелёный workflow_dispatch, SHA fast-forward.
-- [ ] Dev-серверы остановлены.
+- [ ] LCP/CLS/INP не хуже. На 412 нет горизонтальной прокрутки.
+- [ ] Фрагмент `changelog.d/` есть.
+- [ ] Ветка перебазирована на `origin/main`, workflow_dispatch зелёный.
+- [ ] Отчёт по шаблону шага 8 отправлен.

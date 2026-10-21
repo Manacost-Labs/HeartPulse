@@ -1,110 +1,153 @@
 ---
 name: hearthpulse-motion
-description: Анимации и переходы на HearthPulse. Использовать, когда добавляешь или меняешь анимацию, переход между видами (вкладки, Стандарт/Вольный, фильтры), вход страницы, раскрытие, модалку или bottom sheet, и при падении tests/motion-tokens.test.mjs или тестов переходов.
+description: Анимации и переходы на HearthPulse. Использовать, когда добавляешь или меняешь анимацию, переход, переключатель вида (вкладки, Стандарт/Вольный, фильтры), вход страницы, раскрытие, модалку, bottom sheet, hover, а также при падении tests/motion-tokens.test.mjs или тестов переходов. Даёт фиксированные решения и токены.
 ---
 
 # HearthPulse: движение
 
-Полные правила — `design.md`, раздел «Motion And Protected Interactions», и
-`docs/specs/public-client-navigation.md` (раздел «ValyroUI transitions»).
+Правило: **анимация только как ответ на действие пользователя. Сомневаешься —
+не анимируй.**
 
-## Шаг 1. Тайминги только из токенов
+Полные правила: `design.md` («Motion And Protected Interactions»),
+`docs/specs/public-client-navigation.md` («ValyroUI transitions»).
 
-`src/styles/tokens.css`:
+## Шаг 1. Найди ситуацию
+
+Не выбирай сам. Найди строку и сделай, как в ней написано.
+
+<!-- markdownlint-disable MD013 -->
+
+| Ситуация | Делай |
+| --- | --- |
+| Hover, focus строки или кнопки | `transition: background-color var(--motion-fast) var(--motion-ease);` |
+| Нажатие кнопки | `transition: transform var(--motion-instant) var(--motion-ease);` |
+| Стандарт ↔ Вольный меняет URL (`/standard/` ↔ `/wild/`) | Ничего не добавляй. Переход по URL уже анимирован. |
+| Вкладка или режим без смены URL | `SegmentedControl` + `ViewSwitch` (шаг 3) |
+| Фильтр или сортировка того же списка | `useListTransition` (шаг 3) |
+| Загрузка | `LoadingSurface`: он сам ждёт `--motion-reveal-delay` |
+| Модалка, панель снизу | `useDockedPanelEntrance`, пресет `cover` или `sheet` |
+| Первая отрисовка страницы | Ничего. Первая отрисовка неподвижна. |
+| Шапка страницы, первая картинка | Ничего. Это кандидат в LCP. |
+| Hover и лайтбокс карт, раскрытия ПС, золотые карты, drag/drop конструкторов | Не трогай. Это защищённые взаимодействия. |
+| Ситуации нет в таблице | Не анимируй. Спроси ведущую сессию. |
+
+<!-- markdownlint-enable MD013 -->
+
+## Шаг 2. Бери тайминги только из токенов
+
+Файл `src/styles/tokens.css`. В скриптах — `src/shared/ui/motionTokens.ts`.
 
 <!-- markdownlint-disable MD013 -->
 
 | Токен | Значение | Для чего |
 | --- | --- | --- |
-| `--motion-instant` | 90 ms | отклик на нажатие |
-| `--motion-fast` | 140 ms | hover, focus, мелкие состояния |
-| `--motion-base` | 220 ms | меню, подсказки, диалоги, смена вида |
-| `--motion-slow` | 360 ms | большие поверхности, полосы данных |
+| `--motion-instant` | 90 ms | нажатие |
+| `--motion-fast` | 140 ms | hover, focus |
+| `--motion-base` | 220 ms | меню, подсказка, диалог, смена вида |
+| `--motion-slow` | 360 ms | большая поверхность, полоса данных |
 | `--motion-stagger` | 60 ms | шаг каскада |
-| `--motion-reveal-delay` | 160 ms | скелетон появляется только после этой паузы |
-| `--motion-ease` / `--motion-ease-exit` | кривые | появление / уход |
+| `--motion-reveal-delay` | 160 ms | пауза перед скелетоном |
+| `--motion-ease` | кривая | появление |
+| `--motion-ease-exit` | кривая | уход |
 
 <!-- markdownlint-enable MD013 -->
 
-В скриптах — `src/shared/ui/motionTokens.ts`. Литеральные `ms` в CSS ловит
-`tests/motion-tokens.test.mjs`.
+Плохо → хорошо:
 
-## Шаг 2. Что можно анимировать
+```css
+/* плохо: литерал, layout-свойство */
+.row { transition: height 200ms ease; }
 
-- Только `transform` и `opacity`. Без layout-свойств (height, top, width).
-- Смена контента после клика — 140–250 ms (`--motion-fast`…`--motion-base`).
-  `shared-x` — короткий сдвиг на несколько пикселей с проявлением, его можно;
-  `slide`/`slide-up` везут контент на всю ширину — на контент не ставить.
-- Первая отрисовка и серверная разметка не двигаются: анимируется только
-  изменение после действия пользователя.
-- Шапку страницы и другие кандидаты в LCP не анимировать (атрибут
-  `data-page-still`).
-- `prefers-reduced-motion: reduce` — только смена или короткий fade.
-- Защищённые взаимодействия (hover и лайтбокс карт, раскрытия ПС, золотые
-  карты, drag/drop конструкторов) не трогать.
+/* хорошо: токен, только opacity/transform */
+.row { transition: opacity var(--motion-base) var(--motion-ease); }
+```
 
-## Шаг 3. Готовые инструменты (ValyroUI)
+Правила:
 
-Пресеты Valyro (`PageTransition`) вендорены в
-`src/vendor/valyro-ui/motion-kit/`; адаптер сайта —
-`src/components/transitions/`. Оба приходят с веткой
-`claude/valyro-transitions-20261021`.
+1. Анимируй только `transform` и `opacity`.
+2. Не анимируй `height`, `width`, `top`, `left`, `margin`.
+3. Не пиши `ms`, `s`, `ease-in-out` в CSS. Тест `motion-tokens` упадёт.
+4. Под `@media (prefers-reduced-motion: reduce)` — только смена без движения.
+5. Полосы данных при смене вида заново не «растут».
 
-<!-- markdownlint-disable MD013 -->
+## Шаг 3. Переключатель вида
 
-| Ситуация | Инструмент |
-| --- | --- |
-| Вкладки одной страницы, Стандарт ↔ Вольный | `<ViewSwitch viewKey={…} order={…} preset="shared-x">` |
-| Карточки/строки после фильтра (редкость, класс, мана) | `useListTransition(items, ref, mode)` — fade-through + FLIP |
-| Переход между страницами | автоматически: `routeTransitionFor()` — `rise`, деталь `shared-z`, смена режима `shared-x` |
-| Раскрытие панели снизу, модалка | `useDockedPanelEntrance`, пресеты `sheet` / `cover` |
+Сначала проверь, что адаптер переходов есть в `main`:
 
-<!-- markdownlint-enable MD013 -->
+```bash
+git ls-tree -r --name-only origin/main | grep src/components/transitions/ViewSwitch.tsx
+```
 
-Как выбрать:
+1. Пусто — адаптер ещё на ветке `claude/valyro-transitions-20261021`.
+   Не копируй его к себе. Сделай переключатель без анимации (только
+   `SegmentedControl`) и напиши об этом в отчёте.
+2. Есть — используй шаблон ниже.
 
-- Стандарт ↔ Вольный **меняет URL** (`/…/standard/` ↔ `/…/wild/`) —
-  ничего не добавляй: `routeTransitionFor` сам играет `shared-x`.
-- Режим или вкладка — **клиентское состояние** — оберни меняющуюся часть в
-  `<ViewSwitch viewKey={mode} order={['standard', 'wild']}>`. Кнопки —
-  `SegmentedControl` (`src/vendor/varylo-ui/navigation/SegmentedControl.tsx`,
-  пример — `StandardMetaChartPlot.tsx`).
-- Тот же список с новыми строками (фильтр, сортировка) — `useListTransition`,
-  не `ViewSwitch`.
-- Шапку в `ViewSwitch` не клади: она кандидат в LCP (`data-page-still`).
-  Числа KPI в шапке при смене режима просто меняются, без анимации.
-  Переход по URL (`routeTransitionFor`) анимирует контент под шапкой и
-  элементы с `data-page-still` не трогает.
-- Полосы данных при смене вида не «растут» заново: новый вид проявляется
-  целиком.
-- `ViewSwitch` и `useListTransition` сами обрабатывают reduced motion.
+Шаблон (меняй только ключи, подписи и содержимое):
 
-`order` — массив ключей в порядке кнопок (не число): более поздний ключ
-играет «вперёд», более ранний — «назад».
+```tsx
+import { useState } from 'react';
+import { SegmentedControl } from '../vendor/varylo-ui/navigation/SegmentedControl';
+import { ViewSwitch } from '../components/transitions/ViewSwitch';
 
-Если `src/components/transitions/` ещё нет в `origin/main`, ветка переходов
-не слита: не копируй её код к себе, спроси ведущую сессию.
+const MODES = ['table', 'map'] as const;                     // МЕНЯЙ: ключи
+type Mode = typeof MODES[number];
+const OPTIONS = [
+  { value: 'table', label: 'Таблица' },                      // МЕНЯЙ: подписи
+  { value: 'map', label: 'Карта меты' },
+];
 
-Разрешённые пресеты: `fade`, `fade-through`, `shared-x`, `shared-y`,
-`shared-z`, `rise`, `cover`, `sheet` (тип `SiteTransitionPreset`).
-Движок пресетов грузится лениво (`lazyTransitionPresets.ts`); до загрузки
-всё просто проявляется. Не импортируй пресеты в начальный бандл страницы.
+export function PageModes() {
+  const [mode, setMode] = useState<Mode>('table');
+  return (
+    <>
+      <SegmentedControl
+        aria-label="Вид"
+        options={OPTIONS}
+        value={mode}
+        onValueChange={value => setMode(value as Mode)}
+      />
+      <ViewSwitch viewKey={mode} order={[...MODES]} preset="shared-x">
+        {mode === 'table' ? <MetaTableView /> : <MetaMapView />}   {/* МЕНЯЙ */}
+      </ViewSwitch>
+    </>
+  );
+}
+```
 
-## Шаг 4. Проверка
+Правила:
+
+1. `order` — массив ключей в порядке кнопок. Не число.
+2. `preset` — только `shared-x` (вкладки) или `fade-through` (разный вид).
+3. Шапку и `SegmentedControl` в `ViewSwitch` не клади.
+4. Пресеты `slide` и `slide-up` для контента не используй.
+5. Пресеты в начальный бандл не импортируй: адаптер грузит их лениво.
+
+Фильтр того же списка:
+
+```tsx
+import { useListTransition } from '../components/transitions/useListTransition';
+
+// возвращает ref для списка
+const listRef = useListTransition<HTMLUListElement>(filteredItems);
+return <ul ref={listRef}>{filteredItems.map(item => <li key={item.id}>…</li>)}</ul>;
+```
+
+У каждого `<li>` стабильный `key` (id, не индекс). Без этого анимация
+неверная.
+
+## Сделано, если
 
 ```bash
 node --test tests/motion-tokens.test.mjs
 npm run qa:ci
 ```
 
-Плюс тест переходов (`tests/next-page-transitions-browser.test.mjs`) и
-замер INP на телефоне до/после. Запись 1440 и 412 (кадры или видео) — в
-отчёт.
+Обе команды зелёные, и:
 
-## Проверь перед READY
-
+- [ ] Ситуация взята из таблицы шага 1.
 - [ ] Ни одной литеральной длительности или кривой.
-- [ ] Двигаются только transform/opacity, первая отрисовка неподвижна.
-- [ ] LCP-элемент не анимируется.
-- [ ] Reduced motion проверен.
-- [ ] INP и CLS не хуже; бюджет бандла не превышен или одобрен.
+- [ ] Двигаются только `transform` и `opacity`.
+- [ ] Первая отрисовка и шапка неподвижны.
+- [ ] Reduced motion проверен (DevTools → Rendering → prefers-reduced-motion).
+- [ ] Если адаптера нет в `main` — это написано в отчёте.
