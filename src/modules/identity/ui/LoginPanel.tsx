@@ -23,6 +23,7 @@ import {
 import { canAccessAdminWorkspace } from '../model/authAccess';
 import { publicProfilePath } from '../model/publicProfilePath';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
+import { useAccountSignInLinks } from '../hooks/useAccountSignInLinks';
 import './IdentityProfile.css';
 import '../../../shared/ui/LoadingSurface.css';
 import './LoginCardSkeleton.css';
@@ -31,6 +32,7 @@ import LoginCard from './LoginCard';
 import { LoginCardSkeleton } from './LoginCardSkeleton';
 import { isRealAuthEmail } from '../model/accountDashboard';
 import { continueToCoverAfterLogin, coverSsoReturnTo } from '../../coverAdminSso/public';
+import { parseSocialLoginProviders } from '../model/socialLoginProviders';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
@@ -272,6 +274,7 @@ export function LoginPanel({
     void fetchSubscription(false);
     void fetchContestHistory();
   }, [authUser, fetchSubscription, fetchContestHistory]);
+  const linkedProviders = useAccountSignInLinks(authUser?.id || authUser?.profileId || '', setMsg);
 
   const applyAuthenticatedUser = (user: AuthUser) => {
     setAuthUser(user);
@@ -528,6 +531,7 @@ export function LoginPanel({
           botUsername: telegramBotUsername,
           onMessage: (type, text) => setMsg({ type, text }),
         }}
+        social={{ providers: parseSocialLoginProviders(socialLoginProviders).map(item => ({ ...item, authUrl: authUrlWithReturnTo(item.authUrl, `/?login&linked=${item.provider}`) })), linked: linkedProviders }}
         contests={{ entries: contestHistory, loading: contestHistoryLoading }}
         settings={{
           values: {

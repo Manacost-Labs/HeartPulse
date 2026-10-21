@@ -5,13 +5,13 @@ import { startNextServer } from '../../scripts/lib/next-server.mjs';
 import { createPublicWebGateway } from '../../scripts/public-web-gateway.mjs';
 import { publicCardFixture, listenLocal, closeLocal } from './publicCardFixture.mjs';
 
-export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false, galleryEnabled = false, runtimeClientConfigFile } = {}) {
+export async function startPublicCardPilot({ gatewayPort, pagesEnabled = false, galleryEnabled = false, runtimeClientConfigFile, backendEnv } = {}) {
   for (const [artifact, script] of [['dist/index.html', 'build:static'], ['apps/public-web/.next/BUILD_ID', 'build:next']]) {
     if (existsSync(artifact)) continue;
     const built = spawnSync('npm', ['run', script], { encoding: 'utf8', timeout: 90000 });
     if (built.status !== 0) throw new Error(`${script} failed: ${(built.stdout + built.stderr).slice(-2500)}`);
   }
-  const fixture = await publicCardFixture();
+  const fixture = await publicCardFixture({ backendEnv });
   let next; let gateway;
   const close = async () => {
     if (gateway) await closeLocal(gateway);

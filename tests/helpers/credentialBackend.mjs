@@ -111,6 +111,7 @@ export async function startCredentialBackend(options = {}) {
       REDIS_ENABLED: '0',
       LOCAL_SMTP_HOST: '127.0.0.1',
       LOCAL_SMTP_PORT: String(smtpPort),
+      ...options.env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

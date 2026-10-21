@@ -28,6 +28,12 @@ export type SubscriptionStatus = SubscriptionAccess & {
     message?: string;
     /** Boosty is unreachable and access rests on the last successful check for 24 hours. */
     grace?: boolean;
+    /** End of that grace period. */
+    graceUntil?: string;
+    /** The provider's next payment date: access is paid until then. */
+    dates?: { nextPaymentAt?: string | null };
+    /** Whether Boosty will charge again at `nextPaymentAt`; absent when unknown. */
+    willRenew?: boolean;
   };
   patreon: { configured?: boolean; connected?: boolean; checked?: boolean; hasAccess?: boolean; tierTitles?: string[]; highestTierAmountCents?: number; message?: string };
   telegram: {

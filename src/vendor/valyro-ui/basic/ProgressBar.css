@@ -1,0 +1,121 @@
+.ui-progress {
+  --_c: var(--ui-accent);
+  --_h: 6px;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  width: 100%;
+}
+
+.ui-progress[data-size='sm'] { --_h: 4px; }
+.ui-progress[data-size='lg'] { --_h: 10px; }
+
+.ui-progress[data-color='success'] { --_c: var(--ui-success); }
+.ui-progress[data-color='warning'] { --_c: var(--ui-warning); }
+.ui-progress[data-color='danger'] { --_c: var(--ui-danger); }
+.ui-progress[data-color='neutral'] { --_c: var(--ui-fg); }
+
+.ui-progress__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  font-size: var(--ui-text-sm);
+}
+
+.ui-progress__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-fg);
+  font-weight: var(--ui-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-progress__value {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--ui-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-progress__track {
+  position: relative;
+  height: calc(var(--_h) * var(--ui-progress-track-scale, 1));
+  overflow: hidden;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-surface-3);
+  box-shadow: var(--ui-progress-track-shadow);
+}
+
+.ui-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--_c);
+  background-image: var(--ui-progress-fill-sheen);
+  /* `initial` in the theme: a glow in the fill colour. */
+  box-shadow: var(--ui-progress-fill-glow, 0 0 12px color-mix(in srgb, var(--_c) 45%, transparent));
+  transition: width var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-progress__track[data-indeterminate] .ui-progress__fill {
+  width: 40%;
+  animation: ui-progress-indeterminate 1.4s var(--ui-ease) infinite;
+}
+
+/* --_dir runs the sweep from the inline start, so it travels right-to-left under dir="rtl". */
+@keyframes ui-progress-indeterminate {
+  from { transform: translateX(calc(-100% * var(--_dir, 1))); }
+  to { transform: translateX(calc(250% * var(--_dir, 1))); }
+}
+
+.ui-progress__track:dir(rtl) {
+  --_dir: -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-progress__track[data-indeterminate] .ui-progress__fill {
+    animation-duration: 3s;
+  }
+}
+
+/* The kit's motion switch (styles/motion.css) leaves the sweep running, slowed as under the OS setting. */
+[data-ui-motion='reduce'] .ui-progress__track[data-indeterminate] .ui-progress__fill {
+  animation-duration: 3s;
+}
+
+@media (forced-colors: active) {
+  .ui-progress__track {
+    border: 1px solid CanvasText;
+  }
+
+  .ui-progress__fill {
+    background: Highlight;
+  }
+}
+
+/* animation="spring": a full-width fill slid in from the inline start (transform only), on the
+   critically damped spring: an overshoot would open a gap at the start of the track. */
+.ui-progress[data-motion='spring'] .ui-progress__track:not([data-indeterminate]) .ui-progress__fill {
+  width: 100%;
+  transform: translateX(calc((var(--_ratio, 0) - 1) * 100% * var(--_dir, 1)));
+  transition: transform calc(var(--ui-duration-slow) * 1.92) var(--ui-spring-smooth);
+}
+
+/* The shown percentage counts along on the same spring with no frame loop: a registered integer transitions
+   and a counter writes it in the locale's digits, between the texts ProgressBar.tsx sets. Without @property
+   the count jumps to the value; a custom formatValue counts in JS. */
+@property --_progress-count {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 0;
+}
+
+.ui-progress[data-motion='spring'] .ui-progress__value[data-count] {
+  counter-reset: ui-progress-count var(--_progress-count);
+  transition: --_progress-count calc(var(--ui-duration-slow) * 1.92) var(--ui-spring-smooth);
+}
+
+.ui-progress[data-motion='spring'] .ui-progress__value[data-count]::before {
+  content: var(--_progress-before) counter(ui-progress-count, var(--_progress-digits, decimal)) var(--_progress-after);
+}

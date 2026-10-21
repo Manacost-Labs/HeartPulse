@@ -15,7 +15,7 @@ export async function closeLocal(server) {
   server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
 }
 
-export async function publicCardFixture() {
+export async function publicCardFixture({ backendEnv } = {}) {
   let unavailable = false;
   const cards = Array.from({ length: 3000 }, (_, i) => ({
     card_id: i === 0 ? 'blizzard:12345' : `CARD_QA_${String(i + 1).padStart(4, '0')}`,
@@ -51,7 +51,7 @@ export async function publicCardFixture() {
   });
   const externalOrigin = await listenLocal(source);
   let backend;
-  try { backend = await startCredentialBackend({ externalOrigin, frontend: true, cardImages: true }); }
+  try { backend = await startCredentialBackend({ externalOrigin, frontend: true, cardImages: true, env: backendEnv }); }
   catch (error) { await closeLocal(source); throw error; }
   const app = express();
   app.use(express.static(resolve('dist')));

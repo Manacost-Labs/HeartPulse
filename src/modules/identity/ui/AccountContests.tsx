@@ -1,3 +1,5 @@
+import { Trophy } from 'lucide-react';
+import AccountSectionHead from './AccountSectionHead';
 export type AccountContestEntry = {
   id: string;
   contestId: string;
@@ -26,11 +28,15 @@ function joinedLabel(value: string): string {
 /** Contest entries of the viewer; one quiet line until there are any. */
 export default function AccountContests({ entries, loading }: { entries: AccountContestEntry[]; loading: boolean }) {
   return (
-    <section id="account-contests" className="account-card account-contests" aria-labelledby="account-contests-title" data-tour-id="profile-contests">
-      <div className="account-contests__head">
-        <h2 id="account-contests-title">Конкурсы</h2>
-        <a href="/contests/">Текущие конкурсы</a>
-      </div>
+    <section id="account-contests" className="account-section account-contests" aria-labelledby="account-contests-title" data-tour-id="profile-contests">
+      <AccountSectionHead
+        id="account-contests-title"
+        icon={<Trophy size={15} aria-hidden="true" />}
+        eyebrow="Конкурсы"
+        title="Мои конкурсы"
+        description="Заявки, результаты и призы."
+        aside={<a className="account-contests__all" href="/contests/">Текущие конкурсы</a>}
+      />
       {loading ? (
         <p className="account-muted">Загружаем историю…</p>
       ) : entries.length === 0 ? (

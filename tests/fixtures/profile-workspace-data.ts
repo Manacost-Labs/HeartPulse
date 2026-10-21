@@ -24,13 +24,16 @@ export function mockProfileRequests(active = true, failRefresh = false) {
         hasAccess: active, source: active ? 'boosty' : 'none', checkedAt: '2026-09-21T09:30:00.000Z',
         entitlements: { standard: active, arena: active, battlegrounds: active },
         message: active ? 'Подписка подтверждена. Вам доступны все разделы сайта.' : 'Подключите подписку, чтобы открыть закрытые разделы.',
-        boosty: { hasAccess: active, levelName: 'Алмаз', price: 300, message: 'Подписка не подключена.' },
+        boosty: { hasAccess: active, levelName: 'Алмаз', price: 300, message: 'Подписка не подключена.', dates: { nextPaymentAt: '2099-11-12T09:00:00.000Z' }, willRenew: true },
         telegram: { hasAccess: false, connected: false, message: 'Аккаунт Telegram не привязан.' },
         patreon: { hasAccess: false, configured: true, connected: false, message: 'Подписка не подключена.' },
       });
     }
     if (url.pathname === '/api/profile/contest-history') return Response.json({ items: [] });
-    if (url.pathname === '/api/auth/telegram/config') return Response.json({ enabled: false, socialProviders: [] });
+    if (url.pathname === '/api/auth/telegram/config') {
+      return Response.json({ enabled: false, socialProviders: [{ provider: 'google', authUrl: '/api/auth/google/start' }] });
+    }
+    if (url.pathname === '/api/account/linked-providers') return Response.json({ providers: ['email'] });
     return Response.json({ error: 'Unsupported fixture request' }, { status: 404 });
   };
   return () => { window.fetch = originalFetch; };

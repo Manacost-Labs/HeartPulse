@@ -2640,13 +2640,13 @@ for (const [device, viewport] of [
     }
 
     await page.goto(`${BASE}/?login`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.account-dashboard .account-access--active .account-access__tile', { timeout: 20_000 });
+    await page.waitForSelector('.account-dashboard .account-plan--active .account-access__tile', { timeout: 20_000 });
     const profileState = await page.evaluate(() => {
       const arenaMainStyle = getComputedStyle(document.querySelector('.arena-main'));
       const arenaContent = document.querySelector('.arena-content.arena-content-open');
       const arenaContentStyle = getComputedStyle(arenaContent);
       const profilePlaqueStyle = getComputedStyle(arenaContent, '::before');
-      const header = document.querySelector('.account-header');
+      const header = document.querySelector('.account-hero');
       const controls = [...document.querySelectorAll('.account-dashboard :is(a, button, input, select, summary)')]
         .filter(control => control.getClientRects().length > 0 && control.getAttribute('type') !== 'checkbox');
       return {
@@ -2654,9 +2654,9 @@ for (const [device, viewport] of [
         headings: [...document.querySelectorAll('h1')].map(heading => heading.id),
         headerBackground: header ? getComputedStyle(header).backgroundColor : '',
         openSections: document.querySelectorAll('a.account-access__tile').length,
-        publicProfileActions: [...document.querySelectorAll('.account-header__actions > :is(a, button)')]
+        publicProfileActions: [...document.querySelectorAll('.account-hero__actions > :is(a, button)')]
           .map(action => action.textContent.trim()),
-        contactsOpen: document.querySelector('#account-settings')?.open ?? null,
+        contactsVisible: Boolean(document.querySelector('#account-settings input#account-telegram')?.getClientRects().length),
         smallControls: controls.filter(control => control.getBoundingClientRect().height < 40)
           .map(control => (control.textContent || control.getAttribute('aria-label') || control.tagName).trim().slice(0, 40)),
         scrollWidth: document.documentElement.scrollWidth,
@@ -2672,10 +2672,10 @@ for (const [device, viewport] of [
     });
     if (profileState.title !== 'Личный кабинет — HearthPulse'
       || profileState.headings.join() !== 'account-title'
-      || profileState.headerBackground !== 'rgb(255, 248, 230)'
+      || profileState.headerBackground !== 'rgb(58, 6, 16)'
       || profileState.openSections < 1
-      || profileState.publicProfileActions.join('|') !== 'Публичный профиль|Копировать ссылку'
-      || profileState.contactsOpen !== false
+      || profileState.publicProfileActions.join('|') !== 'Публичный профиль|Копировать ссылку|Выйти'
+      || profileState.contactsVisible !== true
       || profileState.smallControls.length > 0
       || profileState.scrollWidth > profileState.clientWidth + 1) {
       failures.push(`profile [${device}]: account layout, access or targets regressed (${JSON.stringify(profileState)})`);
@@ -2693,7 +2693,6 @@ for (const [device, viewport] of [
       minSteps: 5,
       mobile: device === 'mobile',
     });
-    await page.$eval('#account-settings', contacts => { contacts.open = true; });
     await page.click('#account-settings button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.account-message--ok')?.textContent?.includes('Профиль обновлен.'));
     const accountMessage = selector => page.$eval(selector, element => {

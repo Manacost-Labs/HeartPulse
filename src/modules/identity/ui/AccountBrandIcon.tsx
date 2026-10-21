@@ -1,9 +1,12 @@
 import { Mail } from 'lucide-react';
 
-export type AccountBrand = 'email' | 'telegram' | 'boosty' | 'patreon';
+export type AccountBrand = 'email' | 'telegram' | 'google' | 'discord' | 'yandex' | 'boosty' | 'patreon';
 
 const LOGOS: Record<Exclude<AccountBrand, 'email'>, string> = {
   telegram: '/auth-icons/telegram.svg',
+  google: '/auth-icons/google.svg',
+  discord: '/auth-icons/discord.svg',
+  yandex: '/auth-icons/yandex.svg',
   boosty: '/ad/boosty-96.webp',
   patreon: '/auth-icons/patreon.svg',
 };

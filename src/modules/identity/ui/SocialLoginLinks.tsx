@@ -1,20 +1,9 @@
 import './SocialLoginLinks.css';
+import { parseSocialLoginProviders } from '../model/socialLoginProviders';
 
-type Provider = 'discord' | 'google' | 'yandex' | 'patreon';
-type LoginProvider = Provider | 'telegram';
-type SocialLoginProvider = { provider: Provider; authUrl: string };
+type LoginProvider = 'discord' | 'google' | 'yandex' | 'patreon' | 'telegram';
 
 const labels: Record<LoginProvider, string> = { google: 'Google', discord: 'Discord', yandex: 'Яндекс ID', patreon: 'Patreon', telegram: 'Telegram' };
-
-export function parseSocialLoginProviders(value: unknown): SocialLoginProvider[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item: unknown): SocialLoginProvider[] => {
-    if (!item || typeof item !== 'object') return [];
-    const candidate = item as { provider?: unknown; authUrl?: unknown };
-    if ((candidate.provider !== 'discord' && candidate.provider !== 'google' && candidate.provider !== 'yandex' && candidate.provider !== 'patreon') || typeof candidate.authUrl !== 'string') return [];
-    return [{ provider: candidate.provider, authUrl: candidate.authUrl }];
-  });
-}
 
 export default function SocialLoginLinks({ disabled, providers, telegramAuthUrl, withDivider }: { disabled: boolean; providers: unknown; telegramAuthUrl?: string; withDivider: boolean }) {
   const buttons: Array<{ provider: LoginProvider; authUrl: string }> = [

@@ -198,6 +198,15 @@ frame, format switch and archetype overview temporarily stay in
 `src/features/StandardMatchups.tsx`, which accepts the controlled client
 without invoking its legacy browser cache.
 
+`server/modules/accountSignIns` owns the read-only list of sign-in providers
+linked to the current account (`GET /api/account/linked-providers`). It reads
+only the provider column of the viewer's identities and maps storage spellings
+to public names; linking itself stays with each provider's start route. The
+account page in `src/modules/identity` cannot import the vendored Valyro
+`BillingPlanCard`, so `src/features/AccountBillingPlanCard.tsx` wraps it and
+the `/?login` composition supplies it through the identity module's
+`AccountPlanCardSlot`; without it the module shows its own plain plate.
+
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical
 current-account resolver; the module rechecks eligibility when approving,

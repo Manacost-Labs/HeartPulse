@@ -1318,6 +1318,35 @@
       ]
     },
     {
+      "name": "backend-accountSignIns",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns the read-only list of sign-in providers linked to the current account.",
+      "paths": [
+        "server/modules/accountSignIns"
+      ],
+      "publicEntrypoints": [
+        "server/modules/accountSignIns/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/profile-workspace-design.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/account-sign-ins-routes.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals"
+      ]
+    },
+    {
       "name": "backend-game-data-audit",
       "status": "modular",
       "owner": "data-platform",

@@ -1,0 +1,91 @@
+.ui-quota-meter {
+  display: grid;
+  grid-template-areas:
+    'label value'
+    'bar bar';
+  grid-template-columns: minmax(0, 1fr) auto;
+  /* The value sits on the label's baseline, even when the badge wraps the label onto two lines. */
+  align-items: baseline;
+  gap: var(--ui-space-2) var(--ui-space-2);
+  min-width: 0;
+  font-size: var(--ui-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-quota-meter__head {
+  grid-area: label;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-1) var(--ui-space-2);
+  min-width: 0;
+}
+
+.ui-quota-meter__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-fg);
+  font-weight: var(--ui-weight-medium);
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+  white-space: nowrap;
+}
+
+.ui-quota-meter__badge {
+  flex-shrink: 0;
+}
+
+.ui-quota-meter__value {
+  grid-area: value;
+  color: var(--ui-fg-muted);
+  white-space: nowrap;
+}
+
+.ui-quota-meter__used {
+  color: var(--ui-fg);
+  font-weight: var(--ui-weight-medium);
+}
+
+.ui-quota-meter__limit {
+  color: var(--ui-fg-subtle);
+}
+
+.ui-quota-meter__bar {
+  grid-area: bar;
+}
+
+/* The bar's own header duplicates the visual label, so it stays for screen readers only. */
+.ui-quota-meter__bar .ui-progress__header {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.ui-quota-meter[data-status='warning'] .ui-quota-meter__used {
+  color: var(--ui-warning-text);
+}
+
+.ui-quota-meter[data-status='danger'] .ui-quota-meter__used {
+  color: var(--ui-danger-text);
+}
+
+/* Compact: one row — label · bar · value. A fixed-minimum value column keeps the bars of a stack the same length. */
+.ui-quota-meter[data-variant='compact'] {
+  grid-template-areas: 'label bar value';
+  grid-template-columns: minmax(72px, 32%) minmax(48px, 1fr) minmax(7.5em, auto);
+  align-items: center;
+  gap: var(--ui-space-3);
+  font-size: var(--ui-text-xs);
+}
+
+.ui-quota-meter[data-variant='compact'] .ui-quota-meter__value {
+  text-align: end;
+}
+
+.ui-quota-meter[data-variant='compact'] .ui-quota-meter__label {
+  color: var(--ui-fg-muted);
+  font-weight: var(--ui-weight-regular);
+}

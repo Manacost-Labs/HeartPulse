@@ -239,7 +239,7 @@ import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createPublicApiCardSources, registerPublicApi } from './app/registerPublicApi.js';
-import { startSubscriptionRefreshJob, writeSubscriptionCacheRow } from './modules/subscription/public.js';
+import { normalizeBoostyRenewal, startSubscriptionRefreshJob, writeSubscriptionCacheRow } from './modules/subscription/public.js';
 import {
   firestoneArenaMatchupsDataset,
   normalizeFirestoneArenaClassRows,
@@ -247,6 +247,7 @@ import {
 } from './modules/arena/public.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
+import { createAccountSignInsRouter, createSqliteLinkedProviderReader } from './modules/accountSignIns/public.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './modules/identity/public.js';
 import {
@@ -3431,6 +3432,7 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
     const money = subscriber?.money && typeof subscriber.money === 'object' ? subscriber.money : {};
     const level = subscriber?.level && typeof subscriber.level === 'object' ? subscriber.level : {};
     const paymentDates = normalizeBoostyPaymentDates(subscriber);
+    const renewal = normalizeBoostyRenewal(subscriber);
     const price = Number(money.currentPrice ?? level.price ?? 0) || 0;
     const active = Boolean(data?.hasAccess ?? subscriber?.hasActivePaidAccess);
     const levelName = String(level.name || '');
@@ -3448,6 +3450,7 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
       price,
       levelName,
       ...paymentDates,
+      ...renewal,
       entitlements,
       message: hasAccess
         ? 'Boosty подписка подтверждена.'
@@ -8747,6 +8750,12 @@ app.use('/api', createSubscriptionRouter({
   userAuth,
   refreshSubscription: refreshSubscriptionForUser,
   unavailableStatus: emptySubscriptionStatus,
+  setPrivateNoStore,
+}));
+
+app.use('/api', createAccountSignInsRouter({
+  userAuth,
+  readStoredProviders: createSqliteLinkedProviderReader(db),
   setPrivateNoStore,
 }));
 

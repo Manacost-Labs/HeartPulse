@@ -33,7 +33,8 @@ if (cardModalStart < 0 || cardModalEnd < 0) {
 }
 
 const profileInlineStyles = identityUiInlineStyles([
-  'AccountDashboard', 'AccountAccessCard', 'AccountLinks', 'AccountContests', 'AccountSettings',
+  'AccountDashboard', 'AccountHero', 'AccountPlanSection', 'AccountAccessOptions', 'AccountSectionHead',
+  'AccountLinks', 'AccountContests', 'AccountSettings',
 ]);
 
 console.log(`[architecture] authenticated profile inline styles: ${profileInlineStyles.length} / 0`);

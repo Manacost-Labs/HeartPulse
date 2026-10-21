@@ -1,0 +1,99 @@
+/* One plate like the archetype dossier: the tavern art spans the whole header,
+   a gradient keeps the name readable on the left and lets the art show right. */
+.account-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'identity identity' 'plan actions';
+  gap: 1.25rem 1rem;
+  align-items: end;
+  overflow: hidden;
+  min-height: 15rem;
+  padding: clamp(1.1rem, 2.4vw, 1.75rem);
+  border: 12px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  color: #fff0c8;
+  background:
+    linear-gradient(90deg, rgba(52, 4, 10, 0.96) 0%, rgba(66, 6, 12, 0.86) 38%, rgba(52, 4, 10, 0.35) 72%, rgba(40, 3, 8, 0.15) 100%),
+    image-set(url('/wallpaper/profile-hero-hth-1430.avif') type('image/avif'), url('/wallpaper/profile-hero-hth.webp') type('image/webp')) right center / cover no-repeat,
+    #3a0610;
+  box-shadow: 0 14px 28px rgba(70, 38, 15, 0.16);
+}
+
+.account-hero__identity { grid-area: identity; display: flex; align-items: center; gap: clamp(0.85rem, 2vw, 1.4rem); min-width: 0; }
+.account-hero__identity > .auth-avatar { flex: 0 0 auto; border-color: rgba(240, 203, 117, 0.62); box-shadow: 0 10px 22px rgba(37, 3, 5, 0.38); }
+.account-hero__text { min-width: 0; }
+.account-hero__eyebrow { margin: 0 0 0.3rem; color: var(--arena-gold-light); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+.account-dashboard .account-hero h1 {
+  margin: 0;
+  color: #fff0c8;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.2vw, 3rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 10px rgba(20, 2, 4, 0.55);
+}
+.account-dashboard .account-hero__contact { margin-top: 0.35rem; color: rgba(255, 240, 200, 0.8); overflow-wrap: anywhere; }
+
+/* The plan strip reads like the dossier's KPI band: translucent wood over the art. */
+.account-hero__plan {
+  grid-area: plan;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.8rem;
+  justify-self: start;
+  max-width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(239, 201, 111, 0.28);
+  border-radius: 6px;
+  background: rgba(30, 4, 9, 0.5);
+  backdrop-filter: blur(10px);
+}
+.account-hero__pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.82rem; font-weight: 800; }
+.account-hero__pill--active { background: #2f7a3e; color: #f2ffe9; }
+.account-hero__pill--none { background: rgba(255, 240, 200, 0.16); color: #fff0c8; }
+.account-hero__pill--pending { background: rgba(255, 240, 200, 0.12); color: rgba(255, 240, 200, 0.85); }
+.account-hero__pill--unknown { background: #a86a10; color: #fff7e6; }
+.account-hero__plan-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; color: var(--arena-gold-light); }
+.account-dashboard .account-hero__plan-line { color: #fff0c8; font-variant-numeric: tabular-nums; }
+
+.account-hero__actions { grid-area: actions; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+.account-hero__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgba(239, 201, 111, 0.55);
+  border-radius: 6px;
+  background: rgba(30, 4, 9, 0.45);
+  color: #fff0c8;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-hero__action:hover { border-color: var(--arena-gold-light); background: rgba(30, 4, 9, 0.7); color: #fff; }
+.account-hero__action--quiet { border-color: transparent; background: transparent; }
+.account-dashboard .account-hero :where(a, button):focus-visible { outline-color: var(--arena-gold-light); }
+
+@media (max-width: 820px) {
+  .account-hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'identity' 'plan' 'actions';
+    min-height: 0;
+    padding: 1.4rem 0.85rem 0.85rem;
+    border-width: 8px;
+    background:
+      linear-gradient(180deg, rgba(40, 3, 9, 0.35) 0%, rgba(44, 4, 10, 0.72) 45%, rgba(36, 3, 8, 0.94) 100%),
+      image-set(url('/wallpaper/profile-hero-hth-860.avif') type('image/avif'), url('/wallpaper/profile-hero-hth.webp') type('image/webp')) 70% top / cover no-repeat,
+      #3a0610;
+  }
+  /* The avatar sizes itself inline; a phone takes the smaller plate. */
+  .account-hero__identity > .auth-avatar { --auth-avatar-size: 72px !important; --auth-avatar-font-size: 23px !important; }
+  .account-hero__plan { justify-self: stretch; }
+  .account-hero__actions { justify-content: flex-start; }
+  .account-hero__actions > * { flex: 1 1 auto; justify-content: center; }
+}

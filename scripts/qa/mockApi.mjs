@@ -147,6 +147,10 @@ export function createQaApiHandler({
       }));
       return true;
     }
+    if (url.pathname === '/api/account/linked-providers') {
+      respond(authenticated ? jsonResponse({ providers: ['email'] }) : { ...jsonResponse({ error: 'Требуется вход' }), status: 401 });
+      return true;
+    }
     if (url.pathname === '/api/subscription/status' || url.pathname === '/api/subscription/refresh') {
       respond(jsonResponse(authenticated ? subscriber : {
         hasAccess: false,

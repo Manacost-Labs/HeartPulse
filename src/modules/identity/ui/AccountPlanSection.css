@@ -1,0 +1,88 @@
+/* Sections of the account: one parchment frame each, the site's three-part head. */
+.account-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  padding: clamp(1rem, 2.2vw, 1.5rem);
+  border: 1px solid rgba(95, 55, 29, 0.28);
+  border-radius: 4px;
+  background: var(--arena-parchment-texture), var(--arena-parchment-light);
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 226, 0.6), 0 6px 18px rgba(70, 38, 15, 0.08);
+}
+
+.account-section__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 0.75rem 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--arena-paper-line); }
+.account-section__heading { display: flex; flex-direction: column; gap: 0.3rem; flex: 1 1 280px; min-width: 0; }
+.account-dashboard .account-section__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--arena-red);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.account-dashboard .account-section__head h2 { font-family: var(--font-display); font-size: clamp(1.35rem, 2.4vw, 1.7rem); font-weight: 400; color: var(--arena-ink); }
+.account-dashboard .account-section__description { color: var(--arena-muted-ink); }
+.account-section__aside { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+
+.account-plan__check { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.account-plan__check small { color: var(--arena-muted-ink); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+.account-plan__plain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid rgba(95, 55, 29, 0.24);
+  border-radius: 4px;
+  background: rgba(255, 249, 226, 0.55);
+}
+.account-plan__plain-main { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.account-dashboard .account-plan__plain-eyebrow { color: var(--arena-muted-ink); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.account-plan__plain-main > strong { font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; }
+.account-plan__plain-date { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--arena-muted-ink); font-variant-numeric: tabular-nums; }
+.account-dashboard .account-plan__plain-price { justify-self: end; color: var(--arena-muted-ink); }
+.account-plan__plain-price strong { color: var(--arena-ink); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.account-plan__plain > .account-button { grid-column: 2; justify-self: end; gap: 0.4rem; }
+
+/* What the plan opens: one row of compact links instead of seven large tiles. */
+.account-access__tiles { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.account-access__tile {
+  box-sizing: border-box;
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  border: 1px solid rgba(95, 55, 29, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 249, 226, 0.6);
+  font-weight: 700;
+}
+.account-access__tile > svg { flex: 0 0 auto; color: #2f7a3e; }
+a.account-access__tile:hover { border-color: var(--arena-red); }
+.account-access__tile--locked { border-style: dashed; color: var(--arena-muted-ink); background: transparent; }
+.account-access__tile--locked > svg { color: var(--arena-muted-ink); }
+
+.account-dashboard__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.account-links__ok { display: inline-flex; align-items: center; gap: 0.3rem; color: #2f7a3e; font-size: 0.9rem; font-weight: 700; }
+.account-contests__all { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
+
+.account-help { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1.1rem; padding: 0.5rem 0; color: var(--arena-muted-ink); }
+.account-help a { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 44px; color: var(--arena-red); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .account-dashboard__columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .account-section { padding: 0.9rem; }
+  .account-plan__plain { grid-template-columns: minmax(0, 1fr); }
+  .account-dashboard .account-plan__plain-price { justify-self: start; }
+  .account-plan__plain > .account-button { grid-column: 1; justify-self: stretch; justify-content: center; }
+  .account-help { flex-direction: column; align-items: flex-start; }
+}

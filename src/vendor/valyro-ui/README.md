@@ -62,3 +62,11 @@ HearthPulse changes: `sheet` (the card docks as a bottom sheet), `footer`
 (secondary actions under the step buttons), `scrollTarget` (the page scrolls
 the target itself) and `spotlightInsets` (the spotlight stays in the part of
 the viewport the sheet leaves free).
+
+Also vendored for the personal account: `billing-plan-card` (Valyro Pro:
+`ai/BillingPlanCard`, `ai/QuotaMeter`, `ai/format.ts`) and `progress-bar`
+(`basic/ProgressBar`), unchanged; it shares the tour's `basic/Button`. The
+account does not import `valyro-ui/styles` either: the wrapper
+`src/features/AccountBillingPlanCard.tsx` uses the VaryloUI base, the shared
+parchment mapping and, in `AccountBillingPlanCard.css`, the few theme-only
+tokens the card reads (`--ui-space-6`, `--ui-text-2xl`, …).

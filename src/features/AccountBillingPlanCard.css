@@ -1,0 +1,51 @@
+/* Tokens the Valyro plan card reads that the VaryloUI base and the shared
+   parchment mapping do not define (Valyro ships them only in its themes). */
+.account-billing-plan.hp-varylo-parchment {
+  --ui-space-6: 24px;
+  --ui-text-2xl: 1.5rem;
+  --ui-leading-tight: 1.2;
+  --ui-tracking-tight: 0;
+  --ui-weight-regular: 400;
+  --ui-icon-sm: 15px;
+  --ui-fg-inverse: #fff0c8;
+  --ui-info: #2e5f8c;
+  --ui-info-soft: rgba(46, 95, 140, 0.12);
+  --ui-info-text: #24496b;
+  --ui-warning-soft: rgba(176, 122, 18, 0.14);
+  --ui-warning-text: #6e4a08;
+  --ui-badge-solid-fg: #fff0c8;
+  --ui-badge-solid-green: #2f7a3e;
+  --ui-badge-solid-gray: #7a6a58;
+}
+
+/* The vendored plan card sits flat on the section's parchment, and its Boosty
+   button stands beside the date instead of alone in the bottom corner. */
+.account-billing-plan .account-billing-plan__card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  max-width: none;
+  border-radius: 4px;
+  background: rgba(255, 249, 226, 0.55);
+  box-shadow: none;
+}
+.account-billing-plan .account-billing-plan__card > :not(.ui-billing-plan-card__details, .ui-billing-plan-card__actions) { grid-column: 1 / -1; }
+.account-billing-plan .ui-billing-plan-card__actions { margin: 0; }
+.account-billing-plan .ui-billing-plan-card__actions .ui-button[data-variant] {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--arena-red);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--arena-red);
+  font: inherit;
+  font-weight: 700;
+}
+.account-billing-plan .ui-billing-plan-card__actions .ui-button[data-variant]:hover { background: rgba(123, 21, 27, 0.08); }
+@container ui-billing-plan-card (max-width: 520px) {
+  .account-billing-plan .account-billing-plan__card > * { grid-column: 1 / -1; }
+  .account-billing-plan .ui-billing-plan-card__actions .ui-button[data-variant] { width: 100%; justify-content: center; }
+}
+.account-billing-plan .ui-billing-plan-card__name { font-family: var(--font-display); font-weight: 400; }
+.account-billing-plan .ui-billing-plan-card__amount { font-variant-numeric: tabular-nums; }

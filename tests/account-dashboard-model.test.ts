@@ -4,6 +4,7 @@ import {
   accountAccessNote,
   accountAccessSource,
   accountAccessTiles,
+  accountLinkReturn,
   accountLinkRows,
   hasTelegramLinkActions,
 } from '../src/modules/identity/model/accountDashboard';
@@ -152,4 +153,13 @@ test('FAQ structured answers match the visible help content', () => {
   for (const entity of faq.mainEntity) {
     assert.equal(questions.find(question => question.question === entity.name)?.answer, entity.acceptedAnswer.text);
   }
+});
+
+test('a link flow return becomes one message and leaves only the account query', () => {
+  assert.deepEqual(accountLinkReturn('?login&linked=google'), { type: 'ok', text: 'Google привязан: теперь можно входить и так.', search: '?login' });
+  assert.deepEqual(accountLinkReturn('?login&discord=error'), { type: 'err', text: 'Не удалось привязать Discord. Возможно, этот аккаунт уже привязан к другому профилю.', search: '?login' });
+  assert.equal(accountLinkReturn('?login&patreon=linked')?.text, 'Patreon привязан: теперь можно входить и так.');
+  assert.equal(accountLinkReturn('?login'), null);
+  assert.equal(accountLinkReturn('?login&linked=evil'), null, 'unknown providers are ignored');
+  assert.equal(accountLinkReturn('?login&telegram=ok'), null);
 });

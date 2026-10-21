@@ -1,0 +1,208 @@
+.ui-billing-plan-card {
+  container: ui-billing-plan-card / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-5);
+  width: 100%;
+  max-width: 460px;
+  padding: var(--ui-space-6);
+}
+
+.ui-billing-plan-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+}
+
+/* Narrow cards always put the price on its own row under the name, so cards side by side share one header shape. */
+@container ui-billing-plan-card (max-width: 400px) {
+  .ui-billing-plan-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ui-space-2);
+  }
+}
+
+.ui-billing-plan-card__plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+
+.ui-billing-plan-card__eyebrow {
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-medium);
+}
+
+.ui-billing-plan-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.ui-billing-plan-card__name {
+  margin: 0;
+  /* A theme may paint the name with a gradient (clipped to the text, which turns transparent). */
+  background: var(--ui-billing-plan-card-name-bg);
+  -webkit-background-clip: var(--ui-billing-plan-card-name-clip);
+  background-clip: var(--ui-billing-plan-card-name-clip);
+  color: var(--ui-billing-plan-card-name-fg);
+  font-size: var(--ui-text-2xl);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: var(--ui-tracking-tight);
+  line-height: var(--ui-leading-tight);
+}
+
+.ui-billing-plan-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ui-space-1);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-billing-plan-card__amount {
+  font-size: var(--ui-text-2xl);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: var(--ui-tracking-tight);
+}
+
+.ui-billing-plan-card__interval {
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-sm);
+}
+
+/* ── Trial banner ── */
+.ui-billing-plan-card__notice {
+  --_tone: var(--ui-info);
+  --_tone-soft: var(--ui-info-soft);
+  --_tone-text: var(--ui-info-text);
+  /* A theme may mix the tone into its surface (`initial` amount: the soft tone itself). */
+  --_tone-mix: color-mix(in srgb, var(--_tone) var(--ui-billing-plan-card-notice-tone-amount), var(--ui-elevated));
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  /* `initial`: an edge in the tone. */
+  border: var(--ui-border-width, 1px) solid var(--ui-billing-plan-card-notice-border-color, color-mix(in srgb, var(--_tone) 25%, transparent));
+  border-radius: var(--ui-billing-plan-card-notice-radius);
+  background: var(--_tone-mix, var(--_tone-soft));
+  color: var(--_tone-text);
+  box-shadow: var(--ui-highlight);
+  font-size: var(--ui-text-sm);
+  line-height: 20px;
+}
+
+.ui-billing-plan-card__notice[data-tone='warning'] {
+  --_tone: var(--ui-warning);
+  --_tone-soft: var(--ui-warning-soft);
+  --_tone-text: var(--ui-warning-text);
+}
+
+/* Centred on the first line of text. */
+.ui-billing-plan-card__notice > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ui-billing-plan-card__notice strong {
+  font-weight: var(--ui-weight-semibold);
+}
+
+/* ── Details ── */
+.ui-billing-plan-card__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--ui-space-4);
+  margin: 0;
+  padding: var(--ui-space-4) var(--ui-billing-plan-card-details-padding-inline);
+  border-block: var(--ui-billing-plan-card-details-border);
+  border-radius: var(--ui-billing-plan-card-details-radius);
+  background: var(--ui-billing-plan-card-details-bg);
+}
+
+.ui-billing-plan-card__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+
+.ui-billing-plan-card__detail dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+}
+
+.ui-billing-plan-card__detail dt > svg {
+  width: var(--ui-icon-sm);
+  height: var(--ui-icon-sm);
+  color: var(--ui-fg-subtle);
+}
+
+.ui-billing-plan-card__detail dd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-medium);
+}
+
+.ui-billing-plan-card__card {
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-billing-plan-card__expires {
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-regular);
+}
+
+/* ── Usage ── */
+.ui-billing-plan-card__usage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+}
+
+.ui-billing-plan-card__section-title {
+  margin: 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-medium);
+}
+
+.ui-billing-plan-card__trial-end {
+  white-space: nowrap;
+}
+
+/* ── Actions ── */
+/* Pinned to the bottom: cards of different content in a row end on one line. */
+.ui-billing-plan-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  margin-top: auto;
+}
+
+.ui-billing-plan-card__primary-actions {
+  display: flex;
+  gap: var(--ui-space-2);
+  margin-inline-start: auto;
+}
+
+.ui-billing-plan-card__actions .ui-button.ui-billing-plan-card__cancel[data-variant] {
+  --_fg: var(--ui-danger-text);
+  --_bg-hover: var(--ui-danger-soft);
+  margin-inline-start: -10px;
+}

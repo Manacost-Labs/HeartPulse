@@ -61,12 +61,44 @@ export function hasTelegramLinkActions(mode: 'legacy-widget' | 'oidc' | 'disable
   return mode === 'oidc' || Boolean(botUsername);
 }
 
+export type AccountSocialProvider = 'google' | 'discord' | 'yandex';
+
 export type AccountLinkRow = {
-  id: 'email' | 'telegram' | 'boosty' | 'patreon';
+  id: 'email' | 'telegram' | AccountSocialProvider | 'boosty' | 'patreon';
   title: string;
   detail: string;
   linked: boolean;
+  /** Where linking starts while signed in; only for providers that are not linked yet. */
+  linkUrl?: string;
 };
+
+/**
+ * Sign-in providers the server offers, and the ones this account already uses.
+ * `linked` is null while the account's identities are unknown: rows are then
+ * left out rather than shown as unlinked.
+ */
+export type AccountSocialLinks = {
+  providers: ReadonlyArray<{ provider: string; authUrl: string }>;
+  linked: ReadonlySet<string> | null;
+};
+
+const SOCIAL_TITLES: Record<AccountSocialProvider, string> = { google: 'Google', discord: 'Discord', yandex: 'Яндекс ID' };
+
+function socialRows(social: AccountSocialLinks | undefined): AccountLinkRow[] {
+  if (!social?.linked) return [];
+  const linked = social.linked;
+  return social.providers.flatMap(({ provider, authUrl }): AccountLinkRow[] => {
+    if (provider !== 'google' && provider !== 'discord' && provider !== 'yandex') return [];
+    const isLinked = linked.has(provider);
+    return [{
+      id: provider,
+      title: SOCIAL_TITLES[provider],
+      detail: isLinked ? 'Привязан · можно входить' : 'Не привязан',
+      linked: isLinked,
+      ...(isLinked ? {} : { linkUrl: authUrl }),
+    }];
+  });
+}
 
 /** A Telegram-only account carries a placeholder address such as `id@telegram.local`. */
 export function isRealAuthEmail(email?: string): boolean {
@@ -74,12 +106,12 @@ export function isRealAuthEmail(email?: string): boolean {
 }
 
 /** Every known way into the account, with whether it is linked. */
-export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus | null): AccountLinkRow[] {
+export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus | null, social?: AccountSocialLinks): AccountLinkRow[] {
   const realEmail = isRealAuthEmail(user.email);
   const boosty = subscription?.boosty;
   const patreon = subscription?.patreon;
   const rows: AccountLinkRow[] = [
-    { id: 'email', title: 'Почта', detail: realEmail ? `${user.email} · вход по почте` : 'Не привязана', linked: realEmail },
+    { id: 'email', title: 'Почта', detail: realEmail ? user.email : 'Не привязана', linked: realEmail },
     {
       id: 'telegram',
       title: 'Telegram',
@@ -87,6 +119,7 @@ export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus
       detail: user.telegramLinked ? (user.telegramUsername ? `@${user.telegramUsername}` : 'Привязан') : 'Не привязан',
       linked: Boolean(user.telegramLinked),
     },
+    ...socialRows(social),
     {
       id: 'boosty',
       title: 'Boosty',
@@ -107,4 +140,27 @@ export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus
     });
   }
   return rows;
+}
+
+const LINK_PROVIDER_TITLES: Record<string, string> = { ...SOCIAL_TITLES, patreon: 'Patreon', telegram: 'Telegram' };
+
+/**
+ * The result a provider's link flow returns with: `?login&linked=google` after
+ * success (Patreon keeps its own `?login&patreon=linked`), `?login&google=error`
+ * after a refusal (server/socialOAuthRoutes.ts). Returns the message and the
+ * query without those markers, or null.
+ */
+export function accountLinkReturn(search: string): { type: 'ok' | 'err'; text: string; search: string } | null {
+  const params = new URLSearchParams(search);
+  const legacyLinked = params.get('patreon') === 'linked' ? 'patreon' : '';
+  const linked = legacyLinked || (params.get('linked') ?? '');
+  const failed = Object.keys(LINK_PROVIDER_TITLES).find(provider => params.get(provider) === 'error');
+  if (!LINK_PROVIDER_TITLES[linked] && !failed) return null;
+  params.delete('linked');
+  if (legacyLinked) params.delete('patreon');
+  if (failed) params.delete(failed);
+  const rest = params.toString().replace(/=(?=&|$)/g, '');
+  return failed
+    ? { type: 'err', text: `Не удалось привязать ${LINK_PROVIDER_TITLES[failed]}. Возможно, этот аккаунт уже привязан к другому профилю.`, search: rest ? `?${rest}` : '' }
+    : { type: 'ok', text: `${LINK_PROVIDER_TITLES[linked]} привязан: теперь можно входить и так.`, search: rest ? `?${rest}` : '' };
 }

@@ -409,6 +409,22 @@
       ]
     },
     {
+      "id": "server.accountSignIns",
+      "runtime": "server",
+      "root": "server/modules/accountSignIns",
+      "purpose": "Owns the read-only list of sign-in providers linked to the current account.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/accountSignIns/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:account-sign-ins-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/profile-workspace-design.md"
+      ]
+    },
+    {
       "id": "server.publicProfile",
       "runtime": "server",
       "root": "server/modules/publicProfile",
@@ -1052,6 +1068,7 @@
         "server.identity",
         "server.publicApi",
         "server.publicProfile",
+        "server.accountSignIns",
         "server.telegramAuth",
         "server.constructedArchetypes"
       ],
@@ -1127,6 +1144,7 @@
         "server.identity",
         "server.publicApi",
         "server.publicProfile",
+        "server.accountSignIns",
         "server.telegramAuth",
         "server.constructedArchetypes"
       ],
