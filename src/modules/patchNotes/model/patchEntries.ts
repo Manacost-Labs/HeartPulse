@@ -1,4 +1,4 @@
-import type { PatchNotesArchetypeUse, PatchNotesChange, PatchNotesDetail, PatchNotesEntry, PatchNotesMode } from './types';
+import type { PatchNotesArchetypeUse, PatchNotesArtwork, PatchNotesChange, PatchNotesDetail, PatchNotesEntry, PatchNotesMode } from './types';
 
 /** Which way one change moved for the player; `neutral` when the source gives no direction. */
 export type PatchDirection = 'buff' | 'nerf' | 'neutral';
@@ -26,6 +26,10 @@ export type PatchCardView = {
   /** Catalog render for the hover preview; the page falls back to the HearthstoneJSON render. */
   renderUrl: string | null;
   art: PatchCardArt;
+  /** Wiki full illustration behind featured cards; `null` without a catalog match. */
+  artwork: PatchNotesArtwork | null;
+  /** Lower-case class of a Constructed or Arena card (`warrior`); `null` for neutral and other modes. */
+  classKey: string | null;
   /** The card's page on the site (statistics and decks with it), for Constructed cards of a known format. */
   cardUrl: string | null;
   /** Element id of the card in its section: `#card-<entry id>` links to it. */
@@ -139,6 +143,12 @@ function placement(entry: PatchNotesEntry): { group: string; groupTitle: string;
   };
 }
 
+/** A playable class of a Constructed, Arena or side-mode card; neutral cards and Battlegrounds have none. */
+function classKeyOf(entry: PatchNotesEntry): string | null {
+  return entry.mode !== 'battlegrounds' && entry.cardClass && entry.cardClass !== 'NEUTRAL' && CLASS_LABELS[entry.cardClass]
+    ? entry.cardClass.toLowerCase() : null;
+}
+
 function art(entry: PatchNotesEntry): PatchCardArt {
   if (entry.mode !== 'battlegrounds') return 'card';
   return entry.cardType === 'hero' ? 'hero' : 'square';
@@ -178,6 +188,8 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       thumb: entry.cardId ? patchCardImage(entry.cardId) : null,
       renderUrl: entry.renderUrl ?? null,
       art: art(entry),
+      artwork: entry.artwork ?? null,
+      classKey: classKeyOf(entry),
       cardUrl: entry.cardId && entry.format ? `/standard/cards/${entry.format}/${encodeURIComponent(entry.cardId)}/` : null,
       anchor: patchCardAnchor(entry.id),
       archetypes: (entry.archetypes ?? []).map(use => ({ ...use, href: archetypeHref(use) })),
@@ -192,8 +204,9 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       search: [entry.name, entry.sourceName, typeLabel, ...entry.changes.flatMap(change => [change.label, change.before, change.after])]
         .filter(value => value !== undefined && value !== null).join(' ').toLocaleLowerCase('ru-RU').replace(/ё/g, 'е'),
     };
-    const icon: PatchGroupIcon = entry.mode !== 'battlegrounds' && entry.cardClass && CLASS_LABELS[entry.cardClass]
-      ? { classKey: entry.cardClass.toLowerCase() } : { cardType: entry.cardType };
+    const classKey = classKeyOf(entry);
+    const icon: PatchGroupIcon = classKey ? { classKey } : entry.mode !== 'battlegrounds' && entry.cardClass === 'NEUTRAL'
+      ? { classKey: 'neutral' } : { cardType: entry.cardType };
     const known = groups.get(group) ?? { id: group, section: sectionId, title: groupTitle, icon, entries: [] };
     known.entries.push(card);
     groups.set(group, known);

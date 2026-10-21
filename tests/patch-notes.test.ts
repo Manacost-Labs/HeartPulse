@@ -7,7 +7,7 @@ import {
 } from '../server/modules/patchNotes/service.js';
 import { encode } from '@firestone-hs/deckstrings';
 import { buildPatchMetaIndex } from '../server/modules/patchNotes/metaImpact.js';
-import { createDbfLookup, withHistory } from '../server/modules/patchNotes/enrichment.js';
+import { createArtworkLookup, createDbfLookup, withHistory } from '../server/modules/patchNotes/enrichment.js';
 import {
   createBattlegroundCatalogLoader, createBattlegroundNameResolver, loadBattlegroundCatalog, type BattlegroundCatalogCard,
 } from '../server/modules/patchNotes/battlegroundCatalog.js';
@@ -86,7 +86,7 @@ test('articles become per-card changes with their notes, modes and resolved card
   const serpent = entries.find(entry => entry.name === 'Змей ветреных вершин');
   assert.deepEqual(serpent, {
     id: 'constructed-змей-ветреных-вершин', name: 'Змей ветреных вершин', sourceName: null, mode: 'constructed',
-    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, format: null, archetypes: [], history: [],
+    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, artwork: null, format: null, archetypes: [], history: [],
     subtitle: null,
     note: 'Родня срабатывала слишком рано.',
     changes: [{ label: 'Текст', before: 'Боевой клич: наносит 5 ед. урона. Родня: стоит на (3) меньше.',
@@ -199,6 +199,42 @@ test('Constructed entries carry today\'s format from the Standard catalog, repri
     'no Standard catalog, no format');
 });
 
+test('Constructed entries carry the wiki full art of the catalog, reprints included; Battlegrounds entries do not', () => {
+  const art = (url: unknown, width: unknown = 2048, height: unknown = 1536) => ({ images: { art: url, art_metadata: { width, height } } });
+  const artwork = createArtworkLookup([
+    { card_id: 'CORE_TLC_600', ...art('https://api.kolodahearthstone.com/uploads/constructed-related-wiki-full-art/TLC_600.jpg') },
+    { card_id: 'SMALL', ...art('https://api.kolodahearthstone.com/small.jpg', 'x', 0) },
+    { card_id: 'UNSAFE', ...art('javascript:alert(1)') },
+  ]);
+  assert.deepEqual(artwork('TLC_600'), {
+    url: 'https://api.kolodahearthstone.com/uploads/constructed-related-wiki-full-art/TLC_600.jpg', width: 2048, height: 1536,
+  }, 'the original id finds the art of its CORE_ reprint');
+  assert.deepEqual(artwork('SMALL'), { url: 'https://api.kolodahearthstone.com/small.jpg', width: null, height: null },
+    'unknown dimensions stay unknown');
+  assert.equal(artwork('UNSAFE'), null, 'only http(s) art reaches the page');
+  const snapshot = buildPatchNotesSnapshot(rows, resolver, 'x', { artwork });
+  const entries = snapshot.patches.find(patch => patch.version === '36.6.3')?.entries ?? [];
+  assert.equal(entries.find(entry => entry.cardId === 'TLC_600')?.artwork?.width, 2048);
+  assert.equal(entries.filter(entry => entry.mode === 'battlegrounds').every(entry => entry.artwork === null), true);
+  assert.equal(buildPatchNotesSnapshot(rows, resolver, 'x').patches[1].entries.every(entry => entry.artwork === null), true,
+    'no catalog, no art');
+});
+
+test('a slow art catalog never holds the patch snapshot back; its art joins once it arrives', async () => {
+  let release: (cards: Record<string, unknown>[]) => void = () => undefined;
+  const service = createPatchNotesService({
+    fetchJson: async () => ({ patches: rows }), patchesUrl: 'x', ttlMs: 60_000,
+    loadCardNames: async () => ({ TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR' } }),
+    loadCardArtwork: () => new Promise(resolve => { release = resolve; }),
+  });
+  const serpent = (snapshot: Awaited<ReturnType<typeof service.load>>) => snapshot.patches
+    .flatMap(patch => patch.entries).find(entry => entry.cardId === 'TLC_600');
+  assert.equal(serpent(await service.load())?.artwork, null, 'the first snapshot does not wait for the art');
+  release([{ card_id: 'TLC_600', images: { art: 'https://api.kolodahearthstone.com/uploads/a.jpg', art_metadata: { width: 1600, height: 900 } } }]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(serpent(await service.load())?.artwork?.width, 1600, 'the same snapshot gains the art without a refetch');
+});
+
 test('meta impact: archetypes whose builds play any print of a changed card, missing formats reported', () => {
   const deck = (dbfs: number[]) => encode({ cards: dbfs.map(dbf => [dbf, 2]), heroes: [7], format: 2 });
   const meta = buildPatchMetaIndex([{
@@ -228,7 +264,7 @@ test('history links a card to earlier patches that changed it, newest first', ()
     version, build: version, title: version, publishedAt: null, sourceUrl: null, officialUrl: null, changeCount: ids.length,
     summary: null, missingBefore: 0, pictureSections: [], generalChanges: [], meta: null,
     entries: ids.map(id => ({ id: `e-${id}-${version}`, name: id, sourceName: null, mode: 'constructed' as const, cardId: id,
-      cardClass: null, cardType: null, renderUrl: null, format: null, archetypes: [], history: [], subtitle: null, changes: [], note: null })),
+      cardClass: null, cardType: null, renderUrl: null, artwork: null, format: null, archetypes: [], history: [], subtitle: null, changes: [], note: null })),
   });
   const [newest, middle, oldest] = withHistory([patch('3.0.0', ['A', 'B']), patch('2.0.0', ['A']), patch('1.0.0', ['A', 'B'])]);
   assert.deepEqual(newest.entries[0].history.map(item => [item.version, item.entryId]), [['2.0.0', 'e-A-2.0.0'], ['1.0.0', 'e-A-1.0.0']]);
@@ -382,4 +418,29 @@ test('the page groups cards by mode, class or type and derives kinds only from d
   assert.equal(normalizePatchVersion('../etc'), '');
   assert.equal(patchNotesHref('36.6.3'), '/standard/patches/?version=36.6.3');
   assert.equal(patchNotesHref(null), '/standard/patches/');
+});
+
+test('presentation: the expansion of a version, the hero lead, wide art and the archive by expansion', async () => {
+  const { toPatchView, patchExpansionCode, patchHeroLead, patchFeaturedArtwork, patchArchiveByExpansion, patchKindShares } =
+    await import('../src/modules/patchNotes/public');
+  assert.equal(patchExpansionCode('35.0.3'), 'CATACLYSM');
+  assert.equal(patchExpansionCode('37.0.0'), 'BE');
+  assert.equal(patchExpansionCode('19.0.0'), null, 'a cycle the archive does not name stays unknown');
+  const { entries } = parsePatchArticle(article, sections, resolver);
+  const wide = { url: 'https://api.kolodahearthstone.com/uploads/a.jpg', width: 2048, height: 1536 };
+  const view = toPatchView({ entries: entries.map(entry => (entry.cardId === 'TLC_600' ? { ...entry, format: 'standard' as const, artwork: wide } : entry)) });
+  assert.deepEqual(patchHeroLead(view), { mode: 'battlegrounds' }, 'five Battlegrounds changes outweigh three Constructed ones');
+  const constructed = toPatchView({ entries: entries.filter(entry => entry.mode !== 'battlegrounds') });
+  assert.deepEqual(patchHeroLead(constructed), { classKey: 'warrior' }, 'the class with most changes leads; unmatched cards have none');
+  assert.deepEqual(patchHeroLead(toPatchView({ entries: [] })), null);
+  const cards = view.groups.flatMap(group => group.entries);
+  assert.equal(patchFeaturedArtwork(cards)?.card.cardId, 'TLC_600');
+  assert.equal(patchFeaturedArtwork(cards.map(card => ({ ...card, artwork: card.artwork && { ...card.artwork, width: 600 } }))), null,
+    'art narrower than a featured plate is left out');
+  const summary = (version: string, publishedAt: string) => ({ version, build: version, title: version, publishedAt, sourceUrl: null, officialUrl: null, changeCount: 3 });
+  assert.deepEqual(patchArchiveByExpansion([summary('36.0.3', '2026-07-21'), summary('35.6.2', '2026-06-11'), summary('35.0.3', '2026-04-02'),
+    summary('19.2.0', '2021-01-01')]).map(group => [group.code, group.patches.map(patch => patch.version)]),
+  [['ESCAPEFROM_VIOLET_HOLD', ['36.0.3']], ['CATACLYSM', ['35.6.2', '35.0.3']], [null, ['19.2.0']]]);
+  assert.deepEqual(patchKindShares({ buff: 1, nerf: 3, rework: 0 }), { buff: 25, nerf: 75, rework: 0 });
+  assert.deepEqual(patchKindShares({ buff: 0, nerf: 0, rework: 0 }), { buff: 0, nerf: 0, rework: 0 });
 });

@@ -7,8 +7,12 @@ export {
   type PatchCardArt, type PatchCardView, type PatchChangeView, type PatchDirection, type PatchFilter, type PatchGroupView,
   type PatchKind, type PatchKindCounts, type PatchSectionId, type PatchSectionView, type PatchView,
 } from './model/patchEntries';
+export {
+  patchArchiveByExpansion, patchExpansionCode, patchFeaturedArtwork, patchHasWideArtwork, patchHeroLead, patchKindShares,
+  type PatchArchiveGroup, type PatchHeroLead,
+} from './model/patchPresentation';
 export { normalizePatchVersion } from './model/types';
 export type {
   PatchNotesArchive, PatchNotesChange, PatchNotesDetail, PatchNotesEntry, PatchNotesGeneralChanges, PatchNotesMode,
-  PatchNotesPictureSection, PatchNotesSummary, PatchNotesArchetypeUse, PatchNotesMeta,
+  PatchNotesPictureSection, PatchNotesSummary, PatchNotesArchetypeUse, PatchNotesArtwork, PatchNotesMeta,
 } from './model/types';

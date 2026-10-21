@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUp, ImageOff, RefreshCw, ZoomIn } from 'lucide-react';
-import type { PatchCardView, PatchChangeView, PatchKind } from '../../modules/patchNotes/public';
+import { ArrowDown, ArrowRight, ArrowUp, Coins, ImageOff, RefreshCw, Shield, ZoomIn } from 'lucide-react';
+import type { PatchCardView, PatchChangeView, PatchKind, PatchNotesMode } from '../../modules/patchNotes/public';
 import { wordDiff } from '../../vendor/varylo-ui/gaming/patch';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
 import { CardHistory, CopyLinkButton } from './PatchCardExtras';
 import { ArchetypeChips } from './PatchMetaImpact';
+import { cardArtSources } from './patchArt';
 
 /* One change card: the card picture, Russian name, kind badge and was → now lines. */
 
@@ -79,21 +80,57 @@ function TextDiff({ change }: { change: PatchChangeView }) {
 
 const DIRECTION_TEXT = { buff: 'лучше для игрока', nerf: 'хуже для игрока', neutral: '' } as const;
 
-function ChangeLine({ change }: { change: PatchChangeView }) {
+/**
+ * How a number is drawn: the game's own gem for cost, attack and health and
+ * the tavern-tier shield; Battlegrounds costs are gold and armor has no game
+ * icon on the site, so both use a plain glyph.
+ */
+type Stat = 'mana' | 'attack' | 'health' | 'tier' | 'gold' | 'armor';
+const STAT_ICONS: Partial<Record<Stat, string>> = {
+  mana: '/assets/mana-64.webp', attack: '/constructed-filter-icons/attack.webp', health: '/constructed-filter-icons/health.webp',
+};
+
+function statOf(change: PatchChangeView, mode: PatchNotesMode): Stat | null {
+  if (change.label === 'Стоимость') return mode === 'battlegrounds' ? 'gold' : 'mana';
+  if (change.label === 'Атака') return 'attack';
+  if (change.label === 'Здоровье') return 'health';
+  if (change.label === 'Уровень таверны') return 'tier';
+  return change.label.startsWith('Броня') ? 'armor' : null;
+}
+
+function StatValue({ stat, value }: { stat: Stat | null; value: number | string }) {
+  const text = String(value);
+  const icon = stat === 'tier' ? (/^[1-7]$/.test(text) ? `/patch-notes/tier-${text}-48.webp` : null) : stat && STAT_ICONS[stat];
+  if (!stat || (stat === 'tier' && !icon)) return <>{text}</>;
+  const Glyph = stat === 'gold' ? Coins : Shield;
+  return (
+    <span className="hp-stat" data-stat={stat}>
+      {icon ? <img src={icon} alt="" width={48} height={48} loading="lazy" decoding="async" /> : <Glyph aria-hidden="true" />}
+      <span>{text}</span>
+    </span>
+  );
+}
+
+function ChangeLine({ change, mode }: { change: PatchChangeView; mode: PatchNotesMode }) {
   const long = typeof change.before === 'string' && change.before.length > 12 || typeof change.after === 'string' && change.after.length > 12;
   if (long) {
     return <li className="hp-change hp-change--text"><span className="hp-change__label">{change.label}</span><TextDiff change={change} /></li>;
   }
   const up = typeof change.before === 'number' && typeof change.after === 'number' && change.after > change.before;
+  const stat = statOf(change, mode);
+  // A gem says "cost", "attack" or "health" by itself; armor keeps its "соло"/"дуэты" qualifier.
+  const label = stat === 'armor' ? change.label.replace(/^Броня,?\s*/, '') || change.label : change.label;
   return (
-    <li className="hp-change" data-direction={change.direction}>
-      <span className="hp-change__label">{change.label}</span>
+    <li className="hp-change" data-direction={change.direction} data-stat={stat ?? undefined} title={change.label}>
+      <span className={`hp-change__label${stat && stat !== 'armor' ? ' sr-only' : ''}`}>{stat === 'armor' ? `Броня · ${label}` : label}</span>
       <span className="hp-change__values">
         {change.before !== undefined
-          ? <s aria-label={`было ${change.before}`}>{change.before}</s>
+          ? <s aria-label={`было ${change.before}`}><StatValue stat={stat} value={change.before} /></s>
           : <span className="hp-change__unknown" title="Прежнее значение в статье не указано">?</span>}
         <span className="hp-change__arrow" aria-hidden="true">→</span>
-        <b aria-label={change.after !== undefined ? `стало ${change.after}` : undefined}>{change.after ?? '—'}</b>
+        <b aria-label={change.after !== undefined ? `стало ${change.after}` : undefined}>
+          {change.after !== undefined ? <StatValue stat={stat} value={change.after} /> : '—'}
+        </b>
         {change.direction !== 'neutral' && (
           <span className="hp-change__direction" title={DIRECTION_TEXT[change.direction]}>
             {up ? <ArrowUp aria-hidden="true" /> : <ArrowDown aria-hidden="true" />}
@@ -134,15 +171,31 @@ export function isCompactCard(card: PatchCardView): boolean {
   return !card.hasText && !card.note && card.archetypes.length === 0;
 }
 
-/** `anchored` cards (the ones in sections) carry the `#card-…` id; highlights repeat a card without it. */
-export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, anchored = false, ...handlers }: CardHandlers & {
-  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h5'; compact?: boolean; anchored?: boolean;
+/** The card's wiki illustration across the top of a featured highlight. */
+function FeaturedPlate({ url }: { url: string }) {
+  const art = cardArtSources(url);
+  return (
+    <span className="hp-patch-card__plate" aria-hidden="true">
+      <img src={art.src} srcSet={art.srcSet} sizes="(min-width: 720px) 50vw, 100vw" alt="" width={512} height={288}
+        loading="lazy" decoding="async" />
+    </span>
+  );
+}
+
+/**
+ * `anchored` cards (the ones in sections) carry the `#card-…` id; highlights
+ * repeat a card without it. `featured` adds the card's wide art above it.
+ */
+export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, anchored = false, featured = false, ...handlers }: CardHandlers & {
+  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h5'; compact?: boolean; anchored?: boolean; featured?: boolean;
 }) {
   const Heading = headingLevel;
   const headingId = `hp-patch-${headingLevel}-${card.id}`;
+  const plate = featured && card.artwork ? card.artwork.url : null;
   return (
     <article className="hp-patch-card" id={anchored ? card.anchor : undefined} data-kind={card.kind}
-      data-compact={compact || undefined} aria-labelledby={headingId}>
+      data-compact={compact || undefined} data-featured={plate ? '' : undefined} aria-labelledby={headingId}>
+      {plate && <FeaturedPlate url={plate} />}
       <CardArt card={card} eager={eager} {...handlers} />
       <div className="hp-patch-card__body">
         <div className="hp-patch-card__head">
@@ -159,7 +212,7 @@ export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, a
           )}
         </div>
         <ul className="hp-patch-card__changes">
-          {card.changes.map((change, index) => <ChangeLine key={`${change.label}-${index}`} change={change} />)}
+          {card.changes.map((change, index) => <ChangeLine key={`${change.label}-${index}`} change={change} mode={card.mode} />)}
         </ul>
         {card.note && <p className="hp-patch-card__note"><span>Комментарий разработчиков:</span> {card.note}</p>}
         <ArchetypeChips card={card} />

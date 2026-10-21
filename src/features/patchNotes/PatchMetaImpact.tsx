@@ -4,7 +4,10 @@ import {
   PATCH_SECTION_TITLES, patchAffectedArchetypes, patchGroupKinds, type PatchCardView, type PatchFilter, type PatchGroupIcon,
   type PatchNotesMeta, type PatchView,
 } from '../../modules/patchNotes/public';
+import type { CSSProperties } from 'react';
+import { archetypeClassBackdrop } from '../archetypeDetailModel';
 import { classIconUrl } from '../classIcons';
+import { classAccent } from './patchArt';
 
 /* What the patch means for today's meta: affected archetypes, per-card archetypes and the class/type strip. */
 
@@ -24,7 +27,7 @@ function ClassIcon({ classKey }: { classKey: string | null }) {
   return <img className="hp-patch-class-icon" src={classIconUrl(classKey)} alt="" width={64} height={64} loading="lazy" decoding="async" />;
 }
 
-function GroupIcon({ icon }: { icon: PatchGroupIcon }) {
+export function GroupIcon({ icon }: { icon: PatchGroupIcon }) {
   if ('classKey' in icon) return <ClassIcon classKey={icon.classKey} />;
   const Icon = (icon.cardType && TYPE_ICONS[icon.cardType]) || Layers;
   return <span className="hp-patch-type-icon"><Icon aria-hidden="true" /></span>;
@@ -53,26 +56,35 @@ export function AffectedArchetypes({ view, meta }: { view: PatchView; meta: Patc
       <h4>Затронутые архетипы</h4>
       {archetypes.length > 0 ? (
         <ul>
-          {archetypes.map(archetype => (
-            <li key={`${archetype.format}:${archetype.slug}`}>
-              <a href={archetype.href}>
-                <ClassIcon classKey={archetype.classKey} />
-                <span className="hp-patch-affected__name">
-                  {archetype.name}
-                  {archetype.format === 'wild' && <small> · Вольный</small>}
-                </span>
-                {archetype.popularity !== null && <span className="hp-patch-affected__share">{popularity(archetype.popularity)}</span>}
-                <span className="hp-patch-affected__kinds">
-                  {KINDS.filter(kind => archetype.kinds[kind] > 0).map(kind => (
-                    <span key={kind} data-kind={kind} title={`${archetype.kinds[kind]} карт ${KIND_WORDS[kind]}`}>
-                      {KIND_MARKS[kind]}{archetype.kinds[kind]}
-                    </span>
-                  ))}
-                </span>
-              </a>
-              <span className="hp-patch-affected__cards">{archetype.cards.map(card => card.name).join(', ')}</span>
-            </li>
-          ))}
+          {archetypes.map(archetype => {
+            const backdrop = archetypeClassBackdrop(archetype.classKey);
+            const accent = classAccent(archetype.classKey);
+            return (
+              <li key={`${archetype.format}:${archetype.slug}`} data-art={backdrop ? '' : undefined}
+                style={accent ? { '--group-accent': accent } as CSSProperties : undefined}>
+                {backdrop && (
+                  <img className="hp-patch-affected__plate" src={backdrop.src} srcSet={backdrop.srcSet} sizes="(min-width: 960px) 320px, 100vw"
+                    width={1920} height={800} style={{ objectPosition: backdrop.focus }} alt="" loading="lazy" decoding="async" />
+                )}
+                <a href={archetype.href}>
+                  <ClassIcon classKey={archetype.classKey} />
+                  <span className="hp-patch-affected__name">
+                    {archetype.name}
+                    {archetype.format === 'wild' && <small> · Вольный</small>}
+                  </span>
+                  {archetype.popularity !== null && <span className="hp-patch-affected__share">{popularity(archetype.popularity)}</span>}
+                  <span className="hp-patch-affected__kinds">
+                    {KINDS.filter(kind => archetype.kinds[kind] > 0).map(kind => (
+                      <span key={kind} data-kind={kind} title={`${archetype.kinds[kind]} карт ${KIND_WORDS[kind]}`}>
+                        {KIND_MARKS[kind]}{archetype.kinds[kind]}
+                      </span>
+                    ))}
+                  </span>
+                </a>
+                <span className="hp-patch-affected__cards">{archetype.cards.map(card => card.name).join(', ')}</span>
+              </li>
+            );
+          })}
         </ul>
       ) : <p>Ни одна изменённая карта не встречается в сборках текущих архетипов.</p>}
       {all.length > AFFECTED_FIRST && (

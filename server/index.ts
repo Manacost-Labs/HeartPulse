@@ -7536,6 +7536,8 @@ app.use('/api', createPatchNotesApi({
   }),
   loadStandardCardIds: async () => ((await constructedCardDataService.loadPublicCards?.('standard'))?.cards ?? [])
     .map(card => String(card.card_id ?? '')).filter(Boolean),
+  // Wild lists every collectible card, so any patched card can find its full art.
+  loadCardArtwork: async () => (await constructedCardDataService.loadPublicCards?.('wild'))?.cards ?? [],
   loadArchetypeCatalog: async format => {
     const catalog = await loadConstructedArchetypeCatalog(format);
     return { format, period: catalog.patch || null, updatedAt: catalog.updatedAt, items: catalog.items };

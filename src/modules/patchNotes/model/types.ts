@@ -35,6 +35,8 @@ export type PatchNotesEntry = {
   cardType: string | null;
   /** Full card render from the Battlegrounds catalog; Constructed cards use the HearthstoneJSON render. */
   renderUrl: string | null;
+  /** Hearthstone Wiki full illustration of a resolved Constructed card; absent from older responses. */
+  artwork?: PatchNotesArtwork | null;
   /**
    * Today's format of a resolved Constructed card: `standard` when the
    * Standard catalog lists it, else `wild`; `null` when unknown.
@@ -64,6 +66,9 @@ export type PatchNotesSummary = {
 };
 
 export type PatchNotesFormat = 'standard' | 'wild';
+
+/** A card illustration with its original size; dimensions are `null` when the catalog does not state them. */
+export type PatchNotesArtwork = { url: string; width: number | null; height: number | null };
 
 /** One archetype of today's meta that plays a changed card: `decks` of its `totalDecks` listed builds. */
 export type PatchNotesArchetypeUse = {

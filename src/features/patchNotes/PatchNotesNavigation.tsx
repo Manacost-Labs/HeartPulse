@@ -99,7 +99,7 @@ export function PatchPager({ patches, current }: { patches: PatchNotesSummary[];
 }
 
 /** Opens a collapsed section before the browser scrolls to its anchor. */
-function openTarget(hash: string) {
+export function openTarget(hash: string) {
   const target = document.getElementById(hash.slice(1));
   const details = target?.closest('details') ?? (target instanceof HTMLDetailsElement ? target : null);
   if (details) details.open = true;

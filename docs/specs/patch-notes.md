@@ -84,6 +84,18 @@ answers `502`.
   (same card id, else the same name and subtitle in the mode), newest first,
   at most six; the page links each to `?version=…#card-<entry id>`.
 
+## Card art
+
+- `artwork` of a Constructed, Arena or side-mode entry is the Hearthstone Wiki
+  full illustration of the resolved card from the site's card catalog
+  (`loadPublicCards('wild')`, `images.art` with `art_metadata` width and
+  height; `null` when unstated). An id also finds the art of its `CORE_`
+  reprint or original. Battlegrounds entries have none. Only `http(s)` URLs
+  are kept; the page loads them through the image proxy (at most 512 px).
+- The art catalog never delays a snapshot: the patches are parsed with the
+  last art lookup (none after a restart) and art that arrives later is
+  merged into the current snapshot without a refetch.
+
 ## Navigation
 
 - Every card in a section has the id `card-<entry id>` and a copy-link
@@ -118,12 +130,28 @@ loaded by the browser. Dates render in Europe/Moscow before hydration and in
 the viewer's zone after it.
 
 - Reading order: the version switcher (above the patch on narrow screens),
-  the header (version, date, article lead, counts by kind, links to the
-  official Blizzard notes and the source article), "Главное в патче", the
-  contents, the filters and the sections.
-- The page heading (`h1` "Патчноуты Hearthstone") sits in the patch card
+  the header, the mode tiles, "Главное в патче", the class/type strip, the
+  filters, the sections, the archive timeline and the neighbouring patches.
+- The page heading (`h1` "Патчноуты Hearthstone") sits in the patch header
   instead of the tall route banner, which only the missing, failed and
   loading states still show.
+- The header is an art plate like the archetype header: the archetype class
+  art of the class with most changed cards (`public/archetype-art/classes`),
+  or the Battlegrounds plate when most changes are there, else the plate of
+  the first section. It is preloaded (`fetchPriority: high`, `srcset`) and
+  is the page's LCP image. The first card with wiki art at least 1000 px wide
+  (highlights first) stands on the right with an "Арт: …" caption. The
+  header names the expansion cycle of the version — every major client
+  version opens one (35 → «Катаклизм», 37 → «Власть Темной империи»); majors
+  the archive has no patch of are not mapped — with the set glyph of the card
+  library in a seal, the version, date, title, lead, counts with icons and a
+  buff/nerf/rework share bar, and the official and source links.
+- Mode tiles link to the sections: the mode plate and emblem
+  (`public/patch-notes`, built by `scripts/build-patch-notes-assets.mjs` from
+  the site's own art), the change count, ▲▼↻ counts and the share bar; two
+  per row on narrow screens. Section summaries are banners with the same
+  plate; class groups carry the 96 px class icon and the class colour of the
+  meta page; card-type groups keep their glyph.
 - "Главное в патче" picks up to six changes with a picture from sections
   longer than three cards (a shorter section is read whole below, so it is
   not repeated): Standard first, then the largest number moves; a stated buff
@@ -155,9 +183,23 @@ the viewer's zone after it.
   render toggle: the before state is the struck-out value or the word diff.
 - Number changes read `старое → новое` coloured by direction; text changes
   show "Было" and "Стало" with removed and added words marked. The badge is
-  coloured and carries an arrow or a rework icon.
+  coloured and carries an arrow or a rework icon. Cost, attack and health
+  are drawn on the game's mana crystal, attack and health icons, a tavern
+  tier as its tier shield; a Battlegrounds cost is gold and armor has no game
+  icon on the site, so both use an interface glyph. The old value is faded
+  and struck through, the new one ringed in the direction colour; the label
+  stays for assistive technology. Buff and nerf cards carry a coloured glow.
+- Up to two highlights with wide wiki art become featured cards: the art
+  across the top and the render laid over its lower edge. Affected archetypes
+  sit on their class art.
+- The archive timeline lists every archived patch by expansion cycle, newest
+  first, with the set seal, patch count, change count and each patch's date;
+  the newest cycle and the open patch's cycle are expanded, the open patch is
+  `aria-current`. A patch without line-by-line changes says so in a panel
+  that points to the header links.
 - On content at least 960 px wide the version switcher (newer, select,
   older) and the contents with section and group links stay in a sticky
-  side column; otherwise both sit above the patch and the cards form one
+  side column; otherwise the switcher sits above the patch, the mode tiles
+  and the class/type strip replace the contents and the cards form one
   column. The layout uses a container query because the site rail takes part
   of the viewport.

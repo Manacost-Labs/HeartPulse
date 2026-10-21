@@ -140,6 +140,24 @@ fontTools 4.66.1: `TTFont("2318-font.otf")`, `flavor = "woff2"`, `save(...)`.
 жрец `BAR_311`, разбойник `CATA_154`, шаман `CATA_153`, чернокнижник `CATA_726`,
 воин `CATA_150`. Точку фокуса каждого кадра задаёт `archetypeClassBackdrop`.
 
+Ассеты патчноутов — `patch-notes/`, собраны `node scripts/build-patch-notes-assets.mjs`
+(sharp) только из файлов сайта, новых исходных картинок нет. Плиты режимов
+2.4:1, 640 и 1280 px, `webp({ quality: 72, effort: 6 })`, 7–83 KB: `standard` из
+`wallpaper/profile-hero-hth.webp`, `wild` из `bg-legacy/wallpaper.webp`,
+`constructed` из `wallpaper/wallpaper.webp`, `battlegrounds` из
+`bg-legacy/wallpaper1.webp`, `other` из `bg-legacy/wallpaper3.webp`, `arena` —
+Утер с `wallpaper/home-paladin-hero.webp` на сукне `wallpaper/arena-rail-red.jpg`.
+Эмблемы режимов `mode-<режим>-96.webp` — из `card-format-standard.webp`,
+`card-format-wild.webp`, `assets/arena_icon.webp` и щита таверны
+`bg-legacy/assset/tier1.png`; щиты уровней таверны `tier-<1–7>-48.webp` — из
+`bg-legacy/assset/tier<N>.png`. Значки статов страницы берут
+`assets/mana-64.webp` и `constructed-filter-icons/{attack,health}.webp`, печати
+дополнений — `constructed-filter-icons/sets/<набор>.webp`.
+Пробелы: нет глифа набора «Власть Темной империи» (`BE`, вики отвечала 502 при
+синхронизации), игровых иконок золота Полей сражений и брони — вместо них
+глифы интерфейса; нет ключевого арта самих дополнений, поэтому шапка патча
+берёт арт класса или режима.
+
 Иконки интерфейса — `webp({ quality: 82, alphaQuality: 90, effort: 6 })` вдвое больше
 отрисованного размера: `class_icon/ui/<класс>-96.webp` и `all-96.webp` из PNG классов
 (до 255 KB → 3–5 KB), `assets/mana-64.webp`, `assets/card-format-wild-128.webp`,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { ExternalLink, SearchX } from 'lucide-react';
+import { ScrollText, SearchX } from 'lucide-react';
 import {
   PATCH_SECTION_TITLES, filterPatchView, patchHighlights, toPatchView,
   type PatchFilter, type PatchNotesDetail, type PatchNotesMode, type PatchNotesSummary, type PatchView,
@@ -9,11 +9,15 @@ import {
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import CardPreviewTooltip, { fallbackCardRender, type CardPreviewTarget } from './CardPreviewTooltip';
 import type { CardPreviewSheetCard } from './CardPreviewSheet';
-import { EAGER_CARDS, KINDS, KIND_LABELS, previewSource, type CardHandlers } from './patchNotes/PatchCard';
+import { EAGER_CARDS, previewSource, type CardHandlers } from './patchNotes/PatchCard';
+import { PatchArchive } from './patchNotes/PatchArchive';
+import { PatchHero } from './patchNotes/PatchHero';
 import { AffectedArchetypes, GroupStrip } from './patchNotes/PatchMetaImpact';
+import { PatchModeTiles } from './patchNotes/PatchModeTiles';
 import { Contents, PatchPager, Toolbar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
 import { Highlights, PatchSection } from './patchNotes/PatchNotesSections';
 import './PatchNotesView.css';
+import './patchNotes/PatchNotesShowcase.css';
 
 const CardPreviewSheet = React.lazy(() => import('./CardPreviewSheet'));
 
@@ -31,36 +35,6 @@ function dateFormat(timeZone = ''): Intl.DateTimeFormat {
 
 function formatDate(value: string | null, timeZone?: string): string | null {
   return value && Number.isFinite(Date.parse(value)) ? dateFormat(timeZone).format(new Date(value)) : null;
-}
-
-function PatchHeader({ patch, view, timeZone }: { patch: PatchNotesDetail; view: PatchView; timeZone?: string }) {
-  const date = formatDate(patch.publishedAt, timeZone);
-  return (
-    <header className="hp-patch-hero">
-      {/* The page heading lives in the patch card: a tall route banner would push the changes below the fold. */}
-      <div className="hp-patch-hero__eyebrow">
-        <h1>Патчноуты Hearthstone</h1>
-        <span>Патч {patch.version}</span>
-        {date && <time dateTime={patch.publishedAt ?? undefined}>{date}</time>}
-      </div>
-      <h2 className="hp-patch-hero__title">{patch.title}</h2>
-      {patch.summary && <p className="hp-patch-hero__lead">{patch.summary}</p>}
-      {view.total > 0 && (
-        <dl className="hp-patch-hero__stats">
-          <div><dt>Изменений карт</dt><dd>{view.total}</dd></div>
-          {KINDS.map(kind => (
-            <div key={kind} data-kind={kind}><dt>{KIND_LABELS[kind].many}</dt><dd>{view.kinds[kind]}</dd></div>
-          ))}
-        </dl>
-      )}
-      {(patch.officialUrl || patch.sourceUrl) && (
-        <p className="hp-patch-hero__links">
-          {patch.officialUrl && <a href={patch.officialUrl} target="_blank" rel="noreferrer">Официальный патчноут Blizzard <ExternalLink aria-hidden="true" /></a>}
-          {patch.sourceUrl && <a href={patch.sourceUrl} target="_blank" rel="noreferrer">Статья на hs-manacost.ru <ExternalLink aria-hidden="true" /></a>}
-        </p>
-      )}
-    </header>
-  );
 }
 
 const INITIAL_FILTER: PatchFilter = { section: 'all', kind: 'all', group: 'all', query: '' };
@@ -130,19 +104,23 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
       <div className="hp-patch__layout">
         <div className="hp-patch__main">
           {archive.length > 1 && <VersionSwitcher patches={archive} current={patch.version} onSelect={onSelectVersion} className="hp-patch-versions--top" />}
-          <PatchHeader patch={patch} view={view} {...(timeZone ? { timeZone } : {})} />
+          <PatchHero patch={patch} view={view} highlights={highlights} date={formatDate(patch.publishedAt, timeZone)} />
+          <PatchModeTiles view={view} />
           {!filtered && (
             <Highlights cards={highlights} handlers={handlers}>
               {showAffected ? <AffectedArchetypes view={view} meta={patch.meta} /> : null}
             </Highlights>
           )}
-          {view.sections.length > 0 && <Contents view={view} className="hp-patch-toc--inline" />}
           <GroupStrip view={view} filter={filter} onChange={change} />
           {view.total > 0 && <Toolbar view={view} filter={filter} version={patch.version} onChange={change} />}
           {view.total === 0 && (
-            <p className="hp-patch-notes__notice" role="status">
-              В статье этого патча нет построчных изменений карт «было → стало». Полный текст — по ссылкам выше.
-            </p>
+            <div className="hp-patch-blank" role="status">
+              <ScrollText aria-hidden="true" />
+              <p>
+                <b>Изменения карт этого патча не расписаны построчно.</b>
+                {' '}В статье нет пар «было → стало», поэтому карточек здесь нет. Полный текст — по ссылкам в шапке.
+              </p>
+            </div>
           )}
           {view.total > 0 && groups.length === 0 && (
             <div className="hp-patch-empty" role="status">
@@ -165,6 +143,7 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
             <PatchSection key={mode} section={{ id: mode, title: PATCH_SECTION_TITLES[mode], count: 0, kinds: { buff: 0, nerf: 0, rework: 0 } }}
               groups={[]} patch={patch} notes={mode} filtered={false} eagerFrom={EAGER_CARDS} handlers={handlers} />
           ))}
+          <PatchArchive patches={archive} current={patch.version} formatDate={value => formatDate(value, timeZone)} />
           <PatchPager patches={archive} current={patch.version} />
           <SourceFooter patch={patch} view={view} />
         </div>

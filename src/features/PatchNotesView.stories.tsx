@@ -4,7 +4,7 @@ import type { PatchNotesDetail, PatchNotesEntry, PatchNotesSummary } from '../mo
 import { PatchNotesView } from './PatchNotesView';
 
 const trinket = (id: string, name: string, sourceName: string, subtitle: string, before: number, after: number): PatchNotesEntry => ({
-  id, name, sourceName, mode: 'battlegrounds', cardId: id, cardClass: null, cardType: 'trinket', renderUrl: null, format: null, archetypes: [], history: [], subtitle, note: null,
+  id, name, sourceName, mode: 'battlegrounds', cardId: id, cardClass: null, cardType: 'trinket', renderUrl: null, artwork: null, format: null, archetypes: [], history: [], subtitle, note: null,
   changes: [{ label: 'Стоимость', before, after, better: 'lower' }],
 });
 
@@ -16,7 +16,7 @@ const patch: PatchNotesDetail = {
   summary: 'Обновление Hearthstone 36.6.3, выход которого состоялся 1 октября, включает в себя ряд изменений для Стандарта и Полей сражений.',
   entries: [
     { id: 'serpent', name: 'Змей ветреных вершин', sourceName: null, mode: 'constructed', cardId: 'TLC_600', cardClass: 'WARRIOR',
-      cardType: 'minion', renderUrl: null, format: 'standard', subtitle: null, history: [],
+      cardType: 'minion', renderUrl: null, artwork: null, format: 'standard', subtitle: null, history: [],
       archetypes: [
         { format: 'standard', slug: 'std-dragon-warrior', name: 'Воин на драконах', classKey: 'warrior', popularity: 3.1, decks: 12, totalDecks: 12 },
         { format: 'standard', slug: 'dragon-pirate-warrior', name: 'Пиратский воин на драконах', classKey: 'warrior', popularity: 0.3, decks: 2, totalDecks: 2 },
@@ -24,7 +24,7 @@ const patch: PatchNotesDetail = {
         before: 'Боевой клич: наносит 5 ед. урона. Вы получаете 5 ед. брони. Родня: стоит на (3) меньше.',
         after: 'Боевой клич: наносит 5 ед. урона. Вы получаете 5 ед. брони. Родня: стоит на (2) меньше.' }] },
     { id: 'pantry', name: 'Заражение кладовой', sourceName: null, mode: 'constructed', cardId: 'JAIL_200', cardClass: 'DRUID',
-      cardType: 'spell', renderUrl: null, format: 'standard', archetypes: [], history: [], subtitle: null, note: null,
+      cardType: 'spell', renderUrl: null, artwork: null, format: 'standard', archetypes: [], history: [], subtitle: null, note: null,
       changes: [{ label: 'Текст', before: 'Призывает двух случайных существ за (3).', after: 'Призывает двух случайных существ за (2).' }] },
     trinket('BG36_MagicItem_403', 'Молот Сумерек', 'Hammer of Twilight', 'Малый аксессуар', 1, 2),
     trinket('BG36_MagicItem_400', 'Изображение оскверненной монетки', 'Corrupted Coin Portrait', 'Малый аксессуар', 0, 3),
@@ -89,7 +89,7 @@ export const MetaImpactAndFilters: Story = {
 };
 
 export const CollapsedSection: Story = {
-  parameters: { docs: { description: { story: 'Sections fold; the contents link opens a folded section again.' } } },
+  parameters: { docs: { description: { story: 'Section banners fold; a mode tile opens a folded section again.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const section = canvasElement.querySelector<HTMLDetailsElement>('#hp-patch-section-battlegrounds');
@@ -97,12 +97,12 @@ export const CollapsedSection: Story = {
     await waitFor(() => expect(canvas.getByText(/в статье только картинками/)).toBeVisible());
     await userEvent.click(canvas.getByRole('heading', { name: /^Поля сражений/ }));
     await expect(section?.open).toBe(false);
-    await userEvent.click(within(canvas.getAllByRole('navigation', { name: 'Содержание патча' })[0]).getByRole('link', { name: /^Поля сражений/ }));
+    await userEvent.click(within(canvas.getByRole('navigation', { name: 'Разделы патча' })).getByRole('link', { name: /^Поля сражений/ }));
     await expect(section?.open).toBe(true);
   },
 };
 export const PhoneVersionPicker: Story = {
-  parameters: { docs: { description: { story: 'Below 960 px of content width the version switcher and contents sit above the patch, in one column.' } } },
+  parameters: { docs: { description: { story: 'Below 960 px of content width the version switcher sits above the patch, mode tiles go two by two and the header art becomes a top band.' } } },
   decorators: [Story => <div style={{ width: 380 }}><Story /></div>],
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
@@ -117,3 +117,36 @@ export const OnlyNewValues: Story = {
     entries: [{ ...patch.entries[0], changes: [{ label: 'Текст', after: 'Призывает древня 2/2 с Насмешкой.' }] }] } },
 };
 export const NoCardChanges: Story = { args: { patch: { ...patch, entries: [], changeCount: 0, pictureSections: [], generalChanges: [], meta: null } } };
+
+// A real wiki full art shipped with the site stands in for catalog art, which Storybook cannot proxy.
+const wideArt = { url: '/archetype-art/void-soul-dh.webp', width: 1200, height: 1602 };
+const standardCard = (id: string, name: string, cardClass: string, before: number, after: number): PatchNotesEntry => ({
+  id, name, sourceName: null, mode: 'constructed', cardId: id, cardClass, cardType: 'minion', renderUrl: null, artwork: wideArt,
+  format: 'standard', archetypes: [], history: [], subtitle: null, note: null,
+  changes: [{ label: 'Стоимость', before, after, better: 'lower' }, { label: 'Здоровье', before: 3, after: 4, better: 'higher' }],
+});
+
+export const ConstructedLead: Story = {
+  parameters: { docs: { description: { story: 'A Standard-led patch: the most changed class leads the header art, the first highlights with wide wiki art become featured plates and costs read as mana gems.' } } },
+  args: { patch: { ...patch, version: '35.4.2', entries: [
+    standardCard('A1', 'Первая карта', 'DEMONHUNTER', 3, 2), standardCard('A2', 'Вторая карта', 'DEMONHUNTER', 5, 4),
+    standardCard('A3', 'Третья карта', 'MAGE', 2, 3), standardCard('A4', 'Четвёртая карта', 'DEMONHUNTER', 4, 3),
+    ...patch.entries.slice(2),
+  ], pictureSections: [], generalChanges: [] } },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.hp-patch-hero__plate')?.getAttribute('src')).toBe('/archetype-art/classes/demonhunter-1920.webp');
+    await expect(within(canvasElement).getByText('Катаклизм')).toBeVisible();
+    await expect(canvasElement.querySelectorAll('.hp-patch-highlights__featured [data-featured]')).toHaveLength(2);
+    await expect(canvasElement.querySelectorAll('.hp-change[data-stat="mana"] .hp-stat').length).toBeGreaterThan(0);
+  },
+};
+
+export const ExpansionArchive: Story = {
+  parameters: { docs: { description: { story: 'The archive as a timeline of expansion cycles; the newest set has no glyph yet, so its seal shows the initial.' } } },
+  play: async ({ canvasElement }) => {
+    const archive = within(canvasElement.querySelector<HTMLElement>('.hp-patch-archive') ?? canvasElement);
+    await expect(archive.getByText('Власть Темной империи')).toBeVisible();
+    await expect(archive.getByText('Побег из Аметистовой крепости')).toBeVisible();
+    await expect(archive.getByRole('link', { name: /36\.6\.3/ })).toHaveAttribute('aria-current', 'page');
+  },
+};

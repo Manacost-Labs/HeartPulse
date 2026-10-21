@@ -33,6 +33,9 @@ test('patch notes render the stored article as compact change cards, and the hom
     assert.match(html, /Обновление 36\.6\.3: балансные изменения/, 'the newest patch with changes is in the server HTML');
     assert.match(html, /Змей ветреных вершин/);
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/patches\/"/);
+    assert.match(html, /<link rel="preload" as="image" fetchPriority="high" imageSrcSet="\/(?:patch-notes|archetype-art\/classes)\//,
+      'the header plate is preloaded from the server HTML');
+    assert.match(html, /class="hp-patch-hero__plate"[^>]*fetchPriority="high"/);
 
     browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
@@ -52,6 +55,13 @@ test('patch notes render the stored article as compact change cards, and the hom
       // The fixture blocks HearthstoneJSON, so Constructed cards stay unmatched; trinkets resolve through the catalog.
       ['Змей ветреных вершин', 'rework'], ['Паучок', 'nerf'], ['Пагубные благовония', 'buff'], ['Молот Сумерек', 'nerf'],
     ]);
+    const tiles = await page.$$eval('.hp-patch-mode', links => links.map(link => link.getAttribute('href')));
+    assert.deepEqual(tiles, await page.$$eval('.hp-patch-section', sections => sections.map(section => `#${section.id}`)),
+      'one mode tile per section, linking to it');
+    assert.equal(await page.$$eval('.hp-patch-section .hp-change[data-stat="gold"] .hp-stat', nodes => nodes.length) > 0, true,
+      'Battlegrounds costs are gold, not mana');
+    assert.equal(await page.$eval('.hp-patch-archive [aria-current="page"] b', node => node.textContent), '36.6.3',
+      'the archive timeline marks the open patch');
     assert.match(await page.$eval('.hp-patch-section .hp-patch-card[data-kind="buff"] .hp-patch-card__meta', node => node.textContent ?? ''),
       /Малый аксессуар · Baleful Incense/, 'the article\'s English name stays as a caption');
     assert.equal(await page.$$eval('.hp-patch-card del', nodes => nodes.some(node => node.textContent?.includes('(3)'))), true,

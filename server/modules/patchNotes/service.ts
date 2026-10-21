@@ -1,5 +1,5 @@
 import { shortPatchVersion, type PatchNotesDetail, type PatchNotesFormat, type PatchNotesSummary } from './contract.js';
-import { createDbfLookup, enrichEntry, withHistory, type PatchEntryContext } from './enrichment.js';
+import { createArtworkLookup, createDbfLookup, enrichEntry, withArtwork, withHistory, type PatchEntryContext } from './enrichment.js';
 import { buildPatchMetaIndex, type PatchArchetypeCatalog } from './metaImpact.js';
 import { cleanArticleText, parsePatchArticle, type PatchCardResolver } from './parser.js';
 import { createBattlegroundNameResolver, type BattlegroundCatalogCard } from './battlegroundCatalog.js';
@@ -17,6 +17,8 @@ export type PatchNotesServiceDependencies = {
   loadBattlegroundCards?: () => Promise<BattlegroundCatalogCard[]>;
   /** Ids of today's Standard cards; without them Constructed entries have no format. */
   loadStandardCardIds?: () => Promise<Iterable<string>>;
+  /** Collectible card catalog records (`card_id`, `images.art`); without them entries have no full art. */
+  loadCardArtwork?: () => Promise<Iterable<Record<string, unknown>>>;
   /** Today's archetype catalog of a format, with deck codes of its builds. */
   loadArchetypeCatalog?: (format: PatchNotesFormat) => Promise<PatchArchetypeCatalog>;
   ttlMs: number;
@@ -168,9 +170,21 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   const retryMs = dependencies.retryMs ?? 60_000;
   let snapshot: { value: PatchNotesSnapshot; expiresAt: number } | null = null;
   let pending: Promise<PatchNotesSnapshot> | null = null;
+  // The art catalog (every Wild card) can take as long as the archive itself,
+  // so a snapshot never waits for it: the last lookup is used meanwhile and a
+  // late lookup is merged into the snapshot that is current when it arrives.
+  let artwork: PatchEntryContext['artwork'];
+  const loadArtwork = () => {
+    void (dependencies.loadCardArtwork?.() ?? Promise.resolve(null)).then(cards => {
+      if (!cards) return;
+      artwork = createArtworkLookup(cards);
+      if (snapshot) snapshot = { ...snapshot, value: { ...snapshot.value, patches: withArtwork(snapshot.value.patches, artwork) } };
+    }, () => undefined);
+  };
 
   const refresh = async () => {
     const formats: PatchNotesFormat[] = ['standard', 'wild'];
+    loadArtwork();
     const [payload, cards, battlegrounds, standard, catalogs] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
       dependencies.loadCardNames().catch(() => ({})),
@@ -185,7 +199,7 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     const rows = (payload as { patches?: unknown })?.patches;
     if (!Array.isArray(rows)) throw new Error('Patch archive payload has no patches');
     const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString(),
-      { standard: new Set(standard), meta, dbfs: createDbfLookup(cards) });
+      { standard: new Set(standard), meta, dbfs: createDbfLookup(cards), artwork });
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     return value;
   };
