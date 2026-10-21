@@ -7,6 +7,10 @@ import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 // Prepared anonymous archetype summaries are reused by every viewer. Meta
 // subscribers read only protected data after the account check; guests recover
 // only a missing teaser, without waiting for that check. Protected archetype reads belong to the detail page.
+// A session without a readable tag (signed in before tags, or the QA
+// observatory's header-only session) looks like a guest until the check: its
+// teaser, still on its way when full access remounts the page, completes
+// instead of failing as an aborted request.
 test('Next.js soft-paywall pages request only the data the visitor may see', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
@@ -16,12 +20,12 @@ test('Next.js soft-paywall pages request only the data the visitor may see', asy
       headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
     for (const [path, endpoint] of [['/standard/meta/', '/api/standard-meta'], ['/standard/archetypes/', '/api/constructed-archetypes']]) {
-      for (const [subscriber, remembered] of [[true, true], [true, false], [false, false]]) {
+      for (const [subscriber, remembered, tagged] of [[true, true, true], [true, false, true], [true, false, false], [false, false, false]]) {
         const context = await browser.createBrowserContext();
         if (subscriber) await context.setCookie({ name, value, domain: new URL(runtime.origin).hostname, path: '/' },
           // The readable session tag that sign-in sets with the session cookie.
-          { name: 'hp_viewer', value: createHash('sha256').update(`hearthpulse-viewer-session:${value}`).digest('base64url').slice(0, 22),
-            domain: new URL(runtime.origin).hostname, path: '/' });
+          ...tagged ? [{ name: 'hp_viewer', value: createHash('sha256').update(`hearthpulse-viewer-session:${value}`).digest('base64url').slice(0, 22),
+            domain: new URL(runtime.origin).hostname, path: '/' }] : []);
         // A returning subscriber's browser remembers the viewer of this session:
         // an earlier visit verified it (the server set the session's viewer tag).
         if (remembered) {
@@ -32,22 +36,38 @@ test('Next.js soft-paywall pages request only the data the visitor may see', asy
         }
         const page = await context.newPage();
         const requested = [];
+        const failed = [];
+        // The teaser answers only once the full slice is requested, as on a
+        // loaded server: it is still on its way when access is granted.
+        let releaseTeaser;
+        const fullSliceRequested = new Promise(resolve => { releaseTeaser = resolve; });
+        await page.setRequestInterception(true);
         page.on('request', request => {
           const { pathname } = new URL(request.url());
           if (pathname.startsWith(endpoint)) requested.push(pathname);
+          if (pathname === endpoint) releaseTeaser();
+          if (pathname !== `${endpoint}/teaser`) return void request.continue();
+          void Promise.race([fullSliceRequested, new Promise(resolve => setTimeout(resolve, 3_000))])
+            .then(() => request.continue()).catch(() => {});
+        });
+        page.on('requestfailed', request => {
+          const { pathname } = new URL(request.url());
+          if (pathname.startsWith(endpoint)) failed.push(`${pathname} ${request.failure()?.errorText}`);
         });
         const response = await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle0' });
         const html = await response.text();
         // The fixture Express has an (empty) archetype catalog but no meta data.
         const serverTeaser = path === '/standard/archetypes/';
-        const label = `${path} for a ${subscriber ? `${remembered ? 'remembered' : 'new'} subscriber` : 'guest'}`;
+        const label = `${path} for a ${subscriber ? `${remembered ? 'remembered' : tagged ? 'new' : 'untagged'} subscriber` : 'guest'}`;
         // A guest's teaser never waits for the session check. The meta page of
         // a browser holding a session waits for that check instead of reading
         // a teaser the full slice would cancel; the archetype catalog serves
         // its teaser from the server. Either way a subscriber reads the full
         // slice only.
-        const expected = serverTeaser ? [] : !subscriber ? [`${endpoint}/teaser`] : [endpoint];
+        const expected = serverTeaser ? [] : !subscriber ? [`${endpoint}/teaser`]
+          : tagged ? [endpoint] : [`${endpoint}/teaser`, endpoint];
         assert.deepEqual(requested, expected, `${label} requested ${JSON.stringify(requested)}`);
+        assert.deepEqual(failed, [], `${label} cancelled no request`);
         assert.doesNotMatch(html, /"deckCode":"[^"]/, `${path} carries no deck code in its HTML`);
         await context.close();
       }

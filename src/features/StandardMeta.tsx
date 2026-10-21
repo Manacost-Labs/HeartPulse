@@ -462,6 +462,10 @@ function StandardMetaContent({
     // its access check: full access remounts the page and would abort a teaser
     // in flight. The request starts a microtask later, so a remembered
     // subscriber's access, applied right after hydration, cancels it unsent.
+    // A session without a readable tag (signed in before tags) is not told
+    // apart from a guest: a teaser already sent is not aborted when full access
+    // remounts the page (the browser would report a failed request); its
+    // answer is dropped instead.
     if (requestKey === answeredKey.current || teaserWaitsForAccess) return undefined;
     answeredKey.current = '';
     const currentRequest = ++requestId.current;
@@ -475,13 +479,14 @@ function StandardMetaContent({
     });
     if (period) params.set('period', period);
     const endpoint = hasFullAccess ? '/api/standard-meta' : '/api/standard-meta/teaser';
-    void Promise.resolve().then(() => apiJson<unknown>(`${endpoint}?${params}`, {
-      signal: controller.signal,
-      headers: { Accept: STANDARD_META_MEDIA_TYPE },
-    }))
+    void Promise.resolve().then(() => controller.signal.aborted ? Promise.reject(new DOMException('', 'AbortError'))
+      : apiJson<unknown>(`${endpoint}?${params}`, {
+        signal: hasFullAccess ? controller.signal : undefined,
+        headers: { Accept: STANDARD_META_MEDIA_TYPE },
+      }))
       .then(payload => {
         const verified = parseStandardMetaApiResponse(payload);
-        if (currentRequest === requestId.current) {
+        if (currentRequest === requestId.current && !controller.signal.aborted) {
           const defaultPeriod = resolveStandardMetaDefaultPeriod(
             verified.data.availablePeriods,
             verified.data.currentPeriod,
@@ -497,7 +502,7 @@ function StandardMetaContent({
         }
       })
       .catch(cause => {
-        if (cause instanceof DOMException && cause.name === 'AbortError') return;
+        if ((cause instanceof DOMException && cause.name === 'AbortError') || controller.signal.aborted) return;
         if (currentRequest === requestId.current) {
           if (cause instanceof Error && cause.name === 'MetaAccessDenied') setData(EMPTY_DATA);
           setRequestError({ key: requestKey, message: datasetContractErrorMessage(cause) });

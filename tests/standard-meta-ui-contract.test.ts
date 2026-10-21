@@ -63,6 +63,9 @@ assert.match(metaSource, /\{loading && !hasPayload && \(\s*<AsyncSurfaceState\s*
 assert.match(metaSource, /if \(requestKey === answeredKey\.current \|\| teaserWaitsForAccess\) return undefined;\s*answeredKey\.current = '';/);
 assert.match(readFileSync(new URL('../apps/public-web/ui/StandardMetaPageClient.tsx', import.meta.url), 'utf8'),
   /teaserWaitsForAccess=\{pending && sessionTag\(\) !== null\}/);
+// A teaser already sent is not aborted by the full-access remount (a failed
+// request in the browser); one not yet sent stays unsent.
+assert.match(metaSource, /controller\.signal\.aborted \? Promise\.reject\(new DOMException\('', 'AbortError'\)\)[\s\S]*?signal: hasFullAccess \? controller\.signal : undefined,/);
 // The guest teaser's prompt waits for the account check, so a subscriber never sees it.
 assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<PaywallGate/);
 assert.match(metaSource, /option\.asset/);
