@@ -1,0 +1,89 @@
+{
+  "reason": "Проверка доступа без мигания: силуэт плашки подписки вместо строки «Проверяем доступ…» (PaywallPending), заготовка плана в кабинете и непрерывность скелетонов (useLoadingContinuity). JS растёт в общем чанке, где уже лежат PaywallPending и LoadingSurface; лениво не загрузить — эти состояния рисуются сервером в первом кадре. CSS: плашка-силуэт в PaywallGate.css.",
+  "routes": {
+    "/": {
+      "jsGzipBytes": 256
+    },
+    "/articles/": {
+      "jsGzipBytes": 896
+    },
+    "/battlegrounds/tier-list/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 256
+    },
+    "/classes/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 512
+    },
+    "/connect/": {
+      "jsGzipBytes": 1024
+    },
+    "/contests/": {
+      "jsGzipBytes": 896,
+      "cssGzipBytes": 128
+    },
+    "/cosmetics/": {
+      "jsGzipBytes": 896
+    },
+    "/developers/api/": {
+      "jsGzipBytes": 896
+    },
+    "/faq/": {
+      "jsGzipBytes": 896
+    },
+    "/gallery/": {
+      "jsGzipBytes": 256
+    },
+    "/guides-archive/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 256
+    },
+    "/heroes/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 384
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 384
+    },
+    "/library/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 256
+    },
+    "/library/minions/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 256
+    },
+    "/privacy/": {
+      "jsGzipBytes": 896
+    },
+    "/standard/archetypes/": {
+      "cssGzipBytes": 256
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 768,
+      "cssGzipBytes": 256
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 768,
+      "cssGzipBytes": 256
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 256
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 896
+    },
+    "/standard/matchups/": {
+      "cssGzipBytes": 512
+    },
+    "/standard/meta/": {
+      "jsGzipBytes": 896
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 384
+    }
+  }
+}

@@ -67,14 +67,16 @@ export function BgLibraryDetailSkeleton({ kicker, stats, minion = false, teaser 
         <LoadingBlock className="bg-library-detail-skeleton__back" />
       </LoadingSurface>
       {minion ? (
-        <div className={teaser ? 'data-surface' : undefined} aria-busy={teaser ? true : undefined} aria-hidden={teaser ? undefined : true}>
+        // The server's teaser stays at full strength while the rest loads: dimmed, the
+        // dark plate would read as a different, brown block until the page arrives.
+        <div aria-busy={teaser ? true : undefined} aria-hidden={teaser ? undefined : true}>
           <BattlegroundMinionHeader loading title={teaser?.name ?? null} facts={[]} kpis={[]} emptyText=""
             card={teaser ? <img src={teaser.image} alt={teaser.name} decoding="async" /> : null}
             rulesText={teaser?.text ?? undefined} />
         </div>
       ) : (
       <section
-        className={`bg-library-card-dossier overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]${teaser ? ' data-surface' : ''}`}
+        className="bg-library-card-dossier overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]"
         aria-busy={teaser ? true : undefined}
         aria-hidden={teaser ? undefined : true}
       >
