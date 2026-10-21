@@ -1,0 +1,82 @@
+.ui-trend-value {
+  --ui-trend-value-color: var(--ui-fg-muted);
+  --ui-trend-value-soft: var(--ui-surface-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  color: var(--ui-trend-value-color);
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--ui-leading-tight);
+  white-space: nowrap;
+  /* A live value flipping between gain and loss recolours smoothly, as its arrow turns. */
+  transition:
+    color var(--ui-duration) var(--ui-ease),
+    background-color var(--ui-duration) var(--ui-ease);
+}
+
+.ui-trend-value[data-tone='positive'] {
+  --ui-trend-value-color: var(--ui-success-text);
+  --ui-trend-value-soft: var(--ui-success-soft);
+}
+
+.ui-trend-value[data-tone='negative'] {
+  --ui-trend-value-color: var(--ui-danger-text);
+  --ui-trend-value-soft: var(--ui-danger-soft);
+}
+
+.ui-trend-value[data-tone='neutral'][data-variant='badge'] {
+  --ui-trend-value-color: var(--ui-warning-text);
+  --ui-trend-value-soft: var(--ui-warning-soft);
+}
+
+.ui-trend-value[data-size='sm'] {
+  font-size: var(--ui-text-sm);
+}
+
+.ui-trend-value[data-size='lg'] {
+  font-size: var(--ui-text-lg);
+}
+
+.ui-trend-value[data-variant='badge'] {
+  padding: 3px 8px;
+  border-radius: var(--ui-trend-value-radius, var(--ui-radius-full));
+  background: var(--ui-trend-value-soft);
+  font-size: var(--ui-text-xs);
+}
+
+.ui-trend-value[data-variant='badge'][data-size='lg'] {
+  padding: 4px 10px;
+  font-size: var(--ui-text-sm);
+}
+
+.ui-trend-value__icon {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--ui-duration-fast) ease;
+}
+
+.ui-trend-value[data-direction='up'] .ui-trend-value__icon {
+  transform: rotate(-45deg);
+}
+
+.ui-trend-value[data-direction='down'] .ui-trend-value__icon {
+  transform: rotate(45deg);
+}
+
+.ui-trend-value:dir(rtl) .ui-trend-value__icon {
+  scale: -1 1;
+}
+
+@media (forced-colors: active) {
+  .ui-trend-value[data-variant='badge'] {
+    border: 1px solid CanvasText;
+  }
+}

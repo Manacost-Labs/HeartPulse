@@ -1,0 +1,120 @@
+.ui-menu {
+  --_pad: var(--ui-popover-padding);
+
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 16px));
+  max-height: min(440px, calc(100vh - 16px));
+  padding: var(--_pad);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: var(--ui-text-md);
+}
+
+/* Lines the first submenu row up with the row that opened it. */
+.ui-menu[data-submenu] {
+  margin-top: calc(-1 * var(--_pad) - 1px);
+}
+
+.ui-menu[data-inset] .ui-menu-label {
+  padding-inline-start: calc(var(--ui-space-2) * 2 + 16px);
+}
+
+a.ui-menu-item {
+  text-decoration: none;
+}
+
+.ui-menu__indicator {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.ui-menu__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--ui-radius-full);
+  background: currentColor;
+}
+
+/* Forced colours replace backgrounds: keep the chosen radio item's dot visible. */
+@media (forced-colors: active) {
+  .ui-menu__dot {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
+  .ui-menu-item:is(:focus-visible, [data-highlighted='true']) .ui-menu__dot {
+    background: HighlightText;
+  }
+}
+
+.ui-menu__shortcut {
+  padding-inline-start: var(--ui-space-4);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.ui-menu .ui-menu-item[data-danger='true'] .ui-menu-item__icon {
+  color: inherit;
+}
+
+.ui-menu .ui-menu-item[data-danger='true']:hover:not([aria-disabled='true']) {
+  background: var(--ui-danger-soft);
+}
+
+.ui-menu .ui-menu-item[data-danger='true'][data-highlighted='true']:not([aria-disabled='true']) {
+  background: var(--ui-menu-danger-highlight-bg);
+  color: var(--ui-menu-danger-highlight-fg);
+}
+
+/* animation="spring": rows drop their own highlight and one shared highlight glides to the active row
+   (moved by translateY; Menu.tsx sets its offset and height). */
+.ui-menu[data-motion='spring'] .ui-menu-item {
+  position: relative;
+}
+
+/* Themes that fill the highlight with the accent invert the row's text; easing the colour keeps it
+   readable while the glide is still on its way. */
+.ui-menu[data-motion='spring'] :is(.ui-menu-item, .ui-menu-item__icon, .ui-menu-item__hint) {
+  transition: color var(--ui-duration) var(--ui-ease);
+}
+
+.ui-menu[data-motion='spring'] .ui-menu-item:is(:hover, :focus-visible, [data-highlighted='true']) {
+  background: transparent;
+}
+
+.ui-menu__glide {
+  position: absolute;
+  inset-inline: var(--_pad);
+  top: 0;
+  border-radius: calc(var(--ui-radius-popover) - 6px);
+  corner-shape: var(--ui-control-corner-shape);
+  background: var(--ui-menu-highlight-bg);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy),
+    opacity var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-menu__glide[data-visible] {
+  opacity: 1;
+}
+
+.ui-menu__glide[data-danger] {
+  background: var(--ui-menu-danger-highlight-bg);
+}
+
+/* Forced colors paint the highlighted row itself (base.css); the glide would only double it. */
+@media (forced-colors: active) {
+  .ui-menu__glide {
+    display: none;
+  }
+
+  .ui-menu[data-motion='spring'] .ui-menu-item:is(:hover, :focus-visible, [data-highlighted='true']):not([aria-disabled='true']) {
+    background: Highlight;
+  }
+}

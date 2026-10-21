@@ -34,10 +34,6 @@ export default function StandardMetaChart({ items, format, formatLabel, rankLabe
     )),
     [items],
   );
-  const popularPoints = useMemo(
-    () => [...points].sort((left, right) => right.popularity - left.popularity),
-    [points],
-  );
   const [expanded, setExpanded] = useState(false);
 
   if (points.length < 2) return null;
@@ -49,7 +45,7 @@ export default function StandardMetaChart({ items, format, formatLabel, rankLabe
           <span className="standard-meta-chart__icon" aria-hidden="true"><ChartScatter size={22} /></span>
           <div>
             <h2 id="standard-meta-chart-title">Карта меты</h2>
-            <p>Винрейт и популярность архетипов · {formatLabel} · {rankLabel}</p>
+            <p>Популярность, винрейт и доли игр · {formatLabel} · {rankLabel}</p>
           </div>
         </div>
         <div className="standard-meta-chart__header-actions">
@@ -64,8 +60,7 @@ export default function StandardMetaChart({ items, format, formatLabel, rankLabe
       {expanded && (
         <div id="standard-meta-chart-content" className="standard-meta-chart__content">
           <React.Suspense fallback={<StandardMetaChartSkeleton formatLabel={formatLabel} rankLabel={rankLabel} count={points.length} />}>
-            <StandardMetaChartPlot points={points} popularPoints={popularPoints} format={format}
-              formatLabel={formatLabel} rankLabel={rankLabel} />
+            <StandardMetaChartPlot points={points} format={format} formatLabel={formatLabel} rankLabel={rankLabel} />
           </React.Suspense>
         </div>
       )}

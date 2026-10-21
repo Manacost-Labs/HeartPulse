@@ -2966,38 +2966,63 @@ for (const [device, viewport] of [
       failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
     }
     await page.click('.standard-meta-chart__header-actions button');
-    await page.waitForSelector('.standard-meta-chart__point');
+    await page.waitForSelector('.standard-meta-map .ui-scatter-chart__point');
     const standardMetaChartState = await page.evaluate(() => {
       const chart = document.querySelector('.standard-meta-chart');
-      const viewport = document.querySelector('.standard-meta-chart__viewport');
-      const points = [...document.querySelectorAll('.standard-meta-chart__point')];
-      const labelledPoints = document.querySelectorAll('.standard-meta-chart__point text');
-      const detail = document.querySelector('.standard-meta-chart__selection');
-      const archetypeLink = detail?.querySelector('.standard-meta-chart__deck-action');
+      const map = document.querySelector('.standard-meta-map');
+      const svg = map?.querySelector('.ui-scatter-chart svg');
+      const points = [...(map?.querySelectorAll('.ui-scatter-chart__point') ?? [])];
       return {
         points: points.length,
-        labels: labelledPoints.length,
+        classes: map?.querySelectorAll('.ui-scatter-chart__series').length ?? 0,
         subtitle: document.querySelector('.standard-meta-chart__heading p')?.textContent || '',
-        detail: detail?.textContent || '',
-        hasAxes: document.querySelectorAll('.standard-meta-chart__axis-title').length === 2,
-        firstPointRole: points[0]?.getAttribute('role') || '',
-        archetypeLinkHeight: archetypeLink?.getBoundingClientRect().height ?? 0,
-        archetypeHref: archetypeLink?.getAttribute('href') || '',
-        plotContained: Boolean(viewport && viewport.querySelector('svg')
-          && viewport.querySelector('svg').getBoundingClientRect().width <= viewport.clientWidth + 1),
+        mapSubtitle: map?.querySelector('.standard-meta-map__header p')?.textContent || '',
+        reference: map?.querySelector('.ui-scatter-chart__reference text')?.textContent || '',
+        axisTitles: [...(map?.querySelectorAll('.ui-scatter-chart__axis-title') ?? [])].map(title => title.textContent),
+        focusable: svg?.getAttribute('tabindex') === '0',
+        dataTableRows: map?.querySelectorAll('.ui-scatter-chart table tbody tr, .ui-chart table tbody tr').length ?? 0,
+        plotContained: Boolean(map && svg && svg.getBoundingClientRect().width <= map.clientWidth + 1),
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
         chartVisible: Boolean(chart && chart.getBoundingClientRect().height > 0),
       };
     });
-    if (standardMetaChartState.points !== 5 || standardMetaChartState.labels < 1 || standardMetaChartState.labels > 5
+    // The largest bubble is Evenlock (most games); hovering it names the archetype.
+    const evenlockPoint = await page.evaluate(() => {
+      document.querySelector('.standard-meta-map .ui-scatter-chart svg')?.scrollIntoView({ block: 'center', behavior: 'instant' });
+      const circles = [...document.querySelectorAll('.standard-meta-map .ui-scatter-chart__point')];
+      const largest = circles.reduce((best, circle) => (Number(circle.getAttribute('r')) > Number(best?.getAttribute('r') ?? 0) ? circle : best), null);
+      const box = largest?.getBoundingClientRect();
+      return box ? { x: box.x + box.width / 2, y: box.y + box.height / 2 } : null;
+    });
+    if (evenlockPoint && device !== 'mobile') {
+      await page.mouse.move(evenlockPoint.x - 40, evenlockPoint.y + 40);
+      await page.mouse.move(evenlockPoint.x, evenlockPoint.y, { steps: 6 });
+    }
+    const tooltipText = device !== 'mobile'
+      ? await page.waitForSelector('.standard-meta-map .ui-chart-tooltip', { timeout: 5_000 }).then(tooltip => tooltip.evaluate(element => element.textContent || ''), () => '')
+      : 'Чётный Чернокнижник';
+    if (standardMetaChartState.points !== 5 || standardMetaChartState.classes !== 4
       || !standardMetaChartState.subtitle.includes('Стандарт') || !standardMetaChartState.subtitle.includes('Легенда')
-      || !standardMetaChartState.detail.includes('Чётный Чернокнижник') || !standardMetaChartState.hasAxes
-      || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.archetypeLinkHeight < 44
-      || standardMetaChartState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock/'
+      || !standardMetaChartState.mapSubtitle.includes('5 архетипов') || standardMetaChartState.reference !== '50%'
+      || standardMetaChartState.axisTitles.join('|') !== 'Винрейт|Популярность' || !standardMetaChartState.focusable
+      || standardMetaChartState.dataTableRows !== 5 || !tooltipText.includes('Чётный Чернокнижник')
       || !standardMetaChartState.chartVisible || standardMetaChartState.pageOverflow
       || !standardMetaChartState.plotContained) {
-      failures.push(`standard meta chart [${device}]: data, interaction or responsive containment regressed (${JSON.stringify(standardMetaChartState)})`);
+      failures.push(`standard meta chart [${device}]: data, interaction or responsive containment regressed (${JSON.stringify({ ...standardMetaChartState, tooltipText })})`);
     }
+    await page.evaluate(() => [...document.querySelectorAll('.standard-meta-map [role="radio"]')].find(option => option.textContent?.includes('Доли'))?.click());
+    await page.waitForSelector('.standard-meta-map .ui-treemap');
+    const standardMetaSharesState = await page.evaluate(() => ({
+      heading: document.querySelector('.standard-meta-map__header h3')?.textContent || '',
+      tiles: document.querySelectorAll('.standard-meta-map .ui-treemap svg [role="button"], .standard-meta-map .ui-treemap svg g[tabindex], .standard-meta-map .ui-treemap__tile').length,
+      tableRows: document.querySelectorAll('.standard-meta-map .ui-treemap table tbody tr').length,
+      pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
+    }));
+    if (standardMetaSharesState.heading !== 'Доля игр' || standardMetaSharesState.tableRows < 3 || standardMetaSharesState.pageOverflow) {
+      failures.push(`standard meta shares [${device}]: class treemap regressed (${JSON.stringify(standardMetaSharesState)})`);
+    }
+    // The hover above scrolled the plot to the middle; bring the toggle clear of the sticky top bar.
+    await page.$eval('.standard-meta-chart__header-actions button', button => button.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await page.click('.standard-meta-chart__header-actions button');
     if (await page.$('.standard-meta-chart__content')) {
       failures.push(`standard meta chart [${device}]: collapse control did not hide chart content`);
@@ -3059,6 +3084,33 @@ for (const [device, viewport] of [
     }
     await auditAccessibility(page, `standard meta table [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-table-${device}.png`, fullPage: false });
+    await page.click('[data-meta-view="tiers"]');
+    await page.waitForSelector('.standard-meta-tiers .ui-meta-table__body .ui-meta-table__row');
+    await page.waitForSelector('.standard-meta-tiers .ui-sparkline');
+    const standardMetaTiersState = await page.evaluate(() => {
+      const section = document.querySelector('.standard-meta-tiers');
+      const rows = [...(section?.querySelectorAll('.ui-meta-table__body .ui-meta-table__row') ?? [])];
+      return {
+        rows: rows.length,
+        badges: section?.querySelectorAll('.ui-meta-table__body .arena-tier-badge').length ?? 0,
+        firstTier: rows[0]?.querySelector('.arena-tier-badge')?.getAttribute('aria-label') || '',
+        sparklines: section?.querySelectorAll('.ui-meta-table__body .ui-sparkline').length ?? 0,
+        deltas: section?.querySelectorAll('.ui-meta-table__body .ui-trend-value').length ?? 0,
+        lowSample: section?.querySelectorAll('.ui-meta-table__body [data-low-sample]').length ?? 0,
+        subtitle: section?.querySelector('.ui-meta-table__subtitle')?.textContent || '',
+        firstName: rows[0]?.querySelector('.ui-meta-table__name')?.textContent || '',
+        pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
+      };
+    });
+    // Tier order, best first: Evenlock (61.1% on 6476 games) leads; Handbuff Warrior (136 games) is a low sample.
+    if (standardMetaTiersState.rows !== 5 || standardMetaTiersState.badges !== 5 || standardMetaTiersState.firstTier !== 'Тир S'
+      || standardMetaTiersState.firstName !== 'Чётный Чернокнижник' || standardMetaTiersState.sparklines !== 4
+      || standardMetaTiersState.deltas < 4 || standardMetaTiersState.lowSample !== 1
+      || !standardMetaTiersState.subtitle.includes('к пред. 2 дням') || standardMetaTiersState.pageOverflow) {
+      failures.push(`standard meta tiers [${device}]: tier table, trends or containment regressed (${JSON.stringify(standardMetaTiersState)})`);
+    }
+    await auditAccessibility(page, `standard meta tiers [${device}]`, '.standard-meta');
+    await page.screenshot({ path: `${OUT}/standard-meta-tiers-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="cards"]');
     await page.waitForSelector('.standard-meta-card__deck-button');
     const metaArchetypeLinkState = await page.evaluate(() => {

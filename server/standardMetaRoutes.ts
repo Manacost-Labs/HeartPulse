@@ -3,14 +3,19 @@ import type { StandardMetaClassKey } from './standardMetaClasses.js';
 import type { DeckCardData } from './deckCardData.js';
 import { createStandardMetaEnvelope } from './standardMetaDataset.js';
 import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
-import { resolveStandardMetaRequestPeriod, type StandardMetaPeriod } from '../shared/standardMetaPeriods.js';
+import {
+  readFormat,
+  readRank,
+  readStandardMetaSliceQuery,
+  type StandardMetaCoin,
+  type StandardMetaFormat,
+  type StandardMetaMinGames,
+  type StandardMetaPeriod,
+  type StandardMetaRank,
+} from './standardMetaQuery.js';
+import { createTeaserHandler, createTrendsHandler } from './standardMetaSliceHandlers.js';
 
-export type StandardMetaFormat = 'standard' | 'wild';
-export type StandardMetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
-  | 'top_5k' | 'top_legend';
-export type { StandardMetaPeriod };
-export type StandardMetaCoin = 'any_player';
-export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
+export type { StandardMetaCoin, StandardMetaFormat, StandardMetaMinGames, StandardMetaPeriod, StandardMetaRank };
 
 export type StandardMetaRecommendation = {
   archetype: string;
@@ -60,39 +65,8 @@ export type StandardMetaRouterDependencies = {
   createPreview: (recommendation: StandardMetaRecommendation) => Promise<StandardMetaPreview>;
   getPreview: (hash: string) => Promise<StandardMetaPreview>;
   setPrivateNoStore: (response: import('express').Response) => void;
-  onError?: (scope: 'meta' | 'vicious-gold' | 'vicious-gold-builds' | 'recommendation' | 'preview-create' | 'preview-read', error: unknown) => void;
+  onError?: (scope: 'meta' | 'meta-trends' | 'vicious-gold' | 'vicious-gold-builds' | 'recommendation' | 'preview-create' | 'preview-read', error: unknown) => void;
 };
-
-const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
-const RANKS = new Set<StandardMetaRank>([
-  'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
-]);
-const COINS = new Set<StandardMetaCoin>(['any_player']);
-const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
-
-function readFormat(value: unknown): StandardMetaFormat | null {
-  const format = String(value ?? 'standard') as StandardMetaFormat;
-  return FORMATS.has(format) ? format : null;
-}
-
-function readRank(value: unknown): StandardMetaRank | null {
-  const rank = String(value ?? 'diamond') as StandardMetaRank;
-  return RANKS.has(rank) ? rank : null;
-}
-
-function readPeriod(value: unknown): StandardMetaPeriod | null {
-  return resolveStandardMetaRequestPeriod(String(value ?? 'past_day'));
-}
-
-function readCoin(value: unknown): StandardMetaCoin | null {
-  const coin = String(value ?? 'any_player') as StandardMetaCoin;
-  return COINS.has(coin) ? coin : null;
-}
-
-function readMinGames(value: unknown): StandardMetaMinGames | null {
-  const minGames = Number(value ?? 100) as StandardMetaMinGames;
-  return MIN_GAMES.has(minGames) ? minGames : null;
-}
 
 function readArchetype(value: unknown): string {
   return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
@@ -123,30 +97,7 @@ function acceptsMediaType(value: unknown, mediaType: string): boolean {
 export function createStandardMetaRouter(dependencies: StandardMetaRouterDependencies): Router {
   const router = Router();
 
-  router.get('/standard-meta/teaser', async (request, response) => {
-    const format = readFormat(request.query.format);
-    const rank = readRank(request.query.rank);
-    const period = readPeriod(request.query.period);
-    const coin = readCoin(request.query.coin);
-    const minGames = readMinGames(request.query.min_games);
-    if (!format || !rank || !period || !coin || !minGames) {
-      return response.status(400).json({ error: 'Неизвестный фильтр меты' });
-    }
-    try {
-      const envelope = createStandardMetaEnvelope(
-        await dependencies.loadMeta(format, rank, period, coin, minGames),
-      );
-      response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
-      response.set('X-Content-Type-Options', 'nosniff');
-      return response.json({
-        ...envelope.data,
-        items: envelope.data.items.slice(0, 3),
-      });
-    } catch (error) {
-      dependencies.onError?.('meta', error);
-      return response.status(502).json({ error: 'Данные меты временно недоступны' });
-    }
-  });
+  router.get('/standard-meta/teaser', createTeaserHandler(dependencies));
 
   const protectAdminStats: RequestHandler = (_request, response, next) => {
     dependencies.setPrivateNoStore(response);
@@ -158,14 +109,9 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
   router.use('/admin/vicious-syndicate-gold', dependencies.adminGuard, protectAdminStats);
 
   const metaHandler: RequestHandler = async (request, response) => {
-    const format = readFormat(request.query.format);
-    const rank = readRank(request.query.rank);
-    const period = readPeriod(request.query.period);
-    const coin = readCoin(request.query.coin);
-    const minGames = readMinGames(request.query.min_games);
-    if (!format || !rank || !period || !coin || !minGames) {
-      return response.status(400).json({ error: 'Неизвестный фильтр меты' });
-    }
+    const slice = readStandardMetaSliceQuery(request.query);
+    if (!slice) return response.status(400).json({ error: 'Неизвестный фильтр меты' });
+    const { format, rank, period, coin, minGames } = slice;
     try {
       const envelope = createStandardMetaEnvelope(
         await dependencies.loadMeta(format, rank, period, coin, minGames),
@@ -183,6 +129,7 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
   };
   router.get('/standard-meta', metaHandler);
   router.get('/admin/standard-meta', metaHandler);
+  router.get('/standard-meta/trends', createTrendsHandler(dependencies));
 
   const viciousHandler: RequestHandler = async (_request, response) => {
     try {

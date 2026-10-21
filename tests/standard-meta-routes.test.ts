@@ -191,6 +191,26 @@ try {
     calls.length = 0;
   }
 
+  // Trends need the subscriber entitlement and read the rolling ladder at the source's lowest floor.
+  const deniedTrends = await fetch(`${origin}/standard-meta/trends?format=standard&rank=legend&period=black_empire&min_games=500`);
+  assert.equal(deniedTrends.status, 403);
+  assert.deepEqual(calls, []);
+  const trends = await fetch(`${origin}/standard-meta/trends?format=standard&rank=legend&period=black_empire&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(trends.status, 200);
+  assert.match(trends.headers.get('cache-control') ?? '', /no-store/);
+  const trendsBody = await trends.json() as any;
+  assert.equal(trendsBody.period, 'black_empire');
+  assert.equal(trendsBody.items.length, metaItems.length);
+  assert.deepEqual(calls.sort(), [
+    'meta:standard:legend:black_empire:any_player:500',
+    ...['past_2_weeks', 'past_30_days', 'past_3_days', 'past_3_hours', 'past_6_hours', 'past_day', 'past_week']
+      .map(rolling => `meta:standard:legend:${rolling}:any_player:100`),
+  ]);
+  calls.length = 0;
+  const badTrends = await fetch(`${origin}/standard-meta/trends?format=standard&rank=top_500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(badTrends.status, 400);
+  assert.deepEqual(calls, []);
+
   for (const rolling of ['past_3_hours', 'past_6_hours', 'past_30_days']) {
     const rollingMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=${rolling}&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
     assert.equal(rollingMeta.status, 200);

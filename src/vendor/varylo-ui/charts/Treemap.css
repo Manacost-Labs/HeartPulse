@@ -1,0 +1,127 @@
+/* Breadcrumbs on the left, `actions` (a hint, the selection) on the right of the same row. */
+.ui-treemap__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-1) var(--ui-space-4);
+  min-width: 0;
+}
+
+.ui-treemap__breadcrumbs {
+  min-height: 24px;
+  font-size: var(--ui-text-sm);
+}
+
+.ui-treemap__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-sm);
+}
+
+:is(.ui-treemap__tile, .ui-treemap__group)[data-clickable] {
+  cursor: pointer;
+}
+
+/* Each level fades in tile by tile — on mount and after every zoom. */
+.ui-treemap__tile,
+.ui-treemap__group {
+  transition: opacity var(--ui-duration-fast) var(--ui-ease);
+  animation: ui-treemap-in calc(var(--ui-duration-slow) * 1.6) var(--ui-ease) both;
+  animation-delay: min(calc(var(--_i, 0) * var(--ui-duration-fast) / 6), calc(var(--ui-duration-fast) * 2.5));
+}
+
+@keyframes ui-treemap-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * Tinted tiles (mixed into --ui-chart-tint-base: the card colour, or transparent for translucent
+ * tiles) with a 1px rim. Larger values get a stronger tint (--_t); --_mix is the tint, shared
+ * with the ink of the labels, which turns black or white by the tile's lightness ([data-ink]).
+ */
+.ui-treemap__tile {
+  --_mix: calc(var(--ui-treemap-tile-mix) + var(--_t, 1) * var(--ui-treemap-tile-mix-range));
+  --_ink-bg: color-mix(in srgb, var(--_color) var(--_mix), light-dark(#fff, #000));
+}
+
+.ui-treemap__tile[data-active] {
+  --_mix: calc(var(--ui-treemap-tile-mix-active) + var(--_t, 1) * var(--ui-treemap-tile-mix-range));
+}
+
+/* Value scale: one color from faint to strong. */
+.ui-treemap[data-color-by='value'] .ui-treemap__tile {
+  --_mix: calc(var(--ui-treemap-value-mix) + var(--_t, 1) * var(--ui-treemap-value-mix-range));
+}
+
+.ui-treemap__rect {
+  fill: color-mix(in srgb, var(--_color) var(--_mix), var(--ui-chart-tint-base));
+  stroke: var(--ui-chart-mark-stroke, color-mix(in srgb, var(--_color) var(--ui-treemap-tile-border-mix), var(--ui-treemap-tile-border-base)));
+  stroke-width: var(--ui-chart-mark-stroke-width, 1);
+  transition:
+    fill var(--ui-duration-fast) var(--ui-ease),
+    stroke var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-treemap__tile[data-active] .ui-treemap__rect {
+  stroke: var(--ui-treemap-tile-border-active, var(--_color));
+  stroke-width: 1.5;
+  filter: var(--ui-chart-glow, var(--_glow));
+}
+
+.ui-treemap__group-box {
+  fill: color-mix(in srgb, var(--_color) var(--ui-treemap-group-mix), transparent);
+  stroke: color-mix(in srgb, var(--_color) var(--ui-treemap-group-border-mix), var(--ui-treemap-group-border-base));
+  stroke-width: 1;
+}
+
+.ui-treemap__group:hover .ui-treemap__group-box {
+  stroke: color-mix(in srgb, var(--_color) var(--ui-treemap-group-border-mix-hover), var(--ui-treemap-group-border-base-hover));
+}
+
+.ui-treemap__header {
+  fill: var(--ui-fg);
+  font-size: 12px;
+  font-weight: var(--ui-weight-semibold);
+  pointer-events: none;
+}
+
+.ui-treemap__header-value {
+  fill: var(--ui-fg-muted);
+  font-weight: var(--ui-weight-regular);
+}
+
+.ui-treemap__label {
+  fill: var(--_ink, var(--ui-fg));
+  font-size: 12px;
+  font-weight: var(--ui-weight-medium);
+  pointer-events: none;
+}
+
+.ui-treemap__value {
+  fill: var(--_ink-muted, var(--ui-fg-muted));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .ui-chart__svg .ui-treemap__rect {
+    stroke: CanvasText;
+  }
+
+  .ui-chart__svg .ui-treemap__group-box {
+    fill: Canvas;
+    stroke: GrayText;
+  }
+
+  .ui-chart__svg .ui-treemap__tile[data-active] .ui-treemap__rect {
+    stroke: Highlight;
+    stroke-width: 2;
+  }
+}

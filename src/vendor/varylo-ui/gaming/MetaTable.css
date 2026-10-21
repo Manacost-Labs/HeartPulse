@@ -1,0 +1,445 @@
+.ui-meta-table {
+  --_up: var(--ui-meta-table-up, var(--ui-success-text, var(--ui-success, #30a46c)));
+  --_down: var(--ui-meta-table-down, var(--ui-danger-text, var(--ui-danger, #e5484d)));
+  --_cols: 40px minmax(180px, 2.2fr) 56px repeat(3, minmax(86px, 1fr)) minmax(80px, 0.9fr);
+  --ui-game-image-size: 36px;
+
+  container: ui-meta-table / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm, 14px);
+}
+
+.ui-meta-table__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2, 8px) var(--ui-space-4, 16px);
+  padding: 14px var(--ui-space-4, 16px) 12px;
+}
+
+.ui-meta-table__heading {
+  min-width: 0;
+}
+
+.ui-meta-table__title {
+  margin: 0;
+  font-family: var(--ui-font-display, inherit);
+  font-size: var(--ui-text-md, 16px);
+  font-weight: var(--ui-weight-heading, 650);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.ui-meta-table__subtitle {
+  margin: 2px 0 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-meta-table__rank {
+  inline-size: 11.5rem;
+  max-inline-size: 100%;
+}
+
+.ui-meta-table__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2, 8px) var(--ui-space-3, 12px);
+  min-width: 0;
+  padding: 0 var(--ui-space-4, 16px) 12px;
+}
+
+.ui-meta-table__roles {
+  max-inline-size: 100%;
+}
+
+.ui-meta-table__search {
+  inline-size: 13rem;
+  max-inline-size: 100%;
+}
+
+.ui-meta-table__scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+  outline: none;
+}
+
+.ui-meta-table__scroll:focus-visible {
+  box-shadow: inset var(--ui-focus-ring);
+}
+
+.ui-meta-table__table {
+  display: grid;
+  min-inline-size: 100%;
+}
+
+.ui-meta-table__table:not([data-tiers]) {
+  --_cols: 40px minmax(180px, 2.2fr) repeat(3, minmax(86px, 1fr)) minmax(80px, 0.9fr);
+}
+
+.ui-meta-table__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--_cols);
+  align-items: center;
+  min-block-size: 52px;
+  border-block-end: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+}
+
+.ui-meta-table__body > .ui-meta-table__row:hover {
+  background: var(--ui-hover, color-mix(in oklab, var(--ui-fg) 4%, transparent));
+}
+
+.ui-meta-table__head {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: var(--ui-surface);
+}
+
+.ui-meta-table__head .ui-meta-table__row {
+  min-block-size: 38px;
+}
+
+.ui-meta-table__stats {
+  display: contents;
+}
+
+.ui-meta-table__cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-inline: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-meta-table__head .ui-meta-table__cell {
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-weight: var(--ui-weight-medium, 500);
+}
+
+.ui-meta-table__position {
+  justify-content: center;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+}
+
+.ui-meta-table__tier {
+  justify-content: center;
+}
+
+.ui-meta-table__win,
+.ui-meta-table__pick,
+.ui-meta-table__ban,
+.ui-meta-table__games,
+.ui-meta-table__trend {
+  justify-content: flex-end;
+  text-align: end;
+}
+
+.ui-meta-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0 -4px;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--ui-radius-sm, 6px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ui-meta-table__sort:hover,
+.ui-meta-table__sort[data-active] {
+  color: var(--ui-fg);
+}
+
+.ui-meta-table__sort:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-meta-table__sort > svg {
+  inline-size: 13px;
+  block-size: 13px;
+  opacity: 0.55;
+}
+
+.ui-meta-table__sort[data-active] > svg {
+  opacity: 1;
+}
+
+/* ── The champion: portrait, name, role ── */
+
+.ui-meta-table__who {
+  gap: 10px;
+  padding-block: 7px;
+}
+
+.ui-meta-table__names {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ui-meta-table__name {
+  overflow: hidden;
+  font-weight: var(--ui-weight-semibold, 600);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-meta-table__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: var(--ui-weight-semibold, 600);
+  text-align: start;
+  cursor: pointer;
+}
+
+/* The whole row answers the name's button. */
+.ui-meta-table__open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.ui-meta-table__open:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ui-meta-table__open:focus-visible {
+  outline: none;
+}
+
+.ui-meta-table__open:focus-visible::after {
+  box-shadow: inset var(--ui-focus-ring);
+}
+
+.ui-meta-table__role {
+  --_hue: var(--ui-gray);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  line-height: 1.3;
+}
+
+.ui-meta-table__role::before {
+  content: '';
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--_hue);
+}
+
+/* ── Rates: the value, its change since the last patch under it ── */
+
+.ui-meta-table__rate {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+}
+
+.ui-meta-table__value {
+  font-weight: var(--ui-weight-medium, 500);
+  line-height: 1.3;
+}
+
+.ui-meta-table__win .ui-meta-table__value {
+  font-weight: var(--ui-weight-semibold, 600);
+}
+
+.ui-meta-table__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--ui-fg-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ui-meta-table__win .ui-meta-table__delta[data-direction='up'] {
+  color: var(--_up);
+}
+
+.ui-meta-table__win .ui-meta-table__delta[data-direction='down'] {
+  color: var(--_down);
+}
+
+.ui-meta-table__delta[data-direction='flat'] {
+  color: var(--ui-fg-faint, var(--ui-fg-subtle));
+}
+
+.ui-meta-table__none {
+  color: var(--ui-fg-faint, var(--ui-fg-subtle));
+}
+
+.ui-meta-table__games {
+  gap: 4px;
+  color: var(--ui-fg-muted);
+}
+
+.ui-meta-table__low {
+  display: inline-flex;
+  color: var(--ui-amber, var(--ui-fg-muted));
+}
+
+.ui-meta-table__low > svg {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+.ui-meta-table__row[data-low-sample] :is(.ui-meta-table__win, .ui-meta-table__pick, .ui-meta-table__ban, .ui-meta-table__tier) {
+  opacity: 0.6;
+}
+
+/* ── States and footer ── */
+
+.ui-meta-table__count {
+  margin: 0;
+  padding: 8px var(--ui-space-4, 16px);
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-meta-table__state {
+  display: grid;
+  gap: 8px;
+  padding: var(--ui-space-4, 16px);
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+  color: var(--ui-fg-muted);
+}
+
+.ui-meta-table__scroll .ui-meta-table__state {
+  border: 0;
+}
+
+.ui-meta-table__state[data-state='error'] {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  color: var(--ui-danger-text, var(--ui-danger));
+}
+
+.ui-meta-table__state[data-state='error'] > svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+p.ui-meta-table__state {
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Narrow: each row becomes a two-line card, the header a row of sort buttons ── */
+
+@container ui-meta-table (max-width: 640px) {
+  .ui-meta-table__header,
+  .ui-meta-table__filters {
+    padding-inline: var(--ui-space-3, 12px);
+  }
+
+  .ui-meta-table__search {
+    flex: 1 1 10rem;
+  }
+
+  .ui-meta-table__head .ui-meta-table__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    padding: 6px 12px;
+  }
+
+  .ui-meta-table__head .ui-meta-table__cell {
+    padding: 0;
+  }
+
+  .ui-meta-table__head .ui-meta-table__position {
+    display: none;
+  }
+
+  .ui-meta-table__body > .ui-meta-table__row {
+    grid-template-columns: 22px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'pos who tier win'
+      '. stats stats stats';
+    gap: 4px 10px;
+    padding: 8px 12px 10px 4px;
+  }
+
+  .ui-meta-table__body .ui-meta-table__cell {
+    padding-inline: 0;
+  }
+
+  .ui-meta-table__body .ui-meta-table__position {
+    grid-area: pos;
+    align-self: start;
+    padding-block-start: 10px;
+  }
+
+  .ui-meta-table__body .ui-meta-table__who {
+    grid-area: who;
+    padding-block: 0;
+  }
+
+  .ui-meta-table__body .ui-meta-table__tier {
+    grid-area: tier;
+  }
+
+  .ui-meta-table__body .ui-meta-table__win {
+    grid-area: win;
+  }
+
+  .ui-meta-table__body :is(.ui-meta-table__pick, .ui-meta-table__ban, .ui-meta-table__games, .ui-meta-table__trend) {
+    justify-content: flex-start;
+    gap: 4px;
+    font-size: var(--ui-text-xs, 12px);
+  }
+
+  .ui-meta-table__body .ui-meta-table__stats {
+    display: flex;
+    flex-wrap: wrap;
+    grid-area: stats;
+    gap: 2px 14px;
+  }
+
+  .ui-meta-table__body :is(.ui-meta-table__pick, .ui-meta-table__ban, .ui-meta-table__games, .ui-meta-table__trend)::before {
+    content: attr(data-label);
+    color: var(--ui-fg-muted);
+    white-space: nowrap;
+  }
+
+  .ui-meta-table__body :is(.ui-meta-table__pick, .ui-meta-table__ban) .ui-meta-table__delta {
+    display: none;
+  }
+
+  .ui-meta-table__body .ui-meta-table__games .ui-meta-table__value {
+    color: var(--ui-fg);
+  }
+}

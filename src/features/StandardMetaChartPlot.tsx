@@ -1,9 +1,18 @@
-import { ChartFrame } from '../shared/ui/analytics/ChartFrame';
-import { usePlotWidth } from '../shared/ui/analytics/usePlotWidth';
-import '../shared/ui/analytics/Analytics.css';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, MousePointer2 } from 'lucide-react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
+import { MousePointer2 } from 'lucide-react';
+import { ScatterChart, type ScatterSeries } from '../vendor/varylo-ui/charts/ScatterChart';
+import { Treemap, type TreemapNode } from '../vendor/varylo-ui/charts/Treemap';
+import { SegmentedControl } from '../vendor/varylo-ui/navigation/SegmentedControl';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
+import type { StandardMetaClass } from '../../shared/standardMetaContract';
+import {
+  STANDARD_META_CLASS_COLORS,
+  STANDARD_META_CLASS_LABELS,
+  STANDARD_META_NEUTRAL_COLOR,
+} from './standardMetaClassModel';
+import '../vendor/varylo-ui/styles/index.css';
+import './StandardMetaVarylo.css';
+import './StandardMetaChartSkeleton.css';
 import './StandardMetaChartPlot.css';
 
 /** One plotted archetype: an item of the chart with both coordinates known. */
@@ -19,180 +28,122 @@ export type StandardMetaChartPoint = {
   climbingSpeed: number | null;
 };
 
-
-function formatPercent(value: number): string {
-  return `${value.toLocaleString('ru-RU', { maximumFractionDigits: value > 0 && value < 0.1 ? 2 : 1 })}%`;
-}
-
-function domain(values: number[], includeZero = false): [number, number] {
-  if (!values.length) return [0, 5];
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
-  const lower = includeZero ? 0 : Math.floor((minimum - 1) / 5) * 5;
-  const upper = Math.ceil((maximum + (includeZero ? 0 : 1)) / 5) * 5;
-  return [lower, Math.max(lower + 5, upper)];
-}
-
-function ticks([minimum, maximum]: [number, number], count = 5): number[] {
-  return Array.from({ length: count + 1 }, (_, index) => minimum + ((maximum - minimum) * index) / count);
-}
-
-function classIcon(classKey: string | null): string {
-  return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
-}
-
-// Keyboard steps between points: arrows move by one, Home and End to the ends.
-const POINT_KEY_STEPS: Partial<Record<string, (index: number, count: number) => number>> = {
-  ArrowRight: () => 1, ArrowDown: () => 1, ArrowLeft: () => -1, ArrowUp: () => -1,
-  Home: index => -index, End: (index, count) => count - index - 1,
+type MapView = 'scatter' | 'shares';
+const percent = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: value > 0 && value < 0.1 ? 2 : 1 })}%`;
+const count = (value: number) => value.toLocaleString('ru-RU');
+const WINRATE_GUIDE = [{ axis: 'y' as const, value: 50, label: '50%' }];
+const NARROW = '(max-width: 640px)';
+const subscribeNarrow = (onChange: () => void) => {
+  const query = window.matchMedia(NARROW);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
 };
+// A phone gets a shorter plot with smaller bubbles; the server draws the wide one.
+const useNarrow = () => useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW).matches, () => false);
 
-function ChartSelection({ item, format }: { item: StandardMetaChartPoint; format: 'standard' | 'wild' }) {
-  return (
-    <div className="standard-meta-chart__selection" aria-live="polite">
-      <img src={classIcon(item.classKey)} alt="" width="46" height="46" loading="lazy" decoding="async" />
-      <div className="standard-meta-chart__selection-title">
-        <strong>{item.archetypeLabel}</strong>
-        <span>{item.archetype}</span>
-      </div>
-      <dl>
-        <div><dt>Винрейт</dt><dd>{formatPercent(item.winrate)}</dd></div>
-        <div><dt>Популярность</dt><dd>{formatPercent(item.popularity)}</dd></div>
-        <div><dt>Игры</dt><dd>{item.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
-      </dl>
-      <a
-        className="standard-meta-chart__deck-action"
-        href={canonicalPagePath(`/standard/archetypes/${format}/${item.slug}`)}
-        aria-label={`Открыть страницу архетипа: ${item.archetypeLabel}`}
-      >
-        <span>Архетип</span>
-        <ArrowRight size={17} aria-hidden="true" />
-      </a>
-    </div>
-  );
+function classOf(point: StandardMetaChartPoint): StandardMetaClass | null {
+  return point.classKey && point.classKey in STANDARD_META_CLASS_COLORS ? point.classKey as StandardMetaClass : null;
+}
+
+function classSeries(points: StandardMetaChartPoint[]): ScatterSeries<StandardMetaChartPoint>[] {
+  const groups = new Map<StandardMetaClass | null, StandardMetaChartPoint[]>();
+  for (const point of points) groups.set(classOf(point), [...groups.get(classOf(point)) ?? [], point]);
+  return [...groups].map(([classKey, data]) => ({
+    label: classKey ? STANDARD_META_CLASS_LABELS[classKey] : 'Без класса',
+    color: classKey ? STANDARD_META_CLASS_COLORS[classKey] : STANDARD_META_NEUTRAL_COLOR,
+    data,
+  })).sort((left, right) => left.label.localeCompare(right.label, 'ru'));
+}
+
+/** Class tiles sized by their games, archetype tiles inside; a leaf's id is its slug. */
+function shareTree(points: StandardMetaChartPoint[]): TreemapNode[] {
+  return classSeries(points.filter(point => point.games)).map(series => ({
+    id: series.data[0].classKey ?? 'neutral',
+    label: series.label,
+    color: series.color,
+    children: series.data.map(point => ({ id: point.slug, label: point.archetypeLabel, value: point.games ?? 0 })),
+  }));
 }
 
 /**
- * The expanded meta chart: the scatter plot and the selected archetype. It
- * loads when a reader opens the chart, so the collapsed chart in the first
- * paint carries neither its code nor its styles.
+ * The expanded meta map: a bubble chart (popularity across, win rate up, games
+ * as size, class as colour) and the share of games by class and archetype.
+ * Both follow the page's filters, and a point or tile opens its archetype. It
+ * loads when a reader opens the map, so the first paint carries none of it.
  */
-export default function StandardMetaChartPlot({ points, popularPoints, format, formatLabel, rankLabel }: {
+export default function StandardMetaChartPlot({ points, format, formatLabel, rankLabel }: {
   points: StandardMetaChartPoint[];
-  popularPoints: StandardMetaChartPoint[];
   format: 'standard' | 'wild';
   formatLabel: string;
   rankLabel: string;
 }) {
-  const [selectedId, setSelectedId] = useState(popularPoints[0]?.id ?? '');
-  const [hoveredId, setHoveredId] = useState('');
+  const [view, setView] = useState<MapView>('scatter');
   const [popularOnly, setPopularOnly] = useState(false);
-  const { ref: viewportRef, width: VIEWBOX_WIDTH } = usePlotWidth();
-  const VIEWBOX_HEIGHT = VIEWBOX_WIDTH < 500 ? 340 : 400;
-  const PLOT = { left: 60, right: 24, top: 28, bottom: 58 };
-  const PLOT_WIDTH = VIEWBOX_WIDTH - PLOT.left - PLOT.right;
-  const PLOT_HEIGHT = VIEWBOX_HEIGHT - PLOT.top - PLOT.bottom;
-  const visiblePoints = useMemo(() => popularOnly ? points.filter(item => item.popularity >= 0.5) : points, [points, popularOnly]);
-  const pointRefs = useRef(new Map<string, SVGGElement>());
-
-  useEffect(() => {
-    setSelectedId(popularPoints[0]?.id ?? '');
-    setHoveredId('');
-  }, [formatLabel, rankLabel, popularPoints]);
-
-  const selectedItem = visiblePoints.find(item => item.id === (hoveredId || selectedId)) ?? visiblePoints[0] ?? null;
-  const xDomain = useMemo(() => domain(visiblePoints.map(item => item.winrate)), [visiblePoints]);
-  const yDomain = useMemo(() => domain(visiblePoints.map(item => item.popularity), true), [visiblePoints]);
-  const xTicks = useMemo(() => ticks(xDomain, VIEWBOX_WIDTH < 500 ? 2 : 5), [xDomain, VIEWBOX_WIDTH]);
-  const yTicks = useMemo(() => ticks(yDomain), [yDomain]);
-
-  const xPosition = (value: number) => PLOT.left + ((value - xDomain[0]) / (xDomain[1] - xDomain[0])) * PLOT_WIDTH;
-  const yPosition = (value: number) => PLOT.top + PLOT_HEIGHT - ((value - yDomain[0]) / (yDomain[1] - yDomain[0])) * PLOT_HEIGHT;
-
-  const moveFocus = (index: number, direction: number) => {
-    const nextIndex = Math.max(0, Math.min(visiblePoints.length - 1, index + direction));
-    const next = visiblePoints[nextIndex];
-    setSelectedId(next.id);
-    window.requestAnimationFrame(() => pointRefs.current.get(next.id)?.focus());
-  };
+  const shown = useMemo(() => popularOnly ? points.filter(point => point.popularity >= 0.5) : points, [points, popularOnly]);
+  const series = useMemo(() => classSeries(shown), [shown]);
+  const tree = useMemo(() => shareTree(shown), [shown]);
+  const totalGames = useMemo(() => shown.reduce((sum, point) => sum + (point.games ?? 0), 0), [shown]);
+  const openArchetype = (slug: string) => window.location.assign(canonicalPagePath(`/standard/archetypes/${format}/${slug}`));
+  const narrow = useNarrow();
 
   return (
-    <ChartFrame title="Винрейт и популярность" subtitle={`${formatLabel} · ${rankLabel} · ${visiblePoints.length} архетипов`}>
-    <div className="standard-meta-chart__controls"><label><input type="checkbox" checked={popularOnly} onChange={event => setPopularOnly(event.target.checked)} /> Популярность от 0,5%</label><label>Архетип <select aria-label="Выбрать архетип на карте меты" value={selectedItem?.id ?? ""} onChange={event => { setSelectedId(event.target.value); setHoveredId(''); }}>{visiblePoints.map(item => <option key={item.id} value={item.id}>{item.archetypeLabel}</option>)}</select></label></div>
-    <p className="standard-meta-chart__hint"><MousePointer2 size={15} /> Наведите или выберите точку. Чем выше и правее, тем популярнее и сильнее архетип.</p>
-    <div ref={viewportRef} className="standard-meta-chart__viewport">
-      <svg data-chart className="standard-meta-chart__plot" viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} aria-labelledby="standard-meta-chart-svg-title standard-meta-chart-svg-desc">
-        <title id="standard-meta-chart-svg-title">Винрейт и популярность архетипов</title>
-        <desc id="standard-meta-chart-svg-desc">По горизонтали указан винрейт, по вертикали популярность. Точки доступны с клавиатуры.</desc>
-
-        {yTicks.map(value => {
-          const y = yPosition(value);
-          return (
-            <g key={`y-${value}`} className="standard-meta-chart__axis-tick">
-              <line x1={PLOT.left} x2={PLOT.left + PLOT_WIDTH} y1={y} y2={y} />
-              <text x={PLOT.left - 12} y={y + 4} textAnchor="end">{formatPercent(value)}</text>
-            </g>
-          );
-        })}
-        {xTicks.map(value => {
-          const x = xPosition(value);
-          return (
-            <g key={`x-${value}`} className="standard-meta-chart__axis-tick">
-              <line x1={x} x2={x} y1={PLOT.top} y2={PLOT.top + PLOT_HEIGHT} />
-              <text x={x} y={PLOT.top + PLOT_HEIGHT + 28} textAnchor="middle">{formatPercent(value)}</text>
-            </g>
-          );
-        })}
-        {xDomain[0] < 50 && xDomain[1] > 50 && (
-          <g className="standard-meta-chart__reference">
-            <line x1={xPosition(50)} x2={xPosition(50)} y1={PLOT.top} y2={PLOT.top + PLOT_HEIGHT} />
-            <text x={xPosition(50) + (xPosition(50) > VIEWBOX_WIDTH * 0.6 ? -8 : 8)} y={PLOT.top + 16} textAnchor={xPosition(50) > VIEWBOX_WIDTH * 0.6 ? 'end' : 'start'}>50% винрейта</text>
-          </g>
-        )}
-        <line className="standard-meta-chart__axis" x1={PLOT.left} x2={PLOT.left} y1={PLOT.top} y2={PLOT.top + PLOT_HEIGHT} />
-        <line className="standard-meta-chart__axis" x1={PLOT.left} x2={PLOT.left + PLOT_WIDTH} y1={PLOT.top + PLOT_HEIGHT} y2={PLOT.top + PLOT_HEIGHT} />
-        <text className="standard-meta-chart__axis-title" x={PLOT.left + PLOT_WIDTH / 2} y={VIEWBOX_HEIGHT - 10} textAnchor="middle">Винрейт</text>
-        <text className="standard-meta-chart__axis-title" transform={`translate(19 ${PLOT.top + PLOT_HEIGHT / 2}) rotate(-90)`} textAnchor="middle">Популярность</text>
-
-        {visiblePoints.map((item, index) => {
-          const active = selectedItem?.id === item.id;
-          const labelled = active;
-          const x = xPosition(item.winrate);
-          const y = yPosition(item.popularity);
-          return (
-            <g
-              key={item.id}
-              ref={element => {
-                if (element) pointRefs.current.set(item.id, element);
-                else pointRefs.current.delete(item.id);
-              }}
-              className={`standard-meta-chart__point${active ? ' standard-meta-chart__point--active' : ''}`}
-              role="button"
-              tabIndex={selectedItem?.id === item.id ? 0 : -1}
-              aria-label={`${item.archetypeLabel}: винрейт ${formatPercent(item.winrate)}, популярность ${formatPercent(item.popularity)}, игр ${item.games?.toLocaleString('ru-RU') ?? 'нет данных'}`}
-              transform={`translate(${x} ${y})`}
-              onMouseEnter={() => setHoveredId(item.id)}
-              onMouseLeave={() => setHoveredId('')}
-              onClick={() => setSelectedId(item.id)}
-              onFocus={() => setSelectedId(item.id)}
-              onKeyDown={event => {
-                const step = POINT_KEY_STEPS[event.key];
-                if (event.key !== 'Enter' && event.key !== ' ' && !step) return;
-                event.preventDefault();
-                if (step) moveFocus(index, step(index, visiblePoints.length));
-                else setSelectedId(item.id);
-              }}
-            >
-              <circle className="standard-meta-chart__point-halo" r={active ? 12 : 7} />
-              <circle className="standard-meta-chart__point-core" r={active ? 6 : 3.5} />
-              {labelled && <text x={x > VIEWBOX_WIDTH / 2 ? -11 : 11} y="-14" textAnchor={x > VIEWBOX_WIDTH / 2 ? "end" : "start"}>{item.archetypeLabel.length > (VIEWBOX_WIDTH < 500 ? 20 : 36) ? `${item.archetypeLabel.slice(0, VIEWBOX_WIDTH < 500 ? 18 : 34)}…` : item.archetypeLabel}</text>}
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-
-    {selectedItem && <ChartSelection item={selectedItem} format={format} />}
-    </ChartFrame>
+    <section className="standard-meta-map standard-meta-varylo" aria-labelledby="standard-meta-map-title">
+      <header className="standard-meta-map__header">
+        <div>
+          <h3 id="standard-meta-map-title">{view === 'scatter' ? 'Популярность и винрейт' : 'Доля игр'}</h3>
+          <p>{formatLabel} · {rankLabel} · {shown.length} архетипов</p>
+        </div>
+        <SegmentedControl
+          size="sm"
+          aria-label="Вид карты меты"
+          value={view}
+          onValueChange={value => setView(value as MapView)}
+          options={[{ value: 'scatter', label: 'Карта' }, { value: 'shares', label: 'Доли' }]}
+          data-meta-map-switch
+        />
+      </header>
+      <div className="standard-meta-map__controls">
+        <label><input type="checkbox" checked={popularOnly} onChange={event => setPopularOnly(event.target.checked)} /> Популярность от 0,5%</label>
+        <p><MousePointer2 size={15} aria-hidden="true" /> {view === 'scatter'
+          ? 'Размер — число игр, цвет — класс. Нажмите на точку, чтобы открыть архетип.'
+          : 'Площадь — доля игр. Нажмите на класс, затем на архетип.'}</p>
+      </div>
+      {view === 'scatter' ? (
+        <ScatterChart
+          className="standard-meta-map__chart"
+          series={series}
+          x="popularity"
+          y="winrate"
+          size="games"
+          name="archetypeLabel"
+          xLabel="Популярность"
+          yLabel="Винрейт"
+          sizeLabel="Игры"
+          xFormatter={percent}
+          yFormatter={percent}
+          sizeFormatter={count}
+          referenceLines={WINRATE_GUIDE}
+          height={narrow ? 340 : 420}
+          maxBubbleSize={narrow ? 16 : 22}
+          showLegend
+          locale="ru-RU"
+          labels={{ empty: 'Нет точек для карты', series: 'Класс', name: 'Архетип' }}
+          ariaLabel={`Карта меты: популярность и винрейт архетипов, ${formatLabel}, ${rankLabel}`}
+          onPointClick={point => openArchetype(point.slug)}
+        />
+      ) : (
+        <Treemap
+          className="standard-meta-map__chart"
+          data={tree}
+          depth={1}
+          height={narrow ? 360 : 440}
+          valueFormatter={value => `${percent(totalGames ? (value / totalGames) * 100 : 0)} · ${count(value)} игр`}
+          locale="ru-RU"
+          labels={{ empty: 'Нет игр для долей', root: 'Все классы', breadcrumb: 'Уровень долей', name: 'Название', value: 'Игры', share: 'Доля' }}
+          ariaLabel={`Доля игр по классам и архетипам, ${formatLabel}, ${rankLabel}`}
+          onNodeClick={node => { if (!node.children) openArchetype(node.id ?? ''); }}
+        />
+      )}
+    </section>
   );
 }

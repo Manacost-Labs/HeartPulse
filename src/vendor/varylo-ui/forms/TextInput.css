@@ -1,0 +1,164 @@
+.ui-text-input {
+  --_px: var(--ui-space-3);
+
+  position: relative;
+  cursor: text;
+}
+
+.ui-text-input[data-size='sm'] {
+  --_px: var(--ui-space-2);
+}
+
+.ui-text-input[data-size='lg'] {
+  --_px: var(--ui-space-4);
+}
+
+.ui-text-input[data-disabled] {
+  cursor: not-allowed;
+}
+
+.ui-text-input__input:disabled {
+  cursor: not-allowed;
+}
+
+.ui-text-input[data-readonly] {
+  background: var(--ui-surface-2);
+}
+
+.ui-text-input__input[type='number'] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Icons follow the text size: 16px up to md, 18px at lg. */
+.ui-text-input[data-size='lg'] :is(.ui-field__icon, .ui-text-input__action:not([data-action='clear'])) .ui-icon {
+  width: var(--ui-icon-lg);
+  height: var(--ui-icon-lg);
+}
+
+/* Attached text segments ("https://", ".vercel.app") */
+.ui-text-input__addon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  align-self: stretch;
+  padding: 0 var(--_px);
+  background: var(--ui-text-input-addon-bg);
+  color: var(--ui-fg-muted);
+  white-space: nowrap;
+  user-select: none;
+  /* Direction from the addon's own text: "https://" stays readable inside an RTL field. */
+  unicode-bidi: plaintext;
+}
+
+.ui-text-input__addon[data-side='start'] {
+  margin-inline-start: calc(-1 * var(--_px));
+  border-inline-end: 1px solid var(--ui-border-field);
+  border-start-start-radius: calc(var(--ui-radius-field) - 1px);
+  border-end-start-radius: calc(var(--ui-radius-field) - 1px);
+}
+
+.ui-text-input__addon[data-side='end'] {
+  margin-inline-end: calc(-1 * var(--_px));
+  border-inline-start: 1px solid var(--ui-border-field);
+  border-start-end-radius: calc(var(--ui-radius-field) - 1px);
+  border-end-end-radius: calc(var(--ui-radius-field) - 1px);
+}
+
+/* Clear / reveal buttons */
+.ui-text-input__action {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-inline-end: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-chip);
+  background: transparent;
+  color: var(--ui-fg-faint);
+  cursor: pointer;
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    color var(--ui-duration-fast) var(--ui-ease),
+    box-shadow var(--ui-duration-fast) var(--ui-ease);
+}
+
+/* The clear button shows up once there is text: it grows in instead of popping. */
+.ui-text-input__action[data-action='clear'] {
+  animation: ui-text-input-action-in var(--ui-duration) var(--ui-ease-spring);
+}
+
+@keyframes ui-text-input-action-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.ui-text-input__action:hover:not(:disabled) {
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+.ui-text-input__action:active:not(:disabled) {
+  background: var(--ui-active);
+}
+
+.ui-text-input__action:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-text-input__action:disabled {
+  cursor: inherit;
+}
+
+.ui-text-input__action + .ui-text-input__action {
+  margin-inline-start: -4px;
+}
+
+/* Clear button. After the hover rule, so a theme can restyle it (Glass: an iOS filled grey circle with a
+   knocked-out cross). */
+.ui-text-input .ui-text-input__action[data-action='clear'] {
+  width: var(--ui-text-input-clear-size);
+  height: var(--ui-text-input-clear-size);
+  margin-inline-end: var(--ui-text-input-clear-margin-end);
+  background: var(--ui-text-input-clear-bg);
+  color: var(--ui-text-input-clear-fg);
+}
+
+.ui-text-input .ui-text-input__action[data-action='clear'] .ui-icon {
+  width: var(--ui-text-input-clear-icon-size);
+  height: var(--ui-text-input-clear-icon-size);
+}
+
+.ui-text-input .ui-text-input__action[data-action='clear']:hover {
+  background: var(--ui-text-input-clear-bg-hover);
+  color: var(--ui-text-input-clear-fg-hover);
+}
+
+/* Touch: clear / reveal buttons get a 44px-tall hit area (WCAG 2.5.5); the drawn button stays small. */
+@media (pointer: coarse) {
+  .ui-text-input__action {
+    position: relative;
+  }
+
+  .ui-text-input__action::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* Narrower than 44px: a clear button can sit right next to it. */
+    width: 32px;
+    height: 44px;
+    translate: -50% -50%;
+  }
+}
+
+/* Edge draws its own reveal and clear buttons in password and text fields; the field has its own. */
+.ui-text-input__input::-ms-reveal,
+.ui-text-input__input::-ms-clear {
+  display: none;
+}

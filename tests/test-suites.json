@@ -45,6 +45,7 @@
         "tests/archetype-insights-model.test.ts",
         "tests/constructed-archetype-catalog-cache.test.ts",
         "tests/standard-meta-slice-cache.test.ts",
+        "tests/standard-meta-trends.test.ts",
         "tests/architecture-baseline.test.mjs",
         "tests/architecture-catalog.test.mjs",
         "tests/arena-class-statistics-normalizer.test.ts",

@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 83,
-    "routeRegistrations": 235,
+    "routeRegistrations": 236,
     "middlewareRegistrations": 124,
     "explicitGuardRouteRegistrations": 59,
     "unresolvedPaths": 0
@@ -4510,7 +4510,7 @@
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "<inline-handler>",
+      "handler": "createTeaserHandler(dependencies)",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
       "sourceOrder": 0
@@ -4606,11 +4606,11 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/vicious-syndicate-gold/builds",
+      "path": "/standard-meta/trends",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "viciousBuildsHandler",
+      "handler": "createTrendsHandler(dependencies)",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
       "sourceOrder": 7
@@ -4618,7 +4618,7 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/admin/vicious-syndicate-gold/builds",
+      "path": "/vicious-syndicate-gold/builds",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
@@ -4630,11 +4630,11 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/vicious-syndicate-gold",
+      "path": "/admin/vicious-syndicate-gold/builds",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "viciousHandler",
+      "handler": "viciousBuildsHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
       "sourceOrder": 9
@@ -4642,7 +4642,7 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/admin/vicious-syndicate-gold",
+      "path": "/vicious-syndicate-gold",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
@@ -4654,6 +4654,18 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/admin/vicious-syndicate-gold",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "viciousHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 11
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/standard-meta/recommendation",
       "pathKind": "string",
       "receiver": "router",
@@ -4661,7 +4673,7 @@
       "handler": "recommendationHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 11
+      "sourceOrder": 12
     },
     {
       "kind": "route",
@@ -4673,7 +4685,7 @@
       "handler": "recommendationHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 12
+      "sourceOrder": 13
     },
     {
       "kind": "route",
@@ -4685,7 +4697,7 @@
       "handler": "previewCreateHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 13
+      "sourceOrder": 14
     },
     {
       "kind": "route",
@@ -4697,7 +4709,7 @@
       "handler": "previewCreateHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 14
+      "sourceOrder": 15
     },
     {
       "kind": "route",
@@ -4709,7 +4721,7 @@
       "handler": "previewReadHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 15
+      "sourceOrder": 16
     },
     {
       "kind": "route",
@@ -4721,7 +4733,7 @@
       "handler": "previewReadHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 16
+      "sourceOrder": 17
     },
     {
       "kind": "route",

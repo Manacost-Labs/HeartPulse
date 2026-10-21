@@ -1,0 +1,58 @@
+/* The meta tier table: a VaryloUI MetaTable in the meta page's wood frame.
+   Rows keep one height at every width, so the virtual list never jumps. */
+.standard-meta-tiers {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 7px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background: rgba(247, 229, 188, 0.76);
+  box-shadow: 0 5px 12px rgba(66, 38, 14, 0.1);
+}
+
+.standard-meta-tiers .ui-meta-table {
+  border: 1px solid rgba(102, 63, 27, 0.2);
+  background: rgba(255, 247, 222, 0.56);
+}
+
+.standard-meta-tiers .ui-meta-table__title {
+  color: #3a281c;
+  font-size: 1.05rem;
+}
+
+.standard-meta-tiers .ui-meta-table__head {
+  background: #ecd9ad;
+}
+
+.standard-meta-tiers .ui-meta-table__head .ui-meta-table__cell {
+  color: #5e4733;
+  font-weight: 800;
+}
+
+.standard-meta-tiers .ui-meta-table__sort[data-active] { color: #4a2f66; }
+
+.standard-meta-tiers .ui-meta-table__body > .ui-meta-table__row:nth-child(even) {
+  background: rgba(229, 199, 144, 0.18);
+}
+
+.standard-meta-tiers .ui-meta-table__tier .arena-tier-badge { flex: 0 0 auto; }
+
+.standard-meta-tiers .ui-meta-table__trend { justify-content: flex-end; }
+
+.standard-meta-tiers__no-trend { color: #a08a70; }
+
+.standard-meta-tiers__note {
+  margin: 0;
+  color: #6a4f36;
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.standard-meta-tiers__note strong { color: #3a281c; }
+
+@media (max-width: 720px) {
+  .standard-meta-tiers { padding: 0.45rem; border-width: 5px; }
+  /* A finger needs the whole row as its target, as in the archetype cards. */
+  .standard-meta-tiers .ui-meta-table__body > .ui-meta-table__row { min-block-size: 64px; }
+}

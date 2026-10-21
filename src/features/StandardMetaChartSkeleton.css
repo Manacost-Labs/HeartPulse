@@ -1,16 +1,68 @@
-.meta-loading-frame { container-type: inline-size; }
-.meta-loading-frame .analytics-chart__header > * { visibility: hidden; }
-.meta-loading-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.meta-loading-controls .loading-block:first-child { width: 180px; height: 19.5px; }
-.meta-loading-controls .loading-block:last-child { width: 260px; max-width: 100%; height: 40px; }
-.meta-loading-hint { display: flex; gap: 0.38rem; align-items: center; margin: 0 0 0.55rem; color: transparent; font-size: 0.68rem; }
-.meta-loading-hint > span { flex: 0 0 15px; height: 15px; }
-/* Same responsive plot and selection dimensions measured in the lazy view;
-   its renderer and stylesheet remain deferred. */
-.meta-loading-viewport { height: 402px; }
-@container (max-width: 500px) { .meta-loading-viewport { height: 342px; } }
-.meta-loading-selection { height: 67.75px; margin-top: 0.65rem; }
-@media (max-width: 720px) {
-  .meta-loading-hint { align-items: flex-start; line-height: 1.35; }
-  .meta-loading-selection { height: 169.125px; }
+/* The expanded meta map's frame. Shared with its lazy view, so the loading
+   frame is the same markup at the same size and nothing moves when the plot
+   arrives; the plot and its stylesheet stay deferred. */
+.standard-meta-map {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
 }
+
+.standard-meta-map__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.standard-meta-map__header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: #3a281c;
+}
+
+.standard-meta-map__header p {
+  margin: 0.15rem 0 0;
+  color: #765b3e;
+  font-size: 0.72rem;
+}
+
+.standard-meta-map__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  align-items: center;
+  color: #6a4f36;
+  font-size: 0.7rem;
+}
+
+.standard-meta-map__controls label {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  min-height: 36px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.standard-meta-map__controls input { accent-color: #4a2f66; }
+
+.standard-meta-map__controls p {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin: 0;
+}
+
+.standard-meta-map__controls svg { flex: 0 0 auto; color: #4a2f66; }
+
+@media (max-width: 640px) {
+  .standard-meta-map__header { display: grid; }
+  .standard-meta-map__header > :last-child { justify-self: start; }
+}
+
+.meta-loading-switch { width: 118px; height: 34px; }
+/* Border, padding, plot and one legend row of the lazy chart box. */
+.meta-loading-plot { height: calc(420px + 45.2px); }
+@media (max-width: 640px) { .meta-loading-plot { height: calc(340px + 45.2px); } }

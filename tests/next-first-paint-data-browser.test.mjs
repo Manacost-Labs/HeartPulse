@@ -146,7 +146,7 @@ test('public previews render on the server and hydrate without a guest data requ
       if (path === '/standard/meta/') {
         // The collapsed chart is server-rendered; its plot loads when opened.
         await page.click('#root .standard-meta-chart__header-actions button');
-        await page.waitForSelector('#root .standard-meta-chart__point', { visible: true });
+        await page.waitForSelector('#root .standard-meta-map .ui-scatter-chart__point', { visible: true });
       }
       if (path === '/standard/archetypes/') {
         await page.waitForFunction(() => /обновлено 4 окт\., 07:30/.test(document.querySelector('#root .archetypes-tools small')?.textContent ?? ''));

@@ -1,0 +1,48 @@
+/* type="search" draws its own clear button and decorations in WebKit; ours replace them. */
+.ui-search-input .ui-text-input__input::-webkit-search-cancel-button,
+.ui-search-input .ui-text-input__input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ui-search-input .ui-text-input__input {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ui-search-input__shortcut {
+  display: inline-flex;
+  gap: 2px;
+  margin-inline-end: -4px;
+}
+
+/* A key hint means nothing on a touch screen without a keyboard. */
+@media (hover: none) and (pointer: coarse) {
+  .ui-search-input__shortcut {
+    display: none;
+  }
+}
+
+.ui-search-input[data-size='sm'] .ui-search-input__shortcut .ui-kbd {
+  height: 18px;
+  min-width: 18px;
+}
+
+/* Capsule in Glass (--ui-radius-button); a theme can widen the small field's inset. */
+.ui-search-input {
+  border-radius: var(--ui-search-input-radius, var(--ui-radius-button));
+}
+
+.ui-search-input[data-size='sm'] {
+  padding-inline: var(--ui-search-input-padding-x-sm);
+}
+
+.ui-search-input .ui-field__icon {
+  color: var(--ui-search-input-icon-fg);
+}
+
+.ui-search-input__shortcut .ui-kbd {
+  border-color: var(--ui-search-input-kbd-border-color);
+  border-radius: var(--ui-radius-chip);
+  background: var(--ui-search-input-kbd-bg);
+}

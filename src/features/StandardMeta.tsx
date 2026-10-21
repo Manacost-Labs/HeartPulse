@@ -38,6 +38,7 @@ import {
   standardMetaPeriodLabel,
 } from './standardMetaFilterModel';
 import StandardMetaChart from './StandardMetaChart';
+import { STANDARD_META_CLASS_COLORS, standardMetaClassIcon } from './standardMetaClassModel';
 import { metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed } from './standardMetaTeaser';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
@@ -49,7 +50,7 @@ type MetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
 type MetaPeriod = StandardMetaPeriod;
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
-type MetaView = 'cards' | 'table';
+type MetaView = 'cards' | 'tiers' | 'table';
 type MetaSortKey = 'archetype' | 'winrate' | 'popularity' | 'games' | 'turns' | 'durationMinutes' | 'climbingSpeed';
 type MetaSortDirection = 'asc' | 'desc';
 type MetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin' | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
@@ -152,19 +153,10 @@ const RANK_GROUPS: Array<{ label: string; icon: typeof Gem; ranks: MetaRank[] }>
 ];
 
 const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
-const DECK_CLASS_COLORS: Record<MetaClass, string> = {
-  deathknight: '#43596b',
-  demonhunter: '#17613d',
-  druid: '#9a541d',
-  hunter: '#3f7821',
-  mage: '#39779b',
-  paladin: '#9b771c',
-  priest: '#727984',
-  rogue: '#4a5058',
-  shaman: '#28568b',
-  warlock: '#68417d',
-  warrior: '#832b24',
-};
+const DECK_CLASS_COLORS: Record<MetaClass, string> = STANDARD_META_CLASS_COLORS;
+// The tier table carries VaryloUI's table, sparkline and the tier badge: it
+// loads when a reader opens that view, never with the first paint.
+const StandardMetaTierTable = React.lazy(() => import('./StandardMetaTierTable'));
 
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
@@ -212,9 +204,7 @@ function winrateTone(value: number | null): 'neutral' | 'strong' | 'even' | 'wea
   return value === null ? 'neutral' : value >= 52 ? 'strong' : value >= 49 ? 'even' : 'weak';
 }
 
-function classIcon(classKey: MetaClass | null): string {
-  return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
-}
+const classIcon = standardMetaClassIcon;
 
 function WinrateMedallion({ value }: { value: number | null }) {
   const tone = winrateTone(value);
@@ -673,6 +663,9 @@ function StandardMetaContent({
               <button type="button" data-meta-view="cards" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>
                 <LayoutGrid size={17} /> Карточки
               </button>
+              <button type="button" data-meta-view="tiers" aria-pressed={view === 'tiers'} onClick={() => setView('tiers')}>
+                <Trophy size={17} /> Тиры
+              </button>
               <button type="button" data-meta-view="table" aria-pressed={view === 'table'} onClick={() => setView('table')}>
                 <TableProperties size={17} /> Таблица
               </button>
@@ -713,6 +706,12 @@ function StandardMetaContent({
                 </article>
               ))}
             </section>
+          ) : view === 'tiers' && visibleItems.length > 0 ? (
+            <React.Suspense fallback={<AsyncSurfaceState variant="loading" title="Загружаем тиры" message="Готовим тир-таблицу текущего среза." compact />}>
+              <StandardMetaTierTable items={visibleItems} format={format} rank={rank} rankLabel={data.rankLabel}
+                formatLabel={data.formatLabel} period={selectedPeriod} periodLabel={standardMetaPeriodLabel(selectedPeriod)}
+                minGames={minGames} loadTrends={hasFullAccess} />
+            </React.Suspense>
           ) : view === 'table' && visibleItems.length > 0 ? (
             <section className="standard-meta-table-wrap" aria-label={`Таблица архетипов: ${data.formatLabel}, ${data.rankLabel}`} tabIndex={0}>
               <p className="standard-meta-table__mobile-hint">

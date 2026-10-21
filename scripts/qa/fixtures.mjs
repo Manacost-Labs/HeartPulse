@@ -540,6 +540,20 @@ export const adminFixtures = {
       },
     ],
   },
+  '/api/admin/standard-meta/trends': {
+    period: 'past_day',
+    minGames: 100,
+    updatedAt: '2026-07-11T00:00:00.000Z',
+    buckets: ['14–30 дн.', '7–14 дн.', '3–7 дн.', '1–3 дн.', '6–24 ч', '3–6 ч', '0–3 ч'],
+    comparison: { label: 'к пред. 2 дням', description: 'окно 1–3 дня назад' },
+    items: [
+      { id: 'qa-evenlock', winrates: [57.2, 58.1, 59.4, 60.2, 61.0, 61.4, 61.9], previous: { winrate: 59.8, popularity: 5.1, games: 9120 } },
+      { id: 'qa-painlock', winrates: [null, null, 58.8, 59.9, 60.1, null, null], previous: { winrate: 61.2, popularity: 0.6, games: 702 } },
+      { id: 'qa-handbuff-warrior', winrates: [null, null, null, null, null, null, null], previous: null },
+      { id: 'qa-mug-shaman', winrates: [58.4, 58.0, 57.6, 57.1, 56.9, 56.5, 56.6], previous: { winrate: 57.3, popularity: 3.9, games: 5210 } },
+      { id: 'qa-face-hunter', winrates: [54.1, 54.6, 55.0, 55.2, 55.4, 55.1, 55.6], previous: { winrate: 55.3, popularity: 2.7, games: 4410 } },
+    ],
+  },
   '/api/admin/vicious-syndicate-gold': {
     title: 'Vicious Syndicate Gold',
     format: 'Standard',
@@ -1130,6 +1144,7 @@ export const publicStandardFixtureAliases = {
   '/api/constructed-cards/CARD_QA_1': '/api/admin/constructed-cards/CARD_QA_1',
   '/api/standard-meta': '/api/admin/standard-meta',
   '/api/standard-meta/teaser': '/api/admin/standard-meta',
+  '/api/standard-meta/trends': '/api/admin/standard-meta/trends',
   '/api/vicious-syndicate-gold': '/api/admin/vicious-syndicate-gold',
   '/api/vicious-syndicate-gold/builds': '/api/admin/vicious-syndicate-gold/builds',
 };

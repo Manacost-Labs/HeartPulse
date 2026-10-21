@@ -14,7 +14,7 @@ test('loading cards and class rows fit their loaded counterparts at public page 
     async function geometry(storyId, selector) {
       await openStory(page, storybook.storyUrl(storyId));
       await page.waitForSelector(selector, { visible: true });
-      if (storyId === 'meta-chart-loading-geometry--expanded') await page.waitForSelector('.standard-meta-chart__plot', { visible: true });
+      if (storyId === 'meta-chart-loading-geometry--expanded') await page.waitForSelector('.standard-meta-map .ui-chart__svg', { visible: true });
       if (storyId === 'cards-statistics-history--dense-small-values') await page.waitForSelector('.analytics-chart__plot > svg', { visible: true });
       await page.evaluate(() => document.fonts.ready);
       await page.evaluate(() => Promise.all(document.getAnimations()

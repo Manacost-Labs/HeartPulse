@@ -88,6 +88,11 @@
 "src/vendor/varylo-ui/data-display/DataTable.tsx#DataTable": 405,
 "src/vendor/varylo-ui/forms/Select.tsx#Select": 134,
 "src/vendor/varylo-ui/gaming/MatchupMatrix.tsx#MatchupMatrix": 370,
-"src/vendor/varylo-ui/primitives/useVirtualizer.ts#useVirtualizer": 243
+"src/vendor/varylo-ui/primitives/useVirtualizer.ts#useVirtualizer": 243,
+"src/vendor/varylo-ui/charts/ScatterChart.tsx#ScatterChart": 381,
+"src/vendor/varylo-ui/charts/Treemap.tsx#Treemap": 283,
+"src/vendor/varylo-ui/forms/SearchInput.tsx#SearchInput": 136,
+"src/vendor/varylo-ui/gaming/MetaTable.tsx#MetaTable": 315,
+"src/vendor/varylo-ui/navigation/Menu.tsx#MenuSurface": 265
   }
 }

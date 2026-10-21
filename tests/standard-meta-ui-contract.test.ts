@@ -71,3 +71,14 @@ assert.deepEqual(
 assert.doesNotMatch(metaSource, /standard-meta__season-context/);
 assert.doesNotMatch(metaStyles, /\.standard-meta__season-context/);
 assert.match(chartSource, /useState\(false\)/);
+
+// Tiers rank the win rate's lower confidence bound, so a thin sample cannot outrank its games.
+{
+  const { standardMetaTier } = await import('../src/features/standardMetaClassModel.js');
+  assert.equal(standardMetaTier(63.3, 8883), 'S');
+  assert.equal(standardMetaTier(56, 100), 'B');
+  assert.equal(standardMetaTier(52, 20000), 'A');
+  assert.equal(standardMetaTier(50, 5000), 'B');
+  assert.equal(standardMetaTier(48.5, 3000), 'C');
+  assert.equal(standardMetaTier(44, 5000), 'D');
+}
