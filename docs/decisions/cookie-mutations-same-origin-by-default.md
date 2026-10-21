@@ -16,9 +16,16 @@ tracker ingestion, the internal ecosystem hook). The paths in
 token). A request without the cookie cannot act as the visitor and goes on to
 its route's own authentication.
 
-Rules are chosen on the path as routing may see it
-(`normalizedRequestPath`: percent-decoded, lower case, repeated slashes
-collapsed, dot segments resolved, no trailing slash).
+An exemption is granted only to the raw request path spelled exactly like
+the endpoint (Express ignores case and one trailing slash): nothing is
+decoded or collapsed first, because Express routes on the raw path and keeps
+encoded slashes inside a parameter (`/api/account/sessions/..%2F..%2Fv1%2Foauth/revoke`
+is a session route, not the OAuth one). The header list is matched on the
+normalised path (`normalizedRequestPath`: decoded, lower case, repeated
+slashes collapsed, dot segments resolved, no trailing slash); normalisation may
+only add a requirement, never remove one. Routes that apply the rule
+themselves check it before their rate limit, so refused requests spend none
+of it.
 
 ## Why
 
@@ -38,5 +45,6 @@ cross-site request through.
   `CROSS_SITE_ENDPOINTS` and must not authenticate with the session cookie;
   otherwise requests that happen to carry the cookie are refused with 403.
 - `tests/csrf.test.ts` and `tests/account-sessions-integration.test.mjs`
-  cover the spellings (case, `//`, `/./`, `%2F`, trailing slash) and the
-  exempt endpoints.
+  cover the spellings (case, `//`, `/./`, `%2F`, `..%2F`, `%2e%2e%2f`,
+  trailing slash), paths that only normalise to an exempt endpoint, and the
+  exempt endpoints on their canonical paths.

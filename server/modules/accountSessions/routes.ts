@@ -43,12 +43,14 @@ export function createAccountSessionsRouter(dependencies: AccountSessionsRouterD
     keyGenerator: request => `account-sessions:${currentSession(request)?.userId ?? ''}`,
     message: { error: 'Слишком много запросов. Попробуйте позже.' },
   });
+  // CSRF is checked before the rate limit, so a refused cross-site request never spends the account's budget.
+  const csrfGuard: RequestHandler = (request, response, next) => {
+    if (dependencies.csrfAllowed(request)) return next();
+    dependencies.setPrivateNoStore(response);
+    return response.status(403).json(FORBIDDEN);
+  };
   const guarded = (request: Request, response: Response) => {
     dependencies.setPrivateNoStore(response);
-    if (request.method !== 'GET' && !dependencies.csrfAllowed(request)) {
-      response.status(403).json(FORBIDDEN);
-      return null;
-    }
     const session = currentSession(request);
     if (!session) response.status(401).json(SIGN_IN_REQUIRED);
     return session;
@@ -64,7 +66,7 @@ export function createAccountSessionsRouter(dependencies: AccountSessionsRouterD
     }
   });
 
-  router.post('/account/sessions/revoke-others', mutationLimiter, (request, response) => {
+  router.post('/account/sessions/revoke-others', csrfGuard, mutationLimiter, (request, response) => {
     try {
       const session = guarded(request, response);
       if (!session) return undefined;
@@ -74,7 +76,7 @@ export function createAccountSessionsRouter(dependencies: AccountSessionsRouterD
     }
   });
 
-  router.post('/account/sessions/:id/revoke', mutationLimiter, (request, response) => {
+  router.post('/account/sessions/:id/revoke', csrfGuard, mutationLimiter, (request, response) => {
     try {
       const session = guarded(request, response);
       if (!session) return undefined;

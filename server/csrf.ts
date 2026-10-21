@@ -28,21 +28,33 @@ export type CsrfRequestContext = {
  * or servers. Each authenticates on its own (bot secret, signed link, client
  * credentials, bearer or internal key), never with the browser session, so a
  * cross-site request cannot borrow the visitor's cookie through them.
+ *
+ * An exemption is granted only to the raw path spelled exactly like this
+ * (Express ignores case and one trailing slash). Nothing is decoded or
+ * collapsed first: `/api/account/sessions/..%2F..%2Fv1%2Foauth/revoke` routes
+ * to a session route, so any encoded, dotted or doubled spelling stays
+ * subject to the same-origin rule.
  */
-const CROSS_SITE_ENDPOINTS = [
-  /^\/api\/auth\/telegram\/bot\/webhook$/,
-  /^\/api\/newsletter\/unsubscribe$/,
-  /^\/api\/v1\/oauth\/(?:token|device\/code|revoke)$/,
-  /^\/api\/v1\/tracker\/events\/batch$/,
-  /^\/api\/ecosystem\/internal\/subscription$/,
-];
+const CROSS_SITE_ENDPOINTS = new Set([
+  '/api/auth/telegram/bot/webhook',
+  '/api/newsletter/unsubscribe',
+  '/api/v1/oauth/token',
+  '/api/v1/oauth/device/code',
+  '/api/v1/oauth/revoke',
+  '/api/v1/tracker/events/batch',
+  '/api/ecosystem/internal/subscription',
+]);
+
+function crossSiteEndpoint(rawPath: string): boolean {
+  const lower = rawPath.toLowerCase();
+  return CROSS_SITE_ENDPOINTS.has(lower.endsWith('/') ? lower.slice(0, -1) : lower);
+}
 
 /**
  * The path as routing may see it: percent-decoded, lower case (Express routes
  * ignore case), repeated slashes collapsed (a mount swallows them), dot
- * segments resolved and no trailing slash. Normalising only decides which
- * rule applies: every cookie mutation must be same-origin whatever its
- * spelling, so a spelling this misses is refused, not let through.
+ * segments resolved and no trailing slash. It may only add a requirement (the
+ * `X-CSRF-Request` list), never remove one.
  */
 export function normalizedRequestPath(path: string): string {
   let decoded = path;
@@ -88,7 +100,7 @@ function sameOriginRequest(context: CsrfRequestContext): boolean {
 /**
  * Deny by default: any state-changing request that carries the session cookie
  * must come from this site (Sec-Fetch-Site, then Origin or Referer), on every
- * path but the cookie-free machine endpoints above. Paths in
+ * path but the cookie-free machine endpoints above (raw path, exact match). Paths in
  * PROTECTED_MUTATION_PATHS additionally need `X-CSRF-Request: 1` unless the
  * request authenticates with a bearer token. A request without the cookie
  * cannot act as the visitor and passes to its route's own authentication.
@@ -96,9 +108,9 @@ function sameOriginRequest(context: CsrfRequestContext): boolean {
 export function csrfRequestAllowed(context: CsrfRequestContext): boolean {
   if (SAFE_METHODS.has(context.method.toUpperCase())) return true;
   if (!context.authCookiePresent) return true;
-  const path = normalizedRequestPath(context.path);
-  if (CROSS_SITE_ENDPOINTS.some(pattern => pattern.test(path))) return true;
+  if (crossSiteEndpoint(context.path)) return true;
   if (!sameOriginRequest(context)) return false;
+  const path = normalizedRequestPath(context.path);
   if (!PROTECTED_MUTATION_PATHS.some(pattern => pattern.test(path))) return true;
   return String(context.authorization || '').toLowerCase().startsWith('bearer ')
     || String(context.csrfHeader || '') === '1';

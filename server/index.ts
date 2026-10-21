@@ -3157,7 +3157,8 @@ function listParserControlAudit(limit: number) {
 }
 
 function cookieMutationCsrfAllowed(req: import('express').Request): boolean {
-  const requestPath = new URL(req.originalUrl, 'http://localhost').pathname;
+  // The raw path as received: an exemption must never come from a resolved or decoded spelling.
+  const requestPath = req.originalUrl.split('?')[0];
   return csrfRequestAllowed({
     method: req.method,
     path: requestPath,

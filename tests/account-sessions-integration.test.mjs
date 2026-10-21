@@ -73,6 +73,14 @@ test('revoking a session ends it at once for the session check and the paywall',
         body: method === 'PATCH' ? '{"country":"Россия"}' : undefined, signal: AbortSignal.timeout(8000) });
       assert.equal(response.status, 403, `${method} ${path}`);
     }
+    // A path that only normalises to an exempt endpoint is not exempt; refused before the rate limit, it spends none of it.
+    for (const path of [...Array(21).fill('/api/account/sessions/..%2F..%2Fv1%2Foauth/revoke'),
+      '/api/account/sessions/..%2f..%2fv1%2foauth/revoke', '/api/account/sessions/%2e%2e%2f%2e%2e%2fv1%2foauth/revoke',
+      '/api/v1/oauth/revoke/..%2F..%2Faccount/sessions/revoke-others']) {
+      const response = await fetch(`${backend.origin}${path}`, { method: 'POST',
+        headers: as('a1', { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'same-site' }), signal: AbortSignal.timeout(8000) });
+      assert.equal(response.status, 403, path);
+    }
     for (const token of ['a1', 'a2', 'a3']) assert.equal((await me(token)).user?.id, 'reader', `${token} survives cross-site attempts`);
     // The cookie-free machine endpoints still answer other sites and servers (their own checks, never 403 here).
     for (const path of ['/api/newsletter/unsubscribe', '/api/v1/oauth/token', '/api/v1/oauth/device/code', '/api/v1/oauth/revoke',

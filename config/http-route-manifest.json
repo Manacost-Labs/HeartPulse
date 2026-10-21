@@ -3639,10 +3639,12 @@
       "pathKind": "string",
       "receiver": "router",
       "middleware": [
+        "csrfGuard",
         "mutationLimiter"
       ],
       "handler": "<inline-handler>",
       "guardSignals": [
+        "csrfGuard",
         "mutationLimiter"
       ],
       "source": "server/modules/accountSessions/routes.ts",
@@ -3655,10 +3657,12 @@
       "pathKind": "string",
       "receiver": "router",
       "middleware": [
+        "csrfGuard",
         "mutationLimiter"
       ],
       "handler": "<inline-handler>",
       "guardSignals": [
+        "csrfGuard",
         "mutationLimiter"
       ],
       "source": "server/modules/accountSessions/routes.ts",

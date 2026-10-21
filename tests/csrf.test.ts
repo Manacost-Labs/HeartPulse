@@ -62,6 +62,15 @@ assert.equal(csrfRequestAllowed({ ...base, path: '/api//account/sessions/revoke-
 assert.equal(csrfRequestAllowed({ ...crossSite, method: 'GET', path: '/api/account/sessions' }), true);
 assert.equal(csrfRequestAllowed({ ...crossSite, authCookiePresent: false, path: '/api/account/sessions/revoke-others' }), true,
   'without the cookie the request cannot act as the visitor');
+// An exemption is never granted through a decoded, dotted or doubled spelling:
+// Express routes these raw paths to session routes, so they stay same-origin only.
+for (const path of ['/api/account/sessions/..%2F..%2Fv1%2Foauth/revoke', '/api/account/sessions/..%2f..%2fv1%2foauth/revoke',
+  '/api/account/sessions/%2e%2e%2f%2e%2e%2fv1%2foauth/revoke', '/api/v1/oauth/revoke/..%2F..%2Faccount/sessions/revoke-others',
+  '/api/v1/oauth/revoke/../../account/sessions/revoke-others', '//api/v1/oauth/token', '/api//v1/oauth/token', '/api/v1/oauth/./token',
+  '/api/v1/oauth/token;x', '/api/v1/oauth%2Ftoken', '/api/v1/oauth/token//', 'http://evil.example/api/v1/oauth/token']) {
+  assert.equal(csrfRequestAllowed({ ...crossSite, path }), false, path);
+}
+assert.equal(csrfRequestAllowed({ ...crossSite, path: '/API/V1/OAuth/Token/' }), true, 'case and one trailing slash are how Express routes');
 // Cookie-free machine endpoints stay reachable from other sites and servers.
 for (const path of ['/api/auth/telegram/bot/webhook', '/api/newsletter/unsubscribe', '/api/v1/oauth/token', '/api/v1/oauth/device/code',
   '/api/v1/oauth/revoke', '/api/v1/tracker/events/batch', '/api/ecosystem/internal/subscription']) {
