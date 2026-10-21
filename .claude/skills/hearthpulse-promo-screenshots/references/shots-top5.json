@@ -1,0 +1,152 @@
+{
+  "brand": {
+    "domain": "hearthpulse.net",
+    "background": "tavern",
+    "scale": 2
+  },
+  "shots": [
+    {
+      "id": "meta-map",
+      "route": "/standard/meta/",
+      "waitFor": ".standard-meta-chart",
+      "actions": [
+        {
+          "click": ".standard-meta-chart button:has-text('Показать')"
+        },
+        {
+          "waitFor": ".standard-meta-map svg"
+        },
+        {
+          "click": ".standard-meta-map label:has-text('Популярность от')"
+        }
+      ],
+      "target": ".standard-meta-map",
+      "padding": 12,
+      "caption": "Мета Hearthstone в одном графике",
+      "subcaption": "Популярность × винрейт · Стандарт, Алмаз — Легенда",
+      "layouts": [
+        "x",
+        {
+          "layout": "vk",
+          "viewport": {
+            "width": 480,
+            "height": 1000
+          }
+        }
+      ]
+    },
+    {
+      "id": "matchup-matrix",
+      "route": "/standard/matchups/",
+      "waitFor": ".ui-matchup-matrix",
+      "target": ".ui-matchup-matrix",
+      "crop": {
+        "x": 0,
+        "y": 0,
+        "width": 1090,
+        "height": 711
+      },
+      "padding": 0,
+      "caption": "Кто кого побеждает",
+      "subcaption": "Квест Жрец против каждого архетипа · Стандарт, Легенда",
+      "layouts": [
+        "x",
+        {
+          "layout": "vk",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 770,
+            "height": 1010
+          }
+        }
+      ],
+      "snap": {
+        "rows": "tbody tr",
+        "columns": "thead th"
+      }
+    },
+    {
+      "id": "archetype-header",
+      "route": "/standard/archetypes/standard/quest-priest/",
+      "waitFor": ".archetype-dossier",
+      "target": ".archetype-dossier",
+      "padding": 0,
+      "caption": "Квест Жрец — самый популярный архетип меты",
+      "subcaption": "Винрейт, популярность и их динамика на одной карточке",
+      "layouts": [
+        "x",
+        {
+          "layout": "vk",
+          "viewport": {
+            "width": 480,
+            "height": 1000
+          }
+        }
+      ]
+    },
+    {
+      "id": "mulligan",
+      "route": "/standard/archetypes/standard/quest-priest/",
+      "waitFor": ".constructed-card-stats",
+      "hide": [
+        ".constructed-card-stats__toolbar",
+        ".archetype-section-heading__count",
+        ".constructed-analysis-heading button"
+      ],
+      "target": ".constructed-card-stats",
+      "crop": {
+        "x": 0,
+        "y": 0,
+        "width": 1134,
+        "height": 700
+      },
+      "padding": 0,
+      "caption": "Какие карты оставлять в муллигане",
+      "subcaption": "Влияние каждой карты на винрейт Квест Жреца",
+      "layouts": [
+        "x",
+        {
+          "layout": "vk",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1134,
+            "height": 1080
+          }
+        }
+      ],
+      "snap": {
+        "rows": "tbody tr"
+      }
+    },
+    {
+      "id": "patch-flow",
+      "route": "/standard/patches/",
+      "waitFor": ".hp-patch-hero__title",
+      "actions": [
+        {
+          "select": "select",
+          "value": "36.4.2"
+        },
+        {
+          "waitFor": ".hp-patch-flow svg"
+        }
+      ],
+      "target": ".hp-patch-flow",
+      "padding": 0,
+      "caption": "Каких архетипов коснулся патч",
+      "subcaption": "Патч 36.4.2: изменённые карты → архетипы, в которых они играют",
+      "layouts": [
+        "x",
+        {
+          "layout": "vk",
+          "viewport": {
+            "width": 760,
+            "height": 1000
+          }
+        }
+      ]
+    }
+  ]
+}

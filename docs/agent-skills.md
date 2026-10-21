@@ -61,6 +61,7 @@ Repository skills live in `.claude/skills/<name>/SKILL.md`:
 | `hearthpulse-page-design` | building or redesigning a page, block, chart or table |
 | `hearthpulse-page-workflow` | taking a page task from audit to READY |
 | `hearthpulse-motion` | animation, view switches, page transitions |
+| `hearthpulse-promo-screenshots` | promo/social-media screenshots of pages and stats (local stand, real data, branded layouts) |
 | `css-tokens` | any style change |
 | `new-feature-slice` | a new feature module |
 | `release-runbook` | a production release |
