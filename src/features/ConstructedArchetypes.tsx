@@ -101,6 +101,11 @@ export type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
   featuredBuild?: Pick<ArchetypeBuild, 'games' | 'winrate' | 'updatedAt' | 'sampleRank' | 'samplePeriod'> | null;
 };
 
+/** The signed-in account keys the subscriber's cached matchup table; access itself stays with PaywallGate. */
+function viewerId(user: PaywallAccessState['authUser']): string | undefined {
+  return user && 'id' in user && user.id !== null && user.id !== undefined ? String(user.id) : undefined;
+}
+
 const BUILDS_PENDING_MESSAGE = 'Колоды появятся, когда наберётся выборка';
 
 type SortKey = 'games' | 'winrate' | 'popularity' | 'decks' | 'name';
@@ -603,7 +608,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
       </ArchetypeDetailSection> : null}
 
 
-      {fullAccess && !core.loading ? <ArchetypeRadarSection item={item} /> : null}
+      {fullAccess && !core.loading ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)} /> : null}
 
       {!core.loading ? <section className="archetype-methodology">
         <BarChart3 size={24} aria-hidden="true" />

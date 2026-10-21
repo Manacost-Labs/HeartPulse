@@ -26,3 +26,10 @@ by hand; re-copy them from the registry instead, and carry these changes over
 when updating the changed ones. Oxlint, React Doctor and the CSS `:root` rule
 skip this directory; its inherited non-null assertions are budgeted in
 `config/source-debt-budgets.json`.
+
+Also vendored for the archetype page: `metric-comparison` and `combobox`
+with their registry dependencies (`theme`, `primitives`, `icons`, `badge`,
+`spinner`). The archetype page does not import `valyro-ui/styles`: it uses
+`src/vendor/varylo-ui/styles/index.css` and maps the tokens in
+`src/features/archetypeVaryloTheme.css`, so a second copy of the base classes
+never lands in its CSS chunk.

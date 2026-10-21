@@ -1,0 +1,180 @@
+.ui-metric-comparison {
+  --_current: var(--ui-chart-1);
+  --_previous: color-mix(in srgb, var(--ui-chart-7) 50%, transparent);
+
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+  color: var(--ui-fg);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every row is its own grid with the same fixed numeric tracks, so columns line up. */
+.ui-metric-comparison__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr) 76px 76px 84px;
+  grid-template-areas: 'label bars value previous delta';
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-4);
+  padding: var(--ui-space-3) 0;
+  border-bottom: 1px solid var(--ui-divider);
+}
+
+.ui-metric-comparison__row:last-child {
+  border-bottom: 0;
+}
+
+.ui-metric-comparison__head {
+  padding-top: 0;
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-medium);
+}
+
+.ui-metric-comparison__cell {
+  min-width: 0;
+}
+
+/* A long name wraps onto a second line before it is cut. */
+.ui-metric-comparison__cell[data-col='label'] {
+  grid-area: label;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  /* Direction from the label's own text (ellipsis at its end); alignment still follows the layout. */
+  unicode-bidi: plaintext;
+  text-align: match-parent;
+}
+
+.ui-metric-comparison__row:not(.ui-metric-comparison__head) .ui-metric-comparison__cell[data-col='label'] {
+  font-weight: var(--ui-weight-medium);
+}
+
+.ui-metric-comparison__cell[data-col='bars'] {
+  grid-area: bars;
+}
+
+.ui-metric-comparison__cell:is([data-col='value'], [data-col='previous'], [data-col='delta']) {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.ui-metric-comparison__cell[data-col='value'] {
+  grid-area: value;
+  font-weight: var(--ui-weight-semibold);
+}
+
+.ui-metric-comparison__cell[data-col='previous'] {
+  grid-area: previous;
+  color: var(--ui-fg-muted);
+}
+
+.ui-metric-comparison__head .ui-metric-comparison__cell {
+  font-weight: var(--ui-weight-medium);
+  color: inherit;
+}
+
+.ui-metric-comparison__cell[data-col='delta'] {
+  grid-area: delta;
+}
+
+.ui-metric-comparison__bars {
+  display: block;
+  overflow: visible;
+}
+
+/* Magnitude bars without an axis read like progress bars: they grow from the start edge. */
+.ui-metric-comparison__bars:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.ui-metric-comparison__bar {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  animation: ui-chart-grow-x calc(var(--ui-duration-slow) * 2) var(--ui-ease) both;
+}
+
+.ui-metric-comparison__bar[data-series='current'] {
+  fill: var(--_current);
+  /* Soft glow on the current period in themes with --ui-chart-glow. */
+  filter: var(--ui-chart-glow, drop-shadow(0 1px 4px color-mix(in srgb, var(--_current) 40%, transparent)));
+}
+
+.ui-metric-comparison__bar[data-series='previous'] {
+  fill: var(--_previous);
+}
+
+/* Delta bars: from the centre line, green when the change is good, red when it is bad. */
+.ui-metric-comparison__bar[data-series='delta'] {
+  fill: var(--ui-fg-subtle);
+}
+
+.ui-metric-comparison__bar[data-series='delta'][data-tone='good'] {
+  fill: var(--ui-success);
+}
+
+.ui-metric-comparison__bar[data-series='delta'][data-tone='bad'] {
+  fill: var(--ui-danger);
+}
+
+/* A decrease grows from the centre towards the start. */
+.ui-metric-comparison__bar[data-dir='down'] {
+  transform-origin: 100% 50%;
+}
+
+.ui-metric-comparison__axis {
+  stroke: var(--ui-border-strong);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+/* Header of the delta column: the ends of the shared scale. */
+.ui-metric-comparison__scale {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-metric-comparison__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--ui-space-3);
+}
+
+.ui-metric-comparison__key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-metric-comparison__key-item::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ui-chart-swatch-radius);
+  background: var(--_current);
+}
+
+.ui-metric-comparison__key-item[data-series='previous']::before {
+  background: var(--_previous);
+}
+
+/* Narrow: bars move under the numbers and the previous column is dropped (bars still show it). */
+@container (max-width: 480px) {
+  .ui-metric-comparison__row {
+    grid-template-columns: minmax(0, 1fr) 76px 84px;
+    grid-template-areas:
+      'label value delta'
+      'bars bars bars';
+    column-gap: var(--ui-space-3);
+  }
+
+  .ui-metric-comparison__cell[data-col='previous'] {
+    display: none;
+  }
+}

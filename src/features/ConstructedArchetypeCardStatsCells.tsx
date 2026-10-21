@@ -91,11 +91,14 @@ export function InfoTip({ label, description }: { label: string; description: st
   );
 }
 
+/** What a tile draws; resolved deck cards map onto it as well as card statistics. */
+type TileCard = Pick<ConstructedCardStat, 'cardId' | 'cardName' | 'cost' | 'rarity' | 'artwork'>;
+
 /**
  * The art band of a deck tile. A 256 px trimmed original covers the tile's art area at
  * twice its size; the 320x64 horizontal provider art is only the fallback.
  */
-function tileArtUrl(row: ConstructedCardStat): string {
+function tileArtUrl(row: TileCard): string {
   if (row.cardId) {
     return `${publicResourceImageUrl(`/api/public-resource/hsjson/v1/orig/${encodeURIComponent(row.cardId)}.png`, { width: 256 })}&trim=1`;
   }
@@ -103,7 +106,7 @@ function tileArtUrl(row: ConstructedCardStat): string {
 }
 
 /** A decklist tile: rarity edge, drawn mana gem, the whole name, and art fading in from the right. */
-export function CardTile({ row }: { row: ConstructedCardStat }) {
+export function CardTile({ row }: { row: TileCard }) {
   const [artFailed, setArtFailed] = useState(false);
   const art = tileArtUrl(row);
   return (

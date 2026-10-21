@@ -65,7 +65,7 @@ export function BuildComparisonSection({ builds, format, archetype }: { builds: 
     <header className="archetype-section-heading"><div>
       <span className="archetypes-eyebrow"><GitCompareArrows size={15} /> Сборки</span>
       <h2 id="archetype-compare-title">Сравнение сборок</h2>
-      <p>Выберите две сборки: их выборка, винрейт и кривая маны по составу колоды.</p>
+      <p>Отметьте сборки A и Б: винрейт с погрешностью, надёжность выборки, кривая маны и карты, которыми они отличаются.</p>
     </div></header>
     <div className="archetype-build-comparison-slot">
       <React.Suspense fallback={<LoadingBlock className="archetype-build-comparison-slot__reserve" />}>
@@ -78,14 +78,14 @@ export function BuildComparisonSection({ builds, format, archetype }: { builds: 
 type Format = 'standard' | 'wild';
 
 /** The format's catalog summary is the anonymous teaser list the catalog page already reads. */
-export function ArchetypeRadarSection({ item }: { item: RadarItem & { format: Format } }) {
+export function ArchetypeRadarSection({ item, viewerId }: { item: RadarItem & { format: Format }; viewerId?: string }) {
   const catalog = useArchetypeCatalog<{ format: Format; items: RadarItem[] }>(item.format, null);
   const items = catalog.data?.format === item.format ? catalog.data.items : null;
   return <section className="archetype-insight archetype-radar-section" aria-labelledby="archetype-radar-title" data-tour-id="archetype-radar">
     <InsightHeading icon={<Radar size={15} />} eyebrow="Профиль архетипа" title="Сравнение с другим архетипом"
-      text="Каждая ось — место среди всех архетипов формата: 0 — самое низкое значение, 100 — самое высокое." />
+      text="Найдите соперника: радар показывает место обоих архетипов в формате (0 — минимум, 100 — максимум) и их реальные значения, таблица — кто впереди, ниже — их очный матчап." />
     <React.Suspense fallback={<LoadingBlock className="archetype-radar__reserve" />}>
-      {items ? <LazyRadar item={item} items={items} /> : catalog.error
+      {items ? <LazyRadar item={item} items={items} viewerId={viewerId} /> : catalog.error
         ? <p className="archetype-insight-empty">{catalog.error}</p> : <LoadingBlock className="archetype-radar__reserve" />}
     </React.Suspense>
   </section>;

@@ -609,6 +609,11 @@
   position: relative;
   z-index: 3;
   grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+/* The plate's material outranks the kit's `.ui-panel` on the same element, which another
+   CSS chunk may load later. */
+.archetype-dossier .archetype-dossier__metrics {
   border: 1px solid rgba(239, 201, 111, 0.28);
   background: rgba(30, 4, 9, 0.5);
   -webkit-backdrop-filter: blur(10px) saturate(1.15);
@@ -781,11 +786,18 @@
 
 /* Renders of decks with fewer distinct cards are shorter than square. The gallery
    now opens the page, so a render keeps the square box its placeholder reserved
-   instead of pulling the cards below it up when it arrives. */
+   instead of pulling the cards below it up when it arrives. The free band above and below
+   such a render is the render's own parchment inside the same wooden edge (colours sampled
+   from the Deckview parchment style), not the dark card behind it. */
 .archetype-deck-gallery .deck-render-preview__image img {
   aspect-ratio: 1;
   border-color: transparent;
-  background: transparent;
+  background:
+    radial-gradient(ellipse at center, #f2dcad 55%, #e6cc98 100%);
+  box-shadow:
+    inset 0 0 0 1px #5e4529,
+    inset 0 0 0 2px #7c5935,
+    inset 0 0 0 4px #bca178;
   object-fit: contain;
 }
 

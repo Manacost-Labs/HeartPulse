@@ -63,15 +63,27 @@ slice at least a day older (percentage points for the two rates) and a 7-day
 sparkline; games compare only inside the latest HSGuru period, because their
 count restarts with a new period. Every tile reserves that room, so the
 history's arrival moves nothing; phones keep the change line and drop the
-sparkline. Below the builds, subscribers compare two builds (winrate, games and
-mana curve from the resolved deck lists). The history leads with a winrate
-chart whose 95% and 50% bands are Wilson intervals from each slice's games, so
-a small sample draws a wide band. A heatmap shows the winrate by rank and
-period, and a radar puts the archetype against another one of the format, each
-axis as a percentile among the format's archetypes. Dust is not compared: no
-source states a card's crafting cost (the deck renderer computes it itself),
-and a variance breakdown is not drawn: matchups and card statistics have no
-per-period history.
+sparkline. A build render shorter than square (fewer distinct cards) keeps
+the square box its placeholder reserved and sits on the render's parchment
+inside the same wooden edge, not on the dark card. Below the builds,
+subscribers compare two builds, picked as A and Б on cards with the render's
+top, number, winrate and games: winrate with both 95% Wilson intervals on one
+axis (a gap counts only when they do not overlap), games (more is more
+reliable, not better), mean card cost, both mana curves in one histogram and
+the cards only in A, only in Б or with another number of copies, drawn as the
+mulligan table's tiles. The history leads with a winrate chart whose 95% and
+50% bands are Wilson intervals from each slice's games, so a small sample draws
+a wide band. A heatmap shows the winrate by rank and period. The profile
+comparison puts the archetype against another one of the format, searched by
+name in class groups (the default is the most played one with a published
+direct matchup): a radar of percentiles among the format's archetypes with both
+real values at each axis, a table of values and percentiles with the side that
+is ahead (better where the metric has a direction, only higher otherwise), a
+one-sentence summary, and the direct winrate from the HSGuru Legend matchup
+table with the reason when the pair or an archetype is not in it. Dust is not
+compared: no source states a card's crafting cost (the deck renderer computes
+it itself), and a variance breakdown is not drawn: matchups and card
+statistics have no per-period history.
 The source URL was verified from the public Koloda card search for `CAP_105`:
 [horizontal artwork](https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/CAP_105.webp).
 

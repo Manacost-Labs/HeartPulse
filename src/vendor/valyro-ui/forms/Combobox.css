@@ -1,0 +1,72 @@
+.ui-combobox {
+  cursor: text;
+}
+
+.ui-combobox[data-disabled] {
+  cursor: not-allowed;
+}
+
+.ui-combobox__input:disabled {
+  cursor: not-allowed;
+}
+
+.ui-combobox__spinner {
+  color: var(--ui-fg-faint);
+}
+
+.ui-combobox__toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  /* The icon's end edge lines up with the Select chevron and the other fields' trailing icons. */
+  margin-inline-end: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-chip);
+  background: transparent;
+  color: var(--ui-fg-faint);
+  cursor: pointer;
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    color var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-combobox__toggle:hover:not(:disabled) {
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+.ui-combobox__toggle:disabled {
+  cursor: inherit;
+}
+
+.ui-combobox[data-size='lg'] .ui-icon {
+  width: var(--ui-icon-lg);
+  height: var(--ui-icon-lg);
+}
+
+.ui-combobox[data-size='lg'] .ui-combobox__toggle {
+  width: 28px;
+  height: 28px;
+}
+
+/* Touch: the toggle gets a 44px-tall hit area (WCAG 2.5.5); the drawn button stays small. */
+@media (pointer: coarse) {
+  .ui-combobox__toggle {
+    position: relative;
+  }
+
+  .ui-combobox__toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* Narrower than 44px: a clear button can sit right next to it. */
+    width: 32px;
+    height: 44px;
+    translate: -50% -50%;
+  }
+}

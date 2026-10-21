@@ -121,10 +121,18 @@ try {
   await page.waitForSelector('.archetype-rank-grid td[data-tone]');
   assert.match(await page.$eval('.archetype-rank-grid', node => node.textContent), /Топ-1000/);
   await page.$eval('.archetype-radar-section', section => section.scrollIntoView());
-  await page.waitForSelector('.archetype-radar svg');
+  await page.waitForSelector('.archetype-radar .profile-radar');
+  assert.equal(await page.$$eval('.archetype-radar .profile-table [role="row"]', rows => rows.length), 6, 'a header and five metrics');
+  assert.match(await page.$eval('.archetype-radar__summary', node => node.textContent), /^Воровской Жрец /);
+  assert.match(await page.$eval('.profile-h2h', node => node.textContent), /Матчапы HSGuru сейчас недоступны/,
+    'without a signed-in account the matchup table is not requested');
   await page.$eval('.archetype-compare', section => section.scrollIntoView());
-  await page.waitForSelector('.archetype-build-comparison .ui-metric-comparison, .archetype-build-comparison table');
-  await page.waitForFunction(() => document.querySelector('.archetype-build-comparison')?.textContent?.includes('Карт за 7+ маны'));
+  await page.waitForSelector('.archetype-build-comparison .build-head-to-head');
+  await page.waitForSelector('.archetype-build-comparison .build-curve');
+  assert.equal(await page.$$eval('.build-picker > li', cards => cards.length), 14, 'every build is a picker card');
+  assert.deepEqual(await page.$$eval('.build-pick[data-side]', cards => cards.map(card => card.dataset.side)), ['left', 'right']);
+  await page.click('.build-pick:nth-child(3) .build-pick__sides [data-side="right"]');
+  await page.waitForFunction(() => document.querySelector('.build-head-to-head')?.textContent?.includes('Б · #3'));
   assert.equal(await page.$eval('.archetype-dossier__art', image => image.getAttribute('src')), '/wallpaper/home-paladin-hero-720.avif', 'the clean full artwork is used instead of a padded card image');
   assert.equal(await page.evaluate(() =>
     document.querySelector('.archetype-builds').compareDocumentPosition(document.querySelector('.archetype-history')) & Node.DOCUMENT_POSITION_FOLLOWING

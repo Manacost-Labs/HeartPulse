@@ -42,6 +42,7 @@
         "tests/archetype-deck-codes-schema.test.ts",
         "tests/archetype-deck-identity.test.ts",
         "tests/archetype-detail-model.test.ts",
+        "tests/archetype-comparison-model.test.ts",
         "tests/archetype-insights-model.test.ts",
         "tests/constructed-archetype-catalog-cache.test.ts",
         "tests/standard-meta-slice-cache.test.ts",
