@@ -245,7 +245,7 @@ test('archetype detail keeps its paid sections loading, without preview or paywa
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
     await page.setCookie({ name: 'member', value: '1', url: origin });
-    const visit = await assertNeverLocked(page, 'archetype detail', () => Boolean(document.querySelector('.archetype-main-build')));
+    const visit = await assertNeverLocked(page, 'archetype detail', () => Boolean(document.querySelector('.archetype-builds')));
     await visit(`${origin}/standard/archetypes/wild/thief-priest/`);
   } finally {
     if (browser) await browser.close();

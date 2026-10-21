@@ -1,0 +1,132 @@
+.ui-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ui-z-modal);
+  display: flex;
+  padding: var(--ui-space-4);
+  pointer-events: none;
+}
+
+.ui-modal-layer[data-placement='center'] {
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-modal-layer[data-placement='top'] {
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: min(14vh, 120px);
+}
+
+/* Edge sheets sit flush or float off the screen edges, per theme (--ui-modal-layer-edge-gap);
+   an app can override both with --ui-modal-edge-gap. */
+.ui-modal-layer[data-placement='right'] {
+  justify-content: flex-end;
+  padding: var(--ui-modal-edge-gap, var(--ui-modal-layer-edge-gap));
+}
+
+.ui-modal-layer[data-placement='left'] {
+  justify-content: flex-start;
+  padding: var(--ui-modal-edge-gap, var(--ui-modal-layer-edge-gap));
+}
+
+/* left / right are physical sides; flex-start / flex-end follow the inline direction, so swap them in RTL. */
+.ui-modal-layer[data-placement='right']:dir(rtl) {
+  justify-content: flex-start;
+}
+
+.ui-modal-layer[data-placement='left']:dir(rtl) {
+  justify-content: flex-end;
+}
+
+.ui-modal-layer[data-placement='bottom'] {
+  align-items: flex-end;
+  padding: var(--ui-modal-edge-gap, var(--ui-modal-layer-edge-gap));
+}
+
+.ui-modal-layer__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--ui-overlay);
+  -webkit-backdrop-filter: var(--ui-overlay-blur);
+  backdrop-filter: var(--ui-overlay-blur);
+  pointer-events: auto;
+  animation: ui-fade-in var(--ui-duration) var(--ui-ease);
+}
+
+.ui-modal-layer__overlay[data-state='closed'] {
+  animation: ui-fade-out var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-modal-layer__panel {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  outline: none;
+  pointer-events: auto;
+}
+
+/* Enter / exit per placement */
+.ui-modal-layer__panel:is([data-placement='center'], [data-placement='top'])[data-state='open'] {
+  animation: ui-modal-zoom-in var(--ui-duration-slow) var(--ui-ease-spring);
+}
+
+.ui-modal-layer__panel:is([data-placement='center'], [data-placement='top'])[data-state='closed'] {
+  animation: ui-modal-zoom-out var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-modal-layer__panel[data-placement='right'][data-state='open'] {
+  animation: ui-modal-from-right var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-modal-layer__panel[data-placement='right'][data-state='closed'] {
+  animation: ui-modal-to-right var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-modal-layer__panel[data-placement='left'][data-state='open'] {
+  animation: ui-modal-from-left var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-modal-layer__panel[data-placement='left'][data-state='closed'] {
+  animation: ui-modal-to-left var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-modal-layer__panel[data-placement='bottom'][data-state='open'] {
+  animation: ui-modal-from-bottom var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-modal-layer__panel[data-placement='bottom'][data-state='closed'] {
+  animation: ui-modal-to-bottom var(--ui-duration) var(--ui-ease) forwards;
+}
+
+@keyframes ui-modal-zoom-in {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+}
+
+@keyframes ui-modal-zoom-out {
+  to { opacity: 0; transform: scale(0.97) translateY(4px); }
+}
+
+@keyframes ui-modal-from-right {
+  from { transform: translateX(100%); }
+}
+
+@keyframes ui-modal-to-right {
+  to { transform: translateX(100%); }
+}
+
+@keyframes ui-modal-from-left {
+  from { transform: translateX(-100%); }
+}
+
+@keyframes ui-modal-to-left {
+  to { transform: translateX(-100%); }
+}
+
+@keyframes ui-modal-from-bottom {
+  from { transform: translateY(100%); }
+}
+
+@keyframes ui-modal-to-bottom {
+  to { transform: translateY(100%); }
+}

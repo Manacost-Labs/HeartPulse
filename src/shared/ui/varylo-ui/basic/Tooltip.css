@@ -1,0 +1,154 @@
+.ui-tooltip {
+  max-width: min(280px, calc(100vw - 16px));
+  padding: var(--ui-tooltip-padding);
+  border-radius: var(--ui-tooltip-radius);
+  corner-shape: var(--ui-surface-corner-shape);
+  background: var(--ui-tooltip-bg);
+  box-shadow: var(--ui-tooltip-shadow);
+  color: var(--ui-tooltip-fg);
+  font-size: var(--ui-text-sm);
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  /* The thin material (16px), not --ui-blur-strong: Chromium blurs a radius larger than this short
+     card unevenly, and the text under the tooltip ghosts through its label. */
+  -webkit-backdrop-filter: var(--ui-blur-thin);
+  backdrop-filter: var(--ui-blur-thin);
+}
+
+/* Invisible bridge over the gap to the trigger (--_gap = the offset), so the pointer can travel
+   onto the tooltip without leaving both; the content stays hoverable (WCAG 1.4.13). */
+.ui-tooltip::before {
+  content: '';
+  position: absolute;
+}
+
+.ui-tooltip[data-side='top']::before {
+  inset: 100% 0 auto;
+  height: var(--_gap, 6px);
+}
+
+.ui-tooltip[data-side='bottom']::before {
+  inset: auto 0 100%;
+  height: var(--_gap, 6px);
+}
+
+.ui-tooltip[data-side='left']::before {
+  inset: 0 auto 0 100%;
+  width: var(--_gap, 6px);
+}
+
+.ui-tooltip[data-side='right']::before {
+  inset: 0 100% 0 auto;
+  width: var(--_gap, 6px);
+}
+
+/* Arrow: a triangle outside the box, pointing at the anchor center. Floating measures
+   --ui-arrow-x/y from the physical top-left corner, so the arrow is placed physically too.
+   The triangle is the clipped ::before; the span carries the theme's edge (a filter: the card's edge
+   is a box-shadow, which the clip-path would cut off the triangle), and its own clip removes that
+   edge where the triangle joins the card (`initial` for --ui-tooltip-arrow-clip). */
+.ui-tooltip__arrow {
+  --_len: 6px;
+  --_base: 12px;
+  --_inset: calc(var(--_base) / 2 + 6px);
+
+  position: absolute;
+  filter: var(--ui-tooltip-arrow-filter);
+}
+
+.ui-tooltip__arrow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ui-tooltip-bg);
+}
+
+.ui-tooltip:is([data-side='top'], [data-side='bottom']) .ui-tooltip__arrow {
+  left: clamp(var(--_inset), var(--ui-arrow-x, 50%), calc(100% - var(--_inset)));
+  width: var(--_base);
+  height: var(--_len);
+  margin-left: calc(var(--_base) / -2);
+}
+
+.ui-tooltip:is([data-side='left'], [data-side='right']) .ui-tooltip__arrow {
+  top: clamp(var(--_inset), var(--ui-arrow-y, 50%), calc(100% - var(--_inset)));
+  width: var(--_len);
+  height: var(--_base);
+  margin-top: calc(var(--_base) / -2);
+}
+
+.ui-tooltip[data-side='top'] .ui-tooltip__arrow {
+  top: 100%;
+  clip-path: var(--ui-tooltip-arrow-clip, inset(0 -4px -4px));
+}
+
+.ui-tooltip[data-side='top'] .ui-tooltip__arrow::before {
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.ui-tooltip[data-side='bottom'] .ui-tooltip__arrow {
+  bottom: 100%;
+  clip-path: var(--ui-tooltip-arrow-clip, inset(-4px -4px 0));
+}
+
+.ui-tooltip[data-side='bottom'] .ui-tooltip__arrow::before {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.ui-tooltip[data-side='left'] .ui-tooltip__arrow {
+  left: 100%;
+  clip-path: var(--ui-tooltip-arrow-clip, inset(-4px -4px -4px 0));
+}
+
+.ui-tooltip[data-side='left'] .ui-tooltip__arrow::before {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.ui-tooltip[data-side='right'] .ui-tooltip__arrow {
+  right: 100%;
+  clip-path: var(--ui-tooltip-arrow-clip, inset(-4px 0 -4px -4px));
+}
+
+.ui-tooltip[data-side='right'] .ui-tooltip__arrow::before {
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+
+/* The triangle sits outside the card (the backdrop root), so it cannot be frosted; a theme with a
+   translucent tooltip can give it a denser fill, so it reads as part of the blurred card. */
+@supports (color: rgb(from red r g b / 0.5)) {
+  .ui-tooltip__arrow::before {
+    background: var(--ui-tooltip-arrow-bg);
+  }
+}
+
+/* animation="spring": moving straight on from one tooltip glides this one over from the previous
+   trigger (offsets set inline), while the previous one vanishes at once — it reads as one tooltip. */
+.ui-tooltip {
+  --_glide-x: 0px;
+  --_glide-y: 0px;
+}
+
+.ui-tooltip.ui-animate-spring[data-glide][data-state='open'] {
+  animation: ui-tooltip-glide calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy);
+}
+
+.ui-tooltip[data-instant][data-state='closed'] {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes ui-tooltip-glide {
+  from {
+    transform: translate(var(--_glide-x), var(--_glide-y));
+  }
+}
+
+@media (forced-colors: active) {
+  .ui-tooltip {
+    outline: 1px solid CanvasText;
+  }
+
+  .ui-tooltip__arrow::before {
+    background: CanvasText;
+  }
+}

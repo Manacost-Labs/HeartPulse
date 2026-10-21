@@ -1,0 +1,38 @@
+.ui-spinner {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.ui-spinner__spoke {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8%;
+  height: 26%;
+  margin-left: -4%;
+  margin-top: -13%;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.15;
+  /* Spinner speed is intentionally independent of the motion tokens. */
+  animation: ui-spinner-fade 1.2s linear infinite;
+}
+
+@keyframes ui-spinner-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0.15; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-spinner__spoke {
+    animation-duration: 2.4s;
+  }
+}
+
+@media (forced-colors: active) {
+  .ui-spinner__spoke {
+    background: CanvasText;
+  }
+}

@@ -109,50 +109,47 @@ try {
   assert.equal(new Set(metricRows).size, 1, 'six desktop statistics share one aligned row');
   assert.equal(await page.$eval('.archetype-dossier__art', image => image.getAttribute('src')), '/wallpaper/home-paladin-hero-720.avif', 'the clean full artwork is used instead of a padded card image');
   assert.equal(await page.evaluate(() =>
-    document.querySelector('.archetype-main-build').compareDocumentPosition(document.querySelector('.archetype-history')) & Node.DOCUMENT_POSITION_FOLLOWING
-  ), 4, 'the independently loaded main build precedes optional history');
-  for (const image of await page.$$('.constructed-catalog-tile__image, .constructed-catalog-tile__art')) {
-    if (!await image.isVisible()) continue;
-    await image.scrollIntoView();
-    await page.waitForFunction(element => !element.isConnected || (element.complete && element.naturalWidth > 0), { timeout: 10_000 }, image);
-  }
+    document.querySelector('.archetype-builds').compareDocumentPosition(document.querySelector('.archetype-history')) & Node.DOCUMENT_POSITION_FOLLOWING
+  ), 4, 'the independently loaded builds precede optional history');
+  assert.equal(await page.$('.archetype-main-build'), null, 'there is no separate main build block');
+  assert.equal(await page.$eval('.archetype-builds .archetype-deck-card__number', node => node.textContent), '#1',
+    'the gallery starts with the largest-sample build');
+  assert.equal(await page.$eval('.archetype-builds', section => section.textContent.includes('Сборки HSGuru')), false);
+  // Lazy thumbnails: bring the table into view; a failed image removes itself.
+  await page.$eval('.constructed-card-stats__table', table => table.scrollIntoView({ block: 'start' }));
+  await page.waitForFunction(() => [...document.querySelectorAll('.constructed-card-stats__table .card-stat-name__thumb img')]
+    .every(image => image.complete), { timeout: 10_000 });
   await page.waitForNetworkIdle({ idleTime: 250, timeout: 10_000 });
-  const tileImageState = await page.$$eval('.constructed-catalog-tile__image, .constructed-catalog-tile__art', images => images.filter(image => image.getBoundingClientRect().width > 0).map(image => ({
-    complete: image.complete,
-    naturalWidth: image.naturalWidth,
-    src: image.getAttribute('src'),
-  })));
-  assert.equal(
-    tileImageState.every(image => image.naturalWidth > 0),
-    true,
-    `mulligan tile image failures: ${JSON.stringify(tileImageState.filter(image => image.naturalWidth <= 0))}`,
-  );
-  assert.ok(
-    new Set(cardTileRequests).size >= 6,
-    'every unique visible mulligan card must request a reliable same-origin tile image',
-  );
   assert.ok(cardTileRequests.some(path => path.includes('/horizontal-art/constructed_card/')), 'mulligan uses Koloda horizontal art');
-  assert.ok(cardTileRequests.some(path => path.includes('/card-tiles/constructed_card/')), 'mulligan uses provider tiles');
-  assert.ok(await page.$('.constructed-catalog-tile__fallback'), 'missing provider media keeps a readable row');
-  const compactRows = await page.$$eval('.constructed-card-stats tbody .constructed-catalog-tile', tiles =>
-    tiles.map(tile => { const { width, height } = tile.getBoundingClientRect(); return { width, height }; }));
-  assert.ok(compactRows.every(({ width, height }) => width <= 320 && height <= 64
-    && Math.abs(width / height - 5) < 0.01), 'provider and fallback tiles must share a compact 5:1 frame');
-
+  assert.ok(!cardTileRequests.some(path => path.includes('/card-tiles/constructed_card/')),
+    'provider tiles bake a truncated name into pixels, so the table draws the name as text');
+  const failedArtRows = await page.$$eval('.constructed-card-stats__table tbody tr', rows => rows
+    .filter(row => !row.querySelector('.card-stat-name__thumb img')).map(row => row.querySelector('.card-stat-name__text')?.textContent));
+  assert.ok(failedArtRows.length > 0 && failedArtRows.every(Boolean), 'a card without art keeps its mana and full name');
+  const desktopGeometry = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.constructed-card-stats__table tbody tr')];
+    const scroll = document.querySelector('.constructed-card-stats__table .ui-data-table__scroll');
+    const names = [...document.querySelectorAll('.constructed-card-stats__table .card-stat-name__text')];
+    return {
+      sideways: (scroll?.scrollWidth ?? 0) - (scroll?.clientWidth ?? 0),
+      heights: [...new Set(rows.map(row => Math.round(row.getBoundingClientRect().height)))],
+      clipped: names.filter(name => name.scrollHeight > name.clientHeight + 1).length,
+      columns: document.querySelectorAll('.constructed-card-stats__table thead th').length,
+    };
+  });
+  assert.ok(desktopGeometry.sideways <= 1, `the mulligan table scrolls sideways by ${desktopGeometry.sideways}px`);
+  assert.equal(desktopGeometry.heights.length, 1, `mulligan rows share one height: ${desktopGeometry.heights}`);
+  assert.equal(desktopGeometry.clipped, 0, 'every card name is readable in full');
+  assert.equal(desktopGeometry.columns, 4, 'impact and sample of each phase share one column');
+  await (await page.$('.archetype-builds')).scrollIntoView();
+  await page.waitForSelector('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__image:not([hidden]) img');
   assert.equal(
-    await page.$$eval('.constructed-catalog-tile__image, .constructed-catalog-tile__art', images => images.every(image => image.tagName === 'IMG')),
-    true,
-    'mulligan art must use observable image elements instead of silent CSS background failures',
-  );
-  await (await page.$('.archetype-main-build')).scrollIntoView();
-  await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
-  assert.equal(
-    await page.$eval('.archetype-main-build .deck-render-preview__image img', image => image.getAttribute('loading')),
+    await page.$eval('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__image img', image => image.getAttribute('loading')),
     'eager',
     'a rendered parchment must not deadlock as a lazy image inside its hidden staging container',
   );
   assert.equal(
-    await page.$$eval('.archetype-main-build .deck-render-preview__switch button', buttons => buttons.length),
+    await page.$$eval('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__switch button', buttons => buttons.length),
     0,
     'the rendered parchment is the only successful deck presentation',
   );
@@ -181,29 +178,29 @@ try {
     await page.evaluate(() => typeof window.__copiedDeckCode === 'string' && window.__copiedDeckCode.length > 20),
     'the copy action must write the full deck code to the clipboard',
   );
-  await page.click('.archetype-main-build .deck-render-preview__open');
+  await page.click('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__open');
   await page.waitForSelector('.deck-render-lightbox[role="dialog"]');
   assert.equal(
     await page.$eval('.deck-render-lightbox__image', image => image.getAttribute('src')),
-    await page.$eval('.archetype-main-build .deck-render-preview__image img', image => image.getAttribute('src')),
+    await page.$eval('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__image img', image => image.getAttribute('src')),
     'lightbox must reuse the already-rendered deck image',
   );
   await page.screenshot({ path: `${screenshotPrefix}-deck-lightbox.png` });
   await page.click('.deck-render-lightbox__close');
   await page.waitForSelector('.deck-render-lightbox', { hidden: true });
-  await page.click('.archetype-main-build .deck-render-preview__open');
+  await page.click('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__open');
   await page.waitForSelector('.deck-render-lightbox[role="dialog"]');
   await page.keyboard.press('Escape');
   await page.waitForSelector('.deck-render-lightbox', { hidden: true });
   assert.equal(
-    await page.$eval('.archetype-main-build .deck-render-preview__open', button => document.activeElement === button),
+    await page.$eval('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__open', button => document.activeElement === button),
     true,
     'closing the lightbox must restore focus to the deck preview',
   );
 
   await page.goto(fixture('format=wild&stale-deck-asset=1'), { waitUntil: 'networkidle0' });
   await page.click('.archetype-row__open');
-  await page.waitForSelector('.archetype-main-build .deck-render-preview[data-render-state="ready"]', { timeout: 15_000 });
+  await page.waitForSelector('.archetype-builds .archetype-deck-card:first-child .deck-render-preview[data-render-state="ready"]', { timeout: 15_000 });
   const recoveryRequests = await page.evaluate(() => window.__deckRenderBodies || []);
   const mainDeckRequests = recoveryRequests.filter(request => request.deckCode?.includes('FixtureDeckCode01'));
   assert.equal(mainDeckRequests.length, 2, 'a stale cached asset should trigger one fresh server render');
@@ -212,12 +209,12 @@ try {
   await page.$$eval('.deck-render-preview__list', lists => {
     lists.forEach(list => { list.hidden = false; });
   });
-  await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
+  await page.waitForFunction(() => !document.querySelector('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__list')?.hidden);
   assert.equal(await page.$eval('#storybook-root h1', heading => heading.textContent), 'Воровской Жрец');
   assert.equal(await page.$$eval('.archetype-history .analytics-chart', charts => charts.length), 3);
-  assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
-  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 35);
-  assert.equal(await page.$$eval('.archetype-deck-card .deck-list-view__expand', buttons => buttons.length), 7);
+  assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 6);
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 30);
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-list-view__expand', buttons => buttons.length), 6);
   const hsReplayDeckTile = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
     const rect = element.getBoundingClientRect();
     const tile = element.closest('.deck-tile');
@@ -304,10 +301,9 @@ try {
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [
     'archetype-summary',
-    'archetype-main-build',
+    'archetype-builds',
     'archetype-analysis',
     'archetype-history',
-    'archetype-other-builds',
   ]) {
     assert.ok(await page.$(`[data-tour-id="${tourTarget}"]`), `missing ${tourTarget} tour anchor`);
   }
@@ -318,43 +314,37 @@ try {
   assert.equal(await page.$$eval('.archetype-dossier .archetypes-eyebrow', nodes => nodes.length), 0);
   assert.equal(await page.$$eval('.archetype-dossier__identity p, .archetype-dossier__identity small', nodes => nodes.length), 0);
   assert.equal(
-    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-catalog-tile__name', node => node.textContent),
+    await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__text', node => node.textContent),
     'Душа Бездны',
   );
   assert.equal(
-    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-catalog-tile__mana', node => node.textContent),
+    await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__thumb b', node => node.textContent),
     '1',
   );
-  const desktopCardStats = await page.evaluate(() => {
-    const scroll = document.querySelector('.constructed-card-stats__scroll .analytics-table__scroll');
-    const table = scroll?.querySelector('table');
-    const mana = table?.querySelector('.constructed-catalog-tile__mana');
-    return {
-      tableGap: Math.abs((scroll?.clientWidth ?? 0) - (table?.getBoundingClientRect().width ?? 0)),
-      manaWidth: mana?.getBoundingClientRect().width ?? 0,
-      manaHeight: mana?.getBoundingClientRect().height ?? 0,
-      openBadges: table?.querySelectorAll('.constructed-card-tile__open').length ?? -1,
-    };
-  });
-  assert.ok(desktopCardStats.tableGap <= 1, `desktop table left a ${desktopCardStats.tableGap}px gap`);
-  assert.ok(desktopCardStats.manaWidth >= 32 && desktopCardStats.manaWidth <= 48);
-  assert.ok(desktopCardStats.manaHeight >= 36 && desktopCardStats.manaHeight <= 48);
-  assert.equal(desktopCardStats.openBadges, 0);
-  assert.ok(await page.$('.archetype-main-build .deck-list-view'));
+  assert.equal(await page.$eval('.constructed-card-stats__table th[aria-sort]', th => th.textContent), 'Муллиган');
+  await page.select('.constructed-card-stats__sort select', 'drawnCount');
+  assert.equal(await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__text', node => node.textContent), 'Душа Бездны');
+  await page.click('.constructed-card-stats__direction');
+  assert.equal(await page.$eval('.constructed-card-stats__sort select', select => select.value), 'drawnCount');
+  assert.notEqual(await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__text', node => node.textContent), 'Душа Бездны');
+  await page.click('.constructed-card-stats__table th:nth-child(2) .ui-data-table__sort');
+  assert.equal(await page.$eval('.constructed-card-stats__sort select', select => select.value), 'mulliganImpact');
+  assert.equal(await page.$eval('.constructed-card-stats__table th[aria-sort]', th => th.getAttribute('aria-sort')), 'descending');
+  assert.ok(await page.$('.archetype-builds .archetype-deck-card:first-child .deck-list-view'));
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: async value => { window.__qaCopiedDeckCode = value; } },
     });
   });
-  await page.click('.archetype-main-build .archetype-deck-card__copy');
-  await page.waitForFunction(() => document.querySelector('.archetype-main-build .archetype-deck-card__copy')
+  await page.click('.archetype-builds .archetype-deck-card:first-child .archetype-deck-card__copy');
+  await page.waitForFunction(() => document.querySelector('.archetype-builds .archetype-deck-card:first-child .archetype-deck-card__copy')
     ?.getAttribute('aria-label')?.startsWith('Код скопирован'));
   assert.match(await page.evaluate(() => window.__qaCopiedDeckCode || ''), /^AA/);
   await page.click('.constructed-card-stats__more');
   await page.waitForFunction(() => document.querySelectorAll('.constructed-card-stats tbody tr').length === 18);
   await page.$eval('.archetype-builds__more', button => button.click());
-  await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 13);
+  await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
   const revealedDeckLoadingStates = await page.$$eval(
     '.archetype-builds .archetype-deck-card:nth-child(n + 7) .deck-render-preview',
     previews => previews.map(preview => {
@@ -425,10 +415,10 @@ try {
   await page.waitForSelector('.archetype-detail-page .archetype-history .analytics-chart');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
-  await page.$eval('.archetype-main-build', section => section.scrollIntoView({ block: 'start' }));
-  await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
+  await page.$eval('.archetype-builds', section => section.scrollIntoView({ block: 'start' }));
+  await page.waitForSelector('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__image:not([hidden]) img');
   assert.equal(await page.$$eval('.deck-render-preview__switch', switches => switches.length), 0);
-  await page.click('.archetype-main-build .deck-render-preview__open');
+  await page.click('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__open');
   await page.waitForSelector('.deck-render-lightbox[role="dialog"]');
   const mobileLightbox = await page.$eval('.deck-render-lightbox__panel', panel => {
     const rect = panel.getBoundingClientRect();
@@ -445,11 +435,11 @@ try {
   await page.$$eval('.deck-render-preview__list', lists => {
     lists.forEach(list => { list.hidden = false; });
   });
-  await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
+  await page.waitForFunction(() => !document.querySelector('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__list')?.hidden);
   const detailMobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     chartCount: document.querySelectorAll('.archetype-history .analytics-chart').length,
-    copyHeight: document.querySelector('.archetype-main-build .archetype-deck-card__copy')?.getBoundingClientRect().height ?? 0,
+    copyHeight: document.querySelector('.archetype-builds .archetype-deck-card:first-child .archetype-deck-card__copy')?.getBoundingClientRect().height ?? 0,
     deckTileHeight: document.querySelector('.archetype-deck-card .deck-tile')?.getBoundingClientRect().height ?? 0,
     deckGemWidth: document.querySelector('.archetype-deck-card .hsrdv-card-gem')?.getBoundingClientRect().width ?? 0,
     deckColumnCount: document.querySelectorAll('.archetype-deck-card').length,
@@ -460,19 +450,21 @@ try {
   assert.ok(detailMobile.copyHeight >= 42);
   assert.equal(detailMobile.deckTileHeight, 25);
   assert.equal(detailMobile.deckGemWidth, 25);
-  assert.equal(detailMobile.deckColumnCount, 7);
+  assert.equal(detailMobile.deckColumnCount, 6);
   assert.equal(detailMobile.matchupCount, 11);
   const mobileCardStats = await page.evaluate(() => ({
-    cardCount: document.querySelectorAll('.constructed-card-stats__cards > li').length,
-    desktopTableDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__scroll')).display,
-    minTileHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__cards .constructed-card-tile')].map(element => element.getBoundingClientRect().height)),
-    minSortHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__mobile-sort button')].map(element => element.getBoundingClientRect().height)),
+    cardCount: document.querySelectorAll('.constructed-card-stats__list > li').length,
+    desktopTableDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__table')).display,
+    minRowHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__list summary')].map(element => element.getBoundingClientRect().height)),
+    minSortHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__toolbar :is(select, .constructed-card-stats__direction, .constructed-card-stats__csv)')].map(element => element.getBoundingClientRect().height)),
   }));
   assert.equal(mobileCardStats.cardCount, 15);
   assert.equal(mobileCardStats.desktopTableDisplay, 'none');
-  assert.ok(mobileCardStats.minTileHeight >= 44);
+  assert.ok(mobileCardStats.minRowHeight >= 44);
   assert.ok(mobileCardStats.minSortHeight >= 44);
-  await page.click('.constructed-card-stats__cards .constructed-card-tile');
+  await page.click('.constructed-card-stats__list > li:first-child summary');
+  assert.equal(await page.$$eval('.constructed-card-stats__list > li:first-child dl > div', phases => phases.length), 3);
+  await page.click('.constructed-card-stats__list > li:first-child .constructed-card-stats__open');
   await page.waitForSelector('.card-preview-sheet__panel');
   assert.equal(await page.$eval('.card-preview-sheet__header h2', node => node.textContent), 'Душа Бездны');
   await page.click('.card-preview-sheet__close');
@@ -483,8 +475,8 @@ try {
     await page.setViewport({ width, height: 900, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
     const responsiveDetail = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      mobileCardsDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__mobile')).display,
-      tableDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__scroll')).display,
+      mobileCardsDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__list')).display,
+      tableDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__table')).display,
     }));
     assert.ok(responsiveDetail.overflow <= 1, `detail overflowed by ${responsiveDetail.overflow}px at ${width}px`);
     if (width <= 820) {

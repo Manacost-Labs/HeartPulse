@@ -1,0 +1,391 @@
+/* Mulligan and card impact: a VaryloUI DataTable on the HearthPulse parchment.
+   The vendored kit ships no theme, so its `--ui-*` tokens are mapped onto ours here.
+   Rows have one fixed height at every width, so the placeholder matches and nothing shifts. */
+
+.constructed-card-stats {
+  --card-stat-row-h: 58px;
+  --card-stat-control-h: 36px;
+  --card-stat-positive: #2f6e39;
+  --card-stat-positive-bg: rgba(68, 132, 64, 0.16);
+  --card-stat-negative: #a2272b;
+  --card-stat-negative-bg: rgba(164, 56, 53, 0.14);
+}
+
+.constructed-card-stats__table {
+  --ui-fg: var(--archetype-ink);
+  --ui-fg-muted: var(--archetype-muted);
+  --ui-fg-subtle: #8a735a;
+  --ui-fg-faint: #a08a70;
+  --ui-surface: rgba(255, 248, 225, 0.6);
+  --ui-glass-border: rgba(92, 54, 24, 0.26);
+  --ui-highlight: 0 0 transparent;
+  --ui-sheen: 0 0 transparent;
+  --ui-shadow-card: 0 0 transparent;
+  --ui-blur: none;
+  --ui-divider: rgba(92, 54, 24, 0.15);
+  --ui-hover: rgba(141, 23, 29, 0.05);
+  --ui-active: rgba(141, 23, 29, 0.09);
+  --ui-accent: #8d171d;
+  --ui-primary: #8d171d;
+  --ui-primary-fg: #fff0c8;
+  --ui-focus-color: #8d171d;
+  --ui-focus-ring: 0 0 0 2px #8d171d;
+  --ui-radius-card: 0;
+  --ui-radius-button: 0;
+  --ui-radius-xs: 0;
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-text-xs: 0.62rem;
+  --ui-text-sm: 0.72rem;
+  --ui-text-md: 0.8rem;
+  --ui-weight-label: 800;
+  --ui-label-tracking: 0.05em;
+  --ui-label-transform: uppercase;
+  --ui-duration: var(--motion-fast);
+  --ui-duration-fast: var(--motion-instant);
+  --ui-ease: var(--motion-ease);
+  --ui-ease-spring: var(--motion-ease);
+  --ui-disabled-opacity: 0.5;
+  --ui-data-table-cell-y: 0px;
+  --ui-data-table-cell-y-compact: 0px;
+  --ui-data-table-head-h: 40px;
+  --ui-data-table-head-h-compact: 40px;
+  --ui-data-table-head-bg: #ecd9ad;
+  --ui-data-table-head-fg: #5e4733;
+  --ui-data-table-head-fg-sorted: #8d171d;
+  --ui-data-table-container-bg: rgba(255, 248, 225, 0.6);
+  --ui-data-table-container-position: relative;
+  --ui-data-table-container-isolation: isolate;
+  --ui-data-table-divider-width: 1px;
+  --ui-data-table-frost-content: none;
+  --ui-data-table-pin-shadow: rgba(48, 37, 28, 0.12);
+  padding: 0 0.85rem;
+  font-family: var(--font-body);
+}
+
+/* The four columns always fit the panel: no sideways scrolling on a desktop. */
+.constructed-card-stats__table .ui-data-table__table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.constructed-card-stats__table .ui-data-table__table :is(th, td) {
+  white-space: normal;
+}
+
+.constructed-card-stats__table .ui-data-table__table tbody td {
+  height: var(--card-stat-row-h);
+}
+
+.constructed-card-stats__table .ui-data-table__table tbody tr:nth-child(even) {
+  --_row-bg: rgba(229, 199, 144, 0.22);
+}
+
+.constructed-card-stats__table .ui-data-table__table tbody tr:has([data-low-sample].card-stat-row) > td {
+  opacity: 0.5;
+}
+
+.constructed-card-stats__table .ui-data-table__table tbody tr:has([data-low-sample].card-stat-row):is(:hover, :focus-within) > td {
+  opacity: 0.85;
+}
+
+/* ── Card: art, mana and the whole name ── */
+.card-stat-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: inherit;
+  cursor: zoom-in;
+}
+
+.card-stat-open:focus-visible {
+  outline: 2px solid #8d171d;
+  outline-offset: 2px;
+}
+
+.card-stat-name {
+  --card-rarity-glow: var(--card-rarity-glow-common);
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.card-stat-name[data-rarity='rare'] { --card-rarity-glow: var(--card-rarity-glow-rare); }
+.card-stat-name[data-rarity='epic'] { --card-rarity-glow: var(--card-rarity-glow-epic); }
+.card-stat-name[data-rarity='legendary'] { --card-rarity-glow: var(--card-rarity-glow-legendary); }
+
+.card-stat-name__thumb {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  width: 76px;
+  height: 38px;
+  border: 1px solid #6b4a2a;
+  background: #39261b;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--card-rarity-glow) 55%, transparent);
+}
+
+.card-stat-name__thumb img {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 80%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  mask-image: linear-gradient(90deg, transparent, #000 45%);
+}
+
+.card-stat-name__thumb b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: grid;
+  width: 34px;
+  place-items: center;
+  color: #fff;
+  background: url('/assets/mana-64.webp') center / 30px no-repeat;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+
+/* Two lines hold every current card name at the narrowest column. */
+.card-stat-name__text {
+  display: -webkit-box;
+  overflow: hidden;
+  min-width: 0;
+  color: var(--archetype-ink);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.card-stat-open:hover .card-stat-name__text { color: #8d171d; }
+
+/* ── Phase: impact badge, a bar from the zero line and the sample under it ── */
+.card-stat-phase {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.card-stat-phase__line {
+  display: grid;
+  grid-template-columns: 4.1rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.card-stat-phase strong {
+  display: block;
+  padding: 0.18rem 0.3rem;
+  border: 1px solid transparent;
+  color: var(--archetype-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.card-stat-phase[data-impact='positive'] strong { border-color: rgba(47, 110, 57, 0.3); color: var(--card-stat-positive); background: var(--card-stat-positive-bg); }
+.card-stat-phase[data-impact='negative'] strong { border-color: rgba(162, 39, 43, 0.28); color: var(--card-stat-negative); background: var(--card-stat-negative-bg); }
+
+.card-stat-phase__bar {
+  position: relative;
+  height: 8px;
+  background: rgba(92, 54, 24, 0.1);
+}
+
+.card-stat-phase__bar::before {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 50%;
+  width: 1px;
+  background: rgba(92, 54, 24, 0.45);
+  content: '';
+}
+
+.card-stat-phase__bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--archetype-muted);
+}
+
+.card-stat-phase[data-impact='positive'] .card-stat-phase__bar i { background: #3f8a46; }
+.card-stat-phase[data-impact='negative'] .card-stat-phase__bar i { background: #b8393a; }
+
+.card-stat-phase small {
+  color: var(--archetype-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.62rem;
+  line-height: 1.2;
+}
+
+.card-stat-phase[data-low-sample] :is(strong, .card-stat-phase__bar) { opacity: 0.5; }
+.card-stat-phase[data-low-sample] small { font-style: italic; }
+
+/* ── Toolbar: sort by any metric, legend with definitions, CSV ── */
+.constructed-card-stats__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin: 0 0.85rem 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid rgba(92, 54, 24, 0.2);
+  background: rgba(255, 244, 208, 0.55);
+  font-size: 0.7rem;
+}
+
+.constructed-card-stats__sort {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  color: var(--archetype-muted);
+  font-weight: 800;
+}
+
+.constructed-card-stats__sort select,
+.constructed-card-stats__direction,
+.constructed-card-stats__csv {
+  min-height: var(--card-stat-control-h);
+  border: 1px solid rgba(111, 26, 32, 0.35);
+  color: var(--archetype-ink);
+  background: #fff6dc;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.constructed-card-stats__sort select { padding: 0 0.5rem; }
+.constructed-card-stats__direction { display: inline-grid; width: var(--card-stat-control-h); place-items: center; padding: 0; color: #8d171d; }
+.constructed-card-stats__direction svg { width: 1rem; height: 1rem; }
+.constructed-card-stats__csv { margin-left: auto; padding: 0 0.8rem; color: #8d171d; }
+
+.constructed-card-stats__legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.6rem;
+  align-items: center;
+  color: var(--archetype-muted);
+  font-weight: 700;
+}
+
+.constructed-card-stats__legend > span { display: inline-flex; align-items: center; }
+.constructed-card-stats__low { font-style: italic; opacity: 0.8; }
+
+.constructed-card-stats__toolbar .analytics-chart__error { flex-basis: 100%; margin: 0; }
+
+/* ── Phone: one row per card, the sorted phase in front, the rest on tap ── */
+.constructed-card-stats__list {
+  display: none;
+  margin: 0 0.55rem;
+  padding: 0;
+  list-style: none;
+}
+
+.constructed-card-stats__list > li {
+  border-bottom: 1px solid rgba(92, 54, 24, 0.15);
+}
+
+.constructed-card-stats__list > li:nth-child(even) { background: rgba(229, 199, 144, 0.22); }
+.constructed-card-stats__list > li[data-low-sample] > details > summary { opacity: 0.5; }
+
+.constructed-card-stats__list summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.6rem 20px;
+  gap: 0.5rem;
+  align-items: center;
+  height: var(--card-stat-row-h);
+  padding: 0 0.45rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.constructed-card-stats__list summary::-webkit-details-marker { display: none; }
+.constructed-card-stats__list summary:focus-visible { outline: 2px solid #8d171d; outline-offset: -2px; }
+.constructed-card-stats__list .card-stat-name { gap: 0.45rem; }
+.constructed-card-stats__list .card-stat-name__thumb { width: 52px; height: 34px; }
+.constructed-card-stats__list .card-stat-name__thumb b { width: 30px; background-size: 26px; font-size: 0.95rem; }
+.constructed-card-stats__list .card-stat-name__text { font-size: 0.85rem; }
+.constructed-card-stats__lead .card-stat-phase__line { grid-template-columns: 3.7rem minmax(0, 1fr); gap: 0.35rem; }
+
+.constructed-card-stats__chevron {
+  width: 18px;
+  height: 18px;
+  color: #8d171d;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.constructed-card-stats__list details[open] .constructed-card-stats__chevron { transform: rotate(180deg); }
+
+.constructed-card-stats__list dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.2rem 0.45rem 0.6rem;
+}
+
+.constructed-card-stats__list dl > div {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.constructed-card-stats__list dt {
+  color: var(--archetype-muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.constructed-card-stats__list dd { margin: 0; }
+
+.constructed-card-stats__open {
+  min-height: 40px;
+  margin: 0 0.45rem 0.6rem;
+  padding: 0 0.8rem;
+  border: 1px solid rgba(111, 26, 32, 0.35);
+  color: #8d171d;
+  background: #fff6dc;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+@media (max-width: 820px) {
+  .constructed-card-stats { --card-stat-control-h: 44px; }
+  .constructed-card-stats__table { display: none; }
+  .constructed-card-stats__list { display: block; }
+  .constructed-card-stats__toolbar { margin-inline: 0.55rem; }
+  .constructed-card-stats__legend { order: 4; flex-basis: 100%; }
+}
+
+@media (max-width: 390px) {
+  .constructed-card-stats__list { margin-inline: 0.4rem; }
+  .constructed-card-stats__toolbar { margin-inline: 0.4rem; }
+  .constructed-card-stats__list summary { grid-template-columns: minmax(0, 1fr) 6.6rem 18px; gap: 0.35rem; }
+  .constructed-card-stats__lead .card-stat-phase__line { grid-template-columns: 3.4rem minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .constructed-card-stats__chevron { transition: none; }
+}

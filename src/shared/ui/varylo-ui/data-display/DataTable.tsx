@@ -1,0 +1,637 @@
+'use client';
+
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentPropsWithRef,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
+import { cx, useControllableState } from '../primitives';
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsUpDownIcon,
+  InboxIcon,
+  MinusIcon,
+  SearchIcon,
+} from '../icons';
+import { useLocale } from '../theme/ThemeProvider';
+import { IconButton } from '../basic/IconButton';
+import { Skeleton } from '../basic/Skeleton';
+import { EmptyState } from './EmptyState';
+import {
+  createValueFormatter,
+  filterRows,
+  getCellValue,
+  getSelectionState,
+  getVirtualWindow,
+  nextSort,
+  paginate,
+  sortRows,
+  toSearchText,
+  toggleAll,
+  toggleOne,
+  windowRuns,
+  type SortDirection,
+  type SortState,
+} from './data-table';
+import './DataTable.css';
+
+export interface DataTableColumn<T> {
+  /** Identifies the column; also the row field read when there is no `accessor`. */
+  key: string;
+  header: ReactNode;
+  /** Computes the column value (for sorting, search and the default cell) instead of reading `row[key]`. */
+  accessor?: (row: T) => unknown;
+  /** Custom cell content; defaults to the value formatted for `locale`. */
+  cell?: (row: T) => ReactNode;
+  /**
+   * Text matched by the search field. Defaults to the formatted value; set it when `cell`
+   * shows something else (e.g. "2 minutes ago" for a date). Return '' to exclude the column.
+   */
+  getSearchValue?: (row: T) => string;
+  sortable?: boolean;
+  /** `left`/`right` are the start/end edges: they swap under dir="rtl", like the rest of the layout. */
+  align?: 'left' | 'center' | 'right';
+  width?: CSSProperties['width'];
+}
+
+export interface DataTableLabels {
+  /** Accessible name of the search field. */
+  search: (tableLabel: string | undefined) => string;
+  searchPlaceholder: string;
+  selectAll: string;
+  /** Row checkbox name; `name` is the row's first-column text when it has one. */
+  selectRow: (name: string | null) => string;
+  selected: (count: number, total: number) => string;
+  range: (start: number, end: number, total: number) => string;
+  rows: (count: number) => string;
+  page: (page: number, pageCount: number) => string;
+  previousPage: string;
+  nextPage: string;
+  empty: string;
+  noResults: string;
+  noResultsDescription: (query: string) => string;
+  /** Default cell text for boolean values. */
+  yes: string;
+  no: string;
+}
+
+export interface DataTableProps<T extends object> extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
+  /** All rows; search, sorting and pagination run on this array in the browser. */
+  data: readonly T[];
+  /** Column definitions: header, value accessor, cell renderer, sorting, alignment and width. */
+  columns: readonly DataTableColumn<T>[];
+  /** Stable id for selection and keys. Defaults to `row.id`, then the row's index in `data`. */
+  getRowId?: (row: T, index: number) => string;
+  /** Accessible name of the table. */
+  label?: string;
+  /** Shows a search field that filters rows across all columns. */
+  searchable?: boolean;
+  /** Rows per page. Omit to show every row. */
+  pageSize?: number;
+  sort?: SortState | null;
+  defaultSort?: SortState | null;
+  onSortChange?: (sort: SortState | null) => void;
+  /** Adds a checkbox column. */
+  selectable?: boolean;
+  selected?: string[];
+  defaultSelected?: string[];
+  onSelectedChange?: (ids: string[]) => void;
+  /** Makes rows clickable and focusable; Enter on a focused row calls it too. */
+  onRowClick?: (row: T) => void;
+  /** Skeleton rows (`pageSize` or 5) replace the body, and the select-all and paging buttons are disabled. */
+  loading?: boolean;
+  /** Row height and text size: `compact` has tighter cells and smaller text. */
+  density?: 'comfortable' | 'compact';
+  /** Limits the height; the body scrolls under a pinned header. */
+  maxHeight?: CSSProperties['maxHeight'];
+  /**
+   * Renders only the rows scrolled into view, for thousands of rows without pagination.
+   * Needs `maxHeight`; rows should share one height (the first rendered row is measured).
+   */
+  virtualize?: boolean;
+  /** Keeps the first column (and the checkbox column) in view while scrolling sideways. */
+  stickyFirstColumn?: boolean;
+  /** Replaces the default empty state. */
+  empty?: ReactNode;
+  /** Locale for default number/date cells and counters. Defaults to the `ThemeProvider` locale, then the browser's. */
+  locale?: string;
+  labels?: Partial<DataTableLabels>;
+}
+
+interface Entry<T> {
+  row: T;
+  id: string;
+}
+
+function defaultRowId(row: object, index: number) {
+  const id = getCellValue(row, 'id');
+  return typeof id === 'string' || typeof id === 'number' ? String(id) : String(index);
+}
+
+function defaultLabels(n: (value: number) => string): DataTableLabels {
+  return {
+    search: (tableLabel) => (tableLabel ? `Search ${tableLabel}` : 'Search'),
+    searchPlaceholder: 'Search…',
+    selectAll: 'Select all rows on this page',
+    selectRow: (name) => (name ? `Select ${name}` : 'Select row'),
+    selected: (count, total) => `${n(count)} of ${n(total)} selected`,
+    range: (start, end, total) => `${n(start)}–${n(end)} of ${n(total)}`,
+    rows: (count) => `${n(count)} ${count === 1 ? 'row' : 'rows'}`,
+    page: (page, pageCount) => `Page ${n(page)} of ${n(pageCount)}`,
+    previousPage: 'Previous page',
+    nextPage: 'Next page',
+    empty: 'No data yet',
+    noResults: 'No results',
+    noResultsDescription: (query) => `Nothing matches “${query}”.`,
+    yes: 'Yes',
+    no: 'No',
+  };
+}
+
+const SKELETON_WIDTHS = ['72%', '48%', '60%', '36%', '54%'];
+const ARIA_SORT: Record<SortDirection, 'ascending' | 'descending'> = { asc: 'ascending', desc: 'descending' };
+
+/** Estimated body row height until the first rendered row is measured. */
+const ESTIMATED_ROW_HEIGHT = 45;
+
+/**
+ * Tracks whether the viewport is scrolled sideways (to show the pinned-column edge) and its width;
+ * with `trackY`, also the vertical scroll position and height (for virtualized rows).
+ */
+function useScrollViewport(trackY: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+  // More columns past the end edge: the container shows a shadow there, so a phone user sees it scrolls.
+  const [more, setMore] = useState(false);
+  const [width, setWidth] = useState<number | null>(null);
+  const [y, setY] = useState({ top: 0, height: 0 });
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const update = () => {
+      // Math.abs: scrollLeft is negative in right-to-left layouts.
+      setScrolled(Math.abs(node.scrollLeft) > 0);
+      setMore(node.scrollWidth - node.clientWidth - Math.abs(node.scrollLeft) > 1);
+      setWidth(node.clientWidth);
+      if (trackY) {
+        const next = { top: node.scrollTop, height: node.clientHeight };
+        setY((prev) => (prev.top === next.top && prev.height === next.height ? prev : next));
+      }
+    };
+    update();
+    node.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    // The table growing wider (a new page, a search) changes what is past the end edge too.
+    if (node.firstElementChild) observer.observe(node.firstElementChild);
+    return () => {
+      node.removeEventListener('scroll', update);
+      observer.disconnect();
+    };
+  }, [trackY]);
+  return { ref, scrolled, more, width, y };
+}
+
+export function DataTable<T extends object>({
+  data,
+  columns,
+  getRowId,
+  label,
+  searchable = false,
+  pageSize,
+  sort: sortProp,
+  defaultSort = null,
+  onSortChange,
+  selectable = false,
+  selected: selectedProp,
+  defaultSelected = [],
+  onSelectedChange,
+  onRowClick,
+  loading = false,
+  density = 'comfortable',
+  maxHeight,
+  virtualize = false,
+  stickyFirstColumn = true,
+  empty,
+  locale: localeProp,
+  labels: labelsProp,
+  className,
+  ...rest
+}: DataTableProps<T>) {
+  const [sort, setSort] = useControllableState({ value: sortProp, defaultValue: defaultSort, onChange: onSortChange });
+  const [selected, setSelected] = useControllableState({
+    value: selectedProp,
+    defaultValue: defaultSelected,
+    onChange: onSelectedChange,
+  });
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const viewport = useScrollViewport(virtualize);
+  const locale = useLocale(localeProp);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const prevPageRef = useRef<HTMLButtonElement>(null);
+  const nextPageRef = useRef<HTMLButtonElement>(null);
+  const [rowMetrics, setRowMetrics] = useState({ row: 0, head: 0 });
+
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const labels = useMemo(
+    () => ({ ...defaultLabels((value) => numberFormat.format(value)), ...labelsProp }),
+    [numberFormat, labelsProp],
+  );
+  const format = useMemo(
+    () => createValueFormatter({ locale, yes: labels.yes, no: labels.no }),
+    [locale, labels.yes, labels.no],
+  );
+
+  const valueOf = useMemo(() => {
+    const byKey = new Map(columns.map((column) => [column.key, column]));
+    return (row: T, key: string) => {
+      const column = byKey.get(key);
+      return column?.accessor ? column.accessor(row) : getCellValue(row, key);
+    };
+  }, [columns]);
+
+  const entries = useMemo<Entry<T>[]>(
+    () => data.map((row, index) => ({ row, id: getRowId ? getRowId(row, index) : defaultRowId(row, index) })),
+    [data, getRowId],
+  );
+  // Built once per data/columns change so typing in the search box stays cheap on large tables.
+  const searchText = useMemo(() => {
+    if (!searchable) return null;
+    const map = new Map<Entry<T>, string>();
+    for (const entry of entries) {
+      const parts = columns.map((column) =>
+        column.getSearchValue ? column.getSearchValue(entry.row) : toSearchText(valueOf(entry.row, column.key), format),
+      );
+      map.set(entry, parts.join('\n').toLowerCase());
+    }
+    return map;
+  }, [searchable, entries, columns, valueOf, format]);
+
+  const filtered = useMemo(
+    () => (searchText ? filterRows(entries, query, (entry) => searchText.get(entry) ?? '') : entries),
+    [entries, query, searchText],
+  );
+  const sorted = useMemo(
+    () => sortRows(filtered, sort, (entry, key) => valueOf(entry.row, key), locale),
+    [filtered, sort, valueOf, locale],
+  );
+  const paged = useMemo(() => (pageSize ? paginate(sorted, page, pageSize) : null), [sorted, page, pageSize]);
+  const visible = paged ? paged.rows : sorted;
+
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const visibleIds = useMemo(() => visible.map((entry) => entry.id), [visible]);
+  const headerState = useMemo(() => getSelectionState(visibleIds, selected), [visibleIds, selected]);
+  const selectedCount = useMemo(
+    () => entries.reduce((n, entry) => n + (selectedSet.has(entry.id) ? 1 : 0), 0),
+    [entries, selectedSet],
+  );
+
+  const windowed = virtualize && !loading;
+  const rowHeight = rowMetrics.row || ESTIMATED_ROW_HEIGHT;
+  const range = windowed
+    ? getVirtualWindow(visible.length, {
+        scrollTop: viewport.y.top,
+        viewportHeight: viewport.y.height,
+        rowHeight,
+        offset: rowMetrics.head,
+      })
+    : { start: 0, end: visible.length };
+  // The row holding focus stays mounted while scrolled out of the window.
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const focusedIndex = windowed && focusedId !== null ? visible.findIndex((entry) => entry.id === focusedId) : -1;
+  const runs = windowRuns(range, focusedIndex);
+
+  // Spacer rows stand in for the skipped rows, so their height has to match the real ones.
+  useLayoutEffect(() => {
+    if (!windowed) return;
+    const table = tableRef.current;
+    const row = table?.querySelector<HTMLElement>('tbody > tr:not(.ui-data-table__spacer)');
+    if (!table || !row) return;
+    const next = { row: row.getBoundingClientRect().height, head: table.tHead?.getBoundingClientRect().height ?? 0 };
+    setRowMetrics((prev) =>
+      Math.abs(prev.row - next.row) < 0.5 && Math.abs(prev.head - next.head) < 0.5 ? prev : next,
+    );
+  });
+  const columnCount = columns.length + (selectable ? 1 : 0);
+  const trimmedQuery = query.trim();
+
+  const rowName = (row: T) => {
+    const first = columns[0];
+    if (!first) return null;
+    const text = format(valueOf(row, first.key)) || first.getSearchValue?.(row);
+    return text || null;
+  };
+
+  let summary: string;
+  if (selectable && selectedCount > 0) summary = labels.selected(selectedCount, entries.length);
+  else if (sorted.length === 0) summary = labels.noResults;
+  else if (paged) summary = labels.range(paged.start + 1, paged.start + paged.rows.length, sorted.length);
+  else summary = labels.rows(sorted.length);
+
+  const pin = (index: number) => (stickyFirstColumn && index === 0 ? 'first' : undefined);
+  const selectPin = stickyFirstColumn ? 'select' : undefined;
+
+  const renderCell = (row: T, column: DataTableColumn<T>) => {
+    if (column.cell) return column.cell(row);
+    const text = format(valueOf(row, column.key));
+    return text === '' ? <span className="ui-data-table__blank">—</span> : text;
+  };
+
+  const spacer = (rows: number, key: string) =>
+    rows > 0 && (
+      <tr key={key} className="ui-data-table__spacer" aria-hidden="true">
+        <td colSpan={columnCount} style={{ height: rows * rowHeight }} />
+      </tr>
+    );
+
+  const renderRow = ({ row, id }: Entry<T>, index: number) => {
+    const isSelected = selectedSet.has(id);
+    return (
+      <tr
+        key={id}
+        aria-rowindex={windowed ? index + 2 : undefined}
+        data-selected={isSelected || undefined}
+        data-clickable={onRowClick ? true : undefined}
+        tabIndex={onRowClick ? 0 : undefined}
+        onClick={onRowClick ? () => onRowClick(row) : undefined}
+        onKeyDown={
+          onRowClick
+            ? (event) => {
+                if (event.key === 'Enter' && event.target === event.currentTarget) {
+                  event.preventDefault();
+                  onRowClick(row);
+                }
+              }
+            : undefined
+        }
+        onFocus={windowed ? () => setFocusedId(id) : undefined}
+        onBlur={
+          windowed
+            ? (event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusedId((prev) => (prev === id ? null : prev));
+              }
+            : undefined
+        }
+      >
+        {selectable && (
+          // The checkbox cell must not trigger the row's click action.
+          <td className="ui-data-table__select" data-pin={selectPin} onClick={(event) => event.stopPropagation()}>
+            <TableCheckbox
+              label={labels.selectRow(rowName(row))}
+              checked={isSelected}
+              onChange={() => setSelected((prev) => toggleOne(prev, id))}
+            />
+          </td>
+        )}
+        {columns.map((column, index) => (
+          <td key={column.key} data-align={column.align} data-pin={pin(index)}>
+            {/* Pinned content gets its own box so it can sit above the Glass frost (see the CSS). */}
+            {pin(index) ? <div className="ui-data-table__pinned">{renderCell(row, column)}</div> : renderCell(row, column)}
+          </td>
+        ))}
+      </tr>
+    );
+  };
+
+  const bodyRows = () => {
+    const out: ReactNode[] = [];
+    let at = 0;
+    runs.forEach(([start, end], run) => {
+      out.push(spacer(start - at, `spacer-${run}`));
+      for (let index = start; index < end; index++) out.push(renderRow(visible[index], index));
+      at = end;
+    });
+    out.push(spacer(visible.length - at, 'spacer-end'));
+    return out;
+  };
+
+  return (
+    <div
+      className={cx('ui-data-table', className)}
+      data-density={density}
+      data-selectable={selectable || undefined}
+      {...rest}
+    >
+      {searchable && (
+        <div className="ui-data-table__toolbar">
+          <label className="ui-field ui-data-table__search" data-size="sm">
+            <span className="ui-field__icon">
+              <SearchIcon size={16} />
+            </span>
+            <input
+              className="ui-field__input"
+              type="search"
+              value={query}
+              placeholder={labels.searchPlaceholder}
+              aria-label={labels.search(label)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(0);
+              }}
+            />
+          </label>
+        </div>
+      )}
+
+      <div className="ui-data-table__container ui-panel">
+        {/* Holds the end-edge scroll shadow still while the table scrolls under it. */}
+        <div className="ui-data-table__viewport" data-scroll-more={viewport.more || undefined}>
+          <div
+            ref={viewport.ref}
+            className="ui-data-table__scroll"
+            data-scrolled={viewport.scrolled || undefined}
+            data-scroll-y={maxHeight !== undefined || undefined}
+            style={
+              {
+                maxHeight,
+                '--_viewport-w': viewport.width !== null ? `${viewport.width}px` : undefined,
+              } as CSSProperties
+            }
+          >
+            <table
+              ref={tableRef}
+              className="ui-data-table__table"
+              aria-label={label}
+              aria-busy={loading || undefined}
+              aria-rowcount={windowed ? visible.length + 1 : undefined}
+            >
+              <thead>
+                <tr>
+                  {selectable && (
+                    <th scope="col" className="ui-data-table__select" data-pin={selectPin}>
+                      <TableCheckbox
+                        label={labels.selectAll}
+                        checked={headerState === 'all'}
+                        indeterminate={headerState === 'some'}
+                        disabled={loading || visibleIds.length === 0}
+                        onChange={() => setSelected((prev) => toggleAll(prev, visibleIds))}
+                      />
+                    </th>
+                  )}
+                  {columns.map((column, index) => {
+                    const direction = sort?.key === column.key ? sort.direction : undefined;
+                    return (
+                      <th
+                        key={column.key}
+                        scope="col"
+                        data-align={column.align}
+                        data-pin={pin(index)}
+                        style={column.width !== undefined ? { width: column.width } : undefined}
+                        aria-sort={direction ? ARIA_SORT[direction] : undefined}
+                      >
+                        {column.sortable ? (
+                          <button
+                            type="button"
+                            className="ui-data-table__sort"
+                            data-active={direction ? true : undefined}
+                            onClick={() => {
+                              setSort((prev) => nextSort(prev, column.key));
+                              setPage(0);
+                            }}
+                          >
+                            <span className="ui-data-table__sort-label">{column.header}</span>
+                            {direction === 'asc' ? (
+                              <ArrowUpIcon size={14} />
+                            ) : direction === 'desc' ? (
+                              <ArrowDownIcon size={14} />
+                            ) : (
+                              <ChevronsUpDownIcon size={14} className="ui-data-table__sort-idle" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="ui-data-table__head">{column.header}</span>
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: pageSize ?? 5 }, (_, r) => (
+                    <tr key={r} className="ui-data-table__skeleton-row">
+                      {selectable && (
+                        <td className="ui-data-table__select" data-pin={selectPin}>
+                          <Skeleton className="ui-data-table__skeleton-check" />
+                        </td>
+                      )}
+                      {columns.map((column, c) => (
+                        <td key={column.key} data-align={column.align} data-pin={pin(c)}>
+                          <Skeleton
+                            height={12}
+                            width={SKELETON_WIDTHS[(r + c) % SKELETON_WIDTHS.length]}
+                            style={{
+                              minWidth: 48,
+                              marginInlineStart: column.align === 'right' || column.align === 'center' ? 'auto' : undefined,
+                              marginInlineEnd: column.align === 'center' ? 'auto' : undefined,
+                            }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : visible.length === 0 ? (
+                  <tr className="ui-data-table__empty-row">
+                    <td colSpan={columnCount} className="ui-data-table__empty">
+                      {/* Pinned to the visible viewport so it stays centred when the table is wider than the screen. */}
+                      <div className="ui-data-table__empty-inner">
+                        {empty ?? (
+                          <EmptyState
+                            size="sm"
+                            icon={trimmedQuery ? <SearchIcon /> : <InboxIcon />}
+                            title={trimmedQuery ? labels.noResults : labels.empty}
+                            description={trimmedQuery ? labels.noResultsDescription(trimmedQuery) : undefined}
+                          />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  bodyRows()
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {(paged || selectable) && (
+          <div className="ui-data-table__footer">
+            <span className="ui-data-table__summary" aria-live="polite">
+              {loading ? <Skeleton width={112} height={12} /> : summary}
+            </span>
+            {paged && paged.pageCount > 1 && (
+              <div className="ui-data-table__pager">
+                <span className="ui-data-table__page">{labels.page(paged.page + 1, paged.pageCount)}</span>
+                <IconButton
+                  size="sm"
+                  variant="secondary"
+                  label={labels.previousPage}
+                  icon={<ChevronLeftIcon />}
+                  ref={prevPageRef}
+                  disabled={loading || paged.page === 0}
+                  onClick={() => {
+                    setPage(paged.page - 1);
+                    // The button disables on the first page: focus moves to Next instead of falling to the page.
+                    // After the re-render: Next is still disabled now (on a two-page table), and a disabled button takes no focus.
+                    if (paged.page - 1 === 0) requestAnimationFrame(() => nextPageRef.current?.focus());
+                  }}
+                />
+                <IconButton
+                  size="sm"
+                  variant="secondary"
+                  label={labels.nextPage}
+                  icon={<ChevronRightIcon />}
+                  ref={nextPageRef}
+                  disabled={loading || paged.page >= paged.pageCount - 1}
+                  onClick={() => {
+                    setPage(paged.page + 1);
+                    if (paged.page + 1 >= paged.pageCount - 1) requestAnimationFrame(() => prevPageRef.current?.focus());
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface TableCheckboxProps {
+  label: string;
+  checked: boolean;
+  indeterminate?: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+}
+
+/** Minimal local checkbox; `indeterminate` exists only as a DOM property, so it is set through a ref. */
+function TableCheckbox({ label, checked, indeterminate = false, disabled, onChange }: TableCheckboxProps) {
+  return (
+    // A label, so its touch hit area (CSS ::after) toggles the input; aria-label still names it.
+    <label className="ui-data-table__checkbox">
+      <input
+        ref={(node) => {
+          if (node) node.indeterminate = indeterminate;
+        }}
+        type="checkbox"
+        className="ui-data-table__checkbox-input"
+        aria-label={label}
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+      />
+      <CheckIcon size={12} strokeWidth={3} className="ui-data-table__checkbox-check" />
+      <MinusIcon size={12} strokeWidth={3} className="ui-data-table__checkbox-dash" />
+    </label>
+  );
+}

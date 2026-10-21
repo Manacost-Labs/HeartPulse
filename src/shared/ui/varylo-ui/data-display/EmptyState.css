@@ -1,0 +1,144 @@
+.ui-empty-state {
+  --_tile: 48px;
+  --_icon: 22px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-4);
+  width: 100%;
+  padding: var(--ui-space-10) var(--ui-space-6);
+  color: var(--ui-fg);
+  text-align: center;
+}
+
+.ui-empty-state[data-size='sm'] {
+  --_tile: 36px;
+  --_icon: 18px;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-6) var(--ui-space-4);
+}
+
+.ui-empty-state[data-size='lg'] {
+  --_tile: 64px;
+  --_icon: 28px;
+  gap: var(--ui-space-5);
+  padding: var(--ui-space-16) var(--ui-space-8);
+}
+
+.ui-empty-state[data-bordered] {
+  border: var(--ui-dashed-border-width) dashed var(--ui-border-strong);
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-empty-state-bordered-bg);
+}
+
+.ui-empty-state__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--_tile);
+  height: var(--_tile);
+  border: var(--ui-tile-border);
+  /* A fixed radius plus a share of the tile size (an app-icon squircle scales with the tile). */
+  border-radius: calc(var(--_tile) * var(--ui-empty-state-icon-radius-ratio) + var(--ui-empty-state-icon-radius));
+  background: var(--ui-empty-state-icon-bg);
+  box-shadow: var(--ui-empty-state-icon-shadow);
+  color: var(--ui-empty-state-icon-fg);
+}
+
+.ui-empty-state[data-size='sm'] .ui-empty-state__icon {
+  border-radius: var(--ui-radius-md);
+}
+
+.ui-empty-state__icon > svg {
+  width: var(--_icon);
+  height: var(--_icon);
+}
+
+/* Entrance: when a filter or search empties a list, the state rises in (opacity and a short lift), its
+   icon tile a beat ahead with a soft pop. Composited only; the themes' reduced-motion tempo stops it. */
+.ui-empty-state > * {
+  animation: ui-empty-state-in var(--ui-duration-slow) var(--ui-ease) backwards;
+}
+
+.ui-empty-state > :not(.ui-empty-state__icon) {
+  animation-delay: calc(var(--ui-duration-fast) / 2);
+}
+
+.ui-empty-state > .ui-empty-state__icon {
+  animation-name: ui-empty-state-icon-in;
+  animation-timing-function: var(--ui-ease-spring);
+}
+
+@keyframes ui-empty-state-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes ui-empty-state-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+.ui-empty-state__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 420px;
+}
+
+.ui-empty-state__title {
+  margin: 0;
+  font-family: var(--ui-font-display, inherit);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-heading);
+  line-height: var(--ui-leading-tight);
+  letter-spacing: var(--ui-tracking-tight);
+}
+
+/* A theme whose display face reads small (a Garamond) can lift the small title a step. */
+.ui-empty-state[data-size='sm'] .ui-empty-state__title {
+  font-size: var(--ui-empty-state-title-size-sm, var(--ui-text-md));
+}
+
+.ui-empty-state[data-size='lg'] .ui-empty-state__title {
+  font-size: var(--ui-text-xl);
+}
+
+.ui-empty-state__description {
+  margin: 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-leading);
+  /* Centred lines of even length, never a last line holding a single word. */
+  text-wrap: balance;
+}
+
+.ui-empty-state[data-size='sm'] .ui-empty-state__description {
+  font-size: var(--ui-text-sm);
+}
+
+/* wrap-reverse: when the buttons no longer fit side by side, the primary one ends up on top. The row
+   spans the state's width (stretch) and is the query container for the narrow rule below. */
+.ui-empty-state__actions {
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-self: stretch;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-1);
+}
+
+/* Narrow (a phone, a table cell): the buttons stack at one full width instead of two ragged ones. */
+@container (max-width: 280px) {
+  .ui-empty-state__actions > * {
+    flex: 1 1 100%;
+  }
+}

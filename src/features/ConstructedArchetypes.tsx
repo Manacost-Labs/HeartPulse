@@ -1,5 +1,5 @@
 import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
-import { publicResourceImageUrl } from '../publicResourceUrl';
+import { archetypeHeroArt } from './archetypeDetailModel';
 import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
@@ -14,9 +14,6 @@ import {
   BookOpenText,
   Check,
   ChevronDown,
-  Clock3,
-  ExternalLink,
-  Gamepad2,
   Search,
   Sparkles,
   TrendingUp,
@@ -156,26 +153,6 @@ const CLASS_FILTERS: Array<{ id: ArchetypeClassFilter; label: string; asset: str
     asset: `/class_icon/ui/${id}-64.webp`,
   })),
 ];
-
-const ARCHETYPE_HERO_ART_OVERRIDES: Record<string, string> = {
-  'void-soul-dh': '/archetype-art/void-soul-dh.webp',
-};
-
-function archetypeHeroArt(slug: string, analysis: ConstructedAnalysis | null): string | null {
-  const override = ARCHETYPE_HERO_ART_OVERRIDES[slug];
-  if (override) return override;
-
-  const representativeCard = (analysis?.cardStats ?? []).reduce<(typeof analysis.cardStats)[number] | null>(
-    (best, card) => (
-      card.cardId && (!best || card.mulliganCount > best.mulliganCount) ? card : best
-    ),
-    null,
-  );
-  return representativeCard
-    ? publicResourceImageUrl(representativeCard.fullArtwork || representativeCard.artwork, { width: 960, quality: 80 }) || null
-    : null;
-}
-
 
 function classIcon(classKey: ArchetypeClass | null): string {
   return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
@@ -487,10 +464,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
   }
 
   const { item, history } = detail;
-  const mainBuild = item.builds[0] ?? null;
-  const secondaryBuilds = item.builds.slice(1);
-  const shownBuilds = secondaryBuilds.slice(0, visibleBuilds);
-  const heroArt = archetypeHeroArt(item.slug, detail.analysis);
+  const shownBuilds = item.builds.slice(0, visibleBuilds);
+  const heroArt = archetypeHeroArt(item.slug, detail.analysis?.cardStats ?? []);
 
   return (
     <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
@@ -506,10 +481,10 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
       <section className="archetype-dossier" data-tour-id="archetype-summary">
         {heroArt ? (
           <img
-            key={heroArt}
+            key={heroArt.src}
             className="archetype-dossier__art"
             onError={event => { event.currentTarget.hidden = true; }}
-            src={heroArt}
+            src={heroArt.src}
             alt=""
             aria-hidden="true"
             decoding="async"
@@ -534,32 +509,31 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           preview and the paywall belong to a confirmed answer without access. */}
       {accessPending || (fullAccess && (core.loading || core.error)) ? (
         <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={accessPending || core.loading}
-          error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton />} />
+          error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
       ) : null}
       {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}
 
-      {mainBuild && (
-        <section className="archetype-main-build" data-tour-id="archetype-main-build">
-          <header>
+      {fullAccess && item.builds.length > 0 && (
+        <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-builds">
+          <header className="archetype-section-heading">
             <div>
-              <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
-              <h2>Самая большая подтверждённая выборка</h2>
+              <h2 id="archetype-builds-title">Сборки архетипа</h2>
+              <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
             </div>
-            <div className="archetype-main-build__sample">
-              <strong>{formatNumber(mainBuild.winrate, '%')}</strong>
-              <span>{mainBuild.games?.toLocaleString('ru-RU') ?? '—'} игр</span>
-            </div>
+            <span className="archetype-section-heading__count">{item.builds.length} сборок</span>
           </header>
           <ConstructedArchetypeDeckGallery
-            builds={[mainBuild]}
+            builds={shownBuilds}
             format={item.format}
             archetype={item.archetype}
             classKey={item.classKey}
           />
-          <footer>
-            <span><Clock3 size={15} /> Выборка: последние 30 дней, все ранги</span>
-            {mainBuild.sourceUrl && <a href={mainBuild.sourceUrl} target="_blank" rel="noreferrer">Открыть на HSGuru <ExternalLink size={15} /></a>}
-          </footer>
+          {visibleBuilds < item.builds.length && (
+            <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + 6)}>
+              Показать ещё {Math.min(6, item.builds.length - visibleBuilds)}
+              <ChevronDown size={17} />
+            </button>
+          )}
         </section>
       )}
 
@@ -628,31 +602,6 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </RecoverableSurfaceBoundary>
       </ArchetypeDetailSection> : null}
 
-
-      {fullAccess && secondaryBuilds.length > 0 && (
-        <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-other-builds">
-          <header className="archetype-section-heading">
-            <div>
-              <span className="archetypes-eyebrow"><Gamepad2 size={15} /> Сборки HSGuru</span>
-              <h2 id="archetype-builds-title">Другие сборки архетипа</h2>
-              <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
-            </div>
-            <span className="archetype-section-heading__count">{secondaryBuilds.length} сборок</span>
-          </header>
-          <ConstructedArchetypeDeckGallery
-            builds={shownBuilds}
-            format={item.format}
-            archetype={item.archetype}
-            classKey={item.classKey}
-          />
-          {visibleBuilds < secondaryBuilds.length && (
-            <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + 6)}>
-              Показать ещё {Math.min(6, secondaryBuilds.length - visibleBuilds)}
-              <ChevronDown size={17} />
-            </button>
-          )}
-        </section>
-      )}
 
       {!core.loading ? <section className="archetype-methodology">
         <BarChart3 size={24} aria-hidden="true" />

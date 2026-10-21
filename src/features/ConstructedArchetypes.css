@@ -525,31 +525,32 @@
 .archetype-breadcrumb strong { min-width: 0; color: #4a3323; overflow-wrap: anywhere; }
 
 .archetype-dossier {
+  --dossier-art-width: clamp(300px, 36%, 480px);
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.1rem;
   align-items: center;
   overflow: hidden;
+  min-height: 15rem;
   padding: clamp(1rem, 2vw, 1.5rem);
   border: 12px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   color: #fff0c8;
-  background: #4b0710;
+  background: radial-gradient(ellipse 45% 90% at 84% 45%, #66101a 0%, #4b0710 100%) #4b0710;
   isolation: isolate;
 }
 
+/* Desktop: the art owns the right column and the title and statistics stay on solid red,
+   so neither is drawn over the art. The art is never wider than its source can fill sharply. */
 .archetype-dossier::after {
   position: absolute;
   z-index: 1;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    #4b0710 0%,
-    rgba(75, 7, 16, 0.9) 30%,
-    rgba(75, 7, 16, 0.3) 62%,
-    rgba(48, 4, 10, 0.18) 100%
-  );
+  inset: 0 0 0 auto;
+  width: var(--dossier-art-width);
+  background:
+    linear-gradient(90deg, #4b0710 0%, rgba(75, 7, 16, 0.55) 22%, rgba(75, 7, 16, 0) 48%),
+    linear-gradient(0deg, rgba(48, 4, 10, 0.45) 0%, rgba(48, 4, 10, 0) 35%);
   content: '';
   pointer-events: none;
 }
@@ -559,12 +560,15 @@
   z-index: 0;
   top: 0;
   right: 0;
-  width: 64%;
+  width: var(--dossier-art-width);
   height: 100%;
   object-fit: cover;
-  object-position: center;
-  opacity: 1;
-  mask-image: linear-gradient(90deg, transparent, #000 24%);
+  /* Card illustrations put the subject a little above the centre. */
+  object-position: 50% 32%;
+}
+
+.archetype-dossier > :not(.archetype-dossier__art) {
+  margin-right: calc(var(--dossier-art-width) - clamp(1rem, 2vw, 1.5rem));
 }
 
 .archetype-dossier__identity {
@@ -611,7 +615,6 @@
 .archetype-dossier__metrics dd.metric-even { color: #f0cc78; }
 .archetype-dossier__metrics dd.metric-weak { color: #f2a0a4; }
 
-.archetype-main-build,
 .archetype-history,
 .archetype-builds,
 .archetype-methodology {
@@ -623,17 +626,7 @@
     var(--arena-parchment-texture) center / cover;
 }
 
-.archetype-main-build { padding: 1rem; }
-.archetype-main-build > header {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.archetype-main-build .archetypes-eyebrow,
 .archetype-section-heading .archetypes-eyebrow { color: #8d171d; }
-.archetype-main-build h2,
 .archetype-section-heading h2,
 .archetype-methodology h2 {
   margin: 0.2rem 0 0;
@@ -641,29 +634,6 @@
   font-size: clamp(1.3rem, 2.5vw, 1.8rem);
 }
 
-.archetype-main-build__sample {
-  display: grid;
-  min-width: 120px;
-  padding-left: 1rem;
-  border-left: 1px solid rgba(92, 54, 24, 0.22);
-  text-align: right;
-}
-
-.archetype-main-build__sample strong { color: #2f6e39; font-family: var(--font-display); font-size: 1.45rem; }
-.archetype-main-build__sample span { color: var(--archetype-muted); font-size: 0.65rem; }
-
-.archetype-main-build__code {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  align-items: center;
-  margin-top: 0.85rem;
-  padding: 0.75rem;
-  border: 1px solid rgba(91, 52, 23, 0.25);
-  background: rgba(255, 248, 219, 0.58);
-}
-
-.archetype-main-build__code code,
 .archetype-build-row code {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -691,27 +661,6 @@
 
 .archetype-copy-button--compact { min-height: 40px; }
 .archetype-copy-button--copied { border-color: #41663e; background: #315b34; }
-.archetype-main-build > footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 0.7rem;
-  color: var(--archetype-muted);
-  font-size: 0.68rem;
-}
-
-.archetype-main-build > footer span,
-.archetype-main-build > footer a { display: inline-flex; gap: 0.35rem; align-items: center; }
-.archetype-main-build > footer a { color: #8d171d; font-weight: 900; text-decoration: none; }
-
-.archetype-main-build .archetype-deck-gallery {
-  grid-template-columns: minmax(300px, 460px);
-  justify-content: center;
-  padding: 0.85rem 0;
-}
-
 .archetype-build-preview {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -816,6 +765,16 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
   padding: 0.85rem;
+}
+
+/* Renders of decks with fewer distinct cards are shorter than square. The gallery
+   now opens the page, so a render keeps the square box its placeholder reserved
+   instead of pulling the cards below it up when it arrives. */
+.archetype-deck-gallery .deck-render-preview__image img {
+  aspect-ratio: 1;
+  border-color: transparent;
+  background: transparent;
+  object-fit: contain;
 }
 
 .archetype-deck-card {
@@ -1091,13 +1050,17 @@
   outline-offset: 3px;
 }
 
+@media (max-width: 1359px) {
+  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 @media (max-width: 1120px) {
   .archetypes-hero { grid-template-columns: 1fr; }
   .archetypes-hero__summary { max-width: 620px; }
   .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; contain-intrinsic-size: auto 107px; }
   .archetype-row__metrics { grid-column: 1 / -1; grid-row: 2; }
   .archetype-row__open { grid-column: 4; grid-row: 1; }
-  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .archetype-dossier { --dossier-art-width: clamp(240px, 34%, 420px); }
   .archetype-history__charts { grid-template-columns: 1fr; }
   .archetype-trend svg { min-width: 0; }
   .archetype-deck-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1140,29 +1103,30 @@
   .archetype-row__metrics { grid-template-columns: repeat(2, 1fr); border-left: 0; }
   .archetype-row__metrics div:nth-child(2) { border-right: 0; }
   .archetype-row__metrics div:nth-child(-n + 2) { border-bottom: 1px solid rgba(92, 54, 24, 0.14); }
-  .archetype-dossier { gap: 0.85rem; padding: 0.8rem; border-width: 8px; }
+  /* Phone: the art lights the title area and fades into solid red under the statistics.
+     The geometry does not depend on the art, which arrives with the paid analysis. */
+  .archetype-dossier { min-height: 0; gap: 0.85rem; padding: 1.5rem 0.8rem 0.8rem; border-width: 8px; }
+  .archetype-dossier > :not(.archetype-dossier__art) { margin-right: 0; }
   .archetype-dossier::after {
-    background: linear-gradient(
-      180deg,
-      rgba(75, 7, 16, 0.58) 0%,
-      rgba(75, 7, 16, 0.68) 48%,
-      #4b0710 100%
-    );
+    width: 100%;
+    height: 9.5rem;
+    inset: 0 0 auto;
+    background:
+      linear-gradient(180deg, rgba(75, 7, 16, 0.1) 0%, rgba(75, 7, 16, 0.5) 55%, #4b0710 100%),
+      linear-gradient(90deg, rgba(75, 7, 16, 0.6) 0%, rgba(75, 7, 16, 0) 75%);
   }
-  .archetype-dossier__art { width: 100%; height: 100%; object-position: center; }
-  .archetype-dossier__identity { align-items: flex-start; gap: 0.65rem; }
+  .archetype-dossier__art { width: 100%; height: 9.5rem; object-position: 50% 30%; }
+  .archetype-dossier__identity { align-items: center; gap: 0.65rem; }
   .archetype-dossier__identity > img { width: 62px; height: 62px; }
   .archetype-dossier h1 { font-size: clamp(1.65rem, 9vw, 2.35rem); }
-  .archetype-dossier__metrics { grid-template-columns: repeat(2, 1fr); }
-  .archetype-main-build > header,
+  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .archetype-dossier__metrics div { padding: 0.55rem 0.5rem; }
+  .archetype-dossier__metrics dt { font-size: 0.6rem; }
+  .archetype-dossier__metrics dd { font-size: 1.1rem; }
   .archetype-section-heading { align-items: flex-start; flex-direction: column; }
   .archetype-build-preview { grid-template-columns: 1fr; }
   .archetype-build-preview dl { width: 100%; }
   .archetype-section-heading__count { align-self: flex-start; }
-  .archetype-main-build__sample { min-width: 0; padding: 0; border-left: 0; text-align: left; }
-  .archetype-main-build__code { grid-template-columns: 1fr; }
-  .archetype-main-build__code .archetype-copy-button { width: 100%; }
-  .archetype-main-build .archetype-deck-gallery { grid-template-columns: 1fr; padding: 0.55rem 0; }
   .archetype-history__charts { padding: 0.55rem; }
   .archetype-deck-gallery { grid-template-columns: 1fr; padding: 0.55rem; }
   .archetype-deck-card__state { min-height: 360px; }
@@ -1194,12 +1158,10 @@
   .archetype-dossier { padding: 0.65rem; border-width: 5px; }
   .archetype-dossier__identity > img { width: 52px; height: 52px; }
   .archetype-dossier__metrics div { padding: 0.55rem; }
-  .archetype-main-build,
   .archetype-build-preview,
   .archetype-history,
   .archetype-builds,
   .archetype-methodology { border-width: 5px; }
-  .archetype-main-build { padding: 0.65rem; }
   .archetype-deck-card__summary { gap: 0.35rem; padding: 0.45rem; }
   .archetype-deck-card__number { flex-basis: 34px; width: 34px; height: 34px; }
   .archetype-deck-card__summary dl > div { padding-inline: 0.4rem; }

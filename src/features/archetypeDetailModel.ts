@@ -1,3 +1,5 @@
+import { publicResourceImageUrl } from '../publicResourceUrl';
+
 export type MulliganSortKey =
   | 'hsreplay_rank'
   | 'keep_percentage'
@@ -74,6 +76,98 @@ export function sortHsguruCardStats<T extends SortableHsguruCardStat>(
       return left.row.cardName.localeCompare(right.row.cardName, 'ru') || left.index - right.index;
     })
     .map(item => item.row);
+}
+
+/** HSGuru impacts measured on fewer games than this swing by several points from noise alone. */
+export const LOW_CARD_SAMPLE = 100;
+
+export function isLowCardSample(count: number | null | undefined): boolean {
+  return count === null || count === undefined || !Number.isFinite(count) || count < LOW_CARD_SAMPLE;
+}
+
+export type HsguruCardStatImpactKey = Extract<HsguruCardStatSortKey, `${string}Impact`>;
+
+/** One bar scale per phase; the 2-point floor keeps near-zero phases from drawing full-width bars. */
+export function cardStatImpactScale(
+  rows: readonly Partial<Record<HsguruCardStatImpactKey, number | null>>[],
+  key: HsguruCardStatImpactKey,
+): number {
+  return rows.reduce((scale, row) => {
+    const value = sortableNumber(row[key]);
+    return value === null ? scale : Math.max(scale, Math.abs(value));
+  }, 2);
+}
+
+/** A new column starts with the largest values; the active one flips. There is no unsorted state. */
+export function nextCardStatSort(current: HsguruCardStatSort, key: HsguruCardStatSortKey): HsguruCardStatSort {
+  return current.key === key
+    ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' }
+    : { key, direction: 'desc' };
+}
+
+const CSV_COLUMNS: Array<[HsguruCardStatSortKey, string]> = [
+  ['mulliganImpact', 'Влияние в муллигане'],
+  ['mulliganCount', 'Количество муллиганов'],
+  ['drawnImpact', 'Влияние при доборе'],
+  ['drawnCount', 'Количество доборов'],
+  ['keptImpact', 'Влияние при оставлении'],
+  ['keptCount', 'Количество оставлений'],
+];
+
+function signedPercent(value: number | null): string {
+  if (value === null) return '—';
+  return `${value > 0 ? '+' : ''}${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
+}
+
+/** The export keeps one column per metric, although the table pairs impact and sample in one cell. */
+export function cardStatsCsvRows(rows: readonly SortableHsguruCardStat[]): { header: string[]; rows: string[][] } {
+  return {
+    header: ['Карта', ...CSV_COLUMNS.map(([, label]) => label)],
+    rows: rows.map(row => [row.cardName, ...CSV_COLUMNS.map(([key]) => {
+      const value = sortableNumber(row[key]);
+      if (key.endsWith('Impact')) return signedPercent(value);
+      return value === null ? '—' : String(Math.round(value));
+    })]),
+  };
+}
+
+type HeroArtCard = {
+  cardId: string | null;
+  mulliganCount: number;
+  fullArtwork?: string | null;
+};
+
+export type ArchetypeHeroArt = { src: string };
+
+const ARCHETYPE_HERO_ART_OVERRIDES: Record<string, string> = {
+  'void-soul-dh': '/archetype-art/void-soul-dh.webp',
+};
+/**
+ * The image proxy serves at most 512 px, which is also the size of a HearthstoneJSON original.
+ * Originals are padded with white to a square, so the proxy trims that padding.
+ */
+const HERO_ART_WIDTH = 512;
+
+function heroArtUrl(source: string): string {
+  const url = publicResourceImageUrl(source, { width: HERO_ART_WIDTH });
+  return url.startsWith('/api/public-resource/') ? `${url}&trim=1` : url;
+}
+
+/**
+ * Picks the dossier art from the most mulliganed cards: a wiki full artwork among the five most
+ * mulliganed when one exists, otherwise the most mulliganed card's original art. The 320x64
+ * horizontal tile art is never stretched into the hero.
+ */
+export function archetypeHeroArt(slug: string, cards: readonly HeroArtCard[]): ArchetypeHeroArt | null {
+  const override = ARCHETYPE_HERO_ART_OVERRIDES[slug];
+  if (override) return { src: override };
+  const candidates = cards.filter(card => card.cardId)
+    .sort((left, right) => right.mulliganCount - left.mulliganCount)
+    .slice(0, 5);
+  const withFullArt = candidates.find(card => card.fullArtwork);
+  if (withFullArt?.fullArtwork) return { src: heroArtUrl(withFullArt.fullArtwork) };
+  const cardId = candidates[0]?.cardId;
+  return cardId ? { src: heroArtUrl(`https://art.hearthstonejson.com/v1/orig/${encodeURIComponent(cardId)}.png`) } : null;
 }
 
 export function hsguruImpactTone(value: number | null): 'positive' | 'neutral' | 'negative' | 'unknown' {

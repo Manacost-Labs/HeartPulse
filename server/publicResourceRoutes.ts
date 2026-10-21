@@ -42,6 +42,7 @@ function requestedPublicResourceUrl(request: Request, source: PublicResourceSour
   requestUrl.searchParams.delete('width');
   requestUrl.searchParams.delete('quality');
   requestUrl.searchParams.delete('format');
+  requestUrl.searchParams.delete('trim');
   target.search = requestUrl.search;
   return target;
 }

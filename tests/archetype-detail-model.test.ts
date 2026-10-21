@@ -4,6 +4,11 @@ import {
   hsguruImpactTone,
   hsguruAnalysisEmptyMessage,
   hsguruMatchupTone,
+  archetypeHeroArt,
+  cardStatImpactScale,
+  cardStatsCsvRows,
+  isLowCardSample,
+  nextCardStatSort,
   sortHsguruCardStats,
   sortMulliganRows,
   type MulliganSort,
@@ -62,5 +67,54 @@ assert.equal(
   hsguruAnalysisEmptyMessage(null, 'matchups'),
   'Матчапы ещё не получены.',
 );
+
+// A phase measured on fewer than 100 games is shown muted, and a missing count is never trusted.
+assert.equal(isLowCardSample(99), true);
+assert.equal(isLowCardSample(100), false);
+assert.equal(isLowCardSample(null), true);
+
+// Bars of one phase share a scale: the largest absolute impact, but never below 2 points,
+// so a phase where every card is within ±0.3% does not draw full-width bars.
+const phaseRows = [
+  { cardName: 'А', mulliganImpact: 6.6, drawnImpact: 0.2 },
+  { cardName: 'Б', mulliganImpact: -8.1, drawnImpact: -0.3 },
+  { cardName: 'В', mulliganImpact: null, drawnImpact: null },
+];
+assert.equal(cardStatImpactScale(phaseRows, 'mulliganImpact'), 8.1);
+assert.equal(cardStatImpactScale(phaseRows, 'drawnImpact'), 2);
+assert.equal(cardStatImpactScale([], 'keptImpact'), 2);
+
+// A new column starts descending; the active column flips; the table's "unsorted" step is never taken.
+assert.deepEqual(nextCardStatSort({ key: 'mulliganImpact', direction: 'desc' }, 'drawnImpact'), { key: 'drawnImpact', direction: 'desc' });
+assert.deepEqual(nextCardStatSort({ key: 'drawnImpact', direction: 'desc' }, 'drawnImpact'), { key: 'drawnImpact', direction: 'asc' });
+assert.deepEqual(nextCardStatSort({ key: 'drawnImpact', direction: 'asc' }, 'drawnImpact'), { key: 'drawnImpact', direction: 'desc' });
+
+// The CSV keeps one column per metric even though the table pairs impact and sample in one cell.
+assert.deepEqual(cardStatsCsvRows([
+  { cardName: 'Гадалка', mulliganImpact: 5, mulliganCount: 3_703, drawnImpact: 3.3, drawnCount: 17_159, keptImpact: null, keptCount: null },
+]), {
+  header: ['Карта', 'Влияние в муллигане', 'Количество муллиганов', 'Влияние при доборе', 'Количество доборов', 'Влияние при оставлении', 'Количество оставлений'],
+  rows: [['Гадалка', '+5%', '3703', '+3,3%', '17159', '—', '—']],
+});
+
+// Hero art: never the 320x64 tile strip. Prefer a high-resolution artwork among the most
+// mulliganed cards, else the HearthstoneJSON original of the most mulliganed card.
+const artCards = [
+  { cardId: 'TLC_817', cardName: 'Квест', mulliganCount: 15_922, artwork: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TLC_817.webp', fullArtwork: null },
+  { cardId: 'BE_784', cardName: 'Арт', mulliganCount: 4_000, artwork: null, fullArtwork: 'https://api.kolodahearthstone.com/uploads/constructed-related-wiki-full-art/BE_784.jpg' },
+  { cardId: null, cardName: 'Без id', mulliganCount: 90_000, artwork: null, fullArtwork: null },
+];
+assert.equal(
+  archetypeHeroArt('quest-priest', artCards)?.src,
+  '/api/public-resource/db/uploads/constructed-related-wiki-full-art/BE_784.jpg?width=512&quality=82&format=webp&trim=1',
+);
+assert.equal(
+  archetypeHeroArt('quest-priest', [artCards[0]])?.src,
+  '/api/public-resource/hsjson/v1/orig/TLC_817.png?width=512&quality=82&format=webp&trim=1',
+  'the padded square original is trimmed by the proxy and never requested upscaled',
+);
+assert.deepEqual(archetypeHeroArt('void-soul-dh', artCards), { src: '/archetype-art/void-soul-dh.webp' });
+assert.equal(archetypeHeroArt('quest-priest', []), null);
+assert.equal(archetypeHeroArt('quest-priest', [artCards[2]]), null);
 
 console.log('archetype detail model tests passed');

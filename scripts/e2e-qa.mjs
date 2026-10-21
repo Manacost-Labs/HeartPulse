@@ -2796,12 +2796,12 @@ for (const [device, viewport] of [
 
     await tapFirstArchetypeRow(page);
     await page.waitForSelector('.archetype-detail-page .archetype-history .analytics-chart', { timeout: 20_000 });
-    await page.waitForSelector('.archetype-main-build', { timeout: 20_000 });
-    await page.$eval('.archetype-main-build', node => node.scrollIntoView({ block: 'start' }));
+    await page.waitForSelector('.archetype-builds', { timeout: 20_000 });
+    await page.$eval('.archetype-builds', node => node.scrollIntoView({ block: 'start' }));
     await page.waitForSelector('.archetype-deck-card .deck-render-preview[data-render-state="ready"]', { timeout: 20_000 });
     const archetypeDetailState = await page.evaluate(() => {
       const root = document.querySelector('.archetype-detail-page');
-      const copyButton = document.querySelector('.archetype-main-build .archetype-deck-card__copy');
+      const copyButton = document.querySelector('.archetype-builds .archetype-deck-card:first-child .archetype-deck-card__copy');
       return {
         title: root?.querySelector('h1')?.textContent?.trim() || '',
         charts: root?.querySelectorAll('.archetype-history .analytics-chart').length ?? 0,
@@ -2828,11 +2828,11 @@ for (const [device, viewport] of [
         value: { writeText: async value => { window.__qaCopiedDeckCode = value; } },
       });
     });
-    await page.click('.archetype-main-build .archetype-deck-card__copy');
-    await page.waitForFunction(() => document.querySelector('.archetype-main-build .archetype-deck-card__copy')
+    await page.click('.archetype-builds .archetype-deck-card:first-child .archetype-deck-card__copy');
+    await page.waitForFunction(() => document.querySelector('.archetype-builds .archetype-deck-card:first-child .archetype-deck-card__copy')
       ?.getAttribute('aria-label')?.startsWith('Код скопирован'));
     const archetypeCopyState = await page.evaluate(() => ({
-      label: document.querySelector('.archetype-main-build .archetype-deck-card__copy')?.getAttribute('aria-label') || '',
+      label: document.querySelector('.archetype-builds .archetype-deck-card:first-child .archetype-deck-card__copy')?.getAttribute('aria-label') || '',
       value: window.__qaCopiedDeckCode || '',
     }));
     if (!archetypeCopyState.label.startsWith('Код скопирован') || !archetypeCopyState.value.startsWith('AA')) {

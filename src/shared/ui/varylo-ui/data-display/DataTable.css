@@ -1,0 +1,544 @@
+.ui-data-table {
+  --_cell-y: var(--ui-data-table-cell-y);
+  --_cell-x: 16px;
+  --_font: var(--ui-text-md);
+  --_head-h: var(--ui-data-table-head-h);
+  --_head-bg: var(--ui-data-table-head-bg);
+  --_divider: var(--ui-divider);
+  --_check: var(--ui-choice-size);
+  --_select-w: calc(var(--_cell-x) + var(--_check));
+  --_pin-shadow: var(--ui-data-table-pin-shadow);
+  --_row-hover: var(--ui-hover);
+  --_row-selected: var(--ui-data-table-row-selected);
+  --_row-selected-hover: var(--ui-data-table-row-selected-hover);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  width: 100%;
+  min-width: 0;
+}
+
+.ui-data-table[data-density='compact'] {
+  --_cell-y: var(--ui-data-table-cell-y-compact);
+  --_cell-x: 12px;
+  --_font: var(--ui-text-sm);
+  --_head-h: var(--ui-data-table-head-h-compact);
+}
+
+/* ── Toolbar ── */
+.ui-data-table__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.ui-data-table__search {
+  max-width: 320px;
+}
+
+.ui-field.ui-data-table__search {
+  border-radius: var(--ui-radius-button);
+}
+
+.ui-data-table__search .ui-field__input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+/* ── Container ── */
+.ui-data-table__container {
+  position: var(--ui-data-table-container-position);
+  isolation: var(--ui-data-table-container-isolation);
+  overflow: hidden;
+  border-radius: var(--ui-radius-card);
+  /* Chrome otherwise ghosts scrolled-out rows above the panel when an ancestor uses backdrop-filter. */
+  contain: paint;
+}
+
+/* A frosted panel (Glass) moves its frost to ::before: a backdrop-filter on the container itself would make it
+   the backdrop root of the frosted sticky cells, and Chrome then drops their blur at larger radii. */
+.ui-data-table__container.ui-panel {
+  background: var(--ui-data-table-container-bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.ui-data-table__container::before {
+  content: var(--ui-data-table-frost-content);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--ui-surface);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+  pointer-events: none;
+}
+
+.ui-data-table__scroll {
+  overflow: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Columns past the end edge: a shadow there tells that the table scrolls sideways (a phone hides the
+   scrollbar). It sits on the non-scrolling wrapper, so it stays put while the table scrolls under it. */
+.ui-data-table__viewport {
+  position: relative;
+}
+
+.ui-data-table__viewport::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 20px;
+  /* Two layers: the theme's pin shadow alone is too faint to read as "more to the side". */
+  background: linear-gradient(to left, var(--_pin-shadow), transparent), linear-gradient(to left, var(--_pin-shadow), transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ui-duration) var(--ui-ease);
+}
+
+.ui-data-table__viewport:dir(rtl)::after {
+  background: linear-gradient(to right, var(--_pin-shadow), transparent), linear-gradient(to right, var(--_pin-shadow), transparent 60%);
+}
+
+.ui-data-table__viewport[data-scroll-more]::after {
+  opacity: 1;
+}
+
+/* max-content: columns keep their natural width and the table scrolls instead of squeezing cells. */
+.ui-data-table__table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--_font);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rows never wrap: wide tables scroll sideways inside the container instead of squashing columns. */
+.ui-data-table__table th,
+.ui-data-table__table td {
+  padding: var(--_cell-y) var(--_cell-x);
+  border-bottom: var(--ui-data-table-divider-width) solid var(--_divider);
+  text-align: start;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ui-data-table__table :is(th, td)[data-align='center'] {
+  text-align: center;
+}
+
+.ui-data-table__table :is(th, td)[data-align='right'] {
+  text-align: end;
+}
+
+.ui-data-table__blank {
+  color: var(--ui-fg-subtle);
+}
+
+/* ── Header ── */
+.ui-data-table__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: var(--_head-h);
+  padding-top: 0;
+  padding-bottom: 0;
+  background: var(--_head-bg);
+  color: var(--ui-data-table-head-fg);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-label);
+  letter-spacing: var(--ui-label-tracking, inherit);
+  text-transform: var(--ui-label-transform, inherit);
+}
+
+.ui-data-table[data-density='compact'] thead th {
+  font-size: var(--ui-text-xs);
+}
+
+.ui-data-table__table th[aria-sort] {
+  color: var(--ui-data-table-head-fg-sorted);
+}
+
+.ui-data-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--ui-radius-xs);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  /* The column head's label styling (buttons reset both). */
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    color var(--ui-duration-fast) var(--ui-ease);
+}
+
+/* Numeric columns: the arrow goes first so the label stays flush with the numbers below. */
+.ui-data-table__table th[data-align='right'] .ui-data-table__sort {
+  flex-direction: row-reverse;
+}
+
+.ui-data-table__sort:hover {
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+.ui-data-table__sort:active {
+  background: var(--ui-active);
+}
+
+/* Inside its edge: the head row sits at the top of the scroll box, which clips a wide outer ring (Glass). */
+.ui-data-table__sort:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ui-focus-color);
+}
+
+.ui-data-table__sort > svg {
+  flex-shrink: 0;
+}
+
+.ui-data-table__sort-idle {
+  opacity: 0;
+  transition: opacity var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-data-table__sort:is(:hover, :focus-visible) .ui-data-table__sort-idle {
+  opacity: 0.6;
+}
+
+/* ── Body ── */
+.ui-data-table__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* iOS separators (Glass) start at the text, not under the leading checkbox (`initial`: the normal divider). */
+.ui-data-table__table tbody td.ui-data-table__select {
+  --_divider: var(--ui-data-table-select-divider-color, var(--ui-divider));
+}
+
+.ui-data-table__table tbody tr:last-child td.ui-data-table__select {
+  border-bottom-color: var(--ui-data-table-select-divider-color, currentcolor);
+}
+
+/* Row tint lives on the <tr>: per-cell translucent fills leave hairline seams at fractional column edges. */
+.ui-data-table__table tbody tr {
+  --_row-bg: transparent;
+
+  background-color: var(--_row-bg);
+  transition: background-color var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-data-table__table tbody tr:hover:not(.ui-data-table__skeleton-row, .ui-data-table__empty-row, .ui-data-table__spacer) {
+  --_row-bg: var(--_row-hover);
+}
+
+.ui-data-table__table tbody tr[data-selected] {
+  --_row-bg: var(--_row-selected);
+}
+
+.ui-data-table__table tbody tr[data-selected]:hover {
+  --_row-bg: var(--_row-selected-hover);
+}
+
+.ui-data-table__table tbody tr[data-clickable] {
+  cursor: pointer;
+}
+
+/* Pressed: the hover tint, a step deeper (pinned cells read the same variable). */
+.ui-data-table__table tbody tr[data-clickable]:active {
+  --_row-bg: color-mix(in srgb, var(--_row-hover), var(--ui-fg) 6%);
+}
+
+.ui-data-table__table tbody tr[data-clickable]:focus-visible {
+  --_row-bg: var(--_row-hover);
+
+  outline: 2px solid color-mix(in srgb, var(--ui-accent) 70%, transparent);
+  outline-offset: -2px;
+}
+
+.ui-data-table__empty {
+  padding: 0;
+}
+
+/* Stand-ins for the rows a virtualized table skips. */
+.ui-data-table__table .ui-data-table__spacer td {
+  padding: 0;
+  border: 0;
+}
+
+/* The percentage keeps the viewport width out of the table's intrinsic sizing. */
+.ui-data-table__empty-inner {
+  position: sticky;
+  inset-inline-start: 0;
+  width: min(var(--_viewport-w, 100%), 100%);
+}
+
+/* ── Pinned first column ── */
+.ui-data-table__table [data-pin] {
+  position: sticky;
+  z-index: 1;
+}
+
+.ui-data-table__table [data-pin='select'] {
+  inset-inline-start: 0;
+}
+
+.ui-data-table__table [data-pin='first'] {
+  inset-inline-start: 0;
+}
+
+.ui-data-table[data-selectable] .ui-data-table__table [data-pin='first'] {
+  inset-inline-start: var(--_select-w);
+}
+
+.ui-data-table__table thead th[data-pin] {
+  z-index: 3;
+}
+
+/* A pinned cell is its own layer, so the pinned name cell next to it would paint over its checkbox's ring. */
+.ui-data-table__table td[data-pin='select']:has(:focus-visible) {
+  z-index: 2;
+}
+
+.ui-data-table__table thead th[data-pin='select']:has(:focus-visible) {
+  z-index: 4;
+}
+
+/* Edge shadow appears only once content has scrolled under the pinned column. */
+.ui-data-table__table [data-pin='first']::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  inset-inline-end: -16px;
+  bottom: 0;
+  width: 16px;
+  border-inline-start: 1px solid var(--_divider);
+  background: linear-gradient(to right, var(--_pin-shadow), transparent), linear-gradient(to right, var(--_pin-shadow), transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ui-duration) var(--ui-ease);
+}
+
+.ui-data-table__table [data-pin='first']:dir(rtl)::after {
+  background: linear-gradient(to left, var(--_pin-shadow), transparent), linear-gradient(to left, var(--_pin-shadow), transparent 60%);
+}
+
+.ui-data-table__scroll[data-scrolled] [data-pin='first']::after {
+  opacity: 1;
+}
+
+/* Pinned cells cover the content scrolling underneath them, with the row tint on top (Glass: transparent
+   cells over a frosted ::before that carries the tint; `initial` keeps the tint on the cell). */
+.ui-data-table__scroll[data-scrolled] tbody td[data-pin] {
+  background-color: var(--ui-data-table-pin-bg);
+  background-image: var(--ui-data-table-pin-tint, linear-gradient(var(--_row-bg), var(--_row-bg)));
+}
+
+.ui-data-table__scroll[data-scrolled] thead th[data-pin] {
+  background: var(--ui-data-table-head-bg-pinned);
+}
+
+.ui-data-table__scroll[data-scroll-y] thead th {
+  background: var(--ui-data-table-head-bg-scrolled);
+}
+
+/*
+ * Frosted sticky cells (Glass): rows scrolling under the header (with a max height) or under the pinned
+ * column blur like content under an iOS bar. Chrome ignores backdrop-filter on table cells, so a
+ * positioned ::before carries the blur and the cell's content is lifted above it. :where() keeps the
+ * lift below the content's own positioning (the checkbox, a touch-sized sort button).
+ */
+:where(.ui-data-table__table :is(thead th, td[data-pin])) > * {
+  position: var(--ui-data-table-cell-content-position);
+  z-index: var(--ui-data-table-cell-content-z);
+}
+
+.ui-data-table__scroll[data-scroll-y] thead th::before,
+.ui-data-table__scroll[data-scrolled] :is(thead th, tbody td)[data-pin]::before {
+  content: var(--ui-data-table-frost-content);
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--ui-data-table-frost);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+  pointer-events: none;
+}
+
+/* The row's hover/selection tint stays on top of the frost. */
+.ui-data-table__scroll[data-scrolled] tbody td[data-pin]::before {
+  background: linear-gradient(var(--_row-bg), var(--_row-bg)), var(--ui-data-table-frost);
+}
+
+/* ── Selection column + checkbox ── */
+.ui-data-table__table .ui-data-table__select {
+  width: var(--_select-w);
+  min-width: var(--_select-w);
+  padding-inline-end: 0;
+  line-height: 0;
+}
+
+.ui-data-table__skeleton-check.ui-skeleton {
+  display: inline-block;
+  width: var(--_check);
+  height: var(--_check);
+  border-radius: var(--ui-data-table-checkbox-radius);
+}
+
+.ui-data-table__checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--_check);
+  height: var(--_check);
+  vertical-align: middle;
+}
+
+.ui-data-table__checkbox-input {
+  width: var(--_check);
+  height: var(--_check);
+  margin: 0;
+  border: var(--ui-data-table-checkbox-border-width) solid var(--ui-choice-border, var(--ui-fg-faint));
+  border-radius: var(--ui-data-table-checkbox-radius);
+  background: var(--ui-data-table-checkbox-bg);
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    border-color var(--ui-duration-fast) var(--ui-ease),
+    box-shadow var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-data-table__checkbox-input:hover:not(:disabled) {
+  border-color: var(--ui-fg-subtle);
+}
+
+.ui-data-table__checkbox-input:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-data-table__checkbox-input:is(:checked, :indeterminate) {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary);
+  box-shadow: var(--ui-data-table-checkbox-shadow-checked);
+}
+
+/* Overlapping states, per theme: a checked box shows the hover edge (Vercel) or keeps the fill colour
+   (Glass); focused, it shows the focus ring (Vercel) or keeps its inner highlight (Glass). */
+.ui-data-table__checkbox-input:hover:not(:disabled):where(:checked, :indeterminate) {
+  border-color: var(--ui-data-table-checkbox-border-color-checked-hover);
+}
+
+.ui-data-table__checkbox-input:focus-visible:where(:checked, :indeterminate) {
+  box-shadow: var(--ui-data-table-checkbox-shadow-checked-focus);
+}
+
+.ui-data-table__checkbox-input:disabled {
+  cursor: not-allowed;
+  opacity: var(--ui-disabled-opacity, 0.5);
+}
+
+.ui-data-table__checkbox > svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  color: var(--ui-primary-fg);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--ui-duration-fast) var(--ui-ease),
+    transform var(--ui-duration) var(--ui-ease-spring);
+}
+
+.ui-data-table__checkbox-input:checked:not(:indeterminate) ~ .ui-data-table__checkbox-check,
+.ui-data-table__checkbox-input:indeterminate ~ .ui-data-table__checkbox-dash {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Footer ── */
+.ui-data-table__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2) var(--ui-space-3);
+  min-height: 48px;
+  padding: var(--ui-space-2) var(--_cell-x);
+  border-top: var(--ui-data-table-divider-width) solid var(--_divider);
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-data-table__pager {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-inline-start: auto;
+}
+
+.ui-data-table__page {
+  margin-inline-end: var(--ui-space-1);
+  white-space: nowrap;
+}
+
+/* Counters read in their own language's order ("1 of 12 selected") under dir="rtl" too. */
+:is(.ui-data-table__summary, .ui-data-table__page) {
+  unicode-bidi: plaintext;
+}
+
+/* Forced colors repaint the row tint and the checkbox fill with Canvas: system colours bring them back. */
+@media (forced-colors: active) {
+  .ui-data-table__table tbody tr[data-selected] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .ui-data-table__sort:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .ui-data-table .ui-data-table__checkbox-input:is(:checked, :indeterminate) {
+    border-color: Highlight;
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .ui-data-table .ui-data-table__checkbox > svg {
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+}
+
+/* Touch: 44px hit areas (WCAG 2.5.5) for the selection checkboxes and the sort buttons; the
+   drawn controls keep their size. */
+@media (pointer: coarse) {
+  .ui-data-table__sort {
+    position: relative;
+  }
+
+  .ui-data-table__checkbox::after,
+  .ui-data-table__sort::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: 44px;
+    translate: -50% -50%;
+  }
+}

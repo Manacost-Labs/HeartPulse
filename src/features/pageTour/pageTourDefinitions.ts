@@ -84,10 +84,9 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     id: 'constructed-archetype-detail', version: 1, paths: ['/standard/archetypes/:format/:slug', '/standard/meta/:format/:slug'], title: 'Как читать страницу архетипа',
     steps: [
       { id: 'summary', target: 'archetype-summary', title: 'Сводка архетипа', description: 'В верхнем досье собраны винрейт, популярность, размер выборки, темп матчей и количество найденных сборок.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'main-build', target: 'archetype-main-build', title: 'Главная сборка', description: 'Первая сборка выбрана по самой большой подтверждённой выборке. Откройте карты или скопируйте код для импорта в Hearthstone.', audience: 'standard' },
+      { id: 'builds', target: 'archetype-builds', title: 'Сборки архетипа', description: 'Сборки идут по размеру выборки, первая — самая проверенная. Откройте карты или скопируйте код для импорта в Hearthstone.', audience: 'standard' },
       { id: 'analysis', target: 'archetype-analysis', title: 'Матчапы и муллиган', description: 'Сравните результат против классов, затем изучите влияние стартовой руки, добора и оставления каждой карты.', audience: 'standard', preferredPlacement: 'top' },
       { id: 'history', target: 'archetype-history', title: 'История меты', description: 'Графики накапливают срезы каждые 12 часов и показывают, как меняются винрейт, популярность и объём игр.', audience: 'standard', preferredPlacement: 'top' },
-      { id: 'builds', target: 'archetype-other-builds', title: 'Другие сборки', description: 'Сравните альтернативные варианты по винрейту и размеру выборки, раскройте состав и скопируйте подходящий код.', audience: 'standard', preferredPlacement: 'top' },
     ],
   },
   {

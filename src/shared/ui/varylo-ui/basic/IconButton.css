@@ -1,0 +1,11 @@
+/* burst: particles in the icon's colour, launched and removed by IconButton.tsx. */
+.ui-icon-button__particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  pointer-events: none;
+}

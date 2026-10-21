@@ -1,0 +1,137 @@
+/*
+ * Shared design-token setup. Each theme lives in its own file under ./themes/ and defines the
+ * full set of semantic --ui-* variables for `[data-theme='<name>']` (+ `[data-mode='dark']`).
+ * Components read only those variables and never mention a theme by name, so adding a theme
+ * means adding one file to ./themes/ (src/lib/theme/themes.ts lists it). ../index.css bundles the
+ * `bundled` themes; the others ship as opt-in files (ui-kit/themes/<name>.css). Webfonts and their
+ * metric-matched '<Family> Fallback' faces live in ../fonts/<id>.css (ui-kit/fonts/<id>.css).
+ * <html> without attributes renders the Vercel light theme (see themes/vercel.css).
+ */
+
+/*
+ * ── Decoration hooks ──
+ * Optional tokens for stylised themes (games, retro, editorial). Defaults below are neutral: with them
+ * every component renders exactly as if the hook did not exist. Every themed element resets them, so a
+ * nested ThemeScope does not inherit the outer theme's decoration. A theme overrides any of them in its
+ * own light block (and, if it differs, in its dark block); a theme that sets none needs no change.
+ *
+ *   --ui-font-display          font-family of display text: card, dialog, drawer, sheet and section titles,
+ *                              marketing and hero headings, empty states, big stat figures, brand marks.
+ *                              `initial` = inherit the surrounding font (--ui-font-sans).
+ *   --ui-font-prose            font-family of long reading text: assistant messages, streaming answers, markdown
+ *                              previews (a serif in editorial themes). `initial` = inherit.
+ *   --ui-label-transform       text-transform of control labels: buttons, tabs, segmented controls, badges,
+ *                              navbar and sidebar items, stepper titles, table column heads. `initial` = inherit.
+ *   --ui-label-tracking        letter-spacing of those labels (uppercase needs ~0.04–0.1em). `initial` = the
+ *                              label's own spacing (--ui-control-tracking where a control reads it).
+ *   --ui-surface-corner-shape  CSS corner-shape of surfaces (.ui-panel, .ui-floating: cards, tables, menus,
+ *                              popovers, dialogs, drawers, toasts; tooltips): `bevel` = chamfered corners,
+ *                              `notch`, `scoop`, `squircle`, or four values (`bevel square bevel square` cuts two
+ *                              corners). The cut size is the border-radius. Unlike clip-path, borders, shadows
+ *                              and focus rings follow the shape. Browsers without corner-shape keep the radius.
+ *   --ui-control-corner-shape  the same for controls: buttons, fields (.ui-field), badges, tabs, segmented
+ *                              controls, menu items, navbar and sidebar items.
+ *   --ui-pill-corner-shape     the same for capsules: badges and pill buttons (`initial` = --ui-control-corner-shape).
+ *                              A `scoop` or `notch` on a fully rounded end pinches it into a star; such a theme sets
+ *                              `round` here, or `bevel` for hexagonal plaques.
+ *   --ui-frame                 border-image shorthand drawn over the 1px edge of the showcase surfaces (cards
+ *                              and dialogs; tables and other panels keep a plain edge): e.g. `url("data:image/svg+xml,…") 24 / 24px / 2px round`
+ *                              for ornate corners. The image ignores border-radius (keep radii small).
+ *   --ui-surface-texture       background-image layered over the fill of surfaces (.ui-panel, .ui-floating,
+ *                              outline cards): noise, parchment, scanlines, grids. Keep it faint: text sits on it.
+ *                              For the page itself put the layers into --ui-page-bg (a background shorthand).
+ *   --ui-icon-stroke           stroke width of the kit's icons (24-unit grid); an explicit strokeWidth prop wins.
+ *
+ *   --ui-border-width          width of the hard-coded 1px edges of controls and plain surfaces: fields (.ui-field),
+ *                              buttons' rings, kbd, cards, chips, tiles, toggles (`initial` = 1px). Surfaces that a
+ *                              theme may edge with a 1px ring inside --ui-shadow-card / -popover / -modal or
+ *                              --ui-raised-shadow (.ui-panel, .ui-floating, panel cards, checkboxes, radios) keep 1px,
+ *                              because those rings also edge borderless pieces; a 2px theme keeps the rings there and
+ *                              drops them from --ui-field-shadow / --ui-compound-field-shadow.
+ *   --ui-disabled-opacity      opacity of disabled controls (`initial` = each component's own, 0.45–0.6); higher for a
+ *                              theme that must keep disabled text at a set contrast.
+ *   --ui-link-decoration       text-decoration of inline text links at rest (link buttons, source titles, table
+ *                              and card links). `initial` = none (underlined on hover only); `underline` = always.
+ *   --ui-danger-fg             text and icons on --ui-danger fills (danger buttons, error badges and steps, checked
+ *                              invalid checkboxes). `initial` = #fff; a theme with a light --ui-danger sets a dark ink.
+ *   --ui-choice-border         unchecked edge of checkboxes and radios (Checkbox, RadioGroup, Listbox, DataTable,
+ *                              DataGrid, RichTextEditor, ProductFilters). `initial` = --ui-fg-faint, which every theme
+ *                              keeps ≥ 3:1 (WCAG 1.4.11); hovering darkens it to --ui-fg-subtle.
+ *   --ui-active-indicator      colour of a 3×16px pill at the inline start of the active sidebar item / navbar sheet
+ *                              link and the selected tree row / list item (Windows 11). `initial` = none.
+ *   --ui-field-border-hover    border colour of a field under the pointer (`initial` = --ui-border-field a quarter of the way
+ *                              to --ui-fg, so hover always darkens the 3:1 resting edge, WCAG 1.4.11); e.g. --ui-border-strong.
+ *   --ui-field-focus-border-color  border colour of a focused field (`initial` = --ui-accent).
+ *   --ui-field-focus-ring      box-shadow of a focused field (`initial` = --ui-focus-ring); e.g.
+ *                              `inset 0 -2px 0 var(--ui-accent)` for a bottom focus indicator without a ring.
+ *   --ui-field-focus-ring-invalid  the same for a focused invalid field (`initial` = --ui-focus-ring-invalid).
+ *
+ * Optional component overrides (same rules; `initial` = the component's usual value):
+ *   --ui-badge-radius          corner of badges (default --ui-radius-full: pills); e.g. 3px for square tags.
+ *   --ui-sidebar-bg            fill of the Sidebar (default --ui-surface), for a sidebar tinted apart from cards.
+ *   --ui-kbd-font              font-family of keyboard keys (.ui-kbd; default --ui-font-sans).
+ *   --ui-avatar-radius         corner of round avatars (default 50%); square avatars keep their own radius.
+ *   --ui-switch-knob-bg        Switch knob fill (default #fff); --ui-switch-knob-bg-off: the knob while off
+ *                              (default: the same).
+ *   --ui-slider-thumb-bg       Slider thumb fill (default #fff).
+ *   --ui-progress-track-scale  multiplier of the ProgressBar track heights (sm 4px, md 6px, lg 10px; default 1), e.g.
+ *                              1.5 for game-style health and mana bars that show a sheen and a framed groove.
+ *   --ui-button-shadow-active  box-shadow of a pressed filled or secondary button (default: its resting shadow);
+ *                              with --ui-button-transform-active, e.g. a hard offset shadow that collapses as the
+ *                              button moves into it.
+ *   --ui-button-secondary-bg   fill of secondary buttons (default --ui-bg); -bg-hover (default: the hover fill the
+ *                              theme's --ui-button-secondary-field/-glass set picks); -fg (default --ui-fg). E.g. tonal.
+ *   --ui-search-input-radius   corner of SearchInput (default --ui-radius-button), e.g. the field radius so a bottom
+ *                              indicator stays straight instead of bending round a capsule.
+ *   --ui-toast-bg / --ui-toast-fg  fill and text of toasts (default --ui-elevated / --ui-fg and --ui-fg-muted),
+ *                              e.g. an inverse snackbar.
+ *   --ui-chart-mark-stroke     outline of chart marks: bars, area fills, donut segments, funnel bars, treemap
+ *                              tiles (default none; treemap tiles keep their tinted 1px rim); with
+ *                              --ui-chart-mark-stroke-width (SVG units, default 1).
+ *
+ * Effects that already have tokens (no hook needed): glow — add layers to --ui-focus-ring,
+ * --ui-button-solid-glow, --ui-checked-shadow, --ui-tabs-underline-bar-shadow, --ui-navbar-link-active-shadow,
+ * --ui-sidebar-item-active-shadow; pressed transforms — --ui-button-transform-active, --ui-press-transform;
+ * control-label spacing alone — --ui-control-tracking.
+ *
+ * Zero specificity: a theme's `[data-theme='<name>']` block wins whichever file loads first.
+ */
+:where(:root, [data-theme]) {
+  --ui-font-display: initial;
+  --ui-font-prose: initial;
+  --ui-label-transform: initial;
+  --ui-label-tracking: initial;
+  --ui-surface-corner-shape: round;
+  --ui-control-corner-shape: round;
+  --ui-pill-corner-shape: initial;
+  --ui-frame: none;
+  --ui-surface-texture: none;
+  --ui-icon-stroke: 1.75;
+  --ui-border-width: initial;
+  --ui-disabled-opacity: initial;
+  --ui-link-decoration: initial;
+  --ui-danger-fg: initial;
+  --ui-choice-border: initial;
+  --ui-active-indicator: initial;
+  --ui-field-border-hover: initial;
+  --ui-field-focus-border-color: initial;
+  --ui-field-focus-ring: initial;
+  --ui-field-focus-ring-invalid: initial;
+  --ui-badge-radius: initial;
+  --ui-sidebar-bg: initial;
+  --ui-kbd-font: initial;
+  --ui-avatar-radius: initial;
+  --ui-switch-knob-bg: initial;
+  --ui-switch-knob-bg-off: initial;
+  --ui-slider-thumb-bg: initial;
+  --ui-progress-track-scale: initial;
+  --ui-button-shadow-active: initial;
+  --ui-button-secondary-bg: initial;
+  --ui-button-secondary-bg-hover: initial;
+  --ui-button-secondary-fg: initial;
+  --ui-search-input-radius: initial;
+  --ui-toast-bg: initial;
+  --ui-toast-fg: initial;
+  --ui-chart-mark-stroke: initial;
+  --ui-chart-mark-stroke-width: initial;
+}

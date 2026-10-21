@@ -1,15 +1,24 @@
-import { ArrowDownUp, ExternalLink, Sparkles, Swords } from 'lucide-react';
+import { ExternalLink, Sparkles, Swords } from 'lucide-react';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
+import { DataTable, type DataTableColumn } from '../shared/ui/varylo-ui/data-display/DataTable';
 import { Title, Value, Words } from './archetypeSkeletonText';
-import '../modules/constructedCards/public.css';
+import { CARD_STATS_FIRST_PAGE } from './ConstructedArchetypeCardStats';
+import { LOW_CARD_SAMPLE } from './archetypeDetailModel';
 import './ConstructedArchetypeAnalysis.css';
 import './ConstructedArchetypeAnalysisPlaceholders.css';
 
 const MATCHUP_ROWS = 11;
-/** The table's first page; the «show all» control follows it when more cards exist. */
-const CARD_ROWS = 15;
-/** The phone sort controls' labels (ConstructedArchetypeAnalysis): they wrap where the loaded controls wrap. */
-const MOBILE_SORTS = ['В муллигане', 'Муллиганов', 'При доборе', 'Доборов', 'При оставлении', 'Оставлений'];
+const PHASE_LABELS = ['Муллиган', 'Добор', 'Оставлена'];
+const PLACEHOLDER_ROWS = Array.from({ length: CARD_STATS_FIRST_PAGE }, (_, index) => ({ id: String(index) }));
+/** The loaded table's columns without sort buttons: a placeholder holds no controls. */
+const PLACEHOLDER_COLUMNS: DataTableColumn<{ id: string }>[] = [
+  { key: 'card', header: 'Карта', width: '34%', cell: () => <span className="card-stat-name">
+    <LoadingBlock className="card-stat-name__thumb" /><LoadingBlock className="archetype-analysis-skeleton__name" />
+  </span> },
+  ...PHASE_LABELS.map(label => ({ key: label, header: label, width: '22%', cell: () => <span className="card-stat-phase">
+    <LoadingBlock className="archetype-analysis-skeleton__phase" /><LoadingBlock className="archetype-analysis-skeleton__sample" />
+  </span> })),
+];
 
 function AnalysisSource() {
   return <div className="constructed-analysis-source">
@@ -20,7 +29,7 @@ function AnalysisSource() {
 
 /**
  * Matchups against the eleven classes, then the mulligan table with its first
- * page of rows (phone: sort controls and cards), in the analysis view's own
+ * page of rows (phone: one row per card), in the analysis view's own
  * classes. Reached only through the lazy analysis chunk (see
  * ArchetypeAnalysisLoading), so ConstructedArchetypeAnalysis.css keeps its
  * cascade position.
@@ -54,27 +63,26 @@ export function ArchetypeAnalysisSkeleton() {
           <div>
             <span className="archetypes-eyebrow"><Sparkles aria-hidden="true" /><Words>Статистика карт</Words></span>
             <Title analysis>Муллиган и влияние карт</Title>
-            <p><Words>Сортируйте по влиянию или размеру выборки. Положительное значение означает результат выше среднего винрейта архетипа.</Words>
+            <p><Words>Влияние — разница с средним винрейтом архетипа: зелёное выше среднего, красное ниже. Под значением — размер выборки.</Words>
               {' '}<span className="archetype-analysis-skeleton__tip"><LoadingBlock /></span></p>
           </div>
           <span className="archetype-section-heading__count"><Value /></span>
         </div>
-        <div className="constructed-card-stats__scroll">
-          <div className="archetype-analysis-skeleton__table">
-            {Array.from({ length: CARD_ROWS + 2 }, (_, index) => <LoadingBlock key={index} className="archetype-analysis-skeleton__table-row" />)}
-          </div>
+        <div className="constructed-card-stats__toolbar">
+          <span className="constructed-card-stats__sort"><Words>Сортировка</Words><LoadingBlock className="archetype-analysis-skeleton__select" /></span>
+          <LoadingBlock className="constructed-card-stats__direction" />
+          <span className="constructed-card-stats__legend">
+            {PHASE_LABELS.map(label => <span key={label}><Words>{label}</Words><span className="archetype-analysis-skeleton__tip"><LoadingBlock /></span></span>)}
+            <span className="constructed-card-stats__low"><Words>{`Бледные — выборка меньше ${LOW_CARD_SAMPLE}`}</Words></span>
+          </span>
+          <LoadingBlock className="constructed-card-stats__csv" />
         </div>
-        <div className="constructed-card-stats__mobile">
-          <fieldset className="constructed-card-stats__mobile-sort" disabled>
-            <legend><Words>Сортировать</Words></legend>
-            {MOBILE_SORTS.map(label => <span key={label} className="archetype-analysis-skeleton__sort"><Words>{label}</Words><ArrowDownUp aria-hidden="true" /></span>)}
-          </fieldset>
-          <div className="constructed-card-stats__cards">
-            {Array.from({ length: CARD_ROWS }, (_, index) => <div key={index} className="archetype-analysis-skeleton__mobile-card">
-              <LoadingBlock className="archetype-analysis-skeleton__mobile-tile" /><LoadingBlock className="archetype-analysis-skeleton__mobile-metrics" />
-            </div>)}
-          </div>
+        <div className="constructed-card-stats__table">
+          <DataTable data={PLACEHOLDER_ROWS} columns={PLACEHOLDER_COLUMNS} density="compact" label="Муллиган и влияние карт" />
         </div>
+        <ol className="constructed-card-stats__list">
+          {PLACEHOLDER_ROWS.map(row => <li key={row.id}><LoadingBlock className="archetype-analysis-skeleton__list-row" /></li>)}
+        </ol>
         <LoadingBlock className="constructed-card-stats__more" />
         <AnalysisSource />
       </div>

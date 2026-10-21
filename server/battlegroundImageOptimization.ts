@@ -6,6 +6,8 @@ export type BattlegroundImageTransform = {
   width: number;
   quality: number;
   format: BattlegroundImageFormat;
+  /** Cuts uniform white padding first: card art originals are padded to a square. */
+  trim?: true;
 };
 
 const MIN_WIDTH = 96;
@@ -30,19 +32,22 @@ export function battlegroundImageTransformFromQuery(
     width: boundedInteger(requestedWidth, MIN_WIDTH, MAX_WIDTH, 220),
     quality: boundedInteger(query.quality, MIN_QUALITY, MAX_QUALITY, DEFAULT_QUALITY),
     format: 'webp',
+    ...(query.trim === '1' ? { trim: true as const } : {}),
   };
 }
 
 export function battlegroundImageTransformCacheKey(transform: BattlegroundImageTransform): string {
-  return `${transform.format}:w${transform.width}:q${transform.quality}`;
+  return `${transform.format}:w${transform.width}:q${transform.quality}${transform.trim ? ':trim' : ''}`;
 }
 
 export async function optimizeBattlegroundImage(
   source: Buffer,
   transform: BattlegroundImageTransform,
 ): Promise<{ body: Buffer; contentType: string }> {
-  const body = await sharp(source, { limitInputPixels: 24_000_000 })
-    .rotate()
+  let image = sharp(source, { limitInputPixels: 24_000_000 }).rotate();
+  // Trim in its own pass, so the resize below works on the trimmed size.
+  if (transform.trim) image = sharp(await image.trim({ background: '#ffffff', threshold: 40 }).toBuffer());
+  const body = await image
     .resize({
       width: transform.width,
       withoutEnlargement: true,

@@ -84,6 +84,8 @@
     "src/modules/adminWorkspace/ui/AdminWorkspaceShell.tsx#AdminWorkspaceShell": 171,
     "src/modules/applicationConnect/ApplicationConnectView.tsx#ApplicationConnectView": 155,
     "src/modules/developerApi/ui/AdminApiKeys.tsx#AdminApiKeys": 133,
-    "src/modules/identity/ui/LoginPanel.tsx#LoginPanel": 439
+    "src/modules/identity/ui/LoginPanel.tsx#LoginPanel": 439,
+    "src/shared/ui/varylo-ui/data-display/DataTable.tsx#DataTable": 405,
+    "src/shared/ui/varylo-ui/primitives/useVirtualizer.ts#useVirtualizer": 243
   }
 }

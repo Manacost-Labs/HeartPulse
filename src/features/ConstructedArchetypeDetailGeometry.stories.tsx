@@ -7,7 +7,7 @@ import { ConstructedArchetypesFixture, installConstructedArchetypeFixtures } fro
 
 // Paired states for tests/skeleton-geometry-browser.test.mjs: the loaded
 // subscriber page and each section placeholder in the same page container.
-// Compare `.archetype-main-build`, `.archetype-history` and
+// Compare `.archetype-builds`, `.archetype-history` and
 // `.constructed-analysis-stack` between Ready and the matching Loading story.
 
 const SQUARE_DECK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048"%3E%3Crect width="2048" height="2048" fill="%23ead3a0"/%3E%3C/svg%3E';
@@ -47,7 +47,7 @@ export const Ready: Story = {
 };
 
 export const BuildsLoading: Story = {
-  render: () => <LoadingSection reserveViewport title="Сборки архетипа" skeleton={<ArchetypeBuildsSkeleton />} />,
+  render: () => <LoadingSection reserveViewport title="Сборки архетипа" skeleton={<ArchetypeBuildsSkeleton deckCount={14} />} />,
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getAllByRole('status')).toHaveLength(1);
     await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем сборки архетипа');

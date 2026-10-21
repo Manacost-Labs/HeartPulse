@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock3, Copy, ExternalLink, Sparkles, TrendingUp } from 'lucide-react';
+import { Copy, TrendingUp } from 'lucide-react';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { ChartFrame } from '../shared/ui/analytics/ChartFrame';
 import '../shared/ui/LoadingSurface.css';
@@ -29,22 +29,25 @@ export function ArchetypeDeckCardSkeleton() {
   </div>;
 }
 
-/** The main build while the subscriber core loads: the first build reserves its frame and one viewport. */
-export function ArchetypeBuildsSkeleton() {
+/** Cards the gallery shows before «show more» (ConstructedArchetypes). */
+const FIRST_BUILDS = 6;
+
+/** The builds gallery while the subscriber core loads: its heading, the first page of cards and «show more». */
+export function ArchetypeBuildsSkeleton({ deckCount = FIRST_BUILDS }: { deckCount?: number }) {
+  const cards = Math.max(1, Math.min(FIRST_BUILDS, deckCount));
   return <LoadingSurface label="Загружаем сборки архетипа" quiet layout="rows" className="archetype-detail-skeleton">
-    <div className="archetype-main-build" inert>
-      <header>
+    <div className="archetype-builds" inert>
+      <div className="archetype-section-heading">
         <div>
-          <span className="archetypes-eyebrow"><Sparkles size={14} /><Words>Главная сборка</Words></span>
-          <Title>Самая большая подтверждённая выборка</Title>
+          <Title>Сборки архетипа</Title>
+          <p><Words>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</Words></p>
         </div>
-        <div className="archetype-main-build__sample"><strong><Value /></strong><span><Value wide /></span></div>
-      </header>
-      <div className="archetype-deck-gallery"><ArchetypeDeckCardSkeleton /></div>
-      <footer>
-        <span><Clock3 size={15} /><Words>Выборка: последние 30 дней, все ранги</Words></span>
-        <span><Words>Открыть на HSGuru</Words><ExternalLink size={15} /></span>
-      </footer>
+        <span className="archetype-section-heading__count"><Value /></span>
+      </div>
+      <div className="archetype-deck-gallery">
+        {Array.from({ length: cards }, (_, index) => <ArchetypeDeckCardSkeleton key={index} />)}
+      </div>
+      {deckCount > FIRST_BUILDS ? <LoadingBlock className="archetype-builds__more" /> : null}
     </div>
   </LoadingSurface>;
 }

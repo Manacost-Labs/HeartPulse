@@ -1,0 +1,148 @@
+/*
+ * Spring motion: the easings behind the components' `animation="spring"` presets.
+ *
+ * --ui-spring-smooth / -snappy / -bouncy are damped springs (primitives/spring.ts, SPRINGS) sampled into
+ * CSS linear(); a test keeps them in sync with the maths. Each preset runs for
+ * calc(var(--ui-duration-slow) * <settle factor>), so a theme's tempo carries over and the themes'
+ * reduced-motion block (durations of 1 ms) makes every spring instant. Browsers without linear() get a
+ * cubic-bezier of the same character.
+ */
+:root {
+  --ui-spring-smooth: linear(0, 0.0229, 0.079, 0.1536, 0.2366, 0.3214, 0.4037, 0.4809, 0.5516, 0.6153, 0.6717, 0.7213, 0.7643, 0.8015, 0.8333, 0.8605, 0.8835, 0.903, 0.9194, 0.9331, 0.9447, 0.9543, 0.9623, 0.9689, 0.9744, 0.979, 0.9827, 0.9858, 0.9884, 0.9905, 0.9922, 0.9937, 0.9948, 0.9958, 0.9966, 0.9972, 0.9977, 0.9981, 0.9985, 0.9988, 1);
+  --ui-spring-snappy: linear(0, 0.0181, 0.0653, 0.1325, 0.2121, 0.2983, 0.3862, 0.4725, 0.5546, 0.6308, 0.6999, 0.7614, 0.8152, 0.8614, 0.9004, 0.9327, 0.9589, 0.9798, 0.9959, 1.008, 1.0167, 1.0226, 1.0261, 1.0278, 1.0282, 1.0274, 1.026, 1.024, 1.0217, 1.0192, 1.0167, 1.0143, 1.012, 1.0099, 1.008, 1.0064, 1.0049, 1.0036, 1.0026, 1.0017, 1);
+  --ui-spring-bouncy: linear(0, 0.0654, 0.2282, 0.4406, 0.6622, 0.863, 1.024, 1.1364, 1.2001, 1.221, 1.2086, 1.1738, 1.1273, 1.0782, 1.0333, 0.997, 0.9713, 0.9565, 0.9512, 0.9535, 0.9609, 0.971, 0.9819, 0.992, 1.0001, 1.006, 1.0095, 1.0108, 1.0104, 1.0088, 1.0066, 1.0042, 1.0019, 1.0001, 0.9988, 0.9979, 0.9976, 0.9977, 0.998, 0.9985, 1);
+}
+
+@supports not (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ui-spring-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+    --ui-spring-snappy: cubic-bezier(0.2, 0.9, 0.3, 1.04);
+    --ui-spring-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+/* ── Floating layers (tooltip, popover, hover card, menu): Floating animation="spring" ──
+   Springs out of the anchor's side: a short travel from the anchor plus a scale from the corner the
+   floating layer grows from (--ui-transform-origin, set by useFloating). Exit is a quick fade. */
+.ui-animate-spring {
+  transform-origin: var(--ui-transform-origin, top center);
+  --_spring-x: 0px;
+  --_spring-y: -8px;
+}
+
+.ui-animate-spring[data-side='top'] {
+  --_spring-y: 8px;
+}
+
+.ui-animate-spring[data-side='left'] {
+  --_spring-x: 8px;
+  --_spring-y: 0px;
+}
+
+.ui-animate-spring[data-side='right'] {
+  --_spring-x: -8px;
+  --_spring-y: 0px;
+}
+
+.ui-animate-spring[data-state='open'] {
+  animation:
+    ui-fade-in var(--ui-duration) var(--ui-ease),
+    ui-spring-pop-in calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy);
+}
+
+.ui-animate-spring[data-state='closed'] {
+  animation: ui-spring-pop-out var(--ui-duration-fast) var(--ui-ease) forwards;
+}
+
+@keyframes ui-spring-pop-in {
+  from {
+    transform: translate(var(--_spring-x), var(--_spring-y)) scale(0.88);
+  }
+}
+
+@keyframes ui-spring-pop-out {
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--_spring-x) / 2), calc(var(--_spring-y) / 2)) scale(0.96);
+  }
+}
+
+/* ── Modals (dialog, confirm dialog, drawer): ModalLayer animation="spring" ──
+   Centred panels drop in from `data-from` with a slight tilt and settle with a little overshoot;
+   edge panels slide in from their own edge critically damped, so no gap opens at the screen edge. */
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'] {
+  --_from-x: 0px;
+  --_from-y: -48px;
+  --_tilt-x: 10deg;
+  --_tilt-y: 0deg;
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'][data-from='bottom'] {
+  --_from-y: 48px;
+  --_tilt-x: -10deg;
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'][data-from='left'] {
+  --_from-x: -48px;
+  --_from-y: 0px;
+  --_tilt-x: 0deg;
+  --_tilt-y: -10deg;
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'][data-from='right'] {
+  --_from-x: 48px;
+  --_from-y: 0px;
+  --_tilt-x: 0deg;
+  --_tilt-y: 10deg;
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring']:is([data-placement='center'], [data-placement='top'])[data-state='open'] {
+  animation:
+    ui-fade-in var(--ui-duration) var(--ui-ease),
+    ui-spring-modal-in calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy);
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring']:is([data-placement='center'], [data-placement='top'])[data-state='closed'] {
+  animation: ui-spring-modal-out var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'][data-placement='right'][data-state='open'] {
+  animation: ui-spring-edge-in calc(var(--ui-duration-slow) * 1.92) var(--ui-spring-smooth);
+  --_edge: translateX(100%);
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'][data-placement='left'][data-state='open'] {
+  animation: ui-spring-edge-in calc(var(--ui-duration-slow) * 1.92) var(--ui-spring-smooth);
+  --_edge: translateX(-100%);
+}
+
+.ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'][data-placement='bottom'][data-state='open'] {
+  animation: ui-spring-edge-in calc(var(--ui-duration-slow) * 1.92) var(--ui-spring-smooth);
+  --_edge: translateY(100%);
+}
+
+@keyframes ui-spring-modal-in {
+  from {
+    transform: perspective(900px) translate(var(--_from-x), var(--_from-y)) rotateX(var(--_tilt-x)) rotateY(var(--_tilt-y)) scale(0.94);
+  }
+}
+
+@keyframes ui-spring-modal-out {
+  to {
+    opacity: 0;
+    transform: perspective(900px) translate(calc(var(--_from-x) / 3), calc(var(--_from-y) / 3)) scale(0.97);
+  }
+}
+
+@keyframes ui-spring-edge-in {
+  from {
+    transform: var(--_edge);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-animate-spring[data-state],
+  .ui-modal-layer > .ui-modal-layer__panel[data-motion='spring'][data-state] {
+    animation-duration: 1ms;
+  }
+}

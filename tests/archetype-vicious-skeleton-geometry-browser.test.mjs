@@ -11,13 +11,14 @@ import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 // within the loaded cards' short/long range.
 const PAIRS = [
   ['archetype builds', 'archetype-detail-measured-loading-geometry--ready', 'archetype-detail-measured-loading-geometry--builds-loading',
-    ['.archetype-main-build', '.archetype-main-build > header', '.archetype-main-build .archetype-deck-card', '.archetype-main-build > footer']],
+    ['.archetype-builds', '.archetype-builds > :first-child', '.archetype-builds .archetype-deck-card', '.archetype-builds__more']],
   ['archetype history', 'archetype-detail-measured-loading-geometry--ready', 'archetype-detail-measured-loading-geometry--history-loading',
     ['.archetype-history', '.archetype-history .analytics-chart']],
   // The analysis placeholder arrives with the lazy analysis chunk and uses its classes. The mulligan
   // panel is the fixture's 18 cards (a first page of 15 and the «show all» control).
   ['archetype analysis', 'archetype-detail-measured-loading-geometry--ready', 'archetype-detail-measured-loading-geometry--analysis-loading',
-    ['.constructed-analysis-panel', '.constructed-matchup-ledger', '.constructed-matchup-ledger li', '.constructed-card-stats__mobile-sort']],
+    ['.constructed-analysis-panel', '.constructed-matchup-ledger', '.constructed-matchup-ledger li', '.constructed-card-stats__toolbar',
+      '.constructed-card-stats__table tbody tr', '.constructed-card-stats__list > li']],
   ['vicious gold', 'vicious-gold-measured-loading-geometry--ready', 'vicious-gold-measured-loading-geometry--loading',
     ['.vsgold__mobile-nav', '.vsgold__classes', '.vsgold__deck-row', '.vsgold__power-heading', '.vsgold__rank-tabs', '.vsgold__tier-band > header']],
 ];
@@ -68,11 +69,6 @@ test('archetype and Vicious Gold placeholders fit their loaded views at public w
           }
           return heights;
         }) : null;
-        if (name === 'archetype analysis' && width <= 820) {
-          // The analysis stylesheet keeps its cascade place: its phone sort controls stay at their own size.
-          assert.equal(await page.$eval('.constructed-card-stats__mobile-sort button', button => getComputedStyle(button).fontSize), '9.92px',
-            `loaded mulligan sort controls at ${width}px keep the analysis stylesheet's size`);
-        }
         await open(loadingStory, name === 'archetype analysis' ? '.loading-surface .constructed-matchup-ledger li' : '[role="status"]');
         for (const [index, pair] of selectors.entries()) {
           const selector = Array.isArray(pair) ? pair[0] : pair;

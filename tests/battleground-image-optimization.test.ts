@@ -42,6 +42,24 @@ assert.equal(metadata.width, 220);
 assert.ok((metadata.height || 0) <= 304);
 assert.ok(optimized.body.length < source.length);
 
+// Card art originals are padded with white to a square; `trim=1` cuts the padding before resizing.
+const trimTransform = battlegroundImageTransformFromQuery({ width: '512', trim: '1' });
+assert.deepEqual(trimTransform, { width: 512, quality: 76, format: 'webp', trim: true });
+assert.equal(battlegroundImageTransformCacheKey(trimTransform!), 'webp:w512:q76:trim');
+assert.equal(battlegroundImageTransformFromQuery({ width: '512', trim: 'yes' })?.trim, undefined);
+const paddedArt = await sharp({
+  create: { width: 512, height: 512, channels: 3, background: { r: 255, g: 255, b: 255 } },
+}).composite([{
+  input: await sharp({ create: { width: 380, height: 500, channels: 3, background: { r: 120, g: 40, b: 60 } } }).png().toBuffer(),
+  left: 66,
+  top: 6,
+}]).png().toBuffer();
+const trimmed = await sharp((await optimizeBattlegroundImage(paddedArt, trimTransform!)).body).metadata();
+assert.equal(trimmed.width, 380);
+assert.equal(trimmed.height, 500);
+const untrimmed = await sharp((await optimizeBattlegroundImage(paddedArt, { width: 512, quality: 76, format: 'webp' })).body).metadata();
+assert.equal(untrimmed.width, 512);
+
 const legacyUrl = optimizedBattlegroundThumbnailUrl(
   'https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fexample.cloudfront.net%2Fcard.png',
   220,
