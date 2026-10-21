@@ -64,7 +64,8 @@
   text-transform: uppercase;
 }
 
-.arena-inline-paywall h2 {
+/* :where keeps the h2 rule's specificity; the placeholder title (a div) shares its font. */
+.arena-inline-paywall :is(h2, :where(.arena-inline-paywall__title)) {
   max-width: 760px;
   margin: 0;
   color: #321d15;
@@ -386,6 +387,60 @@
    but says nothing, instead of announcing an access check to a subscriber. */
 html[data-hp-viewer='remembered'] .arena-paywall-pending > p {
   visibility: hidden;
+}
+
+/* The gate's plate while access is checked (PaywallPending): the dialog's
+   frame, colour, width and top offset, its text as quiet bars. It fades in
+   only after the reveal delay, so a quick answer never flashes it, and never
+   moves: the answer replaces it in place. A remembered viewer is about to get the paid
+   page, not the gate, so the plate stays hidden for them. */
+.arena-paywall-pending__plate {
+  box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0.9rem;
+  width: min(720px, 96%);
+  block-size: 34rem;
+  margin: clamp(2rem, 5vw, 4.5rem) auto 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 12px solid #362518;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 12px;
+  border-image-repeat: stretch;
+  background:
+    linear-gradient(rgba(68, 5, 9, 0.12), rgba(49, 3, 6, 0.2)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat #741a1a;
+  animation: loading-reveal var(--motion-fast) var(--motion-ease) var(--motion-reveal-delay) backwards;
+}
+
+/* Eyebrow, title and lead of the dialog, centred like them, in the plate's gold tint. */
+.arena-paywall-pending__plate > i {
+  display: block;
+  inline-size: 9rem;
+  block-size: 0.7rem;
+  border-radius: 3px;
+  background: rgba(239, 201, 111, 0.16);
+}
+.arena-paywall-pending__plate > i:nth-child(2) { inline-size: min(26rem, 80%); block-size: 2rem; }
+.arena-paywall-pending__plate > i:nth-child(3) { inline-size: min(30rem, 90%); block-size: 0.9rem; }
+
+html[data-hp-viewer='remembered'] .arena-paywall-pending__plate {
+  visibility: hidden;
+}
+
+/* Taking over from another placeholder: the same wait, shown at once (useLoadingContinuity). */
+.arena-paywall-pending[data-reveal='continued'] .arena-paywall-pending__plate {
+  animation: none;
+}
+
+@media (max-width: 767px) {
+  .arena-paywall-pending__plate {
+    width: 100%;
+    block-size: 45rem;
+    margin-top: 0;
+  }
 }
 
 /* A failed access check: what happened and a retry, in the gate's place. */

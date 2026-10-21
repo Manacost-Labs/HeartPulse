@@ -56,6 +56,14 @@
     animation: loading-reveal var(--motion-fast) var(--motion-ease) var(--loading-reveal-delay) backwards;
   }
 
+  /* A placeholder that takes over from another one, or joins a page that
+     already shows one, is part of the same wait: it appears at once instead
+     of blanking out for the delay (useLoadingContinuity). */
+  .loading-surface[data-reveal='continued'],
+  .loading-surface[data-reveal='continued'] > :is(.loading-surface__blocks, .loading-surface__caption) {
+    animation: none;
+  }
+
   /* Default blocks only: custom blocks take their size from their own class. */
   .loading-block--line { block-size: 0.85rem; }
   .loading-block--line:nth-child(2) { inline-size: 86%; }

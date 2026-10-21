@@ -7,6 +7,8 @@ import { AccessTiles, BOOSTY_SUBSCRIBE_URL, BoostyForm, NoAccess, type BoostyCon
 import { AccountPlanCardSlot } from './accountPlanCardSlot';
 import AccountPlanPlate from './AccountPlanPlate';
 import AccountSectionHead from './AccountSectionHead';
+import { LoadingBlock, LoadingSurface } from '../../../shared/ui/LoadingSurface';
+import '../../../shared/ui/LoadingSurface.css';
 import './AccountPlanSection.css';
 
 export type AccountPlanSectionProps = {
@@ -46,6 +48,29 @@ function ActivePlan({ plan, subscription }: Pick<AccountPlanSectionProps, 'plan'
   );
 }
 
+/**
+ * While the subscription is checked: the active plan's plate and its row of
+ * section tiles as placeholders, so the answer fills the section in place
+ * instead of pushing the rest of the account down.
+ */
+function PendingPlan() {
+  return (
+    <LoadingSurface label="Проверяем подписку" quiet layout="rows" className="account-plan__loading">
+      <div className="account-plan__plain">
+        <div className="account-plan__plain-main">
+          <LoadingBlock className="account-plan__loading-line" />
+          <LoadingBlock className="account-plan__loading-title" />
+          <LoadingBlock className="account-plan__loading-line account-plan__loading-line--wide" />
+        </div>
+      </div>
+      <LoadingBlock className="account-plan__loading-line" />
+      <ul className="account-access__tiles">
+        {accountAccessTiles(null).map(tile => <li key={tile.key}><LoadingBlock className="account-access__tile account-plan__loading-tile" /></li>)}
+      </ul>
+    </LoadingSurface>
+  );
+}
+
 /** Section two of the account: the plan and what it opens, or the ways to get one. */
 export default function AccountPlanSection({ plan, subscription, loading, checkedAt, onRefresh, boosty, patreonLinkUrl }: AccountPlanSectionProps) {
   const head = HEAD[plan.state];
@@ -67,6 +92,7 @@ export default function AccountPlanSection({ plan, subscription, loading, checke
           </span>
         )}
       />
+      {plan.state === 'pending' && <PendingPlan />}
       {plan.state === 'active' && <ActivePlan plan={plan} subscription={subscription} />}
       {plan.state === 'none' && <NoAccess subscription={subscription} boosty={boosty} patreonLinkUrl={patreonLinkUrl} />}
       {/* The status check failed, but the Boosty confirmation is a separate request. */}

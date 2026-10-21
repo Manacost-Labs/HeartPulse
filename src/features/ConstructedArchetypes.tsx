@@ -5,7 +5,7 @@ import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
 import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection } from './ArchetypeInsightSlots';
 import { ArchetypeHistoryCharts } from './ArchetypeHistoryCharts';
 import {
-  ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
+  ArchetypeAccessPendingSkeleton, ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
 import '../shared/ui/analytics/Analytics.css';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
@@ -518,7 +518,9 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           preview and the paywall belong to a confirmed answer without access. */}
       {accessPending || (fullAccess && (core.loading || core.error)) ? (
         <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={accessPending || core.loading}
-          error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
+          error={accessPending ? null : core.error} onRetry={core.retry} skeleton={accessPending
+            ? <ArchetypeAccessPendingSkeleton deckCount={item.deckCount} featured={Boolean(detail.featuredBuild)} />
+            : <ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
       ) : null}
       {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}
 

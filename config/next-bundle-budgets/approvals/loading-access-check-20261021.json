@@ -1,0 +1,74 @@
+{
+  "reason": "Проверка доступа без мигания: силуэт плашки подписки вместо строки «Проверяем доступ…», гостевая заготовка превью сборки и плашки тарифа на странице архетипа, заготовка плана в кабинете и непрерывность скелетонов (useLoadingContinuity). JS растёт в общем чанке, где уже лежат скелетоны архетипа и PaywallPending (0,4–0,9 КБ gzip); лениво не загрузить — эти состояния рисуются сервером в первом кадре. CSS: плашка-силуэт в PaywallGate.css (до 0,3 КБ).",
+  "routes": {
+    "/articles/": {
+      "jsGzipBytes": 512
+    },
+    "/battlegrounds/tier-list/": {
+      "jsGzipBytes": 640
+    },
+    "/classes/": {
+      "jsGzipBytes": 640,
+      "cssGzipBytes": 384
+    },
+    "/connect/": {
+      "jsGzipBytes": 1024
+    },
+    "/contests/": {
+      "jsGzipBytes": 512
+    },
+    "/cosmetics/": {
+      "jsGzipBytes": 896
+    },
+    "/developers/api/": {
+      "jsGzipBytes": 512
+    },
+    "/faq/": {
+      "jsGzipBytes": 512
+    },
+    "/guides-archive/": {
+      "jsGzipBytes": 640
+    },
+    "/heroes/": {
+      "jsGzipBytes": 640
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 640,
+      "cssGzipBytes": 384
+    },
+    "/library/": {
+      "jsGzipBytes": 640
+    },
+    "/library/minions/": {
+      "jsGzipBytes": 640
+    },
+    "/privacy/": {
+      "jsGzipBytes": 512
+    },
+    "/standard/archetypes/": {
+      "cssGzipBytes": 384
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 768
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 768
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 1024
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 512
+    },
+    "/standard/matchups/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/meta/": {
+      "jsGzipBytes": 256
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 1024,
+      "cssGzipBytes": 384
+    }
+  }
+}

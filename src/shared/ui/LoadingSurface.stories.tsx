@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect } from 'storybook/test';
+import { useEffect, useState } from 'react';
+import { expect, waitFor } from 'storybook/test';
 import { LoadingBlock, LoadingSurface } from './LoadingSurface';
 import './LoadingSurface.css';
 
@@ -58,4 +59,27 @@ export const ContentGrid: Story = {
       </>
     ),
   ],
+};
+
+/** One placeholder taking over from another: the second appears at once, without a second reveal. */
+function Handover() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (step > 0) return;
+    const timer = setTimeout(() => setStep(1), 400);
+    return () => clearTimeout(timer);
+  }, [step]);
+  return step === 0
+    ? <LoadingSurface key="check" label="Проверяем доступ" quiet layout="rows" count={2} />
+    : <LoadingSurface key="page" label="Загружаем страницу" quiet layout="rows" count={4} />;
+}
+
+export const HandoverContinues: Story = {
+  render: () => <Handover />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('status')).toHaveTextContent('Проверяем доступ');
+    await expect(canvas.getByRole('status')).not.toHaveAttribute('data-reveal');
+    await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('Загружаем страницу'));
+    await expect(canvas.getByRole('status')).toHaveAttribute('data-reveal', 'continued');
+  },
 };

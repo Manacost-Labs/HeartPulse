@@ -1,4 +1,7 @@
-import React from 'react';
+'use client';
+
+import React, { useRef } from 'react';
+import { useLoadingContinuity } from './loadingContinuity';
 
 // Styles: a view that renders it imports LoadingSurface.css next to it (as
 // with RecoverableSurface.css), so routes without a loader do not download
@@ -57,12 +60,15 @@ export function LoadingSurface({
   blocksClassName,
   children,
 }: LoadingSurfaceProps) {
+  const root = useRef<HTMLDivElement>(null);
+  useLoadingContinuity(root);
   const defaults = DEFAULT_BLOCKS[layout];
   const blocks = children ?? Array.from({ length: count ?? defaults.count }, (_, index) => (
     <LoadingBlock key={index} className={defaults.shape} />
   ));
   return (
     <div
+      ref={root}
       className={classes('loading-surface', `loading-surface--${layout}`, className)}
       role="status"
       aria-live="polite"

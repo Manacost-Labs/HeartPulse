@@ -25,7 +25,7 @@ export const loadBattlegrounds = battlegrounds.load;
 export const loadBgLibrary = bgLibrary.load;
 export const loadBattlegroundTierBuilder = tierBuilder.load;
 
-const pending = <PaywallPending>Загружаем раздел…</PaywallPending>;
+const pending = <PaywallPending plate={false}>Загружаем раздел…</PaywallPending>;
 
 // The view keeps the gate's height around its own first, data-less render,
 // so the footer does not jump into view and out again when it mounts.

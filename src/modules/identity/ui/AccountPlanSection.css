@@ -86,3 +86,11 @@ a.account-access__tile:hover { border-color: var(--arena-red); }
   .account-plan__plain > .account-button { grid-column: 1; justify-self: stretch; justify-content: center; }
   .account-help { flex-direction: column; align-items: flex-start; }
 }
+
+/* The plan while it is checked (PendingPlan): one line per row of the plate,
+   tiles at their real height; widths follow typical titles. */
+.account-plan__loading .loading-surface__blocks { gap: 1rem; }
+.account-plan__loading-line { width: 9rem; height: 0.95rem; }
+.account-plan__loading-line--wide { width: min(18rem, 100%); }
+.account-plan__loading-title { width: min(14rem, 80%); height: 1.75rem; }
+.account-access__tile.account-plan__loading-tile { width: 8.5rem; border: 0; background: var(--loading-fill); }

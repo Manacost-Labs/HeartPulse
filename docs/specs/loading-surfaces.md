@@ -25,7 +25,9 @@ loading uses placeholders; a refresh, filter or page change keeps the shown
 content as a dimmed `data-surface` with `aria-busy`. Content already rendered
 by the server (contests, guide detail, BG hero and card detail teasers) stays
 visible during a signed-in viewer's personal fetch; only the missing parts get
-placeholders. A list never shows a zero count while its total is unknown.
+placeholders. The BG card teaser (the minion's dark plate) is not dimmed:
+dimmed, it reads as a different, brown block until the page arrives. A list
+never shows a zero count while its total is unknown.
 Skeleton changes do not change fetches, entitlements, subscription gates,
 navigation or the ready view's typography.
 
@@ -46,11 +48,29 @@ The reserved geometry appears at once, but the placeholder fill fades in only
 after the `--motion-reveal-delay` token (160 ms), and a refreshing
 `data-surface` dims after the same delay, so a cached or fast response never
 flashes a skeleton.
+One wait stays one reveal: a placeholder that takes over from another within
+200 ms (an access check handing over to the page's skeleton, a lazy chunk's
+reserve to its fitted skeleton), or joins a page already showing a revealed
+one, is marked `data-reveal="continued"` before its first paint
+(`useLoadingContinuity`) and appears at once instead of blanking out and
+fading in again.
 Data already held in memory (cosmetics ETag cache) renders on the first
 frame. Client loaders use `fetchWithDeadline`; a stalled request ends in an
 error state with «Повторить» instead of an endless placeholder. An inert
 locked preview keeps its placeholders still.
 
+- **Access check (`PaywallPending`)**: The gate's empty plate (frame, red
+  rail texture, width and top offset of `.arena-paywall__dialog`; full width
+  on phones) instead of a line of text; the status is for screen readers.
+  It fades in after the reveal delay and is hidden for a remembered viewer
+  (`html[data-hp-viewer='remembered']`), who gets the paid page. A paid view's
+  own chunk load keeps the caption (`plate={false}`).
+- **Archetype access check**: The guest's answer as placeholders, the
+  featured-build preview and the inline gate in their real frames; the builds
+  gallery only for a remembered viewer, before hydration.
+- **Account plan**: While the subscription is checked, the active plan's
+  plate and the row of section tiles, so the answer fills the section in
+  place (phone CLS 0.35 before).
 - **Articles**: Actual card frame, 1176:597 cover, metadata and voting controls;
   a reference headline of three lines.
 - **Arena classes**: Leader frame, 11 rows and the same ledger spacing; desktop
