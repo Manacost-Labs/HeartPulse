@@ -74,7 +74,8 @@ for host in "$application_domain" "$www_domain" "$cdn_domain"; do
 	ipv6_answers="$(dig +short @1.1.1.1 "$host" AAAA |
 		awk 'index($0, ":") > 0' | sort -u)"
 	# GeoDNS answers with the edge nearest to the resolver, so one vantage point
-	# sees a subset of the pool. Every answer must be an active edge.
+	# sees a subset of the pool. Every answer must be an active edge; an edge
+	# that is down is caught by its own HTTP probes below.
 	unexpected_ipv4="$(comm -23 <(printf '%s\n' "$ipv4_answers") <(printf '%s\n' "$expected_ipv4"))"
 	[[ -n "$ipv4_answers" && -z "$unexpected_ipv4" ]] ||
 		fail "$host DNS returned an unsafe IPv4 set: ${ipv4_answers:-empty}"
