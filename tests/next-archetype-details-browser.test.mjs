@@ -52,7 +52,11 @@ test('Next archetype details isolate access and load builds before independent o
       }
       if (optionalMode === 'denied' && section === 'analysis') { response.writeHead(403).end('{"error":"access revoked"}'); return; }
       if (optionalMode === 'error') { response.writeHead(502).end('{"error":"Временная ошибка истории"}'); return; }
-      const answer = () => { if (!response.destroyed) response.end(JSON.stringify(section === 'history' ? { history: [] } : { analysis: null })); };
+      const answer = () => {
+        if (response.destroyed) return;
+        response.end(JSON.stringify(section === 'history' ? { history: [] }
+          : section === 'ranks' ? { ranks: { ranks: [], periods: [], cells: [], updatedAt: null } } : { analysis: null }));
+      };
       if (optionalMode === 'hold' || optionalMode === 'denied') void optionalGate.then(answer); else answer(); return;
     }
     if (pathname === '/api/subscription/status') { response.end(JSON.stringify({ hasAccess: member === true, entitlements: { standard: member === true }, active: member === true })); return; }
@@ -144,10 +148,10 @@ test('Next archetype details isolate access and load builds before independent o
     await page.waitForSelector('.archetype-builds', { timeout: 5_000 });
     assert.ok(Date.now() - started < 5_000, 'builds must render while optional responses remain held');
     assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец');
-    await page.waitForFunction(() => document.querySelectorAll('section[data-loading=true]').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('section[data-loading=true]').length === 3);
     await delay(10_000);
     assert.ok(await page.$('.archetype-builds'), 'ten seconds of optional latency must not hide the build');
-    assert.deepEqual(sectionCalls.slice(-3).sort(), ['analysis', 'core', 'history']);
+    assert.deepEqual(sectionCalls.slice(-4).sort(), ['analysis', 'core', 'history', 'ranks']);
     assert.ok(await page.evaluate(() => window.__detailCls < 0.1), 'core loading must not push visible optional placeholders away');
     releaseOptional();
     await page.waitForFunction(() => document.querySelectorAll('section[data-loading=true]').length === 0);
