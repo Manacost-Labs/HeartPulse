@@ -46,8 +46,20 @@ const ciJobs = Object.fromEntries([...ciWorkflow.slice(ciWorkflow.indexOf('\njob
   .map(([, id, body]) => [id, body]));
 assert.deepEqual(
   Object.keys(ciJobs),
-  ['build', 'validate', 'test-suites', 'browser-tests', 'browser-observatory', 'deploy-production'],
+  ['build', 'validate', 'test-suites', 'browser-tests', 'browser-observatory', 'required', 'deploy-production'],
 );
+const validationJobs = ['build', 'validate', 'test-suites', 'browser-tests', 'browser-observatory'];
+assert.match(ciWorkflow, /^ {2}merge_group:\n {4}types: \[checks_requested\]$/m, 'the merge queue runs the same validation');
+assert.match(ciJobs.required, /^ {4}name: CI required$/m, 'the merge-queue ruleset requires this exact check name');
+assert.match(ciJobs.required, /^ {4}if: always\(\)$/m, 'a failed dependency must fail the check, not skip it');
+assert.ok(ciJobs.required.includes(`    needs: [${validationJobs.join(', ')}]\n`), 'CI required waits for every validation job');
+assert.ok(ciJobs.required.includes(
+  "test \"${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}\" = true",
+), 'only an all-success set of validation jobs satisfies CI required');
+assert.ok(ciJobs.validate.includes('CLEAN_CODE_BASE: ${{ github.event.merge_group.base_sha }}'));
+assert.ok(ciJobs.validate.includes('REACT_DOCTOR_BASE: ${{ github.event.merge_group.base_sha }}'));
+assert.ok(ciJobs['test-suites'].includes('name: next-bundle-measurements-${{ github.sha }}'),
+  'the job that runs the bundle budget test publishes its measurements');
 for (const [id, body] of Object.entries(ciJobs)) {
   assert.match(body, /^ {4}timeout-minutes: \d+$/m, `${id} must bound its runtime`);
 }
@@ -155,7 +167,7 @@ assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);
 assert.match(ciWorkflow, /if-no-files-found:\s*error/);
 assert.match(ciWorkflow, /retention-days:\s*7/);
 assert.match(ciWorkflow, /^\s*deploy-production:\s*$/m);
-assert.match(ciJobs['deploy-production'], /^ {4}needs: \[build, validate, test-suites, browser-tests, browser-observatory\]$/m,
+assert.ok(ciJobs['deploy-production'].includes(`    needs: [${validationJobs.join(', ')}]\n`),
   'production waits for every validation job');
 assert.match(ciWorkflow, /if:\s*github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
 assert.match(ciWorkflow, /runs-on:\s*\[self-hosted,\s*linux,\s*x64,\s*hs-arena-production\]/);

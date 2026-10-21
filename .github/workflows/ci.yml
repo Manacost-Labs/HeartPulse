@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       clean_code_base:
@@ -87,6 +89,9 @@ jobs:
       CLEAN_CODE_PUSH_BEFORE: ${{ github.event.before }}
       CLEAN_CODE_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       CLEAN_CODE_DISPATCH_BASE: ${{ inputs.clean_code_base }}
+      # Empty outside the merge queue; there it diffs the whole queued batch.
+      CLEAN_CODE_BASE: ${{ github.event.merge_group.base_sha }}
+      REACT_DOCTOR_BASE: ${{ github.event.merge_group.base_sha }}
 
     steps:
       - name: Checkout repository
@@ -145,6 +150,16 @@ jobs:
       - name: Run registered non-browser suites
         run: npm run test:suite -- unit,integration,contract,production-smoke --continue-on-failure
 
+      # The Next bundle budget test writes this; main's copy is the baseline source.
+      - name: Upload Next bundle measurements
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: next-bundle-measurements-${{ github.sha }}
+          path: tmp/next-bundle-measurements.json
+          if-no-files-found: ignore
+          retention-days: 30
+
   browser-tests:
     name: Browser suite (shard ${{ matrix.shard }}/${{ strategy.job-total }})
     needs: build
@@ -202,6 +217,17 @@ jobs:
 
       - name: Run full browser observatory
         run: npm run qa:ci
+
+  # The one stable required check for the merge queue ruleset; shard names may change.
+  required:
+    name: CI required
+    if: always()
+    needs: [build, validate, test-suites, browser-tests, browser-observatory]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every validation job to pass
+        run: test "${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}" = true
 
   deploy-production:
     name: Deploy validated release to production
