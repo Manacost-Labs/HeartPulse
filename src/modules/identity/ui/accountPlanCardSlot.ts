@@ -12,4 +12,4 @@ export type AccountPlanCardProps = {
  * composition supplies the Valyro card (`src/features/AccountBillingPlanCard`)
  * through this slot; without it the account shows its own plain plate.
  */
-export const AccountPlanCardSlot = createContext<ComponentType<AccountPlanCardProps> | null>(null);
+export const AccountPlanCardSlot = /* @__PURE__ */ createContext<ComponentType<AccountPlanCardProps> | null>(null);
