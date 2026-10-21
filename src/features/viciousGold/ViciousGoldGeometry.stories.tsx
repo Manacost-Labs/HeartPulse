@@ -6,8 +6,8 @@ import { summary, builds } from '../../../tests/fixtures/viciousGoldPayload.mjs'
 
 // Paired states for tests/skeleton-geometry-browser.test.mjs: the loaded
 // dashboard and the loading frame the page shows under the same banner.
-// Compare `.vsgold__classes`, `.vsgold__decks`, `.vsgold__deck-row`,
-// `.vsgold__power-heading` and `.vsgold__tier-card` between the stories.
+// Compare `.vsgold-report`, `.vsgold-power .vsgold-section__head`, `.vsgold-power__controls`
+// and `.vsgold-power-row` between the stories.
 
 const meta = {
   title: 'Vicious Gold/Measured loading geometry',
@@ -34,7 +34,7 @@ export const Ready: Story = {
 
 /** The page's loading frame (ViciousGoldPageClient and ViciousSyndicateGold render the same one). */
 export const Loading: Story = {
-  render: () => <section className="vsgold space-y-5 sm:space-y-6"><ViciousGoldBanner /><ViciousGoldLoading /></section>,
+  render: () => <section className="vsgold"><ViciousGoldBanner /><ViciousGoldLoading /></section>,
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getAllByRole('status')).toHaveLength(1);
     await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем Vicious Syndicate Gold');

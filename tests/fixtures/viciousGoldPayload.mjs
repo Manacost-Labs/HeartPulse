@@ -1,4 +1,4 @@
-// A Vicious Gold answer shaped like production: 11 classes, 28 archetypes above 0.5%, six rank brackets and four win-rate bands.
+// A Vicious Gold answer shaped like production: 11 classes, 28 archetypes above 0.5%, six rank brackets and tiers S–D.
 const CLASS_RU = { DeathKnight: 'Рыцарь смерти', DemonHunter: 'Охотник на демонов', Druid: 'Друид', Hunter: 'Охотник', Mage: 'Маг', Paladin: 'Паладин', Priest: 'Жрец', Rogue: 'Разбойник', Shaman: 'Шаман', Warlock: 'Чернокнижник', Warrior: 'Воин' };
 const icon = c => c.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 const classes = [['Warrior', 14.82], ['Mage', 12.4], ['DeathKnight', 11.06], ['Paladin', 10.35], ['Rogue', 9.71], ['DemonHunter', 8.9], ['Shaman', 8.12], ['Priest', 7.44], ['Druid', 6.58], ['Hunter', 5.67], ['Warlock', 4.95]];
@@ -11,12 +11,15 @@ const decks = [
   ['Wallow Warlock', 'Чернокнижник гниения', 'Warlock', 1.7], ['Excavate Warrior', 'Раскопочный Воин', 'Warrior', 1.4], ['Big Spell Mage', 'Маг больших заклинаний', 'Mage', 1.2], ['Pain Warlock', 'Чернокнижник боли', 'Warlock', 1.1],
   ['Other Paladin', 'Прочие Паладины', 'Paladin', 0.9], ['Totem Shaman', 'Тотемный Шаман', 'Shaman', 0.8], ['Other Warlock', 'Прочие Чернокнижники', 'Warlock', 0.7], ['Rainbow Death Knight', 'Радужный Рыцарь смерти', 'DeathKnight', 0.6],
 ];
-const row = ([deck, deckLabel, cls]) => ({ deck, deckLabel, class: cls, classLabel: CLASS_RU[cls], classIcon: icon(cls) });
+// Our catalog has every named archetype but Rainbow Death Knight, so that one row has no page link.
+const slug = deck => /^Other |^Rainbow /.test(deck) ? null : deck.toLowerCase().replace(/\s+/g, '-');
+const row = ([deck, deckLabel, cls]) => ({ deck, deckLabel, archetypeSlug: slug(deck), class: cls, classLabel: CLASS_RU[cls], classIcon: icon(cls) });
 const brackets = [['All ranks', 'Все ранги'], ['Legend', 'Легенда'], ['Diamond 1-4', 'Алмаз 1–4'], ['Diamond 5-10', 'Алмаз 5–10'], ['Platinum', 'Платина'], ['Gold Silver Bronze', 'Золото, Серебро, Бронза']];
 const ranked = decks.filter(d => !/^Other /.test(d[0]));
 export const summary = {
   title: 'Vicious Syndicate Gold', format: 'Standard', games: 1284563, source: 'Vicious Syndicate Live',
   sourceUrl: 'https://www.vicioussyndicate.com/data-reaper-live/', updatedAt: '2026-10-08T06:12:00.000Z', minimumDeckFrequency: 0.5,
+  timeRanges: { distribution: 'lastDay', tierLadder: 'lastDay', tierMatchups: 'lastDay' },
   classDistribution: classes.map(([cls, frequency]) => ({ class: cls, classLabel: CLASS_RU[cls], classIcon: icon(cls), frequency })),
   deckDistribution: decks.map(d => ({ ...row(d), frequency: d[3], build: null })),
   tierList: brackets.map(([rankBracket, rankLabel], b) => ({

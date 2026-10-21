@@ -58,6 +58,38 @@ export function resolveViciousGoldArchetype(archetype: string): {
   };
 }
 
+/**
+ * Names of a vS archetype in our HSGuru catalog, most specific first: the vS name and its alias,
+ * then the HSGuru spelling (`DK`, `DH`, `Harold` for vS `Herald`) and its `-lock` short form
+ * (`Pig Warlock` -> `Piglock`). All lower-case.
+ */
+export function viciousGoldCatalogNames(archetype: string): string[] {
+  const { matchedArchetype } = resolveViciousGoldArchetype(archetype);
+  const names = new Set<string>();
+  for (const name of [matchedArchetype, archetype].map(normalizeArchetype)) {
+    const hsguru = name
+      .replace(/\bdeath ?knight\b/g, 'dk')
+      .replace(/\bdemon ?hunter\b/g, 'dh')
+      .replace(/^herald\b/, 'harold');
+    for (const variant of [name, hsguru]) {
+      names.add(variant);
+      const lock = variant.match(/^(\S+) warlock$/);
+      if (lock) names.add(`${lock[1]}lock`);
+    }
+  }
+  return [...names];
+}
+
+/** The catalog archetype a vS archetype stands for, or null when our catalog has no such archetype. */
+export function findViciousGoldCatalogItem<T extends { archetype: string }>(items: readonly T[], archetype: string): T | null {
+  const byName = new Map(items.map(item => [normalizeArchetype(item.archetype), item]));
+  for (const name of viciousGoldCatalogNames(archetype)) {
+    const item = byName.get(name);
+    if (item) return item;
+  }
+  return null;
+}
+
 export function findSupplementalViciousGoldBuild(archetype: string): SupplementalViciousGoldBuild | null {
   const build = SUPPLEMENTAL_VICIOUS_GOLD_BUILDS[normalizeArchetype(archetype)];
   return build ? { ...build } : null;

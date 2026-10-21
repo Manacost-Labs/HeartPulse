@@ -1,37 +1,43 @@
-import { Layers3 } from 'lucide-react';
-import { isAggregateDeck, missingBuildLabel, type BuildState, type DeckBuild } from './viciousGoldModel';
+import { Check, Copy, Layers3 } from 'lucide-react';
+import type { DeckBuild } from './viciousGoldModel';
 
-export function BuildActions({ deck, build, buildState, copiedDeck, onCopy, onOpen, expanded }: {
+/**
+ * Copy and composition actions of a deck that has a build. A deck without one shows nothing:
+ * a column of identical "build is updating" notes read as a broken page. `compact` (the Power
+ * Tier rows) is a fixed-width icon button; the deck list keeps the site's «Скопировать код
+ * колоды» artwork and the toggle of the deck block.
+ */
+export function BuildActions({ deck, build, copiedDeck, onCopy, onOpen, expanded, compact = false }: {
   deck: string;
   build: DeckBuild | null;
-  buildState: BuildState;
   copiedDeck: string;
   onCopy: (deck: string, code: string) => void;
   onOpen?: (deck: string) => void;
   expanded?: boolean;
+  compact?: boolean;
 }) {
-  if (!build) {
-    return (
-      <span className={isAggregateDeck(deck) ? 'vsgold__build-aggregate' : 'vsgold__build-missing'}>
-        {missingBuildLabel(deck, buildState)}
-      </span>
-    );
-  }
+  if (!build) return <span className="vsgold-build vsgold-build--none" />;
+  const name = deck.replace(/^tier:/, '');
+  const copied = copiedDeck === deck;
+  const label = copied ? 'Код колоды скопирован' : `Скопировать код колоды ${name}`;
   return (
-    <div className="vsgold__build">
-      <button
-        type="button"
-        className={`vsgold__build-copy-button${copiedDeck === deck ? ' vsgold__build-copy-button--copied' : ''}`}
-        onClick={() => onCopy(deck, build.deckCode)}
-        aria-label={copiedDeck === deck ? 'Код колоды скопирован' : `Скопировать код колоды ${deck.replace(/^tier:/, '')}`}
-      >
-        <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" width="1557" height="571" decoding="async" />
-        <span className="vsgold__copy-feedback" aria-live="polite">
-          {copiedDeck === deck ? 'Код колоды скопирован' : ''}
-        </span>
-      </button>
-      {onOpen && <button type="button" className="vsgold__build-open" aria-expanded={expanded} onClick={() => onOpen(deck)}><Layers3 size={15} /> {expanded ? 'Скрыть' : 'Состав'}</button>}
-      <span>{build.matchMethod === 'alias' ? `${build.sourceLabel}, точный синоним` : build.sourceLabel}</span>
-    </div>
+    <span className="vsgold-build">
+      {compact ? (
+        <button type="button" className="vsgold-build__icon" data-copied={copied ? '' : undefined} title={`Скопировать код колоды (${build.sourceLabel})`}
+          onClick={() => onCopy(deck, build.deckCode)} aria-label={label}>
+          {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+        </button>
+      ) : (
+        <button type="button" className="vsgold-build__art" data-copied={copied ? '' : undefined} onClick={() => onCopy(deck, build.deckCode)} aria-label={label}>
+          <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" width="1557" height="571" decoding="async" />
+        </button>
+      )}
+      {onOpen && !compact && (
+        <button type="button" className="vsgold-build__open" aria-expanded={expanded} onClick={() => onOpen(deck)}>
+          <Layers3 size={15} aria-hidden="true" /> {expanded ? 'Скрыть' : 'Колода'}
+        </button>
+      )}
+      <span className="sr-only" aria-live="polite">{copied ? 'Код колоды скопирован' : ''}</span>
+    </span>
   );
 }

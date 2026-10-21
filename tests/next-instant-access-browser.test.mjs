@@ -150,7 +150,7 @@ function recordFrames() {
           .some(node => node.childElementCount === 0 && /Проверяем доступ/.test(node.textContent) && visible(node))),
         viewer: text.includes('Подписчица'),
         hint: localStorage.getItem('hs_arena_viewer_hint'),
-        paid: Boolean(document.querySelector('.arena-paid-view, .bg-tier-list-page, .standard-matchups__table, .vsgold__panel, .vsgold__loading, .standard-matchups [class*="loading"], [aria-busy="true"].standard-matchups')),
+        paid: Boolean(document.querySelector('.arena-paid-view, .bg-tier-list-page, .standard-matchups__table, .vsgold-section, .vsgold__loading, .standard-matchups [class*="loading"], [aria-busy="true"].standard-matchups')),
       });
     }
   };

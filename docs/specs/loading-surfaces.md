@@ -89,8 +89,8 @@ locked preview keeps its placeholders still.
   plot and selection panel; plotting code stays deferred.
 - **Matchups**: View switch, picker, quick filters, search and three responsive
   matchup groups.
-- **Vicious Gold**: The real dashboard (nav, class chart, deck rows, Power Tier
-  tabs and cards) inside the one-viewport reserve.
+- **Vicious Gold**: The real report plate (copy, contents, KPI strip) and the
+  Power Tier head, rank tabs, first tier and rows inside the one-viewport reserve.
 - **Home latest articles**: Real responsive lead/secondary grid, 16:8.5 covers,
   metadata, headline, excerpt and action; keep known articles during refresh.
   The lead spans the full tablet row.

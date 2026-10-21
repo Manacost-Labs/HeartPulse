@@ -4,11 +4,10 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
-// Archetype detail sections and the Vicious Gold dashboard: each placeholder
-// is compared with the loaded view in the same container at the public
-// widths. Fixed structures agree within 2 px in width and 4 px in height; a
-// Power Tier card's name wraps with its data, so its placeholder must stay
-// within the loaded cards' short/long range.
+// Archetype detail sections and the Vicious Gold report: each placeholder is
+// compared with the loaded view in the same container at the public widths.
+// Fixed structures agree within 2 px in width and 4 px in height; Power Tier
+// rows keep one-line names, so they are fixed structures too.
 const PAIRS = [
   ['archetype builds', 'archetype-detail-measured-loading-geometry--ready', 'archetype-detail-measured-loading-geometry--builds-loading',
     ['.archetype-builds', '.archetype-builds > :first-child', '.archetype-builds .archetype-deck-card', '.archetype-builds__more']],
@@ -20,7 +19,7 @@ const PAIRS = [
     ['.constructed-analysis-panel', '.constructed-matchup-ledger', '.constructed-matchup-ledger li', '.constructed-card-stats__toolbar',
       '.constructed-card-stats__table tbody tr', '.constructed-card-stats__list > li']],
   ['vicious gold', 'vicious-gold-measured-loading-geometry--ready', 'vicious-gold-measured-loading-geometry--loading',
-    ['.vsgold__mobile-nav', '.vsgold__classes', '.vsgold__deck-row', '.vsgold__power-heading', '.vsgold__rank-tabs', '.vsgold__tier-band > header']],
+    ['.vsgold-report', '.vsgold-report__kpis', '.vsgold-power .vsgold-section__head', '.vsgold-power__controls', '.vsgold-tier__head', '.vsgold-power-row']],
 ];
 
 test('archetype and Vicious Gold placeholders fit their loaded views at public widths', { timeout: 600_000 }, async () => {
@@ -57,18 +56,9 @@ test('archetype and Vicious Gold placeholders fit their loaded views at public w
     for (const width of [1350, 1024, 768, 412, 360]) {
       await page.setViewport({ width, height: 940 });
       for (const [name, readyStory, loadingStory, selectors] of PAIRS) {
-        await open(readyStory, name === 'vicious gold' ? '.vsgold__tier-card' : '.constructed-matchup-ledger li');
+        await open(readyStory, name === 'vicious gold' ? '.vsgold-tier .arena-tier-badge' : '.constructed-matchup-ledger li');
         const ready = [];
         for (const selector of selectors) ready.push(await boxes(Array.isArray(selector) ? selector[0] : selector));
-        const readyTiers = name === 'vicious gold' ? await page.$$eval('.vsgold__tier-card', async cards => {
-          const heights = [];
-          for (const card of cards) {
-            card.scrollIntoView({ block: 'center' });
-            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            heights.push(card.getBoundingClientRect().height);
-          }
-          return heights;
-        }) : null;
         await open(loadingStory, name === 'archetype analysis' ? '.loading-surface .constructed-matchup-ledger li' : '[role="status"]');
         for (const [index, pair] of selectors.entries()) {
           const selector = Array.isArray(pair) ? pair[0] : pair;
@@ -79,13 +69,6 @@ test('archetype and Vicious Gold placeholders fit their loaded views at public w
             assert.ok(Math.abs(box.width - loading[item].width) <= 2, `${name} ${selector} #${item} at ${width}px: width ${loading[item].width} vs ${box.width}`);
             assert.ok(Math.abs(box.height - loading[item].height) <= 4, `${name} ${selector} #${item} at ${width}px: height ${loading[item].height} vs ${box.height}`);
           }
-        }
-        if (readyTiers) {
-          const [placeholder] = await boxes('.loading-surface .vsgold__tier-card');
-          const low = Math.min(...readyTiers) - 4;
-          const high = Math.max(...readyTiers) + 4;
-          assert.ok(placeholder.height >= low && placeholder.height <= high,
-            `vicious gold tier card at ${width}px: placeholder ${placeholder.height}, loaded ${low + 4}–${high - 4}`);
         }
       }
     }

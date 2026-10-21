@@ -87,24 +87,22 @@ test('Vicious Gold shows its summary before the deck builds arrive', async () =>
 
     await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
     await page.goto(`${runtime.origin}/standard/vicious-gold/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.traditional-mode-banner__summary');
-    assert.match(await page.$eval('.traditional-mode-banner__summary', node => node.textContent ?? ''), /догружаем сборки/i,
-      'the summary renders while the builds are still loading');
-    assert.equal(await page.$$eval('.vsgold__deck-row', rows => rows.length), 2);
-    assert.equal(await page.$('.vsgold__build-copy-button'), null, 'no build is shown before the builds answer');
+    await page.waitForSelector('.vsgold-tier .arena-tier-badge');
+    assert.equal(await page.$$eval('.vsgold-deck-row', rows => rows.length), 2, 'the summary renders while the builds are still loading');
+    assert.equal(await page.$('.vsgold-build__art'), null, 'no build is shown before the builds answer');
 
     releaseBuilds();
-    await page.waitForFunction(() => document.querySelector('.traditional-mode-banner__summary')?.textContent?.includes('1/2'));
-    assert.ok(await page.$('.vsgold__build-copy-button'));
+    await page.waitForFunction(() => document.querySelector('.vsgold-decks__head')?.textContent?.includes('1 из 2'));
+    assert.equal(await page.$$eval('.vsgold-build__art', buttons => buttons.length), 1, 'only the deck with a build gets a copy button');
     assert.deepEqual(runtimeErrors, []);
 
     buildsReleased = Promise.resolve();
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.vsgold__mobile-nav a');
+    await page.waitForSelector('.vsgold-report__contents a');
     const mobile = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      navTargets: [...document.querySelectorAll('.vsgold__mobile-nav a')]
+      navTargets: [...document.querySelectorAll('.vsgold-report__contents a')]
         .map(element => element.getBoundingClientRect().height),
     }));
     assert.ok(mobile.overflow <= 1, `Vicious Gold overflowed by ${mobile.overflow}px on mobile`);

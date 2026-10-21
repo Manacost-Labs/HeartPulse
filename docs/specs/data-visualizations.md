@@ -63,7 +63,8 @@ by default (#8d171d); violet (#64416f) remains only for table focus rings.
 - Meta scatter with popularity filtering and exact archetype selection.
 - Matchup matrix: quieter colours, sticky labels, original scroll controls,
   native accessible table and CSV/PNG/SVG export.
-- Mana curve and Vicious Syndicate class distribution; class filtering remains.
+- Mana curve; Vicious Syndicate meta shares are stacked bars per class (its
+  archetypes in shades of the class colour), and a class filters the deck list.
 - Arena class ranking: true 0–100% meters, plus an expandable shared chart with
   sample counts and PNG/SVG export. CRM overview: two dated, downloadable count
   charts replace the unlabelled miniature sparklines.
@@ -90,7 +91,7 @@ icon-only SVGs and canvas image composition are classified separately.
 | Standard meta | Winrate/popularity scatter | PNG/SVG |
 | Standard matchups | Winrate matrix | PNG/SVG/CSV |
 | Deck builder and archetypes | Mana curve | PNG/SVG |
-| Vicious Syndicate | Class distribution | PNG/SVG |
+| Vicious Syndicate | Class bars stacked by archetype | sr-only text |
 | Arena classes | Winrate ranking and comparison | PNG/SVG |
 | Admin CRM | Subscribers, registrations by date | PNG/SVG |
 | Compact rows | Placements and inline metrics | Text and small bars |

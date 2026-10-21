@@ -818,15 +818,6 @@ async function createQaPage() {
   return page;
 }
 
-async function waitForClassDistributionLayout(page) {
-  await page.waitForFunction(() => {
-    const svg = document.querySelector('#vsgold-classes svg[data-chart]');
-    if (!svg) return false;
-    const width = svg.getBoundingClientRect().width;
-    return width > 0 && Math.abs(svg.viewBox.baseVal.width - width) <= 1;
-  });
-}
-
 const shellViewportMatrix = [
   ['compact portrait', { width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
   ['mobile portrait', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
@@ -3434,67 +3425,55 @@ for (const [device, viewport] of [
     await auditAccessibility(page, `standard matchups Wild matrix [${device}]`, '.standard-matchups');
     await page.screenshot({ path: `${OUT}/standard-matchups-wild-${device}.png`, fullPage: false });
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
+    await page.waitForSelector('.vsgold-tier .arena-tier-badge', { timeout: 20_000 });
     await page.waitForFunction(() => {
-      const image = document.querySelector('.vsgold__build-copy-button img');
+      const image = document.querySelector('.vsgold-build__art img');
       return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
     });
-    await waitForClassDistributionLayout(page);
     const viciousGoldState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.vsgold');
       const hero = document.querySelector('.traditional-mode-banner');
       const stats = document.querySelector('.traditional-mode-banner__summary');
       const title = document.querySelector('.traditional-mode-banner h1');
-      const mobileNav = document.querySelector('.vsgold__mobile-nav');
-      const deckSearch = document.querySelector('.vsgold__deck-tools input');
-      const classButton = document.querySelector('#vsgold-classes .analytics-chart [role="button"]');
-      const buildButton = document.querySelector('.vsgold__build button');
+      const contents = document.querySelectorAll('.vsgold-report__contents a');
+      const deckSearch = document.querySelector('.vsgold-search input');
+      const classButton = document.querySelector('.vsgold-classbars button');
+      const buildButton = document.querySelector('.vsgold-build__art');
       const copyImage = buildButton?.querySelector('img');
-      const deckList = document.querySelector('.vsgold__deck-list');
-      const firstDeckRow = document.querySelector('.vsgold__deck-row');
-      const firstTierCard = document.querySelector('.vsgold__tier-card');
-      const firstPanel = document.querySelector('.vsgold__panel');
-      const ornament = document.querySelector('.vsgold__hero-ornament');
+      const firstSection = document.querySelector('.vsgold-section');
       const heroRect = hero?.getBoundingClientRect();
       return {
         heroHeight: heroRect?.height ?? 0,
         titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
         statsCount: stats?.children.length ?? 0,
-        panelCount: document.querySelectorAll('.vsgold__panel').length,
-        mobileNavCount: mobileNav?.querySelectorAll('a').length ?? 0,
-        mobileNavDisplay: mobileNav ? getComputedStyle(mobileNav).display : '',
+        sectionCount: document.querySelectorAll('.vsgold-section').length,
+        reportKpis: document.querySelectorAll('.vsgold-report__kpis > li').length,
+        tiers: document.querySelectorAll('.vsgold-tier .arena-tier-badge').length,
+        contentsCount: contents.length,
+        contentsTargetHeight: Math.min(...[...contents].map(link => link.getBoundingClientRect().height)),
         deckSearchFontSize: deckSearch ? parseFloat(getComputedStyle(deckSearch).fontSize) : 0,
         classTargetHeight: classButton?.getBoundingClientRect().height ?? 0,
         buildTargetHeight: buildButton?.getBoundingClientRect().height ?? 0,
         buildButtonLabel: buildButton?.getAttribute('aria-label') || '',
         copyImage: copyImage?.getAttribute('src') || '',
         copyImageLoaded: copyImage instanceof HTMLImageElement && copyImage.complete && copyImage.naturalWidth > 0,
-        deckListOverflowY: deckList ? getComputedStyle(deckList).overflowY : '',
-        deckListMaxHeight: deckList ? getComputedStyle(deckList).maxHeight : '',
-        legacyOrnamentPresent: Boolean(ornament),
-        panelFrame: firstPanel ? getComputedStyle(firstPanel).borderImageSource : '',
-        deckRowContainment: firstDeckRow ? getComputedStyle(firstDeckRow).contain : '',
-        tierCardContentVisibility: firstTierCard ? getComputedStyle(firstTierCard).contentVisibility : '',
+        panelFrame: firstSection ? getComputedStyle(firstSection).borderImageSource : '',
         scrollWidth: pageRoot?.scrollWidth ?? 0,
         clientWidth: pageRoot?.clientWidth ?? 0,
       };
     });
     if (viciousGoldState.heroHeight < 150 || viciousGoldState.heroHeight > 540
       || viciousGoldState.titleSize > 112 || viciousGoldState.statsCount !== 2
-      || viciousGoldState.panelCount < 3
-      || (device === 'desktop' && viciousGoldState.mobileNavDisplay !== 'none')
+      || viciousGoldState.sectionCount < 2 || viciousGoldState.reportKpis !== 4 || viciousGoldState.tiers < 1
+      || viciousGoldState.contentsCount !== 3
       || !viciousGoldState.copyImage.includes('deck-code-to-hearthstone.png')
       || !viciousGoldState.copyImageLoaded
       || !viciousGoldState.buildButtonLabel.startsWith('Скопировать код колоды')
-      || viciousGoldState.legacyOrnamentPresent || !viciousGoldState.panelFrame.includes('main-page-rail-border.png')
-      || (viciousGoldState.deckRowContainment !== 'content' && !viciousGoldState.deckRowContainment.includes('layout'))
-      || viciousGoldState.tierCardContentVisibility !== 'auto'
-      || (device === 'mobile' && (viciousGoldState.mobileNavCount !== 3 || viciousGoldState.mobileNavDisplay === 'none'
-        || viciousGoldState.deckSearchFontSize < 16 || viciousGoldState.classTargetHeight < 44
-        || viciousGoldState.buildTargetHeight < 44 || viciousGoldState.deckListOverflowY !== 'auto'
-        || viciousGoldState.deckListMaxHeight === 'none'))
+      || !viciousGoldState.panelFrame.includes('main-page-rail-border.png')
+      || (device === 'mobile' && (viciousGoldState.deckSearchFontSize < 16 || viciousGoldState.classTargetHeight < 44
+        || viciousGoldState.buildTargetHeight < 44 || viciousGoldState.contentsTargetHeight < 44))
       || viciousGoldState.scrollWidth > viciousGoldState.clientWidth + 1) {
-      failures.push(`vicious gold [${device}]: redesigned header or panels regressed (${JSON.stringify(viciousGoldState)})`);
+      failures.push(`vicious gold [${device}]: redesigned report or sections regressed (${JSON.stringify(viciousGoldState)})`);
     }
     const viciousGoldTourViolationCount = await auditPageTour(page, {
       label: `vicious gold [${device}]`,
@@ -3507,20 +3486,20 @@ for (const [device, viewport] of [
         value: { writeText: async value => { window.__qaViciousDeckCode = value; } },
       });
     });
-    await page.click('.vsgold__build-open');
-    await page.waitForSelector('.vsgold__deck-composition .hsrdv-card-tile');
+    await page.click('.vsgold-build__open');
+    await page.waitForSelector('.vsgold-deck-composition .archetype-deck-card .deck-list-view__body');
     const viciousDeckListState = await page.evaluate(() => ({
-      tiles: document.querySelectorAll('.vsgold__deck-composition .hsrdv-card-tile').length,
-      expanded: document.querySelector('.vsgold__build-open')?.getAttribute('aria-expanded'),
+      card: Boolean(document.querySelector('.vsgold-deck-composition .archetype-deck-card__copy')),
+      expanded: document.querySelector('.vsgold-build__open')?.getAttribute('aria-expanded'),
       overflow: document.querySelector('.vsgold')?.scrollWidth > document.querySelector('.vsgold')?.clientWidth,
     }));
-    if (viciousDeckListState.tiles !== qaDeckCards.length || viciousDeckListState.expanded !== 'true' || viciousDeckListState.overflow) {
-      failures.push(`vicious gold deck list [${device}]: inline composition regressed (${JSON.stringify(viciousDeckListState)})`);
+    if (!viciousDeckListState.card || viciousDeckListState.expanded !== 'true' || viciousDeckListState.overflow) {
+      failures.push(`vicious gold deck list [${device}]: the archetype deck block regressed (${JSON.stringify(viciousDeckListState)})`);
     }
-    await page.click('.vsgold__build-copy-button');
-    await page.waitForFunction(() => document.querySelector('.vsgold__build-copy-button')?.getAttribute('aria-label') === 'Код колоды скопирован');
+    await page.click('.vsgold-build__art');
+    await page.waitForFunction(() => document.querySelector('.vsgold-build__art')?.getAttribute('aria-label') === 'Код колоды скопирован');
     const viciousCopyState = await page.evaluate(() => ({
-      label: document.querySelector('.vsgold__build-copy-button')?.getAttribute('aria-label') || '',
+      label: document.querySelector('.vsgold-build__art')?.getAttribute('aria-label') || '',
       value: window.__qaViciousDeckCode || '',
     }));
     if (viciousCopyState.label !== 'Код колоды скопирован' || !viciousCopyState.value.startsWith('AAECAf0G')) {
@@ -3528,30 +3507,28 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/vicious-gold-copy-${device}.png`, fullPage: false });
     if (device === 'mobile') {
-      await page.$eval('#vsgold-classes .analytics-chart [role="button"]', button => {
+      await page.$eval('.vsgold-classbars button', button => {
         const rect = button.getBoundingClientRect();
         window.scrollBy(0, rect.top + rect.height / 2 - innerHeight / 2);
       });
       await page.waitForFunction(() => {
-        const button = document.querySelector('#vsgold-classes .analytics-chart [role="button"]');
+        const button = document.querySelector('.vsgold-classbars button');
         if (!button) return false;
         const rect = button.getBoundingClientRect();
         return button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
       });
-      await page.click('#vsgold-classes .analytics-chart [role="button"]');
+      await page.click('.vsgold-classbars button');
       await new Promise(resolve => setTimeout(resolve, 250));
       const classFilterState = await page.evaluate(() => ({
-        selectedClass: document.querySelector('.vsgold__deck-tools select')?.value || '',
-        buttonRole: document.querySelector('#vsgold-classes .analytics-chart [role="button"]')?.getAttribute('role') || '',
+        selectedClass: document.querySelector('.vsgold-decks__tools select')?.value || '',
+        pressed: document.querySelector('.vsgold-classbars button')?.getAttribute('aria-pressed') || '',
         deckSectionTop: document.querySelector('#vsgold-decks')?.getBoundingClientRect().top ?? -1,
-        navHeight: document.querySelector('.vsgold__mobile-nav')?.getBoundingClientRect().height ?? 0,
       }));
-      if (classFilterState.selectedClass !== 'warlock' || classFilterState.buttonRole !== 'button'
-        || classFilterState.deckSectionTop < classFilterState.navHeight - 2
-        || classFilterState.deckSectionTop > classFilterState.navHeight + 90) {
+      if (classFilterState.selectedClass !== 'warlock' || classFilterState.pressed !== 'true'
+        || classFilterState.deckSectionTop < -2 || classFilterState.deckSectionTop > 90) {
         failures.push(`vicious gold [${device}]: class-to-deck mobile flow regressed (${JSON.stringify(classFilterState)})`);
       }
-      await page.click('.vsgold__mobile-nav a[href="#vsgold-power"]');
+      await page.click('.vsgold-report__contents a[href="#vsgold-power"]');
       await new Promise(resolve => setTimeout(resolve, 250));
       await page.screenshot({ path: `${OUT}/vicious-gold-power-${device}.png`, fullPage: false });
     }
@@ -3968,14 +3945,13 @@ for (const width of [320, 430]) {
     await page.screenshot({ path: `${OUT}/archetype-catalog-${width}px.png`, fullPage: false });
 
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
-    await waitForClassDistributionLayout(page);
+    await page.waitForSelector('.vsgold-tier .arena-tier-badge', { timeout: 20_000 });
     const viciousNarrowState = await page.evaluate(() => {
       const root = document.querySelector('.vsgold');
-      const hero = document.querySelector('.vsgold__hero');
-      const navTargets = [...document.querySelectorAll('.vsgold__mobile-nav a')];
-      const inputs = [...document.querySelectorAll('.vsgold__deck-tools input, .vsgold__deck-tools select')];
-      const classTargets = [...document.querySelectorAll('#vsgold-classes .analytics-chart [role="button"]')];
+      const hero = document.querySelector('.traditional-mode-banner');
+      const navTargets = [...document.querySelectorAll('.vsgold-report__contents a, .vsgold-power__ranks button')];
+      const inputs = [...document.querySelectorAll('.vsgold-decks__tools input, .vsgold-decks__tools select, .vsgold-power__controls select')];
+      const classTargets = [...document.querySelectorAll('.vsgold-classbars button')];
       return {
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
@@ -3991,7 +3967,7 @@ for (const width of [320, 430]) {
       || viciousNarrowState.smallestInputFont < 16) {
       failures.push(`vicious gold [${width}px]: narrow mobile layout regressed (${JSON.stringify(viciousNarrowState)})`);
     }
-    await page.click('.vsgold__mobile-nav a[href="#vsgold-power"]');
+    await page.click('.vsgold-report__contents a[href="#vsgold-power"]');
     await new Promise(resolve => setTimeout(resolve, 300));
     await auditAccessibility(page, `vicious gold narrow ${width}px`, '.vsgold');
     await page.screenshot({ path: `${OUT}/vicious-gold-power-${width}px.png`, fullPage: false });

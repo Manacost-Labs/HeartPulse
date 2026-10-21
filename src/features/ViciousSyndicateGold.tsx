@@ -1,18 +1,15 @@
-import { BarChart } from '../shared/ui/analytics/BarChart';
-import '../shared/ui/analytics/Analytics.css';
-import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, RefreshCw, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import '../route-parchment.css';
-import HsReplayDeckList from './HsReplayDeckList';
-import DeckRenderPreview from './deckrender/DeckRenderPreview';
+import '../vendor/varylo-ui/styles/index.css';
+import './archetypeVaryloTheme.css';
 import './ViciousSyndicateGold.css';
-import { BuildActions } from './viciousGold/BuildActions';
+import { DeckShareList } from './viciousGold/DeckShareList';
+import { MetaShare } from './viciousGold/MetaShare';
 import { PowerTierBoard } from './viciousGold/PowerTierBoard';
 import { ViciousGoldBanner, ViciousGoldLoading } from './viciousGold/ViciousGoldBanner';
-import {
-  classIcon, percent, thresholdPercent,
-  type BuildState, type DeckBuild, type ViciousGoldPayload,
-} from './viciousGold/viciousGoldModel';
+import { ViciousGoldReport } from './viciousGold/ViciousGoldReport';
+import { reportWindowLabel, type BuildState, type DeckBuild, type ViciousGoldPayload } from './viciousGold/viciousGoldModel';
 
 type ViciousGoldBuildsPayload = {
   builds: Array<{ deck: string; build: DeckBuild | null }>;
@@ -40,11 +37,8 @@ export default function ViciousSyndicateGold() {
   const [buildState, setBuildState] = useState<BuildState>('loading');
   const [revision, setRevision] = useState(0);
   const [deckClass, setDeckClass] = useState('all');
-  const [query, setQuery] = useState('');
-  const deferredQuery = useDeferredValue(query);
   const [copiedDeck, setCopiedDeck] = useState('');
-  const [openDeckKey, setOpenDeckKey] = useState('');
-  const deckSectionRef = useRef<HTMLElement>(null);
+  const deckSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -119,14 +113,6 @@ export default function ViciousSyndicateGold() {
     };
   }, [revision]);
 
-  const visibleDecks = useMemo(() => {
-    const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
-    return data.deckDistribution.filter(deck => (
-      (deckClass === 'all' || deck.class === deckClass)
-      && (!needle || `${deck.deck} ${deck.deckLabel}`.toLocaleLowerCase('ru-RU').includes(needle))
-    ));
-  }, [data.deckDistribution, deckClass, deferredQuery]);
-
   const copyDeck = async (deck: string, code: string) => {
     let copied = false;
     try {
@@ -150,7 +136,7 @@ export default function ViciousSyndicateGold() {
 
   const selectDeckClass = (classKey: string) => {
     setDeckClass(classKey);
-    if (!window.matchMedia('(max-width: 1120px)').matches) return;
+    if (classKey === 'all' || !window.matchMedia('(max-width: 1120px)').matches) return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.requestAnimationFrame(() => deckSectionRef.current?.scrollIntoView({
       behavior: reducedMotion ? 'auto' : 'smooth',
@@ -160,9 +146,9 @@ export default function ViciousSyndicateGold() {
 
   if (loading || error) {
     return (
-      <section className="vsgold space-y-5 sm:space-y-6">
+      <section className="vsgold">
         <ViciousGoldBanner />
-        {loading ? <ViciousGoldLoading /> : <div className="vsgold__panel vsgold__state" role="alert">
+        {loading ? <ViciousGoldLoading /> : <div className="vsgold-section vsgold__state" role="alert">
           <AlertTriangle size={42} />
           <h2>Статистика временно недоступна</h2>
           <p>{error}</p>
@@ -172,64 +158,32 @@ export default function ViciousSyndicateGold() {
     );
   }
 
+  const reportWindow = reportWindowLabel(data.timeRanges?.tierLadder ?? data.timeRanges?.distribution);
   return (
     <div className="vsgold">
       <ViciousGoldBanner>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка Vicious Syndicate Gold">
           <div><dt>Партий</dt><dd>{data.games.toLocaleString('ru-RU')}</dd></div>
-          <div><dt>{buildState === 'loading' ? 'Догружаем сборки' : 'Готовых сборок'}</dt><dd>{buildState === 'loading' ? '…' : `${data.buildCoverage.found}/${data.buildCoverage.total}`}</dd></div>
+          <div><dt>Окно данных</dt><dd>{reportWindow?.replace(/^последние /, '') ?? '—'}</dd></div>
         </dl>
       </ViciousGoldBanner>
 
-      <nav className="vsgold__mobile-nav" aria-label="Разделы статистики">
-        <a href="#vsgold-classes">Классы</a>
-        <a href="#vsgold-decks">Колоды</a>
-        <a href="#vsgold-power">Power Tier</a>
-      </nav>
+      <ViciousGoldReport data={data} />
 
-      <section className="vsgold__distribution-grid">
-        <article className="vsgold__panel vsgold__classes" id="vsgold-classes" data-tour-id="vicious-classes">
-          <header className="vsgold__section-heading">
-            <img src="/main_assets/winrate-classes.png" alt="" width="52" height="52" decoding="async" />
-            <div><span>Доля в партиях</span><h2>Распределение классов</h2></div>
-          </header>
-          <BarChart title="Доля классов" subtitle="Выберите класс, чтобы отфильтровать колоды" rows={data.classDistribution.map(item => ({ label: item.classLabel, value: item.frequency }))} onSelect={index => selectDeckClass(data.classDistribution[index].class)} />
-        </article>
+      <PowerTierBoard tierList={data.tierList} classes={data.classDistribution} copiedDeck={copiedDeck} onCopy={copyDeck} />
 
-        <article ref={deckSectionRef} className="vsgold__panel vsgold__decks" id="vsgold-decks" data-tour-id="vicious-decks">
-          <header className="vsgold__section-heading">
-            <img src="/main_assets/tier-list.png" alt="" width="52" height="52" decoding="async" />
-            <div><span>Популярность от {thresholdPercent(data.minimumDeckFrequency)}</span><h2>Распределение колод</h2></div>
-          </header>
-          <div className="vsgold__deck-tools">
-            <label><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип" /></label>
-            <select value={deckClass} onChange={event => setDeckClass(event.target.value)} aria-label="Фильтр колод по классу">
-              <option value="all">Все классы</option>
-              {data.classDistribution.map(item => <option key={item.class} value={item.class}>{item.classLabel}</option>)}
-            </select>
-          </div>
-          <div className="vsgold__deck-list">
-            {visibleDecks.map((deck, index) => <React.Fragment key={deck.deck}>
-              <div className="vsgold__deck-row" data-tour-id={index === 0 ? 'vicious-build-action' : undefined}>
-                <img src={classIcon(deck.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
-                <div className="vsgold__deck-name"><strong>{deck.deckLabel}</strong><span>{deck.deck}</span></div>
-                <b>{percent(deck.frequency)}</b>
-                <BuildActions deck={deck.deck} build={deck.build} buildState={buildState} copiedDeck={copiedDeck} onCopy={copyDeck} expanded={openDeckKey === deck.deck} onOpen={key => setOpenDeckKey(current => current === key ? '' : key)} />
-              </div>
-              {openDeckKey === deck.deck && deck.build && <section className="vsgold__deck-composition" aria-label={`Состав колоды ${deck.deckLabel}`}>
-                <header><div><span>Актуальная сборка</span><h3>{deck.deckLabel}</h3></div><a href={deck.build.sourceUrl} target="_blank" rel="noreferrer">Источник</a></header>
-                <DeckRenderPreview deckCode={deck.build.deckCode} deckName={deck.deckLabel}>
-                  <HsReplayDeckList cards={deck.build.deckCards || []} label={`Состав колоды ${deck.deckLabel}`} />
-                </DeckRenderPreview>
-              </section>}
-            </React.Fragment>)}
-            {!visibleDecks.length && <p className="vsgold__empty">По этому фильтру колод нет.</p>}
-          </div>
-        </article>
-      </section>
+      <MetaShare classes={data.classDistribution} decks={data.deckDistribution} selectedClass={deckClass}
+        onSelectClass={selectDeckClass} minimumFrequency={data.minimumDeckFrequency}>
+        <DeckShareList ref={deckSectionRef} decks={data.deckDistribution} classes={data.classDistribution}
+          minimumFrequency={data.minimumDeckFrequency} deckClass={deckClass} onDeckClassChange={setDeckClass}
+          buildState={buildState} buildCoverage={data.buildCoverage} copiedDeck={copiedDeck} onCopy={copyDeck} />
+      </MetaShare>
 
-      <PowerTierBoard tierList={data.tierList} classes={data.classDistribution} buildState={buildState}
-        copiedDeck={copiedDeck} onCopy={copyDeck} />
+      <details className="vsgold-method">
+        <summary>Как читать отчёт</summary>
+        <p>Тир — по винрейту Power Tier против тех же порогов, что на странице меты: S от 53%, A от 51%, B от 49%, C от 47%, ниже — D. Vicious Syndicate не отдаёт число игр по каждому архетипу, поэтому доверительного интервала здесь нет.</p>
+        <p>В диапазонах рангов рядом с винрейтом — разница в процентных пунктах с той же колодой на всех рангах. Истории прошлых отчётов в источнике нет, поэтому изменений со временем страница не показывает.</p>
+      </details>
     </div>
   );
 }

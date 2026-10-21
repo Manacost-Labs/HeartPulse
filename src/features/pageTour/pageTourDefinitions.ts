@@ -99,13 +99,13 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'standard-vicious-gold', version: 2, paths: ['/standard/vicious-gold'], title: 'Как читать Vicious Syndicate Gold',
+    id: 'standard-vicious-gold', version: 3, paths: ['/standard/vicious-gold'], title: 'Как читать Vicious Syndicate Gold',
     steps: [
-      { id: 'classes', target: 'vicious-classes', title: 'Распределение классов', description: 'Диаграмма показывает, какую долю текущей меты занимает каждый класс в доступной выборке Vicious Syndicate.', audience: 'standard' },
-      { id: 'decks', target: 'vicious-decks', title: 'Распределение колод', description: 'Здесь оставлены архетипы заметной популярности. Фильтр класса помогает быстро найти нужную колоду и её долю.', audience: 'standard' },
-      { id: 'build', target: 'vicious-build-action', title: 'Состав и код колоды', description: 'Статистика появляется первой, а сборки догружаются отдельно. После загрузки откройте состав или скопируйте код колоды.', audience: 'standard', preferredPlacement: 'left' },
-      { id: 'power-filters', target: 'vicious-power-filters', title: 'Рейтинг и класс Power Tier', description: 'Сначала выберите диапазон рейтинга и класс. Тир-лист пересчитается только для этого среза данных.', audience: 'standard' },
-      { id: 'power', target: 'vicious-power', title: 'Power Tier List', description: 'Под этим заголовком колоды распределены по силе с учётом фактических результатов. Позиция внутри тира помогает сравнить близкие архетипы.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'power', target: 'vicious-power', title: 'Power Tier List', description: 'Ожидаемый винрейт колоды против меты выбранного диапазона рангов. Колоды сгруппированы по тирам S–D, полоса показывает отклонение от 50%.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'power-filters', target: 'vicious-power-filters', title: 'Ранги и класс', description: 'Выберите диапазон рангов и класс. В диапазоне рядом с винрейтом видна разница с той же колодой на всех рангах.', audience: 'standard' },
+      { id: 'classes', target: 'vicious-classes', title: 'Доли меты', description: 'Полоса класса делится на его архетипы: оттенок — архетип, подпись — его доля в партиях. Нажмите на класс, чтобы оставить в списке ниже только его колоды.', audience: 'standard' },
+      { id: 'decks', target: 'vicious-decks', title: 'Колоды и сборки', description: 'Архетипы заметной популярности со ссылками на их страницы. Поиск и фильтр класса помогают найти нужную колоду.', audience: 'standard' },
+      { id: 'build', target: 'vicious-build-action', title: 'Код и состав колоды', description: 'Сборки догружаются отдельно. Скопируйте код колоды или откройте «Колода», чтобы увидеть состав.', audience: 'standard', preferredPlacement: 'left' },
     ],
   },
   {

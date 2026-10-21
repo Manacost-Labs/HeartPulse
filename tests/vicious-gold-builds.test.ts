@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   findSupplementalViciousGoldBuild,
+  findViciousGoldCatalogItem,
   resolveViciousGoldArchetype,
 } from '../server/viciousGoldBuilds.js';
 
@@ -42,3 +43,19 @@ assert.deepEqual(resolveViciousGoldArchetype('  Burn   Mage '), {
 });
 
 console.log('Vicious Gold supplemental exact-build tests passed');
+
+const catalog = [
+  { archetype: 'Pirate Warrior' }, { archetype: 'Harold DK' }, { archetype: 'Piglock' }, { archetype: 'Rafaamlock' },
+  { archetype: 'Harold Warlock' }, { archetype: 'Void DH' }, { archetype: 'Two-Bit Rogue' }, { archetype: 'AYAYA Rogue' },
+];
+const catalogMatch = (deck: string) => findViciousGoldCatalogItem(catalog, deck)?.archetype ?? null;
+assert.equal(catalogMatch('Pirate Warrior'), 'Pirate Warrior');
+assert.equal(catalogMatch('Ayaya Rogue'), 'AYAYA Rogue', 'names match regardless of case');
+assert.equal(catalogMatch('Herald DeathKnight'), 'Harold DK', 'vS Herald and DeathKnight are HSGuru Harold and DK');
+assert.equal(catalogMatch('Void DemonHunter'), 'Void DH');
+assert.equal(catalogMatch('Pig Warlock'), 'Piglock');
+assert.equal(catalogMatch('Rafaam Warlock'), 'Rafaamlock');
+assert.equal(catalogMatch('Herald Warlock'), 'Harold Warlock', 'an exact name wins over the -lock short form');
+assert.equal(catalogMatch('Two Rogue'), 'Two-Bit Rogue', 'the alias table still applies');
+assert.equal(catalogMatch('Blood Warrior'), null, 'a missing archetype never borrows a same-class one');
+assert.equal(catalogMatch('Other Warlock'), null);

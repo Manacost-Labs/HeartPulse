@@ -7,312 +7,373 @@
 }
 
 .vsgold {
-  --vs-ink: #332114;
-  --vs-brown: #6f431d;
+  --vs-ink: #30251c;
+  --vs-muted: #735e49;
+  --vs-wine: #8d171d;
   --vs-gold: #e4b74e;
-  --vs-gold-pale: #f7df9b;
-  --vs-green: #2f7650;
-  --vs-purple: #4a2f66;
-  --vs-wine: #4b0711;
-  --vs-line: rgba(102, 63, 27, 0.34);
+  --vs-line: rgba(92, 54, 24, 0.18);
+  --vs-good: #3f8a46;
+  --vs-bad: #b8393a;
+  display: grid;
+  /* The site's gap under a page header, between every block of the report. */
+  gap: var(--site-page-hero-content-gap);
   width: min(100%, 1480px);
   margin: 0 auto;
   color: var(--vs-ink);
 }
+/* The banner's own bottom margin would double the grid gap. */
+.vsgold > .traditional-mode-banner { margin-bottom: 0; }
 
-.vsgold__mobile-nav { display: none; }
-
-.vsgold__distribution-grid { display: grid; grid-template-columns: minmax(340px, 0.82fr) minmax(520px, 1.35fr); gap: 0.9rem; margin-top: 1rem; }
-.vsgold__panel {
+/* Report plate: the archetype dossier's red cinematic plate, with the leader's class art as a
+   narrow strip on the right (hidden on phones) and the KPI strip under the copy. */
+.vsgold-report {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  overflow: hidden;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  border: 10px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  color: #fff0c8;
+  background: linear-gradient(90deg, #2a030a 0%, #3d0610 55%, #4a0812 100%);
+  isolation: isolate;
+}
+.vsgold-report__art {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  width: min(46%, 560px);
+  height: 100%;
+  object-fit: cover;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 45%), linear-gradient(0deg, transparent 0%, #000 40%);
+  mask-composite: intersect;
+  opacity: 0.85;
+}
+.vsgold-report__copy { min-width: 0; max-width: 46rem; }
+.vsgold-report__eyebrow {
+  margin: 0;
+  color: var(--vs-gold);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.vsgold-report h2 {
+  margin: 0.3rem 0 0;
+  color: #fff2ca;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.4vw, 2.1rem);
+  line-height: 1.1;
+  text-shadow: 0 3px 12px rgba(21, 1, 5, 0.7);
+}
+.vsgold-report__meta { margin: 0.45rem 0 0; color: #e9cf92; font-size: 0.9rem; }
+.vsgold-report__meta a { color: #ffe3a1; font-weight: 800; }
+.vsgold-report__meta > span + span::before { content: ' · '; }
+.vsgold-report__contents { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.85rem 0 0; padding: 0; list-style: none; }
+.vsgold-report__contents :is(a, .vsgold-report__chip) {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  min-height: 36px;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(239, 201, 111, 0.35);
+  color: #f1d9a4;
+  background: rgba(30, 4, 9, 0.45);
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+.vsgold-report__contents a:hover { border-color: rgba(239, 201, 111, 0.7); color: #fff2ca; }
+.vsgold-report__contents b { color: #fff2ca; }
+.vsgold-report__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid rgba(239, 201, 111, 0.28);
+  background: rgba(30, 4, 9, 0.55);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.vsgold-report__kpis .ui-kpi-group__tile { min-height: 6.4rem; }
+.vsgold-report__kpis .ui-kpi-group__label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.vsgold-report__kpis .ui-kpi-group__value { font-family: var(--font-body); }
+.vsgold-report__kpis .ui-kpi-group__caption { overflow: hidden; color: #f1d9a4; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Parchment sections, the same framed panel as the other Traditional pages. */
+.vsgold-section {
+  min-width: 0;
+  padding: clamp(0.9rem, 1.8vw, 1.35rem);
   border: 7px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
-    linear-gradient(90deg, rgba(255, 249, 226, 0.5), rgba(238, 210, 154, 0.34)),
+    linear-gradient(90deg, rgba(255, 249, 226, 0.55), rgba(238, 210, 154, 0.36)),
     var(--arena-parchment-texture) center / cover;
-  box-shadow: inset 0 0 0 1px rgba(255, 247, 219, 0.45), 0 5px 12px rgba(79, 45, 19, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 247, 219, 0.45);
+  scroll-margin-top: 1rem;
 }
-.vsgold__panel::before {
-  content: '';
-  position: absolute;
-  inset: 2px 2px auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--vs-purple), #8f5d38 58%, var(--vs-gold));
-}
-.vsgold__classes, .vsgold__decks, .vsgold__power { padding: clamp(1rem, 2.3vw, 1.7rem); }
+.vsgold-section__head { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: end; justify-content: space-between; margin-bottom: 0.85rem; }
+.vsgold-section__head h2 { margin: 0; font-family: var(--font-display); font-size: clamp(1.35rem, 2.2vw, 1.8rem); line-height: 1.1; }
+.vsgold-section__head p { max-width: 52rem; margin: 0.3rem 0 0; color: var(--vs-muted); font-size: 0.88rem; line-height: 1.4; }
 
-.vsgold__section-heading {
-  position: relative;
-  display: flex;
+.vsgold-select select,
+.vsgold-search {
+  min-height: 40px;
+  border: 1px solid rgba(92, 54, 24, 0.35);
+  color: var(--vs-ink);
+  background: rgba(255, 250, 236, 0.85);
+  font: inherit;
+  font-size: 0.88rem;
+}
+.vsgold-select select { width: 100%; padding: 0 0.6rem; }
+.vsgold-search { display: flex; gap: 0.45rem; align-items: center; padding: 0 0.7rem; color: var(--vs-muted); }
+.vsgold-search input { width: 100%; min-width: 0; border: 0; color: var(--vs-ink); background: transparent; font: inherit; outline: none; }
+.vsgold-search:focus-within,
+.vsgold-select select:focus-visible { outline: 2px solid var(--vs-wine); outline-offset: 1px; }
+
+/* Power Tier */
+.vsgold-power__controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.vsgold-power__ranks { display: flex; flex-wrap: wrap; gap: 0.3rem; min-width: 0; }
+.vsgold-power__ranks button {
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(92, 54, 24, 0.32);
+  color: var(--vs-ink);
+  background: rgba(255, 250, 236, 0.7);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vsgold-power__ranks button:hover { border-color: var(--vs-wine); }
+.vsgold-power__ranks button[aria-selected='true'] { border-color: #5b0c12; color: #fff0c8; background: var(--vs-wine); }
+.vsgold-power__controls .vsgold-select { flex: 0 0 13rem; }
+
+/* Every Power Tier row and the legend share one grid. */
+.vsgold-power__legend,
+.vsgold-power-row {
+  display: grid;
+  grid-template-columns: 2.4rem 36px minmax(10rem, 1.3fr) minmax(8rem, 1fr) 4.6rem 3.8rem 2.6rem;
   gap: 0.75rem;
   align-items: center;
-  padding-bottom: 0.85rem;
-  border-bottom: 1px solid rgba(102, 63, 27, 0.2);
 }
-.vsgold__section-heading > img {
-  width: 52px;
-  height: 52px;
-  padding: 0.38rem;
-  border: 4px solid transparent;
-  border-image: url('/wallpaper/deck-border.png') 22 stretch;
-  background: rgba(74, 47, 102, 0.1);
-  object-fit: contain;
+.vsgold-power__legend { padding: 0 0.6rem 0.35rem; color: var(--vs-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.vsgold-power__legend > span:first-child { grid-column: 1 / 4; }
+.vsgold-power__legend > span:nth-child(2) { grid-column: 4 / 6; }
+.vsgold-power__legend > span:nth-child(3) { grid-column: 6 / 8; }
+
+.vsgold-tier { margin-top: 0.6rem; }
+.vsgold-tier__head { display: flex; gap: 0.55rem; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid var(--vs-line); }
+.vsgold-tier__head h3 { margin: 0; font-family: var(--font-display); font-size: 1.15rem; }
+.vsgold-tier__head small { color: var(--vs-muted); font-size: 0.8rem; }
+.vsgold-tier__rows,
+.vsgold-decks__rows { margin: 0; padding: 0; list-style: none; }
+.vsgold-power-row { min-height: 52px; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--vs-line); }
+.vsgold-power-row:hover,
+.vsgold-deck-row:hover { background: rgba(141, 23, 29, 0.05); }
+.vsgold-power-row__rank { color: var(--vs-muted); font-size: 0.85rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.vsgold-power-row > img,
+.vsgold-deck-row > img { width: 36px; height: 36px; filter: drop-shadow(0 2px 3px rgba(48, 37, 28, 0.25)); }
+:is(.vsgold-power-row__name, .vsgold-deck-row__name) { display: grid; min-width: 0; line-height: 1.2; }
+:is(.vsgold-power-row__name, .vsgold-deck-row__name) strong { overflow: hidden; font-size: 0.95rem; text-overflow: ellipsis; white-space: nowrap; }
+:is(.vsgold-power-row__name, .vsgold-deck-row__name) small { overflow: hidden; color: var(--vs-muted); font-size: 0.74rem; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A diverging bar around 50%: green to the right for a favoured deck, red to the left. */
+.vsgold-power-row__bar { position: relative; height: 10px; background: rgba(92, 54, 24, 0.1); }
+.vsgold-power-row__bar::before { position: absolute; top: -3px; bottom: -3px; left: 50%; width: 1px; background: rgba(48, 37, 28, 0.45); content: ''; }
+.vsgold-power-row__bar i { position: absolute; top: 0; bottom: 0; background: var(--vs-bad); }
+.vsgold-power-row[data-favoured] .vsgold-power-row__bar i { background: var(--vs-good); }
+.vsgold-power-row__winrate { text-align: right; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.vsgold-power-row__delta { text-align: right; font-size: 0.8rem; }
+
+/* Builds */
+.vsgold-build { display: inline-flex; gap: 0.35rem; align-items: center; justify-content: flex-end; }
+.vsgold-build button {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid rgba(92, 54, 24, 0.35);
+  color: var(--vs-ink);
+  background: rgba(255, 250, 236, 0.85);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
 }
-.vsgold__section-heading span { color: #875720; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em; }
-.vsgold__section-heading h2 { margin: 0.08rem 0 0; color: #432713; font-family: var(--font-display); font-size: clamp(1.4rem, 2.3vw, 1.9rem); line-height: 1; }
+.vsgold-build button:focus-visible { outline: 2px solid var(--vs-wine); outline-offset: 1px; }
+.vsgold-build .vsgold-build__icon { width: 40px; padding: 0; border-color: #5b0c12; color: #fff0c8; background: var(--vs-wine); }
+.vsgold-build .vsgold-build__icon[data-copied] { border-color: #2f6e39; background: var(--vs-good); }
+/* The site's «Скопировать код колоды» artwork, as on the archetype and deck pages. */
+.vsgold-build .vsgold-build__art { flex: 0 0 auto; width: 118px; padding: 0; border: 0; background: transparent; }
+.vsgold-build__art img { display: block; width: 100%; height: auto; transition: filter var(--motion-fast) var(--motion-ease); }
+.vsgold-build__art:hover img { filter: brightness(1.08); }
+.vsgold-build__art[data-copied] img { filter: hue-rotate(70deg) saturate(1.2); }
+.vsgold-build__open { padding: 0 0.65rem; }
+.vsgold-power-row .vsgold-build--none { width: 40px; }
 
-.vsgold__class-bars { display: grid; gap: 0.32rem; margin-top: 1rem; }
-.vsgold__class-bars button { display: grid; grid-template: 'icon name value' auto 'icon bar bar' auto / 32px minmax(0, 1fr) auto; gap: 0.2rem 0.55rem; align-items: center; width: 100%; padding: 0.42rem 0.55rem; border: 1px solid rgba(117, 72, 31, 0.22); color: #4b311d; background: rgba(255, 249, 226, 0.32); box-shadow: inset 0 0 0 1px rgba(255, 250, 229, 0.28); text-align: left; }
-.vsgold__class-bars button:hover { border-color: #a97b45; background: rgba(255, 248, 221, 0.68); }
-.vsgold__class-bars button[aria-pressed='true'] { border-color: #75518d; background: rgba(100, 65, 128, 0.1); }
-.vsgold__class-bars img { grid-area: icon; width: 30px; height: 30px; object-fit: contain; }
-.vsgold__class-bars span { grid-area: name; font-size: 0.8rem; font-weight: 800; }
-.vsgold__class-bars div { grid-area: bar; height: 7px; overflow: hidden; border-radius: 999px; background: rgba(94, 60, 30, 0.17); }
-.vsgold__class-bars i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--vs-purple), #8e5c34); }
-.vsgold__class-bars strong { grid-area: value; color: #71451f; font-size: 0.78rem; text-align: right; }
+/* Names link to our archetype page when the catalog has the archetype. */
+a:is(.vsgold-power-row__name, .vsgold-deck-row__name) { color: inherit; text-decoration: none; }
+a:is(.vsgold-power-row__name, .vsgold-deck-row__name):hover strong { color: var(--vs-wine); text-decoration: underline; text-underline-offset: 2px; }
+a:is(.vsgold-power-row__name, .vsgold-deck-row__name):focus-visible { outline: 2px solid var(--vs-wine); outline-offset: 2px; }
 
-.vsgold__deck-tools { display: grid; grid-template-columns: 1fr minmax(145px, 0.4fr); gap: 0.55rem; margin: 1rem 0 0.7rem; }
-.vsgold__deck-tools label { display: flex; gap: 0.45rem; align-items: center; padding: 0 0.65rem; border: 1px solid #a97b45; background: rgba(255, 249, 225, 0.68); }
-.vsgold__deck-tools input, .vsgold__deck-tools select { width: 100%; min-height: 38px; border: 0; outline: none; background: transparent; color: #472d19; font-size: 0.8rem; }
-.vsgold__deck-tools select { padding: 0 0.55rem; border: 1px solid #a97b45; background: rgba(255, 249, 225, 0.68); }
-.vsgold__deck-list { max-height: 590px; overflow: auto; border: 5px solid transparent; border-image: url('/wallpaper/deck-border.png') 22 stretch; background: rgba(255, 249, 226, 0.18); }
-.vsgold__deck-row { display: grid; grid-template-columns: 38px minmax(150px, 1fr) 64px auto; gap: 0.6rem; align-items: center; min-height: 86px; padding: 0.55rem 0.55rem; border-bottom: 1px solid rgba(128, 82, 38, 0.14); contain: layout paint style; }
-.vsgold__deck-row:nth-child(even) { background: rgba(255, 250, 231, 0.22); }
-.vsgold__deck-row > img { width: 36px; height: 36px; object-fit: contain; }
-.vsgold__deck-name { display: grid; min-width: 0; }
-.vsgold__deck-name strong { overflow: hidden; font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
-.vsgold__deck-name span { overflow: hidden; color: #8a694a; font-size: 0.69rem; text-overflow: ellipsis; white-space: nowrap; }
-.vsgold__deck-row > b { color: #6e421e; font-family: var(--font-display); text-align: right; }
-
-.vsgold__build { display: grid; width: 128px; gap: 0.18rem; justify-items: stretch; justify-self: end; }
-.vsgold__deck-row .vsgold__build { grid-template-columns: 128px 104px; width: auto; column-gap: 0.4rem; }
-.vsgold__deck-row .vsgold__build > span { grid-column: 1 / -1; max-width: none; }
-.vsgold__build-open { display: inline-flex; min-height: 34px; gap: 0.3rem; align-items: center; justify-content: center; border: 1px solid #82562f; color: #5b3820; background: rgba(255, 239, 194, 0.76); font-size: 0.65rem; font-weight: 900; }
-.vsgold__build-open[aria-expanded='true'] { color: #fff0c4; background: #4a2f66; }
-.vsgold__deck-composition { padding: 0.75rem; border-bottom: 1px solid rgba(128, 82, 38, 0.24); background: linear-gradient(145deg, rgba(50, 17, 24, 0.96), rgba(28, 7, 15, 0.96)); }
-.vsgold__deck-composition > header { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
-.vsgold__deck-composition > header span { color: #d9b66d; font-size: 0.57rem; font-weight: 900; letter-spacing: 0.1em; }
-.vsgold__deck-composition > header h3 { margin: 0.08rem 0 0; color: #fff0c4; font-family: var(--font-display); font-size: 1.05rem; }
-.vsgold__deck-composition > header a { min-height: 38px; padding: 0.58rem 0.72rem; border: 1px solid rgba(233, 194, 104, 0.4); color: #f3d798; font-size: 0.65rem; font-weight: 900; text-decoration: none; }
-.vsgold__build .vsgold__build-copy-button {
-  position: relative;
+/* Meta shares: one stacked bar per class (ClassShareBars.tsx). Above 720 px of list width the
+   class takes a 16rem column (15.25rem + the gap) beside its bar, as the component assumes when
+   it decides which archetype labels fit. */
+.vsgold-classbars { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; container-type: inline-size; }
+.vsgold-classbars button {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.35rem 0.75rem;
+  align-items: center;
   width: 100%;
-  min-height: 42px;
-  place-items: center;
-  padding: 0.2rem 0.42rem;
+  padding: 0.3rem 0;
+  border: 0;
+  color: var(--vs-ink);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vsgold-classbars button:focus-visible { outline: 2px solid var(--vs-wine); outline-offset: 2px; }
+.vsgold-classbars__class { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; }
+.vsgold-classbars__class img { width: 32px; height: 32px; filter: drop-shadow(0 2px 3px rgba(48, 37, 28, 0.25)); }
+.vsgold-classbars__class > span { overflow-wrap: anywhere; font-size: 0.95rem; font-weight: 800; line-height: 1.1; }
+.vsgold-classbars__class b { color: color-mix(in srgb, var(--class-color) 80%, #000); font-family: var(--font-display); font-size: 1.35rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.vsgold-classbars__bar {
+  display: flex;
   overflow: hidden;
-  border: 1px solid #a47435;
-  color: #321d14;
-  background: linear-gradient(145deg, #fff0c4, #d8ad5a);
-  box-shadow: inset 0 0 0 2px rgba(83, 43, 20, 0.12), 0 2px 6px rgba(54, 28, 14, 0.2);
-  transition: transform var(--motion-fast) var(--motion-ease), filter var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
+  height: 36px;
+  border: 1px solid color-mix(in srgb, var(--class-color) 70%, #000);
+  background: rgba(92, 54, 24, 0.08);
 }
-.vsgold__build-copy-button img { display: block; width: 100%; height: auto; }
-.vsgold__build .vsgold__build-copy-button:hover {
-  background: linear-gradient(145deg, #fff0c4, #d8ad5a);
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-  box-shadow: inset 0 0 0 2px rgba(83, 43, 20, 0.12), 0 4px 9px rgba(54, 28, 14, 0.25);
-}
-.vsgold__build-copy-button:focus-visible { outline: 3px solid #4a2f66; outline-offset: 2px; }
-.vsgold__build .vsgold__build-copy-button--copied { background: linear-gradient(145deg, #f5df9d, #bfcf78); }
-.vsgold__build-copy-button--copied::after {
-  content: '✓';
-  position: absolute;
-  right: 0.22rem;
-  bottom: 0.18rem;
-  display: grid;
-  width: 1rem;
-  height: 1rem;
-  place-items: center;
-  border: 1px solid rgba(255, 240, 196, 0.72);
-  border-radius: 50%;
-  color: #fff0c4;
-  background: #35512f;
-  font-size: 0.62rem;
-  font-weight: 900;
-}
-.vsgold__copy-feedback {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
+.vsgold-classbars__segment {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: 0 0.4rem;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  box-shadow: inset -1px 0 rgba(255, 250, 236, 0.75);
+  font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
 }
-.vsgold__build > span { max-width: 128px; overflow: hidden; color: #866548; font-size: 0.61rem; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-.vsgold__build-missing { color: #9a3c30; font-size: 0.7rem; font-weight: 800; text-align: right; }
-.vsgold__build-aggregate { color: #866548; font-size: 0.68rem; font-weight: 700; text-align: right; }
+.vsgold-classbars__segment--rest {
+  background: repeating-linear-gradient(135deg, rgba(92, 54, 24, 0.14) 0 4px, rgba(92, 54, 24, 0.04) 4px 8px);
+}
+.vsgold-classbars button:hover .vsgold-classbars__class > span { color: var(--vs-wine); }
+.vsgold-classbars button[aria-pressed='true'] { outline: 2px solid var(--class-color); outline-offset: 2px; background: rgba(255, 250, 236, 0.6); }
+@container (min-width: 721px) {
+  .vsgold-classbars button { grid-template-columns: 15.25rem minmax(0, 1fr); }
+}
 
-.vsgold__power { margin-top: 0.9rem; }
-.vsgold__power-heading { display: flex; gap: 1.5rem; align-items: center; justify-content: space-between; }
-.vsgold__power-heading > p { max-width: 480px; margin: 0; color: #795a3c; font-size: 0.78rem; line-height: 1.45; text-align: right; }
-.vsgold__rank-tabs, .vsgold__class-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.2rem 0 0.45rem; }
-.vsgold__rank-tabs { margin-top: 1.25rem; }
-.vsgold__rank-tabs button, .vsgold__class-tabs button { flex: 0 0 auto; min-height: 37px; padding: 0 0.8rem; border: 1px solid #a37644; background: rgba(255, 248, 221, 0.48); color: #603c20; font-size: 0.72rem; font-weight: 900; }
-.vsgold__rank-tabs button[aria-selected='true'], .vsgold__class-tabs button.active { border-color: #6d4b83; background: var(--vs-purple); color: #fff0c7; }
-.vsgold__class-tabs { margin-top: 0.45rem; }
-.vsgold__class-tabs button { display: inline-flex; gap: 0.35rem; align-items: center; min-height: 34px; padding: 0 0.65rem; }
-.vsgold__class-tabs img { width: 23px; height: 23px; object-fit: contain; }
+/* Deck list, under the class bars in the same section */
+.vsgold-decks { margin-top: 1.25rem; scroll-margin-top: 1rem; }
+.vsgold-decks__head h3 { margin: 0; font-family: var(--font-display); font-size: 1.2rem; }
+.vsgold-decks__head p { margin: 0.25rem 0 0.6rem; color: var(--vs-muted); font-size: 0.85rem; }
+.vsgold-deck-row__bar { height: 8px; background: rgba(92, 54, 24, 0.1); }
+.vsgold-deck-row__bar i { display: block; height: 100%; background: var(--vs-wine); }
+.vsgold-deck-row__share { text-align: right; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+.vsgold-decks__tools { display: grid; grid-template-columns: minmax(0, 1fr) 13rem; gap: 0.5rem; margin-bottom: 0.6rem; }
+.vsgold-deck-row {
+  display: grid;
+  grid-template-columns: 36px minmax(10rem, 1.4fr) minmax(6rem, 1fr) 4.4rem auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 54px;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--vs-line);
+}
+.vsgold-deck-row .vsgold-build { min-width: 13rem; }
+.vsgold-deck-composition { padding: 0.6rem 0.6rem 0.9rem; border-bottom: 1px solid var(--vs-line); background: rgba(255, 250, 236, 0.6); }
+.vsgold-deck-composition__source { margin: 0 0 0.4rem; color: var(--vs-muted); font-size: 0.8rem; font-weight: 700; }
+.vsgold-deck-composition__source a { color: var(--vs-wine); }
+/* One deck block, as wide as a card of the archetype page's gallery. */
+.vsgold-deck-composition .archetype-deck-gallery { grid-template-columns: minmax(0, 24rem); padding: 0; }
+.vsgold-decks__more {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.6rem;
+  border: 1px solid rgba(92, 54, 24, 0.35);
+  color: var(--vs-wine);
+  background: rgba(255, 250, 236, 0.7);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
 
-.vsgold__tier-band { margin-top: 1.25rem; }
-.vsgold__tier-band > header { display: flex; flex-wrap: wrap; gap: 0.2rem 0.85rem; align-items: baseline; padding: 0 0 0.45rem 0.3rem; border-bottom: 1px solid var(--vs-line); }
-.vsgold__tier-band h3 { display: flex; gap: 0.5rem; align-items: center; margin: 0; color: var(--vs-ink); font-family: var(--font-display); font-size: 1.3rem; line-height: 1.1; }
-.vsgold__tier-band h3::before { content: ''; width: 0.7rem; height: 0.7rem; background: var(--tier-accent); box-shadow: 0 0 0 2px rgba(255, 248, 221, 0.8), 0 0 0 3px var(--tier-accent); transform: rotate(45deg); }
-.vsgold__tier-band > header p { margin: 0; color: var(--arena-muted-ink); font-size: 0.78rem; }
-.vsgold__tier-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin-top: 0.65rem; }
-.vsgold__tier-card { --tier-accent: #925347; position: relative; display: grid; grid-template-columns: 30px 42px minmax(120px, 1fr) 64px 112px; gap: 0.65rem; align-items: center; min-height: 94px; padding: 0.75rem; overflow: hidden; border: 5px solid transparent; border-image: url('/wallpaper/deck-border.png') 22 stretch; background: rgba(255, 248, 221, 0.56); box-shadow: inset 0 0 0 1px rgba(255, 252, 235, 0.36), 0 3px 8px rgba(75, 43, 18, 0.08); content-visibility: auto; contain: layout paint style; contain-intrinsic-size: auto 68px; }
-/* contain-intrinsic-size is the content height of a card that has not rendered yet: the
-   mean rendered height minus padding and border per layout; auto then keeps the real one. */
-.vsgold__tier-card::before { content: ''; position: absolute; inset: 7px auto 7px 2px; width: 3px; background: var(--tier-accent); }
-.vsgold__tier-band--one, .vsgold__tier-card--one { --tier-accent: #b88714; }
-.vsgold__tier-band--two, .vsgold__tier-card--two { --tier-accent: #397950; }
-.vsgold__tier-band--three, .vsgold__tier-card--three { --tier-accent: #587fa0; }
-.vsgold__tier-band--four, .vsgold__tier-card--four { --tier-accent: #925347; }
-.vsgold__tier-rank { color: #8b633c; font-family: var(--font-display); font-size: 1rem; text-align: center; }
-.vsgold__tier-card > img { width: 42px; height: 42px; object-fit: contain; }
-.vsgold__tier-card .vsgold__build { width: 112px; }
-.vsgold__tier-card .vsgold__build > span { max-width: 112px; }
-.vsgold__tier-card h4 { margin: 0.05rem 0; font-family: var(--font-display); font-size: 1rem; line-height: 1.1; }
-.vsgold__tier-card small { color: #8a5f28; font-size: 0.68rem; font-weight: 800; }
-.vsgold__tier-card p { margin: 0; color: #88694c; font-size: 0.67rem; }
-.vsgold__tier-card > strong { display: grid; color: #593519; font-family: var(--font-display); font-size: 1.08rem; text-align: center; }
-.vsgold__tier-card > strong span { color: #8a6a4c; font-family: var(--font-body); font-size: 0.62rem; font-weight: 700; }
-.vsgold__empty { grid-column: 1 / -1; margin: 1rem; color: #815f3e; text-align: center; }
+.vsgold-empty { margin: 1rem 0 0; color: var(--vs-muted); }
+.vsgold-method { padding: 0.75rem 1rem; border: 1px solid var(--vs-line); background: rgba(255, 250, 236, 0.5); color: var(--vs-muted); font-size: 0.86rem; line-height: 1.45; }
+.vsgold-method summary { min-height: 28px; color: var(--vs-ink); font-weight: 800; cursor: pointer; }
+.vsgold-method p { margin: 0.5rem 0 0; }
 
-.vsgold__state { display: grid; min-height: 620px; place-content: center; justify-items: center; padding: 2rem; text-align: center; }
-.vsgold__state h2 { margin: 0.8rem 0 0.3rem; font-family: var(--font-display); font-size: 2rem; }
-.vsgold__state p { margin: 0; color: #7c5a3b; }
-.vsgold__state button { display: inline-flex; gap: 0.4rem; align-items: center; margin-top: 1rem; padding: 0.65rem 1rem; border: 1px solid #6f431d; background: #6d3e1c; color: #fff1cc; font-weight: 900; }
-/* The loader (viciousGold/ViciousGoldSkeleton) draws the dashboard's panels and
-   keeps at least one screen, so the footer stays below the fold until the
-   statistics arrive. */
-.vsgold__loading { min-height: max(620px, 100dvh); }
+/* Error state */
+.vsgold__state { display: grid; justify-items: center; gap: 0.6rem; padding: 2rem 1rem; text-align: center; }
+.vsgold__state h2 { margin: 0; font-family: var(--font-display); }
+.vsgold__state button { display: inline-flex; gap: 0.4rem; align-items: center; min-height: 44px; padding: 0 1rem; border: 0; color: #fff0c8; background: var(--vs-wine); font: inherit; font-weight: 800; cursor: pointer; }
 
 @media (max-width: 1120px) {
-  .vsgold__distribution-grid { grid-template-columns: 1fr; }
-  .vsgold__deck-list { max-height: none; }
-  .vsgold__tier-board { grid-template-columns: 1fr; }
-  .vsgold__tier-card { contain-intrinsic-size: auto 61px; }
+  .vsgold-report__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
-  .vsgold__mobile-nav {
-    position: sticky;
-    top: var(--arena-mobile-sticky-offset, 70px);
-    z-index: 8;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.18rem;
-    margin-top: 0.55rem;
-    padding: 0.2rem;
-    border: 1px solid #b98c51;
-    background:
-      linear-gradient(rgba(250, 232, 191, 0.96), rgba(235, 205, 151, 0.96)),
-      var(--arena-parchment-texture) center / cover;
-    box-shadow: 0 5px 15px rgba(71, 39, 17, 0.16);
-  }
-  .vsgold__mobile-nav a {
-    display: grid;
-    place-items: center;
-    min-width: 0;
-    min-height: 44px;
-    padding: 0.35rem;
-    border: 1px solid rgba(106, 66, 29, 0.16);
-    color: #5a3b25;
-    background: rgba(255, 248, 221, 0.34);
-    font-size: 0.69rem;
-    font-weight: 900;
-    text-align: center;
-    text-decoration: none;
-    touch-action: manipulation;
-  }
-  .vsgold__mobile-nav a:focus-visible { outline: 2px solid var(--vs-purple); outline-offset: -3px; }
-  .vsgold__distribution-grid { gap: 0.62rem; margin-top: 0.62rem; }
-  .vsgold__panel { border-width: 5px; }
-  .vsgold__classes,
-  .vsgold__decks,
-  .vsgold__power {
-    padding: 0.68rem;
-    scroll-margin-top: calc(var(--arena-mobile-sticky-offset, 70px) + 56px);
-  }
-  .vsgold__section-heading { gap: 0.55rem; padding-bottom: 0.55rem; }
-  .vsgold__section-heading > img { width: 42px; height: 42px; padding: 0.28rem; }
-  .vsgold__section-heading span { font-size: 0.56rem; }
-  .vsgold__section-heading h2 { font-size: 1.28rem; }
-  .vsgold__class-bars { gap: 0.35rem; margin-top: 0.68rem; }
-  .vsgold__class-bars button {
-    grid-template: 'icon name value' auto 'icon bar bar' auto / 36px minmax(0, 1fr) auto;
-    gap: 0.15rem 0.5rem;
-    min-height: 58px;
-    padding: 0.42rem 0.5rem;
-    scroll-margin-top: calc(var(--arena-mobile-sticky-offset, 70px) + 56px);
-    touch-action: manipulation;
-  }
-  .vsgold__class-bars img { grid-area: icon; width: 34px; height: 34px; }
-  .vsgold__class-bars span { grid-area: name; font-size: 0.76rem; }
-  .vsgold__class-bars div { grid-area: bar; height: 6px; }
-  .vsgold__class-bars strong { grid-area: value; font-size: 0.74rem; }
-  .vsgold__deck-tools { position: sticky; top: calc(var(--arena-mobile-sticky-offset, 70px) + 52px); z-index: 4; grid-template-columns: 1fr; gap: 0.38rem; margin: 0.7rem 0 0.5rem; padding: 0.35rem; border: 1px solid rgba(112, 68, 29, 0.16); background: rgba(245, 224, 178, 0.96); box-shadow: 0 5px 12px rgba(76, 42, 17, 0.1); }
-  .vsgold__deck-tools label,
-  .vsgold__deck-tools select { min-height: 48px; }
-  .vsgold__deck-tools input,
-  .vsgold__deck-tools select { min-height: 46px; font-size: 16px; }
-  .vsgold__deck-list { max-height: min(58dvh, 620px); overflow-y: auto; border-width: 4px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-  .vsgold__deck-row {
-    grid-template: 'icon name metric' auto '. build build' auto / 40px minmax(0, 1fr) auto;
-    gap: 0.38rem 0.52rem;
-    min-height: 128px;
-    padding: 0.55rem;
-  }
-  .vsgold__deck-row > :is(.vsgold__build-missing, .vsgold__build-aggregate) { grid-area: build; text-align: left; }
-  .vsgold__deck-row > img { grid-area: icon; width: 38px; height: 38px; }
-  .vsgold__deck-name { grid-area: name; }
-  .vsgold__deck-name strong { font-size: 0.84rem; }
-  .vsgold__deck-row > b { grid-area: metric; font-size: 0.9rem; }
-  .vsgold__deck-row .vsgold__build { grid-area: build; justify-items: stretch; }
-  .vsgold__build { width: 100%; }
-  .vsgold__deck-row .vsgold__build { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
-  .vsgold__build .vsgold__build-copy-button { flex: 1; width: auto; min-height: 48px; padding: 0.3rem 0.55rem; }
-  .vsgold__build-open { min-height: 44px; }
-  .vsgold__deck-composition { padding: 0.55rem; }
-  .vsgold__deck-composition > header { align-items: flex-start; }
-  .vsgold__build-copy-button img { width: min(100%, 150px); max-height: 38px; object-fit: contain; }
-  .vsgold__build > span { grid-column: 1 / -1; max-width: 100%; text-align: left; }
-  .vsgold__power { margin-top: 0.62rem; }
-  .vsgold__power-heading { gap: 0.55rem; align-items: flex-start; flex-direction: column; }
-  .vsgold__power-heading > p { font-size: 0.72rem; line-height: 1.4; text-align: left; }
-  .vsgold__rank-tabs,
-  .vsgold__class-tabs { flex-wrap: nowrap; gap: 0.32rem; overflow-x: auto; padding-bottom: 0.55rem; scrollbar-width: thin; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
-  .vsgold__rank-tabs { margin-top: 0.75rem; }
-  .vsgold__rank-tabs button,
-  .vsgold__class-tabs button { min-height: 44px; scroll-snap-align: start; touch-action: manipulation; }
-  .vsgold__tier-board { gap: 0.5rem; margin-top: 0.45rem; }
-  .vsgold__tier-card {
-    grid-template: 'rank icon main win' auto 'build build build build' auto / 28px 40px minmax(0, 1fr) auto;
-    gap: 0.42rem 0.48rem;
-    min-height: 118px;
-    padding: 0.58rem;
-    border-width: 4px;
-    contain-intrinsic-size: auto 118px;
-  }
-  .vsgold__tier-rank { grid-area: rank; font-size: 0.84rem; }
-  .vsgold__tier-card > img { grid-area: icon; width: 38px; height: 38px; }
-  .vsgold__tier-card > div:not(.vsgold__build) { grid-area: main; min-width: 0; }
-  .vsgold__tier-card h4 { overflow-wrap: anywhere; font-size: 0.95rem; }
-  .vsgold__tier-card > strong { grid-area: win; font-size: 0.9rem; }
-  .vsgold__tier-card .vsgold__build { grid-area: build; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); align-items: center; column-gap: 0.6rem; width: 100%; }
-  .vsgold__tier-card .vsgold__build > span { grid-column: auto; }
-}
+  .vsgold-report { border-width: 7px; }
+  .vsgold-report__art { display: none; }
+  /* Two short lines instead of one that wraps at a data-dependent point. */
+  .vsgold-report__meta > span { display: block; }
+  .vsgold-report__meta > span + span::before { content: none; }
+  .vsgold-report__kpis { --ui-kpi-group-padding: 0.55rem 0.6rem; --ui-kpi-group-value-size: 1.1rem; }
+  /* Room for a label wrapped to two lines at 360 px. */
+  .vsgold-report__kpis .ui-kpi-group__tile { min-height: 5.4rem; }
+  .vsgold-section { border-width: 5px; }
 
-@media (max-width: 480px) {
-  .vsgold__mobile-nav a { font-size: 0.64rem; }
-  .vsgold__classes,
-  .vsgold__decks,
-  .vsgold__power { padding: 0.56rem; }
-  .vsgold__tier-card { grid-template-columns: 25px 36px minmax(0, 1fr) auto; padding-inline: 0.45rem; contain-intrinsic-size: auto 123px; }
-  .vsgold__tier-card > img { width: 34px; height: 34px; }
-}
+  /* Touch targets of 44 px. */
+  :is(.vsgold-power__ranks button, .vsgold-classbars button, .vsgold-build button, .vsgold-select select, .vsgold-search) { min-height: 44px; }
+  .vsgold-report__contents :is(a, .vsgold-report__chip) { min-height: 44px; }
+  .vsgold-build .vsgold-build__icon { width: 44px; }
+  /* 16 px keeps iOS from zooming into a focused field. */
+  .vsgold-select select,
+  .vsgold-search input { font-size: 16px; }
+  .vsgold-power-row .vsgold-build--none { width: 44px; }
 
+  .vsgold-power__controls { display: grid; grid-template-columns: minmax(0, 1fr); }
+  /* The six brackets scroll inside their own row instead of wrapping into three lines. */
+  .vsgold-classbars__bar { height: 32px; }
+  .vsgold-power__ranks { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -0.2rem; padding: 0 0.2rem 0.1rem; }
+  .vsgold-power__ranks button { flex: 0 0 auto; }
+  .vsgold-power__controls .vsgold-select { flex: none; }
+  .vsgold-power__legend { display: none; }
+
+  /* A row in two lines: rank, icon, name and copy; then the bar, the win rate and the change. */
+  .vsgold-power-row {
+    grid-template-columns: 1.9rem 32px minmax(0, 1fr) auto auto;
+    grid-template-areas: 'rank icon name name build' 'bar bar bar winrate delta';
+    gap: 0.25rem 0.55rem;
+    padding: 0.45rem 0.25rem;
+  }
+  .vsgold-power-row__rank { grid-area: rank; }
+  .vsgold-power-row > img { grid-area: icon; width: 32px; height: 32px; }
+  .vsgold-power-row__name { grid-area: name; }
+  .vsgold-power-row .vsgold-build { grid-area: build; }
+  .vsgold-power-row__bar { grid-area: bar; }
+  .vsgold-power-row__winrate { grid-area: winrate; }
+  .vsgold-power-row__delta { grid-area: delta; min-width: 2.6rem; }
+
+  .vsgold-decks__tools { grid-template-columns: minmax(0, 1fr); }
+  .vsgold-deck-row {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-areas: 'icon name share' 'bar bar bar' 'build build build';
+    gap: 0.3rem 0.55rem;
+    padding: 0.5rem 0.25rem;
+  }
+  .vsgold-deck-row > img { grid-area: icon; width: 32px; height: 32px; }
+  .vsgold-deck-row__name { grid-area: name; }
+  .vsgold-deck-row__bar { grid-area: bar; }
+  .vsgold-deck-row__share { grid-area: share; }
+  .vsgold-deck-row .vsgold-build { grid-area: build; justify-content: flex-start; min-width: 0; }
+  .vsgold-deck-composition .archetype-deck-gallery { grid-template-columns: minmax(0, 1fr); }
+}

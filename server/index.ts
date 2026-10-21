@@ -134,6 +134,7 @@ import {
 } from './standardMetaClasses.js';
 import {
   findSupplementalViciousGoldBuild,
+  findViciousGoldCatalogItem,
   resolveViciousGoldArchetype,
 } from './viciousGoldBuilds.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
@@ -4320,6 +4321,7 @@ const STANDARD_META_SUPPORTED_RANKS = new Set<StandardMetaRank>([
 const HSGURU_STREAMER_DECKS_DATASET = 'hsguru_streamer_decks_legend_1000';
 const VICIOUS_SYNDICATE_LIVE_DATASET = 'vicious_syndicate_live_beta';
 const VICIOUS_GOLD_MIN_DECK_FREQUENCY = 0.5;
+const VICIOUS_GOLD_CATALOG_WAIT_MS = 3_000;
 const VICIOUS_CLASS_RU: Record<string, string> = {
   DeathKnight: 'Рыцарь смерти',
   DemonHunter: 'Охотник на демонов',
@@ -6298,11 +6300,11 @@ function findViciousGoldCatalogBuild(
   deckLabel: string,
 ): ViciousGoldBuild | null {
   if (!catalog) return null;
-  const { matchedArchetype, matchMethod } = resolveViciousGoldArchetype(deck);
-  const wanted = normalizeStandardArchetypeKey(matchedArchetype);
-  const item = catalog.items.find(row => normalizeStandardArchetypeKey(row.archetype) === wanted);
+  const item = findViciousGoldCatalogItem(catalog.items, deck);
   const selected = item?.builds[0];
   if (!item || !selected) return null;
+  const matchedArchetype = item.archetype;
+  const matchMethod = normalizeStandardArchetypeKey(matchedArchetype) === normalizeStandardArchetypeKey(deck) ? 'exact' : 'alias';
   const classKey = selected.classKey ?? item.classKey ?? inferStandardMetaClass(matchedArchetype);
   if (!classKey) return null;
   return {
@@ -6374,16 +6376,27 @@ async function loadViciousSyndicateGold() {
   const cached = viciousSyndicateGoldApiCache.get('standard');
   if (cached && cached.expiresAt > now) return cached.data;
 
-  const [payload, translations] = await Promise.all([
+  const [payload, translations, catalog] = await Promise.all([
     fetchDataset(VICIOUS_SYNDICATE_LIVE_DATASET),
     getStandardArchetypeTranslations(now),
+    // A cold catalog may take its full refresh timeout; the statistics do not wait for it.
+    Promise.race<ConstructedArchetypeCatalog | null>([
+      loadConstructedArchetypeCatalog('standard').catch(() => null),
+      new Promise<null>(resolve => setTimeout(resolve, VICIOUS_GOLD_CATALOG_WAIT_MS, null)),
+    ]),
   ]);
   const structured = payload?.data?.structured ?? payload?.structured ?? {};
   const rawClasses = Array.isArray(structured.class_distribution) ? structured.class_distribution : [];
   const rawDecks = Array.isArray(structured.deck_distribution) ? structured.deck_distribution : [];
   const rawTierList = Array.isArray(structured.tier_list) ? structured.tier_list : [];
   const classByDeck = new Map<string, string>(rawDecks.map((row: any) => [String(row?.deck ?? ''), String(row?.class ?? '')]));
-  const translatedDeck = (deck: string) => translateStandardArchetype(deck, translations.map);
+  // Our archetype catalog names a deck the way the meta and archetype pages do and gives its page.
+  const catalogItem = (deck: string) => (catalog ? findViciousGoldCatalogItem(catalog.items, deck) : null);
+  const translatedDeck = (deck: string) => {
+    const item = catalogItem(deck);
+    return item?.translated ? item.archetypeLabel : translateStandardArchetype(deck, translations.map);
+  };
+  const archetypeSlug = (deck: string) => catalogItem(deck)?.slug ?? null;
   const eligibleDecks = rawDecks.flatMap((row: any) => {
     const frequency = viciousPercent(row?.frequency);
     if (frequency === null || frequency < VICIOUS_GOLD_MIN_DECK_FREQUENCY) return [];
@@ -6393,6 +6406,7 @@ async function loadViciousSyndicateGold() {
     return [{
       deck,
       deckLabel: translatedDeck(deck),
+      archetypeSlug: archetypeSlug(deck),
       class: className,
       classLabel: VICIOUS_CLASS_RU[className] ?? className,
       classIcon: viciousClassIcon(className),
@@ -6415,6 +6429,7 @@ async function loadViciousSyndicateGold() {
           rank: Number(row?.rank) || 0,
           deck,
           deckLabel: translatedDeck(deck),
+          archetypeSlug: archetypeSlug(deck),
           class: className,
           classLabel: VICIOUS_CLASS_RU[className] ?? className,
           classIcon: viciousClassIcon(className),
@@ -6459,7 +6474,8 @@ async function loadViciousSyndicateGold() {
   viciousSyndicateGoldApiCache.set('standard', {
     data,
     etag: '',
-    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+    // Without the catalog the labels fall back to translations and links are missing: retry soon.
+    expiresAt: now + (catalog ? EXTERNAL_DATASET_CACHE_MS : VICIOUS_GOLD_CATALOG_WAIT_MS * 10),
   });
   return data;
 }

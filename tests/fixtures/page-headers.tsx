@@ -38,7 +38,7 @@ export function HeaderFixture({ index = 0 }: { index?: number }) {
       </header>}
       <section data-header-content className={[
         'standard-meta__controls', 'fun-decks-method', 'archetypes-format-switch',
-        'standard-matchups__mode-toolbar', 'vsgold__distribution-grid',
+        'standard-matchups__mode-toolbar', 'vsgold-report',
         'constructed-cards__controls', '', '', '',
       ][index]} aria-label="Контент раздела"><p>Фильтры и содержимое раздела</p></section>
     </div></div></main></div>

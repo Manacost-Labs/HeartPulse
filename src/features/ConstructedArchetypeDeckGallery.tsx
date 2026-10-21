@@ -11,6 +11,7 @@ import DeckListView, {
 import DeckRenderPreview, { type DeckRenderState } from './deckrender/DeckRenderPreview';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import '../shared/ui/LoadingSurface.css';
+import './ConstructedArchetypeDeckGallery.css';
 import { usePendingDecks, useReportedPending } from './archetypeDeckGalleryPending';
 
 type ArchetypeFormat = 'standard' | 'wild';
