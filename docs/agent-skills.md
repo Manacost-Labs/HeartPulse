@@ -40,13 +40,33 @@ Additional skills are available under `/home/debian/.codex/skills/` and
 - Parser, scraper, ingestion, or source normalizer: API/interface design,
   source-driven development, doubt-driven development, and the parser repo's
   own `AGENTS.md` plus `docs/SCRAPE_PROVIDERS.md`.
-- React or browser-facing UI: frontend design, TypeUI fundamentals, browser
-  testing, and the applicable React testing/best-practices skills if installed.
+- React or browser-facing UI: the project skills `hearthpulse-page-design`,
+  `hearthpulse-page-workflow` and `hearthpulse-motion` first, then frontend
+  design, TypeUI fundamentals, browser testing, and the applicable React
+  testing/best-practices skills if installed.
 - Bug fix: debugging, TDD, then review and simplification before handoff.
 - Deployment or production change: shipping/launch, CI/CD, git workflow, and
   the repository's deployment/runbook requirements.
 - Documentation-only change: documentation-and-adrs; update the owning
   document and state documentation impact in the working plan.
+
+## Project skills
+
+Repository skills live in `.claude/skills/<name>/SKILL.md`:
+
+<!-- markdownlint-disable MD013 -->
+
+| Skill | Use when |
+| --- | --- |
+| `hearthpulse-page-design` | building or redesigning a page, block, chart or table |
+| `hearthpulse-page-workflow` | taking a page task from audit to READY |
+| `hearthpulse-motion` | animation, view switches, page transitions |
+| `css-tokens` | any style change |
+| `new-feature-slice` | a new feature module |
+| `release-runbook` | a production release |
+| `verify-gate` | the release verification gate |
+
+<!-- markdownlint-enable MD013 -->
 
 ## Canonical roots
 
