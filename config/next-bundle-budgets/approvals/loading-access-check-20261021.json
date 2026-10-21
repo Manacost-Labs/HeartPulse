@@ -15,7 +15,8 @@
       "jsGzipBytes": 1024
     },
     "/contests/": {
-      "jsGzipBytes": 512
+      "jsGzipBytes": 512,
+      "cssGzipBytes": 128
     },
     "/cosmetics/": {
       "jsGzipBytes": 896
