@@ -53,20 +53,39 @@ test('revoking a session ends it at once for the session check and the paywall',
     assert.ok(a2Id, 'the session that was just active is listed with its device');
     assert.equal((await post(`/api/account/sessions/${a2Id}/revoke`, 'a1', { Origin: backend.origin })).status, 403);
     assert.equal((await post(`/api/account/sessions/${a2Id}/revoke`, 'a1', { 'X-CSRF-Request': '1', Origin: 'https://evil.example' })).status, 403);
-    // Express routes ignore case and a trailing slash: no spelling skips the CSRF rule.
+    // Deny by default: no spelling routing accepts (case, //, /./, %2F, a
+    // trailing slash) lets a cross-site cookie mutation through, on any route.
     const crossSite = { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' };
     for (const [method, path] of [
-      ['POST', '/API/account/SESSIONS/revoke-others'],
-      ['POST', '/Api/Account/Sessions/revoke-others/'],
-      ['POST', `/api/ACCOUNT/sessions/${a2Id}/REVOKE/`],
+      ...['revoke-others', `${a2Id}/revoke`].flatMap(tail => [
+        ['POST', `/api/account/sessions/${tail}`],
+        ['POST', `/api//account/sessions/${tail}`],
+        ['POST', `/api/./account/sessions/${tail}`],
+        ['POST', `/api/account%2Fsessions/${tail}`],
+        ['POST', `/API/Account/SESSIONS/${tail}/`],
+      ]),
       ['POST', '/API/AUTH/LOGOUT'],
+      ['POST', '/api//auth/logout'],
       ['PATCH', '/Api/Auth/Profile/'],
+      ['POST', '/api/articles/missing/vote'],
     ]) {
       const response = await fetch(`${backend.origin}${path}`, { method, headers: { ...as('a1', crossSite), 'Content-Type': 'application/json' },
         body: method === 'PATCH' ? '{"country":"Россия"}' : undefined, signal: AbortSignal.timeout(8000) });
       assert.equal(response.status, 403, `${method} ${path}`);
     }
     for (const token of ['a1', 'a2', 'a3']) assert.equal((await me(token)).user?.id, 'reader', `${token} survives cross-site attempts`);
+    // The cookie-free machine endpoints still answer other sites and servers (their own checks, never 403 here).
+    for (const path of ['/api/newsletter/unsubscribe', '/api/v1/oauth/token', '/api/v1/oauth/device/code', '/api/v1/oauth/revoke',
+      '/api/v1/tracker/events/batch', '/api/ecosystem/internal/subscription', '/api/auth/telegram/bot/webhook']) {
+      const response = await fetch(`${backend.origin}${path}`, { method: 'POST', headers: { ...as('a1', crossSite), 'Content-Type': 'application/json' },
+        body: '{}', signal: AbortSignal.timeout(8000) });
+      const body = await response.text();
+      assert.ok(!(response.status === 403 && /обновите страницу/.test(body)), `${path} is not refused by the CSRF rule: ${response.status} ${body}`);
+    }
+    // Same-site browser requests keep working without extra headers outside the protected list.
+    const vote = await fetch(`${backend.origin}/api/articles/missing/vote`, { method: 'POST',
+      headers: { ...as('a1', { Origin: backend.origin, 'Sec-Fetch-Site': 'same-origin' }), 'Content-Type': 'application/json' }, body: '{}' });
+    assert.notEqual(vote.status, 403, 'a same-origin vote is not a CSRF refusal');
     assert.equal((await post(`/api/account/sessions/${a2Id}/revoke`, 's1')).status, 404, 'another account cannot end it');
     assert.equal((await me('a2')).user?.id, 'reader');
 

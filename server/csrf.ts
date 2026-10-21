@@ -23,37 +23,57 @@ export type CsrfRequestContext = {
   allowLocalDevelopmentOrigins?: boolean;
 };
 
-// Express matches routes case-insensitively (`case sensitive routing` is off),
-// so `/API/Account/SESSIONS/revoke-others` reaches the same handler: the path
-// is compared in lower case, and also percent-decoded, so no spelling of a
-// protected route skips the check.
-function comparablePaths(path: string): string[] {
-  const lower = path.toLowerCase();
+/**
+ * Cookie-free machine endpoints that are legitimately called from other sites
+ * or servers. Each authenticates on its own (bot secret, signed link, client
+ * credentials, bearer or internal key), never with the browser session, so a
+ * cross-site request cannot borrow the visitor's cookie through them.
+ */
+const CROSS_SITE_ENDPOINTS = [
+  /^\/api\/auth\/telegram\/bot\/webhook$/,
+  /^\/api\/newsletter\/unsubscribe$/,
+  /^\/api\/v1\/oauth\/(?:token|device\/code|revoke)$/,
+  /^\/api\/v1\/tracker\/events\/batch$/,
+  /^\/api\/ecosystem\/internal\/subscription$/,
+];
+
+/**
+ * The path as routing may see it: percent-decoded, lower case (Express routes
+ * ignore case), repeated slashes collapsed (a mount swallows them), dot
+ * segments resolved and no trailing slash. Normalising only decides which
+ * rule applies: every cookie mutation must be same-origin whatever its
+ * spelling, so a spelling this misses is refused, not let through.
+ */
+export function normalizedRequestPath(path: string): string {
+  let decoded = path;
   try {
-    const decoded = decodeURIComponent(path).toLowerCase();
-    return decoded === lower ? [lower] : [lower, decoded];
+    decoded = decodeURIComponent(path);
   } catch {
-    return [lower];
+    // A malformed escape cannot match a route segment by segment; compare it as written.
   }
+  const segments: string[] = [];
+  for (const segment of decoded.toLowerCase().split('/')) {
+    if (segment === '' || segment === '.') continue;
+    if (segment === '..') segments.pop();
+    else segments.push(segment);
+  }
+  return `/${segments.join('/')}`;
 }
 
+/** Whether a cookie mutation on this path also needs `X-CSRF-Request: 1`. */
 export function mutationNeedsCsrfProtection(method: string, path: string): boolean {
   if (SAFE_METHODS.has(method.toUpperCase())) return false;
-  const paths = comparablePaths(path);
-  return PROTECTED_MUTATION_PATHS.some(pattern => paths.some(candidate => pattern.test(candidate)));
+  const normalized = normalizedRequestPath(path);
+  return PROTECTED_MUTATION_PATHS.some(pattern => pattern.test(normalized));
 }
 
-export function csrfRequestAllowed(context: CsrfRequestContext): boolean {
-  if (!mutationNeedsCsrfProtection(context.method, context.path)) return true;
-  if (String(context.authorization || '').toLowerCase().startsWith('bearer ')) return true;
-  if (!context.authCookiePresent) return true;
-  if (String(context.csrfHeader || '') !== '1') return false;
-
+// A browser always sends Sec-Fetch-Site (a header pages cannot set); without
+// it, Origin or Referer must name this site. When either is sent it must match.
+function sameOriginRequest(context: CsrfRequestContext): boolean {
   const fetchSite = String(context.secFetchSite || '').toLowerCase();
   if (fetchSite && fetchSite !== 'same-origin') return false;
-
   const rawSource = String(context.origin || context.referer || '').trim();
-  if (!rawSource) return false;
+  if (!rawSource) return fetchSite === 'same-origin';
   try {
     const source = new URL(rawSource);
     const app = new URL(context.appUrl);
@@ -63,4 +83,23 @@ export function csrfRequestAllowed(context: CsrfRequestContext): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Deny by default: any state-changing request that carries the session cookie
+ * must come from this site (Sec-Fetch-Site, then Origin or Referer), on every
+ * path but the cookie-free machine endpoints above. Paths in
+ * PROTECTED_MUTATION_PATHS additionally need `X-CSRF-Request: 1` unless the
+ * request authenticates with a bearer token. A request without the cookie
+ * cannot act as the visitor and passes to its route's own authentication.
+ */
+export function csrfRequestAllowed(context: CsrfRequestContext): boolean {
+  if (SAFE_METHODS.has(context.method.toUpperCase())) return true;
+  if (!context.authCookiePresent) return true;
+  const path = normalizedRequestPath(context.path);
+  if (CROSS_SITE_ENDPOINTS.some(pattern => pattern.test(path))) return true;
+  if (!sameOriginRequest(context)) return false;
+  if (!PROTECTED_MUTATION_PATHS.some(pattern => pattern.test(path))) return true;
+  return String(context.authorization || '').toLowerCase().startsWith('bearer ')
+    || String(context.csrfHeader || '') === '1';
 }

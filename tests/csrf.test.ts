@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { csrfRequestAllowed, mutationNeedsCsrfProtection } from '../server/csrf.js';
+import { csrfRequestAllowed, mutationNeedsCsrfProtection, normalizedRequestPath } from '../server/csrf.js';
 
 const base = {
   method: 'POST',
@@ -31,13 +31,41 @@ assert.equal(mutationNeedsCsrfProtection('POST', '/api/v1/oauth/device/approve')
 assert.equal(mutationNeedsCsrfProtection('DELETE', '/api/admin-articles'), true);
 assert.equal(csrfRequestAllowed(base), true);
 assert.equal(csrfRequestAllowed({ ...base, authCookiePresent: false, csrfHeader: '', origin: '' }), true);
-assert.equal(csrfRequestAllowed({ ...base, authorization: 'Bearer integration-token', csrfHeader: '', origin: '' }), true);
+assert.equal(csrfRequestAllowed({ ...base, authorization: 'Bearer integration-token', csrfHeader: '', origin: '', secFetchSite: '' }), false,
+  'a bearer header does not excuse a cookie request from coming from this site');
+assert.equal(csrfRequestAllowed({ ...base, authorization: 'Bearer integration-token', csrfHeader: '' }), true);
+assert.equal(csrfRequestAllowed({ ...base, authorization: 'Bearer integration-token', authCookiePresent: false, csrfHeader: '', origin: '' }), true);
 assert.equal(csrfRequestAllowed({ ...base, csrfHeader: '' }), false);
-assert.equal(csrfRequestAllowed({ ...base, origin: '' }), false);
+assert.equal(csrfRequestAllowed({ ...base, origin: '', secFetchSite: '' }), false);
+assert.equal(csrfRequestAllowed({ ...base, origin: '' }), true, 'Sec-Fetch-Site: same-origin alone proves a same-site browser request');
 assert.equal(csrfRequestAllowed({ ...base, origin: 'https://evil.example' }), false);
 assert.equal(csrfRequestAllowed({ ...base, secFetchSite: 'cross-site' }), false);
 assert.equal(csrfRequestAllowed({ ...base, origin: 'http://localhost:3000' }), false);
 assert.equal(csrfRequestAllowed({ ...base, origin: 'http://localhost:3000', allowLocalDevelopmentOrigins: true }), true);
 assert.equal(csrfRequestAllowed({ ...base, path: '/api/auth/telegram/link-start', csrfHeader: '' }), false);
+
+// Routing sees these spellings as the same path.
+assert.equal(normalizedRequestPath('/API//Account/./SESSIONS/x/../revoke-others/'), '/api/account/sessions/revoke-others');
+assert.equal(normalizedRequestPath('/api/account%2Fsessions%2Frevoke-others'), '/api/account/sessions/revoke-others');
+
+// Deny by default: every cookie mutation must come from this site, whatever the path and its spelling.
+const crossSite = { ...base, origin: 'https://evil.example', secFetchSite: 'cross-site', csrfHeader: '' };
+for (const path of ['/api/account/sessions/revoke-others', '/api//account/sessions/revoke-others', '/api/./account/sessions/revoke-others',
+  '/api/account%2Fsessions/revoke-others', '/API/Account/SESSIONS/revoke-others/', '/api//account/sessions/AbCdEfGhIjKlMnOpQrStUv/revoke',
+  '/api/articles/example/vote', '/api/some/route/nobody/listed', '/api/v1/oauth/token/../../../account/sessions/revoke-others']) {
+  assert.equal(csrfRequestAllowed({ ...crossSite, path }), false, path);
+  assert.equal(csrfRequestAllowed({ ...crossSite, path, method: 'DELETE' }), false, `DELETE ${path}`);
+  assert.equal(csrfRequestAllowed({ ...crossSite, path, origin: '', secFetchSite: '' }), false, `${path} without Origin`);
+}
+assert.equal(csrfRequestAllowed({ ...base, path: '/api/articles/example/vote', csrfHeader: '' }), true, 'same-origin without the header, outside the list');
+assert.equal(csrfRequestAllowed({ ...base, path: '/api//account/sessions/revoke-others', csrfHeader: '' }), false, 'the list needs the header in any spelling');
+assert.equal(csrfRequestAllowed({ ...crossSite, method: 'GET', path: '/api/account/sessions' }), true);
+assert.equal(csrfRequestAllowed({ ...crossSite, authCookiePresent: false, path: '/api/account/sessions/revoke-others' }), true,
+  'without the cookie the request cannot act as the visitor');
+// Cookie-free machine endpoints stay reachable from other sites and servers.
+for (const path of ['/api/auth/telegram/bot/webhook', '/api/newsletter/unsubscribe', '/api/v1/oauth/token', '/api/v1/oauth/device/code',
+  '/api/v1/oauth/revoke', '/api/v1/tracker/events/batch', '/api/ecosystem/internal/subscription']) {
+  assert.equal(csrfRequestAllowed({ ...crossSite, path }), true, path);
+}
 
 console.log('cookie mutation CSRF boundary tests passed');

@@ -41,11 +41,11 @@ live session, 503 with a generic message when storage fails.
 - `POST /api/account/sessions/revoke-others` → `{ revoked: n }`: deletes every
   session of the viewer except the current one.
 
-Both revocations follow the site CSRF rule (`server/csrf.ts`: same origin and
-`X-CSRF-Request: 1` when the auth cookie is sent) and a limit of 20 requests
-per 15 minutes per account. Express routes ignore case, so the rule compares
-every protected path in lower case and percent-decoded: `/API/Account/SESSIONS/…`
-is protected like `/api/account/sessions/…`.
+Both revocations follow the site CSRF rule
+([decision](../decisions/cookie-mutations-same-origin-by-default.md): every
+cookie mutation must be same-origin, these paths also need
+`X-CSRF-Request: 1`, whatever the spelling of the path) and a limit of 20
+requests per 15 minutes per account.
 
 ## Revocation
 
