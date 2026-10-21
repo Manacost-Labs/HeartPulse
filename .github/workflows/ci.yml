@@ -186,6 +186,8 @@ jobs:
   test-suites:
     name: Registry suites (shard ${{ matrix.shard }}/${{ strategy.job-total }})
     needs: [build, storybook]
+    # Explicit: the implicit success() also fails on the skipped reuse job upstream.
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -238,6 +240,8 @@ jobs:
   browser-tests:
     name: Browser suite (shard ${{ matrix.shard }}/${{ strategy.job-total }})
     needs: [build, storybook]
+    # Explicit: the implicit success() also fails on the skipped reuse job upstream.
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -284,7 +288,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [routes, interactions]
+        part: [routes, admin]
 
     steps:
       - name: Checkout repository

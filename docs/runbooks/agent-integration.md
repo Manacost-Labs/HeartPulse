@@ -46,7 +46,12 @@ The workflow must run on `merge_group` (`types: [checks_requested]`) and give
 the changed-file gates the queue base:
 `CLEAN_CODE_BASE` and `REACT_DOCTOR_BASE` set to
 `${{ github.event.merge_group.base_sha }}`. Deployment stays on `push` to
-`main`: the queue fast-forwards `main` to the tested group commit.
+`main`: the queue fast-forwards `main` to the tested group commit. The queue
+run also packages the immutable release, so that push reuses the queue run's
+validation and artifact instead of running CI again (exact SHA and tree;
+see [DEPLOYMENT.md](../../DEPLOYMENT.md#automatic-deployment-from-main)).
+`CI required` also passes on such a push, where the validation jobs are
+skipped by design.
 
 ## GitHub settings (owner applies; agents never change them)
 

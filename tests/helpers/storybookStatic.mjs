@@ -33,3 +33,45 @@ export async function startStorybookStatic() {
     },
   };
 }
+
+const NETWORK_CHANGED = 'net::ERR_NETWORK_CHANGED';
+const MAX_STORY_LOADS = 3;
+
+/**
+ * Opens a story canvas and resolves once Storybook has rendered it.
+ *
+ * Storybook replaces a story whose module failed to load with its error
+ * screen, so a later selector wait could only time out; this throws at once
+ * with Storybook's message instead. Chrome cancels every in-flight request,
+ * loopback included, with net::ERR_NETWORK_CHANGED whenever a host network
+ * interface or address changes (container networks starting on a busy host or
+ * runner). Only a load that the browser aborted that way is opened again, at
+ * most twice; any other render failure is the test's result. `transientError`
+ * exists for the helper's own regression test, which cannot make Chrome emit
+ * a real network change.
+ */
+export async function openStory(page, url, { transientError = NETWORK_CHANGED } = {}) {
+  for (let load = 1; ; load += 1) {
+    const aborted = [];
+    const recordAbort = request => {
+      if (request.failure()?.errorText === transientError) aborted.push(request.url());
+    };
+    page.on('requestfailed', recordAbort);
+    try {
+      await page.goto(url);
+      await page.waitForFunction(() => ['sb-show-main', 'sb-show-errordisplay', 'sb-show-nopreview']
+        .some(name => document.body.classList.contains(name)));
+    } finally {
+      page.off('requestfailed', recordAbort);
+    }
+    const error = await page.evaluate(() => (document.body.classList.contains('sb-show-main')
+      ? null
+      : document.querySelector('#error-message')?.textContent?.trim() || 'Storybook rendered no story'));
+    if (!error) return;
+    if (aborted.length === 0 || load === MAX_STORY_LOADS) {
+      const cause = aborted.length > 0 ? `; ${transientError} on ${aborted.length} request(s) in each of ${load} loads` : '';
+      throw new Error(`${url} did not render: ${error}${cause}`);
+    }
+    console.warn(`[storybook] ${url}: the browser aborted ${aborted.length} request(s) with ${transientError}; opening it again`);
+  }
+}

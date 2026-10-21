@@ -444,6 +444,7 @@
         "tests/vicious-gold-layout-browser.test.mjs",
         "tests/battleground-builders-browser.test.mjs",
         "tests/skeleton-geometry-browser.test.mjs",
+        "tests/storybook-story-loading-browser.test.mjs",
         "tests/skeleton-route-geometry-browser.test.mjs",
         "tests/archetype-vicious-skeleton-geometry-browser.test.mjs",
         "tests/public-loader-deadline-browser.test.mjs"

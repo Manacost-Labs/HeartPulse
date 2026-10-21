@@ -67,7 +67,9 @@ when enabled) and preserves the failing exit code or termination signal.
 
 CI runs the `browser` suite as a matrix of shards
 (`npm run test:suite -- browser --shard i/N --retry-failed-once
---continue-on-failure`). Each shard
+--continue-on-failure`) and the other four suites as a second matrix
+(`npm run test:suite -- unit,integration,contract,production-smoke --shard
+i/N --continue-on-failure`, no retries). Each shard
 computes the same deterministic partition from the registry and
 `tests/test-durations.json`: files are assigned longest first to the lightest
 shard, a file without a recorded duration weighs `defaultSeconds`, and each

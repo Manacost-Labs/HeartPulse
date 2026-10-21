@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
-import { startStorybookStatic } from './helpers/storybookStatic.mjs';
+import { openStory, startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 test('loading cards and class rows fit their loaded counterparts at public page widths', async () => {
   const storybook = await startStorybookStatic();
@@ -12,7 +12,7 @@ test('loading cards and class rows fit their loaded counterparts at public page 
     browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     async function geometry(storyId, selector) {
-      await page.goto(storybook.storyUrl(storyId));
+      await openStory(page, storybook.storyUrl(storyId));
       await page.waitForSelector(selector, { visible: true });
       if (storyId === 'meta-chart-loading-geometry--expanded') await page.waitForSelector('.standard-meta-chart__plot', { visible: true });
       if (storyId === 'cards-statistics-history--dense-small-values') await page.waitForSelector('.analytics-chart__plot > svg', { visible: true });

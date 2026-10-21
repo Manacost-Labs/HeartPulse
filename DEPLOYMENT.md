@@ -32,23 +32,40 @@ exactly those commands, split into parallel hosted jobs (the workflow contract
 test fails if a command is dropped):
 
 - **Build release artifacts** runs `npm run verify:release:build` once
-  (Storybook, static root, server, Next.js, `lint:next`, server and recovery
-  smoke tests) and uploads the outputs for the test jobs. On a push to `main`
-  the same job then creates the immutable release from those same files, with
-  the exact 40-character Git SHA in its manifest, and uploads it as a
-  seven-day workflow artifact.
+  (static root, server, Next.js, `lint:next`, server and recovery smoke tests)
+  and uploads the outputs for the test jobs. On a push to `main` and in the
+  merge queue the same job then creates the immutable release from those same
+  files, with the exact 40-character Git SHA in its manifest, and uploads it
+  as a seven-day workflow artifact.
+- **Build Storybook** runs `npm run build-storybook` beside it; Storybook is a
+  test input and never part of a release.
 - **Typecheck, lint and static gates** runs `npm run verify:release:checks`.
-- **Unit, integration, contract and smoke suites** and the six
-  **Browser suite** shards download the build outputs instead of rebuilding.
-  The shards split the registered browser files by historical duration and
-  retry a failing file once, reporting a pass on the retry as FLAKY; see
+- The three **Registry suites** shards (unit, integration, contract and
+  production-smoke) and the eight **Browser suite** shards download the build
+  and Storybook outputs instead of rebuilding. Both matrices split the
+  registered files by historical duration; browser shards retry a failing file
+  once, reporting a pass on the retry as FLAKY; see
   [the test registry](docs/architecture/phase0-test-discovery.md#ci-sharding-and-flaky-retries).
-- **Full browser observatory** builds and runs the representative responsive
-  browser matrix on its own.
+- **Full browser observatory** builds its own Next.js runtime and runs the
+  representative responsive browser matrix in two parallel parts
+  (`QA_PART=routes|admin`; locally `npm run qa:ci` runs both).
 
 Every job must pass before the production runner can download the immutable
 artifact. Pull requests and feature branches never create or deploy a
 production artifact.
+
+A push to `main` first looks for the merge-queue run that validated the same
+commit (`scripts/find-validated-release.mjs`): a successful `merge_group` run
+of this workflow whose head SHA and tree equal the pushed commit and which
+still holds `hs-arena-release-<sha>`. When one exists, the push skips
+validation and deploys that run's artifact; the release, its SHA and the
+deployer gate are unchanged. Any doubt, including a failed lookup, validates
+the push in full. A non-blocking **Refresh main build caches** job then keeps
+`main`'s dependency and Next.js caches current.
+
+Jobs restore `node_modules` keyed by the lockfile, runner image and Node.js
+major (a miss runs `npm ci`), and the Next.js webpack cache
+(`apps/public-web/.next/cache`) saved by `main` and manual runs.
 The hosted observatory pins `/usr/bin/google-chrome`; its generic Chromium
 wrapper can miss Puppeteer's startup timeout on a cold runner.
 

@@ -41,8 +41,8 @@ const BASE_ORIGIN = new URL(BASE).origin;
 const OUT = process.env.QA_SCREENSHOT_DIR || mkdtempSync(join(tmpdir(), 'hs-arena-qa-'));
 const responsiveScope = (process.env.QA_RESPONSIVE_SCOPE || 'representative').trim();
 const qaPart = (process.env.QA_PART || 'all').trim();
-if (!['all', 'routes', 'interactions'].includes(qaPart)) {
-  throw new Error(`QA_PART must be all, routes or interactions; received ${qaPart}`);
+if (!['all', 'routes', 'admin'].includes(qaPart)) {
+  throw new Error(`QA_PART must be all, routes or admin; received ${qaPart}`);
 }
 const enforceResponsiveTargets = process.env.QA_RESPONSIVE_ENFORCE_TARGETS === '1';
 if (!['off', 'representative', 'all-p0'].includes(responsiveScope)) {
@@ -1128,9 +1128,10 @@ async function assertArenaDataRoutePresentation(page, path, device) {
   }
 }
 
-// CI runs the route/responsive half and the interaction half in parallel
-// jobs (QA_PART=routes|interactions); the default runs both in one browser.
-if (qaPart !== 'interactions') {
+// CI runs two parts of about equal length in parallel jobs: `admin` is the
+// full-admin dashboard pass below, `routes` is everything else. The default
+// `all` runs both in one browser.
+if (qaPart !== 'admin') {
   for (const route of authenticatedRoutes) {
     for (const [device, viewport] of [
       ['desktop', { width: 1440, height: 900 }],
@@ -1647,23 +1648,13 @@ if (qaPart !== 'interactions') {
   }
 }
 
-if (qaPart === 'routes') {
-  await browser.close();
-  if (failures.length) {
-    console.error('\nE2E QA FAILURES (routes part):');
-    failures.forEach(failure => console.error(`  ✗ ${failure}`));
-    process.exit(1);
-  }
-  console.log(`\nRoute and responsive E2E checks passed. Screenshots: ${OUT}`);
-  process.exit(0);
-}
-
 // Full-admin dashboard: deterministic KPI rendering, empty state, quick
 // navigation, responsive layout and accessibility after component extraction.
-for (const [device, viewport] of [
+const adminDashboardViewports = qaPart === 'routes' ? [] : [
   ['desktop', { width: 1440, height: 900 }],
   ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
-]) {
+];
+for (const [device, viewport] of adminDashboardViewports) {
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
   const adminState = {
@@ -3867,6 +3858,17 @@ for (const [device, viewport] of [
   } finally {
     await page.close();
   }
+}
+
+if (qaPart === 'admin') {
+  await browser.close();
+  if (failures.length) {
+    console.error('\nE2E QA FAILURES (admin part):');
+    failures.forEach(failure => console.error(`  ✗ ${failure}`));
+    process.exit(1);
+  }
+  console.log(`\nAdmin dashboard E2E checks passed. Screenshots: ${OUT}`);
+  process.exit(0);
 }
 
 // The card dossier also needs a wide-screen check because rendered deck images
