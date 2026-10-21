@@ -109,12 +109,17 @@ assert.match(accessSource, /removeEventListener\('pageshow', onPageShow\)/);
 assert.match(accessSource, /if \(!event\.persisted\) return;\s*atomicUntilConfirmed = true;\s*flushSync\(\(\) => apply\(\{ type: 'hidden' \}\)\);\s*void verifySession\(false, \{[^}]*atomic: true \}\);/);
 assert.match(accessSource, /const atomic = series\.atomic \|\| atomicUntilConfirmed;/, 'a retry after a restore stays atomic');
 assert.match(accessSource, /apply\(\{ type: 'session', viewer: answer, publish: !atomic, quiet \}\);/);
-assert.match(accessSource, /apply\(\{ type: 'unavailable', viewer: atomic \? null : confirmed \}\);/);
+assert.match(accessSource, /apply\(\{ type: 'unavailable', viewer: atomic \|\| !lastStillHolds \? null : last\?\.user \?\? null \}\);/);
+// A confirmation of the series counts only for the same session and viewer.
+assert.match(accessSource, /sessionTag\(\) === last\.tag && !recordNamesAnotherViewer\(last\.user\)/);
+// A session change, seen in an answer or by the time the check fails,
+// restarts the check with its own deadline instead of spending retries.
+assert.match(accessSource, /const sessionMoved = error instanceof SessionChanged \|\| Boolean\(last && !lastStillHolds\);\s*if \(sessionMoved && \(series\.restarts \?\? 0\) < MAX_SESSION_RESTARTS\) \{\s*apply\(\{ type: 'hidden' \}\);/);
 assert.equal((accessSource.match(/recordVerifiedAccount\((answer|signedIn)\);/g) ?? []).length, 2,
   'every session answer and every sign-in or sign-out records the viewer');
 assert.match(accessSource, /rememberVerifiedViewer\(answer, value, confirmedTag, sessionExpiresAt\);\s*apply\(\{ type: 'confirmed', viewer: answer, grants: value \}\);/);
 // A stale answer, a 401 included, is dropped before it can touch anything.
-assert.match(accessSource, /if \(sessionChanged\(\)\) \{\s*confirmed = null;\s*throw new Error\('The session changed during the check'\);\s*\}\s*if \(response\.status === 401\)/);
+assert.match(accessSource, /if \(sessionChanged\(\)\) \{\s*confirmed = null;\s*throw new SessionChanged\(\);\s*\}\s*if \(response\.status === 401\)/);
 assert.match(accessSource, /const stillCurrent = \(\) => generation === requestGeneration\.current\s*&& sessionTag\(\) === sessionAtChange && !recordNamesAnotherViewer\(signedIn\);/);
 assert.match(accessSource, /if \(!stillCurrent\(\)\) return stale\(\);\s*if \(response\.status === 401\)/);
 // After every await, right before acting: the sign-in's body and the refresh's body too.

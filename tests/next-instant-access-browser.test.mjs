@@ -19,6 +19,14 @@ const LAPSED = { ...SUBSCRIBED, hasAccess: false, entitlements: {}, message: 'П
 const OTHER_READER = { id: 'instant-other', email: 'other@example.test', name: 'Другая Читательница', role: 'user' };
 const TAG = 'instant-session-tag-01';
 const FILMSTRIP_DIR = process.env.HP_FILMSTRIP_DIR || '';
+// How long a wait for a page to reach a state may take on a loaded CI runner.
+// It bounds waiting only; what each state must look like is asserted separately.
+const READY_MS = 45_000;
+// When the page first offered a retry, by its own clock (ms since it started).
+async function offeredRetryAt(page) {
+  await page.waitForFunction(() => window.__frames.some(frame => frame.unavailable), { timeout: READY_MS });
+  return page.evaluate(() => window.__frames.find(frame => frame.unavailable).at);
+}
 const PAID_PAGES = [
   ['/battlegrounds/tier-list/', '.bg-tier-list-page'],
   ['/standard/matchups/', '.standard-matchups'],
@@ -40,8 +48,15 @@ function startGateway(nextOrigin) {
   // Extra cookies a sign-in sets come from the test's own `signin` cookie
   // (`statusdelay`, `status401`, `bodydelay`), so concurrent tests do not share
   // gateway state; requests are recorded with the test's `t` cookie.
-  const SIGN_IN_COOKIES = { statusdelay: 'statusdelay=1', status401: 'fail=status401', bodydelay: 'bodydelay=1' };
-  const gateway = {};
+  const SIGN_IN_COOKIES = { statusdelay: 'statusdelay=1', status401: 'fail=status401' };
+  // `bodydelay=<id>`: the subscription answer's headers go out at once and its
+  // body only when the test calls `releaseBody(id)`, so the test decides what
+  // happens while the body is on its way.
+  const heldBodies = new Map();
+  const gateway = {
+    releaseBody: id => { heldBodies.get(id)?.(); heldBodies.delete(id); },
+    holdsBody: id => heldBodies.has(id),
+  };
   const server = http.createServer((request, response) => {
     const cookies = Object.fromEntries(String(request.headers.cookie ?? '').split(/;\s*/).filter(Boolean)
       .map(pair => [pair.slice(0, pair.indexOf('=')), pair.slice(pair.indexOf('=') + 1)]));
@@ -70,7 +85,8 @@ function startGateway(nextOrigin) {
       request.resume();
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store',
         'Set-Cookie': ['reader=1; Path=/', `hp_viewer=${TAG}; Path=/`,
-          ...(SIGN_IN_COOKIES[cookies.signin] ? [`${SIGN_IN_COOKIES[cookies.signin]}; Path=/`] : [])] });
+          ...(SIGN_IN_COOKIES[cookies.signin] ? [`${SIGN_IN_COOKIES[cookies.signin]}; Path=/`] : []),
+          ...(cookies.signin?.startsWith('bodydelay-') ? [`bodydelay=${cookies.signin}; Path=/`] : [])] });
       response.end(JSON.stringify({ success: true, message: 'ok', authenticated: true, user: SUBSCRIBER,
         adminAllowed: false, contestAdminAllowed: false }));
       return;
@@ -84,12 +100,13 @@ function startGateway(nextOrigin) {
       if (cookies.fail === 'status') return json({ error: 'busy' }, 429);
       if (cookies.fail === 'status401') return json({ error: 'session ended' }, 401);
       if (cookies.fail === 'late401') return setTimeout(() => json({ error: 'session ended' }, 401), 2500);
-      // `bodydelay`: the headers come at once, the body late.
-      if (cookies.bodydelay === '1') {
+      if (cookies.bodydelay) {
         response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         const body = JSON.stringify(cookies.plan === 'lapsed' || !reader ? LAPSED : SUBSCRIBED);
         response.write(body.slice(0, 10));
-        setTimeout(() => response.end(body.slice(10)), 2500);
+        const release = () => { if (!response.destroyed) response.end(body.slice(10)); };
+        const earlier = heldBodies.get(cookies.bodydelay);
+        heldBodies.set(cookies.bodydelay, () => { earlier?.(); release(); });
         return;
       }
       return json(cookies.plan === 'lapsed' || !reader ? LAPSED : SUBSCRIBED);
@@ -110,7 +127,8 @@ function startGateway(nextOrigin) {
   return listenLocal(server).then(origin => Object.assign(gateway, { server, origin, requests }));
 }
 
-// Samples every animation frame from the first one: what the visitor could
+// Samples every animation frame from the first one, and every DOM change in
+// between (so no state is missed on a busy runner): what the visitor could
 // see. A placeholder whose text is hidden does not count as "checking".
 function recordFrames() {
   window.__frames = [];
@@ -119,21 +137,26 @@ function recordFrames() {
   const sample = () => {
     if (document.body) {
       const pending = [...document.querySelectorAll('.arena-paywall-pending p')].some(visible);
+      const text = document.body.textContent;
       window.__frames.push({
         at: performance.now(),
         marked: document.documentElement.dataset.hpViewer ?? null,
+        unavailable: Boolean(document.querySelector('.arena-access-unavailable')),
         gate: Boolean(document.querySelector('.arena-paywall, .arena-inline-paywall')),
-        preview: document.body.textContent.includes('Раздел подписчиков'),
-        checking: pending || [...document.querySelectorAll('*')].some(node => node.childElementCount === 0
-          && /Проверяем доступ/.test(node.textContent) && visible(node)),
-        viewer: document.body.textContent.includes('Подписчица'),
+        preview: text.includes('Раздел подписчиков'),
+        // The element scan runs only when the text is on the page at all, so
+        // sampling stays cheap on every DOM change.
+        checking: pending || (text.includes('Проверяем доступ') && [...document.querySelectorAll('*')]
+          .some(node => node.childElementCount === 0 && /Проверяем доступ/.test(node.textContent) && visible(node))),
+        viewer: text.includes('Подписчица'),
         hint: localStorage.getItem('hs_arena_viewer_hint'),
         paid: Boolean(document.querySelector('.arena-paid-view, .bg-tier-list-page, .standard-matchups__table, .vsgold__panel, .vsgold__loading, .standard-matchups [class*="loading"], [aria-busy="true"].standard-matchups')),
       });
     }
-    requestAnimationFrame(sample);
   };
-  requestAnimationFrame(sample);
+  const everyFrame = () => { sample(); requestAnimationFrame(everyFrame); };
+  requestAnimationFrame(everyFrame);
+  new MutationObserver(sample).observe(document, { childList: true, subtree: true, attributes: true, characterData: true });
 }
 
 // One Next server, gateway and browser for the whole file; every test works
@@ -147,6 +170,18 @@ function sharedRuntime() {
     const gateway = await startGateway(next.origin);
     const browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
+    // Scenarios run side by side in one browser, and a page that loses focus
+    // to another closes focus-bound UI (the search panel): every page keeps
+    // focus as if it were alone. HP_CPU_THROTTLE=4 also runs every page on a
+    // 4x slower CPU, as on a busy CI runner.
+    const throttle = Number(process.env.HP_CPU_THROTTLE || 0);
+    browser.on('targetcreated', async target => {
+      const page = await target.page().catch(() => null);
+      if (!page) return;
+      const session = await page.createCDPSession().catch(() => null);
+      await session?.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => {});
+      if (throttle > 1) await page.emulateCPUThrottling(throttle).catch(() => {});
+    });
     return { express, next, gateway, browser };
   })();
   return shared;
@@ -176,7 +211,7 @@ async function verifyOnce(context, origin, cookies, viewport) {
   await page.setViewport(viewport);
   await setCookies(page, origin, cookies);
   await page.goto(`${origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint'), { timeout: 10_000 });
+  await page.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint'), { timeout: READY_MS });
   await page.close();
 }
 
@@ -222,10 +257,10 @@ test('a remembered subscriber sees the account and the paid pages without a gate
         page.on('pageerror', error => reactErrors.push(error.message));
         const stop = await filmstrip(page, `subscriber-${viewport.width}${route.replaceAll('/', '_')}`);
         await page.goto(`${gateway.origin}${route}`, { waitUntil: 'domcontentloaded' });
-        await page.waitForSelector(root, { timeout: 10_000 });
+        await page.waitForSelector(root, { timeout: READY_MS });
         // Wait for the late session check and the subscription answer to settle.
         await page.waitForFunction(() => performance.getEntriesByType('resource')
-          .some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: 10_000 });
+          .some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: READY_MS });
         await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 300)));
         await stop();
         const { frames, marked, sessionEnd, firstViewer } = await page.evaluate(() => {
@@ -257,7 +292,7 @@ test('a revoked subscription replaces the remembered paid page with the gate', a
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { plan: 'lapsed' });
     await page.goto(`${gateway.origin}/standard/matchups/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10_000 });
+    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     assert.match(await page.$eval('.arena-paywall', node => node.textContent), /Подписка не найдена/);
     // The next page remembers the lapsed plan: the gate, not the paid page, from the start.
     const hint = await page.evaluate(() => JSON.parse(localStorage.getItem('hs_arena_viewer_hint')));
@@ -280,7 +315,7 @@ test('a shared device never shows the previous viewer after the session ends', a
     await page.deleteCookie({ name: 'reader', url: gateway.origin }, { name: 'hp_viewer', url: gateway.origin });
     await page.evaluateOnNewDocument(recordFrames);
     await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10_000 });
+    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     const { frames, hint } = await page.evaluate(() => ({ frames: window.__frames,
       hint: localStorage.getItem('hs_arena_viewer_hint') }));
     assert.deepEqual(frames.filter(frame => frame.marked).slice(0, 1), [], 'no frame marks a remembered viewer');
@@ -293,7 +328,7 @@ test('a shared device never shows the previous viewer after the session ends', a
     await setCookies(other, gateway.origin, { hp_viewer: 'another-session-tag-02' });
     await other.evaluateOnNewDocument(recordFrames);
     await other.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await other.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10_000 });
+    await other.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     assert.deepEqual(await other.evaluate(() => window.__frames.filter(frame => frame.viewer).length), 0);
     await other.close();
     await context.close();
@@ -313,12 +348,13 @@ test('a session check that keeps failing ends in a gate that can retry', async (
       await setCookies(page, gateway.origin, { reader: '1', fail, t });
       if (remembered) await page.evaluateOnNewDocument(() => localStorage.setItem('hs_arena_auth_cookie_hint', '1'));
       await page.evaluateOnNewDocument(recordFrames);
-      const started = Date.now();
       await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-      await page.waitForSelector('.arena-paywall-pending', { timeout: 10_000 });
-      await page.waitForSelector('.arena-access-unavailable', { timeout: 20_000 });
-      const elapsed = Date.now() - started;
-      assert.ok(elapsed < 20_000, `${fail}: the pending state ends within its deadline (${elapsed} ms)`);
+      await page.waitForSelector('.arena-paywall-pending', { timeout: READY_MS });
+      await page.waitForSelector('.arena-access-unavailable', { timeout: READY_MS });
+      // The page's own clock: from its start to the retry offer, within the
+      // check's 10 s deadline plus the time to load and render.
+      const elapsed = await offeredRetryAt(page);
+      assert.ok(elapsed < 20_000, `${fail}: the pending state ends within its deadline (${Math.round(elapsed)} ms)`);
       // A failed check is neither a grant nor a refusal: a retry, never the lock or the subscription pitch.
       assert.match(await page.$eval('.arena-access-unavailable', node => node.textContent), /Не удалось проверить доступ/, fail);
       assert.equal(await page.$('.arena-paywall'), null, `${fail}: no lock for an unconfirmed refusal`);
@@ -330,15 +366,18 @@ test('a session check that keeps failing ends in a gate that can retry', async (
       // Bounded: no endless polling once the gate is shown.
       const counted = () => gateway.requests.filter(request => request.t === t
         && request.url === (fail === 'session' ? '/api/auth/me' : '/api/subscription/status')).length;
+      // A request sent just before the page gave up can reach the gateway a
+      // little later on a busy runner; count from after that, then make sure
+      // nothing new comes for longer than the longest retry delay (3 s).
+      await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1_000)));
       const checks = counted();
-      // Longer than the longest retry delay (3 s): nothing is scheduled any more.
       await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 3_500)));
       assert.equal(counted(), checks, `${fail}: no more checks after giving up`);
       assert.ok(checks <= 10, `${fail}: ${checks} checks`);
       // The retry action runs the check again; a recovered server lets the subscriber in.
       await page.deleteCookie({ name: 'fail', url: gateway.origin });
       await page.click('.arena-access-unavailable button');
-      await page.waitForSelector('.bg-tier-list-page', { timeout: 10_000 });
+      await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
       await page.close();
       await context.close();
     }));
@@ -358,8 +397,8 @@ test('a late answer about the previous session is never shown or remembered for 
     // check (sent with the subscriber's session) is still on its way.
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
     await setCookies(page, gateway.origin, { reader: 'b', hp_viewer: 'another-session-tag-02' });
-    await page.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
-    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10_000 });
+    await page.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
+    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     const { frames, hint } = await page.evaluate(() => ({ frames: window.__frames,
       hint: JSON.parse(localStorage.getItem('hs_arena_viewer_hint') ?? 'null') }));
     const crossed = frames.map(frame => JSON.parse(frame.hint ?? 'null'))
@@ -380,10 +419,9 @@ test('a session check whose answer never finishes ends at its deadline without a
     await page.setViewport(viewports[0]);
     await setCookies(page, gateway.origin, { reader: '1', fail: 'hang' });
     await page.evaluateOnNewDocument(recordFrames);
-    const started = Date.now();
     await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.arena-access-unavailable', { timeout: 25_000 });
-    assert.ok(Date.now() - started < 20_000);
+    await page.waitForSelector('.arena-access-unavailable', { timeout: READY_MS });
+    assert.ok(await offeredRetryAt(page) < 20_000, 'the hung check ends within its deadline');
     assert.deepEqual(await page.evaluate(() => window.__frames.filter(frame => frame.gate).length), 0, 'never the lock');
     await context.close();
   });
@@ -398,11 +436,10 @@ test('a session check whose answer never finishes ends at its deadline and drops
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { fail: 'hang' });
     await page.evaluateOnNewDocument(recordFrames);
-    const started = Date.now();
     await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.arena-access-unavailable', { timeout: 25_000 });
-    const elapsed = Date.now() - started;
-    assert.ok(elapsed < 20_000, `the hung check ends within its deadline (${elapsed} ms)`);
+    await page.waitForSelector('.arena-access-unavailable', { timeout: READY_MS });
+    const elapsed = await offeredRetryAt(page);
+    assert.ok(elapsed < 20_000, `the hung check ends within its deadline (${Math.round(elapsed)} ms)`);
     assert.match(await page.$eval('.arena-access-unavailable', node => node.textContent), /Не удалось проверить доступ/);
     assert.deepEqual(await page.evaluate(() => window.__frames.filter(frame => frame.gate).length), 0, 'never the lock');
     const state = await page.evaluate(() => ({ viewer: document.body.textContent.includes('Подписчица'),
@@ -430,12 +467,12 @@ test('a late answer that put back the old session tag is dropped once another ta
     await second.setViewport(viewport);
     await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
     await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 10_000 });
+    await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
     // Tab 1's late answer arrives and puts the subscriber's tag back; the
     // visitor returns to tab 1 (a background tab may defer its rendering).
     await first.evaluate(delay => new Promise(resolve => setTimeout(resolve, delay)), SESSION_DELAY_MS + 2_000);
     await first.bringToFront();
-    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
+    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
     const { frames, hint } = await first.evaluate(() => ({ frames: window.__frames,
       hint: JSON.parse(localStorage.getItem('hs_arena_viewer_hint') ?? 'null') }));
     assert.deepEqual(frames.filter(frame => frame.viewer).slice(0, 1), [], 'the previous account is never shown');
@@ -454,8 +491,8 @@ test('a session that ends between the session and subscription answers leaves a 
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { fail: 'status401' });
     await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => localStorage.getItem('hs_arena_verified_viewer') === 'guest', { timeout: 15_000 });
-    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10_000 });
+    await page.waitForFunction(() => localStorage.getItem('hs_arena_verified_viewer') === 'guest', { timeout: READY_MS });
+    await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 300)));
     const state = await page.evaluate(() => ({ viewer: document.body.textContent.includes('Подписчица'),
       paid: Boolean(document.querySelector('.bg-tier-list-page')),
@@ -478,7 +515,7 @@ test('a remembered refusal stays pending until the server confirms it', async ()
     await setCookies(page, gateway.origin, { plan: 'active', statusdelay: '1' });
     await page.evaluateOnNewDocument(recordFrames);
     await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.bg-tier-list-page', { timeout: 20_000 });
+    await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
     const frames = await page.evaluate(() => window.__frames);
     assert.deepEqual(frames.filter(frame => frame.gate || frame.preview).slice(0, 1), [], 'no lock before the server refuses');
     assert.ok(frames.some(frame => frame.viewer), 'the account shows meanwhile');
@@ -491,14 +528,14 @@ async function signIn(page, origin, signin = '') {
   // Typed only once the form has hydrated (a controlled input typed into
   // earlier loses its value), and submitted again if the first press was lost.
   await page.goto(`${origin}/?login`, { waitUntil: 'networkidle0' });
-  const email = await page.waitForSelector('.login-field input[type="email"]', { timeout: 15_000 });
+  const email = await page.waitForSelector('.login-field input[type="email"]', { timeout: READY_MS });
   await email.type('reader@example.test');
   await page.type('input[autocomplete="current-password"]', 'secret-password');
   await page.waitForFunction(() => document.querySelector('input[autocomplete="current-password"]')?.value === 'secret-password',
-    { timeout: 10_000 });
+    { timeout: READY_MS });
   for (let attempt = 0; ; attempt += 1) {
     await page.click('.login-submit');
-    const signedIn = await page.waitForFunction(() => document.cookie.includes('reader=1'), { timeout: 7_000 })
+    const signedIn = await page.waitForFunction(() => document.cookie.includes('reader=1'), { timeout: 15_000 })
       .then(() => true, () => false);
     if (signedIn) return;
     assert.ok(attempt < 2, 'the sign-in form must submit');
@@ -514,7 +551,7 @@ test('a sign-in whose subscription answers late shows no lock on the next paid p
     await signIn(page, gateway.origin, 'statusdelay');
     await page.evaluate(() => { window.__frames.length = 0; });
     await page.click('.arena-sidebar a[href="/battlegrounds/tier-list/"]');
-    await page.waitForSelector('.bg-tier-list-page', { timeout: 30_000 });
+    await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
     const frames = await page.evaluate(() => window.__frames);
     assert.deepEqual(frames.filter(frame => frame.gate || frame.preview).slice(0, 1), [], 'no lock before the subscription answers');
     await context.close();
@@ -527,7 +564,7 @@ test('a sign-in whose subscription answer is 401 leaves a guest everywhere', asy
     const page = await context.newPage();
     await page.setViewport(viewports[0]);
     await signIn(page, gateway.origin, 'status401');
-    await page.waitForFunction(() => localStorage.getItem('hs_arena_verified_viewer') === 'guest', { timeout: 15_000 });
+    await page.waitForFunction(() => localStorage.getItem('hs_arena_verified_viewer') === 'guest', { timeout: READY_MS });
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 300)));
     const state = await page.evaluate(() => ({
       viewer: Boolean(document.querySelector('.arena-sidebar-profile-avatar')),
@@ -549,18 +586,18 @@ test('a late 401 about the previous session leaves the new session\'s memory alo
     await setCookies(first, gateway.origin, { reader: '1', hp_viewer: TAG, fail: 'late401' });
     await first.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
     await first.waitForFunction(() => performance.getEntriesByType('resource')
-      .some(entry => entry.name.endsWith('/api/auth/me')), { timeout: 10_000 });
+      .some(entry => entry.name.endsWith('/api/auth/me')), { timeout: READY_MS });
     const second = await context.newPage();
     await second.setViewport(viewport);
     await second.deleteCookie({ name: 'fail', url: gateway.origin });
     await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
     await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
     await second.waitForFunction(() => JSON.parse(localStorage.getItem('hs_arena_viewer_hint') ?? 'null')?.user.id === 'instant-other',
-      { timeout: 10_000 });
+      { timeout: READY_MS });
     const before = await second.evaluate(() => ({ ...localStorage }));
     // Tab 1's 401 arrives (and its check runs again for the new session).
     await first.bringToFront();
-    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
+    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
     await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
     const after = await first.evaluate(() => ({ ...localStorage }));
     assert.equal(after.hs_arena_auth_cookie_hint, '1', 'the session hint stays');
@@ -586,11 +623,11 @@ test('a late guest answer does not take the new session\'s tag away', async () =
     await second.deleteCookie({ name: 'guestdelay', url: gateway.origin });
     await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
     await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 10_000 });
+    await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
     await first.bringToFront();
-    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
+    await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
     // Past the late guest answer (3 s after tab 1 asked).
-    await first.waitForFunction(started => performance.now() - started > 3_500, { timeout: 10_000 }, 0);
+    await first.waitForFunction(started => performance.now() - started > 3_500, { timeout: READY_MS }, 0);
     assert.match(await first.evaluate(() => document.cookie), new RegExp(`hp_viewer=${TAGS.b}`), 'the new session keeps its tag');
     assert.ok(await first.evaluate(() => document.body.textContent.includes('Другая Читательница')));
     // B has no subscription: its own, confirmed refusal is the gate tab 1 now shows.
@@ -607,31 +644,31 @@ for (const path of ['session check', 'sign-in']) {
       const viewport = viewports[0];
       const first = await context.newPage();
       await first.setViewport(viewport);
+      // The subscriber's answer: headers out, body held until released below.
+      const held = `bodydelay-${path.replace(' ', '-')}`;
       if (path === 'sign-in') {
-        await signIn(first, gateway.origin, 'bodydelay');
+        await setCookies(first, gateway.origin, { t: held });
+        await signIn(first, gateway.origin, held);
       } else {
-        await setCookies(first, gateway.origin, { reader: '1', hp_viewer: TAG, bodydelay: '1' });
+        await setCookies(first, gateway.origin, { reader: '1', hp_viewer: TAG, bodydelay: held, t: held });
         await first.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
       }
-      // The headers of the subscriber's answer are in, its body (2.5 s late) is
-      // not: a resource timing entry appears only once the body has ended, so
-      // wait for the session answer and the status request to start instead.
-      if (path === 'session check') {
-        await first.waitForFunction(() => performance.getEntriesByType('resource')
-          .some(entry => entry.name.endsWith('/api/auth/me')), { timeout: 15_000 });
+      const statusAsked = () => gateway.requests.some(request => request.t === held && request.url === '/api/subscription/status');
+      for (const started = Date.now(); !statusAsked(); await new Promise(resolve => setTimeout(resolve, 50))) {
+        assert.ok(Date.now() - started < READY_MS, 'the subscription is asked for');
       }
-      await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 700)));
-      assert.equal(await first.evaluate(() => performance.getEntriesByType('resource')
-        .some(entry => entry.name.endsWith('/api/subscription/status'))), false, 'the body is still on its way');
+      // Now another account signs in, while that body is still on its way.
       const second = await context.newPage();
       await second.setViewport(viewport);
       await second.deleteCookie({ name: 'bodydelay', url: gateway.origin });
       await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
       await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-      await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 10_000 });
+      await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
+      assert.equal(gateway.holdsBody(held), true, 'the subscriber\'s body is still on its way');
+      gateway.releaseBody(held);
       // The same document: its late body must not publish the subscriber here.
       await first.bringToFront();
-      await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: 20_000 });
+      await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
       await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 1_000)));
       const state = await first.evaluate(() => ({ paid: Boolean(document.querySelector('.bg-tier-list-page')),
         hint: JSON.parse(localStorage.getItem('hs_arena_viewer_hint') ?? 'null') }));
@@ -652,7 +689,10 @@ test('search shows no subscription lock while a remembered refusal is unconfirme
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { plan: 'active', statusdelay: '1' });
     await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.global-search__input', { timeout: 10_000 });
+    await page.waitForSelector('.global-search__input', { timeout: READY_MS });
+    // Typing reaches the search only once React has hydrated the input.
+    await page.waitForFunction(() => Object.keys(document.querySelector('.global-search__input'))
+      .some(key => key.startsWith('__reactFiber')), { timeout: READY_MS });
     await page.evaluate(() => {
       window.__searchLocks = [];
       const sample = () => {
@@ -661,10 +701,17 @@ test('search shows no subscription lock while a remembered refusal is unconfirme
       };
       requestAnimationFrame(sample);
     });
-    await page.type('.global-search__input', 'гайд');
-    await page.waitForSelector('.global-search-result', { timeout: 10_000 });
+    // Typed again if the keystrokes were lost on a busy runner (the locks are
+    // sampled throughout either way).
+    for (let attempt = 0; ; attempt += 1) {
+      await page.click('.global-search__input', { clickCount: 3 });
+      await page.type('.global-search__input', 'гайд');
+      const found = await page.waitForSelector('.global-search-result', { timeout: 8_000 }).then(() => true, () => false);
+      if (found) break;
+      assert.ok(attempt < 2, 'search shows the article');
+    }
     // Through the late subscription answer, which grants the article.
-    await page.waitForSelector('.bg-tier-list-page', { timeout: 20_000 });
+    await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
     assert.equal(await page.evaluate(() => window.__searchLocks.filter(Boolean).length), 0, 'no lock before the server refuses');
     await context.close();
   });

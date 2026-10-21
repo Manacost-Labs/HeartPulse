@@ -51,6 +51,11 @@ function rememberVerifiedViewer(user: AuthUser, subscription: SubscriptionStatus
  */
 const unmarkRememberedViewer = () => { delete document.documentElement.dataset.hpViewer; };
 
+/** An answer about a session this browser no longer holds: not a server failure. */
+class SessionChanged extends Error {}
+// A check restarts at most this often in a row for session changes.
+const MAX_SESSION_RESTARTS = 3;
+
 type PublicAccessSnapshot = ReturnType<typeof usePublicAccessState>;
 export const PublicAccessContext = createContext<ReturnType<typeof usePublicAccessStore> | null>(null);
 
@@ -221,7 +226,9 @@ export function usePublicAccessState(routeKey: string) {
     // page `unavailable` (a retry, never a lock) with the account it could
     // confirm, if that may be shown.
     const verifySession = async (quiet = false,
-      series = { deadline: performance.now() + VERIFY_DEADLINE_MS, retries: 0, atomic: false }) => {
+      series: { deadline: number; retries: number; atomic: boolean; confirmed?: { user: AuthUser; tag: string | null };
+        restarts?: number }
+        = { deadline: performance.now() + VERIFY_DEADLINE_MS, retries: 0, atomic: false }) => {
       const run = ++requestGeneration.current;
       const superseded = () => controller.signal.aborted || run !== requestGeneration.current;
       if (retryTimer !== null) window.clearTimeout(retryTimer);
@@ -230,6 +237,7 @@ export function usePublicAccessState(routeKey: string) {
       attempts.add(attempt);
       const deadlineTimer = window.setTimeout(() => attempt.abort(), Math.max(0, series.deadline - performance.now()));
       let confirmed: AuthUser | null = null;
+      let confirmedSession: string | null = null;
       const recordAtStart = verifiedViewer();
       const atomic = series.atomic || atomicUntilConfirmed;
       if (!quiet) {
@@ -249,7 +257,7 @@ export function usePublicAccessState(routeKey: string) {
         const confirmedTag = viewerSession === undefined ? null : viewerSession;
         const sessionChanged = (since?: string | null) => (viewerSession !== undefined && sessionTag() !== viewerSession)
           || recordNamesAnotherViewer(answer, since);
-        if (sessionChanged(recordAtStart)) throw new Error('The session changed during the check');
+        if (sessionChanged(recordAtStart)) throw new SessionChanged();
         if (answer) markAuthSessionHint();
         else {
           clearAuthSessionHint();
@@ -260,6 +268,7 @@ export function usePublicAccessState(routeKey: string) {
         }
         recordVerifiedAccount(answer);
         confirmed = answer;
+        confirmedSession = confirmedTag;
         apply({ type: 'session', viewer: answer, publish: !atomic, quiet });
         if (answer) {
           const response = await fetch('/api/subscription/status', { credentials: 'same-origin', signal: attempt.signal });
@@ -268,7 +277,7 @@ export function usePublicAccessState(routeKey: string) {
           // not wipe what the new session wrote.
           if (sessionChanged()) {
             confirmed = null;
-            throw new Error('The session changed during the check');
+            throw new SessionChanged();
           }
           if (response.status === 401) {
             // The session ended between the two answers.
@@ -284,14 +293,30 @@ export function usePublicAccessState(routeKey: string) {
           if (superseded()) return;
           if (sessionChanged()) {
             confirmed = null;
-            throw new Error('The session changed during the check');
+            throw new SessionChanged();
           }
           rememberVerifiedViewer(answer, value, confirmedTag, sessionExpiresAt);
           apply({ type: 'confirmed', viewer: answer, grants: value });
         }
         atomicUntilConfirmed = false;
-      } catch {
+      } catch (error) {
         if (superseded()) return;
+        // The account this series confirmed, if any; it counts only while this
+        // browser holds the same session and no other page confirmed another
+        // viewer since.
+        const last = confirmed ? { user: confirmed, tag: confirmedSession } : series.confirmed;
+        const lastStillHolds = Boolean(last && sessionTag() === last.tag && !recordNamesAnotherViewer(last.user));
+        // Another tab signed in or out while this check was on its way (seen
+        // in an answer, or by the time the check failed): drop it and check
+        // the session this browser holds now, with a deadline of its own,
+        // instead of spending this check's retries or showing the old account.
+        const sessionMoved = error instanceof SessionChanged || Boolean(last && !lastStillHolds);
+        if (sessionMoved && (series.restarts ?? 0) < MAX_SESSION_RESTARTS) {
+          apply({ type: 'hidden' });
+          void verifySession(false, { deadline: performance.now() + VERIFY_DEADLINE_MS, retries: 0, atomic: series.atomic,
+            restarts: (series.restarts ?? 0) + 1 });
+          return;
+        }
         // Whatever this browser remembers, an unfinished check is neither a
         // grant nor a refusal: retry within the deadline, then `unavailable`.
         if (quiet) apply({ type: 'hidden' });
@@ -299,10 +324,12 @@ export function usePublicAccessState(routeKey: string) {
         if (retryDelay !== undefined && performance.now() + retryDelay < series.deadline) {
           unmarkRememberedViewer();
           retryTimer = window.setTimeout(() => {
-            void verifySession(false, { ...series, retries: series.retries + 1 });
+            void verifySession(false, { ...series, retries: series.retries + 1, confirmed: last });
           }, retryDelay);
         } else {
-          apply({ type: 'unavailable', viewer: atomic ? null : confirmed });
+          // The account confirmed in this series (in this attempt, or an
+          // earlier one when the last could not reach the server in time).
+          apply({ type: 'unavailable', viewer: atomic || !lastStillHolds ? null : last?.user ?? null });
         }
       } finally {
         window.clearTimeout(deadlineTimer);
