@@ -1,0 +1,47 @@
+{
+  "reason": "Новое меню (мгновенный отклик, компактная панель, свайп-ящик, палитра поиска в шапке) живёт в общей оболочке сайта, поэтому каждая публичная страница получает несколько десятков байт; матчапы — ещё и фикс teaser. Одобрение по CI-замеру сборки меню, кабинета и статистики существ.",
+  "routes": {
+    "/articles/": {
+      "jsGzipBytes": 512
+    },
+    "/battlegrounds/tier-list/": {
+      "jsGzipBytes": 512
+    },
+    "/classes/": {
+      "jsGzipBytes": 512
+    },
+    "/contests/": {
+      "jsGzipBytes": 512
+    },
+    "/developers/api/": {
+      "jsGzipBytes": 512
+    },
+    "/faq/": {
+      "jsGzipBytes": 512
+    },
+    "/guides-archive/": {
+      "jsGzipBytes": 512
+    },
+    "/heroes/": {
+      "jsGzipBytes": 512
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 512
+    },
+    "/library/minions/": {
+      "jsGzipBytes": 512
+    },
+    "/library/": {
+      "jsGzipBytes": 512
+    },
+    "/privacy/": {
+      "jsGzipBytes": 512
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 512
+    },
+    "/standard/matchups/": {
+      "jsGzipBytes": 512
+    }
+  }
+}
