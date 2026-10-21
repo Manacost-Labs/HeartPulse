@@ -1,6 +1,8 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
+import { matchArchetypeTranslation } from './modules/constructedArchetypes/public.js';
+import { duplicateLabelError, insertManualTranslation, listDuplicateLabels, loadTranslationMap, russianLabelOwner } from './adminArchetypeTranslationStore.js';
 
 const DEFAULT_PAGE_SIZE = 40;
 const MAX_PAGE_SIZE = 100;
@@ -193,9 +195,7 @@ export function analyzeArchetypeTranslationCoverage(
   database: DatabaseSync,
   observed: ObservedArchetype[],
 ): ArchetypeTranslationCoverage {
-  const translationKeys = (database.prepare('SELECT name_en_key FROM archetype_translations').all() as Array<{ name_en_key: string }>)
-    .map(row => String(row.name_en_key || '').trim())
-    .filter(Boolean);
+  const translations = loadTranslationMap(database);
   const grouped = new Map<string, { nameEn: string; ranks: Set<string>; deckCode: string | null }>();
   for (const item of observed) {
     const nameEn = String(item?.nameEn || '').trim().replace(/\s+/g, ' ');
@@ -210,7 +210,7 @@ export function analyzeArchetypeTranslationCoverage(
   }
 
   const missing = [...grouped.entries()]
-    .filter(([key]) => !translationKeys.some(translationKey => key === translationKey || key.includes(translationKey)))
+    .filter(([, item]) => !matchArchetypeTranslation(item.nameEn, translations))
     .map(([, item]) => ({
       nameEn: item.nameEn,
       ranks: [...item.ranks].sort((left, right) => left.localeCompare(right, 'ru')),
@@ -263,6 +263,7 @@ function listTranslations(database: DatabaseSync, request: Request) {
   `).get() as Record<string, unknown>;
   return {
     items: items.map(fromRow),
+    duplicates: listDuplicateLabels(database),
     total,
     page,
     pageSize,
@@ -327,17 +328,13 @@ export function createAdminArchetypeTranslationRouter(
     } catch (error) {
       return response.status(400).json({ error: error instanceof Error ? error.message : 'Некорректный перевод' });
     }
+    const owner = russianLabelOwner(dependencies.getDatabase(), translation.nameRuKey, translation.nameKey);
+    if (owner) return response.status(409).json(duplicateLabelError(owner));
     const timestamp = now().toISOString();
     try {
-      const result = dependencies.getDatabase().prepare(`
-        INSERT INTO archetype_translations (
-          blizzcore_id, name_en, name_en_key, name_ru, name_ru_key, source, created_at, updated_at, synced_at, updated_by
-        ) VALUES (NULL, ?, ?, ?, ?, 'manual', ?, ?, NULL, ?)
-      `).run(translation.nameEn, translation.nameKey, translation.nameRu, translation.nameRuKey, timestamp, timestamp, actor.id);
-      const row = dependencies.getDatabase().prepare('SELECT * FROM archetype_translations WHERE id = ?')
-        .get(Number(result.lastInsertRowid)) as Record<string, unknown>;
+      const row = insertManualTranslation(dependencies.getDatabase(), translation, actor.id, timestamp);
       dependencies.invalidateTranslations();
-      dependencies.recordAudit?.(actor, 'archetype-translation.created', String(result.lastInsertRowid), {
+      dependencies.recordAudit?.(actor, 'archetype-translation.created', String(row.id), {
         nameEn: translation.nameEn,
       });
       return response.status(201).json({ success: true, translation: fromRow(row) });
@@ -361,6 +358,8 @@ export function createAdminArchetypeTranslationRouter(
     const database = dependencies.getDatabase();
     const previous = database.prepare('SELECT * FROM archetype_translations WHERE id = ?').get(id) as Record<string, unknown> | undefined;
     if (!previous) return response.status(404).json({ error: 'Перевод не найден' });
+    const owner = russianLabelOwner(database, translation.nameRuKey, translation.nameKey, id);
+    if (owner) return response.status(409).json(duplicateLabelError(owner));
     try {
       database.prepare(`
         UPDATE archetype_translations

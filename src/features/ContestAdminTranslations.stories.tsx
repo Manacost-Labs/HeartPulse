@@ -18,7 +18,7 @@ const meta = {
       const item = path.includes('mechanic')
         ? { key: 'TAUNT', nameEn: 'Taunt', nameRu: 'Провокация', source: 'manual', cardCount: 48, updatedAt: null, kind: 'mechanic', example: null }
         : { id: 1, blizzcoreId: null, nameEn: 'Dragon Warrior', nameRu: parameters.longTranslation ? 'Длинный перевод архетипа с несколькими словами' : 'Дракон Воин', source: 'manual', createdAt: '', updatedAt: '', syncedAt: null, updatedBy: null };
-      return new Response(JSON.stringify(path.endsWith('/untranslated') ? { items: [], totalObserved: 1, translated: 1, missing: 0, coveragePercent: 100 } : { items: [item], total: 1, page: 1, pageSize: 40, pages: 1, stats: { total: 1, manual: 1, default: 0, blizzcore: 0, missing: 0, mechanics: 1, tags: 0, lastSyncedAt: null } }), { headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(path.endsWith('/untranslated') ? { items: [], totalObserved: 1, translated: 1, missing: 0, coveragePercent: 100 } : { items: [item], total: 1, page: 1, pageSize: 40, pages: 1, stats: { total: 1, manual: 1, default: 0, blizzcore: 0, missing: 0, mechanics: 1, tags: 0, lastSyncedAt: null }, duplicates: parameters.duplicates ?? [] }), { headers: { 'Content-Type': 'application/json' } });
     };
     return () => { globalThis.fetch = original; };
   },
@@ -36,5 +36,20 @@ export const LongNames: Story = {
     await userEvent.click(edit);
     await expect(canvas.getByRole('heading', { name: 'Редактирование перевода' })).toBeVisible();
     await expect(canvas.getByLabelText('Русский перевод')).toHaveValue('Длинный перевод архетипа с несколькими словами');
+  },
+};
+
+export const DuplicateLabels: Story = {
+  parameters: {
+    duplicates: [
+      { nameRu: 'Манашторм Маг', namesEn: ['Manastorm Mage', 'Summoner Mage'] },
+      { nameRu: 'Ренатал Хайландер Разбойник на воровстве', namesEn: ['XL HL Thief Priest', 'XL HL Thief Rogue'] },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText('Одинаковые русские названия у разных архетипов: 2')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: '«Манашторм Маг»' }));
+    await expect(canvas.getByLabelText('Поиск')).toHaveValue('Манашторм Маг');
   },
 };

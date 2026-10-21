@@ -9,10 +9,10 @@ import {
   jaccardScore,
   matchArchetypeByDeckCode,
   resolveDeckFromCode,
-  translateArchetypeName,
   deckSizeLimitForCards,
 } from '../server/deckBuilderResolve.js';
 import { createDeckBuilderRouter } from '../server/deckBuilderRoutes.js';
+import { archetypeLabel } from '../server/modules/constructedArchetypes/public.js';
 import { decode, encode } from '@firestone-hs/deckstrings';
 
 assert.equal(isValidDeckDbfId(120082), true);
@@ -62,7 +62,7 @@ assert.ok(resolved?.cards.some(card => card.dbfId === 120082 && card.name.includ
 assert.ok(resolved?.cards.some(card => card.dbfId === 120083 && card.name.includes('Топор')));
 assert.ok((resolved?.archetype?.score || 0) >= 0.42);
 assert.equal(resolved?.archetype?.archetypeLabel, 'ДХ с Душой Бездны');
-assert.equal(translateArchetypeName('Broxigar DH', { 'broxigar dh': 'Броксигар Охотник на демонов' }), 'Броксигар Охотник на демонов');
+assert.equal(archetypeLabel('Broxigar DH', { 'broxigar dh': 'Броксигар Охотник на демонов' }), 'Броксигар Охотник на демонов');
 assert.ok(jaccardScore(new Set([1, 2, 3]), new Set([2, 3, 4])) > 0.4);
 assert.equal(matchArchetypeByDeckCode('nope', []), null);
 

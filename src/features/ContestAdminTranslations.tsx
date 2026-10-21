@@ -2,6 +2,7 @@ import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
+import { DuplicateLabelsNotice, type ArchetypeLabelDuplicate } from './ContestAdminTranslationDuplicates';
 import type { AdminMessage } from './adminWorkspaceState';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 export type ArchetypeTranslation = {
@@ -23,6 +24,7 @@ type TranslationResponse = {
   pageSize: number;
   pages: number;
   stats: { total: number; manual: number; blizzcore: number; lastSyncedAt: string | null };
+  duplicates?: ArchetypeLabelDuplicate[];
 };
 
 type TranslationDraft = { nameEn: string; nameRu: string };
@@ -77,14 +79,6 @@ function useLatestRequestCoordinator(): LatestRequestCoordinator {
   const coordinatorRef = useRef<LatestRequestCoordinator | null>(null);
   if (!coordinatorRef.current) coordinatorRef.current = createLatestRequestCoordinator();
   return coordinatorRef.current;
-}
-
-function formatSyncDate(value: string | null): string {
-  if (!value) return 'ещё не выполнялась';
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime())
-    ? parsed.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })
-    : value;
 }
 
 async function copyText(value: string): Promise<boolean> {
@@ -312,6 +306,7 @@ function TranslationWorkspaceView({
               <p className="contest-muted">Найдено: {data.total}. Изменения сразу применяются к названиям архетипов.</p>
             </div>
           </div>
+          <DuplicateLabelsNotice duplicates={data.duplicates} onSearch={onQueryChange} />
           <div className="admin-list-toolbar admin-translation-toolbar">
             <label htmlFor="admin-translation-search">
               Поиск

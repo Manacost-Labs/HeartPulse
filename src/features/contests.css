@@ -1702,6 +1702,24 @@
   background: #fff4f4;
 }
 
+.admin-translation-duplicates {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #e6c98a;
+  border-radius: 7px;
+  color: #6b4a07;
+  background: #fff9ec;
+  font-size: 0.8rem;
+}
+
+.admin-translation-duplicates ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.admin-translation-duplicates button,
 .admin-translation-coverage-error button {
   border: 0;
   color: inherit;

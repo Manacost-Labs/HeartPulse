@@ -1,5 +1,12 @@
 export { createArchetypeCatalogCache } from './catalogCache.js';
-export { disambiguateArchetypeLabels, translateStandardArchetype } from './archetypeLabel.js';
+export {
+  archetypeFallbackTranslations,
+  archetypeLabel,
+  archetypeTranslationKey,
+  disambiguateArchetypeLabels,
+  findDuplicateArchetypeLabels,
+  matchArchetypeTranslation,
+} from './archetypeLabel.js';
 export { assertArchetypeCatalogSource } from './catalogSource.js';
 export { createArchetypeDetailHandler } from './detailHandler.js';
 export { createMetaSliceCache, loadWithRetiredPatchFallback, warmMetaEntrySlices } from './metaSliceCache.js';

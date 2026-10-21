@@ -5,7 +5,6 @@ import {
   indexCardsByDbf,
   indexCardsRuByDbf,
   matchArchetypeByDeckCode,
-  normalizeArchetypeKey,
   resolveDeckCard,
   resolveDeckFromCode,
   type DeckBuilderCardRecord,
@@ -17,6 +16,7 @@ import {
   fetchHsGuruArchetypeName,
   loadArchetypeDeckCandidates,
 } from './archetypeDeckIdentity.js';
+import { archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 
 type DeckBuilderRouterDependencies = {
   adminGuard: RequestHandler;
@@ -122,12 +122,9 @@ async function resolveDeckPayload(
     ? matchArchetypeByDeckCode(deckCode, candidates)
     : null;
   const verifiedPreferredArchetype = localHintMatch
-    && normalizeArchetypeKey(localHintMatch.nameEn) === normalizeArchetypeKey(preferredArchetypeName)
+    && archetypeTranslationKey(localHintMatch.nameEn) === archetypeTranslationKey(preferredArchetypeName)
     ? localHintMatch.nameEn
     : '';
-  const translationMap = Object.fromEntries(
-    Object.entries(translations).map(([key, value]) => [normalizeArchetypeKey(key), value]),
-  );
   const catalogCards = preferredFormat === 'wild'
     ? [...wildCards, ...standardCards, ...(hsjson ? [...hsjson.byDbf.values()] : [])]
     : [...standardCards, ...wildCards, ...(hsjson ? [...hsjson.byDbf.values()] : [])];
@@ -137,7 +134,7 @@ async function resolveDeckPayload(
     catalogCards,
     cardsRu,
     archetypeCandidates: candidates,
-    archetypeTranslations: translationMap,
+    archetypeTranslations: translations,
     preferredArchetypeName: hsGuruArchetype || verifiedPreferredArchetype,
   });
   if (!resolved) throw Object.assign(new Error('Некорректный код колоды'), { status: 400 });
@@ -147,7 +144,7 @@ async function resolveDeckPayload(
       catalogCards,
       cardsRu,
       archetypeCandidates: candidates,
-      archetypeTranslations: translationMap,
+      archetypeTranslations: translations,
     });
     if (localOnly?.archetype) resolved.archetype = localOnly.archetype;
   }

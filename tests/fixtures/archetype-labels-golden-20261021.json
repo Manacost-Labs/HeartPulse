@@ -1,0 +1,1047 @@
+{
+ "translations": {
+  "aggro dk": "Агро ДК",
+  "aggro paladin": "Агро Паладин",
+  "alex rogue": "Комбо Разбойник с Алекстразой",
+  "armor warrior": "Воин на броне",
+  "attack druid": "Друид на атаке",
+  "aura paladin": "Аура Паладин",
+  "ayaya rogue": "Айя Разбойник",
+  "azshara druid": "Азшара Друид",
+  "beast druid": "Друид на зверях",
+  "big shaman": "Биг Шаман",
+  "blood dk": "ДК Крови",
+  "boar rogue": "Разбойник на Элвиннских вепрях",
+  "broxigar dh": "Броксигар Охотник на демонов",
+  "burn mage": "СПД Маг",
+  "burnlock": "Агро Чернокнижник",
+  "c'thun dh": "К'тун Охотник на демонов",
+  "c'thun druid": "К'тун Друид",
+  "c'thun priest": "К'тун Жрец",
+  "c'thun shaman": "К'тун Шаман",
+  "c'thun warlock": "К'тун Чернокнижник",
+  "chef druid": "Шеф Друид",
+  "companion hunter": "Питомец Охотник",
+  "control priest": "Контроль Жрец",
+  "cta paladin": "Паладин через Призыв к оружию",
+  "cute warrior": "Воин на исступлении",
+  "demon warlock": "Демонолок",
+  "discolock": "Дискард Чернокнижник",
+  "dragon hunter": "Дракон Охотник",
+  "dragon warrior": "Дракон Воин",
+  "drake warlock": "ОТК Дейос Чернокнижник",
+  "dude paladin": "Токен Паладин",
+  "egg dk": "Кхелос Рыцарь Смерти",
+  "egg priest": "Кхелос Жрец",
+  "egg warrior": "Кхелос Воин",
+  "egglock": "Кхелос Чернокнижник",
+  "elemental mage": "Элементаль Маг",
+  "elemental shaman": "Элементаль Шаман",
+  "end of turnadin": "Ноздорму Паладин",
+  "evenlock": "Четный Чернокнижник",
+  "face hunter": "Фейс Охотник",
+  "garona rogue": "Агро Разбойник",
+  "godfrey warlock": "Годфри Чернокнижник",
+  "handbuff dk": "Хэндбафф Рыцарь Смерти",
+  "handbuff warrior": "Хэндбафф Воин",
+  "harold dh": "ДХ на возвещении",
+  "harold dk": "Рыцарь Смерти на возвещении",
+  "harold egglock": "Кхелос Лок на возвещении",
+  "harold rogue": "Разбойник на возвещении",
+  "harold shaman": "Шаман на возвещении",
+  "harold warlock": "Чернокнижник на возвещении",
+  "harold warrior": "Воин на возвещении",
+  "highlander hunter": "Хайландер Охотник",
+  "highlander rogue": "Хайландер Разбойник",
+  "hl igneous warrior": "Ренатал Контроль Воин",
+  "holy paladin": "Паладин на заклинаниях Света",
+  "igneous odyn warrior": "Один Воин",
+  "imbue mage": "Маг на силе героя",
+  "imbue paladin": "Паладин на силе героя",
+  "imbue priest": "Жрец на силе героя",
+  "imbue rogue": "Разбойник на силе героя",
+  "jtu quest mage": "Квест Маг",
+  "kingsbane rogue": "Разбойник с Погибелью королей",
+  "leyline mage": "Лейлайн Маг",
+  "lo'gosh warrior": "Ло'гош Воин",
+  "lynessa libram paladin": "Линесса Паладин на манускриптах",
+  "manastorm mage": "Манашторм Маг",
+  "mech hunter": "Мех Охотник",
+  "mech paladin": "Мех Паладин",
+  "merithra druid": "Дракон Друид",
+  "mill paladin": "Милл Паладин",
+  "mill rogue": "Милл Разбойник",
+  "miracle druid": "Миракл Друид",
+  "miracle rogue": "Миракл Разбойник",
+  "miracle warlock": "Миракл Чернокнижник",
+  "mug shaman": "Граб Шаман",
+  "n'zoth mech hunter": "Н'зот Охотник на механизмах",
+  "n'zoth rogue": "Н'зот Разбойник",
+  "no minion dh": "Спелл Охотник на демонов",
+  "piglock": "Чернокнижник с Расхождением",
+  "pirate dh": "Пират Охотник на демонов",
+  "pirate warrior": "Пират Воин",
+  "pure paladin": "Чистый Паладин",
+  "quest dh": "Квест Охотник на демонов",
+  "quest hunter": "Квест Охотник",
+  "quest mage": "Квест Маг",
+  "quest paladin": "Квест Паладин",
+  "quest priest": "Квест Жрец",
+  "quest warrior": "Квест Воин",
+  "questline priest": "Квестлайн Жрец",
+  "rafaamlock": "Рафаам Чернокнижник",
+  "rainbow dk": "Радужный Рыцарь Смерти",
+  "raza dh": "Раза Охотник на демонов",
+  "secret hunter": "Секрет Охотник",
+  "secret mage": "Секрет Маг",
+  "seedlock": "Квестлайн Чернокнижник",
+  "shadow priest": "Жрец Тьмы",
+  "shredslock": "Чернокнижник на обрывках",
+  "soothsayer priest": "Жрец на подготовке",
+  "splendiferous whizbang": "Колода Чудастера",
+  "summoner mage": "Манашторм Маг",
+  "thief priest": "Жрец на воровстве",
+  "tick tock warlock": "Тик-Ток Чернокнижник",
+  "token dh": "Токен Охотник на демонов",
+  "token druid": "Токен Друид",
+  "toki mage": "Токи Маг",
+  "two-bit rogue": "Смутьян Разбойник",
+  "unholy dk": "Анхоли Рыцарь Смерти",
+  "velarok rogue": "777 Миракл Разбойник",
+  "void dh": "Охотник на демонов Бездны",
+  "void soul dh": "Охотник на демонов Бездны",
+  "wallow warlock": "Чернокнижник на темных дарах",
+  "weapon rogue": "Разбойник на оружие",
+  "xl deios druid": "Ренатал Дейос Друид",
+  "xl dragon druid": "Ренатал Дракон Друид",
+  "xl exodia mage": "Ренатал Роммат Маг",
+  "xl highlander druid": "Ренатал Хайландер Друид",
+  "xl highlander hunter": "Ренатал Хайландер Охотник",
+  "xl highlander warlock": "Хайландер Чернокнижник",
+  "xl hl aura paladin": "Ренатал Хайландер Аура Паладин",
+  "xl hl big spell mage": "Ренатал Биг Спелл Маг",
+  "xl hl dragon druid": "Ренатал Хайландер Дракон Друид",
+  "xl hl exodia mage": "Хайландер Ренатал Маг",
+  "xl hl exodia paladin": "Ренатал Хайландер Паладин",
+  "xl hl igneous warrior": "Ренатал Хайландер Воин",
+  "xl hl jtu quest mage": "Ренатал Хайландер Квест Маг",
+  "xl hl lc quest warrior": "Ренатал Хайландер Квест Воин",
+  "xl hl leoroxx hunter": "Ренатал Хайландер Охотник",
+  "xl hl lpg mage": "Ренатал Хайландер Маг",
+  "xl hl questline priest": "Ренатал Хайландер Квестлайн Жрец",
+  "xl hl rainbow dk": "Ренатал Хайландер Радужный ДК",
+  "xl hl shadow priest": "Ренатал Хайландер Жрец Тьмы",
+  "xl hl shudder shaman": "Дрыжеглот Шаман",
+  "xl hl sou quest shaman": "Ренатал Хайландер Квест Шаман",
+  "xl hl thief priest": "Ренатал Хайландер Разбойник на воровстве",
+  "xl hl thief rogue": "Ренатал Хайландер Разбойник на воровстве",
+  "xl hl tick tock warlock": "Хайландер Тик-Ток Чернокнижник",
+  "xl hl tog druid": "Рено Друид",
+  "xl hostage mage": "Хайландер Роммат Маг",
+  "xl jtu quest mage": "Ренатал Квест Маг",
+  "xl lc quest priest": "Хайландер Квест Жрец",
+  "xl mill druid": "Ренатал Милл Друид",
+  "xl seedlock": "Ренатал Квестлайн Чернокнижник",
+  "xl sou quest shaman": "Ренатал Квест Шаман",
+  "zee shaman": "Зи Шаман",
+  "zoolock": "Зоолок"
+ },
+ "cases": [
+  {
+   "name": "Aggro DK",
+   "label": "Агро ДК"
+  },
+  {
+   "name": "Aggro Paladin",
+   "label": "Агро Паладин"
+  },
+  {
+   "name": "Alex Rogue",
+   "label": "Комбо Разбойник с Алекстразой"
+  },
+  {
+   "name": "Ammunae Druid",
+   "label": "Ammunae Druid"
+  },
+  {
+   "name": "Ammunae N'Zoth Druid",
+   "label": "Ammunae N'Zoth Druid"
+  },
+  {
+   "name": "Armor Warrior",
+   "label": "Воин на броне"
+  },
+  {
+   "name": "Attack Druid",
+   "label": "Друид на атаке"
+  },
+  {
+   "name": "Aura Paladin",
+   "label": "Аура Паладин"
+  },
+  {
+   "name": "AYAYA Harold Rogue",
+   "label": "Разбойник на возвещении (AYAYA)"
+  },
+  {
+   "name": "AYAYA Rogue",
+   "label": "Айя Разбойник"
+  },
+  {
+   "name": "Azshara Druid",
+   "label": "Азшара Друид"
+  },
+  {
+   "name": "Beast Attack Druid",
+   "label": "Друид на атаке (Beast)"
+  },
+  {
+   "name": "Beast Druid",
+   "label": "Друид на зверях"
+  },
+  {
+   "name": "Big Shaman",
+   "label": "Биг Шаман"
+  },
+  {
+   "name": "Blood DK",
+   "label": "ДК Крови"
+  },
+  {
+   "name": "Boar Rogue",
+   "label": "Разбойник на Элвиннских вепрях"
+  },
+  {
+   "name": "Broxigar DH",
+   "label": "Броксигар Охотник на демонов"
+  },
+  {
+   "name": "Burn Mage",
+   "label": "СПД Маг"
+  },
+  {
+   "name": "Burnlock",
+   "label": "Агро Чернокнижник"
+  },
+  {
+   "name": "C'Thun DH",
+   "label": "К'тун Охотник на демонов"
+  },
+  {
+   "name": "C'Thun Druid",
+   "label": "К'тун Друид"
+  },
+  {
+   "name": "C'Thun Priest",
+   "label": "К'тун Жрец"
+  },
+  {
+   "name": "C'Thun Quest Priest",
+   "label": "Квест Жрец (C'Thun)"
+  },
+  {
+   "name": "C'Thun Rogue",
+   "label": "C'Thun Rogue"
+  },
+  {
+   "name": "C'Thun Shaman",
+   "label": "К'тун Шаман"
+  },
+  {
+   "name": "C'Thun Warlock",
+   "label": "К'тун Чернокнижник"
+  },
+  {
+   "name": "Chef Druid",
+   "label": "Шеф Друид"
+  },
+  {
+   "name": "Clone CtA Paladin",
+   "label": "Паладин через Призыв к оружию (Clone)"
+  },
+  {
+   "name": "Clone Mech Paladin",
+   "label": "Мех Паладин (Clone)"
+  },
+  {
+   "name": "Combo Rogue",
+   "label": "Combo Rogue"
+  },
+  {
+   "name": "Companion Hunter",
+   "label": "Питомец Охотник"
+  },
+  {
+   "name": "Control Priest",
+   "label": "Контроль Жрец"
+  },
+  {
+   "name": "CtA Paladin",
+   "label": "Паладин через Призыв к оружию"
+  },
+  {
+   "name": "Cute Warrior",
+   "label": "Воин на исступлении"
+  },
+  {
+   "name": "Demon DH",
+   "label": "Demon DH"
+  },
+  {
+   "name": "Demon Warlock",
+   "label": "Демонолок"
+  },
+  {
+   "name": "Discolock",
+   "label": "Дискард Чернокнижник"
+  },
+  {
+   "name": "Dragon Hunter",
+   "label": "Дракон Охотник"
+  },
+  {
+   "name": "Dragon Pirate Warrior",
+   "label": "Пират Воин (Dragon)"
+  },
+  {
+   "name": "Dragon Warlock",
+   "label": "Dragon Warlock"
+  },
+  {
+   "name": "Dragon Warrior",
+   "label": "Дракон Воин"
+  },
+  {
+   "name": "Drake Warlock",
+   "label": "ОТК Дейос Чернокнижник"
+  },
+  {
+   "name": "Dude Paladin",
+   "label": "Токен Паладин"
+  },
+  {
+   "name": "Egg DK",
+   "label": "Кхелос Рыцарь Смерти"
+  },
+  {
+   "name": "Egg Priest",
+   "label": "Кхелос Жрец"
+  },
+  {
+   "name": "Egg Warrior",
+   "label": "Кхелос Воин"
+  },
+  {
+   "name": "Egglock",
+   "label": "Кхелос Чернокнижник"
+  },
+  {
+   "name": "Elemental Mage",
+   "label": "Элементаль Маг"
+  },
+  {
+   "name": "Elemental Shaman",
+   "label": "Элементаль Шаман"
+  },
+  {
+   "name": "End of Turnadin",
+   "label": "Ноздорму Паладин"
+  },
+  {
+   "name": "Evenlock",
+   "label": "Четный Чернокнижник"
+  },
+  {
+   "name": "Face Hunter",
+   "label": "Фейс Охотник"
+  },
+  {
+   "name": "Garona Rogue",
+   "label": "Агро Разбойник"
+  },
+  {
+   "name": "Godfrey Warlock",
+   "label": "Годфри Чернокнижник"
+  },
+  {
+   "name": "Handbuff DK",
+   "label": "Хэндбафф Рыцарь Смерти"
+  },
+  {
+   "name": "Handbuff Warrior",
+   "label": "Хэндбафф Воин"
+  },
+  {
+   "name": "Harold Demon Warlock",
+   "label": "Демонолок (Harold)"
+  },
+  {
+   "name": "Harold DH",
+   "label": "ДХ на возвещении"
+  },
+  {
+   "name": "Harold DK",
+   "label": "Рыцарь Смерти на возвещении"
+  },
+  {
+   "name": "Harold Egglock",
+   "label": "Кхелос Лок на возвещении"
+  },
+  {
+   "name": "Harold Piglock",
+   "label": "Чернокнижник с Расхождением (Harold)"
+  },
+  {
+   "name": "Harold Rogue",
+   "label": "Разбойник на возвещении"
+  },
+  {
+   "name": "Harold Shaman",
+   "label": "Шаман на возвещении"
+  },
+  {
+   "name": "Harold Warlock",
+   "label": "Чернокнижник на возвещении"
+  },
+  {
+   "name": "Harold Warrior",
+   "label": "Воин на возвещении"
+  },
+  {
+   "name": "Highlander Hunter",
+   "label": "Хайландер Охотник"
+  },
+  {
+   "name": "Highlander Mage",
+   "label": "Highlander Mage"
+  },
+  {
+   "name": "Highlander Warrior",
+   "label": "Highlander Warrior"
+  },
+  {
+   "name": "HL Igneous Warrior",
+   "label": "Ренатал Контроль Воин"
+  },
+  {
+   "name": "HL LC Quest Priest",
+   "label": "Квест Жрец (HL LC)"
+  },
+  {
+   "name": "HL Questline Priest",
+   "label": "Квестлайн Жрец (HL)"
+  },
+  {
+   "name": "HL Thief Priest",
+   "label": "Жрец на воровстве (HL)"
+  },
+  {
+   "name": "HL Thief Rogue",
+   "label": "HL Thief Rogue"
+  },
+  {
+   "name": "HL Velarok Rogue",
+   "label": "777 Миракл Разбойник (HL)"
+  },
+  {
+   "name": "Holy Paladin",
+   "label": "Паладин на заклинаниях Света"
+  },
+  {
+   "name": "Hostage Mage",
+   "label": "Hostage Mage"
+  },
+  {
+   "name": "Hostage Rogue",
+   "label": "Hostage Rogue"
+  },
+  {
+   "name": "Igneous Odyn Warrior",
+   "label": "Один Воин"
+  },
+  {
+   "name": "Igneous Warrior",
+   "label": "Igneous Warrior"
+  },
+  {
+   "name": "Imbue Hunter",
+   "label": "Imbue Hunter"
+  },
+  {
+   "name": "Imbue Mage",
+   "label": "Маг на силе героя"
+  },
+  {
+   "name": "Imbue Paladin",
+   "label": "Паладин на силе героя"
+  },
+  {
+   "name": "Imbue Priest",
+   "label": "Жрец на силе героя"
+  },
+  {
+   "name": "Imbue Rogue",
+   "label": "Разбойник на силе героя"
+  },
+  {
+   "name": "Impformant Warlock",
+   "label": "Impformant Warlock"
+  },
+  {
+   "name": "Infinity Paladin",
+   "label": "Infinity Paladin"
+  },
+  {
+   "name": "JtU Quest Mage",
+   "label": "Квест Маг"
+  },
+  {
+   "name": "Kingsbane Rogue",
+   "label": "Разбойник с Погибелью королей"
+  },
+  {
+   "name": "LC Quest Priest",
+   "label": "Квест Жрец (LC)"
+  },
+  {
+   "name": "Leyline Mage",
+   "label": "Лейлайн Маг"
+  },
+  {
+   "name": "Linecracker Druid",
+   "label": "Linecracker Druid"
+  },
+  {
+   "name": "Lo'Gosh Warrior",
+   "label": "Ло'гош Воин"
+  },
+  {
+   "name": "Lynessa Libram Paladin",
+   "label": "Линесса Паладин на манускриптах"
+  },
+  {
+   "name": "Manastorm Mage",
+   "label": "Манашторм Маг"
+  },
+  {
+   "name": "Mech Hunter",
+   "label": "Мех Охотник"
+  },
+  {
+   "name": "Mecha'thun Druid",
+   "label": "Mecha'thun Druid"
+  },
+  {
+   "name": "Mecha'thun Priest",
+   "label": "Mecha'thun Priest"
+  },
+  {
+   "name": "Merithra Druid",
+   "label": "Дракон Друид"
+  },
+  {
+   "name": "Mill Paladin",
+   "label": "Милл Паладин"
+  },
+  {
+   "name": "Mill Rogue",
+   "label": "Милл Разбойник"
+  },
+  {
+   "name": "Miracle Druid",
+   "label": "Миракл Друид"
+  },
+  {
+   "name": "Miracle Rogue",
+   "label": "Миракл Разбойник"
+  },
+  {
+   "name": "Miracle Seedlock",
+   "label": "Квестлайн Чернокнижник (Miracle)"
+  },
+  {
+   "name": "Miracle Warlock",
+   "label": "Миракл Чернокнижник"
+  },
+  {
+   "name": "Mug Shaman",
+   "label": "Граб Шаман"
+  },
+  {
+   "name": "N'Zoth Combo Rogue",
+   "label": "N'Zoth Combo Rogue"
+  },
+  {
+   "name": "N'Zoth DH",
+   "label": "N'Zoth DH"
+  },
+  {
+   "name": "N'Zoth DK",
+   "label": "N'Zoth DK"
+  },
+  {
+   "name": "N'Zoth Druid",
+   "label": "N'Zoth Druid"
+  },
+  {
+   "name": "N'Zoth Hunter",
+   "label": "N'Zoth Hunter"
+  },
+  {
+   "name": "N'Zoth Mech Hunter",
+   "label": "Н'зот Охотник на механизмах"
+  },
+  {
+   "name": "N'Zoth Paladin",
+   "label": "N'Zoth Paladin"
+  },
+  {
+   "name": "N'Zoth Priest",
+   "label": "N'Zoth Priest"
+  },
+  {
+   "name": "N'Zoth Rogue",
+   "label": "Н'зот Разбойник"
+  },
+  {
+   "name": "N'Zoth Shaman",
+   "label": "N'Zoth Shaman"
+  },
+  {
+   "name": "N'Zoth Warrior",
+   "label": "N'Zoth Warrior"
+  },
+  {
+   "name": "No Minion DH",
+   "label": "Спелл Охотник на демонов"
+  },
+  {
+   "name": "Odyn Warrior",
+   "label": "Odyn Warrior"
+  },
+  {
+   "name": "Ohn'ahra Big Shaman",
+   "label": "Биг Шаман (Ohn'ahra)"
+  },
+  {
+   "name": "Old Aggro Druid",
+   "label": "Old Aggro Druid"
+  },
+  {
+   "name": "Piglock",
+   "label": "Чернокнижник с Расхождением"
+  },
+  {
+   "name": "Pirate DH",
+   "label": "Пират Охотник на демонов"
+  },
+  {
+   "name": "Pirate Rogue",
+   "label": "Pirate Rogue"
+  },
+  {
+   "name": "Pirate Warrior",
+   "label": "Пират Воин"
+  },
+  {
+   "name": "Plague DK",
+   "label": "Plague DK"
+  },
+  {
+   "name": "Pure Paladin",
+   "label": "Чистый Паладин"
+  },
+  {
+   "name": "Quest DH",
+   "label": "Квест Охотник на демонов"
+  },
+  {
+   "name": "Quest Hunter",
+   "label": "Квест Охотник"
+  },
+  {
+   "name": "Quest Mage",
+   "label": "Квест Маг"
+  },
+  {
+   "name": "Quest Paladin",
+   "label": "Квест Паладин"
+  },
+  {
+   "name": "Quest Priest",
+   "label": "Квест Жрец"
+  },
+  {
+   "name": "Quest Warrior",
+   "label": "Квест Воин"
+  },
+  {
+   "name": "Questline Priest",
+   "label": "Квестлайн Жрец"
+  },
+  {
+   "name": "Questline Warrior",
+   "label": "Questline Warrior"
+  },
+  {
+   "name": "Rafaamlock",
+   "label": "Рафаам Чернокнижник"
+  },
+  {
+   "name": "Rainbow DK",
+   "label": "Радужный Рыцарь Смерти"
+  },
+  {
+   "name": "Rainbow Shaman",
+   "label": "Rainbow Shaman"
+  },
+  {
+   "name": "Raza DH",
+   "label": "Раза Охотник на демонов"
+  },
+  {
+   "name": "Rush DH",
+   "label": "Rush DH"
+  },
+  {
+   "name": "Secret Hunter",
+   "label": "Секрет Охотник"
+  },
+  {
+   "name": "Secret Mage",
+   "label": "Секрет Маг"
+  },
+  {
+   "name": "Seedlock",
+   "label": "Квестлайн Чернокнижник"
+  },
+  {
+   "name": "Shadow Priest",
+   "label": "Жрец Тьмы"
+  },
+  {
+   "name": "Shredslock",
+   "label": "Чернокнижник на обрывках"
+  },
+  {
+   "name": "Sneaky Harold Rogue",
+   "label": "Разбойник на возвещении (Sneaky)"
+  },
+  {
+   "name": "Sneaky Rogue",
+   "label": "Sneaky Rogue"
+  },
+  {
+   "name": "Soothsayer Priest",
+   "label": "Жрец на подготовке"
+  },
+  {
+   "name": "Splendiferous Whizbang",
+   "label": "Колода Чудастера"
+  },
+  {
+   "name": "STD AYAYA Rogue",
+   "label": "Айя Разбойник (STD)"
+  },
+  {
+   "name": "STD Burn Mage",
+   "label": "СПД Маг (STD)"
+  },
+  {
+   "name": "STD Dragon Warrior",
+   "label": "Дракон Воин (STD)"
+  },
+  {
+   "name": "STD Leyline Mage",
+   "label": "Лейлайн Маг (STD)"
+  },
+  {
+   "name": "STD Pirate Warrior",
+   "label": "Пират Воин (STD)"
+  },
+  {
+   "name": "STD Quest Priest",
+   "label": "Квест Жрец (STD)"
+  },
+  {
+   "name": "STD Thief Priest",
+   "label": "Жрец на воровстве (STD)"
+  },
+  {
+   "name": "STD Unholy DK",
+   "label": "Анхоли Рыцарь Смерти (STD)"
+  },
+  {
+   "name": "STD Void Soul DH",
+   "label": "Охотник на демонов Бездны (STD)"
+  },
+  {
+   "name": "Summoner Mage",
+   "label": "Манашторм Маг"
+  },
+  {
+   "name": "Thal'ena DK",
+   "label": "Thal'ena DK"
+  },
+  {
+   "name": "Thief Priest",
+   "label": "Жрец на воровстве"
+  },
+  {
+   "name": "Thief Rogue",
+   "label": "Thief Rogue"
+  },
+  {
+   "name": "Tog Druid",
+   "label": "Tog Druid"
+  },
+  {
+   "name": "Token DH",
+   "label": "Токен Охотник на демонов"
+  },
+  {
+   "name": "Token Druid",
+   "label": "Токен Друид"
+  },
+  {
+   "name": "Toki Mage",
+   "label": "Токи Маг"
+  },
+  {
+   "name": "Two-Bit Rogue",
+   "label": "Смутьян Разбойник"
+  },
+  {
+   "name": "Unholy DK",
+   "label": "Анхоли Рыцарь Смерти"
+  },
+  {
+   "name": "Void DH",
+   "label": "Охотник на демонов Бездны"
+  },
+  {
+   "name": "Void Soul DH",
+   "label": "Охотник на демонов Бездны"
+  },
+  {
+   "name": "Wallow Warlock",
+   "label": "Чернокнижник на темных дарах"
+  },
+  {
+   "name": "Weapon Rogue",
+   "label": "Разбойник на оружие"
+  },
+  {
+   "name": "Well Rogue",
+   "label": "Well Rogue"
+  },
+  {
+   "name": "XL Blood DK",
+   "label": "ДК Крови (XL)"
+  },
+  {
+   "name": "XL Deios Druid",
+   "label": "Ренатал Дейос Друид"
+  },
+  {
+   "name": "XL Dragon Druid",
+   "label": "Ренатал Дракон Друид"
+  },
+  {
+   "name": "XL Exodia Mage",
+   "label": "Ренатал Роммат Маг"
+  },
+  {
+   "name": "XL Highlander Death Knight",
+   "label": "XL Highlander Death Knight"
+  },
+  {
+   "name": "XL Highlander Druid",
+   "label": "Ренатал Хайландер Друид"
+  },
+  {
+   "name": "XL Highlander Hunter",
+   "label": "Ренатал Хайландер Охотник"
+  },
+  {
+   "name": "XL Highlander Rogue",
+   "label": "Хайландер Разбойник (XL)"
+  },
+  {
+   "name": "XL Highlander Warlock",
+   "label": "Хайландер Чернокнижник"
+  },
+  {
+   "name": "XL Highlander Warrior",
+   "label": "XL Highlander Warrior"
+  },
+  {
+   "name": "XL HL 'n' Roll Warrior",
+   "label": "XL HL 'n' Roll Warrior"
+  },
+  {
+   "name": "XL HL Aura Paladin",
+   "label": "Ренатал Хайландер Аура Паладин"
+  },
+  {
+   "name": "XL HL Big Spell Mage",
+   "label": "Ренатал Биг Спелл Маг"
+  },
+  {
+   "name": "XL HL Blood DK",
+   "label": "ДК Крови (XL HL)"
+  },
+  {
+   "name": "XL HL Dragon Druid",
+   "label": "Ренатал Хайландер Дракон Друид"
+  },
+  {
+   "name": "XL HL Exodia Mage",
+   "label": "Хайландер Ренатал Маг"
+  },
+  {
+   "name": "XL HL Exodia Paladin",
+   "label": "Ренатал Хайландер Паладин"
+  },
+  {
+   "name": "XL HL Igneous Warrior",
+   "label": "Ренатал Хайландер Воин"
+  },
+  {
+   "name": "XL HL Imbue Rogue",
+   "label": "Разбойник на силе героя (XL HL)"
+  },
+  {
+   "name": "XL HL JtU Quest Mage",
+   "label": "Ренатал Хайландер Квест Маг"
+  },
+  {
+   "name": "XL HL LC Quest Warrior",
+   "label": "Ренатал Хайландер Квест Воин"
+  },
+  {
+   "name": "XL HL Leoroxx Hunter",
+   "label": "Ренатал Хайландер Охотник"
+  },
+  {
+   "name": "XL HL LPG Mage",
+   "label": "Ренатал Хайландер Маг"
+  },
+  {
+   "name": "XL HL Questline Priest",
+   "label": "Ренатал Хайландер Квестлайн Жрец"
+  },
+  {
+   "name": "XL HL Rainbow DK",
+   "label": "Ренатал Хайландер Радужный ДК"
+  },
+  {
+   "name": "XL HL Shadow Priest",
+   "label": "Ренатал Хайландер Жрец Тьмы"
+  },
+  {
+   "name": "XL HL Shudder Shaman",
+   "label": "Дрыжеглот Шаман"
+  },
+  {
+   "name": "XL HL SoU Quest Shaman",
+   "label": "Ренатал Хайландер Квест Шаман"
+  },
+  {
+   "name": "XL HL Thief Priest",
+   "label": "Ренатал Хайландер Разбойник на воровстве"
+  },
+  {
+   "name": "XL HL Thief Rogue",
+   "label": "Ренатал Хайландер Разбойник на воровстве"
+  },
+  {
+   "name": "XL HL Tick Tock Warlock",
+   "label": "Хайландер Тик-Ток Чернокнижник"
+  },
+  {
+   "name": "XL HL Tog Druid",
+   "label": "Рено Друид"
+  },
+  {
+   "name": "XL Hostage Mage",
+   "label": "Хайландер Роммат Маг"
+  },
+  {
+   "name": "XL Igneous Warrior",
+   "label": "XL Igneous Warrior"
+  },
+  {
+   "name": "XL JtU Quest Mage",
+   "label": "Ренатал Квест Маг"
+  },
+  {
+   "name": "XL LC Quest Priest",
+   "label": "Хайландер Квест Жрец"
+  },
+  {
+   "name": "XL Mill Druid",
+   "label": "Ренатал Милл Друид"
+  },
+  {
+   "name": "XL Questline Warrior",
+   "label": "XL Questline Warrior"
+  },
+  {
+   "name": "XL Secret Mage",
+   "label": "Секрет Маг (XL)"
+  },
+  {
+   "name": "XL Seedlock",
+   "label": "Ренатал Квестлайн Чернокнижник"
+  },
+  {
+   "name": "XL Shadow Priest",
+   "label": "Жрец Тьмы (XL)"
+  },
+  {
+   "name": "XL SoU Quest Shaman",
+   "label": "Ренатал Квест Шаман"
+  },
+  {
+   "name": "XL Tick Tock Warlock",
+   "label": "Тик-Ток Чернокнижник (XL)"
+  },
+  {
+   "name": "XL Velarok Rogue",
+   "label": "777 Миракл Разбойник (XL)"
+  },
+  {
+   "name": "Y'Shaarj Paladin",
+   "label": "Y'Shaarj Paladin"
+  },
+  {
+   "name": "Yogg Paladin",
+   "label": "Yogg Paladin"
+  },
+  {
+   "name": "Yogg Shaman",
+   "label": "Yogg Shaman"
+  },
+  {
+   "name": "Yogg Warrior",
+   "label": "Yogg Warrior"
+  },
+  {
+   "name": "Zee C'Thun Shaman",
+   "label": "К'тун Шаман (Zee)"
+  },
+  {
+   "name": "Zee Shaman",
+   "label": "Зи Шаман"
+  },
+  {
+   "name": "Zoolock",
+   "label": "Зоолок"
+  },
+  {
+   "name": "Zuramat Warlock",
+   "label": "Zuramat Warlock"
+  }
+ ]
+}

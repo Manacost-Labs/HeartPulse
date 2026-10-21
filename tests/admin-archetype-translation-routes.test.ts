@@ -124,6 +124,7 @@ try {
     lastSyncedAt: timestamp,
   });
   assert.equal(seedRuns, 1);
+  assert.deepEqual(seeded.body.duplicates, []);
 
   const coverageStartedAt = performance.now();
   const coverage = await request('/admin/archetype-translations/untranslated', { headers: adminHeaders });
@@ -182,6 +183,33 @@ try {
   assert.equal(edited.response.status, 200);
   assert.equal(edited.body.translation.source, 'manual');
   assert.equal(edited.body.translation.nameRu, 'Контрольный Воин');
+  // A Russian name another archetype already has is refused, so two
+  // archetypes never share a label (Summoner Mage / Manastorm Mage case).
+  const sameLabel = await request('/admin/archetype-translations', {
+    method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ translation: { nameEn: 'Summoner Mage', nameRu: 'радужный маг' } }),
+  });
+  assert.equal(sameLabel.response.status, 409);
+  assert.match(sameLabel.body.error, /Rainbow Mage/);
+  const sameLabelEdit = await request(`/admin/archetype-translations/${remoteId}`, {
+    method: 'PATCH', headers: adminHeaders,
+    body: JSON.stringify({ translation: { nameEn: 'Control Warrior', nameRu: 'Радужный Маг' } }),
+  });
+  assert.equal(sameLabelEdit.response.status, 409);
+  const renamedKeepingLabel = await request(`/admin/archetype-translations/${remoteId}`, {
+    method: 'PATCH', headers: adminHeaders,
+    body: JSON.stringify({ translation: { nameEn: 'Control  Warrior', nameRu: 'Контрольный Воин' } }),
+  });
+  assert.equal(renamedKeepingLabel.response.status, 200);
+  // Rows that arrived with one label anyway (BlizzCore sync) are listed.
+  database.prepare(`
+    INSERT INTO archetype_translations (blizzcore_id, name_en, name_en_key, name_ru, name_ru_key, source, created_at, updated_at, synced_at, updated_by)
+    VALUES (NULL, 'Summoner Mage', 'summoner mage', 'Радужный Маг', 'радужный маг', 'blizzcore', ?, ?, ?, 'test')
+  `).run(timestamp, timestamp, timestamp);
+  const withDuplicate = await request('/admin/archetype-translations?pageSize=1', { headers: adminHeaders });
+  assert.deepEqual(withDuplicate.body.duplicates, [{ nameRu: 'Радужный Маг', namesEn: ['Rainbow Mage', 'Summoner Mage'] }]);
+  database.prepare("DELETE FROM archetype_translations WHERE name_en_key = 'summoner mage'").run();
+
   assert.equal((await request('/admin/archetype-translations/9999', {
     method: 'PATCH', headers: adminHeaders,
     body: JSON.stringify({ translation: { nameEn: 'Missing', nameRu: 'Нет' } }),
@@ -216,9 +244,10 @@ try {
   });
   assert.equal(invalidSync.response.status, 502);
   assert.equal(Number((database.prepare('SELECT COUNT(*) AS total FROM archetype_translations').get() as any).total), 4);
-  assert.equal(invalidations, 3);
+  assert.equal(invalidations, 4);
   assert.deepEqual(audit, [
     'archetype-translation.created',
+    'archetype-translation.updated',
     'archetype-translation.updated',
     'archetype-translation.synced',
   ]);

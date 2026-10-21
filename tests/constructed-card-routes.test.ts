@@ -16,13 +16,13 @@ import {
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
   queryConstructedCards,
-  translateConstructedArchetype,
   redactConstructedCardStatistics,
   type ConstructedCardRouterDependencies,
 } from '../server/constructedCardRoutes.js';
 import {
   mergeConstructedCardRows,
 } from '../server/modules/constructedCards/public.js';
+import { archetypeFallbackTranslations, archetypeLabel } from '../server/modules/constructedArchetypes/public.js';
 
 const catalogCards = [
   {
@@ -254,10 +254,11 @@ const decodedDecks = constructedDecksContainingCard([{
 assert.equal(decodedDecks.length, 1, 'a card must be matched through its decoded deckstring DBF id');
 assert.equal(decodedDecks[0].id, '754');
 assert.equal(decodedDecks[0].archetype, 'Face Hunter');
-assert.equal(translateConstructedArchetype('Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Чётный Чернокнижник');
-assert.equal(translateConstructedArchetype('XL Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Чётный Чернокнижник');
-assert.equal(translateConstructedArchetype('Pain Warlock', {}), 'Пейнлок');
-assert.equal(translateConstructedArchetype('Renathal Big Warlock', {}), 'Ренатал Биг Чернокнижник');
+// Card pages label decks with the shared archetypeLabel; without the admin map
+// the built-in labels still name the Wild warlocks.
+assert.equal(archetypeLabel('XL Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Чётный Чернокнижник (XL)');
+assert.equal(archetypeLabel('Pain Warlock', archetypeFallbackTranslations()), 'Пейнлок');
+assert.equal(archetypeLabel('Renathal Big Warlock', archetypeFallbackTranslations()), 'Ренатал Биг Чернокнижник');
 assert.equal(constructedDecksContainingCard([{ ...decodedDecks[0], deck_code: decodedDecks[0].deckCode, format: 'Wild' }], { dbf: 119705 }, 'standard').length, 0);
 
 const detailWithPatches = enrichConstructedCardPatches({
