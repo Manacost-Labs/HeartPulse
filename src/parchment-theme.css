@@ -47,9 +47,11 @@
   border-image-outset: 0;
   border-image-repeat: stretch;
   color: #fff1ca;
+  /* The average tone of the rail texture: until the image arrives (seconds on
+     a slow phone network) the bar is already red instead of see-through. */
   background:
     linear-gradient(90deg, rgba(77, 8, 13, 0.3), rgba(111, 17, 22, 0.08)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat #741a1a;
   box-shadow: 0 8px 22px rgba(49, 14, 9, 0.24);
   backdrop-filter: none;
 }
