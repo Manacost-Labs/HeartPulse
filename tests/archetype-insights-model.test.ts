@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import {
+  archetypeHistoryCharts,
   archetypeRadarProfile,
+  dailyGames,
   deckManaCurve,
   historyKpiComparison,
-  rankHeatmapGrid,
-  winrateBand,
   wilsonInterval,
 } from '../src/features/archetypeInsightsModel.js';
+import { rankHeatCell } from '../src/features/archetypeRankHeatModel.js';
 
 const close = (actual: number, expected: number, digits = 2) => assert.equal(Number(actual.toFixed(digits)), expected);
 
@@ -43,12 +44,71 @@ assert.equal(acrossPeriods?.gamesPrevious, null);
 assert.deepEqual(acrossPeriods?.gamesTrend.map(point => point.games), [12_000]);
 assert.equal(historyKpiComparison([]), null);
 
-const band = winrateBand(history);
-assert.equal(band.length, 6);
-assert.equal(band[0].actual, 52);
-assert.ok(band[0].high! - band[0].low! > band[5].high! - band[5].low!, 'a smaller sample draws a wider band');
-assert.ok(band[0].innerHigh! - band[0].innerLow! < band[0].high! - band[0].low!);
-assert.match(band[0].label, /12/);
+// History charts: the winrate carries its 95% Wilson band; every point names its HSGuru period.
+const charts = archetypeHistoryCharts(patched);
+assert.equal(charts.winrate.length, 6);
+assert.equal(charts.winrate[0].y, 52);
+const width = (point: { low?: number | null; high?: number | null }) => point.high! - point.low!;
+assert.ok(width(charts.winrate[0]) > width(charts.winrate[4]), 'a smaller sample draws a wider band');
+assert.deepEqual(charts.popularity.map(point => point.segment), ['patch_36.6.3', 'patch_36.6.3', 'patch_36.6.3', 'patch_36.6.3', 'patch_36.6.3', 'black_empire']);
+assert.match(charts.popularity[0].tick ?? '', /12/);
+assert.match(charts.popularity[0].detail ?? '', /1\s000 игр/);
+
+// Games accumulate inside an HSGuru period: the chart shows games gained over the last 24 hours.
+const hour = 60 * 60 * 1000;
+const at = (hours: number) => new Date(Date.UTC(2026, 9, 10) + hours * hour).toISOString();
+const daily = dailyGames([
+  { recordedAt: at(0), games: 1_000, patch: 'p1' },
+  { recordedAt: at(12), games: 1_600, patch: 'p1' },
+  { recordedAt: at(24), games: 3_000, patch: 'p1' },
+  { recordedAt: at(36), games: 3_400, patch: 'p1' },
+  { recordedAt: at(84), games: 6_400, patch: 'p1' },
+  { recordedAt: at(86), games: 100, patch: 'p2' },
+  { recordedAt: at(90), games: 300, patch: 'p2' },
+  { recordedAt: at(98), games: 900, patch: 'p2' },
+  { recordedAt: at(110), games: 50, patch: 'p2' },
+]);
+assert.equal(daily[0].games, null, 'the first slice of a period has nothing to subtract');
+assert.equal(daily[1].games, 1_200, 'a half-day window is scaled to a day');
+assert.equal(daily[1].hours, 12);
+assert.equal(daily[2].games, 2_000);
+assert.equal(daily[3].games, 1_800, 'the base is the newest slice at least 24 hours older');
+assert.equal(daily[4].games, 1_500, 'a gap averages the gained games over its length');
+assert.equal(daily[5].games, null, 'a new period restarts the count');
+assert.equal(daily[6].games, null, 'a window shorter than six hours is too noisy to scale');
+assert.equal(daily[7].games, 1_600);
+assert.equal(daily[8].games, null, 'a shrinking cumulative count is a source correction, not negative games');
+
+// Rank heatmap colour: diverging around 50%, paler when the sample cannot tell the difference.
+const even = rankHeatCell(50, 50_000);
+assert.equal(even.tone, 'even');
+assert.equal(even.strength, 0);
+const strongUp = rankHeatCell(60, 50_000);
+const weakUp = rankHeatCell(60, 120);
+const down = rankHeatCell(40, 50_000);
+assert.equal(strongUp.tone, 'above');
+assert.equal(down.tone, 'below');
+assert.ok(strongUp.strength > 0.9 && weakUp.strength < strongUp.strength / 2, 'a small sample is drawn paler');
+assert.notEqual(strongUp.fill, down.fill);
+assert.ok(rankHeatCell(34.5, 5_000).strength > rankHeatCell(45, 5_000).strength, 'a larger deviation is more intense');
+assert.equal(rankHeatCell(null, null).tone, 'empty');
+assert.equal(rankHeatCell(48, 24_856).significant, true);
+assert.equal(rankHeatCell(51, 300).significant, false);
+const contrast = (fill: string, ink: string) => {
+  const luminance = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16) / 255)
+      .map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [light, dark] = [luminance(fill), luminance(ink)].sort((a, b) => b - a);
+  return (light + 0.05) / (dark + 0.05);
+};
+for (const winrate of [20, 34.5, 42, 47, 50, 53, 58, 66, 80]) {
+  for (const games of [100, 900, 5_000, 100_000]) {
+    const cell = rankHeatCell(winrate, games);
+    assert.ok(contrast(cell.fill, cell.ink) >= 4.5, `${winrate}% / ${games}: value text contrast ${contrast(cell.fill, cell.ink).toFixed(2)}`);
+  }
+}
 
 // Mana curve: card counts per cost bucket, 7+ together.
 assert.deepEqual(deckManaCurve([
@@ -66,23 +126,5 @@ assert.deepEqual(profile.map(axis => axis.key), ['winrate', 'popularity', 'durat
 assert.deepEqual(profile.map(axis => axis.score), [100, 100, 100, 100, null]);
 assert.equal(archetypeRadarProfile(items[0], items)[0].score, 0);
 assert.equal(archetypeRadarProfile(items[1], items)[0].score, 50);
-
-// Heatmap grid: ranks are rows, periods are columns, a missing cell is NaN.
-const grid = rankHeatmapGrid({
-  ranks: [{ id: 'diamond', label: 'Алмаз 1–4' }, { id: 'legend', label: 'Легенда' }],
-  periods: [{ id: 'past_day', label: 'Сутки' }, { id: 'past_week', label: 'Неделя' }],
-  cells: [
-    { rank: 'diamond', period: 'past_day', winrate: 51, games: 300 },
-    { rank: 'diamond', period: 'past_week', winrate: 52.5, games: 2_000 },
-    { rank: 'legend', period: 'past_week', winrate: 49, games: 800 },
-    { rank: 'legend', period: 'past_day', winrate: null, games: null },
-  ],
-  updatedAt: null,
-});
-assert.deepEqual(grid.rows, ['Алмаз 1–4', 'Легенда']);
-assert.deepEqual(grid.columns, ['Сутки', 'Неделя']);
-assert.deepEqual(grid.values[0], [51, 52.5]);
-assert.ok(Number.isNaN(grid.values[1][0]));
-assert.equal(grid.filled, 3);
 
 console.log('archetype insights model tests passed');

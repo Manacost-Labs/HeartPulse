@@ -2,12 +2,12 @@ import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from 
 import { archetypeClassBackdrop, archetypeHeroArt } from './archetypeDetailModel';
 import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
 import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
-import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection, WinrateBandSlot } from './ArchetypeInsightSlots';
+import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection } from './ArchetypeInsightSlots';
+import { ArchetypeHistoryCharts } from './ArchetypeHistoryCharts';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
 import '../shared/ui/analytics/Analytics.css';
-import { LineChart } from '../shared/ui/analytics/LineChart';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -90,6 +90,8 @@ type HistoryPoint = {
   turns: number | null;
   durationMinutes: number | null;
   climbingSpeed: number | null;
+  /** HSGuru period of the slice: games and rates accumulate inside it and restart at the next one. */
+  patch?: string | null;
 };
 
 export type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
@@ -211,26 +213,6 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       className="archetypes-state"
     />
   );
-}
-
-function TrendChart({
-  title,
-  unit,
-  points,
-  value,
-  color,
-}: {
-  title: string;
-  unit: string;
-  points: HistoryPoint[];
-  value: (point: HistoryPoint) => number | null;
-  color: string;
-}) {
-  return <LineChart title={title} subtitle={`${points.length} срезов · история архетипа`}
-    unit={unit === '%' ? '%' : 'count'} color={color} domain={unit === '%' ? undefined : { minimum: 0 }}
-    points={points.filter(point => Number.isFinite(Date.parse(point.recordedAt)))
-      .map(point => ({ x: Date.parse(point.recordedAt), y: value(point), label: formatDate(point.recordedAt) }))
-      .sort((a, b) => a.x - b.x)} />;
 }
 
 type ArchetypeCatalogProps = {
@@ -600,15 +582,11 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           <div>
             <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
             <h2 id="archetype-history-title">История архетипа</h2>
-            <p>Новый срез добавляется каждые 12 часов. Через несколько дней здесь будет виден тренд, а через месяц — полноценная история меты.</p>
+            <p>Срез добавляется каждые 12 часов. HSGuru считает статистику внутри периода — патча или дополнения — и с новым периодом начинает счёт заново, поэтому граница отмечена пунктиром.</p>
           </div>
           <span className="archetype-section-heading__count">{history.length} срезов</span>
         </header>
-        <WinrateBandSlot history={history} />
-        <div className="archetype-history__charts">
-          <TrendChart title="Популярность" unit="%" points={history} value={point => point.popularity} color="#8d171d" />
-          <TrendChart title="Количество игр" unit="" points={history} value={point => point.games} color="#8a5b24" />
-        </div>
+        <ArchetypeHistoryCharts history={history} />
         </section>
         </ArchetypeDetailSection>
       ) : null}

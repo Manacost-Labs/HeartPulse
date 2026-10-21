@@ -1,9 +1,12 @@
-/** Pure models behind the archetype page's KPI strip, history band, rank heatmap, build comparison and radar. */
+/** Pure models behind the archetype page's KPI strip, history charts, rank heatmap, build comparison and radar. */
+
+import type { ChartPoint } from '../shared/ui/analytics/analyticsModel';
+import { standardMetaPeriodLabel } from './standardMetaFilterModel';
+import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
 
 type HistoryPoint = { recordedAt: string; winrate: number | null; popularity: number | null; games: number; patch?: string | null };
 
 const Z_95 = 1.959964;
-const Z_50 = 0.674490;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -20,26 +23,59 @@ export function wilsonInterval(winratePercent: number, games: number, z = Z_95):
   return [Math.max(0, centre - margin) * 100, Math.min(1, centre + margin) * 100];
 }
 
-// Short "24.07" labels: a season of 12-hour slices still leaves readable axis ticks on a phone.
-const DATE_LABEL = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+const HOUR_MS = 60 * 60 * 1000;
+const MIN_DAILY_WINDOW_HOURS = 6;
+const COUNT = (value: number) => Math.round(value).toLocaleString('ru-RU');
 
-export type WinrateBandPoint = {
-  label: string;
-  actual?: number;
-  low?: number;
-  high?: number;
-  innerLow?: number;
-  innerHigh?: number;
-};
-
-/** Each history slice with its 95% and 50% Wilson intervals; slices accumulate games, so the band narrows over a period. */
-export function winrateBand(points: readonly HistoryPoint[]): WinrateBandPoint[] {
-  return points.flatMap(point => {
-    if (point.winrate === null || !Number.isFinite(point.winrate)) return [];
-    const [low, high] = wilsonInterval(point.winrate, point.games, Z_95);
-    const [innerLow, innerHigh] = wilsonInterval(point.winrate, point.games, Z_50);
-    return [{ label: DATE_LABEL.format(new Date(point.recordedAt)), actual: point.winrate, low, high, innerLow, innerHigh }];
+/**
+ * Games gained over the last 24 hours, per slice. HSGuru counts games cumulatively inside a
+ * period (the `patch` of a slice) and restarts at the next one, so the raw count is a saw.
+ * The base is the newest slice of the same period at least a day older, or the period's
+ * first slice while it is younger than a day; the gain is scaled to 24 hours. A slice
+ * without such a base, a window under six hours or a shrinking count stays empty.
+ */
+export function dailyGames(points: readonly { recordedAt: string; games: number; patch?: string | null }[]) {
+  return points.map((point, index) => {
+    const time = Date.parse(point.recordedAt);
+    const earlier = points.slice(0, index).filter(other => (other.patch ?? null) === (point.patch ?? null) && Date.parse(other.recordedAt) < time);
+    const base = earlier.filter(other => Date.parse(other.recordedAt) <= time - DAY_MS).at(-1) ?? earlier[0];
+    const hours = base ? (time - Date.parse(base.recordedAt)) / HOUR_MS : null;
+    if (!base || hours === null || hours < MIN_DAILY_WINDOW_HOURS || point.games < base.games) return { games: null, hours };
+    return { games: Math.round((point.games - base.games) * 24 / hours), hours };
   });
+}
+
+/** Readable name of an HSGuru history period: «Патч 36.6.3», «Тёмная империя». */
+export function historyPeriodLabel(period: string) {
+  return standardMetaPeriodLabel(period as StandardMetaPeriod);
+}
+
+/**
+ * Points of the three history charts. Each point names its HSGuru period, so a chart breaks
+ * the line where the period changes instead of joining values of different windows; the
+ * winrate carries its 95% Wilson band from the slice's games.
+ */
+export function archetypeHistoryCharts(points: readonly HistoryPoint[], timeZone?: string) {
+  const full = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone });
+  const short = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone });
+  const daily = dailyGames(points);
+  const base = points.map(point => {
+    const date = new Date(point.recordedAt);
+    return { x: date.getTime(), label: full.format(date), tick: short.format(date).replace('.', ''), segment: point.patch ?? undefined };
+  });
+  const sample = (point: HistoryPoint) => `${COUNT(point.games)} игр за период`;
+  return {
+    winrate: points.map((point, index): ChartPoint => {
+      const [low, high] = point.winrate === null ? [null, null] : wilsonInterval(point.winrate, point.games);
+      return { ...base[index], y: point.winrate, low, high, detail: sample(point) };
+    }),
+    popularity: points.map((point, index): ChartPoint => ({ ...base[index], y: point.popularity, detail: sample(point) })),
+    dailyGames: points.map((point, index): ChartPoint => {
+      const { games, hours } = daily[index];
+      const window = hours === null || Math.abs(hours - 24) < 1 ? 'за 24 часа' : `за ${COUNT(hours)} ч, пересчёт на сутки`;
+      return { ...base[index], y: games, detail: games === null ? 'Нет суток для сравнения в периоде' : window };
+    }),
+  };
 }
 
 export type KpiComparison<P extends HistoryPoint> = {
@@ -117,28 +153,9 @@ export function archetypeRadarProfile(item: RadarItem, items: readonly RadarItem
   });
 }
 
-type RankMatrix = {
+export type RankMatrix = {
   ranks: { id: string; label: string }[];
   periods: { id: string; label: string }[];
   cells: { rank: string; period: string; winrate: number | null; games: number | null }[];
   updatedAt: string | null;
 };
-
-/** Ranks as rows and periods as columns; a slice without the archetype stays NaN (an empty cell). */
-export function rankHeatmapGrid(matrix: RankMatrix) {
-  const byKey = new Map(matrix.cells.map(cell => [`${cell.rank}|${cell.period}`, cell]));
-  let filled = 0;
-  const values = matrix.ranks.map(rank => matrix.periods.map(period => {
-    const winrate = byKey.get(`${rank.id}|${period.id}`)?.winrate;
-    if (winrate === null || winrate === undefined || !Number.isFinite(winrate)) return Number.NaN;
-    filled += 1;
-    return winrate;
-  }));
-  return {
-    rows: matrix.ranks.map(rank => rank.label),
-    columns: matrix.periods.map(period => period.label),
-    values,
-    filled,
-    games: matrix.ranks.map(rank => matrix.periods.map(period => byKey.get(`${rank.id}|${period.id}`)?.games ?? null)),
-  };
-}

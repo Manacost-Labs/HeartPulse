@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chartDomain, lineCoordinates, csvDocument, formatChartValue } from '../src/shared/ui/analytics/analyticsModel';
+import { axisTickIndexes, axisTicks, chartDomain, lineCoordinates, lineRuns, placeSegmentLabels, segmentStarts, csvDocument, formatChartValue } from '../src/shared/ui/analytics/analyticsModel';
 
 test('a count domain never adds negative ticks', () => {
   assert.deepEqual(chartDomain([0, 3, 8], { minimum: 0 }), [0, 9]);
@@ -27,6 +27,36 @@ test('turn gaps preserve their numeric coordinates', () => {
 test('missing observations do not turn into zero values', () => {
   const points = lineCoordinates([{ x: 1, y: 3 }, { x: 2, y: null }, { x: 3, y: 4 }]);
   assert.equal(points[1].y, null);
+});
+test('axis ticks are round values inside the domain', () => {
+  assert.deepEqual(axisTicks(0, 35), [0, 10, 20, 30]);
+  assert.deepEqual(axisTicks(30, 70), [30, 40, 50, 60, 70]);
+  assert.deepEqual(axisTicks(0, 1, true), [0, 1], 'counts never get fractional ticks');
+  assert.deepEqual(axisTicks(0, 200_000, true), [0, 50_000, 100_000, 150_000, 200_000]);
+});
+test('a change of period breaks the line and marks a boundary', () => {
+  const points = lineCoordinates([
+    { x: 1, y: 2, segment: 'patch_36.6.3' }, { x: 2, y: 3, segment: 'patch_36.6.3' },
+    { x: 3, y: 9, segment: 'black_empire' }, { x: 4, y: null, segment: 'black_empire' }, { x: 5, y: 8, segment: 'black_empire' },
+  ]);
+  assert.deepEqual(lineRuns(points).map(run => run.map(point => point.x)), [[1, 2], [3], [5]]);
+  assert.deepEqual(segmentStarts(points), [2]);
+  assert.deepEqual(segmentStarts(lineCoordinates([{ x: 1, y: 1 }, { x: 2, y: 2 }])), [], 'a series without periods has no boundary');
+});
+test('the newest period keeps its name when period labels collide', () => {
+  const placed = placeSegmentLabels([
+    { at: 0, label: 'Патч 36.0.3' }, { at: 300, label: 'Патч 36.6.3' }, { at: 395, label: 'Тёмная империя' },
+  ], 0, 400);
+  assert.deepEqual(placed.map(mark => [mark.shown, mark.anchorEnd]), [[true, false], [false, false], [true, true]]);
+  assert.equal(placeSegmentLabels([{ at: 10, label: 'Патч 36.6.3' }], 0, 400)[0].anchorEnd, false);
+});
+test('date ticks keep the ends and never crowd each other', () => {
+  const points = lineCoordinates(Array.from({ length: 166 }, (_, index) => ({ x: index, y: 1 })));
+  const ticks = axisTickIndexes(points, 6, 0.1);
+  assert.equal(ticks[0], 0);
+  assert.equal(ticks.at(-1), 165);
+  assert.ok(ticks.every((tick, index) => index === 0 || points[tick].position - points[ticks[index - 1]].position >= 0.1));
+  assert.deepEqual(axisTickIndexes(lineCoordinates([{ x: 1, y: 1 }]), 6, 0.1), [0]);
 });
 test('a small nonzero percentage is not labelled as zero', () => {
   assert.equal(formatChartValue(0.003, '%'), '0,003%');
@@ -62,7 +92,7 @@ test('browser charts remain accessible on mobile and export independent files', 
       await page.goto(`${process.env.STORYBOOK_QA_URL}/iframe.html?id=${id}&viewMode=story`, { waitUntil: 'networkidle0' });
       await page.waitForSelector(selector);
     };
-    for (const id of ['shared-analytics--small-percentages', 'shared-analytics--dense-history', 'shared-analytics--missing-observations', 'shared-analytics--single-observation', 'shared-analytics--count-zero', 'shared-analytics--narrow-percentage-range', 'shared-analytics--empty', 'shared-analytics--placements', 'shared-analytics--tavern', 'shared-analytics--native-matrix', 'shared-analytics--selectable-bars', 'shared-analytics--empty-table', 'shared-analytics--compact-table', 'battlegrounds-analytics--hero-power', 'battlegrounds-analytics--tavern-distribution', 'battlegrounds-analytics--compositions', 'battlegrounds-round-analytics--rounds-with-gaps', 'meta-scatter-analytics--dense-meta', 'arena-classes-data--downloadable-chart', 'arena-classes-data--zero-winrate', 'admin-crm-overview--needs-attention', 'admin-crm-overview--all-calm', 'admin-crm-overview--empty-history', 'admin-crm-overview--single-day']) {
+    for (const id of ['shared-analytics--small-percentages', 'shared-analytics--dense-history', 'shared-analytics--missing-observations', 'shared-analytics--single-observation', 'shared-analytics--count-zero', 'shared-analytics--narrow-percentage-range', 'shared-analytics--empty', 'shared-analytics--placements', 'shared-analytics--tavern', 'shared-analytics--native-matrix', 'shared-analytics--selectable-bars', 'shared-analytics--empty-table', 'shared-analytics--compact-table', 'battlegrounds-analytics--hero-power', 'battlegrounds-analytics--tavern-distribution', 'battlegrounds-analytics--compositions', 'battlegrounds-round-analytics--rounds-with-gaps', 'arena-classes-data--downloadable-chart', 'arena-classes-data--zero-winrate', 'admin-crm-overview--needs-attention', 'admin-crm-overview--all-calm', 'admin-crm-overview--empty-history', 'admin-crm-overview--single-day']) {
       await page.setViewport({ width: 390, height: 844 });
       await visit(id);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${id}: page overflow`);

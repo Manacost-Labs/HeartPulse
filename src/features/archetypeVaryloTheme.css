@@ -21,6 +21,12 @@
   --ui-sheen: 0 0 transparent;
   --ui-shadow-card: 0 0 transparent;
   --ui-blur: none;
+  /* Hover cards (.ui-floating) of the radar and the build comparison: opaque cream, readable text. */
+  --ui-elevated: #fffaf0;
+  --ui-floating-border-color: #b89d6c;
+  --ui-shadow-popover: 0 8px 22px rgba(48, 37, 28, 0.2);
+  --ui-radius-popover: 4px;
+  --ui-blur-strong: none;
   --ui-accent: #8d171d;
   --ui-primary: #8d171d;
   --ui-focus-color: #8d171d;

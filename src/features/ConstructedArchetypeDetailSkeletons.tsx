@@ -53,11 +53,15 @@ export function ArchetypeBuildsSkeleton({ deckCount = FIRST_BUILDS }: { deckCoun
   </LoadingSurface>;
 }
 
-const HISTORY_CHARTS = ['Популярность', 'Количество игр'];
-/** The width of a slice date («24 июл., 12:00») in figure spaces: the scrubber labels wrap where real dates wrap. */
-const CHART_DATE = '\u2007\u2007 июл., \u2007\u2007:\u2007\u2007';
+const HISTORY_CHARTS = [
+  { title: 'Винрейт', subtitle: '\u2007\u2007\u2007 срезов · пунктир — смена периода HSGuru · полоса — 95% интервал' },
+  { title: 'Популярность', subtitle: '\u2007\u2007\u2007 срезов · пунктир — смена периода HSGuru' },
+  { title: 'Игр за сутки', subtitle: 'Прирост игр за 24 часа внутри периода HSGuru' },
+];
+/** The width of a short slice date («24 июл») in figure spaces: the scrubber labels wrap where real dates wrap. */
+const CHART_DATE = '\u2007\u2007 июл';
 
-/** The history section: real heading frame, the winrate band's reserve and two chart frames with a 240 px plot and selection controls. */
+/** The history section: real heading frame and three chart frames with a 240 px plot and selection controls. */
 export function ArchetypeHistorySkeleton() {
   return <LoadingSurface label="Загружаем историю архетипа" quiet layout="rows" className="archetype-detail-skeleton">
     <div className="archetype-history" inert>
@@ -65,13 +69,12 @@ export function ArchetypeHistorySkeleton() {
         <div>
           <span className="archetypes-eyebrow"><TrendingUp size={15} /><Words>Накопительная статистика</Words></span>
           <Title>История архетипа</Title>
-          <p><Words>Новый срез добавляется каждые 12 часов. Через несколько дней здесь будет виден тренд, а через месяц — полноценная история меты.</Words></p>
+          <p><Words>Срез добавляется каждые 12 часов. HSGuru считает статистику внутри периода — патча или дополнения — и с новым периодом начинает счёт заново, поэтому граница отмечена пунктиром.</Words></p>
         </div>
         <span className="archetype-section-heading__count"><Value /></span>
       </div>
-      <div className="archetype-band-slot"><LoadingBlock className="archetype-band-slot__reserve" /></div>
       <div className="archetype-history__charts">
-        {HISTORY_CHARTS.map(title => <ChartFrame key={title} title={title} subtitle={'   срезов · история архетипа'}>
+        {HISTORY_CHARTS.map(({ title, subtitle }) => <ChartFrame key={title} title={title} subtitle={subtitle}>
           <div className="analytics-chart__plot">
             <LoadingBlock className="archetype-skeleton__plot" />
             <div className="analytics-chart__selection">

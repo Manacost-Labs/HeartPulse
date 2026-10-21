@@ -43,11 +43,11 @@
 .archetype-detail-skeleton .archetype-deck-card__number { color: transparent; }
 
 /* Chart frames: the real header keeps its wrapping, unseen; LineChart draws a
-   240 px plot, its value line and its 32 px range above the date labels. */
+   240 px plot, its value line and its 24 px range above the date labels. */
 .archetype-detail-skeleton .analytics-chart__header > * { visibility: hidden; }
 .archetype-skeleton__plot { height: 240px; }
 .archetype-skeleton__selection-value { height: 24px; }
-.archetype-skeleton__range { display: inline-block; width: 100%; height: 32px; }
+.archetype-skeleton__range { display: inline-block; width: 100%; height: 24px; }
 
 /* The analysis section while its lazy chunk loads: the first screen only. */
 .archetype-analysis-reserve { min-block-size: min(100svh, 48rem); }

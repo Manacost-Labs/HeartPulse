@@ -25,8 +25,8 @@ export function BarChart({ title, subtitle, rows, unit = '%', maximum, tourId, o
             {onSelect && <rect x="0" y={index * rowHeight + 26} width={width} height={rowHeight} fill="transparent" aria-hidden="true" />}
             <title>{row.label}: {formatChartValue(row.value, unit)}{row.detail ? ` · ${row.detail}` : ''}</title>
             <text className="analytics-chart__bar-label" x="0" y={index * rowHeight + 47}>{row.label.length > (width < 480 ? 14 : 23) ? row.label.slice(0, width < 480 ? 13 : 22) + '…' : row.label}</text>
-            <rect x={labelWidth} y={index * rowHeight + 32} width={plotWidth} height="20" rx="3" fill="#e8dcc0" />
-            <rect x={labelWidth} y={index * rowHeight + 32} width={Math.max(0, Math.min(1, row.value / max)) * plotWidth} height="20" rx="3" fill={row.color ?? (index < 4 ? '#64416f' : '#957d63')} />
+            <rect x={labelWidth} y={index * rowHeight + 32} width={plotWidth} height="20" rx="3" fill="#ebdcb9" />
+            <rect className="analytics-chart__bar" data-active={active === row || undefined} x={labelWidth} y={index * rowHeight + 32} width={Math.max(0, Math.min(1, row.value / max)) * plotWidth} height="20" rx="3" fill={row.color ?? (index < 4 ? '#8d171d' : '#b39468')} />
             <text className="analytics-chart__bar-value" x={width - 2} y={index * rowHeight + 47} textAnchor="end">{formatChartValue(row.value, unit)}</text>
           </g>)}
         </svg>

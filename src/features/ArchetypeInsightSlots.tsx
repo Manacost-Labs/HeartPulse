@@ -10,20 +10,12 @@ import './ConstructedArchetypeInsights.css';
 
 /** Started beside the subscriber reads, so the charts are usually ready when their data is. */
 export const loadInsights = () => import('./ConstructedArchetypeInsights');
-const LazyBand = React.lazy(() => loadInsights().then(module => ({ default: module.WinrateBandChart })));
 const LazyHeatmap = React.lazy(() => loadInsights().then(module => ({ default: module.RankHeatmap })));
 const LazyComparison = React.lazy(() => loadInsights().then(module => ({ default: module.BuildComparison })));
 const LazyRadar = React.lazy(() => loadInsights().then(module => ({ default: module.ArchetypeRadar })));
 
-type HistoryPoint = { recordedAt: string; winrate: number | null; popularity: number | null; games: number };
 type RankMatrix = React.ComponentProps<typeof LazyHeatmap>['matrix'];
 type RadarItem = React.ComponentProps<typeof LazyRadar>['item'];
-
-export function WinrateBandSlot({ history }: { history: readonly HistoryPoint[] }) {
-  return <div className="archetype-band-slot">
-    <React.Suspense fallback={<LoadingBlock className="archetype-band-slot__reserve" />}><LazyBand history={history} /></React.Suspense>
-  </div>;
-}
 
 function InsightHeading({ icon, eyebrow, title, text }: { icon: React.ReactNode; eyebrow: string; title: string; text: string }) {
   return <header className="archetype-section-heading">

@@ -3,5 +3,5 @@
    reserve their controls without constructing a chart from fabricated data. */
 .history-loading-plot { height: 240px; }
 .history-loading-value { height: 24px; }
-.history-loading-scrubber { height: 54.5px; }
+.history-loading-scrubber { height: 45px; }
 .constructed-card-history-loading .analytics-chart__header > * { visibility: hidden; }

@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ConfidenceBandChart } from '../vendor/varylo-ui/insights/ConfidenceBandChart';
-import { Heatmap } from '../vendor/varylo-ui/charts/Heatmap';
 import { MetricComparison, type ComparisonMetric } from '../vendor/varylo-ui/charts/MetricComparison';
 import { RadarChart } from '../vendor/varylo-ui/charts/RadarChart';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
@@ -8,8 +6,6 @@ import {
   archetypeRadarProfile,
   deckManaCurve,
   MANA_CURVE_LABELS,
-  rankHeatmapGrid,
-  winrateBand,
 } from './archetypeInsightsModel';
 import '../vendor/varylo-ui/styles/index.css';
 import './archetypeVaryloTheme.css';
@@ -18,84 +14,8 @@ import './ConstructedArchetypeInsights.css';
 const PERCENT = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
 const COUNT = (value: number) => Math.round(value).toLocaleString('ru-RU');
 
-type HistoryPoint = { recordedAt: string; winrate: number | null; popularity: number | null; games: number };
-
-/** Winrate of each history slice with its 95% and 50% Wilson intervals from the slice's games. */
-export function WinrateBandChart({ history }: { history: readonly HistoryPoint[] }) {
-  const data = useMemo(() => winrateBand(history), [history]);
-  return (
-    <ConfidenceBandChart
-      className="hp-varylo archetype-band-chart"
-      data={data}
-      levels={[0.5, 0.95]}
-      format={{ unit: 'percent' }}
-      height={220}
-      showOutliers={false}
-      headingLevel={3}
-      locale="ru-RU"
-      title="Винрейт и доверительный интервал"
-      labels={{
-        actual: 'Винрейт',
-        forecast: 'Прогноз',
-        inner: level => `Интервал ${level}`,
-        outer: level => `Интервал ${level}`,
-        summary: (first, last, low, high) => `Винрейт от ${first} до ${last}; последний интервал ${low}–${high}.`,
-        explore: 'Стрелками можно переходить между срезами',
-        readout: label => `Срез ${label}`,
-        range: (low, high) => `${low}–${high}`,
-        period: 'Срез',
-        empty: 'Срезов пока нет',
-        loading: 'Загружаем историю',
-      }}
-    />
-  );
-}
-
-type RankMatrix = Parameters<typeof rankHeatmapGrid>[0];
-
-/** Winrate in every rank × period slice of HSGuru; slices without the archetype stay empty. */
-const SHORT_PERIODS: Record<string, string> = {
-  past_day: '1 д', past_3_days: '3 д', past_week: '7 д', past_2_weeks: '14 д', past_30_days: '30 д', black_empire: 'Доп.',
-};
-
-/** Six period names do not fit a phone row: there the columns use short names, explained below. */
-function useNarrow() {
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    const query = window.matchMedia('(max-width: 640px)');
-    const update = () => setNarrow(query.matches);
-    update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
-  }, []);
-  return narrow;
-}
-
-export function RankHeatmap({ matrix }: { matrix: RankMatrix }) {
-  const grid = useMemo(() => rankHeatmapGrid(matrix), [matrix]);
-  const narrow = useNarrow();
-  const columns = narrow ? matrix.periods.map(period => SHORT_PERIODS[period.id] ?? period.label) : grid.columns;
-  if (!grid.filled) return <p className="archetype-insight-empty">HSGuru пока не показывает этот архетип ни в одном ранге с выборкой от 100 игр.</p>;
-  return (
-    <>
-    <Heatmap
-      className="hp-varylo archetype-rank-heatmap"
-      rows={grid.rows}
-      columns={columns}
-      values={grid.values}
-      color="#3f8a46"
-      showValues
-      cellHeight={40}
-      valueFormatter={PERCENT}
-      locale="ru-RU"
-      labels={{ less: 'Ниже', more: 'Выше' }}
-      ariaLabel="Винрейт архетипа по рангам и периодам"
-    />
-    {narrow ? <p className="archetype-insight-note">д — дней; Доп. — текущее дополнение «Тёмная империя».</p> : null}
-    </>
-  );
-}
-
+/** Rank × period winrate: a native table (ArchetypeRankHeatmap) instead of the kit's single-colour heatmap. */
+export { RankHeatmap } from './ArchetypeRankHeatmap';
 
 type Build = { deckCode: string; games: number | null; winrate: number | null };
 type ResolvedCard = { cost: number | null; count: number };

@@ -24,7 +24,7 @@ export function RoundAnalytics({ rows }: { rows: RoundRow[] }) {
   return <div className="grid gap-4">
     <div className="grid gap-4 lg:grid-cols-2">{METRICS.map(metric => <LineChart key={metric.key} title={metric.title} subtitle={metric.subtitle} unit={metric.unit} color={metric.color} xLabel="Раунд "
       domain={metric.key === 'games_with_minion' ? { minimum: 0 } : metric.key === 'avg_placement_with' ? { minimum: 1, maximum: 8 } : undefined}
-      points={rows.map(row => ({ x: row.combat_round, y: row[metric.key] }))} />)}</div>
+      points={rows.map(row => ({ x: row.combat_round, y: row[metric.key], detail: `${formatChartValue(row.games_with_minion, 'count')} игр с существом` }))} />)}</div>
     <DataTable title="Статистика по раундам" rows={rows} columns={COLUMNS} pageSize={16} />
   </div>;
 }

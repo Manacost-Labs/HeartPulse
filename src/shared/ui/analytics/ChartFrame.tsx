@@ -1,5 +1,7 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { Download } from 'lucide-react';
+import { FileCode2, ImageDown } from 'lucide-react';
+
+const EXPORTS = [{ format: 'png', Icon: ImageDown }, { format: 'svg', Icon: FileCode2 }] as const;
 
 export function ChartFrame({ title, subtitle, children, actions, tourId, className = '', exportable = true }: {
   title: string; subtitle?: string; children: ReactNode; actions?: ReactNode; tourId?: string; className?: string; exportable?: boolean;
@@ -25,8 +27,8 @@ export function ChartFrame({ title, subtitle, children, actions, tourId, classNa
     <header className="analytics-chart__header">
       <div><h3 id={id}>{title}</h3>{subtitle && <p>{subtitle}</p>}</div>
       <div className="analytics-chart__actions">{actions}<span className="analytics-chart__downloads">
-        <Download size={15} aria-hidden="true" />
-        {(['png', 'svg'] as const).map(format => <button key={format} type="button" disabled={busy || !exportable} onClick={() => void exportChart(format)} aria-label={`Скачать ${title}: ${format.toUpperCase()}`}>{format.toUpperCase()}</button>)}
+        {EXPORTS.map(({ format, Icon }) => <button key={format} type="button" className="analytics-chart__download" disabled={busy || !exportable} onClick={() => void exportChart(format)}
+          aria-label={`Скачать ${title}: ${format.toUpperCase()}`} title={`Скачать ${format.toUpperCase()}`}><Icon size={16} aria-hidden="true" /></button>)}
       </span></div>
     </header>
     {children}

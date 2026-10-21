@@ -741,6 +741,9 @@
   padding: 0.85rem;
 }
 
+/* The winrate leads the history across the full width; popularity and daily games share a row. */
+.archetype-history__charts > :first-child { grid-column: 1 / -1; }
+
 .archetype-trend {
   min-width: 0;
   border: 1px solid rgba(92, 54, 24, 0.2);

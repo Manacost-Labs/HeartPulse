@@ -112,14 +112,14 @@ try {
   assert.equal(await page.$eval('.archetype-dossier__backdrop', image => new URL(image.currentSrc || image.src).pathname),
     '/archetype-art/classes/priest-1920.webp', 'the class art spans the header at desktop width');
   assert.match(await page.$eval('.archetype-dossier__metrics', bar => getComputedStyle(bar).backdropFilter), /blur/);
-  // VaryloUI insights on subscriber data: KPI change and sparkline, the Wilson band, the rank heatmap,
-  // the build comparison and the radar.
+  // Insights on subscriber data: KPI change and sparkline, the winrate history with its Wilson band,
+  // the rank heatmap, the build comparison and the radar.
   await page.waitForSelector('.archetype-dossier__metrics .ui-kpi-group__delta');
   assert.equal(await page.$$eval('.archetype-dossier__metrics .ui-kpi-group__delta', nodes => nodes.length), 3);
   assert.ok(await page.$('.archetype-dossier__metrics .ui-kpi-group__spark'));
-  await page.waitForSelector('.archetype-band-chart svg');
-  await page.waitForSelector('.archetype-rank-heatmap');
-  assert.match(await page.$eval('.archetype-rank-heatmap', node => node.textContent), /Топ-1000/);
+  await page.waitForSelector('.archetype-history .analytics-chart__band');
+  await page.waitForSelector('.archetype-rank-grid td[data-tone]');
+  assert.match(await page.$eval('.archetype-rank-grid', node => node.textContent), /Топ-1000/);
   await page.$eval('.archetype-radar-section', section => section.scrollIntoView());
   await page.waitForSelector('.archetype-radar svg');
   await page.$eval('.archetype-compare', section => section.scrollIntoView());
@@ -230,8 +230,8 @@ try {
   });
   await page.waitForFunction(() => !document.querySelector('.archetype-builds .archetype-deck-card:first-child .deck-render-preview__list')?.hidden);
   assert.equal(await page.$eval('#storybook-root h1', heading => heading.textContent), 'Воровской Жрец');
-  assert.equal(await page.$$eval('.archetype-history .analytics-chart', charts => charts.length), 2);
-  assert.equal(await page.$$eval('.archetype-history .archetype-band-chart', charts => charts.length), 1, 'the winrate is the Wilson band chart');
+  assert.equal(await page.$$eval('.archetype-history .analytics-chart', charts => charts.length), 3);
+  assert.equal(await page.$$eval('.archetype-history .analytics-chart__band', bands => bands.length) > 0, true, 'the winrate carries its Wilson band');
   assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 6);
   assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 30);
   assert.equal(await page.$$eval('.archetype-deck-card .deck-list-view__expand', buttons => buttons.length), 6);
@@ -466,7 +466,7 @@ try {
     matchupCount: document.querySelectorAll('.constructed-matchup-ledger li').length,
   }));
   assert.ok(detailMobile.overflow <= 1, `detail overflowed by ${detailMobile.overflow}px`);
-  assert.equal(detailMobile.chartCount, 2);
+  assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
   assert.equal(detailMobile.deckTileHeight, 25);
   assert.equal(detailMobile.deckGemWidth, 25);

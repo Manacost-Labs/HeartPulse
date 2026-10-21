@@ -1,15 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, waitFor } from 'storybook/test';
-import { ArchetypeRadar, BuildComparison, RankHeatmap, WinrateBandChart } from './ConstructedArchetypeInsights';
+import { ArchetypeRadar, BuildComparison, RankHeatmap } from './ConstructedArchetypeInsights';
+import real from '../../tests/fixtures/archetype-charts-real-20261021.json';
 import './ConstructedArchetypes.css';
-
-const history = Array.from({ length: 12 }, (_, index) => ({
-  recordedAt: new Date(Date.UTC(2026, 9, 10 + index)).toISOString(),
-  winrate: 52 + Math.sin(index / 2) * 2 + index * 0.2,
-  popularity: 8 + index * 0.1,
-  // Games accumulate through a period: the first slices are small, so their band is wide.
-  games: 120 * (index + 1) ** 2,
-}));
 
 const periods = [['past_day', 'Сутки'], ['past_3_days', '3 дня'], ['past_week', 'Неделя'], ['past_2_weeks', '2 недели'], ['past_30_days', '30 дней'], ['black_empire', 'Тёмная империя']];
 const ranks = [['diamond', 'Алмаз 1–4'], ['diamond_legend', 'Алмаз — Легенда'], ['legend', 'Легенда'], ['top_5k', 'Топ-5000'], ['top_legend', 'Топ-1000']];
@@ -51,18 +44,36 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const WinrateBand: Story = {
-  render: () => <WinrateBandChart history={history} />,
-  play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector('.archetype-band-chart svg')).not.toBeNull();
-  },
-};
-
 export const RanksHeatmap: Story = {
   render: () => <RankHeatmap matrix={matrix} />,
   play: async ({ canvas }) => {
     await expect(canvas.getAllByText('Топ-1000').length).toBeGreaterThan(0);
   },
+};
+
+/** HSGuru slices of Quest Priest captured on 21 Oct 2026: large samples, strong colours. */
+export const RanksQuestPriest: Story = {
+  render: () => <section className="archetype-insight archetype-ranks"><RankHeatmap matrix={real.archetypes['Quest Priest'].ranks} /></section>,
+  play: async ({ canvasElement, canvas }) => {
+    const cell = canvasElement.querySelector<HTMLElement>('[data-cell="0-1"]');
+    if (!cell) throw new Error('the heatmap has no cell 0-1');
+    cell.focus();
+    await waitFor(() => expect(canvasElement.querySelector('.archetype-rank-grid__card')).not.toBeNull());
+    const card = canvasElement.querySelector('.archetype-rank-grid__card');
+    if (!card) throw new Error('focus did not open the cell card');
+    await expect(card).toHaveTextContent('Алмаз 1–4 · 3 дня');
+    await expect(card).toHaveTextContent(/Игр: 24\s856/);
+    await expect(card).toHaveTextContent('95% интервал');
+    const box = cell.getBoundingClientRect();
+    const tip = card.getBoundingClientRect();
+    await expect(tip.bottom <= box.top || tip.top >= box.bottom).toBe(true);
+    await expect(canvas.getAllByText('Топ-1000').length).toBeGreaterThan(0);
+  },
+};
+
+/** Zee Shaman on the same day: thin samples in high ranks stay pale. */
+export const RanksSmallSamples: Story = {
+  render: () => <section className="archetype-insight archetype-ranks"><RankHeatmap matrix={real.archetypes['Zee Shaman'].ranks} /></section>,
 };
 
 export const EmptyRanks: Story = {

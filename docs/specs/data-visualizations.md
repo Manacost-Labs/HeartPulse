@@ -17,6 +17,12 @@ the parchment, timber and game typography. Preserve statistics and permission ga
   histories; fractional grid values must not produce repeated rounded labels.
 - Observed ranges use their spread for padding; an absolute 50% level must not
   flatten a 0.01-point change. Constant series retain a finite padded scale.
+- Value axes use round steps (1, 2, 2.5 or 5 × 10ⁿ, about five intervals);
+  date axes spread several short labels and keep both ends.
+- A series made of periods (a point's `segment`, such as an HSGuru patch or
+  expansion window) breaks the line at each change and marks it with a dashed,
+  named boundary; the newest period always keeps its name. Values of different
+  periods are never joined into one line.
 
 ## Ownership and design
 
@@ -31,6 +37,15 @@ Export loads no external services. Parchment #f7e8bf, ink #30251c, muted #735e49
 violet #64416f and gold #d9ab49 retain the site's identity. Use HSDisplay for titles
 and Inter with tabular numerals for data. Avoid repeated pill frames and gradients.
 Hero power uses a labelled observed range rather than an unlabelled 0–100 canvas.
+
+`LineChart` (21 October 2026): a soft area under the line, or an interval band
+(`low`/`high`, e.g. a 95% Wilson interval) instead of it; a dashed faint grid;
+the latest observation highlighted with a ring; on hover an opaque card beside
+the point (never over it) with date, value, interval, detail and period, plus a
+vertical guide. The keyboard scrubber stays as a thin track with a thumb in the
+series colour. PNG/SVG export are two quiet icon buttons whose accessible names
+keep the format («Скачать …: PNG»). Series colours come from the theme: red
+by default (#8d171d); violet (#64416f) remains only for table focus rings.
 
 ## Implementation sequence
 
@@ -70,7 +85,7 @@ icon-only SVGs and canvas image composition are classified separately.
 | BG heroes | Places, power, tavern, tiers, compositions | PNG/SVG/CSV |
 | BG creatures | Round impact, combat wins, place, sample size | PNG/SVG/CSV |
 | Constructed cards | Usage, deck wins, games, played wins | PNG/SVG |
-| Constructed archetypes | Winrate, popularity, games | PNG/SVG |
+| Constructed archetypes | Winrate band, popularity, games, ranks | PNG/SVG |
 | Arena archetypes | Popularity, winrate | PNG/SVG |
 | Standard meta | Winrate/popularity scatter | PNG/SVG |
 | Standard matchups | Winrate matrix | PNG/SVG/CSV |
