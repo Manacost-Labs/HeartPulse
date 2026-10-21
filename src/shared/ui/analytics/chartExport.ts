@@ -1,3 +1,5 @@
+import { csvDocument } from './analyticsModel';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const STYLE_PROPERTIES = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray', 'font-size', 'font-weight', 'text-anchor', 'opacity'];
 
@@ -8,6 +10,12 @@ export function downloadBlob(blob: Blob, filename: string) {
   link.download = filename;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** The rows as rendered: a cell's `data-export-value` wins over its form control's value and its visible text. */
+export function downloadTableCsv(table: HTMLTableElement, title: string) {
+  const rows = Array.from(table.rows, row => Array.from(row.cells, cell => cell.dataset.exportValue ?? cell.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input:not([type=checkbox]), textarea, select')?.value ?? cell.innerText.trim()));
+  downloadBlob(new Blob([csvDocument(rows[0] ?? [], rows.slice(1))], { type: 'text/csv;charset=utf-8' }), `${title}.csv`);
 }
 
 /** Export an independent snapshot, including computed SVG styles but no remote assets. */

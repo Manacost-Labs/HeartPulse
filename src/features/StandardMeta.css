@@ -416,6 +416,23 @@
 }
 
 .standard-meta__view-switch button:hover { background: rgba(255, 246, 218, 0.58); }
+
+/* The table's CSV export sits beside the view switch, as tall as it. */
+.standard-meta__view-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.standard-meta__csv {
+  display: inline-grid;
+  place-items: center;
+  min-width: 46px;
+  border: 1px solid rgba(80, 45, 21, 0.27);
+  color: #67482f;
+  background: rgba(91, 53, 24, 0.08);
+  cursor: pointer;
+}
+
+.standard-meta__csv:hover { color: #3d291c; background: rgba(255, 246, 218, 0.58); }
+.standard-meta__csv:focus-visible { outline: 2px solid var(--meta-purple); outline-offset: 2px; }
+.standard-meta__csv-error { flex-basis: 100%; margin: 0; color: #8c2730; font-size: 0.74rem; text-align: right; }
 .standard-meta__view-switch button[aria-pressed='true'] {
   border-color: rgba(239, 197, 104, 0.7);
   color: #fff0c4;
@@ -941,7 +958,9 @@
   }
   .standard-meta__results-toolbar { flex-direction: column; gap: 0.48rem; align-items: stretch; margin-top: 0.65rem; padding: 0.5rem; border-width: 4px; }
   .standard-meta__results-toolbar p { align-self: center; }
-  .standard-meta__view-switch { width: 100%; }
+  .standard-meta__view-actions { width: 100%; }
+  .standard-meta__view-switch { flex: 1; min-width: 0; }
+  .standard-meta__csv { flex: 0 0 auto; min-width: 52px; }
   .standard-meta__view-switch button { flex: 1; min-height: 44px; padding-inline: 0.5rem; }
   .standard-meta-card { grid-template-columns: auto auto minmax(0, 1fr); gap: 0.55rem; margin-top: 0; padding: 0.68rem; border-width: 4px; }
   .standard-meta__grid { gap: 0.62rem; margin-top: 0.65rem; }

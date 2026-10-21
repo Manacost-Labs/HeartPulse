@@ -1,5 +1,4 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { csvDocument } from './analyticsModel';
 
 /** Preserves domain-owned sorting and pagination; exports only rendered, accessible rows. */
 export function TableSurface({ title, children, imageExport = false, scrollable = true, density = 'comfortable' }: { title: string; children: ReactNode; imageExport?: boolean; scrollable?: boolean; density?: 'comfortable' | 'compact' }) {
@@ -12,10 +11,8 @@ export function TableSurface({ title, children, imageExport = false, scrollable 
     setBusy(true); setError('');
     try {
       const exporter = await import('./chartExport');
-      if (format === 'csv') {
-        const rows = Array.from(table.rows, row => Array.from(row.cells, cell => cell.dataset.exportValue ?? cell.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input:not([type=checkbox]), textarea, select')?.value ?? cell.innerText.trim()));
-        exporter.downloadBlob(new Blob([csvDocument(rows[0] ?? [], rows.slice(1))], { type: 'text/csv;charset=utf-8' }), `${title}.csv`);
-      } else await exporter.downloadSvgDocument(exporter.tableSvgDocument(table, title), title, format);
+      if (format === 'csv') exporter.downloadTableCsv(table, title);
+      else await exporter.downloadSvgDocument(exporter.tableSvgDocument(table, title), title, format);
     } catch { setError('Не удалось скачать таблицу. Попробуйте ещё раз.'); }
     finally { setBusy(false); }
   };

@@ -121,7 +121,23 @@
 }
 
 .standard-matchup-matrix .ui-matchup-matrix__name {
-  max-inline-size: 12rem;
+  max-inline-size: clamp(12rem, 14vw, 16rem);
+}
+
+/* The names column takes only what its names need; the spare width goes to the cells. */
+.standard-matchup-matrix .ui-matchup-matrix__rowhead {
+  inline-size: 1%;
+}
+
+/* The grid spans the frame: cells keep the kit's minimum width and share
+   whatever the frame has beyond it, with taller rows and larger numbers. */
+.standard-matchup-matrix .ui-matchup-matrix__grid {
+  inline-size: 100%;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__cell {
+  block-size: 40px;
+  font-size: 13.5px;
 }
 
 .standard-matchup-matrix .ui-matchup-matrix__cell[data-low-sample]:not([data-row-active], [data-col-active]) {
@@ -129,8 +145,28 @@
 }
 
 .standard-matchup-matrix .ui-matchup-matrix__tip {
+  /* As wide as its longest line up to 420px, so two long Russian names wrap
+     inside it instead of running past the edge. */
+  inline-size: max-content;
+  min-inline-size: min(300px, calc(100% - 8px));
+  max-inline-size: min(420px, calc(100% - 8px));
+  gap: 4px;
+  padding: 12px 16px;
   border-color: #b8904a;
   box-shadow: 0 14px 28px -12px rgba(46, 22, 11, 0.45);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__tip-names {
+  color: var(--ui-fg);
+  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__tip-rate {
+  font-size: 20px;
 }
 
 .standard-matchup-matrix .ui-matchup-matrix__item {

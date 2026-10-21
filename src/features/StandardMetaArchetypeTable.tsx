@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type Ref } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
-import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import type { StandardMetaItem } from '../../shared/standardMetaContract';
 import type { StandardMetaTrendItem } from '../../shared/standardMetaTrendsContract';
@@ -39,6 +38,8 @@ export type StandardMetaArchetypeTableProps = StandardMetaTrendsQuery & {
   formatLabel: string;
   rankLabel: string;
   periodLabel: string;
+  /** The rendered table, read by the page toolbar's CSV export. */
+  tableRef?: Ref<HTMLTableElement>;
 };
 
 /**
@@ -47,7 +48,7 @@ export type StandardMetaArchetypeTableProps = StandardMetaTrendsQuery & {
  * whole row links to the archetype. Below 640px every row is a card.
  */
 export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeTableProps) {
-  const { items, rankById, format, formatLabel, rankLabel, periodLabel, loadTrends } = props;
+  const { items, rankById, format, formatLabel, rankLabel, periodLabel, loadTrends, tableRef } = props;
   const [sort, setSort] = useState<StandardMetaSort>({ key: null, direction: 'desc' });
   const { trends, error } = useStandardMetaTrends(props);
   const trendById = useMemo(() => new Map(trends?.items.map(item => [item.id, item]) ?? []), [trends]);
@@ -80,8 +81,8 @@ export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeT
           <option value="archetype:asc">Название</option>
         </select>
       </label>
-      <TableSurface title="Мета: архетипы">
-        <table className="standard-meta-table">
+      <div className="standard-meta-archetypes__scroll" role="region" aria-label="Таблица архетипов" tabIndex={0}>
+        <table ref={tableRef} className="standard-meta-table">
           <caption className="sr-only">Мета Hearthstone: {formatLabel}, {rankLabel}, {periodLabel}</caption>
           <thead>
             <tr>
@@ -108,7 +109,7 @@ export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeT
             ))}
           </tbody>
         </table>
-      </TableSurface>
+      </div>
       <p className="standard-meta-archetypes__legend">
         <span className="standard-meta-archetypes__legend-bar" aria-hidden="true"><i /></span>
         Полоса винрейта отсчитана от 50%, светлая зона — 95% доверительный интервал Уилсона: чем меньше игр, тем он шире.

@@ -53,6 +53,12 @@ pairs are muted and left out of the best/worst summary. "Против меты" 
 win rate against the field computed from the matchups weighted by popularity,
 so it can differ slightly from HSGuru's overall win rate of the row.
 
+On wide screens the grid spans the frame: cells keep the kit's 46px minimum
+and share the spare width, the names column takes only what its names need
+(up to 16rem). The tooltip is 300–420px wide and wraps two long names instead
+of running past its edge. Below 600px of container width the kit's list view
+replaces the grid.
+
 The API adds `classKey` (inferred from the English name by
 `server/standardMetaClasses.ts`, or `null`) to columns and rows. The client
 accepts only known class keys; responses cached before the field existed still

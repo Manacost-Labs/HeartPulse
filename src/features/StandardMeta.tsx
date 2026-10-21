@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Copy,
   Crown,
+  Download,
   Gem,
   LayoutGrid,
   Maximize2,
@@ -211,6 +212,45 @@ function WinrateMedallion({ value }: { value: number | null }) {
   );
 }
 
+/** The view switch and, for the table, its CSV download; the export code loads on the first click. */
+function MetaViewActions({ view, onView, tableRef, csvTitle }: {
+  view: MetaView;
+  onView: (view: MetaView) => void;
+  tableRef: React.RefObject<HTMLTableElement | null>;
+  csvTitle: string;
+}) {
+  const [error, setError] = useState('');
+  const download = () => {
+    const table = tableRef.current;
+    if (!table) return;
+    setError('');
+    import('../shared/ui/analytics/chartExport')
+      .then(exporter => exporter.downloadTableCsv(table, csvTitle))
+      .catch(() => setError('Не удалось скачать таблицу. Попробуйте ещё раз.'));
+  };
+  return (
+    <div className="standard-meta__view-actions">
+      <div className="standard-meta__view-switch" aria-label="Вид списка" data-tour-id="meta-view-switcher">
+        <button type="button" data-meta-view="cards" aria-pressed={view === 'cards'} onClick={() => onView('cards')}>
+          <LayoutGrid size={17} /> Карточки
+        </button>
+        <button type="button" data-meta-view="tiers" aria-pressed={view === 'tiers'} onClick={() => onView('tiers')}>
+          <Trophy size={17} /> Тиры
+        </button>
+        <button type="button" data-meta-view="table" aria-pressed={view === 'table'} onClick={() => onView('table')}>
+          <TableProperties size={17} /> Таблица
+        </button>
+      </div>
+      {view === 'table' && (
+        <button type="button" className="standard-meta__csv" aria-label="Скачать таблицу в CSV" title="Скачать CSV" onClick={download}>
+          <Download size={17} aria-hidden="true" />
+        </button>
+      )}
+      {view === 'table' && error && <p className="standard-meta__csv-error" role="alert">{error}</p>}
+    </div>
+  );
+}
+
 export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState; onClose: () => void; onRenderPreview: () => void }) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const autoPreviewKeyRef = useRef<string | null>(null);
@@ -395,6 +435,7 @@ function StandardMetaContent({
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
+  const tableRef = useRef<HTMLTableElement>(null);
   // A subscriber's page starts from the teaser too, busy until the full slice replaces it.
   const [data, setData] = useState<MetaPayload>(initialTeaser?.data ?? EMPTY_DATA);
   const hasPayload = data !== EMPTY_DATA;
@@ -605,17 +646,7 @@ function StandardMetaContent({
             <p data-tour-id="meta-results">
               <strong>{visibleItems.length}</strong> {hasFullAccess ? 'архетипов в текущем срезе' : 'лидера текущего среза'}
             </p>
-            <div className="standard-meta__view-switch" aria-label="Вид списка" data-tour-id="meta-view-switcher">
-              <button type="button" data-meta-view="cards" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>
-                <LayoutGrid size={17} /> Карточки
-              </button>
-              <button type="button" data-meta-view="tiers" aria-pressed={view === 'tiers'} onClick={() => setView('tiers')}>
-                <Trophy size={17} /> Тиры
-              </button>
-              <button type="button" data-meta-view="table" aria-pressed={view === 'table'} onClick={() => setView('table')}>
-                <TableProperties size={17} /> Таблица
-              </button>
-            </div>
+            <MetaViewActions view={view} onView={setView} tableRef={tableRef} csvTitle={`Мета ${data.formatLabel}, ${data.rankLabel}`} />
           </section>
 
           {view === 'cards' && visibleItems.length > 0 ? (
@@ -660,7 +691,7 @@ function StandardMetaContent({
               ) : (
                 <StandardMetaArchetypeTable items={visibleItems} rankById={rankById} format={format} rank={rank} period={selectedPeriod}
                   minGames={minGames} loadTrends={hasFullAccess} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
-                  periodLabel={standardMetaPeriodLabel(selectedPeriod)} />
+                  periodLabel={standardMetaPeriodLabel(selectedPeriod)} tableRef={tableRef} />
               )}
             </React.Suspense>
           ) : (
