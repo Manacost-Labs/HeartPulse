@@ -51,7 +51,10 @@ run also packages the immutable release, so that push reuses the queue run's
 validation and artifact instead of running CI again (exact SHA and tree;
 see [DEPLOYMENT.md](../../DEPLOYMENT.md#automatic-deployment-from-main)).
 `CI required` also passes on such a push, where the validation jobs are
-skipped by design.
+skipped by design. The job `Browser quarantine (non-blocking)` runs the
+registry's quarantined flaky tests with `continue-on-error: true`; `CI required`
+and the deployment do not depend on it (see the Quarantine section of
+[phase0-test-discovery.md](../architecture/phase0-test-discovery.md#quarantine)).
 
 ## GitHub settings (owner applies; agents never change them)
 

@@ -271,7 +271,41 @@ jobs:
           path: storybook-static
 
       - name: Run registered browser shard
-        run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure
+        run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude
+
+  # The registry's quarantined flaky tests, each with an open issue. Reported on
+  # every run but never gating: CI required and the deployment do not need it.
+  browser-quarantine:
+    name: Browser quarantine (non-blocking)
+    needs: [build, storybook]
+    # Explicit: the implicit success() also fails on the skipped reuse job upstream.
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install locked dependencies
+        uses: ./.github/actions/install-dependencies
+
+      - name: Download validated build outputs
+        uses: actions/download-artifact@v8
+        with:
+          name: build-outputs-${{ github.sha }}
+
+      - name: Download Storybook build
+        uses: actions/download-artifact@v8
+        with:
+          name: storybook-static-${{ github.sha }}
+          path: storybook-static
+
+      - name: Run quarantined browser tests
+        run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only
 
   # Builds its own Next runtime so it starts with the build instead of after it;
   # the two halves of scripts/e2e-qa.mjs run in parallel.

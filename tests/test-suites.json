@@ -6,6 +6,48 @@
       "reason": "Interactive production acceptance test sends real verification emails and requires a human-entered code."
     }
   ],
+  "quarantine": [
+    {
+      "file": "tests/next-instant-access-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/123",
+      "reason": "Flaky browser test named in improvement plan P19 (Q6)."
+    },
+    {
+      "file": "tests/vicious-gold-progressive-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/124",
+      "reason": "Flaky browser test named in improvement plan P19 (Q6)."
+    },
+    {
+      "file": "tests/vicious-gold-layout-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/125",
+      "reason": "Flaky browser test named in improvement plan P19 (Q6)."
+    },
+    {
+      "file": "tests/constructed-archetypes-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/126",
+      "reason": "Flaky browser test named in improvement plan P19 (Q6)."
+    },
+    {
+      "file": "tests/archetypes-detail-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/127",
+      "reason": "Flaky browser test named in improvement plan P19 (Q6)."
+    },
+    {
+      "file": "tests/battleground-builders-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/128",
+      "reason": "Flaky browser test named in improvement plan P19 (Q6)."
+    },
+    {
+      "file": "tests/skeleton-geometry-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/129",
+      "reason": "Flaky browser test named in improvement plan P19 (Q6)."
+    },
+    {
+      "file": "tests/next-arena-guest-paywall-browser.test.mjs",
+      "issue": "https://github.com/Manacost-Labs/HeartPulse/issues/130",
+      "reason": "Named flaky by the owner on 2026-10-21 (Q6)."
+    }
+  ],
   "fileEnvironment": {
     "tests/battleground-accessories-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"

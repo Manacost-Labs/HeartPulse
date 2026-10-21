@@ -445,20 +445,24 @@ test('parses runner arguments strictly', () => {
   assert.deepEqual(parseRunnerArguments(['--validate']), { validate: true });
   assert.deepEqual(parseRunnerArguments(['--all']).suiteIds, TEST_SUITE_IDS);
   assert.deepEqual(parseRunnerArguments([
-    '--suite', 'browser', '--shard', '2/6', '--retry-failed-once', '--continue-on-failure',
+    '--suite', 'browser', '--shard', '2/6', '--retry-failed-once', '--continue-on-failure', '--quarantine', 'exclude',
   ]), {
     validate: false,
     suiteIds: ['browser'],
     shard: { index: 2, total: 6 },
     retryFailedOnce: true,
     continueOnFailure: true,
+    quarantine: 'exclude',
   });
+  assert.equal(parseRunnerArguments(['--suite', 'browser', '--quarantine', 'only']).quarantine, 'only');
+  assert.equal(parseRunnerArguments(['--all']).quarantine, null);
   assert.equal(parseRunnerArguments(['--all']).continueOnFailure, false);
   assert.deepEqual(parseRunnerArguments(['--suite', 'unit,integration']).suiteIds, ['unit', 'integration']);
   for (const args of [
     [], ['--suite'], ['--suite', '--shard', '1/2'], ['--all', '--shard'], ['--all', '--shard', '1/2', '--shard', '2/2'],
     ['--all', '--retry-failed-once', '--retry-failed-once'], ['--all', '--unknown'], ['--validate', '--all'],
-    ['--all', '--continue-on-failure', '--continue-on-failure'],
+    ['--all', '--continue-on-failure', '--continue-on-failure'], ['--all', '--quarantine'],
+    ['--all', '--quarantine', 'skip'], ['--all', '--quarantine', 'only', '--quarantine', 'exclude'],
   ]) {
     assert.throws(() => parseRunnerArguments(args), /usage:/, args.join(' '));
   }
@@ -583,9 +587,10 @@ test('a file that fails once and passes on the single retry is reported as FLAKY
       '::warning title=FLAKY test::tests/flaky.test.mjs failed once (tests/flaky.test.mjs exited with code 1) and passed on the single retry',
       '[test-suite] START browser tests/stable.test.mjs',
       '[test-suite] PASS browser tests/stable.test.mjs',
-      '[test-suite] SUMMARY executed=2 registered=2 excluded=0 flaky=1',
+      '[test-suite] SUMMARY executed=2 registered=2 excluded=0 flaky=1 reported-failures=1',
     ]);
     const markdown = readFileSync(summaryPath, 'utf8');
+    assert.match(markdown, /Reported failures: 1 \(FAIL 0 \+ FLAKY 1; a retry-pass counts as a failure in this report but does not fail the job\)\./);
     assert.match(markdown, /\*\*FLAKY\*\* \(failed once, passed on the single retry\): `tests\/flaky\.test\.mjs`/);
     assert.match(markdown, /\| ⚠️ FLAKY \| `tests\/flaky\.test\.mjs` \| 1\.5s \(first attempt: tests\/flaky\.test\.mjs exited with code 1\) \|/);
     assert.match(markdown, /\| ✅ PASS \| `tests\/stable\.test\.mjs` \| 1\.5s \|/);
@@ -749,5 +754,95 @@ test('an interruption after earlier failures reports the interruption', async ()
       error => error.interrupted === true && error.signal === 'SIGTERM'
         && error.message === 'tests/interrupted.test.mjs interrupted by SIGTERM',
     );
+  });
+});
+
+test('validates quarantine entries: classified file, issue URL, reason, once each', async t => {
+  await withRepository(repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/flaky.test.mjs');
+    writeFixture(repositoryRoot, 'tests/stable.test.mjs');
+    const files = ['tests/flaky.test.mjs', 'tests/stable.test.mjs'];
+    const entry = {
+      file: 'tests/flaky.test.mjs',
+      issue: 'https://github.com/Manacost-Labs/HeartPulse/issues/1',
+      reason: 'Times out under load.',
+    };
+    assert.deepEqual(validateTestRegistry(registry(files), { repositoryRoot }).quarantined, []);
+    assert.deepEqual(
+      validateTestRegistry(registry(files, { quarantine: [entry] }), { repositoryRoot }).quarantined,
+      ['tests/flaky.test.mjs'],
+    );
+    for (const [label, quarantine, message] of [
+      ['not an array', {}, /quarantine must be an array/],
+      ['unclassified file', [{ ...entry, file: 'tests/missing.test.mjs' }], /quarantined test is not classified: tests\/missing/],
+      ['missing issue', [{ ...entry, issue: undefined }], /quarantine issue must be a GitHub issue URL/],
+      ['TODO instead of issue', [{ ...entry, issue: 'TODO' }], /quarantine issue must be a GitHub issue URL/],
+      ['pull request link', [{ ...entry, issue: 'https://github.com/o/r/pull/2' }], /GitHub issue URL/],
+      ['blank reason', [{ ...entry, reason: ' ' }], /quarantine reason is required/],
+      ['duplicate entry', [entry, entry], /quarantined more than once: tests\/flaky/],
+    ]) {
+      t.diagnostic(label);
+      assert.throws(() => validateTestRegistry(registry(files, { quarantine }), { repositoryRoot }), message, label);
+    }
+  });
+});
+
+test('quarantine exclude and only split the selected files before sharding', async () => {
+  await withRepository(async repositoryRoot => {
+    const browserFiles = Array.from({ length: 5 }, (_, index) => `tests/b${index}.test.mjs`);
+    for (const file of browserFiles) writeFixture(repositoryRoot, file);
+    const quarantine = ['tests/b1.test.mjs', 'tests/b3.test.mjs'].map(file => ({
+      file, issue: 'https://github.com/Manacost-Labs/HeartPulse/issues/2', reason: 'flaky',
+    }));
+    const fixture = registry([], { suites: [{ id: 'browser', files: browserFiles }], quarantine });
+    const run = async (mode, shard = null) => {
+      const executed = [];
+      const messages = [];
+      await runTestRegistry(fixture, {
+        repositoryRoot,
+        suiteIds: ['browser'],
+        quarantine: mode,
+        shard,
+        spawnImpl: (command, args) => {
+          executed.push(args.at(-1));
+          return completedChild();
+        },
+        logger: message => messages.push(message),
+      });
+      return { executed, messages };
+    };
+    const blocking = [];
+    for (let index = 1; index <= 2; index += 1) blocking.push(...(await run('exclude', { index, total: 2 })).executed);
+    assert.deepEqual(blocking.sort(), ['tests/b0.test.mjs', 'tests/b2.test.mjs', 'tests/b4.test.mjs']);
+    const only = await run('only');
+    assert.deepEqual(only.executed, ['tests/b1.test.mjs', 'tests/b3.test.mjs']);
+    assert.equal(only.messages[0], '[test-suite] QUARANTINE only files=2 quarantined=2');
+    assert.deepEqual((await run(null)).executed, browserFiles);
+    await assert.rejects(run('skip'), /unknown quarantine mode: skip/);
+  });
+});
+
+test('the quarantine run reports retry-passes and failures as failures in its summary', async () => {
+  await withRepository(async repositoryRoot => {
+    const files = ['tests/flaky.test.mjs', 'tests/broken.test.mjs'];
+    for (const file of files) writeFixture(repositoryRoot, file);
+    const summaryPath = path.join(repositoryRoot, 'summary.md');
+    const exitCodes = { 'tests/flaky.test.mjs': [1, 0], 'tests/broken.test.mjs': [1, 1] };
+    await assert.rejects(runTestRegistry(registry([], {
+      suites: [{ id: 'browser', files }],
+      quarantine: files.map(file => ({ file, issue: 'https://github.com/Manacost-Labs/HeartPulse/issues/3', reason: 'flaky' })),
+    }), {
+      repositoryRoot,
+      suiteIds: ['browser'],
+      quarantine: 'only',
+      retryFailedOnce: true,
+      continueOnFailure: true,
+      summaryPath,
+      spawnImpl: (command, args) => completedChild(exitCodes[args.at(-1)].shift()),
+      logger: () => {},
+    }), /exited with code 1/);
+    const markdown = readFileSync(summaryPath, 'utf8');
+    assert.match(markdown, /^### Test suites: browser · quarantine \(non-blocking\)$/m);
+    assert.match(markdown, /Reported failures: 2 \(FAIL 1 \+ FLAKY 1;/);
   });
 });

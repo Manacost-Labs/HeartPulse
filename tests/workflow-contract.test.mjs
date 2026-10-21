@@ -46,7 +46,7 @@ const ciJobs = Object.fromEntries([...ciWorkflow.slice(ciWorkflow.indexOf('\njob
   .map(([, id, body]) => [id, body]));
 assert.deepEqual(
   Object.keys(ciJobs),
-  ['reuse', 'build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-observatory', 'required',
+  ['reuse', 'build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory', 'required',
     'refresh-caches', 'deploy-production'],
 );
 const validationJobs = ['build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-observatory'];
@@ -169,16 +169,31 @@ const shardsOf = job => {
 const shardList = shardsOf('browser-tests');
 assert.match(
   ciJobs['browser-tests'],
-  /- name: Run registered browser shard\s+run: npm run test:suite -- browser --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --retry-failed-once --continue-on-failure$/m,
-  'shards derive the total from the matrix, retry a failing file exactly once and report every failure',
+  /- name: Run registered browser shard\s+run: npm run test:suite -- browser --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --retry-failed-once --continue-on-failure --quarantine exclude$/m,
+  'shards derive the total from the matrix, retry a failing file exactly once, report every failure and skip the quarantine',
 );
+// Quarantined flaky tests run on every event in their own job that never gates
+// CI required or the deployment (both need lists are asserted exactly above).
+const quarantineJob = ciJobs['browser-quarantine'];
+assert.match(quarantineJob, /^ {4}name: Browser quarantine \(non-blocking\)$/m);
+assert.ok(quarantineJob.includes("    needs: [build, storybook]\n    # Explicit: the implicit success() also fails on the skipped reuse job upstream.\n    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}\n    continue-on-error: true\n"),
+  'the quarantine job tests the built outputs and its failure never fails the run');
+assert.ok(quarantineJob.includes(buildOutputsName), 'the quarantine job must download the validated build outputs');
+assert.match(quarantineJob, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/,
+  'quarantined archetype and skeleton tests serve the Storybook build');
+assert.match(quarantineJob, /- name: Run quarantined browser tests\n {8}run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only$/m);
+assert.ok(!validationJobs.includes('browser-quarantine'));
 assert.equal(packageScripts['test:suite'], 'node scripts/test-suite-runner.mjs --suite');
 const testRegistry = JSON.parse(readFileSync('tests/test-suites.json', 'utf8'));
 const testDurations = validateTestDurations(JSON.parse(readFileSync('tests/test-durations.json', 'utf8')));
+const quarantined = new Set((testRegistry.quarantine ?? []).map(entry => entry.file));
+const browserFiles = testRegistry.suites.find(suite => suite.id === 'browser').files;
+assert.ok([...quarantined].every(file => browserFiles.includes(file)), 'only browser tests run in the browser quarantine job');
 for (const [suiteIds, shardCount] of [[['browser'], shardList.length], [suiteRun.split(','), shardsOf('test-suites').length]]) {
-  const files = testRegistry.suites.filter(suite => suiteIds.includes(suite.id)).flatMap(suite => suite.files);
+  const files = testRegistry.suites.filter(suite => suiteIds.includes(suite.id)).flatMap(suite => suite.files)
+    .filter(file => !quarantined.has(file));
   assert.deepEqual([...planShards(files, shardCount, testDurations).flat()].sort(), [...files].sort(),
-    `the ${suiteIds.join(',')} shards together run every registered file exactly once`);
+    `the ${suiteIds.join(',')} shards together run every registered unquarantined file exactly once`);
 }
 assert.match(ciWorkflow, /CLEAN_CODE_EVENT:\s*\$\{\{ github\.event_name \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_PUSH_BEFORE:\s*\$\{\{ github\.event\.before \}\}/);
