@@ -140,28 +140,43 @@ test('sign in with a code, see linked methods, start linking Google and sign out
     const consoleErrors = [];
     page.on('console', message => { if (message.type() === 'error' && !/Failed to load resource/.test(message.text())) consoleErrors.push(message.text()); });
     let googleAuthorization = null;
+    let holdLinked = false;
+    const heldLinked = [];
     await page.setRequestInterception(true);
     page.on('request', request => {
-      if (new URL(request.url()).hostname === 'accounts.google.com') {
+      if (holdLinked && new URL(request.url()).pathname === '/api/account/linked-providers') {
+        heldLinked.push(request);
+      } else if (new URL(request.url()).hostname === 'accounts.google.com') {
         googleAuthorization = request.url();
         void request.respond({ status: 200, contentType: 'text/html', body: '<p>google</p>' });
       } else void request.continue();
     });
 
     // Sign in: password, then the one-time code from the e-mail.
+    const signIn = async (address, name) => {
+      await page.waitForSelector('#login-card-title');
+      // The panel remounts once the session check settles; type after that.
+      await page.waitForNetworkIdle({ idleTime: 500 });
+      // The card remembers the last address; replace it.
+      await page.focus('input[type="email"]');
+      await page.keyboard.down('Control');
+      await page.keyboard.press('KeyA');
+      await page.keyboard.up('Control');
+      await page.keyboard.press('Backspace');
+      await page.type('input[type="email"]', address);
+      await page.type('input[autocomplete="current-password"]', password);
+      await page.click('button.login-submit');
+      const delivery = await runtime.backend.smtp.delivery(address);
+      const code = delivery.body.match(/Ваш код входа: (\d{6})/)?.[1];
+      assert.ok(code, 'the login e-mail carries a code');
+      delivery.accept();
+      await page.waitForSelector('input[autocomplete="one-time-code"]');
+      await page.type('input[autocomplete="one-time-code"]', code);
+      await page.click('button.login-submit');
+      await page.waitForFunction(expected => document.querySelector('.account-hero h1')?.textContent === expected, { timeout: 15_000 }, name);
+    };
     await page.goto(`${runtime.origin}/?login`, { waitUntil: 'networkidle2' });
-    await page.waitForSelector('#login-card-title');
-    await page.type('input[type="email"]', email);
-    await page.type('input[autocomplete="current-password"]', password);
-    await page.click('button.login-submit');
-    const delivery = await runtime.backend.smtp.delivery(email);
-    const code = delivery.body.match(/Ваш код входа: (\d{6})/)?.[1];
-    assert.ok(code, 'the login e-mail carries a code');
-    delivery.accept();
-    await page.waitForSelector('input[autocomplete="one-time-code"]');
-    await page.type('input[autocomplete="one-time-code"]', code);
-    await page.click('button.login-submit');
-    await page.waitForSelector('.account-hero h1', { timeout: 15_000 });
+    await signIn(email, 'Связной');
     assert.equal(await page.$eval('.account-hero h1', heading => heading.textContent), 'Связной');
 
     // The server answers only this account's provider names; Google is offered for linking.
@@ -197,10 +212,24 @@ test('sign in with a code, see linked methods, start linking Google and sign out
     await page.waitForSelector('#login-card-title');
     const after = await page.evaluate(() => fetch('/api/auth/me', { credentials: 'same-origin' }).then(response => response.json()));
     assert.equal(after.user ?? null, null, 'the server no longer knows the session');
-    await page.reload({ waitUntil: 'networkidle2' });
-    await page.waitForSelector('#login-card-title');
     assert.equal(await page.$('.account-hero'), null);
     assert.equal(runtime.backend.database.prepare("SELECT COUNT(*) AS count FROM sessions WHERE user_id = 'linker'").get().count, 0);
+
+    // Another account in the same tab, without a reload: while its own answer is
+    // pending, the previous account's Google is neither shown as linked nor
+    // hides «Привязать».
+    runtime.backend.database.prepare('INSERT INTO users (id, email, name, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run('second', 'second@example.test', 'Второй', `scrypt:qa-fixture:${scryptSync(password, 'qa-fixture', 64).toString('hex')}`, 'user', now, now);
+    holdLinked = true;
+    await signIn('second@example.test', 'Второй');
+    await page.waitForSelector('.account-links__row');
+    while (heldLinked.length === 0) await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('.account-links__row')]
+      .some(row => row.textContent.includes('Google'))), false, 'the pending account shows no Google state at all');
+    holdLinked = false;
+    for (const request of heldLinked.splice(0)) await request.continue();
+    await page.waitForFunction(() => [...document.querySelectorAll('.account-links__row')]
+      .some(row => row.textContent.includes('Google') && row.querySelector('a[href*="/api/auth/google/start"]')));
     assert.deepEqual(consoleErrors, []);
   } finally {
     if (browser) await browser.close();

@@ -5,6 +5,7 @@ import {
   accountAccessSource,
   accountAccessTiles,
   accountLinkReturn,
+  linkedProvidersForAccount,
   accountLinkRows,
   hasTelegramLinkActions,
 } from '../src/modules/identity/model/accountDashboard';
@@ -162,4 +163,13 @@ test('a link flow return becomes one message and leaves only the account query',
   assert.equal(accountLinkReturn('?login'), null);
   assert.equal(accountLinkReturn('?login&linked=evil'), null, 'unknown providers are ignored');
   assert.equal(accountLinkReturn('?login&telegram=ok'), null);
+});
+
+test('linked providers belong to the account they were fetched for', () => {
+  const ofA = { accountId: 'a', providers: new Set(['email', 'google']) };
+  assert.deepEqual([...linkedProvidersForAccount(ofA, 'a') ?? []], ['email', 'google']);
+  assert.equal(linkedProvidersForAccount(ofA, 'b'), null, 'B never sees A\'s providers while its own request is pending');
+  assert.equal(linkedProvidersForAccount(ofA, ''), null, 'nothing is shown after sign-out');
+  assert.equal(linkedProvidersForAccount(null, 'a'), null);
+  assert.equal(linkedProvidersForAccount({ accountId: 'b', providers: null }, 'b'), null, 'a failed request stays unknown');
 });

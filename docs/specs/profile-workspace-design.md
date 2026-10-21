@@ -97,6 +97,9 @@ not sending.
 - A past or unparsable `nextPaymentAt` is never shown as the end of access; a
   Boosty grace period names the time access is kept until.
 - An administrator grant shows the server's message once.
+- Linked providers belong to the account they were fetched for: after a
+  sign-out, or a sign-in to another account in the same tab, the social rows
+  stay hidden until that account's own answer arrives.
 - The Telegram row shows only the server-owned username and offers linking
   only through OIDC or the bot code.
 - At 320, 390 and 1440 px nothing overflows horizontally and every control is

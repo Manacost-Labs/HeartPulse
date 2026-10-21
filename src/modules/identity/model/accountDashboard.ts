@@ -164,3 +164,15 @@ export function accountLinkReturn(search: string): { type: 'ok' | 'err'; text: s
     ? { type: 'err', text: `Не удалось привязать ${LINK_PROVIDER_TITLES[failed]}. Возможно, этот аккаунт уже привязан к другому профилю.`, search: rest ? `?${rest}` : '' }
     : { type: 'ok', text: `${LINK_PROVIDER_TITLES[linked]} привязан: теперь можно входить и так.`, search: rest ? `?${rest}` : '' };
 }
+
+/** Linked providers as fetched, tagged with the account they belong to. */
+export type LinkedProvidersResult = { accountId: string; providers: ReadonlySet<string> | null };
+
+/**
+ * The linked providers to show for `accountId`: only a result fetched for
+ * that same account. After a sign-out or a switch to another account the
+ * previous answer is unknown, not unlinked, until the new one arrives.
+ */
+export function linkedProvidersForAccount(result: LinkedProvidersResult | null, accountId: string): ReadonlySet<string> | null {
+  return accountId && result?.accountId === accountId ? result.providers : null;
+}
