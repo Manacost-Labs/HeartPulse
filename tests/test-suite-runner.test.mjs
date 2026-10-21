@@ -444,16 +444,21 @@ test('parses shard specifications and rejects malformed ones', () => {
 test('parses runner arguments strictly', () => {
   assert.deepEqual(parseRunnerArguments(['--validate']), { validate: true });
   assert.deepEqual(parseRunnerArguments(['--all']).suiteIds, TEST_SUITE_IDS);
-  assert.deepEqual(parseRunnerArguments(['--suite', 'browser', '--shard', '2/6', '--retry-failed-once']), {
+  assert.deepEqual(parseRunnerArguments([
+    '--suite', 'browser', '--shard', '2/6', '--retry-failed-once', '--continue-on-failure',
+  ]), {
     validate: false,
     suiteIds: ['browser'],
     shard: { index: 2, total: 6 },
     retryFailedOnce: true,
+    continueOnFailure: true,
   });
+  assert.equal(parseRunnerArguments(['--all']).continueOnFailure, false);
   assert.deepEqual(parseRunnerArguments(['--suite', 'unit,integration']).suiteIds, ['unit', 'integration']);
   for (const args of [
     [], ['--suite'], ['--suite', '--shard', '1/2'], ['--all', '--shard'], ['--all', '--shard', '1/2', '--shard', '2/2'],
     ['--all', '--retry-failed-once', '--retry-failed-once'], ['--all', '--unknown'], ['--validate', '--all'],
+    ['--all', '--continue-on-failure', '--continue-on-failure'],
   ]) {
     assert.throws(() => parseRunnerArguments(args), /usage:/, args.join(' '));
   }
@@ -640,5 +645,67 @@ test('a test process that cannot start is not retried', async () => {
       /spawn ENOENT/,
     );
     assert.equal(calls, 1);
+  });
+});
+
+test('continue-on-failure runs every file and then fails naming each failing file', async () => {
+  await withRepository(async repositoryRoot => {
+    const files = ['tests/a.test.mjs', 'tests/b.test.mjs', 'tests/c.test.mjs', 'tests/d.test.mjs'];
+    for (const file of files) writeFixture(repositoryRoot, file);
+    const summaryPath = path.join(repositoryRoot, 'summary.md');
+    const exitCodes = { 'tests/a.test.mjs': [2, 5], 'tests/b.test.mjs': [0], 'tests/c.test.mjs': [1, 0], 'tests/d.test.mjs': [6, 7] };
+    const messages = [];
+
+    await assert.rejects(
+      runTestRegistry(registry([], { suites: [{ id: 'browser', files }] }), {
+        repositoryRoot,
+        suiteIds: ['browser'],
+        retryFailedOnce: true,
+        continueOnFailure: true,
+        summaryPath,
+        spawnImpl: (command, args) => completedChild(exitCodes[args.at(-1)].shift()),
+        logger: message => messages.push(message),
+      }),
+      error => error.exitCode === 5
+        && error.message === '2 test files failed: tests/a.test.mjs, tests/d.test.mjs',
+    );
+    assert.deepEqual(Object.values(exitCodes).flat(), [], 'every file ran, each failure retried once');
+    assert.deepEqual(messages.filter(message => /\] (?:PASS|FAIL|FLAKY|SUMMARY)/.test(message)), [
+      '[test-suite] FAIL browser tests/a.test.mjs',
+      '[test-suite] PASS browser tests/b.test.mjs',
+      '[test-suite] FLAKY browser tests/c.test.mjs',
+      '[test-suite] FAIL browser tests/d.test.mjs',
+      '[test-suite] SUMMARY executed=4 registered=4 failed=2',
+    ]);
+    const markdown = readFileSync(summaryPath, 'utf8');
+    assert.match(markdown, /Executed 4 of 4 selected files; flaky: 1\./);
+    assert.equal((markdown.match(/❌ FAIL/g) || []).length, 2);
+    assert.doesNotMatch(markdown, /NOT RUN/);
+  });
+});
+
+test('continue-on-failure still stops when the runner is interrupted', async () => {
+  await withRepository(async repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/interrupted.test.mjs');
+    writeFixture(repositoryRoot, 'tests/unreached.test.mjs');
+    const signalEmitter = new EventEmitter();
+    let calls = 0;
+    await assert.rejects(
+      runTestRegistry(registry(['tests/interrupted.test.mjs', 'tests/unreached.test.mjs']), {
+        repositoryRoot,
+        retryFailedOnce: true,
+        continueOnFailure: true,
+        signalEmitter,
+        killImpl: child => queueMicrotask(() => child.emit('close', null, 'SIGTERM')),
+        spawnImpl: () => {
+          calls += 1;
+          queueMicrotask(() => signalEmitter.emit('SIGTERM'));
+          return new EventEmitter();
+        },
+        logger: () => {},
+      }),
+      error => error.interrupted === true && error.signal === 'SIGTERM',
+    );
+    assert.equal(calls, 1, 'neither retried nor continued');
   });
 });

@@ -103,7 +103,7 @@ assert.match(ciJobs['test-suites'], /sudo apt-get install -y --no-install-recomm
   'the identity TLS and nginx regression tests need the system tools');
 
 // The registry suites: browser is sharded, everything else runs once.
-const suiteRun = ciJobs['test-suites'].match(/run: npm run test:suite -- ([a-z,-]+)$/m)?.[1];
+const suiteRun = ciJobs['test-suites'].match(/run: npm run test:suite -- ([a-z,-]+) --continue-on-failure$/m)?.[1];
 assert.ok(suiteRun, 'the non-browser job must run registry suites');
 assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
   'every registry suite runs in exactly one job');
@@ -114,8 +114,8 @@ assert.ok(shardList && shardList.length >= 2, 'the browser suite must be sharded
 assert.deepEqual(shardList, shardList.map((_, index) => index + 1), 'shards are numbered 1..N');
 assert.match(
   ciJobs['browser-tests'],
-  /- name: Run registered browser shard\s+run: npm run test:suite -- browser --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --retry-failed-once$/m,
-  'shards derive the total from the matrix and retry a failing file exactly once',
+  /- name: Run registered browser shard\s+run: npm run test:suite -- browser --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --retry-failed-once --continue-on-failure$/m,
+  'shards derive the total from the matrix, retry a failing file exactly once and report every failure',
 );
 assert.equal(packageScripts['test:suite'], 'node scripts/test-suite-runner.mjs --suite');
 const testRegistry = JSON.parse(readFileSync('tests/test-suites.json', 'utf8'));

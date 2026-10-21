@@ -35,7 +35,8 @@ test fails if a command is dropped):
 - **Typecheck, lint and static gates** runs `npm run verify:release:checks`.
 - **Unit, integration, contract and smoke suites** and the six
   **Browser suite** shards download the build outputs instead of rebuilding.
-  The shards split the registered browser files by historical duration; see
+  The shards split the registered browser files by historical duration and
+  retry a failing file once, reporting a pass on the retry as FLAKY; see
   [the test registry](docs/architecture/phase0-test-discovery.md#ci-sharding-and-flaky-retries).
 - **Full browser observatory** builds and runs the representative responsive
   browser matrix on its own.

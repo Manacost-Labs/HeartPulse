@@ -21,7 +21,7 @@ No branch-wide merge or unverified cherry-pick is part of this slice.
 - Validate discovery and its own contract: `npm run test:discovery`.
 - Run every classified authored test: `npm test`.
 - Run selected suites: `npm run test:suite -- <id>[,<id>...]`, optionally with
-  `--shard <index>/<total>` and `--retry-failed-once`.
+  `--shard <index>/<total>`, `--retry-failed-once` and `--continue-on-failure`.
 - Run the release gate: `npm run verify:release`.
 
 ## Discovery contract
@@ -66,7 +66,8 @@ when enabled) and preserves the failing exit code or termination signal.
 ## CI sharding and flaky retries
 
 CI runs the `browser` suite as a matrix of shards
-(`npm run test:suite -- browser --shard i/N --retry-failed-once`). Each shard
+(`npm run test:suite -- browser --shard i/N --retry-failed-once
+--continue-on-failure`). Each shard
 computes the same deterministic partition from the registry and
 `tests/test-durations.json`: files are assigned longest first to the lightest
 shard, a file without a recorded duration weighs `defaultSeconds`, and each
@@ -81,10 +82,15 @@ With `--retry-failed-once` a file that exits nonzero or crashes is rerun once
 in the same shard. A pass on the retry is logged as
 `[test-suite] FLAKY <suite> <file>`, raised as a GitHub warning annotation and
 listed as FLAKY in the job summary; a second failure fails the shard. Runner
-interruptions and processes that cannot start are not retried. Every run with
+interruptions and processes that cannot start are not retried.
+
+CI jobs pass `--continue-on-failure`: after a real failure the job still runs
+its remaining files and then fails, naming every failing file, so one run
+reports all failures instead of hiding the rest of the shard. An interrupted
+runner (a cancelled or timed-out job) stops at once. Every run with
 `GITHUB_STEP_SUMMARY` set writes a per-file PASS/FLAKY/FAIL/NOT RUN table with
-durations. Local `npm test` keeps the original behavior: no shards and no
-retries.
+durations. Local `npm test` keeps the original behavior: no shards, no
+retries, and a stop at the first failure.
 
 ## Boundaries
 

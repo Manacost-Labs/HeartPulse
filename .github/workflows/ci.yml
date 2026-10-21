@@ -143,7 +143,7 @@ jobs:
           name: build-outputs-${{ github.sha }}
 
       - name: Run registered non-browser suites
-        run: npm run test:suite -- unit,integration,contract,production-smoke
+        run: npm run test:suite -- unit,integration,contract,production-smoke --continue-on-failure
 
   browser-tests:
     name: Browser suite (shard ${{ matrix.shard }}/${{ strategy.job-total }})
@@ -177,7 +177,7 @@ jobs:
           name: build-outputs-${{ github.sha }}
 
       - name: Run registered browser shard
-        run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once
+        run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure
 
   browser-observatory:
     name: Full browser observatory

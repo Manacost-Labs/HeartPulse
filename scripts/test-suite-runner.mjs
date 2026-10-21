@@ -368,7 +368,7 @@ function writeStepSummary(summaryPath, { title, results, executed, selected, fla
     '| Result | File | Duration |',
     '| --- | --- | --- |',
     ...results.map(({ status, testFile, milliseconds, note }) =>
-      `| ${SUMMARY_ICONS[status]} ${status} | \`${testFile}\` | ${milliseconds === null ? '-' : formatSeconds(milliseconds)}${note ? ` (${note})` : ''} |`),
+      `| ${SUMMARY_ICONS[status]} ${status} | \`${testFile}\` | ${milliseconds === null ? '-' : formatSeconds(milliseconds)}${note ? ` (${note.replaceAll('|', '\\|')})` : ''} |`),
     '',
   ];
   appendFileSync(summaryPath, `${lines.join('\n')}\n`);
@@ -387,6 +387,8 @@ function isRetryable(error) {
  * (see `planShards`). `retryFailedOnce` reruns a failing file exactly once:
  * a pass on the retry is reported as FLAKY in the log, as a GitHub warning
  * annotation and in the step summary; a second failure fails the run.
+ * `continueOnFailure` runs the remaining files after a failure and then fails
+ * with every failing file named, so one CI run reports all of them.
  */
 export async function runTestRegistry(registry, options) {
   const {
@@ -400,6 +402,7 @@ export async function runTestRegistry(registry, options) {
     shard = null,
     durations = null,
     retryFailedOnce = false,
+    continueOnFailure = false,
     summaryPath = null,
     annotations = false,
     clock = () => performance.now(),
@@ -422,8 +425,8 @@ export async function runTestRegistry(registry, options) {
 
   const results = planned.map(({ testFile }) => ({ status: 'NOT RUN', testFile, milliseconds: null, note: '' }));
   const flaky = [];
+  const failures = [];
   let executed = 0;
-  const summaryLine = () => `[test-suite] SUMMARY executed=${executed} registered=${validated.files.length}`;
   const finish = () => writeStepSummary(summaryPath, {
     title: `Test suites: ${[...selectedSuites].join(', ')}${shard ? ` · shard ${shard.index}/${shard.total}` : ''}`,
     results,
@@ -431,6 +434,15 @@ export async function runTestRegistry(registry, options) {
     selected: planned.length,
     flaky,
   });
+  const stop = error => {
+    logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length}${shardLabel}${
+      failures.length > 1 ? ` failed=${failures.length}` : ''}`);
+    finish();
+    if (failures.length > 1) {
+      error.message = `${failures.length} test files failed: ${failures.map(({ testFile }) => testFile).join(', ')}`;
+    }
+    throw error;
+  };
   for (const [position, { suiteId, testFile }] of planned.entries()) {
     executed += 1;
     logger(`[test-suite] START ${suiteId} ${testFile}`);
@@ -440,34 +452,42 @@ export async function runTestRegistry(registry, options) {
     };
     const startedAt = clock();
     const attempt = () => runChild(testFile, repositoryRoot, environment, spawnImpl, signalEmitter, killImpl);
-    const fail = error => {
-      results[position] = { status: 'FAIL', testFile, milliseconds: clock() - startedAt, note: error.message };
-      logger(`[test-suite] FAIL ${suiteId} ${testFile}`);
-      if (annotations) logger(`::error title=Test failed::${testFile}: ${error.message}`);
-      logger(`${summaryLine()}${shardLabel}`);
-      finish();
-      throw error;
-    };
+    let firstError = null;
+    let finalError = null;
     try {
       await attempt();
-      results[position] = { status: 'PASS', testFile, milliseconds: clock() - startedAt, note: '' };
-      logger(`[test-suite] PASS ${suiteId} ${testFile}`);
     } catch (error) {
-      if (!retryFailedOnce || !isRetryable(error)) fail(error);
-      logger(`[test-suite] RETRY ${suiteId} ${testFile} after: ${error.message}`);
+      firstError = error;
+    }
+    if (firstError && retryFailedOnce && isRetryable(firstError)) {
+      logger(`[test-suite] RETRY ${suiteId} ${testFile} after: ${firstError.message}`);
       try {
         await attempt();
       } catch (retryError) {
-        fail(retryError);
+        finalError = retryError;
       }
+    } else {
+      finalError = firstError;
+    }
+    const milliseconds = clock() - startedAt;
+    if (finalError) {
+      results[position] = { status: 'FAIL', testFile, milliseconds, note: finalError.message };
+      failures.push({ testFile, error: finalError });
+      logger(`[test-suite] FAIL ${suiteId} ${testFile}`);
+      if (annotations) logger(`::error title=Test failed::${testFile}: ${finalError.message}`);
+      // An interrupted runner never continues, so a cancelled job stops promptly.
+      if (!continueOnFailure || finalError.interrupted) stop(failures[0].error);
+    } else if (firstError) {
       flaky.push(testFile);
-      results[position] = {
-        status: 'FLAKY', testFile, milliseconds: clock() - startedAt, note: `first attempt: ${error.message}`,
-      };
+      results[position] = { status: 'FLAKY', testFile, milliseconds, note: `first attempt: ${firstError.message}` };
       logger(`[test-suite] FLAKY ${suiteId} ${testFile}`);
-      if (annotations) logger(`::warning title=FLAKY test::${testFile} failed once (${error.message}) and passed on the single retry`);
+      if (annotations) logger(`::warning title=FLAKY test::${testFile} failed once (${firstError.message}) and passed on the single retry`);
+    } else {
+      results[position] = { status: 'PASS', testFile, milliseconds, note: '' };
+      logger(`[test-suite] PASS ${suiteId} ${testFile}`);
     }
   }
+  if (failures.length > 0) stop(failures[0].error);
   const summary = {
     executed,
     registered: validated.files.length,
@@ -475,7 +495,8 @@ export async function runTestRegistry(registry, options) {
   };
   if (shard) summary.shard = `${shard.index}/${shard.total}`;
   if (retryFailedOnce) summary.flaky = flaky;
-  logger(`${summaryLine()} excluded=${validated.excluded}${shardLabel}${retryFailedOnce ? ` flaky=${flaky.length}` : ''}`);
+  logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length} excluded=${validated.excluded}${
+    shardLabel}${retryFailedOnce ? ` flaky=${flaky.length}` : ''}`);
   finish();
   return summary;
 }
@@ -493,7 +514,7 @@ function printValidationSummary(validated) {
   );
 }
 
-const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once]';
+const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once] [--continue-on-failure]';
 
 /** Parses runner arguments; exported for the CLI contract tests. */
 export function parseRunnerArguments(args) {
@@ -507,13 +528,15 @@ export function parseRunnerArguments(args) {
   } else {
     throw new Error(USAGE);
   }
-  const options = { validate: false, suiteIds, shard: null, retryFailedOnce: false };
+  const options = { validate: false, suiteIds, shard: null, retryFailedOnce: false, continueOnFailure: false };
   while (rest.length > 0) {
     const flag = rest.shift();
     if (flag === '--shard' && rest.length > 0 && !options.shard) {
       options.shard = parseShard(rest.shift());
     } else if (flag === '--retry-failed-once' && !options.retryFailedOnce) {
       options.retryFailedOnce = true;
+    } else if (flag === '--continue-on-failure' && !options.continueOnFailure) {
+      options.continueOnFailure = true;
     } else {
       throw new Error(USAGE);
     }
@@ -539,6 +562,7 @@ async function main() {
       ? validateTestDurations(loadTestRegistry(path.join(repositoryRoot, 'tests', 'test-durations.json')))
       : null,
     retryFailedOnce: options.retryFailedOnce,
+    continueOnFailure: options.continueOnFailure,
     summaryPath: process.env.GITHUB_STEP_SUMMARY || null,
     annotations: process.env.GITHUB_ACTIONS === 'true',
   });
