@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, Check, Copy, TrendingUp } from 'lucide-react';
+import { Copy, TrendingUp } from 'lucide-react';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { ChartFrame } from '../shared/ui/analytics/ChartFrame';
 import '../shared/ui/LoadingSurface.css';
@@ -106,50 +106,4 @@ export function ArchetypeAnalysisReserve() {
 /** The analysis section's placeholder: the fitted skeleton from the lazy chunk, the reserve until that chunk arrives. */
 export function ArchetypeAnalysisLoading() {
   return <React.Suspense fallback={<ArchetypeAnalysisReserve />}><LazyAnalysisSkeleton /></React.Suspense>;
-}
-
-/**
- * The paid sections while access is checked. Most visitors who wait here are
- * guests, who then get the featured-build preview and the inline gate, so
- * those two frames are drawn; a browser that remembers a viewer (the head
- * script's `data-hp-viewer` mark, before hydration) gets the builds gallery
- * instead (ConstructedArchetypeDetailSkeletons.css). Presentation only: the
- * mark grants nothing and the answer decides what replaces either one.
- */
-export function ArchetypeAccessPendingSkeleton({ deckCount, featured }: { deckCount: number; featured: boolean }) {
-  return <>
-    <LoadingSurface label="Проверяем доступ к сборкам архетипа" quiet layout="rows" className="archetype-detail-skeleton archetype-guest-skeleton">
-      <div inert>
-        {featured ? <div className="archetype-build-preview">
-          <div>
-            <span className="archetypes-eyebrow"><Words>Главная сборка</Words></span>
-            <div className="archetype-build-preview__title"><Words>Самая большая подтверждённая выборка</Words></div>
-            <p><Words>Состав и код колоды доступны подписчикам тарифа «Алмаз».</Words></p>
-          </div>
-          <dl>
-            <div><dt><Words>Винрейт</Words></dt><dd><Value /></dd></div>
-            <div><dt><Words>Игры</Words></dt><dd><Value /></dd></div>
-          </dl>
-        </div> : null}
-        <div className="arena-inline-paywall arena-inline-paywall--archetype">
-          <div className="arena-inline-paywall__seal" />
-          <div className="arena-inline-paywall__copy">
-            <span className="arena-inline-paywall__eyebrow"><Words>Тариф «Алмаз»</Words></span>
-            <div className="arena-inline-paywall__title"><Words>Колоды, матчапы и муллиган</Words></div>
-            <p><Words>Откройте все сборки архетипа, статистику против классов и влияние карт на винрейт.</Words></p>
-            <ul>
-              {['Все сборки и коды колод', 'Матчапы на ранге Легенда', 'Муллиган и история показателей'].map(item =>
-                <li key={item}><Check size={16} /><Words>{item}</Words></li>)}
-            </ul>
-          </div>
-          <div className="arena-inline-paywall__actions">
-            <span className="arena-inline-paywall__primary"><span><Words>Открыть статистику архетипа</Words></span><ArrowUpRight size={18} /></span>
-            <span className="arena-inline-paywall__payment-link"><Words>Оформить через Telegram</Words></span>
-            <span className="arena-inline-paywall__account-link"><Words>Уже подписаны? Войти</Words></span>
-          </div>
-        </div>
-      </div>
-    </LoadingSurface>
-    <div className="archetype-member-skeleton"><ArchetypeBuildsSkeleton deckCount={deckCount} /></div>
-  </>;
 }

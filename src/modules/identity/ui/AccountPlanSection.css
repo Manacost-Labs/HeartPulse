@@ -93,4 +93,5 @@ a.account-access__tile:hover { border-color: var(--arena-red); }
 .account-plan__loading-line { width: 9rem; height: 0.95rem; }
 .account-plan__loading-line--wide { width: min(18rem, 100%); }
 .account-plan__loading-title { width: min(14rem, 80%); height: 1.75rem; }
-.account-access__tile.account-plan__loading-tile { width: 8.5rem; border: 0; background: var(--loading-fill); }
+.account-plan__loading-tiles { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.account-plan__loading-tile { width: 8.5rem; height: 40px; border-radius: 999px; }

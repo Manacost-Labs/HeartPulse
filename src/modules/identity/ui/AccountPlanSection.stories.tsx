@@ -30,7 +30,7 @@ type Story = StoryObj<typeof meta>;
 export const Checking: Story = {
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getByRole('status')).toHaveTextContent('Проверяем подписку');
-    await expect(canvasElement.querySelectorAll('.account-plan__loading .account-access__tile').length).toBeGreaterThan(0);
+    await expect(canvasElement.querySelectorAll('.account-plan__loading .account-plan__loading-tile').length).toBeGreaterThan(0);
   },
 };
 

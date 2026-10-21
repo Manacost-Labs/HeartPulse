@@ -64,8 +64,8 @@ function PendingPlan() {
         </div>
       </div>
       <LoadingBlock className="account-plan__loading-line" />
-      <ul className="account-access__tiles">
-        {accountAccessTiles(null).map(tile => <li key={tile.key}><LoadingBlock className="account-access__tile account-plan__loading-tile" /></li>)}
+      <ul className="account-plan__loading-tiles">
+        {accountAccessTiles(null).map(tile => <li key={tile.key}><LoadingBlock className="account-plan__loading-tile" /></li>)}
       </ul>
     </LoadingSurface>
   );

@@ -1,5 +1,5 @@
 {
-  "reason": "Проверка доступа без мигания: силуэт плашки подписки вместо строки «Проверяем доступ…», гостевая заготовка превью сборки и плашки тарифа на странице архетипа, заготовка плана в кабинете и непрерывность скелетонов (useLoadingContinuity). JS растёт в общем чанке, где уже лежат скелетоны архетипа и PaywallPending (0,4–0,9 КБ gzip); лениво не загрузить — эти состояния рисуются сервером в первом кадре. CSS: плашка-силуэт в PaywallGate.css (до 0,3 КБ).",
+  "reason": "Проверка доступа без мигания: силуэт плашки подписки вместо строки «Проверяем доступ…» (PaywallPending), заготовка плана в кабинете и непрерывность скелетонов (useLoadingContinuity). JS растёт в общем чанке, где уже лежат PaywallPending и LoadingSurface; лениво не загрузить — эти состояния рисуются сервером в первом кадре. CSS: плашка-силуэт в PaywallGate.css.",
   "routes": {
     "/articles/": {
       "jsGzipBytes": 512
@@ -9,7 +9,7 @@
     },
     "/classes/": {
       "jsGzipBytes": 640,
-      "cssGzipBytes": 384
+      "cssGzipBytes": 256
     },
     "/connect/": {
       "jsGzipBytes": 1024
@@ -46,7 +46,7 @@
       "jsGzipBytes": 512
     },
     "/standard/archetypes/": {
-      "cssGzipBytes": 384
+      "cssGzipBytes": 256
     },
     "/standard/cards/": {
       "jsGzipBytes": 768

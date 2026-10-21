@@ -2,8 +2,7 @@ import type { ReactNode } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, waitFor } from 'storybook/test';
 import { ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
-import ConstructedArchetypes from './ConstructedArchetypes';
-import { ArchetypeAccessPendingSkeleton, ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton } from './ConstructedArchetypeDetailSkeletons';
+import { ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton } from './ConstructedArchetypeDetailSkeletons';
 import { ConstructedArchetypesFixture, installConstructedArchetypeFixtures } from '../../tests/fixtures/constructed-archetypes-harness';
 
 // Paired states for tests/skeleton-geometry-browser.test.mjs: the loaded
@@ -87,40 +86,5 @@ export const AnalysisChunkLoading: Story = {
     await expect(canvas.getAllByRole('status')).toHaveLength(1);
     await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем матчапы и муллиган');
     await expect(canvasElement.querySelector('[aria-busy="true"]')).toBeNull();
-  },
-};
-
-/** The guest's answer: the teaser with its featured build, then the inline gate. */
-function installGuestTeaser() {
-  const restore = installSquareDeckRenders();
-  const fixtureFetch = globalThis.fetch;
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const response = await fixtureFetch(input, init);
-    if (!String(input).includes('/api/constructed-archetypes/teaser/')) return response;
-    const payload = await response.json();
-    return new Response(JSON.stringify({ ...payload, featuredBuild: { games: 8578, winrate: 64.2, updatedAt: payload.updatedAt } }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }) as typeof fetch;
-  return () => { globalThis.fetch = fixtureFetch; restore(); };
-}
-
-export const GuestReady: Story = {
-  beforeEach: installGuestTeaser,
-  render: () => <ConstructedArchetypes currentPath="/standard/archetypes/wild/thief-priest" navigatePath={fn()} hasFullAccess={false} />,
-  play: async ({ canvasElement }) => {
-    await waitFor(() => expect(canvasElement.querySelector('.archetype-build-preview dd')).not.toBeNull(), { timeout: 5_000 });
-    await expect(canvasElement.querySelector('.arena-inline-paywall')).not.toBeNull();
-  },
-};
-
-/** While access is checked a guest sees the preview and the inline gate as placeholders, in place. */
-export const GuestAccessPending: Story = {
-  render: () => <LoadingSection reserveViewport title="Сборки архетипа" skeleton={<ArchetypeAccessPendingSkeleton deckCount={14} featured />} />,
-  play: async ({ canvas, canvasElement }) => {
-    await expect(canvas.getByRole('status')).toHaveTextContent('Проверяем доступ к сборкам архетипа');
-    await expect(canvas.queryByRole('heading')).toBeNull();
-    await expect(canvasElement.querySelector('a, button')).toBeNull();
-    // The builds gallery is for a remembered viewer only (the head script's mark).
-    await expect(getComputedStyle(canvasElement.querySelector('.archetype-member-skeleton') as Element).display).toBe('none');
   },
 };

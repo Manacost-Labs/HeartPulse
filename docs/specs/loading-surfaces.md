@@ -65,9 +65,6 @@ locked preview keeps its placeholders still.
   It fades in after the reveal delay and is hidden for a remembered viewer
   (`html[data-hp-viewer='remembered']`), who gets the paid page. A paid view's
   own chunk load keeps the caption (`plate={false}`).
-- **Archetype access check**: The guest's answer as placeholders, the
-  featured-build preview and the inline gate in their real frames; the builds
-  gallery only for a remembered viewer, before hydration.
 - **Account plan**: While the subscription is checked, the active plan's
   plate and the row of section tiles, so the answer fills the section in
   place (phone CLS 0.35 before).

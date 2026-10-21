@@ -689,8 +689,7 @@
     var(--arena-parchment-texture) center / cover;
 }
 
-/* :where keeps the h2 rule's specificity; the placeholder title (a div) shares its font. */
-.archetype-build-preview :is(h2, :where(.archetype-build-preview__title)) {
+.archetype-build-preview h2 {
   margin: 0.2rem 0 0;
   font-family: var(--font-display);
   font-size: clamp(1.2rem, 2.5vw, 1.65rem);

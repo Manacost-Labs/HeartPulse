@@ -64,8 +64,7 @@
   text-transform: uppercase;
 }
 
-/* :where keeps the h2 rule's specificity; the placeholder title (a div) shares its font. */
-.arena-inline-paywall :is(h2, :where(.arena-inline-paywall__title)) {
+.arena-inline-paywall h2 {
   max-width: 760px;
   margin: 0;
   color: #321d15;

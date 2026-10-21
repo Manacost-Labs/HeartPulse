@@ -51,17 +51,3 @@
 
 /* The analysis section while its lazy chunk loads: the first screen only. */
 .archetype-analysis-reserve { min-block-size: min(100svh, 48rem); }
-
-/* Access check (ArchetypeAccessPendingSkeleton): the guest's preview and
-   inline gate by default, the builds gallery for a remembered viewer. */
-.archetype-member-skeleton { display: none; }
-html[data-hp-viewer='remembered'] .archetype-member-skeleton { display: block; }
-html[data-hp-viewer='remembered'] .archetype-guest-skeleton { display: none; }
-
-/* The gate's seal and button are drawn as fills, not as a lock and a call to action. */
-.archetype-guest-skeleton .arena-inline-paywall__seal,
-.archetype-guest-skeleton .arena-inline-paywall__primary {
-  border-color: transparent;
-  background: var(--loading-fill);
-  box-shadow: none;
-}
