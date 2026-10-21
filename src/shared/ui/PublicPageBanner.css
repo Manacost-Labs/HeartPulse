@@ -168,6 +168,23 @@
   white-space: nowrap;
 }
 
+/* A value still loading (LoadingValue): one line of the value, in the plate's gold tint. */
+.traditional-mode-banner__summary .loading-value {
+  width: 2.2em;
+  background: rgba(239, 201, 111, 0.16);
+}
+.traditional-mode-banner__summary .loading-value--wide { width: 4.4em; }
+
+/* A remembered subscriber's server HTML is the guest preview: its totals are
+   not theirs, so they show as the same placeholders until the page hydrates. */
+html[data-hp-viewer='remembered'] .traditional-mode-banner__summary[data-teaser] dd,
+html[data-hp-viewer='remembered'] .traditional-mode-banner__summary[data-teaser] > div:first-child dt {
+  width: fit-content;
+  border-radius: 4px;
+  color: transparent;
+  background: rgba(239, 201, 111, 0.16);
+}
+
 .traditional-mode-banner-controls {
   display: flex;
   flex-wrap: wrap;

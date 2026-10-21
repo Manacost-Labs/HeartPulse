@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import ViciousSyndicateGold from '../ViciousSyndicateGold';
-import { ViciousGoldBanner, ViciousGoldLoading } from './ViciousGoldBanner';
+import { ViciousGoldBanner, ViciousGoldLoading, ViciousGoldSummaryLoading } from './ViciousGoldBanner';
 import { summary, builds } from '../../../tests/fixtures/viciousGoldPayload.mjs';
 
 // Paired states for tests/skeleton-geometry-browser.test.mjs: the loaded
@@ -34,7 +34,7 @@ export const Ready: Story = {
 
 /** The page's loading frame (ViciousGoldPageClient and ViciousSyndicateGold render the same one). */
 export const Loading: Story = {
-  render: () => <section className="vsgold"><ViciousGoldBanner /><ViciousGoldLoading /></section>,
+  render: () => <section className="vsgold"><ViciousGoldBanner><ViciousGoldSummaryLoading /></ViciousGoldBanner><ViciousGoldLoading /></section>,
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getAllByRole('status')).toHaveLength(1);
     await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем Vicious Syndicate Gold');

@@ -365,6 +365,10 @@
   background: transparent;
 }
 
+/* A view whose chunk is still on its way keeps a first screen of room, so
+   the page does not collapse to the loader and spring back with the view. */
+.standard-meta__view-reserve { min-block-size: min(100svh, 48rem); }
+
 .standard-meta__results-toolbar {
   display: flex;
   gap: 1rem;

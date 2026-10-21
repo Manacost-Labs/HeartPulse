@@ -1,4 +1,4 @@
-import { LoadingBlock } from '../shared/ui/LoadingSurface';
+import { LoadingText, LoadingValue } from '../shared/ui/LoadingShapes';
 import './ConstructedArchetypeDetailSkeletons.css';
 
 // Text parts of the archetype detail placeholders (styles in
@@ -6,12 +6,12 @@ import './ConstructedArchetypeDetailSkeletons.css';
 
 /** Static interface copy as a text-shaped placeholder. */
 export function Words({ children }: { children: string }) {
-  return <span className="loading-block archetype-skeleton__words" aria-hidden="true">{children}</span>;
+  return <LoadingText className="archetype-skeleton__words">{children}</LoadingText>;
 }
 
 /** One line of a data value, in the font of the element that holds it. */
 export function Value({ wide = false }: { wide?: boolean }) {
-  return <LoadingBlock className={wide ? 'archetype-skeleton__value archetype-skeleton__value--wide' : 'archetype-skeleton__value'} />;
+  return <LoadingValue className={wide ? 'archetype-skeleton__value archetype-skeleton__value--wide' : 'archetype-skeleton__value'} />;
 }
 
 /** A section title placeholder: the real heading's box without a heading element. */

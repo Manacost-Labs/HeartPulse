@@ -29,6 +29,17 @@ placeholders. A list never shows a zero count while its total is unknown.
 Skeleton changes do not change fetches, entitlements, subscription gates,
 navigation or the ready view's typography.
 
+## Shared shapes
+
+`src/shared/ui/LoadingShapes.tsx` is the one placeholder set, built from
+`LoadingBlock` and placed inside the loaded view's own classes:
+`LoadingText` (static copy as a text-shaped bar that wraps like the copy),
+`LoadingValue` (one line of a value), `LoadingKpiStrip` (real labels,
+placeholder values), `LoadingHeader`, `LoadingTableRows`, `LoadingChart`,
+`LoadingCardTile` (512:776) and `LoadingDeckRender`. Domain skeletons use them
+instead of their own text and value helpers. A KPI that is not known yet is a
+`LoadingValue`, never a dash, so it changes once, from placeholder to number.
+
 ## Timing and deadlines
 
 The reserved geometry appears at once, but the placeholder fill fades in only
@@ -89,6 +100,10 @@ locked preview keeps its placeholders still.
   plot and selection panel; plotting code stays deferred.
 - **Matchups**: View switch, picker, quick filters, search and three responsive
   matchup groups.
+- **Meta and Vicious Gold KPIs**: Banner totals are `LoadingValue`s until
+  the slice lands. A remembered subscriber's server HTML is the guest preview,
+  so its totals (`data-teaser`) show as the same placeholders before
+  hydration instead of guest numbers.
 - **Vicious Gold**: The real report plate (copy, contents, KPI strip) and the
   Power Tier head, rank tabs, first tier and rows inside the one-viewport reserve.
 - **Home latest articles**: Real responsive lead/secondary grid, 16:8.5 covers,

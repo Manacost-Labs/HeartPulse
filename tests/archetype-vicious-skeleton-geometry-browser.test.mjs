@@ -19,7 +19,9 @@ const PAIRS = [
     ['.constructed-analysis-panel', '.constructed-matchup-ledger', '.constructed-matchup-ledger li', '.constructed-card-stats__toolbar',
       '.constructed-card-stats__table tbody tr', '.constructed-card-stats__list > li']],
   ['vicious gold', 'vicious-gold-measured-loading-geometry--ready', 'vicious-gold-measured-loading-geometry--loading',
-    ['.vsgold-report', '.vsgold-report__kpis', '.vsgold-power .vsgold-section__head', '.vsgold-power__controls', '.vsgold-tier__head', '.vsgold-power-row']],
+    ['.vsgold-report', '.vsgold-report__kpis', '.vsgold-power .vsgold-section__head', '.vsgold-power__controls', '.vsgold-tier__head', '.vsgold-power-row',
+      // The banner's totals: label and value placeholders in the same cells.
+      ['.traditional-mode-banner__summary > div', '.traditional-mode-banner__summary > div']]],
 ];
 
 test('archetype and Vicious Gold placeholders fit their loaded views at public widths', { timeout: 600_000 }, async () => {
@@ -62,7 +64,8 @@ test('archetype and Vicious Gold placeholders fit their loaded views at public w
         await open(loadingStory, name === 'archetype analysis' ? '.loading-surface .constructed-matchup-ledger li' : '[role="status"]');
         for (const [index, pair] of selectors.entries()) {
           const selector = Array.isArray(pair) ? pair[0] : pair;
-          const loading = await boxes(`.loading-surface ${Array.isArray(pair) ? pair[1] : pair}`);
+          // A [ready, loading] pair names both selectors in full; a plain one is looked up inside the placeholder.
+          const loading = await boxes(Array.isArray(pair) ? pair[1] : `.loading-surface ${pair}`);
           // Band and row counts are data: compare the placeholders that stand for loaded ones.
           assert.ok(loading.length > 0 && ready[index].length > 0, `${name} ${selector} at ${width}px: both states expose it`);
           for (const [item, box] of ready[index].slice(0, loading.length).entries()) {

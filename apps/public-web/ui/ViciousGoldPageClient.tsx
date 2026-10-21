@@ -3,7 +3,9 @@
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import PaywallGate from '@/src/components/PaywallGate';
 import PaywallPending from '@/src/components/PaywallPending';
-import { ViciousGoldBanner, ViciousGoldLoading } from '@/src/features/viciousGold/ViciousGoldBanner';
+import { useEffect, useState } from 'react';
+import { ViciousGoldBanner, ViciousGoldLoading, ViciousGoldSummaryLoading } from '@/src/features/viciousGold/ViciousGoldBanner';
+import { startViciousGoldRequests } from '@/src/features/viciousGold/viciousGoldRequests';
 import { moduleLoader, useLoadedModule, usePaidViewPrefetch } from './lazyPaidView';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
@@ -12,10 +14,16 @@ import { navigate } from './navigation';
 // of its own: a guest downloads the banner and the gate only.
 const viciousGold = moduleLoader(() => import('@/src/features/ViciousSyndicateGold'));
 
-/** The report once its chunk is in; until then the same banner and loader the report shows while its data loads. */
+/**
+ * The report once its chunk is in; until then the same banner and loader the
+ * report shows while its data loads. A chunk still downloading starts the
+ * report's reads beside it; a chunk already here reads on its own mount.
+ */
 function ViciousGoldReport() {
   const View = useLoadedModule(viciousGold)?.default;
-  return View ? <View /> : <section className="vsgold"><ViciousGoldBanner /><ViciousGoldLoading /></section>;
+  const [readsEarly] = useState(() => !viciousGold.current());
+  useEffect(() => { if (readsEarly) startViciousGoldRequests(); }, [readsEarly]);
+  return View ? <View /> : <section className="vsgold"><ViciousGoldBanner><ViciousGoldSummaryLoading /></ViciousGoldBanner><ViciousGoldLoading /></section>;
 }
 
 export function ViciousGoldPageClient() {
