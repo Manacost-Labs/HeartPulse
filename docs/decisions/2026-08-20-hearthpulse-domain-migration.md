@@ -1,4 +1,4 @@
-# ADR-010: Поэтапный перенос Arena на hearthpulse.net
+# ADR 2026-08-20: Поэтапный перенос Arena на hearthpulse.net
 
 ## Статус
 

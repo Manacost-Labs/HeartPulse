@@ -78,6 +78,7 @@
         "tests/agent-check.test.mjs",
         "tests/agent-impact.test.mjs",
         "tests/agent-integrate.test.mjs",
+        "tests/shared-hot-spots.test.mjs",
         "tests/agent-navigation.test.mjs",
         "tests/application-connect-api.test.ts",
         "tests/application-connect-page.test.ts",

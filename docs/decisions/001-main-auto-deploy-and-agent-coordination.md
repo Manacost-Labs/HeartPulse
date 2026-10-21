@@ -3,7 +3,7 @@
 ## Status
 
 Accepted; integration through pull requests and the merge queue is amended by
-[ADR-011](011-pull-requests-and-merge-queue.md).
+[ADR 2026-10-21](2026-10-21-pull-requests-and-merge-queue.md).
 
 ## Date
 

@@ -1,4 +1,4 @@
-# ADR-011: Pull requests and the merge queue for parallel agent sessions
+# ADR 2026-10-21: Pull requests and the merge queue for parallel agent sessions
 
 ## Status
 

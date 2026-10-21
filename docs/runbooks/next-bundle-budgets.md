@@ -42,7 +42,9 @@ the previous regeneration (`ceil(1.02 × measured)` rounded up to 1 KiB). The
 switch itself re-measured every route: JS limits of `/legendaries/`,
 `/tierlist/` and `/standard/meta/` rose by about 2 KiB over their old hand-set
 ceilings, CSS limits stayed equal or tighter. Task branches may not edit the
-policy file either; `agent:integrate` refuses it.
+policy file either; `agent:integrate` and the pull request CI refuse it
+(`npm run quality:hot-spots`, see
+[shared hot spots](agent-integration.md#shared-hot-spots)).
 
 ## Growth above the tolerance
 
@@ -60,8 +62,9 @@ and the merge records it.
 
 Bytes are the amount above the current limit (the failure message prints the
 minimum). Use a unique name, e.g. the branch slug, so parallel approvals never
-conflict. Never edit a baseline or the tolerance in a task branch;
-`npm run agent:integrate` refuses baseline edits.
+conflict. Never edit a baseline, the tolerance or another change's approval in
+a task branch: `npm run agent:integrate` and the pull request CI refuse
+everything under `config/next-bundle-budgets*` except a new approval file.
 
 ## Baseline refresh
 
@@ -75,7 +78,15 @@ npm run budget:next:baseline
 It downloads the measurement of the newest successful `push` run on `main`,
 refuses one that exceeds its own limits, rewrites every baseline, and deletes
 only the approval files that existed at the measured commit; approvals merged
-later stay. Commit the result with `npm run agent:integrate -- --allow-shared`.
+later stay. Nothing refreshes them automatically after a merge yet. Commit
+the result with the trailer that exempts that commit's files from the
+shared-file check, then integrate as usual:
+
+```bash
+git commit -am "chore(budgets): refresh bundle baselines" \
+  --trailer "Shared-Hot-Spots: bundle baseline refresh"
+npm run agent:integrate
+```
 
 A new route: add `baselines/<route-slug>.json` with zero sizes, run
 `npm run budget:next` after a local build, and copy the route's measured

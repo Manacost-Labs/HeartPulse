@@ -107,10 +107,16 @@ EOF
 
 1. Допиши имя item в список `Items:` (или в абзац `Also vendored`).
 2. Допиши новые зависимости рядом.
-3. Если правил файл кита (шаг 7) — добавь пункт в `Local changes:`:
+3. Если правил файл кита (шаг 7) — не дописывай README, а создай
+   `src/vendor/<kit>/patches/<slug>.md`, один файл на правку:
 
 ```markdown
-- `charts/RadarChart.tsx`: <что изменено> — <зачем HearthPulse>.
+# RadarChart: <что изменено>
+
+- Files: `charts/RadarChart.tsx`
+- Change: <что изменено>
+- Why: <зачем HearthPulse>
+- Upstream: not submitted; carry it over when the file is re-copied from the registry.
 ```
 
 ## 6. Подключи стили и тему
@@ -168,7 +174,7 @@ Valyro. Вторая копия базы попадёт в CSS-чанк и пе�
    // HearthPulse: strict: false не сужает тип здесь — явное приведение.
    ```
 
-3. Добавь пункт в `Local changes:` README кита (шаг 5).
+3. Добавь файл `src/vendor/<kit>/patches/<slug>.md` (шаг 5).
 
 Другие правки файлов кита запрещены. Нужно поведение, которого нет, —
 спроси ведущую сессию.
@@ -218,7 +224,7 @@ npm run budget:next
 
 - [ ] Компонент взят из таблицы шага 1.
 - [ ] Новых файлов вне `src/vendor/<kit>/` от кита нет.
-- [ ] README кита обновлён (если копировал).
+- [ ] README кита обновлён (если копировал), правки кита — в `patches/`.
 - [ ] Каждая правка кита начинается с `// HearthPulse:`.
 - [ ] Импортирована одна база: `varylo-ui/styles/index.css`.
 - [ ] Компонент обёрнут в класс темы из таблицы шага 6.

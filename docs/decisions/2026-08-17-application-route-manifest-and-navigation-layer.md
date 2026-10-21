@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD013 -->
 
-# ADR-010: Application route manifest and navigation layer
+# ADR 2026-08-17: Application route manifest and navigation layer
 
 ## Status
 

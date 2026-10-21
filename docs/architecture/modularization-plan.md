@@ -22,7 +22,7 @@ Read the owning source before changing a workstream:
 | Workstream | Governing source |
 | --- | --- |
 | Module ownership and dependency direction | [`module-boundaries.md`](module-boundaries.md), [`config/module-boundaries.json`](../../config/module-boundaries.json), ADR-002 |
-| Application routes and SEO ownership | [`application-route-manifest.md`](../specs/application-route-manifest.md), [`SEO-STRATEGY.md`](../roadmaps/SEO-STRATEGY.md), ADR-010 |
+| Application routes and SEO ownership | [`application-route-manifest.md`](../specs/application-route-manifest.md), [`SEO-STRATEGY.md`](../roadmaps/SEO-STRATEGY.md), [ADR 2026-08-17](../decisions/2026-08-17-application-route-manifest-and-navigation-layer.md) |
 | Administrator workspace | [`admin-tailadmin-workspace-shell.md`](../specs/admin-tailadmin-workspace-shell.md) |
 | Mobile and responsive quality | [`MOBILE-QUALITY-ROADMAP.md`](../roadmaps/MOBILE-QUALITY-ROADMAP.md) |
 | Stability and recovery | [`STABILITY-ROADMAP.md`](../roadmaps/STABILITY-ROADMAP.md) |

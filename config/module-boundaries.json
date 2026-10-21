@@ -654,7 +654,7 @@
       "docs": [
         "docs/specs/game-data-audit-pipeline.md",
         "docs/runbooks/game-data-audit.md",
-        "docs/decisions/010-read-only-game-data-audit.md"
+        "docs/decisions/2026-08-07-read-only-game-data-audit.md"
       ]
     },
     {
