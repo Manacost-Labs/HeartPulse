@@ -58,7 +58,7 @@
 .analytics-chart__tooltip strong { font-size: 16px; color: var(--analytics-series, #30251c); }
 .analytics-chart__tooltip em { color: #6b4a24; font-style: normal; font-weight: 600; font-size: 11px; }
 .analytics-chart__axis { fill: #735e49; font: 12px var(--font-body, Inter, sans-serif); }
-.analytics-chart__bar { opacity: .88; transition: opacity var(--motion-fast, 120ms) ease; }
+.analytics-chart__bar { opacity: .88; transition: opacity var(--motion-fast) var(--motion-ease); }
 .analytics-chart__bar[data-active] { opacity: 1; }
 .analytics-chart__bar-label, .analytics-chart__bar-value { fill: #30251c; font: 600 12px var(--font-body, Inter, sans-serif); }
 .analytics-chart__selection { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 26%); align-items: center; gap: 12px; padding-top: 10px; border-top: 1px solid #dccbac; }

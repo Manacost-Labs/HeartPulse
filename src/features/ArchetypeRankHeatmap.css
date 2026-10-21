@@ -55,7 +55,7 @@
   text-align: center;
   cursor: default;
   outline: none;
-  transition: box-shadow var(--motion-fast, 120ms) ease;
+  transition: box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .archetype-rank-grid td[data-tone='empty'] { color: #8a735a; background: repeating-linear-gradient(135deg, rgba(240, 220, 178, 0.6) 0 6px, rgba(229, 199, 144, 0.35) 6px 12px); }
