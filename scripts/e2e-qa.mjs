@@ -3016,9 +3016,15 @@ for (const [device, viewport] of [
       heading: document.querySelector('.standard-meta-map__header h3')?.textContent || '',
       tiles: document.querySelectorAll('.standard-meta-map .ui-treemap svg [role="button"], .standard-meta-map .ui-treemap svg g[tabindex], .standard-meta-map .ui-treemap__tile').length,
       tableRows: document.querySelectorAll('.standard-meta-map .ui-treemap table tbody tr').length,
+      listRows: document.querySelectorAll('.standard-meta-shares__list li').length,
       pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
     }));
-    if (standardMetaSharesState.heading !== 'Доля игр' || standardMetaSharesState.tableRows < 3 || standardMetaSharesState.pageOverflow) {
+    // The list beside the treemap narrows to one class; the fixture's warlocks are two of five.
+    await page.click('.standard-meta-shares__classes button[aria-label="Чернокнижник"]');
+    standardMetaSharesState.warlockRows = await page.$$eval('.standard-meta-shares__list li', rows => rows.length);
+    await page.click('.standard-meta-shares__classes button:first-child');
+    if (standardMetaSharesState.heading !== 'Доля игр' || standardMetaSharesState.tableRows < 3 || standardMetaSharesState.pageOverflow
+      || standardMetaSharesState.listRows !== 5 || standardMetaSharesState.warlockRows !== 2) {
       failures.push(`standard meta shares [${device}]: class treemap regressed (${JSON.stringify(standardMetaSharesState)})`);
     }
     // The hover above scrolled the plot to the middle; bring the toggle clear of the sticky top bar.

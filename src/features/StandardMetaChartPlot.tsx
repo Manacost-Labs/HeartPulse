@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { MousePointer2 } from 'lucide-react';
 import { ScatterChart, type ScatterSeries } from '../vendor/varylo-ui/charts/ScatterChart';
 import { Treemap, type TreemapNode } from '../vendor/varylo-ui/charts/Treemap';
@@ -9,6 +9,7 @@ import {
   STANDARD_META_CLASS_COLORS,
   STANDARD_META_CLASS_LABELS,
   STANDARD_META_NEUTRAL_COLOR,
+  standardMetaClassIcon,
 } from './standardMetaClassModel';
 import '../vendor/varylo-ui/styles/index.css';
 import './StandardMetaVarylo.css';
@@ -29,6 +30,8 @@ export type StandardMetaChartPoint = {
 };
 
 type MapView = 'scatter' | 'shares';
+/** Rows of the share list before "Показать все". */
+const SHARE_LIST_ROWS = 12;
 const percent = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: value > 0 && value < 0.1 ? 2 : 1 })}%`;
 const count = (value: number) => value.toLocaleString('ru-RU');
 const WINRATE_GUIDE = [{ axis: 'y' as const, value: 50, label: '50%' }];
@@ -79,6 +82,7 @@ export default function StandardMetaChartPlot({ points, format, formatLabel, ran
 }) {
   const [view, setView] = useState<MapView>('scatter');
   const [popularOnly, setPopularOnly] = useState(false);
+  const [shareClass, setShareClass] = useState<string | null>(null);
   const shown = useMemo(() => popularOnly ? points.filter(point => point.popularity >= 0.5) : points, [points, popularOnly]);
   const series = useMemo(() => classSeries(shown), [shown]);
   const tree = useMemo(() => shareTree(shown), [shown]);
@@ -106,7 +110,7 @@ export default function StandardMetaChartPlot({ points, format, formatLabel, ran
         <label><input type="checkbox" checked={popularOnly} onChange={event => setPopularOnly(event.target.checked)} /> Популярность от 0,5%</label>
         <p><MousePointer2 size={15} aria-hidden="true" /> {view === 'scatter'
           ? 'Размер — число игр, цвет — класс. Нажмите на точку, чтобы открыть архетип.'
-          : 'Площадь — доля игр. Нажмите на класс, затем на архетип.'}</p>
+          : 'Площадь — доля игр, оттенок класса темнее у популярных архетипов. Нажмите на класс, затем на архетип.'}</p>
       </div>
       {view === 'scatter' ? (
         <ScatterChart
@@ -132,17 +136,72 @@ export default function StandardMetaChartPlot({ points, format, formatLabel, ran
           onPointClick={point => openArchetype(point.slug)}
         />
       ) : (
-        <Treemap
-          className="standard-meta-map__chart"
-          data={tree}
-          depth={1}
-          height={narrow ? 360 : 440}
-          valueFormatter={value => `${percent(totalGames ? (value / totalGames) * 100 : 0)} · ${count(value)} игр`}
-          locale="ru-RU"
-          labels={{ empty: 'Нет игр для долей', root: 'Все классы', breadcrumb: 'Уровень долей', name: 'Название', value: 'Игры', share: 'Доля' }}
-          ariaLabel={`Доля игр по классам и архетипам, ${formatLabel}, ${rankLabel}`}
-          onNodeClick={node => { if (!node.children) openArchetype(node.id ?? ''); }}
-        />
+        <div className="standard-meta-shares">
+          <Treemap
+            className="standard-meta-map__chart"
+            data={tree}
+            depth={narrow ? 1 : 2}
+            height={narrow ? 360 : 440}
+            valueFormatter={value => percent(totalGames ? (value / totalGames) * 100 : 0)}
+            locale="ru-RU"
+            labels={{ empty: 'Нет игр для долей', root: 'Все классы', breadcrumb: 'Уровень долей', name: 'Название', value: 'Доля игр', share: 'Доля на этом уровне' }}
+            ariaLabel={`Доля игр по классам и архетипам, ${formatLabel}, ${rankLabel}`}
+            onNodeClick={(node, path) => {
+              if (!node.children) openArchetype(node.id ?? '');
+              else if (!path.length) setShareClass(node.id ?? null);
+            }}
+          />
+          <MetaShareList points={shown} totalGames={totalGames} classKey={shareClass} onClassChange={setShareClass} format={format} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Archetypes by share of games beside the treemap: a bar, the share and games; a class filter narrows it. */
+function MetaShareList({ points, totalGames, classKey, onClassChange, format }: {
+  points: StandardMetaChartPoint[];
+  totalGames: number;
+  classKey: string | null;
+  onClassChange: (classKey: string | null) => void;
+  format: 'standard' | 'wild';
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const withGames = useMemo(() => points.filter(point => point.games).sort((a, b) => (b.games ?? 0) - (a.games ?? 0)), [points]);
+  const classes = useMemo(() => [...new Set(withGames.map(point => classOf(point)).filter(key => key !== null))]
+    .sort((a, b) => STANDARD_META_CLASS_LABELS[a].localeCompare(STANDARD_META_CLASS_LABELS[b], 'ru')), [withGames]);
+  const rows = withGames.filter(point => !classKey || point.classKey === classKey);
+  const shown = expanded ? rows : rows.slice(0, SHARE_LIST_ROWS);
+  const top = rows[0]?.games ?? 0;
+  return (
+    <section className="standard-meta-shares__list" aria-label="Архетипы по доле игр">
+      <div className="standard-meta-shares__classes" role="group" aria-label="Класс">
+        <button type="button" aria-pressed={!classKey} onClick={() => onClassChange(null)}>Все</button>
+        {classes.map(key => (
+          <button key={key} type="button" aria-pressed={classKey === key} title={STANDARD_META_CLASS_LABELS[key]}
+            aria-label={STANDARD_META_CLASS_LABELS[key]} onClick={() => onClassChange(key)}>
+            <img src={standardMetaClassIcon(key)} alt="" width="22" height="22" loading="lazy" decoding="async" />
+          </button>
+        ))}
+      </div>
+      <ol>
+        {shown.map(point => {
+          const color = classOf(point) ? STANDARD_META_CLASS_COLORS[classOf(point) as StandardMetaClass] : STANDARD_META_NEUTRAL_COLOR;
+          return (
+            <li key={point.id} style={{ '--share-color': color } as CSSProperties}>
+              <img src={standardMetaClassIcon(classOf(point))} alt="" width="24" height="24" loading="lazy" decoding="async" />
+              <a href={canonicalPagePath(`/standard/archetypes/${format}/${point.slug}`)}>{point.archetypeLabel}</a>
+              <strong>{percent(totalGames ? ((point.games ?? 0) / totalGames) * 100 : 0)}</strong>
+              <span className="standard-meta-shares__bar" aria-hidden="true"><i style={{ inlineSize: `${top ? ((point.games ?? 0) / top) * 100 : 0}%` }} /></span>
+              <small>{count(point.games ?? 0)} игр</small>
+            </li>
+          );
+        })}
+      </ol>
+      {rows.length > SHARE_LIST_ROWS && (
+        <button type="button" className="standard-meta-shares__more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
+          {expanded ? 'Свернуть' : `Показать все ${rows.length}`}
+        </button>
       )}
     </section>
   );
