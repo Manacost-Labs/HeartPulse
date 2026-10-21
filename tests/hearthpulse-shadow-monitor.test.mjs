@@ -18,7 +18,8 @@ host="\${@: -2:1}"
 record_type="\${@: -1}"
 if [[ "$record_type" == A ]]; then
   [[ "$host" != www.hearthpulse.net ]] || printf 'hearthpulse.net.\\n'
-  printf '%s\\n' 162.19.220.14
+  [[ -n "\${FAKE_EMPTY_A:-}" ]] && exit 0
+  printf '%s\\n' 57.129.183.118
   [[ ",\${FAKE_QUARANTINE:-}," == *,moscow,* ]] || printf '%s\\n' 194.67.92.242
   [[ ",\${FAKE_QUARANTINE:-}," == *,novosibirsk,* ]] || printf '%s\\n' 186.246.28.244
   [[ -z "\${FAKE_EXTRA_A:-}" ]] || printf '%s\\n' "$FAKE_EXTRA_A"
@@ -118,9 +119,16 @@ try {
   assert.notEqual(duplicateRegion.status, 0);
   assert.match(duplicateRegion.stderr, /unsupported quarantined regions/);
 
-  const unconfiguredQuarantine = runMonitor({ FAKE_QUARANTINE: 'novosibirsk' });
-  assert.notEqual(unconfiguredQuarantine.status, 0);
-  assert.match(unconfiguredQuarantine.stderr, /unsafe IPv4 set/);
+  const regionalAnswer = runMonitor({ FAKE_QUARANTINE: 'moscow,novosibirsk' });
+  assert.equal(regionalAnswer.status, 0, 'GeoDNS returning only the nearest active edge is healthy');
+
+  const emptyAnswer = runMonitor({ FAKE_EMPTY_A: '1' });
+  assert.notEqual(emptyAnswer.status, 0);
+  assert.match(emptyAnswer.stderr, /unsafe IPv4 set: empty/);
+
+  const limburgQuarantine = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGIONS: 'limburg' });
+  assert.notEqual(limburgQuarantine.status, 0, 'the retired Limburg edge is no longer a region');
+  assert.match(limburgQuarantine.stderr, /unsupported quarantined regions/);
 
   const advertisedBadEdge = runMonitor({ HEARTHPULSE_MONITOR_QUARANTINED_REGION: 'novosibirsk' });
   assert.notEqual(advertisedBadEdge.status, 0);

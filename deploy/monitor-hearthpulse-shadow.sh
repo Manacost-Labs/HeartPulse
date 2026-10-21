@@ -7,11 +7,11 @@ cdn_domain="${HEARTHPULSE_MONITOR_CDN_DOMAIN:-cdn.hearthpulse.net}"
 legacy_domain="${HEARTHPULSE_MONITOR_LEGACY_DOMAIN:-arena.hs-manacost.ru}"
 legacy_cdn_domain="${HEARTHPULSE_MONITOR_LEGACY_CDN_DOMAIN:-cdn.arena.hs-manacost.ru}"
 known_card_path="${HEARTHPULSE_MONITOR_CARD_PATH:-/api/card-image/DINO_410/full.webp}"
-all_edges=("limburg:162.19.220.14" "moscow:194.67.92.242" "novosibirsk:186.246.28.244")
+all_edges=("london:57.129.183.118" "moscow:194.67.92.242" "novosibirsk:186.246.28.244")
 quarantined_regions="${HEARTHPULSE_MONITOR_QUARANTINED_REGIONS:-${HEARTHPULSE_MONITOR_QUARANTINED_REGION:-}}"
 edges=()
 if [[ -n "$quarantined_regions" ]]; then
-	if [[ ! "$quarantined_regions" =~ ^(limburg|moscow|novosibirsk)(,(limburg|moscow|novosibirsk))?$ ]]; then
+	if [[ ! "$quarantined_regions" =~ ^(london|moscow|novosibirsk)(,(london|moscow|novosibirsk))?$ ]]; then
 		printf 'FAIL: unsupported quarantined regions: %s\n' "$quarantined_regions" >&2
 		exit 2
 	fi
@@ -73,7 +73,10 @@ for host in "$application_domain" "$www_domain" "$cdn_domain"; do
 		awk '/^[0-9]+(\.[0-9]+){3}$/' | sort -u)"
 	ipv6_answers="$(dig +short @1.1.1.1 "$host" AAAA |
 		awk 'index($0, ":") > 0' | sort -u)"
-	[[ "$ipv4_answers" == "$expected_ipv4" ]] ||
+	# GeoDNS answers with the edge nearest to the resolver, so one vantage point
+	# sees a subset of the pool. Every answer must be an active edge.
+	unexpected_ipv4="$(comm -23 <(printf '%s\n' "$ipv4_answers") <(printf '%s\n' "$expected_ipv4"))"
+	[[ -n "$ipv4_answers" && -z "$unexpected_ipv4" ]] ||
 		fail "$host DNS returned an unsafe IPv4 set: ${ipv4_answers:-empty}"
 	[[ -z "$ipv6_answers" ]] ||
 		fail "$host DNS unexpectedly exposed IPv6: $ipv6_answers"
