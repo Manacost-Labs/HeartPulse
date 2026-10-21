@@ -76,7 +76,7 @@ export const Collapsed: Story = {};
 export const LongHistory: Story = {
   play: async ({ canvasElement }) => {
     const canvas = await open(canvasElement);
-    await expect(canvas.getByRole('slider', { name: /Выбрать точку/ })).toBeVisible();
+    await expect(await canvas.findByRole('slider', { name: /Выбрать точку/ })).toBeVisible();
     await expect(canvas.getByRole('radio', { name: '180 дн.' })).toBeDisabled();
     await expect(canvas.getByText('данные с 16 сент')).toBeVisible();
     await expect(canvas.getByText('История')).toBeVisible();
@@ -86,7 +86,7 @@ export const LongHistory: Story = {
 export const WinrateWithComparison: Story = {
   play: async ({ canvasElement }) => {
     const canvas = await open(canvasElement);
-    await userEvent.click(canvas.getByRole('radio', { name: 'При розыгрыше' }));
+    await userEvent.click(await canvas.findByRole('radio', { name: 'При розыгрыше' }));
     await userEvent.click(canvas.getByRole('radio', { name: 'Класс' }));
     await expect(canvas.getByText('Среднее класса «Жрец»')).toBeVisible();
     await expect(canvasElement.querySelector('.analytics-chart__reference')).not.toBeNull();
@@ -98,7 +98,7 @@ export const NewCard: Story = {
   args: { points: newCard, trackedSince: newCard[0].recordedAt, references: [] },
   play: async ({ canvasElement }) => {
     const canvas = await open(canvasElement);
-    await expect(canvas.getByText('Мало данных: карта отслеживается с 20 окт')).toBeVisible();
+    await expect(await canvas.findByText('Мало данных: карта отслеживается с 20 окт')).toBeVisible();
     await expect(canvas.queryByRole('radio', { name: '90 дн.' })).toBeNull();
     await expect(canvas.queryByRole('slider')).toBeNull();
   },
@@ -110,7 +110,7 @@ export const BeforeRelease: Story = {
 
 export const Loading: Story = {
   args: { loading: true, points: [] },
-  play: async ({ canvas }) => { await userEvent.click(canvas.getByText('Динамика карты')); await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем историю'); },
+  play: async ({ canvas }) => { await userEvent.click(canvas.getByText('Динамика карты')); await expect(await canvas.findByText('Загружаем историю')).toBeInTheDocument(); },
 };
 
 export const Unavailable: Story = {
@@ -141,7 +141,7 @@ export const Interaction: Story = {
     await expect(disclosure).not.toBeNull();
     await userEvent.click(disclosure!);
     await expect(disclosure!.closest('details')).toHaveAttribute('open');
-    const range = canvas.getByRole('radio', { name: '30 дн.' });
+    const range = await canvas.findByRole('radio', { name: '30 дн.' });
     const metric = canvas.getByRole('radio', { name: 'Винрейт колод' });
     await userEvent.click(range);
     await expect(range).toHaveAttribute('aria-checked', 'true');

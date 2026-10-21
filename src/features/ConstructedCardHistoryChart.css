@@ -71,9 +71,55 @@
   gap: 0.7rem;
   padding: 0.75rem 0.8rem 0.85rem;
 }
-/* The meta page's plum segmented thumb on this parchment; doubled class to win over the shared
-   `.hp-varylo` theme whatever the stylesheet order. */
-.constructed-card-history__body.hp-varylo {
+/* VaryloUI ships no theme (src/vendor/varylo-ui/README.md): the kit's tokens are mapped here
+   rather than through the archetype page's `.hp-varylo` theme, whose stylesheet regroups the
+   shared Next.js chunks of the archetype catalogue when the card page imports it too. */
+.constructed-card-history__body {
+  --ui-fg: #30251c;
+  --ui-fg-muted: #735e49;
+  --ui-fg-subtle: #8a735a;
+  --ui-fg-disabled: #a08a70;
+  --ui-bg: transparent;
+  --ui-surface: rgba(255, 248, 225, 0.6);
+  --ui-surface-3: rgba(229, 199, 144, 0.5);
+  --ui-border: rgba(92, 54, 24, 0.24);
+  --ui-tile-border: rgba(92, 54, 24, 0.24);
+  --ui-glass-border: rgba(92, 54, 24, 0.24);
+  --ui-divider: rgba(92, 54, 24, 0.16);
+  --ui-highlight: 0 0 transparent;
+  --ui-sheen: 0 0 transparent;
+  --ui-shadow-card: 0 0 transparent;
+  --ui-blur: none;
+  --ui-accent: #8d171d;
+  --ui-focus-color: #8d171d;
+  --ui-focus-ring: 0 0 0 2px #8d171d;
+  --ui-success: #3f8a46;
+  --ui-success-text: #2f6e39;
+  --ui-danger: #b8393a;
+  --ui-danger-text: #a2272b;
+  --ui-radius-sm: 0;
+  --ui-radius-card: 0;
+  --ui-radius-full: 999px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-font-sans: var(--font-body);
+  --ui-font-display: var(--font-body);
+  --ui-text-xs: 0.62rem;
+  --ui-text-sm: 0.72rem;
+  --ui-text-md: 0.82rem;
+  --ui-weight-medium: 600;
+  --ui-label-tracking: normal;
+  --ui-label-transform: none;
+  --ui-leading-tight: 1.15;
+  --ui-tracking-tight: 0;
+  --ui-duration: var(--motion-fast);
+  --ui-duration-fast: var(--motion-instant);
+  --ui-duration-slow: var(--motion-base);
+  --ui-ease: var(--motion-ease);
+  --ui-ease-spring: var(--motion-ease);
+  --ui-sparkline-line-width: 2;
+  --ui-sparkline-fill-opacity: 0.22;
+  /* The meta page's plum segmented thumb on this parchment. */
   --ui-segmented-control-bg: rgba(92, 54, 24, 0.1);
   --ui-segmented-control-thumb-bg: #4a2f66;
   --ui-segmented-control-item-fg: #3a281c;
@@ -82,8 +128,7 @@
   --ui-segmented-control-shadow: inset 0 0 0 1px rgba(92, 54, 24, 0.22);
   --ui-segmented-control-thumb-shadow: 0 1px 2px rgba(48, 30, 14, 0.3);
   --ui-segmented-control-item-tracking: normal;
-  --ui-label-transform: none;
-  --ui-font-sans: var(--font-body);
+  font-family: var(--font-body);
 }
 /* Grid and flex items may shrink below their content: a long control must not widen the card. */
 .constructed-card-history__body > *,
@@ -145,8 +190,6 @@
   --ui-kpi-group-value-weight: 850;
   --ui-kpi-group-delta-padding: 1px 4px;
   --ui-kpi-group-delta-fill: transparent;
-  /* Numbers read like the chart's axis and hover card, not like headings. */
-  --ui-font-display: var(--font-body);
   align-content: start;
   grid-template-columns: minmax(0, 1fr);
 }
@@ -182,3 +225,5 @@
   .constructed-card-history__state { grid-template-columns: auto minmax(0, 1fr); }
   .constructed-card-history__state p { grid-column: 1 / -1; text-align: left; }
 }
+
+.constructed-card-history__pending { margin: 0.75rem 0.8rem 0.85rem; }
