@@ -23,9 +23,24 @@ export type CsrfRequestContext = {
   allowLocalDevelopmentOrigins?: boolean;
 };
 
+// Express matches routes case-insensitively (`case sensitive routing` is off),
+// so `/API/Account/SESSIONS/revoke-others` reaches the same handler: the path
+// is compared in lower case, and also percent-decoded, so no spelling of a
+// protected route skips the check.
+function comparablePaths(path: string): string[] {
+  const lower = path.toLowerCase();
+  try {
+    const decoded = decodeURIComponent(path).toLowerCase();
+    return decoded === lower ? [lower] : [lower, decoded];
+  } catch {
+    return [lower];
+  }
+}
+
 export function mutationNeedsCsrfProtection(method: string, path: string): boolean {
-  return !SAFE_METHODS.has(method.toUpperCase())
-    && PROTECTED_MUTATION_PATHS.some(pattern => pattern.test(path));
+  if (SAFE_METHODS.has(method.toUpperCase())) return false;
+  const paths = comparablePaths(path);
+  return PROTECTED_MUTATION_PATHS.some(pattern => paths.some(candidate => pattern.test(candidate)));
 }
 
 export function csrfRequestAllowed(context: CsrfRequestContext): boolean {

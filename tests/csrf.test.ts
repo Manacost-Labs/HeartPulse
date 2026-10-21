@@ -21,6 +21,12 @@ assert.equal(mutationNeedsCsrfProtection('POST', '/api/auth/telegram/link-start'
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/account/sessions/revoke-others'), true);
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/account/sessions/AbCdEfGhIjKlMnOpQrStUv/revoke'), true);
 assert.equal(mutationNeedsCsrfProtection('GET', '/api/account/sessions'), false);
+// Express routes ignore case, so every spelling of a protected path is protected.
+for (const path of ['/API/account/sessions/revoke-others', '/Api/Account/SESSIONS/revoke-others/', '/api/account/sessions/AbCdEfGhIjKlMnOpQrStUv/REVOKE',
+  '/API/AUTH/LOGOUT', '/Api/Auth/Profile/', '/api/ADMIN/users', '/api/Subscription/Refresh', '/api/%61ccount/sessions/revoke-others']) {
+  assert.equal(mutationNeedsCsrfProtection('POST', path), true, path);
+}
+assert.equal(mutationNeedsCsrfProtection('POST', '/api/%E0%A4%A'), false, 'a malformed escape is compared as written');
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/v1/oauth/device/approve'), true);
 assert.equal(mutationNeedsCsrfProtection('DELETE', '/api/admin-articles'), true);
 assert.equal(csrfRequestAllowed(base), true);

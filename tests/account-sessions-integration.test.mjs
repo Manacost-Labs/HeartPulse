@@ -53,6 +53,20 @@ test('revoking a session ends it at once for the session check and the paywall',
     assert.ok(a2Id, 'the session that was just active is listed with its device');
     assert.equal((await post(`/api/account/sessions/${a2Id}/revoke`, 'a1', { Origin: backend.origin })).status, 403);
     assert.equal((await post(`/api/account/sessions/${a2Id}/revoke`, 'a1', { 'X-CSRF-Request': '1', Origin: 'https://evil.example' })).status, 403);
+    // Express routes ignore case and a trailing slash: no spelling skips the CSRF rule.
+    const crossSite = { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' };
+    for (const [method, path] of [
+      ['POST', '/API/account/SESSIONS/revoke-others'],
+      ['POST', '/Api/Account/Sessions/revoke-others/'],
+      ['POST', `/api/ACCOUNT/sessions/${a2Id}/REVOKE/`],
+      ['POST', '/API/AUTH/LOGOUT'],
+      ['PATCH', '/Api/Auth/Profile/'],
+    ]) {
+      const response = await fetch(`${backend.origin}${path}`, { method, headers: { ...as('a1', crossSite), 'Content-Type': 'application/json' },
+        body: method === 'PATCH' ? '{"country":"Россия"}' : undefined, signal: AbortSignal.timeout(8000) });
+      assert.equal(response.status, 403, `${method} ${path}`);
+    }
+    for (const token of ['a1', 'a2', 'a3']) assert.equal((await me(token)).user?.id, 'reader', `${token} survives cross-site attempts`);
     assert.equal((await post(`/api/account/sessions/${a2Id}/revoke`, 's1')).status, 404, 'another account cannot end it');
     assert.equal((await me('a2')).user?.id, 'reader');
 

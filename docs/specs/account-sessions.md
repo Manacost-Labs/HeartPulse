@@ -43,7 +43,9 @@ live session, 503 with a generic message when storage fails.
 
 Both revocations follow the site CSRF rule (`server/csrf.ts`: same origin and
 `X-CSRF-Request: 1` when the auth cookie is sent) and a limit of 20 requests
-per 15 minutes per account.
+per 15 minutes per account. Express routes ignore case, so the rule compares
+every protected path in lower case and percent-decoded: `/API/Account/SESSIONS/…`
+is protected like `/api/account/sessions/…`.
 
 ## Revocation
 
