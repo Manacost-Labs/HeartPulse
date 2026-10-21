@@ -6088,7 +6088,6 @@ async function fetchConstructedArchetypeCatalog(
   const query = new URLSearchParams({
     format,
     min_games: '50',
-    has_decks: 'true',
     sort: 'games',
     order: 'desc',
     limit: '500',

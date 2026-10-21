@@ -422,6 +422,7 @@
 }
 
 .archetype-row__identity small { display: block; margin-top: 0.16rem; overflow: hidden; color: #816145; font-size: 0.62rem; text-overflow: ellipsis; white-space: nowrap; }
+.archetype-row__identity .archetype-row__pending { color: #8d171d; font-style: italic; }
 
 .archetype-row__metrics {
   display: grid;

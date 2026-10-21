@@ -47,6 +47,20 @@ const voidSoulItem = {
   popularity: 12.8,
 };
 
+// HSGuru has meta statistics for this archetype but no build with a sample yet.
+const buildlessItem = {
+  ...item,
+  slug: 'yogg-warrior',
+  archetype: 'Yogg Warrior',
+  archetypeLabel: 'Йогг-Воин',
+  classKey: 'warrior',
+  games: 64,
+  winrate: 48.4,
+  popularity: 0.1,
+  deckCount: 0,
+  builds: [],
+};
+
 const catalog = {
   format: 'wild',
   formatLabel: 'Вольный',
@@ -158,6 +172,7 @@ export function installConstructedArchetypeFixtures(): () => void {
   const originalFetch = globalThis.fetch;
   const renderAttempts = new Map<string, number>();
   const simulateStaleDeckAsset = new URLSearchParams(window.location.search).has('stale-deck-asset');
+  const includeBuildless = new URLSearchParams(window.location.search).has('buildless');
   window.__deckRenderBodies = [];
 
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -198,11 +213,13 @@ export function installConstructedArchetypeFixtures(): () => void {
         }
       : url.includes('/api/deck/resolve')
       ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
+      : url.includes('/wild/yogg-warrior')
+        ? { ...detail, item: buildlessItem }
       : url.includes('/wild/void-soul-dh')
         ? { ...detail, item: voidSoulItem }
       : url.includes('/wild/thief-priest')
         ? detail
-        : catalog;
+        : includeBuildless ? { ...catalog, items: [...catalog.items, buildlessItem] } : catalog;
     return new Response(JSON.stringify(payload), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -211,7 +228,10 @@ export function installConstructedArchetypeFixtures(): () => void {
   return () => { globalThis.fetch = originalFetch; };
 }
 
-/** The archetype catalog and its detail pages; `format=wild` in the query string opens the Wild catalog. */
+/**
+ * The archetype catalog and its detail pages; `format=wild` in the query string
+ * opens the Wild catalog and `buildless` adds an archetype without builds.
+ */
 export function ConstructedArchetypesFixture({ initialPath = '/standard/archetypes' }: { initialPath?: string }) {
   const [path, setPath] = useState(initialPath);
   return <StrictMode><ConstructedArchetypes currentPath={path} navigatePath={setPath} /></StrictMode>;

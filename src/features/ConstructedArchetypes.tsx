@@ -100,6 +100,8 @@ export type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
   featuredBuild?: Pick<ArchetypeBuild, 'games' | 'winrate' | 'updatedAt' | 'sampleRank' | 'samplePeriod'> | null;
 };
 
+const BUILDS_PENDING_MESSAGE = 'Колоды появятся, когда наберётся выборка';
+
 type SortKey = 'games' | 'winrate' | 'popularity' | 'decks' | 'name';
 
 const FORMATS: Array<{ id: ArchetypeFormat; label: string; description: string; asset: string }> = [
@@ -406,7 +408,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
       {(!loading || catalog) && !error && items.length > 0 && (
         <section className={`archetypes-ledger data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label={`Архетипы: ${catalog?.formatLabel}`} aria-busy={loading}>
           <header className="archetypes-ledger__header" data-tour-id="archetypes-results">
-            <span>{items.length} архетипов со сборками</span>
+            <span>{items.length} архетипов</span>
             <span>Нажмите на строку, чтобы открыть подробную страницу</span>
           </header>
           <div className="archetypes-list">
@@ -418,6 +420,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
                   <span>{item.classKey ? CLASS_LABELS[item.classKey] : 'Смешанный класс'}</span>
                   <h2>{item.archetypeLabel}</h2>
                   {item.translated && <small>{item.archetype}</small>}
+                  {item.deckCount === 0 && <small className="archetype-row__pending">{BUILDS_PENDING_MESSAGE}</small>}
                 </div>
                 <dl className="archetype-row__metrics">
                   <div><dt>Винрейт</dt><dd className={`metric-${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</dd></div>
@@ -559,6 +562,16 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           </footer>
         </section>
       )}
+
+      {item.deckCount === 0 ? (
+        <section className="archetype-build-preview" aria-labelledby="archetype-builds-pending-title">
+          <div>
+            <span className="archetypes-eyebrow"><Sparkles size={14} /> Сборки</span>
+            <h2 id="archetype-builds-pending-title">{BUILDS_PENDING_MESSAGE}</h2>
+            <p>Статистика архетипа уже есть, но ни одна его сборка пока не набрала достаточно игр на HSGuru.</p>
+          </div>
+        </section>
+      ) : null}
 
       {!fullAccess && !accessPending && !paywall.subscriptionStatus?.unavailable && detail.featuredBuild ? (
         <section className="archetype-build-preview" aria-labelledby="archetype-build-preview-title">

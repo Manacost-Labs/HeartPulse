@@ -517,6 +517,25 @@ try {
     return result.violations.filter(violation => ['serious', 'critical'].includes(violation.impact));
   });
   assert.deepEqual(violations, []);
+
+  // An archetype without a build keeps its statistics and explains why there is no gallery.
+  await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 1 });
+  await page.goto(fixture('format=wild&buildless=1'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.archetype-row__pending');
+  assert.equal(await page.$$eval('.archetype-row', rows => rows.length), 4);
+  assert.equal(await page.$eval('.archetypes-ledger__header span', label => label.textContent), '4 архетипов');
+  assert.equal(
+    await page.$eval('.archetype-row__pending', note => note.closest('.archetype-row').querySelector('h2').textContent),
+    'Йогг-Воин',
+  );
+  assert.equal(await page.$$eval('.archetype-row__pending', notes => notes.length), 1);
+  await page.$eval('.archetype-row__pending', note => note.closest('.archetype-row').querySelector('.archetype-row__open').click());
+  await page.waitForSelector('#archetype-builds-pending-title');
+  assert.equal(await page.$eval('.archetype-dossier h1', title => title.textContent), 'Йогг-Воин');
+  assert.equal(await page.$eval('#archetype-builds-pending-title', title => title.textContent), 'Колоды появятся, когда наберётся выборка');
+  assert.equal(await page.$('.archetype-main-build'), null, 'no empty main build gallery');
+  assert.equal(await page.$('.archetype-builds'), null, 'no empty secondary build gallery');
+
   await page.goto(storybook.storyUrl('browser-test-fixtures-constructed-archetypes--archetype-detail'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.archetype-dossier__metrics');
   assert.deepEqual(runtimeErrors, []);
