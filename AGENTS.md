@@ -59,6 +59,9 @@ and one worktree as one ownership unit. Details and the GitHub settings:
    `changelog.d/<YYYY-MM-DD>-<slug>.md` fragment. Do not edit the bundle
    baselines: growth above the tolerance needs a new file in
    `config/next-bundle-budgets/approvals/` (`docs/runbooks/next-bundle-budgets.md`).
+   `agent:integrate` and the pull request CI refuse other edits there. Name a
+   new ADR `docs/decisions/YYYY-MM-DD-<slug>.md`; record a local change to a
+   vendored kit in `src/vendor/<kit>/patches/<slug>.md`, not in its README.
 4. **READY → PR → auto-merge.** Commit the task, then run
    `npm run agent:integrate`. It rebases onto `origin/main`, runs
    `npm run agent:integration:preflight`, pushes the task branch, opens the PR

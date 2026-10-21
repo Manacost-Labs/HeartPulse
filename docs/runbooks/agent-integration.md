@@ -3,7 +3,7 @@
 Parallel agent sessions ship through pull requests and the GitHub merge queue.
 No session pushes to `main`; the queue tests queued PRs together on top of the
 newest `main` and fast-forwards it, and that push deploys
-([ADR-011](../decisions/011-pull-requests-and-merge-queue.md)).
+([ADR 2026-10-21](../decisions/2026-10-21-pull-requests-and-merge-queue.md)).
 
 ## Flow for one session
 
@@ -13,8 +13,10 @@ newest `main` and fast-forwards it, and that push deploys
 2. Work only on owned paths. A visible change adds
    `changelog.d/<YYYY-MM-DD>-<slug>.md`; bundle growth above the tolerance adds
    `config/next-bundle-budgets/approvals/<slug>.json`
-   ([bundle budgets](next-bundle-budgets.md)). Never edit `CHANGELOG.md` or
-   the baselines in a task branch.
+   ([bundle budgets](next-bundle-budgets.md)); a new ADR is
+   `docs/decisions/YYYY-MM-DD-<slug>.md`; a local change to a vendored kit adds
+   `src/vendor/<kit>/patches/<slug>.md`. See
+   [Shared hot spots](#shared-hot-spots).
 3. Run the task's focused checks, commit, then `npm run agent:integrate`
    (add `--check <npm-script>` for extra local gates). It rebases once onto
    `origin/main`, runs the fragment check and the integration preflight, pushes
@@ -36,6 +38,33 @@ newest `main` and fast-forwards it, and that push deploys
 Until the settings below are applied, auto-merge is disabled in the
 repository: `agent:integrate` stops after opening the PR, and the lead session
 merges READY PRs.
+
+## Shared hot spots
+
+`npm run quality:hot-spots` (`scripts/shared-hot-spots.mjs`) refuses a branch
+whose diff against its merge base edits `CHANGELOG.md`,
+`config/next-bundle-budgets.json`, any file in
+`config/next-bundle-budgets/baselines/`, or an existing file in
+`config/next-bundle-budgets/approvals/`. Adding a new approval file passes.
+`npm run agent:integrate` runs it before the push, and CI runs it on the pull
+request in `verify:release:checks`, so a PR opened without the helper is
+refused too. Merge-queue and `main` push runs skip it: each queued PR already
+passed it on its own pull request.
+
+The release (`changelog:assemble --release`) and the bundle baseline refresh
+are the only commits that change these files. Such a commit carries the
+trailer `Shared-Hot-Spots: <reason>`; it exempts only the files that commit
+touches, so other commits of the branch stay checked:
+
+```bash
+git commit -m "chore(budgets): refresh bundle baselines" \
+  --trailer "Shared-Hot-Spots: bundle baseline refresh"
+```
+
+The old `--allow-shared` flag is gone: CI cannot see a local flag.
+`config/function-size-budgets.json` and `config/source-debt-budgets.json` are
+not covered: they have no approvals directory, so a task still records a new
+exception there.
 
 ## Required CI contract
 

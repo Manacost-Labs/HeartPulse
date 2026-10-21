@@ -10,6 +10,9 @@ assembler turns the file into one list item.
 
 Check: `npm run changelog:assemble -- --check`. Release owner:
 `npm run changelog:assemble -- --release v1.2.3` moves every fragment and the
-`## Unreleased` entries into a new version section and deletes the fragments.
+`## Unreleased` entries into a new version section and deletes the fragments;
+commit that with the trailer `Shared-Hot-Spots: release v1.2.3`, otherwise
+`agent:integrate` and the pull request CI refuse the `CHANGELOG.md` edit
+(`docs/runbooks/agent-integration.md#shared-hot-spots`).
 After deployment the same file is the Telegram post:
 `npm run changelog:post -- --fragment changelog.d/<file>.md`.

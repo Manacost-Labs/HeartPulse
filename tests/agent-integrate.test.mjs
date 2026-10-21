@@ -3,17 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
-  addedChangelogFragments, deploymentVerdict, parseArgs, sharedPathViolations,
+  addedChangelogFragments, deploymentVerdict, parseArgs,
 } from '../scripts/agent-integrate.mjs';
-
-test('task branches may not edit the shared changelog or bundle baselines', () => {
-  assert.deepEqual(sharedPathViolations(['src/App.tsx', 'changelog.d/2026-10-21-queue.md',
-    'config/next-bundle-budgets/approvals/queue.json']), []);
-  const violations = sharedPathViolations(['CHANGELOG.md', 'config/next-bundle-budgets/baselines/home.json']);
-  assert.equal(violations.length, 2);
-  assert.match(violations[0], /^CHANGELOG\.md: .*changelog\.d/);
-  assert.match(violations[1], /baselines\/home\.json: .*approvals/);
-});
 
 test('only dated changelog.d files count as fragments', () => {
   assert.deepEqual(addedChangelogFragments(['changelog.d/README.md', 'changelog.d/2026-10-21-queue.md', 'docs/a.md']),
@@ -21,10 +12,11 @@ test('only dated changelog.d files count as fragments', () => {
 });
 
 test('arguments default to auto-merge and a draft disables it', () => {
-  assert.deepEqual(parseArgs([]), { allowShared: false, auto: true, draft: false, status: false, title: null, bodyFile: null, checks: [] });
+  assert.deepEqual(parseArgs([]), { auto: true, draft: false, status: false, title: null, bodyFile: null, checks: [] });
   assert.equal(parseArgs(['--draft']).auto, false);
   assert.deepEqual(parseArgs(['--check', 'test:registry', '--check', 'lint']).checks, ['test:registry', 'lint']);
   assert.throws(() => parseArgs(['--push-main']), /unknown argument/);
+  assert.throws(() => parseArgs(['--allow-shared']), /Shared-Hot-Spots: <reason>" commit trailer/);
 });
 
 test('the session ends only when production contains the merge commit', () => {

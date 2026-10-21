@@ -11,33 +11,22 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { branchViolations } from './shared-hot-spots.mjs';
+
 export const PRODUCTION_HEALTH_URL = 'https://hearthpulse.net/api/health/live';
-
-// Shared files that parallel branches must not edit; they conflict on every
-// rebase. CHANGELOG.md is assembled from changelog.d/ at release time, and
-// bundle baselines are refreshed from a main CI measurement.
-const SHARED_PATHS = [
-  { pattern: /^CHANGELOG\.md$/, instead: 'add changelog.d/<YYYY-MM-DD>-<slug>.md' },
-  { pattern: /^config\/next-bundle-budgets\/baselines\//, instead: 'add config/next-bundle-budgets/approvals/<slug>.json' },
-  { pattern: /^config\/next-bundle-budgets\.json$/, instead: 'keep the tolerance and add config/next-bundle-budgets/approvals/<slug>.json' },
-];
-
-export function sharedPathViolations(changedPaths) {
-  return changedPaths.flatMap(file => SHARED_PATHS
-    .filter(({ pattern }) => pattern.test(file))
-    .map(({ instead }) => `${file}: shared file, ${instead} instead (or pass --allow-shared for a release/baseline PR)`));
-}
 
 export function addedChangelogFragments(addedPaths) {
   return addedPaths.filter(file => /^changelog\.d\/\d{4}-\d{2}-\d{2}-[^/]+\.md$/.test(file));
 }
 
 export function parseArgs(argv) {
-  const args = { allowShared: false, auto: true, draft: false, status: false, title: null, bodyFile: null, checks: [] };
+  const args = { auto: true, draft: false, status: false, title: null, bodyFile: null, checks: [] };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === '--allow-shared') args.allowShared = true;
-    else if (arg === '--no-auto') args.auto = false;
+    if (arg === '--allow-shared') {
+      // CI checks the same rule and cannot see a local flag; a commit trailer is visible to both.
+      throw new Error('--allow-shared was replaced by a "Shared-Hot-Spots: <reason>" commit trailer (docs/runbooks/agent-integration.md)');
+    } else if (arg === '--no-auto') args.auto = false;
     else if (arg === '--draft') { args.draft = true; args.auto = false; }
     else if (arg === '--status') args.status = true;
     else if (arg === '--title') args.title = argv[++index];
@@ -142,7 +131,7 @@ async function integrate(root, branch, args) {
 
   const changed = run('git', ['diff', '--name-only', 'origin/main...HEAD'], { cwd: root }).split('\n').filter(Boolean);
   if (!changed.length) throw new Error('the branch has no changes over origin/main');
-  const violations = args.allowShared ? [] : sharedPathViolations(changed);
+  const violations = branchViolations(root, run('git', ['merge-base', 'origin/main', 'HEAD'], { cwd: root }));
   if (violations.length) throw new Error(violations.join('\n'));
 
   step('changelog fragments and integration preflight');
@@ -204,7 +193,7 @@ if (isMainModule()) {
     const args = parseArgs(process.argv.slice(2));
     if (args.help) {
       process.stdout.write([
-        'Usage: npm run agent:integrate -- [--title <t>] [--body-file <f>] [--check <npm-script>]... [--no-auto|--draft] [--allow-shared]',
+        'Usage: npm run agent:integrate -- [--title <t>] [--body-file <f>] [--check <npm-script>]... [--no-auto|--draft]',
         '       npm run agent:integrate -- --status',
       ].join('\n') + '\n');
     } else {

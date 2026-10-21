@@ -6,7 +6,7 @@
 - Дата: 21 июля 2026 года
 - Область на дату решения: `arena.hs-manacost.ru`
 - Уточнение: canonical origin заменён на `https://hearthpulse.net` решением
-  [`ADR-010`](010-hearthpulse-domain-migration.md); остальные правила URL,
+  [ADR 2026-08-20](2026-08-20-hearthpulse-domain-migration.md); остальные правила URL,
   indexability и paywall остаются действующими.
 
 ## Контекст
