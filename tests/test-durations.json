@@ -407,7 +407,6 @@
     "tests/standard-matchup-routes.test.ts": 0.4,
     "tests/standard-matchups-client.test.ts": 0.2,
     "tests/standard-matchups-controls-ui.test.ts": 0.2,
-    "tests/standard-matchups-tooltip.test.ts": 0.2,
     "tests/standard-meta-classes.test.ts": 0.2,
     "tests/standard-meta-contract.test.ts": 0.2,
     "tests/standard-meta-preview-cache-policy.test.ts": 0.2,

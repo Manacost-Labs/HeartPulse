@@ -3248,9 +3248,12 @@ for (const [device, viewport] of [
     await page.waitForSelector('[data-tour-id="matchups-matrix"]', { timeout: 20_000 });
     const standardMatchupsTourViolationCount = await auditPageTour(page, {
       label: `standard matchups [${device}]`,
-      expectedSteps: 4,
+      expectedSteps: 3,
       mobile: device === 'mobile',
     });
+    // The matrix is the default view; the archetype overview is one click away.
+    await page.waitForSelector('#matchups-matrix .ui-matchup-matrix', { timeout: 20_000 });
+    await page.click('.standard-matchups__view-switcher button[aria-pressed="false"]');
     await page.waitForFunction(() => (
       document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.includes('Стандарт')
       && document.querySelector('#matchups-picker select')?.value === 'Control Warrior'
@@ -3310,112 +3313,61 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/standard-matchups-wild-overview-${device}.png`, fullPage: false });
     await page.click('.standard-matchups__view-switcher button[aria-pressed="false"]');
-    await page.waitForSelector('#matchups-matrix');
-    const matrixState = await page.evaluate(() => ({
-      rowCount: document.querySelectorAll('#matchups-matrix tbody tr').length,
-      columnCount: document.querySelectorAll('#matchups-matrix thead th').length,
-      scrollable: (() => {
-        const matrix = document.querySelector('#matchups-matrix');
-        return Boolean(matrix && matrix.scrollWidth > matrix.clientWidth);
-      })(),
-      firstRow: document.querySelector('#matchups-matrix tbody th')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      topScrollbar: Boolean(document.querySelector('.standard-matchups__matrix-scrollbar--top')),
-      bottomScrollbar: Boolean(document.querySelector('.standard-matchups__matrix-scrollbar--bottom')),
-      interactiveCells: document.querySelectorAll('#matchups-matrix [data-matchup-cell]').length,
-      bottomArchetypes: document.querySelectorAll('#matchups-matrix [data-matchups-bottom-archetype]').length,
-      bottomPanelText: document.querySelector('#matchups-matrix tfoot')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      otherAggregateVisible: /Other\s+(?:DK|Priest|Rogue|Druid|Hunter|Mage|Paladin|Shaman|Warlock|Warrior)/i
-        .test(document.querySelector('#matchups-matrix')?.textContent || ''),
-    }));
-    if (matrixState.rowCount !== 3 || matrixState.columnCount !== 4
-      || !matrixState.scrollable || !matrixState.firstRow.includes('Вольный Контроль Разбойник')
-      || !matrixState.topScrollbar || matrixState.bottomScrollbar || matrixState.interactiveCells !== 9
-      || matrixState.bottomArchetypes !== 3
-      || !matrixState.bottomPanelText.includes('Вольный Контроль Разбойник')
-      || matrixState.otherAggregateVisible) {
-      failures.push(`standard matchups matrix [${device}]: on-demand Wild matrix is incomplete (${JSON.stringify(matrixState)})`);
-    }
-    const scrollbarSyncState = await page.evaluate(async () => {
+    await page.waitForSelector('#matchups-matrix .ui-matchup-matrix');
+    const matrixState = await page.evaluate(() => {
       const matrix = document.querySelector('#matchups-matrix');
-      const top = document.querySelector('.standard-matchups__matrix-scrollbar--top');
-      if (!(matrix instanceof HTMLElement) || !(top instanceof HTMLElement)) {
-        return { available: false, matrixLeft: 0, topLeft: 0 };
-      }
-      top.scrollLeft = Math.min(180, top.scrollWidth - top.clientWidth);
-      top.dispatchEvent(new Event('scroll'));
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const grid = matrix?.querySelector('.ui-matchup-matrix__grid');
       return {
-        available: true,
-        matrixLeft: Math.round(matrix.scrollLeft),
-        topLeft: Math.round(top.scrollLeft),
-      };
-    });
-    if (!scrollbarSyncState.available || scrollbarSyncState.topLeft <= 0
-      || scrollbarSyncState.matrixLeft !== scrollbarSyncState.topLeft) {
-      failures.push(`standard matchups scrollbar [${device}]: the upper rail stopped controlling the matrix (${JSON.stringify(scrollbarSyncState)})`);
-    }
-    await page.$eval('#matchups-matrix [data-matchup-cell]', element => element.click());
-    await page.waitForSelector('#standard-matchups-cell-dialog');
-    const matchupTooltipState = await page.evaluate(() => {
-      const dialog = document.querySelector('#standard-matchups-cell-dialog');
-      const rect = dialog?.getBoundingClientRect();
-      const activeCell = document.querySelector('#matchups-matrix [data-matchup-cell][aria-expanded="true"]');
-      return {
-        text: dialog?.textContent?.replace(/\s+/g, ' ').trim() || '',
-        visible: Boolean(rect && rect.width > 0 && rect.height > 0),
-        withinViewport: Boolean(rect
-          && rect.left >= 0 && rect.right <= window.innerWidth + 1
-          && rect.top >= 0 && rect.bottom <= window.innerHeight + 1),
-        bounds: rect ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom } : null,
-        viewport: { width: window.innerWidth, height: window.innerHeight },
-        activeCell: Boolean(activeCell),
-        closeHeight: dialog?.querySelector('button')?.getBoundingClientRect().height ?? 0,
+        gridShown: Boolean(grid && grid.getBoundingClientRect().width > 0),
+        rowCount: grid?.querySelectorAll('tbody tr').length ?? 0,
+        columnCount: grid?.querySelectorAll('thead th').length ?? 0,
+        cells: grid?.querySelectorAll('[role="gridcell"]').length ?? 0,
+        firstRow: grid?.querySelector('tbody th')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        picked: matrix?.querySelector('.ui-matchup-matrix__me-name')?.textContent || '',
+        listItems: matrix?.querySelectorAll('.ui-matchup-matrix__item').length ?? 0,
+        listShown: Boolean(matrix?.querySelector('.ui-matchup-matrix__narrow')?.getBoundingClientRect().height),
+        otherAggregateVisible: /Other\s+(?:DK|Priest|Rogue|Druid|Hunter|Mage|Paladin|Shaman|Warlock|Warrior)/i
+          .test(matrix?.textContent || ''),
         pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
-    if (!matchupTooltipState.visible || !matchupTooltipState.withinViewport
-      || !matchupTooltipState.text.includes('Матчап')
-      || !matchupTooltipState.text.includes('против')
-      || !matchupTooltipState.text.includes('%')
-      || !matchupTooltipState.activeCell || matchupTooltipState.closeHeight < 42
-      || matchupTooltipState.pageOverflow) {
-      failures.push(`standard matchups tooltip [${device}]: content, geometry or touch target regressed (${JSON.stringify(matchupTooltipState)})`);
+    // Three archetypes after Other is removed: corner, three opponents and the field column; on a phone the
+    // grid gives way to the picked archetype's two matchups.
+    if (matrixState.rowCount !== 3 || matrixState.columnCount !== 5 || matrixState.cells !== 12
+      || !matrixState.firstRow.includes('Вольный Контроль Разбойник')
+      || !matrixState.picked.includes('Вольный Контроль Разбойник') || matrixState.listItems !== 2
+      || matrixState.gridShown !== (device === 'desktop') || matrixState.listShown !== (device === 'mobile')
+      || matrixState.otherAggregateVisible || matrixState.pageOverflow) {
+      failures.push(`standard matchups matrix [${device}]: Wild matrix is incomplete (${JSON.stringify(matrixState)})`);
     }
-    await auditAccessibility(page, `standard matchups tooltip [${device}]`, '#standard-matchups-cell-dialog');
-    await page.screenshot({ path: `${OUT}/standard-matchups-tooltip-${device}.png`, fullPage: false });
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(() => !document.querySelector('#standard-matchups-cell-dialog'));
-    await page.waitForFunction(() => document.activeElement?.hasAttribute('data-matchup-cell'));
-    const tooltipKeyboardState = await page.evaluate(() => ({
-      restoredFocus: document.activeElement?.hasAttribute('data-matchup-cell') ?? false,
-      expandedCells: document.querySelectorAll('#matchups-matrix [data-matchup-cell][aria-expanded="true"]').length,
-    }));
-    if (!tooltipKeyboardState.restoredFocus || tooltipKeyboardState.expandedCells !== 0) {
-      failures.push(`standard matchups tooltip keyboard [${device}]: Escape did not close and restore focus (${JSON.stringify(tooltipKeyboardState)})`);
+    if (device === 'desktop') {
+      await page.hover('#matchups-matrix tbody tr:nth-child(1) [role="gridcell"]:nth-child(3)');
+      await page.waitForSelector('.ui-matchup-matrix__tip:not([hidden])');
+      const matchupTooltipState = await page.evaluate(() => {
+        const tip = document.querySelector('.ui-matchup-matrix__tip');
+        const rect = tip?.getBoundingClientRect();
+        return {
+          text: tip?.textContent?.replace(/\s+/g, ' ').trim() || '',
+          visible: Boolean(rect && rect.width > 0 && rect.height > 0),
+          withinViewport: Boolean(rect && rect.left >= 0 && rect.right <= window.innerWidth + 1),
+        };
+      });
+      if (!matchupTooltipState.visible || !matchupTooltipState.withinViewport
+        || !matchupTooltipState.text.includes('Вольный Рено Маг') || !matchupTooltipState.text.includes('57,2')
+        || !matchupTooltipState.text.includes('надёжно')) {
+        failures.push(`standard matchups tooltip [${device}]: content or geometry regressed (${JSON.stringify(matchupTooltipState)})`);
+      }
+      await page.screenshot({ path: `${OUT}/standard-matchups-tooltip-${device}.png`, fullPage: false });
+      await page.focus('#matchups-matrix tbody tr:nth-child(1) [role="gridcell"]');
+      await page.keyboard.press('ArrowRight');
+      const keyboardState = await page.evaluate(() => ({
+        focusedCell: document.activeElement?.getAttribute('role') === 'gridcell',
+        label: document.activeElement?.getAttribute('aria-label') || '',
+      }));
+      if (!keyboardState.focusedCell || !keyboardState.label.includes('против Вольный Рено Маг')) {
+        failures.push(`standard matchups keyboard [${device}]: arrows stopped moving through the grid (${JSON.stringify(keyboardState)})`);
+      }
     }
-    await page.$eval('#matchups-matrix', element => {
-      element.scrollLeft = 0;
-      element.dispatchEvent(new Event('scroll'));
-    });
-    await page.$eval('#matchups-matrix tfoot', element => element.scrollIntoView({ block: 'end' }));
-    await new Promise(resolve => setTimeout(resolve, 180));
-    const bottomPanelState = await page.evaluate(() => {
-      const matrix = document.querySelector('#matchups-matrix');
-      const footer = matrix?.querySelector('tfoot');
-      const matrixRect = matrix?.getBoundingClientRect();
-      const footerRect = footer?.getBoundingClientRect();
-      return {
-        visible: Boolean(matrixRect && footerRect
-          && footerRect.bottom > matrixRect.top
-          && footerRect.top < matrixRect.bottom),
-        sticky: footer ? getComputedStyle(footer.querySelector('th')).position === 'sticky' : false,
-        labels: footer?.querySelectorAll('[data-matchups-bottom-archetype]').length ?? 0,
-      };
-    });
-    if (!bottomPanelState.visible || !bottomPanelState.sticky || bottomPanelState.labels !== 3) {
-      failures.push(`standard matchups bottom archetypes [${device}]: repeated footer is not visible or sticky (${JSON.stringify(bottomPanelState)})`);
-    }
-    await page.screenshot({ path: `${OUT}/standard-matchups-bottom-${device}.png`, fullPage: false });
     await auditAccessibility(page, `standard matchups Wild matrix [${device}]`, '.standard-matchups');
     await page.screenshot({ path: `${OUT}/standard-matchups-wild-${device}.png`, fullPage: false });
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });

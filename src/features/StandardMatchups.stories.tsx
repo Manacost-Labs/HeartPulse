@@ -12,8 +12,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Overview: Story = {};
 export const PopulatedOverview: Story = { play: async ({ canvas }) => {
+  await userEvent.click(canvas.getByRole('button', { name: /Обзор архетипа/ }));
   await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Архетип' }), columns[1].name);
 } };
 export const Loading: Story = { args: { external: { ...meta.args.external, loading: true,
   data: { ...meta.args.external.data, rows: [], columns: [] } } } };
-export const Matrix: Story = { play: async ({ canvasElement }) => { const canvas = within(canvasElement); await userEvent.click(canvas.getByRole('button', { name: /^Матрица/ })); await expect(canvas.getByRole('button', { name: 'Скачать Матрица матчапов: SVG' })).toBeVisible(); await expect(getComputedStyle(canvas.getByText('Соперники').closest('th') ?? canvasElement).backgroundImage).toContain('linear-gradient'); } };
+export const Matrix: Story = { play: async ({ canvasElement }) => { const canvas = within(canvasElement); await userEvent.click(canvas.getByRole('button', { name: /^Матрица/ })); await expect(canvas.getByRole('grid')).toBeVisible(); await expect(canvas.getByRole('combobox', { name: 'Ваш архетип' })).toBeVisible(); } };

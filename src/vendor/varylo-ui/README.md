@@ -5,7 +5,9 @@ Source copied from the VaryloUI registry (`r/<name>.json`, local release in
 Items: data-table, kpi-group, confidence-band-chart, heatmap,
 metric-comparison and radar-chart with their registry dependencies (skeleton,
 primitives, styles, icon-button, tooltip, button, spinner, empty-state, icons,
-theme, badge, stats-card, sparkline).
+theme, badge, stats-card, sparkline); matchup-matrix (`gaming/`,
+`agents/labels.ts`) with select (`forms/Select`, `forms/Listbox`), themed in
+`src/features/StandardMatchupMatrix.css`.
 
 Local changes: `styles/index.css` imports only the shared tokens, base and
 motion styles; no `styles/themes/*.css` file is shipped. Consumers map the

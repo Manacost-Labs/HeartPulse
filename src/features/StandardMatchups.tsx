@@ -1,17 +1,17 @@
-import { TableSurface } from '../shared/ui/analytics/TableSurface';
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
+import React, { lazy, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search } from 'lucide-react';
 import '../route-parchment.css';
 import '../shared/ui/LoadingSurface.css';
 import './StandardMatchups.css';
 import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { MatchupsSkeleton } from './MatchupsSkeleton';
-import { activeMatrixMatchupAt, type ActiveMatrixMatchup, useCloseMatrixMatchup,
-  useTooltipViewportPosition } from './standardMatchupsTooltip';
 import type {
   StandardMatchupsCell, StandardMatchupsData, StandardMatchupsFormat, StandardMatchupsRow,
 } from '../modules/standardMatchups/public';
+
+// The matrix and its vendored kit load on demand: only a verified subscriber with data sees them.
+const loadStandardMatchupMatrix = () => import('./StandardMatchupMatrix');
+const StandardMatchupMatrix = lazy(loadStandardMatchupMatrix);
 
 type StandardMatchupsView = 'overview' | 'matrix';
 type StandardMatchupsFilter = 'all' | 'strong' | 'even' | 'weak';
@@ -199,46 +199,6 @@ function standardMatchupTone(value: number | null): React.CSSProperties {
   };
 }
 
-function standardMatchupAssessment(value: number | null): {
-  label: string;
-  detail: string;
-  tone: 'strong' | 'good' | 'even' | 'weak' | 'empty';
-} {
-  if (value === null) {
-    return {
-      label: 'Нет данных',
-      detail: 'Для этой пары пока недостаточно сыгранных матчей.',
-      tone: 'empty',
-    };
-  }
-  if (value >= 55) {
-    return {
-      label: 'Сильное преимущество',
-      detail: 'Архетип заметно чаще выигрывает эту пару.',
-      tone: 'strong',
-    };
-  }
-  if (value >= 52) {
-    return {
-      label: 'Преимущество',
-      detail: 'Матчап складывается в пользу выбранного архетипа.',
-      tone: 'good',
-    };
-  }
-  if (value >= 48) {
-    return {
-      label: 'Ровный матчап',
-      detail: 'Шансы сторон близки, исход сильнее зависит от игры.',
-      tone: 'even',
-    };
-  }
-  return {
-    label: 'Сложный матчап',
-    detail: 'Соперник чаще выигрывает эту пару.',
-    tone: 'weak',
-  };
-}
-
 export type StandardMatchupsExternal = {
   format: StandardMatchupsFormat;
   changeFormat: (format: StandardMatchupsFormat) => void;
@@ -250,10 +210,9 @@ export type StandardMatchupsExternal = {
 
 function StandardMatchupsPage({ external }: { external?: StandardMatchupsExternal }) {
   const [legacyFormat, setFormat] = useState<StandardMatchupsFormat>('standard');
-  const [view, setView] = useState<StandardMatchupsView>('overview');
+  const [view, setView] = useState<StandardMatchupsView>('matrix');
   const [matchupFilter, setMatchupFilter] = useState<StandardMatchupsFilter>('all');
   const [matchupSearch, setMatchupSearch] = useState('');
-  const [matrixSearch, setMatrixSearch] = useState('');
   const [selectedArchetype, setSelectedArchetype] = useState('');
   const [datasets, setDatasets] = useState<Partial<Record<StandardMatchupsFormat, StandardMatchupsData>>>({
     standard: EMPTY_STANDARD_MATCHUPS,
@@ -261,19 +220,16 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
   const [legacyLoading, setLoading] = useState(true);
   const [legacyError, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
-  const matrixScrollRef = useRef<HTMLDivElement | null>(null);
-  const matrixTopScrollRef = useRef<HTMLDivElement | null>(null);
-  const matchupTooltipRef = useRef<HTMLDivElement | null>(null);
-  const adjustedTooltipAnchorRef = useRef<HTMLButtonElement | null>(null);
-  const [activeMatrixMatchup, setActiveMatrixMatchup] = useState<ActiveMatrixMatchup | null>(null);
   const deferredMatchupSearch = useDeferredValue(matchupSearch.trim().toLocaleLowerCase('ru-RU'));
-  const deferredMatrixSearch = useDeferredValue(matrixSearch.trim().toLocaleLowerCase('ru-RU'));
   const format = external?.format ?? legacyFormat;
   const loading = external?.loading ?? legacyLoading;
   const error = external?.error ?? legacyError;
   const data = external ? external.data ?? emptyMatchups(format)
     : datasets[format] ?? emptyMatchups(format);
   const externalMode = Boolean(external);
+
+  // The matrix chunk downloads while the matchups load, not after them.
+  useEffect(() => { void loadStandardMatchupMatrix(); }, []);
 
   useEffect(() => {
     if (externalMode) return;
@@ -328,72 +284,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
     setSelectedArchetype('');
     setMatchupFilter('all');
     setMatchupSearch('');
-    setMatrixSearch('');
-    setActiveMatrixMatchup(null);
   }, [format]);
-
-  const syncMatrixScroll = useCallback((source: HTMLDivElement) => {
-    const nextLeft = source.scrollLeft;
-    for (const target of [
-      matrixTopScrollRef.current,
-      matrixScrollRef.current,
-    ]) {
-      if (target && target !== source && Math.abs(target.scrollLeft - nextLeft) > 1) {
-        target.scrollLeft = nextLeft;
-      }
-    }
-  }, []);
-
-  const scrollMatrix = useCallback((direction: -1 | 1) => {
-    const node = matrixScrollRef.current;
-    if (!node) return;
-    node.scrollBy({
-      left: direction * Math.max(280, Math.floor(node.clientWidth * 0.78)),
-      behavior: preferredScrollBehavior(),
-    });
-  }, []);
-
-  const closeMatrixMatchup = useCloseMatrixMatchup(adjustedTooltipAnchorRef, setActiveMatrixMatchup);
-
-  const openMatrixMatchup = useCallback((
-    event: React.MouseEvent<HTMLButtonElement> | React.KeyboardEvent<HTMLButtonElement>,
-    row: StandardMatchupsRow,
-    cell: StandardMatchupsCell,
-    rowLabel: string,
-    opponentLabel: string,
-  ) => {
-    setActiveMatrixMatchup(activeMatrixMatchupAt(event.currentTarget, row, cell, rowLabel, opponentLabel));
-  }, []);
-
-  useTooltipViewportPosition(activeMatrixMatchup, matchupTooltipRef, adjustedTooltipAnchorRef, setActiveMatrixMatchup);
-
-  useEffect(() => {
-    if (!activeMatrixMatchup) return undefined;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (
-        matchupTooltipRef.current?.contains(target)
-        || activeMatrixMatchup.anchor.contains(target)
-      ) return;
-      closeMatrixMatchup();
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMatrixMatchup(true);
-    };
-    const handleViewportChange = () => closeMatrixMatchup();
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', handleViewportChange);
-    document.addEventListener('scroll', handleViewportChange, true);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('resize', handleViewportChange);
-      document.removeEventListener('scroll', handleViewportChange, true);
-    };
-  }, [activeMatrixMatchup, closeMatrixMatchup]);
 
   const columns = useMemo(
     () => (data.columns ?? []).filter(column => !isOtherStandardArchetype(column.name)),
@@ -486,13 +377,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
         return `${label} ${cell.opponent}`.toLocaleLowerCase('ru-RU').includes(deferredMatchupSearch);
       }),
     })), [deferredMatchupSearch, matchupFilter, matchupGroups]);
-  const matrixRows = useMemo(() => {
-    if (!deferredMatrixSearch) return rows;
-    return rows.filter(row => {
-      const label = getStandardArchetypeLabel(row.archetype, row.archetypeLabel);
-      return `${label} ${row.archetype}`.toLocaleLowerCase('ru-RU').includes(deferredMatrixSearch);
-    });
-  }, [deferredMatrixSearch, rows]);
+  const matrixData = useMemo(() => ({ ...data, columns, rows }), [columns, data, rows]);
   const quickRows = useMemo(() => rows.slice(0, 8), [rows]);
   const formatLabel = MATCHUP_FORMAT_LABELS[format];
 
@@ -617,14 +502,6 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
               <div className="standard-matchups__view-switcher mb-4" role="group" aria-label="Режим просмотра">
                 <button
                   type="button"
-                  aria-pressed={view === 'overview'}
-                  onClick={() => setView('overview')}
-                >
-                  <ListFilter size={17} aria-hidden="true" />
-                  Обзор архетипа
-                </button>
-                <button
-                  type="button"
                   aria-pressed={view === 'matrix'}
                   onClick={() => setView('matrix')}
                   data-tour-id="matchups-matrix"
@@ -632,6 +509,14 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                   <Grid3X3 size={17} aria-hidden="true" />
                   Полная матрица
                   <span>{rows.length}</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={view === 'overview'}
+                  onClick={() => setView('overview')}
+                >
+                  <ListFilter size={17} aria-hidden="true" />
+                  Обзор архетипа
                 </button>
               </div>
 
@@ -758,230 +643,13 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                 </section>
               )}
 
-              {view === 'matrix' && (
-              <>
-              <div className="standard-matchups__matrix-guide mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <label className="standard-matchups__matrix-search">
-                  <Search size={16} aria-hidden="true" />
-                  <span className="sr-only">Найти архетип в матрице</span>
-                  <input
-                    type="search"
-                    value={matrixSearch}
-                    onChange={event => setMatrixSearch(event.target.value)}
-                    placeholder="Найти строку архетипа"
-                  />
-                </label>
-                <div className="standard-matchups__matrix-arrows flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => scrollMatrix(-1)}
-                    className="px-3 py-1.5 rounded-full text-sm font-bold text-[#5b3a18] bg-white/60 border border-[#d7b56e]/60"
-                  >
-                    ← Влево
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollMatrix(1)}
-                    className="px-3 py-1.5 rounded-full text-sm font-bold text-[#5b3a18] bg-white/60 border border-[#d7b56e]/60"
-                  >
-                    Вправо →
-                  </button>
+              {view === 'matrix' && activeRow && (
+                <div id="matchups-matrix" className="scroll-mt-4">
+                  <Suspense fallback={<MatchupsSkeleton />}>
+                    <StandardMatchupMatrix data={matrixData} labelOf={getStandardArchetypeLabel}
+                      selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
+                  </Suspense>
                 </div>
-              </div>
-              <div
-                ref={matrixTopScrollRef}
-                className="standard-matchups__matrix-scrollbar standard-matchups__matrix-scrollbar--top scrollbar-hs"
-                tabIndex={0}
-                role="region"
-                aria-label="Верхняя горизонтальная прокрутка матрицы"
-                onScroll={event => syncMatrixScroll(event.currentTarget)}
-              >
-                <div
-                  className="standard-matchups__matrix-scrollbar-sizer"
-                  aria-hidden="true"
-                  style={{
-                    '--matrix-desktop-width': `${Math.max(1280, 250 + (columns.length * 130))}px`,
-                    '--matrix-mobile-width': `${Math.max(940, 190 + (columns.length * 96))}px`,
-                  } as React.CSSProperties}
-                />
-              </div>
-              <div
-                ref={matrixScrollRef}
-                id="matchups-matrix"
-                tabIndex={0}
-                aria-label={`Прокручиваемая таблица матчапов: ${formatLabel}, ${data.rankLabel}`}
-                className="standard-matchups__matrix scroll-mt-4 overflow-x-auto pb-2 scrollbar-hs rounded-xl border border-[#b8904a]/45 bg-[#fffdf4]/78 focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
-                style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
-                onScroll={event => syncMatrixScroll(event.currentTarget)}
-              >
-              <TableSurface title="Матрица матчапов" imageExport scrollable={false}><table className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
-                <thead>
-                  <tr>
-                    <th scope="col" className="sticky top-0 left-0 z-30 text-left px-3 sm:px-4 py-3 min-w-[190px] sm:min-w-[250px]"
-                      style={{ background: '#efe0be', color: '#30251c', boxShadow: '6px 0 12px rgba(43,20,4,0.18)' }}>
-                      <span className="block text-sm font-black" style={{ color: '#30251c' }}>Архетип</span>
-                      <span className="block text-[11px] mt-0.5" style={{ color: '#735e49' }}>общий винрейт</span>
-                    </th>
-                    {columns.map(column => {
-                      const columnLabel = getStandardArchetypeLabel(column.name, column.label);
-                      return (
-                        <th key={column.name} scope="col" className="sticky top-0 z-20 px-2 sm:px-3 py-3 text-center min-w-[96px] sm:min-w-[130px]"
-                          style={{
-                            background: '#efe0be',
-                            color: '#30251c',
-                            borderLeft: '1px solid rgba(252,211,77,0.16)',
-                          }}>
-                          <span
-                            className="block text-[10px] sm:text-xs leading-tight"
-                            title={columnLabel !== column.name ? `${columnLabel} (${column.name})` : column.name}
-                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                          >
-                            {columnLabel}
-                          </span>
-                          {column.popularity && <span className="block text-[10px] mt-1" style={{ color: '#735e49' }}>{column.popularity}</span>}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {matrixRows.map((row, rowIndex) => {
-                    const rowLabel = getStandardArchetypeLabel(row.archetype, row.archetypeLabel);
-                    return (
-                      <tr key={row.archetype} style={{ background: rowIndex % 2 === 0 ? 'rgba(255,255,255,0.20)' : 'rgba(80,42,12,0.06)' }}>
-                        <th scope="row" className="sticky left-0 z-10 px-3 sm:px-4 py-2 text-left min-w-[190px] sm:min-w-[250px]"
-                          style={{
-                            background: rowIndex % 2 === 0
-                              ? '#fbf3de'
-                              : '#f3e7cb',
-                            borderRight: '1px solid rgba(107,76,42,0.22)',
-                            boxShadow: '6px 0 12px rgba(72,42,9,0.10)',
-                          }}>
-                          <div className="flex items-center justify-between gap-3 min-h-[48px]">
-                            <span
-                              className="text-sm sm:text-[15px] font-black leading-tight"
-                              title={rowLabel !== row.archetype ? `${rowLabel} (${row.archetype})` : row.archetype}
-                              style={{ color: '#2d1807' }}
-                            >
-                              {rowLabel}
-                            </span>
-                            <span className="px-2 py-1 rounded-full text-xs font-black whitespace-nowrap"
-                              style={{ background: 'rgba(80,45,8,0.13)', color: '#6b4214' }}>
-                              {row.winrate !== null ? `${row.winrate.toFixed(1)}%` : '—'}
-                            </span>
-                          </div>
-                        </th>
-                        {row.cells.map(cell => {
-                          const opponentLabel = getStandardArchetypeLabel(cell.opponent, cell.opponentLabel);
-                          const isActive = activeMatrixMatchup?.row.archetype === row.archetype
-                            && activeMatrixMatchup.cell.opponent === cell.opponent;
-                          return (
-                            <td key={`${row.archetype}-${cell.opponent}`} className="p-1.5 text-center align-middle">
-                              <button
-                                type="button"
-                                className="standard-matchups__matrix-cell h-9 sm:h-10 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm"
-                                title={`${rowLabel} против ${opponentLabel}: ${cell.winrate !== null ? `${cell.winrate.toFixed(1)}%` : 'нет данных'}`}
-                                aria-label={`Открыть матчап: ${rowLabel} против ${opponentLabel}, ${cell.winrate !== null ? `${cell.winrate.toFixed(1)} процента` : 'нет данных'}`}
-                                aria-haspopup="dialog"
-                                aria-expanded={isActive}
-                                aria-controls={isActive ? 'standard-matchups-cell-dialog' : undefined}
-                                data-matchup-cell={`${row.archetype}::${cell.opponent}`}
-                                onClick={event => openMatrixMatchup(event, row, cell, rowLabel, opponentLabel)}
-                                style={standardMatchupTone(cell.winrate)}
-                              >
-                                {cell.winrate !== null ? `${cell.winrate.toFixed(1)}%` : '—'}
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="standard-matchups__matrix-footer">
-                  <tr>
-                    <th scope="col" className="text-left px-3 sm:px-4 py-3 min-w-[190px] sm:min-w-[250px]">
-                      <span className="block text-sm font-black">Соперники</span>
-                      <span className="standard-matchups__matrix-footer-hint block text-[11px] mt-0.5">нижняя панель архетипов</span>
-                    </th>
-                    {columns.map(column => {
-                      const columnLabel = getStandardArchetypeLabel(column.name, column.label);
-                      return (
-                        <th
-                          key={`footer-${column.name}`}
-                          scope="col"
-                          className="px-2 sm:px-3 py-3 text-center min-w-[96px] sm:min-w-[130px]"
-                          data-matchups-bottom-archetype={column.name}
-                        >
-                          <span
-                            className="block text-[10px] sm:text-xs leading-tight"
-                            title={columnLabel !== column.name ? `${columnLabel} (${column.name})` : column.name}
-                          >
-                            {columnLabel}
-                          </span>
-                          {column.popularity && <span className="standard-matchups__matrix-footer-popularity block text-[10px] mt-1">{column.popularity}</span>}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </tfoot>
-              </table></TableSurface>
-              </div>
-              {activeMatrixMatchup && (() => {
-                const assessment = standardMatchupAssessment(activeMatrixMatchup.cell.winrate);
-                const tooltipStyle: React.CSSProperties = {
-                  left: activeMatrixMatchup.left,
-                  top: activeMatrixMatchup.top,
-                  transform: activeMatrixMatchup.placement === 'above' ? 'translateY(-100%)' : undefined,
-                };
-                return createPortal(
-                  <div className="arena-app-standard-matchups">
-                  <div
-                    ref={matchupTooltipRef}
-                    id="standard-matchups-cell-dialog"
-                    role="dialog"
-                    aria-modal="false"
-                    aria-label={`Матчап: ${activeMatrixMatchup.rowLabel} против ${activeMatrixMatchup.opponentLabel}`}
-                    className={`standard-matchups__tooltip standard-matchups__tooltip--${activeMatrixMatchup.placement}`}
-                    style={tooltipStyle}
-                  >
-                    <div className="standard-matchups__tooltip-cloth">
-                      <div className="standard-matchups__tooltip-heading">
-                        <div>
-                          <span className="standard-matchups__tooltip-kicker">Матчап · {formatLabel} · {data.rankLabel}</span>
-                          <h3>{activeMatrixMatchup.rowLabel}</h3>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => closeMatrixMatchup(true)}
-                          aria-label="Закрыть карточку матчапа"
-                        >
-                          <X size={18} aria-hidden="true" />
-                        </button>
-                      </div>
-                      <div className="standard-matchups__tooltip-opponent">
-                        <span>против</span>
-                        <strong>{activeMatrixMatchup.opponentLabel}</strong>
-                      </div>
-                      <div className="standard-matchups__tooltip-result">
-                        <strong>{activeMatrixMatchup.cell.winrate !== null ? `${activeMatrixMatchup.cell.winrate.toFixed(1)}%` : '—'}</strong>
-                        <span className={`standard-matchups__tooltip-badge standard-matchups__tooltip-badge--${assessment.tone}`}>
-                          {assessment.label}
-                        </span>
-                      </div>
-                      <p>{assessment.detail}</p>
-                      {(activeMatrixMatchup.rowLabel !== activeMatrixMatchup.row.archetype
-                        || activeMatrixMatchup.opponentLabel !== activeMatrixMatchup.cell.opponent) && (
-                        <small>
-                          {activeMatrixMatchup.row.archetype} vs {activeMatrixMatchup.cell.opponent}
-                        </small>
-                      )}
-                    </div>
-                  </div>
-                  </div>
-                , document.body);
-              })()}
-              </>
               )}
             </>
           )}

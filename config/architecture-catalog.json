@@ -1572,7 +1572,7 @@
         "tests/standard-matchups-client.test.ts",
         "tests/standard-matchup-routes.test.ts",
         "tests/standard-matchups-controls-ui.test.ts",
-        "tests/standard-matchups-tooltip.test.ts"
+        "tests/standard-matchups-matrix.test.ts"
       ],
       "allowedDependencies": ["React"],
       "forbiddenImports": ["server/**", "other frontend module internals"]

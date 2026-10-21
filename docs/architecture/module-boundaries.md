@@ -176,9 +176,13 @@ moved into this module yet.
 `src/modules/standardMatchups` owns the Standard matchup response contract
 used by the Next.js page. The protected
 account-scoped browser client also lives here, with response validation and
-ETag refresh. React loading is account- and format-scoped. Interactive
-presentation temporarily stays in `src/features/StandardMatchups.tsx` and
-accepts the new controlled client without invoking its legacy browser cache.
+ETag refresh. React loading is account- and format-scoped. The module owns
+the matrix model (`model/matrix.ts`: archetypes, pairs, confidence). Modules
+may not import `src/vendor`, so the presentation over the vendored VaryloUI
+`MatchupMatrix` lives in `src/features/StandardMatchupMatrix.tsx`. The page
+frame, format switch and archetype overview temporarily stay in
+`src/features/StandardMatchups.tsx`, which accepts the controlled client
+without invoking its legacy browser cache.
 
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical

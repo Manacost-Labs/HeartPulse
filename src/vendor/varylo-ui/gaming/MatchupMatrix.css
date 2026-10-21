@@ -1,0 +1,564 @@
+.ui-matchup-matrix {
+  --_up: var(--ui-matchup-matrix-up, var(--ui-success, #30a46c));
+  --_down: var(--ui-matchup-matrix-down, var(--ui-danger, #e5484d));
+  --_up-text: var(--ui-success-text, var(--_up));
+  --_down-text: var(--ui-danger-text, var(--_down));
+  --_cell: var(--ui-matchup-matrix-cell, 46px);
+  --_base: var(--ui-surface-2, color-mix(in oklab, var(--ui-fg) 5%, var(--ui-surface)));
+  /* The strongest colour a cell takes: enough to read the edge, dim enough to keep the numbers readable. */
+  --_max: var(--ui-matchup-matrix-strength, 52%);
+
+  container: ui-matchup-matrix / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm, 14px);
+}
+
+.ui-matchup-matrix__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2, 8px) var(--ui-space-4, 16px);
+  padding: 14px var(--ui-space-4, 16px) 12px;
+}
+
+.ui-matchup-matrix__heading {
+  min-width: 0;
+}
+
+.ui-matchup-matrix__title {
+  margin: 0;
+  font-family: var(--ui-font-display, inherit);
+  font-size: var(--ui-text-md, 16px);
+  font-weight: var(--ui-weight-heading, 650);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.ui-matchup-matrix__subtitle {
+  margin: 2px 0 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__picker {
+  inline-size: 12rem;
+  max-inline-size: 100%;
+}
+
+/* ── Summary: the picked champion, its field win rate, best and worst matchups ── */
+
+.ui-matchup-matrix__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+  padding: 12px var(--ui-space-4, 16px);
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+}
+
+.ui-matchup-matrix__me {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ui-matchup-matrix__me-text {
+  display: grid;
+  gap: 2px;
+}
+
+.ui-matchup-matrix__me-name {
+  font-size: var(--ui-text-md, 15px);
+  font-weight: var(--ui-weight-semibold, 600);
+  line-height: 1.25;
+}
+
+.ui-matchup-matrix__me-field {
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__me-field > strong {
+  color: var(--ui-fg);
+  font-weight: var(--ui-weight-semibold, 600);
+}
+
+.ui-matchup-matrix__me-field > strong[data-side='up'] {
+  color: var(--_up-text);
+}
+
+.ui-matchup-matrix__me-field > strong[data-side='down'] {
+  color: var(--_down-text);
+}
+
+.ui-matchup-matrix__group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ui-matchup-matrix__group-title {
+  color: var(--ui-fg-muted);
+  font-size: 11px;
+  font-weight: var(--ui-weight-medium, 500);
+}
+
+.ui-matchup-matrix__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-matchup-matrix__chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ui-matchup-matrix__chip-text {
+  display: grid;
+  line-height: 1.25;
+}
+
+.ui-matchup-matrix__chip-name {
+  font-size: var(--ui-text-xs, 12px);
+  font-weight: var(--ui-weight-medium, 500);
+}
+
+.ui-matchup-matrix__chip-rate {
+  font-size: var(--ui-text-xs, 12px);
+  font-weight: var(--ui-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__chip[data-side='up'] .ui-matchup-matrix__chip-rate {
+  color: var(--_up-text);
+}
+
+.ui-matchup-matrix__chip[data-side='down'] .ui-matchup-matrix__chip-rate {
+  color: var(--_down-text);
+}
+
+/* ── The grid ── */
+
+.ui-matchup-matrix__scroll {
+  position: relative;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  padding: 10px var(--ui-space-3, 12px) 8px;
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+}
+
+.ui-matchup-matrix__grid {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__corner {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  vertical-align: bottom;
+  padding: 0 10px 6px 4px;
+  background: var(--ui-surface);
+  color: var(--ui-fg-muted);
+  font-size: 11px;
+  font-weight: var(--ui-weight-medium, 500);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.ui-matchup-matrix__colhead {
+  --ui-game-image-size: 28px;
+  min-inline-size: var(--_cell);
+  padding: 0 0 6px;
+  vertical-align: bottom;
+}
+
+.ui-matchup-matrix__colhead .ui-game-image {
+  transition: box-shadow var(--ui-duration-fast, 150ms) var(--ui-ease, ease);
+}
+
+.ui-matchup-matrix__colhead[data-col-active] .ui-game-image {
+  box-shadow: 0 0 0 2px var(--ui-surface), 0 0 0 3.5px var(--ui-fg-muted);
+}
+
+.ui-matchup-matrix__overall {
+  display: block;
+  min-inline-size: 64px;
+  color: var(--ui-fg-muted);
+  font-size: 11px;
+  font-weight: var(--ui-weight-medium, 500);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ui-matchup-matrix__rowhead {
+  --ui-game-image-size: 24px;
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  padding: 0 6px 0 0;
+  background: var(--ui-surface);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.ui-matchup-matrix__pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  padding: 3px 8px 3px 4px;
+  border: 0;
+  border-radius: var(--ui-radius-sm, 6px);
+  background: none;
+  color: var(--ui-fg-muted);
+  font: inherit;
+  font-size: var(--ui-text-sm, 13px);
+  font-weight: var(--ui-weight-medium, 500);
+  text-align: start;
+  cursor: pointer;
+}
+
+.ui-matchup-matrix__pick:hover,
+.ui-matchup-matrix__rowhead[data-row-active] .ui-matchup-matrix__pick {
+  color: var(--ui-fg);
+}
+
+.ui-matchup-matrix__pick:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-matchup-matrix__pick[aria-pressed='true'] {
+  background: color-mix(in oklab, var(--ui-accent) 12%, var(--ui-surface));
+  box-shadow: inset 2px 0 0 var(--ui-accent);
+  color: var(--ui-fg);
+  font-weight: var(--ui-weight-semibold, 600);
+}
+
+[dir='rtl'] .ui-matchup-matrix__pick[aria-pressed='true'] {
+  box-shadow: inset -2px 0 0 var(--ui-accent);
+}
+
+.ui-matchup-matrix__name {
+  max-inline-size: 9.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cells: theme success / danger mixed into the base by the size of the edge (oklab keeps the hues clean). */
+.ui-matchup-matrix__cell {
+  --_tone: var(--ui-fg-subtle);
+  /* Share of the full colour, 0 to 1 (set per cell). */
+  --_mix: 0;
+
+  min-inline-size: var(--_cell);
+  block-size: 34px;
+  padding: 0;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--_tone) calc(var(--_mix) * var(--_max)), var(--_base));
+  color: var(--ui-fg);
+  font-size: 12px;
+  font-weight: var(--ui-weight-semibold, 600);
+  text-align: center;
+  outline: none;
+  cursor: default;
+}
+
+.ui-matchup-matrix__cell[data-side='up'] {
+  --_tone: var(--_up);
+}
+
+.ui-matchup-matrix__cell[data-side='down'] {
+  --_tone: var(--_down);
+}
+
+.ui-matchup-matrix__cell[data-side='even'] {
+  color: var(--ui-fg-muted);
+}
+
+.ui-matchup-matrix__cell[data-side='none'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ui-divider, var(--ui-border));
+  color: var(--ui-fg-faint, var(--ui-fg-subtle));
+}
+
+.ui-matchup-matrix__cell[data-mirror] {
+  background: repeating-linear-gradient(-45deg, var(--_base) 0 3px, transparent 3px 7px);
+  color: var(--ui-fg-faint, var(--ui-fg-subtle));
+}
+
+.ui-matchup-matrix__cell[data-low-sample] {
+  background-image: repeating-linear-gradient(-45deg, rgb(127 127 127 / 0.22) 0 1.5px, transparent 1.5px 6px);
+  font-weight: var(--ui-weight-medium, 500);
+}
+
+.ui-matchup-matrix__cell[data-overall] {
+  min-inline-size: 68px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--_tone) 35%, transparent);
+}
+
+.ui-matchup-matrix__cell[data-clickable] {
+  cursor: pointer;
+}
+
+/* The picked champion's row stays outlined. */
+tr[data-selected] .ui-matchup-matrix__cell {
+  box-shadow: inset 0 1.5px 0 color-mix(in oklab, var(--ui-accent) 55%, transparent), inset 0 -1.5px 0 color-mix(in oklab, var(--ui-accent) 55%, transparent);
+}
+
+.ui-matchup-matrix__cell[data-row-active][data-col-active] {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--ui-surface), 0 0 0 3.5px var(--ui-fg);
+}
+
+.ui-matchup-matrix__cell:focus-visible {
+  box-shadow: var(--ui-focus-ring);
+}
+
+/* Hovering lights the row and the column; the rest of the grid steps back. */
+.ui-matchup-matrix__grid:hover .ui-matchup-matrix__cell:not([data-row-active], [data-col-active]),
+.ui-matchup-matrix__grid:focus-within .ui-matchup-matrix__cell:not([data-row-active], [data-col-active]) {
+  opacity: 0.5;
+}
+
+/* ── Tooltip over the hovered or focused cell ── */
+
+.ui-matchup-matrix__tip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: 2px;
+  min-inline-size: 148px;
+  max-inline-size: 240px;
+  padding: 8px 10px;
+  border: var(--ui-border-width, 1px) solid var(--ui-border);
+  border-radius: var(--ui-radius-md, 8px);
+  background: var(--ui-elevated, var(--ui-surface));
+  box-shadow: 0 10px 24px -10px rgb(0 0 0 / 0.4);
+  color: var(--ui-fg);
+  font-size: var(--ui-text-xs, 12px);
+  line-height: 1.3;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.ui-matchup-matrix__tip[hidden] {
+  display: none;
+}
+
+.ui-matchup-matrix__tip-names {
+  color: var(--ui-fg-muted);
+  white-space: nowrap;
+}
+
+.ui-matchup-matrix__tip-rate {
+  font-size: var(--ui-text-md, 16px);
+  font-weight: var(--ui-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__tip[data-side='up'] .ui-matchup-matrix__tip-rate {
+  color: var(--_up-text);
+}
+
+.ui-matchup-matrix__tip[data-side='down'] .ui-matchup-matrix__tip-rate {
+  color: var(--_down-text);
+}
+
+.ui-matchup-matrix__tip-meta {
+  color: var(--ui-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Footer: the matchup in words and the colour ramp ── */
+
+.ui-matchup-matrix__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2, 8px) var(--ui-space-4, 16px);
+  padding: 8px var(--ui-space-4, 16px) 12px;
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+}
+
+.ui-matchup-matrix__details {
+  flex: 1 1 18rem;
+  min-block-size: 2.6em;
+  margin: 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-fg-muted);
+  font-size: 11px;
+}
+
+.ui-matchup-matrix__ramp {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  inline-size: 150px;
+  padding-block-start: 11px;
+  background: linear-gradient(to right, color-mix(in oklab, var(--_down) var(--_max), var(--_base)), var(--_base), color-mix(in oklab, var(--_up) var(--_max), var(--_base))) top / 100% 6px no-repeat;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+[dir='rtl'] .ui-matchup-matrix__ramp {
+  background: linear-gradient(to left, color-mix(in oklab, var(--_down) var(--_max), var(--_base)), var(--_base), color-mix(in oklab, var(--_up) var(--_max), var(--_base))) top / 100% 6px no-repeat;
+}
+
+/* ── Narrow: the picked champion's matchups as a list ── */
+
+.ui-matchup-matrix__narrow {
+  display: none;
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+}
+
+.ui-matchup-matrix__list-title {
+  margin: 0;
+  padding: 10px var(--ui-space-3, 12px) 4px;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-weight: var(--ui-weight-medium, 500);
+}
+
+.ui-matchup-matrix__list {
+  margin: 0;
+  padding: 0 0 6px;
+  list-style: none;
+}
+
+.ui-matchup-matrix__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 64px 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px var(--ui-space-3, 12px);
+  border-block-end: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+  --ui-game-image-size: 32px;
+}
+
+.ui-matchup-matrix__item:last-child {
+  border-block-end: 0;
+}
+
+.ui-matchup-matrix__item-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.ui-matchup-matrix__item-name {
+  overflow: hidden;
+  font-weight: var(--ui-weight-medium, 500);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-matchup-matrix__item-games {
+  color: var(--ui-fg-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__bar {
+  position: relative;
+  block-size: 6px;
+  border-radius: 3px;
+  background: var(--_base);
+}
+
+.ui-matchup-matrix__bar::after {
+  content: '';
+  position: absolute;
+  inset-block: -2px;
+  inset-inline-start: 50%;
+  inline-size: 1px;
+  background: var(--ui-fg-faint, var(--ui-fg-subtle));
+}
+
+.ui-matchup-matrix__bar > span {
+  position: absolute;
+  inset-block: 0;
+  border-radius: 3px;
+  background: var(--ui-fg-subtle);
+}
+
+.ui-matchup-matrix__item[data-side='up'] .ui-matchup-matrix__bar > span {
+  background: var(--_up);
+}
+
+.ui-matchup-matrix__item[data-side='down'] .ui-matchup-matrix__bar > span {
+  background: var(--_down);
+}
+
+.ui-matchup-matrix__item-rate {
+  font-weight: var(--ui-weight-semibold, 600);
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-matchup-matrix__item[data-side='up'] .ui-matchup-matrix__item-rate {
+  color: var(--_up-text);
+}
+
+.ui-matchup-matrix__item[data-side='down'] .ui-matchup-matrix__item-rate {
+  color: var(--_down-text);
+}
+
+.ui-matchup-matrix__item[data-low-sample] :is(.ui-matchup-matrix__bar, .ui-matchup-matrix__item-rate) {
+  opacity: 0.6;
+}
+
+@container ui-matchup-matrix (max-width: 600px) {
+  .ui-matchup-matrix__wide {
+    display: none;
+  }
+
+  .ui-matchup-matrix__narrow {
+    display: block;
+  }
+
+  .ui-matchup-matrix__header,
+  .ui-matchup-matrix__summary {
+    padding-inline: var(--ui-space-3, 12px);
+  }
+
+  .ui-matchup-matrix__picker {
+    inline-size: 100%;
+  }
+
+  .ui-matchup-matrix__summary .ui-matchup-matrix__group {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ui-matchup-matrix__cell {
+    transition: opacity var(--ui-duration-fast, 120ms) var(--ui-ease, ease);
+  }
+}

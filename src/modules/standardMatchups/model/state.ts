@@ -9,6 +9,11 @@ const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 const rate = (value: unknown) => value === null
   || (typeof value === 'number' && Number.isFinite(value));
+const CLASS_KEYS = new Set(['deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue',
+  'shaman', 'warlock', 'warrior']);
+// Optional: responses cached before the field existed still parse.
+const classKey = (value: unknown) => value === undefined || value === null
+  || (typeof value === 'string' && CLASS_KEYS.has(value));
 
 /** Check the protected matrix before caching or rendering it for a subscriber. */
 export function parseStandardMatchups(value: unknown, expected: StandardMatchupsFormat): StandardMatchupsData | null {
@@ -20,11 +25,12 @@ export function parseStandardMatchups(value: unknown, expected: StandardMatchups
       || !Number.isFinite(Date.parse(value.updatedAt))))) return null;
   for (const column of value.columns) {
     if (!object(column) || typeof column.name !== 'string' || !column.name
-      || (column.popularity !== null && typeof column.popularity !== 'string')) return null;
+      || (column.popularity !== null && typeof column.popularity !== 'string')
+      || !classKey(column.classKey)) return null;
   }
   for (const row of value.rows) {
     if (!object(row) || typeof row.archetype !== 'string' || !row.archetype
-      || !rate(row.winrate) || !Array.isArray(row.cells)) return null;
+      || !rate(row.winrate) || !Array.isArray(row.cells) || !classKey(row.classKey)) return null;
     for (const cell of row.cells) {
       if (!object(cell) || typeof cell.opponent !== 'string' || !cell.opponent
         || !rate(cell.winrate)) return null;

@@ -71,6 +71,7 @@ import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRo
 import {
   createStandardMatchupRouter,
   excludeOtherStandardMatchups,
+  transformHsguruMatchups,
   type StandardMatchupFormat,
 } from './standardMatchupRoutes.js';
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
@@ -5571,13 +5572,6 @@ async function fetchConstructedCardJson(url: string, timeoutMs = 8_000): Promise
   }
 }
 
-function parseStandardMatchupNumber(value: unknown): number | null {
-  const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
-  if (!raw || raw === '—' || raw === '-') return null;
-  const number = Number(raw);
-  return Number.isFinite(number) ? Math.round(number * 10) / 10 : null;
-}
-
 function normalizeStandardArchetypeKey(name: string): string {
   return name.toLowerCase().trim();
 }
@@ -5832,63 +5826,17 @@ async function loadObservedStandardArchetypes() {
   ];
 }
 
-function transformHsguruMatchups(
+function transformStandardMatchups(
   payload: any,
   format: StandardMatchupFormat,
   archetypeTranslations: StandardArchetypeTranslations,
 ) {
-  const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
-  const headers = Array.isArray(table?.headers) ? table.headers.map((item: unknown) => String(item ?? '').trim()) : [];
-  const rows = Array.isArray(table?.rows) ? table.rows : [];
-  const popularityRow = Array.isArray(rows[0]) ? rows[0] : [];
-  const translations = archetypeTranslations.map;
-  const columns: Array<{ name: string; label: string; popularity: string | null }> = [];
-  for (let index = 2; index < headers.length; index += 1) {
-    const name = headers[index];
-    if (!name) continue;
-    columns.push({
-      name,
-      label: translateStandardArchetype(name, translations),
-      popularity: String(popularityRow[index - 1] ?? '').trim() || null,
-    });
-  }
-
-  const dataRows: Array<{
-    archetype: string;
-    archetypeLabel: string;
-    winrate: number | null;
-    cells: Array<{ opponent: string; opponentLabel: string; winrate: number | null }>;
-  }> = [];
-  for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
-    const row = rows[rowIndex];
-    if (!Array.isArray(row)) continue;
-    const archetype = String(row[1] ?? '').trim();
-    if (!archetype) continue;
-    dataRows.push({
-      archetype,
-      archetypeLabel: translateStandardArchetype(archetype, translations),
-      winrate: parseStandardMatchupNumber(row[0]),
-      cells: columns.map((column, columnIndex) => ({
-        opponent: column.name,
-        opponentLabel: column.label,
-        winrate: parseStandardMatchupNumber(row[columnIndex + 2]),
-      })),
-    });
-  }
-
-  return {
-    format,
+  return transformHsguruMatchups(payload, format, {
     formatLabel: STANDARD_MATCHUPS_FORMAT_LABEL[format],
-    rank: 'legend',
-    rankLabel: 'Легенда',
-    source: 'hsguru',
     sourceId: STANDARD_MATCHUPS_DATASET_BY_FORMAT[format],
-    sourceUrl: payload?.data?.url ?? payload?.url ?? '',
     translationSource: archetypeTranslations.source,
-    updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
-    columns,
-    rows: dataRows,
-  };
+    translate: name => translateStandardArchetype(name, archetypeTranslations.map),
+  });
 }
 
 async function loadHsguruMatchupRow(archetypeName: string) {
@@ -5900,10 +5848,10 @@ async function loadHsguruMatchupRow(archetypeName: string) {
       fetchDataset(STANDARD_MATCHUPS_DATASET_BY_FORMAT.standard),
       getStandardArchetypeTranslations(now),
     ]);
-    data = excludeOtherStandardMatchups(transformHsguruMatchups(payload, 'standard', translations));
+    data = excludeOtherStandardMatchups(transformStandardMatchups(payload, 'standard', translations));
     standardMatchupsApiCache.set('standard', {
       data,
-      etag: `"standard-matchups-v6-standard-admin-${now.toString(36)}"`,
+      etag: `"standard-matchups-v7-standard-admin-${now.toString(36)}"`,
       expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
     });
   }
@@ -7431,7 +7379,7 @@ app.use('/api', createStandardMatchupRouter({
   redisSet: redisSetCache,
   fetchPayload: format => fetchDataset(STANDARD_MATCHUPS_DATASET_BY_FORMAT[format]),
   getTranslations: getStandardArchetypeTranslations,
-  transform: transformHsguruMatchups,
+  transform: transformStandardMatchups,
   memoryTtlMs: EXTERNAL_DATASET_CACHE_MS,
   redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
   cacheHeader: CACHE_1H,

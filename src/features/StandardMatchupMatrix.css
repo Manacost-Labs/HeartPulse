@@ -1,0 +1,143 @@
+/* The VaryloUI matchup matrix on the HearthPulse parchment. The vendored kit ships
+   no theme, so its `--ui-*` tokens are mapped onto ours in this scope; the picker's
+   options open in `__layer`, inside the scope, and read them too. */
+
+.standard-matchup-matrix {
+  --ui-font-sans: var(--font-body, Inter, sans-serif);
+  --ui-font-display: var(--font-hs);
+  --ui-fg: var(--arena-ink);
+  --ui-fg-muted: #5e4733;
+  --ui-fg-subtle: #74624d;
+  --ui-fg-faint: #a08a70;
+  --ui-fg-disabled: #b9a68a;
+  --ui-page-bg: var(--arena-parchment-light);
+  --ui-bg: #fff8e4;
+  --ui-surface: #fbf3de;
+  --ui-surface-2: #efe0be;
+  --ui-elevated: #fff8e4;
+  --ui-border: rgba(92, 54, 24, 0.26);
+  --ui-border-field: #a8885a;
+  --ui-divider: var(--arena-paper-line);
+  --ui-glass-border: #cbb893;
+  --ui-floating-border-color: #b8904a;
+  --ui-field-bg: #fff8e4;
+  --ui-field-shadow: none;
+  --ui-hover: rgba(123, 21, 27, 0.06);
+  --ui-active: rgba(123, 21, 27, 0.1);
+  --ui-accent: var(--arena-red);
+  --ui-accent-soft: rgba(123, 21, 27, 0.1);
+  --ui-primary: var(--arena-red);
+  --ui-primary-fg: #fff0c8;
+  --ui-action-fg: var(--arena-red);
+  --ui-gray: #8a735a;
+  /* Heat scale: our win green and loss red, deep enough to carry the ink on top. */
+  --ui-matchup-matrix-up: #2f7d46;
+  --ui-matchup-matrix-down: #a2272b;
+  --ui-matchup-matrix-strength: 58%;
+  --ui-success: #2f7d46;
+  --ui-success-text: #1f6034;
+  --ui-danger: #a2272b;
+  --ui-danger-soft: rgba(164, 56, 53, 0.14);
+  --ui-danger-text: #8d171d;
+  --ui-focus-ring: 0 0 0 2px var(--arena-red);
+  --ui-focus-ring-invalid: 0 0 0 2px #a2272b;
+  --ui-highlight: 0 0 transparent;
+  --ui-sheen: 0 0 transparent;
+  --ui-shadow-card: 0 0 transparent;
+  --ui-shadow-popover: 0 14px 28px -12px rgba(46, 22, 11, 0.45);
+  --ui-blur: none;
+  --ui-blur-strong: none;
+  --ui-radius-xs: 2px;
+  --ui-radius-sm: 4px;
+  --ui-radius-md: 6px;
+  --ui-radius-full: 9999px;
+  --ui-radius-card: 6px;
+  --ui-radius-field: 4px;
+  --ui-radius-popover: 6px;
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-text-xs: 12px;
+  --ui-text-sm: 13px;
+  --ui-text-md: 15px;
+  --ui-text-lg: 17px;
+  --ui-leading: 1.4;
+  --ui-weight-medium: 600;
+  --ui-weight-semibold: 700;
+  --ui-control-h-sm: 36px;
+  --ui-control-h-md: 40px;
+  --ui-control-h-lg: 44px;
+  --ui-icon-lg: 18px;
+  --ui-popover-padding: 6px;
+  --ui-menu-item-h: 36px;
+  --ui-menu-highlight-bg: rgba(123, 21, 27, 0.1);
+  --ui-menu-highlight-fg: var(--arena-ink);
+  --ui-duration: var(--motion-base);
+  --ui-duration-fast: var(--motion-fast);
+  --ui-ease: var(--motion-ease);
+  --ui-ease-spring: var(--motion-ease);
+  --ui-game-image-radius: 50%;
+
+  font-family: var(--ui-font-sans);
+}
+
+.standard-matchup-matrix .ui-matchup-matrix {
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 / 8px stretch;
+  border-radius: 0;
+  background: rgba(255, 246, 222, 0.62);
+  box-shadow: 0 12px 24px rgba(68, 37, 15, 0.12);
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__title {
+  color: #3d2208;
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__picker {
+  inline-size: 16rem;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__summary {
+  background: rgba(239, 224, 190, 0.45);
+}
+
+/* Class icons are round portraits on a gold rim, as across the site. */
+.standard-matchup-matrix .ui-game-image:not([data-fallback]) {
+  border-radius: 50%;
+  background: var(--arena-wood-dark);
+  box-shadow: 0 0 0 1px rgba(217, 171, 73, 0.7);
+}
+
+/* The sticky names column starts at the scroll edge, so scrolled cells never show to its left. */
+.standard-matchup-matrix .ui-matchup-matrix__scroll {
+  padding-inline-start: 0;
+}
+
+.standard-matchup-matrix :is(.ui-matchup-matrix__rowhead, .ui-matchup-matrix__corner) {
+  padding-inline-start: 12px;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__name {
+  max-inline-size: 12rem;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__cell[data-low-sample]:not([data-row-active], [data-col-active]) {
+  opacity: 0.55;
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__tip {
+  border-color: #b8904a;
+  box-shadow: 0 14px 28px -12px rgba(46, 22, 11, 0.45);
+}
+
+.standard-matchup-matrix .ui-matchup-matrix__item {
+  grid-template-columns: auto minmax(0, 1fr) 44px 52px;
+  gap: 8px;
+}
+
+.standard-matchup-matrix__layer {
+  display: contents;
+}

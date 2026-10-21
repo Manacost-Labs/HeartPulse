@@ -32,11 +32,11 @@ assert.deepEqual(
 assert.equal(PAGE_TOURS.length, requiredTours.length, 'requiredTours must enumerate the complete page-tour registry');
 
 const matchupTour = PAGE_TOURS.find(tour => tour.id === 'standard-matchups');
-assert.ok(matchupTour && matchupTour.version >= 4, 'matchup matrix controls guidance must invalidate the older saved tour');
+assert.ok(matchupTour && matchupTour.version >= 5, 'the VaryloUI matrix guidance must invalidate the older saved tour');
 assert.match(
   matchupTour.steps.find(step => step.id === 'matrix')?.description ?? '',
-  /Нажмите на любую цветную ячейку/,
-  'the matchup tour must explain that matrix cells open matchup details',
+  /Наведите на клетку/,
+  'the matchup tour must explain that hovering a cell reads the matchup',
 );
 
 const archetypeCatalogTour = PAGE_TOURS.find(tour => tour.id === 'constructed-archetypes');

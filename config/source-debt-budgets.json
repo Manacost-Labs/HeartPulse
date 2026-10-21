@@ -94,11 +94,11 @@
       "src/features/StandardMeta.tsx": 1,
       "src/modules/adminWorkspace/ui/AdminWorkspaceShell.stories.tsx": 1,
       "src/vendor/varylo-ui/agents/labels.ts": 1,
-      "src/vendor/varylo-ui/charts/MetricComparison.tsx": 1,
-      "src/vendor/varylo-ui/charts/cartesian.tsx": 1,
-      "src/vendor/varylo-ui/charts/utils.ts": 1,
-      "src/vendor/varylo-ui/insights/ConfidenceBandChart.tsx": 1,
-      "src/vendor/varylo-ui/insights/bands.ts": 2,
+"src/vendor/varylo-ui/charts/MetricComparison.tsx": 1,
+"src/vendor/varylo-ui/charts/cartesian.tsx": 1,
+"src/vendor/varylo-ui/charts/utils.ts": 1,
+"src/vendor/varylo-ui/insights/ConfidenceBandChart.tsx": 1,
+"src/vendor/varylo-ui/insights/bands.ts": 2,
       "src/vendor/varylo-ui/primitives/useVirtualizer.ts": 1
     },
     "frontendRawFetch": {

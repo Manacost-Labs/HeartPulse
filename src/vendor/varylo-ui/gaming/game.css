@@ -1,0 +1,146 @@
+/*
+ * Shared pieces of the gaming set: picture boxes with an initials fallback, role badges and tier chips.
+ * Hues are theme hues; chips and badges normalise their lightness (oklch), so a hue reads the same in light and dark.
+ */
+
+/* ── Picture: a fixed box, so lazy images never shift the layout ── */
+
+.ui-game-image {
+  --_hue: var(--ui-gray);
+  --_size: var(--ui-game-image-size, 40px);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--_size);
+  block-size: var(--_size);
+  overflow: hidden;
+  border-radius: var(--ui-game-image-radius, calc(var(--_size) * 0.16));
+  background: var(--ui-surface-2, color-mix(in oklab, var(--ui-fg) 6%, transparent));
+  vertical-align: middle;
+  isolation: isolate;
+}
+
+.ui-game-image[data-shape='circle'] {
+  border-radius: 50%;
+}
+
+.ui-game-image > :is(img, svg) {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.ui-game-image > img {
+  transform: scale(var(--ui-game-image-zoom, 1));
+}
+
+.ui-game-image__node {
+  display: contents;
+}
+
+/* A hairline keeps light pictures and plates apart from a light surface. */
+.ui-game-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ui-fg) 10%, transparent);
+  pointer-events: none;
+}
+
+/* No picture: initials on a quiet plate of the role or tier hue. */
+.ui-game-image[data-fallback] {
+  background: color-mix(in oklab, var(--_hue) 14%, var(--ui-surface));
+  color: color-mix(in oklab, var(--_hue) 62%, var(--ui-fg));
+}
+
+.ui-game-image[data-fallback]::after {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--_hue) 26%, transparent);
+}
+
+.ui-game-image__initials {
+  font-size: max(9px, calc(var(--_size) * 0.36));
+  font-weight: var(--ui-weight-semibold, 600);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  user-select: none;
+}
+
+.ui-game-image__initials[data-long] {
+  font-size: max(8px, calc(var(--_size) * 0.28));
+  letter-spacing: 0;
+}
+
+/* ── Role badge: a small disc cut out of the portrait's corner ── */
+
+.ui-game-role {
+  --_hue: var(--ui-gray);
+  --_chip: var(--_hue);
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-inline-size: var(--ui-game-role-size, 16px);
+  block-size: var(--ui-game-role-size, 16px);
+  padding-inline: 2px;
+  border-radius: var(--ui-radius-full, 999px);
+  background: var(--_chip);
+  box-shadow: 0 0 0 2px var(--ui-game-role-ring, var(--ui-surface));
+  color: #fff;
+  font-size: calc(var(--ui-game-role-size, 16px) * 0.6);
+  font-weight: 700;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.ui-game-role[data-icon] {
+  padding: 0;
+  background: var(--ui-game-role-icon-bg, #111);
+}
+
+.ui-game-role > img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.ui-game-role-icon {
+  inline-size: 16px;
+  block-size: 16px;
+  object-fit: contain;
+}
+
+/* ── Tier chip: the letter on its tier colour, dark ink at a fixed lightness ── */
+
+.ui-game-tier {
+  /* --_tier comes from the element or an ancestor (a tier row), so it has no default here. */
+  --_chip: var(--_tier, var(--ui-gray));
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-inline-size: 1.85em;
+  block-size: 1.85em;
+  padding-inline: 0.3em;
+  border-radius: var(--ui-game-tier-radius, 0.36em);
+  background: var(--_chip);
+  color: #fff;
+  font-size: var(--ui-game-tier-size, 12px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@supports (color: oklch(from red l c h)) {
+  .ui-game-tier {
+    --_chip: oklch(from var(--_tier, var(--ui-gray)) 0.74 min(c * 1.1, 0.16) h);
+    color: oklch(0.2 0.01 260);
+  }
+
+  .ui-game-role {
+    --_chip: oklch(from var(--_hue) 0.74 min(c * 1.1, 0.15) h);
+    color: oklch(0.2 0.01 260);
+  }
+}

@@ -1,0 +1,154 @@
+.ui-listbox {
+  max-height: min(320px, 50vh);
+  padding: var(--ui-popover-padding);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: none;
+}
+
+.ui-listbox:empty {
+  padding: 0;
+}
+
+.ui-listbox__option {
+  min-height: var(--ui-menu-item-h);
+  padding-block: 6px;
+  scroll-margin-block: var(--ui-space-1);
+}
+
+.ui-listbox__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.ui-listbox__description {
+  overflow: hidden;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-listbox__check {
+  display: inline-flex;
+  flex-shrink: 0;
+  /* -1 puts it first: macOS / iOS menus mark the chosen item with a leading checkmark. */
+  order: var(--ui-listbox-check-order);
+  color: var(--ui-action-fg);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--ui-duration-fast) var(--ui-ease),
+    transform var(--ui-duration) var(--ui-ease-spring);
+}
+
+/* The checkmark grows in on the theme's spring curve, like the multi-select checkbox below. */
+.ui-listbox__check[data-checked='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Headers line up with the item text (past a leading checkmark). */
+.ui-listbox[data-indicator='check'] .ui-menu-label {
+  padding-inline-start: var(--ui-listbox-label-indent);
+}
+
+.ui-listbox__checkbox {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--ui-listbox-checkbox-size);
+  height: var(--ui-listbox-checkbox-size);
+  border: 1px solid var(--ui-choice-border, var(--ui-fg-faint));
+  border-radius: var(--ui-listbox-checkbox-radius);
+  background: var(--ui-bg);
+  color: var(--ui-primary-fg);
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    border-color var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-listbox__checkbox .ui-icon {
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--ui-duration-fast) var(--ui-ease),
+    transform var(--ui-duration) var(--ui-ease-spring);
+}
+
+.ui-listbox__checkbox[data-checked='true'] {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary);
+}
+
+.ui-listbox__checkbox[data-checked='true'] .ui-icon {
+  opacity: 1;
+  transform: none;
+}
+
+.ui-listbox__option[aria-disabled='true'] .ui-listbox__checkbox {
+  opacity: var(--ui-disabled-opacity, 0.5);
+}
+
+/* A theme that fills the highlighted row (Glass: solid blue) switches its parts to the row's ink. */
+.ui-menu-item[data-highlighted='true'] .ui-listbox__description {
+  color: var(--ui-listbox-description-fg-highlight);
+  opacity: var(--ui-listbox-description-opacity-highlight);
+}
+
+.ui-menu-item[data-highlighted='true'] .ui-listbox__check {
+  color: var(--ui-listbox-check-fg-highlight);
+}
+
+.ui-menu-item[data-highlighted='true'] .ui-listbox__checkbox {
+  border-color: var(--ui-listbox-checkbox-border-color-highlight);
+  background: var(--ui-listbox-checkbox-bg-highlight);
+}
+
+.ui-menu-item[data-highlighted='true'] .ui-listbox__checkbox[data-checked='true'] {
+  border-color: var(--ui-listbox-checkbox-checked-bg-highlight);
+  background: var(--ui-listbox-checkbox-checked-bg-highlight);
+  color: var(--ui-listbox-checkbox-checked-fg-highlight);
+}
+
+.ui-listbox__empty:empty {
+  display: none;
+}
+
+.ui-listbox__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-4) var(--ui-space-3);
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-sm);
+  text-align: center;
+}
+
+/* Popover that hosts a listbox (Select, MultiSelect, Combobox). */
+.ui-listbox__popover {
+  display: flex;
+  flex-direction: column;
+  max-width: max(var(--ui-anchor-width, 0px), 360px);
+  overflow: hidden;
+}
+
+@media (forced-colors: active) {
+  .ui-listbox__checkbox,
+  .ui-menu-item[data-highlighted='true'] .ui-listbox__checkbox {
+    border-color: currentColor;
+    background: transparent;
+  }
+
+  .ui-listbox__checkbox[data-checked='true'],
+  .ui-menu-item[data-highlighted='true'] .ui-listbox__checkbox[data-checked='true'] {
+    border-color: currentColor;
+    background: transparent;
+    color: inherit;
+  }
+}

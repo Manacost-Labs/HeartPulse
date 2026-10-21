@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createStandardMatchupsClient } from '../src/modules/standardMatchups/model/client';
+import { parseStandardMatchups } from '../src/modules/standardMatchups/model/state';
 
 const dataset = {
   format: 'standard', formatLabel: 'Стандарт', rank: 'legend', rankLabel: 'Легенда',
@@ -54,4 +55,9 @@ assert.equal(attempts, 2, 'orphan 304 retries unconditionally');
 response = () => Promise.resolve(Response.json({ ...dataset, format: 'wild', formatLabel: 'Вольный' }));
 assert.equal((await load('reader-1', 'wild')).status, 'ready');
 assert.equal(entries.size, 2, 'formats keep separate cache entries');
+const withClass = { ...dataset, columns: [{ ...dataset.columns[0], classKey: 'warrior' }],
+  rows: [{ ...dataset.rows[0], classKey: null }] };
+assert.ok(parseStandardMatchups(withClass, 'standard'), 'class keys are optional data');
+assert.equal(parseStandardMatchups({ ...withClass, rows: [{ ...withClass.rows[0], classKey: '../admin' }] }, 'standard'),
+  null, 'an unknown class key never reaches an icon URL');
 console.log('Standard matchup client access, cache and validation contract passed');

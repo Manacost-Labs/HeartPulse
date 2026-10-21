@@ -32,7 +32,7 @@ export function createStandardMatchupsClient({ request, storage, now = Date.now 
       signal?: AbortSignal; bust?: boolean; onCache?: (state: StandardMatchupsState) => void;
     } = {}): Promise<StandardMatchupsState> {
       if (!accountId) return { status: 'error', data: null };
-      const key = `standard-matchups:v8:${encodeURIComponent(accountId)}:${format}`;
+      const key = `standard-matchups:v9:${encodeURIComponent(accountId)}:${format}`;
       const cached = read(key, format);
       if (cached && !options.bust) options.onCache?.(standardMatchupsState(cached.data));
       const baseUrl = `/api/standard/matchups?format=${format}`;

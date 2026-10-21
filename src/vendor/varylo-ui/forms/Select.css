@@ -1,0 +1,42 @@
+.ui-select {
+  cursor: pointer;
+  text-align: start;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-select:disabled {
+  cursor: not-allowed;
+}
+
+/* Same tone as the icons of the other fields (.ui-field__icon). */
+.ui-select__icon {
+  color: var(--ui-fg-faint);
+}
+
+.ui-select__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-select[data-placeholder] .ui-select__value {
+  color: var(--ui-fg-subtle);
+}
+
+.ui-select__chevron {
+  flex-shrink: 0;
+  color: var(--ui-fg-faint);
+  transition: transform var(--ui-duration) var(--ui-ease-spring);
+}
+
+.ui-select[data-open] .ui-select__chevron {
+  transform: rotate(180deg);
+}
+
+.ui-select[data-size='lg'] .ui-icon {
+  width: var(--ui-icon-lg);
+  height: var(--ui-icon-lg);
+}

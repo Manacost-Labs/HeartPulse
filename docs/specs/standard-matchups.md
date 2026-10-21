@@ -32,3 +32,29 @@ controlled matchup view;
 the legacy mount-time fetch and format-only cache stay disabled there.
 Verified administrators can use the protected matrix without a Standard
 entitlement, matching the Express API authorization rule.
+
+## Matrix presentation
+
+`src/features/StandardMatchupMatrix.tsx` is the default view of the page,
+loaded on demand while the matrix data loads: the vendored VaryloUI
+`gaming/MatchupMatrix`, restyled to the parchment through `--ui-*` tokens in
+its own scope. Rows and columns are the
+API's archetypes in source order, with the Russian label and the class icon
+from `classKey`. A pair without a win rate is below HSGuru's
+`min_matchup_sample` (read from `sourceUrl`) and stays empty; mirrors are even
+by definition.
+
+HSGuru publishes no game count per pair, only each archetype's share of games
+(`popularity`). The pair's expected sample grows with the product of both
+shares, so `model/matrix.ts` ranks a pair by the geometric mean of the two
+shares: below 2% is low, below 4% medium, else high. The tooltip shows the
+win rate, "от N игр" (the source minimum, not a count) and that rank; low
+pairs are muted and left out of the best/worst summary. "Против меты" is the
+win rate against the field computed from the matchups weighted by popularity,
+so it can differ slightly from HSGuru's overall win rate of the row.
+
+The API adds `classKey` (inferred from the English name by
+`server/standardMetaClasses.ts`, or `null`) to columns and rows. The client
+accepts only known class keys; responses cached before the field existed still
+parse and fall back to initials. Column `popularity` reads the HSGuru popularity
+row at `index - 2`: that row has no cells for the win-rate and name columns.

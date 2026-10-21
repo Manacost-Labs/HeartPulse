@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from 'express';
 import { sendDatasetJsonCached } from './datasetCacheResponse.js';
+import { inferStandardMetaClass, type StandardMetaClassKey } from './standardMetaClasses.js';
 
 export type StandardMatchupFormat = 'standard' | 'wild';
 type CacheEntry = { data: any; etag: string; expiresAt: number };
@@ -20,6 +21,92 @@ export type StandardMatchupRouterDependencies = {
   now?: () => number;
   onError?: (scope: 'redis-read' | 'redis-write' | 'origin', error: unknown) => void;
 };
+
+export type HsguruMatchupTransformOptions = {
+  formatLabel: string;
+  sourceId: string;
+  translationSource: string;
+  translate: (archetype: string) => string;
+};
+
+type HsguruMatchupsTable = { headers?: unknown[]; rows?: unknown[] };
+/** The parsed HSGuru page as the dataset API stores it; every field is untrusted. */
+export type HsguruMatchupsPayload = {
+  fetched_at?: string | null;
+  url?: string;
+  tables?: HsguruMatchupsTable[];
+  data?: { fetched_at?: string | null; url?: string; tables?: HsguruMatchupsTable[] };
+} | null | undefined;
+
+function parseMatchupNumber(value: unknown): number | null {
+  const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
+  if (!raw || raw === '—' || raw === '-') return null;
+  const number = Number(raw);
+  return Number.isFinite(number) ? Math.round(number * 10) / 10 : null;
+}
+
+/**
+ * HSGuru's matchup table. Its first body row is the popularity row: one value
+ * per archetype column and none for the win-rate and name columns, so column
+ * `index` reads `popularity[index - 2]`. Empty cells are pairs below HSGuru's
+ * `min_matchup_sample` and stay `null`.
+ */
+export function transformHsguruMatchups(
+  payload: HsguruMatchupsPayload,
+  format: StandardMatchupFormat,
+  options: HsguruMatchupTransformOptions,
+) {
+  const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
+  const headers = Array.isArray(table?.headers) ? table.headers.map(item => String(item ?? '').trim()) : [];
+  const rows: unknown[] = Array.isArray(table?.rows) ? table.rows : [];
+  const popularityRow = Array.isArray(rows[0]) ? rows[0] : [];
+  const columns: Array<{ name: string; label: string; classKey: StandardMetaClassKey | null; popularity: string | null }> = [];
+  const columnIndexes: number[] = [];
+  for (let index = 2; index < headers.length; index += 1) {
+    const name = headers[index];
+    if (!name) continue;
+    columnIndexes.push(index);
+    columns.push({
+      name,
+      label: options.translate(name),
+      classKey: inferStandardMetaClass(name),
+      popularity: String(popularityRow[index - 2] ?? '').trim() || null,
+    });
+  }
+
+  const dataRows = [];
+  for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    if (!Array.isArray(row)) continue;
+    const archetype = String(row[1] ?? '').trim();
+    if (!archetype) continue;
+    dataRows.push({
+      archetype,
+      archetypeLabel: options.translate(archetype),
+      classKey: inferStandardMetaClass(archetype),
+      winrate: parseMatchupNumber(row[0]),
+      cells: columns.map((column, position) => ({
+        opponent: column.name,
+        opponentLabel: column.label,
+        winrate: parseMatchupNumber(row[columnIndexes[position]]),
+      })),
+    });
+  }
+
+  return {
+    format,
+    formatLabel: options.formatLabel,
+    rank: 'legend',
+    rankLabel: 'Легенда',
+    source: 'hsguru',
+    sourceId: options.sourceId,
+    sourceUrl: payload?.data?.url ?? payload?.url ?? '',
+    translationSource: options.translationSource,
+    updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
+    columns,
+    rows: dataRows,
+  };
+}
 
 function isOtherArchetype(value: unknown): boolean {
   return /^other(?:\s|$)/i.test(String(value ?? '').trim());
@@ -77,7 +164,7 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
       );
     }
 
-    const key = `${dependencies.redisKey(format)}:without-other-v1`;
+    const key = `${dependencies.redisKey(format)}:without-other-v2`;
     try {
       const redisCached = await dependencies.redisGet(key);
       if (redisCached) {
@@ -101,7 +188,7 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
       const data = excludeOtherStandardMatchups(dependencies.transform(payload, format, translations));
       const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : Number.NaN;
       const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : timestamp.toString(36);
-      const etag = `"standard-matchups-v6-${format}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
+      const etag = `"standard-matchups-v7-${format}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
       dependencies.memoryCache.set(format, {
         data,
         etag,

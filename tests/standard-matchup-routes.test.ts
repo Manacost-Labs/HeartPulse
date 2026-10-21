@@ -3,6 +3,7 @@ import express, { type RequestHandler } from 'express';
 import {
   createStandardMatchupRouter,
   excludeOtherStandardMatchups,
+  transformHsguruMatchups,
   type StandardMatchupFormat,
   type StandardMatchupRouterDependencies,
 } from '../server/standardMatchupRoutes.js';
@@ -44,6 +45,32 @@ assert.deepEqual(
   [['Control Priest', 'Tempo Rogue'], ['Control Priest', 'Tempo Rogue']],
   'Other class aggregates must be removed from rows, columns and cells',
 );
+
+// HSGuru's popularity row has one value per archetype column (no cell for the
+// win-rate and name columns); an empty cell is a pair below the source sample.
+const hsguru = transformHsguruMatchups({
+  fetched_at: '2026-10-21T05:19:59Z',
+  data: {
+    url: 'https://www.hsguru.com/matchups?min_matchup_sample=25&rank=legend',
+    tables: [{
+      headers: ['Winrate', 'Popularity: Archetype', 'Quest Priest', 'Harold DK', 'Rafaamlock'],
+      rows: [
+        ['26.2%', '2.9%', '0.8%'],
+        ['56.6', 'Quest Priest', '50.0', '77.1', ''],
+        ['47.0', 'Harold DK', '22.9', '50.0', '51,5'],
+      ],
+    }],
+  },
+}, 'standard', { formatLabel: 'Стандарт', sourceId: 'hsguru_matchups_legend', translationSource: 'test',
+  translate: name => (name === 'Harold DK' ? 'Рыцарь смерти на возвещении' : name) });
+assert.deepEqual(hsguru.columns.map(column => [column.name, column.classKey, column.popularity]), [
+  ['Quest Priest', 'priest', '26.2%'], ['Harold DK', 'deathknight', '2.9%'], ['Rafaamlock', 'warlock', '0.8%'],
+], 'each archetype column must read its own popularity and class');
+assert.deepEqual(hsguru.rows.map(row => [row.archetype, row.classKey, row.winrate, row.cells.map(cell => cell.winrate)]), [
+  ['Quest Priest', 'priest', 56.6, [50, 77.1, null]], ['Harold DK', 'deathknight', 47, [22.9, 50, 51.5]],
+]);
+assert.equal(hsguru.rows[1].archetypeLabel, 'Рыцарь смерти на возвещении');
+assert.equal(hsguru.sourceUrl, 'https://www.hsguru.com/matchups?min_matchup_sample=25&rank=legend');
 
 let now = 1_000;
 let redisMode: 'miss' | 'hit' | 'error' = 'miss';
@@ -160,12 +187,12 @@ try {
   const fromOrigin = await get('/standard/matchups?format=wild', { 'X-Test-Access': 'allowed' });
   assert.equal(fromOrigin.status, 200);
   assert.equal(fromOrigin.headers.get('x-data-cache'), 'origin');
-  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v6-wild-/);
+  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v7-wild-/);
   assert.equal((await fromOrigin.json() as any).rows[0].id, 'wild-row');
   await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(fetchFormats, ['wild']);
   assert.deepEqual(translationTimes, [1_000]);
-  assert.equal(redisWrites[0].key, 'standard:wild:without-other-v1');
+  assert.equal(redisWrites[0].key, 'standard:wild:without-other-v2');
   assert.equal(redisWrites[0].ttl, 600);
   assert.equal(errors[0].scope, 'redis-read');
 
