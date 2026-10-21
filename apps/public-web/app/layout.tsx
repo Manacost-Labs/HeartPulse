@@ -43,6 +43,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // those attributes are the only expected difference.
   return <html lang="ru" suppressHydrationWarning><head>
     <link rel="expect" href="#route-content-start" blocking="render" />
+    {/* The header and every section frame draw these from CSS, which finds
+        them only after it has loaded; on a slow phone network the frames
+        then appear a second or two after the page. */}
+    <link rel="preload" as="image" href="/wallpaper/arena-rail-red.jpg" />
+    <link rel="preload" as="image" href="/wallpaper/main-page-rail-border.png" />
     <script dangerouslySetInnerHTML={{ __html: COMPACT_NAVIGATION_SCRIPT }} />
     <script dangerouslySetInnerHTML={{ __html: AUTH_PREFETCH }} />
   </head><body>
