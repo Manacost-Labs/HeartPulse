@@ -16,10 +16,12 @@ deploy_edge() {
 	local privilege=$3
 	local remote_dir
 	local options=(-i "$identity" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$known_hosts" -o ConnectTimeout=10)
-	remote_dir=$(ssh "${options[@]}" "$target" 'mktemp -d /tmp/hearthpulse-cert.XXXXXX')
+	# Called from an `if`, where errexit is off: every step must fail explicitly.
+	remote_dir=$(ssh "${options[@]}" "$target" 'mktemp -d /tmp/hearthpulse-cert.XXXXXX') || return 1
+	[[ "$remote_dir" == /tmp/hearthpulse-cert.* ]] || return 1
 	trap 'ssh "${options[@]}" "$target" "rm -rf -- \"$remote_dir\"" >/dev/null 2>&1 || true' RETURN
-	scp "${options[@]}" "$lineage/fullchain.pem" "$lineage/privkey.pem" "$target:$remote_dir/"
-	ssh "${options[@]}" "$target" bash -s -- "$privilege" "$remote_dir" "$destination" <<'REMOTE'
+	scp "${options[@]}" "$lineage/fullchain.pem" "$lineage/privkey.pem" "$target:$remote_dir/" || return 1
+	ssh "${options[@]}" "$target" bash -s -- "$privilege" "$remote_dir" "$destination" <<'REMOTE' || return 1
 set -euo pipefail
 privilege=$1
 remote_dir=$2
@@ -41,6 +43,17 @@ REMOTE
 	trap - RETURN
 }
 
-deploy_edge debian@162.19.220.14 /home/debian/.ssh/koloda_proxy_ed25519 sudo
-deploy_edge root@194.67.92.242 /home/debian/.ssh/koloda_proxy_ed25519 none
-deploy_edge root@186.246.28.244 /root/.ssh/koloda_proxy_ru-novosibirsk_ed25519 none
+# One unreachable edge must not leave the others on the expiring certificate:
+# each edge is attempted, and the hook fails afterwards if any of them failed.
+failed_edges=()
+for edge in \
+	'root@194.67.92.242 /home/debian/.ssh/koloda_proxy_ed25519 none' \
+	'root@186.246.28.244 /root/.ssh/koloda_proxy_ru-novosibirsk_ed25519 none' \
+	'debian@57.129.183.118 /home/debian/.ssh/koloda_proxy_ed25519 sudo'; do
+	read -r target identity privilege <<<"$edge"
+	if ! (deploy_edge "$target" "$identity" "$privilege"); then
+		printf 'hearthpulse certificate deploy failed: %s\n' "$target" >&2
+		failed_edges+=("$target")
+	fi
+done
+((${#failed_edges[@]} == 0))

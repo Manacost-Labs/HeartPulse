@@ -141,7 +141,7 @@ assert.match(cdn, /location\s+\/\s*\{[^}]*return\s+404;/s,
   'the CDN must keep private and unknown paths closed');
 assert.match(cdn, /Strict-Transport-Security\s+"max-age=31536000"/);
 
-for (const address of ['162.19.220.14', '194.67.92.242', '186.246.28.244']) {
+for (const address of ['57.129.183.118', '194.67.92.242', '186.246.28.244']) {
   assert.ok(monitor.includes(address), `the monitor must probe ${address} directly`);
 }
 for (const host of ['www.hearthpulse.net', 'arena.hs-manacost.ru', 'cdn.arena.hs-manacost.ru']) {
