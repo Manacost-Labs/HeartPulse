@@ -10,6 +10,8 @@ const ARRIVAL_WINDOW_MS = 10_000;
 const SIBLING_GROUP = 8;
 
 const FADE: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
+/** At most this many neighbours of one batch wait their turn; the rest start with the last. */
+const STAGGER_STEPS = 3;
 
 function fadeIn(elements: Element[], keyframes: Keyframe[] = FADE, token = '--motion-fast'): Animation[] {
   const duration = motionMs(token);
@@ -18,7 +20,28 @@ function fadeIn(elements: Element[], keyframes: Keyframe[] = FADE, token = '--mo
   return elements.map(element => element.animate(keyframes, { duration, easing }));
 }
 
-const isSkeleton = (node: Node) => node instanceof Element && (node.matches(SKELETON) || node.querySelector(SKELETON) !== null);
+/**
+ * Sections that replace their skeletons: a short fade and rise by
+ * `--motion-rise`, neighbours of one batch a `--motion-stagger` step apart
+ * (header, then figures, then content, in document order). Transform and
+ * opacity only, so nothing is laid out again and no layout shift is counted.
+ */
+function arrive(elements: Element[]): Animation[] {
+  const duration = motionMs('--motion-base');
+  if (!duration) return [];
+  const easing = motionEasing('--motion-ease');
+  const step = motionMs('--motion-stagger');
+  const rise = getComputedStyle(document.documentElement).getPropertyValue('--motion-rise').trim() || '0px';
+  const keyframes: Keyframe[] = [{ opacity: 0, transform: `translateY(${rise})` }, { opacity: 1, transform: 'none' }];
+  return elements.map((element, index) => element.animate(keyframes,
+    { duration, easing, delay: Math.min(index, STAGGER_STEPS) * step, fill: 'backwards' }));
+}
+
+/** On the first document the access check's placeholder is a loading state too: the gate or page replaces it. */
+const FIRST_LOAD_PLACEHOLDER = `${SKELETON}, .arena-paywall-pending`;
+
+const isPlaceholder = (node: Node, selector: string) => node instanceof Element
+  && (node.matches(selector) || node.querySelector(selector) !== null);
 
 /** A sideways or zooming entrance must not widen the page into a horizontal scrollbar while it plays. */
 function clipWhileMoving(box: HTMLElement, animations: Animation[]): void {
@@ -32,16 +55,16 @@ function clipWhileMoving(box: HTMLElement, animations: Animation[]): void {
  * The outermost elements that took a skeleton's place (inserted into a parent
  * that lost one in the same batch); a list filling in at once fades as its parent.
  */
-function arrivedContent(records: MutationRecord[], box: HTMLElement): Element[] {
+function arrivedContent(records: MutationRecord[], box: HTMLElement, placeholder: string): Element[] {
   const replaced = new Set<Node>();
   for (const record of records) {
-    if ([...record.removedNodes].some(isSkeleton)) replaced.add(record.target);
+    if ([...record.removedNodes].some(node => isPlaceholder(node, placeholder))) replaced.add(record.target);
   }
   const added: Element[] = [];
   for (const record of records) {
     if (!replaced.has(record.target)) continue;
     for (const node of record.addedNodes) {
-      if (node instanceof Element && node.isConnected && !isSkeleton(node)) added.push(node);
+      if (node instanceof Element && node.isConnected && !isPlaceholder(node, placeholder)) added.push(node);
     }
   }
   const byParent = new Map<Element, Element[]>();
@@ -57,14 +80,14 @@ function arrivedContent(records: MutationRecord[], box: HTMLElement): Element[] 
 
 /**
  * Plays the page's single entrance: at once when it commits ready, with the
- * navigation's `keyframes` over `--motion-base`, otherwise as a plain fade on
- * each section as it replaces its skeleton (a section arriving late must not
- * travel), until none is left, the reader acts or `ARRIVAL_WINDOW_MS` passes.
- * Returns the cancellation.
+ * navigation's `keyframes` over `--motion-base`, otherwise as the short
+ * arrival of each section as it replaces a `placeholder` (not the navigation's
+ * larger preset: a late section only settles in), until none is left, the
+ * reader acts or `ARRIVAL_WINDOW_MS` passes. Returns the cancellation.
  */
-function enter(box: HTMLElement, keyframes: Keyframe[]): () => void {
+function enter(box: HTMLElement, keyframes: Keyframe[], placeholder = SKELETON): () => void {
   const animations: Animation[] = [];
-  if (!box.querySelector(SKELETON)) {
+  if (!box.querySelector(placeholder)) {
     const content = [...box.children].filter(child => !(child as HTMLElement).hidden);
     animations.push(...fadeIn(content, keyframes, '--motion-base'));
     clipWhileMoving(box, animations);
@@ -72,8 +95,8 @@ function enter(box: HTMLElement, keyframes: Keyframe[]): () => void {
   }
   setRouteEntranceActive(true);
   const observer = new MutationObserver(records => {
-    animations.push(...fadeIn(arrivedContent(records, box)));
-    if (!box.querySelector(SKELETON)) stop();
+    animations.push(...arrive(arrivedContent(records, box, placeholder)));
+    if (!box.querySelector(placeholder)) stop();
   });
   const timer = setTimeout(() => stop(), ARRIVAL_WINDOW_MS);
   // From the reader's first input on, new content answers them, not the navigation.
@@ -103,9 +126,21 @@ function enter(box: HTMLElement, keyframes: Keyframe[]): () => void {
 export function RouteTransition({ routeKey, children }: { routeKey: string; children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
   const previousKey = useRef(routeKey);
+  const firstArrivals = useRef<(() => void) | null>(null);
+  // The first document: its server HTML (and the largest paint) stays still;
+  // only sections that later replace a skeleton arrive with the same motion.
+  useLayoutEffect(() => {
+    const box = root.current?.querySelector<HTMLElement>('[data-route-content]');
+    if (!box?.animate || !box.querySelector(FIRST_LOAD_PLACEHOLDER) || prefersReducedMotion()) return;
+    firstArrivals.current = enter(box, FADE, FIRST_LOAD_PLACEHOLDER);
+    return () => firstArrivals.current?.();
+  }, []);
   useLayoutEffect(() => {
     if (previousKey.current === routeKey) return;
     previousKey.current = routeKey;
+    // A navigation ends the first document's arrivals: the new page has its own entrance.
+    firstArrivals.current?.();
+    firstArrivals.current = null;
     const entrance = takeExpectedRouteEntrance(routeKey);
     const box = root.current?.querySelector<HTMLElement>('[data-route-content]');
     if (!entrance || !box?.animate || prefersReducedMotion()) return;
