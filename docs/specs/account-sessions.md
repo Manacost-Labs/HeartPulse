@@ -42,8 +42,8 @@ live session, 503 with a generic message when storage fails.
   session of the viewer except the current one.
 
 Both revocations follow the site CSRF rule
-([decision](../decisions/cookie-mutations-same-origin-by-default.md): every
-cookie mutation must be same-origin, these paths also need
+([ADR 2026-10-21](../decisions/2026-10-21-cookie-mutations-same-origin-by-default.md):
+every cookie mutation must be same-origin, these paths also need
 `X-CSRF-Request: 1`, whatever the spelling of the path) and a limit of 20
 requests per 15 minutes per account.
 
