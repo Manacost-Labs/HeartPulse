@@ -14,8 +14,8 @@ const PHASE_LABELS = ['Муллиган', 'Добор', 'Оставлена'];
 const PLACEHOLDER_ROWS = Array.from({ length: CARD_STATS_FIRST_PAGE }, (_, index) => ({ id: String(index) }));
 /** The loaded table's columns without sort buttons: a placeholder holds no controls. */
 const PLACEHOLDER_COLUMNS: DataTableColumn<{ id: string }>[] = [
-  { key: 'card', header: 'Карта', width: '34%', cell: () => <span className="card-stat-name">
-    <LoadingBlock className="card-stat-name__thumb" /><LoadingBlock className="archetype-analysis-skeleton__name" />
+  { key: 'card', header: 'Карта', width: '34%', cell: () => <span className="card-stat-row">
+    <LoadingBlock className="archetype-analysis-skeleton__tile" />
   </span> },
   ...PHASE_LABELS.map(label => ({ key: label, header: label, width: '22%', cell: () => <span className="card-stat-phase">
     <LoadingBlock className="archetype-analysis-skeleton__phase" /><LoadingBlock className="archetype-analysis-skeleton__sample" />
@@ -75,7 +75,7 @@ export function ArchetypeAnalysisSkeleton() {
           <LoadingBlock className="constructed-card-stats__direction" />
           <span className="constructed-card-stats__legend">
             {PHASE_LABELS.map(label => <span key={label}><Words>{label}</Words><span className="archetype-analysis-skeleton__tip"><LoadingBlock /></span></span>)}
-            <span className="constructed-card-stats__low"><Words>{`Бледные — выборка меньше ${LOW_CARD_SAMPLE}`}</Words></span>
+            <span className="constructed-card-stats__low"><Words>{`ⓘ мало данных — выборка меньше ${LOW_CARD_SAMPLE}`}</Words></span>
           </span>
           <LoadingBlock className="constructed-card-stats__csv" />
         </div>

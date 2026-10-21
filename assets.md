@@ -132,6 +132,14 @@ fontTools 4.66.1: `TTFont("2318-font.otf")`, `flavor = "woff2"`, `save(...)`.
 `avif({ quality: 55, effort: 4 })`; AVIF баннера — из `profile-hero-hth.jpg`, 1430 px,
 `quality: 50`.
 
+Фоны шапки архетипа — `archetype-art/classes/<класс>-{960,1920}.webp`: по одной
+полноразмерной иллюстрации карты класса (вики-копия Koloda
+`uploads/constructed-related-wiki-full-art/<ID>.jpg`), кадр 2.4:1, Pillow
+`WEBP quality 72, method 6`, 34–159 KB. Карты: ДК `CATA_155`, ОД `CATA_151`,
+друид `DAL_350`, охотник `ICC_828`, маг `MEND_504`, паладин `GDB_139`,
+жрец `BAR_311`, разбойник `CATA_154`, шаман `CATA_153`, чернокнижник `CATA_726`,
+воин `CATA_150`. Точку фокуса каждого кадра задаёт `archetypeClassBackdrop`.
+
 Иконки интерфейса — `webp({ quality: 82, alphaQuality: 90, effort: 6 })` вдвое больше
 отрисованного размера: `class_icon/ui/<класс>-96.webp` и `all-96.webp` из PNG классов
 (до 255 KB → 3–5 KB), `assets/mana-64.webp`, `assets/card-format-wild-128.webp`,

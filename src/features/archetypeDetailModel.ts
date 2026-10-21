@@ -139,6 +139,41 @@ type HeroArtCard = {
 
 export type ArchetypeHeroArt = { src: string };
 
+type ArchetypeClassKey =
+  | 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin'
+  | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
+
+/**
+ * Full-bleed header art per class: wiki full artwork of one class card, cropped to 2.4:1
+ * and stored in public/archetype-art/classes at 960 and 1920 px (sources in assets.md).
+ * `focus` keeps the illustration's subject in view where the left gradient leaves it visible.
+ */
+const CLASS_BACKDROP_FOCUS: Record<ArchetypeClassKey, string> = {
+  deathknight: '55% 40%',
+  demonhunter: '62% 30%',
+  druid: '40% 30%',
+  hunter: '70% 45%',
+  mage: '60% 50%',
+  paladin: '50% 40%',
+  priest: '62% 35%',
+  rogue: '50% 35%',
+  shaman: '50% 40%',
+  warlock: '55% 40%',
+  warrior: '50% 45%',
+};
+
+export type ArchetypeClassBackdrop = { src: string; srcSet: string; focus: string };
+
+export function archetypeClassBackdrop(classKey: string | null): ArchetypeClassBackdrop | null {
+  if (!classKey || !(classKey in CLASS_BACKDROP_FOCUS)) return null;
+  const base = `/archetype-art/classes/${classKey}`;
+  return {
+    src: `${base}-1920.webp`,
+    srcSet: `${base}-960.webp 960w, ${base}-1920.webp 1920w`,
+    focus: CLASS_BACKDROP_FOCUS[classKey as ArchetypeClassKey],
+  };
+}
+
 const ARCHETYPE_HERO_ART_OVERRIDES: Record<string, string> = {
   'void-soul-dh': '/archetype-art/void-soul-dh.webp',
 };

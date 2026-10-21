@@ -17,7 +17,7 @@
 .archetype-detail-skeleton .constructed-card-stats__csv { height: var(--card-stat-control-h); }
 .archetype-detail-skeleton :is(.constructed-card-stats__direction, .constructed-card-stats__csv) { border-color: transparent; background: var(--loading-fill); }
 .archetype-detail-skeleton .constructed-card-stats__csv { width: 3.4rem; }
-.archetype-analysis-skeleton__name { flex: 1 1 auto; max-width: 11rem; height: 0.9rem; }
+.archetype-analysis-skeleton__tile { width: 100%; max-width: 300px; height: 40px; border-radius: 0; }
 .archetype-analysis-skeleton__phase { height: 1.15rem; }
 .archetype-analysis-skeleton__sample { width: 6rem; height: 0.65rem; }
 .archetype-analysis-skeleton__list-row { height: var(--card-stat-row-h); border-radius: 0; opacity: 0.6; }

@@ -16,7 +16,7 @@ import {
   type HsguruCardStatSortKey,
 } from './archetypeDetailModel';
 import {
-  CARD_STATS_FIRST_PAGE, CardName, CardStatsList, CardStatsToolbar, InfoTip, PHASES, PhaseValue, phaseOf,
+  CARD_STATS_FIRST_PAGE, CardStatsList, CardStatsToolbar, CardTile, InfoTip, LowSampleMark, PHASES, PhaseValue, phaseOf,
   type ConstructedCardStat,
 } from './ConstructedArchetypeCardStatsCells';
 import '../vendor/varylo-ui/styles/index.css';
@@ -57,9 +57,10 @@ function CardStatsTable({ rows, sort, scales, rowKeys, onSort, onOpen, onPreview
       header: 'Карта',
       width: '34%',
       cell: row => {
-        const name = <CardName row={row} />;
+        const name = <CardTile row={row} />;
+        const low = isLowCardSample(row[sortedPhase.count]);
         return (
-          <span className="card-stat-row" data-low-sample={isLowCardSample(row[sortedPhase.count]) || undefined}>
+          <span className="card-stat-row" data-low-sample={low || undefined}>
             {row.cardId ? (
               <button
                 type="button"
@@ -72,6 +73,7 @@ function CardStatsTable({ rows, sort, scales, rowKeys, onSort, onOpen, onPreview
                 aria-label={`${row.cardName}, ${row.cost ?? 'неизвестная стоимость'} маны. Открыть полную карту`}
               >{name}</button>
             ) : name}
+            {low ? <LowSampleMark /> : null}
           </span>
         );
       },

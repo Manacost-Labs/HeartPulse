@@ -525,7 +525,7 @@
 .archetype-breadcrumb strong { min-width: 0; color: #4a3323; overflow-wrap: anywhere; }
 
 .archetype-dossier {
-  --dossier-art-width: clamp(300px, 36%, 480px);
+  --dossier-art-width: min(30%, 340px);
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -537,43 +537,51 @@
   border: 12px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   color: #fff0c8;
-  background: radial-gradient(ellipse 45% 90% at 84% 45%, #66101a 0%, #4b0710 100%) #4b0710;
+  background: #3a0610;
   isolation: isolate;
 }
 
-/* Desktop: the art owns the right column and the title and statistics stay on solid red,
-   so neither is drawn over the art. The art is never wider than its source can fill sharply. */
+/* One cinematic plate: the class art spans the whole header, a gradient keeps the title
+   and statistics readable on the left and lets the art show on the right. */
+.archetype-dossier__backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .archetype-dossier::after {
   position: absolute;
   z-index: 1;
-  inset: 0 0 0 auto;
-  width: var(--dossier-art-width);
+  inset: 0;
   background:
-    linear-gradient(90deg, #4b0710 0%, rgba(75, 7, 16, 0.55) 22%, rgba(75, 7, 16, 0) 48%),
-    linear-gradient(0deg, rgba(48, 4, 10, 0.45) 0%, rgba(48, 4, 10, 0) 35%);
+    linear-gradient(90deg, rgba(40, 3, 9, 0.96) 0%, rgba(52, 5, 11, 0.86) 30%, rgba(60, 6, 12, 0.42) 58%, rgba(60, 6, 12, 0.08) 100%),
+    linear-gradient(0deg, rgba(30, 3, 7, 0.7) 0%, rgba(30, 3, 7, 0) 45%);
   content: '';
   pointer-events: none;
 }
 
+/* The archetype's card art: at most its own size, edges dissolved into the plate. */
 .archetype-dossier__art {
   position: absolute;
-  z-index: 0;
+  z-index: 2;
   top: 0;
-  right: 0;
+  right: 3%;
   width: var(--dossier-art-width);
   height: 100%;
   object-fit: cover;
-  /* Card illustrations put the subject a little above the centre. */
   object-position: 50% 32%;
-}
-
-.archetype-dossier > :not(.archetype-dossier__art) {
-  margin-right: calc(var(--dossier-art-width) - clamp(1rem, 2vw, 1.5rem));
+  mask-image:
+    linear-gradient(90deg, transparent 0%, #000 28%, #000 72%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, #000 18%, #000 70%, transparent 100%);
+  mask-composite: intersect;
 }
 
 .archetype-dossier__identity {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   gap: 1rem;
   align-items: center;
@@ -599,16 +607,18 @@
 
 .archetype-dossier__metrics {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 1px;
   margin: 0;
-  border: 1px solid rgba(239, 201, 111, 0.24);
-  background: rgba(239, 201, 111, 0.18);
+  overflow: hidden;
+  border: 1px solid rgba(239, 201, 111, 0.28);
+  background: rgba(30, 4, 9, 0.5);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  backdrop-filter: blur(10px) saturate(1.15);
 }
 
-.archetype-dossier__metrics div { min-width: 0; padding: 0.8rem 1rem; background: #27060de8; }
+.archetype-dossier__metrics div { min-width: 0; padding: 0.8rem 1rem; box-shadow: -1px 0 0 rgba(239, 201, 111, 0.18), 0 -1px 0 rgba(239, 201, 111, 0.18); }
 .archetype-dossier__metrics dt { color: #e2c58f; font-size: 0.65rem; font-weight: 700; line-height: 1.4; text-transform: uppercase; }
 .archetype-dossier__metrics dd { margin: 0.3rem 0 0; color: #fff0c8; font-variant-numeric: tabular-nums; font-size: 1.3rem; font-weight: 800; line-height: 1.2; }
 .archetype-dossier__metrics dd.metric-strong { color: #a9db9f; }
@@ -1050,17 +1060,14 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 1359px) {
-  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
 @media (max-width: 1120px) {
   .archetypes-hero { grid-template-columns: 1fr; }
   .archetypes-hero__summary { max-width: 620px; }
   .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; contain-intrinsic-size: auto 107px; }
   .archetype-row__metrics { grid-column: 1 / -1; grid-row: 2; }
   .archetype-row__open { grid-column: 4; grid-row: 1; }
-  .archetype-dossier { --dossier-art-width: clamp(240px, 34%, 420px); }
+  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .archetype-dossier { --dossier-art-width: min(32%, 300px); }
   .archetype-history__charts { grid-template-columns: 1fr; }
   .archetype-trend svg { min-width: 0; }
   .archetype-deck-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1103,19 +1110,15 @@
   .archetype-row__metrics { grid-template-columns: repeat(2, 1fr); border-left: 0; }
   .archetype-row__metrics div:nth-child(2) { border-right: 0; }
   .archetype-row__metrics div:nth-child(-n + 2) { border-bottom: 1px solid rgba(92, 54, 24, 0.14); }
-  /* Phone: the art lights the title area and fades into solid red under the statistics.
-     The geometry does not depend on the art, which arrives with the paid analysis. */
+  /* Phone: the class art fills the plate behind the title and fades to dense red under the
+     statistics; the card art stays a desktop accent. */
   .archetype-dossier { min-height: 0; gap: 0.85rem; padding: 1.5rem 0.8rem 0.8rem; border-width: 8px; }
-  .archetype-dossier > :not(.archetype-dossier__art) { margin-right: 0; }
   .archetype-dossier::after {
-    width: 100%;
-    height: 9.5rem;
-    inset: 0 0 auto;
     background:
-      linear-gradient(180deg, rgba(75, 7, 16, 0.1) 0%, rgba(75, 7, 16, 0.5) 55%, #4b0710 100%),
-      linear-gradient(90deg, rgba(75, 7, 16, 0.6) 0%, rgba(75, 7, 16, 0) 75%);
+      linear-gradient(180deg, rgba(40, 3, 9, 0.25) 0%, rgba(44, 4, 10, 0.62) 42%, rgba(36, 3, 8, 0.92) 100%),
+      linear-gradient(90deg, rgba(40, 3, 9, 0.55) 0%, rgba(40, 3, 9, 0) 80%);
   }
-  .archetype-dossier__art { width: 100%; height: 9.5rem; object-position: 50% 30%; }
+  .archetype-dossier__art { display: none; }
   .archetype-dossier__identity { align-items: center; gap: 0.65rem; }
   .archetype-dossier__identity > img { width: 62px; height: 62px; }
   .archetype-dossier h1 { font-size: clamp(1.65rem, 9vw, 2.35rem); }

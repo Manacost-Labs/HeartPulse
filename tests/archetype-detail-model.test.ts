@@ -1,9 +1,11 @@
+import { existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { classIconUrl, normalizeClassKey } from '../src/features/classIcons.js';
 import {
   hsguruImpactTone,
   hsguruAnalysisEmptyMessage,
   hsguruMatchupTone,
+  archetypeClassBackdrop,
   archetypeHeroArt,
   cardStatImpactScale,
   cardStatsCsvRows,
@@ -116,5 +118,16 @@ assert.equal(
 assert.deepEqual(archetypeHeroArt('void-soul-dh', artCards), { src: '/archetype-art/void-soul-dh.webp' });
 assert.equal(archetypeHeroArt('quest-priest', []), null);
 assert.equal(archetypeHeroArt('quest-priest', [artCards[2]]), null);
+
+// Every class has full-bleed header art, so guests never see an empty plate.
+for (const classKey of ['deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior']) {
+  const backdrop = archetypeClassBackdrop(classKey);
+  assert.equal(backdrop?.src, `/archetype-art/classes/${classKey}-1920.webp`);
+  assert.equal(backdrop?.srcSet, `/archetype-art/classes/${classKey}-960.webp 960w, /archetype-art/classes/${classKey}-1920.webp 1920w`);
+  assert.ok(existsSync(new URL(`../public/archetype-art/classes/${classKey}-960.webp`, import.meta.url)));
+  assert.ok(existsSync(new URL(`../public/archetype-art/classes/${classKey}-1920.webp`, import.meta.url)));
+}
+assert.equal(archetypeClassBackdrop(null), null);
+assert.equal(archetypeClassBackdrop('neutral'), null);
 
 console.log('archetype detail model tests passed');

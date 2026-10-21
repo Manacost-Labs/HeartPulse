@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, CircleHelp } from 'lucide-react';
-import { constructedCardHorizontalArtwork } from '../modules/constructedCards/public';
+import { ArrowDown, ArrowUp, ChevronDown, CircleAlert, CircleHelp } from 'lucide-react';
 import {
   hsguruImpactTone,
   isLowCardSample,
@@ -9,7 +8,7 @@ import {
   type HsguruCardStatSort,
   type HsguruCardStatSortKey,
 } from './archetypeDetailModel';
-import { publicResourceUrl } from '../publicResourceUrl';
+import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 
 // Cells, the phone list and the toolbar of the mulligan table (ConstructedArchetypeCardStats).
 
@@ -90,17 +89,30 @@ export function InfoTip({ label, description }: { label: string; description: st
   );
 }
 
-/** Small art, mana and the full name: the provider's tile image bakes a truncated name into pixels. */
-export function CardName({ row }: { row: ConstructedCardStat }) {
+/**
+ * The art band of a deck tile. A 256 px trimmed original covers the tile's art area at
+ * twice its size; the 320x64 horizontal provider art is only the fallback.
+ */
+function tileArtUrl(row: ConstructedCardStat): string {
+  if (row.cardId) {
+    return `${publicResourceImageUrl(`/api/public-resource/hsjson/v1/orig/${encodeURIComponent(row.cardId)}.png`, { width: 256 })}&trim=1`;
+  }
+  return publicResourceUrl(row.artwork);
+}
+
+export function LowSampleMark() {
+  return <span className="card-stat-low"><CircleAlert aria-hidden="true" />мало данных</span>;
+}
+
+/** A decklist tile: rarity edge, drawn mana gem, the whole name, and art fading in from the right. */
+export function CardTile({ row }: { row: ConstructedCardStat }) {
   const [artFailed, setArtFailed] = useState(false);
-  const art = publicResourceUrl(row.artwork) || (row.cardId ? constructedCardHorizontalArtwork(row.cardId) : '');
+  const art = tileArtUrl(row);
   return (
-    <span className="card-stat-name" data-rarity={(row.rarity || 'common').trim().toLowerCase()}>
-      <span className="card-stat-name__thumb" aria-hidden="true">
-        {art && !artFailed ? <img src={art} alt="" width={320} height={64} loading="lazy" decoding="async" onError={() => setArtFailed(true)} /> : null}
-        <b>{row.cost ?? '—'}</b>
-      </span>
-      <span className="card-stat-name__text">{row.cardName}</span>
+    <span className="card-stat-tile" data-rarity={(row.rarity || 'common').trim().toLowerCase()}>
+      {art && !artFailed ? <img className="card-stat-tile__art" src={art} alt="" loading="lazy" decoding="async" onError={() => setArtFailed(true)} /> : null}
+      <b className="card-stat-tile__mana" aria-hidden="true">{row.cost ?? '?'}</b>
+      <span className="card-stat-tile__name">{row.cardName}</span>
     </span>
   );
 }
@@ -117,8 +129,45 @@ export function PhaseValue({ row, phase, scale }: { row: ConstructedCardStat; ph
           <i style={{ inlineSize: `${share * 50}%`, insetInlineStart: impact !== null && impact < 0 ? `${50 - share * 50}%` : '50%' }} />
         </span>
       </span>
-      <small>{formatCount(count)} {phase.sample}</small>
+      <small>{formatCount(count)} {phase.sample}{isLowCardSample(count) ? <CircleAlert aria-label="мало данных" /> : null}</small>
     </span>
+  );
+}
+
+function CardStatsListItem({ row, sortedPhase, scales, onOpen }: {
+  row: ConstructedCardStat;
+  sortedPhase: Phase;
+  scales: Record<HsguruCardStatImpactKey, number>;
+  onOpen: (row: ConstructedCardStat) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const low = isLowCardSample(row[sortedPhase.count]);
+  const tile = <CardTile row={row} />;
+  return (
+    <li data-low-sample={low || undefined}>
+      <div className="constructed-card-stats__row">
+        {row.cardId
+          ? <button type="button" className="card-stat-open" onClick={() => onOpen(row)}
+              aria-label={`${row.cardName}, ${row.cost ?? 'неизвестная стоимость'} маны. Открыть полную карту`}>{tile}</button>
+          : tile}
+        <button type="button" className="constructed-card-stats__lead" aria-expanded={open} onClick={() => setOpen(value => !value)}
+          aria-label={`${row.cardName}: все этапы`}>
+          <PhaseValue row={row} phase={sortedPhase} scale={scales[sortedPhase.impact]} />
+          <ChevronDown className="constructed-card-stats__chevron" aria-hidden="true" />
+        </button>
+      </div>
+      {open ? (
+        <dl>
+          {low ? <div><dt>Выборка</dt><dd><LowSampleMark /></dd></div> : null}
+          {PHASES.map(phase => (
+            <div key={phase.impact}>
+              <dt>{phase.label}</dt>
+              <dd><PhaseValue row={row} phase={phase} scale={scales[phase.impact]} /></dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </li>
   );
 }
 
@@ -132,28 +181,7 @@ export function CardStatsList({ rows, sort, scales, rowKeys, onOpen }: {
   const sortedPhase = phaseOf(sort.key);
   return (
     <ol className="constructed-card-stats__list">
-      {rows.map(row => (
-        <li key={rowKeys.get(row)} data-low-sample={isLowCardSample(row[sortedPhase.count]) || undefined}>
-          <details>
-            <summary>
-              <CardName row={row} />
-              <span className="constructed-card-stats__lead">
-                <PhaseValue row={row} phase={sortedPhase} scale={scales[sortedPhase.impact]} />
-              </span>
-              <ChevronDown className="constructed-card-stats__chevron" aria-hidden="true" />
-            </summary>
-            <dl>
-              {PHASES.map(phase => (
-                <div key={phase.impact}>
-                  <dt>{phase.label}</dt>
-                  <dd><PhaseValue row={row} phase={phase} scale={scales[phase.impact]} /></dd>
-                </div>
-              ))}
-            </dl>
-            {row.cardId ? <button type="button" className="constructed-card-stats__open" onClick={() => onOpen(row)}>Открыть карту</button> : null}
-          </details>
-        </li>
-      ))}
+      {rows.map(row => <CardStatsListItem key={rowKeys.get(row)} row={row} sortedPhase={sortedPhase} scales={scales} onOpen={onOpen} />)}
     </ol>
   );
 }
@@ -181,7 +209,7 @@ export function CardStatsToolbar({ sort, onSort, onDirection, onCsv, csvError }:
       </button>
       <span className="constructed-card-stats__legend">
         {PHASES.map(phase => <span key={phase.impact}>{phase.label}<InfoTip label={phase.label} description={phase.description} /></span>)}
-        <span className="constructed-card-stats__low">Бледные — выборка меньше {LOW_CARD_SAMPLE}</span>
+        <span className="constructed-card-stats__low"><LowSampleMark /> — выборка меньше {LOW_CARD_SAMPLE}</span>
       </span>
       <button type="button" className="constructed-card-stats__csv" onClick={onCsv} aria-label="Скачать таблицу муллигана: CSV">CSV</button>
       {csvError ? <p className="analytics-chart__error" role="alert">Не удалось скачать таблицу. Попробуйте ещё раз.</p> : null}

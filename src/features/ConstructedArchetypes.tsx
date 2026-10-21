@@ -1,5 +1,5 @@
 import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
-import { archetypeHeroArt } from './archetypeDetailModel';
+import { archetypeClassBackdrop, archetypeHeroArt } from './archetypeDetailModel';
 import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
@@ -466,6 +466,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
   const { item, history } = detail;
   const shownBuilds = item.builds.slice(0, visibleBuilds);
   const heroArt = archetypeHeroArt(item.slug, detail.analysis?.cardStats ?? []);
+  const backdrop = archetypeClassBackdrop(item.classKey);
 
   return (
     <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
@@ -479,6 +480,25 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         <strong>{item.archetypeLabel}</strong>
       </nav>
       <section className="archetype-dossier" data-tour-id="archetype-summary">
+        {/* The class art is known from the public seed, so guests get it and it can lead LCP;
+            the archetype's card art arrives with the paid analysis and sits on the right. */}
+        {backdrop ? (
+          <img
+            key={backdrop.src}
+            className="archetype-dossier__backdrop"
+            onError={event => { event.currentTarget.hidden = true; }}
+            src={backdrop.src}
+            srcSet={backdrop.srcSet}
+            sizes="(min-width: 1480px) 1440px, 100vw"
+            style={{ objectPosition: backdrop.focus }}
+            width={1920}
+            height={800}
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            fetchPriority="high"
+          />
+        ) : null}
         {heroArt ? (
           <img
             key={heroArt.src}
@@ -488,7 +508,6 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
             alt=""
             aria-hidden="true"
             decoding="async"
-            fetchPriority="high"
           />
         ) : null}
         <div className="archetype-dossier__identity">

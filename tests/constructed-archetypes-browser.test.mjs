@@ -37,12 +37,14 @@ try {
   await page.setRequestInterception(true);
   page.on('request', request => {
     const path = new URL(request.url()).pathname;
-    if (path.startsWith('/api/public-resource/db/uploads/horizontal-art/constructed_card/') || path.startsWith('/api/public-resource/db/uploads/card-tiles/constructed_card/')) {
-      cardTileRequests.push(path);
+    if (path.startsWith('/api/public-resource/db/uploads/horizontal-art/constructed_card/') || path.startsWith('/api/public-resource/db/uploads/card-tiles/constructed_card/')
+      || path.startsWith('/api/public-resource/hsjson/v1/orig/')) {
+      cardTileRequests.push(`${path}${new URL(request.url()).search}`);
+      const missing = /\/JAIL_732\.(?:webp|png)$/.test(path);
       void request.respond({
-        status: path.endsWith('/JAIL_732.webp') ? 404 : 200,
+        status: missing ? 404 : 200,
         contentType: 'image/gif',
-        body: path.endsWith('/JAIL_732.webp') ? '' : Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64'),
+        body: missing ? '' : Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64'),
       });
       return;
     }
@@ -107,6 +109,9 @@ try {
   assert.equal(await page.$eval('.archetype-dossier h1', title => getComputedStyle(title).color), 'rgb(255, 240, 200)');
   const metricRows = await page.$$eval('.archetype-dossier__metrics > div', cells => cells.map(cell => Math.round(cell.getBoundingClientRect().top)));
   assert.equal(new Set(metricRows).size, 1, 'six desktop statistics share one aligned row');
+  assert.equal(await page.$eval('.archetype-dossier__backdrop', image => new URL(image.currentSrc || image.src).pathname),
+    '/archetype-art/classes/priest-1920.webp', 'the class art spans the header at desktop width');
+  assert.match(await page.$eval('.archetype-dossier__metrics', bar => getComputedStyle(bar).backdropFilter), /blur/);
   assert.equal(await page.$eval('.archetype-dossier__art', image => image.getAttribute('src')), '/wallpaper/home-paladin-hero-720.avif', 'the clean full artwork is used instead of a padded card image');
   assert.equal(await page.evaluate(() =>
     document.querySelector('.archetype-builds').compareDocumentPosition(document.querySelector('.archetype-history')) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -117,19 +122,20 @@ try {
   assert.equal(await page.$eval('.archetype-builds', section => section.textContent.includes('Сборки HSGuru')), false);
   // Lazy thumbnails: bring the table into view; a failed image removes itself.
   await page.$eval('.constructed-card-stats__table', table => table.scrollIntoView({ block: 'start' }));
-  await page.waitForFunction(() => [...document.querySelectorAll('.constructed-card-stats__table .card-stat-name__thumb img')]
+  await page.waitForFunction(() => [...document.querySelectorAll('.constructed-card-stats__table .card-stat-tile__art')]
     .every(image => image.complete), { timeout: 10_000 });
   await page.waitForNetworkIdle({ idleTime: 250, timeout: 10_000 });
-  assert.ok(cardTileRequests.some(path => path.includes('/horizontal-art/constructed_card/')), 'mulligan uses Koloda horizontal art');
+  assert.ok(cardTileRequests.some(path => /\/hsjson\/v1\/orig\/.+width=256.+trim=1/.test(path)),
+    'mulligan tiles use the trimmed original at twice the tile art size');
   assert.ok(!cardTileRequests.some(path => path.includes('/card-tiles/constructed_card/')),
     'provider tiles bake a truncated name into pixels, so the table draws the name as text');
   const failedArtRows = await page.$$eval('.constructed-card-stats__table tbody tr', rows => rows
-    .filter(row => !row.querySelector('.card-stat-name__thumb img')).map(row => row.querySelector('.card-stat-name__text')?.textContent));
+    .filter(row => !row.querySelector('.card-stat-tile__art')).map(row => row.querySelector('.card-stat-tile__name')?.textContent));
   assert.ok(failedArtRows.length > 0 && failedArtRows.every(Boolean), 'a card without art keeps its mana and full name');
   const desktopGeometry = await page.evaluate(() => {
     const rows = [...document.querySelectorAll('.constructed-card-stats__table tbody tr')];
     const scroll = document.querySelector('.constructed-card-stats__table .ui-data-table__scroll');
-    const names = [...document.querySelectorAll('.constructed-card-stats__table .card-stat-name__text')];
+    const names = [...document.querySelectorAll('.constructed-card-stats__table .card-stat-tile__name')];
     return {
       sideways: (scroll?.scrollWidth ?? 0) - (scroll?.clientWidth ?? 0),
       heights: [...new Set(rows.map(row => Math.round(row.getBoundingClientRect().height)))],
@@ -314,19 +320,19 @@ try {
   assert.equal(await page.$$eval('.archetype-dossier .archetypes-eyebrow', nodes => nodes.length), 0);
   assert.equal(await page.$$eval('.archetype-dossier__identity p, .archetype-dossier__identity small', nodes => nodes.length), 0);
   assert.equal(
-    await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__text', node => node.textContent),
+    await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-tile__name', node => node.textContent),
     'Душа Бездны',
   );
   assert.equal(
-    await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__thumb b', node => node.textContent),
+    await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-tile__mana', node => node.textContent),
     '1',
   );
   assert.equal(await page.$eval('.constructed-card-stats__table th[aria-sort]', th => th.textContent), 'Муллиган');
   await page.select('.constructed-card-stats__sort select', 'drawnCount');
-  assert.equal(await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__text', node => node.textContent), 'Душа Бездны');
+  assert.equal(await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-tile__name', node => node.textContent), 'Душа Бездны');
   await page.click('.constructed-card-stats__direction');
   assert.equal(await page.$eval('.constructed-card-stats__sort select', select => select.value), 'drawnCount');
-  assert.notEqual(await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-name__text', node => node.textContent), 'Душа Бездны');
+  assert.notEqual(await page.$eval('.constructed-card-stats tbody tr:first-child .card-stat-tile__name', node => node.textContent), 'Душа Бездны');
   await page.click('.constructed-card-stats__table th:nth-child(2) .ui-data-table__sort');
   assert.equal(await page.$eval('.constructed-card-stats__sort select', select => select.value), 'mulliganImpact');
   assert.equal(await page.$eval('.constructed-card-stats__table th[aria-sort]', th => th.getAttribute('aria-sort')), 'descending');
@@ -455,16 +461,16 @@ try {
   const mobileCardStats = await page.evaluate(() => ({
     cardCount: document.querySelectorAll('.constructed-card-stats__list > li').length,
     desktopTableDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__table')).display,
-    minRowHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__list summary')].map(element => element.getBoundingClientRect().height)),
+    minRowHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__list .constructed-card-stats__row')].map(element => element.getBoundingClientRect().height)),
     minSortHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__toolbar :is(select, .constructed-card-stats__direction, .constructed-card-stats__csv)')].map(element => element.getBoundingClientRect().height)),
   }));
   assert.equal(mobileCardStats.cardCount, 15);
   assert.equal(mobileCardStats.desktopTableDisplay, 'none');
   assert.ok(mobileCardStats.minRowHeight >= 44);
   assert.ok(mobileCardStats.minSortHeight >= 44);
-  await page.click('.constructed-card-stats__list > li:first-child summary');
+  await page.click('.constructed-card-stats__list > li:first-child .constructed-card-stats__lead');
   assert.equal(await page.$$eval('.constructed-card-stats__list > li:first-child dl > div', phases => phases.length), 3);
-  await page.click('.constructed-card-stats__list > li:first-child .constructed-card-stats__open');
+  await page.click('.constructed-card-stats__list > li:first-child .card-stat-open');
   await page.waitForSelector('.card-preview-sheet__panel');
   assert.equal(await page.$eval('.card-preview-sheet__header h2', node => node.textContent), 'Душа Бездны');
   await page.click('.card-preview-sheet__close');

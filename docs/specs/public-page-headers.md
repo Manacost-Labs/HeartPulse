@@ -29,27 +29,31 @@ content. Reduced motion produces no banner animation.
 Constructed card and archetype detail pages expose their entity H1 in the
 existing identity/metrics header, without a second tavern banner. Archetype
 names use the cream display typeface. The identity sits above six aligned
-metrics: one row from 1360px, three columns below. On desktop the archetype
-art owns a fixed right column (36% of the header, 300–480px) and the title and
-metrics stay on solid red, so the art never covers text; on phones (≤820px)
-the art lights the title area and fades to solid red under the metrics. The
-geometry does not depend on the art, which arrives with the paid analysis, so
-its arrival shifts nothing. The art is the wiki full artwork of one of the five
-most mulliganed cards, else the HearthstoneJSON original of the most
-mulliganed card, requested at its 512px source size with `trim=1`, which makes
-the image proxy cut the white square padding. The 320×64 horizontal tile art
-is never stretched into the header. For subscribers, the build gallery comes
+metrics: one row above 1120px, three columns below. The header is one plate:
+the class art (`public/archetype-art/classes`, known from the public seed, so
+guests see it too and it can lead LCP) spans the whole header, a gradient keeps
+the left dense under the title and statistics, and the statistics bar is
+semi-transparent with a backdrop blur. For subscribers the archetype's card
+art sits on the right at no more than its own size, with masked edges: the
+wiki full artwork of one of the five most mulliganed cards, else the
+HearthstoneJSON original of the most mulliganed card, requested at 512px with
+`trim=1`, which makes the image proxy cut the white square padding. Phones show
+the class art only. For subscribers, the build gallery comes
 first (from build #1, the largest sample), then history.
 
 The mulligan table is the vendored VaryloUI DataTable on parchment tokens:
-card (small horizontal art, mana and the full name as text, two lines at
-most) and one cell per phase (mulligan, draw, kept) with the impact badge, a
-bar from the zero line and the sample under it. Rows have one fixed height,
+card (a decklist tile: rarity edge, a drawn mana gem, the full name as text,
+two lines at most, and card art fading in from the right, cut from the trimmed
+original at 256px, twice the art area) and one cell per phase (mulligan,
+draw, kept) with the impact badge, a bar from the zero line and the sample
+under it. Rows have one fixed height,
 the table never scrolls sideways on desktop, and on phones (≤820px) each card
 is one row with the sorted phase in front and all three phases on tap. A
 toolbar sorts by any of the six metrics, explains each phase and exports the
 shown rows as CSV with one column per metric. Phases measured on fewer than
-100 games are muted, and so is the whole row when the sorted phase is.
+100 games are dimmed to 72% and carry a «мало данных» marker; the whole row is
+dimmed to 78% when the sorted phase is. The tile previews the full card on
+hover or focus and opens it on click or tap.
 Card previews and subscription boundaries stay intact.
 The source URL was verified from the public Koloda card search for `CAP_105`:
 [horizontal artwork](https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/CAP_105.webp).
