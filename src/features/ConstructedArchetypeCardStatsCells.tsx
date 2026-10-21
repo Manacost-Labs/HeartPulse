@@ -59,6 +59,8 @@ const SORT_OPTIONS: ReadonlyArray<{ key: HsguruCardStatSortKey; label: string }>
   { key: phase.count, label: `${phase.label}: выборка` },
 ]);
 
+const LOW_SAMPLE_HINT = `Мало данных: выборка меньше ${LOW_CARD_SAMPLE}, влияние неустойчиво`;
+
 /** The table's first page; «show all» reveals the rest. */
 export const CARD_STATS_FIRST_PAGE = 15;
 
@@ -100,10 +102,6 @@ function tileArtUrl(row: ConstructedCardStat): string {
   return publicResourceUrl(row.artwork);
 }
 
-export function LowSampleMark() {
-  return <span className="card-stat-low"><CircleAlert aria-hidden="true" />мало данных</span>;
-}
-
 /** A decklist tile: rarity edge, drawn mana gem, the whole name, and art fading in from the right. */
 export function CardTile({ row }: { row: ConstructedCardStat }) {
   const [artFailed, setArtFailed] = useState(false);
@@ -129,7 +127,12 @@ export function PhaseValue({ row, phase, scale }: { row: ConstructedCardStat; ph
           <i style={{ inlineSize: `${share * 50}%`, insetInlineStart: impact !== null && impact < 0 ? `${50 - share * 50}%` : '50%' }} />
         </span>
       </span>
-      <small>{formatCount(count)} {phase.sample}{isLowCardSample(count) ? <CircleAlert aria-label="мало данных" /> : null}</small>
+      <small>
+        {formatCount(count)} {phase.sample}
+        {isLowCardSample(count) ? (
+          <span className="card-stat-phase__low" role="img" aria-label={LOW_SAMPLE_HINT} title={LOW_SAMPLE_HINT}><CircleAlert aria-hidden="true" /></span>
+        ) : null}
+      </small>
     </span>
   );
 }
@@ -158,7 +161,6 @@ function CardStatsListItem({ row, sortedPhase, scales, onOpen }: {
       </div>
       {open ? (
         <dl>
-          {low ? <div><dt>Выборка</dt><dd><LowSampleMark /></dd></div> : null}
           {PHASES.map(phase => (
             <div key={phase.impact}>
               <dt>{phase.label}</dt>
@@ -209,7 +211,6 @@ export function CardStatsToolbar({ sort, onSort, onDirection, onCsv, csvError }:
       </button>
       <span className="constructed-card-stats__legend">
         {PHASES.map(phase => <span key={phase.impact}>{phase.label}<InfoTip label={phase.label} description={phase.description} /></span>)}
-        <span className="constructed-card-stats__low"><LowSampleMark /> — выборка меньше {LOW_CARD_SAMPLE}</span>
       </span>
       <button type="button" className="constructed-card-stats__csv" onClick={onCsv} aria-label="Скачать таблицу муллигана: CSV">CSV</button>
       {csvError ? <p className="analytics-chart__error" role="alert">Не удалось скачать таблицу. Попробуйте ещё раз.</p> : null}

@@ -162,16 +162,19 @@
   z-index: 1;
   display: grid;
   flex: 0 0 auto;
-  width: 26px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   place-items: center;
+  padding-top: 1px;
   color: #fff;
-  background: linear-gradient(160deg, #7fc6ff 0%, #2d6fd6 48%, #163f8f 100%);
-  clip-path: polygon(50% 0, 100% 24%, 100% 76%, 50% 100%, 0 76%, 0 24%);
+  /* The game's mana crystal, 64 px for a 30 px gem; the cost is drawn like on a card. */
+  background: url('/assets/mana-64.webp') center / contain no-repeat;
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 1.02rem;
   line-height: 1;
-  text-shadow: 0 1px 1px #0b1f4a, 0 0 2px #0b1f4a;
+  -webkit-text-stroke: 3px #0c1424;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 /* Two lines hold every current card name at the narrowest tile. */
@@ -195,17 +198,6 @@
 .card-stat-open:hover .card-stat-tile,
 .card-stat-open:focus-visible .card-stat-tile { border-color: #e1b866; }
 
-.card-stat-low {
-  display: inline-flex;
-  gap: 0.25rem;
-  align-items: center;
-  color: #8a5a1c;
-  font-size: 0.6rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.card-stat-low svg { width: 0.75rem; height: 0.75rem; }
 
 /* ── Phase: impact badge, a bar from the zero line and the sample under it ── */
 .card-stat-phase {
@@ -271,7 +263,8 @@
 
 .card-stat-phase[data-low-sample] :is(strong, .card-stat-phase__bar) { opacity: 0.72; }
 .card-stat-phase small { display: inline-flex; gap: 0.25rem; align-items: center; }
-.card-stat-phase small svg { width: 0.7rem; height: 0.7rem; color: #8a5a1c; }
+.card-stat-phase__low { display: inline-grid; place-items: center; color: #8a5a1c; cursor: help; }
+.card-stat-phase__low svg { width: 0.75rem; height: 0.75rem; }
 
 /* ── Toolbar: sort by any metric, legend with definitions, CSV ── */
 .constructed-card-stats__toolbar {
@@ -321,7 +314,6 @@
 }
 
 .constructed-card-stats__legend > span { display: inline-flex; align-items: center; }
-.constructed-card-stats__low { display: inline-flex; gap: 0.3rem; align-items: center; }
 
 .constructed-card-stats__toolbar .analytics-chart__error { flex-basis: 100%; margin: 0; }
 

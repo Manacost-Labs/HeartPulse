@@ -42,7 +42,8 @@ the class art only. For subscribers, the build gallery comes
 first (from build #1, the largest sample), then history.
 
 The mulligan table is the vendored VaryloUI DataTable on parchment tokens:
-card (a decklist tile: rarity edge, a drawn mana gem, the full name as text,
+card (a decklist tile: rarity edge, the game's mana crystal
+(`/assets/mana-64.webp`) with the cost in the display font, the full name as text,
 two lines at most, and card art fading in from the right, cut from the trimmed
 original at 256px, twice the art area) and one cell per phase (mulligan,
 draw, kept) with the impact badge, a bar from the zero line and the sample
@@ -51,7 +52,7 @@ the table never scrolls sideways on desktop, and on phones (≤820px) each card
 is one row with the sorted phase in front and all three phases on tap. A
 toolbar sorts by any of the six metrics, explains each phase and exports the
 shown rows as CSV with one column per metric. Phases measured on fewer than
-100 games are dimmed to 72% and carry a «мало данных» marker; the whole row is
+100 games are dimmed to 72% with an ⓘ hint beside the sample; the whole row is
 dimmed to 78% when the sorted phase is. The tile previews the full card on
 hover or focus and opens it on click or tap.
 Card previews and subscription boundaries stay intact.

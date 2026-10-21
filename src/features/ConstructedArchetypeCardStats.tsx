@@ -16,7 +16,7 @@ import {
   type HsguruCardStatSortKey,
 } from './archetypeDetailModel';
 import {
-  CARD_STATS_FIRST_PAGE, CardStatsList, CardStatsToolbar, CardTile, InfoTip, LowSampleMark, PHASES, PhaseValue, phaseOf,
+  CARD_STATS_FIRST_PAGE, CardStatsList, CardStatsToolbar, CardTile, InfoTip, PHASES, PhaseValue, phaseOf,
   type ConstructedCardStat,
 } from './ConstructedArchetypeCardStatsCells';
 import '../vendor/varylo-ui/styles/index.css';
@@ -73,7 +73,6 @@ function CardStatsTable({ rows, sort, scales, rowKeys, onSort, onOpen, onPreview
                 aria-label={`${row.cardName}, ${row.cost ?? 'неизвестная стоимость'} маны. Открыть полную карту`}
               >{name}</button>
             ) : name}
-            {low ? <LowSampleMark /> : null}
           </span>
         );
       },

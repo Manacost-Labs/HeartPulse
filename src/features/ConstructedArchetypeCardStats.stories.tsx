@@ -54,7 +54,7 @@ export const Desktop: Story = {
     await expect(canvas.getByRole('columnheader', { name: 'Муллиган' })).toHaveAttribute('aria-sort', 'descending');
     await expect(canvasElement.querySelectorAll('.constructed-card-stats__table tbody tr')).toHaveLength(15);
     await expect(canvasElement.querySelector('.constructed-card-stats__table .card-stat-row[data-low-sample]')).not.toBeNull();
-    await expect(canvas.getAllByText('мало данных').length).toBeGreaterThan(0);
+    await expect(canvas.getAllByRole('img', { name: /Мало данных/ }).length).toBeGreaterThan(0);
     const lowCell = canvasElement.querySelector('.constructed-card-stats__table tr:has(.card-stat-row[data-low-sample]) > td');
     await expect(lowCell).not.toBeNull();
     if (lowCell) await expect(Number(getComputedStyle(lowCell).opacity)).toBeGreaterThanOrEqual(0.7);

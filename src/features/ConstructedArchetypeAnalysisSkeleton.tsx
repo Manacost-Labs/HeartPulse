@@ -3,7 +3,6 @@ import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { DataTable, type DataTableColumn } from '../vendor/varylo-ui/data-display/DataTable';
 import { Title, Value, Words } from './archetypeSkeletonText';
 import { CARD_STATS_FIRST_PAGE } from './ConstructedArchetypeCardStatsCells';
-import { LOW_CARD_SAMPLE } from './archetypeDetailModel';
 import '../vendor/varylo-ui/styles/index.css';
 import './ConstructedArchetypeAnalysis.css';
 import './ConstructedArchetypeCardStats.css';
@@ -75,7 +74,6 @@ export function ArchetypeAnalysisSkeleton() {
           <LoadingBlock className="constructed-card-stats__direction" />
           <span className="constructed-card-stats__legend">
             {PHASE_LABELS.map(label => <span key={label}><Words>{label}</Words><span className="archetype-analysis-skeleton__tip"><LoadingBlock /></span></span>)}
-            <span className="constructed-card-stats__low"><Words>{`ⓘ мало данных — выборка меньше ${LOW_CARD_SAMPLE}`}</Words></span>
           </span>
           <LoadingBlock className="constructed-card-stats__csv" />
         </div>
