@@ -5,7 +5,7 @@ import { Combobox } from '../vendor/valyro-ui/forms/Combobox';
 import type { SelectItem } from '../vendor/valyro-ui/forms/Listbox';
 import { PortalContainerContext } from '../vendor/valyro-ui/primitives/Portal';
 import { useStandardMatchups } from '../modules/standardMatchups/public';
-import { classIconUrl, useNeutralClassIcon } from './classIcons';
+import { classIconUrl } from './classIcons';
 import {
   formatProfileValue, matchupBetween, profileComparison, profileSummary,
 } from './archetypeComparisonModel';
@@ -20,14 +20,13 @@ type MatchupState = Parameters<typeof matchupBetween>[0] | 'loading' | 'unavaila
 
 /**
  * The subscriber's HSGuru matchup table of the archetype's format, read through the matchups
- * module (same access as this page). Its hook starts on Standard, so a Wild page switches the
- * format before enabling the read instead of fetching Standard first.
+ * module (same access as this page). Its hook starts on Standard; a Wild page switches it on
+ * mount, which cancels the Standard read.
  */
 function useFormatMatchups(viewerId: string | undefined, format: 'standard' | 'wild'): MatchupState {
-  const [switched, setSwitched] = useState<'standard' | 'wild'>('standard');
-  const matchups = useStandardMatchups(viewerId, Boolean(viewerId) && switched === format);
+  const matchups = useStandardMatchups(viewerId, Boolean(viewerId));
   const { changeFormat } = matchups;
-  useEffect(() => { changeFormat(format); setSwitched(format); }, [changeFormat, format]);
+  useEffect(() => { changeFormat(format); }, [changeFormat, format]);
   if (!viewerId) return 'unavailable';
   if (matchups.format !== format || matchups.loading) return 'loading';
   return matchups.state.data ?? (matchups.error ? 'unavailable' : 'loading');
@@ -39,9 +38,14 @@ const CLASS_NAMES: Record<string, string> = {
 };
 const percent = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
 
+const NEUTRAL_ICON = '/class_icon/neutral.webp';
+
 function ClassIcon({ classKey, size = 20 }: { classKey: string | null; size?: number }) {
   return <img className="profile-class-icon" src={classIconUrl(classKey)} alt="" width={size} height={size} loading="lazy"
-    onError={event => useNeutralClassIcon(event.currentTarget)} />;
+    onError={event => {
+      const image = event.currentTarget;
+      if (!image.src.endsWith(NEUTRAL_ICON)) image.src = NEUTRAL_ICON;
+    }} />;
 }
 
 /** Opponents grouped by class, each with its icon and its winrate and sample as the description. */
@@ -139,22 +143,32 @@ function tableMetrics(rows: Rows, mineLabel: string, theirLabel: string): Compar
   });
 }
 
-function HeadToHead({ mine, theirs, matchup }: {
-  mine: ProfileItem; theirs: ProfileItem; matchup: ReturnType<typeof matchupBetween> | 'loading' | 'unavailable';
-}) {
-  const body = matchup === 'loading' ? <p className="profile-h2h__note">Загружаем матчапы HSGuru…</p>
-    : matchup === 'unavailable' || matchup === null ? <p className="profile-h2h__note">Матчапы HSGuru сейчас недоступны.</p>
-    : matchup.winrate === null ? <p className="profile-h2h__note">{matchup.missing === 'pair'
-      ? 'HSGuru не публикует эту пару: в Легенде у неё меньше 25 игр.'
-      : `«${matchup.missing === 'archetype' ? mine.archetypeLabel : theirs.archetypeLabel}» нет в таблице матчапов HSGuru для Легенды: у архетипа мало игр на этом ранге.`}</p>
-    : <>
-      <p className="profile-h2h__value"><b>{percent(matchup.winrate)}</b> побед {mine.archetypeLabel} против {theirs.archetypeLabel}</p>
-      <span className="profile-h2h__bar" aria-hidden="true"><i data-side="mine" style={{ inlineSize: `${matchup.winrate}%` }} /><i data-side="theirs" /></span>
-      {matchup.reverse !== null ? <p className="profile-h2h__note">Обратная пара в той же таблице: {theirs.archetypeLabel} — {percent(matchup.reverse)}.</p> : null}
-    </>;
+type MatchupView = ReturnType<typeof matchupBetween> | 'loading' | 'unavailable';
+
+/** Why the direct matchup has no number, or null when it has one. */
+function matchupNote(matchup: MatchupView, mine: ProfileItem, theirs: ProfileItem) {
+  if (matchup === 'loading') return 'Загружаем матчапы HSGuru…';
+  if (matchup === 'unavailable' || matchup === null) return 'Матчапы HSGuru сейчас недоступны.';
+  if (matchup.winrate !== null) return null;
+  if (matchup.missing === 'pair') return 'HSGuru не публикует эту пару: в Легенде у неё меньше 25 игр.';
+  const absent = matchup.missing === 'archetype' ? mine : theirs;
+  return `«${absent.archetypeLabel}» нет в таблице матчапов HSGuru для Легенды: у архетипа мало игр на этом ранге.`;
+}
+
+function MatchupValue({ winrate, reverse, mine, theirs }: { winrate: number; reverse: number | null; mine: ProfileItem; theirs: ProfileItem }) {
+  return <>
+    <p className="profile-h2h__value"><b>{percent(winrate)}</b> побед {mine.archetypeLabel} против {theirs.archetypeLabel}</p>
+    <span className="profile-h2h__bar" aria-hidden="true"><i data-side="mine" style={{ inlineSize: `${winrate}%` }} /><i data-side="theirs" /></span>
+    {reverse !== null ? <p className="profile-h2h__note">Обратная пара в той же таблице: {theirs.archetypeLabel} — {percent(reverse)}.</p> : null}
+  </>;
+}
+
+function HeadToHead({ mine, theirs, matchup }: { mine: ProfileItem; theirs: ProfileItem; matchup: MatchupView }) {
+  const note = matchupNote(matchup, mine, theirs);
   return <section className="profile-h2h" aria-label="Очный матчап">
     <h3><Swords size={16} aria-hidden="true" /> Очный матчап · HSGuru, Легенда</h3>
-    {body}
+    {note || typeof matchup !== 'object' || matchup?.winrate == null ? <p className="profile-h2h__note">{note}</p>
+      : <MatchupValue winrate={matchup.winrate} reverse={matchup.reverse} mine={mine} theirs={theirs} />}
   </section>;
 }
 
