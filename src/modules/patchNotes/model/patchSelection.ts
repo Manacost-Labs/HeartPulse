@@ -27,17 +27,22 @@ export function filterPatchView(view: PatchView, filter: PatchFilter): PatchGrou
 
 const HIGHLIGHT_WEIGHT: Record<PatchSectionId, number> = { standard: 300, constructed: 250, arena: 200, wild: 150, battlegrounds: 100, other: 50 };
 
+/** A section this short is read whole below; picking from it would only repeat it. */
+const SHORT_SECTION = 3;
+
 /**
- * The patch at a glance: up to `limit` changes with a picture, Standard first,
- * then the largest number moves; a stated buff or nerf outranks a rework and
- * no section fills more than half the list unless nothing else is left.
+ * The patch at a glance: up to `limit` changes with a picture from sections
+ * longer than three cards, Standard first, then the largest number moves; a
+ * stated buff or nerf outranks a rework and no section fills more than half
+ * the list unless nothing else is left.
  */
 export function patchHighlights(view: PatchView, limit = 6): PatchCardView[] {
   const score = (card: PatchCardView) => HIGHLIGHT_WEIGHT[card.section] + (card.kind === 'rework' ? 0 : 40)
     + Math.min(50, 10 * card.changes.reduce((sum, change) =>
       sum + (isNumber(change.before) && isNumber(change.after) ? Math.abs(change.after - change.before) : 0), 0))
     + (card.hasText ? 20 : 0);
-  const ranked = view.groups.flatMap(group => group.entries).filter(card => card.cardId)
+  const long = new Set(view.sections.filter(section => section.count > SHORT_SECTION).map(section => section.id));
+  const ranked = view.groups.flatMap(group => group.entries).filter(card => card.cardId && long.has(card.section))
     .map((card, index) => ({ card, index, score: score(card) }))
     .sort((left, right) => right.score - left.score || left.index - right.index).map(({ card }) => card);
   const cap = Math.ceil(limit / 2);

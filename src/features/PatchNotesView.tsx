@@ -36,10 +36,12 @@ function PatchHeader({ patch, view, timeZone }: { patch: PatchNotesDetail; view:
   const date = formatDate(patch.publishedAt, timeZone);
   return (
     <header className="hp-patch-hero">
-      <p className="hp-patch-hero__eyebrow">
+      {/* The page heading lives in the patch card: a tall route banner would push the changes below the fold. */}
+      <div className="hp-patch-hero__eyebrow">
+        <h1>Патчноуты Hearthstone</h1>
         <span>Патч {patch.version}</span>
         {date && <time dateTime={patch.publishedAt ?? undefined}>{date}</time>}
-      </p>
+      </div>
       <h2 className="hp-patch-hero__title">{patch.title}</h2>
       {patch.summary && <p className="hp-patch-hero__lead">{patch.summary}</p>}
       {view.total > 0 && (

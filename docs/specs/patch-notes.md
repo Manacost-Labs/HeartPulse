@@ -88,12 +88,17 @@ the viewer's zone after it.
   the header (version, date, article lead, counts by kind, links to the
   official Blizzard notes and the source article), "Главное в патче", the
   contents, the filters and the sections.
-- "Главное в патче" picks up to six changes with a picture: Standard first,
-  then the largest number moves; a stated buff or nerf outranks a rework and
-  one section fills at most half the list while others have candidates.
-  Constructed cards of a known format link to their card page
-  (`/standard/cards/<format>/<id>/`), which lists decks with the card; patch
-  data has no card-to-archetype link, so there is no direct archetype link.
+- The page heading (`h1` "Патчноуты Hearthstone") sits in the patch card
+  instead of the tall route banner, which only the missing, failed and
+  loading states still show.
+- "Главное в патче" picks up to six changes with a picture from sections
+  longer than three cards (a shorter section is read whole below, so it is
+  not repeated): Standard first, then the largest number moves; a stated buff
+  or nerf outranks a rework and one section fills at most half the list
+  while others have candidates. Constructed cards of a known format link to
+  their card page (`/standard/cards/<format>/<id>/`), which lists decks with
+  the card; patch data has no card-to-archetype link, so there is no direct
+  archetype link.
 - Sections are Стандарт, Вольный, Стандарт и Вольный (cards of unknown
   format), Арена, Поля сражений and Другие режимы, each a `<details>` open by
   default with its count. Constructed entries carry `format`: `standard` when
@@ -104,11 +109,15 @@ the viewer's zone after it.
 - Filters: search over Russian and English names and change text, "Только
   бафы / нерфы / изменения", and class or card type. Filtering hides the
   highlights and section notes.
+- A change with only cost, stat or armor moves (no text, no developer
+  note) uses the compact card: three columns on wide content, the card about
+  as tall as its picture. Cards with text or notes keep the full layout.
 - A change card shows one picture in a fixed card-shaped box: the
   Constructed render `/api/card-image/<id>/thumb.webp`, the Battlegrounds
   catalog render resized through `/api/public-resource` (else the proxy's
   square art). Images have width and height, the first four load eagerly.
-  Hover or focus shows the full current card; a tap opens it in a sheet. No
+  A zoom mark on the picture says it opens: hover or focus shows the full
+  current card, a tap or click opens it in a sheet. No
   source has card images from before a patch, so there is no before/after
   render toggle: the before state is the struck-out value or the word diff.
 - Number changes read `старое → новое` coloured by direction; text changes

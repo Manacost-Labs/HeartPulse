@@ -299,8 +299,8 @@ test('the page groups cards by mode, class or type and derives kinds only from d
   assert.equal(serpent?.kind, 'rework', 'a text change carries no direction');
   assert.equal(serpent?.hasText, true);
   assert.equal(serpent?.cardUrl, '/standard/cards/standard/TLC_600/');
-  assert.deepEqual(patchHighlights(view, 4).map(card => card.name), ['Змей ветреных вершин', 'Рено Джексон', 'Молот Сумерек', 'Алчная гиена'],
-    'Standard first, then the largest number moves; one section fills half the list until nothing else is left');
+  assert.deepEqual(patchHighlights(view, 4).map(card => card.name), ['Рено Джексон', 'Молот Сумерек', 'Алчная гиена', 'Молот Сумерек'],
+    'short sections (one Standard card) are read whole below; then the largest number moves first');
   const cards = view.groups.flatMap(group => group.entries);
   const hammer = cards.find(entry => entry.cardId === 'BG36_MagicItem_403');
   assert.deepEqual([hammer?.name, hammer?.sourceName, hammer?.art, hammer?.kind, hammer?.changes[0].direction],

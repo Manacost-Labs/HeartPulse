@@ -2,7 +2,7 @@ import { ImageOff } from 'lucide-react';
 import {
   sentenceCase, type PatchCardView, type PatchGroupView, type PatchNotesDetail, type PatchNotesMode, type PatchSectionView,
 } from '../../modules/patchNotes/public';
-import { EAGER_CARDS, KINDS, KIND_LABELS, PatchCard, type CardHandlers } from './PatchCard';
+import { EAGER_CARDS, KINDS, KIND_LABELS, PatchCard, isCompactCard, type CardHandlers } from './PatchCard';
 import { groupAnchor, sectionAnchor } from './PatchNotesNavigation';
 
 /* The reading flow below the header: highlights and collapsible sections of change cards. */
@@ -13,13 +13,20 @@ export function Highlights({ cards, handlers }: { cards: PatchCardView[]; handle
     <section className="hp-patch-highlights" aria-labelledby="hp-patch-highlights-title">
       <div className="hp-patch-highlights__head">
         <h3 id="hp-patch-highlights-title">Главное в патче</h3>
-        <p>Сначала Стандарт, затем самые крупные изменения чисел в других режимах.</p>
+        <p>Самые крупные изменения больших разделов. Короткие разделы, до трёх карт, читаются целиком ниже.</p>
       </div>
-      <ul className="hp-patch-highlights__list">
-        {cards.map((card, index) => (
-          <li key={card.id}><PatchCard card={card} eager={index < EAGER_CARDS} headingLevel="h3" {...handlers} /></li>
-        ))}
-      </ul>
+      {[false, true].map(compact => {
+        const shown = cards.filter(card => isCompactCard(card) === compact);
+        return shown.length > 0 && (
+          <ul key={String(compact)} className={`hp-patch-highlights__list${compact ? ' hp-patch-group__list--compact' : ''}`}>
+            {shown.map(card => (
+              <li key={card.id}>
+                <PatchCard card={card} compact={compact} eager={cards.indexOf(card) < EAGER_CARDS} headingLevel="h3" {...handlers} />
+              </li>
+            ))}
+          </ul>
+        );
+      })}
     </section>
   );
 }
@@ -74,11 +81,16 @@ export function PatchSection({ section, groups, patch, notes, filtered, eagerFro
         {groups.map(group => (
           <div key={group.id} className="hp-patch-group" id={groupAnchor(group.id)}>
             <h4 className="hp-patch-group__title">{group.title} <span>{group.entries.length}</span></h4>
-            <ul className="hp-patch-group__list">
-              {group.entries.map(card => (
-                <li key={card.id}><PatchCard card={card} eager={rendered++ < EAGER_CARDS} {...handlers} /></li>
-              ))}
-            </ul>
+            {[false, true].map(compact => {
+              const cards = group.entries.filter(card => isCompactCard(card) === compact);
+              return cards.length > 0 && (
+                <ul key={String(compact)} className={`hp-patch-group__list${compact ? ' hp-patch-group__list--compact' : ''}`}>
+                  {cards.map(card => (
+                    <li key={card.id}><PatchCard card={card} compact={compact} eager={rendered++ < EAGER_CARDS} {...handlers} /></li>
+                  ))}
+                </ul>
+              );
+            })}
           </div>
         ))}
         {!filtered && notes && <SectionNotes patch={patch} mode={notes} />}

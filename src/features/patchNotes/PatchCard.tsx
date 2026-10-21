@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUp, ImageOff, RefreshCw } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, ImageOff, RefreshCw, ZoomIn } from 'lucide-react';
 import type { PatchCardView, PatchChangeView, PatchKind } from '../../modules/patchNotes/public';
 import { wordDiff } from '../../vendor/varylo-ui/gaming/patch';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
@@ -122,17 +122,23 @@ function CardArt({ card, eager, onPreview, onPreviewEnd, onOpen }: CardHandlers 
       onClick={() => { onPreviewEnd(); onOpen(card); }}>
       <img src={picture.src} alt="" width={picture.width} height={picture.height} loading={eager ? 'eager' : 'lazy'}
         decoding="async" onError={() => setFailed(true)} />
+      <span className="hp-patch-card__zoom" aria-hidden="true"><ZoomIn /></span>
     </button>
   );
 }
 
-export function PatchCard({ card, eager, headingLevel = 'h5', ...handlers }: CardHandlers & {
-  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h5';
+/** Cost, stat and armor moves read in one line, so such cards take the compact three-column layout. */
+export function isCompactCard(card: PatchCardView): boolean {
+  return !card.hasText && !card.note;
+}
+
+export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, ...handlers }: CardHandlers & {
+  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h5'; compact?: boolean;
 }) {
   const Heading = headingLevel;
   const headingId = `hp-patch-${headingLevel}-${card.id}`;
   return (
-    <article className="hp-patch-card" data-kind={card.kind} aria-labelledby={headingId}>
+    <article className="hp-patch-card" data-kind={card.kind} data-compact={compact || undefined} aria-labelledby={headingId}>
       <CardArt card={card} eager={eager} {...handlers} />
       <div className="hp-patch-card__body">
         <div className="hp-patch-card__head">
