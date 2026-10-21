@@ -41,14 +41,14 @@ test fails if a command is dropped):
   test input and never part of a release.
 - **Typecheck, lint and static gates** runs `npm run verify:release:checks`.
 - The three **Registry suites** shards (unit, integration, contract and
-  production-smoke) and the eight **Browser suite** shards download the build
+  production-smoke) and the nine **Browser suite** shards download the build
   and Storybook outputs instead of rebuilding. Both matrices split the
   registered files by historical duration; browser shards retry a failing file
   once, reporting a pass on the retry as FLAKY; see
   [the test registry](docs/architecture/phase0-test-discovery.md#ci-sharding-and-flaky-retries).
 - **Full browser observatory** builds its own Next.js runtime and runs the
   representative responsive browser matrix in two parallel parts
-  (`QA_PART=routes|admin`; locally `npm run qa:ci` runs both).
+  (`QA_PART=routes|interactions`; locally `npm run qa:ci` runs both).
 
 Every job must pass before the production runner can download the immutable
 artifact. Pull requests and feature branches never create or deploy a
