@@ -10,7 +10,10 @@ const meta = {
 } satisfies Meta<typeof StandardMatchups>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Overview: Story = {};
+// The matrix is the default view; the overview stories open the archetype overview tab.
+export const Overview: Story = { play: async ({ canvas }) => {
+  await userEvent.click(canvas.getByRole('button', { name: /Обзор архетипа/ }));
+} };
 export const PopulatedOverview: Story = { play: async ({ canvas }) => {
   await userEvent.click(canvas.getByRole('button', { name: /Обзор архетипа/ }));
   await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Архетип' }), columns[1].name);
