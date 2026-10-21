@@ -111,6 +111,7 @@
       "src/vendor/valyro-ui/charts/SankeyChart.tsx": 1,
       "src/vendor/valyro-ui/charts/sankeyLayout.ts": 2,
       "src/vendor/valyro-ui/charts/utils.ts": 1,
+      "src/vendor/valyro-ui/motion-kit/page-transitions.ts": 1,
       "src/vendor/valyro-ui/primitives/useVirtualizer.ts": 1
     },
     "frontendRawFetch": {

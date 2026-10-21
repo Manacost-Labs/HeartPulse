@@ -46,21 +46,15 @@ function measure(list: HTMLElement): WeakMap<Element, Place> {
 export function useListTransition<T extends HTMLElement>(items: unknown, forward?: MutableRefObject<T | null>, mode?: ListTransitionMode): RefCallback<T> {
   const list = useRef<T | null>(null);
   const lastMode = useRef(mode?.key);
-  const measured = useRef<{ list: T; places: WeakMap<Element, Place> } | null>(null);
+  const measured = useRef<{ list: T; width: number; places: WeakMap<Element, Place> } | null>(null);
   const running = useRef<Animation[]>([]);
   const ref = useCallback((node: T | null) => {
     list.current = node;
     if (forward) forward.current = node;
     if (!node) return undefined;
     // A list that has just mounted starts from its own places: its first items do not enter.
-    measured.current = { list: node, places: measure(node) };
-    // A resized list (another column count) re-reads its places, so the next change does not glide from a stale grid.
-    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
-      if (measured.current?.list === node) measured.current = { list: node, places: measure(node) };
-    }) : null;
-    observer?.observe(node);
+    measured.current = { list: node, width: node.clientWidth, places: measure(node) };
     return () => {
-      observer?.disconnect();
       // Another element (the next view) may hold the ref by now.
       if (list.current === node) list.current = null;
       if (forward?.current === node) forward.current = null;
@@ -71,15 +65,16 @@ export function useListTransition<T extends HTMLElement>(items: unknown, forward
     if (!node) return;
     running.current.forEach(animation => animation.cancel());
     running.current = [];
-    const before = measured.current?.list === node ? measured.current.places : null;
+    // A resized list (another column count) does not glide from its stale grid.
+    const width = node.clientWidth;
+    const before = measured.current?.list === node && measured.current.width === width ? measured.current.places : null;
     const after = measure(node);
-    measured.current = { list: node, places: after };
+    measured.current = { list: node, width, places: after };
     const modeChange: TransitionDirection | null = mode && lastMode.current !== undefined && lastMode.current !== mode.key
       ? switchDirection(mode.order, lastMode.current, mode.key) : null;
     lastMode.current = mode?.key;
     if (before && typeof node.animate === 'function') running.current = animateChange(node, before, after, modeChange);
-    // `mode` is read with `items`: a mode changes the list only when its items arrive.
-  }, [items]);
+  }, [items, mode?.key, mode?.order]);
   useLayoutEffect(() => () => running.current.forEach(animation => animation.cancel()), []);
   return ref;
 }

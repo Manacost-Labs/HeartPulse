@@ -282,8 +282,9 @@ The revised contract keeps the owner's rhythm without those costs:
    without motion.
 
 Verification: `tests/next-page-transitions-browser.test.mjs` asserts one
-220 ms content entrance (rise) at commit, no view-transition animation anywhere, Back
-and reduced motion without motion and a menu click during the entrance;
+220 ms content entrance (rise) at commit, no view-transition animation
+anywhere, Back and reduced motion without motion and a menu click during the
+entrance;
 `RouteTransition.stories.tsx` covers the skeleton-then-content entrance.
 
 ### ValyroUI transitions (2026-10-21)

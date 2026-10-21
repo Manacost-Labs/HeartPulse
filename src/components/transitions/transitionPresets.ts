@@ -2,7 +2,6 @@ import {
   pageTransitionSpec,
   reducedPageTransition,
   type PageTransitionDirection,
-  type PageTransitionPreset,
 } from '../../vendor/valyro-ui/motion-kit/page-transitions';
 
 import { MODE_ORDER, switchDirection } from './transitionOrder';
