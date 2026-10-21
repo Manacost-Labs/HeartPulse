@@ -26,7 +26,20 @@ function fadeIn(elements: Element[], keyframes: Keyframe[] = FADE, token = '--mo
  * (header, then figures, then content, in document order). Transform and
  * opacity only, so nothing is laid out again and no layout shift is counted.
  */
-function arrive(elements: Element[]): Animation[] {
+/** A section that already plays a scripted settle of its own (the home feed) keeps it. */
+const scripted = (animations: Animation[]) => animations.some(animation => !(animation instanceof CSSAnimation) && !(animation instanceof CSSTransition));
+
+/** A section that already plays a scripted settle of its own (the home feed), around or inside it, keeps it. */
+function settlingOnItsOwn(element: Element, box: HTMLElement): boolean {
+  if (scripted(element.getAnimations({ subtree: true }))) return true;
+  for (let node = element.parentElement; node && node !== box; node = node.parentElement) {
+    if (scripted(node.getAnimations())) return true;
+  }
+  return false;
+}
+
+function arrive(candidates: Element[], box: HTMLElement): Animation[] {
+  const elements = candidates.filter(element => !settlingOnItsOwn(element, box));
   const duration = motionMs('--motion-base');
   if (!duration) return [];
   const easing = motionEasing('--motion-ease');
@@ -85,7 +98,7 @@ function arrivedContent(records: MutationRecord[], box: HTMLElement, placeholder
  * larger preset: a late section only settles in), until none is left, the
  * reader acts or `ARRIVAL_WINDOW_MS` passes. Returns the cancellation.
  */
-function enter(box: HTMLElement, keyframes: Keyframe[], placeholder = SKELETON): () => void {
+function enter(box: HTMLElement, keyframes: Keyframe[], placeholder = SKELETON, announce = true): () => void {
   const animations: Animation[] = [];
   if (!box.querySelector(placeholder)) {
     const content = [...box.children].filter(child => !(child as HTMLElement).hidden);
@@ -93,16 +106,18 @@ function enter(box: HTMLElement, keyframes: Keyframe[], placeholder = SKELETON):
     clipWhileMoving(box, animations);
     return () => animations.forEach(animation => animation.cancel());
   }
-  setRouteEntranceActive(true);
+  // A navigation's arrivals tell nested settles to stand aside; the first
+  // document's do not: the home feed keeps its own settle there.
+  if (announce) setRouteEntranceActive(true);
   const observer = new MutationObserver(records => {
-    animations.push(...arrive(arrivedContent(records, box, placeholder)));
+    animations.push(...arrive(arrivedContent(records, box, placeholder), box));
     if (!box.querySelector(placeholder)) stop();
   });
   const timer = setTimeout(() => stop(), ARRIVAL_WINDOW_MS);
   // From the reader's first input on, new content answers them, not the navigation.
   const options = { capture: true, once: true } as const;
   function stop() {
-    setRouteEntranceActive(false);
+    if (announce) setRouteEntranceActive(false);
     observer.disconnect();
     clearTimeout(timer);
     document.removeEventListener('pointerdown', stop, options);
@@ -132,7 +147,7 @@ export function RouteTransition({ routeKey, children }: { routeKey: string; chil
   useLayoutEffect(() => {
     const box = root.current?.querySelector<HTMLElement>('[data-route-content]');
     if (!box?.animate || !box.querySelector(FIRST_LOAD_PLACEHOLDER) || prefersReducedMotion()) return;
-    firstArrivals.current = enter(box, FADE, FIRST_LOAD_PLACEHOLDER);
+    firstArrivals.current = enter(box, FADE, FIRST_LOAD_PLACEHOLDER, false);
     return () => firstArrivals.current?.();
   }, []);
   useLayoutEffect(() => {
