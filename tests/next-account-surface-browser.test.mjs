@@ -155,8 +155,6 @@ test('sign in with a code, see linked methods, start linking Google and sign out
     // Sign in: password, then the one-time code from the e-mail.
     const signIn = async (address, name) => {
       await page.waitForSelector('#login-card-title');
-      // The panel remounts once the session check settles; type after that.
-      await page.waitForNetworkIdle({ idleTime: 500 });
       // The card remembers the last address; replace it.
       await page.focus('input[type="email"]');
       await page.keyboard.down('Control');
@@ -165,6 +163,9 @@ test('sign in with a code, see linked methods, start linking Google and sign out
       await page.keyboard.press('Backspace');
       await page.type('input[type="email"]', address);
       await page.type('input[autocomplete="current-password"]', password);
+      assert.deepEqual(await page.$eval('form', form => [form.querySelector('input[type="email"]').value,
+        form.querySelector('input[autocomplete="current-password"]').value]), [address, password],
+      'the sign-in form holds what was typed');
       await page.click('button.login-submit');
       const delivery = await runtime.backend.smtp.delivery(address);
       const code = delivery.body.match(/Ваш код входа: (\d{6})/)?.[1];
