@@ -13,6 +13,7 @@ import { EAGER_CARDS, previewSource, type CardHandlers } from './patchNotes/Patc
 import { PatchArchive } from './patchNotes/PatchArchive';
 import { PatchHero } from './patchNotes/PatchHero';
 import { AffectedArchetypes, GroupStrip } from './patchNotes/PatchMetaImpact';
+import { PatchMetaFlow } from './patchNotes/PatchMetaFlow';
 import { PatchModeTiles } from './patchNotes/PatchModeTiles';
 import { Contents, PatchPager, Toolbar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
 import { Highlights, PatchSection } from './patchNotes/PatchNotesSections';
@@ -108,7 +109,7 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
           <PatchModeTiles view={view} />
           {!filtered && (
             <Highlights cards={highlights} handlers={handlers}>
-              {showAffected ? <AffectedArchetypes view={view} meta={patch.meta} /> : null}
+              {showAffected ? <><AffectedArchetypes view={view} meta={patch.meta} /><PatchMetaFlow view={view} /></> : null}
             </Highlights>
           )}
           <GroupStrip view={view} filter={filter} onChange={change} />

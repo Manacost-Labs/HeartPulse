@@ -88,3 +88,49 @@ export function patchKindShares(kinds: PatchKindCounts): PatchKindCounts {
   const share = (value: number) => Math.round((value / total) * 100);
   return { buff: share(kinds.buff), nerf: share(kinds.nerf), rework: share(kinds.rework) };
 }
+
+/** A node of the "changed cards → affected archetypes" flow; `href` is where a click leads. */
+export type PatchFlowNode = {
+  id: string;
+  kind: 'card' | 'archetype';
+  label: string;
+  href: string;
+  /** Buff, nerf or rework of a card node. */
+  cardKind?: PatchCardView['kind'];
+  classKey: string | null;
+};
+export type PatchFlowLink = { source: string; target: string; value: number };
+
+/**
+ * Changed cards flowing into today's archetypes that play them. A link is the
+ * number of the archetype's listed builds that contain the card (`decks`), so
+ * an archetype's height counts card appearances, not distinct builds. Only the
+ * `archetypes` most popular archetypes are kept, and the cards that reach them.
+ */
+export function patchMetaFlow(view: PatchView, { archetypes = 10 } = {}): { nodes: PatchFlowNode[]; links: PatchFlowLink[] } {
+  const cards = view.groups.flatMap(group => group.entries).filter(card => card.archetypes.length > 0);
+  const byArchetype = new Map<string, { node: PatchFlowNode; popularity: number }>();
+  for (const card of cards) {
+    for (const use of card.archetypes) {
+      const id = `archetype:${use.format}:${use.slug}`;
+      if (!byArchetype.has(id)) {
+        byArchetype.set(id, { node: { id, kind: 'archetype', label: use.name, href: use.href, classKey: use.classKey }, popularity: use.popularity ?? 0 });
+      }
+    }
+  }
+  const kept = new Set([...byArchetype.entries()].sort((left, right) => right[1].popularity - left[1].popularity)
+    .slice(0, archetypes).map(([id]) => id));
+  const links: PatchFlowLink[] = [];
+  const cardNodes: PatchFlowNode[] = [];
+  for (const card of cards) {
+    const id = `card:${card.anchor}`;
+    const own = card.archetypes.filter(use => kept.has(`archetype:${use.format}:${use.slug}`) && use.decks > 0);
+    if (!own.length) continue;
+    cardNodes.push({ id, kind: 'card', label: card.name, href: card.cardUrl ?? `#${card.anchor}`, cardKind: card.kind, classKey: card.classKey });
+    for (const use of own) links.push({ source: id, target: `archetype:${use.format}:${use.slug}`, value: use.decks });
+  }
+  const targets = new Set(links.map(link => link.target));
+  const archetypeNodes = [...byArchetype.values()].filter(({ node }) => targets.has(node.id))
+    .sort((left, right) => right.popularity - left.popularity).map(({ node }) => node);
+  return { nodes: [...cardNodes, ...archetypeNodes], links };
+}

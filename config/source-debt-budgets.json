@@ -103,7 +103,12 @@
 "src/vendor/varylo-ui/charts/treemapLayout.ts": 1,
 "src/vendor/varylo-ui/gaming/PatchNotes.tsx": 1,
 "src/vendor/varylo-ui/gaming/TierList.tsx": 4,
-      "src/vendor/varylo-ui/primitives/useVirtualizer.ts": 1
+      "src/vendor/varylo-ui/primitives/useVirtualizer.ts": 1,
+      "src/vendor/valyro-ui/charts/cartesian.tsx": 1,
+      "src/vendor/valyro-ui/charts/SankeyChart.tsx": 1,
+      "src/vendor/valyro-ui/charts/sankeyLayout.ts": 2,
+      "src/vendor/valyro-ui/charts/utils.ts": 1,
+      "src/vendor/valyro-ui/primitives/useVirtualizer.ts": 1
     },
     "frontendRawFetch": {
       "src/components/GlobalUtilityHeader.tsx": 2,

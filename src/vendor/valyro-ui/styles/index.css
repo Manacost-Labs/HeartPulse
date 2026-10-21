@@ -1,0 +1,7 @@
+/*
+ * HearthPulse: shared Valyro tokens and base styles only. No bundled theme is shipped;
+ * the consumer maps the `--ui-*` tokens onto HearthPulse tokens in its own scope.
+ */
+@import './tokens.css';
+@import './base.css';
+@import './motion.css';

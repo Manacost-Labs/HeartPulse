@@ -1,0 +1,18 @@
+/*
+ * ThemeScope: a subtree painted like a page in its theme (html[data-theme] in styles/base.css).
+ * Nothing here may create a containing block or a stacking context (transform, filter, contain,
+ * z-index, isolation): layers portaled into the scope are position: fixed and must stay relative
+ * to the viewport and above the page's sticky chrome.
+ */
+.ui-theme-scope {
+  background: var(--ui-page-bg);
+  color: var(--ui-fg);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-leading);
+}
+
+/* Holds only portaled (fixed) layers: no box of its own, so it never adds a flex/grid item or gap. */
+.ui-theme-scope__layers {
+  display: contents;
+}

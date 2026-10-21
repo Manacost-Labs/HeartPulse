@@ -1,0 +1,76 @@
+/* Vercel: quiet translucent bands in the source's colour, crisp node bars; Glass raises opacity and adds a glow. */
+.ui-sankey-chart__link {
+  fill: none;
+  stroke: var(--_color);
+  stroke-opacity: var(--ui-sankey-chart-link-opacity);
+  stroke-dasharray: 1;
+  transition: stroke-opacity var(--ui-duration-fast) var(--ui-ease);
+  /* Flows pour in from the left, column after column. */
+  animation: ui-chart-draw calc(var(--ui-duration-slow) * 2.5) var(--ui-ease) both;
+  animation-delay: min(calc(var(--_i, 0) * var(--ui-duration-slow) / 2), calc(var(--ui-duration-fast) * 2.5));
+}
+
+.ui-sankey-chart__link:hover,
+.ui-sankey-chart__link[data-active] {
+  stroke-opacity: var(--ui-sankey-chart-link-opacity-active);
+}
+
+.ui-chart__svg[data-hover] .ui-sankey-chart__link:not([data-active]) {
+  stroke-opacity: var(--ui-sankey-chart-link-opacity-dimmed);
+}
+
+.ui-sankey-chart__node {
+  fill: var(--_color);
+  filter: var(--ui-chart-glow, var(--_glow));
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: opacity var(--ui-duration-fast) var(--ui-ease);
+  animation: ui-chart-grow-y calc(var(--ui-duration-slow) * 1.5) var(--ui-ease) both;
+  animation-delay: min(calc(var(--_i, 0) * var(--ui-duration-slow) / 2), calc(var(--ui-duration-fast) * 2.5));
+}
+
+.ui-chart__svg[data-hover] .ui-sankey-chart__node:not([data-active]) {
+  opacity: 0.35;
+}
+
+/* Labels sit over the bands: a halo in the card color masks the flows behind the letters. */
+.ui-sankey-chart__label {
+  fill: var(--ui-fg);
+  font-size: 12px;
+  font-weight: var(--ui-weight-medium);
+  paint-order: stroke;
+  stroke: var(--ui-bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-chart__svg[data-hover] .ui-sankey-chart__label:not([data-active]) {
+  opacity: 0.4;
+}
+
+.ui-sankey-chart__value {
+  fill: var(--ui-fg-muted);
+  font-weight: var(--ui-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-sankey-chart__tooltip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ui-fg);
+}
+
+/* HearthPulse: clickable nodes (see `onNodeClick` in SankeyChart.tsx). */
+.ui-sankey-chart__node[data-clickable] {
+  cursor: pointer;
+}
+
+@media (forced-colors: active) {
+  .ui-chart__svg .ui-sankey-chart__label {
+    stroke: Canvas;
+  }
+}

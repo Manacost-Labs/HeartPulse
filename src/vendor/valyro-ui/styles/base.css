@@ -1,0 +1,418 @@
+/*
+ * Base layer + shared building blocks used by many components.
+ * Shared classes (.ui-panel, .ui-floating, .ui-field, .ui-menu-item) let every
+ * component get the right material in both themes without duplicating rules.
+ */
+
+:where([class^='ui-'], [class*=' ui-']),
+:where([class^='ui-'], [class*=' ui-'])::before,
+:where([class^='ui-'], [class*=' ui-'])::after {
+  box-sizing: border-box;
+}
+
+html[data-theme] {
+  background: var(--ui-page-bg);
+  background-attachment: fixed;
+  color: var(--ui-fg);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-leading);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-theme] ::selection {
+  background: var(--ui-accent-soft);
+}
+
+/* ── Panel: cards, sidebars, tables. Solid in Vercel, frosted in Glass ── */
+.ui-panel {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-glass-border);
+  border-radius: var(--ui-radius-card);
+  box-shadow: var(--ui-highlight), var(--ui-sheen), var(--ui-shadow-card);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+  color: var(--ui-fg);
+  /* Decoration hooks (styles/tokens.css); after `background`, which would reset the texture. */
+  background-image: var(--ui-surface-texture);
+  corner-shape: var(--ui-surface-corner-shape);
+}
+
+/* ── Floating: popovers, menus, dialogs, toasts ── */
+.ui-floating {
+  background: var(--ui-elevated);
+  border: 1px solid var(--ui-floating-border-color);
+  border-radius: var(--ui-radius-popover);
+  box-shadow: var(--ui-highlight), var(--ui-sheen), var(--ui-shadow-popover);
+  -webkit-backdrop-filter: var(--ui-blur-strong);
+  backdrop-filter: var(--ui-blur-strong);
+  color: var(--ui-fg);
+  outline: none;
+  background-image: var(--ui-surface-texture);
+  corner-shape: var(--ui-surface-corner-shape);
+}
+
+/* ── Field: the text-input surface shared by inputs, selects, pickers ── */
+.ui-field {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  width: 100%;
+  min-height: var(--ui-control-h-md);
+  padding: 0 var(--ui-space-3);
+  background: var(--ui-field-bg);
+  border: var(--ui-border-width, 1px) solid var(--ui-border-field);
+  border-radius: var(--ui-radius-field);
+  corner-shape: var(--ui-control-corner-shape);
+  color: var(--ui-fg);
+  font: inherit;
+  font-size: var(--ui-text-md);
+  /* Before the focus rule, which replaces this shadow with the ring. */
+  box-shadow: var(--ui-field-shadow);
+  transition:
+    border-color var(--ui-duration-fast) var(--ui-ease),
+    box-shadow var(--ui-duration-fast) var(--ui-ease),
+    background-color var(--ui-duration-fast) var(--ui-ease);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+}
+
+/* Not on disabled fields; :where() keeps the specificity, so the invalid border still wins under the pointer. */
+.ui-field:hover:where(:not([data-disabled='true'], :disabled)) {
+  border-color: var(--ui-field-border-hover, color-mix(in srgb, var(--ui-border-field), var(--ui-fg) 25%));
+}
+
+.ui-field:focus-within,
+.ui-field:is(input, textarea, select, button):focus-visible {
+  outline: none;
+  border-color: var(--ui-field-focus-border-color, var(--ui-accent));
+  box-shadow: var(--ui-field-focus-ring, var(--ui-focus-ring));
+}
+
+.ui-field[data-invalid='true'],
+.ui-field[aria-invalid='true'] {
+  border-color: var(--ui-danger);
+}
+
+.ui-field[data-invalid='true']:focus-within,
+.ui-field[aria-invalid='true']:focus-visible {
+  box-shadow: var(--ui-field-focus-ring-invalid, var(--ui-focus-ring-invalid));
+}
+
+.ui-field[data-disabled='true'],
+.ui-field:disabled {
+  opacity: var(--ui-disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+.ui-field[data-size='sm'] {
+  min-height: var(--ui-control-h-sm);
+  font-size: var(--ui-text-sm);
+  padding: 0 var(--ui-space-2);
+}
+
+.ui-field[data-size='lg'] {
+  min-height: var(--ui-control-h-lg);
+  font-size: var(--ui-text-lg);
+  padding: 0 var(--ui-space-4);
+}
+
+/* Bare native input placed inside a .ui-field wrapper. It stretches to the field's
+   content box; inheriting min-height would add the 2px border on top (42px fields). */
+.ui-field__input {
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* Touch: iOS Safari zooms the page into a text field whose text is under 16px as it takes focus. */
+@media (pointer: coarse) {
+  .ui-field__input,
+  .ui-textarea__input {
+    font-size: max(16px, 1em);
+  }
+}
+
+.ui-field__input::placeholder,
+.ui-field::placeholder {
+  color: var(--ui-fg-subtle);
+}
+
+.ui-field__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ui-fg-faint);
+}
+
+/* ── Menu item: rows inside menus, listboxes, command palette ── */
+.ui-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  width: 100%;
+  min-height: var(--ui-menu-item-h);
+  padding: 0 var(--ui-space-2);
+  border: 0;
+  border-radius: calc(var(--ui-radius-popover) - 6px);
+  corner-shape: var(--ui-control-corner-shape);
+  background: transparent;
+  color: var(--ui-fg);
+  font: inherit;
+  font-size: var(--ui-text-md);
+  text-align: start;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  /* The highlight lands at once and fades out of the row it left, so a quick pass over a list trails
+     softly without lagging behind the pointer or the arrow keys. */
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    color var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-menu-item:hover,
+.ui-menu-item:focus-visible,
+.ui-menu-item[data-highlighted='true'] {
+  background: var(--ui-hover);
+  transition-duration: 0s;
+}
+
+/* Keyboard highlight: per theme, the hover tint again or a row filled with the accent, like a macOS menu. */
+.ui-menu-item:is(:focus-visible, [data-highlighted='true']) {
+  background: var(--ui-menu-highlight-bg);
+  color: var(--ui-menu-highlight-fg);
+}
+
+.ui-menu-item:is(:focus-visible, [data-highlighted='true']) .ui-menu-item__hint {
+  color: var(--ui-menu-highlight-hint-fg);
+}
+
+.ui-menu-item:is(:focus-visible, [data-highlighted='true']) .ui-menu-item__icon {
+  color: var(--ui-menu-highlight-icon-fg);
+}
+
+/* Destructive rows: red text and icon; a red-tinted or a solid red keyboard highlight, per theme. */
+.ui-menu-item[data-danger='true'] {
+  color: var(--ui-danger-text);
+}
+
+.ui-menu-item[data-danger='true'] .ui-menu-item__icon {
+  color: inherit;
+}
+
+.ui-menu-item[data-danger='true']:is(:hover, :focus-visible, [data-highlighted='true']):not([aria-disabled='true'], :disabled) {
+  background: var(--ui-danger-soft);
+}
+
+.ui-menu-item[data-danger='true']:is(:focus-visible, [data-highlighted='true']):not([aria-disabled='true'], :disabled) {
+  background: var(--ui-menu-danger-highlight-bg);
+  color: var(--ui-menu-danger-highlight-fg);
+}
+
+/* Last so it wins over every hover/highlight rule above. */
+.ui-menu-item:is([aria-disabled='true'], :disabled) {
+  color: var(--ui-fg-disabled);
+  cursor: not-allowed;
+  background: transparent;
+}
+
+.ui-menu-item__icon {
+  display: inline-flex;
+  color: var(--ui-fg-muted);
+}
+
+.ui-menu-item__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-menu-item__hint {
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+}
+
+.ui-menu-separator {
+  height: 1px;
+  margin: var(--ui-space-1) calc(-1 * var(--ui-space-1));
+  background: var(--ui-divider);
+}
+
+.ui-menu-label {
+  padding: var(--ui-space-2) var(--ui-space-2) var(--ui-space-1);
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-medium);
+}
+
+/* ── Right-to-left ──
+   Lay out with logical properties (margin-inline-start, inset-inline-end, text-align: start…);
+   they flip on their own under dir="rtl". Directional icons (chevrons, arrows) opt in to mirroring
+   with `data-dir-flip` — the directional icons in ../icons carry it already. The `scale` property
+   composes with a component's own `transform` (a rotating disclosure chevron keeps working), and
+   only the outermost flagged element flips, so a flagged wrapper around a flagged icon does not
+   cancel out. Keyboard: read the direction with getDirection()/useDirection() from primitives and
+   map arrows with inlineArrowStep(). */
+[data-dir-flip]:dir(rtl):not([data-dir-flip='false'], [data-dir-flip] [data-dir-flip]) {
+  scale: -1 1;
+}
+
+/* Icons (../icons) draw with this stroke unless a strokeWidth prop sets the attribute; zero specificity,
+   so a component's own stroke-width rule still wins, as it did over the presentation attribute. */
+:where(.ui-icon:not([stroke-width])) {
+  stroke-width: var(--ui-icon-stroke);
+}
+
+/* ── Utilities ── */
+.ui-focusable:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ui-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: var(--ui-border-width, 1px) solid var(--ui-border);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-surface-2);
+  color: var(--ui-fg-muted);
+  font-family: var(--ui-kbd-font, var(--ui-font-sans));
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* ── Shared keyframes ── */
+@keyframes ui-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes ui-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes ui-pop-in {
+  from { opacity: 0; transform: scale(0.96) translateY(var(--ui-pop-y, -4px)); }
+}
+
+@keyframes ui-pop-out {
+  to { opacity: 0; transform: scale(0.96) translateY(var(--ui-pop-y, -4px)); }
+}
+
+@keyframes ui-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes ui-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ui-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+/* Floating layers animate in/out via data-state set by usePresence */
+.ui-animate-pop {
+  transform-origin: var(--ui-transform-origin, top center);
+}
+
+.ui-animate-pop[data-side='top'] {
+  --ui-pop-y: 4px;
+}
+
+.ui-animate-pop:is([data-side='left'], [data-side='right']) {
+  --ui-pop-y: 0px;
+}
+
+.ui-animate-pop[data-state='open'] {
+  animation: ui-pop-in var(--ui-duration) var(--ui-ease-spring);
+}
+
+.ui-animate-pop[data-state='closed'] {
+  animation: ui-pop-out var(--ui-duration-fast) var(--ui-ease) forwards;
+}
+
+.ui-animate-fade[data-state='open'] {
+  animation: ui-fade-in var(--ui-duration) var(--ui-ease);
+}
+
+.ui-animate-fade[data-state='closed'] {
+  animation: ui-fade-out var(--ui-duration-fast) var(--ui-ease) forwards;
+}
+
+/* ── Forced colors (Windows High Contrast) ──
+   The UA drops box-shadow and repaints backgrounds with Canvas, so shadow-drawn focus rings,
+   inset-shadow borders and tinted selections vanish. Real outlines, borders and system colors
+   bring them back. Components keep their own selected-state rules (e.g. a sliding indicator
+   painted Highlight) in the same media query next to their styles. */
+@media (forced-colors: active) {
+  /* Every focus ring in the kit is a box-shadow; !important outranks components' `outline: none`. */
+  :where([class^='ui-'], [class*=' ui-']):not(.ui-field__input):focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+
+  .ui-field:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+
+  /* Button edges are inset shadows; a transparent border is forced to a visible system color. */
+  .ui-button:not([data-variant='link']) {
+    border: 1px solid transparent;
+  }
+
+  .ui-floating,
+  .ui-panel {
+    border-color: CanvasText;
+  }
+
+  /* Opted out: Chromium otherwise paints a Canvas backplate behind the label and hint, hiding them on Highlight. */
+  .ui-menu-item:is(:hover, :focus-visible, [data-highlighted='true']):not([aria-disabled='true'], :disabled),
+  .ui-menu-item[data-danger='true']:is(:hover, :focus-visible, [data-highlighted='true']):not([aria-disabled='true'], :disabled) {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .ui-menu-item:is(:hover, :focus-visible, [data-highlighted='true']) :is(.ui-menu-item__icon, .ui-menu-item__hint) {
+    color: inherit;
+  }
+
+  .ui-menu-item:is([aria-disabled='true'], :disabled) {
+    color: GrayText;
+  }
+
+  .ui-menu-separator {
+    background: CanvasText;
+  }
+}
+

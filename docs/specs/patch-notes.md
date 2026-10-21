@@ -76,6 +76,16 @@ answers `502`.
   HearthstoneJSON `ruRU`): `decks` of `totalDecks` builds, sorted by that
   share, then by popularity, at most eight. It is today's meta, also for old
   patches, and the page labels it "Играют сейчас".
+- "Изменённые карты → затронутые архетипы" follows the affected archetypes:
+  a Sankey diagram (Valyro Pro `SankeyChart`, vendored in
+  `src/vendor/valyro-ui`) from changed Constructed cards, coloured by buff,
+  nerf or rework, to the ten most popular archetypes that play them. A
+  flow is the number of the archetype's listed builds with the card
+  (`decks`), so an archetype's bar counts card appearances, not distinct
+  builds. A card node opens the card page (else its change on this page),
+  an archetype node its archetype page; on touch the first tap shows the
+  tooltip. Below 640 px of content the same links are a list. It is shown
+  only with at least two links.
 - "Затронутые архетипы" opens "Главное в патче": archetypes playing any
   changed card, most popular first, with buff/nerf/rework counts and the
   card names; six are shown, the rest behind a button. Chips link to
@@ -93,8 +103,9 @@ answers `502`.
   reprint or original. Battlegrounds entries have none. Only `http(s)` URLs
   are kept; the page loads them through the image proxy (at most 512 px).
 - The art catalog never delays a snapshot: the patches are parsed with the
-  last art lookup (none after a restart) and art that arrives later is
-  merged into the current snapshot without a refetch.
+  last art lookup (none after a restart); the catalog is read only after the
+  snapshot is built, because reading it alongside the archive slowed the
+  first answer, and its art is merged into the current snapshot on arrival.
 
 ## Navigation
 

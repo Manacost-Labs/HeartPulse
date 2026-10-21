@@ -1,0 +1,75 @@
+.ui-skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--ui-radius-sm);
+  background-color: var(--ui-skeleton-bg);
+}
+
+/* The sheen moves with transform (composited), so a grid of placeholders does not repaint on every frame. */
+.ui-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(90deg, transparent 0%, var(--ui-skeleton-shine) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: ui-skeleton-sweep 1.6s ease-in-out infinite;
+}
+
+.ui-skeleton:dir(rtl)::after {
+  animation-direction: reverse;
+}
+
+@keyframes ui-skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+/* animation="pulse": the placeholder breathes in place (opacity, composited). */
+.ui-skeleton[data-animation='pulse'] {
+  animation: ui-skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+.ui-skeleton:is([data-animation='pulse'], [data-animation='none'])::after {
+  content: none;
+}
+
+@keyframes ui-skeleton-pulse {
+  50% { opacity: 0.5; }
+}
+
+/* With children: the hidden children give the placeholder its size; `loaded` reveals them. */
+.ui-skeleton[data-wrap]:not([data-loaded]) > * {
+  visibility: hidden;
+}
+
+.ui-skeleton[data-loaded] {
+  overflow: visible;
+  background-color: transparent;
+  animation: none;
+}
+
+.ui-skeleton[data-loaded]::after {
+  content: none;
+}
+
+.ui-skeleton[data-loaded] > * {
+  animation: ui-skeleton-reveal var(--ui-duration-slow) var(--ui-ease);
+}
+
+@keyframes ui-skeleton-reveal {
+  from { opacity: 0; }
+}
+
+.ui-skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton,
+  .ui-skeleton::after {
+    animation: none;
+  }
+}

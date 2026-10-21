@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["src/vendor/varylo-ui/**"],
+  "ignorePatterns": ["src/vendor/varylo-ui/**", "src/vendor/valyro-ui/**"],
   "categories": {
     "correctness": "error"
   },

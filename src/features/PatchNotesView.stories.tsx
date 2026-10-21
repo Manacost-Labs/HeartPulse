@@ -150,3 +150,16 @@ export const ExpansionArchive: Story = {
     await expect(archive.getByRole('link', { name: /36\.6\.3/ })).toHaveAttribute('aria-current', 'page');
   },
 };
+
+export const MetaFlow: Story = {
+  parameters: { docs: { description: { story: 'Valyro Sankey: changed cards (buff/nerf colour) flow into the archetypes whose builds play them; the flow is the number of those builds. Below 640 px of content the same links are a list.' } } },
+  play: async ({ canvasElement }) => {
+    const flow = canvasElement.querySelector<HTMLElement>('.hp-patch-flow');
+    await expect(flow).not.toBeNull();
+    await waitFor(() => expect(flow?.querySelectorAll('.ui-sankey-chart__node[data-clickable]').length).toBe(3));
+    await expect(flow?.querySelectorAll('.ui-sankey-chart__link')).toHaveLength(2);
+    // The phone list is hidden at this width; its links carry the same targets as the nodes.
+    await expect([...(flow?.querySelectorAll('.hp-patch-flow__targets a') ?? [])].map(link => link.getAttribute('href')))
+      .toContain('/standard/archetypes/standard/std-dragon-warrior/');
+  },
+};

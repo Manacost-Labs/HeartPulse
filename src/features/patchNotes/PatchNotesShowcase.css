@@ -697,3 +697,66 @@
 }
 
 .hp-patch-blank p { margin: 0; color: #4a3323; line-height: 1.5; }
+
+/* ── Cards → archetypes flow (Valyro Sankey on the parchment token map) ── */
+
+.hp-patch-flow {
+  /* Tokens a Valyro theme would define; the Sankey reads them. */
+  --ui-sankey-chart-link-opacity: 0.32;
+  --ui-sankey-chart-link-opacity-active: 0.62;
+  --ui-sankey-chart-link-opacity-dimmed: 0.08;
+  --ui-sankey-chart-node-w: 10px;
+  --ui-chart-glow: none;
+  --ui-chart-swatch-radius: 2px;
+  --ui-radius-sm: 4px;
+  --ui-border-strong: rgba(84, 51, 22, 0.45);
+  --ui-weight-regular: 400;
+  --ui-skeleton-bg: var(--ui-surface-2);
+  --ui-bg: #fbf0d2;
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  border: 1px solid var(--arena-paper-line);
+  background: rgba(255, 250, 234, 0.85);
+}
+
+.hp-patch-flow h4 {
+  margin: 0;
+  color: #6f1a20;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.hp-patch-flow__list { display: none; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+.hp-patch-flow__list li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.2rem; padding-bottom: 0.45rem; border-bottom: 1px solid var(--arena-paper-line); }
+.hp-patch .hp-patch-flow__card { display: inline-flex; gap: 0.35rem; color: var(--arena-ink); font-weight: 700; text-decoration: none; }
+.hp-patch-flow__card[data-kind='buff'] span { color: var(--patch-buff); }
+.hp-patch-flow__card[data-kind='nerf'] span { color: var(--patch-nerf); }
+.hp-patch-flow__card[data-kind='rework'] span { color: var(--patch-rework); }
+.hp-patch-flow__arrow { display: none; }
+.hp-patch-flow__targets { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.hp-patch .hp-patch-flow__targets a {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 999px;
+  background: #fffaf0;
+  color: var(--arena-ink);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.hp-patch-flow__targets small { color: var(--arena-muted-ink); font-variant-numeric: tabular-nums; }
+.hp-patch-flow__note { margin: 0; color: var(--arena-muted-ink); font-size: 0.75rem; }
+
+/* A phone cannot fit a dozen labels a side: the same links read as a list there. */
+@container (max-width: 640px) {
+  .hp-patch-flow__chart { display: none; }
+  .hp-patch-flow__list { display: grid; }
+}

@@ -1,0 +1,501 @@
+/*
+ * Shared chart shell: plot wrapper, axes, grid, series lines, crosshair,
+ * tooltip and legend. Series colors arrive as `--_color` on the series element.
+ */
+
+.ui-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  width: 100%;
+  min-width: 0;
+  color: var(--ui-fg);
+  font-family: var(--ui-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-chart__plot {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+/*
+ * Plots keep left-to-right geometry under dir="rtl": time and value axes read that way in RTL
+ * locales too. SVG text anchors (start/end) follow `direction`, so it is pinned with them; the
+ * HTML around the plot (legend, tooltip text, titles) still mirrors.
+ */
+.ui-chart__svg {
+  direction: ltr;
+  display: block;
+  overflow: visible;
+  border-radius: var(--ui-radius-sm);
+  outline: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Out of flow, so a wide SVG never props up the container while it shrinks
+   (the plot reserves the height; ResizeObserver then reports the new width). */
+.ui-chart__plot > .ui-chart__svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.ui-chart__svg:focus-visible {
+  box-shadow: var(--ui-focus-ring);
+}
+
+/* ── Axes & grid ── */
+.ui-chart__grid {
+  stroke: var(--ui-chart-grid);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.ui-chart__grid[data-zero] {
+  stroke: var(--ui-border-strong);
+}
+
+.ui-chart__grid:not([data-zero]) {
+  stroke-dasharray: var(--ui-chart-grid-dasharray);
+}
+
+.ui-chart__axis-label {
+  fill: var(--ui-chart-axis);
+  font-family: var(--ui-font-sans);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.ui-chart__empty {
+  fill: var(--ui-fg-subtle);
+  font-size: var(--ui-text-sm);
+}
+
+/* Empty state over the plot (ChartEmpty): icon and label, centred. */
+.ui-chart__empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-4);
+  border: 1px dashed var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-sm);
+  text-align: center;
+  pointer-events: none;
+}
+
+.ui-chart__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-surface-2);
+  color: var(--ui-fg-subtle);
+}
+
+.ui-chart__empty-text {
+  max-width: 36ch;
+}
+
+/* Loading placeholder of bar charts (BarsSkeleton): bars on a baseline over a faint grid. */
+.ui-chart__bars-skeleton {
+  position: absolute;
+  inset: 10px 8px 28px 36px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6%;
+  padding: 0 3%;
+  border-bottom: 1px solid var(--ui-border);
+  background: repeating-linear-gradient(to top, transparent 0 calc(25% - 1px), var(--ui-chart-grid) calc(25% - 1px) 25%);
+}
+
+.ui-chart__bars-skeleton[data-orientation='horizontal'] {
+  inset: 10px 8px 10px 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-around;
+  gap: 0;
+  padding: 0;
+  border-bottom: 0;
+  border-inline-start: 1px solid var(--ui-border);
+  background: none;
+}
+
+/* Loading placeholder of treemaps (TilesSkeleton): one large tile, four smaller ones beside it. */
+.ui-chart__tiles-skeleton {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 5fr 3fr 2fr;
+  grid-template-rows: 3fr 2fr;
+  gap: 3px;
+}
+
+.ui-chart__tiles-skeleton > :first-child {
+  grid-row: 1 / 3;
+}
+
+.ui-chart__bars-skeleton[data-orientation='vertical'] .ui-chart__bars-skeleton-bar {
+  flex: 1 1 0;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/*
+ * Ink for text on a coloured fill (treemap tiles, heatmap cells): black or white, whichever
+ * contrasts more with the fill — at WCAG luminance Y ≈ 0.179 (Y = 0.2126 R + 0.7152 G + 0.0722 B,
+ * linear) both reach 4.58:1, so the step there always picks one that passes AA (a lightness step,
+ * OKLab L ≈ 0.57, misjudged saturated greens). An element with [data-ink] sets `--_ink-bg` to its
+ * fill mixed onto light-dark(#fff, #000), an opaque stand-in for the card (which may be translucent);
+ * text reads `--_ink` / `--_ink-muted`. Without relative colours the foreground colours stay.
+ */
+.ui-chart [data-ink] {
+  --_ink: var(--ui-fg);
+  --_ink-muted: var(--ui-fg-muted);
+}
+
+/* A step, not a ramp: the factor is so large that a fill within a millionth of the threshold is
+   the only one that could get a grey; every real fill gets pure black or pure white. */
+@supports (color: color(from light-dark(red, blue) srgb-linear r g b)) {
+  .ui-chart [data-ink] {
+    --_ink-step: clamp(0, (0.1792 - (0.2126 * r + 0.7152 * g + 0.0722 * b)) * 1000000, 1);
+    --_ink: color(from var(--_ink-bg) srgb-linear var(--_ink-step) var(--_ink-step) var(--_ink-step) / 1);
+    --_ink-muted: color(from var(--_ink-bg) srgb-linear var(--_ink-step) var(--_ink-step) var(--_ink-step) / 0.78);
+  }
+}
+
+/* ── Series lines ── */
+.ui-chart__line {
+  fill: none;
+  stroke: var(--_color);
+  stroke-width: var(--ui-chart-line-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* --_glow is an SVG filter set by the chart (CSS drop-shadow() is ignored on SVG in Safari);
+     `--ui-chart-glow: initial` selects it. */
+  filter: var(--ui-chart-glow, var(--_glow));
+  /* The draw-in dash lives only in the keyframes (pathLength="1" makes one dash the whole line).
+     Chromium can keep a dash scaled from a stale path length, which left a finished line
+     invisible, so once the animation ends the line falls back to a plain solid stroke. */
+  animation: ui-chart-draw calc(var(--ui-duration-slow) * 3) var(--ui-ease) backwards;
+}
+
+.ui-line-chart__series,
+.ui-area-chart__series {
+  transition: opacity var(--ui-duration) var(--ui-ease);
+}
+
+.ui-line-chart__series[data-dimmed],
+.ui-area-chart__series[data-dimmed] {
+  opacity: 0.2;
+}
+
+/* A lone value between two gaps */
+.ui-chart__point {
+  fill: var(--_color);
+  filter: var(--ui-chart-glow, var(--_glow));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ui-chart-pop var(--ui-duration-slow) var(--ui-ease) both;
+}
+
+.ui-chart__skeleton {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--ui-radius-md);
+}
+
+/* ── Hover ── */
+/* Line/area charts place the crosshair and the dots with transforms: they glide between points. */
+.ui-chart__hover[data-glide],
+.ui-chart__hover[data-glide] .ui-chart__dot-at {
+  transition: transform var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-chart__crosshair {
+  stroke: var(--ui-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: var(--ui-chart-crosshair-dasharray);
+  pointer-events: none;
+}
+
+.ui-chart__dot {
+  fill: var(--_color);
+  stroke: var(--ui-bg);
+  stroke-width: 2;
+  filter: var(--ui-chart-glow, var(--_glow));
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ui-chart-pop var(--ui-duration) var(--ui-ease-spring);
+}
+
+/* ── Tooltip ── */
+.ui-chart-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  min-width: 140px;
+  max-width: min(280px, calc(100% - 8px));
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  font-size: var(--ui-text-xs);
+  line-height: 1.45;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: transform var(--ui-duration-fast) var(--ui-ease);
+  animation: ui-fade-in var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-chart-tooltip__title {
+  color: var(--ui-fg-muted);
+  font-weight: var(--ui-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Direction from the label's own text (ellipsis at its end); alignment still follows the layout. */
+  unicode-bidi: plaintext;
+  text-align: match-parent;
+}
+
+.ui-chart-tooltip__title + .ui-chart-tooltip__rows {
+  margin-top: 6px;
+}
+
+.ui-chart-tooltip__rows {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+/* A trailing row without a swatch is a summary (stack total): set it apart. */
+.ui-chart-tooltip__row:last-child:not(:first-child):not(:has(.ui-chart-tooltip__swatch)) {
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ui-divider);
+}
+
+/* Tooltips that list fields of one datum (x, y, size…) have no summary row. */
+.ui-chart-tooltip--plain .ui-chart-tooltip__row:last-child:not(:first-child) {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.ui-chart-tooltip__swatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ui-chart-swatch-radius);
+  background: var(--_color);
+}
+
+.ui-chart-tooltip__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-fg-muted);
+  text-overflow: ellipsis;
+  /* Direction from the label's own text (ellipsis at its end); alignment still follows the layout. */
+  unicode-bidi: plaintext;
+  text-align: match-parent;
+}
+
+.ui-chart-tooltip__value {
+  margin-inline-start: var(--ui-space-4);
+  color: var(--ui-fg);
+  font-weight: var(--ui-weight-medium);
+  font-variant-numeric: tabular-nums;
+  /* "117 days" stays in reading order under dir="rtl" (the value's own direction wins). */
+  unicode-bidi: plaintext;
+}
+
+/* ── Legend ── */
+.ui-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2) var(--ui-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+  line-height: 1.4;
+}
+
+.ui-chart-legend[data-orientation='vertical'] {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--ui-space-2);
+  font-size: var(--ui-text-sm);
+}
+
+.ui-chart-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  transition: opacity var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-chart-legend__item[data-dimmed] {
+  opacity: 0.45;
+}
+
+.ui-chart-legend__swatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ui-chart-swatch-radius);
+  background: var(--_color);
+}
+
+.ui-chart-legend__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Direction from the label's own text, so the ellipsis lands at its end under dir="rtl" too. */
+  unicode-bidi: plaintext;
+}
+
+.ui-chart-legend__value {
+  margin-inline-start: auto;
+  padding-inline-start: var(--ui-space-3);
+  color: var(--ui-fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Toggleable legend (onItemToggle): each item is a button that shows or hides its series. */
+.ui-chart-legend__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: -2px -6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--ui-radius-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--ui-duration-fast) var(--ui-ease), color var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-chart-legend__toggle:hover {
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+.ui-chart-legend__toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-chart-legend__item[data-hidden] .ui-chart-legend__swatch {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--_color);
+}
+
+.ui-chart-legend__item[data-hidden] .ui-chart-legend__label {
+  color: var(--ui-fg-subtle);
+  text-decoration: line-through;
+  text-decoration-color: var(--ui-border-strong);
+}
+
+/* ── Keyframes (durations come from motion tokens, so reduced motion disables them) ── */
+@keyframes ui-chart-draw {
+  from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  to { stroke-dasharray: 1; stroke-dashoffset: 0; }
+}
+
+@keyframes ui-chart-grow-y {
+  from { transform: scaleY(0); }
+}
+
+@keyframes ui-chart-grow-x {
+  from { transform: scaleX(0); }
+}
+
+@keyframes ui-chart-pop {
+  from { opacity: 0; transform: scale(0.4); }
+}
+
+/*
+ * Forced colors: series colours are data, so plots and swatches keep the author palette;
+ * text, grid, tracks and the crosshair switch to system colours so they read on Canvas.
+ */
+@media (forced-colors: active) {
+  .ui-chart__svg,
+  .ui-sparkline,
+  .ui-metric-comparison__bars,
+  .ui-chart-tooltip__swatch,
+  .ui-chart-legend__swatch,
+  .ui-heatmap-legend__swatch,
+  .ui-metric-comparison__key-item::before {
+    forced-color-adjust: none;
+  }
+
+  /* Heatmap values sit on (author-coloured) cells, so they keep their contrast pair. */
+  .ui-chart__svg text:not(.ui-heatmap__value) {
+    fill: CanvasText;
+  }
+
+  .ui-chart__svg .ui-chart__grid {
+    stroke: GrayText;
+  }
+
+  .ui-chart__svg :is(.ui-donut-chart__track, .ui-gauge-chart__track) {
+    stroke: GrayText;
+  }
+
+  .ui-chart__svg .ui-chart__crosshair {
+    stroke: CanvasText;
+  }
+
+  .ui-chart__svg .ui-chart__dot {
+    stroke: Canvas;
+  }
+
+  .ui-chart__svg .ui-bar-chart__hover-band {
+    fill: Highlight;
+    opacity: 0.25;
+  }
+
+  .ui-chart__svg .ui-funnel-chart__pill {
+    fill: Canvas;
+    stroke: CanvasText;
+  }
+
+  .ui-chart__svg :is(.ui-gauge-chart__needle-body, .ui-gauge-chart__hub) {
+    fill: CanvasText;
+  }
+
+  .ui-chart__svg .ui-gauge-chart__hub-dot {
+    fill: Canvas;
+  }
+
+  .ui-chart .ui-chart__svg :is(.ui-calendar-heatmap__cell, .ui-heatmap__cell)[data-active] {
+    stroke: Highlight;
+  }
+}

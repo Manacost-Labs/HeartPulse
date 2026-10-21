@@ -444,3 +444,26 @@ test('presentation: the expansion of a version, the hero lead, wide art and the 
   assert.deepEqual(patchKindShares({ buff: 1, nerf: 3, rework: 0 }), { buff: 25, nerf: 75, rework: 0 });
   assert.deepEqual(patchKindShares({ buff: 0, nerf: 0, rework: 0 }), { buff: 0, nerf: 0, rework: 0 });
 });
+
+test('meta flow: changed cards to the archetypes whose builds play them, weighted by those builds', async () => {
+  const { toPatchView, patchMetaFlow } = await import('../src/modules/patchNotes/public');
+  const { entries } = parsePatchArticle(article, sections, resolver);
+  const use = (slug: string, popularity: number, decks: number) => ({
+    format: 'standard' as const, slug, name: `Архетип ${slug}`, classKey: 'warrior', popularity, decks, totalDecks: 12,
+  });
+  const view = toPatchView({ entries: entries.map(entry => (entry.cardId === 'TLC_600'
+    ? { ...entry, format: 'standard' as const, archetypes: [use('dragon', 4.2, 12), use('control', 1.1, 3), use('rare', 0.1, 1)] }
+    : entry)) });
+  const flow = patchMetaFlow(view, { archetypes: 2 });
+  assert.deepEqual(flow.links.map(link => [link.source, link.target, link.value]), [
+    ['card:card-constructed-змей-ветреных-вершин', 'archetype:standard:dragon', 12],
+    ['card:card-constructed-змей-ветреных-вершин', 'archetype:standard:control', 3],
+  ], 'the most popular archetypes only; the flow is the number of their builds with the card');
+  assert.deepEqual(flow.nodes.map(node => [node.kind, node.label, node.href]), [
+    ['card', 'Змей ветреных вершин', '/standard/cards/standard/TLC_600/'],
+    ['archetype', 'Архетип dragon', '/standard/archetypes/standard/dragon/'],
+    ['archetype', 'Архетип control', '/standard/archetypes/standard/control/'],
+  ]);
+  assert.equal(flow.nodes[0].cardKind, 'rework');
+  assert.deepEqual(patchMetaFlow(toPatchView({ entries })), { nodes: [], links: [] }, 'no meta, no flow');
+});

@@ -171,8 +171,8 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   let snapshot: { value: PatchNotesSnapshot; expiresAt: number } | null = null;
   let pending: Promise<PatchNotesSnapshot> | null = null;
   // The art catalog (every Wild card) can take as long as the archive itself,
-  // so a snapshot never waits for it: the last lookup is used meanwhile and a
-  // late lookup is merged into the snapshot that is current when it arrives.
+  // so a snapshot never waits for it: the last lookup is used meanwhile and the
+  // new one, read after the snapshot is built, is merged into it on arrival.
   let artwork: PatchEntryContext['artwork'];
   const loadArtwork = () => {
     void (dependencies.loadCardArtwork?.() ?? Promise.resolve(null)).then(cards => {
@@ -184,7 +184,6 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
 
   const refresh = async () => {
     const formats: PatchNotesFormat[] = ['standard', 'wild'];
-    loadArtwork();
     const [payload, cards, battlegrounds, standard, catalogs] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
       dependencies.loadCardNames().catch(() => ({})),
@@ -201,6 +200,8 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString(),
       { standard: new Set(standard), meta, dbfs: createDbfLookup(cards), artwork });
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
+    // Started only now: read alongside the archive it still slowed the first answer down.
+    loadArtwork();
     return value;
   };
   const start = () => {

@@ -8,8 +8,8 @@ export {
   type PatchKind, type PatchKindCounts, type PatchSectionId, type PatchSectionView, type PatchView,
 } from './model/patchEntries';
 export {
-  patchArchiveByExpansion, patchExpansionCode, patchFeaturedArtwork, patchHasWideArtwork, patchHeroLead, patchKindShares,
-  type PatchArchiveGroup, type PatchHeroLead,
+  patchArchiveByExpansion, patchExpansionCode, patchFeaturedArtwork, patchHasWideArtwork, patchHeroLead, patchKindShares, patchMetaFlow,
+  type PatchArchiveGroup, type PatchFlowLink, type PatchFlowNode, type PatchHeroLead,
 } from './model/patchPresentation';
 export { normalizePatchVersion } from './model/types';
 export type {

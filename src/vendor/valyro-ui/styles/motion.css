@@ -1,0 +1,46 @@
+/*
+ * One switch for all motion: data-ui-motion="reduce" on <html> (setMotionPreference('reduce')) or on any
+ * container. The duration tokens drop to 1 ms on that element and on everything inside it — nested themes
+ * included, which is why the rule also matches descendants — so the kit's transitions and keyframe
+ * animations become instant, as under the OS setting (the themes' prefers-reduced-motion blocks). JS motion
+ * (Web Animations, springs, scroll scenes, WebGL loops) asks isMotionReduced() / useReducedMotion().
+ *
+ * The motion profile of a theme (components/motion-kit/profile.ts) is read from optional tokens, each
+ * with a default derived from the theme's tempo:
+ *   --ui-motion-distance    travel of an entrance (24px)
+ *   --ui-motion-scale       start scale of a zoom entrance (0.94)
+ *   --ui-motion-enter       entrance length (--ui-duration-slow × 2.2)
+ *   --ui-motion-exit        exit length (--ui-duration)
+ *   --ui-motion-stagger     delay between neighbours (--ui-duration × 0.35)
+ *   --ui-motion-spring      smooth | snappy | bouncy (snappy)
+ *   --ui-motion-tilt        tilt towards the pointer, degrees (8)
+ *   --ui-motion-lift        scale under the pointer (1.02)
+ *   --ui-motion-magnetic    pull towards the pointer, 0–1 (0.3)
+ *   --ui-motion-perspective depth of 3D moves (900px)
+ */
+[data-ui-motion='reduce'],
+[data-ui-motion='reduce'] * {
+  --ui-duration-fast: 1ms;
+  --ui-duration: 1ms;
+  --ui-duration-slow: 1ms;
+  --ui-duration-fluid: 1ms;
+  --ui-motion-enter: 1ms;
+  --ui-motion-exit: 1ms;
+  --ui-motion-stagger: 0ms;
+  --ui-button-transform-active: none;
+  --ui-card-interactive-transform-hover: none;
+}
+
+/* What a component turns off in its own prefers-reduced-motion block (endless shimmer, marquee, aurora)
+   stops here too: every CSS animation plays once, instantly. Spinners keep turning — they say "busy". */
+[data-ui-motion='reduce'],
+[data-ui-motion='reduce'] *:not(.ui-spinner__spoke),
+[data-ui-motion='reduce'] *::before,
+[data-ui-motion='reduce'] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
