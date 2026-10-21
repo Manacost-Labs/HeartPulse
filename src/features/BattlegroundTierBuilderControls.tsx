@@ -34,7 +34,7 @@ export function TierBuilderFilterPanel({ filters, onChange, onClear, assigned, p
   filters: TierBuilderFilters; onChange: (filters: TierBuilderFilters) => void; onClear: () => void;
   assigned: number; poolCount: number; loaded: boolean;
 }) {
-  const [open, setOpen] = useState(() => window.matchMedia?.('(min-width: 1100px)').matches ?? true);
+  const [open, setOpen] = useState(() => typeof window === 'undefined' || (window.matchMedia?.('(min-width: 1100px)').matches ?? true));
   const source = filters.source;
   return (
     <aside className="bg-tier-builder__filters" aria-label="Фильтры пула карт">
@@ -69,7 +69,7 @@ export function TierBuilderFilterPanel({ filters, onChange, onClear, assigned, p
         </FilterGroup>
       </details>
       <div className="bg-tier-builder__actions" data-tour-id="bg-tier-builder-reset">
-        <button type="button" className="bg-tier-builder__button" onClick={() => onChange(DEFAULT_TIER_BUILDER_FILTERS)}>Сбросить</button>
+        <button id="tier-builder-reset" type="button" className="bg-tier-builder__button" onClick={() => onChange(DEFAULT_TIER_BUILDER_FILTERS)}>Сбросить</button>
         <button id="tier-builder-unassigned" type="button" className="bg-tier-builder__button" disabled={!assigned} onClick={onClear}>Все в пул</button>
       </div>
       <p id="tier-builder-summary" className="bg-tier-builder__summary" data-tour-id="bg-tier-builder-library" aria-live="polite">

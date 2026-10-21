@@ -74,7 +74,7 @@
 .bg-tier-builder__more > summary::before {
   content: '▸';
   margin-right: 0.45rem;
-  transition: rotate var(--motion-fast, 160ms) var(--motion-ease, ease);
+  transition: rotate var(--motion-fast) var(--motion-ease);
 }
 
 .bg-tier-builder__more[open] > summary::before {

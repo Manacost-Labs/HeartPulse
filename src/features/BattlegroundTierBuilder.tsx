@@ -92,11 +92,11 @@ export function BattlegroundTierBuilder({ runtime }: { runtime: ClassicRuntime }
         <TierBuilderToolbar assigned={assigned} exporting={exporting} onExport={(type, background) => void runExport(type, background)}
           canUndo={draft.canUndo} draftStatus={draft.status} exportStatus={exportStatus}
           onUndo={() => { const previous = draft.undo(); if (previous !== null && ids) setPlacement(readTierBuilderDraft(ids, previous)); }} />
-        <div data-tour-id="bg-tier-builder-board">
+        <div className="bg-tier-builder__list">
           {cards
             ? <TierList items={items} tiers={TIERS} value={placement} onValueChange={setPlacement}
               mode="edit" editable={false} size="lg" exportName="tier-list" title="Ваш тир-лист" headingLevel={2}
-              caption={<span id="tier-builder-counter">{assigned} карт распределено</span>} labels={LABELS} renderItem={renderItem} />
+              caption={<span id="tier-builder-counter" data-tour-id="bg-tier-builder-board">{assigned} карт распределено</span>} labels={LABELS} renderItem={renderItem} />
             : <div className="bg-tier-builder__placeholder" aria-hidden="true" />}
         </div>
         {pool.length > poolLimit && (

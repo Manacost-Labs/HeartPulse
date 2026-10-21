@@ -66,7 +66,7 @@ test('shared Battlegrounds runtime loads every page of the current trinket pool'
 test('both active builders wait for synchronized live pools', async () => {
   const [strategy, tier, tierModel] = await Promise.all([
     source('public/bg-legacy/strategy-builder.gridfix2.js'),
-    source('src/features/BattlegroundTierBuilder.tsx'),
+    source('src/features/battlegroundTierBuilderDraft.ts'),
     source('src/modules/battlegrounds/model/tierBuilder.ts'),
   ]);
 
@@ -306,12 +306,17 @@ for (const [label, rosterBridge] of [
 }
 
 test('Battlegrounds builder cache version includes the current pool and live hero synchronization', async () => {
-  const battlegrounds = await source('src/features/Battlegrounds.tsx');
+  const [battlegrounds, tierBuilder] = await Promise.all([
+    source('src/features/Battlegrounds.tsx'), source('src/features/BattlegroundTierBuilder.tsx'),
+  ]);
 
   assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20261011-pool-3661-workspace-v2'/);
-  assert.equal(
-    [...battlegrounds.matchAll(/battlegroundHeroRosterBridgeV1\.install\(window, \{ publicResourceUrl \}\)/g)].length,
-    2,
-    'both builder owners must install the same module port before loading classic scripts',
-  );
+  assert.match(tierBuilder, /RUNTIME_VERSION = '20261011-pool-3661-workspace-v2'/);
+  for (const owner of [battlegrounds, tierBuilder]) {
+    assert.equal(
+      [...owner.matchAll(/battlegroundHeroRosterBridgeV1\.install\(window, \{ publicResourceUrl \}\)/g)].length,
+      1,
+      'both builder owners must install the same module port before loading classic scripts',
+    );
+  }
 });

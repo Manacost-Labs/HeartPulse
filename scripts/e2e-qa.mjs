@@ -1199,22 +1199,24 @@ if (qaPart !== 'interactions') {
           });
         }
         if (route.path === '/battlegrounds/tier-builder' && device === 'desktop') {
-          await page.waitForFunction(() => [...document.querySelectorAll('#tier-builder-source-filters button')]
-            .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 });
-          await page.click('#tier-builder-unassigned');
-          await page.evaluate(() => {
-            const heroesButton = [...document.querySelectorAll('#tier-builder-source-filters button')]
-              .find(button => button.textContent?.trim() === 'Герои');
+          const sources = '[data-tour-id="bg-tier-builder-source"] button';
+          const poolHero = '.ui-tier-list__row[data-pool] [data-tier-item][title*="Ксавий"]';
+          const sTierHero = '.ui-tier-list__row:first-child [data-tier-item][title*="Ксавий"]';
+          await page.waitForFunction(selector => [...document.querySelectorAll(selector)]
+            .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 }, sources);
+          await page.click('#tier-builder-unassigned').catch(() => {});
+          await page.evaluate(selector => {
+            const heroesButton = [...document.querySelectorAll(selector)].find(button => button.textContent?.trim() === 'Герои');
             if (!(heroesButton instanceof HTMLElement)) throw new Error('Фильтр героев не найден');
             heroesButton.click();
-          });
+          }, sources);
           await page.type('#tier-builder-search', 'Ксавий');
           await page.waitForFunction(() => {
-            const cards = [...document.querySelectorAll('#tier-builder-pool .tier-builder-card')];
+            const cards = [...document.querySelectorAll('.ui-tier-list__row[data-pool] [data-tier-item]')];
             return cards.length === 1 && cards[0].getAttribute('title')?.includes('Ксавий');
           }, { timeout: 10_000 });
-          await page.waitForSelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
-          const liveHeroState = await page.$eval('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', async card => {
+          await page.waitForSelector(poolHero, { visible: true, timeout: 10_000 });
+          const liveHeroState = await page.$eval(poolHero, async card => {
             const image = card.querySelector('img');
             await image?.decode().catch(() => {});
             return {
@@ -1225,32 +1227,30 @@ if (qaPart !== 'interactions') {
           if (!liveHeroState.title.includes('Повелитель кошмаров Ксавий') || !liveHeroState.decoded) {
             failures.push(`/battlegrounds/tier-builder [desktop]: current hero did not render at full fixture quality (${JSON.stringify(liveHeroState)})`);
           }
-          const liveHero = await page.$('#tier-builder-pool .tier-builder-card[title*="Ксавий"]');
-          const sTier = await page.$('.tier-builder-dropzone[data-tier="S"]');
-          if (!liveHero || !sTier) throw new Error('Герой или S-тир не найден');
-          try {
-            await sTier.drop(liveHero);
-          } finally {
-            await Promise.allSettled([liveHero.dispose(), sTier.dispose()]);
-          }
-          await page.waitForSelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
-          await page.waitForFunction(async () => {
-            const image = document.querySelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"] img');
+          // VaryloUI tier list keyboard move: Space picks the card up, ArrowUp climbs from the pool to S, Space drops it.
+          await page.focus(poolHero);
+          await page.keyboard.press('Space');
+          for (let step = 0; step < 5; step += 1) await page.keyboard.press('ArrowUp');
+          await page.keyboard.press('Space');
+          await page.waitForSelector(sTierHero, { visible: true, timeout: 10_000 });
+          await page.waitForFunction(async selector => {
+            const image = document.querySelector(`${selector} img`);
             await image?.decode().catch(() => {});
             return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
-          }, { timeout: 10_000 });
-          await page.waitForFunction(() => (
-            !document.querySelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]')
+          }, { timeout: 10_000 }, sTierHero);
+          await page.waitForFunction(selector => (
+            !document.querySelector(selector)
             && document.querySelector('#tier-builder-counter')?.textContent?.startsWith('1 ')
-          ), { timeout: 10_000 });
+          ), { timeout: 10_000 }, poolHero);
           await page.screenshot({ path: `${OUT}/battlegrounds-tier-builder-live-hero-desktop.png`, fullPage: false });
           await page.click('#tier-builder-unassigned');
           await page.click('#tier-builder-reset');
-          await page.waitForFunction(() => (
+          await page.waitForFunction(selector => (
             document.querySelector('#tier-builder-counter')?.textContent?.startsWith('0 ')
             && document.querySelector('#tier-builder-search')?.value === ''
-            && document.querySelector('#tier-builder-source-filters button.is-active')?.textContent?.trim() === 'Все карты'
-          ), { timeout: 10_000 });
+            && [...document.querySelectorAll(selector)].find(button => button.getAttribute('aria-pressed') === 'true')
+              ?.textContent?.trim() === 'Все карты'
+          ), { timeout: 10_000 }, sources);
         }
         if (route.path === '/heroes' && device === 'desktop') {
           if (!await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches)) {

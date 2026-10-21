@@ -65,14 +65,14 @@ export function useTierBuilderPool(runtime: ClassicRuntime) {
 
 /** Every placement is a draft: kept for undo at once, written to the browser a moment later, on unmount and on page hide. */
 export function useTierBuilderDraft(ids: string[] | null, placement: TierBuilderPlacement) {
-  const history = useRef(createBuilderHistory());
+  const [history] = useState(createBuilderHistory);
   const pending = useRef<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [status, setStatus] = useState('');
   useEffect(() => {
     if (!ids) return undefined;
-    history.current.commit(placement);
-    setCanUndo(history.current.canUndo());
+    history.commit(placement);
+    setCanUndo(history.canUndo());
     const snapshot = JSON.stringify({ version: 1, draft: tierBuilderDraft(ids, placement) });
     if (readStorage(DRAFT_KEY) === snapshot) {
       // An undo inside the save delay returns to the stored draft: nothing is left to write.
@@ -89,7 +89,7 @@ export function useTierBuilderDraft(ids: string[] | null, placement: TierBuilder
         : 'Браузер не разрешает сохранить черновик. Экспортируйте результат перед выходом.');
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [ids, placement]);
+  }, [history, ids, placement]);
   // A reload or a closed tab inside the 250 ms window must not lose the last move.
   useEffect(() => {
     const flush = () => {
@@ -103,8 +103,8 @@ export function useTierBuilderDraft(ids: string[] | null, placement: TierBuilder
     };
   }, []);
   const undo = (): unknown => {
-    const previous = history.current.undo();
-    setCanUndo(history.current.canUndo());
+    const previous = history.undo();
+    setCanUndo(history.canUndo());
     return previous;
   };
   return { canUndo, status, undo };
