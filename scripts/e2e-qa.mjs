@@ -282,6 +282,11 @@ async function tapFirstArchetypeRow(page) {
 }
 
 async function auditAccessibility(page, label, context = 'document') {
+  // Colour contrast mid-transition (a view sliding in at partial opacity) is not the page's contrast:
+  // let finite animations settle first; endless ones (loading pulses) are left running.
+  await page.evaluate(() => Promise.all(document.getAnimations()
+    .filter(animation => Number.isFinite(animation.effect?.getComputedTiming().endTime))
+    .map(animation => animation.finished.catch(() => {}))));
   await page.addScriptTag({ path: AXE_PATH });
   const results = await page.evaluate(async auditContext => {
     const target = auditContext === 'document' ? document : document.querySelector(auditContext);
