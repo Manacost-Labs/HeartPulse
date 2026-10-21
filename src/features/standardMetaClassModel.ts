@@ -41,10 +41,16 @@ export type StandardMetaTier = 'S' | 'A' | 'B' | 'C' | 'D';
 // One-sided 90% bound: a thin sample keeps its tier only as far as its games
 // confirm it, without burying every mid-sized archetype under D.
 const TIER_Z = 1.2816;
-const TIER_FLOORS: Array<[StandardMetaTier, number]> = [['S', 53], ['A', 51], ['B', 49], ['C', 47]];
+/** The lowest win-rate bound, in percent, of each tier above D. */
+export const STANDARD_META_TIER_FLOORS: ReadonlyArray<readonly [StandardMetaTier, number]> = [['S', 53], ['A', 51], ['B', 49], ['C', 47]];
+
+/** The lower bound, in percent, of the one-sided 90% Wilson interval that places an archetype in its tier. */
+export function standardMetaTierBound(winrate: number, games: number): number {
+  return wilsonInterval(winrate / 100, games, TIER_Z)[0] * 100;
+}
 
 /** The tier of an archetype: its win rate's lower confidence bound against fixed floors (S ≥ 53%, … D below 47%). */
 export function standardMetaTier(winrate: number, games: number): StandardMetaTier {
-  const [lower] = wilsonInterval(winrate / 100, games, TIER_Z);
-  return TIER_FLOORS.find(([, floor]) => lower * 100 >= floor)?.[0] ?? 'D';
+  const lower = standardMetaTierBound(winrate, games);
+  return STANDARD_META_TIER_FLOORS.find(([, floor]) => lower >= floor)?.[0] ?? 'D';
 }

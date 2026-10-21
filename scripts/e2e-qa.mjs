@@ -3037,27 +3037,38 @@ for (const [device, viewport] of [
     const standardMetaViolationCount = await auditAccessibility(page, `standard meta [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="table"]');
-    await page.waitForSelector('.standard-meta-table');
+    await page.waitForSelector('.standard-meta-table tbody tr');
+    await page.waitForSelector('.standard-meta-table .ui-sparkline');
     const standardMetaTableState = await page.evaluate(() => {
-      const wrapper = document.querySelector('.standard-meta-table-wrap .analytics-table__scroll');
       const table = document.querySelector('.standard-meta-table');
-      const stickyCell = document.querySelector('.standard-meta-table__archetype');
-      const archetypeLink = document.querySelector('.standard-meta-table__deck-button');
+      const rows = [...(table?.querySelectorAll('tbody tr') ?? [])];
+      const firstLink = rows[0]?.querySelector('.standard-meta-table__link');
+      const firstRect = rows[0]?.getBoundingClientRect();
+      const linkCover = firstLink ? getComputedStyle(firstLink, '::after') : null;
       return {
-        rows: table?.querySelectorAll('tbody tr').length ?? 0,
+        rows: rows.length,
         columns: table?.querySelectorAll('thead th').length ?? 0,
         sortControls: table?.querySelectorAll('[data-sort-key]').length ?? 0,
-        scrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
-        stickyPosition: stickyCell ? getComputedStyle(stickyCell).position : '',
-        stickyLeft: stickyCell ? getComputedStyle(stickyCell).left : '',
-        archetypeHref: archetypeLink?.getAttribute('href') || '',
+        rowHeight: Math.round(firstRect?.height ?? 0),
+        rowLinkCovers: linkCover?.position === 'absolute' && getComputedStyle(rows[0]).position === 'relative',
+        archetypeHref: firstLink?.getAttribute('href') || '',
+        english: rows[0]?.querySelector('.standard-meta-table__name small')?.textContent || '',
+        intervals: table?.querySelectorAll('.standard-meta-table__winrate-interval').length ?? 0,
+        deltas: table?.querySelectorAll('.standard-meta-table__change').length ?? 0,
+        sparklines: table?.querySelectorAll('.ui-sparkline').length ?? 0,
+        lowSample: table?.querySelectorAll('tbody tr[data-low-sample]').length ?? 0,
+        actionButtons: table?.querySelectorAll('.standard-meta__deck-action').length ?? 0,
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
       };
     });
-    if (standardMetaTableState.rows !== 5 || standardMetaTableState.columns !== 8 || standardMetaTableState.sortControls !== 7
-      || standardMetaTableState.stickyPosition !== 'sticky' || standardMetaTableState.stickyLeft !== '0px'
+    // Desktop rows stay dense; on a phone each row is a card and nothing scrolls sideways.
+    if (standardMetaTableState.rows !== 5 || standardMetaTableState.columns !== 9 || standardMetaTableState.sortControls !== 7
+      || !standardMetaTableState.rowLinkCovers || standardMetaTableState.actionButtons !== 0
       || standardMetaTableState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock/'
-      || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
+      || standardMetaTableState.english !== 'Evenlock' || standardMetaTableState.intervals !== 5
+      || standardMetaTableState.deltas < 4 || standardMetaTableState.sparklines !== 4 || standardMetaTableState.lowSample !== 1
+      || (device !== 'mobile' && standardMetaTableState.rowHeight > 60)
+      || standardMetaTableState.pageOverflow) {
       failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);
     }
     await page.$eval('[data-sort-key="popularity"]', button => button.click());
@@ -3085,29 +3096,27 @@ for (const [device, viewport] of [
     await auditAccessibility(page, `standard meta table [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-table-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="tiers"]');
-    await page.waitForSelector('.standard-meta-tiers .ui-meta-table__body .ui-meta-table__row');
-    await page.waitForSelector('.standard-meta-tiers .ui-sparkline');
+    await page.waitForSelector('.standard-meta-tier-groups__chip');
     const standardMetaTiersState = await page.evaluate(() => {
-      const section = document.querySelector('.standard-meta-tiers');
-      const rows = [...(section?.querySelectorAll('.ui-meta-table__body .ui-meta-table__row') ?? [])];
+      const section = document.querySelector('.standard-meta-tier-groups');
+      const tiers = [...(section?.querySelectorAll('.standard-meta-tier-groups__tier') ?? [])];
       return {
-        rows: rows.length,
-        badges: section?.querySelectorAll('.ui-meta-table__body .arena-tier-badge').length ?? 0,
-        firstTier: rows[0]?.querySelector('.arena-tier-badge')?.getAttribute('aria-label') || '',
-        sparklines: section?.querySelectorAll('.ui-meta-table__body .ui-sparkline').length ?? 0,
-        deltas: section?.querySelectorAll('.ui-meta-table__body .ui-trend-value').length ?? 0,
-        lowSample: section?.querySelectorAll('.ui-meta-table__body [data-low-sample]').length ?? 0,
-        subtitle: section?.querySelector('.ui-meta-table__subtitle')?.textContent || '',
-        firstName: rows[0]?.querySelector('.ui-meta-table__name')?.textContent || '',
+        tiers: tiers.map(tier => `${tier.getAttribute('data-tier')}:${tier.querySelectorAll('.standard-meta-tier-groups__chip').length}`).join(' '),
+        badges: section?.querySelectorAll('.arena-tier-badge').length ?? 0,
+        firstChip: tiers[0]?.querySelector('.standard-meta-tier-groups__chip-name')?.textContent || '',
+        firstHref: tiers[0]?.querySelector('.standard-meta-tier-groups__chip')?.getAttribute('href') || '',
+        lowSample: section?.querySelectorAll('.standard-meta-tier-groups__chip[data-low-sample]').length ?? 0,
+        method: section?.querySelector('.standard-meta-tier-groups__method')?.textContent || '',
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
       };
     });
-    // Tier order, best first: Evenlock (61.1% on 6476 games) leads; Handbuff Warrior (136 games) is a low sample.
-    if (standardMetaTiersState.rows !== 5 || standardMetaTiersState.badges !== 5 || standardMetaTiersState.firstTier !== 'Тир S'
-      || standardMetaTiersState.firstName !== 'Чётный Чернокнижник' || standardMetaTiersState.sparklines !== 4
-      || standardMetaTiersState.deltas < 4 || standardMetaTiersState.lowSample !== 1
-      || !standardMetaTiersState.subtitle.includes('к пред. 2 дням') || standardMetaTiersState.pageOverflow) {
-      failures.push(`standard meta tiers [${device}]: tier table, trends or containment regressed (${JSON.stringify(standardMetaTiersState)})`);
+    // Evenlock (61.1% on 6476 games) leads S; Handbuff Warrior (136 games) is a low sample.
+    if (standardMetaTiersState.badges !== 5 || !standardMetaTiersState.tiers.startsWith('S:')
+      || standardMetaTiersState.firstChip !== 'Чётный Чернокнижник'
+      || standardMetaTiersState.firstHref !== '/standard/archetypes/standard/qa-evenlock/'
+      || standardMetaTiersState.lowSample !== 1 || !standardMetaTiersState.method.includes('нижней границе 90%')
+      || standardMetaTiersState.pageOverflow) {
+      failures.push(`standard meta tiers [${device}]: tier groups or containment regressed (${JSON.stringify(standardMetaTiersState)})`);
     }
     await auditAccessibility(page, `standard meta tiers [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-tiers-${device}.png`, fullPage: false });

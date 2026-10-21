@@ -165,6 +165,8 @@
         "tests/public-web-gateway.test.mjs",
         "tests/recoverable-surface.test.tsx",
         "tests/standard-matchups-controls-ui.test.ts",
+        "tests/standard-archetype-label.test.ts",
+        "tests/standard-meta-table-model.test.ts",
         "tests/standard-meta-classes.test.ts",
         "tests/standard-meta-profile-access.test.ts",
         "tests/standard-meta-recommendation-cache.test.ts",

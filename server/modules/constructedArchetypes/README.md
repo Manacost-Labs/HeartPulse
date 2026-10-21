@@ -35,3 +35,10 @@ current expansion window). Composition injects the cached Standard meta slice
 reader, so the section adds no upstream requests beyond those slices. A failed
 or archetype-less slice is an empty cell; a matrix with no readable slice
 fails the section with 502.
+
+`translateStandardArchetype` gives an HSGuru archetype name its Russian label:
+the exact translation, otherwise the longest translated name inside it with
+the remaining words in brackets, so HSGuru's variants ("Harold Piglock" next to
+"Piglock") never borrow one bare label. `disambiguateArchetypeLabels` keeps the
+labels of one meta slice distinct when the translation data itself gives two
+archetypes one name. Verification: `npx tsx tests/standard-archetype-label.test.ts`.

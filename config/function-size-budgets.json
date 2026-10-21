@@ -77,7 +77,7 @@
     "src/features/StandardCards.tsx#CardsListPage": 144,
     "src/features/StandardMatchups.tsx#StandardMatchupsPage": 784,
     "src/features/StandardMeta.tsx#DeckModal": 152,
-    "src/features/StandardMeta.tsx#StandardMetaContent": 412,
+    "src/features/StandardMeta.tsx#StandardMetaContent": 307,
     "src/features/StandardMetaChart.tsx#StandardMetaChart": 172,
     "src/features/StandardMetaDeckModal.tsx#DeckModal": 130,
     "src/features/ViciousSyndicateGold.tsx#ViciousSyndicateGold": 271,

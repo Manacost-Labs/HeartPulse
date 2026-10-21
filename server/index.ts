@@ -103,7 +103,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, loadWithRetiredPatchFallback, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
+import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, loadWithRetiredPatchFallback, translateStandardArchetype, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
@@ -5726,22 +5726,6 @@ async function getStandardArchetypeTranslations(now = Date.now()): Promise<Stand
   return standardArchetypeTranslationsPromise;
 }
 
-function translateStandardArchetype(name: string, translations: Record<string, string>): string {
-  const normalizedName = normalizeStandardArchetypeKey(name);
-  const exact = translations[normalizedName];
-  if (exact) return exact;
-
-  let bestMatch = '';
-  let bestLength = 0;
-  for (const [eng, rus] of Object.entries(translations)) {
-    if (normalizedName.includes(eng) && eng.length > bestLength) {
-      bestMatch = rus;
-      bestLength = eng.length;
-    }
-  }
-  return bestMatch || name;
-}
-
 async function loadObservedStandardArchetypes() {
   // Start the shared deck index request alongside the HSGuru slices. The
   // translation queue can then expose exact deck codes without one request per
@@ -5998,7 +5982,7 @@ async function readStandardMetaSlice(
     sourceUrl: String(payload?.data?.source_url ?? ''),
     translationSource: translations.source,
     updatedAt: sourceUpdatedAt,
-    items: rows.flatMap((row: any) => {
+    items: disambiguateArchetypeLabels(rows.flatMap((row: any) => {
       const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
       if (!archetype) return [];
       const archetypeLabel = translateStandardArchetype(archetype, translations.map);
@@ -6016,7 +6000,7 @@ async function readStandardMetaSlice(
         durationMinutes: parseNumber(row.duration_minutes),
         climbingSpeed: parseNumber(row.climbing_speed),
       }];
-    }),
+    })),
   };
   // A rejected candidate keeps the last validated slice in the cache; its
   // envelope reports the real stale age.

@@ -1,11 +1,7 @@
-import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowDown,
   ArrowRight,
-  ArrowUp,
-  ChevronsUpDown,
   Copy,
   Crown,
   Gem,
@@ -51,8 +47,6 @@ type MetaPeriod = StandardMetaPeriod;
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'tiers' | 'table';
-type MetaSortKey = 'archetype' | 'winrate' | 'popularity' | 'games' | 'turns' | 'durationMinutes' | 'climbingSpeed';
-type MetaSortDirection = 'asc' | 'desc';
 type MetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin' | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
 
 type MetaItem = {
@@ -154,9 +148,10 @@ const RANK_GROUPS: Array<{ label: string; icon: typeof Gem; ranks: MetaRank[] }>
 
 const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
 const DECK_CLASS_COLORS: Record<MetaClass, string> = STANDARD_META_CLASS_COLORS;
-// The tier table carries VaryloUI's table, sparkline and the tier badge: it
-// loads when a reader opens that view, never with the first paint.
-const StandardMetaTierTable = React.lazy(() => import('./StandardMetaTierTable'));
+// The table (with VaryloUI's sparkline) and the tier groups (with the tier
+// badge) load when a reader opens that view, never with the first paint.
+const StandardMetaArchetypeTable = React.lazy(() => import('./StandardMetaArchetypeTable'));
+const StandardMetaTierGroups = React.lazy(() => import('./StandardMetaTierGroups'));
 
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
@@ -398,7 +393,6 @@ function StandardMetaContent({
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
-  const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
   // A subscriber's page starts from the teaser too, busy until the full slice replaces it.
   const [data, setData] = useState<MetaPayload>(initialTeaser?.data ?? EMPTY_DATA);
   const hasPayload = data !== EMPTY_DATA;
@@ -483,62 +477,12 @@ function StandardMetaContent({
     () => new Map(data.items.map((item, index) => [item.id, index + 1])),
     [data.items],
   );
-  const tableItems = useMemo(() => {
-    if (!sort.key) return visibleItems;
-    const sortKey = sort.key;
-    const multiplier = sort.direction === 'asc' ? 1 : -1;
-    return [...visibleItems].sort((left, right) => {
-      const leftValue = sortKey === 'archetype' ? left.archetypeLabel : left[sortKey];
-      const rightValue = sortKey === 'archetype' ? right.archetypeLabel : right[sortKey];
-      if (leftValue === null && rightValue === null) return (rankById.get(left.id) ?? 0) - (rankById.get(right.id) ?? 0);
-      if (leftValue === null) return 1;
-      if (rightValue === null) return -1;
-      const comparison = typeof leftValue === 'string'
-        ? leftValue.localeCompare(String(rightValue), 'ru', { sensitivity: 'base' })
-        : leftValue - Number(rightValue);
-      return comparison === 0
-        ? (rankById.get(left.id) ?? 0) - (rankById.get(right.id) ?? 0)
-        : comparison * multiplier;
-    });
-  }, [visibleItems, rankById, sort]);
   const periodOptions = useMemo(
     () => orderStandardMetaPeriods(data.availablePeriods, data.currentPeriod, data.currentPatchPeriod)
       .map(id => ({ id, label: standardMetaPeriodLabel(id) })),
     [data.availablePeriods, data.currentPeriod, data.currentPatchPeriod],
   );
   const selectedPeriod = period ?? data.currentPeriod ?? data.currentPatchPeriod ?? data.period;
-
-  const changeSort = (key: MetaSortKey) => {
-    setSort(current => current.key === key
-      ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' }
-      : { key, direction: key === 'archetype' ? 'asc' : 'desc' });
-  };
-
-  const sortableHeading = (key: MetaSortKey, label: string) => {
-    const active = sort.key === key;
-    const directionLabel = active && sort.direction === 'asc' ? 'по возрастанию' : 'по убыванию';
-    return (
-      <th
-        scope="col"
-        className="standard-meta-table__sortable-heading"
-        aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
-      >
-        <button
-          type="button"
-          className="standard-meta-table__sort-button"
-          data-sort-key={key}
-          data-active={active ? 'true' : 'false'}
-          onClick={() => changeSort(key)}
-          aria-label={`Сортировать по ${label.toLowerCase()}${active ? `, сейчас ${directionLabel}` : ''}`}
-        >
-          <span>{label}</span>
-          {active
-            ? (sort.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)
-            : <ChevronsUpDown size={14} />}
-        </button>
-      </th>
-    );
-  };
 
   const archetypeHref = (item: MetaItem) => canonicalPagePath(`/standard/archetypes/${format}/${item.slug}`);
 
@@ -706,64 +650,17 @@ function StandardMetaContent({
                 </article>
               ))}
             </section>
-          ) : view === 'tiers' && visibleItems.length > 0 ? (
-            <React.Suspense fallback={<AsyncSurfaceState variant="loading" title="Загружаем тиры" message="Готовим тир-таблицу текущего среза." compact />}>
-              <StandardMetaTierTable items={visibleItems} format={format} rank={rank} rankLabel={data.rankLabel}
-                formatLabel={data.formatLabel} period={selectedPeriod} periodLabel={standardMetaPeriodLabel(selectedPeriod)}
-                minGames={minGames} loadTrends={hasFullAccess} />
+          ) : view !== 'cards' && visibleItems.length > 0 ? (
+            <React.Suspense fallback={<AsyncSurfaceState variant="loading" title={view === 'tiers' ? 'Загружаем тиры' : 'Загружаем таблицу'} message="Готовим текущий срез." compact />}>
+              {view === 'tiers' ? (
+                <StandardMetaTierGroups items={visibleItems} format={format} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
+                  periodLabel={standardMetaPeriodLabel(selectedPeriod)} minGames={minGames} />
+              ) : (
+                <StandardMetaArchetypeTable items={visibleItems} rankById={rankById} format={format} rank={rank} period={selectedPeriod}
+                  minGames={minGames} loadTrends={hasFullAccess} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
+                  periodLabel={standardMetaPeriodLabel(selectedPeriod)} />
+              )}
             </React.Suspense>
-          ) : view === 'table' && visibleItems.length > 0 ? (
-            <section className="standard-meta-table-wrap" aria-label={`Таблица архетипов: ${data.formatLabel}, ${data.rankLabel}`} tabIndex={0}>
-              <p className="standard-meta-table__mobile-hint">
-                <ChevronsUpDown size={15} /> Нажимайте заголовки для сортировки и листайте таблицу вбок
-              </p>
-              <TableSurface title="Мета: архетипы"><table className="standard-meta-table">
-                <caption className="sr-only">Мета Hearthstone: {data.formatLabel}, {data.rankLabel}</caption>
-                <thead>
-                  <tr>
-                    {sortableHeading('archetype', 'Архетип')}
-                    {sortableHeading('winrate', 'Винрейт')}
-                    {sortableHeading('popularity', 'Популярность')}
-                    {sortableHeading('games', 'Игры')}
-                    {sortableHeading('turns', 'Ходы')}
-                    {sortableHeading('durationMinutes', 'Длительность')}
-                    {sortableHeading('climbingSpeed', 'Набор')}
-                    <th scope="col"><span className="sr-only">Действия</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableItems.map((item, index) => (
-                    <tr key={item.id} data-meta-archetype={item.id}>
-                      <th scope="row" className="standard-meta-table__archetype">
-                        <span className="standard-meta-table__rank">{rankById.get(item.id)}</span>
-                        <img src={classIcon(item.classKey)} alt="" width="38" height="38" loading="lazy" decoding="async" />
-                        <span className="standard-meta-table__name">
-                          <strong>{item.archetypeLabel}</strong>
-                          <small>{item.translated ? item.archetype : 'Перевод ожидается'}</small>
-                        </span>
-                      </th>
-                      <td><strong className={`standard-meta-table__winrate standard-meta-table__winrate--${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</strong></td>
-                      <td>{formatNumber(item.popularity, '%')}</td>
-                      <td>{item.games?.toLocaleString('ru-RU') ?? '—'}</td>
-                      <td>{formatNumber(item.turns)}</td>
-                      <td>{formatNumber(item.durationMinutes, ' мин')}</td>
-                      <td className={item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-table__climb--negative' : 'standard-meta-table__climb'}>{formatNumber(item.climbingSpeed, ' ★/ч')}</td>
-                      <td>
-                        <a
-                          className="standard-meta__primary-button standard-meta__deck-action standard-meta__deck-action--compact standard-meta-table__deck-button"
-                          data-tour-id={index === 0 ? 'meta-deck-action' : undefined}
-                          href={archetypeHref(item)}
-                          aria-label={`Открыть страницу архетипа: ${item.archetypeLabel}`}
-                        >
-                          <span className="sr-only">Открыть архетип</span>
-                          <ArrowRight size={18} aria-hidden="true" />
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table></TableSurface>
-            </section>
           ) : (
             <AsyncSurfaceState
               variant="empty"

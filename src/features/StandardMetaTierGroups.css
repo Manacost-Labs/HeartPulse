@@ -1,0 +1,128 @@
+/* Tiers S–D as groups of archetype chips. The chip's edge and the header's
+   wash take the tier colour of the site's tier badge (assets.md). */
+.standard-meta-tier-groups {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 7px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background: rgba(247, 229, 188, 0.76);
+  box-shadow: 0 5px 12px rgba(66, 38, 14, 0.1);
+}
+
+.standard-meta-tier-groups__tier[data-tier='S'] { --tier: #911f2b; }
+.standard-meta-tier-groups__tier[data-tier='A'] { --tier: #87500e; }
+.standard-meta-tier-groups__tier[data-tier='B'] { --tier: #6d4193; }
+.standard-meta-tier-groups__tier[data-tier='C'] { --tier: #286a52; }
+.standard-meta-tier-groups__tier[data-tier='D'] { --tier: #346784; }
+
+.standard-meta-tier-groups__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.standard-meta-tier-groups__header h2 {
+  margin: 0;
+  color: #3a281c;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.standard-meta-tier-groups__header > div > p { margin: 0.1rem 0 0; color: #6a4f36; font-size: 0.75rem; }
+
+.standard-meta-tier-groups__method {
+  max-width: 34rem;
+  color: #5e4733;
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.standard-meta-tier-groups__method summary {
+  min-height: 32px;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid rgba(102, 63, 27, 0.28);
+  border-radius: 4px;
+  color: #4a2f66;
+  background: rgba(255, 249, 230, 0.7);
+  font-weight: 800;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.standard-meta-tier-groups__method[open] summary { margin-bottom: 0.35rem; }
+.standard-meta-tier-groups__method p { margin: 0 0 0.35rem; }
+.standard-meta-tier-groups__method summary:focus-visible { outline: 2px solid #4a2f66; outline-offset: 2px; }
+
+.standard-meta-tier-groups__tier {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.55rem;
+  border: 1px solid rgba(102, 63, 27, 0.18);
+  border-left: 4px solid var(--tier);
+  border-radius: 4px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tier) 10%, #fff6dc), rgba(255, 247, 222, 0.6) 12rem);
+}
+
+.standard-meta-tier-groups__tier-head { display: flex; gap: 0.55rem; align-items: center; }
+.standard-meta-tier-groups__tier-head h3 { margin: 0; color: #3a281c; font-family: var(--font-display); font-size: 0.95rem; }
+.standard-meta-tier-groups__tier-head small { display: block; color: #6a4f36; font-size: 0.68rem; line-height: 1.3; }
+
+.standard-meta-tier-groups__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standard-meta-tier-groups__chips li { min-width: 0; max-width: 100%; }
+
+.standard-meta-tier-groups__chip {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 0.2rem 0.55rem 0.2rem 0.3rem;
+  border: 1px solid rgba(102, 63, 27, 0.2);
+  border-left: 3px solid var(--tier);
+  border-radius: 4px;
+  color: #352319;
+  background: #fff8e4;
+  font-size: 0.78rem;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(66, 38, 14, 0.08);
+}
+
+.standard-meta-tier-groups__chip img { flex: 0 0 auto; width: 24px; height: 24px; }
+
+.standard-meta-tier-groups__chip-name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.standard-meta-tier-groups__chip strong { color: var(--tier); font-variant-numeric: tabular-nums; }
+.standard-meta-tier-groups__chip:hover { border-color: var(--tier); background: #fffdf4; }
+.standard-meta-tier-groups__chip:focus-visible { outline: 2px solid #4a2f66; outline-offset: 2px; }
+.standard-meta-tier-groups__chip[data-low-sample] { border-style: dashed; border-left-style: solid; background: rgba(255, 248, 228, 0.55); }
+.standard-meta-tier-groups__chip[data-low-sample] > :not(img) { opacity: 0.62; }
+
+.standard-meta-tier-groups__empty { margin: 0; align-self: center; color: #6f5236; font-size: 0.74rem; }
+
+@media (max-width: 640px) {
+  .standard-meta-tier-groups { margin-top: 0.58rem; padding: 0.45rem; border-width: 5px; }
+  .standard-meta-tier-groups__tier { grid-template-columns: minmax(0, 1fr); gap: 0.45rem; padding: 0.45rem; }
+  .standard-meta-tier-groups__method summary { min-height: 44px; display: flex; align-items: center; }
+  .standard-meta-tier-groups__chips { gap: 0.3rem; }
+  .standard-meta-tier-groups__chip { min-height: 36px; padding-right: 0.45rem; font-size: 0.74rem; }
+}
