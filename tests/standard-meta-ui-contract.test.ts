@@ -54,9 +54,10 @@ const teaserSource = readFileSync(new URL('../src/features/standardMetaTeaser.ts
 assert.match(teaserSource, /TEASER_SEED_FILTERS = \{ format: 'standard', rank: 'diamond_legend', minGames: 100 \} as const/);
 assert.match(metaSource, /useState<MetaRank>\(TEASER_SEED_FILTERS\.rank\)/);
 assert.match(metaSource, /useState<MetaPeriod \| null>\(initialTeaser\?\.period \?\? null\)/);
-// Until a payload resolves the summary shows a dash, never a fake zero.
+// Until a payload resolves the summary shows a value placeholder, never a fake zero.
 assert.match(metaSource, /const summaryReady = hasPayload && !\(hasFullAccess && data === initialTeaser\?\.data\);/);
-assert.match(metaSource, /<dd>\{summaryReady \? data\.items\.length : '—'\}<\/dd>/);
+assert.match(metaSource, /<MetaSummary items=\{summaryReady \? data\.items : null\}/);
+assert.match(metaSource, /<dd>\{items \? items\.length : <LoadingValue \/>\}<\/dd>/);
 assert.match(metaSource, /\{loading && !hasPayload && \(\s*<AsyncSurfaceState\s*variant="loading"/);
 // Without a server-rendered teaser only a browser holding a session waits for
 // its access check: a subscriber's remount would abort a teaser in flight.
