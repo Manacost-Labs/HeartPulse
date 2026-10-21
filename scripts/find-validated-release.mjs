@@ -19,6 +19,10 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
+// The queue merges once `CI required` passes, a few seconds before its run is
+// marked completed; the push waits that long rather than validating again.
+const PENDING_WAIT_MS = 150_000;
+const PENDING_POLL_MS = 10_000;
 
 export function releaseArtifactName(sha) {
   return `hs-arena-release-${sha}`;
@@ -51,6 +55,11 @@ export function selectValidatedRun({ runs, artifactsByRun, sha, tree, repository
   return { runId: null, reason: `no merge-queue run of ${sha} still holds ${name}` };
 }
 
+/** True while a merge-queue run of `sha` has not finished. */
+export function hasPendingQueueRun(runs, sha) {
+  return runs.some(run => run.event === 'merge_group' && run.head_sha === sha && run.status !== 'completed');
+}
+
 async function githubJson(url, token) {
   const response = await fetch(url, {
     headers: {
@@ -79,11 +88,17 @@ async function findValidatedRun(env) {
   }
   const tree = gitTree(sha);
   const workflowFile = path.posix.basename(workflowPath);
-  const listing = await githubJson(
-    `${api}/repos/${repository}/actions/workflows/${workflowFile}/runs?event=merge_group&head_sha=${sha}&status=success&per_page=20`,
+  const listRuns = async () => (await githubJson(
+    `${api}/repos/${repository}/actions/workflows/${workflowFile}/runs?event=merge_group&head_sha=${sha}&per_page=20`,
     token,
-  );
-  const runs = listing.workflow_runs ?? [];
+  )).workflow_runs ?? [];
+  let runs = await listRuns();
+  for (const deadline = Date.now() + PENDING_WAIT_MS; hasPendingQueueRun(runs, sha) && Date.now() < deadline;) {
+    console.log(`[find-validated-release] waiting for the merge-queue run of ${sha} to finish`);
+    await new Promise(resolveWait => setTimeout(resolveWait, PENDING_POLL_MS));
+    runs = await listRuns();
+  }
+  runs = runs.filter(run => run.status === 'completed' && run.conclusion === 'success');
   const artifactsByRun = new Map();
   for (const run of runs) {
     const artifacts = await githubJson(

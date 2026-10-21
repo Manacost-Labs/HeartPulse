@@ -17,6 +17,9 @@ choice), far below the tolerance. The gate fails if no chunk contains the
 release-id literal any more, so a code change cannot silently break the
 normalization. Every run writes `tmp/next-bundle-measurements.json`; CI
 uploads it as the artifact `next-bundle-measurements-<sha>`.
+`npm run budget:next:baseline` takes it from the newest successful push run
+on `main`, or, when that push reused its merge-queue validation and ran no
+tests, from the merge-queue run of the same commit.
 
 ## Limits
 

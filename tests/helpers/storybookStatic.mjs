@@ -58,7 +58,13 @@ export async function openStory(page, url, { transientError = NETWORK_CHANGED } 
     };
     page.on('requestfailed', recordAbort);
     try {
-      await page.goto(url);
+      try {
+        await page.goto(url);
+      } catch (error) {
+        if (!error.message.includes(transientError) || load === MAX_STORY_LOADS) throw error;
+        console.warn(`[storybook] ${url}: the browser aborted the document with ${transientError}; opening it again`);
+        continue;
+      }
       await page.waitForFunction(() => ['sb-show-main', 'sb-show-errordisplay', 'sb-show-nopreview']
         .some(name => document.body.classList.contains(name)));
     } finally {

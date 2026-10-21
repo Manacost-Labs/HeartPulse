@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { releaseArtifactName, selectValidatedRun } from '../scripts/find-validated-release.mjs';
+import { hasPendingQueueRun, releaseArtifactName, selectValidatedRun } from '../scripts/find-validated-release.mjs';
 
 const sha = 'a'.repeat(40);
 const tree = 'b'.repeat(40);
@@ -68,4 +68,12 @@ test('malformed identities never select a run', () => {
   assert.equal(selectValidatedRun({
     runs: [queueRun(1)], artifactsByRun: new Map(), sha, tree: '', repository, workflowPath,
   }).runId, null);
+});
+
+test('the push waits only for an unfinished merge-queue run of its own commit', () => {
+  assert.equal(hasPendingQueueRun([queueRun(1, { status: 'in_progress', conclusion: null })], sha), true);
+  assert.equal(hasPendingQueueRun([queueRun(1, { status: 'queued', conclusion: null })], sha), true);
+  assert.equal(hasPendingQueueRun([queueRun(1)], sha), false);
+  assert.equal(hasPendingQueueRun([queueRun(1, { status: 'in_progress', head_sha: 'c'.repeat(40) })], sha), false);
+  assert.equal(hasPendingQueueRun([queueRun(1, { status: 'in_progress', event: 'push' })], sha), false);
 });

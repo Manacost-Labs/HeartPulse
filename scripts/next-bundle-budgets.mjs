@@ -195,14 +195,21 @@ function latestMainMeasurement() {
   // REST instead of `gh run list` filters: the server's gh 2.23 has no --event/--status.
   const runs = JSON.parse(gh(['api', 'repos/{owner}/{repo}/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=10',
     '--jq', '[.workflow_runs[] | {databaseId: .id, headSha: .head_sha}]']));
+  // A push that reused its merge-queue validation ran no tests; the queue run
+  // of the same commit holds that commit's measurement.
+  const queueRuns = JSON.parse(gh(['api', 'repos/{owner}/{repo}/actions/workflows/ci.yml/runs?event=merge_group&status=success&per_page=50',
+    '--jq', '[.workflow_runs[] | {databaseId: .id, headSha: .head_sha}]']));
   const dir = mkdtempSync(join(tmpdir(), 'next-bundle-measurements-'));
   try {
     for (const run of runs) {
-      try {
-        execFileSync('gh', ['run', 'download', String(run.databaseId), '--name', `${MEASUREMENT_ARTIFACT_PREFIX}${run.headSha}`, '--dir', dir],
-          { cwd: PROJECT_ROOT, stdio: 'ignore' });
-        return readJson(join(dir, 'next-bundle-measurements.json'));
-      } catch { /* older runs predate the artifact */ }
+      const sources = [run, ...queueRuns.filter(queueRun => queueRun.headSha === run.headSha)];
+      for (const source of sources) {
+        try {
+          execFileSync('gh', ['run', 'download', String(source.databaseId), '--name', `${MEASUREMENT_ARTIFACT_PREFIX}${run.headSha}`, '--dir', dir],
+            { cwd: PROJECT_ROOT, stdio: 'ignore' });
+          return readJson(join(dir, 'next-bundle-measurements.json'));
+        } catch { /* older runs predate the artifact; a reused push has none */ }
+      }
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });

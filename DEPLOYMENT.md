@@ -57,7 +57,8 @@ production artifact.
 A push to `main` first looks for the merge-queue run that validated the same
 commit (`scripts/find-validated-release.mjs`): a successful `merge_group` run
 of this workflow whose head SHA and tree equal the pushed commit and which
-still holds `hs-arena-release-<sha>`. When one exists, the push skips
+still holds `hs-arena-release-<sha>`, waiting up to 150 seconds for a queue
+run of that commit that is still finishing. When one exists, the push skips
 validation and deploys that run's artifact; the release, its SHA and the
 deployer gate are unchanged. Any doubt, including a failed lookup, validates
 the push in full. A non-blocking **Refresh main build caches** job then keeps
