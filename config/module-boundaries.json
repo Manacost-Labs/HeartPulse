@@ -425,6 +425,22 @@
       ]
     },
     {
+      "id": "server.accountSessions",
+      "runtime": "server",
+      "root": "server/modules/accountSessions",
+      "purpose": "Owns the current account's session list, its activity record and the revocation of its other sessions.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/accountSessions/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:account-sessions-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/account-sessions.md"
+      ]
+    },
+    {
       "id": "server.publicProfile",
       "runtime": "server",
       "root": "server/modules/publicProfile",
@@ -1069,6 +1085,7 @@
         "server.publicApi",
         "server.publicProfile",
         "server.accountSignIns",
+        "server.accountSessions",
         "server.telegramAuth",
         "server.constructedArchetypes"
       ],
@@ -1145,6 +1162,7 @@
         "server.publicApi",
         "server.publicProfile",
         "server.accountSignIns",
+        "server.accountSessions",
         "server.telegramAuth",
         "server.constructedArchetypes"
       ],

@@ -7,7 +7,9 @@ import { type BoostyConfirmation } from '../src/modules/identity/ui/AccountAcces
 import { accountPlanSummary } from '../src/modules/identity/model/accountPlan';
 import AccountContests from '../src/modules/identity/ui/AccountContests';
 import AccountLinks from '../src/modules/identity/ui/AccountLinks';
+import AccountSessions from '../src/modules/identity/ui/AccountSessions';
 import AccountSettings from '../src/modules/identity/ui/AccountSettings';
+import { accountSessionDetail, accountSessionsFromPayload, revokedSessionsMessage } from '../src/modules/identity/model/accountSessions';
 import { TelegramAccountLinkActionsView } from '../src/modules/identity/ui/TelegramAccountLinkActions';
 import type { AuthUser } from '../src/modules/identity/public';
 import type { SubscriptionStatus } from '../src/modules/subscriptions/public';
@@ -260,4 +262,39 @@ test('social providers show their link state only once it is known', () => {
   assert.doesNotMatch(known, /href="\/api\/auth\/google\/start/);
   assert.match(known, /href="\/api\/auth\/discord\/start">Привязать<\/a>/);
   assert.doesNotMatch(known, /href="\/x"/, 'unsupported providers are ignored');
+});
+
+test('active sessions: this browser first, others can be ended, all others only after a confirmation', () => {
+  const now = Date.parse('2026-10-21T12:00:00.000Z');
+  const sessions = accountSessionsFromPayload({ sessions: [
+    { id: 'this-browser-session-1', current: true, device: 'Chrome · Windows', place: 'Россия', signedInAt: '2026-10-01T10:00:00.000Z', lastActiveAt: '2026-10-21T11:59:40.000Z' },
+    { id: 'phone-session-id-00001', current: false, device: 'Safari · iPhone', place: 'Европа', signedInAt: '2026-10-02T10:00:00.000Z', lastActiveAt: '2026-10-21T11:48:00.000Z' },
+    { id: 'old-session-id-000001', current: false, device: '', place: null, signedInAt: '2026-10-03T10:00:00.000Z', lastActiveAt: null },
+    { current: true },
+  ] });
+  assert.ok(sessions);
+  assert.equal(sessions.length, 3, 'an entry without an id is dropped');
+  assert.equal(accountSessionsFromPayload({ error: 'x' }), null);
+  assert.equal(accountSessionDetail(sessions[1], now), 'Европа · активен 12 мин назад');
+  assert.equal(accountSessionDetail(sessions[0], now), 'Россия · активен только что');
+  assert.equal(accountSessionDetail({ ...sessions[1], lastActiveAt: '2026-10-21T09:00:00.000Z' }, now), 'Европа · активен 3 ч назад');
+  assert.equal(accountSessionDetail(sessions[2], now), 'вход 3 окт.');
+  assert.equal(revokedSessionsMessage(2), 'Завершено 2 сеанса.');
+
+  const control = { sessions, failed: false, busy: null, revoke: noop, revokeOthers: noop };
+  const html = renderToStaticMarkup(<AccountSessions control={control} now={now} />);
+  assert.match(html, /Активные сеансы/);
+  assert.match(html, /Chrome · Windows[\s\S]*Этот браузер[\s\S]*Safari · iPhone[\s\S]*Завершить/);
+  assert.equal(html.match(/>Завершить</g)?.length, 2, 'every other session, never this browser');
+  assert.match(html, /Неизвестное устройство/);
+  assert.match(html, /Выйти на всех других устройствах/);
+  assert.doesNotMatch(html, /alertdialog/, 'the confirmation appears only when asked');
+  assert.match(renderToStaticMarkup(<AccountSessions control={{ ...control, busy: 'others' }} now={now} />), /Завершаем…/);
+
+  const alone = renderToStaticMarkup(<AccountSessions control={{ ...control, sessions: [sessions[0]] }} now={now} />);
+  assert.doesNotMatch(alone, /Выйти на всех других устройствах/, 'nothing to end elsewhere');
+  assert.equal(renderToStaticMarkup(<AccountSessions control={{ ...control, sessions: null, failed: true }} />), '', 'no empty block');
+  assert.match(renderToStaticMarkup(
+    <AccountLinks user={user} subscription={active} telegram={telegram} patreonLinkUrl="" sessions={control} />,
+  ), /id="account-links"[\s\S]*Активные сеансы/, 'the list lives in «Вход и привязки»');
 });

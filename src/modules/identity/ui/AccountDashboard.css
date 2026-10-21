@@ -198,3 +198,25 @@
 @media (max-width: 600px) {
   .account-settings__contacts { grid-template-columns: minmax(0, 1fr); }
 }
+
+.account-sessions { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--arena-paper-line); }
+.account-sessions h3 { margin: 0; color: var(--account-ink); font-size: 1rem; font-weight: 700; }
+.account-sessions .account-links__list { margin-top: 6px; }
+.account-sessions .account-links__row:first-child { border-top: 0; }
+.account-sessions__current { flex: 0 0 auto; color: var(--account-muted); font-size: 0.9rem; font-weight: 700; }
+.account-sessions__others {
+  min-height: 42px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--account-accent);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.account-sessions__others:disabled { cursor: wait; opacity: 0.7; }
+.account-sessions__confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 8px; }
+.account-sessions__confirm p { flex: 1 1 100%; margin: 0; color: var(--account-ink); font-size: 0.95rem; }

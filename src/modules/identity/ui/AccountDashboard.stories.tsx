@@ -50,6 +50,19 @@ const social = {
   linked: new Set(['email', 'telegram', 'google']),
 };
 
+const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+const sessions = {
+  sessions: [
+    { id: 'story-this-browser-0001', current: true, device: 'Chrome · Windows', place: 'Россия', signedInAt: minutesAgo(9000), lastActiveAt: minutesAgo(0) },
+    { id: 'story-phone-session-001', current: false, device: 'Safari · iPhone', place: 'Европа', signedInAt: minutesAgo(4000), lastActiveAt: minutesAgo(12) },
+    { id: 'story-laptop-session-01', current: false, device: 'Firefox · Linux', place: null, signedInAt: minutesAgo(30000), lastActiveAt: null },
+  ],
+  failed: false,
+  busy: null,
+  revoke: fn(),
+  revokeOthers: fn(),
+};
+
 const args: AccountDashboardProps = {
   user,
   name: user.name,
@@ -67,6 +80,7 @@ const args: AccountDashboardProps = {
   patreonLinkUrl: '/api/auth/patreon/start',
   telegram: { userId: 'u-story', mode: 'oidc', botUsername: 'kolodahearthstoneauthbot', onMessage: fn() },
   social,
+  sessions,
   contests: {
     loading: false,
     entries: [{ id: 'e1', contestId: 'c1', title: 'Розыгрыш наборов «Тёмная империя»', prize: '5 наборов', imageUrl: '', status: 'completed', entryStatus: 'approved', joinedAt: '2026-10-02T10:00:00.000Z', isWinner: true }],
@@ -124,3 +138,13 @@ export const CheckFailed: Story = {
   args: { subscription: null, subscriptionChecked: true, checkedAt: '' },
 };
 
+
+export const EndingOtherSessions: Story = {
+  play: async ({ canvas, userEvent, args: storyArgs }) => {
+    await expect(canvas.getByText('Этот браузер')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Выйти на всех других устройствах' }));
+    await expect(canvas.getByRole('alertdialog')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Завершить' }));
+    await expect(storyArgs.sessions?.revokeOthers).toHaveBeenCalled();
+  },
+};

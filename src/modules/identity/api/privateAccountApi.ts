@@ -3,6 +3,7 @@ import {
   authUserFromProfilePayload,
   type AuthProfileUpdate,
 } from '../model/authProfile';
+import { accountSessionsFromPayload, type AccountSession } from '../model/accountSessions';
 import { authErrorFromPayload, type AuthUser } from '../model/authUser';
 
 const AUTH_JSON_HEADERS = {
@@ -57,4 +58,33 @@ export async function fetchLinkedSignInProviders(signal?: AbortSignal): Promise<
   } catch {
     return null;
   }
+}
+
+/** The account's signed-in browsers, this one first. Null when the answer is unavailable. */
+export async function fetchAccountSessions(signal?: AbortSignal): Promise<AccountSession[] | null> {
+  try {
+    const response = await fetchWithDeadline('/api/account/sessions', { signal, deadlineMs: 10_000 });
+    if (!response.ok) return null;
+    return accountSessionsFromPayload(await response.json().catch(() => null));
+  } catch {
+    return null;
+  }
+}
+
+async function postSessionChange(path: string, failure: string): Promise<number> {
+  const response = await fetchWithDeadline(path, { method: 'POST', headers: AUTH_JSON_HEADERS, deadlineMs: 10_000 });
+  const payload: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(authErrorFromPayload(payload) || failure);
+  const revoked = (payload as { revoked?: unknown }).revoked;
+  return typeof revoked === 'number' ? revoked : 0;
+}
+
+/** Ends one of the account's other sessions; it is refused on its next request. */
+export function revokeAccountSession(id: string): Promise<number> {
+  return postSessionChange(`/api/account/sessions/${encodeURIComponent(id)}/revoke`, 'Не удалось завершить сеанс');
+}
+
+/** Ends every session of the account except this browser's; resolves with how many ended. */
+export function revokeOtherAccountSessions(): Promise<number> {
+  return postSessionChange('/api/account/sessions/revoke-others', 'Не удалось завершить сеансы');
 }
