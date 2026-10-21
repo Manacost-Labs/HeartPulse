@@ -5,7 +5,7 @@ import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 // Prepared anonymous archetype summaries are reused by every viewer. Meta
-// subscribers still read protected data after the account check; guests recover
+// subscribers read only protected data after the account check; guests recover
 // only a missing teaser, without waiting for that check. Protected archetype reads belong to the detail page.
 test('Next.js soft-paywall pages request only the data the visitor may see', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
@@ -41,12 +41,12 @@ test('Next.js soft-paywall pages request only the data the visitor may see', asy
         // The fixture Express has an (empty) archetype catalog but no meta data.
         const serverTeaser = path === '/standard/archetypes/';
         const label = `${path} for a ${subscriber ? `${remembered ? 'remembered' : 'new'} subscriber` : 'guest'}`;
-        // The public teaser never waits for the session check; a subscriber the
-        // browser does not remember reads it during the check, then the full
-        // slice. A remembered subscriber has access from the first client
-        // paint and reads the full slice only.
-        const expected = serverTeaser ? [] : !subscriber ? [`${endpoint}/teaser`]
-          : remembered ? [endpoint] : [`${endpoint}/teaser`, endpoint];
+        // A guest's teaser never waits for the session check. The meta page of
+        // a browser holding a session waits for that check instead of reading
+        // a teaser the full slice would cancel; the archetype catalog serves
+        // its teaser from the server. Either way a subscriber reads the full
+        // slice only.
+        const expected = serverTeaser ? [] : !subscriber ? [`${endpoint}/teaser`] : [endpoint];
         assert.deepEqual(requested, expected, `${label} requested ${JSON.stringify(requested)}`);
         assert.doesNotMatch(html, /"deckCode":"[^"]/, `${path} carries no deck code in its HTML`);
         await context.close();

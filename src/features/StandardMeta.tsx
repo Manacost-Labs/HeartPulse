@@ -374,6 +374,8 @@ const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
 type StandardMetaPageProps = {
   hasFullAccess?: boolean;
   accessPending?: boolean;
+  /** The browser holds a session whose access is still checked: no teaser request until it is known. */
+  teaserWaitsForAccess?: boolean;
   paywall?: PaywallAccessState;
   embedded?: boolean;
   initialTeaser?: StandardMetaTeaserSeed | null;
@@ -381,7 +383,7 @@ type StandardMetaPageProps = {
 
 function StandardMetaContent({
   hasFullAccess,
-  accessPending,
+  accessPending, teaserWaitsForAccess,
   paywall,
   initialTeaser,
 }: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
@@ -410,13 +412,12 @@ function StandardMetaContent({
   const requestId = useRef(0);
 
   useEffect(() => {
-    // The server-rendered teaser already answers the guest's first slice.
-    if (requestKey === answeredKey.current) return undefined;
-    // Without one, the slice waits for the access check: a subscriber's page
-    // remounts with full access, which would abort a teaser already in flight
-    // (a wasted request the browser reports as failed). A remembered
-    // subscriber's access, applied right after hydration, is not pending.
-    if (accessPending) return undefined;
+    // The server-rendered teaser answers the guest's first slice. Without it a
+    // guest reads the teaser at once, but a browser holding a session waits for
+    // its access check: full access remounts the page and would abort a teaser
+    // in flight. The request starts a microtask later, so a remembered
+    // subscriber's access, applied right after hydration, cancels it unsent.
+    if (requestKey === answeredKey.current || teaserWaitsForAccess) return undefined;
     answeredKey.current = '';
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
@@ -463,7 +464,7 @@ function StandardMetaContent({
         }
       });
     return () => controller.abort();
-  }, [format, rank, period, minGames, metaRevision, hasFullAccess, accessPending, requestKey]);
+  }, [format, rank, period, minGames, metaRevision, hasFullAccess, teaserWaitsForAccess, requestKey]);
 
   const filteredItems = useMemo(() => {
     const normalized = deferredQuery.toLowerCase().trim();
@@ -691,6 +692,7 @@ function StandardMetaContent({
 export default function StandardMetaPage({
   hasFullAccess = true,
   accessPending = false,
+  teaserWaitsForAccess = false,
   paywall = DEFAULT_PAYWALL_ACCESS,
   embedded = false,
   initialTeaser = null,
@@ -703,7 +705,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent {...{ hasFullAccess, accessPending, paywall, initialTeaser }} />
+        <StandardMetaContent {...{ hasFullAccess, accessPending, teaserWaitsForAccess, paywall, initialTeaser }} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

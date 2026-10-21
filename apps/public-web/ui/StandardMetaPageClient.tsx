@@ -5,6 +5,7 @@ import StandardMetaPage from '@/src/features/StandardMeta';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
+import { sessionTag } from './viewerHint';
 
 export function StandardMetaPageClient({ initialTeaser }: { initialTeaser: StandardMetaTeaserSeed | null }) {
   const access = usePublicAccess();
@@ -15,7 +16,7 @@ export function StandardMetaPageClient({ initialTeaser }: { initialTeaser: Stand
   return <PublicPageShell activeTab="standard-meta" pathname="/standard/meta/"
     access={access} navigate={navigate} wide>
     <StandardMetaPage key={pageKey} embedded hasFullAccess={allowed} accessPending={pending}
-      initialTeaser={initialTeaser}
+      teaserWaitsForAccess={pending && sessionTag() !== null} initialTeaser={initialTeaser}
       paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />
   </PublicPageShell>;

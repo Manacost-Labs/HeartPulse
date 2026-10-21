@@ -58,9 +58,11 @@ assert.match(metaSource, /useState<MetaPeriod \| null>\(initialTeaser\?\.period 
 assert.match(metaSource, /const summaryReady = hasPayload && !\(hasFullAccess && data === initialTeaser\?\.data\);/);
 assert.match(metaSource, /<dd>\{summaryReady \? data\.items\.length : '—'\}<\/dd>/);
 assert.match(metaSource, /\{loading && !hasPayload && \(\s*<AsyncSurfaceState\s*variant="loading"/);
-// Without a server-rendered teaser the slice waits for the account check: a
-// subscriber's remount would otherwise abort a teaser request in flight.
-assert.match(metaSource, /if \(requestKey === answeredKey\.current\) return undefined;[\s\S]*?if \(accessPending\) return undefined;\s*answeredKey\.current = '';/);
+// Without a server-rendered teaser only a browser holding a session waits for
+// its access check: a subscriber's remount would abort a teaser in flight.
+assert.match(metaSource, /if \(requestKey === answeredKey\.current \|\| teaserWaitsForAccess\) return undefined;\s*answeredKey\.current = '';/);
+assert.match(readFileSync(new URL('../apps/public-web/ui/StandardMetaPageClient.tsx', import.meta.url), 'utf8'),
+  /teaserWaitsForAccess=\{pending && sessionTag\(\) !== null\}/);
 // The guest teaser's prompt waits for the account check, so a subscriber never sees it.
 assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<PaywallGate/);
 assert.match(metaSource, /option\.asset/);
