@@ -43,7 +43,7 @@ import {
 } from './patreonOAuth.js';
 import { createBrowserSessionCookieHandlers, legacyArenaCookieDomain, requestViewerSession, requestViewerTag } from './modules/browserSessionCookies/public.js';
 import { createCoverAdminSsoRouter } from './modules/coverAdminSso/public.js';
-import { csrfRequestAllowed } from './csrf.js';
+import { csrfRequestAllowed, requestTargetPath } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 import { isPublicMediaApiRequest } from './apiRateLimitPolicy.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
@@ -3158,7 +3158,7 @@ function listParserControlAudit(limit: number) {
 
 function cookieMutationCsrfAllowed(req: import('express').Request): boolean {
   // The raw path as received: an exemption must never come from a resolved or decoded spelling.
-  const requestPath = req.originalUrl.split('?')[0];
+  const requestPath = requestTargetPath(req.originalUrl);
   return csrfRequestAllowed({
     method: req.method,
     path: requestPath,
@@ -7006,6 +7006,9 @@ const apiLimiter = rateLimit({
       && safeEqualString(req.headers['x-cover-sso-key'], COVER_SSO_PROXY_KEY))
     || req.ip === '127.0.0.1'
     || req.ip === '::1'
+    // A cross-site cookie mutation is refused by the CSRF rule below without
+    // touching data; counting it would let another site spend the visitor's budget.
+    || !cookieMutationCsrfAllowed(req)
   ),
 });
 app.use('/api/', apiLimiter);

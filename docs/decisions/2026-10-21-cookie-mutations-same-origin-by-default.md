@@ -38,6 +38,14 @@ so the same-origin rule no longer depends on the path: a spelling the
 normaliser misses can only drop the extra header requirement, never let a
 cross-site request through.
 
+An absolute-form request target (`POST https://hearthpulse.net/api/…`, as a
+proxy sends it) routes by its path, so the rule reads the target's path with
+scheme and host dropped (`requestTargetPath`) and nothing else changed.
+
+The shared per-IP API limit skips a request the CSRF rule refuses: the
+refusal touches no data, and counting it would let another site spend the
+visitor's request budget.
+
 ## Consequences
 
 - A new cookie-authenticated mutation is protected without being listed.

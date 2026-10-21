@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
+import http from 'node:http';
 import { startCredentialBackend } from './helpers/credentialBackend.mjs';
 
 // On the real server: a revoked session is refused by the very next session
@@ -114,6 +115,47 @@ test('revoking a session ends it at once for the session check and the paywall',
     assert.equal((await me('a3')).user, null);
     assert.equal((await me('a1')).user?.id, 'reader');
     assert.equal((await me('s1')).user?.id, 'stranger', 'another account keeps its sessions');
+  } finally {
+    await backend.close();
+  }
+});
+
+test('absolute-form targets keep the header rule, and refused cross-site mutations spend no API budget', async () => {
+  const backend = await startCredentialBackend();
+  try {
+    const now = new Date().toISOString();
+    backend.database.prepare(`INSERT INTO users (id, email, name, password_hash, role, created_at, updated_at)
+      VALUES ('reader', 'reader@example.test', 'reader', 'unused', 'user', ?, ?)`).run(now, now);
+    for (const token of ['b1', 'b2']) backend.database.prepare(`INSERT INTO sessions (token_hash, user_id, email, expires_at, created_at)
+      VALUES (?, 'reader', 'reader@example.test', ?, ?)`).run(sha(token), Date.now() + 3_600_000, now);
+    const { port } = new URL(backend.origin);
+    // A proxy-style request line: POST http://host/api/… (fetch cannot send one).
+    const absolute = (path, headers) => new Promise((resolve, reject) => {
+      const request = http.request({ host: '127.0.0.1', port, method: 'POST', path: `${backend.origin}${path}`, headers }, response => {
+        response.resume();
+        response.on('end', () => resolve(response.statusCode));
+      });
+      request.on('error', reject);
+      request.end();
+    });
+    const sameOrigin = { Cookie: 'manacost_auth_token=b1', Origin: backend.origin, 'Sec-Fetch-Site': 'same-origin' };
+    assert.equal(await absolute('/api/account/sessions/revoke-others', sameOrigin), 403, 'no X-CSRF-Request: refused');
+    assert.equal(await absolute('/api/auth/logout', sameOrigin), 403);
+    const alive = token => backend.database.prepare('SELECT 1 AS live FROM sessions WHERE token_hash = ?').get(sha(token))?.live === 1;
+    assert.ok(alive('b1') && alive('b2'), 'nothing was ended');
+    assert.equal(await absolute('/api/account/sessions/revoke-others', { ...sameOrigin, 'X-CSRF-Request': '1' }), 200);
+    assert.ok(alive('b1') && !alive('b2'));
+
+    // The shared per-IP API limit (120/min) does not count refused cross-site mutations.
+    const client = { 'X-Forwarded-For': '203.0.113.7' };
+    for (let attempt = 0; attempt < 125; attempt += 1) {
+      const refused = await fetch(`${backend.origin}/api/articles/missing/vote`, { method: 'POST',
+        headers: { ...client, Cookie: 'manacost_auth_token=b1', Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' } });
+      assert.equal(refused.status, 403);
+    }
+    const legit = await fetch(`${backend.origin}/api/auth/me`, { headers: { ...client, Cookie: 'manacost_auth_token=b1' } });
+    assert.equal(legit.status, 200, 'the visitor\'s own next request is not rate limited');
+    assert.equal((await legit.json()).user?.id, 'reader');
   } finally {
     await backend.close();
   }
