@@ -412,10 +412,11 @@ function StandardMetaContent({
   useEffect(() => {
     // The server-rendered teaser already answers the guest's first slice.
     if (requestKey === answeredKey.current) return undefined;
-    // Without one, the public teaser loads during the access check too; full
-    // access, once known, replaces it. The request starts a microtask later,
-    // so a remembered subscriber's access, applied right after hydration,
-    // cancels the teaser before it reaches the network.
+    // Without one, the slice waits for the access check: a subscriber's page
+    // remounts with full access, which would abort a teaser already in flight
+    // (a wasted request the browser reports as failed). A remembered
+    // subscriber's access, applied right after hydration, is not pending.
+    if (accessPending) return undefined;
     answeredKey.current = '';
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
@@ -462,7 +463,7 @@ function StandardMetaContent({
         }
       });
     return () => controller.abort();
-  }, [format, rank, period, minGames, metaRevision, hasFullAccess, requestKey]);
+  }, [format, rank, period, minGames, metaRevision, hasFullAccess, accessPending, requestKey]);
 
   const filteredItems = useMemo(() => {
     const normalized = deferredQuery.toLowerCase().trim();
