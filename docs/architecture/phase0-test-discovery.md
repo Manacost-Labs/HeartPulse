@@ -21,7 +21,8 @@ No branch-wide merge or unverified cherry-pick is part of this slice.
 - Validate discovery and its own contract: `npm run test:discovery`.
 - Run every classified authored test: `npm test`.
 - Run selected suites: `npm run test:suite -- <id>[,<id>...]`, optionally with
-  `--shard <index>/<total>`, `--retry-failed-once` and `--continue-on-failure`.
+  `--shard <index>/<total>`, `--retry-failed-once`, `--continue-on-failure`
+  and `--quarantine <exclude|only>`.
 - Run the release gate: `npm run verify:release`.
 
 ## Discovery contract
@@ -67,7 +68,8 @@ when enabled) and preserves the failing exit code or termination signal.
 
 CI runs the `browser` suite as a matrix of shards
 (`npm run test:suite -- browser --shard i/N --retry-failed-once
---continue-on-failure`) and the other four suites as a second matrix
+--continue-on-failure --quarantine exclude`) and the other four suites as a
+second matrix
 (`npm run test:suite -- unit,integration,contract,production-smoke --shard
 i/N --continue-on-failure`, no retries). Each shard
 computes the same deterministic partition from the registry and
@@ -84,7 +86,10 @@ With `--retry-failed-once` a file that exits nonzero or crashes is rerun once
 in the same shard. A pass on the retry is logged as
 `[test-suite] FLAKY <suite> <file>`, raised as a GitHub warning annotation and
 listed as FLAKY in the job summary; a second failure fails the shard. Runner
-interruptions and processes that cannot start are not retried.
+interruptions and processes that cannot start are not retried. The report
+counts a retry-pass as a failure: the summary line reads `Reported failures:
+<FAIL + FLAKY>` and the final log line ends in `reported-failures=<n>`, but only
+a FAIL fails the job, so a retry-pass never blocks the merge queue.
 
 CI jobs pass `--continue-on-failure`: after a real failure the job still runs
 its remaining files and then fails, naming every failing file, so one run
@@ -93,6 +98,35 @@ runner (a cancelled or timed-out job) stops at once. Every run with
 `GITHUB_STEP_SUMMARY` set writes a per-file PASS/FLAKY/FAIL/NOT RUN table with
 durations. Local `npm test` keeps the original behavior: no shards, no
 retries, and a stop at the first failure.
+
+## Quarantine
+
+Known flaky tests are listed in the `quarantine` array of
+`tests/test-suites.json`; each entry names a classified `file`, a GitHub
+`issue` URL (one issue per test, titled `flaky: <test>`) and a `reason`. The
+registry gate (`npm run test:registry`) rejects an entry whose file is not
+classified, whose issue is not a GitHub issue URL, whose reason is blank, or
+that repeats. A quarantined file stays in its suite; only browser tests may be
+quarantined (`tests/workflow-contract.test.mjs`), because only the browser
+shards skip the quarantine.
+
+CI runs the quarantine in the job `Browser quarantine (non-blocking)`
+(`npm run test:suite -- browser --retry-failed-once --continue-on-failure
+--quarantine only`) on push, pull request and merge-queue runs. The job has
+`continue-on-error: true` and neither `CI required` nor the deployment needs
+it, so a red quarantine is visible in the run and its step summary but never
+blocks a merge or a release. Local `npm test` still runs quarantined files.
+
+- **Add**: open an issue `flaky: <test>` with the evidence (run links), add the
+  entry with that issue URL, and run `npm run test:registry`.
+- **Remove**: fix the test with event or state waits instead of timers (plan
+  item 4.4), delete its entry in the same PR and close the issue once it passes
+  in the blocking shards.
+
+The goal of the quarantine (improvement plan Q6) is five consecutive green
+push runs of `main` with no FLAKY line in any blocking shard. Its exit
+criterion (plan 4.4) is an empty `quarantine` array and a retry-pass share
+below 1 % of browser files run.
 
 ## Boundaries
 

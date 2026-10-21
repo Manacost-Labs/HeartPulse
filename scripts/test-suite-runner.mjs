@@ -28,6 +28,8 @@ const IGNORED_DIRECTORY_NAMES = new Set([
   'test-results',
 ]);
 const ENVIRONMENT_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const ISSUE_URL_PATTERN = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/[1-9][0-9]*$/;
+const QUARANTINE_MODES = Object.freeze(['exclude', 'only']);
 const FORCE_KILL_DELAY_MS = 1_000;
 const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM'];
 
@@ -161,6 +163,31 @@ export function validateTestRegistry(registry, { repositoryRoot }) {
     throw new Error(`unclassified test files: ${unclassifiedFiles.join(', ')}`);
   }
 
+  // A quarantined file stays classified in its suite; CI runs it in a separate
+  // non-blocking job until its issue is fixed (docs/architecture/phase0-test-discovery.md).
+  const quarantine = registry.quarantine ?? [];
+  if (!Array.isArray(quarantine)) throw new Error('test registry quarantine must be an array');
+  const quarantinedFiles = [];
+  for (const entry of quarantine) {
+    if (!isRecord(entry)) throw new Error('each quarantine entry must be an object');
+    validateTestPath(entry.file);
+    if (!classifiedSet.has(entry.file)) throw new Error(`quarantined test is not classified: ${entry.file}`);
+    if (typeof entry.issue !== 'string' || !ISSUE_URL_PATTERN.test(entry.issue)) {
+      throw new Error(`quarantine issue must be a GitHub issue URL: ${entry.file}`);
+    }
+    if (typeof entry.reason !== 'string' || entry.reason.trim().length === 0) {
+      throw new Error(`quarantine reason is required: ${entry.file}`);
+    }
+    quarantinedFiles.push(entry.file);
+  }
+  const duplicateQuarantine = [...countFiles(quarantinedFiles)]
+    .filter(([, count]) => count > 1)
+    .map(([testFile]) => testFile)
+    .sort();
+  if (duplicateQuarantine.length > 0) {
+    throw new Error(`quarantined more than once: ${duplicateQuarantine.join(', ')}`);
+  }
+
   for (const [testFile, environment] of Object.entries(registry.fileEnvironment)) {
     validateTestPath(testFile);
     if (!classifiedSet.has(testFile)) {
@@ -174,6 +201,7 @@ export function validateTestRegistry(registry, { repositoryRoot }) {
     discovered: discoveredFiles.length,
     excluded: excludedFiles.length,
     files: classifiedFiles,
+    quarantined: quarantinedFiles,
   };
 }
 
@@ -355,12 +383,16 @@ function formatSeconds(milliseconds) {
 
 const SUMMARY_ICONS = { PASS: '✅', FLAKY: '⚠️', FAIL: '❌', 'NOT RUN': '⏭️' };
 
-function writeStepSummary(summaryPath, { title, results, executed, selected, flaky }) {
+function writeStepSummary(summaryPath, { title, results, executed, selected, flaky, failed }) {
   if (!summaryPath) return;
   const lines = [
     `### ${title}`,
     '',
     `Executed ${executed} of ${selected} selected files; flaky: ${flaky.length}.`,
+    '',
+    // The plan's exit criterion counts a retry-pass as a failure, so the report
+    // does too, although only a FAIL fails the job.
+    `Reported failures: ${failed + flaky.length} (FAIL ${failed} + FLAKY ${flaky.length}; a retry-pass counts as a failure in this report but does not fail the job).`,
     ...(flaky.length > 0
       ? ['', `**FLAKY** (failed once, passed on the single retry): ${flaky.map(file => `\`${file}\``).join(', ')}`]
       : []),
@@ -389,6 +421,8 @@ function isRetryable(error) {
  * annotation and in the step summary; a second failure fails the run.
  * `continueOnFailure` runs the remaining files after a failure and then fails
  * with every failing file named, so one CI run reports all of them.
+ * `quarantine` (`'exclude'` or `'only'`) drops or keeps just the registry's
+ * quarantined files before sharding; `null` runs every selected file.
  */
 export async function runTestRegistry(registry, options) {
   const {
@@ -403,6 +437,7 @@ export async function runTestRegistry(registry, options) {
     durations = null,
     retryFailedOnce = false,
     continueOnFailure = false,
+    quarantine = null,
     summaryPath = null,
     annotations = false,
     clock = () => performance.now(),
@@ -411,10 +446,16 @@ export async function runTestRegistry(registry, options) {
   const selectedSuites = new Set(suiteIds);
   const unknownSuiteIds = [...selectedSuites].filter(id => !TEST_SUITE_IDS.includes(id));
   if (unknownSuiteIds.length > 0) throw new Error(`unknown suite: ${unknownSuiteIds.join(', ')}`);
+  if (quarantine !== null && !QUARANTINE_MODES.includes(quarantine)) throw new Error(`unknown quarantine mode: ${quarantine}`);
 
+  const quarantinedSet = new Set(validated.quarantined);
   const selected = registry.suites
     .filter(suite => selectedSuites.has(suite.id))
-    .flatMap(suite => suite.files.map(testFile => ({ suiteId: suite.id, testFile })));
+    .flatMap(suite => suite.files.map(testFile => ({ suiteId: suite.id, testFile })))
+    .filter(({ testFile }) => quarantine === null || quarantinedSet.has(testFile) === (quarantine === 'only'));
+  if (quarantine) {
+    logger(`[test-suite] QUARANTINE ${quarantine} files=${selected.length} quarantined=${quarantinedSet.size}`);
+  }
   const planned = shard
     ? planShards(selected, shard.total, durations, item => item.testFile)[shard.index - 1]
     : selected;
@@ -428,11 +469,13 @@ export async function runTestRegistry(registry, options) {
   const failures = [];
   let executed = 0;
   const finish = () => writeStepSummary(summaryPath, {
-    title: `Test suites: ${[...selectedSuites].join(', ')}${shard ? ` · shard ${shard.index}/${shard.total}` : ''}`,
+    title: `Test suites: ${[...selectedSuites].join(', ')}${shard ? ` · shard ${shard.index}/${shard.total}` : ''}${
+      quarantine === 'only' ? ' · quarantine (non-blocking)' : ''}`,
     results,
     executed,
     selected: planned.length,
     flaky,
+    failed: failures.length,
   });
   const stop = error => {
     logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length}${shardLabel}${
@@ -497,7 +540,7 @@ export async function runTestRegistry(registry, options) {
   if (shard) summary.shard = `${shard.index}/${shard.total}`;
   if (retryFailedOnce) summary.flaky = flaky;
   logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length} excluded=${validated.excluded}${
-    shardLabel}${retryFailedOnce ? ` flaky=${flaky.length}` : ''}`);
+    shardLabel}${retryFailedOnce ? ` flaky=${flaky.length} reported-failures=${flaky.length}` : ''}`);
   finish();
   return summary;
 }
@@ -511,11 +554,11 @@ function printValidationSummary(validated) {
     .map(id => `${id}=${validated.counts[id]}`)
     .join(' ');
   console.log(
-    `test discovery valid: discovered=${validated.discovered} registered=${validated.files.length} excluded=${validated.excluded} ${categories}`,
+    `test discovery valid: discovered=${validated.discovered} registered=${validated.files.length} excluded=${validated.excluded} ${categories} quarantined=${validated.quarantined.length}`,
   );
 }
 
-const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once] [--continue-on-failure]';
+const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once] [--continue-on-failure] [--quarantine <exclude|only>]';
 
 /** Parses runner arguments; exported for the CLI contract tests. */
 export function parseRunnerArguments(args) {
@@ -529,7 +572,9 @@ export function parseRunnerArguments(args) {
   } else {
     throw new Error(USAGE);
   }
-  const options = { validate: false, suiteIds, shard: null, retryFailedOnce: false, continueOnFailure: false };
+  const options = {
+    validate: false, suiteIds, shard: null, retryFailedOnce: false, continueOnFailure: false, quarantine: null,
+  };
   while (rest.length > 0) {
     const flag = rest.shift();
     if (flag === '--shard' && rest.length > 0 && !options.shard) {
@@ -538,6 +583,8 @@ export function parseRunnerArguments(args) {
       options.retryFailedOnce = true;
     } else if (flag === '--continue-on-failure' && !options.continueOnFailure) {
       options.continueOnFailure = true;
+    } else if (flag === '--quarantine' && QUARANTINE_MODES.includes(rest[0]) && !options.quarantine) {
+      options.quarantine = rest.shift();
     } else {
       throw new Error(USAGE);
     }
@@ -564,6 +611,7 @@ async function main() {
       : null,
     retryFailedOnce: options.retryFailedOnce,
     continueOnFailure: options.continueOnFailure,
+    quarantine: options.quarantine,
     summaryPath: process.env.GITHUB_STEP_SUMMARY || null,
     annotations: process.env.GITHUB_ACTIONS === 'true',
   });
