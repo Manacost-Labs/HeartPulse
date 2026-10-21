@@ -95,6 +95,18 @@ export function isComposingKey(event: { nativeEvent?: { isComposing?: boolean };
 }
 
 /**
+ * Whether motion is reduced for `element`: the OS setting (prefers-reduced-motion), or
+ * `data-ui-motion="reduce"` on <html> or an ancestor (styles/motion.css). For motion started from JS
+ * (smooth scrolling, Web Animations); false on the server.
+ */
+export function isMotionReduced(element?: Element | null): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true;
+  if (document.documentElement.getAttribute('data-ui-motion') === 'reduce') return true;
+  return !!element?.closest('[data-ui-motion="reduce"]');
+}
+
+/**
  * Direction of the element in `ref`, re-read after each render so a changed `dir` is picked up.
  * For choosing physical placements (a "right" flyout becomes "left" in RTL).
  */

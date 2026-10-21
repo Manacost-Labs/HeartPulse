@@ -252,8 +252,10 @@ that boundary had costs no animation may have:
 The revised contract keeps the owner's rhythm without those costs:
 
 1. `RouteTransition` (shared) gives the committed destination one entrance:
-   the children of the shell's `data-route-content` box fade from opacity 0
-   over `--motion-fast` (140 ms) with `--motion-ease`. The outgoing content is
+   the children of the shell's `data-route-content` box enter from opacity 0
+   over `--motion-base` (220 ms) with `--motion-ease`, with the ValyroUI preset
+   the navigation chose (see "ValyroUI transitions" below; until 2026-10-21 a
+   plain 140 ms fade). The outgoing content is
    replaced at the commit; there is no document snapshot, so nothing is
    captured, every click stays live and no commit waits for motion.
 2. Only a link navigation started by the bridge (`expectRouteEntrance`) gets an
@@ -280,9 +282,67 @@ The revised contract keeps the owner's rhythm without those costs:
    without motion.
 
 Verification: `tests/next-page-transitions-browser.test.mjs` asserts one
-140 ms content entrance at commit, no view-transition animation anywhere, Back
+220 ms content entrance (rise) at commit, no view-transition animation anywhere, Back
 and reduced motion without motion and a menu click during the entrance;
 `RouteTransition.stories.tsx` covers the skeleton-then-content entrance.
+
+### ValyroUI transitions (2026-10-21)
+
+The owner asked for the ValyroUI page transitions (valyro.xyz/transitions,
+free presets of `PageTransition`, vendored in `src/vendor/valyro-ui`) wherever
+the reader switches something. The site adapter is
+`src/components/transitions/`; all motion is opacity and transform at the
+motion tokens (`--motion-base`, 220 ms; `--motion-stagger`), the GPU tier is
+fixed (no WebGL probe on each page), and the first paint and server markup
+never move. The preset engine (`transitionPresets.ts`, about 2.5 KB gzip) is
+not in the initial JavaScript of pages without a `ViewSwitch`: the navigation
+bridge loads it when the browser is idle (`lazyTransitionPresets.ts`), and
+until then route entrances, list items and modal sheets fade.
+
+1. Routes. The bridge picks the entrance from the step
+   (`routeTransitionFor`) and passes its entering keyframes to
+   `expectRouteEntrance`: the same page in the other mode
+   (`/standard/cards/standard/` ↔ `/wild/`) slides along x towards the chosen
+   mode (`shared-x`, Вольный is forward); a detail page (archetype, card,
+   hero, Battlegrounds library entry, or any page nested under the current
+   one) zooms in (`shared-z`), the way back to its list zooms out; any other
+   route rises (`rise`, 16 px). Only the entering half plays, without the
+   preset's hold, because the route has already replaced the old content:
+   instant navigation, prefetch and the skeleton rules above are unchanged.
+   While it plays the content box clips horizontally, so a sideways or zooming
+   entrance never adds a scrollbar.
+2. Views of one page (`ViewSwitch`, over `PageTransition`). Стандарт ↔ Вольный
+   on meta and matchups (client state; the view changes when the new mode's
+   data arrives, `data.format`), meta Карточки / Тиры / Таблица, matchups
+   Полная матрица / Обзор: `shared-x` towards the pressed button. The old view
+   stays mounted, inert and hidden from assistive technology, until the new
+   one has entered; both cross through opacity 0, so they never mix. A change
+   during a change takes over from where the views are drawn.
+3. Lighter switches (`useViewEntrance`): card library Галерея / Таблица and
+   the Battlegrounds hero grid / table play the entering half of
+   `fade-through` on their container; the old view goes at once.
+4. Lists (`useListTransition`). A filter or page change of the card library
+   grid (rarity, class, mana, set…) and of the archetype list (class, search):
+   new items enter with the fade-through entrance row by row
+   (`--motion-stagger`, at most two steps), items that stayed glide to their
+   new place (FLIP) while at most 60 moved; items off screen do not animate.
+   The archetype list's Стандарт ↔ Вольный is a list change too: the other
+   mode's rows slide in with `shared-x` towards the chosen mode.
+5. Modals. A `ModalSurface` panel docked to the bottom across the screen (the
+   card preview bottom sheet on a phone) rises as the `sheet` preset; one
+   docked to the right over the full height slides in as `cover`; centred
+   dialogs keep their own entrance. There is no exit animation: callers
+   unmount the surface.
+6. Reduced motion: no route entrance (as before); views drop the old view at
+   once and fade the new one in (160 ms); list items and view entrances fade
+   without travel; modals keep the existing reduced-motion rule (no
+   animation).
+
+Verification: `tests/transition-presets.test.ts` (preset choice, entering
+frames, reduced motion, modal docking), `ViewSwitch.stories.tsx` (no motion on
+first render, mode switch, tabs, card filter), the route entrance in
+`tests/next-page-transitions-browser.test.mjs`, the bundle budgets and the
+release browser checks for layout stability.
 
 ### Phone navigation speed (2026-10-20)
 

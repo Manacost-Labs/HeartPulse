@@ -33,6 +33,8 @@ import {
 } from './recovery/RecoverableSurface';
 import { LoadingSurface } from '../shared/ui/LoadingSurface';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
+import { MODE_ORDER } from '../components/transitions/transitionOrder';
+import { useListTransition } from '../components/transitions/useListTransition';
 import {
   readInitialCatalogFilters,
   replaceCatalogUrl,
@@ -276,6 +278,8 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
   const totalGames = catalog?.items.reduce((sum, item) => sum + item.games, 0) ?? 0;
   const activeClassLabel = CLASS_FILTERS.find(item => item.id === classFilter)?.label ?? 'Все классы';
   const timeZone = useViewerTimeZone();
+  // A class or search filter moves the rows; a mode's catalog arriving slides its rows in towards the chosen mode.
+  const listRef = useListTransition<HTMLDivElement>(items, undefined, { key: catalog?.format ?? format, order: MODE_ORDER });
 
   return (
     <Root className="archetypes-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
@@ -377,7 +381,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
             <span>{items.length} архетипов</span>
             <span>Нажмите на строку, чтобы открыть подробную страницу</span>
           </header>
-          <div className="archetypes-list">
+          <div className="archetypes-list" ref={listRef}>
             {items.map((item, index) => (
               <article className="archetype-row" key={`${item.format}:${item.slug}`}>
                 <span className="archetype-row__rank" aria-label={`Место ${index + 1}`}>{index + 1}</span>

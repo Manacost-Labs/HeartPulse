@@ -1,0 +1,62 @@
+/*
+ * PageTransition: the pages share one grid cell, so the old and the new page sit on top of each other
+ * without absolute positioning and the container keeps the taller one's height while they change. Only
+ * during a change: the container clips what slides out, and the pages get the page background, so a page
+ * sliding over another hides it instead of mixing their text.
+ */
+.ui-page-transition {
+  --ui-page-transition-bg: var(--ui-bg);
+  /* Set by PageTransition while a 3D preset plays (a static value, not an animation: nothing ticks). */
+  --ui-page-transition-depth: none;
+
+  display: grid;
+  /* A fixed height on the container gives each page all of it; otherwise the row fits the content. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.ui-page-transition__page {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.ui-page-transition__page:focus {
+  outline: none;
+}
+
+.ui-page-transition[data-transitioning] {
+  overflow: clip;
+  perspective: var(--ui-page-transition-depth);
+}
+
+.ui-page-transition[data-transitioning] > .ui-page-transition__page {
+  background: var(--ui-page-transition-bg);
+  /* What happens inside a page while it moves (an image loading, a live chart) stays inside it. */
+  contain: layout paint;
+}
+
+/*
+ * Each moving page its own compositor layer from the first frame. Not in the CPU tier: there only one
+ * page moves (its animation promotes it anyway), and every extra layer is blended on the processor.
+ */
+.ui-page-transition[data-transitioning]:not([data-tier='cpu']) > .ui-page-transition__page {
+  will-change: transform, opacity;
+}
+
+.ui-page-transition[data-top='exit'] > .ui-page-transition__page[data-leaving] {
+  z-index: 1;
+}
+
+/* animateViewTransition: the preset replaces the browser's cross-fade on the root snapshot. */
+:root[data-ui-page-transition]::view-transition-old(root),
+:root[data-ui-page-transition]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-ui-page-transition]::view-transition-image-pair(root) {
+  perspective: var(--ui-page-transition-depth, none);
+}
+
+:root[data-ui-page-transition='exit']::view-transition-old(root) {
+  z-index: 1;
+}

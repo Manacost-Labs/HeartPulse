@@ -1,0 +1,15 @@
+/*
+ * ViewSwitch over the vendored ValyroUI PageTransition. The site presets
+ * cross through opacity 0, so the two views never show at once and need no
+ * opaque page background; the parchment of the surrounding panel stays visible.
+ */
+.ui-page-transition.view-switch {
+  --ui-page-transition-bg: transparent;
+}
+
+/* Reduced motion: ValyroUI dissolves the new view over the still old one; without a background the two would mix. */
+@media (prefers-reduced-motion: reduce) {
+  .ui-page-transition.view-switch > [data-leaving] {
+    visibility: hidden;
+  }
+}

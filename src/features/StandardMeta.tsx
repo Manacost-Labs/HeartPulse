@@ -41,6 +41,8 @@ import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import '../shared/ui/LoadingSurface.css';
 import './StandardMeta.css';
+import { ViewSwitch } from '../components/transitions/ViewSwitch';
+import { MODE_ORDER } from '../components/transitions/transitionOrder';
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_legend';
@@ -48,6 +50,8 @@ type MetaPeriod = StandardMetaPeriod;
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'tiers' | 'table';
+/** The order of the view buttons; a format changes when its slice arrives (`data.format`). */
+const META_VIEWS: readonly MetaView[] = ['cards', 'tiers', 'table'];
 type MetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin' | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
 
 type MetaItem = {
@@ -649,6 +653,7 @@ function StandardMetaContent({
             <MetaViewActions view={view} onView={setView} tableRef={tableRef} csvTitle={`Мета ${data.formatLabel}, ${data.rankLabel}`} />
           </section>
 
+          <ViewSwitch viewKey={data.format} order={MODE_ORDER}><ViewSwitch viewKey={view} order={META_VIEWS}>
           {view === 'cards' && visibleItems.length > 0 ? (
             <section className="standard-meta__grid" aria-label={`Архетипы: ${data.formatLabel}, ${data.rankLabel}`}>
               {visibleItems.map((item, index) => (
@@ -702,6 +707,7 @@ function StandardMetaContent({
               compact
             />
           )}
+          </ViewSwitch></ViewSwitch>
 
           {!hasFullAccess && !accessPending ? (
             <PaywallGate

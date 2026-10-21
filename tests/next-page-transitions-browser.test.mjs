@@ -53,7 +53,8 @@ async function watchRouteMotion(page) {
         if (frames[0]?.opacity !== '0') continue;
         window.__routeMotion.push({ target: target.matches('[data-route-content] > *') ? 'content' : 'section',
           skeleton: Boolean(target.closest('.loading-block, [data-loading-surface]') || target.querySelector('.loading-block')),
-          duration: timing.duration, delay: timing.delay, from: frames[0]?.opacity, to: frames.at(-1)?.opacity });
+          duration: timing.duration, delay: timing.delay, from: frames[0]?.opacity, to: frames.at(-1)?.opacity,
+          ...(frames[0]?.transform && frames[0].transform !== 'none' ? { transform: frames[0].transform } : {}) });
       }
       if (performance.now() - started < 3000) requestAnimationFrame(record);
     };
@@ -135,8 +136,8 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await watchRouteMotion(page);
     await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
     assert.deepEqual(await routeMotion(page), [
-      { target: 'content', skeleton: false, duration: 140, delay: 0, from: '0', to: '1' },
-    ], 'the ready destination fades in once, at commit, over --motion-fast; nothing else moves');
+      { target: 'content', skeleton: false, duration: 220, delay: 0, from: '0', to: '1', transform: 'translateY(16px)' },
+    ], 'the ready destination rises in once (ValyroUI rise), at commit, over --motion-base; nothing else moves');
     assert.equal(await page.evaluate(() => scrollY), 0, 'the destination opens at its top');
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content', 'focus continues at the new page');
     await assertSameFrame(page);

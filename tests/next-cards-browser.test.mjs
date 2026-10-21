@@ -225,6 +225,8 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       assert.equal(await page.evaluate(() => typeof window.HSReplayDeckView), 'undefined',
         'the table uses catalog tiles without downloading the deck renderer');
       assert.equal(await page.$('.constructed-cards__table .hsrdv'), null);
+      // The table enters with a short ValyroUI fade-through (a scale): measure the tile at rest.
+      await page.waitForFunction(() => document.querySelector('.constructed-cards .data-surface')?.getAnimations().length === 0);
       assert.ok(await page.$eval('.constructed-catalog-tile', element => element.getBoundingClientRect().height >= 44),
         'the catalog tile stays readable in the table');
       assert.deepEqual(detailRequests, [], 'switching to catalog tiles must not fetch card details');

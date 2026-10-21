@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
+import { useDockedPanelEntrance } from '../transitions/useDockedPanelEntrance';
 import { modalViewportVariables } from './modalSurfaceModel';
 import {
   isTopModalSurface,
@@ -79,6 +80,8 @@ export default function ModalSurface({
       keyDown: event => onKeyDownRef.current?.(event),
     });
   }, []);
+
+  useDockedPanelEntrance(panelRef);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;

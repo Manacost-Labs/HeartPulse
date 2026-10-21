@@ -9,14 +9,24 @@ const ARRIVAL_WINDOW_MS = 10_000;
 /** More new siblings than this (a grid filling in) fade as their parent, not one by one. */
 const SIBLING_GROUP = 8;
 
-function fadeIn(elements: Element[]): Animation[] {
-  const duration = motionMs('--motion-fast');
+const FADE: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
+
+function fadeIn(elements: Element[], keyframes: Keyframe[] = FADE, token = '--motion-fast'): Animation[] {
+  const duration = motionMs(token);
   if (!duration) return [];
   const easing = motionEasing('--motion-ease');
-  return elements.map(element => element.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing }));
+  return elements.map(element => element.animate(keyframes, { duration, easing }));
 }
 
 const isSkeleton = (node: Node) => node instanceof Element && (node.matches(SKELETON) || node.querySelector(SKELETON) !== null);
+
+/** A sideways or zooming entrance must not widen the page into a horizontal scrollbar while it plays. */
+function clipWhileMoving(box: HTMLElement, animations: Animation[]): void {
+  if (!animations.length) return;
+  const overflowX = box.style.overflowX;
+  box.style.overflowX = 'clip';
+  Promise.allSettled(animations.map(animation => animation.finished)).then(() => { box.style.overflowX = overflowX; });
+}
 
 /**
  * The outermost elements that took a skeleton's place (inserted into a parent
@@ -46,14 +56,18 @@ function arrivedContent(records: MutationRecord[], box: HTMLElement): Element[] 
 }
 
 /**
- * Plays the page's single entrance: at once when it commits ready, otherwise
- * on each section as it replaces its skeleton, until none is left, the
- * reader acts or `ARRIVAL_WINDOW_MS` passes. Returns the cancellation.
+ * Plays the page's single entrance: at once when it commits ready, with the
+ * navigation's `keyframes` over `--motion-base`, otherwise as a plain fade on
+ * each section as it replaces its skeleton (a section arriving late must not
+ * travel), until none is left, the reader acts or `ARRIVAL_WINDOW_MS` passes.
+ * Returns the cancellation.
  */
-function enter(box: HTMLElement): () => void {
+function enter(box: HTMLElement, keyframes: Keyframe[]): () => void {
   const animations: Animation[] = [];
   if (!box.querySelector(SKELETON)) {
-    animations.push(...fadeIn([...box.children].filter(child => !(child as HTMLElement).hidden)));
+    const content = [...box.children].filter(child => !(child as HTMLElement).hidden);
+    animations.push(...fadeIn(content, keyframes, '--motion-base'));
+    clipWhileMoving(box, animations);
     return () => animations.forEach(animation => animation.cancel());
   }
   setRouteEntranceActive(true);
@@ -81,7 +95,7 @@ function enter(box: HTMLElement): () => void {
 }
 
 /**
- * Gives a navigated page one short opacity entrance inside its marked
+ * Gives a navigated page one short entrance inside its marked
  * `data-route-content` box, never on a skeleton. The frame of the box and the
  * first document paint stay still. It runs after the commit, so no navigation
  * waits for it, and children keep their identity.
@@ -92,10 +106,10 @@ export function RouteTransition({ routeKey, children }: { routeKey: string; chil
   useLayoutEffect(() => {
     if (previousKey.current === routeKey) return;
     previousKey.current = routeKey;
-    const navigated = takeExpectedRouteEntrance(routeKey);
+    const entrance = takeExpectedRouteEntrance(routeKey);
     const box = root.current?.querySelector<HTMLElement>('[data-route-content]');
-    if (!navigated || !box?.animate || prefersReducedMotion()) return;
-    return enter(box);
+    if (!entrance || !box?.animate || prefersReducedMotion()) return;
+    return enter(box, entrance);
   }, [routeKey]);
   return <div ref={root} style={{ display: 'contents' }}>{children}</div>;
 }

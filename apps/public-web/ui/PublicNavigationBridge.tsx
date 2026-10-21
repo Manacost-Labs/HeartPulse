@@ -8,6 +8,7 @@ import { createViewportPrefetch } from '@/src/shared/navigation/viewportPrefetch
 import { installPageNavigator } from '@/src/shared/navigation/pageNavigation';
 import { NavigationProgress } from '@/src/shared/ui/NavigationProgress';
 import { expectRouteEntrance } from '@/src/shared/ui/routeEntrance';
+import { preloadTransitionPresets, transitionPresetsNow } from '@/src/components/transitions/lazyTransitionPresets';
 import { motionMs } from '@/src/shared/ui/motionTokens';
 
 /** A click waits at most this long for a prefetch already downloading its page. */
@@ -52,13 +53,15 @@ export function PublicNavigationBridge({ onNavigationStart, onJoining, routeKey 
   const scanLinks = useRef<(() => void) | null>(null);
   const focusOnCommit = useRef<{ pathname: string; from: Element | null } | null>(null);
   useEffect(() => {
+    preloadTransitionPresets();
     const responses = observeRouteResponses();
     let navigation = 0;
     const join = (pathname: string | null) => { setJoining(pathname !== null); onJoining?.(pathname); };
     const commit = (path: string, pathname: string, from: Element | null) => {
       // Query and fragment changes keep the page in place.
       if (pathname !== location.pathname) {
-        expectRouteEntrance(pathname);
+        // The ValyroUI entrance for this step once its engine has loaded at idle; a plain fade before.
+        expectRouteEntrance(pathname, transitionPresetsNow()?.routeEntranceKeyframes(location.pathname, pathname));
         focusOnCommit.current = { pathname, from };
       }
       onNavigationStart?.(pathname);

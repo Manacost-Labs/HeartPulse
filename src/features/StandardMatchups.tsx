@@ -7,6 +7,8 @@ import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { MatchupsOverviewSkeleton, MatchupsSkeleton } from './MatchupsSkeleton';
 import type { StandardMatchupsData, StandardMatchupsFormat } from '../modules/standardMatchups/public';
 import { StandardMatchupsLeaders } from './StandardMatchupsLeaders';
+import { ViewSwitch } from '../components/transitions/ViewSwitch';
+import { MODE_ORDER } from '../components/transitions/transitionOrder';
 
 // The matrix, the overview and their vendored kit load on demand: only a verified subscriber with data sees them.
 const loadStandardMatchupMatrix = () => import('./StandardMatchupMatrix');
@@ -14,6 +16,8 @@ const StandardMatchupMatrix = lazy(loadStandardMatchupMatrix);
 const StandardMatchupsOverview = lazy(() => import('./StandardMatchupsOverview'));
 
 type StandardMatchupsView = 'overview' | 'matrix';
+/** The order of the view buttons: Полная матрица, then Обзор архетипа. */
+const MATCHUP_VIEWS: readonly StandardMatchupsView[] = ['matrix', 'overview'];
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
@@ -403,6 +407,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                 </button>
               </div>
 
+              <ViewSwitch viewKey={data.format} order={MODE_ORDER}><ViewSwitch viewKey={view} order={MATCHUP_VIEWS}>
               {view === 'overview' && activeRow && (
                 <section className="standard-matchups__picker scroll-mt-4 mb-4">
                   <Suspense fallback={<MatchupsOverviewSkeleton />}>
@@ -420,6 +425,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
                   </Suspense>
                 </div>
               )}
+              </ViewSwitch></ViewSwitch>
             </>
           )}
         </section>

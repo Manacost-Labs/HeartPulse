@@ -60,6 +60,7 @@ import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
+import { useViewEntrance } from '../components/transitions/useViewEntrance';
 import {
   ArrowDown,
   ArrowUp,
@@ -3137,6 +3138,7 @@ function BattlegroundHeroTierList({ onNavigate, onRetry }: { onNavigate: (path: 
   const [mode, setMode] = useState<BattlegroundHeroMode>(initialUrlState.mode);
   const [mmr, setMmr] = useState<BattlegroundHeroMmr>(initialUrlState.mmr);
   const [view, setView] = useState<BattlegroundHeroView>(initialUrlState.view);
+  const viewRef = useViewEntrance<HTMLDivElement>(view);
   const [searchTerm, setSearchTerm] = useState(initialUrlState.search);
   const [sortKey, setSortKey] = useState<BattlegroundHeroSortKey>(initialUrlState.sortKey);
   const [sortDirection, setSortDirection] = useState<BattlegroundHeroSortDirection>(initialUrlState.sortDirection);
@@ -3292,7 +3294,7 @@ function BattlegroundHeroTierList({ onNavigate, onRetry }: { onNavigate: (path: 
       )}
       {error && !loading && <BattlegroundLoadError message={error} onRetry={onRetry} />}
       {sections.length > 0 && !error && (
-        <div className={view === 'grid' ? 'space-y-5' : ''} aria-busy={loading}>
+        <div className={view === 'grid' ? 'space-y-5' : ''} aria-busy={loading} ref={viewRef}>
           {filteredSections.length === 0 && (
             <div className="rounded-2xl border border-[#d7b66a]/65 bg-[#fff9ed] p-6 text-center font-hs text-[#6b4c2a]">
               Герои не найдены

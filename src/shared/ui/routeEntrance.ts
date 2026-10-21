@@ -1,4 +1,8 @@
+/** The default entrance: the content fades in place. */
+const FADE: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
+
 let expectedPath: string | null = null;
+let expectedKeyframes: Keyframe[] = FADE;
 let arriving = false;
 
 const samePath = (left: string, right: string) => left.replace(/\/+$/, '') === right.replace(/\/+$/, '');
@@ -7,16 +11,19 @@ const samePath = (left: string, right: string) => left.replace(/\/+$/, '') === r
  * Called when a link navigation starts, with the destination pathname. Only
  * that commit gets an entrance (`RouteTransition`): Back/Forward, refreshes,
  * query/hash-only changes and a superseded destination change the page
- * without motion.
+ * without motion. `keyframes` is the entrance the navigation chose (composition
+ * picks a ValyroUI preset for the step); without it the content fades.
  */
-export function expectRouteEntrance(pathname: string): void {
+export function expectRouteEntrance(pathname: string, keyframes: Keyframe[] = FADE): void {
   expectedPath = pathname;
+  expectedKeyframes = keyframes;
 }
 
-/** Consumes the expectation at a commit; true when `pathname` is the expected destination. */
-export function takeExpectedRouteEntrance(pathname: string): boolean {
-  const expected = expectedPath !== null && samePath(expectedPath, pathname);
+/** Consumes the expectation at a commit: the entrance keyframes when `pathname` is the expected destination, else null. */
+export function takeExpectedRouteEntrance(pathname: string): Keyframe[] | null {
+  const expected = expectedPath !== null && samePath(expectedPath, pathname) ? expectedKeyframes : null;
   expectedPath = null;
+  expectedKeyframes = FADE;
   return expected;
 }
 

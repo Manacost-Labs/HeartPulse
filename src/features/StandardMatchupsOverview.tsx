@@ -15,6 +15,7 @@ import { archetypeClassBackdrop } from './archetypeDetailModel';
 import { STANDARD_META_CLASS_LABELS } from './standardMetaClassModel';
 import { CONFIDENCE_TEXT, ClassIcon, MatchupBar, matchupSide, percent } from './StandardMatchupsVisuals';
 import './StandardMatchupsOverview.css';
+import { useListTransition } from '../components/transitions/useListTransition';
 
 /** Rows per group while the list is collapsed: the best favoured, the worst unfavoured. */
 const COLLAPSED_PER_GROUP = 5;
@@ -76,6 +77,9 @@ export default function StandardMatchupsOverview({ data, labelOf, selected, onSe
     return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label, 'ru'));
   }, [archetypes]);
 
+  // A strength filter, a search or another archetype: groups that stay glide, groups that return enter.
+  const rowsRef = useListTransition<HTMLOListElement>(`${filter}|${query}|${expanded}|${selected}`);
+
   if (!overview) return null;
   const { archetype, opponents } = overview;
   const href = archetypeHref(data.format, archetype.slug);
@@ -117,7 +121,7 @@ export default function StandardMatchupsOverview({ data, labelOf, selected, onSe
           </div>
 
           {groups.length ? (
-            <ol className="standard-matchups-overview__rows">
+            <ol className="standard-matchups-overview__rows" ref={rowsRef}>
               {groups.map(group => (
                 <li key={group.id} className="standard-matchups-overview__group" data-group={group.id}>
                   <h4>{group.title} <span>{group.hint} · {group.items.length}</span></h4>

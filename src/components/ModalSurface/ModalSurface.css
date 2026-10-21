@@ -24,6 +24,11 @@
   animation: modal-surface-panel-enter var(--motion-base) var(--motion-ease) both;
 }
 
+/* ModalSurface plays the sheet or cover preset from script instead. */
+.modal-surface__panel[data-modal-surface-entrance] {
+  animation: none;
+}
+
 @keyframes modal-surface-backdrop-enter {
   from { opacity: 0; }
   to { opacity: 1; }

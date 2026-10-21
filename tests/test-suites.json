@@ -180,6 +180,7 @@
         "tests/web-vitals-sentry.test.ts",
         "tests/web-vitals-dimensions.test.ts",
         "tests/motion-tokens.test.mjs",
+        "tests/transition-presets.test.ts",
         "tests/scroll-behavior.test.ts",
         "tests/content-card-hover.test.mjs",
         "tests/loading-keyframes.test.mjs",

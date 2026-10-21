@@ -179,7 +179,11 @@ account-scoped browser client also lives here, with response validation and
 ETag refresh. React loading is account- and format-scoped. The module owns
 the matrix model (`model/matrix.ts`: archetypes, pairs, confidence). Modules
 may not import `src/vendor`, so the presentation over the vendored VaryloUI
-`MatchupMatrix` lives in `src/features/StandardMatchupMatrix.tsx`. The page
+`MatchupMatrix` lives in `src/features/StandardMatchupMatrix.tsx`. For the
+same reason the adapter over the vendored ValyroUI `PageTransition`
+(`ViewSwitch`, `useListTransition`, the route presets) lives in
+`src/components/transitions/`; shared `RouteTransition` receives the entrance
+keyframes from the navigation bridge instead of importing the presets. The page
 frame, format switch and archetype overview temporarily stay in
 `src/features/StandardMatchups.tsx`, which accepts the controlled client
 without invoking its legacy browser cache.

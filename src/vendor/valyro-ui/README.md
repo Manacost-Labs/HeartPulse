@@ -33,3 +33,23 @@ with their registry dependencies (`theme`, `primitives`, `icons`, `badge`,
 `src/vendor/varylo-ui/styles/index.css` and maps the tokens in
 `src/features/archetypeVaryloTheme.css`, so a second copy of the base classes
 never lands in its CSS chunk.
+
+Also vendored for site-wide transitions (free ValyroUI release
+`/home/debian/valyro-ui-release`, `r/page-transition.json`): `motion-kit/`
+(`PageTransition`, the preset engine `page-transitions.ts` with the ten free
+presets, `preference.ts`, `profile.ts`, `render-tier.ts`). `primitives/utils.ts`
+was re-copied from that release because `PageTransition` needs its
+`isMotionReduced`; the rest of `primitives` is unchanged. Not vendored:
+`motion-kit/view-transition.ts` (public pages navigate inside one document
+without View Transitions, see `docs/specs/public-client-navigation.md`) and the
+thirty Pro presets (`page-transitions-pro`, licensed; the site uses only free
+presets). Local changes:
+
+- `motion-kit/PageTransition.tsx` imports `../primitives/utils` and
+  `motion-kit/profile.ts` imports `../primitives/spring` instead of the
+  `../primitives` barrel, so the page chunks do not pull the barrel's modules
+  (and `ModalLayer.css`).
+
+`PageTransition.css` keeps its `:root[data-ui-page-transition]` rules; nothing
+on the site sets that attribute. The site adapter is
+`src/components/transitions/` (shared roots may not import `src/vendor`).
