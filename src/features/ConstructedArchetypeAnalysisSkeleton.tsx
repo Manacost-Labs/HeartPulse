@@ -1,10 +1,12 @@
 import { ExternalLink, Sparkles, Swords } from 'lucide-react';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
-import { DataTable, type DataTableColumn } from '../shared/ui/varylo-ui/data-display/DataTable';
+import { DataTable, type DataTableColumn } from '../vendor/varylo-ui/data-display/DataTable';
 import { Title, Value, Words } from './archetypeSkeletonText';
-import { CARD_STATS_FIRST_PAGE } from './ConstructedArchetypeCardStats';
+import { CARD_STATS_FIRST_PAGE } from './ConstructedArchetypeCardStatsCells';
 import { LOW_CARD_SAMPLE } from './archetypeDetailModel';
+import '../vendor/varylo-ui/styles/index.css';
 import './ConstructedArchetypeAnalysis.css';
+import './ConstructedArchetypeCardStats.css';
 import './ConstructedArchetypeAnalysisPlaceholders.css';
 
 const MATCHUP_ROWS = 11;

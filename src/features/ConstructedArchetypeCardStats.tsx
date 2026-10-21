@@ -1,16 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, CircleHelp, ExternalLink, Sparkles } from 'lucide-react';
-import { DataTable, type DataTableColumn } from '../shared/ui/varylo-ui/data-display/DataTable';
+import { ChevronDown, ExternalLink, Sparkles } from 'lucide-react';
+import { DataTable, type DataTableColumn } from '../vendor/varylo-ui/data-display/DataTable';
 import { csvDocument } from '../shared/ui/analytics/analyticsModel';
-import { constructedCardHorizontalArtwork } from '../modules/constructedCards/public';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import {
   cardStatImpactScale,
   cardStatsCsvRows,
   hsguruAnalysisEmptyMessage,
-  hsguruImpactTone,
   isLowCardSample,
-  LOW_CARD_SAMPLE,
   nextCardStatSort,
   sortHsguruCardStats,
   type HsguruAnalysisState,
@@ -18,28 +15,17 @@ import {
   type HsguruCardStatSort,
   type HsguruCardStatSortKey,
 } from './archetypeDetailModel';
-import { publicResourceUrl } from '../publicResourceUrl';
-import '../shared/ui/varylo-ui/styles/index.css';
+import {
+  CARD_STATS_FIRST_PAGE, CardName, CardStatsList, CardStatsToolbar, InfoTip, PHASES, PhaseValue, phaseOf,
+  type ConstructedCardStat,
+} from './ConstructedArchetypeCardStatsCells';
+import '../vendor/varylo-ui/styles/index.css';
 import './ConstructedArchetypeCardStats.css';
+
+export type { ConstructedCardStat };
 
 const CardPreviewSheet = React.lazy(() => import('./CardPreviewSheet'));
 
-export type ConstructedCardStat = {
-  cardId: string | null;
-  dbfId: number | null;
-  cardName: string;
-  cost: number | null;
-  tile?: string | null;
-  artwork?: string | null;
-  fullArtwork?: string | null;
-  rarity?: string | null;
-  mulliganImpact: number | null;
-  mulliganCount: number;
-  drawnImpact: number | null;
-  drawnCount: number | null;
-  keptImpact: number | null;
-  keptCount: number | null;
-};
 
 type CardStatsSource = {
   state: HsguruAnalysisState;
@@ -48,99 +34,8 @@ type CardStatsSource = {
   cardStats: ConstructedCardStat[];
 };
 
-type Phase = {
-  impact: HsguruCardStatImpactKey;
-  count: HsguruCardStatSortKey;
-  label: string;
-  sample: string;
-  description: string;
-};
-
-/** Impact and sample of one phase share a cell; each phase keeps its own definition tooltip. */
-const PHASES: readonly Phase[] = [
-  {
-    impact: 'mulliganImpact', count: 'mulliganCount', label: 'Муллиган', sample: 'муллиганов',
-    description: 'Разница между винрейтом матчей, где карта была в муллигане, и общим винрейтом колоды. Включает оставленные и заменённые карты. Ниже — сколько раз карта попадала на муллиган.',
-  },
-  {
-    impact: 'drawnImpact', count: 'drawnCount', label: 'Добор', sample: 'доборов',
-    description: 'Разница между винрейтом матчей, где карта была добрана, и общим винрейтом колоды. Ниже — сколько раз карту добрали.',
-  },
-  {
-    impact: 'keptImpact', count: 'keptCount', label: 'Оставлена', sample: 'оставлений',
-    description: 'Разница между винрейтом матчей, где карту оставили в муллигане, и общим винрейтом колоды. Ниже — сколько раз карту оставили.',
-  },
-];
-
-const SORT_OPTIONS: ReadonlyArray<{ key: HsguruCardStatSortKey; label: string }> = PHASES.flatMap(phase => [
-  { key: phase.impact, label: `${phase.label}: влияние` },
-  { key: phase.count, label: `${phase.label}: выборка` },
-]);
-
-/** The table's first page; «show all» reveals the rest. */
-export const CARD_STATS_FIRST_PAGE = 15;
-
-function phaseOf(key: HsguruCardStatSortKey): Phase {
-  return PHASES.find(phase => phase.impact === key || phase.count === key) ?? PHASES[0];
-}
-
-function formatImpact(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  return `${value > 0 ? '+' : ''}${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
-}
-
-function formatCount(value: number | null): string {
-  return value === null || !Number.isFinite(value) ? '—' : Math.round(value).toLocaleString('ru-RU');
-}
-
 function cardRenderUrl(cardId: string): string {
   return `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(cardId)}.png`;
-}
-
-export function InfoTip({ label, description }: { label: string; description: string }) {
-  return (
-    <span className="constructed-analysis-tip">
-      <button type="button" aria-label={`${label}: ${description}`}>
-        <CircleHelp aria-hidden="true" />
-      </button>
-      <span role="tooltip">
-        <strong>{label}</strong>
-        {description}
-      </span>
-    </span>
-  );
-}
-
-/** Small art, mana and the full name: the provider's tile image bakes a truncated name into pixels. */
-function CardName({ row }: { row: ConstructedCardStat }) {
-  const [artFailed, setArtFailed] = useState(false);
-  const art = publicResourceUrl(row.artwork) || (row.cardId ? constructedCardHorizontalArtwork(row.cardId) : '');
-  return (
-    <span className="card-stat-name" data-rarity={(row.rarity || 'common').trim().toLowerCase()}>
-      <span className="card-stat-name__thumb" aria-hidden="true">
-        {art && !artFailed ? <img src={art} alt="" width={320} height={64} loading="lazy" decoding="async" onError={() => setArtFailed(true)} /> : null}
-        <b>{row.cost ?? '—'}</b>
-      </span>
-      <span className="card-stat-name__text">{row.cardName}</span>
-    </span>
-  );
-}
-
-function PhaseValue({ row, phase, scale }: { row: ConstructedCardStat; phase: Phase; scale: number }) {
-  const impact = row[phase.impact];
-  const count = row[phase.count];
-  const share = impact === null || !Number.isFinite(impact) ? 0 : Math.min(1, Math.abs(impact) / scale);
-  return (
-    <span className="card-stat-phase" data-impact={hsguruImpactTone(impact)} data-low-sample={isLowCardSample(count) || undefined}>
-      <span className="card-stat-phase__line">
-        <strong>{formatImpact(impact)}</strong>
-        <span className="card-stat-phase__bar" aria-hidden="true">
-          <i style={{ inlineSize: `${share * 50}%`, insetInlineStart: impact !== null && impact < 0 ? `${50 - share * 50}%` : '50%' }} />
-        </span>
-      </span>
-      <small>{formatCount(count)} {phase.sample}</small>
-    </span>
-  );
 }
 
 type CardStatsTableProps = {
@@ -208,36 +103,6 @@ function CardStatsTable({ rows, sort, scales, rowKeys, onSort, onOpen, onPreview
   );
 }
 
-function CardStatsList({ rows, sort, scales, rowKeys, onOpen }: Pick<CardStatsTableProps, 'rows' | 'sort' | 'scales' | 'rowKeys' | 'onOpen'>) {
-  const sortedPhase = phaseOf(sort.key);
-  return (
-    <ol className="constructed-card-stats__list">
-      {rows.map(row => (
-        <li key={rowKeys.get(row)} data-low-sample={isLowCardSample(row[sortedPhase.count]) || undefined}>
-          <details>
-            <summary>
-              <CardName row={row} />
-              <span className="constructed-card-stats__lead">
-                <PhaseValue row={row} phase={sortedPhase} scale={scales[sortedPhase.impact]} />
-              </span>
-              <ChevronDown className="constructed-card-stats__chevron" aria-hidden="true" />
-            </summary>
-            <dl>
-              {PHASES.map(phase => (
-                <div key={phase.impact}>
-                  <dt>{phase.label}</dt>
-                  <dd><PhaseValue row={row} phase={phase} scale={scales[phase.impact]} /></dd>
-                </div>
-              ))}
-            </dl>
-            {row.cardId ? <button type="button" className="constructed-card-stats__open" onClick={() => onOpen(row)}>Открыть карту</button> : null}
-          </details>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 // Cards can have multiple observations; key by source position before sorting.
 function cardStatKeys(rows: readonly ConstructedCardStat[]) {
   return new Map(rows.map((row, sourcePosition) => [row, `${row.cardId || row.dbfId || row.cardName}-${sourcePosition}`]));
@@ -252,37 +117,6 @@ async function downloadCsv(rows: readonly ConstructedCardStat[]) {
   const { header, rows: body } = cardStatsCsvRows(rows);
   const exporter = await import('../shared/ui/analytics/chartExport');
   exporter.downloadBlob(new Blob([csvDocument(header, body)], { type: 'text/csv;charset=utf-8' }), 'Муллиган и влияние карт.csv');
-}
-
-/** The toolbar is shared by the desktop table and the phone list, so every metric stays sortable at any width. */
-function CardStatsToolbar({ sort, onSort, onDirection, onCsv, csvError }: {
-  sort: HsguruCardStatSort;
-  onSort: (key: HsguruCardStatSortKey) => void;
-  onDirection: () => void;
-  onCsv: () => void;
-  csvError: boolean;
-}) {
-  const descending = sort.direction === 'desc';
-  return (
-    <div className="constructed-card-stats__toolbar">
-      <label className="constructed-card-stats__sort">
-        <span>Сортировка</span>
-        <select value={sort.key} onChange={event => onSort(event.target.value as HsguruCardStatSortKey)}>
-          {SORT_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}
-        </select>
-      </label>
-      <button type="button" className="constructed-card-stats__direction" onClick={onDirection}
-        aria-label={descending ? 'Сейчас по убыванию. Сортировать по возрастанию' : 'Сейчас по возрастанию. Сортировать по убыванию'}>
-        {descending ? <ArrowDown aria-hidden="true" /> : <ArrowUp aria-hidden="true" />}
-      </button>
-      <span className="constructed-card-stats__legend">
-        {PHASES.map(phase => <span key={phase.impact}>{phase.label}<InfoTip label={phase.label} description={phase.description} /></span>)}
-        <span className="constructed-card-stats__low">Бледные — выборка меньше {LOW_CARD_SAMPLE}</span>
-      </span>
-      <button type="button" className="constructed-card-stats__csv" onClick={onCsv} aria-label="Скачать таблицу муллигана: CSV">CSV</button>
-      {csvError ? <p className="analytics-chart__error" role="alert">Не удалось скачать таблицу. Попробуйте ещё раз.</p> : null}
-    </div>
-  );
 }
 
 export function CardStatsPanel({ analysis }: { analysis: CardStatsSource | null }) {

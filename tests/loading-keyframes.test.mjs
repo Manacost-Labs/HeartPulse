@@ -8,7 +8,8 @@ import test from 'node:test';
 // A keyframe that moves background-position repaints every frame, and an
 // animation that names no @keyframes silently never runs.
 const CSS_FILES = execFileSync('git', ['ls-files', '*.css'], { encoding: 'utf8' }).split('\n')
-  .filter(file => file && !/^(public|storybook-static|dist|build|tests)\//.test(file));
+  // Vendored kits under src/vendor stay byte-identical to their source.
+  .filter(file => file && !/^(public|storybook-static|dist|build|tests|src\/vendor)\//.test(file));
 const SOURCES = CSS_FILES.map(file => ({
   file,
   css: readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, comment => comment.replace(/[^\n]/g, ' ')),

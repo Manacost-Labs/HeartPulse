@@ -167,7 +167,7 @@ export function archetypeHeroArt(slug: string, cards: readonly HeroArtCard[]): A
   const withFullArt = candidates.find(card => card.fullArtwork);
   if (withFullArt?.fullArtwork) return { src: heroArtUrl(withFullArt.fullArtwork) };
   const cardId = candidates[0]?.cardId;
-  return cardId ? { src: heroArtUrl(`https://art.hearthstonejson.com/v1/orig/${encodeURIComponent(cardId)}.png`) } : null;
+  return cardId ? { src: heroArtUrl(`/api/public-resource/hsjson/v1/orig/${encodeURIComponent(cardId)}.png`) } : null;
 }
 
 export function hsguruImpactTone(value: number | null): 'positive' | 'neutral' | 'negative' | 'unknown' {

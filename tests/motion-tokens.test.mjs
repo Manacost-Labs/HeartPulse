@@ -7,6 +7,8 @@ import test from 'node:test';
 // src/styles/tokens.css, so the site moves at one tempo. Exempt: endless loops
 // (spinners, skeleton shimmer, ambient drift), whose period is not a UI tempo,
 // and the interactions design.md protects ("Motion And Protected Interactions").
+// Vendored kits under src/vendor stay byte-identical to their source; their
+// consumers map the kit's own tempo variables onto the motion tokens.
 const PROTECTED_FILES = new Set(['src/features/Battlegrounds.css', 'src/features/Battlegrounds.tsx']);
 const PROTECTED_SELECTORS = ['.card-modal-shell', '.hs-tier-card-inner', '.card-modal-lightbox'];
 const MOTION_PROPERTY = /^(transition|animation)(-(duration|delay|timing-function))?$/;
@@ -16,7 +18,7 @@ const RAW_EASING = /\b(ease|ease-in|ease-out|ease-in-out|cubic-bezier|steps)\b/;
 
 function trackedFiles(pattern) {
   return execFileSync('git', ['ls-files', pattern], { encoding: 'utf8' }).split('\n')
-    .filter(file => file && !/^(public|storybook-static|dist|build|tests)\//.test(file) && !PROTECTED_FILES.has(file));
+    .filter(file => file && !/^(public|storybook-static|dist|build|tests|src\/vendor)\//.test(file) && !PROTECTED_FILES.has(file));
 }
 
 // Yields each declaration with the preludes of the blocks around it (selectors

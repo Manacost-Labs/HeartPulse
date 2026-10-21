@@ -92,7 +92,7 @@ if (/\.card-modal(?:-|\b)/.test(routeParchmentSource)) {
 
 // Vendored VaryloUI files stay byte-identical to the registry; its `--ui-*`
 // motion defaults never collide with HearthPulse tokens.
-const VENDORED_UI = 'src/shared/ui/varylo-ui/';
+const VENDORED_UI = 'src/vendor/varylo-ui/';
 const rootOwners = sources
   .filter(({ file }) => !file.startsWith(VENDORED_UI))
   .filter(({ source }) => /^\s*:root\b/m.test(source))
