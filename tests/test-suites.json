@@ -456,6 +456,7 @@
         "tests/backup-restore.test.sh",
         "tests/card-image-edge-publication.test.mjs",
         "tests/ci-deploy-gate.test.mjs",
+        "tests/find-validated-release.test.mjs",
         "tests/create-release.test.mjs",
         "tests/deploy-release.test.mjs",
         "tests/deployer-install-contract.test.mjs",

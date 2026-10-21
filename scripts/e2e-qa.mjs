@@ -40,6 +40,10 @@ const BASE_ORIGIN = new URL(BASE).origin;
 // Without an explicit directory each run gets a private temporary one.
 const OUT = process.env.QA_SCREENSHOT_DIR || mkdtempSync(join(tmpdir(), 'hs-arena-qa-'));
 const responsiveScope = (process.env.QA_RESPONSIVE_SCOPE || 'representative').trim();
+const qaPart = (process.env.QA_PART || 'all').trim();
+if (!['all', 'routes', 'interactions'].includes(qaPart)) {
+  throw new Error(`QA_PART must be all, routes or interactions; received ${qaPart}`);
+}
 const enforceResponsiveTargets = process.env.QA_RESPONSIVE_ENFORCE_TARGETS === '1';
 if (!['off', 'representative', 'all-p0'].includes(responsiveScope)) {
   throw new Error(`QA_RESPONSIVE_SCOPE must be off, representative or all-p0; received ${responsiveScope}`);
@@ -1124,519 +1128,534 @@ async function assertArenaDataRoutePresentation(page, path, device) {
   }
 }
 
-for (const route of authenticatedRoutes) {
-  for (const [device, viewport] of [
-    ['desktop', { width: 1440, height: 900 }],
-    ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
-  ]) {
+// CI runs the route/responsive half and the interaction half in parallel
+// jobs (QA_PART=routes|interactions); the default runs both in one browser.
+if (qaPart !== 'interactions') {
+  for (const route of authenticatedRoutes) {
+    for (const [device, viewport] of [
+      ['desktop', { width: 1440, height: 900 }],
+      ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+    ]) {
+      const page = await createQaPage();
+      const runtimeErrors = collectRuntimeErrors(page);
+      await page.setViewport(viewport);
+      await mockApplicationApi(page, { authenticated: true });
+      try {
+        console.log(`→ ${route.path} [${device}]`);
+        await page.goto(BASE + route.path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+        await waitForMeaningfulPage(page, route.expected);
+        await page.waitForSelector(route.selector, { timeout: 20_000 });
+        await assertArenaDataRoutePresentation(page, route.path, device);
+        if (route.path === '/battlegrounds/strategies' && device === 'desktop') {
+          await page.waitForFunction(() => [...document.querySelectorAll('#builder-source-filters button')]
+            .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 });
+          await page.evaluate(() => {
+            const heroesButton = [...document.querySelectorAll('#builder-source-filters button')]
+              .find(button => button.textContent?.trim() === 'Герои');
+            if (!(heroesButton instanceof HTMLElement)) throw new Error('Фильтр героев не найден');
+            heroesButton.click();
+          });
+          await page.type('#builder-search', 'Ксавий');
+          await page.waitForFunction(() => {
+            const cards = [...document.querySelectorAll('#builder-library .builder-card')];
+            return cards.length === 1
+              && cards[0].classList.contains('is-hero')
+              && cards[0].getAttribute('title')?.includes('Ксавий');
+          }, { timeout: 10_000 });
+          await page.waitForSelector('.builder-card.is-hero[title*="Ксавий"]', { visible: true, timeout: 10_000 });
+          await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => card.scrollIntoView({ block: 'center' }));
+          await page.waitForFunction(() => {
+            const image = document.querySelector('.builder-card.is-hero[title*="Ксавий"] img');
+            return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
+          }, { timeout: 10_000 });
+          const liveHeroState = await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => {
+            const image = card.querySelector('img');
+            return {
+              title: card.getAttribute('title') || '',
+              decoded: Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400),
+            };
+          });
+          if (!liveHeroState.title.includes('Повелитель кошмаров Ксавий') || !liveHeroState.decoded) {
+            failures.push(`/battlegrounds/strategies [desktop]: current hero did not render at full fixture quality (${JSON.stringify(liveHeroState)})`);
+          }
+          await page.click('.builder-card.is-hero[title*="Ксавий"]');
+          await page.waitForFunction(() => document.querySelector('#builder-counter')?.textContent?.startsWith('1 '));
+          await page.waitForFunction(() => {
+            const image = document.querySelector('.placed-card-art');
+            return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
+          }, { timeout: 10_000 });
+          await page.screenshot({ path: `${OUT}/battlegrounds-strategies-live-hero-desktop.png`, fullPage: false });
+          await page.click('#builder-clear');
+          await page.$eval('#builder-search', input => {
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          await page.evaluate(() => {
+            const allButton = [...document.querySelectorAll('#builder-source-filters button')]
+              .find(button => button.textContent?.trim() === 'Все карты');
+            if (!(allButton instanceof HTMLElement)) throw new Error('Общий фильтр не найден');
+            allButton.click();
+          });
+        }
+        if (route.path === '/battlegrounds/tier-builder' && device === 'desktop') {
+          await page.waitForFunction(() => [...document.querySelectorAll('#tier-builder-source-filters button')]
+            .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 });
+          await page.click('#tier-builder-unassigned');
+          await page.evaluate(() => {
+            const heroesButton = [...document.querySelectorAll('#tier-builder-source-filters button')]
+              .find(button => button.textContent?.trim() === 'Герои');
+            if (!(heroesButton instanceof HTMLElement)) throw new Error('Фильтр героев не найден');
+            heroesButton.click();
+          });
+          await page.type('#tier-builder-search', 'Ксавий');
+          await page.waitForFunction(() => {
+            const cards = [...document.querySelectorAll('#tier-builder-pool .tier-builder-card')];
+            return cards.length === 1 && cards[0].getAttribute('title')?.includes('Ксавий');
+          }, { timeout: 10_000 });
+          await page.waitForSelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
+          const liveHeroState = await page.$eval('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', async card => {
+            const image = card.querySelector('img');
+            await image?.decode().catch(() => {});
+            return {
+              title: card.getAttribute('title') || '',
+              decoded: Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400),
+            };
+          });
+          if (!liveHeroState.title.includes('Повелитель кошмаров Ксавий') || !liveHeroState.decoded) {
+            failures.push(`/battlegrounds/tier-builder [desktop]: current hero did not render at full fixture quality (${JSON.stringify(liveHeroState)})`);
+          }
+          const liveHero = await page.$('#tier-builder-pool .tier-builder-card[title*="Ксавий"]');
+          const sTier = await page.$('.tier-builder-dropzone[data-tier="S"]');
+          if (!liveHero || !sTier) throw new Error('Герой или S-тир не найден');
+          try {
+            await sTier.drop(liveHero);
+          } finally {
+            await Promise.allSettled([liveHero.dispose(), sTier.dispose()]);
+          }
+          await page.waitForSelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
+          await page.waitForFunction(async () => {
+            const image = document.querySelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"] img');
+            await image?.decode().catch(() => {});
+            return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
+          }, { timeout: 10_000 });
+          await page.waitForFunction(() => (
+            !document.querySelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]')
+            && document.querySelector('#tier-builder-counter')?.textContent?.startsWith('1 ')
+          ), { timeout: 10_000 });
+          await page.screenshot({ path: `${OUT}/battlegrounds-tier-builder-live-hero-desktop.png`, fullPage: false });
+          await page.click('#tier-builder-unassigned');
+          await page.click('#tier-builder-reset');
+          await page.waitForFunction(() => (
+            document.querySelector('#tier-builder-counter')?.textContent?.startsWith('0 ')
+            && document.querySelector('#tier-builder-search')?.value === ''
+            && document.querySelector('#tier-builder-source-filters button.is-active')?.textContent?.trim() === 'Все карты'
+          ), { timeout: 10_000 });
+        }
+        if (route.path === '/heroes' && device === 'desktop') {
+          if (!await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches)) {
+            throw new Error('Desktop hero hover QA requires a fine pointer');
+          }
+          const hoverHeroSelector = '.battleground-hero-card[data-has-related="true"]';
+          await page.waitForSelector(hoverHeroSelector, { visible: true, timeout: 10_000 });
+          await page.hover(hoverHeroSelector);
+          await page.waitForFunction((selector) => {
+            const related = document.querySelector(selector)?.querySelector('.battleground-hero-related-card');
+            return related && Number.parseFloat(getComputedStyle(related).opacity) > 0.9;
+          }, { timeout: 10_000 }, hoverHeroSelector);
+          const hoverContainment = await page.evaluate((selector) => {
+            const clippedBy = (element) => {
+              const rect = element.getBoundingClientRect();
+              const ancestors = [];
+              for (let ancestor = element.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
+                const style = getComputedStyle(ancestor);
+                const clipsX = style.overflowX === 'hidden' || style.overflowX === 'clip';
+                const clipsY = style.overflowY === 'hidden' || style.overflowY === 'clip';
+                const ancestorRect = ancestor.getBoundingClientRect();
+                if ((clipsX && (rect.left < ancestorRect.left - 1 || rect.right > ancestorRect.right + 1))
+                  || (clipsY && (rect.top < ancestorRect.top - 1 || rect.bottom > ancestorRect.bottom + 1))) {
+                  ancestors.push(ancestor.className || ancestor.tagName);
+                }
+              }
+              return ancestors;
+            };
+            const hoveredCard = document.querySelector(selector);
+            const main = hoveredCard?.querySelector('.battleground-hero-main');
+            const related = hoveredCard?.querySelector('.battleground-hero-related-card');
+            return {
+              main: main ? clippedBy(main) : ['missing-main-card'],
+              related: related ? clippedBy(related) : ['missing-related-card'],
+            };
+          }, hoverHeroSelector);
+          if (hoverContainment.main.length || hoverContainment.related.length) {
+            failures.push(`/heroes [desktop]: hover cards are clipped (${JSON.stringify(hoverContainment)})`);
+          }
+          await page.screenshot({ path: `${OUT}/heroes-hover-desktop.png`, fullPage: false });
+          await page.mouse.move(1, 1);
+        }
+        if (route.path === '/tierlist' && device === 'desktop') {
+          await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+          await page.hover('.hs-tier-card');
+          await page.waitForFunction(() => {
+            const transform = getComputedStyle(document.querySelector('.hs-tier-card .hs-tier-card-inner')).transform;
+            if (transform === 'none') return false;
+            const matrix = new DOMMatrixReadOnly(transform);
+            return matrix.m22 > 1.001 || matrix.m42 < -0.1;
+          });
+          const rarityHoverState = await page.$eval('.hs-tier-card', card => ({
+            cardFilter: getComputedStyle(card.querySelector('.hs-tier-card-inner')).filter,
+            cardTransform: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transform,
+            transitionProperty: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionProperty,
+            transitionDuration: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionDuration,
+            transitionTiming: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionTimingFunction,
+          }));
+          if (rarityHoverState.cardFilter !== 'none'
+            || rarityHoverState.cardTransform === 'none'
+            || rarityHoverState.transitionProperty !== 'transform'
+            || rarityHoverState.transitionDuration !== '0.28s'
+            || !rarityHoverState.transitionTiming.includes('cubic-bezier')) {
+            failures.push(`/tierlist [desktop]: smooth hover motion regressed (${JSON.stringify(rarityHoverState)})`);
+          }
+          await page.mouse.move(1, 1);
+          await page.waitForSelector('.card-stats-tooltip--parchment', { hidden: true, timeout: 5_000 });
+          await page.focus('.hs-tier-card');
+          await page.keyboard.press('Enter');
+          await page.waitForSelector('.card-modal-lightbox', { visible: true });
+          await page.keyboard.press('Escape');
+          await page.waitForSelector('.card-modal-lightbox', { hidden: true });
+        }
+        if (route.path === '/tierlist' && device === 'mobile') {
+          await page.type('.arena-tier-search input', 'Медив');
+          await page.waitForSelector('[aria-label="Очистить поиск"]');
+          const searchTargets = await page.evaluate(() => {
+            const bounds = selector => document.querySelector(selector)?.getBoundingClientRect();
+            const input = bounds('.arena-tier-search input');
+            const clear = bounds('[aria-label="Очистить поиск"]');
+            return { input: input ? [input.width, input.height] : null, clear: clear ? [clear.width, clear.height] : null };
+          });
+          if (!searchTargets.input || searchTargets.input[1] < 44
+            || !searchTargets.clear || searchTargets.clear[0] < 44 || searchTargets.clear[1] < 44) {
+            failures.push(`/tierlist [mobile]: search targets are smaller than 44px (${JSON.stringify(searchTargets)})`);
+          }
+          await page.click('[aria-label="Очистить поиск"]');
+          await page.waitForFunction(() => document.querySelector('.arena-tier-search input')?.value === '');
+          await page.click('.arena-tier-view button:last-child');
+          await page.waitForSelector('.hsrdv-table-card');
+          const tableCardHeight = await page.$eval('.hsrdv-table-card', element => element.getBoundingClientRect().height);
+          if (tableCardHeight < 44) failures.push(`/tierlist [mobile]: table card target is ${tableCardHeight}px high`);
+          await page.click('.arena-tier-view button:first-child');
+          await page.waitForSelector('.hs-tier-card');
+        }
+        if (route.path === '/legendaries' && device === 'desktop') {
+          await page.focus('.legendary-card-button');
+          await page.keyboard.press('Enter');
+          await page.waitForSelector('.card-modal-lightbox', { visible: true });
+          await page.keyboard.press('Escape');
+          await page.waitForSelector('.card-modal-lightbox', { hidden: true });
+        }
+        if (route.path === '/tierlist') {
+          const firstTier = await page.$('.tierlist-group');
+          await firstTier?.screenshot({ path: `${OUT}/tierlist-cards-${device}.png` });
+        }
+        if (route.path === '/faq') {
+          await page.click('.global-faq-button');
+          await page.waitForSelector('.global-help-menu', { visible: true, timeout: 10_000 });
+          const faqPageState = await page.evaluate(() => ({
+            sections: document.querySelectorAll('.faq-page__section').length,
+            questions: document.querySelectorAll('.faq-page__questions details').length,
+            search: Boolean(document.querySelector('#faq-search[type=search]')),
+            topics: document.querySelectorAll('#faq-topic option').length,
+            authLinks: document.querySelectorAll('a[href="/?login"]').length,
+            activeHeaderLink: document.querySelector('.global-help-menu a[href="/faq/"]')?.getAttribute('aria-current') || '',
+            overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+          }));
+          if (faqPageState.sections !== 8 || faqPageState.questions !== 52 || !faqPageState.search || faqPageState.topics !== 9
+            || faqPageState.authLinks < 1 || faqPageState.activeHeaderLink !== 'page' || faqPageState.overflow) {
+            failures.push(`/faq [${device}]: standalone help content regressed (${JSON.stringify(faqPageState)})`);
+          }
+          await page.keyboard.press('Escape');
+        }
+        if (route.path === '/articles') {
+          const searchInput = await page.waitForSelector('.global-search input', { visible: true, timeout: 10_000 });
+          await searchInput.type('контроль');
+          await page.waitForSelector('.global-search-result', { visible: true, timeout: 10_000 });
+          const utilityState = await page.evaluate(() => {
+            const header = document.querySelector('.global-utility-header');
+            const searchPanel = document.querySelector('.global-search-panel');
+            const search = document.querySelector('.global-search');
+            const main = document.querySelector('.arena-main');
+            const headerRect = header?.getBoundingClientRect();
+            return {
+              height: headerRect?.height || 0,
+              searchVisible: Boolean(searchPanel && getComputedStyle(searchPanel).display !== 'none'),
+              resultText: searchPanel?.textContent || '',
+              woodenSearchFrame: getComputedStyle(search).borderImageSource.includes('main-page-rail-border'),
+              contentGap: Number.parseFloat(getComputedStyle(main).paddingTop || '0'),
+              helpElement: document.querySelector('.global-faq-button')?.tagName || '',
+              helpLabel: document.querySelector('.global-faq-button')?.textContent?.trim() || '',
+              sidebarFaqLinks: document.querySelectorAll('.arena-sidebar a[href="/faq"], .arena-sidebar a[href="/faq/"]').length,
+              overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+            };
+          });
+          if (utilityState.height > 50 || utilityState.height < 40 || !utilityState.searchVisible
+            || !utilityState.resultText.includes('Контрольный мета-отчет')
+            || !utilityState.resultText.includes('Контрольная карта') || !utilityState.woodenSearchFrame
+            || utilityState.contentGap < 10 || utilityState.helpElement !== 'BUTTON'
+            || !utilityState.helpLabel.includes('Помощь') || utilityState.sidebarFaqLinks !== 0 || utilityState.overflow) {
+            failures.push(`/articles [${device}]: global utility header regressed (${JSON.stringify(utilityState)})`);
+          }
+          await page.click('.global-faq-button');
+          await page.waitForSelector('.global-help-menu a[href="/faq/"]', { visible: true, timeout: 10_000 });
+          await page.keyboard.press('Escape');
+        }
+        const tourViolationCount = route.tour
+          ? await auditPageTour(page, { label: `${route.path} [${device}]`, mobile: device === 'mobile', ...route.tour })
+          : 0;
+        if (route.path === '/library' && device === 'desktop') {
+          await auditDelayedPageTourResume(page, '/library [desktop]');
+        }
+        const violationCount = await auditAccessibility(page, `${route.path} [${device}]`);
+        const paywallVisible = await page.$eval('.arena-paywall', element => getComputedStyle(element).display !== 'none').catch(() => false);
+        if (paywallVisible) failures.push(`${route.path} [${device}]: subscriber still sees paywall`);
+        const layout = await inspectLayout(page, { mobile: device === 'mobile' });
+        assertLayout(`${route.path} [${device}]`, layout);
+        const screenshotName = route.path.replace(/^\//, '').replace(/[^a-z0-9-]+/gi, '-');
+        await page.screenshot({ path: `${OUT}/${screenshotName}-${device}.png`, fullPage: false });
+        if (runtimeErrors.length) failures.push(`${route.path} [${device}]: ${runtimeErrors.join(' | ')}`);
+        console.log(`✓ ${route.path} [${device}] subscriber layout + axe (${violationCount + tourViolationCount} violations)`);
+      } catch (error) {
+        const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
+        failures.push(`${route.path} [${device}]: ${error.message}; page: ${diagnostic}`);
+      } finally {
+        await page.close();
+      }
+    }
+  }
+
+  // The shell breakpoints are a product contract, not screenshots sampled from
+  // one desktop and one phone. Verify portrait, landscape and breakpoint edges;
+  // include a post-scroll pass so nested overflow cannot silently disable sticky.
+  for (const [label, viewport] of shellViewportMatrix) {
     const page = await createQaPage();
     const runtimeErrors = collectRuntimeErrors(page);
     await page.setViewport(viewport);
     await mockApplicationApi(page, { authenticated: true });
     try {
-      console.log(`→ ${route.path} [${device}]`);
-      await page.goto(BASE + route.path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-      await waitForMeaningfulPage(page, route.expected);
-      await page.waitForSelector(route.selector, { timeout: 20_000 });
-      await assertArenaDataRoutePresentation(page, route.path, device);
-      if (route.path === '/battlegrounds/strategies' && device === 'desktop') {
-        await page.waitForFunction(() => [...document.querySelectorAll('#builder-source-filters button')]
-          .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 });
-        await page.evaluate(() => {
-          const heroesButton = [...document.querySelectorAll('#builder-source-filters button')]
-            .find(button => button.textContent?.trim() === 'Герои');
-          if (!(heroesButton instanceof HTMLElement)) throw new Error('Фильтр героев не найден');
-          heroesButton.click();
-        });
-        await page.type('#builder-search', 'Ксавий');
-        await page.waitForFunction(() => {
-          const cards = [...document.querySelectorAll('#builder-library .builder-card')];
-          return cards.length === 1
-            && cards[0].classList.contains('is-hero')
-            && cards[0].getAttribute('title')?.includes('Ксавий');
-        }, { timeout: 10_000 });
-        await page.waitForSelector('.builder-card.is-hero[title*="Ксавий"]', { visible: true, timeout: 10_000 });
-        await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => card.scrollIntoView({ block: 'center' }));
-        await page.waitForFunction(() => {
-          const image = document.querySelector('.builder-card.is-hero[title*="Ксавий"] img');
-          return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
-        }, { timeout: 10_000 });
-        const liveHeroState = await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => {
-          const image = card.querySelector('img');
-          return {
-            title: card.getAttribute('title') || '',
-            decoded: Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400),
-          };
-        });
-        if (!liveHeroState.title.includes('Повелитель кошмаров Ксавий') || !liveHeroState.decoded) {
-          failures.push(`/battlegrounds/strategies [desktop]: current hero did not render at full fixture quality (${JSON.stringify(liveHeroState)})`);
-        }
-        await page.click('.builder-card.is-hero[title*="Ксавий"]');
-        await page.waitForFunction(() => document.querySelector('#builder-counter')?.textContent?.startsWith('1 '));
-        await page.waitForFunction(() => {
-          const image = document.querySelector('.placed-card-art');
-          return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
-        }, { timeout: 10_000 });
-        await page.screenshot({ path: `${OUT}/battlegrounds-strategies-live-hero-desktop.png`, fullPage: false });
-        await page.click('#builder-clear');
-        await page.$eval('#builder-search', input => {
-          input.value = '';
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-        });
-        await page.evaluate(() => {
-          const allButton = [...document.querySelectorAll('#builder-source-filters button')]
-            .find(button => button.textContent?.trim() === 'Все карты');
-          if (!(allButton instanceof HTMLElement)) throw new Error('Общий фильтр не найден');
-          allButton.click();
-        });
-      }
-      if (route.path === '/battlegrounds/tier-builder' && device === 'desktop') {
-        await page.waitForFunction(() => [...document.querySelectorAll('#tier-builder-source-filters button')]
-          .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 });
-        await page.click('#tier-builder-unassigned');
-        await page.evaluate(() => {
-          const heroesButton = [...document.querySelectorAll('#tier-builder-source-filters button')]
-            .find(button => button.textContent?.trim() === 'Герои');
-          if (!(heroesButton instanceof HTMLElement)) throw new Error('Фильтр героев не найден');
-          heroesButton.click();
-        });
-        await page.type('#tier-builder-search', 'Ксавий');
-        await page.waitForFunction(() => {
-          const cards = [...document.querySelectorAll('#tier-builder-pool .tier-builder-card')];
-          return cards.length === 1 && cards[0].getAttribute('title')?.includes('Ксавий');
-        }, { timeout: 10_000 });
-        await page.waitForSelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
-        const liveHeroState = await page.$eval('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', async card => {
-          const image = card.querySelector('img');
-          await image?.decode().catch(() => {});
-          return {
-            title: card.getAttribute('title') || '',
-            decoded: Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400),
-          };
-        });
-        if (!liveHeroState.title.includes('Повелитель кошмаров Ксавий') || !liveHeroState.decoded) {
-          failures.push(`/battlegrounds/tier-builder [desktop]: current hero did not render at full fixture quality (${JSON.stringify(liveHeroState)})`);
-        }
-        const liveHero = await page.$('#tier-builder-pool .tier-builder-card[title*="Ксавий"]');
-        const sTier = await page.$('.tier-builder-dropzone[data-tier="S"]');
-        if (!liveHero || !sTier) throw new Error('Герой или S-тир не найден');
-        try {
-          await sTier.drop(liveHero);
-        } finally {
-          await Promise.allSettled([liveHero.dispose(), sTier.dispose()]);
-        }
-        await page.waitForSelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
-        await page.waitForFunction(async () => {
-          const image = document.querySelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"] img');
-          await image?.decode().catch(() => {});
-          return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
-        }, { timeout: 10_000 });
-        await page.waitForFunction(() => (
-          !document.querySelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]')
-          && document.querySelector('#tier-builder-counter')?.textContent?.startsWith('1 ')
-        ), { timeout: 10_000 });
-        await page.screenshot({ path: `${OUT}/battlegrounds-tier-builder-live-hero-desktop.png`, fullPage: false });
-        await page.click('#tier-builder-unassigned');
-        await page.click('#tier-builder-reset');
-        await page.waitForFunction(() => (
-          document.querySelector('#tier-builder-counter')?.textContent?.startsWith('0 ')
-          && document.querySelector('#tier-builder-search')?.value === ''
-          && document.querySelector('#tier-builder-source-filters button.is-active')?.textContent?.trim() === 'Все карты'
-        ), { timeout: 10_000 });
-      }
-      if (route.path === '/heroes' && device === 'desktop') {
-        if (!await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches)) {
-          throw new Error('Desktop hero hover QA requires a fine pointer');
-        }
-        const hoverHeroSelector = '.battleground-hero-card[data-has-related="true"]';
-        await page.waitForSelector(hoverHeroSelector, { visible: true, timeout: 10_000 });
-        await page.hover(hoverHeroSelector);
-        await page.waitForFunction((selector) => {
-          const related = document.querySelector(selector)?.querySelector('.battleground-hero-related-card');
-          return related && Number.parseFloat(getComputedStyle(related).opacity) > 0.9;
-        }, { timeout: 10_000 }, hoverHeroSelector);
-        const hoverContainment = await page.evaluate((selector) => {
-          const clippedBy = (element) => {
-            const rect = element.getBoundingClientRect();
-            const ancestors = [];
-            for (let ancestor = element.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
-              const style = getComputedStyle(ancestor);
-              const clipsX = style.overflowX === 'hidden' || style.overflowX === 'clip';
-              const clipsY = style.overflowY === 'hidden' || style.overflowY === 'clip';
-              const ancestorRect = ancestor.getBoundingClientRect();
-              if ((clipsX && (rect.left < ancestorRect.left - 1 || rect.right > ancestorRect.right + 1))
-                || (clipsY && (rect.top < ancestorRect.top - 1 || rect.bottom > ancestorRect.bottom + 1))) {
-                ancestors.push(ancestor.className || ancestor.tagName);
-              }
-            }
-            return ancestors;
-          };
-          const hoveredCard = document.querySelector(selector);
-          const main = hoveredCard?.querySelector('.battleground-hero-main');
-          const related = hoveredCard?.querySelector('.battleground-hero-related-card');
-          return {
-            main: main ? clippedBy(main) : ['missing-main-card'],
-            related: related ? clippedBy(related) : ['missing-related-card'],
-          };
-        }, hoverHeroSelector);
-        if (hoverContainment.main.length || hoverContainment.related.length) {
-          failures.push(`/heroes [desktop]: hover cards are clipped (${JSON.stringify(hoverContainment)})`);
-        }
-        await page.screenshot({ path: `${OUT}/heroes-hover-desktop.png`, fullPage: false });
-        await page.mouse.move(1, 1);
-      }
-      if (route.path === '/tierlist' && device === 'desktop') {
-        await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
-        await page.hover('.hs-tier-card');
-        await page.waitForFunction(() => {
-          const transform = getComputedStyle(document.querySelector('.hs-tier-card .hs-tier-card-inner')).transform;
-          if (transform === 'none') return false;
-          const matrix = new DOMMatrixReadOnly(transform);
-          return matrix.m22 > 1.001 || matrix.m42 < -0.1;
-        });
-        const rarityHoverState = await page.$eval('.hs-tier-card', card => ({
-          cardFilter: getComputedStyle(card.querySelector('.hs-tier-card-inner')).filter,
-          cardTransform: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transform,
-          transitionProperty: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionProperty,
-          transitionDuration: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionDuration,
-          transitionTiming: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionTimingFunction,
-        }));
-        if (rarityHoverState.cardFilter !== 'none'
-          || rarityHoverState.cardTransform === 'none'
-          || rarityHoverState.transitionProperty !== 'transform'
-          || rarityHoverState.transitionDuration !== '0.28s'
-          || !rarityHoverState.transitionTiming.includes('cubic-bezier')) {
-          failures.push(`/tierlist [desktop]: smooth hover motion regressed (${JSON.stringify(rarityHoverState)})`);
-        }
-        await page.mouse.move(1, 1);
-        await page.waitForSelector('.card-stats-tooltip--parchment', { hidden: true, timeout: 5_000 });
-        await page.focus('.hs-tier-card');
-        await page.keyboard.press('Enter');
-        await page.waitForSelector('.card-modal-lightbox', { visible: true });
-        await page.keyboard.press('Escape');
-        await page.waitForSelector('.card-modal-lightbox', { hidden: true });
-      }
-      if (route.path === '/tierlist' && device === 'mobile') {
-        await page.type('.arena-tier-search input', 'Медив');
-        await page.waitForSelector('[aria-label="Очистить поиск"]');
-        const searchTargets = await page.evaluate(() => {
-          const bounds = selector => document.querySelector(selector)?.getBoundingClientRect();
-          const input = bounds('.arena-tier-search input');
-          const clear = bounds('[aria-label="Очистить поиск"]');
-          return { input: input ? [input.width, input.height] : null, clear: clear ? [clear.width, clear.height] : null };
-        });
-        if (!searchTargets.input || searchTargets.input[1] < 44
-          || !searchTargets.clear || searchTargets.clear[0] < 44 || searchTargets.clear[1] < 44) {
-          failures.push(`/tierlist [mobile]: search targets are smaller than 44px (${JSON.stringify(searchTargets)})`);
-        }
-        await page.click('[aria-label="Очистить поиск"]');
-        await page.waitForFunction(() => document.querySelector('.arena-tier-search input')?.value === '');
-        await page.click('.arena-tier-view button:last-child');
-        await page.waitForSelector('.hsrdv-table-card');
-        const tableCardHeight = await page.$eval('.hsrdv-table-card', element => element.getBoundingClientRect().height);
-        if (tableCardHeight < 44) failures.push(`/tierlist [mobile]: table card target is ${tableCardHeight}px high`);
-        await page.click('.arena-tier-view button:first-child');
-        await page.waitForSelector('.hs-tier-card');
-      }
-      if (route.path === '/legendaries' && device === 'desktop') {
-        await page.focus('.legendary-card-button');
-        await page.keyboard.press('Enter');
-        await page.waitForSelector('.card-modal-lightbox', { visible: true });
-        await page.keyboard.press('Escape');
-        await page.waitForSelector('.card-modal-lightbox', { hidden: true });
-      }
-      if (route.path === '/tierlist') {
-        const firstTier = await page.$('.tierlist-group');
-        await firstTier?.screenshot({ path: `${OUT}/tierlist-cards-${device}.png` });
-      }
-      if (route.path === '/faq') {
-        await page.click('.global-faq-button');
-        await page.waitForSelector('.global-help-menu', { visible: true, timeout: 10_000 });
-        const faqPageState = await page.evaluate(() => ({
-          sections: document.querySelectorAll('.faq-page__section').length,
-          questions: document.querySelectorAll('.faq-page__questions details').length,
-          search: Boolean(document.querySelector('#faq-search[type=search]')),
-          topics: document.querySelectorAll('#faq-topic option').length,
-          authLinks: document.querySelectorAll('a[href="/?login"]').length,
-          activeHeaderLink: document.querySelector('.global-help-menu a[href="/faq/"]')?.getAttribute('aria-current') || '',
-          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-        }));
-        if (faqPageState.sections !== 8 || faqPageState.questions !== 52 || !faqPageState.search || faqPageState.topics !== 9
-          || faqPageState.authLinks < 1 || faqPageState.activeHeaderLink !== 'page' || faqPageState.overflow) {
-          failures.push(`/faq [${device}]: standalone help content regressed (${JSON.stringify(faqPageState)})`);
-        }
-        await page.keyboard.press('Escape');
-      }
-      if (route.path === '/articles') {
-        const searchInput = await page.waitForSelector('.global-search input', { visible: true, timeout: 10_000 });
-        await searchInput.type('контроль');
-        await page.waitForSelector('.global-search-result', { visible: true, timeout: 10_000 });
-        const utilityState = await page.evaluate(() => {
-          const header = document.querySelector('.global-utility-header');
-          const searchPanel = document.querySelector('.global-search-panel');
-          const search = document.querySelector('.global-search');
-          const main = document.querySelector('.arena-main');
-          const headerRect = header?.getBoundingClientRect();
-          return {
-            height: headerRect?.height || 0,
-            searchVisible: Boolean(searchPanel && getComputedStyle(searchPanel).display !== 'none'),
-            resultText: searchPanel?.textContent || '',
-            woodenSearchFrame: getComputedStyle(search).borderImageSource.includes('main-page-rail-border'),
-            contentGap: Number.parseFloat(getComputedStyle(main).paddingTop || '0'),
-            helpElement: document.querySelector('.global-faq-button')?.tagName || '',
-            helpLabel: document.querySelector('.global-faq-button')?.textContent?.trim() || '',
-            sidebarFaqLinks: document.querySelectorAll('.arena-sidebar a[href="/faq"], .arena-sidebar a[href="/faq/"]').length,
-            overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-          };
-        });
-        if (utilityState.height > 50 || utilityState.height < 40 || !utilityState.searchVisible
-          || !utilityState.resultText.includes('Контрольный мета-отчет')
-          || !utilityState.resultText.includes('Контрольная карта') || !utilityState.woodenSearchFrame
-          || utilityState.contentGap < 10 || utilityState.helpElement !== 'BUTTON'
-          || !utilityState.helpLabel.includes('Помощь') || utilityState.sidebarFaqLinks !== 0 || utilityState.overflow) {
-          failures.push(`/articles [${device}]: global utility header regressed (${JSON.stringify(utilityState)})`);
-        }
-        await page.click('.global-faq-button');
-        await page.waitForSelector('.global-help-menu a[href="/faq/"]', { visible: true, timeout: 10_000 });
-        await page.keyboard.press('Escape');
-      }
-      const tourViolationCount = route.tour
-        ? await auditPageTour(page, { label: `${route.path} [${device}]`, mobile: device === 'mobile', ...route.tour })
-        : 0;
-      if (route.path === '/library' && device === 'desktop') {
-        await auditDelayedPageTourResume(page, '/library [desktop]');
-      }
-      const violationCount = await auditAccessibility(page, `${route.path} [${device}]`);
-      const paywallVisible = await page.$eval('.arena-paywall', element => getComputedStyle(element).display !== 'none').catch(() => false);
-      if (paywallVisible) failures.push(`${route.path} [${device}]: subscriber still sees paywall`);
-      const layout = await inspectLayout(page, { mobile: device === 'mobile' });
-      assertLayout(`${route.path} [${device}]`, layout);
-      const screenshotName = route.path.replace(/^\//, '').replace(/[^a-z0-9-]+/gi, '-');
-      await page.screenshot({ path: `${OUT}/${screenshotName}-${device}.png`, fullPage: false });
-      if (runtimeErrors.length) failures.push(`${route.path} [${device}]: ${runtimeErrors.join(' | ')}`);
-      console.log(`✓ ${route.path} [${device}] subscriber layout + axe (${violationCount + tourViolationCount} violations)`);
+      await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      await waitForAuthenticatedShell(page);
+      await page.waitForFunction(() => document.documentElement.scrollHeight - innerHeight >= 500, { timeout: 20_000 });
+      const initial = await inspectStickyShell(page);
+      assertStickyShellState(label, initial, { afterScroll: false });
+      await page.evaluate(() => window.scrollTo({ top: 500, behavior: 'auto' }));
+      await page.waitForFunction(() => Math.abs(window.scrollY - 500) <= 1, { timeout: 5_000 });
+      const scrolled = await inspectStickyShell(page);
+      assertStickyShellState(label, scrolled, { afterScroll: true });
+      if (runtimeErrors.length) failures.push(`shell viewport [${label}]: ${runtimeErrors.join(' | ')}`);
+      console.log(`✓ shell viewport [${label}] initial + scrollY=500`);
     } catch (error) {
-      const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
-      failures.push(`${route.path} [${device}]: ${error.message}; page: ${diagnostic}`);
+      const diagnostic = await page.evaluate(() => ({
+        scrollY: window.scrollY,
+        scrollHeight: document.documentElement.scrollHeight,
+        viewport: { width: innerWidth, height: innerHeight },
+        text: document.body?.innerText.slice(0, 180).replace(/\s+/g, ' ') || 'empty body',
+      })).catch(() => ({ unavailable: true }));
+      failures.push(`shell viewport [${label}]: ${error.message}; diagnostic=${JSON.stringify(diagnostic)}`);
     } finally {
       await page.close();
     }
   }
-}
 
-// The shell breakpoints are a product contract, not screenshots sampled from
-// one desktop and one phone. Verify portrait, landscape and breakpoint edges;
-// include a post-scroll pass so nested overflow cannot silently disable sticky.
-for (const [label, viewport] of shellViewportMatrix) {
-  const page = await createQaPage();
-  const runtimeErrors = collectRuntimeErrors(page);
-  await page.setViewport(viewport);
-  await mockApplicationApi(page, { authenticated: true });
-  try {
-    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await waitForAuthenticatedShell(page);
-    await page.waitForFunction(() => document.documentElement.scrollHeight - innerHeight >= 500, { timeout: 20_000 });
-    const initial = await inspectStickyShell(page);
-    assertStickyShellState(label, initial, { afterScroll: false });
-    await page.evaluate(() => window.scrollTo({ top: 500, behavior: 'auto' }));
-    await page.waitForFunction(() => Math.abs(window.scrollY - 500) <= 1, { timeout: 5_000 });
-    const scrolled = await inspectStickyShell(page);
-    assertStickyShellState(label, scrolled, { afterScroll: true });
-    if (runtimeErrors.length) failures.push(`shell viewport [${label}]: ${runtimeErrors.join(' | ')}`);
-    console.log(`✓ shell viewport [${label}] initial + scrollY=500`);
-  } catch (error) {
-    const diagnostic = await page.evaluate(() => ({
-      scrollY: window.scrollY,
-      scrollHeight: document.documentElement.scrollHeight,
-      viewport: { width: innerWidth, height: innerHeight },
-      text: document.body?.innerText.slice(0, 180).replace(/\s+/g, ' ') || 'empty body',
-    })).catch(() => ({ unavailable: true }));
-    failures.push(`shell viewport [${label}]: ${error.message}; diagnostic=${JSON.stringify(diagnostic)}`);
-  } finally {
-    await page.close();
+  if (authenticatedRouteFilter.length > 0) {
+    await browser.close();
+    if (failures.length) {
+      console.error('\nFocused authenticated-route QA failures:');
+      failures.forEach(failure => console.error(`  ✗ ${failure}`));
+      process.exit(1);
+    }
+    console.log(`\nFocused authenticated-route QA passed. Screenshots: ${OUT}`);
+    process.exit(0);
+  }
+
+  const responsiveScreenshotManifest = [];
+  if (responsiveFixtures.length) {
+    console.log(`\nResponsive screenshot matrix: ${responsiveScope} (${responsiveFixtures.length} fixtures × ${responsiveProfiles.length} profiles)`);
+  }
+  for (const fixture of responsiveFixtures) {
+    for (const profile of responsiveProfiles) {
+      const page = await createQaPage();
+      const runtimeErrors = collectRuntimeErrors(page, { sameOriginNetwork: true });
+      const scenarioFailureStart = failures.length;
+      const label = `responsive ${fixture.id} [${profile.width}x${profile.height}]`;
+      const screenshotPath = `${OUT}/responsive-${fixture.id}-${profile.id}.png`;
+      // Recorded in the manifest: `nginx-html` fixtures are documents whose HTTP status matters.
+      const transport = fixture.transport === 'nginx-html' ? 'status-preserving' : 'page';
+      let httpStatus = null;
+      await page.setViewport({
+        width: profile.width,
+        height: profile.height,
+        deviceScaleFactor: profile.deviceScaleFactor,
+        isMobile: profile.isMobile,
+        hasTouch: profile.hasTouch,
+      });
+      await mockApplicationApi(page, {
+        authenticated: fixture.access !== 'anonymous',
+        admin: fixture.access === 'admin',
+        strictApi: true,
+      });
+      try {
+        const navigationResponse = await page.goto(`${BASE}${fixture.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+        httpStatus = navigationResponse?.status() ?? null;
+        if (fixture.transport === 'nginx-html' && httpStatus !== 404) {
+          failures.push(`${label}: expected status-preserving HTTP 404, received ${httpStatus ?? 'no response'}`);
+        }
+        if (fixture.access === 'subscriber') await waitForAuthenticatedShell(page);
+        await page.waitForSelector(fixture.ready.selector, { visible: true, timeout: 20_000 });
+        await settleResponsiveSnapshot(page, { waitForFooter: !fixture.path.startsWith('/admin') });
+        await assertResponsiveFixtureState(page, fixture, label);
+        if (fixture.id === 'home') {
+          assertSharedMobileChrome(label, profile.id, await inspectSharedMobileChrome(page));
+        }
+        let touchTargets = { total: 0, samples: [] };
+
+        if (fixture.checks.includes('overflow')) {
+          const layout = await inspectLayout(page, { mobile: true });
+          if (layout.scrollWidth > layout.clientWidth + 1) {
+            failures.push(`${label}: horizontal overflow ${layout.scrollWidth} > ${layout.clientWidth}; first fault: ${JSON.stringify(layout.firstLayoutFault)}`);
+          }
+        }
+        if (fixture.checks.includes('axe')) await auditAccessibility(page, label);
+        if (fixture.checks.includes('targets')) {
+          touchTargets = await auditTouchTargets(page);
+          if (enforceResponsiveTargets && touchTargets.total) {
+            failures.push(`${label}: touch targets below 44px (${JSON.stringify(touchTargets.samples)})`);
+          }
+        }
+        if (fixture.checks.includes('runtime-errors') && runtimeErrors.length) {
+          failures.push(`${label}: ${runtimeErrors.join(' | ')}`);
+        }
+
+        await page.screenshot({ path: screenshotPath, fullPage: false });
+        const screenshotSha256 = createHash('sha256').update(readFileSync(screenshotPath)).digest('hex');
+        if (fixture.id === 'not-found' && profile.id === 'compact-min') {
+          await page.click('.not-found-page a[href="/"]');
+          await page.waitForFunction(() => window.location.pathname === '/');
+          await page.waitForSelector('.home-modern', { visible: true });
+          await page.evaluate(() => {
+            window.__qaSawHomeMutationWhileReturningTo404 = false;
+            const observer = new MutationObserver(() => {
+              if (window.location.pathname !== '/' && document.querySelector('.home-modern')) {
+                window.__qaSawHomeMutationWhileReturningTo404 = true;
+              }
+            });
+            observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+            window.__qa404ReturnObserver = observer;
+            window.history.back();
+          });
+          await page.waitForFunction(path => window.location.pathname === path, {}, fixture.path);
+          await page.waitForSelector('.not-found-page', { visible: true });
+          const returned404State = await page.evaluate(() => {
+            window.__qa404ReturnObserver?.disconnect();
+            return {
+              sawHomeMutation: Boolean(window.__qaSawHomeMutationWhileReturningTo404),
+              staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
+            };
+          });
+          if (returned404State.sawHomeMutation || returned404State.staleMarker) {
+            failures.push(`${label}: 404 → Home → Back recovery regressed (${JSON.stringify(returned404State)})`);
+          }
+        }
+        const scenarioFailures = failures.slice(scenarioFailureStart);
+        responsiveScreenshotManifest.push({
+          fixture: fixture.id,
+          routeId: fixture.routeId,
+          profile: profile.id,
+          viewport: { width: profile.width, height: profile.height },
+          access: fixture.access,
+          state: fixture.state,
+          transport,
+          httpStatus,
+          screenshot: screenshotPath.split('/').at(-1),
+          screenshotSha256,
+          captureStatus: 'captured',
+          qaStatus: scenarioFailures.length ? 'failed' : 'passed',
+          failures: scenarioFailures,
+          findings: { touchTargetsBelow44px: touchTargets.total, touchTargetSamples: touchTargets.samples },
+        });
+        console.log(`${scenarioFailures.length ? '✗' : '✓'} ${label}${touchTargets.total ? ` · ${touchTargets.total} touch findings` : ''}`);
+      } catch (error) {
+        const failure = `${label}: ${error.message}`;
+        failures.push(failure);
+        responsiveScreenshotManifest.push({
+          fixture: fixture.id,
+          routeId: fixture.routeId,
+          profile: profile.id,
+          viewport: { width: profile.width, height: profile.height },
+          access: fixture.access,
+          state: fixture.state,
+          transport,
+          httpStatus,
+          screenshot: null,
+          captureStatus: 'failed',
+          qaStatus: 'failed',
+          failures: failures.slice(scenarioFailureStart),
+        });
+      } finally {
+        await page.close();
+      }
+    }
+  }
+  if (responsiveScope !== 'off') {
+    const responsiveManifestPath = `${OUT}/responsive-manifest.json`;
+    const responsiveManifestTemporaryPath = `${responsiveManifestPath}.tmp-${process.pid}`;
+    const responsiveSummary = responsiveScreenshotManifest.reduce((summary, entry) => {
+      if (entry.captureStatus === 'captured') summary.captured += 1;
+      if (entry.qaStatus === 'passed') summary.passed += 1;
+      if (entry.qaStatus === 'failed') summary.failed += 1;
+      summary.touchTargetsBelow44px += entry.findings?.touchTargetsBelow44px || 0;
+      return summary;
+    }, { captured: 0, passed: 0, failed: 0, deferred: 0, touchTargetsBelow44px: 0 });
+    const touchTargetsByProfile = Object.fromEntries(responsiveProfiles.map(profile => [
+      profile.id,
+      responsiveScreenshotManifest
+        .filter(entry => entry.profile === profile.id)
+        .reduce((total, entry) => total + (entry.findings?.touchTargetsBelow44px || 0), 0),
+    ]));
+    if (responsiveTouchTargetRatchet) {
+      if (responsiveSummary.touchTargetsBelow44px > responsiveTouchTargetRatchet.total) {
+        failures.push(`responsive ${responsiveScope}: touch targets grew to ${responsiveSummary.touchTargetsBelow44px}; maximum ${responsiveTouchTargetRatchet.total}`);
+      }
+      for (const profile of responsiveProfiles) {
+        const observed = touchTargetsByProfile[profile.id];
+        const maximum = responsiveTouchTargetRatchet.profiles[profile.id];
+        if (observed > maximum) failures.push(`responsive ${responsiveScope} [${profile.id}]: touch targets grew to ${observed}; maximum ${maximum}`);
+      }
+    }
+    writeFileSync(responsiveManifestTemporaryPath, `${JSON.stringify({
+      schemaVersion: 2,
+      scope: responsiveScope,
+      touchTargetPolicy: enforceResponsiveTargets ? 'enforce' : responsiveTouchTargetRatchet ? 'ratchet' : 'report',
+      profiles: responsiveProfiles.map(profile => profile.id),
+      summary: responsiveSummary,
+      touchTargetRatchet: responsiveTouchTargetRatchet ? {
+        limits: responsiveTouchTargetRatchet,
+        observed: { total: responsiveSummary.touchTargetsBelow44px, profiles: touchTargetsByProfile },
+        passed: responsiveSummary.touchTargetsBelow44px <= responsiveTouchTargetRatchet.total
+          && responsiveProfiles.every(profile => touchTargetsByProfile[profile.id] <= responsiveTouchTargetRatchet.profiles[profile.id]),
+      } : null,
+      screenshots: responsiveScreenshotManifest,
+    }, null, 2)}\n`);
+    renameSync(responsiveManifestTemporaryPath, responsiveManifestPath);
   }
 }
 
-if (authenticatedRouteFilter.length > 0) {
+if (qaPart === 'routes') {
   await browser.close();
   if (failures.length) {
-    console.error('\nFocused authenticated-route QA failures:');
+    console.error('\nE2E QA FAILURES (routes part):');
     failures.forEach(failure => console.error(`  ✗ ${failure}`));
     process.exit(1);
   }
-  console.log(`\nFocused authenticated-route QA passed. Screenshots: ${OUT}`);
+  console.log(`\nRoute and responsive E2E checks passed. Screenshots: ${OUT}`);
   process.exit(0);
-}
-
-const responsiveScreenshotManifest = [];
-if (responsiveFixtures.length) {
-  console.log(`\nResponsive screenshot matrix: ${responsiveScope} (${responsiveFixtures.length} fixtures × ${responsiveProfiles.length} profiles)`);
-}
-for (const fixture of responsiveFixtures) {
-  for (const profile of responsiveProfiles) {
-    const page = await createQaPage();
-    const runtimeErrors = collectRuntimeErrors(page, { sameOriginNetwork: true });
-    const scenarioFailureStart = failures.length;
-    const label = `responsive ${fixture.id} [${profile.width}x${profile.height}]`;
-    const screenshotPath = `${OUT}/responsive-${fixture.id}-${profile.id}.png`;
-    // Recorded in the manifest: `nginx-html` fixtures are documents whose HTTP status matters.
-    const transport = fixture.transport === 'nginx-html' ? 'status-preserving' : 'page';
-    let httpStatus = null;
-    await page.setViewport({
-      width: profile.width,
-      height: profile.height,
-      deviceScaleFactor: profile.deviceScaleFactor,
-      isMobile: profile.isMobile,
-      hasTouch: profile.hasTouch,
-    });
-    await mockApplicationApi(page, {
-      authenticated: fixture.access !== 'anonymous',
-      admin: fixture.access === 'admin',
-      strictApi: true,
-    });
-    try {
-      const navigationResponse = await page.goto(`${BASE}${fixture.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-      httpStatus = navigationResponse?.status() ?? null;
-      if (fixture.transport === 'nginx-html' && httpStatus !== 404) {
-        failures.push(`${label}: expected status-preserving HTTP 404, received ${httpStatus ?? 'no response'}`);
-      }
-      if (fixture.access === 'subscriber') await waitForAuthenticatedShell(page);
-      await page.waitForSelector(fixture.ready.selector, { visible: true, timeout: 20_000 });
-      await settleResponsiveSnapshot(page, { waitForFooter: !fixture.path.startsWith('/admin') });
-      await assertResponsiveFixtureState(page, fixture, label);
-      if (fixture.id === 'home') {
-        assertSharedMobileChrome(label, profile.id, await inspectSharedMobileChrome(page));
-      }
-      let touchTargets = { total: 0, samples: [] };
-
-      if (fixture.checks.includes('overflow')) {
-        const layout = await inspectLayout(page, { mobile: true });
-        if (layout.scrollWidth > layout.clientWidth + 1) {
-          failures.push(`${label}: horizontal overflow ${layout.scrollWidth} > ${layout.clientWidth}; first fault: ${JSON.stringify(layout.firstLayoutFault)}`);
-        }
-      }
-      if (fixture.checks.includes('axe')) await auditAccessibility(page, label);
-      if (fixture.checks.includes('targets')) {
-        touchTargets = await auditTouchTargets(page);
-        if (enforceResponsiveTargets && touchTargets.total) {
-          failures.push(`${label}: touch targets below 44px (${JSON.stringify(touchTargets.samples)})`);
-        }
-      }
-      if (fixture.checks.includes('runtime-errors') && runtimeErrors.length) {
-        failures.push(`${label}: ${runtimeErrors.join(' | ')}`);
-      }
-
-      await page.screenshot({ path: screenshotPath, fullPage: false });
-      const screenshotSha256 = createHash('sha256').update(readFileSync(screenshotPath)).digest('hex');
-      if (fixture.id === 'not-found' && profile.id === 'compact-min') {
-        await page.click('.not-found-page a[href="/"]');
-        await page.waitForFunction(() => window.location.pathname === '/');
-        await page.waitForSelector('.home-modern', { visible: true });
-        await page.evaluate(() => {
-          window.__qaSawHomeMutationWhileReturningTo404 = false;
-          const observer = new MutationObserver(() => {
-            if (window.location.pathname !== '/' && document.querySelector('.home-modern')) {
-              window.__qaSawHomeMutationWhileReturningTo404 = true;
-            }
-          });
-          observer.observe(document.getElementById('root'), { childList: true, subtree: true });
-          window.__qa404ReturnObserver = observer;
-          window.history.back();
-        });
-        await page.waitForFunction(path => window.location.pathname === path, {}, fixture.path);
-        await page.waitForSelector('.not-found-page', { visible: true });
-        const returned404State = await page.evaluate(() => {
-          window.__qa404ReturnObserver?.disconnect();
-          return {
-            sawHomeMutation: Boolean(window.__qaSawHomeMutationWhileReturningTo404),
-            staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
-          };
-        });
-        if (returned404State.sawHomeMutation || returned404State.staleMarker) {
-          failures.push(`${label}: 404 → Home → Back recovery regressed (${JSON.stringify(returned404State)})`);
-        }
-      }
-      const scenarioFailures = failures.slice(scenarioFailureStart);
-      responsiveScreenshotManifest.push({
-        fixture: fixture.id,
-        routeId: fixture.routeId,
-        profile: profile.id,
-        viewport: { width: profile.width, height: profile.height },
-        access: fixture.access,
-        state: fixture.state,
-        transport,
-        httpStatus,
-        screenshot: screenshotPath.split('/').at(-1),
-        screenshotSha256,
-        captureStatus: 'captured',
-        qaStatus: scenarioFailures.length ? 'failed' : 'passed',
-        failures: scenarioFailures,
-        findings: { touchTargetsBelow44px: touchTargets.total, touchTargetSamples: touchTargets.samples },
-      });
-      console.log(`${scenarioFailures.length ? '✗' : '✓'} ${label}${touchTargets.total ? ` · ${touchTargets.total} touch findings` : ''}`);
-    } catch (error) {
-      const failure = `${label}: ${error.message}`;
-      failures.push(failure);
-      responsiveScreenshotManifest.push({
-        fixture: fixture.id,
-        routeId: fixture.routeId,
-        profile: profile.id,
-        viewport: { width: profile.width, height: profile.height },
-        access: fixture.access,
-        state: fixture.state,
-        transport,
-        httpStatus,
-        screenshot: null,
-        captureStatus: 'failed',
-        qaStatus: 'failed',
-        failures: failures.slice(scenarioFailureStart),
-      });
-    } finally {
-      await page.close();
-    }
-  }
-}
-if (responsiveScope !== 'off') {
-  const responsiveManifestPath = `${OUT}/responsive-manifest.json`;
-  const responsiveManifestTemporaryPath = `${responsiveManifestPath}.tmp-${process.pid}`;
-  const responsiveSummary = responsiveScreenshotManifest.reduce((summary, entry) => {
-    if (entry.captureStatus === 'captured') summary.captured += 1;
-    if (entry.qaStatus === 'passed') summary.passed += 1;
-    if (entry.qaStatus === 'failed') summary.failed += 1;
-    summary.touchTargetsBelow44px += entry.findings?.touchTargetsBelow44px || 0;
-    return summary;
-  }, { captured: 0, passed: 0, failed: 0, deferred: 0, touchTargetsBelow44px: 0 });
-  const touchTargetsByProfile = Object.fromEntries(responsiveProfiles.map(profile => [
-    profile.id,
-    responsiveScreenshotManifest
-      .filter(entry => entry.profile === profile.id)
-      .reduce((total, entry) => total + (entry.findings?.touchTargetsBelow44px || 0), 0),
-  ]));
-  if (responsiveTouchTargetRatchet) {
-    if (responsiveSummary.touchTargetsBelow44px > responsiveTouchTargetRatchet.total) {
-      failures.push(`responsive ${responsiveScope}: touch targets grew to ${responsiveSummary.touchTargetsBelow44px}; maximum ${responsiveTouchTargetRatchet.total}`);
-    }
-    for (const profile of responsiveProfiles) {
-      const observed = touchTargetsByProfile[profile.id];
-      const maximum = responsiveTouchTargetRatchet.profiles[profile.id];
-      if (observed > maximum) failures.push(`responsive ${responsiveScope} [${profile.id}]: touch targets grew to ${observed}; maximum ${maximum}`);
-    }
-  }
-  writeFileSync(responsiveManifestTemporaryPath, `${JSON.stringify({
-    schemaVersion: 2,
-    scope: responsiveScope,
-    touchTargetPolicy: enforceResponsiveTargets ? 'enforce' : responsiveTouchTargetRatchet ? 'ratchet' : 'report',
-    profiles: responsiveProfiles.map(profile => profile.id),
-    summary: responsiveSummary,
-    touchTargetRatchet: responsiveTouchTargetRatchet ? {
-      limits: responsiveTouchTargetRatchet,
-      observed: { total: responsiveSummary.touchTargetsBelow44px, profiles: touchTargetsByProfile },
-      passed: responsiveSummary.touchTargetsBelow44px <= responsiveTouchTargetRatchet.total
-        && responsiveProfiles.every(profile => touchTargetsByProfile[profile.id] <= responsiveTouchTargetRatchet.profiles[profile.id]),
-    } : null,
-    screenshots: responsiveScreenshotManifest,
-  }, null, 2)}\n`);
-  renameSync(responsiveManifestTemporaryPath, responsiveManifestPath);
 }
 
 // Full-admin dashboard: deterministic KPI rendering, empty state, quick

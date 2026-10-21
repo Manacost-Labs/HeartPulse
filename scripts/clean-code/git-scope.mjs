@@ -95,18 +95,25 @@ export function resolveCleanCodeBase({ env = process.env, repositoryRoot }) {
   if (event === 'workflow_dispatch') {
     const requested = env.CLEAN_CODE_DISPATCH_BASE?.trim();
     if (requested) return explicitBase(requested, head, repositoryRoot, 'workflow-dispatch');
-    return fullFallback(head, 'workflow-dispatch', 'manual run did not provide a base');
+    // A manual run without an input checks the branch against the latest main,
+    // as its pull request would; a full scan would fail on legacy debt the
+    // changed-file ratchet deliberately tolerates until that file is touched.
+    return mainBranchBase(head, repositoryRoot, 'workflow-dispatch');
   }
 
+  return mainBranchBase(head, repositoryRoot, 'local');
+}
+
+function mainBranchBase(head, repositoryRoot, source) {
   const main = resolveCommit('origin/main', repositoryRoot);
   if (main && main !== head) {
     const common = mergeBase(main, head, repositoryRoot);
-    if (common && common !== head) return checkedBase(common, head, 'local-merge-base');
-    return fullFallback(head, 'local', 'origin/main is not an ancestor of HEAD');
+    if (common && common !== head) return checkedBase(common, head, `${source}-merge-base`);
+    return fullFallback(head, source, 'origin/main is not an ancestor of HEAD');
   }
   const parent = resolveCommit('HEAD^', repositoryRoot);
-  if (parent) return checkedBase(parent, head, 'local-parent');
-  return fullFallback(head, 'local', 'repository has no usable parent commit');
+  if (parent) return checkedBase(parent, head, `${source}-parent`);
+  return fullFallback(head, source, 'repository has no usable parent commit');
 }
 
 function nulFields(output) {

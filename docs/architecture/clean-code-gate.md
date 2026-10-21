@@ -117,7 +117,10 @@ zero unsuppressed findings and no exceptions.
 The hardened ratchet makes the changed range auditable instead of inferring
 success from an empty diff. Reports identify the checked `head`,
 `base`, base source and changed authored-file count. GitHub push and pull
-request workflows provide their event SHAs explicitly. When an implicit CI
+request workflows provide their event SHAs explicitly. A manual
+`workflow_dispatch` run uses its `clean_code_base` input when given and
+otherwise the merge base with `origin/main` (the parent commit when it runs on
+`main` itself), the same range its pull request would check. When an implicit CI
 base cannot be proved, the gate checks the full authored scope; an invalid
 explicit base is an error.
 

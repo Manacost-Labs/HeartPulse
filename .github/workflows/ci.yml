@@ -21,11 +21,37 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # The merge queue fast-forwards main to the exact commit it validated. A push
+  # of such a commit deploys the release that queue run packaged instead of
+  # validating and building the same tree twice; anything else validates here.
+  reuse:
+    name: Reuse merge-queue validation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run-id: ${{ steps.find.outputs.run-id }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Find the merge-queue run of this commit
+        id: find
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/find-validated-release.mjs
+
   # Build once: every test job below downloads these exact outputs, and the
   # production release is packaged from the same workspace, so the deployed
   # bytes are the bytes the shards validated.
   build:
     name: Build release artifacts
+    needs: reuse
+    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -35,17 +61,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: npm
-
       - name: Install locked dependencies
-        run: npm ci
+        uses: ./.github/actions/install-dependencies
+        with:
+          save-cache: 'true'
+
+      # Webpack's persistent cache; Next.js invalidates stale entries itself.
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@v6
+        with:
+          path: apps/public-web/.next/cache
+          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
 
       - name: Build and smoke-test release inputs
         run: npm run verify:release:build
+
+      # Only main (and manual runs) save: other refs' caches are invisible to
+      # every other branch and would just evict main's.
+      - name: Save Next.js build cache
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/save@v6
+        with:
+          path: apps/public-web/.next/cache
+          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
 
       - name: Upload validated build outputs
         uses: actions/upload-artifact@v7
@@ -54,7 +93,6 @@ jobs:
           path: |
             build
             dist
-            storybook-static
             apps/public-web/.next
             !apps/public-web/.next/cache
           if-no-files-found: error
@@ -64,12 +102,14 @@ jobs:
           overwrite: true
           include-hidden-files: true
 
+      # The merge queue packages the release too, so the push that lands its
+      # commit on main can deploy it without rebuilding (see the reuse job).
       - name: Create immutable production release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'merge_group'
         run: npm run release:create -- --output="$RUNNER_TEMP/release-$GITHUB_SHA" --sha="$GITHUB_SHA"
 
       - name: Upload immutable production release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'merge_group'
         uses: actions/upload-artifact@v7
         with:
           name: hs-arena-release-${{ github.sha }}
@@ -82,8 +122,40 @@ jobs:
           # release:create allowlists shipped files; .next must survive artifact upload.
           include-hidden-files: true
 
+  # Storybook is a test input only (never shipped), so it builds beside the
+  # release instead of before it.
+  storybook:
+    name: Build Storybook
+    needs: reuse
+    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install locked dependencies
+        uses: ./.github/actions/install-dependencies
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Upload Storybook build
+        uses: actions/upload-artifact@v7
+        with:
+          name: storybook-static-${{ github.sha }}
+          path: storybook-static
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
   validate:
     name: Typecheck, lint and static gates
+    needs: reuse
+    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -102,14 +174,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: npm
-
       - name: Install locked dependencies
-        run: npm ci
+        uses: ./.github/actions/install-dependencies
 
       - name: Check production dependencies
         run: npm audit --omit=dev --audit-level=critical
@@ -118,12 +184,17 @@ jobs:
         run: npm run verify:release:checks
 
   test-suites:
-    name: Unit, integration, contract and smoke suites
-    needs: build
+    name: Registry suites (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+    needs: [build, storybook]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+    strategy:
+      # Every shard reports its own result; one failure must not hide the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
 
     steps:
       - name: Checkout repository
@@ -131,14 +202,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: npm
-
       - name: Install locked dependencies
-        run: npm ci
+        uses: ./.github/actions/install-dependencies
 
       - name: Install identity TLS regression tools
         run: |
@@ -150,10 +215,17 @@ jobs:
         with:
           name: build-outputs-${{ github.sha }}
 
-      - name: Run registered non-browser suites
-        run: npm run test:suite -- unit,integration,contract,production-smoke --continue-on-failure
+      - name: Download Storybook build
+        uses: actions/download-artifact@v8
+        with:
+          name: storybook-static-${{ github.sha }}
+          path: storybook-static
+
+      - name: Run registered non-browser shard
+        run: npm run test:suite -- unit,integration,contract,production-smoke --shard ${{ matrix.shard }}/${{ strategy.job-total }} --continue-on-failure
 
       # The Next bundle budget test writes this; main's copy is the baseline source.
+      # Exactly one shard runs that test, so only that shard has a file to upload.
       - name: Upload Next bundle measurements
         if: always()
         uses: actions/upload-artifact@v7
@@ -165,7 +237,7 @@ jobs:
 
   browser-tests:
     name: Browser suite (shard ${{ matrix.shard }}/${{ strategy.job-total }})
-    needs: build
+    needs: [build, storybook]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -174,49 +246,59 @@ jobs:
       # Every shard reports its own result; one failure must not hide the others.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: npm
-
       - name: Install locked dependencies
-        run: npm ci
+        uses: ./.github/actions/install-dependencies
 
       - name: Download validated build outputs
         uses: actions/download-artifact@v8
         with:
           name: build-outputs-${{ github.sha }}
 
+      - name: Download Storybook build
+        uses: actions/download-artifact@v8
+        with:
+          name: storybook-static-${{ github.sha }}
+          path: storybook-static
+
       - name: Run registered browser shard
         run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure
 
+  # Builds its own Next runtime so it starts with the build instead of after it;
+  # the two halves of scripts/e2e-qa.mjs run in parallel.
   browser-observatory:
-    name: Full browser observatory
+    name: Full browser observatory (${{ matrix.part }})
+    needs: reuse
+    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       CHROMIUM_PATH: '/usr/bin/google-chrome'
+      QA_PART: ${{ matrix.part }}
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [routes, interactions]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: npm
-
       - name: Install locked dependencies
-        run: npm ci
+        uses: ./.github/actions/install-dependencies
+
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@v6
+        with:
+          path: apps/public-web/.next/cache
+          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
 
       - name: Run full browser observatory
         run: npm run qa:ci
@@ -225,18 +307,64 @@ jobs:
   required:
     name: CI required
     if: always()
-    needs: [build, validate, test-suites, browser-tests, browser-observatory]
+    needs: [reuse, build, storybook, validate, test-suites, browser-tests, browser-observatory]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every validation job to pass
-        run: test "${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}" = true
+        run: test "${{ needs.reuse.outputs.run-id != '' || (needs.build.result == 'success' && needs.storybook.result == 'success' && needs.validate.result == 'success' && needs.test-suites.result == 'success' && needs.browser-tests.result == 'success' && needs.browser-observatory.result == 'success') }}" = true
+
+  # Keeps main's dependency and Next.js caches current when a reused merge-queue
+  # run made the build job unnecessary. Never gates the deployment.
+  refresh-caches:
+    name: Refresh main build caches
+    needs: reuse
+    if: needs.reuse.outputs.run-id != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install locked dependencies
+        uses: ./.github/actions/install-dependencies
+        with:
+          save-cache: 'true'
+
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@v6
+        with:
+          path: apps/public-web/.next/cache
+          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
+      - name: Rebuild the Next.js runtime
+        run: npm run build && npm run build:next
+
+      - name: Save Next.js build cache
+        uses: actions/cache/save@v6
+        with:
+          path: apps/public-web/.next/cache
+          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
 
   deploy-production:
     name: Deploy validated release to production
-    needs: [build, validate, test-suites, browser-tests, browser-observatory]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [reuse, build, storybook, validate, test-suites, browser-tests, browser-observatory]
+    # Deploys either the release this run validated or, when the reuse job found
+    # one, the release the merge queue validated for this exact commit and tree.
+    if: >-
+      ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && ((needs.reuse.result == 'success' && needs.reuse.outputs.run-id != '')
+      || (needs.build.result == 'success' && needs.storybook.result == 'success' && needs.validate.result == 'success'
+      && needs.test-suites.result == 'success' && needs.browser-tests.result == 'success'
+      && needs.browser-observatory.result == 'success')) }}
     runs-on: [self-hosted, linux, x64, hs-arena-production]
+    permissions:
+      actions: read
+      contents: read
     timeout-minutes: 25
     environment:
       name: production
@@ -262,6 +390,8 @@ jobs:
         with:
           name: hs-arena-release-${{ github.sha }}
           path: ${{ runner.temp }}/hs-arena-release-${{ github.sha }}
+          run-id: ${{ needs.reuse.outputs.run-id || github.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Deploy exact validated SHA
         id: deployment

@@ -468,6 +468,26 @@ test('pull requests, dispatch inputs and local branches expose their base source
     });
     assert.equal(dispatch.baseSource, 'workflow-dispatch');
 
+    // Without an input, a manual run diffs against the latest main instead of
+    // failing a full scan on tolerated legacy debt.
+    const dispatchWithoutBase = resolveCleanCodeScope({
+      repositoryRoot: repository,
+      env: { CLEAN_CODE_EVENT: 'workflow_dispatch' },
+    });
+    assert.equal(dispatchWithoutBase.mode, 'changed');
+    assert.equal(dispatchWithoutBase.baseSource, 'workflow-dispatch-merge-base');
+    assert.equal(dispatchWithoutBase.base, base);
+    assert.deepEqual(dispatchWithoutBase.files.map(entry => entry.file), ['src/feature.ts']);
+
+    git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+    const dispatchOnMain = resolveCleanCodeScope({
+      repositoryRoot: repository,
+      env: { CLEAN_CODE_EVENT: 'workflow_dispatch' },
+    });
+    assert.equal(dispatchOnMain.baseSource, 'workflow-dispatch-parent');
+    assert.equal(dispatchOnMain.base, base);
+    git('update-ref', 'refs/remotes/origin/main', base);
+
     const local = resolveCleanCodeScope({ repositoryRoot: repository, env: {} });
     assert.equal(local.baseSource, 'local-merge-base');
     assert.equal(local.base, base);

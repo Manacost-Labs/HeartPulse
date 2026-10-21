@@ -220,7 +220,7 @@
     "test": "node scripts/test-suite-runner.mjs --all",
     "verify:release": "npm run quality:config && npm run lint:oxlint && npm run lint && npm run lint:architecture && npm run quality:clean-code:changed && npm run test:discovery && npm run build-storybook && npm run quality:knip && npm run lint:react-changed && npm run build && npm run build:next && npm run lint:next && npm test && npm run test:server-build && npm run test:recovery-runtime && npm run lint:docs",
     "verify:release:checks": "npm run quality:config && npm run lint:oxlint && npm run lint && npm run lint:architecture && npm run quality:clean-code:changed && npm run test:discovery && npm run quality:knip && npm run lint:react-changed && npm run lint:docs",
-    "verify:release:build": "npm run build-storybook && npm run build && npm run build:next && npm run lint:next && npm run test:server-build && npm run test:recovery-runtime",
+    "verify:release:build": "npm run build && npm run build:next && npm run lint:next && npm run test:server-build && npm run test:recovery-runtime",
     "verify:ci": "npm run lint:oxlint && npm run lint && npm run lint:domains && npm run lint:architecture && npm run quality:clean-code:changed && npm run test:discovery && npm run build-storybook && npm run quality:knip && npm run lint:react-changed && npm run build && npm run build:next && npm run lint:next && npm test && npm run test:server-build && npm run test:recovery-runtime && node scripts/browser-qa-next.mjs && npm run lint:docs",
     "scrape": "tsx server/scraper.ts",
     "qa:screens": "node scripts/screenshot-qa.mjs",

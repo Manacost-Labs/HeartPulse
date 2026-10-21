@@ -1,0 +1,45 @@
+name: Install locked dependencies
+description: >-
+  Restores node_modules that npm ci built for the exact lockfile, runner image
+  and Node.js major, or sets up the npm download cache and runs npm ci.
+inputs:
+  save-cache:
+    description: Save node_modules after a miss; one job per run saves, so parallel jobs do not race.
+    required: false
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Identify runner image
+      id: image
+      shell: bash
+      run: echo "os=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+
+    # The key covers everything npm ci reads. A miss installs from scratch, so
+    # a hit is always the tree npm ci would have produced on this image; native
+    # addons stay valid within one Node.js major (N-API/ABI).
+    - name: Restore node_modules
+      id: modules
+      uses: actions/cache/restore@v6
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.os }}-node22-${{ hashFiles('package-lock.json', '.npmrc') }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: '22'
+        # The npm download cache only helps npm ci, which a hit skips.
+        cache: ${{ steps.modules.outputs.cache-hit != 'true' && 'npm' || '' }}
+
+    - name: Install locked dependencies
+      if: steps.modules.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm ci
+
+    - name: Save node_modules
+      if: inputs.save-cache == 'true' && steps.modules.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: node_modules
+        key: ${{ steps.modules.outputs.cache-primary-key }}
