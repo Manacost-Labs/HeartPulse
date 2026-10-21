@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { X } from 'lucide-react';
 import ModalSurface from '../../components/ModalSurface/ModalSurface';
+import { LightboxImage } from '../../components/ModalSurface/LightboxImage';
 
 /** The full-size deck image, opened from a parchment preview. */
 export function DeckRenderLightbox({ deckName, imageUrl, onClose }: {
@@ -18,21 +19,21 @@ export function DeckRenderLightbox({ deckName, imageUrl, onClose }: {
       closeLabel="Закрыть просмотр колоды"
       initialFocusRef={closeButtonRef}
       onClose={onClose}
+      zoom
     >
       <button
         ref={closeButtonRef}
         type="button"
         className="deck-render-lightbox__close"
         aria-label="Закрыть"
-        onClick={onClose}
+        data-modal-close=""
       >
         <X aria-hidden="true" />
       </button>
-      <img
+      <LightboxImage
         className="deck-render-lightbox__image"
         src={imageUrl}
         alt={`Колода «${deckName}» в стиле «Пергамент»`}
-        decoding="async"
       />
     </ModalSurface>
   );

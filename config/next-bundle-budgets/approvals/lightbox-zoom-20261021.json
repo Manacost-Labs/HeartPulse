@@ -1,0 +1,26 @@
+{
+  "reason": "Lightbox открывается зумом из нажатой миниатюры и закрывается обратно (lightboxMotion, LightboxImage, предзагрузка по намерению). ModalSurface входит в бандл страниц с lightbox (косметика, галерея, колоды, мета): около 2–3 КБ gzip JS; лениво не загрузить — первый кадр открытия должен уже играть зум, без ожидания чанка.",
+  "routes": {
+    "/connect/": {
+      "jsGzipBytes": 256
+    },
+    "/cosmetics/": {
+      "jsGzipBytes": 2944
+    },
+    "/gallery/": {
+      "jsGzipBytes": 2304
+    },
+    "/standard/cards/": {
+      "cssGzipBytes": 256
+    },
+    "/standard/cards/standard/": {
+      "cssGzipBytes": 256
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 3584
+    },
+    "/standard/meta/": {
+      "jsGzipBytes": 3328
+    }
+  }
+}

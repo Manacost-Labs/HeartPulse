@@ -125,6 +125,13 @@
   object-fit: contain;
 }
 
+/* Its final box at once (the deck render is square): the preview it opens
+   with and the full size fill the same rectangle. */
+.deck-render-lightbox__image[data-lightbox-media] {
+  width: min(100%, calc(var(--modal-surface-height, 100dvh) - 2.5rem));
+  aspect-ratio: 1;
+}
+
 .deck-render-lightbox__close {
   position: absolute;
   top: 0.75rem;

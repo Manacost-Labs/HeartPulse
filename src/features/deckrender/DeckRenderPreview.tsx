@@ -195,6 +195,7 @@ function DeckRenderPreviewInstance({
             type="button"
             className="deck-render-preview__open"
             aria-label={`Открыть колоду «${deckName}» в полном размере`}
+            data-lightbox-src={state.fullImageUrl || undefined}
             onClick={() => setLightboxOpen(true)}
           >
             <img

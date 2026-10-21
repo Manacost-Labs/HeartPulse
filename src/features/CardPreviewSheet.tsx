@@ -35,6 +35,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
       closeLabel="Закрыть полную карту"
       initialFocusRef={closeRef}
       onClose={onClose}
+      zoom
     >
       <header className="card-preview-sheet__header">
         <div>
@@ -46,7 +47,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
           type="button"
           className="card-preview-sheet__close"
           aria-label="Закрыть полную карту"
-          onClick={onClose}
+          data-modal-close=""
         >
           <span aria-hidden="true">×</span>
         </button>
@@ -54,7 +55,10 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
 
       <figure className="card-preview-sheet__media">
         {!imageFailed ? (
+          // The sheet keeps one picture and its own error path (fallback render,
+          // then a retry): it zooms once the picture was preloaded, else fades.
           <img
+            data-lightbox-media=""
             src={source}
             alt={card.name}
             onError={() => {

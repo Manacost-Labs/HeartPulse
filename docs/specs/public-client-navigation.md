@@ -344,11 +344,26 @@ until then route entrances, list items and modal sheets fade.
    card preview bottom sheet on a phone) rises as the `sheet` preset; one
    docked to the right over the full height slides in as `cover`; centred
    dialogs keep their own entrance. There is no exit animation: callers
-   unmount the surface.
+   unmount the surface. A content lightbox (`ModalSurface zoom`: the card
+   page's media, the card preview sheet of patch notes and mulligan, deck
+   renders, gallery and cosmetics art) is the exception: the pressed
+   thumbnail, already decoded on the page, flies as a fixed copy from its
+   place into the lightbox picture (`[data-lightbox-media]`) over
+   `--motion-base` while the lightbox fades in under it, and back on every
+   close (Esc, backdrop, `[data-modal-close]`, a swipe down on the picture on
+   touch screens) before `onClose`. The picture opens with that thumbnail
+   (`LightboxImage`) and swaps to the decoded full size in the same box; the
+   card preview sheet keeps its one picture and error path (fallback render,
+   retry), so it zooms when that picture is already loaded and fades
+   otherwise.
+   Triggers mark `data-lightbox-src` (and `data-lightbox-module` for a lazy
+   lightbox chunk), preloaded on hover, focus and touch
+   (`src/shared/ui/lightboxIntent.ts`). Without a visible, loaded origin
+   the lightbox only fades.
 6. Reduced motion: no route entrance (as before); views drop the old view at
    once and fade the new one in (160 ms); list items and view entrances fade
    without travel; modals keep the existing reduced-motion rule (no
-   animation).
+   animation), and a zooming lightbox only fades (`--motion-fast`).
 
 Verification: `tests/transition-presets.test.ts` (preset choice, entering
 frames, reduced motion, modal docking), `ViewSwitch.stories.tsx` (no motion on

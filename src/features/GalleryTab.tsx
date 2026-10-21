@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Image as ImageIcon, Maximize2, X } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
+import { LightboxImage } from '../components/ModalSurface/LightboxImage';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import '../route-parchment.css';
 import './TraditionalModeBanner.css';
@@ -60,6 +61,7 @@ function GalleryLightbox({ item, onClose }: { item: GalleryItem; onClose: () => 
       ariaLabel={item.title}
       closeLabel="Закрыть галерею"
       onClose={onClose}
+      zoom
     >
       <div className="gallery-lightbox-head">
         <div>
@@ -78,14 +80,14 @@ function GalleryLightbox({ item, onClose }: { item: GalleryItem; onClose: () => 
           <button
             type="button"
             className="gallery-icon-action"
-            onClick={onClose}
+            data-modal-close=""
             title="Закрыть"
           >
             <X size={18} aria-hidden="true" />
           </button>
         </div>
       </div>
-      <img src={item.previewUrl || item.imageUrl} alt={item.title} decoding="async" />
+      <LightboxImage src={item.previewUrl || item.imageUrl} alt={item.title} />
       {(item.description || item.source) && (
         <div className="gallery-lightbox-caption">
           {item.description && <p>{item.description}</p>}
@@ -148,6 +150,7 @@ export default function GalleryTab({
               <button
                 type="button"
                 className="gallery-card-image"
+                data-lightbox-src={item.previewUrl || item.imageUrl}
                 onClick={() => setSelectedItem(item)}
                 aria-label={`Открыть ${item.title}`}
               >

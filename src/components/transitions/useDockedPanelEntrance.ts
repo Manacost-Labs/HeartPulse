@@ -8,9 +8,10 @@ import { transitionPresetsNow } from './lazyTransitionPresets';
  * entrance (`data-modal-surface-entrance` turns that off). Waits for nothing:
  * before the preset engine has loaded at idle the CSS entrance plays.
  */
-export function useDockedPanelEntrance(panelRef: RefObject<HTMLElement | null>): void {
+export function useDockedPanelEntrance(panelRef: RefObject<HTMLElement | null>, enabled = true): void {
   useLayoutEffect(() => {
     const panel = panelRef.current;
+    if (!enabled) return undefined;
     const presets = transitionPresetsNow();
     if (!presets || !panel?.animate || prefersReducedMotion()) return undefined;
     const preset = presets.modalEntrancePreset(panel.getBoundingClientRect(), window.innerWidth, window.innerHeight);
@@ -19,5 +20,5 @@ export function useDockedPanelEntrance(panelRef: RefObject<HTMLElement | null>):
     panel.dataset.modalSurfaceEntrance = preset;
     const entrance = panel.animate(presets.entranceKeyframes(preset), { duration, easing: motionEasing('--motion-ease') });
     return () => entrance.cancel();
-  }, [panelRef]);
+  }, [panelRef, enabled]);
 }

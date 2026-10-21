@@ -41,7 +41,7 @@ assert.match(listPrefetchSource, /statsAccess \? 'paid' : 'public'/,
 assert.match(cardsStyles, /\.constructed-cards__state\s*\{[^}]*min-height:\s*70vh/,
   'the cold catalog loader must reserve enough viewport space to avoid a late footer shift');
 
-assert.match(lightboxSource, /item\.thumbnailUrl !== item\.url/,
+assert.match(lightboxSource, /<LightboxImage[\s\S]*?thumb=\{item\.thumbnailUrl\}/,
   'constructed-card lightboxes must show an already-loaded preview while full media decodes');
 assert.match(lightboxSource, /const next = items\[\(index \+ 1\) % items\.length\]/,
   'gallery navigation must warm the next image');
