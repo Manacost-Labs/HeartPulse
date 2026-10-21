@@ -8,13 +8,19 @@
       "jsGzipBytes": 2944
     },
     "/gallery/": {
-      "jsGzipBytes": 1920
+      "jsGzipBytes": 2304
+    },
+    "/standard/cards/": {
+      "cssGzipBytes": 256
+    },
+    "/standard/cards/standard/": {
+      "cssGzipBytes": 256
     },
     "/standard/fun-decks/": {
-      "jsGzipBytes": 3200
+      "jsGzipBytes": 3584
     },
     "/standard/meta/": {
-      "jsGzipBytes": 2688
+      "jsGzipBytes": 3328
     }
   }
 }
