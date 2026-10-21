@@ -49,7 +49,8 @@ npm run test:routes
    не считается завершённой.
 4. Проверь потребителей: `src/`, `scripts/e2e-qa.mjs`, `tests/route-inventory`,
    `tests/seo-registry`, внешние клиенты из `docs/`.
-5. Опиши изменение в `CHANGELOG.md`.
+5. Опиши изменение фрагментом `changelog.d/<YYYY-MM-DD>-<slug>.md`
+   (`CHANGELOG.md` не правь — его собирают при релизе).
 6. Для несовместимых изменений — версионируй путь, не ломай старый.
    Действующий контракт версионирования — ADR 003 (`docs/decisions/`).
 

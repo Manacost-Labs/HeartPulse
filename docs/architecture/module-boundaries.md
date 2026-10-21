@@ -451,7 +451,7 @@ Use the owning document:
 | Public behavior, API, data or permission contract | `docs/specs/` |
 | Production topology or deployed state | `docs/operations/` |
 | Environment, cache, deploy, monitor or recovery procedure | `docs/runbooks/` |
-| User-visible or maintainer-visible shipped change | `CHANGELOG.md` |
+| User- or maintainer-visible shipped change | a `changelog.d/` fragment |
 
 Inline documentation has a different purpose:
 

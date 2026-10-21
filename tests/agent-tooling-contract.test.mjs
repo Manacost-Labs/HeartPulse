@@ -94,7 +94,12 @@ test('AGENTS coordinates concurrent sessions through isolated worktrees and a sh
   assert.match(instructions, /npm run agent:integration:preflight/);
   assert.match(instructions, /overlapping uncommitted paths/i);
   assert.match(instructions, /fast-forward/i);
-  assert.match(instructions, /Only a successful push to `main` may trigger production/i);
+  assert.match(instructions, /npm run agent:integrate/);
+  assert.match(instructions, /merge queue/i);
+  assert.match(instructions, /Never push to `main`/);
+  assert.match(instructions, /only path that may trigger production/i);
+  assert.match(instructions, /Do not edit `CHANGELOG\.md`: add one\s+`changelog\.d\//);
+  assert.match(instructions, /Do not leave long-lived dev servers/);
 });
 
 test('AGENTS preserves the shared parser scrape-provider order from the concurrent session', () => {

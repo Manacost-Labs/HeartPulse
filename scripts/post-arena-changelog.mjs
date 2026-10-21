@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
+import { currentVersion } from './changelog-assemble.mjs';
 
 const DEFAULT_ENV_FILE = '/etc/hs-arena/hs-arena.env';
 const DEFAULT_CHANNEL = '@changelogarena';
@@ -8,8 +9,9 @@ function parseArgs(argv) {
   const args = {
     channel: DEFAULT_CHANNEL,
     envFile: DEFAULT_ENV_FILE,
+    fragment: '',
     text: '',
-    version: 'v1.0.0',
+    version: '',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -17,9 +19,12 @@ function parseArgs(argv) {
     if (arg === '--channel') args.channel = argv[++index] || args.channel;
     else if (arg === '--env-file') args.envFile = argv[++index] || args.envFile;
     else if (arg === '--text') args.text = argv[++index] || '';
+    else if (arg === '--fragment') args.fragment = argv[++index] || '';
     else if (arg === '--version') args.version = argv[++index] || args.version;
     else if (arg === '--help' || arg === '-h') {
-      console.log('Usage: npm run changelog:post -- --version v1.0.0 --text "Что изменено"');
+      console.log('Usage: npm run changelog:post -- --fragment changelog.d/<file>.md [--version v1.0.0]');
+      console.log('       npm run changelog:post -- --text "Что изменено" [--version v1.0.0]');
+      console.log('Without --version the current public version from CHANGELOG.md is used.');
       process.exit(0);
     }
   }
@@ -59,7 +64,12 @@ function buildMessage({ version, text }) {
 }
 
 const args = parseArgs(process.argv.slice(2));
+// The change's own changelog fragment is the post text, so the entry and the
+// public post cannot drift apart.
+if (!args.text && args.fragment) args.text = readFileSync(args.fragment, 'utf8');
 if (!args.text) args.text = await readStdin();
+if (!args.version) args.version = currentVersion(readFileSync(new URL('../CHANGELOG.md', import.meta.url), 'utf8'));
+if (!args.version) throw new Error('CHANGELOG.md has no version heading: pass --version');
 
 const env = parseEnvFile(args.envFile);
 const token = env.TELEGRAM_AUTH_BOT_TOKEN || process.env.TELEGRAM_AUTH_BOT_TOKEN;

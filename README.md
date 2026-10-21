@@ -322,7 +322,9 @@ npm run build-storybook
 | `npm run architecture:http-manifest` | Проверка Express routes и middleware |
 | `npm run qa:e2e` | Полный desktop/mobile browser QA |
 | `npm run qa:ci` | Сборка и browser QA против Next.js с QA-бэкендом (деплой-гейт) |
-| `npm run budget:next` | Контроль размеров JS и CSS каждой публичной страницы Next.js |
+| `npm run budget:next` | Контроль размеров JS и CSS каждой публичной страницы Next.js ([бюджеты](docs/runbooks/next-bundle-budgets.md)) |
+| `npm run agent:integrate` | READY → PR → auto-merge через merge queue ([runbook](docs/runbooks/agent-integration.md)) |
+| `npm run changelog:assemble` | Сборка фрагментов `changelog.d/` в `CHANGELOG.md` |
 | `npm run scrape` | Ручной запуск scraper в разработке |
 | `npm run security:gitleaks` | Локальная проверка истории и рабочего дерева |
 | `npm run security:semgrep` | Статический анализ изменённых JS/TS-файлов |
@@ -353,7 +355,9 @@ sudo scripts/deploy-release.sh "$artifact"
 `npm run verify:ci`. Уязвимости нужно отправлять только через
 [приватный security advisory](https://github.com/Manacost-Labs/HeartPulse/security/advisories/new).
 
-История пользовательских изменений ведётся в [CHANGELOG.md](CHANGELOG.md).
+История пользовательских изменений ведётся в [CHANGELOG.md](CHANGELOG.md); новые
+записи — по одному файлу в [changelog.d/](changelog.d/README.md), они
+собираются в журнал при релизе.
 
 ## Дизайн-система
 

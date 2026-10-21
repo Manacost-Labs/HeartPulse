@@ -18,6 +18,11 @@ deployments and rollbacks.
 
 ## Automatic deployment from `main`
 
+Only the GitHub merge queue updates `main`: agent sessions open pull requests
+with `npm run agent:integrate`, the queue validates them together on
+`merge_group` and fast-forwards `main`
+([agent integration](docs/runbooks/agent-integration.md)).
+
 Every push to `main` starts `.github/workflows/ci.yml`. The release-blocking
 command is `npm run verify:release`: lint, architecture ratchets, the
 test-discovery completeness gate, the complete classified unit, integration,

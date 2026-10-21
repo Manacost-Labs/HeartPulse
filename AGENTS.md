@@ -45,25 +45,38 @@ the owner's language (Russian):
 ## Required Multi-Session Coordination
 
 Codex, Claude, and other agents share the repository. Treat one task, one branch,
-and one worktree as one ownership unit.
+and one worktree as one ownership unit. Details and the GitHub settings:
+`docs/runbooks/agent-integration.md`.
 
-1. Before editing, create an isolated task branch/worktree and run
-   `npm run agent:session:preflight`.
-2. Never implement directly in the shared `main` worktree. Do not modify,
-   clean, reset, stash, delete, or copy uncommitted files from another
-   session's worktree.
-3. The preflight fetches `origin/main`, lists all linked worktrees, and blocks
-   overlapping uncommitted paths. Coordinate directly with the other session
-   before either session continues editing those files.
-4. Before integration, commit the task changes and run
-   `npm run agent:integration:preflight`. It requires a clean task worktree and
-   proves that the task branch contains the current `origin/main`.
-5. Integrate with a normal fast-forward-safe push. Never force-push `main`.
-   If another session advances `main`, fetch and rebase or merge in the task
-   worktree, repeat validation, and retry.
-6. Only a successful push to `main` may trigger production. Feature-branch
-   pushes never deploy. Report the final Git commit and deployed Production SHA
-   in the task handoff.
+1. **One worktree per session.** Create a task branch and worktree under
+   `/srv/projects/tasks/`, then run `npm run agent:session:preflight`. Never
+   implement in the shared `main` worktree; never modify, clean, reset, stash,
+   delete, or copy another session's uncommitted files.
+2. **File ownership.** Edit only the paths your task owns. The preflight lists
+   all linked worktrees and blocks overlapping uncommitted paths; agree on
+   exact paths with the other session before either continues.
+3. **No shared hot spots.** Do not edit `CHANGELOG.md`: add one
+   `changelog.d/<YYYY-MM-DD>-<slug>.md` fragment. Do not edit the bundle
+   baselines: growth above the tolerance needs a new file in
+   `config/next-bundle-budgets/approvals/` (`docs/runbooks/next-bundle-budgets.md`).
+4. **READY → PR → auto-merge.** Commit the task, then run
+   `npm run agent:integrate`. It rebases onto `origin/main`, runs
+   `npm run agent:integration:preflight`, pushes the task branch, opens the PR
+   and enables auto-merge. The merge queue tests the PR together with the other
+   queued PRs and fast-forwards `main`. Never push to `main`, never force-push
+   it and never bypass the queue (`gh pr merge --admin`). A red queue run
+   removes only the failing PR: fix it on the branch and rerun the command.
+   Until the merge queue is enabled on GitHub, the lead session merges the
+   READY PR instead.
+5. **After the merge.** Only the merge queue updates `main`; its push is the
+   only path that may trigger production. Run `npm run agent:integrate --
+   --status` until it reports `DEPLOYED`, run the task's production check,
+   post the changelog (below), report the PR, merge commit and production SHA,
+   and end the session.
+6. **No orphaned processes.** Do not leave long-lived dev servers (Storybook,
+   `next dev`, watchers, browsers) running. Start them in the background only
+   while needed and stop them before handoff; a session that ends with its
+   server still listening is not finished.
 
 Dirty sibling worktrees are expected and are reported for awareness; only
 overlapping uncommitted paths or an outdated integration base are blockers.
@@ -145,7 +158,7 @@ reason. Use the owning documentation location:
 - public behavior, API, data or permission contracts: `docs/specs/`;
 - environment, cache, schedules, deploy, monitoring or recovery:
   `docs/runbooks/`;
-- user-visible or maintainer-visible shipped changes: `CHANGELOG.md`.
+- user-visible or maintainer-visible shipped changes: a `changelog.d/` fragment.
 
 Code comments and JSDoc must add information the implementation cannot express
 clearly. Explain why a constraint exists, an invariant, a compatibility rule,
@@ -209,24 +222,28 @@ signals. A text-only code review is not an acceptable visual verification.
 
 Run `npm run test:agent-tooling` after changing this routing contract.
 
-## Required Changelog Post
+## Required Changelog
 
-Every AI agent that changes this project must post a short public update to https://t.me/changelogarena before finishing the task.
+Every user- or maintainer-visible change adds exactly one fragment
+`changelog.d/<YYYY-MM-DD>-<slug>.md` (plain Russian text, no heading, no list
+marker; see `changelog.d/README.md`). Unique file names never conflict. The
+release owner folds fragments into `CHANGELOG.md` with
+`npm run changelog:assemble -- --release v1.2.3` (or without `--release` into
+`## Unreleased` on demand) in its own PR.
 
-Use the local helper from the project root:
+After the change is deployed, every AI agent that changed this project posts the
+same fragment to https://t.me/changelogarena:
 
 ```bash
-npm run changelog:post -- --version v1.0.0 --text "Коротко: что изменено, что проверено."
+npm run changelog:post -- --fragment changelog.d/2026-10-21-merge-queue.md
 ```
 
-The helper reads the Telegram bot token from `/etc/hs-arena/hs-arena.env` and posts as `@kolodahearthstoneauthbot` to `@changelogarena`. Do not commit Telegram tokens, copied env files, or secret values.
-
-When the work changes behavior, also update `CHANGELOG.md` under the current version or add a new version section.
+The helper reads the Telegram bot token from `/etc/hs-arena/hs-arena.env` and posts as `@kolodahearthstoneauthbot` to `@changelogarena`. Do not commit Telegram tokens, copied env files, or secret values. Without a
+fragment, pass `--text "Коротко: что изменено, что проверено."`.
 
 ## Release Version
 
-The current public version is the first explicit `## v...` heading after
-`Unreleased` in `CHANGELOG.md`. Resolve it at posting time; do not hardcode a
-second copy in agent instructions. When an unreleased change is posted before
-deployment, use that current public version and state clearly that the change is
-awaiting integration. Only the release owner creates the next version section.
+The current public version is the first explicit `## v...` heading in
+`CHANGELOG.md`; `changelog:post` resolves it when `--version` is omitted. Do
+not hardcode a second copy in agent instructions. Only the release owner
+creates the next version section, with `changelog:assemble --release`.

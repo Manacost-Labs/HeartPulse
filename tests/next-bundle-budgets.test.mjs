@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { gzipSync } from 'node:zlib';
+import {
+  RELEASE_ID_PATTERN, evaluateBudgets, loadBudgetConfig, measurementReport, normalizedGzipBytes, writeMeasurements,
+} from '../scripts/next-bundle-budgets.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 const projectRoot = resolve(import.meta.dirname, '..');
 const nextRoot = join(projectRoot, 'apps/public-web/.next');
-const budgetsPath = join(projectRoot, 'config/next-bundle-budgets.json');
-const budgets = JSON.parse(readFileSync(budgetsPath, 'utf8'));
+const budgets = loadBudgetConfig(projectRoot);
 const CARD_GALLERY_MARKER = 'img[data-card-image-src]';
 const ARCHETYPE_ANALYSIS_MARKER = 'constructed-analysis-stack';
 
@@ -26,8 +27,9 @@ function initialAssets(html) {
   };
 }
 
+// Measured exactly like CI: normalized for the release SHA, then gzip level 6.
 function gzipBytes(files) {
-  return files.reduce((total, file) => total + gzipSync(readFileSync(join(nextRoot, file)), { level: 6 }).length, 0);
+  return files.reduce((total, file) => total + normalizedGzipBytes(readFileSync(join(nextRoot, file), 'utf8')), 0);
 }
 
 // The administrator workspace shell must stay a lazy asset of the admin page.
@@ -50,10 +52,11 @@ function paidBattlegroundsAssets(assets) {
 }
 
 test('initial Next.js JavaScript and CSS of public routes stay within their budgets', async () => {
+  assert.deepEqual(budgets.errors, [], 'the budget baselines and approvals must be valid');
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   const measured = {};
   try {
-    for (const path of Object.keys(budgets.routes)) {
+    for (const path of Object.keys(budgets.baselines)) {
       const response = await fetch(`${runtime.nextOrigin}${path}`);
       assert.equal(response.status, 200, `${path} must render`);
       const assets = initialAssets(await response.text());
@@ -82,6 +85,9 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
     // The markers must exist in the build, or the two checks above prove nothing.
     const built = readdirSync(join(nextRoot, 'static'), { recursive: true });
     assert.ok(built.some(file => file.endsWith('.js')
+      && new RegExp(RELEASE_ID_PATTERN.source).test(readFileSync(join(nextRoot, 'static', file), 'utf8'))),
+    'no built JavaScript contains the release id literal: update RELEASE_ID_PATTERN or measurements depend on the SHA');
+    assert.ok(built.some(file => file.endsWith('.js')
       && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(CARD_GALLERY_MARKER)),
     'no built JavaScript contains the gallery observer marker: update the marker');
     assert.ok(built.some(file => file.endsWith('.js')
@@ -101,18 +107,8 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
     await runtime.close();
   }
 
-  if (process.env.NEXT_BUDGETS_WRITE === '1') {
-    assert.ok(!process.env.CI, 'budgets are rewritten only locally, never in CI');
-    const ceiling = bytes => Math.ceil((bytes * 1.02) / 1024) * 1024;
-    const routes = Object.fromEntries(Object.entries(measured).map(([path, sizes]) => [path, {
-      jsGzipBytes: ceiling(sizes.jsGzipBytes), cssGzipBytes: ceiling(sizes.cssGzipBytes),
-    }]));
-    writeFileSync(budgetsPath, `${JSON.stringify({ ...budgets, routes }, null, 2)}\n`);
-    return;
-  }
-
-  const exceeded = Object.entries(budgets.routes).flatMap(([path, limits]) => ['jsGzipBytes', 'cssGzipBytes']
-    .filter(key => measured[path][key] > limits[key])
-    .map(key => `${path} ${key}: ${measured[path][key]} > ${limits[key]}`));
-  assert.deepEqual(exceeded, [], `measured: ${JSON.stringify(measured)}`);
+  // CI uploads this report; `npm run budget:next:baseline` adopts it from main.
+  writeMeasurements(measurementReport(measured), projectRoot);
+  const { failures } = evaluateBudgets({ ...budgets, measured });
+  assert.deepEqual(failures, [], `measured: ${JSON.stringify(measured)}`);
 });

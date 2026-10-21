@@ -59,17 +59,18 @@ refactor(arena): extract TierList page from DeferredRoutes
 | дорогое или необратимое инженерное решение | `docs/decisions/` |
 | публичное поведение, API, данные, права | `docs/specs/` |
 | окружение, кэш, деплой, мониторинг, восстановление | `docs/runbooks/` |
-| видимое пользователю или мейнтейнеру изменение | `CHANGELOG.md` |
+| видимое пользователю или мейнтейнеру изменение | фрагмент `changelog.d/<дата>-<slug>.md` |
 
 ## Ветки и координация сессий
 
 Работай в ветке задачи, не в `main`. Репозиторий делят несколько агентов,
-поэтому перед правками — `npm run agent:session:preflight`, а перед
-интеграцией — `npm run agent:integration:preflight`.
+поэтому перед правками — `npm run agent:session:preflight`, а для
+интеграции — `npm run agent:integrate` (rebase, preflight, PR, auto-merge).
 
 Не реализуй прямо в общем `main`-worktree и не трогай незакоммиченные файлы
-чужой сессии. Пуш feature-ветки безопасен и ничего не деплоит; продакшен
-запускает только успешный пуш в `main`.
+чужой сессии. Пуш feature-ветки безопасен и ничего не деплоит; `main`
+обновляет только merge queue, и только этот пуш запускает продакшен. Сам в
+`main` не пушь (`docs/runbooks/agent-integration.md`).
 
 ## Чекпоинты
 

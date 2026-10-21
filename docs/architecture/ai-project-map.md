@@ -120,7 +120,7 @@ manual code search.
 | Deployed topology and observed state | `docs/operations/` |
 | Deployment, monitoring, recovery or rollback | `docs/runbooks/` |
 | AI integrations and local analysis | [`../agent-tooling.md`](../agent-tooling.md) |
-| User- or maintainer-visible shipped change | `CHANGELOG.md` |
+| User- or maintainer-visible shipped change | a `changelog.d/` fragment ([integration](../runbooks/agent-integration.md)) |
 
 The documentation taxonomy is defined in [`../README.md`](../README.md). Link
 to an existing source of truth instead of duplicating its full rules.
