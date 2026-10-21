@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import type { PatchNotesDetail, PatchNotesEntry, PatchNotesSummary } from '../modules/patchNotes/public';
 import { PatchNotesView } from './PatchNotesView';
 
 const trinket = (id: string, name: string, sourceName: string, subtitle: string, before: number, after: number): PatchNotesEntry => ({
-  id, name, sourceName, mode: 'battlegrounds', cardId: id, cardClass: null, cardType: 'trinket', renderUrl: null, format: null, subtitle, note: null,
+  id, name, sourceName, mode: 'battlegrounds', cardId: id, cardClass: null, cardType: 'trinket', renderUrl: null, format: null, archetypes: [], history: [], subtitle, note: null,
   changes: [{ label: 'Стоимость', before, after, better: 'lower' }],
 });
 
@@ -16,21 +16,27 @@ const patch: PatchNotesDetail = {
   summary: 'Обновление Hearthstone 36.6.3, выход которого состоялся 1 октября, включает в себя ряд изменений для Стандарта и Полей сражений.',
   entries: [
     { id: 'serpent', name: 'Змей ветреных вершин', sourceName: null, mode: 'constructed', cardId: 'TLC_600', cardClass: 'WARRIOR',
-      cardType: 'minion', renderUrl: null, format: 'standard', subtitle: null, note: null, changes: [{ label: 'Текст',
+      cardType: 'minion', renderUrl: null, format: 'standard', subtitle: null, history: [],
+      archetypes: [
+        { format: 'standard', slug: 'std-dragon-warrior', name: 'Воин на драконах', classKey: 'warrior', popularity: 3.1, decks: 12, totalDecks: 12 },
+        { format: 'standard', slug: 'dragon-pirate-warrior', name: 'Пиратский воин на драконах', classKey: 'warrior', popularity: 0.3, decks: 2, totalDecks: 2 },
+      ], note: null, changes: [{ label: 'Текст',
         before: 'Боевой клич: наносит 5 ед. урона. Вы получаете 5 ед. брони. Родня: стоит на (3) меньше.',
         after: 'Боевой клич: наносит 5 ед. урона. Вы получаете 5 ед. брони. Родня: стоит на (2) меньше.' }] },
     { id: 'pantry', name: 'Заражение кладовой', sourceName: null, mode: 'constructed', cardId: 'JAIL_200', cardClass: 'DRUID',
-      cardType: 'spell', renderUrl: null, format: 'standard', subtitle: null, note: null,
+      cardType: 'spell', renderUrl: null, format: 'standard', archetypes: [], history: [], subtitle: null, note: null,
       changes: [{ label: 'Текст', before: 'Призывает двух случайных существ за (3).', after: 'Призывает двух случайных существ за (2).' }] },
     trinket('BG36_MagicItem_403', 'Молот Сумерек', 'Hammer of Twilight', 'Малый аксессуар', 1, 2),
     trinket('BG36_MagicItem_400', 'Изображение оскверненной монетки', 'Corrupted Coin Portrait', 'Малый аксессуар', 0, 3),
-    trinket('BG30_MagicItem_924', 'Пойло из Пиратской Бухты', 'Booty Bay Brew', 'Малый аксессуар', 3, 2),
+    { ...trinket('BG30_MagicItem_924', 'Пойло из Пиратской Бухты', 'Booty Bay Brew', 'Малый аксессуар', 3, 2),
+      history: [{ version: '36.0.3', entryId: 'battlegrounds-малый-аксессуар-booty-bay-brew', publishedAt: '2026-07-21T21:29:08' }] },
     trinket('BG36_MagicItem_403t', 'Молот Сумерек', 'Hammer of Twilight', 'Большой аксессуар', 1, 3),
   ],
   pictureSections: [
     { mode: 'battlegrounds', title: 'ИЗМЕНЕНИЯ СУЩЕСТВ' }, { mode: 'battlegrounds', title: 'ИЗМЕНЕНИЯ ЗАКЛИНАНИЙ ТАВЕРНЫ' },
   ],
   generalChanges: [{ mode: 'battlegrounds', lines: ['Аберрации больше не встречаются в каждом матче.'] }],
+  meta: { period: 'black_empire', updatedAt: '2026-10-21T10:00:02Z', formats: ['standard'], missing: ['wild'] },
 };
 const archive: PatchNotesSummary[] = [
   { version: '37.0.0', build: '37.0.0.254477', title: 'Обновление 37.0', publishedAt: '2026-10-12T16:55:00+00:00', sourceUrl: null, officialUrl: null, changeCount: 1 },
@@ -63,12 +69,32 @@ export const CardChanges: Story = {
     await expect(canvas.getByRole('heading', { name: 'Пойло из Пиратской Бухты' })).toBeVisible();
   },
 };
+export const MetaImpactAndFilters: Story = {
+  parameters: { docs: { description: { story: 'Affected archetypes first, archetype chips and history on cards, class/type strip filtering and the empty filter state.' } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('Затронутые архетипы')).toBeVisible();
+    await expect(canvas.getByText(/Вольный: данные сейчас недоступны/)).toBeVisible();
+    await expect(canvas.getAllByRole('link', { name: /Воин на драконах/ })[0]).toHaveAttribute('href', '/standard/archetypes/standard/std-dragon-warrior/');
+    await expect(canvas.getAllByRole('link', { name: '36.0.3' })[0]).toHaveAttribute('href',
+      '/standard/patches/?version=36.0.3#card-battlegrounds-малый-аксессуар-booty-bay-brew');
+    const strip = canvas.getByRole('group', { name: 'Изменения по классам и типам' });
+    await userEvent.click(within(strip).getByRole('button', { name: /Большой аксессуар/ }));
+    await expect(canvasElement.querySelectorAll('.hp-patch-section article')).toHaveLength(1);
+    await userEvent.type(canvas.getByRole('searchbox'), 'нет такой карты');
+    await expect(canvas.getByText('Под эти фильтры не попало ни одно изменение.')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Сбросить фильтры' }));
+    await expect(canvasElement.querySelectorAll('.hp-patch-section article')).toHaveLength(6);
+  },
+};
+
 export const CollapsedSection: Story = {
   parameters: { docs: { description: { story: 'Sections fold; the contents link opens a folded section again.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const section = canvasElement.querySelector<HTMLDetailsElement>('#hp-patch-section-battlegrounds');
-    await expect(canvas.getByText(/в статье только картинками/)).toBeVisible();
+    // The opened section fades in; visibility is asserted after that short animation.
+    await waitFor(() => expect(canvas.getByText(/в статье только картинками/)).toBeVisible());
     await userEvent.click(canvas.getByRole('heading', { name: /^Поля сражений/ }));
     await expect(section?.open).toBe(false);
     await userEvent.click(within(canvas.getAllByRole('navigation', { name: 'Содержание патча' })[0]).getByRole('link', { name: /^Поля сражений/ }));
@@ -90,4 +116,4 @@ export const OnlyNewValues: Story = {
   args: { patch: { ...patch, missingBefore: 1, pictureSections: [], generalChanges: [],
     entries: [{ ...patch.entries[0], changes: [{ label: 'Текст', after: 'Призывает древня 2/2 с Насмешкой.' }] }] } },
 };
-export const NoCardChanges: Story = { args: { patch: { ...patch, entries: [], changeCount: 0, pictureSections: [], generalChanges: [] } } };
+export const NoCardChanges: Story = { args: { patch: { ...patch, entries: [], changeCount: 0, pictureSections: [], generalChanges: [], meta: null } } };

@@ -39,7 +39,11 @@ export type PatchNotesEntry = {
    * Today's format of a resolved Constructed card: `standard` when the
    * Standard catalog lists it, else `wild`; `null` when unknown.
    */
-  format: 'standard' | 'wild' | null;
+  format: PatchNotesFormat | null;
+  /** Current archetypes whose listed builds play the card (Constructed only). */
+  archetypes: PatchNotesArchetypeUse[];
+  /** Earlier patches of the archive that changed the same card, newest first. */
+  history: PatchNotesHistoryItem[];
   /** Line under the name: "Малый аксессуар", "Броня героя". */
   subtitle: string | null;
   changes: PatchNotesChange[];
@@ -59,6 +63,32 @@ export type PatchNotesSummary = {
   changeCount: number;
 };
 
+export type PatchNotesFormat = 'standard' | 'wild';
+
+/** One archetype of today's meta that plays a changed card: `decks` of its `totalDecks` listed builds. */
+export type PatchNotesArchetypeUse = {
+  format: PatchNotesFormat;
+  slug: string;
+  name: string;
+  classKey: string | null;
+  popularity: number | null;
+  decks: number;
+  totalDecks: number;
+};
+
+export type PatchNotesHistoryItem = { version: string; entryId: string; publishedAt: string | null };
+
+/**
+ * Where meta impact comes from: the site's archetype catalogs of today's
+ * period. `missing` lists formats whose catalog could not be read.
+ */
+export type PatchNotesMeta = {
+  period: string | null;
+  updatedAt: string | null;
+  formats: PatchNotesFormat[];
+  missing: PatchNotesFormat[];
+};
+
 /** An article heading of changes that the article shows only as pictures, so no entry carries them. */
 export type PatchNotesPictureSection = { mode: PatchNotesMode; title: string };
 
@@ -72,6 +102,8 @@ export type PatchNotesDetail = PatchNotesSummary & {
   missingBefore: number;
   pictureSections: PatchNotesPictureSection[];
   generalChanges: PatchNotesGeneralChanges[];
+  /** `null` when no archetype catalog is wired; otherwise what was read and what is missing. */
+  meta: PatchNotesMeta | null;
 };
 
 export type PatchNotesArchive = {

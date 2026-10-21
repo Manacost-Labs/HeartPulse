@@ -64,6 +64,39 @@ answers `502`.
   belongs to the version its title names, else to the highest version; the
   other builds are dropped from the archive.
 
+## Meta impact and history
+
+- `meta` describes where meta impact comes from: the site's archetype
+  catalogs (`v1/hsguru/archetypes`, the same cache as the archetype pages)
+  of today's period for Standard and Wild. A format whose catalog failed is
+  listed in `meta.missing` and the page says so; `meta` is `null` when no
+  catalog is wired.
+- `archetypes` of a Constructed entry lists today's archetypes whose listed
+  builds contain any print of the card (original and reprint dbf ids from
+  HearthstoneJSON `ruRU`): `decks` of `totalDecks` builds, sorted by that
+  share, then by popularity, at most eight. It is today's meta, also for old
+  patches, and the page labels it "Играют сейчас".
+- "Затронутые архетипы" opens "Главное в патче": archetypes playing any
+  changed card, most popular first, with buff/nerf/rework counts and the
+  card names; six are shown, the rest behind a button. Chips link to
+  `/standard/archetypes/<format>/<slug>/`.
+- `history` lists earlier patches of the archive that changed the same card
+  (same card id, else the same name and subtitle in the mode), newest first,
+  at most six; the page links each to `?version=…#card-<entry id>`.
+
+## Navigation
+
+- Every card in a section has the id `card-<entry id>` and a copy-link
+  button; `:target` marks the linked card, and a patch loaded in the browser
+  scrolls to it. Cards keep `scroll-margin-top` below the sticky toolbar.
+- A strip of classes and card types with buff/nerf/rework counts filters to
+  one group (a second click clears it); on narrow screens it is one
+  swipeable row. The toolbar with the version, search and kind filter
+  sticks under the site header while reading.
+- "Предыдущий патч / Следующий патч" close the page. Sections fade in when
+  opened, without motion under `prefers-reduced-motion`. The empty filter
+  state offers a reset; the loading state is the shared skeleton.
+
 ## API
 
 <!-- markdownlint-disable MD013 -->

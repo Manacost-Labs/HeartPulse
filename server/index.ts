@@ -7536,6 +7536,10 @@ app.use('/api', createPatchNotesApi({
   }),
   loadStandardCardIds: async () => ((await constructedCardDataService.loadPublicCards?.('standard'))?.cards ?? [])
     .map(card => String(card.card_id ?? '')).filter(Boolean),
+  loadArchetypeCatalog: async format => {
+    const catalog = await loadConstructedArchetypeCatalog(format);
+    return { format, period: catalog.patch || null, updatedAt: catalog.updatedAt, items: catalog.items };
+  },
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`,
   onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
 }));

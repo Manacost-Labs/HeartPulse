@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { ExternalLink, SearchX } from 'lucide-react';
 import {
   PATCH_SECTION_TITLES, filterPatchView, patchHighlights, toPatchView,
   type PatchFilter, type PatchNotesDetail, type PatchNotesMode, type PatchNotesSummary, type PatchView,
@@ -10,7 +10,8 @@ import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import CardPreviewTooltip, { fallbackCardRender, type CardPreviewTarget } from './CardPreviewTooltip';
 import type { CardPreviewSheetCard } from './CardPreviewSheet';
 import { EAGER_CARDS, KINDS, KIND_LABELS, previewSource, type CardHandlers } from './patchNotes/PatchCard';
-import { Contents, Toolbar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
+import { AffectedArchetypes, GroupStrip } from './patchNotes/PatchMetaImpact';
+import { Contents, PatchPager, Toolbar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
 import { Highlights, PatchSection } from './patchNotes/PatchNotesSections';
 import './PatchNotesView.css';
 
@@ -65,6 +66,21 @@ function PatchHeader({ patch, view, timeZone }: { patch: PatchNotesDetail; view:
 const INITIAL_FILTER: PatchFilter = { section: 'all', kind: 'all', group: 'all', query: '' };
 const MODES: PatchNotesMode[] = ['constructed', 'arena', 'battlegrounds', 'other'];
 
+/**
+ * A `#card-…` link opens its section and scrolls to the card. The browser does
+ * this for server-rendered HTML; a patch loaded in the browser needs the nudge.
+ */
+function useCardTarget(version: string) {
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id.startsWith('card-')) return;
+    const target = document.getElementById(id);
+    const details = target?.closest('details');
+    if (details) details.open = true;
+    target?.scrollIntoView({ block: 'start' });
+  }, [version]);
+}
+
 function defaultSelectVersion(href: string) {
   window.location.assign(href);
 }
@@ -99,6 +115,8 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
     },
   }), []);
 
+  useCardTarget(patch.version);
+  const showAffected = patch.meta !== null && view.groups.some(group => group.section !== 'battlegrounds' && group.section !== 'arena');
   const filtered = filter.kind !== 'all' || filter.group !== 'all' || deferredQuery.trim() !== '';
   // Notes of a mode go under its first section; a mode with notes but no cards gets a section of its own.
   const notesHome = new Map<PatchNotesMode, string>();
@@ -113,19 +131,25 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
         <div className="hp-patch__main">
           {archive.length > 1 && <VersionSwitcher patches={archive} current={patch.version} onSelect={onSelectVersion} className="hp-patch-versions--top" />}
           <PatchHeader patch={patch} view={view} {...(timeZone ? { timeZone } : {})} />
-          {!filtered && <Highlights cards={highlights} handlers={handlers} />}
+          {!filtered && (
+            <Highlights cards={highlights} handlers={handlers}>
+              {showAffected ? <AffectedArchetypes view={view} meta={patch.meta} /> : null}
+            </Highlights>
+          )}
           {view.sections.length > 0 && <Contents view={view} className="hp-patch-toc--inline" />}
-          {view.total > 0 && <Toolbar view={view} filter={filter} onChange={change} />}
+          <GroupStrip view={view} filter={filter} onChange={change} />
+          {view.total > 0 && <Toolbar view={view} filter={filter} version={patch.version} onChange={change} />}
           {view.total === 0 && (
             <p className="hp-patch-notes__notice" role="status">
               В статье этого патча нет построчных изменений карт «было → стало». Полный текст — по ссылкам выше.
             </p>
           )}
           {view.total > 0 && groups.length === 0 && (
-            <p className="hp-patch-notes__notice" role="status">
-              Нет изменений по выбранным фильтрам.{' '}
+            <div className="hp-patch-empty" role="status">
+              <SearchX aria-hidden="true" />
+              <p>Под эти фильтры не попало ни одно изменение.</p>
               <button type="button" className="hp-patch-reset" onClick={() => setFilter(INITIAL_FILTER)}>Сбросить фильтры</button>
-            </p>
+            </div>
           )}
           {view.sections.map(section => {
             const sectionGroups = groups.filter(group => group.section === section.id);
@@ -141,6 +165,7 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
             <PatchSection key={mode} section={{ id: mode, title: PATCH_SECTION_TITLES[mode], count: 0, kinds: { buff: 0, nerf: 0, rework: 0 } }}
               groups={[]} patch={patch} notes={mode} filtered={false} eagerFrom={EAGER_CARDS} handlers={handlers} />
           ))}
+          <PatchPager patches={archive} current={patch.version} />
           <SourceFooter patch={patch} view={view} />
         </div>
         <aside className="hp-patch-aside">
@@ -168,7 +193,7 @@ function SourceFooter({ patch, view }: { patch: PatchNotesDetail; view: PatchVie
         {patch.sourceUrl ? <a href={patch.sourceUrl} target="_blank" rel="noreferrer">hs-manacost.ru</a> : 'hs-manacost.ru'}.
         {' '}Усиление или ослабление указано только для чисел: стоимости, атаки, здоровья и брони. Изменения текста и уровня таверны
         отмечены как «Изменение». Картинки показывают текущую версию карты: изображений карт до патча нет, прежнее состояние —
-        в зачёркнутых значениях и словах. Формат (Стандарт или Вольный) — сегодняшний.
+        в зачёркнутых значениях и словах. Формат (Стандарт или Вольный) и архетипы, которые играют карту, — сегодняшние.
       </p>
       {patch.missingBefore > 0 && <p>У {patch.missingBefore} изм. в статье нет прежнего значения — показано только новое.</p>}
       {unmatched > 0 && <p>Без картинки {unmatched} из {cards.length}: их названия не нашлись в каталоге карт.</p>}

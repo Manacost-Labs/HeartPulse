@@ -1,9 +1,11 @@
-import { shortPatchVersion, type PatchNotesDetail, type PatchNotesEntry, type PatchNotesSummary } from './contract.js';
+import { shortPatchVersion, type PatchNotesDetail, type PatchNotesFormat, type PatchNotesSummary } from './contract.js';
+import { createDbfLookup, enrichEntry, withHistory, type PatchEntryContext } from './enrichment.js';
+import { buildPatchMetaIndex, type PatchArchetypeCatalog } from './metaImpact.js';
 import { cleanArticleText, parsePatchArticle, type PatchCardResolver } from './parser.js';
 import { createBattlegroundNameResolver, type BattlegroundCatalogCard } from './battlegroundCatalog.js';
 
 type Row = Record<string, unknown>;
-type CardName = { name?: unknown; playerClass?: unknown; type?: unknown };
+type CardName = { name?: unknown; playerClass?: unknown; type?: unknown; dbf?: unknown };
 
 export type PatchNotesServiceDependencies = {
   /** Reads hs-data-api `/api/patches?include_content=1`. */
@@ -15,6 +17,8 @@ export type PatchNotesServiceDependencies = {
   loadBattlegroundCards?: () => Promise<BattlegroundCatalogCard[]>;
   /** Ids of today's Standard cards; without them Constructed entries have no format. */
   loadStandardCardIds?: () => Promise<Iterable<string>>;
+  /** Today's archetype catalog of a format, with deck codes of its builds. */
+  loadArchetypeCatalog?: (format: PatchNotesFormat) => Promise<PatchArchetypeCatalog>;
   ttlMs: number;
   now?: () => number;
 };
@@ -110,16 +114,9 @@ function compareVersions(left: unknown, right: unknown): number {
   return 0;
 }
 
-/** A reprint resolves to its original id while the Standard catalog may list the `CORE_` copy. */
-function withFormat(entry: PatchNotesEntry, standard: ReadonlySet<string>): PatchNotesEntry {
-  if (entry.mode !== 'constructed' || !entry.cardId || standard.size === 0) return entry;
-  const id = entry.cardId;
-  return { ...entry, format: standard.has(id) || standard.has(`CORE_${id}`) || standard.has(id.replace(/^CORE_/, '')) ? 'standard' : 'wild' };
-}
-
 /** Parses every stored article once per refresh; the newest build of a version wins. */
 export function buildPatchNotesSnapshot(
-  rows: Row[], resolve: PatchCardResolver, updatedAt: string, standard: ReadonlySet<string> = new Set(),
+  rows: Row[], resolve: PatchCardResolver, updatedAt: string, context: PatchEntryContext = {},
 ): PatchNotesSnapshot {
   const newest = new Map<string, Row>();
   for (const row of dropForeignArticleBuilds(rows)) {
@@ -143,16 +140,17 @@ export function buildPatchNotesSnapshot(
       changeCount: parsed.entries.length,
       // The stored summary runs on into the first heading; its first paragraph is the lead.
       summary: text(cleanArticleText(String(row.summary ?? '').split('\n').find(line => line.trim()) ?? '')),
-      entries: parsed.entries.map(entry => withFormat(entry, standard)),
+      entries: parsed.entries.map(entry => enrichEntry(entry, context)),
       missingBefore: parsed.missingBefore,
       pictureSections: parsed.pictureSections,
       generalChanges: parsed.generalChanges,
+      meta: context.meta?.meta ?? null,
     };
   });
   // Undated patches sort last; NaN would make the comparator inconsistent.
   const time = (patch: PatchNotesDetail) => Date.parse(patch.publishedAt ?? '') || 0;
   patches.sort((left, right) => time(right) - time(left) || buildNumber(right.build) - buildNumber(left.build));
-  return { patches, updatedAt };
+  return { patches: withHistory(patches), updatedAt };
 }
 
 export function patchNotesSummary(patch: PatchNotesDetail): PatchNotesSummary {
@@ -172,16 +170,22 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   let pending: Promise<PatchNotesSnapshot> | null = null;
 
   const refresh = async () => {
-    const [payload, cards, battlegrounds, standard] = await Promise.all([
+    const formats: PatchNotesFormat[] = ['standard', 'wild'];
+    const [payload, cards, battlegrounds, standard, catalogs] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
       dependencies.loadCardNames().catch(() => ({})),
       (dependencies.loadBattlegroundCards?.() ?? Promise.resolve([])).catch(() => []),
       (dependencies.loadStandardCardIds?.() ?? Promise.resolve([])).catch(() => []),
+      Promise.allSettled(formats.map(format => dependencies.loadArchetypeCatalog?.(format) ?? Promise.reject(new Error('none')))),
     ]);
+    const meta = dependencies.loadArchetypeCatalog ? buildPatchMetaIndex(
+      catalogs.flatMap(result => (result.status === 'fulfilled' ? [result.value] : [])),
+      formats.filter((_format, index) => catalogs[index].status === 'rejected'),
+    ) : null;
     const rows = (payload as { patches?: unknown })?.patches;
     if (!Array.isArray(rows)) throw new Error('Patch archive payload has no patches');
     const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString(),
-      new Set(standard));
+      { standard: new Set(standard), meta, dbfs: createDbfLookup(cards) });
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     return value;
   };

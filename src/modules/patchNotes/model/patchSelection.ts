@@ -1,4 +1,5 @@
-import type { PatchCardView, PatchFilter, PatchGroupView, PatchSectionId, PatchView } from './patchEntries';
+import type { PatchCardView, PatchFilter, PatchGroupView, PatchKindCounts, PatchSectionId, PatchView } from './patchEntries';
+import type { PatchNotesArchetypeUse } from './types';
 
 /* Which cards the page shows: filter results, filter options and the "what matters" pick. */
 
@@ -59,4 +60,35 @@ export function patchHighlights(view: PatchView, limit = 6): PatchCardView[] {
     if (!picked.includes(card)) picked.push(card);
   }
   return picked;
+}
+
+/** One archetype of today's meta with the changed cards it plays. */
+export type PatchAffectedArchetype = PatchNotesArchetypeUse & {
+  href: string;
+  kinds: PatchKindCounts;
+  cards: { name: string; anchor: string; kind: PatchCardView['kind'] }[];
+};
+
+/** Archetypes touched by the patch, most popular first; a card counts once per archetype. */
+export function patchAffectedArchetypes(view: PatchView): PatchAffectedArchetype[] {
+  const byKey = new Map<string, PatchAffectedArchetype>();
+  for (const card of view.groups.flatMap(group => group.entries)) {
+    for (const use of card.archetypes) {
+      const key = `${use.format}:${use.slug}`;
+      const known = byKey.get(key) ?? { ...use, kinds: { buff: 0, nerf: 0, rework: 0 }, cards: [] };
+      if (known.cards.some(item => item.anchor === card.anchor)) continue;
+      known.cards.push({ name: card.name, anchor: card.anchor, kind: card.kind });
+      known.kinds[card.kind] += 1;
+      byKey.set(key, known);
+    }
+  }
+  return [...byKey.values()].sort((left, right) => (right.popularity ?? 0) - (left.popularity ?? 0)
+    || right.cards.length - left.cards.length);
+}
+
+/** Buff, nerf and rework counts of a group, for the summary strip. */
+export function patchGroupKinds(group: PatchGroupView): PatchKindCounts {
+  const kinds: PatchKindCounts = { buff: 0, nerf: 0, rework: 0 };
+  for (const card of group.entries) kinds[card.kind] += 1;
+  return kinds;
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ImageOff } from 'lucide-react';
 import {
   sentenceCase, type PatchCardView, type PatchGroupView, type PatchNotesDetail, type PatchNotesMode, type PatchSectionView,
@@ -7,15 +8,17 @@ import { groupAnchor, sectionAnchor } from './PatchNotesNavigation';
 
 /* The reading flow below the header: highlights and collapsible sections of change cards. */
 
-export function Highlights({ cards, handlers }: { cards: PatchCardView[]; handlers: CardHandlers }) {
-  if (cards.length < 2) return null;
+/** Affected archetypes (`children`) come first; key cards follow when there are at least two. */
+export function Highlights({ cards, handlers, children }: { cards: PatchCardView[]; handlers: CardHandlers; children?: ReactNode }) {
+  if (cards.length < 2 && !children) return null;
   return (
     <section className="hp-patch-highlights" aria-labelledby="hp-patch-highlights-title">
       <div className="hp-patch-highlights__head">
         <h3 id="hp-patch-highlights-title">Главное в патче</h3>
-        <p>Самые крупные изменения больших разделов. Короткие разделы, до трёх карт, читаются целиком ниже.</p>
+        <p>Затронутые архетипы и самые крупные изменения больших разделов. Короткие разделы, до трёх карт, читаются целиком ниже.</p>
       </div>
-      {[false, true].map(compact => {
+      {children}
+      {cards.length >= 2 && [false, true].map(compact => {
         const shown = cards.filter(card => isCompactCard(card) === compact);
         return shown.length > 0 && (
           <ul key={String(compact)} className={`hp-patch-highlights__list${compact ? ' hp-patch-group__list--compact' : ''}`}>
@@ -86,7 +89,7 @@ export function PatchSection({ section, groups, patch, notes, filtered, eagerFro
               return cards.length > 0 && (
                 <ul key={String(compact)} className={`hp-patch-group__list${compact ? ' hp-patch-group__list--compact' : ''}`}>
                   {cards.map(card => (
-                    <li key={card.id}><PatchCard card={card} compact={compact} eager={rendered++ < EAGER_CARDS} {...handlers} /></li>
+                    <li key={card.id}><PatchCard card={card} compact={compact} anchored eager={rendered++ < EAGER_CARDS} {...handlers} /></li>
                   ))}
                 </ul>
               );

@@ -1,4 +1,4 @@
-import type { PatchNotesChange, PatchNotesDetail, PatchNotesEntry, PatchNotesMode } from './types';
+import type { PatchNotesArchetypeUse, PatchNotesChange, PatchNotesDetail, PatchNotesEntry, PatchNotesMode } from './types';
 
 /** Which way one change moved for the player; `neutral` when the source gives no direction. */
 export type PatchDirection = 'buff' | 'nerf' | 'neutral';
@@ -28,6 +28,10 @@ export type PatchCardView = {
   art: PatchCardArt;
   /** The card's page on the site (statistics and decks with it), for Constructed cards of a known format. */
   cardUrl: string | null;
+  /** Element id of the card in its section: `#card-<entry id>` links to it. */
+  anchor: string;
+  archetypes: (PatchNotesArchetypeUse & { href: string })[];
+  history: { version: string; href: string; publishedAt: string | null }[];
   kind: PatchKind;
   changes: PatchChangeView[];
   note: string | null;
@@ -36,7 +40,9 @@ export type PatchCardView = {
   search: string;
 };
 
-export type PatchGroupView = { id: string; section: PatchSectionId; title: string; entries: PatchCardView[] };
+/** A group's picture in the summary strip: a class icon for class groups, a card type otherwise. */
+export type PatchGroupIcon = { classKey: string } | { cardType: string | null };
+export type PatchGroupView = { id: string; section: PatchSectionId; title: string; icon: PatchGroupIcon; entries: PatchCardView[] };
 export type PatchKindCounts = Record<PatchKind, number>;
 export type PatchSectionView = { id: PatchSectionId; mode: PatchNotesMode; title: string; count: number; kinds: PatchKindCounts };
 export type PatchView = { sections: PatchSectionView[]; groups: PatchGroupView[]; kinds: PatchKindCounts; total: number };
@@ -173,6 +179,11 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       renderUrl: entry.renderUrl ?? null,
       art: art(entry),
       cardUrl: entry.cardId && entry.format ? `/standard/cards/${entry.format}/${encodeURIComponent(entry.cardId)}/` : null,
+      anchor: patchCardAnchor(entry.id),
+      archetypes: (entry.archetypes ?? []).map(use => ({ ...use, href: archetypeHref(use) })),
+      history: (entry.history ?? []).map(item => ({
+        version: item.version, publishedAt: item.publishedAt, href: `${patchNotesHref(item.version)}#${patchCardAnchor(item.entryId)}`,
+      })),
       kind: patchKind(entry.changes),
       changes,
       note: entry.note,
@@ -181,7 +192,9 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       search: [entry.name, entry.sourceName, typeLabel, ...entry.changes.flatMap(change => [change.label, change.before, change.after])]
         .filter(value => value !== undefined && value !== null).join(' ').toLocaleLowerCase('ru-RU').replace(/ё/g, 'е'),
     };
-    const known = groups.get(group) ?? { id: group, section: sectionId, title: groupTitle, entries: [] };
+    const icon: PatchGroupIcon = entry.mode !== 'battlegrounds' && entry.cardClass && CLASS_LABELS[entry.cardClass]
+      ? { classKey: entry.cardClass.toLowerCase() } : { cardType: entry.cardType };
+    const known = groups.get(group) ?? { id: group, section: sectionId, title: groupTitle, icon, entries: [] };
     known.entries.push(card);
     groups.set(group, known);
     kinds[card.kind] += 1;
@@ -200,6 +213,15 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
     kinds,
     total: detail.entries.length,
   };
+}
+
+/** Element id of an entry's card; stable per article, so `#card-…` links survive refreshes. */
+export function patchCardAnchor(entryId: string): string {
+  return `card-${entryId}`;
+}
+
+export function archetypeHref(use: Pick<PatchNotesArchetypeUse, 'format' | 'slug'>): string {
+  return `/standard/archetypes/${use.format}/${encodeURIComponent(use.slug)}/`;
 }
 
 /** `/standard/patches/` for the newest patch, else the archive address of one version. */

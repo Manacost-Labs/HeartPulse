@@ -5,6 +5,9 @@ import { parsePatchArticle, splitStatedCard, statedChanges } from '../server/mod
 import {
   buildPatchNotesSnapshot, createCardNameResolver, createPatchCardResolver, createPatchNotesService, dropForeignArticleBuilds,
 } from '../server/modules/patchNotes/service.js';
+import { encode } from '@firestone-hs/deckstrings';
+import { buildPatchMetaIndex } from '../server/modules/patchNotes/metaImpact.js';
+import { createDbfLookup, withHistory } from '../server/modules/patchNotes/enrichment.js';
 import {
   createBattlegroundCatalogLoader, createBattlegroundNameResolver, loadBattlegroundCatalog, type BattlegroundCatalogCard,
 } from '../server/modules/patchNotes/battlegroundCatalog.js';
@@ -83,7 +86,8 @@ test('articles become per-card changes with their notes, modes and resolved card
   const serpent = entries.find(entry => entry.name === 'Змей ветреных вершин');
   assert.deepEqual(serpent, {
     id: 'constructed-змей-ветреных-вершин', name: 'Змей ветреных вершин', sourceName: null, mode: 'constructed',
-    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, format: null, subtitle: null,
+    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, format: null, archetypes: [], history: [],
+    subtitle: null,
     note: 'Родня срабатывала слишком рано.',
     changes: [{ label: 'Текст', before: 'Боевой клич: наносит 5 ед. урона. Родня: стоит на (3) меньше.',
       after: 'Боевой клич: наносит 5 ед. урона. Родня: стоит на (2) меньше.' }],
@@ -187,12 +191,50 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
 });
 
 test('Constructed entries carry today\'s format from the Standard catalog, reprints included', () => {
-  const snapshot = buildPatchNotesSnapshot(rows, resolver, 'x', new Set(['CORE_TLC_600']));
+  const snapshot = buildPatchNotesSnapshot(rows, resolver, 'x', { standard: new Set(['CORE_TLC_600']) });
   assert.equal(snapshot.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.cardId === 'TLC_600')?.format, 'standard');
-  const wild = buildPatchNotesSnapshot(rows, resolver, 'x', new Set(['OTHER']));
+  const wild = buildPatchNotesSnapshot(rows, resolver, 'x', { standard: new Set(['OTHER']) });
   assert.equal(wild.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.cardId === 'TLC_600')?.format, 'wild');
   assert.equal(buildPatchNotesSnapshot(rows, resolver, 'x').patches[1].entries.every(entry => entry.format === null), true,
     'no Standard catalog, no format');
+});
+
+test('meta impact: archetypes whose builds play any print of a changed card, missing formats reported', () => {
+  const deck = (dbfs: number[]) => encode({ cards: dbfs.map(dbf => [dbf, 2]), heroes: [7], format: 2 });
+  const meta = buildPatchMetaIndex([{
+    format: 'standard', period: 'black_empire', updatedAt: '2026-10-21T10:00:00Z', items: [
+      { slug: 'dragon-warrior', archetypeLabel: 'Воин на драконах', classKey: 'warrior', popularity: 4.2,
+        builds: [{ deckCode: deck([100, 1]) }, { deckCode: deck([200, 1]) }, { deckCode: 'broken' }] },
+      { slug: 'control-warrior', archetypeLabel: 'Контроль Воин', classKey: 'warrior', popularity: 9,
+        builds: [{ deckCode: deck([1]) }, { deckCode: deck([2]) }] },
+      { slug: 'zoolock', archetypeLabel: 'Зоолок', classKey: 'warlock', popularity: 1.3, builds: [{ deckCode: deck([3]) }] },
+    ],
+  }], ['wild']);
+  const dbfs = createDbfLookup({
+    TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 100 },
+    CORE_TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 200 },
+    OTHER: { name: 'Змей ветреных вершин', playerClass: 'MAGE', dbf: 300 },
+  });
+  const snapshot = buildPatchNotesSnapshot(rows, resolver, 'x', { meta, dbfs });
+  const serpent = snapshot.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.cardId === 'TLC_600');
+  assert.deepEqual(serpent?.archetypes.map(use => [use.slug, use.decks, use.totalDecks]), [['dragon-warrior', 2, 3]],
+    'both prints count; a broken deck code is skipped, not fatal');
+  assert.deepEqual(snapshot.patches[1].meta, { period: 'black_empire', updatedAt: '2026-10-21T10:00:00Z', formats: ['standard'], missing: ['wild'] });
+  assert.equal(snapshot.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.mode === 'battlegrounds')?.archetypes.length, 0);
+});
+
+test('history links a card to earlier patches that changed it, newest first', () => {
+  const patch = (version: string, ids: string[]) => ({
+    version, build: version, title: version, publishedAt: null, sourceUrl: null, officialUrl: null, changeCount: ids.length,
+    summary: null, missingBefore: 0, pictureSections: [], generalChanges: [], meta: null,
+    entries: ids.map(id => ({ id: `e-${id}-${version}`, name: id, sourceName: null, mode: 'constructed' as const, cardId: id,
+      cardClass: null, cardType: null, renderUrl: null, format: null, archetypes: [], history: [], subtitle: null, changes: [], note: null })),
+  });
+  const [newest, middle, oldest] = withHistory([patch('3.0.0', ['A', 'B']), patch('2.0.0', ['A']), patch('1.0.0', ['A', 'B'])]);
+  assert.deepEqual(newest.entries[0].history.map(item => [item.version, item.entryId]), [['2.0.0', 'e-A-2.0.0'], ['1.0.0', 'e-A-1.0.0']]);
+  assert.deepEqual(newest.entries[1].history.map(item => item.version), ['1.0.0']);
+  assert.deepEqual(middle.entries[0].history.map(item => item.version), ['1.0.0']);
+  assert.deepEqual(oldest.entries[0].history, []);
 });
 
 test('pre-release builds matched to a modern article are dropped from the archive', () => {
@@ -285,8 +327,10 @@ test('routes serve the archive, the latest patch with changes and one version; f
 });
 
 test('the page groups cards by mode, class or type and derives kinds only from directed numbers', async () => {
-  const { toPatchView, filterPatchView, patchGroupOptions, patchHighlights, normalizePatchVersion, patchNotesHref, sentenceCase } =
-    await import('../src/modules/patchNotes/public');
+  const {
+    toPatchView, filterPatchView, patchGroupOptions, patchHighlights, normalizePatchVersion, patchNotesHref, sentenceCase,
+    patchAffectedArchetypes, patchGroupKinds,
+  } = await import('../src/modules/patchNotes/public');
   const { entries } = parsePatchArticle(article, sections, resolver);
   const view = toPatchView({ entries: entries.map(entry => entry.cardId === 'TLC_600' ? { ...entry, format: 'standard' as const } : entry) });
   assert.deepEqual(view.sections.map(section => [section.id, section.count]), [['standard', 1], ['constructed', 2], ['battlegrounds', 5]],
@@ -299,6 +343,17 @@ test('the page groups cards by mode, class or type and derives kinds only from d
   assert.equal(serpent?.kind, 'rework', 'a text change carries no direction');
   assert.equal(serpent?.hasText, true);
   assert.equal(serpent?.cardUrl, '/standard/cards/standard/TLC_600/');
+  assert.equal(serpent?.anchor, 'card-constructed-змей-ветреных-вершин');
+  assert.deepEqual(view.groups.map(group => group.icon).slice(0, 3), [{ classKey: 'warrior' }, { cardType: null }, { cardType: 'minion' }]);
+  assert.deepEqual(patchGroupKinds(view.groups.find(group => group.title === 'Броня героя') ?? view.groups[0]), { buff: 0, nerf: 2, rework: 0 });
+  const use = (slug: string, popularity: number) => ({ format: 'standard' as const, slug, name: slug, classKey: 'warrior', popularity, decks: 1, totalDecks: 2 });
+  const withMeta = toPatchView({ entries: entries.map(entry => (entry.cardId === 'TLC_600'
+    ? { ...entry, archetypes: [use('control', 2), use('dragon', 9)], history: [{ version: '36.4.2', entryId: 'x', publishedAt: null }] }
+    : entry)) });
+  assert.deepEqual(patchAffectedArchetypes(withMeta).map(item => [item.slug, item.href, item.cards.length, item.kinds.rework]), [
+    ['dragon', '/standard/archetypes/standard/dragon/', 1, 1], ['control', '/standard/archetypes/standard/control/', 1, 1],
+  ], 'most popular first, each with the changed cards it plays');
+  assert.equal(withMeta.groups[0].entries[0].history[0].href, '/standard/patches/?version=36.4.2#card-x');
   assert.deepEqual(patchHighlights(view, 4).map(card => card.name), ['Рено Джексон', 'Молот Сумерек', 'Алчная гиена', 'Молот Сумерек'],
     'short sections (one Standard card) are read whole below; then the largest number moves first');
   const cards = view.groups.flatMap(group => group.entries);

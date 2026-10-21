@@ -67,7 +67,7 @@ class ArticleReader {
       id: entryId(this.current.mode, effectiveSubtitle, entryName, this.used), name: displayName,
       sourceName: sameName(displayName, entryName) ? null : entryName, mode: this.current.mode,
       cardId: card?.id ?? null, cardClass: card?.cardClass ?? null, cardType: card?.cardType ?? null,
-      renderUrl: card?.renderUrl ?? null, format: null, subtitle: effectiveSubtitle, changes, note: entryNote,
+      renderUrl: card?.renderUrl ?? null, format: null, archetypes: [], history: [], subtitle: effectiveSubtitle, changes, note: entryNote,
     });
     if (this.open) this.open.empty = false;
   }

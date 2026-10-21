@@ -3,6 +3,8 @@ import { ArrowDown, ArrowRight, ArrowUp, ImageOff, RefreshCw, ZoomIn } from 'luc
 import type { PatchCardView, PatchChangeView, PatchKind } from '../../modules/patchNotes/public';
 import { wordDiff } from '../../vendor/varylo-ui/gaming/patch';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
+import { CardHistory, CopyLinkButton } from './PatchCardExtras';
+import { ArchetypeChips } from './PatchMetaImpact';
 
 /* One change card: the card picture, Russian name, kind badge and was → now lines. */
 
@@ -129,20 +131,25 @@ function CardArt({ card, eager, onPreview, onPreviewEnd, onOpen }: CardHandlers 
 
 /** Cost, stat and armor moves read in one line, so such cards take the compact three-column layout. */
 export function isCompactCard(card: PatchCardView): boolean {
-  return !card.hasText && !card.note;
+  return !card.hasText && !card.note && card.archetypes.length === 0;
 }
 
-export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, ...handlers }: CardHandlers & {
-  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h5'; compact?: boolean;
+/** `anchored` cards (the ones in sections) carry the `#card-…` id; highlights repeat a card without it. */
+export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, anchored = false, ...handlers }: CardHandlers & {
+  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h5'; compact?: boolean; anchored?: boolean;
 }) {
   const Heading = headingLevel;
   const headingId = `hp-patch-${headingLevel}-${card.id}`;
   return (
-    <article className="hp-patch-card" data-kind={card.kind} data-compact={compact || undefined} aria-labelledby={headingId}>
+    <article className="hp-patch-card" id={anchored ? card.anchor : undefined} data-kind={card.kind}
+      data-compact={compact || undefined} aria-labelledby={headingId}>
       <CardArt card={card} eager={eager} {...handlers} />
       <div className="hp-patch-card__body">
         <div className="hp-patch-card__head">
-          <KindBadge kind={card.kind} />
+          <div className="hp-patch-card__tools">
+            <KindBadge kind={card.kind} />
+            {anchored && <CopyLinkButton card={card} />}
+          </div>
           <Heading id={headingId} className="hp-patch-card__name">{card.name}</Heading>
           {(card.typeLabel || card.sourceName) && (
             <p className="hp-patch-card__meta">
@@ -155,6 +162,8 @@ export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, .
           {card.changes.map((change, index) => <ChangeLine key={`${change.label}-${index}`} change={change} />)}
         </ul>
         {card.note && <p className="hp-patch-card__note"><span>Комментарий разработчиков:</span> {card.note}</p>}
+        <ArchetypeChips card={card} />
+        <CardHistory card={card} />
         {card.cardUrl && <a className="hp-patch-card__link" href={card.cardUrl}>Карта и колоды с ней <ArrowRight aria-hidden="true" /></a>}
       </div>
     </article>
