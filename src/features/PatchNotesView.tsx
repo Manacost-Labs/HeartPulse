@@ -14,10 +14,14 @@ import { PatchHero } from './patchNotes/PatchHero';
 import { PatchMetaFlow } from './patchNotes/PatchMetaFlow';
 import { PatchBar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
 import { Highlights, PatchSection } from './patchNotes/PatchNotesSections';
+import { registerLightboxModule } from '../shared/ui/lightboxIntent';
 import './PatchNotesView.css';
 import './patchNotes/PatchNotesShowcase.css';
 
-const CardPreviewSheet = React.lazy(() => import('./CardPreviewSheet'));
+const loadCardPreviewSheet = () => import('./CardPreviewSheet');
+const CardPreviewSheet = React.lazy(loadCardPreviewSheet);
+// The sheet's chunk downloads at idle, and at the latest on a hover, focus or touch (lightboxIntent).
+registerLightboxModule('card-preview', loadCardPreviewSheet, { idle: true });
 
 const dateFormats = new Map<string, Intl.DateTimeFormat>();
 

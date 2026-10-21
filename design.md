@@ -295,7 +295,10 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 
 Protected behavior includes:
 
-- Arena card hover and lightbox transitions.
+- Arena card hover and lightbox transitions (the Arena tier list's
+  `card-modal-shell`). The shared content lightboxes on `ModalSurface zoom`
+  open with a zoom from the pressed thumbnail and close back into it
+  (`docs/specs/public-client-navigation.md`, modals).
 - Battlegrounds related-card and hero-power reveals.
 - Golden card base/golden two-layer animation.
 - Builder drag/drop, canvas placement and export.

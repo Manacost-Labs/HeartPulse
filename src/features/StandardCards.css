@@ -374,6 +374,9 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 .constructed-card-lightbox__media { display: grid; min-height: 0; padding: clamp(0.8rem, 2vw, 1.5rem); place-items: center; overflow: auto; background: radial-gradient(circle at 50% 30%, rgba(120, 75, 35, 0.25), transparent 55%); }
 .constructed-card-lightbox__media img,
 .constructed-card-lightbox__media video { display: block; max-width: 100%; max-height: calc(var(--modal-surface-height, 100dvh) - 7rem); object-fit: contain; }
+/* The picture takes its final box at once: the small copy it opens with and
+   the full size that replaces it then fill the same contained rectangle. */
+.constructed-card-lightbox__media img[data-lightbox-media] { width: 100%; height: calc(var(--modal-surface-height, 100dvh) - 7rem - clamp(1.6rem, 4vw, 3rem)); }
 .constructed-card-lightbox__footer { display: flex; gap: 1rem; align-items: center; justify-content: space-between; min-height: 72px; padding: 0.7rem 1rem; border-top: 1px solid rgba(222, 184, 97, 0.32); background: #2a190f; }
 .constructed-card-lightbox__footer > div:first-child { display: grid; min-width: 0; }
 .constructed-card-lightbox__footer strong { overflow: hidden; color: #fff0c4; font-family: var(--font-display); font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -481,6 +484,7 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-card-lightbox__panel { width: 100%; max-height: 100%; min-height: 100%; border-inline: 0; }
   .constructed-card-lightbox__media img,
   .constructed-card-lightbox__media video { max-height: calc(var(--modal-surface-height, 100dvh) - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .constructed-card-lightbox__media img[data-lightbox-media] { height: calc(var(--modal-surface-height, 100dvh) - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 1.6rem); }
   .constructed-card-lightbox__footer { min-height: 92px; padding: 0.6rem; }
   .constructed-card-lightbox__footer strong { max-width: 54vw; }
   .constructed-card-lightbox__actions a { width: 42px; padding: 0; overflow: hidden; color: transparent; }

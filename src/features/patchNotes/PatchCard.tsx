@@ -157,7 +157,7 @@ function CardArt({ card, eager, onPreview, onPreviewEnd, onOpen }: CardHandlers 
   }
   return (
     <button type="button" className="hp-patch-card__art" data-contain={picture.contain || undefined}
-      aria-label={`Полная карта: ${card.name}`}
+      data-lightbox-module="card-preview" aria-label={`Полная карта: ${card.name}`}
       onMouseEnter={event => onPreview(card, event.currentTarget)} onMouseLeave={onPreviewEnd}
       onFocus={event => onPreview(card, event.currentTarget)} onBlur={onPreviewEnd}
       onClick={() => { onPreviewEnd(); onOpen(card); }}>

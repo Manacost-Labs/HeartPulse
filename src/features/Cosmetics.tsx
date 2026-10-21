@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
+import { LightboxImage } from '../components/ModalSurface/LightboxImage';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import {
@@ -317,13 +318,14 @@ export function CosmeticsMediaLightbox({
       ariaLabelledBy={titleId}
       initialFocusRef={closeRef}
       onClose={onClose}
+      zoom
     >
       <button
         ref={closeRef}
         type="button"
         className="cosmetics-media-lightbox__close"
         aria-label="Закрыть просмотр"
-        onClick={onClose}
+        data-modal-close=""
       >
         <X size={24} aria-hidden="true" />
       </button>
@@ -341,7 +343,7 @@ export function CosmeticsMediaLightbox({
             aria-label={media.title}
           />
         ) : (
-          <img src={cosmeticMediaSource(media.src)} alt={media.title} decoding="async" />
+          <LightboxImage src={cosmeticMediaSource(media.src)} alt={media.title} />
         )}
       </div>
       <div className="cosmetics-media-lightbox__caption">
@@ -712,6 +714,7 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
               <button
                 type="button"
                 className="cosmetics-media-trigger"
+                data-lightbox-src={cosmeticMediaSource(detail.images.fullArt)}
                 onClick={() => setActiveMedia({
                   type: 'image',
                   src: detail.images.fullArt!,

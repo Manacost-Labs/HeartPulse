@@ -1,6 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
+import { LightboxImage } from '../components/ModalSurface/LightboxImage';
+import { preloadLightboxImage } from '../shared/ui/lightboxIntent';
 import { fallbackCardImageElementToOrigin } from '../config/publicAssetDelivery';
 import type { ConstructedCardMediaItem } from './constructedCardMedia';
 
@@ -11,66 +13,15 @@ type ConstructedCardLightboxProps = {
   onIndexChange: (index: number) => void;
 };
 
-const warmedLightboxImages = new Set<string>();
-function preloadImage(url: string | null | undefined): void {
-  const source = String(url ?? '').trim();
-  if (!source || typeof Image === 'undefined' || warmedLightboxImages.has(source)) return;
-  warmedLightboxImages.add(source);
-  const image = new Image();
-  image.decoding = 'async';
-  image.onerror = () => warmedLightboxImages.delete(source);
-  image.src = source;
-}
-
-function ConstructedLightboxImage({
-  item,
-  next,
-}: {
-  item: ConstructedCardMediaItem;
-  next: ConstructedCardMediaItem | null;
-}) {
-  const [fullImageReady, setFullImageReady] = useState(false);
-  const hasPreview = item.thumbnailUrl !== item.url;
-  const warmNext = () => {
-    if (next?.kind === 'image') preloadImage(next.url);
-  };
-  return (
-    <>
-      <img
-        src={fullImageReady || !hasPreview ? item.url : item.thumbnailUrl}
-        alt={item.label}
-        decoding="async"
-        onError={event => {
-          if (fallbackCardImageElementToOrigin(event.currentTarget)) return;
-          if (hasPreview && !fullImageReady) setFullImageReady(true);
-        }}
-        onLoad={!hasPreview ? warmNext : undefined}
-      />
-      {hasPreview && !fullImageReady && (
-        <img
-          src={item.url}
-          alt=""
-          aria-hidden="true"
-          hidden
-          onLoad={() => {
-            setFullImageReady(true);
-            warmNext();
-          }}
-          onError={event => {
-            if (!fallbackCardImageElementToOrigin(event.currentTarget)) setFullImageReady(true);
-          }}
-        />
-      )}
-    </>
-  );
-}
-
 export default function ConstructedCardLightbox({ items, index, onClose, onIndexChange }: ConstructedCardLightboxProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const item = items[index] ?? null;
+  const next = items[(index + 1) % items.length] ?? null;
+  const nextImage = next?.kind === 'image' ? next.url : null;
+  // The next picture is one arrow press away.
+  useEffect(() => { if (nextImage) preloadLightboxImage(nextImage); }, [nextImage]);
 
   if (!item) return null;
-  const next = items[(index + 1) % items.length] ?? null;
 
   return (
     <ModalSurface
@@ -81,6 +32,7 @@ export default function ConstructedCardLightbox({ items, index, onClose, onIndex
       closeLabel="Закрыть просмотр"
       initialFocusRef={closeButtonRef}
       onClose={onClose}
+      zoom
       onKeyDown={event => {
         if (event.defaultPrevented || items.length <= 1) return;
         if (event.key === 'ArrowLeft') {
@@ -93,15 +45,17 @@ export default function ConstructedCardLightbox({ items, index, onClose, onIndex
         }
       }}
     >
-      <button ref={closeButtonRef} type="button" className="constructed-card-lightbox__close" aria-label="Закрыть" onClick={onClose}><X size={22} /></button>
+      <button ref={closeButtonRef} type="button" className="constructed-card-lightbox__close" aria-label="Закрыть" data-modal-close=""><X size={22} /></button>
       <div className="constructed-card-lightbox__media">
         {item.kind === 'video'
           ? <video src={item.url} controls autoPlay playsInline />
           : (
-            <ConstructedLightboxImage
+            <LightboxImage
               key={`${item.id}:${item.url}`}
-              item={item}
-              next={next}
+              src={item.url}
+              thumb={item.thumbnailUrl}
+              alt={item.label}
+              onError={event => { fallbackCardImageElementToOrigin(event.currentTarget); }}
             />
           )}
       </div>

@@ -24,9 +24,18 @@
   animation: modal-surface-panel-enter var(--motion-base) var(--motion-ease) both;
 }
 
-/* ModalSurface plays the sheet or cover preset from script instead. */
-.modal-surface__panel[data-modal-surface-entrance] {
+/* ModalSurface plays the sheet or cover preset from script instead; a
+   zooming lightbox plays its zoom or fade from script (lightboxMotion.ts). */
+.modal-surface__panel[data-modal-surface-entrance],
+.modal-surface[data-modal-surface-zoom] > .modal-surface__panel,
+.modal-surface[data-modal-surface-zoom] > .modal-surface__backdrop {
   animation: none;
+}
+
+/* A swipe down on the picture closes a lightbox on touch screens; the rest of
+   the panel keeps its native scrolling. */
+.modal-surface[data-modal-surface-zoom] [data-lightbox-media] {
+  touch-action: pan-x pinch-zoom;
 }
 
 @keyframes modal-surface-backdrop-enter {

@@ -1,4 +1,5 @@
 import {
+  createContext,
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -11,6 +12,8 @@ import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
 import { useDockedPanelEntrance } from '../transitions/useDockedPanelEntrance';
 import { modalViewportVariables } from './modalSurfaceModel';
+import { installLightboxIntent } from '../../shared/ui/lightboxIntent';
+import { useLightboxZoom } from './useLightboxZoom';
 import {
   isTopModalSurface,
   registerModalSurface,
@@ -29,7 +32,19 @@ type ModalSurfaceProps = {
   initialFocusRef?: RefObject<HTMLElement | null>;
   onClose: () => void;
   onKeyDown?: (event: KeyboardEvent) => void;
+  /**
+   * A lightbox: the picture that opened it zooms from its place on the page
+   * into the `[data-lightbox-media]` image and back on close (lightboxMotion.ts).
+   * Every way of closing (Esc, the backdrop, `[data-modal-close]` controls, a
+   * swipe down on a touch screen) plays the closing before `onClose`.
+   */
+  zoom?: boolean;
 };
+
+/** The source of the picture that opened a zooming lightbox: its first frame shows it (LightboxImage). */
+export const LightboxOriginContext = createContext<string | null>(null);
+
+installLightboxIntent();
 
 function viewportStyle(): CSSProperties {
   if (typeof window === 'undefined') return {};
@@ -51,6 +66,7 @@ export default function ModalSurface({
   initialFocusRef,
   onClose,
   onKeyDown,
+  zoom = false,
 }: ModalSurfaceProps) {
   const reactId = useId();
   const modalIdRef = useRef(`modal-surface-${reactId.replace(/[^a-zA-Z0-9_-]/g, '')}`);
@@ -62,6 +78,8 @@ export default function ModalSurface({
   initialFocusTargetRef.current = initialFocusRef;
   onCloseRef.current = onClose;
   onKeyDownRef.current = onKeyDown;
+  const { originSource, requestCloseRef } = useLightboxZoom(zoom, surfaceRef, panelRef, onCloseRef);
+  const requestClose = () => requestCloseRef.current();
 
   usePageScrollLock(true);
 
@@ -76,12 +94,12 @@ export default function ModalSurface({
       panel,
       trigger,
       initialFocus: () => initialFocusTargetRef.current?.current ?? null,
-      close: () => onCloseRef.current(),
+      close: () => requestCloseRef.current(),
       keyDown: event => onKeyDownRef.current?.(event),
     });
   }, []);
 
-  useDockedPanelEntrance(panelRef);
+  useDockedPanelEntrance(panelRef, !zoom);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
@@ -113,7 +131,12 @@ export default function ModalSurface({
 
   const handleBackdropClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
     if (event.currentTarget !== event.target || !isTopModalSurface(modalIdRef.current)) return;
-    onCloseRef.current();
+    requestClose();
+  };
+  const handlePanelClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!(event.target instanceof Element) || !event.target.closest('[data-modal-close]')) return;
+    event.preventDefault();
+    requestClose();
   };
 
   return createPortal(
@@ -126,6 +149,7 @@ export default function ModalSurface({
       aria-labelledby={ariaLabelledBy}
       aria-describedby={ariaDescribedBy}
       data-modal-surface-id={modalIdRef.current}
+      data-modal-surface-zoom={zoom ? '' : undefined}
       style={viewportStyle()}
     >
       <button
@@ -141,8 +165,9 @@ export default function ModalSurface({
         className={`modal-surface__panel ${panelClassName}`.trim()}
         data-modal-surface-panel=""
         tabIndex={-1}
+        onClick={handlePanelClick}
       >
-        {children}
+        <LightboxOriginContext.Provider value={originSource}>{children}</LightboxOriginContext.Provider>
       </div>
     </div>,
     document.body,

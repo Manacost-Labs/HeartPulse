@@ -19,12 +19,16 @@ import {
   CARD_STATS_FIRST_PAGE, CardStatsList, CardStatsToolbar, CardTile, InfoTip, PHASES, PhaseValue, phaseOf,
   type ConstructedCardStat,
 } from './ConstructedArchetypeCardStatsCells';
+import { registerLightboxModule } from '../shared/ui/lightboxIntent';
 import '../vendor/varylo-ui/styles/index.css';
 import './ConstructedArchetypeCardStats.css';
 
 export type { ConstructedCardStat };
 
-const CardPreviewSheet = React.lazy(() => import('./CardPreviewSheet'));
+const loadCardPreviewSheet = () => import('./CardPreviewSheet');
+const CardPreviewSheet = React.lazy(loadCardPreviewSheet);
+// The sheet's chunk downloads at idle, and at the latest on a hover, focus or touch (lightboxIntent).
+registerLightboxModule('card-preview', loadCardPreviewSheet, { idle: true });
 
 
 type CardStatsSource = {
@@ -65,6 +69,8 @@ function CardStatsTable({ rows, sort, scales, rowKeys, onSort, onOpen, onPreview
               <button
                 type="button"
                 className="card-stat-open"
+                data-lightbox-module="card-preview"
+                data-lightbox-src={cardRenderUrl(row.cardId)}
                 onClick={() => onOpen(row)}
                 onMouseEnter={event => onPreview(row, event.currentTarget)}
                 onMouseLeave={onPreviewEnd}
