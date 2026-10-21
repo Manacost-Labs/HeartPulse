@@ -3,10 +3,9 @@ import {
   parsePageTourStepProgress,
   isTourTargetVisible,
   parsePageTourProgress,
-  placeTourPopover,
   restorePageTourStepIndex,
   resolvePageTour,
-  scheduleTourScrollCorrection,
+  planTourStep,
   shouldWaitForRestoredTourStep,
 } from '../src/features/pageTour/pageTourModel.js';
 import {
@@ -165,29 +164,6 @@ assert.equal(
   'an explicitly restarted completed tour must begin immediately',
 );
 
-{
-  let nextTimerId = 0;
-  const pendingTimers = new Map<number, () => void>();
-  let correctionRuns = 0;
-  const cancelCorrection = scheduleTourScrollCorrection(
-    () => { correctionRuns += 1; },
-    260,
-    {
-      setTimeout(callback) {
-        nextTimerId += 1;
-        pendingTimers.set(nextTimerId, callback);
-        return nextTimerId;
-      },
-      clearTimeout(timerId) {
-        pendingTimers.delete(timerId);
-      },
-    },
-  );
-  cancelCorrection();
-  for (const callback of pendingTimers.values()) callback();
-  assert.equal(correctionRuns, 0, 'leaving a step must cancel its delayed mobile scroll correction');
-}
-
 const mobileViewport = { width: 390, height: 844 };
 const mobileInsets = { top: 68, right: 0, bottom: 286, left: 0 };
 assert.equal(
@@ -231,34 +207,40 @@ assert.equal(
   'collapsed or detached targets must not be treated as visible',
 );
 
-const smallMobilePopover = placeTourPopover({
-  targetRect: { left: 250, top: 18, right: 306, bottom: 58, width: 56, height: 40 },
-  popoverSize: { width: 284, height: 330 },
-  viewport: { width: 320, height: 480 },
-  preferredPlacement: 'right',
-  padding: 12,
-  mobile: true,
-});
+const desktop = { width: 1440, height: 900 };
+const desktopCard = { width: 372, height: 300 };
 assert.deepEqual(
-  smallMobilePopover,
-  { left: 18, top: 138, placement: 'bottom-sheet' },
-  'a 320px mobile viewport should use a centered, bottom-safe sheet',
+  planTourStep({ target: { left: 400, top: 200, width: 320, height: 48 }, card: desktopCard, viewport: desktop, safeTop: 72 }),
+  { mode: 'popover', scrollBy: 0 },
+  'a visible compact control keeps the popover and the page does not jump',
 );
-
-const zoomedLandscapePopover = placeTourPopover({
-  targetRect: { left: 500, top: 250, right: 570, bottom: 300, width: 70, height: 50 },
-  popoverSize: { width: 270, height: 190 },
-  viewport: { width: 568, height: 320 },
-  preferredPlacement: 'bottom',
-  gap: 10,
-  padding: 10,
-  mobile: false,
-});
-assert.ok(zoomedLandscapePopover.left >= 10);
-assert.ok(zoomedLandscapePopover.top >= 10);
-assert.ok(zoomedLandscapePopover.left + 270 <= 558, 'zoomed desktop placement must stay within the visual viewport width');
-assert.ok(zoomedLandscapePopover.top + 190 <= 310, 'zoomed desktop placement must stay within the visual viewport height');
-assert.notEqual(zoomedLandscapePopover.placement, 'bottom', 'placement must flip when a short viewport has no room below');
+assert.deepEqual(
+  planTourStep({ target: { left: 400, top: 1600, width: 320, height: 48 }, card: desktopCard, viewport: desktop, safeTop: 72 }),
+  { mode: 'popover', scrollBy: 1600 - (72 + (900 - 72 - 12 - 360) / 2) },
+  'an off-screen control scrolls so that it and its card are centered together',
+);
+assert.equal(
+  planTourStep({ target: { left: 260, top: 300, width: 1150, height: 820 }, card: desktopCard, viewport: desktop, safeTop: 72 }).mode,
+  'sheet',
+  'a full-width matrix taller than the free screen docks the card as a bottom sheet',
+);
+assert.equal(
+  planTourStep({ target: { left: 260, top: 300, width: 640, height: 820 }, card: desktopCard, viewport: desktop, safeTop: 72 }).mode,
+  'popover',
+  'a tall but narrow target keeps the card at its free side',
+);
+{
+  const phone = planTourStep({
+    target: { left: 12, top: 900, width: 388, height: 120 },
+    card: { width: 400, height: 320 },
+    viewport: { width: 412, height: 915 },
+    safeTop: 64,
+    forceSheet: true,
+  });
+  assert.equal(phone.mode, 'sheet', 'a phone always uses the bottom sheet');
+  const topAfterScroll = 900 - phone.scrollBy;
+  assert.ok(topAfterScroll >= 64 && topAfterScroll + 120 <= 915 - 320 - 12, 'the target lands above the sheet, below the header');
+}
 
 const baseAccess: PageTourAccess = {
   authenticated: false,

@@ -88,6 +88,9 @@ wording and does not cover an individual archetype page.
 
 ## Tour rollout plan
 
+The tour engine, first-visit rules and storage are specified in
+`docs/specs/page-tours.md`.
+
 ### Coverage inventory
 
 - **Meta, matchups and Vicious Gold:** covered. Refresh the wording whenever
@@ -96,8 +99,9 @@ wording and does not cover an individual archetype page.
   with page-specific format, search, sort and result steps.
 - **Archetype detail:** missing before this change. Add summary, main build,
   analysis, history and alternative-build steps.
-- **Card catalog and card detail:** covered. Audit after the next statistics
-  redesign.
+- **Card catalog and card detail:** covered, including «Динамика карты».
+- **Patch notes:** covered since the Valyro tour release
+  (`docs/specs/page-tours.md`).
 - **Arena classes, tier list and legendaries:** covered. Keep.
 - **Battlegrounds heroes, library, tier lists and builders:** covered. Keep.
 - **Profile and access setup:** covered. Validate after subscription changes.

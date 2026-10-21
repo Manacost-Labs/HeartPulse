@@ -1,8 +1,9 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import {
   BookOpen,
   ChevronRight,
   CircleHelp,
+  GraduationCap,
   Library,
   LoaderCircle,
   LockKeyhole,
@@ -11,12 +12,11 @@ import {
 } from 'lucide-react';
 import './GlobalUtilityHeader.css';
 import type { PageTourAccess } from '../features/pageTour/pageTourDefinitions';
+import { PageTourLayer, usePageTourLauncher } from '../features/pageTour/usePageTourLauncher';
 import {
   hasSubscriptionEntitlement,
   type SubscriptionAccess,
 } from '../modules/subscriptions/public';
-
-const LazyPageTour = lazy(() => import('../features/pageTour/PageTour'));
 
 type SearchArticle = {
   id: string;
@@ -108,8 +108,7 @@ export default function GlobalUtilityHeader({
   const [error, setError] = useState('');
   const [openingArticleId, setOpeningArticleId] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
-  const [tourOpen, setTourOpen] = useState(false);
-  const [availableTourContext, setAvailableTourContext] = useState<string | null>(null);
+  const tourButtonRef = useRef<HTMLButtonElement>(null);
   const admin = accessStatus === true;
   const subscriptionStatus = admin ? null : accessStatus;
   const access: GlobalSearchAccess = {
@@ -126,26 +125,10 @@ export default function GlobalUtilityHeader({
     arena: admin || hasSubscriptionEntitlement(subscriptionStatus, 'arena'),
     battlegrounds: admin || hasSubscriptionEntitlement(subscriptionStatus, 'battlegrounds'),
   };
-  const tourContext = `${auth}:${pagePath}`;
-  const tourAvailable = availableTourContext === tourContext;
-  useEffect(() => {
-    if (!helpOpen) return undefined;
-    let active = true;
-    void Promise.all([
-      import('../features/pageTour/pageTourDefinitions'),
-      import('../features/pageTour/pageTourModel'),
-    ]).then(([definitions, model]) => {
-      const resolved = model.resolvePageTour(pagePath, definitions.PAGE_TOURS);
-      if (active) setAvailableTourContext(resolved && (resolved.id !== 'profile' || auth) ? tourContext : null);
-    }).catch(() => {
-      if (active) setAvailableTourContext(null);
-    });
-    return () => { active = false; };
-  }, [auth, helpOpen, pagePath, tourContext]);
+  const tour = usePageTourLauncher({ pagePath, auth });
   useEffect(() => {
     setSearchOpen(false);
     setHelpOpen(false);
-    setTourOpen(false);
   }, [auth, pagePath]);
 
   useEffect(() => {
@@ -358,6 +341,14 @@ export default function GlobalUtilityHeader({
           )}
         </div>
 
+        {tour.available && (
+          <button ref={tourButtonRef} type="button" className="global-tour-button" aria-haspopup="dialog"
+            onClick={() => { closePanels(); tour.open(tourButtonRef.current); }}>
+            <GraduationCap size={17} aria-hidden="true" />
+            <span>Как пользоваться страницей</span>
+          </button>
+        )}
+
         <div className="global-help">
           <button
             ref={helpButtonRef}
@@ -375,13 +366,13 @@ export default function GlobalUtilityHeader({
           </button>
           {helpOpen && (
             <div id={helpPanelId} className="global-help-menu" role="region" aria-label="Помощь по сайту">
-              {tourAvailable && (
+              {tour.available && (
                 <button
                   type="button"
                   className="global-help-menu__item is-tour"
                   onClick={() => {
                     closePanels();
-                    setTourOpen(true);
+                    tour.open(helpButtonRef.current);
                   }}
                 >
                   <span><strong>Обучение по странице</strong><small>Покажем ключевые функции по шагам</small></span>
@@ -405,18 +396,7 @@ export default function GlobalUtilityHeader({
           )}
         </div>
       </div>
-      {tourOpen && (
-        <Suspense fallback={null}>
-          <LazyPageTour
-            pagePath={pagePath}
-            access={tourAccess}
-            onClose={() => {
-              setTourOpen(false);
-              window.setTimeout(() => helpButtonRef.current?.focus(), 0);
-            }}
-          />
-        </Suspense>
-      )}
+      <PageTourLayer pagePath={pagePath} access={tourAccess} launch={tour.launch} onClose={tour.close} />
     </header>
   );
 }

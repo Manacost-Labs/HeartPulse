@@ -20,7 +20,7 @@ export default function ConstructedCardHistoryChart({ periodLabel, formatLabel, 
   const [open, setOpen] = useState(false);
   return (
     <details className="constructed-card-history" onToggle={event => { setOpen(event.currentTarget.open); onOpenChange?.(event.currentTarget.open); }}>
-      <summary className="constructed-card-history__header">
+      <summary className="constructed-card-history__header" data-tour-id="card-dynamics">
         <div className="constructed-card-history__heading">
           <span aria-hidden="true"><ChartLine size={22} /></span>
           <div>

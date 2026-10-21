@@ -1,3 +1,6 @@
+/** A small animated explainer drawn above the step text (see PageTourMedia.tsx). */
+export type PageTourMediaKind = 'filters' | 'views' | 'interval' | 'scatter' | 'heat' | 'band' | 'impact' | 'sankey' | 'trend';
+
 export type TourPlacement = 'top' | 'right' | 'bottom' | 'left' | 'bottom-sheet';
 
 export type TourRect = {
@@ -37,7 +40,7 @@ function pathPatternMatches(path: string, pattern: string): boolean {
   return patternParts.every((part, index) => part.startsWith(':') || part === pathParts[index]);
 }
 
-export function resolvePageTour<T extends PageTourLike>(path: string, registry: readonly T[]): T | null {
+export function resolvePageTour<T extends Pick<PageTourLike, 'paths'>>(path: string, registry: readonly T[]): T | null {
   const normalizedPath = normalizeTourPath(path);
   for (const tour of registry) {
     if (tour.paths.some(pattern => !pattern.includes(':') && normalizeTourPath(pattern) === normalizedPath)) return tour;
@@ -118,28 +121,6 @@ export function shouldWaitForRestoredTourStep(
   return eligibleStepIds.includes(progress.stepId) && !availableStepIds.includes(progress.stepId);
 }
 
-export type TourTimeoutScheduler = {
-  setTimeout: (callback: () => void, delay: number) => number;
-  clearTimeout: (timerId: number) => void;
-};
-
-export function scheduleTourScrollCorrection(
-  callback: () => void,
-  delay: number,
-  scheduler: TourTimeoutScheduler,
-): () => void {
-  let pending = true;
-  const timerId = scheduler.setTimeout(() => {
-    pending = false;
-    callback();
-  }, Math.max(0, delay));
-  return () => {
-    if (!pending) return;
-    pending = false;
-    scheduler.clearTimeout(timerId);
-  };
-}
-
 export function isTourTargetVisible(options: {
   targetRect: TourRect;
   viewport: { width: number; height: number };
@@ -189,65 +170,46 @@ export function previousTourStepIndex(index: number, count: number): number {
   return Math.max(clampIndex(index, count) - 1, 0);
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), Math.max(min, max));
-}
+export type TourStepPlan = { mode: 'popover' | 'sheet'; scrollBy: number };
 
-export function placeTourPopover(options: {
-  targetRect: TourRect;
-  popoverSize: { width: number; height: number };
+/**
+ * Where a step's card goes and how far the page scrolls first. A popover needs
+ * a side of the target with room for the whole card, the way the Valyro
+ * floating layer flips; when no side has room (a tall matrix, a full-width
+ * chart) or on a phone, the card docks as a bottom sheet and the target moves
+ * into the part of the screen above it. `safeTop` keeps targets clear of the
+ * sticky header.
+ */
+export function planTourStep(options: {
+  target: { left: number; top: number; width: number; height: number };
+  card: { width: number; height: number };
   viewport: { width: number; height: number };
-  preferredPlacement?: Exclude<TourPlacement, 'bottom-sheet'>;
-  gap?: number;
+  safeTop: number;
+  forceSheet?: boolean;
+  offset?: number;
   padding?: number;
-  mobile?: boolean;
-}): { left: number; top: number; placement: TourPlacement } {
-  const {
-    targetRect,
-    popoverSize,
-    viewport,
-    preferredPlacement = 'bottom',
-    gap = 12,
-    padding = 12,
-    mobile = false,
-  } = options;
-  const maxLeft = viewport.width - popoverSize.width - padding;
-  const maxTop = viewport.height - popoverSize.height - padding;
+}): TourStepPlan {
+  const { target, card, viewport, safeTop, forceSheet = false, offset = 12, padding = 12 } = options;
+  const usable = viewport.height - safeTop - padding;
+  const centeredTop = (height: number, room: number) => (height >= room ? safeTop : safeTop + (room - height) / 2);
+  const scrollTo = (desiredTop: number) => {
+    const delta = target.top - desiredTop;
+    return Math.abs(delta) > 2 ? Math.round(delta) : 0;
+  };
+  const visible = target.top >= safeTop && target.top + target.height <= viewport.height - padding;
+  const sideRoom = Math.max(target.left, viewport.width - target.left - target.width) - padding;
+  const fitsBeside = sideRoom >= card.width + offset && card.height <= usable;
+  const fitsAround = target.height + offset + card.height <= usable;
 
-  if (mobile) {
-    return {
-      left: clamp((viewport.width - popoverSize.width) / 2, padding, maxLeft),
-      top: clamp(viewport.height - popoverSize.height - padding, padding, maxTop),
-      placement: 'bottom-sheet',
-    };
+  if (!forceSheet && fitsAround) {
+    const roomAbove = target.top - safeTop;
+    const roomBelow = viewport.height - padding - target.top - target.height;
+    if (visible && Math.max(roomAbove, roomBelow) >= card.height + offset) return { mode: 'popover', scrollBy: 0 };
+    return { mode: 'popover', scrollBy: scrollTo(centeredTop(target.height + offset + card.height, usable)) };
   }
-
-  const coordinates: Record<Exclude<TourPlacement, 'bottom-sheet'>, { left: number; top: number }> = {
-    right: { left: targetRect.right + gap, top: targetRect.top + (targetRect.height - popoverSize.height) / 2 },
-    left: { left: targetRect.left - popoverSize.width - gap, top: targetRect.top + (targetRect.height - popoverSize.height) / 2 },
-    bottom: { left: targetRect.left + (targetRect.width - popoverSize.width) / 2, top: targetRect.bottom + gap },
-    top: { left: targetRect.left + (targetRect.width - popoverSize.width) / 2, top: targetRect.top - popoverSize.height - gap },
-  };
-  const fits = (position: { left: number; top: number }) => (
-    position.left >= padding
-    && position.top >= padding
-    && position.left + popoverSize.width <= viewport.width - padding
-    && position.top + popoverSize.height <= viewport.height - padding
-  );
-  const fallbackOrder: Array<Exclude<TourPlacement, 'bottom-sheet'>> = [preferredPlacement, 'right', 'left', 'bottom', 'top'];
-  const availableSpace: Record<Exclude<TourPlacement, 'bottom-sheet'>, number> = {
-    right: viewport.width - targetRect.right,
-    left: targetRect.left,
-    bottom: viewport.height - targetRect.bottom,
-    top: targetRect.top,
-  };
-  const placement = fallbackOrder.find((candidate, index) => fallbackOrder.indexOf(candidate) === index && fits(coordinates[candidate]))
-    ?? (Object.entries(availableSpace).sort((a, b) => b[1] - a[1])[0]?.[0] as Exclude<TourPlacement, 'bottom-sheet'>)
-    ?? preferredPlacement;
-  const position = coordinates[placement];
-  return {
-    left: clamp(position.left, padding, maxLeft),
-    top: clamp(position.top, padding, maxTop),
-    placement,
-  };
+  if (!forceSheet && fitsBeside) {
+    return { mode: 'popover', scrollBy: visible ? 0 : scrollTo(centeredTop(target.height, usable)) };
+  }
+  const freeBottom = Math.max(safeTop + 48, viewport.height - card.height - padding * 2);
+  return { mode: 'sheet', scrollBy: scrollTo(centeredTop(target.height, freeBottom - safeTop)) };
 }

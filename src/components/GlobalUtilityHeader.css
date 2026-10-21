@@ -240,7 +240,8 @@
   flex: 0 0 auto;
 }
 
-.global-faq-button {
+.global-faq-button,
+.global-tour-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -258,7 +259,9 @@
 
 .global-faq-button:hover,
 .global-faq-button:focus-visible,
-.global-faq-button[aria-current='page'] {
+.global-faq-button[aria-current='page'],
+.global-tour-button:hover,
+.global-tour-button:focus-visible {
   outline: 0;
   border-color: #9d2720;
   color: #851b1b;
@@ -333,6 +336,12 @@
   padding-top: clamp(0.75rem, 1.2vw, 1rem);
 }
 
+/* The full label fits beside the search only on wide screens; narrower ones keep the icon. */
+@media (max-width: 1179px) {
+  .global-tour-button { width: 44px; padding-inline: 0; }
+  .global-tour-button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}
+
 @media (min-width: 1024px) {
   .global-utility-header { position: sticky; top: 0; }
   .global-utility-header__inner { padding-inline: clamp(1rem, 2.8vw, 2.8rem); }
@@ -341,8 +350,10 @@
 @media (max-width: 639px) {
   .global-utility-header__inner { gap: 0.35rem; min-height: 47px; }
   .global-search__input { font-size: 0.76rem; }
-  .global-faq-button { width: 44px; padding-inline: 0; }
-  .global-faq-button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .global-faq-button,
+  .global-tour-button { width: 44px; padding-inline: 0; }
+  .global-faq-button span,
+  .global-tour-button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .global-help-menu { right: -0.15rem; }
   .global-search-panel { left: -0.5rem; }
   .global-search-result { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 0.45rem; }

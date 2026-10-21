@@ -53,3 +53,12 @@ presets). Local changes:
 `PageTransition.css` keeps its `:root[data-ui-page-transition]` rules; nothing
 on the site sets that attribute. The site adapter is
 `src/components/transitions/` (shared roots may not import `src/vendor`).
+
+Also vendored for the page tour: `tour` with its registry dependencies
+(`button`, `icon-button`, `tooltip`, `spinner`, `primitives`, `icons`). The
+tour does not import `valyro-ui/styles` either; it maps the tokens on its
+portal host (`src/features/pageTour/PageTour.css`). `feedback/Tour.tsx` has
+HearthPulse changes: `sheet` (the card docks as a bottom sheet), `footer`
+(secondary actions under the step buttons), `scrollTarget` (the page scrolls
+the target itself) and `spotlightInsets` (the spotlight stays in the part of
+the viewport the sheet leaves free).

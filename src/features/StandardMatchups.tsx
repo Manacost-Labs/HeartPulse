@@ -386,7 +386,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
             <div className="py-16 text-center text-[#7a5a35]">Данные матчапов пока недоступны.</div>
           ) : (
             <>
-              <div className="standard-matchups__view-switcher mb-4" role="group" aria-label="Режим просмотра">
+              <div className="standard-matchups__view-switcher mb-4" role="group" aria-label="Режим просмотра" data-tour-id="matchups-views">
                 <button
                   type="button"
                   aria-pressed={view === 'matrix'}
@@ -418,7 +418,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
               )}
 
               {view === 'matrix' && activeRow && (
-                <div id="matchups-matrix" className="scroll-mt-4">
+                <div id="matchups-matrix" className="scroll-mt-4" data-tour-id="matchups-grid">
                   <Suspense fallback={<MatchupsSkeleton />}>
                     <StandardMatchupMatrix data={matrixData} labelOf={getStandardArchetypeLabel}
                       selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />

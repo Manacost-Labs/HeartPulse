@@ -64,10 +64,10 @@ async function tierBuilderTour(page) {
   await page.locator('.global-faq-button').click();
   await page.waitForSelector('.global-help-menu__item.is-tour', { visible: true });
   await page.click('.global-help-menu__item.is-tour');
-  await page.waitForFunction(() => document.querySelector('.page-tour__progress-row')
-    ?.getAttribute('aria-label')?.startsWith('Шаг 1 из 7,'));
+  await page.waitForFunction(() => document.querySelector('.page-tour__dialog .ui-tour__progress-text')
+    ?.textContent?.startsWith('Шаг 1 из 7'));
   await page.keyboard.press('Escape');
-  await page.waitForSelector('.page-tour', { hidden: true });
+  await page.waitForSelector('.page-tour__dialog', { hidden: true });
   await noOverflow(page);
 }
 
@@ -134,12 +134,12 @@ async function mobileTour(page) {
   await page.locator('.global-faq-button').click();
   await page.waitForSelector('.global-help-menu__item.is-tour', { visible: true });
   await page.click('.global-help-menu__item.is-tour');
-  await page.waitForFunction(() => document.querySelector('.page-tour__progress-row')
-    ?.getAttribute('aria-label')?.startsWith('Шаг 1 из 7,'));
+  await page.waitForFunction(() => document.querySelector('.page-tour__dialog .ui-tour__progress-text')
+    ?.textContent?.startsWith('Шаг 1 из 7'));
   assert.equal(await page.$$eval('.builder-sidebar, .builder-canvas-panel, .hero-tier-board',
     panels => panels.every(panel => getComputedStyle(panel).display !== 'none')), true);
   await page.keyboard.press('Escape');
-  await page.waitForSelector('.page-tour', { hidden: true });
+  await page.waitForSelector('.page-tour__dialog', { hidden: true });
   assert.equal(await page.$eval('.strategy-builder-page', root => root.dataset.builderView), view);
   assert.deepEqual(await page.$$eval(selector, panels => panels.map(panel => panel.getClientRects().length > 0)), visiblePanels);
   await noOverflow(page);

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { PAGE_TOURS } from '../src/features/pageTour/pageTourDefinitions.js';
+import { PAGE_TOUR_ROUTES } from '../src/features/pageTour/pageTourRoutes.js';
 
 const requiredTours = [
   'profile',
@@ -12,6 +13,7 @@ const requiredTours = [
   'standard-vicious-gold',
   'standard-cards',
   'standard-card-detail',
+  'standard-patches',
   'arena-classes',
   'arena-tier-list',
   'arena-legendaries',
@@ -30,6 +32,11 @@ assert.deepEqual(
   'every key profile, statistics and filter surface must have a tour',
 );
 assert.equal(PAGE_TOURS.length, requiredTours.length, 'requiredTours must enumerate the complete page-tour registry');
+assert.deepEqual(
+  PAGE_TOUR_ROUTES.map(route => ({ id: route.id, paths: [...route.paths] })),
+  PAGE_TOURS.map(tour => ({ id: tour.id, paths: [...tour.paths] })),
+  'the header route list must name exactly the tours and paths of the registry',
+);
 
 const matchupTour = PAGE_TOURS.find(tour => tour.id === 'standard-matchups');
 assert.ok(matchupTour && matchupTour.version >= 5, 'the VaryloUI matrix guidance must invalidate the older saved tour');
@@ -64,6 +71,7 @@ assert.deepEqual(
 const archetypeSource = [
   readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/ConstructedArchetypeAnalysis.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../src/features/ArchetypeInsightSlots.tsx', import.meta.url), 'utf8'),
 ].join('\n');
 for (const tourId of ['constructed-archetypes', 'constructed-archetype-detail']) {
   const tour = PAGE_TOURS.find(item => item.id === tourId);
@@ -122,6 +130,26 @@ for (const [tourId, files] of Object.entries(builderSources)) {
     assert.ok(
       source.includes(`data-tour-id="${step.target}"`),
       `${tourId}/${step.id}: ${files.join(' or ')} must render the stable ${step.target} anchor`,
+    );
+  }
+}
+
+// Every step target must be rendered somewhere in the application source.
+function sourceFiles(directory: URL): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    if (entry.name === 'vendor' || entry.name === 'pageTour') return [];
+    const child = new URL(`${entry.name}${entry.isDirectory() ? '/' : ''}`, directory);
+    if (entry.isDirectory()) return sourceFiles(child);
+    return /\.(tsx|ts)$/.test(entry.name) ? [readFileSync(child, 'utf8')] : [];
+  });
+}
+const applicationSource = sourceFiles(new URL('../src/', import.meta.url)).join('\n');
+for (const tour of PAGE_TOURS) {
+  for (const step of tour.steps) {
+    if (step.target === 'subscription-paywall') continue;
+    assert.ok(
+      new RegExp(`["'\`]${step.target}["'\`]`).test(applicationSource),
+      `${tour.id}/${step.id}: no source file renders the ${step.target} anchor`,
     );
   }
 }

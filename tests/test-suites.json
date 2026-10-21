@@ -145,6 +145,7 @@
         "tests/next-runtime-client-config.test.ts",
         "tests/next-public-guide-teaser.test.ts",
         "tests/not-found-page.test.tsx",
+        "tests/page-tour-auto-start.test.ts",
         "tests/page-tour-registry.test.ts",
         "tests/page-tour.test.ts",
         "tests/build-static-root.test.mjs",

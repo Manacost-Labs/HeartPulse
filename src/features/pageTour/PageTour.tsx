@@ -1,11 +1,4 @@
 import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  CircleHelp,
-  X,
-} from 'lucide-react';
-import {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -13,7 +6,10 @@ import {
   useRef,
   useState,
 } from 'react';
-import { createPortal } from 'react-dom';
+import { Tour, type TourStep } from '../../vendor/valyro-ui/feedback/Tour';
+import { PortalContainerContext } from '../../vendor/valyro-ui/primitives/Portal';
+import '../../vendor/varylo-ui/styles/index.css';
+import '../../shared/ui/varyloParchment.css';
 import {
   PAGE_TOURS,
   isTourStepEligible,
@@ -24,31 +20,43 @@ import {
 import {
   parsePageTourStepProgress,
   pageTourStorageKey,
-  placeTourPopover,
   restorePageTourStepIndex,
   resolvePageTour,
-  scheduleTourScrollCorrection,
   shouldWaitForRestoredTourStep,
+  planTourStep,
   type PageTourStepProgress,
-  type TourPlacement,
-  type TourRect,
 } from './pageTourModel';
+import { writeAutoTourOptOut } from './pageTourAutoStart';
+import PageTourMedia from './PageTourMedia';
 import './PageTour.css';
+
+export type PageTourLaunch = 'manual' | 'auto';
 
 type PageTourProps = {
   pagePath: string;
   access: PageTourAccess;
+  /** `auto` stays invisible until a step can be shown and closes silently when none appears. */
+  launch?: PageTourLaunch;
   onClose: () => void;
 };
 
-type PopoverPosition = {
-  left: number;
-  top: number;
-  placement: TourPlacement;
-};
+type Phase = 'waiting' | 'ready' | 'empty';
 
 const MOBILE_QUERY = '(max-width: 760px), (max-height: 520px), (pointer: coarse) and (max-width: 900px)';
-const TARGET_PADDING = 7;
+const DISCOVERY_TIMEOUT_MS = 8_000;
+const SHEET_GAP = 12;
+/** Valyro's default `spotlightPadding`. */
+const SPOTLIGHT_PADDING = 8;
+/** Height of a step explainer with its margins (PageTour.css `.ui-tour__media`). */
+const MEDIA_HEIGHT = 121;
+
+const TOUR_LABELS = {
+  next: 'Далее',
+  back: 'Назад',
+  finish: 'Готово',
+  skip: 'Закрыть обучение',
+  progress: (current: number, total: number) => `Шаг ${current} из ${total}`,
+};
 
 function writeProgress(tour: PageTourDefinition, progress: PageTourStepProgress): void {
   try {
@@ -75,25 +83,8 @@ function visibleTarget(target: string): HTMLElement | null {
   return null;
 }
 
-function paddedRect(element: HTMLElement): TourRect {
-  const rect = element.getBoundingClientRect();
-  const left = Math.max(4, rect.left - TARGET_PADDING);
-  const top = Math.max(4, rect.top - TARGET_PADDING);
-  const right = Math.min(window.innerWidth - 4, rect.right + TARGET_PADDING);
-  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-  const bottom = Math.min(viewportHeight - 4, rect.bottom + TARGET_PADDING);
-  return {
-    left,
-    top,
-    right,
-    bottom,
-    width: Math.max(1, right - left),
-    height: Math.max(1, bottom - top),
-  };
-}
-
 function paywallStep(tour: PageTourDefinition): PageTourStep {
-  const isStandard = tour.id.startsWith('standard-');
+  const isStandard = tour.id.startsWith('standard-') || tour.id.startsWith('constructed-');
   return {
     id: 'paywall',
     target: 'subscription-paywall',
@@ -112,13 +103,51 @@ function resolveSteps(tour: PageTourDefinition, access: PageTourAccess): PageTou
   return visibleTarget('subscription-paywall') ? [paywallStep(tour)] : [];
 }
 
-function focusableElements(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  )).filter(element => element.getClientRects().length > 0);
+function viewportHeight(): number {
+  return window.visualViewport?.height ?? window.innerHeight;
 }
 
-export default function PageTour({ pagePath, access, onClose }: PageTourProps) {
+function reducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Sticky and fixed bars at the top (the utility header, the phone app bar) cover the top of the viewport. */
+function safeTop(): number {
+  let bottom = 0;
+  for (const element of document.querySelectorAll<HTMLElement>('header, nav, [class*="header"], [class*="topbar"]')) {
+    const { position } = window.getComputedStyle(element);
+    if (position !== 'sticky' && position !== 'fixed') continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.top <= 1 && rect.bottom > 0 && rect.height < viewportHeight() / 3) bottom = Math.max(bottom, rect.bottom);
+  }
+  return Math.max(16, Math.round(bottom) + 12);
+}
+
+function stateStep(phase: Exclude<Phase, 'ready'>): TourStep {
+  if (phase === 'waiting') {
+    return {
+      title: 'Секунду…',
+      content: <div className="page-tour__state" role="status"><p>Готовим подсказку: ждём, пока данные страницы загрузятся.</p></div>,
+    };
+  }
+  return {
+    title: 'На этой странице пока нечего подсветить',
+    content: (
+      <div className="page-tour__state">
+        <p>Обновите страницу после загрузки данных или откройте общий FAQ.</p>
+        <a href="/faq/" className="page-tour__faq-link">Открыть FAQ</a>
+      </div>
+    ),
+  };
+}
+
+/**
+ * Page walkthrough on the vendored Valyro Tour. This wrapper owns what the
+ * kit cannot know: which `data-tour-id` anchors are rendered for this visitor,
+ * waiting for late data, the subscription fallback step, saved progress, the
+ * phone bottom sheet and the inert application root behind the dialog.
+ */
+export default function PageTour({ pagePath, access, launch = 'manual', onClose }: PageTourProps) {
   const tour = useMemo(() => resolvePageTour(pagePath, PAGE_TOURS), [pagePath]);
   const storedProgress = useMemo(() => {
     if (!tour) return null;
@@ -130,88 +159,94 @@ export default function PageTour({ pagePath, access, onClose }: PageTourProps) {
   }, [tour]);
   const [steps, setSteps] = useState<PageTourStep[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
-  const [targetRect, setTargetRect] = useState<TourRect | null>(null);
-  const [popoverSize, setPopoverSize] = useState({ width: 376, height: 286 });
+  const [phase, setPhase] = useState<Phase>('waiting');
   const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
-  const [waiting, setWaiting] = useState(true);
-  const [progressRestored, setProgressRestored] = useState(false);
-  const dialogRef = useRef<HTMLElement>(null);
+  const [largeTarget, setLargeTarget] = useState(false);
+  const [cardHeight, setCardHeight] = useState(260);
+  // The card without its explainer: steps differ only by the picture, so the next card's height is predictable.
+  const [textHeight, setTextHeight] = useState(260);
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
+  const [card, setCard] = useState<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(document.activeElement as HTMLElement | null);
-  const previousStepIdRef = useRef<string | null>(null);
-  const discoveryTimedOutRef = useRef(false);
+  const restoredRef = useRef(false);
+  const currentIdRef = useRef<string | null>(null);
 
-  const currentStep = steps[stepIndex] ?? null;
+  const currentStep = phase === 'ready' ? steps[stepIndex] ?? null : null;
+  const sheet = mobile || largeTarget;
+  const currentStepId = currentStep?.id;
 
-  const closeTour = useCallback((status: PageTourStepProgress['status'] = 'dismissed') => {
-    if (tour) writeProgress(tour, { status, stepId: currentStep?.id });
+  const finish = useCallback((status: PageTourStepProgress['status']) => {
+    if (tour) writeProgress(tour, { status, stepId: currentStepId });
     onClose();
-  }, [currentStep?.id, onClose, tour]);
+  }, [currentStepId, onClose, tour]);
+
+  // Portaled layers render into a host that carries the parchment token mapping.
+  useLayoutEffect(() => {
+    const element = document.createElement('div');
+    element.className = 'page-tour-host hp-varylo-parchment';
+    document.body.appendChild(element);
+    setHost(element);
+    return () => element.remove();
+  }, []);
 
   useEffect(() => {
     if (!tour) {
       onClose();
       return undefined;
     }
-
-    let timeoutId = 0;
+    let timedOut = false;
     const main = document.getElementById('main-content') ?? document.body;
     const refresh = () => {
-      const eligibleStepIds = tour.steps
-        .filter(step => isTourStepEligible(step, access))
-        .map(step => step.id);
+      const eligibleStepIds = tour.steps.filter(step => isTourStepEligible(step, access)).map(step => step.id);
       const nextSteps = resolveSteps(tour, access);
-      setSteps(previous => {
-        if (
-          previous.length === nextSteps.length
-          && previous.every((step, index) => step.id === nextSteps[index]?.id)
-        ) return previous;
-        return nextSteps;
-      });
-      const waitingForRestoredStep = !progressRestored && shouldWaitForRestoredTourStep(
+      setSteps(previous => (
+        previous.length === nextSteps.length && previous.every((step, index) => step.id === nextSteps[index]?.id)
+          ? previous
+          : nextSteps
+      ));
+      const waitingForRestoredStep = !restoredRef.current && shouldWaitForRestoredTourStep(
         storedProgress,
         eligibleStepIds,
         nextSteps.map(step => step.id),
       );
-      setWaiting(!discoveryTimedOutRef.current && (nextSteps.length === 0 || waitingForRestoredStep));
+      // A first launch for a guest only explains the subscription block; that is an advert, not a walkthrough.
+      const autoUseless = launch === 'auto' && (nextSteps.length === 0 || nextSteps[0]?.id === 'paywall');
+      if (nextSteps.length > 0 && (!waitingForRestoredStep || timedOut) && !autoUseless) setPhase('ready');
+      else if (timedOut) setPhase(nextSteps.length > 0 && !autoUseless ? 'ready' : 'empty');
     };
-
     refresh();
     const observer = new MutationObserver(refresh);
     observer.observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'aria-hidden'] });
-    timeoutId = window.setTimeout(() => {
-      discoveryTimedOutRef.current = true;
-      setWaiting(false);
-    }, 8_000);
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      refresh();
+    }, DISCOVERY_TIMEOUT_MS);
     return () => {
       observer.disconnect();
       window.clearTimeout(timeoutId);
     };
-  }, [access, onClose, progressRestored, storedProgress, tour]);
+  }, [access, launch, onClose, storedProgress, tour]);
 
   useEffect(() => {
-    if (!tour || steps.length === 0 || progressRestored || waiting) return;
-    const restoredIndex = restorePageTourStepIndex(
-      storedProgress,
-      steps.map(step => step.id),
-    );
-    setStepIndex(restoredIndex);
-    previousStepIdRef.current = steps[restoredIndex]?.id ?? null;
-    setProgressRestored(true);
-  }, [progressRestored, steps, storedProgress, tour, waiting]);
+    if (phase === 'empty' && launch === 'auto') onClose();
+  }, [launch, onClose, phase]);
 
   useEffect(() => {
-    if (!progressRestored || !currentStep) return;
-    previousStepIdRef.current = currentStep.id;
-    if (tour) writeProgress(tour, { status: 'in-progress', stepId: currentStep.id });
-  }, [currentStep, progressRestored, tour]);
-
-  useEffect(() => {
-    if (steps.length === 0) return;
-    const previousId = previousStepIdRef.current;
-    if (!previousId) return;
-    const nextIndex = steps.findIndex(step => step.id === previousId);
+    if (phase !== 'ready' || steps.length === 0) return;
+    if (!restoredRef.current) {
+      restoredRef.current = true;
+      setStepIndex(launch === 'auto' ? 0 : restorePageTourStepIndex(storedProgress, steps.map(step => step.id)));
+      return;
+    }
+    const previousId = currentIdRef.current;
+    const nextIndex = previousId ? steps.findIndex(step => step.id === previousId) : -1;
     setStepIndex(index => nextIndex >= 0 ? nextIndex : Math.min(index, steps.length - 1));
-  }, [steps]);
+  }, [launch, phase, steps, storedProgress]);
+
+  useEffect(() => {
+    currentIdRef.current = currentStepId ?? null;
+    if (tour && currentStepId && restoredRef.current) writeProgress(tour, { status: 'in-progress', stepId: currentStepId });
+  }, [currentStepId, tour]);
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_QUERY);
@@ -220,242 +255,147 @@ export default function PageTour({ pagePath, access, onClose }: PageTourProps) {
     return () => media.removeEventListener('change', update);
   }, []);
 
+  // The bottom targets need room to scroll above the sheet.
   useLayoutEffect(() => {
     const body = document.body;
     const previousPaddingBottom = body.style.paddingBottom;
     const currentPaddingBottom = Number.parseFloat(window.getComputedStyle(body).paddingBottom) || 0;
-    const clearance = mobile
-      ? Math.ceil(Math.min(popoverSize.height, (window.visualViewport?.height ?? window.innerHeight) * 0.45) + 56)
-      : Math.ceil(popoverSize.height + 48);
-    body.style.paddingBottom = `${currentPaddingBottom + clearance}px`;
+    body.style.paddingBottom = `${currentPaddingBottom + Math.ceil(cardHeight + 48)}px`;
     return () => { body.style.paddingBottom = previousPaddingBottom; };
-  }, [mobile, popoverSize.height]);
+  }, [cardHeight]);
 
-  useLayoutEffect(() => {
-    if (!currentStep) {
-      setTargetRect(null);
-      return undefined;
-    }
-    const target = visibleTarget(currentStep.target);
-    if (!target) return undefined;
-    let cancelScrollCorrection: (() => void) | undefined;
-    const correctMobileScroll = () => {
-      const rect = target.getBoundingClientRect();
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const safeTop = Math.min(118, Math.max(52, viewportHeight * 0.28));
-      const sheetHeight = Math.min(popoverSize.height, viewportHeight * 0.45);
-      const safeBottom = Math.max(safeTop + 48, viewportHeight - sheetHeight - 22);
-      if (rect.top < safeTop) window.scrollBy({ top: rect.top - safeTop, behavior: 'auto' });
-      else if (rect.bottom > safeBottom) window.scrollBy({ top: rect.bottom - safeBottom, behavior: 'auto' });
-    };
-    const scrollTargetIntoView = () => {
-      target.scrollIntoView({ behavior: 'auto', block: mobile ? 'start' : 'center', inline: 'nearest' });
-      if (mobile) {
-        correctMobileScroll();
-        cancelScrollCorrection = scheduleTourScrollCorrection(correctMobileScroll, 160, window);
-      }
-    };
-    scrollTargetIntoView();
+  const visible = phase === 'ready' || launch === 'manual';
 
-    let frame = 0;
-    const updateRect = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => setTargetRect(paddedRect(target)));
-    };
-    updateRect();
-    const resizeObserver = new ResizeObserver(updateRect);
-    resizeObserver.observe(target);
-    window.addEventListener('resize', updateRect);
-    window.addEventListener('scroll', updateRect, true);
-    window.visualViewport?.addEventListener('resize', updateRect);
-    window.visualViewport?.addEventListener('scroll', updateRect);
-    const settledTimer = window.setTimeout(updateRect, 520);
-    return () => {
-      cancelScrollCorrection?.();
-      window.clearTimeout(settledTimer);
-      window.cancelAnimationFrame(frame);
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updateRect);
-      window.removeEventListener('scroll', updateRect, true);
-      window.visualViewport?.removeEventListener('resize', updateRect);
-      window.visualViewport?.removeEventListener('scroll', updateRect);
-    };
-  }, [currentStep, mobile, popoverSize.height]);
-
-  useLayoutEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return undefined;
+  useEffect(() => {
+    if (!card) return undefined;
     const update = () => {
-      const rect = dialog.getBoundingClientRect();
-      setPopoverSize({ width: rect.width, height: rect.height });
+      const height = card.getBoundingClientRect().height;
+      setCardHeight(height);
+      setTextHeight(height - (card.querySelector('.ui-tour__media')?.getBoundingClientRect().height ?? 0));
     };
     update();
     const observer = new ResizeObserver(update);
-    observer.observe(dialog);
+    observer.observe(card);
     return () => observer.disconnect();
-  }, [currentStep, waiting]);
+  }, [card]);
+
+  // `.page-tour` on the host marks an open tour for page styles: the Battlegrounds
+  // builder shows every panel on phones while one is open (builderWorkbench.css).
+  useEffect(() => {
+    if (!visible || !host) return undefined;
+    host.classList.add('page-tour');
+    return () => host.classList.remove('page-tour');
+  }, [host, visible]);
 
   useEffect(() => {
+    if (!visible) return undefined;
     const root = document.getElementById('root');
     const rootWasInert = root?.inert ?? false;
     if (root) root.inert = true;
-    window.setTimeout(() => dialogRef.current?.focus(), 0);
     return () => {
       if (root) root.inert = rootWasInert;
-      previousFocusRef.current?.focus({ preventScroll: true });
     };
+  }, [visible]);
+
+  useEffect(() => () => {
+    previousFocusRef.current?.focus({ preventScroll: true });
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeTour('dismissed');
-        return;
-      }
-      if (event.key === 'ArrowRight' && currentStep && stepIndex < steps.length - 1) {
-        event.preventDefault();
-        setStepIndex(index => Math.min(index + 1, steps.length - 1));
-        return;
-      }
-      if (event.key === 'ArrowLeft' && currentStep && stepIndex > 0) {
-        event.preventDefault();
-        setStepIndex(index => Math.max(index - 1, 0));
-        return;
-      }
-      if (event.key !== 'Tab' || !dialogRef.current) return;
-      const focusables = focusableElements(dialogRef.current);
-      if (focusables.length === 0) {
-        event.preventDefault();
-        dialogRef.current.focus();
-        return;
-      }
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [closeTour, currentStep, stepIndex, steps.length]);
-
-  const position: PopoverPosition = targetRect
-    ? placeTourPopover({
-      targetRect,
-      popoverSize,
-      viewport: {
-        width: window.visualViewport?.width ?? window.innerWidth,
-        height: window.visualViewport?.height ?? window.innerHeight,
+  const targetRef = useRef<Element | null>(null);
+  const planFor = useCallback((element: Element, nextCardHeight: number, forceSheet: boolean) => {
+    const rect = element.getBoundingClientRect();
+    const height = viewportHeight();
+    return planTourStep({
+      // The spotlight ring is drawn SPOTLIGHT_PADDING outside the target.
+      target: {
+        left: rect.left - SPOTLIGHT_PADDING,
+        top: rect.top - SPOTLIGHT_PADDING,
+        width: rect.width + SPOTLIGHT_PADDING * 2,
+        height: rect.height + SPOTLIGHT_PADDING * 2,
       },
-      preferredPlacement: currentStep?.preferredPlacement,
-      mobile,
-      padding: mobile ? 8 : 16,
-      gap: 16,
-    })
-    : {
-      left: Math.max(8, (window.innerWidth - popoverSize.width) / 2),
-      top: Math.max(8, (window.innerHeight - popoverSize.height) / 2),
-      placement: mobile ? 'bottom-sheet' : 'bottom',
-    };
+      card: { width: 372, height: mobile ? Math.min(nextCardHeight, height * 0.5) : nextCardHeight },
+      viewport: { width: document.documentElement.clientWidth, height },
+      safeTop: safeTop(),
+      forceSheet,
+    });
+  }, [mobile]);
 
-  if (!tour) return null;
+  // Planned before the card exists, from the height of the previous card and this step's picture.
+  const scrollTarget = useCallback((element: Element) => {
+    targetRef.current = element;
+    const step = steps.find(item => element.matches(`[data-tour-id="${CSS.escape(item.target)}"]`));
+    const plan = planFor(element, Math.max(textHeight, 200) + (step?.media && !mobile ? MEDIA_HEIGHT : 0), mobile);
+    setLargeTarget(plan.mode === 'sheet' && !mobile);
+    if (plan.scrollBy) window.scrollBy({ top: plan.scrollBy, behavior: plan.mode === 'sheet' || reducedMotion() ? 'auto' : 'smooth' });
+  }, [mobile, planFor, steps, textHeight]);
 
-  const stepCount = steps.length;
-  const finalStep = stepIndex === stepCount - 1;
-  const description = (mobile ? currentStep?.mobileDescription : '') || currentStep?.description || '';
+  // A longer text than predicted: re-plan with the rendered card. It only ever docks the card, so it cannot oscillate.
+  useEffect(() => {
+    const element = targetRef.current;
+    if (!element?.isConnected || phase !== 'ready') return;
+    const plan = planFor(element, cardHeight, mobile || largeTarget);
+    if (plan.mode === 'sheet' && !mobile && !largeTarget) setLargeTarget(true);
+    if (plan.scrollBy) window.scrollBy({ top: plan.scrollBy, behavior: 'auto' });
+  }, [cardHeight, largeTarget, mobile, phase, planFor]);
 
-  return createPortal(
-    <div className="page-tour" aria-live="polite">
-      <div className="page-tour__shield" aria-hidden="true" />
-      {!targetRect && <div className="page-tour__curtain is-full" aria-hidden="true" />}
-      {targetRect && (
-        <>
-          <div className="page-tour__curtain is-top" style={{ height: targetRect.top }} aria-hidden="true" />
-          <div className="page-tour__curtain is-left" style={{ top: targetRect.top, width: targetRect.left, height: targetRect.height }} aria-hidden="true" />
-          <div className="page-tour__curtain is-right" style={{ top: targetRect.top, left: targetRect.right, height: targetRect.height }} aria-hidden="true" />
-          <div className="page-tour__curtain is-bottom" style={{ top: targetRect.bottom }} aria-hidden="true" />
-          <div
-            className="page-tour__spotlight"
-            style={{ left: targetRect.left, top: targetRect.top, width: targetRect.width, height: targetRect.height }}
-            aria-hidden="true"
-          />
-        </>
-      )}
+  const tourSteps = useMemo<TourStep[]>(() => {
+    if (phase !== 'ready') return [stateStep(phase)];
+    return steps.map(step => ({
+      target: () => visibleTarget(step.target),
+      title: step.title,
+      content: <p>{(mobile ? step.mobileDescription : '') || step.description}</p>,
+      media: step.media && !mobile ? <PageTourMedia kind={step.media} /> : undefined,
+      placement: step.preferredPlacement ?? 'bottom',
+    }));
+  }, [mobile, phase, steps]);
 
-      <section
-        ref={dialogRef}
+  if (!tour || !host || !visible) return null;
+
+  const finalStep = phase === 'ready' && stepIndex === steps.length - 1;
+  const tourKey = phase === 'ready' ? `ready:${steps.map(step => step.id).join(',')}` : phase;
+
+  return (
+    <PortalContainerContext.Provider value={host}>
+      <Tour
+        key={tourKey}
+        ref={setCard}
+        open
+        steps={tourSteps}
+        step={phase === 'ready' ? stepIndex : 0}
+        onStepChange={setStepIndex}
+        onFinish={() => finish(phase === 'ready' ? 'completed' : 'dismissed')}
+        onSkip={() => finish('dismissed')}
+        labels={TOUR_LABELS}
+        showProgress={phase === 'ready'}
+        sheet={sheet}
+        spotlightInsets={{ top: 4, bottom: sheet ? cardHeight + SHEET_GAP : 4 }}
+        scrollTarget={scrollTarget}
         className="page-tour__dialog"
-        data-placement={position.placement}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="page-tour-title"
-        aria-describedby="page-tour-description"
-        tabIndex={-1}
-        style={position.placement === 'bottom-sheet' ? undefined : { left: position.left, top: position.top }}
-      >
-        <div className="page-tour__heading">
-          <span className="page-tour__eyebrow"><CircleHelp size={15} aria-hidden="true" /> {tour.title}</span>
-          <button type="button" className="page-tour__close" aria-label="Закрыть обучение" onClick={() => closeTour('dismissed')}>
-            <X size={19} aria-hidden="true" />
-          </button>
-        </div>
-
-        {waiting ? (
-          <div className="page-tour__state" role="status">
-            <strong id="page-tour-title">Готовим подсказку…</strong>
-            <p id="page-tour-description">Ждём, пока данные страницы загрузятся.</p>
-          </div>
-        ) : !currentStep ? (
-          <div className="page-tour__state">
-            <strong id="page-tour-title">На этой странице пока нечего подсветить</strong>
-            <p id="page-tour-description">Обновите страницу после загрузки данных или откройте общий FAQ.</p>
-            <a href="/faq/" className="page-tour__faq-link">Открыть FAQ</a>
-          </div>
-        ) : (
-          <>
-            <div className="page-tour__progress-row" role="group" aria-label={`Шаг ${stepIndex + 1} из ${stepCount}, выполнено ${Math.round(((stepIndex + 1) / stepCount) * 100)} процентов`}>
-              <span aria-hidden="true">Шаг {stepIndex + 1} из {stepCount}</span>
-              <span aria-hidden="true">{Math.round(((stepIndex + 1) / stepCount) * 100)}%</span>
-            </div>
-            <div className="page-tour__progress" aria-hidden="true">
-              <span style={{ width: `${((stepIndex + 1) / stepCount) * 100}%` }} />
-            </div>
-            <h2 id="page-tour-title">{currentStep.title}</h2>
-            <p id="page-tour-description">{description}</p>
-            <div className="page-tour__actions">
+        data-placement={sheet ? 'bottom-sheet' : 'popover'}
+        data-phase={phase}
+        data-launch={launch}
+        footer={phase === 'ready' ? (
+          <div className="page-tour__footer">
+            <span className="page-tour__links">
+              {!finalStep && (
+                <button type="button" className="page-tour__skip" onClick={() => finish('dismissed')}>
+                  Пропустить
+                </button>
+              )}
               <button
                 type="button"
-                className="page-tour__button is-back"
-                disabled={stepIndex === 0}
-                onClick={() => setStepIndex(index => Math.max(index - 1, 0))}
-              >
-                <ArrowLeft size={16} aria-hidden="true" /> Назад
-              </button>
-              <button
-                type="button"
-                className="page-tour__button is-next"
+                className="page-tour__skip is-never"
                 onClick={() => {
-                  if (finalStep) closeTour('completed');
-                  else setStepIndex(index => Math.min(index + 1, stepCount - 1));
+                  writeAutoTourOptOut();
+                  finish('dismissed');
                 }}
               >
-                {finalStep ? <><Check size={16} aria-hidden="true" /> Готово</> : <>Далее <ArrowRight size={16} aria-hidden="true" /></>}
+                Больше не показывать
               </button>
-            </div>
-            {!finalStep && (
-              <button type="button" className="page-tour__skip" onClick={() => closeTour('dismissed')}>
-                Пропустить обучение
-              </button>
-            )}
-          </>
-        )}
-      </section>
-    </div>,
-    document.body,
+            </span>
+          </div>
+        ) : undefined}
+      />
+    </PortalContainerContext.Provider>
   );
 }

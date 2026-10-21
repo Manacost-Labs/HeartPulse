@@ -543,7 +543,7 @@ function StandardMetaContent({
         </dl>
       </section>
 
-      <section className="standard-meta__controls" aria-label="Фильтры меты" data-page-still>
+      <section className="standard-meta__controls" aria-label="Фильтры меты" data-page-still data-tour-id="meta-filters">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
           <div><strong>Управление срезом</strong><small>Выберите формат, рейтинг и временной диапазон</small></div>

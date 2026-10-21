@@ -1,0 +1,201 @@
+.ui-tour {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ui-z-modal);
+  pointer-events: none;
+}
+
+.ui-tour__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--ui-overlay);
+  -webkit-backdrop-filter: var(--ui-overlay-blur);
+  backdrop-filter: var(--ui-overlay-blur);
+  pointer-events: auto;
+  animation: ui-fade-in var(--ui-duration) var(--ui-ease);
+}
+
+/* Blocks clicks on a non-interactive target (the overlay's hole lets them through). */
+.ui-tour__blocker {
+  position: fixed;
+  pointer-events: auto;
+}
+
+.ui-tour__spotlight {
+  position: fixed;
+  box-shadow:
+    0 0 0 2px var(--ui-focus-color),
+    0 0 0 6px color-mix(in srgb, var(--ui-focus-color) 22%, transparent);
+  pointer-events: none;
+  /* A few pulses draw the eye to the target, then the ring stays still while the step is read. */
+  animation: ui-tour-ring 2.4s var(--ui-ease) 3;
+}
+
+@keyframes ui-tour-ring {
+  50% {
+    box-shadow:
+      0 0 0 2px var(--ui-focus-color),
+      0 0 0 10px color-mix(in srgb, var(--ui-focus-color) 0%, transparent);
+  }
+}
+
+/* Glides only between steps; while the page scrolls it tracks the target frame by frame. */
+.ui-tour[data-moving] .ui-tour__overlay {
+  transition: clip-path var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-tour[data-moving] :is(.ui-tour__spotlight, .ui-tour__blocker) {
+  transition:
+    left var(--ui-duration-slow) var(--ui-ease),
+    top var(--ui-duration-slow) var(--ui-ease),
+    width var(--ui-duration-slow) var(--ui-ease),
+    height var(--ui-duration-slow) var(--ui-ease),
+    border-radius var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-tour[data-state='closed'] :is(.ui-tour__overlay, .ui-tour__spotlight) {
+  animation: ui-fade-out var(--ui-duration-fast) var(--ui-ease) forwards;
+}
+
+.ui-tour__center {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--ui-space-4);
+  pointer-events: none;
+}
+
+.ui-tour__card {
+  width: min(340px, calc(100vw - var(--ui-space-6)));
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.ui-tour__card[data-centered] {
+  width: min(400px, 100%);
+}
+
+.ui-tour__media {
+  margin: 6px 6px 0;
+  overflow: hidden;
+  border-radius: calc(var(--ui-radius-popover) - 6px);
+  background: var(--ui-surface-2);
+  aspect-ratio: 16 / 9;
+}
+
+.ui-tour__media > :is(img, video, svg, picture) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ui-tour__main {
+  padding: var(--ui-space-4);
+}
+
+.ui-tour__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+}
+
+.ui-tour__heading {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ui-tour__progress-text {
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-tour__title {
+  margin: 0;
+  font-family: var(--ui-font-display, inherit);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-semibold);
+  line-height: var(--ui-leading-tight);
+  letter-spacing: var(--ui-tracking-tight);
+}
+
+.ui-tour__close {
+  flex: none;
+  margin-block-start: -6px;
+  margin-inline-end: -8px;
+}
+
+.ui-tour__body {
+  margin-top: var(--ui-space-2);
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-leading);
+}
+
+.ui-tour__body > p {
+  margin: 0;
+}
+
+.ui-tour__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  margin-top: var(--ui-space-4);
+}
+
+.ui-tour__dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ui-tour__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-border-strong);
+  transition:
+    width var(--ui-duration) var(--ui-ease-spring),
+    background-color var(--ui-duration) var(--ui-ease);
+}
+
+.ui-tour__dot[data-state='done'] {
+  background: var(--ui-fg-faint);
+}
+
+.ui-tour__dot[data-state='current'] {
+  width: 16px;
+  background: var(--ui-primary);
+}
+
+.ui-tour__actions {
+  display: flex;
+  gap: var(--ui-space-2);
+  margin-inline-start: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-tour__spotlight {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .ui-tour__spotlight {
+    outline: 3px solid Highlight;
+  }
+
+  .ui-tour__dot {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
+  .ui-tour__dot[data-state='current'] {
+    background: Highlight;
+  }
+}

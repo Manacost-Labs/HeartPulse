@@ -327,10 +327,10 @@ async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, 
   await page.click('.global-help-menu__item.is-tour');
   await page.waitForSelector('.page-tour__dialog', { visible: true, timeout: 10_000 });
   await page.waitForFunction(() => Boolean(
-    document.querySelector('.page-tour__progress-row')
-    && document.querySelector('.page-tour__spotlight'),
+    document.querySelector('.page-tour__dialog .ui-tour__progress-text')
+    && document.querySelector('.ui-tour__spotlight'),
   ), { timeout: 10_000 });
-  await page.waitForFunction(() => document.activeElement?.classList.contains('page-tour__dialog'), { timeout: 10_000 });
+  await page.waitForFunction(() => document.querySelector('.page-tour__dialog')?.contains(document.activeElement), { timeout: 10_000 });
   await page.keyboard.down('Shift');
   try {
     await page.keyboard.press('Tab');
@@ -342,8 +342,8 @@ async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, 
   ));
   if (!reverseTabTrapped) failures.push(`${label}: Shift+Tab escaped the guided-tour dialog from its initial focus`);
 
-  const detectedSteps = await page.$eval('.page-tour__progress-row', element => {
-    const match = (element.getAttribute('aria-label') || '').match(/из\s+(\d+)/i);
+  const detectedSteps = await page.$eval('.page-tour__dialog .ui-tour__progress-text', element => {
+    const match = (element.textContent || '').match(/из\s+(\d+)/i);
     return match ? Number(match[1]) : 0;
   });
   const totalSteps = detectedSteps;
@@ -355,15 +355,15 @@ async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, 
 
   for (let index = 0; index < totalSteps; index += 1) {
     await page.waitForFunction(expectedIndex => {
-      const labelText = document.querySelector('.page-tour__progress-row')?.getAttribute('aria-label') || '';
+      const labelText = document.querySelector('.page-tour__dialog .ui-tour__progress-text')?.textContent || '';
       return labelText.startsWith(`Шаг ${expectedIndex} из `);
     }, { timeout: 10_000 }, index + 1);
-    // Position correction runs after 520 ms; allow its 180 ms spotlight transition to finish.
+    // Smooth scrolling to the target and the card's entrance settle well within this pause.
     await new Promise(resolve => setTimeout(resolve, 750));
 
     const state = await page.evaluate(isMobile => {
       const dialog = document.querySelector('.page-tour__dialog');
-      const spotlight = document.querySelector('.page-tour__spotlight');
+      const spotlight = document.querySelector('.ui-tour__spotlight');
       const root = document.querySelector('#root');
       const dialogRect = dialog?.getBoundingClientRect();
       const spotlightRect = spotlight?.getBoundingClientRect();
@@ -374,7 +374,7 @@ async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, 
         ? Math.max(0, Math.min(dialogRect.bottom, spotlightRect.bottom) - Math.max(dialogRect.top, spotlightRect.top))
         : 0;
       return {
-        progress: document.querySelector('.page-tour__progress-row')?.getAttribute('aria-label') || '',
+        progress: document.querySelector('.page-tour__dialog .ui-tour__progress-text')?.textContent || '',
         ariaModal: dialog?.getAttribute('aria-modal') || '',
         placement: dialog?.getAttribute('data-placement') || '',
         rootInert: Boolean(root?.inert && root.hasAttribute('inert')),
@@ -398,7 +398,7 @@ async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, 
       failures.push(`${label}: step ${index + 1}/${totalSteps} geometry or accessibility regressed (${JSON.stringify(state)})`);
     }
 
-    await page.click('.page-tour__button.is-next');
+    await page.click('.page-tour__dialog .ui-tour__actions .ui-button[data-variant="primary"]');
   }
 
   await page.waitForSelector('.page-tour__dialog', { hidden: true, timeout: 10_000 });
@@ -450,7 +450,7 @@ async function auditDelayedPageTourResume(page, label) {
 
   await page.$eval('[data-tour-id="bg-library-search"]', target => { target.hidden = false; });
   await page.waitForFunction(() => (
-    document.querySelector('.page-tour__progress-row')?.getAttribute('aria-label') || ''
+    document.querySelector('.page-tour__dialog .ui-tour__progress-text')?.textContent || ''
   ).startsWith('Шаг 2 из '), { timeout: 10_000 });
   const restoredStep = await page.evaluate(() => {
     const entry = Object.entries(window.localStorage)
@@ -3033,7 +3033,7 @@ for (const [device, viewport] of [
     await page.waitForSelector('.standard-meta-chart__content');
     const standardMetaTourViolationCount = await auditPageTour(page, {
       label: `standard meta [${device}]`,
-      expectedSteps: 6,
+      expectedSteps: 5,
       mobile: device === 'mobile',
     });
     const standardMetaViolationCount = await auditAccessibility(page, `standard meta [${device}]`, '.standard-meta');
@@ -3311,7 +3311,7 @@ for (const [device, viewport] of [
     await page.waitForSelector('[data-tour-id="matchups-matrix"]', { timeout: 20_000 });
     const standardMatchupsTourViolationCount = await auditPageTour(page, {
       label: `standard matchups [${device}]`,
-      expectedSteps: 3,
+      expectedSteps: 4,
       mobile: device === 'mobile',
     });
     // The matrix is the default view; the archetype overview is one click away.
@@ -3756,7 +3756,7 @@ for (const [device, viewport] of [
     }
     const constructedDetailTourViolationCount = await auditPageTour(page, {
       label: `constructed card detail [${device}]`,
-      expectedSteps: 6,
+      expectedSteps: 7,
       mobile: device === 'mobile',
     });
     await page.$eval('.constructed-card-detail__lower-grid', element => element.scrollIntoView({ block: 'start' }));

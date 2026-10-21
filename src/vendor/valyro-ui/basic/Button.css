@@ -1,0 +1,256 @@
+.ui-button {
+  --_bg: transparent;
+  --_bg-hover: var(--ui-hover);
+  --_fg: var(--ui-fg);
+  --_ring: transparent;
+  --_shadow: 0 0 #0000;
+  --_h: var(--ui-control-h-md);
+  --_px: 14px;
+
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--_h);
+  min-width: var(--_h);
+  padding: 0 var(--_px);
+  border: 0;
+  border-radius: var(--ui-radius-button);
+  corner-shape: var(--ui-control-corner-shape);
+  background-color: var(--_bg);
+  color: var(--_fg);
+  box-shadow: inset 0 0 0 var(--ui-border-width, 1px) var(--_ring), var(--_shadow-now, var(--_shadow));
+  font: inherit;
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-medium);
+  line-height: 1;
+  letter-spacing: var(--ui-label-tracking, var(--ui-control-tracking, inherit));
+  text-transform: var(--ui-label-transform, inherit);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    box-shadow var(--ui-duration-fast) var(--ui-ease),
+    color var(--ui-duration-fast) var(--ui-ease),
+    opacity var(--ui-duration-fast) var(--ui-ease),
+    transform var(--ui-duration) var(--ui-ease-spring);
+}
+
+/* Pointer devices only: after a tap, touch browsers keep :hover on the button until the next tap elsewhere.
+   A touch still gets the pressed fill below. */
+@media (hover: hover) {
+  .ui-button:hover:not(:disabled, [aria-disabled='true']) {
+    background-color: var(--_bg-hover);
+  }
+}
+
+.ui-button:active:not(:disabled, [aria-disabled='true']) {
+  background-color: var(--_bg-active, var(--_bg-hover));
+  transform: var(--ui-button-transform-active);
+}
+
+/* Pressed shadow of the filled and secondary variants (theme hook; default: the resting one). */
+.ui-button:is([data-variant='primary'], [data-variant='secondary'], [data-variant='accent'], [data-variant='danger']):active:not(:disabled, [aria-disabled='true']) {
+  --_shadow-now: var(--ui-button-shadow-active, var(--_shadow));
+}
+
+/* hoverScale / tapScale: the scale springs back with a bounce; pressing in is quick. Pointer devices
+   only for hover, and nothing under reduced motion (the theme's press transform stays). */
+@media (prefers-reduced-motion: no-preference) {
+  .ui-button[data-scale] {
+    transition:
+      background-color var(--ui-duration-fast) var(--ui-ease),
+      box-shadow var(--ui-duration-fast) var(--ui-ease),
+      color var(--ui-duration-fast) var(--ui-ease),
+      opacity var(--ui-duration-fast) var(--ui-ease),
+      transform calc(var(--ui-duration-slow) * 2.61) var(--ui-spring-bouncy);
+  }
+
+  @media (hover: hover) {
+    .ui-button[data-scale]:hover:not(:disabled, [aria-disabled='true']) {
+      transform: scale(var(--_hover-scale));
+    }
+  }
+
+  .ui-button[data-scale]:active:not(:disabled, [aria-disabled='true']) {
+    transform: scale(var(--_tap-scale));
+    transition-duration: var(--ui-duration-fast), var(--ui-duration-fast), var(--ui-duration-fast), var(--ui-duration-fast), var(--ui-duration-fast);
+    transition-timing-function: var(--ui-ease);
+  }
+}
+
+.ui-button:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--ui-border-width, 1px) var(--_ring), var(--ui-focus-ring);
+}
+
+.ui-button:disabled,
+.ui-button[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: var(--ui-disabled-opacity, 0.5);
+}
+
+.ui-button[data-loading] {
+  cursor: progress;
+  opacity: 1;
+}
+
+/* Loading never changes the width: the spinner sits on top of a hidden icon or label. */
+.ui-button__spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+}
+
+.ui-button[data-loading='icon'] .ui-button__icon:first-child > :not(.ui-button__spinner) {
+  visibility: hidden;
+}
+
+/* Hidden with opacity, not visibility, so the label still names the button. */
+.ui-button[data-loading='cover'] > :not(.ui-button__spinner) {
+  opacity: 0;
+}
+
+.ui-button[data-full-width] {
+  width: 100%;
+}
+
+.ui-button[data-pill] {
+  border-radius: var(--ui-radius-full);
+  corner-shape: var(--ui-pill-corner-shape, var(--ui-control-corner-shape));
+}
+
+.ui-button__icon {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-button__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* The button itself is line-height 1; a taller line box here keeps descenders (g, y, p) unclipped. */
+  line-height: var(--ui-leading);
+}
+
+/* Sizes */
+.ui-button[data-size='sm'] {
+  --_h: var(--ui-control-h-sm);
+  --_px: 10px;
+  gap: 4px;
+  font-size: var(--ui-text-sm);
+}
+
+.ui-button[data-size='lg'] {
+  --_h: var(--ui-control-h-lg);
+  --_px: 18px;
+  gap: 8px;
+  font-size: var(--ui-text-lg);
+}
+
+/* Default-sized (16px) icons grow with large buttons; explicitly sized icons are left alone. */
+.ui-button[data-size='lg'] .ui-button__icon > svg[width='16'] {
+  width: 18px;
+  height: 18px;
+}
+
+/* Variants */
+.ui-button[data-variant='primary'] {
+  --_bg: var(--ui-primary);
+  --_bg-hover: var(--ui-primary-hover);
+  --_fg: var(--ui-primary-fg);
+}
+
+.ui-button[data-variant='secondary'] {
+  --_bg: var(--ui-button-secondary-bg, var(--ui-bg));
+  /* Hover fill and ring follow core tokens in the button's own scope (CTASection re-maps them), so the
+     theme picks a set rather than values: --ui-button-secondary-field / -glass, see the theme files. */
+  --_bg-hover: var(
+    --ui-button-secondary-bg-hover,
+    var(--ui-button-secondary-field, var(--ui-surface-2)) var(--ui-button-secondary-glass, var(--ui-elevated))
+  );
+  --_bg-active: var(--ui-button-secondary-bg-active, var(--ui-elevated));
+  --_ring: var(--ui-button-secondary-field, var(--ui-border-field)) var(--ui-button-secondary-glass, var(--ui-glass-border));
+  --_shadow: var(--ui-button-secondary-shadow);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+}
+
+/* Specificity of .ui-button alone, so a component that re-colours its buttons still wins. */
+.ui-button:where([data-variant='secondary']) {
+  --_fg: var(--ui-button-secondary-fg, var(--ui-fg));
+}
+
+.ui-button[data-variant='ghost'] {
+  --_fg: var(--ui-button-ghost-fg, var(--ui-fg));
+  --_bg-hover: var(--ui-hover);
+  --_bg-active: var(--ui-active);
+}
+
+.ui-button[data-variant='accent'] {
+  --_bg: var(--ui-accent);
+  --_bg-hover: var(--ui-accent-hover);
+  --_fg: var(--ui-accent-fg);
+}
+
+.ui-button[data-variant='danger'] {
+  --_bg: var(--ui-danger);
+  --_bg-hover: var(--ui-danger-hover);
+  --_fg: var(--ui-danger-fg, #ffffff);
+}
+
+/* Pressed solid fills settle halfway back from the hover tint, so a press reads even in themes without a
+   press transform, and on touch (no hover) it still tints. :where() keeps the specificity of .ui-button,
+   so components that re-colour their buttons win. */
+.ui-button:where([data-variant='primary'], [data-variant='accent'], [data-variant='danger']) {
+  --_bg-active: color-mix(in oklab, var(--_bg-hover) 50%, var(--_bg));
+}
+
+/* Solid fills: an optional sheen, and a glow tinted by the fill itself (`initial` in the theme). */
+.ui-button:is([data-variant='primary'], [data-variant='accent'], [data-variant='danger']) {
+  --_shadow: var(--ui-button-solid-highlight), var(--ui-button-solid-glow, 0 6px 16px -6px color-mix(in srgb, var(--_bg) 70%, transparent));
+  background-image: var(--ui-button-solid-sheen);
+}
+
+.ui-button[data-variant='link'] {
+  --_fg: var(--ui-accent-text);
+  --_bg-hover: transparent;
+  --_bg-active: transparent;
+  --_h: auto;
+  --_px: 0;
+  min-width: 0;
+  text-decoration: var(--ui-link-decoration, none);
+  text-underline-offset: 3px;
+}
+
+.ui-button[data-variant='link']:hover:not(:disabled, [aria-disabled='true']) {
+  text-decoration: underline;
+}
+
+/* Icon-only (IconButton) */
+.ui-button[data-icon-only] {
+  --_px: 0;
+  width: var(--_h);
+}
+
+/* Touch: a hit area of at least 44×44px (WCAG 2.5.5) without changing the drawn size. */
+@media (pointer: coarse) {
+  .ui-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}

@@ -4,7 +4,6 @@ import {
   nextTourStepIndex,
   normalizeTourPath,
   pageTourStorageKey,
-  placeTourPopover,
   previousTourStepIndex,
   resolvePageTour,
 } from '../src/features/pageTour/pageTourModel.js';
@@ -89,35 +88,5 @@ assert.equal(previousTourStepIndex(0, 5), 0, 'previous must clamp at the first s
 assert.equal(previousTourStepIndex(-3, 5), 0, 'invalid low indexes must clamp to the first step');
 assert.equal(previousTourStepIndex(99, 5), 3, 'previous must move from the clamped final step');
 assert.equal(previousTourStepIndex(0, 0), 0, 'an empty tour must keep a safe zero index');
-
-const desktopPopover = placeTourPopover({
-  targetRect: { left: 950, top: 650, right: 990, bottom: 690, width: 40, height: 40 },
-  popoverSize: { width: 320, height: 220 },
-  viewport: { width: 1024, height: 720 },
-  preferredPlacement: 'bottom',
-  gap: 12,
-  padding: 16,
-  mobile: false,
-});
-assert.ok(desktopPopover.left >= 16);
-assert.ok(desktopPopover.top >= 16);
-assert.ok(desktopPopover.left + 320 <= 1024 - 16, 'desktop popover must stay inside the right viewport edge');
-assert.ok(desktopPopover.top + 220 <= 720 - 16, 'desktop popover must stay inside the bottom viewport edge');
-assert.notEqual(desktopPopover.placement, 'bottom', 'placement must flip when the preferred side has no room');
-
-const mobilePopover = placeTourPopover({
-  targetRect: { left: 8, top: 72, right: 92, bottom: 116, width: 84, height: 44 },
-  popoverSize: { width: 350, height: 250 },
-  viewport: { width: 390, height: 844 },
-  preferredPlacement: 'right',
-  gap: 10,
-  padding: 12,
-  mobile: true,
-});
-assert.equal(mobilePopover.placement, 'bottom-sheet');
-assert.ok(mobilePopover.left >= 12);
-assert.ok(mobilePopover.top >= 12);
-assert.ok(mobilePopover.left + 350 <= 390 - 12, 'mobile bottom sheet must fit the viewport width');
-assert.ok(mobilePopover.top + 250 <= 844 - 12, 'mobile bottom sheet must respect the safe bottom inset');
 
 console.log('page tour model contracts passed');

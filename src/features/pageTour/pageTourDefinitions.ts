@@ -1,4 +1,4 @@
-import type { PageTourLike, TourPlacement } from './pageTourModel';
+import type { PageTourLike, PageTourMediaKind, TourPlacement } from './pageTourModel';
 
 export type PageTourAccess = {
   authenticated: boolean;
@@ -18,6 +18,8 @@ export type PageTourStep = {
   mobileDescription?: string;
   audience?: PageTourAudience;
   preferredPlacement?: Exclude<TourPlacement, 'bottom-sheet'>;
+  /** Shown on wider screens only: a phone sheet keeps the target visible instead. */
+  media?: PageTourMediaKind;
 };
 
 export type PageTourDefinition = PageTourLike & {
@@ -51,22 +53,22 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'standard-matchups', version: 5, paths: ['/standard/matchups'], title: 'Как читать матчапы',
+    id: 'standard-matchups', version: 6, paths: ['/standard/matchups'], title: 'Как читать матчапы',
     steps: [
-      { id: 'rank', target: 'matchups-rank', title: 'Выберите формат', description: 'Переключайтесь между Стандартом и Вольным режимом. Обе матрицы собраны для ранга Легенда.', audience: 'standard' },
-      { id: 'matrix', target: 'matchups-matrix', title: 'Интерактивная матрица', description: 'Выберите над матрицей архетип, которым играете: его строка выделится, а сверху появятся лучшие и худшие соперники и винрейт против меты. Строка — ваша колода, столбец — соперник: зелёный — выгодно, красный — нет. Наведите на клетку, чтобы увидеть винрейт и точность; пары редких архетипов приглушены.', mobileDescription: 'Выберите архетип, которым играете: на телефоне ниже появится список его матчапов, от худших к лучшим. Обзор архетипа — соседняя вкладка.', audience: 'standard', preferredPlacement: 'top' },
-      { id: 'summary', target: 'matchups-summary', title: 'Сильные и слабые соперники', description: 'В итоговой сводке ниже автоматически выделены лучшие и худшие встречи, чтобы быстрее выбрать колоду или подготовить план игры.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'rank', target: 'matchups-rank', title: 'Формат', description: 'Переключайте Стандарт и Вольный: у каждого формата своя матрица. Ранг выборки указан в заголовке таблицы ниже.', audience: 'standard' },
+      { id: 'views', target: 'matchups-views', title: 'Матрица или один архетип', description: '«Полная матрица» показывает все пары сразу. «Обзор архетипа» — одна колода против каждого соперника: полоса от 50%, группы «Хорошие» (52% и выше), «Ровные» (48–52%) и «Сложные» (ниже 48%), плюс средний винрейт по классам.', audience: 'standard', preferredPlacement: 'bottom' },
+      { id: 'matrix', target: 'matchups-grid', title: 'Как читать цвет', description: 'Строка — ваш архетип, столбец — соперник, последний столбец — винрейт против всей меты. Зелёный — выгодно, красный — нет; цвет насыщается к ±8 п. от 50%. Бледная клетка — редкая пара, «·» — источник не публикует винрейт. Наведите на клетку, чтобы увидеть винрейт и точность.', mobileDescription: 'Выберите архетип, которым играете: на телефоне матрица становится списком его соперников, от худших к лучшим. Бледные строки — редкие пары с неточным винрейтом.', audience: 'standard', preferredPlacement: 'top', media: 'heat' },
+      { id: 'summary', target: 'matchups-summary', title: 'Сильнейшие архетипы', description: 'Лидеры по винрейту против меты, у каждого — самая удобная и самая сложная пара. Нажмите архетип, чтобы открыть его обзор.', audience: 'standard', preferredPlacement: 'top' },
     ],
   },
   {
-    id: 'standard-meta', version: 3, paths: ['/standard/meta'], title: 'Как пользоваться разделом «Мета»',
+    id: 'standard-meta', version: 4, paths: ['/standard/meta'], title: 'Как читать мету',
     steps: [
-      { id: 'controls', target: 'meta-controls', title: 'Диапазон рейтинга', description: 'Выберите нужный ранг — все показатели, график и список архетипов обновятся под этот срез. Формат меняется соседним переключателем.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'search', target: 'meta-search', title: 'Поиск архетипа', description: 'Начните вводить название класса или колоды, чтобы быстро оставить в результатах только нужные архетипы.', audience: 'standard' },
-      { id: 'chart', target: 'meta-chart', title: 'Карта меты', description: 'Карта по умолчанию свернута. Нажмите «Показать»: чем правее точка, тем популярнее архетип; чем выше — тем выше винрейт. Во вкладке «Доли» видно, сколько игр у каждого класса.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'view', target: 'meta-view-switcher', title: 'Галерея, тиры или таблица', description: 'Галерея удобна для быстрого обзора, тиры показывают изменение и тренд винрейта, а таблица — точное сравнение винрейта, популярности и скорости набора рейтинга.', audience: 'standard' },
-      { id: 'results', target: 'meta-results', title: 'Актуальные архетипы', description: 'Счётчик показывает объём текущей выдачи. Результаты ниже содержат размер выборки, популярность и винрейт каждого архетипа.', audience: 'standard', preferredPlacement: 'top' },
-      { id: 'deck', target: 'meta-deck-action', title: 'Рекомендуемая сборка', description: 'Откройте актуальный состав архетипа, изучите карты и скопируйте код, чтобы сразу импортировать колоду в Hearthstone.', audience: 'standard', preferredPlacement: 'left' },
+      { id: 'filters', target: 'meta-filters', title: 'Срез данных', description: 'Формат, диапазон рейтинга, период и «Минимум игр» задают выборку. Карточки, тиры, таблица и карта ниже пересчитываются под этот срез; архетипы с меньшим числом игр скрыты.', audience: 'standard', preferredPlacement: 'bottom', media: 'filters' },
+      { id: 'view', target: 'meta-view-switcher', title: 'Карточки, тиры или таблица', description: 'Карточки — быстрый обзор: винрейт, популярность, длина матча и звёзды в час. Тиры группируют архетипы от S до D. Таблицу можно сортировать по любому столбцу, в ней видно изменение винрейта и тренд.', audience: 'standard', media: 'views' },
+      { id: 'winrate', target: 'meta-results', title: 'Винрейт и «мало»', description: 'Винрейт — доля побед. Полоса в таблице — 95% интервал: чем меньше игр, тем она шире. «мало» — меньше 500 игр, такой винрейт ещё сдвинется. Тир считается по осторожной нижней оценке: S от 53%, A от 51%, B от 49%, C от 47%.', audience: 'standard', preferredPlacement: 'bottom', media: 'interval' },
+      { id: 'chart', target: 'meta-chart', title: 'Карта меты и доли', description: 'Нажмите «Показать». Правее — популярнее, выше — больше побед, размер точки — число игр, пунктир — 50%; клик открывает архетип. Во вкладке «Доли» площадь плитки — доля игр; рядом список архетипов с фильтром по классу.', audience: 'standard', preferredPlacement: 'bottom', media: 'scatter' },
+      { id: 'deck', target: 'meta-deck-action', title: 'Страница архетипа', description: 'Кнопка «Архетип» в карточке или название в таблице ведут к сборкам, муллигану, матчапам и истории архетипа.', audience: 'standard', preferredPlacement: 'left' },
     ],
   },
   {
@@ -80,12 +82,15 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'constructed-archetype-detail', version: 1, paths: ['/standard/archetypes/:format/:slug', '/standard/meta/:format/:slug'], title: 'Как читать страницу архетипа',
+    id: 'constructed-archetype-detail', version: 2, paths: ['/standard/archetypes/:format/:slug', '/standard/meta/:format/:slug'], title: 'Как читать страницу архетипа',
     steps: [
-      { id: 'summary', target: 'archetype-summary', title: 'Сводка архетипа', description: 'В верхнем досье собраны винрейт, популярность, размер выборки, темп матчей и количество найденных сборок.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'builds', target: 'archetype-builds', title: 'Сборки архетипа', description: 'Сборки идут по размеру выборки, первая — самая проверенная. Откройте карты или скопируйте код для импорта в Hearthstone.', audience: 'standard' },
-      { id: 'analysis', target: 'archetype-analysis', title: 'Матчапы и муллиган', description: 'Сравните результат против классов, затем изучите влияние стартовой руки, добора и оставления каждой карты.', audience: 'standard', preferredPlacement: 'top' },
-      { id: 'history', target: 'archetype-history', title: 'История меты', description: 'Графики накапливают срезы каждые 12 часов и показывают, как меняются винрейт, популярность и объём игр.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'summary', target: 'archetype-summary', title: 'Досье и показатели', description: 'Винрейт, популярность, игры, сборки, средняя длина матча и средний ход по данным HSGuru за текущий патч. Стрелка — изменение за сутки в процентных пунктах, мини-график — последние 7 дней.', audience: 'standard', preferredPlacement: 'bottom', media: 'trend' },
+      { id: 'builds', target: 'archetype-builds', title: 'Сборки', description: 'Сборки идут по числу игр за 30 дней: первая — самая проверенная. Откройте состав или скопируйте код для импорта в Hearthstone.', audience: 'standard' },
+      { id: 'compare', target: 'archetype-compare', title: 'Сравнение сборок', description: 'Отметьте сборки A и Б: винрейт с 95% интервалом, число игр (надёжность выборки), средняя стоимость карты, кривая маны и карты, которыми они отличаются.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'history', target: 'archetype-history', title: 'История с полосой', description: 'Срез сохраняется каждые 12 часов. Полоса вокруг винрейта — 95% интервал: узкая, когда игр много. Пунктир — новый период HSGuru (патч или дополнение), после него счётчики начинаются заново.', audience: 'standard', preferredPlacement: 'top', media: 'band' },
+      { id: 'ranks', target: 'archetype-ranks', title: 'Винрейт по рангам', description: 'Строки — ранги, столбцы — периоды от суток до всего дополнения. Зелёный — выше 50%, красный — ниже, полный цвет при ±10 п. Бледная клетка — мало игр, пустая — меньше 100. Наведите на клетку: игры и интервал.', audience: 'standard', preferredPlacement: 'top', media: 'heat' },
+      { id: 'analysis', target: 'archetype-analysis', title: 'Матчапы и муллиган', description: 'Матчапы против классов — за 7 дней, сложные сверху. У карты три влияния: «Муллиган» — пришла в стартовую руку, «Добор» — взята за игру, «Оставлена» — оставлена в муллигане. Влияние — винрейт таких игр минус средний винрейт колоды; меньше 100 игр — ненадёжно.', audience: 'standard', preferredPlacement: 'top', media: 'impact' },
+      { id: 'radar', target: 'archetype-radar', title: 'Сравнение с другим архетипом', description: 'Найдите архетип в поле «Сравнить с»: радар ставит оба на шкалы от 0 до 100 — место среди всех архетипов по винрейту, популярности, длине матча, среднему ходу и подъёму по ладдеру. Ниже — кто впереди и их очный матчап.', audience: 'standard', preferredPlacement: 'top' },
     ],
   },
   {
@@ -109,22 +114,34 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'standard-cards', version: 1, paths: ['/standard/cards', '/standard/cards/:format'], title: 'Как пользоваться библиотекой карт',
+    id: 'standard-cards', version: 2, paths: ['/standard/cards', '/standard/cards/:format'], title: 'Как пользоваться библиотекой карт',
     steps: [
       { id: 'format', target: 'cards-format', title: 'Стандарт или Вольный', description: 'Переключайте формат, чтобы видеть только карты, разрешённые в Стандарте, либо полную библиотеку Вольного режима.' },
       { id: 'search', target: 'cards-search', title: 'Поиск по названию', description: 'Введите русское или оригинальное название карты. Результаты обновятся вместе с выбранными фильтрами.' },
+      { id: 'filters', target: 'cards-filters', title: 'Точные фильтры', description: 'Отберите карты по классу, дополнению, мане, атаке, здоровью, механике, типу и редкости. Ранг и период статистики — в дополнительных фильтрах.', mobileDescription: 'Нажмите «Ещё фильтры», чтобы открыть класс, дополнение, ману, механики, ранг и период статистики. Тур не меняет их сам.', media: 'filters' },
       { id: 'sort', target: 'cards-sort', title: 'Сортировка карт', description: 'Без подписки доступны игровые признаки и новые дополнения; статистические сортировки открываются с тарифом «Алмаз».' },
-      { id: 'filters', target: 'cards-filters', title: 'Точные фильтры', description: 'Отберите карты по классу, дополнению, мане, атаке, здоровью, механике, типу и редкости.', mobileDescription: 'Нажмите «Дополнительные фильтры», чтобы открыть класс, дополнение, ману, механики и другие параметры. Тур не меняет их сам.' },
       { id: 'view', target: 'cards-view-switcher', title: 'Галерея или таблица', description: 'Галерея показывает полноценные карты, а таблица упрощает сравнение характеристик и статистики.' },
-      { id: 'statistics', target: 'cards-statistics', title: 'Статистика Легенды', description: 'Показатели «В % колод», победы колод и размер выборки рассчитаны для Легенды; закрытые значения отмечены замком.', preferredPlacement: 'top' },
+      { id: 'statistics', target: 'cards-statistics', title: 'Что значат цифры', description: '«В % колод» — доля колод с этой картой, «Победы колод» — винрейт этих колод, «Партий» — объём выборки. Меньше 100 партий — винрейт не показываем. По умолчанию ранг Легенда; закрытые значения отмечены замком.', preferredPlacement: 'top' },
     ],
   },
   {
-    id: 'standard-card-detail', version: 1, paths: ['/standard/cards/:format/:cardId'], title: 'Что есть на странице карты',
+    id: 'standard-patches', version: 1, paths: ['/standard/patches'], title: 'Как читать патчноут',
+    steps: [
+      { id: 'versions', target: 'patch-versions', title: 'Выбор патча', description: 'Переключатель версий открывает другой патч. Выбранная версия попадает в адрес страницы — такой ссылкой можно поделиться.' },
+      { id: 'modes', target: 'patch-modes', title: 'Разделы патча', description: 'Режимы патча: у каждого число изменений и сколько из них усилений ▲, ослаблений ▼ и переработок ↻. Нажмите режим, чтобы перейти к его разделу.' },
+      { id: 'highlights', target: 'patch-highlights', title: 'Главное в патче', description: 'Самые крупные изменения патча крупными карточками. Короткие разделы, до трёх карт, читаются целиком ниже.', preferredPlacement: 'top' },
+      { id: 'flow', target: 'patch-flow', title: 'Карты → архетипы', description: 'Слева изменённые карты, справа самые популярные архетипы текущей меты. Толщина потока — сколько сборок архетипа содержат карту, цвет карты — усиление, ослабление или переработка. Нажмите карту или архетип, чтобы открыть его страницу.', mobileDescription: 'На телефоне диаграмма становится списком: у каждой изменённой карты — архетипы, в сборках которых она встречается.', preferredPlacement: 'top', media: 'sankey' },
+      { id: 'groups', target: 'patch-groups', title: 'Классы и типы карт', description: 'Фильтр по классу или типу карты оставляет только эти изменения; «все» возвращает полный список.' },
+      { id: 'filters', target: 'patch-filters', title: 'Поиск и фильтры', description: 'Найдите карту по названию или тексту изменения либо оставьте только бафы, нерфы или прочие изменения. Ниже карты сгруппированы по режимам и классам: было → стало.', preferredPlacement: 'top' },
+    ],
+  },
+  {
+    id: 'standard-card-detail', version: 2, paths: ['/standard/cards/:format/:cardId'], title: 'Что есть на странице карты',
     steps: [
       { id: 'art', target: 'card-art', title: 'Версии изображения', description: 'Эти кнопки переключают обычную, золотую, сигнатурную или алмазную версию. Нажмите большую карту выше, чтобы открыть её полностью.' },
       { id: 'identity', target: 'card-identity', title: 'Основная информация', description: 'Под названием собраны стоимость, класс, тип, редкость, дополнение, характеристики и официальное описание карты.' },
-      { id: 'statistics', target: 'card-statistics', title: 'Статистика карты', description: 'В этом блоке сравнивайте присутствие в колодах, винрейт и размер выборки. Данные доступны с тарифом «Алмаз».' },
+      { id: 'statistics', target: 'card-statistics', title: 'Статистика карты', description: 'Формат, ранг и период задают срез: доля колод с картой, винрейт этих колод, средний ход розыгрыша, среднее число копий и сыгранные партии — объём выборки. Данные доступны с тарифом «Алмаз».' },
+      { id: 'dynamics', target: 'card-dynamics', title: 'Динамика карты', description: 'Раскройте блок и выберите показатель и период 30, 90 или 180 дней — доступны те, что покрыты данными. Плитки — сейчас, минимум, максимум и длина истории. «Сравнить» добавляет класс или формат, у винрейта при розыгрыше полоса — 95% интервал.', audience: 'standard', media: 'trend' },
       { id: 'patches', target: 'card-patches', title: 'История изменений', description: 'Патчи расположены от новых к старым; для доступных записей можно открыть русскую публикацию на HS-Manacost.' },
       { id: 'pools', target: 'card-pools', title: 'Пулы генерации', description: 'Если карта создаёт другие карты, здесь показан её реальный пул. Кнопка «Показать все» раскрывает оставшиеся варианты.' },
       { id: 'decks', target: 'card-decks', title: 'Колоды с этой картой', description: 'Откройте изображение DeckView, изучите состав и скопируйте код подходящей колоды для импорта в игру.', preferredPlacement: 'top' },
@@ -207,12 +224,12 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'battlegrounds-tier-builder', version: 1, paths: ['/battlegrounds/tier-builder'], title: 'Как собрать свой тир-лист',
+    id: 'battlegrounds-tier-builder', version: 2, paths: ['/battlegrounds/tier-builder'], title: 'Как собрать свой тир-лист',
     steps: [
       { id: 'search', target: 'bg-tier-builder-search', title: 'Поиск карт', description: 'Введите русское или английское название, тип существа либо игровую механику, чтобы сократить исходный пул.', audience: 'battlegrounds' },
       { id: 'source', target: 'bg-tier-builder-source', title: 'Источник объектов', description: 'Оставьте только нужные категории: героев, существ, заклинания или аксессуары Полей сражений.', audience: 'battlegrounds' },
       { id: 'filters', target: 'bg-tier-builder-filters', title: 'Точные фильтры', description: 'Тип существа, уровень таверны и размер аксессуара работают вместе с поиском. На телефоне этот блок свёрнут — откройте его, когда нужно сузить пул.', audience: 'battlegrounds' },
-      { id: 'reset', target: 'bg-tier-builder-reset', title: 'Быстрый сброс', description: '«Сбросить» возвращает исходное распределение, а «Все в пул» снимает карты со всех тиров. Обучение не нажимает эти кнопки.', audience: 'battlegrounds' },
+      { id: 'reset', target: 'bg-tier-builder-reset', title: 'Быстрый сброс', description: '«Сбросить» возвращает фильтры к исходным, а «Все в пул» снимает карты со всех тиров. Обучение не нажимает эти кнопки.', audience: 'battlegrounds' },
       { id: 'library', target: 'bg-tier-builder-library', title: 'Пул карт', description: 'Счётчик показывает, сколько карт осталось в пуле по текущим фильтрам. Сам пул — нижний ряд тир-листа: перетащите карту мышью в нужный тир или выберите её и перенесите клавишами (пробел и стрелки).', mobileDescription: 'Счётчик показывает, сколько карт осталось в пуле по текущим фильтрам. Сам пул — нижний ряд тир-листа: зажмите карту и перетащите её в нужный тир.', audience: 'battlegrounds' },
       { id: 'board', target: 'bg-tier-builder-board', title: 'Ваш тир-лист', description: 'Ряды S–D и счётчик распределённых карт. Порядок внутри ряда тоже меняется перетаскиванием; «Копировать текстом» и «Скачать JSON» сохраняют список без картинок.', audience: 'battlegrounds', preferredPlacement: 'top' },
       { id: 'export', target: 'bg-tier-builder-export', title: 'Оформление и экспорт', description: 'Выберите фон и сохраните весь готовый тир-лист в PNG или WebP. Во время обучения экспорт не запускается.', audience: 'battlegrounds', preferredPlacement: 'top' },
