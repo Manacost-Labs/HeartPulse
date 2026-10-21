@@ -20,6 +20,8 @@ No branch-wide merge or unverified cherry-pick is part of this slice.
 
 - Validate discovery and its own contract: `npm run test:discovery`.
 - Run every classified authored test: `npm test`.
+- Run selected suites: `npm run test:suite -- <id>[,<id>...]`, optionally with
+  `--shard <index>/<total>` and `--retry-failed-once`.
 - Run the release gate: `npm run verify:release`.
 
 ## Discovery contract
@@ -58,8 +60,31 @@ Each test runs in its own child process, sequentially, with no shell expansion:
 - shell tests use Bash directly.
 
 Per-file environment overrides are explicit in the registry and do not leak to
-other files. Execution stops on the first failure and preserves the failing
-exit code or termination signal.
+other files. Execution stops on the first failure (after the single retry,
+when enabled) and preserves the failing exit code or termination signal.
+
+## CI sharding and flaky retries
+
+CI runs the `browser` suite as a matrix of shards
+(`npm run test:suite -- browser --shard i/N --retry-failed-once`). Each shard
+computes the same deterministic partition from the registry and
+`tests/test-durations.json`: files are assigned longest first to the lightest
+shard, a file without a recorded duration weighs `defaultSeconds`, and each
+shard keeps registry order. Every selected file lands in exactly one shard;
+`tests/test-suite-runner.test.mjs` and `tests/workflow-contract.test.mjs`
+prove it for the checked registry and the CI shard count. Durations only steer
+the balance, so a stale or missing entry never skips a test. To rebalance,
+copy the per-file durations from the shard job summaries into
+`tests/test-durations.json`.
+
+With `--retry-failed-once` a file that exits nonzero or crashes is rerun once
+in the same shard. A pass on the retry is logged as
+`[test-suite] FLAKY <suite> <file>`, raised as a GitHub warning annotation and
+listed as FLAKY in the job summary; a second failure fails the shard. Runner
+interruptions and processes that cannot start are not retried. Every run with
+`GITHUB_STEP_SUMMARY` set writes a per-file PASS/FLAKY/FAIL/NOT RUN table with
+durations. Local `npm test` keeps the original behavior: no shards and no
+retries.
 
 ## Boundaries
 

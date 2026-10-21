@@ -18,19 +18,31 @@ deployments and rollbacks.
 
 ## Automatic deployment from `main`
 
-Every push to `main` starts `.github/workflows/ci.yml`. The hosted validation
-job installs the lockfile, runs `npm run verify:release`, creates an immutable
-release whose manifest contains that exact 40-character Git SHA, and uploads it
-as a seven-day workflow artifact. Pull requests and feature branches never
-create or deploy a production artifact.
+Every push to `main` starts `.github/workflows/ci.yml`. The release-blocking
+command is `npm run verify:release`: lint, architecture ratchets, the
+test-discovery completeness gate, the complete classified unit, integration,
+contract, browser and production-smoke suite, production builds, server
+recovery smoke tests, performance budgets and documentation lint. CI runs
+exactly those commands, split into parallel hosted jobs (the workflow contract
+test fails if a command is dropped):
 
-The release-blocking command is `npm run verify:release`: lint, architecture
-ratchets, the test-discovery completeness gate, the complete classified unit,
-integration, contract, browser and production-smoke suite, production builds,
-server recovery smoke tests, performance budgets and documentation lint. The
-representative responsive browser matrix also runs in a separate
-release-blocking observatory job. Both hosted jobs must pass before the
-production runner can download the immutable artifact.
+- **Build release artifacts** runs `npm run verify:release:build` once
+  (Storybook, static root, server, Next.js, `lint:next`, server and recovery
+  smoke tests) and uploads the outputs for the test jobs. On a push to `main`
+  the same job then creates the immutable release from those same files, with
+  the exact 40-character Git SHA in its manifest, and uploads it as a
+  seven-day workflow artifact.
+- **Typecheck, lint and static gates** runs `npm run verify:release:checks`.
+- **Unit, integration, contract and smoke suites** and the six
+  **Browser suite** shards download the build outputs instead of rebuilding.
+  The shards split the registered browser files by historical duration; see
+  [the test registry](docs/architecture/phase0-test-discovery.md#ci-sharding-and-flaky-retries).
+- **Full browser observatory** builds and runs the representative responsive
+  browser matrix on its own.
+
+Every job must pass before the production runner can download the immutable
+artifact. Pull requests and feature branches never create or deploy a
+production artifact.
 The hosted observatory pins `/usr/bin/google-chrome`; its generic Chromium
 wrapper can miss Puppeteer's startup timeout on a cold runner.
 

@@ -19,11 +19,68 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  validate:
-    name: Typecheck, test, build and budgets
+  # Build once: every test job below downloads these exact outputs, and the
+  # production release is packaged from the same workspace, so the deployed
+  # bytes are the bytes the shards validated.
+  build:
+    name: Build release artifacts
     runs-on: ubuntu-latest
-    # Leave time for immutable packaging after the full registry and builds.
-    timeout-minutes: 40
+    timeout-minutes: 15
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build and smoke-test release inputs
+        run: npm run verify:release:build
+
+      - name: Upload validated build outputs
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-outputs-${{ github.sha }}
+          path: |
+            build
+            dist
+            storybook-static
+            apps/public-web/.next
+            !apps/public-web/.next/cache
+          if-no-files-found: error
+          retention-days: 1
+          # A full re-run rebuilds the same SHA and replaces the first attempt's outputs.
+          overwrite: true
+          include-hidden-files: true
+
+      - name: Create immutable production release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm run release:create -- --output="$RUNNER_TEMP/release-$GITHUB_SHA" --sha="$GITHUB_SHA"
+
+      - name: Upload immutable production release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: hs-arena-release-${{ github.sha }}
+          path: ${{ runner.temp }}/release-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
+          # release:create allowlists shipped files; .next must survive artifact upload.
+          include-hidden-files: true
+
+  validate:
+    name: Typecheck, lint and static gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       CLEAN_CODE_EVENT: ${{ github.event_name }}
@@ -49,29 +106,78 @@ jobs:
       - name: Check production dependencies
         run: npm audit --omit=dev --audit-level=critical
 
+      - name: Run release-blocking static checks
+        run: npm run verify:release:checks
+
+  test-suites:
+    name: Unit, integration, contract and smoke suites
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
       - name: Install identity TLS regression tools
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends nginx openssl
 
-      - name: Run release-blocking validation
-        run: npm run verify:release
-
-      - name: Create immutable production release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: npm run release:create -- --output="$RUNNER_TEMP/release-$GITHUB_SHA" --sha="$GITHUB_SHA"
-
-      - name: Upload immutable production release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v7
+      - name: Download validated build outputs
+        uses: actions/download-artifact@v8
         with:
-          name: hs-arena-release-${{ github.sha }}
-          path: ${{ runner.temp }}/release-${{ github.sha }}
-          if-no-files-found: error
-          retention-days: 7
-          compression-level: 6
-          # release:create allowlists shipped files; .next must survive artifact upload.
-          include-hidden-files: true
+          name: build-outputs-${{ github.sha }}
+
+      - name: Run registered non-browser suites
+        run: npm run test:suite -- unit,integration,contract,production-smoke
+
+  browser-tests:
+    name: Browser suite (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    strategy:
+      # Every shard reports its own result; one failure must not hide the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Download validated build outputs
+        uses: actions/download-artifact@v8
+        with:
+          name: build-outputs-${{ github.sha }}
+
+      - name: Run registered browser shard
+        run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once
 
   browser-observatory:
     name: Full browser observatory
@@ -99,7 +205,7 @@ jobs:
 
   deploy-production:
     name: Deploy validated release to production
-    needs: [validate, browser-observatory]
+    needs: [build, validate, test-suites, browser-tests, browser-observatory]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, linux, x64, hs-arena-production]
     timeout-minutes: 25

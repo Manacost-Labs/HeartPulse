@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
+import { planShards, TEST_SUITE_IDS, validateTestDurations } from '../scripts/test-suite-runner.mjs';
+
 const workflow = readFileSync('.github/workflows/scrape.yml', 'utf8');
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8');
 const mobileVisualWorkflow = readFileSync('.github/workflows/mobile-visual.yml', 'utf8');
@@ -37,7 +39,91 @@ assert.match(
   /concurrency:\s+group:\s*validation-\$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}\s+cancel-in-progress:\s*\$\{\{ github\.ref != 'refs\/heads\/main' \}\}/,
   'a newer validation run must not cancel an in-flight main deployment or its post-deploy evidence',
 );
-assert.match(ciWorkflow, /run:\s*npm run verify:release/);
+
+// Each top-level job of ci.yml as text, keyed by job id.
+const ciJobs = Object.fromEntries([...ciWorkflow.slice(ciWorkflow.indexOf('\njobs:\n'))
+  .matchAll(/^ {2}([a-z][a-z-]*):\n([\s\S]*?)(?=^ {2}[a-z][a-z-]*:\n|(?![\s\S]))/gm)]
+  .map(([, id, body]) => [id, body]));
+assert.deepEqual(
+  Object.keys(ciJobs),
+  ['build', 'validate', 'test-suites', 'browser-tests', 'browser-observatory', 'deploy-production'],
+);
+for (const [id, body] of Object.entries(ciJobs)) {
+  assert.match(body, /^ {4}timeout-minutes: \d+$/m, `${id} must bound its runtime`);
+}
+assert.match(ciJobs.build, /^ {4}timeout-minutes: 15$/m);
+assert.match(ciJobs.validate, /^ {4}timeout-minutes: 15$/m);
+assert.match(ciJobs['test-suites'], /^ {4}timeout-minutes: 15$/m);
+assert.match(ciJobs['browser-tests'], /^ {4}timeout-minutes: 15$/m);
+
+// The hosted jobs split `npm run verify:release` without dropping a command:
+// static checks, one build, and the registry suites run in parallel jobs.
+const packageScripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts;
+const npmCommands = script => packageScripts[script].split(' && ').map(command => command.trim());
+const releaseCommands = npmCommands('verify:release');
+const checkCommands = npmCommands('verify:release:checks');
+const buildCommands = npmCommands('verify:release:build');
+assert.deepEqual(
+  [...checkCommands, ...buildCommands, 'npm test'].sort(),
+  [...releaseCommands].sort(),
+  'CI phases must run exactly the verify:release commands',
+);
+for (const phase of [checkCommands, buildCommands]) {
+  assert.deepEqual(releaseCommands.filter(command => phase.includes(command)), phase,
+    'each CI phase keeps the verify:release order');
+}
+assert.match(ciJobs.validate, /- name: Run release-blocking static checks\s+run: npm run verify:release:checks$/m);
+assert.match(ciJobs.validate, /fetch-depth: 0/, 'the clean-code gate needs the diff base history');
+assert.match(ciJobs.validate, /run: npm audit --omit=dev --audit-level=critical/);
+assert.match(ciJobs.build, /- name: Build and smoke-test release inputs\s+run: npm run verify:release:build$/m);
+for (const [id, body] of Object.entries(ciJobs)) {
+  if (id === 'build') continue;
+  assert.doesNotMatch(body, /npm run (?:build|verify:release:build|release:create)\b/,
+    `${id} must not build or package a second release`);
+}
+assert.match(ciJobs['browser-observatory'], /run: npm run qa:ci/);
+
+const buildOutputsName = 'name: build-outputs-${{ github.sha }}';
+assert.match(ciJobs.build, /- name: Upload validated build outputs\s+uses: actions\/upload-artifact@v7/);
+for (const directory of ['build', 'dist', 'storybook-static', 'apps/public-web/.next', '!apps/public-web/.next/cache']) {
+  assert.match(ciJobs.build, new RegExp(`^ {12}${directory.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}$`, 'm'));
+}
+assert.match(ciJobs.build, /retention-days: 1\s+# [^\n]+\s+overwrite: true\s+include-hidden-files: true/);
+for (const job of ['test-suites', 'browser-tests']) {
+  assert.match(ciJobs[job], /^ {4}needs: build$/m, `${job} must test the built outputs`);
+  assert.ok(ciJobs[job].includes(buildOutputsName), `${job} must download the validated build outputs`);
+  assert.match(ciJobs[job], /uses: actions\/download-artifact@v8/);
+}
+const releaseCreateIndex = ciJobs.build.indexOf('- name: Create immutable production release');
+assert.ok(ciJobs.build.indexOf('- name: Build and smoke-test release inputs') < ciJobs.build.indexOf('- name: Upload validated build outputs'));
+assert.ok(ciJobs.build.indexOf('- name: Upload validated build outputs') < releaseCreateIndex,
+  'the release is packaged from the outputs the test jobs receive');
+assert.ok(ciJobs.build.includes('hs-arena-release-${{ github.sha }}'), 'only the build job packages the release');
+assert.match(ciJobs['test-suites'], /sudo apt-get install -y --no-install-recommends nginx openssl/,
+  'the identity TLS and nginx regression tests need the system tools');
+
+// The registry suites: browser is sharded, everything else runs once.
+const suiteRun = ciJobs['test-suites'].match(/run: npm run test:suite -- ([a-z,-]+)$/m)?.[1];
+assert.ok(suiteRun, 'the non-browser job must run registry suites');
+assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
+  'every registry suite runs in exactly one job');
+assert.match(ciJobs['browser-tests'], /strategy:\n(?: {6}#[^\n]*\n)? {6}fail-fast: false\n/,
+  'a failing shard must not cancel and hide the other shards');
+const shardList = ciJobs['browser-tests'].match(/^ {8}shard: \[([0-9, ]+)\]$/m)?.[1].split(',').map(Number);
+assert.ok(shardList && shardList.length >= 2, 'the browser suite must be sharded');
+assert.deepEqual(shardList, shardList.map((_, index) => index + 1), 'shards are numbered 1..N');
+assert.match(
+  ciJobs['browser-tests'],
+  /- name: Run registered browser shard\s+run: npm run test:suite -- browser --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --retry-failed-once$/m,
+  'shards derive the total from the matrix and retry a failing file exactly once',
+);
+assert.equal(packageScripts['test:suite'], 'node scripts/test-suite-runner.mjs --suite');
+const testRegistry = JSON.parse(readFileSync('tests/test-suites.json', 'utf8'));
+const browserFiles = testRegistry.suites.find(suite => suite.id === 'browser').files;
+const shardFiles = planShards(browserFiles, shardList.length,
+  validateTestDurations(JSON.parse(readFileSync('tests/test-durations.json', 'utf8')))).flat();
+assert.deepEqual([...shardFiles].sort(), [...browserFiles].sort(),
+  'the CI shards together run every registered browser file exactly once');
 assert.match(ciWorkflow, /CLEAN_CODE_EVENT:\s*\$\{\{ github\.event_name \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_PUSH_BEFORE:\s*\$\{\{ github\.event\.before \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_PR_BASE_SHA:\s*\$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
@@ -69,7 +155,8 @@ assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);
 assert.match(ciWorkflow, /if-no-files-found:\s*error/);
 assert.match(ciWorkflow, /retention-days:\s*7/);
 assert.match(ciWorkflow, /^\s*deploy-production:\s*$/m);
-assert.match(ciWorkflow, /deploy-production:[\s\S]*needs:\s*\[validate,\s*browser-observatory\]/);
+assert.match(ciJobs['deploy-production'], /^ {4}needs: \[build, validate, test-suites, browser-tests, browser-observatory\]$/m,
+  'production waits for every validation job');
 assert.match(ciWorkflow, /if:\s*github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
 assert.match(ciWorkflow, /runs-on:\s*\[self-hosted,\s*linux,\s*x64,\s*hs-arena-production\]/);
 assert.match(ciWorkflow, /environment:\s*\n\s*name:\s*production\s*\n\s*url:\s*https:\/\/hearthpulse\.net/);

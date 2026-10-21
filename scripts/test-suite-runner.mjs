@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { appendFileSync, readFileSync, readdirSync } from 'node:fs';
 import { constants as osConstants } from 'node:os';
+import { performance } from 'node:perf_hooks';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -223,6 +224,7 @@ function runChild(
       const error = new Error(`${testFile} interrupted by ${signal}`);
       error.signal = signal;
       error.testFile = testFile;
+      error.interrupted = true;
       return error;
     };
     const forceKill = () => {
@@ -298,6 +300,94 @@ function runChild(
   });
 }
 
+/**
+ * Parses a `--shard` value such as `2/6` into a 1-based shard index and total.
+ */
+export function parseShard(value) {
+  const match = /^([1-9][0-9]*)\/([1-9][0-9]*)$/.exec(String(value));
+  const index = match ? Number(match[1]) : 0;
+  const total = match ? Number(match[2]) : 0;
+  if (!match || index > total) throw new Error(`invalid shard: ${String(value)} (expected <index>/<total>, 1 <= index <= total)`);
+  return { index, total };
+}
+
+export function validateTestDurations(durations) {
+  if (!isRecord(durations) || durations.version !== 1) throw new Error('test durations version must be 1');
+  const positive = value => typeof value === 'number' && Number.isFinite(value) && value > 0;
+  if (!positive(durations.defaultSeconds)) throw new Error('test durations defaultSeconds must be a positive number');
+  if (!isRecord(durations.seconds)) throw new Error('test durations seconds must be an object');
+  for (const [testFile, seconds] of Object.entries(durations.seconds)) {
+    validateTestPath(testFile);
+    if (!positive(seconds)) throw new Error(`test duration for ${testFile} must be a positive number`);
+  }
+  return durations;
+}
+
+/**
+ * Splits `items` into `total` disjoint shards whose summed historical durations
+ * are as even as a greedy longest-first assignment gets. Every item lands in
+ * exactly one shard, each shard keeps the input order, and the result depends
+ * only on the inputs, so every CI shard computes the same partition on its own.
+ * Files without a recorded duration weigh `defaultSeconds`.
+ */
+export function planShards(items, total, durations, fileOf = item => item) {
+  if (!Number.isInteger(total) || total < 1) throw new Error(`invalid shard total: ${String(total)}`);
+  const weightOf = item => durations?.seconds?.[fileOf(item)] ?? durations?.defaultSeconds ?? 1;
+  const loads = Array.from({ length: total }, () => 0);
+  const assignment = new Map();
+  const longestFirst = items
+    .map((item, position) => ({ item, position, weight: weightOf(item) }))
+    .sort((left, right) => right.weight - left.weight || left.position - right.position);
+  for (const { position, weight } of longestFirst) {
+    let lightest = 0;
+    for (let shard = 1; shard < total; shard += 1) if (loads[shard] < loads[lightest]) lightest = shard;
+    loads[lightest] += weight;
+    assignment.set(position, lightest);
+  }
+  const shards = Array.from({ length: total }, () => []);
+  items.forEach((item, position) => shards[assignment.get(position)].push(item));
+  return shards;
+}
+
+function formatSeconds(milliseconds) {
+  return `${(milliseconds / 1000).toFixed(1)}s`;
+}
+
+const SUMMARY_ICONS = { PASS: '✅', FLAKY: '⚠️', FAIL: '❌', 'NOT RUN': '⏭️' };
+
+function writeStepSummary(summaryPath, { title, results, executed, selected, flaky }) {
+  if (!summaryPath) return;
+  const lines = [
+    `### ${title}`,
+    '',
+    `Executed ${executed} of ${selected} selected files; flaky: ${flaky.length}.`,
+    ...(flaky.length > 0
+      ? ['', `**FLAKY** (failed once, passed on the single retry): ${flaky.map(file => `\`${file}\``).join(', ')}`]
+      : []),
+    '',
+    '| Result | File | Duration |',
+    '| --- | --- | --- |',
+    ...results.map(({ status, testFile, milliseconds, note }) =>
+      `| ${SUMMARY_ICONS[status]} ${status} | \`${testFile}\` | ${milliseconds === null ? '-' : formatSeconds(milliseconds)}${note ? ` (${note})` : ''} |`),
+    '',
+  ];
+  appendFileSync(summaryPath, `${lines.join('\n')}\n`);
+}
+
+// A nonzero exit or a crash of the test process itself may be a flake; an
+// interruption of the runner or a failure to start the process is not.
+function isRetryable(error) {
+  return !error.interrupted && (Number.isInteger(error.exitCode) || typeof error.signal === 'string');
+}
+
+/**
+ * Runs the selected registry suites sequentially, one child process per file.
+ *
+ * `shard` restricts the run to one deterministic slice of the selected files
+ * (see `planShards`). `retryFailedOnce` reruns a failing file exactly once:
+ * a pass on the retry is reported as FLAKY in the log, as a GitHub warning
+ * annotation and in the step summary; a second failure fails the run.
+ */
 export async function runTestRegistry(registry, options) {
   const {
     repositoryRoot,
@@ -307,30 +397,75 @@ export async function runTestRegistry(registry, options) {
     killImpl = terminateChild,
     logger = message => console.log(message),
     suiteIds = TEST_SUITE_IDS,
+    shard = null,
+    durations = null,
+    retryFailedOnce = false,
+    summaryPath = null,
+    annotations = false,
+    clock = () => performance.now(),
   } = options;
   const validated = validateTestRegistry(registry, { repositoryRoot });
   const selectedSuites = new Set(suiteIds);
   const unknownSuiteIds = [...selectedSuites].filter(id => !TEST_SUITE_IDS.includes(id));
   if (unknownSuiteIds.length > 0) throw new Error(`unknown suite: ${unknownSuiteIds.join(', ')}`);
 
+  const selected = registry.suites
+    .filter(suite => selectedSuites.has(suite.id))
+    .flatMap(suite => suite.files.map(testFile => ({ suiteId: suite.id, testFile })));
+  const planned = shard
+    ? planShards(selected, shard.total, durations, item => item.testFile)[shard.index - 1]
+    : selected;
+  const shardLabel = shard ? ` shard=${shard.index}/${shard.total}` : '';
+  if (shard) {
+    logger(`[test-suite] SHARD ${shard.index}/${shard.total} files=${planned.length} of selected=${selected.length}`);
+  }
+
+  const results = planned.map(({ testFile }) => ({ status: 'NOT RUN', testFile, milliseconds: null, note: '' }));
+  const flaky = [];
   let executed = 0;
-  for (const suite of registry.suites) {
-    if (!selectedSuites.has(suite.id)) continue;
-    for (const testFile of suite.files) {
-      executed += 1;
-      logger(`[test-suite] START ${suite.id} ${testFile}`);
-      const environment = {
-        ...parentEnv,
-        ...(registry.fileEnvironment[testFile] ?? {}),
-      };
+  const summaryLine = () => `[test-suite] SUMMARY executed=${executed} registered=${validated.files.length}`;
+  const finish = () => writeStepSummary(summaryPath, {
+    title: `Test suites: ${[...selectedSuites].join(', ')}${shard ? ` · shard ${shard.index}/${shard.total}` : ''}`,
+    results,
+    executed,
+    selected: planned.length,
+    flaky,
+  });
+  for (const [position, { suiteId, testFile }] of planned.entries()) {
+    executed += 1;
+    logger(`[test-suite] START ${suiteId} ${testFile}`);
+    const environment = {
+      ...parentEnv,
+      ...(registry.fileEnvironment[testFile] ?? {}),
+    };
+    const startedAt = clock();
+    const attempt = () => runChild(testFile, repositoryRoot, environment, spawnImpl, signalEmitter, killImpl);
+    const fail = error => {
+      results[position] = { status: 'FAIL', testFile, milliseconds: clock() - startedAt, note: error.message };
+      logger(`[test-suite] FAIL ${suiteId} ${testFile}`);
+      if (annotations) logger(`::error title=Test failed::${testFile}: ${error.message}`);
+      logger(`${summaryLine()}${shardLabel}`);
+      finish();
+      throw error;
+    };
+    try {
+      await attempt();
+      results[position] = { status: 'PASS', testFile, milliseconds: clock() - startedAt, note: '' };
+      logger(`[test-suite] PASS ${suiteId} ${testFile}`);
+    } catch (error) {
+      if (!retryFailedOnce || !isRetryable(error)) fail(error);
+      logger(`[test-suite] RETRY ${suiteId} ${testFile} after: ${error.message}`);
       try {
-        await runChild(testFile, repositoryRoot, environment, spawnImpl, signalEmitter, killImpl);
-        logger(`[test-suite] PASS ${suite.id} ${testFile}`);
-      } catch (error) {
-        logger(`[test-suite] FAIL ${suite.id} ${testFile}`);
-        logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length}`);
-        throw error;
+        await attempt();
+      } catch (retryError) {
+        fail(retryError);
       }
+      flaky.push(testFile);
+      results[position] = {
+        status: 'FLAKY', testFile, milliseconds: clock() - startedAt, note: `first attempt: ${error.message}`,
+      };
+      logger(`[test-suite] FLAKY ${suiteId} ${testFile}`);
+      if (annotations) logger(`::warning title=FLAKY test::${testFile} failed once (${error.message}) and passed on the single retry`);
     }
   }
   const summary = {
@@ -338,7 +473,10 @@ export async function runTestRegistry(registry, options) {
     registered: validated.files.length,
     excluded: validated.excluded,
   };
-  logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length} excluded=${validated.excluded}`);
+  if (shard) summary.shard = `${shard.index}/${shard.total}`;
+  if (retryFailedOnce) summary.flaky = flaky;
+  logger(`${summaryLine()} excluded=${validated.excluded}${shardLabel}${retryFailedOnce ? ` flaky=${flaky.length}` : ''}`);
+  finish();
   return summary;
 }
 
@@ -355,25 +493,55 @@ function printValidationSummary(validated) {
   );
 }
 
+const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once]';
+
+/** Parses runner arguments; exported for the CLI contract tests. */
+export function parseRunnerArguments(args) {
+  if (args.length === 1 && args[0] === '--validate') return { validate: true };
+  const [mode, ...rest] = args;
+  let suiteIds;
+  if (mode === '--all') {
+    suiteIds = [...TEST_SUITE_IDS];
+  } else if (mode === '--suite' && rest.length > 0 && !rest[0].startsWith('--')) {
+    suiteIds = rest.shift().split(',');
+  } else {
+    throw new Error(USAGE);
+  }
+  const options = { validate: false, suiteIds, shard: null, retryFailedOnce: false };
+  while (rest.length > 0) {
+    const flag = rest.shift();
+    if (flag === '--shard' && rest.length > 0 && !options.shard) {
+      options.shard = parseShard(rest.shift());
+    } else if (flag === '--retry-failed-once' && !options.retryFailedOnce) {
+      options.retryFailedOnce = true;
+    } else {
+      throw new Error(USAGE);
+    }
+  }
+  return options;
+}
+
 async function main() {
   const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const registryPath = path.join(repositoryRoot, 'tests', 'test-suites.json');
   const registry = loadTestRegistry(registryPath);
-  const args = process.argv.slice(2);
+  const options = parseRunnerArguments(process.argv.slice(2));
 
-  if (args.length === 1 && args[0] === '--validate') {
+  if (options.validate) {
     printValidationSummary(validateTestRegistry(registry, { repositoryRoot }));
     return;
   }
-  if (args.length === 1 && args[0] === '--all') {
-    await runTestRegistry(registry, { repositoryRoot });
-    return;
-  }
-  if (args.length === 2 && args[0] === '--suite') {
-    await runTestRegistry(registry, { repositoryRoot, suiteIds: [args[1]] });
-    return;
-  }
-  throw new Error('usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>>');
+  await runTestRegistry(registry, {
+    repositoryRoot,
+    suiteIds: options.suiteIds,
+    shard: options.shard,
+    durations: options.shard
+      ? validateTestDurations(loadTestRegistry(path.join(repositoryRoot, 'tests', 'test-durations.json')))
+      : null,
+    retryFailedOnce: options.retryFailedOnce,
+    summaryPath: process.env.GITHUB_STEP_SUMMARY || null,
+    annotations: process.env.GITHUB_ACTIONS === 'true',
+  });
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : '';

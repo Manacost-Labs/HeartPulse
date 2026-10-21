@@ -13,8 +13,12 @@ import test from 'node:test';
 
 import {
   discoverTestFiles,
+  parseRunnerArguments,
+  parseShard,
+  planShards,
   TEST_SUITE_IDS,
   runTestRegistry,
+  validateTestDurations,
   validateTestRegistry,
 } from '../scripts/test-suite-runner.mjs';
 
@@ -427,4 +431,214 @@ test('release and CI gates rely on the registry without rerunning registered fil
       assert.ok(!command.includes(`npm run ${focusedCommand}`), `${gate} duplicates ${focusedCommand}`);
     }
   }
+});
+
+test('parses shard specifications and rejects malformed ones', () => {
+  assert.deepEqual(parseShard('1/1'), { index: 1, total: 1 });
+  assert.deepEqual(parseShard('6/6'), { index: 6, total: 6 });
+  for (const value of ['0/6', '7/6', '1/0', '-1/6', '1/6/2', '1.5/6', ' 1/6', '1/', '/6', '', 'a/b']) {
+    assert.throws(() => parseShard(value), /invalid shard/, value);
+  }
+});
+
+test('parses runner arguments strictly', () => {
+  assert.deepEqual(parseRunnerArguments(['--validate']), { validate: true });
+  assert.deepEqual(parseRunnerArguments(['--all']).suiteIds, TEST_SUITE_IDS);
+  assert.deepEqual(parseRunnerArguments(['--suite', 'browser', '--shard', '2/6', '--retry-failed-once']), {
+    validate: false,
+    suiteIds: ['browser'],
+    shard: { index: 2, total: 6 },
+    retryFailedOnce: true,
+  });
+  assert.deepEqual(parseRunnerArguments(['--suite', 'unit,integration']).suiteIds, ['unit', 'integration']);
+  for (const args of [
+    [], ['--suite'], ['--suite', '--shard', '1/2'], ['--all', '--shard'], ['--all', '--shard', '1/2', '--shard', '2/2'],
+    ['--all', '--retry-failed-once', '--retry-failed-once'], ['--all', '--unknown'], ['--validate', '--all'],
+  ]) {
+    assert.throws(() => parseRunnerArguments(args), /usage:/, args.join(' '));
+  }
+  assert.throws(() => parseRunnerArguments(['--all', '--shard', '3/2']), /invalid shard/);
+});
+
+test('validates the historical duration file', () => {
+  const valid = { version: 1, defaultSeconds: 15, seconds: { 'tests/a.test.mjs': 2.5 } };
+  assert.equal(validateTestDurations(valid), valid);
+  assert.throws(() => validateTestDurations({ ...valid, version: 2 }), /version/);
+  assert.throws(() => validateTestDurations({ ...valid, defaultSeconds: 0 }), /defaultSeconds/);
+  assert.throws(() => validateTestDurations({ ...valid, seconds: { 'tests/a.test.mjs': -1 } }), /positive/);
+  assert.throws(() => validateTestDurations({ ...valid, seconds: { '../a.test.mjs': 1 } }), /unsafe test path/);
+  const repositoryDurations = JSON.parse(readFileSync(new URL('../tests/test-durations.json', import.meta.url), 'utf8'));
+  validateTestDurations(repositoryDurations);
+});
+
+test('every planned file lands in exactly one shard, in registry order', () => {
+  const durations = { version: 1, defaultSeconds: 5, seconds: {} };
+  for (let count = 0; count <= 23; count += 1) {
+    const files = Array.from({ length: count }, (_, index) => `tests/f${String(index).padStart(2, '0')}.test.mjs`);
+    files.forEach((file, index) => { durations.seconds[file] = ((index * 37) % 11) + 1; });
+    for (let total = 1; total <= 8; total += 1) {
+      const shards = planShards(files, total, durations);
+      assert.equal(shards.length, total);
+      assert.deepEqual(shards.flat().sort(), [...files].sort(), `count=${count} total=${total}`);
+      for (const shard of shards) {
+        assert.deepEqual(shard, files.filter(file => shard.includes(file)), 'a shard keeps the registry order');
+      }
+      assert.deepEqual(planShards(files, total, durations), shards, 'planning is deterministic');
+    }
+  }
+  assert.throws(() => planShards(['tests/a.test.mjs'], 0, durations), /invalid shard total/);
+});
+
+test('balances shards by historical duration and weighs unknown files by the default', () => {
+  const durations = {
+    version: 1,
+    defaultSeconds: 10,
+    seconds: { 'tests/slow.test.mjs': 100, 'tests/medium.test.mjs': 50, 'tests/small.test.mjs': 40 },
+  };
+  const files = ['tests/small.test.mjs', 'tests/unknown-a.test.mjs', 'tests/slow.test.mjs',
+    'tests/unknown-b.test.mjs', 'tests/medium.test.mjs'];
+  // Longest first: slow(100) | medium(50) + small(40) + unknown-a(10) | the tie at 100 goes to shard 1.
+  assert.deepEqual(planShards(files, 2, durations), [
+    ['tests/slow.test.mjs', 'tests/unknown-b.test.mjs'],
+    ['tests/small.test.mjs', 'tests/unknown-a.test.mjs', 'tests/medium.test.mjs'],
+  ]);
+
+  const registry = JSON.parse(readFileSync(new URL('../tests/test-suites.json', import.meta.url), 'utf8'));
+  const repositoryDurations = JSON.parse(readFileSync(new URL('../tests/test-durations.json', import.meta.url), 'utf8'));
+  const browserFiles = registry.suites.find(suite => suite.id === 'browser').files;
+  const weight = file => repositoryDurations.seconds[file] ?? repositoryDurations.defaultSeconds;
+  const totalSeconds = browserFiles.reduce((sum, file) => sum + weight(file), 0);
+  const longest = Math.max(...browserFiles.map(weight));
+  for (let total = 1; total <= 8; total += 1) {
+    const loads = planShards(browserFiles, total, repositoryDurations)
+      .map(shard => shard.reduce((sum, file) => sum + weight(file), 0));
+    // Greedy longest-first is within one longest file of the perfect split.
+    assert.ok(Math.max(...loads) <= totalSeconds / total + longest, `total=${total} loads=${loads.join(',')}`);
+  }
+});
+
+test('shard runs execute every selected file exactly once across all shards', async () => {
+  await withRepository(async repositoryRoot => {
+    const browserFiles = Array.from({ length: 7 }, (_, index) => `tests/b${index}.test.mjs`);
+    const unitFiles = ['tests/u0.test.ts', 'tests/u1.test.ts'];
+    for (const file of [...browserFiles, ...unitFiles]) writeFixture(repositoryRoot, file);
+    const fixture = registry([], {
+      suites: [{ id: 'unit', files: unitFiles }, { id: 'browser', files: browserFiles }],
+    });
+    const durations = { version: 1, defaultSeconds: 1, seconds: { 'tests/b3.test.mjs': 9 } };
+    const executed = [];
+    const messages = [];
+    for (let index = 1; index <= 3; index += 1) {
+      const summary = await runTestRegistry(fixture, {
+        repositoryRoot,
+        suiteIds: ['browser'],
+        shard: { index, total: 3 },
+        durations,
+        spawnImpl: (command, args) => {
+          executed.push(args.at(-1));
+          return completedChild();
+        },
+        logger: message => messages.push(message),
+      });
+      assert.equal(summary.shard, `${index}/3`);
+    }
+    assert.deepEqual([...executed].sort(), [...browserFiles].sort());
+    assert.ok(messages.includes('[test-suite] SHARD 1/3 files=1 of selected=7'), messages.join('\n'));
+    assert.ok(messages.some(message => /^\[test-suite\] SUMMARY executed=1 registered=9 excluded=0 shard=1\/3$/.test(message)));
+  });
+});
+
+test('a file that fails once and passes on the single retry is reported as FLAKY', async () => {
+  await withRepository(async repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/flaky.test.mjs');
+    writeFixture(repositoryRoot, 'tests/stable.test.mjs');
+    const summaryPath = path.join(repositoryRoot, 'summary.md');
+    const exitCodes = { 'tests/flaky.test.mjs': [1, 0], 'tests/stable.test.mjs': [0] };
+    const messages = [];
+    let now = 0;
+
+    const summary = await runTestRegistry(registry([], {
+      suites: [{ id: 'browser', files: ['tests/flaky.test.mjs', 'tests/stable.test.mjs'] }],
+    }), {
+      repositoryRoot,
+      suiteIds: ['browser'],
+      retryFailedOnce: true,
+      summaryPath,
+      annotations: true,
+      clock: () => (now += 1500),
+      spawnImpl: (command, args) => completedChild(exitCodes[args.at(-1)].shift()),
+      logger: message => messages.push(message),
+    });
+
+    assert.deepEqual(summary.flaky, ['tests/flaky.test.mjs']);
+    assert.deepEqual(messages, [
+      '[test-suite] START browser tests/flaky.test.mjs',
+      '[test-suite] RETRY browser tests/flaky.test.mjs after: tests/flaky.test.mjs exited with code 1',
+      '[test-suite] FLAKY browser tests/flaky.test.mjs',
+      '::warning title=FLAKY test::tests/flaky.test.mjs failed once (tests/flaky.test.mjs exited with code 1) and passed on the single retry',
+      '[test-suite] START browser tests/stable.test.mjs',
+      '[test-suite] PASS browser tests/stable.test.mjs',
+      '[test-suite] SUMMARY executed=2 registered=2 excluded=0 flaky=1',
+    ]);
+    const markdown = readFileSync(summaryPath, 'utf8');
+    assert.match(markdown, /\*\*FLAKY\*\* \(failed once, passed on the single retry\): `tests\/flaky\.test\.mjs`/);
+    assert.match(markdown, /\| ⚠️ FLAKY \| `tests\/flaky\.test\.mjs` \| 1\.5s \(first attempt: tests\/flaky\.test\.mjs exited with code 1\) \|/);
+    assert.match(markdown, /\| ✅ PASS \| `tests\/stable\.test\.mjs` \| 1\.5s \|/);
+  });
+});
+
+test('a second failure after the retry fails the run and leaves later files unrun', async () => {
+  await withRepository(async repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/broken.test.mjs');
+    writeFixture(repositoryRoot, 'tests/later.test.mjs');
+    const summaryPath = path.join(repositoryRoot, 'summary.md');
+    const exitCodes = [3, 4];
+    const messages = [];
+
+    await assert.rejects(
+      runTestRegistry(registry([], {
+        suites: [{ id: 'browser', files: ['tests/broken.test.mjs', 'tests/later.test.mjs'] }],
+      }), {
+        repositoryRoot,
+        suiteIds: ['browser'],
+        retryFailedOnce: true,
+        summaryPath,
+        spawnImpl: () => completedChild(exitCodes.shift()),
+        logger: message => messages.push(message),
+      }),
+      error => error.exitCode === 4 && error.testFile === 'tests/broken.test.mjs',
+    );
+    assert.deepEqual(exitCodes, [], 'exactly one retry');
+    assert.deepEqual(messages, [
+      '[test-suite] START browser tests/broken.test.mjs',
+      '[test-suite] RETRY browser tests/broken.test.mjs after: tests/broken.test.mjs exited with code 3',
+      '[test-suite] FAIL browser tests/broken.test.mjs',
+      '[test-suite] SUMMARY executed=1 registered=2',
+    ]);
+    const markdown = readFileSync(summaryPath, 'utf8');
+    assert.match(markdown, /\| ❌ FAIL \| `tests\/broken\.test\.mjs` \| [0-9.]+s \(tests\/broken\.test\.mjs exited with code 4\) \|/);
+    assert.match(markdown, /\| ⏭️ NOT RUN \| `tests\/later\.test\.mjs` \| - \|/);
+  });
+});
+
+test('a test process that cannot start is not retried', async () => {
+  await withRepository(async repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/missing-runtime.test.mjs');
+    let calls = 0;
+    await assert.rejects(
+      runTestRegistry(registry(['tests/missing-runtime.test.mjs']), {
+        repositoryRoot,
+        retryFailedOnce: true,
+        spawnImpl: () => {
+          calls += 1;
+          const child = new EventEmitter();
+          queueMicrotask(() => child.emit('error', Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' })));
+          return child;
+        },
+        logger: () => {},
+      }),
+      /spawn ENOENT/,
+    );
+    assert.equal(calls, 1);
+  });
 });
