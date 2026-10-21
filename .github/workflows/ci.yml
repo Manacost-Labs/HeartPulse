@@ -58,7 +58,8 @@ jobs:
             apps/public-web/.next
             !apps/public-web/.next/cache
           if-no-files-found: error
-          retention-days: 1
+          # Long enough to re-run a failed shard the next day without a rebuild.
+          retention-days: 3
           # A full re-run rebuilds the same SHA and replaces the first attempt's outputs.
           overwrite: true
           include-hidden-files: true
@@ -76,6 +77,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 6
+          # A full re-run repackages the same SHA; deploy reads the current attempt.
+          overwrite: true
           # release:create allowlists shipped files; .next must survive artifact upload.
           include-hidden-files: true
 

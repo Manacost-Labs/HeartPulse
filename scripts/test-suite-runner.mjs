@@ -438,7 +438,7 @@ export async function runTestRegistry(registry, options) {
     logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length}${shardLabel}${
       failures.length > 1 ? ` failed=${failures.length}` : ''}`);
     finish();
-    if (failures.length > 1) {
+    if (failures.length > 1 && !error.interrupted) {
       error.message = `${failures.length} test files failed: ${failures.map(({ testFile }) => testFile).join(', ')}`;
     }
     throw error;
@@ -476,7 +476,8 @@ export async function runTestRegistry(registry, options) {
       logger(`[test-suite] FAIL ${suiteId} ${testFile}`);
       if (annotations) logger(`::error title=Test failed::${testFile}: ${finalError.message}`);
       // An interrupted runner never continues, so a cancelled job stops promptly.
-      if (!continueOnFailure || finalError.interrupted) stop(failures[0].error);
+      if (finalError.interrupted) stop(finalError);
+      if (!continueOnFailure) stop(failures[0].error);
     } else if (firstError) {
       flaky.push(testFile);
       results[position] = { status: 'FLAKY', testFile, milliseconds, note: `first attempt: ${firstError.message}` };

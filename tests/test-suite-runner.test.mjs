@@ -709,3 +709,45 @@ test('continue-on-failure still stops when the runner is interrupted', async () 
     assert.equal(calls, 1, 'neither retried nor continued');
   });
 });
+
+test('a test process killed by a signal is retried once', async () => {
+  await withRepository(async repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/oom.test.mjs');
+    const outcomes = [[null, 'SIGKILL'], [0, null]];
+    const messages = [];
+    const summary = await runTestRegistry(registry(['tests/oom.test.mjs']), {
+      repositoryRoot,
+      retryFailedOnce: true,
+      spawnImpl: () => completedChild(...outcomes.shift()),
+      logger: message => messages.push(message),
+    });
+    assert.deepEqual(summary.flaky, ['tests/oom.test.mjs']);
+    assert.ok(messages.includes('[test-suite] RETRY unit tests/oom.test.mjs after: tests/oom.test.mjs terminated by SIGKILL'));
+  });
+});
+
+test('an interruption after earlier failures reports the interruption', async () => {
+  await withRepository(async repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/failed.test.mjs');
+    writeFixture(repositoryRoot, 'tests/interrupted.test.mjs');
+    const signalEmitter = new EventEmitter();
+    let calls = 0;
+    await assert.rejects(
+      runTestRegistry(registry(['tests/failed.test.mjs', 'tests/interrupted.test.mjs']), {
+        repositoryRoot,
+        continueOnFailure: true,
+        signalEmitter,
+        killImpl: child => queueMicrotask(() => child.emit('close', null, 'SIGTERM')),
+        spawnImpl: () => {
+          calls += 1;
+          if (calls === 1) return completedChild(3);
+          queueMicrotask(() => signalEmitter.emit('SIGTERM'));
+          return new EventEmitter();
+        },
+        logger: () => {},
+      }),
+      error => error.interrupted === true && error.signal === 'SIGTERM'
+        && error.message === 'tests/interrupted.test.mjs interrupted by SIGTERM',
+    );
+  });
+});

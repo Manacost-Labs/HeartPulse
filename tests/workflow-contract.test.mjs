@@ -100,11 +100,19 @@ assert.match(ciJobs.build, /- name: Upload validated build outputs\s+uses: actio
 for (const directory of ['build', 'dist', 'storybook-static', 'apps/public-web/.next', '!apps/public-web/.next/cache']) {
   assert.match(ciJobs.build, new RegExp(`^ {12}${directory.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}$`, 'm'));
 }
-assert.match(ciJobs.build, /retention-days: 1\s+# [^\n]+\s+overwrite: true\s+include-hidden-files: true/);
+assert.match(ciJobs.build, /retention-days: 3\s+# [^\n]+\s+overwrite: true\s+include-hidden-files: true/);
+assert.match(ciJobs.build, /retention-days: 7\s+compression-level: 6\s+# [^\n]+\s+overwrite: true\s+# [^\n]+\s+include-hidden-files: true/,
+  'a full re-run on main can repackage the release of the same SHA');
+const pushToMain = "if: github.event_name == 'push' && github.ref == 'refs/heads/main'";
+for (const step of ['Create immutable production release', 'Upload immutable production release']) {
+  assert.ok(ciJobs.build.includes(`- name: ${step}\n        ${pushToMain}\n`), `${step} runs only for a push to main`);
+}
 for (const job of ['test-suites', 'browser-tests']) {
   assert.match(ciJobs[job], /^ {4}needs: build$/m, `${job} must test the built outputs`);
   assert.ok(ciJobs[job].includes(buildOutputsName), `${job} must download the validated build outputs`);
-  assert.match(ciJobs[job], /uses: actions\/download-artifact@v8/);
+  assert.match(ciJobs[job], /uses: actions\/download-artifact@v8\n {8}with:\n {10}name: build-outputs-\$\{\{ github\.sha \}\}\n\n/,
+    'outputs restore at their repository paths (no custom download path)');
+  assert.doesNotMatch(ciJobs[job], /continue-on-error/, `${job} failures must block production`);
 }
 const releaseCreateIndex = ciJobs.build.indexOf('- name: Create immutable production release');
 assert.ok(ciJobs.build.indexOf('- name: Build and smoke-test release inputs') < ciJobs.build.indexOf('- name: Upload validated build outputs'));
