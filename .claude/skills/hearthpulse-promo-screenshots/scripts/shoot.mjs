@@ -72,6 +72,8 @@ async function settle(page, target, settleMs) {
     images.forEach(image => { image.loading = 'eager'; });
     await Promise.all(images.map(image => image.complete ? image.decode().catch(() => {})
       : new Promise(done => { image.onload = image.onerror = done; setTimeout(done, 15_000); })));
+    // A shot without a target is the first screen of the page.
+    window.scrollTo(0, 0);
   }, target ?? null);
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
   await page.waitForTimeout(settleMs);
