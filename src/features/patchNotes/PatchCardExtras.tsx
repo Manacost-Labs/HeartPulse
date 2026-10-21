@@ -26,9 +26,9 @@ export function CopyLinkButton({ card }: { card: PatchCardView }) {
   };
   return (
     <button type="button" className="hp-patch-card__copy" onClick={() => void copy()}
-      aria-label={copied ? 'Ссылка скопирована' : `Скопировать ссылку на изменение «${card.name}»`}
-      title={copied ? 'Ссылка скопирована' : 'Ссылка на это изменение'}>
+      aria-label={copied ? 'Ссылка скопирована' : `Скопировать ссылку на изменение «${card.name}»`}>
       {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
+      {copied ? 'Скопировано' : 'Ссылка'}
     </button>
   );
 }
@@ -41,7 +41,7 @@ export function CardHistory({ card }: { card: PatchCardView }) {
   return (
     <p className="hp-patch-card__history">
       <History aria-hidden="true" />
-      <span>Менялась раньше:</span>
+      <span>Менялась в патчах</span>
       {card.history.map((item, index) => (
         <span key={item.version}>
           <a href={item.href} title={item.publishedAt ? versionDates.format(new Date(item.publishedAt)) : undefined}>{item.version}</a>

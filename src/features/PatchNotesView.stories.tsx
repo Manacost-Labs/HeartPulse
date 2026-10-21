@@ -54,32 +54,37 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const CardChanges: Story = {
-  parameters: { docs: { description: { story: 'Header with counts by kind and mode, filters, compact cards with was → now, picture-only sections and the archive.' } } },
+  parameters: { docs: { description: { story: 'Header with one tally, one sticky bar of modes, class/type, search and kind, and cards with only the render, the name and was → now. A short patch has no highlight cards: they would repeat the cards below.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const listed = () => canvasElement.querySelectorAll('.hp-patch-section article');
-    await expect(canvas.getByRole('heading', { name: 'Главное в патче' })).toBeVisible();
+    await expect(canvas.getByRole('heading', { level: 2, name: 'Балансные изменения Стандарта и Полей сражений' })).toBeVisible();
+    // Six changes are read whole: "Главное" keeps only the cards → archetypes flow.
+    await expect(canvasElement.querySelector('.hp-patch-highlights__list')).toBeNull();
     await expect(listed()).toHaveLength(6);
     await userEvent.click(canvas.getByRole('button', { name: /^Только нерфы/ }));
     await expect(canvas.getAllByRole('article')).toHaveLength(3);
-    await expect(canvas.queryByRole('heading', { name: 'Главное в патче' })).toBeNull();
     await userEvent.click(canvas.getByRole('button', { name: /^Все \d/ }));
     await userEvent.type(canvas.getByRole('searchbox'), 'booty');
     await expect(canvas.getAllByRole('article')).toHaveLength(1);
-    await expect(canvas.getByRole('heading', { name: 'Пойло из Пиратской Бухты' })).toBeVisible();
+    await expect(canvas.getByRole('heading', { name: /Пойло из Пиратской Бухты/ })).toBeVisible();
   },
 };
-export const MetaImpactAndFilters: Story = {
-  parameters: { docs: { description: { story: 'Affected archetypes first, archetype chips and history on cards, class/type strip filtering and the empty filter state.' } } },
+
+export const CardDetailsAndFilters: Story = {
+  parameters: { docs: { description: { story: 'The type, English name, archetypes and history of a card wait behind its "…"; the class/type select filters to one group; the empty filter state offers a reset.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Затронутые архетипы')).toBeVisible();
-    await expect(canvas.getByText(/Вольный: данные сейчас недоступны/)).toBeVisible();
-    await expect(canvas.getAllByRole('link', { name: /Воин на драконах/ })[0]).toHaveAttribute('href', '/standard/archetypes/standard/std-dragon-warrior/');
-    await expect(canvas.getAllByRole('link', { name: '36.0.3' })[0]).toHaveAttribute('href',
+    const serpent = canvas.getByRole('article', { name: /Змей ветреных вершин/ });
+    await expect(within(serpent).queryByRole('link', { name: /Воин на драконах/ })).not.toBeVisible();
+    await userEvent.click(within(serpent).getByLabelText('Подробнее: Змей ветреных вершин'));
+    await expect(within(serpent).getByRole('link', { name: /Воин на драконах/ })).toHaveAttribute('href', '/standard/archetypes/standard/std-dragon-warrior/');
+    await expect(canvas.getByText(/Вольный: данные сейчас недоступны/)).toBeInTheDocument();
+    const brew = canvas.getByRole('article', { name: /Пойло из Пиратской Бухты/ });
+    await userEvent.click(within(brew).getByLabelText(/^Подробнее/));
+    await expect(within(brew).getByRole('link', { name: '36.0.3' })).toHaveAttribute('href',
       '/standard/patches/?version=36.0.3#card-battlegrounds-малый-аксессуар-booty-bay-brew');
-    const strip = canvas.getByRole('group', { name: 'Изменения по классам и типам' });
-    await userEvent.click(within(strip).getByRole('button', { name: /Большой аксессуар/ }));
+    await userEvent.selectOptions(canvas.getByLabelText('Класс или тип карт'), 'Большой аксессуар · 1');
     await expect(canvasElement.querySelectorAll('.hp-patch-section article')).toHaveLength(1);
     await userEvent.type(canvas.getByRole('searchbox'), 'нет такой карты');
     await expect(canvas.getByText('Под эти фильтры не попало ни одно изменение.')).toBeVisible();
@@ -89,7 +94,7 @@ export const MetaImpactAndFilters: Story = {
 };
 
 export const CollapsedSection: Story = {
-  parameters: { docs: { description: { story: 'Section banners fold; a mode tile opens a folded section again.' } } },
+  parameters: { docs: { description: { story: 'Section banners fold; a mode link in the bar opens a folded section again.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const section = canvasElement.querySelector<HTMLDetailsElement>('#hp-patch-section-battlegrounds');
@@ -101,17 +106,19 @@ export const CollapsedSection: Story = {
     await expect(section?.open).toBe(true);
   },
 };
+
 export const PhoneVersionPicker: Story = {
-  parameters: { docs: { description: { story: 'Below 960 px of content width the version switcher sits above the patch, mode tiles go two by two and the header art becomes a top band.' } } },
+  parameters: { docs: { description: { story: 'On narrow content the header art becomes a top band and only the search and kind row sticks. Arrows go to the neighbouring patches, the select to any of them.' } } },
   decorators: [Story => <div style={{ width: 380 }}><Story /></div>],
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    const [switcher] = canvas.getAllByRole('navigation', { name: 'Версии патча' });
+    const switcher = canvas.getByRole('navigation', { name: 'Версии патча' });
     await expect(within(switcher).getByRole('link', { name: /новый патч 37\.0\.0/ })).toHaveAttribute('href', '/standard/patches/');
     await userEvent.selectOptions(within(switcher).getByLabelText('Версия патча'), '36.4.2');
     await expect(args.onSelectVersion).toHaveBeenCalledWith('/standard/patches/?version=36.4.2');
   },
 };
+
 export const OnlyNewValues: Story = {
   args: { patch: { ...patch, missingBefore: 1, pictureSections: [], generalChanges: [],
     entries: [{ ...patch.entries[0], changes: [{ label: 'Текст', after: 'Призывает древня 2/2 с Насмешкой.' }] }] } },
@@ -127,27 +134,35 @@ const standardCard = (id: string, name: string, cardClass: string, before: numbe
 });
 
 export const ConstructedLead: Story = {
-  parameters: { docs: { description: { story: 'A Standard-led patch: the most changed class leads the header art, the first highlights with wide wiki art become featured plates and costs read as mana gems.' } } },
+  parameters: { docs: { description: { story: 'A Standard-led patch: the most changed class leads the header art; four highlights, all with wide wiki art, stand on it two by two; costs read as mana gems.' } } },
   args: { patch: { ...patch, version: '35.4.2', entries: [
     standardCard('A1', 'Первая карта', 'DEMONHUNTER', 3, 2), standardCard('A2', 'Вторая карта', 'DEMONHUNTER', 5, 4),
     standardCard('A3', 'Третья карта', 'MAGE', 2, 3), standardCard('A4', 'Четвёртая карта', 'DEMONHUNTER', 4, 3),
-    ...patch.entries.slice(2),
+    standardCard('A5', 'Пятая карта', 'MAGE', 6, 5), standardCard('A6', 'Шестая карта', 'MAGE', 7, 6),
+    standardCard('A7', 'Седьмая карта', 'DEMONHUNTER', 1, 2),
+    // Two trinkets make a short section, read whole below, so every highlight is a Standard card with art.
+    ...patch.entries.slice(2, 4),
   ], pictureSections: [], generalChanges: [] } },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('.hp-patch-hero__plate')?.getAttribute('src')).toBe('/archetype-art/classes/demonhunter-1920.webp');
     await expect(within(canvasElement).getByText('Катаклизм')).toBeVisible();
-    await expect(canvasElement.querySelectorAll('.hp-patch-highlights__featured [data-featured]')).toHaveLength(2);
+    await expect(canvasElement.querySelectorAll('.hp-patch-highlights__list [data-plate]')).toHaveLength(4);
     await expect(canvasElement.querySelectorAll('.hp-change[data-stat="mana"] .hp-stat').length).toBeGreaterThan(0);
   },
 };
 
 export const ExpansionArchive: Story = {
-  parameters: { docs: { description: { story: 'The archive as a timeline of expansion cycles; the newest set has no glyph yet, so its seal shows the initial.' } } },
+  parameters: { docs: { description: { story: '"Все патчи" opens the archive drawer: a timeline of expansion cycles; the newest set has no glyph yet, so its seal shows the initial.' } } },
   play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Все патчи' }));
     const archive = within(canvasElement.querySelector<HTMLElement>('.hp-patch-archive') ?? canvasElement);
+    // The drawer slides in; visibility is asserted after that short animation.
+    await waitFor(() => expect(archive.getByRole('heading', { name: 'Все патчи' })).toBeVisible());
     await expect(archive.getByText('Власть Темной империи')).toBeVisible();
     await expect(archive.getByText('Побег из Аметистовой крепости')).toBeVisible();
     await expect(archive.getByRole('link', { name: /36\.6\.3/ })).toHaveAttribute('aria-current', 'page');
+    await userEvent.click(archive.getByRole('button', { name: 'Закрыть' }));
+    await expect(canvasElement.querySelector<HTMLDialogElement>('.hp-patch-drawer')?.open).toBe(false);
   },
 };
 

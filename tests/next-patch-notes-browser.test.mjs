@@ -30,7 +30,8 @@ test('patch notes render the stored article as compact change cards, and the hom
     const document = await fetch(`${pilot.origin}/standard/patches/`);
     assert.equal(document.status, 200);
     const html = await document.text();
-    assert.match(html, /Обновление 36\.6\.3: балансные изменения/, 'the newest patch with changes is in the server HTML');
+    assert.match(html, /Балансные изменения Стандарта и Полей сражений<\/h2>/, 'the newest patch with changes is in the server HTML, its title without the version prefix');
+    assert.match(html, /<option value="36\.6\.3" selected="">Патч 36\.6\.3<\/option>/, 'the version is the switcher');
     assert.match(html, /Змей ветреных вершин/);
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/patches\/"/);
     assert.match(html, /<link rel="preload" as="image" fetchPriority="high" imageSrcSet="\/(?:patch-notes|archetype-art\/classes)\//,
@@ -55,23 +56,29 @@ test('patch notes render the stored article as compact change cards, and the hom
       // The fixture blocks HearthstoneJSON, so Constructed cards stay unmatched; trinkets resolve through the catalog.
       ['Змей ветреных вершин', 'rework'], ['Паучок', 'nerf'], ['Пагубные благовония', 'buff'], ['Молот Сумерек', 'nerf'],
     ]);
-    const tiles = await page.$$eval('.hp-patch-mode', links => links.map(link => link.getAttribute('href')));
-    assert.deepEqual(tiles, await page.$$eval('.hp-patch-section', sections => sections.map(section => `#${section.id}`)),
-      'one mode tile per section, linking to it');
+    const modes = await page.$$eval('.hp-patch-bar__modes a', links => links.map(link => link.getAttribute('href')));
+    assert.deepEqual(modes, await page.$$eval('.hp-patch-section', sections => sections.map(section => `#${section.id}`)),
+      'the one bar links every section');
     assert.equal(await page.$$eval('.hp-patch-section .hp-change[data-stat="gold"] .hp-stat', nodes => nodes.length) > 0, true,
       'Battlegrounds costs are gold, not mana');
-    assert.equal(await page.$eval('.hp-patch-archive [aria-current="page"] b', node => node.textContent), '36.6.3',
-      'the archive timeline marks the open patch');
-    assert.match(await page.$eval('.hp-patch-section .hp-patch-card[data-kind="buff"] .hp-patch-card__meta', node => node.textContent ?? ''),
-      /Малый аксессуар · Baleful Incense/, 'the article\'s English name stays as a caption');
+    assert.equal(await page.$eval('.hp-patch-drawer .hp-patch-archive [aria-current="page"] b', node => node.textContent), '36.6.3',
+      'the archive drawer marks the open patch');
+    assert.equal(await page.$eval('.hp-patch-drawer', node => node.open), false, 'the archive waits behind "Все патчи"');
+    const incense = '.hp-patch-section .hp-patch-card[data-kind="buff"]';
+    assert.equal(await page.$eval(`${incense} .hp-patch-card__meta`, node => node.checkVisibility()), false,
+      'secondary details are folded');
+    await page.click(`${incense} .hp-patch-card__more summary`);
+    assert.match(await page.$eval(`${incense} .hp-patch-card__meta`, node => node.textContent ?? ''),
+      /Малый аксессуар · Baleful Incense/, 'the article\'s English name stays behind the card\'s "…"');
     assert.equal(await page.$$eval('.hp-patch-card del', nodes => nodes.some(node => node.textContent?.includes('(3)'))), true,
       'the old text is struck out');
     await page.click('.hp-patch-kinds button[data-kind="nerf"]');
     await page.waitForFunction(() => document.querySelectorAll('.hp-patch-card').length === 2);
-    // At 412 px the version switcher sits above the patch.
-    await page.select('.hp-patch-versions--top select', '35.6.2');
-    await page.waitForFunction(() => document.querySelector('.hp-patch-hero__title')?.textContent?.includes('35.6.2'));
-    assert.equal(await page.$eval('.hp-patch-versions--top a', node => node.getAttribute('href')), '/standard/patches/',
+    // At 412 px the switcher sits in the header; the newer arrow leads back to the newest patch.
+    await page.select('.hp-patch-versions select', '35.6.2');
+    // Its title only names the version, so the header says "Патч 35.6.2".
+    await page.waitForFunction(() => document.querySelector('.hp-patch-hero__title')?.textContent === 'Патч 35.6.2');
+    assert.equal(await page.$eval('.hp-patch-versions a[rel="next"]', node => node.getAttribute('href')), '/standard/patches/',
       'the newer patch link leads back to the newest patch');
     assert.equal(new URL(page.url()).searchParams.get('version'), '35.6.2');
     assert.equal((await fetch(`${pilot.origin}/api/patch-notes/9.9.9`)).status, 404);

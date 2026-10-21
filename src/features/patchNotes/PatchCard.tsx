@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUp, Coins, ImageOff, RefreshCw, Shield, ZoomIn } from 'lucide-react';
-import type { PatchCardView, PatchChangeView, PatchKind, PatchNotesMode } from '../../modules/patchNotes/public';
+import { ArrowRight, Coins, Ellipsis, ImageOff, Shield } from 'lucide-react';
+import { patchHasWideArtwork, type PatchCardView, type PatchChangeView, type PatchKind, type PatchNotesMode } from '../../modules/patchNotes/public';
 import { wordDiff } from '../../vendor/varylo-ui/gaming/patch';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
 import { CardHistory, CopyLinkButton } from './PatchCardExtras';
 import { ArchetypeChips } from './PatchMetaImpact';
 import { cardArtSources } from './patchArt';
+import { KIND_ICONS, KIND_LABELS } from './patchKinds';
 
-/* One change card: the card picture, Russian name, kind badge and was → now lines. */
+/*
+ * One change card: the render, the name and the change itself. Everything
+ * secondary — the type and English name, archetypes that play the card, its
+ * earlier changes and the links — waits behind the card's "…" disclosure.
+ */
 
-export const KIND_LABELS: Record<PatchKind, { one: string; many: string; only: string }> = {
-  buff: { one: 'Усиление', many: 'Усиления', only: 'Только бафы' },
-  nerf: { one: 'Ослабление', many: 'Ослабления', only: 'Только нерфы' },
-  rework: { one: 'Изменение', many: 'Изменения', only: 'Только изменения' },
-};
-const KIND_ICONS: Record<PatchKind, typeof ArrowUp> = { buff: ArrowUp, nerf: ArrowDown, rework: RefreshCw };
-export const KINDS: PatchKind[] = ['buff', 'nerf', 'rework'];
 /** Highlights and the first cards load eagerly; the rest wait for the scroll. */
 export const EAGER_CARDS = 4;
 
@@ -47,34 +45,32 @@ export function previewSource(card: PatchCardView): string {
   return card.mode === 'battlegrounds' && card.cardId ? `/api/card-image/${encodeURIComponent(card.cardId)}/full.webp` : '';
 }
 
-export function KindBadge({ kind }: { kind: PatchKind }) {
+/** The direction as a shape, so it never rests on colour alone. */
+function KindMark({ kind }: { kind: PatchKind }) {
   const Icon = KIND_ICONS[kind];
-  return <span className="hp-patch-badge" data-kind={kind}><Icon aria-hidden="true" />{KIND_LABELS[kind].one}</span>;
+  return <span className="hp-patch-kind" data-kind={kind} title={KIND_LABELS[kind]}><Icon aria-hidden="true" /><span className="sr-only">{KIND_LABELS[kind]}</span></span>;
 }
 
+/** Old and new rule text as one sentence: removed words struck out, added words marked. */
 function TextDiff({ change }: { change: PatchChangeView }) {
   const before = change.before?.toString();
   const after = change.after?.toString();
-  const tokens = before !== undefined && after !== undefined ? wordDiff(before, after) : null;
+  if (before === undefined || after === undefined) {
+    return (
+      <p className="hp-change__text">
+        {after ?? <del>{before}</del>}
+        {' '}<small>{after === undefined ? 'Новый текст в статье не указан.' : 'Прежний текст в статье не указан.'}</small>
+      </p>
+    );
+  }
   return (
-    <div className="hp-change__text">
-      {before !== undefined && (
-        <p data-side="before">
-          <span className="hp-change__tag">Было</span>
-          {tokens ? tokens.filter(token => token.op !== 'add').map((token, index) => token.op === 'remove'
-            ? <del key={index}>{token.text}</del> : <React.Fragment key={index}>{token.text}</React.Fragment>) : before}
-        </p>
-      )}
-      {after !== undefined && (
-        <p data-side="after">
-          <span className="hp-change__tag">Стало</span>
-          {tokens ? tokens.filter(token => token.op !== 'remove').map((token, index) => token.op === 'add'
-            ? <ins key={index}>{token.text}</ins> : <React.Fragment key={index}>{token.text}</React.Fragment>) : after}
-        </p>
-      )}
-      {before === undefined && <p className="hp-change__missing">Прежний текст в статье не указан.</p>}
-      {after === undefined && <p className="hp-change__missing">Новый текст в статье не указан.</p>}
-    </div>
+    <p className="hp-change__text">
+      {wordDiff(before, after).map((token, index) => {
+        if (token.op === 'remove') return <del key={index}><span className="sr-only">было: </span>{token.text}</del>;
+        if (token.op === 'add') return <ins key={index}><span className="sr-only">стало: </span>{token.text}</ins>;
+        return <React.Fragment key={index}>{token.text}</React.Fragment>;
+      })}
+    </p>
   );
 }
 
@@ -111,35 +107,42 @@ function StatValue({ stat, value }: { stat: Stat | null; value: number | string 
   );
 }
 
-function ChangeLine({ change, mode }: { change: PatchChangeView; mode: PatchNotesMode }) {
-  const long = typeof change.before === 'string' && change.before.length > 12 || typeof change.after === 'string' && change.after.length > 12;
-  if (long) {
-    return <li className="hp-change hp-change--text"><span className="hp-change__label">{change.label}</span><TextDiff change={change} /></li>;
-  }
-  const up = typeof change.before === 'number' && typeof change.after === 'number' && change.after > change.before;
+/** A rule-text change: one sentence; the label shows only when it says which text (a hero power, a quest reward). */
+function TextChange({ change }: { change: PatchChangeView }) {
+  return (
+    <li className="hp-change hp-change--text">
+      <span className={`hp-change__label${change.label === 'Текст' ? ' sr-only' : ''}`}>{change.label}</span>
+      <TextDiff change={change} />
+    </li>
+  );
+}
+
+function NumberChange({ change, mode }: { change: PatchChangeView; mode: PatchNotesMode }) {
   const stat = statOf(change, mode);
   // A gem says "cost", "attack" or "health" by itself; armor keeps its "соло"/"дуэты" qualifier.
-  const label = stat === 'armor' ? change.label.replace(/^Броня,?\s*/, '') || change.label : change.label;
+  const label = stat === 'armor' ? `Броня · ${change.label.replace(/^Броня,?\s*/, '') || change.label}` : change.label;
+  const before = change.before === undefined
+    ? <span className="hp-change__unknown" title="Прежнее значение в статье не указано">?</span>
+    : <s aria-label={`было ${change.before}`}><StatValue stat={stat} value={change.before} /></s>;
+  const after = change.after === undefined
+    ? <b>—</b>
+    : <b aria-label={`стало ${change.after}`}><StatValue stat={stat} value={change.after} /></b>;
   return (
     <li className="hp-change" data-direction={change.direction} data-stat={stat ?? undefined} title={change.label}>
-      <span className={`hp-change__label${stat && stat !== 'armor' ? ' sr-only' : ''}`}>{stat === 'armor' ? `Броня · ${label}` : label}</span>
+      <span className={`hp-change__label${stat && stat !== 'armor' ? ' sr-only' : ''}`}>{label}</span>
       <span className="hp-change__values">
-        {change.before !== undefined
-          ? <s aria-label={`было ${change.before}`}><StatValue stat={stat} value={change.before} /></s>
-          : <span className="hp-change__unknown" title="Прежнее значение в статье не указано">?</span>}
+        {before}
         <span className="hp-change__arrow" aria-hidden="true">→</span>
-        <b aria-label={change.after !== undefined ? `стало ${change.after}` : undefined}>
-          {change.after !== undefined ? <StatValue stat={stat} value={change.after} /> : '—'}
-        </b>
-        {change.direction !== 'neutral' && (
-          <span className="hp-change__direction" title={DIRECTION_TEXT[change.direction]}>
-            {up ? <ArrowUp aria-hidden="true" /> : <ArrowDown aria-hidden="true" />}
-            <span className="sr-only">{DIRECTION_TEXT[change.direction]}</span>
-          </span>
-        )}
+        {after}
+        {change.direction !== 'neutral' && <span className="sr-only">, {DIRECTION_TEXT[change.direction]}</span>}
       </span>
     </li>
   );
+}
+
+function ChangeLine({ change, mode }: { change: PatchChangeView; mode: PatchNotesMode }) {
+  const long = typeof change.before === 'string' && change.before.length > 12 || typeof change.after === 'string' && change.after.length > 12;
+  return long ? <TextChange change={change} /> : <NumberChange change={change} mode={mode} />;
 }
 
 function CardArt({ card, eager, onPreview, onPreviewEnd, onOpen }: CardHandlers & { card: PatchCardView; eager: boolean }) {
@@ -147,9 +150,8 @@ function CardArt({ card, eager, onPreview, onPreviewEnd, onOpen }: CardHandlers 
   const picture = cardPicture(card);
   if (!picture || failed) {
     return (
-      <span className="hp-patch-card__art" data-empty="">
+      <span className="hp-patch-card__art" data-empty="" title={picture ? 'Картинка недоступна' : 'Нет в каталоге карт'}>
         <ImageOff aria-hidden="true" />
-        <span>{picture ? 'Картинка недоступна' : 'Нет в каталоге карт'}</span>
       </span>
     );
   }
@@ -161,65 +163,70 @@ function CardArt({ card, eager, onPreview, onPreviewEnd, onOpen }: CardHandlers 
       onClick={() => { onPreviewEnd(); onOpen(card); }}>
       <img src={picture.src} alt="" width={picture.width} height={picture.height} loading={eager ? 'eager' : 'lazy'}
         decoding="async" onError={() => setFailed(true)} />
-      <span className="hp-patch-card__zoom" aria-hidden="true"><ZoomIn /></span>
     </button>
   );
 }
 
-/** Cost, stat and armor moves read in one line, so such cards take the compact three-column layout. */
-export function isCompactCard(card: PatchCardView): boolean {
-  return !card.hasText && !card.note && card.archetypes.length === 0;
+/** The type, English name, archetypes, earlier changes and links of a card, folded until asked for. */
+function CardDetails({ card, anchored }: { card: PatchCardView; anchored: boolean }) {
+  return (
+    <details className="hp-patch-card__more">
+      <summary aria-label={`Подробнее: ${card.name}`} title="Подробнее"><Ellipsis aria-hidden="true" /></summary>
+      <div className="hp-patch-card__details">
+        {(card.typeLabel || card.sourceName) && (
+          <p className="hp-patch-card__meta">
+            {card.typeLabel}
+            {card.sourceName && <span lang="en">{card.typeLabel ? ' · ' : ''}{card.sourceName}</span>}
+          </p>
+        )}
+        <ArchetypeChips card={card} />
+        <CardHistory card={card} />
+        <p className="hp-patch-card__links">
+          {card.cardUrl && <a href={card.cardUrl}>Карта и колоды с ней <ArrowRight aria-hidden="true" /></a>}
+          {anchored && <CopyLinkButton card={card} />}
+        </p>
+      </div>
+    </details>
+  );
 }
 
-/** The card's wiki illustration across the top of a featured highlight. */
+/** A highlight with wide wiki art stands on it; without art the larger render carries the card alone. */
 function FeaturedPlate({ url }: { url: string }) {
   const art = cardArtSources(url);
   return (
     <span className="hp-patch-card__plate" aria-hidden="true">
-      <img src={art.src} srcSet={art.srcSet} sizes="(min-width: 720px) 50vw, 100vw" alt="" width={512} height={288}
-        loading="lazy" decoding="async" />
+      <img src={art.src} srcSet={art.srcSet} sizes="(min-width: 960px) 25vw, 100vw" alt="" width={512} height={288} decoding="async" />
     </span>
   );
 }
 
 /**
  * `anchored` cards (the ones in sections) carry the `#card-…` id; highlights
- * repeat a card without it. `featured` adds the card's wide art above it.
+ * repeat a card without it. `featured` is a highlight without details;
+ * `withArt` puts its wide wiki art on top.
  */
-export function PatchCard({ card, eager, headingLevel = 'h5', compact = false, anchored = false, featured = false, ...handlers }: CardHandlers & {
-  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h5'; compact?: boolean; anchored?: boolean; featured?: boolean;
+export function PatchCard({ card, eager, headingLevel = 'h5', anchored = false, featured = false, withArt = false, ...handlers }: CardHandlers & {
+  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h4' | 'h5'; anchored?: boolean; featured?: boolean; withArt?: boolean;
 }) {
   const Heading = headingLevel;
   const headingId = `hp-patch-${headingLevel}-${card.id}`;
-  const plate = featured && card.artwork ? card.artwork.url : null;
+  const plate = featured && withArt && patchHasWideArtwork(card) ? card.artwork.url : null;
   return (
     <article className="hp-patch-card" id={anchored ? card.anchor : undefined} data-kind={card.kind}
-      data-compact={compact || undefined} data-featured={plate ? '' : undefined} aria-labelledby={headingId}>
+      data-featured={featured || undefined} data-plate={plate ? '' : undefined} aria-labelledby={headingId}>
       {plate && <FeaturedPlate url={plate} />}
       <CardArt card={card} eager={eager} {...handlers} />
       <div className="hp-patch-card__body">
-        <div className="hp-patch-card__head">
-          <div className="hp-patch-card__tools">
-            <KindBadge kind={card.kind} />
-            {anchored && <CopyLinkButton card={card} />}
-          </div>
+        <div className="hp-patch-card__title">
+          <KindMark kind={card.kind} />
           <Heading id={headingId} className="hp-patch-card__name">{card.name}</Heading>
-          {(card.typeLabel || card.sourceName) && (
-            <p className="hp-patch-card__meta">
-              {card.typeLabel}
-              {card.sourceName && <span lang="en">{card.typeLabel ? ' · ' : ''}{card.sourceName}</span>}
-            </p>
-          )}
         </div>
         <ul className="hp-patch-card__changes">
           {card.changes.map((change, index) => <ChangeLine key={`${change.label}-${index}`} change={change} mode={card.mode} />)}
         </ul>
-        {card.note && <p className="hp-patch-card__note"><span>Комментарий разработчиков:</span> {card.note}</p>}
-        <ArchetypeChips card={card} />
-        <CardHistory card={card} />
-        {card.cardUrl && <a className="hp-patch-card__link" href={card.cardUrl}>Карта и колоды с ней <ArrowRight aria-hidden="true" /></a>}
+        {card.note && <p className="hp-patch-card__note">{card.note}</p>}
       </div>
+      {!featured && <CardDetails card={card} anchored={anchored} />}
     </article>
   );
 }
-

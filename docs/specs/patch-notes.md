@@ -26,14 +26,15 @@ answers `502`.
   `[Стоимость N]`, `[N-й уровень]` and `A атаки, H здоровья` are read as
   numbers; the rest of the statement is the rule text, diffed word by word.
 - A `После:` line without a `До изменения:` line is shown with only the new
-  value and counted in `missingBefore`; the page says so. Its badge is
-  "Изменение", never "Новое", because the article does not state that.
+  value and counted in `missingBefore`; the page says so. Its kind is a
+  rework ("Переработка"), never "Новое", because the article does not state that.
 - Battlegrounds trinket cost lists (`Name: a → b` under a "СТОИМОСТИ … АКСЕССУАРОВ"
   heading) and the hero armor table (`Герой Обычная игра Дуэты …`) become
   cost and armor changes.
 - Direction (buff or nerf) comes only from numbers: lower cost, higher
   attack, health and armor are better. A tavern-tier move and a text change
-  carry no direction, so an entry with only those is "Изменение".
+  carry no direction, so an entry with only those is a rework
+  ("Переработка", ↻; "изменения" is kept for the count of all changes).
 - `До изменений:` is read like `До изменения:`. A `(Имя)` line under a card
   name names the hero whose power it is and becomes the subtitle. A
   `Новая стоимость: N` line is a cost change without a before value.
@@ -76,23 +77,25 @@ answers `502`.
   HearthstoneJSON `ruRU`): `decks` of `totalDecks` builds, sorted by that
   share, then by popularity, at most eight. It is today's meta, also for old
   patches, and the page labels it "Играют сейчас".
-- "Изменённые карты → затронутые архетипы" follows the affected archetypes:
-  a Sankey diagram (Valyro Pro `SankeyChart`, vendored in
+- "Изменённые карты → затронутые архетипы" closes "Главное в патче": a
+  Sankey diagram (Valyro Pro `SankeyChart`, vendored in
   `src/vendor/valyro-ui`) from changed Constructed cards, coloured by buff,
   nerf or rework, to the ten most popular archetypes that play them. A
   flow is the number of the archetype's listed builds with the card
   (`decks`), so an archetype's bar counts card appearances, not distinct
   builds. A card node opens the card page (else its change on this page),
   an archetype node its archetype page; on touch the first tap shows the
-  tooltip. Below 640 px of content the same links are a list. It is shown
-  only with at least two links.
-- "Затронутые архетипы" opens "Главное в патче": archetypes playing any
-  changed card, most popular first, with buff/nerf/rework counts and the
-  card names; six are shown, the rest behind a button. Chips link to
-  `/standard/archetypes/<format>/<slug>/`.
+  tooltip. The plot is one block 200–360 px tall (30 px per row of the
+  taller column). Below 640 px of content the same links are a list. It is
+  shown only with at least two links; a format whose catalog failed is named
+  in its note.
+- A card's archetypes ("В архетипах текущей меты", at most four and a count
+  of the rest; builds with the card in the link title) wait behind the
+  card's "…" with the rest of its details.
 - `history` lists earlier patches of the archive that changed the same card
   (same card id, else the same name and subtitle in the mode), newest first,
-  at most six; the page links each to `?version=…#card-<entry id>`.
+  at most six; the page links each to `?version=…#card-<entry id>` from the
+  card's "…" ("Менялась в патчах").
 
 ## Card art
 
@@ -109,16 +112,26 @@ answers `502`.
 
 ## Navigation
 
-- Every card in a section has the id `card-<entry id>` and a copy-link
-  button; `:target` marks the linked card, and a patch loaded in the browser
-  scrolls to it. Cards keep `scroll-margin-top` below the sticky toolbar.
-- A strip of classes and card types with buff/nerf/rework counts filters to
-  one group (a second click clears it); on narrow screens it is one
-  swipeable row. The toolbar with the version, search and kind filter
-  sticks under the site header while reading.
-- "Предыдущий патч / Следующий патч" close the page. Sections fade in when
-  opened, without motion under `prefers-reduced-motion`. The empty filter
-  state offers a reset; the loading state is the shared skeleton.
+One way to do each thing:
+
+- The version switcher lives in the patch header: older and newer arrows
+  around a select of every archived version, and "Все патчи", which opens
+  the archive timeline in a modal side drawer (a native `<dialog>`). The
+  drawer is rendered with the page, so the links to every patch are in the
+  server HTML.
+- One bar under the header carries the section links (when the patch has
+  more than one section), the class/card-type select (grouped by section),
+  the search and the kind filter (Все / ↑ / ↓ / ↻ with counts). On content at
+  least 760 px wide the whole bar sticks under the site header; narrower,
+  only the search and kind row sticks and the rest scrolls away. The layout
+  uses container queries because the site rail takes part of the viewport.
+- Every card in a section has the id `card-<entry id>`; its "…" holds a
+  copy-link button. `:target` marks the linked card, and a patch loaded in
+  the browser scrolls to it. Cards, groups and sections keep
+  `scroll-margin-top` below the sticky bar.
+- Sections fade in when opened, without motion under
+  `prefers-reduced-motion`. The empty filter state offers a reset; the
+  loading state is the shared skeleton.
 
 ## API
 
@@ -140,9 +153,8 @@ budget (`apps/public-web/lib/publicPatchNotes.ts`); a part that misses it is
 loaded by the browser. Dates render in Europe/Moscow before hydration and in
 the viewer's zone after it.
 
-- Reading order: the version switcher (above the patch on narrow screens),
-  the header, the mode tiles, "Главное в патче", the class/type strip, the
-  filters, the sections, the archive timeline and the neighbouring patches.
+- Reading order: the header, the bar, "Главное в патче" (highlight cards,
+  then the Sankey), the sections and a one-paragraph source note.
 - The page heading (`h1` "Патчноуты Hearthstone") sits in the patch header
   instead of the tall route banner, which only the missing, failed and
   loading states still show.
@@ -151,66 +163,62 @@ the viewer's zone after it.
   or the Battlegrounds plate when most changes are there, else the plate of
   the first section. It is preloaded (`fetchPriority: high`, `srcset`) and
   is the page's LCP image. The first card with wiki art at least 1000 px wide
-  (highlights first) stands on the right with an "Арт: …" caption. The
-  header names the expansion cycle of the version — every major client
-  version opens one (35 → «Катаклизм», 37 → «Власть Темной империи»); majors
-  the archive has no patch of are not mapped — with the set glyph of the card
-  library in a seal, the version, date, title, lead, counts with icons and a
-  buff/nerf/rework share bar, and the official and source links.
-- Mode tiles link to the sections: the mode plate and emblem
-  (`public/patch-notes`, built by `scripts/build-patch-notes-assets.mjs` from
-  the site's own art), the change count, ▲▼↻ counts and the share bar; two
-  per row on narrow screens. Section summaries are banners with the same
-  plate; class groups carry the 96 px class icon and the class colour of the
-  meta page; card-type groups keep their glyph.
-- "Главное в патче" picks up to six changes with a picture from sections
-  longer than three cards (a shorter section is read whole below, so it is
-  not repeated): Standard first, then the largest number moves; a stated buff
-  or nerf outranks a rework and one section fills at most half the list
-  while others have candidates. Constructed cards of a known format link to
-  their card page (`/standard/cards/<format>/<id>/`), which lists decks with
-  the card; patch data has no card-to-archetype link, so there is no direct
-  archetype link.
+  (highlights first) stands on the right. The header shows the version only
+  through the switcher, the date, the expansion cycle of the version — every
+  major client version opens one (35 → «Катаклизм», 37 → «Власть Темной
+  империи»); majors the archive has no patch of are not mapped — with the
+  set glyph of the card library in a small seal, the article title without
+  its version prefix as the `h2` (`patchHeadline`: "Обновление 36.4.2 уже в
+  игре: баланс…" → "Баланс…"; "Патч 36.4.2" when nothing else is left), one
+  line of counts (changes, ↑ buffs, ↓ nerfs, ↻ reworks) over a thin share
+  bar, and quiet links to the article and the official notes.
+- Section summaries are banners with the mode plate and emblem, the title and
+  ↑↓↻ counts. Groups are a line of type: the 96 px class icon (or card-type
+  glyph), the name, a hairline in the class colour of the meta page and the
+  ↑↓↻ counts; a section of one group of the section's own name has none.
+- "Главное в патче" picks up to four changes with a picture from sections
+  longer than three cards of a patch longer than eight changes (a shorter
+  section or patch is read whole below, so it is not repeated): Standard
+  first, then the largest number moves; a stated buff or nerf outranks a
+  rework and one section fills at most half the list while others have
+  candidates. Highlights are large cards without details, two by two (three
+  in one row, one column on phones); when every highlight has wiki art at
+  least 1000 px wide, the art runs across the top and the render is laid
+  over its lower edge, otherwise no highlight has art, so they read as one
+  kind of card.
 - Sections are Стандарт, Вольный, Стандарт и Вольный (cards of unknown
   format), Арена, Поля сражений and Другие режимы, each a `<details>` open by
-  default with its count. Constructed entries carry `format`: `standard` when
-  today's Standard catalog (`loadPublicCards('standard')`) lists the card or
-  its `CORE_` reprint, else `wild`; `null` without a match or a catalog.
-  Groups are classes (Constructed, Arena) or card types (Battlegrounds: list
+  default. Constructed entries carry `format`: `standard` when today's
+  Standard catalog (`loadPublicCards('standard')`) lists the card or its
+  `CORE_` reprint, else `wild`; `null` without a match or a catalog. Groups
+  are classes (Constructed, Arena) or card types (Battlegrounds: list
   headings such as "Малый аксессуар" first, then catalog types).
-- Filters: search over Russian and English names and change text, "Только
-  бафы / нерфы / изменения", and class or card type. Filtering hides the
+- Filters: search over Russian and English names and change text, the kind
+  (buffs, nerfs, reworks), and class or card type. Filtering hides the
   highlights and section notes.
-- A change with only cost, stat or armor moves (no text, no developer
-  note) uses the compact card: three columns on wide content, the card about
-  as tall as its picture. Cards with text or notes keep the full layout.
-- A change card shows one picture in a fixed card-shaped box: the
-  Constructed render `/api/card-image/<id>/thumb.webp`, the Battlegrounds
-  catalog render resized through `/api/public-resource` (else the proxy's
-  square art). Images have width and height, the first four load eagerly.
-  A zoom mark on the picture says it opens: hover or focus shows the full
-  current card, a tap or click opens it in a sheet. No
-  source has card images from before a patch, so there is no before/after
-  render toggle: the before state is the struck-out value or the word diff.
-- Number changes read `старое → новое` coloured by direction; text changes
-  show "Было" and "Стало" with removed and added words marked. The badge is
-  coloured and carries an arrow or a rework icon. Cost, attack and health
-  are drawn on the game's mana crystal, attack and health icons, a tavern
-  tier as its tier shield; a Battlegrounds cost is gold and armor has no game
-  icon on the site, so both use an interface glyph. The old value is faded
-  and struck through, the new one ringed in the direction colour; the label
-  stays for assistive technology. Buff and nerf cards carry a coloured glow.
-- Up to two highlights with wide wiki art become featured cards: the art
-  across the top and the render laid over its lower edge. Affected archetypes
-  sit on their class art.
-- The archive timeline lists every archived patch by expansion cycle, newest
-  first, with the set seal, patch count, change count and each patch's date;
-  the newest cycle and the open patch's cycle are expanded, the open patch is
-  `aria-current`. A patch without line-by-line changes says so in a panel
-  that points to the header links.
-- On content at least 960 px wide the version switcher (newer, select,
-  older) and the contents with section and group links stay in a sticky
-  side column; otherwise the switcher sits above the patch, the mode tiles
-  and the class/type strip replace the contents and the cards form one
-  column. The layout uses a container query because the site rail takes part
-  of the viewport.
+- A change card shows only the render, the name with a ↑↓↻ mark and the
+  change; its border carries the kind colour. Cards form a grid of about
+  17 rem columns; a card with a rule-text change spans two columns on content
+  at least 700 px wide. The card's "…" (a `<details>` in its corner) holds the
+  type and the article's English name, the archetypes of today's meta, the
+  earlier patches that changed it, "Карта и колоды с ней" for Constructed
+  cards of a known format (`/standard/cards/<format>/<id>/`, which lists decks
+  with the card) and the copy-link button.
+- The picture sits in a fixed card-shaped box: the Constructed render
+  `/api/card-image/<id>/thumb.webp`, the Battlegrounds catalog render resized
+  through `/api/public-resource` (else the proxy's square art). Images have
+  width and height, the first four load eagerly. Hover or focus shows the
+  full current card, a tap or click opens it in a sheet. No source has card
+  images from before a patch, so there is no before/after render toggle: the
+  before state is the struck-out value or the word diff.
+- Number changes read `старое → новое`; cost, attack and health are drawn on
+  the game's mana crystal, attack and health icons, a tavern tier as its tier
+  shield; a Battlegrounds cost is gold and armor has no game icon on the
+  site, so both use an interface glyph. The old value is faded and struck
+  through, the new one ringed in the direction colour; the label and the
+  direction stay for assistive technology. A rule-text change is one
+  sentence: removed words struck out, added words marked ("было:"/"стало:"
+  for assistive technology); its label is shown only when it is not "Текст".
+- A patch without line-by-line changes says so in a panel that points to the
+  header links. Picture-only article sections are one quiet line with the
+  article link; "Общие изменения" is a short list.

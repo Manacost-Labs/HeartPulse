@@ -1,6 +1,4 @@
-export {
-  filterPatchView, patchAffectedArchetypes, patchGroupKinds, patchGroupOptions, patchHighlights, type PatchAffectedArchetype,
-} from './model/patchSelection';
+export { filterPatchView, patchGroupKinds, patchGroupOptions, patchHighlights } from './model/patchSelection';
 export {
   PATCH_SECTION_TITLES, archetypeHref, changeDirection, patchCardAnchor, patchCardImage, patchKind, patchNotesHref, sentenceCase,
   toPatchView, type PatchGroupIcon,
@@ -8,7 +6,7 @@ export {
   type PatchKind, type PatchKindCounts, type PatchSectionId, type PatchSectionView, type PatchView,
 } from './model/patchEntries';
 export {
-  patchArchiveByExpansion, patchExpansionCode, patchFeaturedArtwork, patchHasWideArtwork, patchHeroLead, patchKindShares, patchMetaFlow,
+  patchArchiveByExpansion, patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHasWideArtwork, patchHeroLead, patchKindShares, patchMetaFlow,
   type PatchArchiveGroup, type PatchFlowLink, type PatchFlowNode, type PatchHeroLead,
 } from './model/patchPresentation';
 export { normalizePatchVersion } from './model/types';

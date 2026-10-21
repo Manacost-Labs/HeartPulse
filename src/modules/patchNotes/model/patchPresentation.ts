@@ -36,6 +36,21 @@ export function patchExpansionCode(version: string): string | null {
   return Number.isSafeInteger(major) ? EXPANSION_BY_MAJOR[major] ?? null : null;
 }
 
+/**
+ * The article title opens with the version ("Обновление 36.4.2 уже в игре:"),
+ * which the header already shows; the rest is the patch's point in one line.
+ */
+const HEADLINE_HEAD = /^(?:\([^)]*\)\s*)?(?:обновление|патч)\s+\d+(?:\.\d+)*(?:\s+уже в игре)?\s*(?:[:!—–-]\s*|$)/iu;
+
+/** The title without its version prefix, `null` when nothing else is left; a title in another shape is kept whole. */
+export function patchHeadline(title: string): string | null {
+  const text = title.trim();
+  const head = HEADLINE_HEAD.exec(text);
+  if (!head) return text || null;
+  const rest = text.slice(head[0].length).replace(/\s*[—–-]?\s*уже в игре!?$/iu, '').trim();
+  return rest ? rest.charAt(0).toLocaleUpperCase('ru-RU') + rest.slice(1) : null;
+}
+
 /** Whose art leads the patch header: Battlegrounds when most changes are there, else the most changed class. */
 export type PatchHeroLead = { mode: 'battlegrounds' } | { classKey: string };
 

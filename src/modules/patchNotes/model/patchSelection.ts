@@ -1,5 +1,4 @@
 import type { PatchCardView, PatchFilter, PatchGroupView, PatchKindCounts, PatchSectionId, PatchView } from './patchEntries';
-import type { PatchNotesArchetypeUse } from './types';
 
 /* Which cards the page shows: filter results, filter options and the "what matters" pick. */
 
@@ -30,18 +29,21 @@ const HIGHLIGHT_WEIGHT: Record<PatchSectionId, number> = { standard: 300, constr
 
 /** A section this short is read whole below; picking from it would only repeat it. */
 const SHORT_SECTION = 3;
+/** A patch this short fits one screen of cards: it gets no highlights at all. */
+const SHORT_PATCH = 8;
 
 /**
  * The patch at a glance: up to `limit` changes with a picture from sections
- * longer than three cards, Standard first, then the largest number moves; a
+ * longer than three cards of a patch longer than eight, Standard first, then the largest number moves; a
  * stated buff or nerf outranks a rework and no section fills more than half
  * the list unless nothing else is left.
  */
-export function patchHighlights(view: PatchView, limit = 6): PatchCardView[] {
+export function patchHighlights(view: PatchView, limit = 4): PatchCardView[] {
   const score = (card: PatchCardView) => HIGHLIGHT_WEIGHT[card.section] + (card.kind === 'rework' ? 0 : 40)
     + Math.min(50, 10 * card.changes.reduce((sum, change) =>
       sum + (isNumber(change.before) && isNumber(change.after) ? Math.abs(change.after - change.before) : 0), 0))
     + (card.hasText ? 20 : 0);
+  if (view.total <= SHORT_PATCH) return [];
   const long = new Set(view.sections.filter(section => section.count > SHORT_SECTION).map(section => section.id));
   const ranked = view.groups.flatMap(group => group.entries).filter(card => card.cardId && long.has(card.section))
     .map((card, index) => ({ card, index, score: score(card) }))
@@ -62,31 +64,7 @@ export function patchHighlights(view: PatchView, limit = 6): PatchCardView[] {
   return picked;
 }
 
-/** One archetype of today's meta with the changed cards it plays. */
-export type PatchAffectedArchetype = PatchNotesArchetypeUse & {
-  href: string;
-  kinds: PatchKindCounts;
-  cards: { name: string; anchor: string; kind: PatchCardView['kind'] }[];
-};
-
-/** Archetypes touched by the patch, most popular first; a card counts once per archetype. */
-export function patchAffectedArchetypes(view: PatchView): PatchAffectedArchetype[] {
-  const byKey = new Map<string, PatchAffectedArchetype>();
-  for (const card of view.groups.flatMap(group => group.entries)) {
-    for (const use of card.archetypes) {
-      const key = `${use.format}:${use.slug}`;
-      const known = byKey.get(key) ?? { ...use, kinds: { buff: 0, nerf: 0, rework: 0 }, cards: [] };
-      if (known.cards.some(item => item.anchor === card.anchor)) continue;
-      known.cards.push({ name: card.name, anchor: card.anchor, kind: card.kind });
-      known.kinds[card.kind] += 1;
-      byKey.set(key, known);
-    }
-  }
-  return [...byKey.values()].sort((left, right) => (right.popularity ?? 0) - (left.popularity ?? 0)
-    || right.cards.length - left.cards.length);
-}
-
-/** Buff, nerf and rework counts of a group, for the summary strip. */
+/** Buff, nerf and rework counts of a group, for its heading. */
 export function patchGroupKinds(group: PatchGroupView): PatchKindCounts {
   const kinds: PatchKindCounts = { buff: 0, nerf: 0, rework: 0 };
   for (const card of group.entries) kinds[card.kind] += 1;

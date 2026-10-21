@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { patchMetaFlow, type PatchFlowNode, type PatchView } from '../../modules/patchNotes/public';
+import type { PatchFlowLink, PatchFlowNode, PatchNotesMeta } from '../../modules/patchNotes/public';
 import { SankeyChart, type SankeyNode } from '../../vendor/valyro-ui/charts/SankeyChart';
 import '../../vendor/valyro-ui/styles/index.css';
 import '../../shared/ui/varyloParchment.css';
@@ -9,8 +9,11 @@ import { classAccent } from './patchArt';
 
 const KIND_COLORS = { buff: '#2f6e39', nerf: '#93202a', rework: '#a07a40' } as const;
 const KIND_MARKS = { buff: '▲', nerf: '▼', rework: '↻' } as const;
-/** Pixels per row of the taller column; the plot stays readable for a dozen nodes a side. */
+const FORMAT_LABELS = { standard: 'Стандарт', wild: 'Вольный' } as const;
+/** Pixels per row of the taller column, within one block of reasonable height. */
 const ROW_HEIGHT = 30;
+const MIN_HEIGHT = 200;
+const MAX_HEIGHT = 360;
 
 const LABELS = {
   empty: 'Нет данных',
@@ -41,19 +44,18 @@ function open(href: string) {
  * "Изменённые карты → Затронутые архетипы": on wide content a Sankey diagram
  * (flow = builds of the archetype that play the card), on narrow content the
  * same links as a list, because twelve labels a side do not fit a phone.
+ * The page shows it only with at least two links.
  */
-export function PatchMetaFlow({ view }: { view: PatchView }) {
-  const flow = useMemo(() => patchMetaFlow(view), [view]);
+export function PatchMetaFlow({ flow, meta }: { flow: { nodes: PatchFlowNode[]; links: PatchFlowLink[] }; meta: PatchNotesMeta | null }) {
   const nodes = useMemo<SankeyNode[]>(() => flow.nodes.map(node => ({ id: node.id, label: node.label, color: nodeColor(node) })), [flow]);
-  if (flow.links.length < 2) return null;
   const byId = new Map(flow.nodes.map(node => [node.id, node]));
   const cards = flow.nodes.filter(node => node.kind === 'card');
   const rows = Math.max(cards.length, flow.nodes.length - cards.length);
   return (
-    <div className="hp-patch-flow hp-varylo-parchment">
+    <div className="hp-patch-flow hp-varylo-parchment" data-tour-id="patch-flow">
       <h4>Изменённые карты → затронутые архетипы</h4>
       <div className="hp-patch-flow__chart">
-        <SankeyChart nodes={nodes} links={flow.links} height={Math.max(240, rows * ROW_HEIGHT)} nodePadding={10}
+        <SankeyChart nodes={nodes} links={flow.links} height={Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, rows * ROW_HEIGHT))} nodePadding={8}
           labels={LABELS} locale="ru-RU" ariaLabel="Изменённые карты и архетипы текущей меты, которые их играют"
           onNodeClick={node => { const target = byId.get(node.id); if (target) open(target.href); }} />
       </div>
@@ -76,8 +78,8 @@ export function PatchMetaFlow({ view }: { view: PatchView }) {
         ))}
       </ul>
       <p className="hp-patch-flow__note">
-        Толщина потока — сколько сборок архетипа содержат карту; архетипы — самые популярные в текущей мете
-        ({flow.nodes.length - cards.length}). Нажмите на карту или архетип, чтобы открыть его страницу.
+        Поток — сколько сборок архетипа играют карту; {flow.nodes.length - cards.length} самых популярных архетипов текущей меты HSGuru.
+        {meta?.missing.length ? ` ${meta.missing.map(format => FORMAT_LABELS[format]).join(' и ')}: данные сейчас недоступны.` : ''}
       </p>
     </div>
   );

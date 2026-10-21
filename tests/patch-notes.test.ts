@@ -365,7 +365,7 @@ test('routes serve the archive, the latest patch with changes and one version; f
 test('the page groups cards by mode, class or type and derives kinds only from directed numbers', async () => {
   const {
     toPatchView, filterPatchView, patchGroupOptions, patchHighlights, normalizePatchVersion, patchNotesHref, sentenceCase,
-    patchAffectedArchetypes, patchGroupKinds,
+    patchGroupKinds,
   } = await import('../src/modules/patchNotes/public');
   const { entries } = parsePatchArticle(article, sections, resolver);
   const view = toPatchView({ entries: entries.map(entry => entry.cardId === 'TLC_600' ? { ...entry, format: 'standard' as const } : entry) });
@@ -386,12 +386,14 @@ test('the page groups cards by mode, class or type and derives kinds only from d
   const withMeta = toPatchView({ entries: entries.map(entry => (entry.cardId === 'TLC_600'
     ? { ...entry, archetypes: [use('control', 2), use('dragon', 9)], history: [{ version: '36.4.2', entryId: 'x', publishedAt: null }] }
     : entry)) });
-  assert.deepEqual(patchAffectedArchetypes(withMeta).map(item => [item.slug, item.href, item.cards.length, item.kinds.rework]), [
-    ['dragon', '/standard/archetypes/standard/dragon/', 1, 1], ['control', '/standard/archetypes/standard/control/', 1, 1],
-  ], 'most popular first, each with the changed cards it plays');
+  assert.deepEqual(withMeta.groups[0].entries[0].archetypes.map(use => use.href),
+    ['/standard/archetypes/standard/control/', '/standard/archetypes/standard/dragon/']);
   assert.equal(withMeta.groups[0].entries[0].history[0].href, '/standard/patches/?version=36.4.2#card-x');
-  assert.deepEqual(patchHighlights(view, 4).map(card => card.name), ['Рено Джексон', 'Молот Сумерек', 'Алчная гиена', 'Молот Сумерек'],
-    'short sections (one Standard card) are read whole below; then the largest number moves first');
+  assert.deepEqual(patchHighlights(view), [], 'eight changes are read whole; highlights would only repeat them');
+  const longer = toPatchView({ entries: [...view.groups.flatMap(group => group.entries).map(card => entries.find(entry => entry.id === card.id)!),
+    ...entries.filter(entry => entry.mode === 'battlegrounds').map(entry => ({ ...entry, id: `${entry.id}-again` }))] });
+  assert.deepEqual(patchHighlights(longer).map(card => card.name), ['Рено Джексон', 'Рено Джексон', 'Молот Сумерек', 'Молот Сумерек'],
+    'four at most; short sections (one Standard card) are read whole below; then the largest number moves first');
   const cards = view.groups.flatMap(group => group.entries);
   const hammer = cards.find(entry => entry.cardId === 'BG36_MagicItem_403');
   assert.deepEqual([hammer?.name, hammer?.sourceName, hammer?.art, hammer?.kind, hammer?.changes[0].direction],
@@ -421,8 +423,17 @@ test('the page groups cards by mode, class or type and derives kinds only from d
 });
 
 test('presentation: the expansion of a version, the hero lead, wide art and the archive by expansion', async () => {
-  const { toPatchView, patchExpansionCode, patchHeroLead, patchFeaturedArtwork, patchArchiveByExpansion, patchKindShares } =
+  const { toPatchView, patchExpansionCode, patchHeroLead, patchFeaturedArtwork, patchArchiveByExpansion, patchKindShares, patchHeadline } =
     await import('../src/modules/patchNotes/public');
+  assert.equal(patchHeadline('Обновление 36.6.3: балансные изменения Стандарта и Полей сражений'), 'Балансные изменения Стандарта и Полей сражений');
+  assert.equal(patchHeadline('Обновление 36.4.2 уже в игре: баланс Стандарта, Арены и Полей сражений'), 'Баланс Стандарта, Арены и Полей сражений');
+  assert.equal(patchHeadline('Обновление 30.2 уже в игре! Аксессуары на Полях сражений и новый сезон Арены'), 'Аксессуары на Полях сражений и новый сезон Арены');
+  assert.equal(patchHeadline('Обновление 29.2: Дуэты на Полях сражений, баланс Стандарта — уже в игре'), 'Дуэты на Полях сражений, баланс Стандарта');
+  assert.equal(patchHeadline('(Дополнено 12.11) Обновление 24.6.2: баланс Полей сражений и Арены'), 'Баланс Полей сражений и Арены');
+  assert.equal(patchHeadline('Обновление 37.0: «Власть Темной Империи», предрелизная потасовка'), '«Власть Темной Империи», предрелизная потасовка');
+  assert.equal(patchHeadline('Обновление 18.2 — уже в игре!'), null, 'a title that only names the version adds nothing to the version');
+  assert.equal(patchHeadline('Обновление 37.0'), null);
+  assert.equal(patchHeadline('Большой патч баланса'), 'Большой патч баланса', 'a title in another shape is kept whole');
   assert.equal(patchExpansionCode('35.0.3'), 'CATACLYSM');
   assert.equal(patchExpansionCode('37.0.0'), 'BE');
   assert.equal(patchExpansionCode('19.0.0'), null, 'a cycle the archive does not name stays unknown');
