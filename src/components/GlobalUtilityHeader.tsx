@@ -1,12 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
-  BookOpen,
   ChevronRight,
   CircleHelp,
   GraduationCap,
-  Library,
-  LoaderCircle,
-  LockKeyhole,
   Search,
   X,
 } from 'lucide-react';
@@ -17,38 +13,18 @@ import {
   hasSubscriptionEntitlement,
   type SubscriptionAccess,
 } from '../modules/subscriptions/public';
+import type { PaletteHandle } from './globalSearch/SearchPalette';
+import {
+  readRecentEntries, rememberRecentEntry,
+  type PaletteEntry, type SearchArticle,
+} from './globalSearch/searchPaletteModel';
 
-type SearchArticle = {
-  id: string;
-  title: string;
-  excerpt: string;
-  tag: string;
-  mode: string;
-  date: string;
-  url: string;
-  image: string;
-  vip: boolean;
-};
+// The palette's results, grouping and keyboard model load on first use; a
+// pointer over the field or its focus starts the download.
+const loadSearchPalette = () => import('./globalSearch/SearchPalette');
+const LazySearchPalette = lazy(loadSearchPalette);
 
-type SearchCard = {
-  id: string;
-  name: string;
-  nameEn: string;
-  text: string;
-  image: string;
-  mana: number | null;
-  className: string;
-  cardType: string;
-  formats: Array<'standard' | 'wild'>;
-  path: string;
-};
-
-type SearchResponse = {
-  query: string;
-  articles: SearchArticle[];
-  cards: SearchCard[];
-  minimumQueryLength: number;
-};
+const browserStorage = () => { try { return window.localStorage; } catch { return null; } };
 
 export type GlobalSearchAccess = {
   confirmed: boolean;
@@ -72,19 +48,6 @@ function articleRequiresAccess(article: SearchArticle, access: GlobalSearchAcces
   return !access.anySubscription;
 }
 
-function articleModeLabel(mode: string): string {
-  if (mode === 'standard') return 'Стандарт';
-  if (mode === 'wild') return 'Вольный';
-  if (mode === 'arena') return 'Арена';
-  if (mode === 'battlegrounds') return 'Поля Сражений';
-  return 'Статья';
-}
-
-function cardFormatsLabel(formats: SearchCard['formats']): string {
-  if (formats.includes('standard') && formats.includes('wild')) return 'Стандарт · Вольный';
-  return formats.includes('standard') ? 'Стандарт' : 'Вольный';
-}
-
 export default function GlobalUtilityHeader({
   accessStatus,
   onNavigate,
@@ -102,10 +65,9 @@ export default function GlobalUtilityHeader({
   const searchPanelId = `${useId()}-search`;
   const helpPanelId = `${useId()}-help`;
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResponse | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [articleError, setArticleError] = useState('');
+  const [recent, setRecent] = useState<PaletteEntry[]>([]);
   const [openingArticleId, setOpeningArticleId] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const tourButtonRef = useRef<HTMLButtonElement>(null);
@@ -131,39 +93,15 @@ export default function GlobalUtilityHeader({
     setHelpOpen(false);
   }, [auth, pagePath]);
 
-  useEffect(() => {
-    const normalizedQuery = query.trim();
-    if (normalizedQuery.length < 2) {
-      setResults(null);
-      setLoading(false);
-      setError('');
-      return undefined;
-    }
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => {
-      setLoading(true);
-      setError('');
-      void fetch(`/api/search?q=${encodeURIComponent(normalizedQuery)}`, {
-        credentials: 'same-origin',
-        signal: controller.signal,
-      })
-        .then(async response => {
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || 'Не удалось выполнить поиск');
-          setResults(data as SearchResponse);
-        })
-        .catch(fetchError => {
-          if (fetchError?.name !== 'AbortError') setError(fetchError?.message || 'Поиск временно недоступен');
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
-        });
-    }, 220);
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [query]);
+  const palette = useRef<PaletteHandle | null>(null);
+  const [activeOption, setActiveOption] = useState<string | undefined>();
+  const [loading, setLoading] = useState(false);
+  const onActiveOption = useCallback((id: string | undefined) => setActiveOption(id), []);
+  const onLoading = useCallback((value: boolean) => setLoading(value), []);
+  const openSearch = () => {
+    if (!searchOpen) setRecent(readRecentEntries(browserStorage()));
+    setSearchOpen(true);
+  };
 
   useEffect(() => {
     const closeOnOutsidePointer = (event: PointerEvent) => {
@@ -183,10 +121,13 @@ export default function GlobalUtilityHeader({
       }
       const target = event.target as HTMLElement | null;
       const isEditing = target?.matches('input, textarea, select, [contenteditable="true"]');
-      if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey && !isEditing) {
+      const paletteKey = (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key?.toLowerCase() === 'k';
+      if (paletteKey || (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey && !isEditing)) {
         event.preventDefault();
-        setSearchOpen(true);
+        setHelpOpen(false);
+        // Focus opens the palette (the input's focus handler).
         searchInputRef.current?.focus();
+        searchInputRef.current?.select();
       }
     };
     document.addEventListener('pointerdown', closeOnOutsidePointer);
@@ -199,6 +140,14 @@ export default function GlobalUtilityHeader({
   const closePanels = () => {
     setSearchOpen(false);
     setHelpOpen(false);
+  };
+
+  const runEntry = (entry: PaletteEntry) => {
+    rememberRecentEntry(browserStorage(), entry);
+    if (entry.kind === 'article') { void openArticle(entry.article); return; }
+    closePanels();
+    searchInputRef.current?.blur();
+    onNavigate(entry.path);
   };
 
   const openArticle = async (article: SearchArticle) => {
@@ -230,13 +179,11 @@ export default function GlobalUtilityHeader({
       closePanels();
     } catch (openError: any) {
       tab?.close();
-      setError(openError?.message || 'Не удалось открыть статью');
+      setArticleError(openError?.message || 'Не удалось открыть статью');
     } finally {
       setOpeningArticleId('');
     }
   };
-
-  const hasResults = Boolean(results && (results.articles.length || results.cards.length));
 
   return (
     <header ref={rootRef} className="global-utility-header" aria-label="Глобальный поиск и помощь">
@@ -251,17 +198,30 @@ export default function GlobalUtilityHeader({
             type="search"
             value={query}
             placeholder="Найдите статью, карту или механику…"
-            aria-label="Глобальный поиск по статьям и картам"
-            aria-keyshortcuts="/"
-            onFocus={() => {
-              setSearchOpen(true);
+            aria-label="Глобальный поиск: разделы, архетипы, карты и статьи"
+            aria-keyshortcuts="/ Control+K Meta+K"
+            title="Поиск по сайту (/ или Ctrl+K)"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={searchOpen}
+            aria-controls={searchOpen ? `${searchPanelId}-list` : undefined}
+            aria-activedescendant={searchOpen ? activeOption : undefined}
+            autoComplete="off"
+            onPointerEnter={() => { void loadSearchPalette(); }}
+            onFocus={openSearch}
+            onKeyDown={event => {
+              if (event.nativeEvent.isComposing || !['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
+              openSearch();
+              palette.current?.onKeyDown(event);
             }}
             onChange={event => {
               setQuery(event.target.value);
-              setSearchOpen(true);
+              setArticleError('');
+              // A typed query highlights its best row, so Enter opens it.
+              palette.current?.highlight(event.target.value.trim() ? 0 : -1);
+              openSearch();
             }}
           />
-          {loading && <LoaderCircle size={16} className="global-search__spinner" aria-label="Идет поиск" />}
           {!loading && query && (
             <button
               type="button"
@@ -269,7 +229,7 @@ export default function GlobalUtilityHeader({
               aria-label="Очистить поиск"
               onClick={() => {
                 setQuery('');
-                setResults(null);
+                palette.current?.highlight(-1);
                 searchInputRef.current?.focus();
               }}
             >
@@ -278,66 +238,13 @@ export default function GlobalUtilityHeader({
           )}
           {!loading && !query && <kbd className="global-search__shortcut" aria-hidden="true">/</kbd>}
 
-          {searchOpen && query.trim().length >= 2 && (
-            <div id={searchPanelId} className="global-search-panel" role="region" aria-label="Результаты глобального поиска">
-              {error ? (
-                <p className="global-search-state is-error" role="alert">{error}</p>
-              ) : loading && !results ? (
-                <p className="global-search-state" role="status">Ищем статьи и карты…</p>
-              ) : !hasResults ? (
-                <p className="global-search-state" role="status">Ничего не найдено. Попробуйте название карты, механику или тему статьи.</p>
-              ) : (
-                <>
-                  {results!.articles.length > 0 && (
-                    <section className="global-search-group" aria-labelledby={`${searchPanelId}-articles`}>
-                      <h2 id={`${searchPanelId}-articles`}><BookOpen size={15} aria-hidden="true" /> Статьи</h2>
-                      {results!.articles.map(article => {
-                        const locked = articleRequiresAccess(article, access);
-                        return (
-                          <button key={article.id} type="button" className="global-search-result" onClick={() => void openArticle(article)}>
-                            <span className="global-search-result__thumb is-article">
-                              {article.image ? <img src={article.image} alt="" loading="lazy" /> : <BookOpen size={18} aria-hidden="true" />}
-                            </span>
-                            <span className="global-search-result__copy">
-                              <strong>{article.title}</strong>
-                              <small>{article.tag || articleModeLabel(article.mode)} · {article.date}</small>
-                            </span>
-                            {openingArticleId === article.id ? <LoaderCircle size={16} className="global-search__spinner" /> : locked ? <LockKeyhole size={16} aria-label="Нужна подписка" /> : <ChevronRight size={16} aria-hidden="true" />}
-                          </button>
-                        );
-                      })}
-                    </section>
-                  )}
-
-                  {results!.cards.length > 0 && (
-                    <section className="global-search-group" aria-labelledby={`${searchPanelId}-cards`}>
-                      <h2 id={`${searchPanelId}-cards`}><Library size={15} aria-hidden="true" /> Карты</h2>
-                      {results!.cards.map(card => (
-                        <button
-                          key={card.id}
-                          type="button"
-                          className="global-search-result"
-                          onClick={() => {
-                            closePanels();
-                            onNavigate(card.path);
-                          }}
-                        >
-                          <span className="global-search-result__thumb is-card">
-                            {card.image ? <img src={card.image} alt="" loading="lazy" /> : <Library size={18} aria-hidden="true" />}
-                          </span>
-                          <span className="global-search-result__copy">
-                            <strong>{card.name}</strong>
-                            <small>{card.mana !== null ? `${card.mana} маны · ` : ''}{cardFormatsLabel(card.formats)}</small>
-                          </span>
-                          {access.confirmed && !access.standard && <span className="global-search-result__diamond"><LockKeyhole size={12} aria-hidden="true" /> Статистика</span>}
-                          <ChevronRight size={16} aria-hidden="true" />
-                        </button>
-                      ))}
-                    </section>
-                  )}
-                </>
-              )}
-            </div>
+          {searchOpen && (
+            <Suspense fallback={null}>
+              <LazySearchPalette panelId={searchPanelId} query={query} admin={admin} recent={recent} onRun={runEntry}
+                openingArticleId={openingArticleId} articleError={articleError} handleRef={palette}
+                onActiveOption={onActiveOption} onLoading={onLoading}
+                locks={{ article: entry => articleRequiresAccess(entry.article, access), cardStatistics: access.confirmed && !access.standard }} />
+            </Suspense>
           )}
         </div>
 

@@ -10,6 +10,7 @@ import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
+import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
 const teaser = {
   slug: 'arena-100-percent', title: 'Арена 100% побед', description: 'Подробное описание',
@@ -33,6 +34,7 @@ test('Next guide detail renders an anonymous teaser, canonicalizes old IDs and r
     if (pathname === '/api/auth/me') {
       response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return;
     }
+    if (isMenuBackgroundRead(pathname)) { response.end(JSON.stringify(MENU_PATCH_ARCHIVE)); return; }
     if (pathname.startsWith('/api/')) {
       response.writeHead(401).end('{"error":"guest"}'); return;
     }

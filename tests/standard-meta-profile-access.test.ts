@@ -17,7 +17,7 @@ assert.match(
 );
 assert.match(
   publicNavigationSource,
-  /routes=\{STANDARD_TABS\}/,
+  /routes=\{STANDARD_TABS\}|section\('standard', STANDARD_TABS\)/,
   'Standard navigation must stay visible so guests can reach the Diamond paywall',
 );
 assert.match(paywallSource, /Тариф «Алмаз»/, 'traditional pages must name the required Diamond plan');

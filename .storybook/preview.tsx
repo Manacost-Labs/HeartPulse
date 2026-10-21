@@ -3,6 +3,7 @@
 // of it would put utilities below the base reset, and every `p-3` would be 0.
 import '../src/index.css';
 import '../src/parchment-theme.css';
+import '../src/app/shell/PublicNavigation.css';
 import '../src/features/StandardCards.styles';
 import '../src/features/DeferredRoutes.css';
 import '../src/features/contests.css';

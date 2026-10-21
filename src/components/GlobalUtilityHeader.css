@@ -151,7 +151,7 @@
   border-top: 1px solid rgba(234, 195, 106, 0.25);
 }
 
-.global-search-group h2 {
+.global-search-group__title {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -178,10 +178,39 @@
 }
 
 .global-search-result:hover,
-.global-search-result:focus-visible {
+.global-search-result:focus-visible,
+.global-search-result[data-highlighted] {
   border-color: rgba(235, 195, 104, 0.38);
   outline: 0;
   background: rgba(255, 227, 160, 0.08);
+}
+
+/* The keyboard row of the palette: the same gold bar as the current menu item. */
+.global-search-result[data-highlighted] {
+  box-shadow: inset 3px 0 0 #f2c85d;
+  background: rgba(255, 227, 160, 0.12);
+}
+
+a.global-search-result { text-decoration: none; }
+
+.global-search-result.is-page,
+.global-search-result.is-archetype { min-height: 42px; }
+
+.global-search-result.is-page .global-search-result__thumb,
+.global-search-result.is-archetype .global-search-result__thumb {
+  width: 32px;
+  height: 32px;
+  margin-inline: 8px;
+  border-radius: 50%;
+}
+
+.global-search-result.is-page .global-search-result__thumb { border-radius: 4px; }
+
+.global-search-result.is-archetype .global-search-result__thumb img { object-fit: contain; }
+
+.global-search-state.is-inline {
+  padding: 0.35rem 0.6rem 0.1rem;
+  font-size: 0.72rem;
 }
 
 .global-search-result__thumb {

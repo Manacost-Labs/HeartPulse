@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const pages = [
@@ -59,6 +60,8 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
           ? { id: 'builder-reader', email: 'builder@example.test', name: 'Игрок', role: 'user' } : null });
       } else if (url.pathname === '/api/subscription/status') {
         void json(200, { hasAccess: true, entitlements: { battlegrounds: true } });
+      } else if (isMenuBackgroundRead(url.pathname)) {
+        void json(200, MENU_PATCH_ARCHIVE);
       } else if (url.pathname.startsWith('/api/')) {
         apiRequests.push(url.pathname);
         if (url.pathname === '/api/card-art' || url.pathname.startsWith('/api/public-resource/')) {

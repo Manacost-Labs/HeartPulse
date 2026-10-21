@@ -32,7 +32,8 @@ export const Desktop: Story = {
     const canvas = within(sidebar as HTMLElement);
     await userEvent.click(canvas.getByRole('button', { name: /Конструкторы/ }));
     await userEvent.click(canvas.getByRole('button', { name: /Разное/ }));
-    await expect(canvasElement.querySelector('#arena-sidebar-constructors')).not.toBeVisible();
+    // Groups open independently: the first stays open under the second.
+    await expect(canvasElement.querySelector('#arena-sidebar-constructors')).toBeVisible();
     await userEvent.click(canvas.getByRole('link', { name: 'Архив гайдов' }));
     await expect(canvasElement.querySelector('.arena-sidebar')).toBe(sidebar);
     await expect(canvas.getByRole('button', { name: /Разное/ })).toHaveAttribute('aria-expanded', 'true');
@@ -48,7 +49,7 @@ export const Mobile: Story = {
     const menu = within(canvasElement.querySelector('#arena-mobile-menu') as HTMLElement);
     await userEvent.click(menu.getByRole('button', { name: /Конструкторы/ }));
     await userEvent.click(menu.getByRole('button', { name: /Разное/ }));
-    await expect(canvasElement.querySelector('#arena-mobile-constructors')).not.toBeVisible();
+    await expect(canvasElement.querySelector('#arena-mobile-constructors')).toBeVisible();
     const destination = canvasElement.querySelector<HTMLAnchorElement>('#arena-mobile-menu a[href="/tierlist/"]');
     if (!destination) throw new Error('Arena tier-list link is missing');
     await userEvent.click(destination);

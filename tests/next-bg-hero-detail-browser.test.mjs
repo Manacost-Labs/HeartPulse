@@ -10,6 +10,7 @@ import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
+import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const placeholder = readFileSync(new URL('../public/arena-logo-icon.webp', import.meta.url));
@@ -34,6 +35,7 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
     }
     if (pathname.startsWith('/api/bg/heroes/public/')) { response.writeHead(404).end('{"error":"missing"}'); return; }
     if (pathname === '/api/auth/me') { response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return; }
+    if (isMenuBackgroundRead(pathname)) { response.end(JSON.stringify(MENU_PATCH_ARCHIVE)); return; }
     if (pathname.startsWith('/api/')) { response.writeHead(401).end('{"error":"guest"}'); return; }
     response.writeHead(204).end();
   });

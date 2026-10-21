@@ -9,6 +9,7 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { isAbortedRoutePrefetch, isMenuRoutePrefetch, isRoutePrefetchConsoleMessage } from './helpers/abortedRoutePrefetch.mjs';
+import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
 const axe = readFileSync('node_modules/axe-core/axe.min.js', 'utf8');
 const pagination = { page: 1, perPage: 48, total: 1, totalPages: 1 };
@@ -66,6 +67,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
     const heroPage = ['2', '99'].includes(url.searchParams.get('page') ?? '')
       ? { page: 2, perPage: 48, total: 49, totalPages: 2 } : pagination;
     const payload = path === '/api/auth/me' ? { user: null }
+      : isMenuBackgroundRead(path) ? MENU_PATCH_ARCHIVE
       : path === '/api/cosmetics/heroes' ? { items: [hero], pagination: heroPage, updatedAt: null, source: 'fixture' }
         : path === '/api/cosmetics/coins' ? { items: [coin], generatedBy: [], related: [], pagination, updatedAt: null, source: 'fixture' }
           : path === '/api/cosmetics/pets' ? { items: [{ petId: 1, name: 'Семейство', variants: [pet] }], pagination, updatedAt: null, source: 'fixture' }

@@ -304,6 +304,14 @@ export const fixtures = {
   '/api/articles': {
     articles: qaArticles,
   },
+  // Read by the menu at idle for its «Новый» patch badge; the date keeps QA screens without it.
+  '/api/patch-notes': {
+    patches: [{
+      version: '36.0.3', build: '36.0.3.240000', title: 'Обновление 36.0.3', publishedAt: '2026-07-10T12:00:00+00:00',
+      sourceUrl: null, officialUrl: null, changeCount: 4,
+    }],
+    updatedAt: '2026-07-11T00:00:00.000Z',
+  },
   '/api/search': {
     query: 'контроль',
     minimumQueryLength: 2,

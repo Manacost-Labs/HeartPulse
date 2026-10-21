@@ -164,17 +164,6 @@
   text-transform: uppercase;
 }
 
-.arena-mobile-menu-section-caption,
-.arena-sidebar-section-caption,
-.arena-nav-group-caption {
-  color: #d7b778;
-  font-family: var(--font-body);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
-}
-
 .arena-mobile-menu-group {
   display: grid;
   gap: 0.16rem;
@@ -190,12 +179,6 @@
   width: 100%;
   cursor: pointer;
   text-align: left;
-}
-
-.arena-nav-group-copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.1rem;
 }
 
 .arena-mobile-menu-link:focus-visible,

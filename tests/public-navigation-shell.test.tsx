@@ -10,8 +10,10 @@ const noop = () => {};
 const props: PublicNavigationProps = {
   activeTab: 'articles',
   mobileMenuOpen: true,
-  mobileNavGroup: 'constructors',
-  sidebarNavGroup: 'misc',
+  mobileNavGroups: new Set(['constructors'] as const),
+  sidebarNavGroups: new Set(['misc'] as const),
+  compact: false,
+  badges: { 'patch-notes': { label: 'Новый', title: 'Новый патч 37.0.0' } },
   visibleArenaTabs: [],
   visibleMiscTabs: [],
   appIsContestAdmin: false,
@@ -28,6 +30,7 @@ const props: PublicNavigationProps = {
   onCloseMobileMenu: noop,
   onToggleMobileNavGroup: noop,
   onToggleSidebarNavGroup: noop,
+  onToggleCompact: noop,
 };
 
 const html = renderToStaticMarkup(<PublicNavigation {...props} />);
@@ -40,19 +43,28 @@ assert.match(html, /arena-(?:mobile-menu|sidebar)-link-icon/);
 assert.match(html, /aria-current="page"/);
 assert.doesNotMatch(html, /href="\/[^"?#.]*[^\/"?#.]"/, 'navigation links must target canonical trailing-slash URLs');
 assert.match(html, /Традиционный режим/);
-assert.match(html, /Мета и колоды/);
 assert.match(html, /Арена/);
-assert.match(html, /Драфт и выборы/);
 assert.match(html, /Поля Сражений/);
-assert.match(html, /Герои и тактика/);
 assert.match(html, /Конструкторы/);
-assert.match(html, /Создавайте и сравнивайте/);
 assert.match(html, /Разное/);
-assert.match(html, /Материалы и события/);
 assert.match(html, /aria-expanded="true"/);
 assert.match(html, /id="arena-mobile-constructors"/);
 assert.match(html, /id="arena-sidebar-misc"/);
 assert.doesNotMatch(html, /arena-sidebar-status|Дата обновления данных|Обновлено/);
+// No decorative captions under modes and groups: the emblem and the name say it.
+assert.doesNotMatch(html, /Мета и колоды|Драфт и выборы|Герои и тактика|Создавайте и сравнивайте|Материалы и события/);
+// Both groups can be open at once: opening one never collapses the other under the pointer.
+const bothOpen = renderToStaticMarkup(<PublicNavigation {...props} sidebarNavGroups={new Set(['constructors', 'misc'] as const)} />);
+assert.match(bothOpen, /id="arena-sidebar-constructors"(?![^>]*hidden)/);
+assert.match(bothOpen, /id="arena-sidebar-misc"(?![^>]*hidden)/);
+// Every game mode heading carries its emblem; a badge is plain text next to its link.
+assert.equal(html.match(/arena-nav-section-icon/g)?.length, 6, 'three mode emblems in the drawer and three in the sidebar');
+assert.match(html, /href="\/standard\/patches\/"[^>]*>[\s\S]*?<span class="arena-nav-badge" title="Новый патч 37\.0\.0">Новый<\/span>/);
+// The compact rail keeps one name per item for its tooltip and a pressed toggle state.
+assert.match(html, /data-nav-tip="Тир-лист · Поля Сражений"/);
+assert.match(html, /<button[^>]*class="arena-sidebar-compact-toggle"[^>]*aria-pressed="false"[^>]*aria-label="Свернуть меню"/);
+const compactHtml = renderToStaticMarkup(<PublicNavigation {...props} compact />);
+assert.match(compactHtml, /aria-pressed="true"[^>]*aria-label="Развернуть меню"/);
 
 // The drawer is in the server HTML even while closed: a native popover the
 // toggle opens before React hydrates, with plain links inside.
@@ -82,7 +94,7 @@ function elementsOf(node: ReactNode, found: Element[] = []): Element[] {
 const calls: string[] = [];
 const spied: PublicNavigationProps = {
   ...props,
-  mobileNavGroup: 'misc',
+  mobileNavGroups: new Set(['misc'] as const),
   visibleMiscTabs: MISC_TABS,
   onNavigate: tab => calls.push(`navigate ${tab}`),
   onNavigateLogin: () => calls.push('login'),

@@ -9,6 +9,7 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch, isMenuRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
+import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 
@@ -58,6 +59,8 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
           failedSubscriptionResponsesRemaining -= 1;
           void respond(503, { error: 'temporarily unavailable' });
         } else void respond(200, { hasAccess: true, entitlements: { battlegrounds: true } });
+      } else if (isMenuBackgroundRead(url.pathname)) {
+        void respond(200, MENU_PATCH_ARCHIVE);
       } else if (url.pathname === '/api/bg/tier-lists') {
         tierRequests.push(url.search);
         void respond(signedIn ? tierStatus : 401, !signedIn ? { error: 'guest' }

@@ -10,6 +10,7 @@ import puppeteer from 'puppeteer';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
+import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
 const teaser = {
   format: 'wild', formatLabel: 'Вольный', patch: '36.0.3', minimumGames: 50,
@@ -66,6 +67,7 @@ test('Next archetype details isolate access and load builds before independent o
     if (pathname === '/api/auth/me') {
       response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return;
     }
+    if (isMenuBackgroundRead(pathname)) { response.end(JSON.stringify(MENU_PATCH_ARCHIVE)); return; }
     if (pathname.startsWith('/api/')) {
       response.writeHead(401).end('{"error":"guest"}'); return;
     }

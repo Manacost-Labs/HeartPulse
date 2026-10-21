@@ -418,3 +418,76 @@ Back winning at once over a waiting click. Reviewed
 `docs/architecture/module-boundaries.md`: shared navigation primitives stay
 framework-independent; the Next-specific response observer stays in the
 public adapter.
+
+### Main menu feedback, compact rail and header palette (2026-10-21)
+
+The menu looked and felt slower than the router: a press showed nothing until
+its click and the optimistic transition, the current item was only a darker
+row, mode headings had no emblem, opening «Разное» collapsed «Конструкторы»
+and moved the control under the pointer, and the phone menu was a drop-down
+panel without a swipe.
+
+1. Pressed feedback. A primary press on a menu link sets `data-nav-pressed` on
+   the anchor in a capture listener (`usePressedNavigationLink`), without a
+   React render: the gold indicator moves on the next frame and the previous
+   current item steps back (`:has()`). A scroll gesture (`pointercancel`), a
+   release elsewhere or the committed or optimistic current page clears it.
+2. Current item. A gold bar on the left edge (transform and opacity only), a
+   parchment-tinted row and a gold icon tile mark `aria-current="page"`.
+   Mode headings carry an emblem (Традиционный режим, Арена, Поля Сражений);
+   the decorative captions under modes and groups are gone.
+3. Groups open independently and the group holding the current page starts
+   open, so its item is visible on arrival; a closed group still releases its
+   layout in the same commit.
+4. Compact desktop rail. The toggle next to the brand switches an 84 px icon
+   rail. `src/app/shell/navigationPreference.ts` stores the choice in
+   `localStorage` (`hp:nav:compact`) and an inline head script in
+   `app/layout.tsx` applies `data-nav-compact` to `<html>` before the first
+   paint, so the workspace never shifts after hydration; React reads the
+   attribute through `useSyncExternalStore` (expanded on the server). One
+   fixed tooltip (`useNavigationTooltip`) names the hovered or focused item and
+   its mode («Тир-лист · Арена»); items keep their accessible names.
+5. Honest badge. «Новый» next to Патчноуты only while the newest dated patch of
+   `/api/patch-notes` is at most 14 days old and this browser has not opened
+   the patch notes since it was published. The archive is read once the
+   browser is idle (not under Save-Data), cached for 30 minutes; nothing is
+   shown while it is unknown.
+6. Phone drawer. The drawer is a full-height panel from the left edge under the
+   top bar, sliding on `translate` over `--motion-base`. A horizontal swipe
+   towards the edge follows the finger and closes it past 30 % of its width or
+   on a flick (`useDrawerGesture`); vertical moves stay a native scroll
+   (`touch-action: pan-y`). It keeps its scroll between openings and on the
+   first opening centres the current page. Links are at least 48 px tall. The
+   focus trap, Escape, the outside tap and the back/forward-cache close are
+   unchanged.
+7. Header palette. The header search is the site's command palette: `/`,
+   Ctrl+K or ⌘K focus it from anywhere and open a list of recent picks
+   (`hp:search:recent`, five same-site entries) and every section in menu
+   order (the mode is printed only for a repeated name such as «Тир-лист»);
+   typing narrows the sections at once and adds archetypes (public
+   catalog teaser, Standard and Wild), cards and articles (`/api/search`).
+   Arrow keys move a highlighted row named by `aria-activedescendant`
+   (Valyro `useListNavigation`, already vendored), Enter activates it. Rows
+   are real links (articles stay buttons that open a new tab through the
+   existing access-link flow); subscription locks are unchanged. Valyro's
+   modal `CommandPalette` was not vendored: it would duplicate the header
+   field and its QA and paywall contracts.
+
+Measured on the local QA runtime against a build of the base commit, five
+interleaved rounds of five runs (production builds, fixture API, 4× CPU, a
+shared server; medians of the round medians; `/articles/` → Мета): first
+frame with visible feedback after the press, desktop (mouse held 60 ms)
+93 → 17 ms and phone (tap) 37 → 5 ms; `aria-current` follows the click as
+before (about 95 ms desktop). Event duration of the menu interactions (INP
+proxy, 8 ms granularity) 40 → 48 ms desktop and 88 → 80 ms phone; drawer
+fully open 323 → 318 ms; LCP 252 → 248 ms desktop and 144 → 156 ms phone,
+within the run-to-run spread; CLS 0 in both. Toggling the rail and opening
+groups follow input, so they are not counted as shifts.
+
+Verification: `tests/public-navigation-shell.test.tsx` (emblems, badge,
+independent groups, rail toggle), `tests/navigation-badges.test.ts`,
+`tests/search-palette-model.test.ts`, the drawer swipe and scroll memory in
+`tests/next-mobile-menu-browser.test.mjs`, the group contract in
+`tests/next-page-transitions-browser.test.mjs`, and the Storybook stories
+`App shell/Public navigation` (compact rail, badge, independent groups) and
+`App shell/Search palette`.

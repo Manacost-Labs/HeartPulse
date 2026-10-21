@@ -27,8 +27,13 @@ The existing administrative `/deck-builder/` keeps its separate owner.
 `apps/public-web/ui/PublicNavigationLayout.tsx` composes the persistent public
 menu and one shared viewer-access provider in the Next root layout.
 `src/app/shell/PublicNavigationController.tsx` owns drawer/group state and the
-existing navigation UI; `PublicPageShell` owns only route-specific surfaces,
-utility header and content, with standalone navigation for isolated previews.
+existing navigation UI, with its menu feedback (pressed link, compact rail
+preference, tooltip, patch badge, drawer gesture) in sibling `src/app/shell`
+hooks; the header palette (`src/components/globalSearch/`) reads the route
+definitions of `src/app/routing` and the public search and archetype teaser
+APIs, and reuses the vendored Valyro `useListNavigation`. `PublicPageShell`
+owns only route-specific surfaces, utility header and content, with standalone
+navigation for isolated previews.
 A narrow context reports each page's update timestamp to the persistent menu.
 Page data stays in route/domain loaders; the layout adds no domain-wide barrel.
 `PublicNavigationBridge` adapts existing callback navigation and real public

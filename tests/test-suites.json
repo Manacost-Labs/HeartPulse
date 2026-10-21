@@ -363,6 +363,8 @@
         "tests/account-dashboard-ui.test.tsx",
         "tests/login-card-ui.test.tsx",
         "tests/public-navigation-shell.test.tsx",
+        "tests/navigation-badges.test.ts",
+        "tests/search-palette-model.test.ts",
         "tests/public-resource-browser-contract.test.mjs",
         "tests/public-url-policy.test.ts",
         "tests/qa-command-contract.test.mjs",

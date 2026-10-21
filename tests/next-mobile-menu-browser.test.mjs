@@ -109,6 +109,27 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await waitForDrawer(page, { shown: false, backdrop: false, expanded: 'false', locked: '' });
     assert.equal(await page.evaluate(() => document.activeElement?.classList.contains('arena-mobile-nav-toggle')), true);
 
+    // The drawer keeps its own scroll between openings, and a horizontal swipe
+    // towards its edge closes it (a vertical move stays a native scroll).
+    await page.click('.arena-mobile-nav-toggle');
+    await waitForDrawer(page, { open: true, shown: true, locked: 'fixed' });
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('#arena-mobile-menu')).opacity === '1');
+    await page.evaluate(() => { document.querySelector('#arena-mobile-menu').scrollTop = 160; });
+    await page.keyboard.press('Escape');
+    await waitForDrawer(page, { shown: false, locked: '' });
+    await page.click('.arena-mobile-nav-toggle');
+    await waitForDrawer(page, { open: true, shown: true });
+    await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').scrollTop === 160, { timeout: 2_000 });
+    await page.evaluate(() => {
+      const menu = document.querySelector('#arena-mobile-menu');
+      const point = (type, x, y) => menu.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y }));
+      point('pointerdown', 300, 400);
+      point('pointermove', 260, 404);
+      point('pointermove', 120, 410);
+      point('pointerup', 120, 410);
+    });
+    await waitForDrawer(page, { open: false, shown: false, expanded: 'false', locked: '' });
+
     // A drawer the browser opened itself (the toggle before hydration) is
     // adopted: the page locks behind it, and a tap outside it (here on the
     // empty middle of the top bar) lets the browser close it again.

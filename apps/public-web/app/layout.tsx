@@ -1,5 +1,6 @@
 import '@/src/index.css';
 import '@/src/parchment-theme.css';
+import '@/src/app/shell/PublicNavigation.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { ANALYTICS_LOADER } from '@/apps/public-web/lib/analyticsLoader';
@@ -8,6 +9,7 @@ import { PublicNavigationLayout } from '@/apps/public-web/ui/PublicNavigationLay
 import { FieldFocusMode } from '@/apps/public-web/ui/FieldFocusMode';
 import { WebVitalsReporter } from '@/apps/public-web/ui/WebVitalsReporter';
 import { loadRuntimeClientConfig } from '@/apps/public-web/lib/runtimeClientConfig';
+import { COMPACT_NAVIGATION_SCRIPT } from '@/src/app/shell/navigationPreference';
 
 // Pages replace title, description, canonical and robots; everything else
 // here reaches every document, so an unregistered page stays noindex.
@@ -36,10 +38,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // PageTour and ModalSurface make `#root` inert and aria-hidden while their
   // portaled dialogs are open; without it the page behind them stays reachable.
   // Wait only for the content box, rather than the entire streamed document.
-  // The head script (lib/authPrefetch.ts) may mark <html> with data-hp-viewer
-  // before hydration; that attribute is the only expected difference.
+  // The head scripts may mark <html> before hydration: data-hp-viewer
+  // (lib/authPrefetch.ts) and the remembered compact menu (data-nav-compact);
+  // those attributes are the only expected difference.
   return <html lang="ru" suppressHydrationWarning><head>
     <link rel="expect" href="#route-content-start" blocking="render" />
+    <script dangerouslySetInnerHTML={{ __html: COMPACT_NAVIGATION_SCRIPT }} />
     <script dangerouslySetInnerHTML={{ __html: AUTH_PREFETCH }} />
   </head><body>
     {/* Inline and first: the switches must exist before any chunk hydrates. */}

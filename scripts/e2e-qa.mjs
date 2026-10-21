@@ -5377,6 +5377,9 @@ for (const [device, viewport] of [
         iconColor: inactiveIconStyles?.color || '',
         iconBackground: inactiveIconStyles?.backgroundColor || '',
         activeBorder: activeStyles?.borderLeftColor || '',
+        // The current item's gold bar is drawn by ::after (transform/opacity only).
+        activeIndicator: activeLink ? getComputedStyle(activeLink, '::after').opacity : '',
+        activeIconBackground: activeLink ? getComputedStyle(activeLink.querySelector('.arena-sidebar-link-icon')).backgroundImage : '',
         activeColor: activeStyles?.color || '',
         activeBackground: activeStyles?.backgroundImage || '',
         activeShadow: activeStyles?.boxShadow || '',
@@ -5428,16 +5431,16 @@ for (const [device, viewport] of [
       || sidebarState.shadow === 'none'
       || sidebarState.beforeDisplay !== 'none'
       || sidebarState.brandMinHeight !== '64px'
-      || sidebarState.brandPadding !== '10.4px 8.8px 12.8px'
+      || sidebarState.brandPadding !== '10.4px 0px 12.8px 8.8px'
       || sidebarState.brandColor !== 'rgb(255, 241, 200)'
-      || sidebarState.brandSize !== '20px'
-      || sidebarState.brandLineHeight !== '21px'
+      || sidebarState.brandSize !== '18.56px'
+      || sidebarState.brandLineHeight !== '19.488px'
       || sidebarState.brandShadow === 'none'
       || sidebarState.navGap !== '2.08px'
       || sidebarState.navMarginTop !== '7.2px'
       || sidebarState.navPadding !== '7.2px 0px'
       || sidebarState.navBorderColor !== 'rgba(232, 192, 103, 0.2)'
-      || sidebarState.sectionMargin !== '11.52px 8.8px 4px'
+      || sidebarState.sectionMargin !== '11.2px 6.4px 3.2px'
       || sidebarState.sectionColor !== 'rgb(234, 210, 161)'
       || sidebarState.sectionSize !== '16px'
       || sidebarState.sectionWeight !== '400'
@@ -5460,7 +5463,9 @@ for (const [device, viewport] of [
       || sidebarState.iconRadius !== '4px'
       || sidebarState.iconColor !== 'rgb(232, 184, 77)'
       || sidebarState.iconBackground !== 'rgba(43, 4, 8, 0.24)'
-      || sidebarState.activeBorder !== 'rgb(242, 200, 93)'
+      || sidebarState.activeBorder !== 'rgba(0, 0, 0, 0)'
+      || sidebarState.activeIndicator !== '1'
+      || !sidebarState.activeIconBackground.includes('linear-gradient')
       || sidebarState.activeColor !== 'rgb(255, 247, 223)'
       || sidebarState.activeBackground === 'none'
       || sidebarState.activeShadow === 'none'
@@ -5606,6 +5611,7 @@ for (const [device, viewport] of [
         color: activeLinkStyles?.color || '',
         background: activeLinkStyles?.backgroundColor || '',
         beforeDisplay: activeLink ? getComputedStyle(activeLink, '::before').display : '',
+        indicator: activeLink ? getComputedStyle(activeLink, '::after').opacity : '',
       };
       activeFixture?.remove();
       return {
@@ -5668,6 +5674,7 @@ for (const [device, viewport] of [
         activeColor: activeContract.color,
         activeBackground: activeContract.background,
         activeBeforeDisplay: activeContract.beforeDisplay,
+        activeIndicator: activeContract.indicator,
         sectionText: section?.querySelector('.arena-mobile-menu-section-title')?.textContent?.trim() || '',
         sectionMarginTop: section ? getComputedStyle(section).marginTop : '',
         sectionColor: section ? getComputedStyle(section).color : '',
@@ -5713,17 +5720,17 @@ for (const [device, viewport] of [
       || openState.toggleColor !== 'rgb(255, 239, 199)'
       || openState.toggleBackground !== 'rgba(45, 4, 7, 0.62)'
       || openState.toggleShadow === 'none'
-      || openState.menuTop !== '70px'
+      || openState.menuTop !== '61px'
       || openState.menuGap !== '3.2px'
-      || openState.menuPadding !== '12px 12.8px'
-      || openState.menuBorder !== '7px'
+      || openState.menuPadding !== '9.6px 11.2px 16px'
+      || openState.menuBorder !== '0px'
       || !openState.menuBorderImage.includes('main-page-rail-border.png')
-      || openState.menuBorderImageWidth !== '7px'
-      || openState.menuRadius !== '2px'
+      || openState.menuBorderImageWidth !== '0 7px 0 0'
+      || openState.menuRadius !== '0px'
       || !openState.menuBackground.includes('arena-rail-red.jpg')
       || openState.menuShadow === 'none'
       || openState.menuBackdrop !== 'none'
-      || openState.linkMinHeight !== '44px'
+      || openState.linkMinHeight !== '48px'
       || openState.linkPadding !== '9.28px 10.88px'
       || openState.linkBorderTop !== '0px'
       || openState.linkBorderLeft !== '3px'
@@ -5733,11 +5740,12 @@ for (const [device, viewport] of [
       || openState.linkSize !== '15.04px'
       || openState.linkWeight !== '700'
       || openState.linkShadow === 'none'
-      || openState.activeBorderColor !== 'rgb(217, 171, 73)'
-      || openState.activeColor !== 'rgb(255, 246, 220)'
-      || openState.activeBackground !== 'rgba(48, 4, 7, 0.42)'
+      || openState.activeBorderColor !== 'rgba(0, 0, 0, 0)'
+      || openState.activeIndicator !== '1'
+      || openState.activeColor !== 'rgb(255, 247, 223)'
+      || openState.activeBackground !== 'rgba(40, 3, 6, 0.38)'
       || openState.activeBeforeDisplay !== 'none'
-      || openState.sectionMarginTop !== '10.4px'
+      || openState.sectionMarginTop !== '12.8px'
       || openState.sectionColor !== 'rgb(159, 177, 202)'
       || openState.sectionSize !== '10.88px'
       || openState.profilePosition !== 'relative'

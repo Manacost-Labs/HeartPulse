@@ -84,23 +84,38 @@ async function assertSameFrame(page) {
     && window.__navigationFrame?.topbar === document.querySelector('.arena-mobile-topbar')), true, 'navigation DOM must persist');
 }
 
+// Groups open independently: opening the second never collapses the first,
+// so no control moves under the pointer, and a closed group releases its
+// layout in the same commit (no delayed collapse after an exit animation).
 async function assertGroupSwitchHasNoDelayedCollapse(page, root) {
   const result = await page.evaluate(async selector => {
     const nav = document.querySelector(selector);
     const buttons = [...nav.querySelectorAll('button[aria-controls]')];
     const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+    const panel = button => document.getElementById(button.getAttribute('aria-controls'));
+    if (buttons[0].getAttribute('aria-expanded') === 'true') buttons[0].click();
+    if (buttons[1].getAttribute('aria-expanded') === 'true') buttons[1].click();
+    await frame();
     buttons[0].click();
     await new Promise(resolve => setTimeout(resolve, 250));
+    const secondY = buttons[1].getBoundingClientRect().y;
     buttons[1].click();
     await frame();
     await frame();
-    const closed = document.getElementById(buttons[0].getAttribute('aria-controls'));
-    const height = closed.getBoundingClientRect().height;
+    const bothOpen = panel(buttons[0]).getBoundingClientRect().height > 0 && panel(buttons[1]).getBoundingClientRect().height > 0;
+    const stayedY = buttons[1].getBoundingClientRect().y;
+    buttons[0].click();
+    await frame();
+    await frame();
+    const height = panel(buttons[0]).getBoundingClientRect().height;
     const firstY = buttons[1].getBoundingClientRect().y;
     await new Promise(resolve => setTimeout(resolve, 180));
-    return { height, firstY, lastY: buttons[1].getBoundingClientRect().y };
+    // Leaves the second group open, as the scenarios after this expect.
+    return { bothOpen, moved: Math.abs(stayedY - secondY), height, firstY, lastY: buttons[1].getBoundingClientRect().y };
   }, root);
-  assert.equal(result.height, 0, 'the closed group must release layout with the newly opened group');
+  assert.equal(result.bothOpen, true, 'opening a group keeps the other one open');
+  assert.ok(result.moved < 0.5, 'the opened control stays under the pointer');
+  assert.equal(result.height, 0, 'a closed group releases layout in the same commit');
   assert.ok(Math.abs(result.firstY - result.lastY) < 0.5, 'group controls must not move again after the exit duration');
 }
 

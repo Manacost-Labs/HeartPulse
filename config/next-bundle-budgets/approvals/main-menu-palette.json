@@ -1,0 +1,87 @@
+{
+  "reason": "Главное меню и палитра поиска в шапке: золотой индикатор текущего раздела и нажатия, эмблемы режимов, компактная полоса иконок с подсказкой, выезжающая панель на телефоне со свайпом, бейдж нового патча. Общий бандл каждой страницы: около 1,1 КБ gzip CSS меню и 1,3–1,9 КБ gzip JS хуков меню; код палитры (результаты, клавиатура) и чтение архива патчей загружаются лениво при первом использовании.",
+  "routes": {
+    "/": {
+      "jsGzipBytes": 2048,
+      "cssGzipBytes": 256
+    },
+    "/articles/": {
+      "jsGzipBytes": 1408
+    },
+    "/battlegrounds/tier-list/": {
+      "jsGzipBytes": 1792
+    },
+    "/classes/": {
+      "jsGzipBytes": 2048,
+      "cssGzipBytes": 384
+    },
+    "/connect/": {
+      "jsGzipBytes": 1664
+    },
+    "/contests/": {
+      "jsGzipBytes": 1408,
+      "cssGzipBytes": 128
+    },
+    "/cosmetics/": {
+      "jsGzipBytes": 1792
+    },
+    "/developers/api/": {
+      "jsGzipBytes": 1536,
+      "cssGzipBytes": 128
+    },
+    "/faq/": {
+      "jsGzipBytes": 1536
+    },
+    "/gallery/": {
+      "jsGzipBytes": 2048
+    },
+    "/guides-archive/": {
+      "jsGzipBytes": 1664
+    },
+    "/heroes/": {
+      "jsGzipBytes": 1792
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 2048,
+      "cssGzipBytes": 256
+    },
+    "/library/": {
+      "jsGzipBytes": 1792
+    },
+    "/library/minions/": {
+      "jsGzipBytes": 1792
+    },
+    "/privacy/": {
+      "jsGzipBytes": 1536
+    },
+    "/standard/archetypes/": {
+      "jsGzipBytes": 2048,
+      "cssGzipBytes": 1152
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 1664,
+      "cssGzipBytes": 256
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 1664,
+      "cssGzipBytes": 256
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 1152,
+      "cssGzipBytes": 128
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 1792
+    },
+    "/standard/matchups/": {
+      "jsGzipBytes": 1920
+    },
+    "/standard/meta/": {
+      "jsGzipBytes": 2048
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 2176,
+      "cssGzipBytes": 256
+    }
+  }
+}

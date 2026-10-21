@@ -1,0 +1,320 @@
+/*
+ * Public menu: current-page indicator, pressed feedback, mode emblems, badges,
+ * the compact desktop rail and the phone drawer. Loaded by the root layout
+ * after parchment-theme.css, whose menu surfaces it refines. Motion uses the
+ * site tokens only (src/styles/tokens.css); reduced motion is global (index.css).
+ */
+
+/* ─── Shared: labels, mode emblems, badges ────────────────────────────── */
+
+.arena-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arena-sidebar-section,
+.arena-mobile-menu-section {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  column-gap: 0.55rem;
+  align-items: center;
+}
+
+.arena-nav-section-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  color: #3b0609;
+  background: radial-gradient(circle at 35% 30%, #fff0c2, #e2b24e 58%, #94621d);
+  box-shadow: 0 0 0 1px rgba(255, 231, 163, 0.45), 0 2px 4px rgba(30, 3, 5, 0.45);
+}
+
+.arena-nav-section-icon svg { display: block; }
+
+.arena-nav-badge {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+  color: #3b0609;
+  background: linear-gradient(180deg, #fff0c2, #e2b24e);
+  box-shadow: 0 0 0 1px rgba(59, 6, 9, 0.45), 0 0 10px rgba(242, 200, 93, 0.35);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-shadow: none;
+  text-transform: uppercase;
+}
+
+/* ─── Current page and pressed feedback ───────────────────────────────── */
+
+/* The gold bar is the indicator; it grows in on transform and opacity only. */
+:is(.arena-sidebar-link, .arena-mobile-menu-link):not(.arena-mobile-menu-profile)::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff3c4, #f2c85d 45%, #b7791f);
+  box-shadow: 0 0 10px rgba(252, 211, 77, 0.55);
+  opacity: 0;
+  transform: scaleY(0.35);
+  transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+
+.arena-mobile-menu-link { position: relative; }
+
+.arena-sidebar .arena-sidebar-link,
+.arena-mobile-menu .arena-mobile-menu-link:not(.arena-mobile-menu-profile) {
+  border-left-color: transparent;
+}
+
+/* A press marks its link before the click; the old current item steps back
+   meanwhile. As specific as the hidden bar above, plus one class. */
+:is(.arena-sidebar-link, .arena-mobile-menu-link):not(.arena-mobile-menu-profile):is(.arena-sidebar-link-active, .arena-mobile-menu-link-active, [data-nav-pressed])::after {
+  opacity: 1;
+  transform: none;
+}
+
+.arena-sidebar .arena-sidebar-link:is(.arena-sidebar-link-active, [data-nav-pressed]),
+.arena-mobile-menu .arena-mobile-menu-link:is(.arena-mobile-menu-link-active, [data-nav-pressed]):not(.arena-mobile-menu-profile) {
+  color: #fff7df;
+  background:
+    linear-gradient(90deg, rgba(246, 218, 160, 0.17), rgba(246, 218, 160, 0.04) 70%, transparent),
+    rgba(40, 3, 6, 0.38);
+  box-shadow: inset 0 1px rgba(255, 235, 188, 0.1), inset 0 -1px rgba(20, 2, 4, 0.25);
+}
+
+.arena-sidebar :is(.arena-sidebar-link-active, [data-nav-pressed]) .arena-sidebar-link-icon,
+.arena-mobile-menu :is(.arena-mobile-menu-link-active, [data-nav-pressed]) .arena-mobile-menu-link-icon {
+  border-color: #ffe7a3;
+  color: #45080c;
+  background: linear-gradient(150deg, #fff0c2, #e2b24e 55%, #b07a26);
+  box-shadow: 0 0 0 1px rgba(45, 4, 7, 0.55), 0 0 12px rgba(242, 200, 93, 0.38);
+}
+
+:is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]):not(.arena-mobile-menu-profile) {
+  color: #f7dfb0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed])::after {
+  opacity: 0;
+  transform: scaleY(0.35);
+}
+
+:is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
+  border-color: rgba(224, 171, 66, 0.25);
+  color: #e8b84d;
+  background: rgba(43, 4, 8, 0.24);
+  box-shadow: none;
+}
+
+.arena-sidebar-link:active,
+.arena-mobile-menu-link:active,
+[data-nav-pressed] {
+  transform: scale(0.985);
+}
+
+/* ─── Desktop sidebar ─────────────────────────────────────────────────── */
+
+.arena-sidebar-compact-toggle,
+.arena-nav-tooltip { display: none; }
+
+@media (min-width: 1024px) {
+  .arena-sidebar-head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-bottom: 1px solid rgba(237, 199, 111, 0.25);
+  }
+
+  .arena-sidebar-head .arena-sidebar-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0.5rem;
+    padding-right: 0;
+    border-bottom: 0;
+  }
+
+  .arena-sidebar-head .arena-sidebar-brand strong { font-size: 1.16rem; }
+
+  .arena-sidebar-compact-toggle {
+    display: grid;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 1px solid rgba(237, 196, 105, 0.32);
+    border-radius: 4px;
+    color: #f0c869;
+    background: rgba(43, 4, 8, 0.3);
+    cursor: pointer;
+    transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+  }
+
+  .arena-sidebar-compact-toggle:hover { color: #fff3c4; background: rgba(43, 4, 8, 0.55); }
+
+  .arena-sidebar-compact-toggle:focus-visible {
+    outline: 2px solid #f7d77d;
+    outline-offset: 2px;
+  }
+
+  .arena-sidebar-section {
+    margin: 0.7rem 0.4rem 0.2rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(232, 192, 103, 0.16);
+  }
+
+  .arena-sidebar .arena-sidebar-link { min-height: 40px; }
+
+  .arena-sidebar .arena-sidebar-link:is(.arena-sidebar-link-active, [data-nav-pressed]):hover {
+    color: #fff7df;
+  }
+
+  /* Rail: icons, mode emblems as dividers and one shared tooltip. Applied
+     before first paint from the remembered choice (navigationPreference.ts). */
+  html[data-nav-compact] .arena-sidebar {
+    width: 84px;
+    padding-inline: 0.55rem;
+  }
+
+  html[data-nav-compact] .arena-workspace { margin-left: 84px; }
+
+  html[data-nav-compact] .arena-sidebar :is(.arena-nav-label, .arena-nav-group-chevron, .arena-sidebar-section-title, .arena-sidebar-profile-copy) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  html[data-nav-compact] .arena-sidebar-head {
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-bottom: 0.5rem;
+  }
+
+  html[data-nav-compact] .arena-sidebar-head .arena-sidebar-brand {
+    justify-content: center;
+    min-height: 52px;
+    padding: 0.45rem 0 0.2rem;
+  }
+
+  html[data-nav-compact] .arena-sidebar .arena-sidebar-link {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+  }
+
+  html[data-nav-compact] .arena-sidebar-section {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    margin: 0.5rem 0 0.15rem;
+    padding-top: 0.5rem;
+  }
+
+  html[data-nav-compact] .arena-sidebar-nav-group-items { margin-inline: 0; }
+
+  html[data-nav-compact] .arena-sidebar .arena-nav-badge {
+    position: absolute;
+    top: 4px;
+    left: calc(50% + 8px);
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  html[data-nav-compact] .arena-sidebar-profile {
+    justify-content: center;
+    min-height: 56px;
+    padding: 0.5rem 0;
+  }
+
+  html[data-nav-compact] .arena-sidebar-profile::after { display: none; }
+
+  html[data-nav-compact] .arena-sidebar-profile-content {
+    grid-template-columns: 34px;
+    justify-content: center;
+  }
+
+  html[data-nav-compact] .arena-nav-tooltip {
+    position: fixed;
+    top: var(--nav-tip-y, 0px);
+    left: calc(var(--nav-tip-x, 0px) + 6px);
+    z-index: 60;
+    display: block;
+    max-width: 260px;
+    padding: 0.38rem 0.62rem;
+    border: 1px solid rgba(242, 200, 93, 0.55);
+    border-radius: 4px;
+    color: #fff3d6;
+    background: #3a0609;
+    box-shadow: 0 8px 18px rgba(20, 2, 4, 0.4);
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    translate: calc(var(--motion-rise) / -2) -50%;
+    transition: opacity var(--motion-fast) var(--motion-ease), translate var(--motion-fast) var(--motion-ease);
+  }
+
+  html[data-nav-compact] .arena-nav-tooltip[data-visible] {
+    opacity: 1;
+    translate: 0 -50%;
+  }
+}
+
+/* ─── Phone drawer ────────────────────────────────────────────────────── */
+
+@media (max-width: 1023.98px) {
+  /* A full-height drawer from the left edge under the top bar: it slides on
+     transform, follows a swipe back towards the edge (useDrawerGesture.ts)
+     and keeps the top bar's toggle reachable to close it. */
+  .arena-mobile-menu.arena-mobile-menu {
+    top: 61px;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: min(88vw, 360px);
+    /* The popover UA style is `height: fit-content`: without this the drawer
+       grows past the screen and cannot scroll. */
+    height: auto;
+    max-height: none;
+    align-content: start;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    border-width: 0 7px 0 0;
+    border-image-width: 0 7px 0 0;
+    border-radius: 0;
+    padding: 0.6rem 0.7rem calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .arena-mobile-menu.arena-mobile-menu[popover] {
+    translate: -100% 0;
+    transition-duration: var(--motion-base);
+  }
+
+  .arena-mobile-menu.arena-mobile-menu:is([data-open], :popover-open) { translate: none; }
+
+  @starting-style {
+    .arena-mobile-menu.arena-mobile-menu:is([data-open], :popover-open) { translate: -100% 0; }
+  }
+
+  .arena-mobile-menu .arena-mobile-menu-link:not(.arena-mobile-menu-profile) { min-height: 48px; }
+
+  .arena-mobile-menu .arena-mobile-menu-section { margin-top: 0.8rem; }
+}
