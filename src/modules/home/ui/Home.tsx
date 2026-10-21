@@ -72,13 +72,15 @@ class HomeSectionBoundary extends React.Component<
   }
 }
 
-export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, serverArticles = false }: {
+export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, serverArticles = false, deckLeaderboard }: {
   homeSummaryData: HomeSummaryData | null;
   loadingHomeSummary: boolean;
   articles: HomeArticle[];
   loadingArticles: boolean;
   onNavigate: (tab: string) => void;
   serverArticles?: boolean;
+  /** Below-the-fold deck board composed by the host; it mounts only near the viewport. */
+  deckLeaderboard?: React.ReactNode;
 }) {
   return (
     <div className="home-modern home-workbench">
@@ -86,6 +88,7 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
       <nav className="home-page-index" aria-label="Быстрые переходы по главной странице">
         <span>На этой странице</span>
         <a href="#home-articles-heading">Статьи</a>
+        {deckLeaderboard && <a href="#home-decks">Колоды</a>}
         <a href="#home-bg-heading">Поля Сражений</a>
         <a href="#home-arena-directory-heading">Арена</a>
       </nav>
@@ -95,6 +98,14 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
           <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
         </React.Suspense>
       </DeferredHomeSection>
+
+      {deckLeaderboard && (
+        <div id="home-decks" className="home-deck-leaderboard">
+          <DeferredHomeSection label="Лучшие колоды" fallback={<div className="home-deck-leaderboard__placeholder" aria-hidden="true" />}>
+            {deckLeaderboard}
+          </DeferredHomeSection>
+        </div>
+      )}
 
       <HomeSectionBoundary label="Поля Сражений">
         <HomeBattlegrounds onNavigate={onNavigate} />

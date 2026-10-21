@@ -46,6 +46,31 @@ async function editorFixtures(page) {
   return () => { unavailableArt = true; };
 }
 
+const POOL_TILE = '.ui-tier-list__row[data-pool] [data-tier-item]';
+const PLACED_TILE = '.ui-tier-list__row:not([data-pool]) [data-tier-item]';
+const TIER_ROWS = ['S', 'A', 'B', 'C', 'D'];
+const tierRow = tier => `.ui-tier-list__row:nth-child(${TIER_ROWS.indexOf(tier) + 1})`;
+
+/** The VaryloUI keyboard move: Space picks the card up, ArrowUp climbs from the pool row, Space drops it. */
+async function moveFirstPoolCard(page, tier) {
+  await page.focus(POOL_TILE);
+  await page.keyboard.press('Space');
+  for (let step = 0; step < TIER_ROWS.length - TIER_ROWS.indexOf(tier); step += 1) await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Space');
+}
+
+async function tierBuilderTour(page) {
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await page.locator('.global-faq-button').click();
+  await page.waitForSelector('.global-help-menu__item.is-tour', { visible: true });
+  await page.click('.global-help-menu__item.is-tour');
+  await page.waitForFunction(() => document.querySelector('.page-tour__progress-row')
+    ?.getAttribute('aria-label')?.startsWith('Шаг 1 из 7,'));
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.page-tour', { hidden: true });
+  await noOverflow(page);
+}
+
 async function saved(page) {
   await page.waitForFunction(() => document.querySelector('.builder-draft-status')?.textContent.includes('сохранён'));
 }
@@ -163,33 +188,33 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
     await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: directory });
 
     await page.goto(`${runtime.origin}/battlegrounds/tier-builder/`);
-    await page.waitForSelector('.hero-tier-pool .tier-builder-destination');
-    await resizeLibrary(page);
-    assert.equal(await page.$$eval('.hero-tier-pool .tier-builder-card', cards => cards.length), 60);
-    await page.select('.hero-tier-pool .tier-builder-card:first-child select', 'B');
-    await page.waitForSelector('.tier-builder-dropzone[data-tier="B"] .tier-builder-card');
-    await page.evaluate(() => { window.testTierRow = document.querySelector('.tier-builder-row'); });
+    await page.waitForSelector(POOL_TILE);
+    assert.equal(await page.$$eval(POOL_TILE, cards => cards.length), 60);
+    await moveFirstPoolCard(page, 'B');
+    await page.waitForSelector(`${tierRow('B')} [data-tier-item]`);
+    await page.evaluate(() => { window.testTierRow = document.querySelector('.ui-tier-list__row'); });
     await page.type('#tier-builder-search', 'Минион 119');
-    await page.waitForFunction(() => document.querySelectorAll('.hero-tier-pool .tier-builder-card').length === 1);
-    assert.equal(await page.evaluate(() => window.testTierRow === document.querySelector('.tier-builder-row')), true);
-    await page.select('.hero-tier-pool select', 'D');
+    await page.waitForFunction(selector => document.querySelectorAll(selector).length === 1, {}, POOL_TILE);
+    assert.equal(await page.evaluate(() => window.testTierRow === document.querySelector('.ui-tier-list__row')), true);
+    await moveFirstPoolCard(page, 'D');
+    await page.waitForSelector(`${tierRow('D')} [data-tier-item]`);
     await saved(page);
-    await loadFromOldRouteBundle(page, 'hero-tier-builder.js');
-    await page.waitForSelector('.tier-builder-dropzone[data-tier="D"] .tier-builder-card');
-    assert.equal(await page.$$eval('.tier-builder-rows .tier-builder-card', cards => cards.length), 2);
+    await page.reload();
+    await page.waitForSelector(`${tierRow('D')} [data-tier-item]`);
+    assert.equal(await page.$$eval(PLACED_TILE, cards => cards.length), 2);
     await page.click('#tier-builder-unassigned');
-    assert.equal(await page.$$eval('.tier-builder-rows .tier-builder-card', cards => cards.length), 0);
+    await page.waitForFunction(selector => document.querySelectorAll(selector).length === 0, {}, PLACED_TILE);
     await page.locator('.builder-undo').click();
-    assert.equal(await page.$$eval('.tier-builder-rows .tier-builder-card', cards => cards.length), 2);
+    await page.waitForFunction(selector => document.querySelectorAll(selector).length === 2, {}, PLACED_TILE);
     await download(page, directory, '#tier-builder-download-all-png', '.png');
     await download(page, directory, '#tier-builder-download-all-webp', '.webp');
     await noOverflow(page);
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-    await page.waitForSelector('.hero-tier-pool .tier-builder-card select');
+    await page.waitForSelector(POOL_TILE);
     await noOverflow(page);
-    await mobileTour(page);
-    await page.select('.hero-tier-pool .tier-builder-card:first-child select', 'A');
-    await page.waitForSelector('.tier-builder-dropzone[data-tier="A"] .tier-builder-card');
+    await tierBuilderTour(page);
+    await moveFirstPoolCard(page, 'A');
+    await page.waitForSelector(`${tierRow('A')} [data-tier-item]`);
 
     await page.goto(`${runtime.origin}/battlegrounds/strategies/`);
     await page.waitForSelector('.builder-library .builder-card');

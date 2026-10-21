@@ -75,6 +75,7 @@ import {
   type StandardMatchupFormat,
 } from './standardMatchupRoutes.js';
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
+import { createPatchNotesApi } from './modules/patchNotes/public.js';
 import { ConstructedCardUpstreamError, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
@@ -7542,6 +7543,12 @@ app.use('/api', createConstructedArchetypeRouter({
     `[constructed-archetypes] ${scope} failed:`,
     error instanceof Error ? error.message : error,
   ),
+}));
+
+app.use('/api', createPatchNotesApi({
+  fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
+  patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`,
+  onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
 }));
 
 async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {

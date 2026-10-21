@@ -1,0 +1,98 @@
+/* Home "best decks" board: VaryloUI Leaderboard inside the home timber frame. */
+.weekly-decks {
+  position: relative;
+  min-width: 0;
+}
+
+.weekly-decks .ui-leaderboard {
+  border: 12px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 12px;
+  border-image-repeat: stretch;
+  border-radius: 0;
+  background: rgba(247, 226, 184, 0.74);
+  box-shadow: 0 16px 28px rgba(68, 37, 15, 0.15);
+}
+
+.weekly-decks .ui-leaderboard__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 400;
+  color: #3e2c20;
+}
+
+/* Three rows are always reserved, so the board keeps its height while it loads. */
+.weekly-decks .ui-leaderboard__list {
+  min-height: calc(3 * 72px + 2px);
+}
+
+.weekly-decks .ui-leaderboard__row {
+  min-height: 72px;
+}
+
+.weekly-decks .ui-leaderboard__item-title {
+  font-weight: 700;
+  color: #3e2c20;
+}
+
+.weekly-decks .ui-leaderboard__thumb {
+  background: #2e160b;
+  border-radius: 50%;
+}
+
+.weekly-decks .ui-leaderboard__value {
+  color: var(--arena-red);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekly-decks .ui-leaderboard__medal {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 1px rgba(46, 22, 11, 0.4);
+}
+
+.weekly-decks .ui-leaderboard__footer {
+  font-size: 0.82rem;
+  color: var(--arena-muted-ink);
+}
+
+.weekly-decks .ui-leaderboard__footer a,
+.weekly-decks .ui-leaderboard__footer button {
+  min-height: 24px;
+  border: 0;
+  background: none;
+  color: var(--arena-red);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.weekly-decks__loading {
+  position: absolute;
+  inset: 50% 0 auto;
+  translate: 0 -50%;
+  text-align: center;
+  color: var(--arena-muted-ink);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .weekly-decks .ui-leaderboard__header,
+  .weekly-decks .ui-leaderboard__row {
+    padding-inline: 10px;
+  }
+
+  .weekly-decks .ui-leaderboard__row {
+    grid-template-columns: 2em 40px minmax(0, 1fr) auto 18px;
+    gap: 8px;
+  }
+
+  .weekly-decks .ui-leaderboard__thumb {
+    width: 40px;
+    height: 40px;
+  }
+}

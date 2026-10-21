@@ -16,7 +16,7 @@ const pages = [
   { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий БГ',
     script: 'strategy-builder.gridfix2.js', initialized: '#builder-comp-select', placeholder: 'Загружаю сборки...' },
   { path: '/battlegrounds/tier-builder/', heading: 'Конструктор тир-листов Полей сражений',
-    script: 'hero-tier-builder.js', initialized: '#tier-builder-summary', placeholder: 'Загружаю библиотеку...' },
+    script: 'shared.js', initialized: '#tier-builder-summary', placeholder: 'Загружаю библиотеку...' },
 ];
 
 test('Next Battleground builders keep public teasers separate from legacy subscriber tools', async () => {
@@ -150,17 +150,13 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         assert.equal(exported, true, 'imported strategy exports a PNG');
       }
       if (path.includes('tier-builder')) {
-        await page.$eval('#tier-builder-library-columns', input => {
-          input.value = '4'; input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-        await page.reload({ waitUntil: 'networkidle2' });
-        await page.waitForSelector('#tier-builder-library-columns');
-        assert.equal(await page.$eval('#tier-builder-library-columns', input => input.value), '4');
-        await page.waitForSelector('#tier-builder-pool .tier-builder-card select');
-        await page.select('#tier-builder-pool .tier-builder-card select', 'S');
-        await page.click('.builder-workspace-tab[data-view="board"]');
-        assert.ok(await page.$('#tier-builder-rows .tier-builder-card'), 'card moves from pool to a tier');
+        const poolTile = '.ui-tier-list__row[data-pool] [data-tier-item]';
+        await page.waitForSelector(poolTile);
+        await page.focus(poolTile);
+        await page.keyboard.press('Space');
+        for (let step = 0; step < 5; step += 1) await page.keyboard.press('ArrowUp');
+        await page.keyboard.press('Space');
+        await page.waitForSelector('.ui-tier-list__row:first-child [data-tier-item]');
         const beforeExport = readdirSync(downloads).length;
         await page.click('#tier-builder-download-all-png');
         let exported = false;

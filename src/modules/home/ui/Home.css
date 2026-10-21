@@ -657,6 +657,19 @@
     transform: none !important;
   }
 }
+/* The board's measured height (frame, header, three rows, footer) is held
+   before its code and data arrive, so mounting it shifts nothing below. */
+.home-deck-leaderboard {
+  min-height: 22.5rem;
+  scroll-margin-top: 5rem;
+}
+
+@media (max-width: 640px) {
+  .home-deck-leaderboard {
+    min-height: 30.5rem;
+  }
+}
+
 .home-deferred-placeholder {
   min-height: 18rem;
   display: grid;

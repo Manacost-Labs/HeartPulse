@@ -655,6 +655,39 @@
         "inLanguage": "ru"
       }
     ],
+    "/standard/patches": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Традиционный режим",
+            "item": "https://hearthpulse.net/standard/patches"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Патчноуты",
+            "item": "https://hearthpulse.net/standard/patches"
+          }
+        ]
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": "https://hearthpulse.net/standard/patches#collection",
+        "name": "Патчноуты Hearthstone",
+        "description": "Изменения карт Hearthstone по патчам: было → стало, усиления и ослабления, архив обновлений.",
+        "url": "https://hearthpulse.net/standard/patches",
+        "inLanguage": "ru"
+      }
+    ],
     "/classes": [
       {
         "@type": "BreadcrumbList",

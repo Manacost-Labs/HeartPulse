@@ -32,6 +32,7 @@ const EXPECTED_ROUTE_PATHS = [
   ['constructed-archetypes', '/standard/archetypes'],
   ['standard-vicious-gold', '/standard/vicious-gold'],
   ['standard-cards', '/standard/cards'],
+  ['patch-notes', '/standard/patches'],
   ['winrates', '/classes'],
   ['tierlist', '/tierlist'],
   ['legendaries', '/legendaries'],

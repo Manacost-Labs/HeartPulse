@@ -64,22 +64,25 @@ test('shared Battlegrounds runtime loads every page of the current trinket pool'
 });
 
 test('both active builders wait for synchronized live pools', async () => {
-  const [strategy, tier] = await Promise.all([
+  const [strategy, tier, tierModel] = await Promise.all([
     source('public/bg-legacy/strategy-builder.gridfix2.js'),
-    source('public/bg-legacy/hero-tier-builder.js'),
+    source('src/features/BattlegroundTierBuilder.tsx'),
+    source('src/modules/battlegrounds/model/tierBuilder.ts'),
   ]);
 
-  for (const builder of [strategy, tier]) {
-    assert.match(builder, /await window\.Shared\.loadCurrentAccessoriesData\(\)/);
-    assert.match(builder, /window\.Shared\.loadCurrentHeroesData\(\)/);
-    assert.match(builder, /window\.Shared\.publicResourceUrl/);
-    assert.match(builder, /englishNamesPayload, heroTiers\]\s*=\s*await Promise\.all/);
-    assert.match(builder, /getHeroCards\(heroTiers\)/);
-    assert.match(builder, /text:\s*stripHtml\(card\.text \|\| ""\)/);
-    assert.doesNotThrow(() => new Function(builder));
-  }
+  assert.match(strategy, /await window\.Shared\.loadCurrentAccessoriesData\(\)/);
+  assert.match(strategy, /window\.Shared\.loadCurrentHeroesData\(\)/);
+  assert.match(strategy, /window\.Shared\.publicResourceUrl/);
+  assert.match(strategy, /englishNamesPayload, heroTiers\]\s*=\s*await Promise\.all/);
+  assert.match(strategy, /getHeroCards\(heroTiers\)/);
+  assert.match(strategy, /text:\s*stripHtml\(card\.text \|\| ""\)/);
+  assert.doesNotThrow(() => new Function(strategy));
   assert.match(strategy, /src="\$\{window\.Shared\.escapeHtml\(card\.artUrl\)\}"/);
-  assert.match(tier, /src="\$\{window\.Shared\.escapeHtml\(getCardArtUrl\(card, "256x"\)\)\}"/);
+  // The VaryloUI tier builder reads the same classic runtime and keeps its card text plain.
+  assert.match(tier, /runtime\.loadCurrentAccessoriesData\(\)/);
+  assert.match(tier, /runtime\.loadCurrentHeroesData\(\)/);
+  assert.match(tier, /buildTierBuilderCards\(\{ library, spells, englishNames, heroTiers, accessories \}, publicResourceUrl\)/);
+  assert.match(tierModel, /text: plainCardText\(card\.text\)/);
 });
 
 test('shared Battlegrounds runtime synchronizes current heroes with localized full-quality images', async () => {

@@ -1,0 +1,172 @@
+.hp-patch-notes {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .hp-patch-notes {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    align-items: start;
+  }
+}
+
+.hp-patch-notes__main {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* Whole card renders instead of square portraits: the box keeps the card ratio,
+   so the lazy image reserves its place and never crops the frame. */
+.hp-patch-notes .ui-patch-notes__entry {
+  --_indent: 76px;
+}
+
+.hp-patch-notes .ui-patch-notes__portrait {
+  --ui-game-image-size: 64px;
+  --ui-game-image-radius: 4px;
+  block-size: 88px;
+  background: transparent;
+}
+
+.hp-patch-notes .ui-patch-notes__portrait > img {
+  object-fit: contain;
+}
+
+.hp-patch-notes .ui-patch-notes__portrait[data-fallback] {
+  block-size: 64px;
+}
+
+.hp-patch-notes .ui-patch-notes__portrait::after {
+  box-shadow: none;
+}
+
+.hp-patch-notes .ui-patch-notes__name {
+  font-family: var(--ui-font-display);
+  font-weight: 400;
+  white-space: normal;
+}
+
+.hp-patch-notes .ui-patch-notes__entries {
+  background: rgba(255, 248, 225, 0.62);
+  border: 1px solid var(--ui-border);
+}
+
+.hp-patch-notes .ui-patch-notes__note {
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .hp-patch-notes .ui-patch-notes__entry {
+    --_indent: 0px;
+    padding-inline: 12px;
+  }
+
+  .hp-patch-notes .ui-patch-notes__portrait {
+    --ui-game-image-size: 48px;
+    block-size: 66px;
+  }
+
+  .hp-patch-notes .ui-patch-notes__portrait[data-fallback] {
+    block-size: 48px;
+  }
+
+  .hp-patch-notes .ui-patch-notes__search {
+    inline-size: 100%;
+  }
+}
+
+.hp-patch-notes__notice,
+.hp-patch-notes__source {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.hp-patch-notes__source {
+  display: grid;
+  gap: 0.35rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--arena-paper-line);
+}
+
+.hp-patch-notes__source p {
+  margin: 0;
+}
+
+.hp-patch-notes a {
+  color: var(--arena-red);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hp-patch-archive {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--arena-paper-line);
+  background: rgba(255, 248, 225, 0.62);
+}
+
+@media (min-width: 1100px) {
+  .hp-patch-archive {
+    position: sticky;
+    /* Below the site's sticky search bar. */
+    top: 4.75rem;
+    max-height: calc(100vh - 5.75rem);
+    overflow-y: auto;
+  }
+}
+
+.hp-patch-archive__title {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--arena-ink);
+}
+
+.hp-patch-archive__list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 1099px) {
+  .hp-patch-archive__list {
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    max-height: 18rem;
+    overflow-y: auto;
+  }
+}
+
+.hp-patch-notes .hp-patch-archive a {
+  display: grid;
+  gap: 1px;
+  min-height: 44px;
+  padding: 0.35rem 0.5rem;
+  color: var(--arena-ink);
+  text-decoration: none;
+}
+
+.hp-patch-notes .hp-patch-archive a:hover {
+  background: rgba(123, 21, 27, 0.06);
+}
+
+.hp-patch-notes .hp-patch-archive a[aria-current='page'] {
+  background: rgba(217, 171, 73, 0.24);
+  box-shadow: inset 3px 0 0 var(--arena-red);
+}
+
+.hp-patch-archive__version {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hp-patch-archive__meta {
+  color: var(--arena-muted-ink);
+  font-size: 0.78rem;
+}

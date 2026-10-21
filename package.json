@@ -54,6 +54,7 @@
     "sync:constructed-filter-assets": "node scripts/sync-constructed-filter-assets.mjs",
     "sync:constructed-card-images": "node build/server/constructedCardImagePrewarmer.js",
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",
+    "test:patch-notes": "tsx --test tests/patch-notes.test.ts",
     "test:blizzard": "tsx tests/blizzard-card-images.test.ts",
     "test:guides": "tsx tests/guides-sanitize.test.ts",
     "test:health": "tsx tests/health.test.ts",

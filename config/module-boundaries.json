@@ -809,6 +809,38 @@
         "docs/architecture/module-boundaries.md",
         "docs/runbooks/constructed-archetypes-performance.md"
       ]
+    },
+    {
+      "id": "client.patchNotes",
+      "runtime": "client",
+      "root": "src/modules/patchNotes",
+      "purpose": "Owns the public patch-notes view: card changes per patch as VaryloUI patch notes, class sections and the patch archive.",
+      "owner": "traditional-data",
+      "publicEntry": "src/modules/patchNotes/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:patch-notes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/patch-notes.md"
+      ]
+    },
+    {
+      "id": "server.patchNotes",
+      "runtime": "server",
+      "root": "server/modules/patchNotes",
+      "purpose": "Owns anonymous patch notes parsed from the stored hs-manacost.ru patch articles of hs-data-api.",
+      "owner": "traditional-data",
+      "publicEntry": "server/modules/patchNotes/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:patch-notes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/patch-notes.md"
+      ]
     }
   ],
   "migrationAreas": [
@@ -886,7 +918,7 @@
         "docs/runbooks/battlegrounds-patch-refresh.md"
       ],
       "safeStarts": [
-        "public/bg-legacy/hero-tier-builder.js",
+        "public/bg-legacy/shared.js",
         "public/bg-legacy/strategy-builder.gridfix2.js",
         "src/features/Battlegrounds.tsx",
         "src/features/BgLibrary.tsx"

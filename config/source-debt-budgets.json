@@ -101,6 +101,8 @@
 "src/vendor/varylo-ui/insights/bands.ts": 2,
 "src/vendor/varylo-ui/charts/Treemap.tsx": 1,
 "src/vendor/varylo-ui/charts/treemapLayout.ts": 1,
+"src/vendor/varylo-ui/gaming/PatchNotes.tsx": 1,
+"src/vendor/varylo-ui/gaming/TierList.tsx": 4,
       "src/vendor/varylo-ui/primitives/useVirtualizer.ts": 1
     },
     "frontendRawFetch": {

@@ -91,6 +91,13 @@
       "description": "Библиотека карт Hearthstone для Стандарта и Вольного формата: фильтры, изображения и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
+    "/standard/patches": {
+      "policyRouteId": "patch-notes",
+      "navigationRouteId": "patch-notes",
+      "title": "Патчноуты Hearthstone {year}: изменения карт по патчам | HearthPulse",
+      "description": "Изменения карт Hearthstone в каждом патче: было → стало, усиления и ослабления по классам, Поля сражений и архив обновлений.",
+      "sitemap": true
+    },
     "/classes": {
       "policyRouteId": "winrates",
       "navigationRouteId": "winrates",

@@ -13,6 +13,7 @@ import { hasAuthSessionHint } from '@/src/modules/identity/public';
 // loads, the gate's reserved height stays.
 type BattlegroundsModule = typeof import('@/src/features/Battlegrounds');
 type BgLibraryModule = typeof import('@/src/features/BgLibrary');
+type TierBuilderModule = typeof import('@/src/features/BattlegroundTierBuilder');
 
 function moduleLoader<T>(load: () => Promise<T>) {
   let loaded: T | null = null;
@@ -28,8 +29,11 @@ function moduleLoader<T>(load: () => Promise<T>) {
 
 const battlegrounds = moduleLoader<BattlegroundsModule>(() => import('@/src/features/Battlegrounds'));
 const bgLibrary = moduleLoader<BgLibraryModule>(() => import('@/src/features/BgLibrary'));
+// The tier builder and its VaryloUI tier list are a chunk of their own: no other view needs them.
+const tierBuilder = moduleLoader<TierBuilderModule>(() => import('@/src/features/BattlegroundTierBuilder'));
 export const loadBattlegrounds = battlegrounds.load;
 export const loadBgLibrary = bgLibrary.load;
+export const loadBattlegroundTierBuilder = tierBuilder.load;
 
 function useLoadedModule<T>(loader: { current: () => T | null; load: () => Promise<T> }): T | null {
   const [state, setState] = useState<{ module: T | null; error: unknown }>(() => ({ module: loader.current(), error: null }));
@@ -62,7 +66,7 @@ export function BattlegroundTierList() {
 }
 
 export function BattlegroundTierBuilderEmbed() {
-  return render(useLoadedModule(battlegrounds)?.BattlegroundTierBuilderEmbed, {});
+  return render(useLoadedModule(tierBuilder)?.default, {});
 }
 
 export function BattlegroundStrategyBuilderEmbed() {

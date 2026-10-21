@@ -36,6 +36,36 @@ slots, annotations and PNG/WebP exports remain available.
 - Desktop and mobile views have no horizontal overflow, unreadable controls or
   editor errors. Unmounting stops the editor's global listeners and timers.
 
+## Tier builder on VaryloUI (2026-10-21)
+
+`/battlegrounds/tier-builder/` no longer runs the classic
+`hero-tier-builder.js`. Its board is the vendored VaryloUI `gaming/tier-list`
+(`src/features/BattlegroundTierBuilder.tsx`, a chunk of its own loaded by
+`apps/public-web/ui/lazyBattlegrounds.tsx`), restyled through
+`src/shared/ui/varyloParchment.css`. What it keeps:
+
+- Data: the classic runtime `/bg-legacy/shared.js`, `tier-data.js` and
+  `accessories-data.js` still loads the synchronized minion, trinket and hero
+  pools with their bundled fallbacks; spells and English names come from the
+  same `/api/battlegrounds-*` reads. Cards and filters live in
+  `src/modules/battlegrounds/model/tierBuilder.ts`.
+- Saving: the same browser draft `hearthpulse-tier-draft-v1`
+  (`{ version: 1, draft: { POOL, S, A, B, C, D } }`), restored through
+  `restoreTierPlacements`, saved 250 ms after a change and on unmount, with the
+  same undo history and status texts. The export background choice keeps
+  `hero-tier-builder-background-mode-v1`.
+- Export: «Скачать всё PNG/WebP» draws the same 2400 px image of every
+  non-empty tier; VaryloUI adds copy as text and JSON download.
+
+What changed: cards move by mouse drag, long press on touch, or the keyboard
+(Space picks up, arrows move, Space drops, Escape cancels) instead of the
+per-card tier select and arrow buttons. The pool is the last row of the tier
+list; it shows 60 filtered cards with «Показать ещё» and scrolls inside, so
+the tiers stay within reach while dragging. The per-tier PNG/WebP buttons, the
+cards-per-row slider and the mobile Library/Board switch are gone; on a phone
+the type, level and size filters start folded. The sidebar divider of the
+classic workspace applies only to the strategy builder now.
+
 ## Implementation and ownership
 
 New editor behavior belongs to `src/modules/battlegrounds`, exposed through its

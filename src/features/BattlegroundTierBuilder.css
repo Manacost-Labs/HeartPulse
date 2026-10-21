@@ -1,0 +1,258 @@
+/* Battlegrounds tier builder: parchment filters beside the VaryloUI tier list. */
+.bg-tier-builder {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  color: var(--arena-ink);
+}
+
+@media (min-width: 1100px) {
+  .bg-tier-builder {
+    grid-template-columns: 20rem minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .bg-tier-builder__filters {
+    position: sticky;
+    /* Below the site's sticky search bar. */
+    top: 4.75rem;
+    max-height: calc(100vh - 5.75rem);
+    overflow-y: auto;
+  }
+}
+
+.bg-tier-builder__filters,
+.bg-tier-builder__toolbar {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--arena-paper-line);
+  background: rgba(255, 248, 225, 0.62);
+}
+
+.bg-tier-builder__search {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.bg-tier-builder__search input {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(84, 51, 22, 0.38);
+  border-radius: 4px;
+  background: #fbf0d2;
+  color: var(--arena-ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+.bg-tier-builder__search input:focus-visible,
+.bg-tier-builder__chip:focus-visible,
+.bg-tier-builder__button:focus-visible,
+.bg-tier-builder__background:focus-visible {
+  outline: 2px solid var(--arena-red);
+  outline-offset: 2px;
+}
+
+.bg-tier-builder__more {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.bg-tier-builder__more > summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.bg-tier-builder__more > summary::before {
+  content: '▸';
+  margin-right: 0.45rem;
+  transition: rotate var(--motion-fast, 160ms) var(--motion-ease, ease);
+}
+
+.bg-tier-builder__more[open] > summary::before {
+  rotate: 90deg;
+}
+
+.bg-tier-builder__more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bg-tier-builder__group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.bg-tier-builder__group legend {
+  margin-bottom: 0.4rem;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.bg-tier-builder__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.bg-tier-builder__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(84, 51, 22, 0.3);
+  border-radius: 999px;
+  background: rgba(255, 248, 225, 0.8);
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.bg-tier-builder__chip img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.bg-tier-builder__chip[aria-pressed='true'] {
+  border-color: var(--arena-red);
+  background: var(--arena-red);
+  color: #fff0c8;
+}
+
+.bg-tier-builder__actions,
+.bg-tier-builder__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bg-tier-builder__button {
+  min-height: 40px;
+  padding: 0 0.95rem;
+  border: 1px solid rgba(84, 51, 22, 0.4);
+  border-radius: 4px;
+  background: #fbf0d2;
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bg-tier-builder__button--primary {
+  border-color: var(--arena-red-dark);
+  background: var(--arena-red);
+  color: #fff0c8;
+}
+
+.bg-tier-builder__button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.bg-tier-builder__summary,
+.bg-tier-builder__toolbar p,
+.bg-tier-builder__status {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.82rem;
+}
+
+.bg-tier-builder__toolbar .builder-draft-status {
+  margin-left: auto;
+}
+
+.bg-tier-builder__backgrounds {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.bg-tier-builder__background {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(84, 51, 22, 0.4);
+  border-radius: 4px;
+  background: #fbf0d2 center / cover no-repeat;
+  color: var(--arena-muted-ink);
+  cursor: pointer;
+}
+
+.bg-tier-builder__background[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--arena-red);
+}
+
+.bg-tier-builder__board {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.bg-tier-builder .ui-tier-list {
+  border: 12px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 12px;
+  border-image-repeat: stretch;
+  background: rgba(247, 226, 184, 0.78);
+}
+
+.bg-tier-builder .ui-tier-list__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+}
+
+/* The pool is the longest row: it scrolls inside, so the tiers stay within reach while dragging. */
+.bg-tier-builder .ui-tier-list__row[data-pool] .ui-tier-list__items {
+  max-block-size: min(60vh, 34rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Spells, heroes and trinkets are whole cards: the square shows their art, not the frame. */
+.bg-tier-builder__portrait:not([data-source='MINION']) .ui-game-image > img {
+  object-position: 50% 30%;
+  transform: scale(1.6);
+}
+
+.bg-tier-builder__more {
+  justify-self: center;
+}
+
+.bg-tier-builder__placeholder {
+  min-height: 34rem;
+}
+
+@media (max-width: 640px) {
+  .bg-tier-builder {
+    --ui-tier-list-label-width: 56px;
+  }
+
+  .bg-tier-builder__filters,
+  .bg-tier-builder__toolbar {
+    padding: 0.75rem;
+  }
+
+  .bg-tier-builder .ui-tier-list {
+    border-width: 8px;
+  }
+
+  .bg-tier-builder__toolbar .builder-draft-status {
+    margin-left: 0;
+    width: 100%;
+  }
+}

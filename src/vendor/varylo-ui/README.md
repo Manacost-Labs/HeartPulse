@@ -33,3 +33,12 @@ Each change is introduced by a `HearthPulse` comment. Do not edit other files by
 re-copy them from the registry instead, and carry these changes over when
 updating the changed ones. Quality gates that scan `src/` skip `vendor`
 directories or carry their inherited debt in budgets.
+
+Also vendored, unedited: `tier-list`, `patch-notes` and `leaderboard` with
+their registry dependencies (`segmented-control`, `search-input`,
+`text-input` and the shared `gaming/`, `agents/`, `ai/`, `editorial/`,
+`commerce/` helpers). They use the parchment token mapping in
+`src/shared/ui/varyloParchment.css`, which also supplies the geometry tokens
+(control heights, spacing, type scale) that only a theme would define.
+React Doctor skips this directory (`doctor.config.json`), as
+`scripts/react-doctor-changed.mjs` already leaves it out of its file list.

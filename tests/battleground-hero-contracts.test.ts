@@ -91,6 +91,13 @@ const RUNTIME_CONTRACT_NAMES = [
   'preferredBattlegroundHeroImage',
   'useBattlegroundHeroTierData',
 ] as const;
+// The tier builder's pool, filter and draft contracts (VaryloUI tier list) are a public surface of their own.
+const TIER_BUILDER_TYPE_NAMES = ['TierBuilderCard', 'TierBuilderFilters', 'TierBuilderPlacement', 'TierBuilderSourcePayloads'];
+const TIER_BUILDER_RUNTIME_NAMES = [
+  'buildTierBuilderCards', 'createBuilderHistory', 'DEFAULT_TIER_BUILDER_FILTERS', 'matchesTierBuilderFilters',
+  'placedTierBuilderCount', 'plainCardText', 'readTierBuilderDraft', 'TIER_BUILDER_RACE_NAMES', 'TIER_BUILDER_SOURCES',
+  'TIER_BUILDER_TIERS', 'tierBuilderCardImage', 'tierBuilderCardMeta', 'tierBuilderDraft', 'withTierBuilderSource',
+];
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ANALYTICS_CONTRACT_NAMES = ['HeroBarChart', 'HeroPowerChart', 'HeroTavernChart', 'HeroDataTable', 'HeroCompositionAnalytics', 'RoundAnalytics'];
 
@@ -112,9 +119,9 @@ for (const statement of publicEntry.statements) {
   const destination = statement.isTypeOnly ? publicTypeNames : publicRuntimeNames;
   destination.push(...statement.exportClause.elements.map(element => element.name.text));
 }
-assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData'].sort(),
+assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData', ...TIER_BUILDER_TYPE_NAMES].sort(),
   'the Battlegrounds public entry exposes the hero catalog and tier-data contracts');
-assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData'].sort(),
+assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData', ...TIER_BUILDER_RUNTIME_NAMES].sort(),
   'the Battlegrounds public entry exposes the image policy, legacy bridge, tier resource and library controls');
 
 const heroCatalogModel = parsedSource(
@@ -211,12 +218,18 @@ assert.deepEqual(battlegroundPublicEdges, [
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'runtime',
   },
+  ...[
+    'src/features/BattlegroundTierBuilder.tsx',
+    'src/features/BattlegroundTierBuilderControls.tsx',
+    'src/features/battlegroundTierBuilderDraft.ts',
+    'src/features/battlegroundTierBuilderExport.ts',
+  ].map(source => ({ source, target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' })),
   {
     source: 'src/features/BgLibrary.tsx',
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'runtime',
   },
-], 'the canonical module graph must contain only the intended hero and library edges to the public entry');
+], 'the canonical module graph must contain only the intended hero, tier-builder and library edges to the public entry');
 
 function statsHeroes(count: number): unknown {
   return {

@@ -1718,6 +1718,42 @@
         "legacy features",
         "protected browser persistence"
       ]
+    },
+    {
+      "name": "backend-patch-notes",
+      "status": "modular",
+      "owner": "traditional-data",
+      "purpose": "Publish card changes per patch parsed from the stored hs-manacost.ru patch articles, with the archive of patches.",
+      "paths": ["server/modules/patchNotes"],
+      "publicEntrypoints": ["server/modules/patchNotes/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [{ "method": "GET", "path": "/api/patch-notes" }, { "method": "GET", "path": "/api/patch-notes/:version" }],
+      "contracts": ["server/modules/patchNotes/contract.ts", "docs/specs/patch-notes.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": ["api.kolodahearthstone.com patch archive (/api/patches)", "api.hearthstonejson.com ruRU collectible cards"],
+      "tests": ["tests/patch-notes.test.ts"],
+      "allowedDependencies": ["Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
+      "name": "frontend-patch-notes",
+      "status": "modular",
+      "owner": "traditional-data",
+      "purpose": "Map patch notes to the VaryloUI patch-notes view: class sections, card pictures and archive links.",
+      "paths": ["src/modules/patchNotes"],
+      "publicEntrypoints": ["src/modules/patchNotes/public.ts"],
+      "frontendRoutes": ["/standard/patches"],
+      "backendRoutes": [],
+      "contracts": ["src/modules/patchNotes/model/types.ts", "docs/specs/patch-notes.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/patch-notes.test.ts"],
+      "allowedDependencies": [],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
     }
   ],
   "legacyAreas": [

@@ -1,0 +1,408 @@
+.ui-tier-list {
+  container: ui-tier-list / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm, 14px);
+}
+
+.ui-tier-list__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2, 8px) var(--ui-space-4, 16px);
+  padding: 14px var(--ui-space-4, 16px) 12px;
+}
+
+.ui-tier-list__heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ui-tier-list__title {
+  margin: 0;
+  font-family: var(--ui-font-display, inherit);
+  font-size: var(--ui-text-md, 16px);
+  font-weight: var(--ui-weight-heading, 650);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.ui-tier-list__caption {
+  margin: 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-tier-list__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-1, 4px);
+}
+
+.ui-tier-list__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2, 8px) var(--ui-space-4, 16px);
+  min-width: 0;
+  padding: 0 var(--ui-space-4, 16px) 12px;
+}
+
+.ui-tier-list__roles {
+  max-inline-size: 100%;
+}
+
+.ui-tier-list__hint {
+  margin: 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+}
+
+.ui-tier-list__rows {
+  display: flex;
+  flex-direction: column;
+  border-block-start: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+}
+
+/* ── Rows: the tier chip in a narrow column, then the portraits ── */
+
+.ui-tier-list__row {
+  --_tier: var(--ui-gray, #8b8d98);
+  display: grid;
+  grid-template-columns: var(--ui-tier-list-label-width, 72px) minmax(0, 1fr);
+  border-block-end: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+  transition:
+    background-color var(--ui-duration-fast, 150ms) var(--ui-ease, ease),
+    box-shadow var(--ui-duration-fast, 150ms) var(--ui-ease, ease);
+}
+
+.ui-tier-list__row:last-child {
+  border-block-end: 0;
+}
+
+.ui-tier-list__row[data-over] {
+  background: color-mix(in oklab, var(--_tier) 7%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--_tier) 60%, transparent);
+}
+
+.ui-tier-list__row[data-pool] {
+  --_tier: var(--ui-accent);
+  background: var(--ui-surface-2, color-mix(in oklab, var(--ui-fg) 3%, transparent));
+}
+
+.ui-tier-list__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border-inline-end: var(--ui-border-width, 1px) solid var(--ui-divider, var(--ui-border));
+  background: color-mix(in oklab, var(--_tier) 5%, transparent);
+  text-align: center;
+}
+
+.ui-tier-list__row[data-pool] .ui-tier-list__label {
+  background: transparent;
+}
+
+.ui-tier-list__chip {
+  --ui-game-tier-size: 15px;
+  --ui-game-tier-radius: 7px;
+  min-inline-size: 32px;
+  block-size: 32px;
+}
+
+.ui-tier-list__chip[data-long] {
+  --ui-game-tier-size: 11px;
+  padding-inline: 6px;
+}
+
+.ui-tier-list__pool {
+  color: var(--ui-fg-muted);
+  font-size: 11px;
+  font-weight: var(--ui-weight-semibold, 600);
+  line-height: 1.2;
+}
+
+.ui-tier-list__description {
+  color: var(--ui-fg-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+/* ── Tiles: a portrait with the role badge, the name under it ── */
+
+.ui-tier-list__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  min-block-size: calc(var(--ui-game-image-size) + 16px);
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+}
+
+.ui-tier-list[data-names] .ui-tier-list__items {
+  min-block-size: calc(var(--ui-game-image-size) + 34px);
+}
+
+.ui-tier-list__item {
+  display: flex;
+}
+
+.ui-tier-list__tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  inline-size: calc(var(--ui-game-image-size) + 8px);
+  margin: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--ui-radius-md, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  outline: none;
+  transition:
+    background-color var(--ui-duration-fast, 150ms) var(--ui-ease, ease),
+    opacity var(--ui-duration-fast, 150ms) var(--ui-ease, ease),
+    transform var(--ui-duration-fast, 150ms) var(--ui-ease, ease);
+}
+
+.ui-tier-list[data-names] .ui-tier-list__tile {
+  inline-size: calc(var(--ui-game-image-size) + 14px);
+}
+
+button.ui-tier-list__tile {
+  cursor: pointer;
+}
+
+:is(button.ui-tier-list__tile, .ui-tier-list[data-mode='edit'] .ui-tier-list__tile):hover {
+  background: var(--ui-hover, color-mix(in oklab, var(--ui-fg) 6%, transparent));
+}
+
+.ui-tier-list__tile:focus-visible {
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-tier-list[data-mode='edit'] .ui-tier-list__tile {
+  cursor: grab;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.ui-tier-list[data-dragging] .ui-tier-list__tile {
+  cursor: grabbing;
+}
+
+.ui-tier-list[data-dragging] .ui-tier-list__tile:hover {
+  background: transparent;
+}
+
+.ui-tier-list__portrait {
+  position: relative;
+  display: grid;
+  flex: none;
+}
+
+.ui-tier-list__role {
+  position: absolute;
+  inset-block-end: -3px;
+  inset-inline-end: -3px;
+}
+
+.ui-tier-list[data-size='sm'] .ui-tier-list__role {
+  --ui-game-role-size: 14px;
+}
+
+.ui-tier-list__name {
+  max-inline-size: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: var(--ui-weight-medium, 500);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The tile being dragged stays behind as a ghost of where it came from. */
+.ui-tier-list__tile[data-dragging] {
+  opacity: 0.28;
+  filter: grayscale(1);
+}
+
+.ui-tier-list__tile[data-grabbed] {
+  z-index: 1;
+  background: var(--ui-surface);
+  box-shadow:
+    0 0 0 2px var(--ui-accent),
+    0 10px 22px -10px rgb(0 0 0 / 0.45);
+  transform: translateY(-3px);
+}
+
+.ui-tier-list__tile[data-dropped] {
+  animation: ui-tier-list-dropped 700ms var(--ui-ease, ease);
+}
+
+@keyframes ui-tier-list-dropped {
+  from {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--_tier, var(--ui-accent)) 85%, transparent);
+  }
+}
+
+/* Where the dragged tile lands: a dashed gap in the tier colour. */
+.ui-tier-list__slot {
+  flex: none;
+  border: 1.5px dashed color-mix(in oklab, var(--_tier, var(--ui-accent)) 75%, transparent);
+  border-radius: var(--ui-radius-md, 8px);
+  background: color-mix(in oklab, var(--_tier, var(--ui-accent)) 12%, transparent);
+}
+
+.ui-tier-list__placeholder {
+  display: grid;
+  flex: 1;
+  align-self: stretch;
+  place-items: center start;
+  min-block-size: var(--ui-game-image-size);
+  padding-inline: 8px;
+  border-radius: var(--ui-radius-md, 8px);
+  color: var(--ui-fg-faint, var(--ui-fg-subtle));
+  font-size: var(--ui-text-xs, 12px);
+}
+
+.ui-tier-list[data-mode='edit'] .ui-tier-list__placeholder {
+  place-items: center;
+  border: 1.5px dashed var(--ui-border);
+}
+
+.ui-tier-list__placeholder[data-active] {
+  border-color: var(--_tier, var(--ui-accent));
+  color: var(--ui-fg-muted);
+}
+
+/* ── The lifted copy that follows the pointer ── */
+
+.ui-tier-list__overlay {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: var(--ui-z-tooltip, 1000);
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm, 14px);
+  pointer-events: none;
+}
+
+[dir='rtl'] .ui-tier-list__overlay {
+  inset-inline-start: auto;
+  left: 0;
+}
+
+.ui-tier-list__tile--lifted {
+  inline-size: 100%;
+  block-size: 100%;
+  border: var(--ui-border-width, 1px) solid var(--ui-border);
+  background: var(--ui-elevated, var(--ui-surface));
+  box-shadow:
+    0 18px 36px -12px rgb(0 0 0 / 0.5),
+    0 6px 12px -6px rgb(0 0 0 / 0.3);
+  rotate: -2deg;
+  scale: 1.06;
+  animation: ui-tier-list-lift 140ms var(--ui-ease, ease);
+}
+
+@keyframes ui-tier-list-lift {
+  from {
+    rotate: 0deg;
+    scale: 1;
+  }
+}
+
+/* ── Narrow: a slimmer tier column, smaller portraits ── */
+
+@container ui-tier-list (max-width: 520px) {
+  /* A container query styles descendants only, so the sizes go on the rows. */
+  .ui-tier-list__rows {
+    --ui-game-image-size: 40px;
+  }
+
+  .ui-tier-list__tool-label {
+    display: none;
+  }
+
+  .ui-tier-list__header {
+    padding-inline: var(--ui-space-3, 12px);
+  }
+
+  .ui-tier-list__bar {
+    padding-inline: var(--ui-space-3, 12px);
+  }
+
+  .ui-tier-list__hint {
+    display: none;
+  }
+
+  .ui-tier-list__row {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .ui-tier-list__chip {
+    --ui-game-tier-size: 13px;
+    min-inline-size: 28px;
+    block-size: 28px;
+  }
+
+  .ui-tier-list__description {
+    display: none;
+  }
+
+  .ui-tier-list__items {
+    gap: 2px;
+    padding: 6px;
+  }
+
+  .ui-tier-list[data-names] .ui-tier-list__tile {
+    inline-size: calc(var(--ui-game-image-size) + 8px);
+    padding-inline: 2px;
+  }
+
+  .ui-tier-list__name {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-tier-list__tile,
+  .ui-tier-list__row {
+    transition: none;
+  }
+
+  .ui-tier-list__tile[data-dropped],
+  .ui-tier-list__tile--lifted {
+    animation: none;
+  }
+
+  .ui-tier-list__tile[data-grabbed] {
+    transform: none;
+  }
+
+  .ui-tier-list__tile--lifted {
+    rotate: none;
+    scale: none;
+  }
+}

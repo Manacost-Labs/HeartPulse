@@ -5,6 +5,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { startCredentialBackend } from './credentialBackend.mjs';
+import { patchNotesFixture } from './patchNotesFixture.mjs';
 
 export async function listenLocal(server) {
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
@@ -40,6 +41,8 @@ export async function publicCardFixture() {
       response.end(JSON.stringify({ data: card ? { ...card, wiki: { patch_changes: [] } } : null }));
     } else if (url.pathname === '/v1/constructed/decks') {
       response.end(JSON.stringify({ data: [], meta: { count: 0, offset: 0, limit: 200 } }));
+    } else if (url.pathname === '/api/patches') {
+      response.end(JSON.stringify({ total: patchNotesFixture.length, patches: patchNotesFixture }));
     } else if (url.pathname.startsWith('/demo/view/')) {
       response.end(JSON.stringify({ fetched_at: new Date().toISOString(), url: 'https://hsreplay.net/cards/', view: { cards: cards.map(card => ({ id: card.card_id, dbfId: card.dbf, deck_popularity: '12.5%', deck_winrate: '53%', times_played: 20000 })) } }));
     } else { response.end(JSON.stringify({ data: [], patches: [], decks: [] })); }

@@ -422,6 +422,20 @@
       "entitlement": null
     },
     {
+      "id": "patch-notes",
+      "pattern": "/standard/patches",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "patch-notes",
+      "entitlement": null
+    },
+    {
       "id": "winrates",
       "pattern": "/classes",
       "kind": "static",

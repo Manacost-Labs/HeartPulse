@@ -93,6 +93,8 @@
 "src/vendor/varylo-ui/charts/Treemap.tsx#Treemap": 283,
 "src/vendor/varylo-ui/forms/SearchInput.tsx#SearchInput": 136,
 "src/vendor/varylo-ui/gaming/MetaTable.tsx#MetaTable": 315,
-"src/vendor/varylo-ui/navigation/Menu.tsx#MenuSurface": 265
+"src/vendor/varylo-ui/navigation/Menu.tsx#MenuSurface": 265,
+"src/vendor/varylo-ui/gaming/PatchNotes.tsx#PatchNotes": 219,
+"src/vendor/varylo-ui/gaming/TierList.tsx#TierList": 584
   }
 }

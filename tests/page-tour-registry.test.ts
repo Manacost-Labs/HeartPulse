@@ -109,14 +109,19 @@ for (const tour of PAGE_TOURS) {
   }
 }
 
-const battlegroundsSource = readFileSync(new URL('../src/features/Battlegrounds.tsx', import.meta.url), 'utf8');
-for (const tourId of ['battlegrounds-strategy-builder', 'battlegrounds-tier-builder']) {
+const builderSources = {
+  'battlegrounds-strategy-builder': ['Battlegrounds.tsx'],
+  // The VaryloUI tier builder renders its anchors from the builder and its controls.
+  'battlegrounds-tier-builder': ['BattlegroundTierBuilder.tsx', 'BattlegroundTierBuilderControls.tsx'],
+};
+for (const [tourId, files] of Object.entries(builderSources)) {
   const tour = PAGE_TOURS.find(item => item.id === tourId);
   assert.ok(tour, `${tourId}: builder tour must exist`);
+  const source = files.map(file => readFileSync(new URL(`../src/features/${file}`, import.meta.url), 'utf8')).join('\n');
   for (const step of tour.steps) {
     assert.ok(
-      battlegroundsSource.includes(`data-tour-id="${step.target}"`),
-      `${tourId}/${step.id}: Battlegrounds.tsx must render the stable ${step.target} anchor`,
+      source.includes(`data-tour-id="${step.target}"`),
+      `${tourId}/${step.id}: ${files.join(' or ')} must render the stable ${step.target} anchor`,
     );
   }
 }

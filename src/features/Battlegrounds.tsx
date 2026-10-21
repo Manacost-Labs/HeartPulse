@@ -3485,7 +3485,7 @@ const BG_STRATEGY_BUILDER_VERSION = '20261011-pool-3661-workspace-v2';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
 const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 
-type LegacyScriptOwner = 'strategy-builder' | 'tier-builder';
+type LegacyScriptOwner = 'strategy-builder';
 
 function loadLegacyScript(src: string, owner: LegacyScriptOwner, loadedScripts: HTMLScriptElement[], rootId: string): Promise<HTMLScriptElement> {
   return new Promise((resolve, reject) => {
@@ -3567,130 +3567,8 @@ function BattlegroundStrategyBuilderEmbed() {
   );
 }
 
-const BG_TIER_BUILDER_HTML = String.raw`
-<div class="builder-layout bg-tier-builder-legacy">
-  <section class="builder-sidebar builder-sidebar-wide">
-    <div class="builder-controls">
-      <label class="control-field" data-tour-id="bg-tier-builder-search">
-        <span class="control-label">Поиск по картам (RU / EN)</span>
-        <input id="tier-builder-search" class="text-input" type="search" placeholder="Например, мурлок, murloc, deathrattle, Тюремщик">
-      </label>
-
-      <details class="filter-block collapsible-filter" open>
-        <summary class="filter-heading-row" data-tour-id="bg-tier-builder-source">
-          <h3 class="filter-heading">Источник</h3>
-          <span class="filter-toggle-marker" aria-hidden="true"></span>
-        </summary>
-        <div id="tier-builder-source-filters" class="chip-row" aria-label="Фильтр по источнику"></div>
-      </details>
-
-      <details class="filter-block collapsible-filter" id="tier-builder-race-block">
-        <summary class="filter-heading-row" data-tour-id="bg-tier-builder-filters">
-          <h3 class="filter-heading">Тип существа</h3>
-          <span class="filter-toggle-marker" aria-hidden="true"></span>
-        </summary>
-        <div id="tier-builder-race-filters" class="chip-row" aria-label="Фильтр по типу существа"></div>
-      </details>
-
-      <details class="filter-block collapsible-filter" id="tier-builder-level-block">
-        <summary class="filter-heading-row">
-          <h3 class="filter-heading">Уровень таверны</h3>
-          <span class="filter-toggle-marker" aria-hidden="true"></span>
-        </summary>
-        <div id="tier-builder-level-filters" class="chip-row" aria-label="Фильтр по уровню таверны"></div>
-      </details>
-
-      <details class="filter-block collapsible-filter" id="tier-builder-accessory-block" hidden open>
-        <summary class="filter-heading-row">
-          <h3 class="filter-heading">Размер аксессуара</h3>
-          <span class="filter-toggle-marker" aria-hidden="true"></span>
-        </summary>
-        <div id="tier-builder-accessory-filters" class="chip-row" aria-label="Фильтр по размеру аксессуара"></div>
-      </details>
-
-      <div class="hero-tier-toolbar" data-tour-id="bg-tier-builder-reset">
-        <button id="tier-builder-reset" class="secondary-button" type="button">Сбросить</button>
-        <button id="tier-builder-unassigned" class="download-button" type="button">Все в пул</button>
-      </div>
-    </div>
-
-    <div class="library-toolbar-row" data-tour-id="bg-tier-builder-library">
-      <div id="tier-builder-summary" class="library-status hero-tier-summary">Загружаю библиотеку...</div>
-      <label class="columns-control" for="tier-builder-library-columns" title="Сколько карт в ряду в библиотеке">
-        <span class="columns-control-label">В ряду: <b id="tier-builder-library-columns-value">3</b></span>
-        <input id="tier-builder-library-columns" class="columns-range" type="range" min="2" max="5" step="1">
-      </label>
-    </div>
-    <div id="tier-builder-pool" class="hero-tier-pool" aria-live="polite"></div>
-  </section>
-
-  <section class="hero-tier-board">
-    <div class="builder-canvas-head" data-tour-id="bg-tier-builder-board">
-      <div>
-        <p class="eyebrow">Рабочая область</p>
-        <h2 class="panel-title">Конструктор тир-листов</h2>
-      </div>
-      <div id="tier-builder-counter" class="filter-caption">0 карт распределено</div>
-    </div>
-
-    <div class="board-toolbar">
-      <button id="tier-builder-download-all-png" class="download-button" type="button" data-tour-id="bg-tier-builder-export">Скачать всё PNG</button>
-      <button id="tier-builder-download-all-webp" class="secondary-button" type="button">Скачать всё WebP</button>
-      <div id="tier-builder-background-picker" class="background-picker" aria-label="Фон тир-листа"></div>
-    </div>
-
-    <div id="tier-builder-rows" class="tier-builder-rows"></div>
-  </section>
-</div>`;
-
-function BattlegroundTierBuilderEmbed() {
-  const mountId = useRef(`bg-tier-builder-${Math.random().toString(36).slice(2)}`);
-
-  useEffect(() => {
-    battlegroundHeroRosterBridgeV1.install(window, { publicResourceUrl });
-    battlegroundBuilderWorkbenchV1.install(window);
-    const builderRoot = document.getElementById(mountId.current);
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = BG_STRATEGY_BUILDER_CSS;
-    css.dataset.bgTierBuilder = 'true';
-    document.head.appendChild(css);
-
-    let cancelled = false;
-    const loadedScripts: HTMLScriptElement[] = [];
-    const version = BG_STRATEGY_BUILDER_VERSION;
-    const scripts = [
-      `/bg-legacy/shared.js?v=${version}`,
-      `/bg-legacy/tier-data.js?v=${version}`,
-      `/bg-legacy/accessories-data.js?v=${version}`,
-      `/bg-legacy/hero-tier-builder.js?v=${version}`,
-    ];
-
-    void loadLegacyScripts(scripts, 'tier-builder', loadedScripts, () => cancelled, mountId.current)
-      .catch(error => {
-      if (cancelled) return;
-      console.error('Не удалось запустить конструктор тир-листов.', error);
-    });
-
-    return () => {
-      cancelled = true;
-      battlegroundBuilderWorkbenchV1.dispose(builderRoot);
-      css.remove();
-      loadedScripts.forEach(script => script.remove());
-    };
-  }, []);
-
-  return (
-    <div
-      id={mountId.current}
-      className="bg-builder-page strategy-builder-page overflow-visible rounded-lg bg-[#07101f]/95"
-      dangerouslySetInnerHTML={{ __html: BG_TIER_BUILDER_HTML }}
-    />
-  );
-}
-
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 
 
-export { BattlegroundHeroesRoute, BattlegroundTierList, BattlegroundStrategyBuilderEmbed, BattlegroundTierBuilderEmbed };
+export { BattlegroundHeroesRoute, BattlegroundTierList, BattlegroundStrategyBuilderEmbed };

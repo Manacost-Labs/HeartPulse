@@ -1,5 +1,5 @@
 'use client';
-import { memo, useLayoutEffect, useRef, type RefObject } from 'react';
+import { lazy, memo, Suspense, useLayoutEffect, useRef, type RefObject } from 'react';
 import HomeTab, { type HomeArticle, type HomeSummaryData } from '@/src/modules/home/public';
 import { settleContent } from '@/src/shared/ui/settleContent';
 import { routeEntranceActive } from '@/src/shared/ui/routeEntrance';
@@ -8,6 +8,12 @@ import { useHomeFirstPaint } from './useHomeFirstPaint';
 // Session verification must not invalidate the lazy, server-rendered sections.
 const StableHomeTab = memo(HomeTab);
 const EMPTY_ARTICLES: HomeArticle[] = [];
+// The board's code and styles load only when its section nears the viewport,
+// so neither the first paint nor the home bundle carries them.
+const WeeklyDecksLeaderboard = lazy(() => import('@/src/features/WeeklyDecksLeaderboard'));
+const DECK_LEADERBOARD = <Suspense fallback={<div className="home-deck-leaderboard__placeholder" aria-hidden="true" />}>
+  <WeeklyDecksLeaderboard />
+</Suspense>;
 
 // A feed recovered after the first document paint settles once. After a menu
 // navigation the route's entrance already fades it in (`RouteTransition`).
@@ -32,5 +38,5 @@ export function HomePageContent({ summary, articles, onNavigate }: {
   useFeedArrival(root, '[data-home-feed="articles"]', !data.articles.loading);
   return <div ref={root} style={{ display: 'contents' }}><StableHomeTab homeSummaryData={data.summary.data} loadingHomeSummary={data.summary.loading}
     articles={data.articles.data ?? EMPTY_ARTICLES} loadingArticles={data.articles.loading}
-    serverArticles onNavigate={onNavigate} /></div>;
+    serverArticles onNavigate={onNavigate} deckLeaderboard={DECK_LEADERBOARD} /></div>;
 }

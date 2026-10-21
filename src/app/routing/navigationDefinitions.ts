@@ -15,6 +15,7 @@ import {
   ListChecks,
   ListTree,
   Scroll,
+  ScrollText,
   ShieldCheck,
   Sparkles,
   Swords,
@@ -78,6 +79,9 @@ export const NAVIGATION_ROUTES = [
   },
   {
     id: 'standard-cards', label: 'Карты', icon: LibraryBig, path: '/standard/cards', group: 'standard', entitlement: null,
+  },
+  {
+    id: 'patch-notes', label: 'Патчноуты', icon: ScrollText, path: '/standard/patches', group: 'standard', entitlement: null,
   },
   {
     id: 'winrates', label: 'Классы', icon: Trophy, path: '/classes', group: 'arena', entitlement: 'arena',
