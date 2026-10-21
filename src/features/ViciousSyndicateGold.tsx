@@ -7,7 +7,8 @@ import './ViciousSyndicateGold.css';
 import { DeckShareList } from './viciousGold/DeckShareList';
 import { MetaShare } from './viciousGold/MetaShare';
 import { PowerTierBoard } from './viciousGold/PowerTierBoard';
-import { ViciousGoldBanner, ViciousGoldLoading } from './viciousGold/ViciousGoldBanner';
+import { ViciousGoldBanner, ViciousGoldLoading, ViciousGoldSummaryLoading } from './viciousGold/ViciousGoldBanner';
+import { takeViciousGoldRequests } from './viciousGold/viciousGoldRequests';
 import { ViciousGoldReport } from './viciousGold/ViciousGoldReport';
 import { reportWindowLabel, type BuildState, type DeckBuild, type ViciousGoldPayload } from './viciousGold/viciousGoldModel';
 
@@ -47,13 +48,21 @@ export default function ViciousSyndicateGold() {
     setError('');
     setBuildState('loading');
 
+    // Both reports start at once; the builds are merged after the summary they complete.
+    const request = (url: string) => fetch(url, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    const prefetched = takeViciousGoldRequests();
+    const summaryRequest = prefetched?.summary ?? request('/api/vicious-syndicate-gold');
+    const buildsRequest = prefetched?.builds ?? request('/api/vicious-syndicate-gold/builds');
+    // A rejection is read by fetchBuilds after the summary; until then it must not be unhandled.
+    buildsRequest.catch(() => undefined);
+
     async function fetchBuilds() {
       try {
-        const response = await fetch('/api/vicious-syndicate-gold/builds', {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-          signal: controller.signal,
-        });
+        const response = await buildsRequest;
         const payload = await response.json().catch(() => ({})) as Partial<ViciousGoldBuildsPayload> & { error?: string };
         if (!response.ok || !Array.isArray(payload.builds) || !payload.buildCoverage) {
           throw new Error(payload.error || 'Не удалось загрузить сборки');
@@ -86,11 +95,7 @@ export default function ViciousSyndicateGold() {
 
     async function fetchSummary() {
       try {
-        const response = await fetch('/api/vicious-syndicate-gold', {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-          signal: controller.signal,
-        });
+        const response = await summaryRequest;
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить статистику');
         if (ignore) return;
@@ -147,7 +152,7 @@ export default function ViciousSyndicateGold() {
   if (loading || error) {
     return (
       <section className="vsgold">
-        <ViciousGoldBanner />
+        <ViciousGoldBanner>{loading ? <ViciousGoldSummaryLoading /> : null}</ViciousGoldBanner>
         {loading ? <ViciousGoldLoading /> : <div className="vsgold-section vsgold__state" role="alert">
           <AlertTriangle size={42} />
           <h2>Статистика временно недоступна</h2>

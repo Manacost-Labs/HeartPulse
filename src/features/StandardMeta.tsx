@@ -40,6 +40,7 @@ import { metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTe
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import '../shared/ui/LoadingSurface.css';
+import { LoadingValue } from '../shared/ui/LoadingShapes';
 import './StandardMeta.css';
 import { ViewSwitch } from '../components/transitions/ViewSwitch';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
@@ -155,8 +156,10 @@ const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
 const DECK_CLASS_COLORS: Record<MetaClass, string> = STANDARD_META_CLASS_COLORS;
 // The table (with VaryloUI's sparkline) and the tier groups (with the tier
 // badge) load when a reader opens that view, never with the first paint.
-const StandardMetaArchetypeTable = React.lazy(() => import('./StandardMetaArchetypeTable'));
-const StandardMetaTierGroups = React.lazy(() => import('./StandardMetaTierGroups'));
+const loadMetaTable = () => import('./StandardMetaArchetypeTable');
+const loadMetaTiers = () => import('./StandardMetaTierGroups');
+const StandardMetaArchetypeTable = React.lazy(loadMetaTable);
+const StandardMetaTierGroups = React.lazy(loadMetaTiers);
 
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
@@ -425,6 +428,35 @@ type StandardMetaPageProps = {
   initialTeaser?: StandardMetaTeaserSeed | null;
 };
 
+/**
+ * The banner's totals. Until the slice lands (`items` null) each value is a
+ * placeholder, not a dash: one change from placeholder to number.
+ * `data-teaser` lets a remembered subscriber's server HTML hide the guest
+ * preview's totals before hydration (PublicPageBanner.css).
+ */
+function MetaSummary({ items, hasFullAccess }: { items: MetaItem[] | null; hasFullAccess: boolean }) {
+  return (
+    <dl className="traditional-mode-banner__summary" aria-label="Сводка меты" data-teaser={hasFullAccess ? undefined : ''}>
+      <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{items ? items.length : <LoadingValue />}</dd></div>
+      <div><dt>Игр в выборке</dt><dd>{items ? items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU') : <LoadingValue wide />}</dd></div>
+    </dl>
+  );
+}
+
+/**
+ * Switching to the tiers or the table should not wait for its chunk: once the
+ * slice is on screen, both download at idle (they stay out of the first paint).
+ */
+function useIdleMetaViews(ready: boolean) {
+  useEffect(() => {
+    if (!ready) return undefined;
+    const idle = window.requestIdleCallback?.bind(window) ?? ((callback: () => void) => window.setTimeout(callback, 1));
+    const cancel = window.cancelIdleCallback?.bind(window) ?? window.clearTimeout.bind(window);
+    const handle = idle(() => { void loadMetaTable().catch(() => undefined); void loadMetaTiers().catch(() => undefined); });
+    return () => cancel(handle);
+  }, [ready]);
+}
+
 function StandardMetaContent({
   hasFullAccess,
   accessPending, teaserWaitsForAccess,
@@ -536,16 +568,15 @@ function StandardMetaContent({
   );
   const selectedPeriod = period ?? data.currentPeriod ?? data.currentPatchPeriod ?? data.period;
 
+  useIdleMetaViews(summaryReady);
+
   const archetypeHref = (item: MetaItem) => canonicalPagePath(`/standard/archetypes/${format}/${item.slug}`);
 
   return (
     <>
       <section className="traditional-mode-banner">
         <StandardMetaSearchIntro />
-        <dl className="traditional-mode-banner__summary" aria-label="Сводка меты">
-          <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{summaryReady ? data.items.length : '—'}</dd></div>
-          <div><dt>Игр в выборке</dt><dd>{summaryReady ? data.items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU') : '—'}</dd></div>
-        </dl>
+        <MetaSummary items={summaryReady ? data.items : null} hasFullAccess={hasFullAccess} />
       </section>
 
       <section className="standard-meta__controls" aria-label="Фильтры меты" data-page-still data-tour-id="meta-filters">
@@ -694,7 +725,7 @@ function StandardMetaContent({
               ))}
             </section>
           ) : view !== 'cards' && visibleItems.length > 0 ? (
-            <React.Suspense fallback={<AsyncSurfaceState variant="loading" title={view === 'tiers' ? 'Загружаем тиры' : 'Загружаем таблицу'} message="Готовим текущий срез." compact />}>
+            <React.Suspense fallback={<div className="standard-meta__view-reserve"><AsyncSurfaceState variant="loading" title={view === 'tiers' ? 'Загружаем тиры' : 'Загружаем таблицу'} message="Готовим текущий срез." compact /></div>}>
               {view === 'tiers' ? (
                 <StandardMetaTierGroups items={visibleItems} format={format} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
                   periodLabel={standardMetaPeriodLabel(selectedPeriod)} minGames={minGames} />

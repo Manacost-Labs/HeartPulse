@@ -45,8 +45,8 @@ assert.doesNotMatch(
 
 assert.match(
   clientSource,
-  /fetch\('\/api\/vicious-syndicate-gold\/builds'/,
-  'the client must progressively fetch build details after the summary',
+  /request\('\/api\/vicious-syndicate-gold\/builds'\)/,
+  'the client reads build details beside the summary (not after it) and merges them once the summary is shown',
 );
 assert.match(
   clientSource,

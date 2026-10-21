@@ -1,4 +1,5 @@
 import { LoadingSurface } from '../../shared/ui/LoadingSurface';
+import { LoadingText, LoadingValue } from '../../shared/ui/LoadingShapes';
 import '../../shared/ui/LoadingSurface.css';
 import '../ViciousSyndicateGold.css';
 import './ViciousGoldSkeleton.css';
@@ -24,12 +25,12 @@ function Bar({ className }: { className: string }) {
 
 /** Static copy as a text-shaped bar in the font of its holder. */
 function Words({ children }: { children: string }) {
-  return <i className="loading-block vsgold-skeleton__words" aria-hidden="true">{children}</i>;
+  return <LoadingText as="i" className="vsgold-skeleton__words">{children}</LoadingText>;
 }
 
 /** One line of a data value in the font of its holder. */
 function Value({ wide = false }: { wide?: boolean }) {
-  return <i className={`loading-block vsgold-skeleton__value${wide ? ' vsgold-skeleton__value--wide' : ''}`} aria-hidden="true" />;
+  return <LoadingValue as="i" className={wide ? 'vsgold-skeleton__value vsgold-skeleton__value--wide' : 'vsgold-skeleton__value'} />;
 }
 
 function ReportSkeleton() {

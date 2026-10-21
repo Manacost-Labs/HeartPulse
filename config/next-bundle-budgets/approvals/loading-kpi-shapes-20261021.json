@@ -1,0 +1,20 @@
+{
+  "reason": "Общий набор заготовок загрузки (LoadingShapes) и заготовки KPI меты и Vicious Gold вместо прочерков. Только CSS: стили заготовок в баннере страницы (PublicPageBanner.css, глобальный) и LoadingShapes.css рядом со скелетонами архетипа — до 0,5 КБ gzip; JS в пределах допуска.",
+  "routes": {
+    "/classes/": {
+      "cssGzipBytes": 128
+    },
+    "/contests/": {
+      "cssGzipBytes": 256
+    },
+    "/legendaries/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/archetypes/": {
+      "cssGzipBytes": 640
+    },
+    "/tierlist/": {
+      "cssGzipBytes": 128
+    }
+  }
+}

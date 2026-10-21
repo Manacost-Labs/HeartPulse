@@ -232,6 +232,9 @@ is a separate administrator workspace and retains its permission gate.
   `tests/next-bundle-budgets.test.mjs` checks that the Battlegrounds routes do
   not load those views up front; `/standard/vicious-gold/` loads its report
   the same way, with the banner and loader it shows while its data loads.
+  While that chunk downloads, the page already starts the report's two reads
+  (`viciousGoldRequests.ts`, taken once by the report), and the summary and
+  builds requests run in parallel instead of chunk → summary → builds.
   A locked preview behind the gate keeps its loaders still
   (`PaywallGate.css`): give a loader a class, not an inline `animation`
   style, or it loops for the whole visit.

@@ -1,0 +1,28 @@
+/*
+ * The shared placeholder shapes (LoadingShapes.tsx), in the components layer
+ * like LoadingSurface.css: the loaded view's own (unlayered) classes around a
+ * shape set its geometry. Text bars and values take the font of their holder;
+ * `.loading-block.` keeps their display over the block default, whatever the
+ * order in which the two stylesheets load.
+ */
+@layer components {
+  .loading-block.loading-text {
+    display: inline;
+    border-radius: 3px;
+    color: transparent;
+    font: inherit;
+    letter-spacing: inherit;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    user-select: none;
+  }
+  .loading-block.loading-value { display: inline-block; inline-size: 3.2em; block-size: 1lh; vertical-align: top; }
+  .loading-block.loading-value--wide { inline-size: 6em; }
+  .loading-header { display: grid; gap: 0.35rem; }
+  .loading-header__title { font-family: var(--font-display); font-size: clamp(1.3rem, 2.5vw, 1.8rem); line-height: 1.15; }
+  .loading-header__eyebrow { font-size: 0.66rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
+  .loading-header__description { margin: 0; font-size: 0.9rem; line-height: 1.5; }
+  .loading-chart { inline-size: 100%; }
+  .loading-card-tile { aspect-ratio: 512 / 776; inline-size: 100%; }
+
+}

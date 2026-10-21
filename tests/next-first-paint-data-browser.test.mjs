@@ -171,7 +171,7 @@ test('public previews render on the server and hydrate without a guest data requ
     const stalledMs = Date.now() - started;
     assert.ok(stalledMs >= 550 && stalledMs < 2000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
     assert.match(stalled, /data-loading-surface="panel"/, 'without data the page renders its loader');
-    assert.match(stalled, /В предпросмотре<\/dt><dd>—<\/dd>/, 'and no fake zero');
+    assert.match(stalled, /В предпросмотре<\/dt><dd><span class="loading-block loading-value"/, 'and no fake zero: a value placeholder');
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 844 });
     const errors = [];
