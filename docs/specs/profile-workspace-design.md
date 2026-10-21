@@ -36,7 +36,10 @@ has no such data for readers.
   linking uses the providers' own `/api/auth/{provider}/start`, which attaches
   the signed-in account; the return `?login&linked=<provider>` or
   `?login&<provider>=error` becomes one floating message and is removed from
-  the address.
+  the address. Below a line, «Активные сеансы» lists the account's signed-in
+  browsers ([account sessions](account-sessions.md)): this browser first,
+  marked «Этот браузер», each other one with «Завершить», and «Выйти на всех
+  других устройствах» behind an inline confirmation.
 - «Рассылка и контакты»: the newsletter switch first, then the prize contacts.
   Contact fields do not link Telegram, change the login e-mail or confirm a
   subscription.
@@ -58,10 +61,11 @@ has no such data for readers.
   subjects, e-mails or tokens leave the server. 401 without a session;
   `Cache-Control: no-store`, `Vary: Cookie, Authorization`. When the request
   fails the page leaves the social rows out instead of calling them unlinked.
-- Not available and therefore not shown: payment history, active sessions with
-  devices and «sign out everywhere» (the `sessions` table keeps no device data
-  and there is no revoke endpoint), server-side theme, format or rank defaults,
-  saved decks and favourites.
+- `GET /api/account/sessions` and its two revocations
+  (`server/modules/accountSessions`, [account sessions](account-sessions.md)).
+  When the list fails the block is left out.
+- Not available and therefore not shown: payment history, server-side theme,
+  format or rank defaults, saved decks and favourites.
 
 ## Signed-out view
 

@@ -147,6 +147,13 @@ export function createQaApiHandler({
       }));
       return true;
     }
+    if (url.pathname === '/api/account/sessions') {
+      respond(authenticated ? jsonResponse({ sessions: [
+        { id: 'qa-this-browser-session', current: true, device: 'Chrome · Windows', place: 'Россия', signedInAt: '2026-10-01T10:00:00.000Z', lastActiveAt: new Date().toISOString() },
+        { id: 'qa-phone-session-000001', current: false, device: 'Safari · iPhone', place: 'Европа', signedInAt: '2026-10-02T10:00:00.000Z', lastActiveAt: new Date(Date.now() - 12 * 60_000).toISOString() },
+      ] }) : { ...jsonResponse({ error: 'Требуется вход' }), status: 401 });
+      return true;
+    }
     if (url.pathname === '/api/account/linked-providers') {
       respond(authenticated ? jsonResponse({ providers: ['email'] }) : { ...jsonResponse({ error: 'Требуется вход' }), status: 401 });
       return true;

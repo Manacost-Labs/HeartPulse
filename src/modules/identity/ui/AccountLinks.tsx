@@ -1,10 +1,12 @@
 import React from 'react';
 import { Check, KeyRound } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
+import type { AccountSessionsControl } from '../hooks/useAccountSessions';
 import { accountLinkRows, hasTelegramLinkActions, type AccountSocialLinks } from '../model/accountDashboard';
 import type { AuthUser } from '../model/authUser';
 import AccountBrandIcon from './AccountBrandIcon';
 import AccountSectionHead from './AccountSectionHead';
+import AccountSessions from './AccountSessions';
 
 const TelegramAccountLinkActions = React.lazy(() => import('./TelegramAccountLinkActions'));
 
@@ -16,12 +18,13 @@ export type AccountTelegramLink = {
 };
 
 /** Every way into the account in one list, with what is linked and how to link the rest. */
-export default function AccountLinks({ user, subscription, telegram, patreonLinkUrl, social }: {
+export default function AccountLinks({ user, subscription, telegram, patreonLinkUrl, social, sessions }: {
   user: AuthUser;
   subscription: SubscriptionStatus | null;
   telegram: AccountTelegramLink;
   patreonLinkUrl: string;
   social?: AccountSocialLinks;
+  sessions?: AccountSessionsControl;
 }) {
   const rows = accountLinkRows(user, subscription, social);
   return (
@@ -58,6 +61,7 @@ export default function AccountLinks({ user, subscription, telegram, patreonLink
           </li>
         ))}
       </ul>
+      {sessions && <AccountSessions control={sessions} />}
     </section>
   );
 }

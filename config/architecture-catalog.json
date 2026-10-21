@@ -1347,6 +1347,37 @@
       ]
     },
     {
+      "name": "backend-accountSessions",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns the current account's session list, its activity record and the revocation of its other sessions.",
+      "paths": [
+        "server/modules/accountSessions"
+      ],
+      "publicEntrypoints": [
+        "server/modules/accountSessions/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/account-sessions.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/account-sessions-routes.test.ts",
+        "tests/account-sessions-integration.test.mjs",
+        "tests/next-account-sessions-browser.test.mjs"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals"
+      ]
+    },
+    {
       "name": "backend-game-data-audit",
       "status": "modular",
       "owner": "data-platform",

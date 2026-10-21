@@ -124,10 +124,15 @@ shows a previous viewer.
 
 ## Remaining gap
 
-A session revoked on the server (for example "sign out everywhere") keeps
-its `hp_viewer` cookie on other devices until their next `/api/auth/me`
-answer. A new page there shows the remembered viewer of that same session for
-one session check, then the guest. Restored pages do not have this gap.
+A session revoked on the server ([account sessions](account-sessions.md):
+«Завершить», «Выйти на всех других устройствах») is refused by the next
+request that carries it, the session check and every paywall included, and
+the guest answer names its tag, so the browser forgets the remembered viewer.
+A browser that was not open when its session ended can learn that only from
+that next answer: one new page there may still show the remembered account in
+the header for one session check. Paid data never reaches it, because the API
+refuses the ended session (`tests/next-account-sessions-browser.test.mjs`:
+no frame shows the paid card statistics). Restored pages do not have this gap.
 
 ## Verification
 

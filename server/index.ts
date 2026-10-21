@@ -248,6 +248,7 @@ import {
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createAccountSignInsRouter, createSqliteLinkedProviderReader } from './modules/accountSignIns/public.js';
+import { createAccountSessionsRouter, createSqliteAccountSessionStore, ensureAccountSessionColumns, recordSessionActivity } from './modules/accountSessions/public.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './modules/identity/public.js';
 import {
@@ -716,6 +717,8 @@ interface AdminSession {
   email: string;
   expiresAt: number;
   createdAt: string;
+  /** Activity for the account's session list (server/modules/accountSessions). */
+  lastSeenAt?: number | null; client?: string; region?: string;
 }
 
 interface AdminAuthStore {
@@ -1304,6 +1307,7 @@ function db(): DatabaseSync {
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_archetype_deck_codes_updated ON archetype_deck_codes(updated_at DESC);');
   repairLegacyConstructedMechanicTranslations(ecosystemDb);
   ensureAccountColumns(ecosystemDb);
+  ensureAccountSessionColumns(ecosystemDb);
   ensureTelegramAuthDatabaseConstraints(ecosystemDb);
   ensurePublicProfileIds(ecosystemDb, { preferredUserIds: [...ADMIN_USER_IDS] });
   const manualGrantColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(manual_subscription_grants)').all() as any[]).map(row => String(row.name)));
@@ -1582,13 +1586,14 @@ function loadAuthStore(): AdminAuthStore {
       expiresAt: Number(row.expires_at),
       attempts: Number(row.attempts),
     }));
-  const sessions = dbAll<any>('SELECT token_hash, user_id, email, expires_at, created_at FROM sessions')
+  const sessions = dbAll<any>('SELECT token_hash, user_id, email, expires_at, created_at, last_seen_at, client, region FROM sessions')
     .map(row => ({
       tokenHash: String(row.token_hash),
       userId: String(row.user_id || ''),
       email: String(row.email),
       expiresAt: Number(row.expires_at),
       createdAt: String(row.created_at),
+      lastSeenAt: row.last_seen_at == null ? null : Number(row.last_seen_at), client: String(row.client ?? ''), region: String(row.region ?? ''),
     }));
   return { users, pendingCodes, sessions, updatedAt: new Date().toISOString() };
 }
@@ -1629,9 +1634,9 @@ function saveAuthStore(
       const user = store.users.find(item => item.id === session.userId || item.email === session.email);
       if (!user) continue;
       database.prepare(`
-        INSERT OR REPLACE INTO sessions (token_hash, user_id, email, expires_at, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(session.tokenHash, user.id, session.email, session.expiresAt, session.createdAt);
+        INSERT OR REPLACE INTO sessions (token_hash, user_id, email, expires_at, created_at, last_seen_at, client, region)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(session.tokenHash, user.id, session.email, session.expiresAt, session.createdAt, session.lastSeenAt ?? null, session.client ?? '', session.region ?? '');
     }
     options.beforeCommit?.(database);
     database.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('auth_updated_at', new Date().toISOString());
@@ -1642,6 +1647,7 @@ function saveAuthStore(
   }
 }
 
+const accountSessionStore = createSqliteAccountSessionStore(db);
 const credentialCodeIssuer = createCredentialCodeIssuer({
   now: Date.now,
   generateCode: () => randomInt(100000, 1000000).toString(),
@@ -3081,7 +3087,10 @@ function authenticatedSessionFromRequest(req: import('express').Request): ({
 }) | null {
   for (const token of authTokenCandidatesFromReq(req)) {
     const activeSession = authenticatedSessionFromToken(token);
-    if (activeSession) return { token, ...activeSession };
+    if (activeSession) {
+      recordSessionActivity(accountSessionStore, req, activeSession.session);
+      return { token, ...activeSession };
+    }
   }
   return null;
 }
@@ -3148,7 +3157,8 @@ function listParserControlAudit(limit: number) {
 }
 
 function cookieMutationCsrfAllowed(req: import('express').Request): boolean {
-  const requestPath = new URL(req.originalUrl, 'http://localhost').pathname;
+  // The raw path as received: an exemption must never come from a resolved or decoded spelling.
+  const requestPath = req.originalUrl.split('?')[0];
   return csrfRequestAllowed({
     method: req.method,
     path: requestPath,
@@ -8664,6 +8674,14 @@ app.use('/api', createSubscriptionRouter({
   refreshSubscription: refreshSubscriptionForUser,
   unavailableStatus: emptySubscriptionStatus,
   setPrivateNoStore,
+}));
+
+app.use('/api', createAccountSessionsRouter({
+  currentSession: req => {
+    const active = authenticatedSessionFromRequest(req);
+    return active ? { userId: active.user.id, tokenHash: active.session.tokenHash } : null;
+  },
+  sessions: accountSessionStore, csrfAllowed: cookieMutationCsrfAllowed, setPrivateNoStore,
 }));
 
 app.use('/api', createAccountSignInsRouter({

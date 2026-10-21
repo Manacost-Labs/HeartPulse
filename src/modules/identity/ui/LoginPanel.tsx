@@ -23,6 +23,7 @@ import {
 import { canAccessAdminWorkspace } from '../model/authAccess';
 import { publicProfilePath } from '../model/publicProfilePath';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
+import { useAccountSessions } from '../hooks/useAccountSessions';
 import { useAccountSignInLinks } from '../hooks/useAccountSignInLinks';
 import './IdentityProfile.css';
 import '../../../shared/ui/LoadingSurface.css';
@@ -274,7 +275,7 @@ export function LoginPanel({
     void fetchSubscription(false);
     void fetchContestHistory();
   }, [authUser, fetchSubscription, fetchContestHistory]);
-  const linkedProviders = useAccountSignInLinks(authUser?.id || authUser?.profileId || '', setMsg);
+  const accountId = authUser?.id || authUser?.profileId || '', linkedProviders = useAccountSignInLinks(accountId, setMsg), accountSessions = useAccountSessions(accountId, setMsg);
 
   const applyAuthenticatedUser = (user: AuthUser) => {
     setAuthUser(user);
@@ -524,9 +525,9 @@ export function LoginPanel({
           onCodeChange: setBoostyCode,
           onSubmit: boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm,
         }}
-        patreonLinkUrl={patreonLinkUrl}
+        patreonLinkUrl={patreonLinkUrl} sessions={accountSessions}
         telegram={{
-          userId: authUser.id || authUser.profileId || '',
+          userId: accountId,
           mode: telegramMode,
           botUsername: telegramBotUsername,
           onMessage: (type, text) => setMsg({ type, text }),

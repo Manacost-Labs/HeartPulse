@@ -5,6 +5,7 @@ import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { AccountSocialLinks } from '../model/accountDashboard';
 import { accountPlanSummary } from '../model/accountPlan';
 import type { AuthUser } from '../model/authUser';
+import type { AccountSessionsControl } from '../hooks/useAccountSessions';
 import type { BoostyConfirmation } from './AccountAccessOptions';
 import AccountContests, { type AccountContestEntry } from './AccountContests';
 import AccountHero from './AccountHero';
@@ -30,6 +31,7 @@ export type AccountDashboardProps = {
   patreonLinkUrl: string;
   telegram: AccountTelegramLink;
   social?: AccountSocialLinks;
+  sessions?: AccountSessionsControl;
   contests: { entries: AccountContestEntry[]; loading: boolean };
   settings: AccountSettingsProps;
   onLogout: () => void;
@@ -93,7 +95,7 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         patreonLinkUrl={props.patreonLinkUrl}
       />
       <div className="account-dashboard__columns">
-        <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} />
+        <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />
         <AccountSettings {...props.settings} />
       </div>
       <AccountContests entries={props.contests.entries} loading={props.contests.loading} />

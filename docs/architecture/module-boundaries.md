@@ -207,6 +207,13 @@ account page in `src/modules/identity` cannot import the vendored Valyro
 the `/?login` composition supplies it through the identity module's
 `AccountPlanCardSlot`; without it the module shows its own plain plate.
 
+`server/modules/accountSessions` owns the current account's session list
+(`GET /api/account/sessions`), the throttled activity record on `sessions`
+(last seen, browser and system, coarse edge region; no IP address) and the
+revocation of the account's other sessions. Composition supplies the current
+session, the site CSRF rule and a rate limiter; the module's statements are
+scoped by `user_id` and never rewrite the whole session table.
+
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical
 current-account resolver; the module rechecks eligibility when approving,
