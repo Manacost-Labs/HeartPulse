@@ -35,6 +35,11 @@ export type PatchNotesEntry = {
   cardType: string | null;
   /** Full card render from the Battlegrounds catalog; Constructed cards use the HearthstoneJSON render. */
   renderUrl: string | null;
+  /**
+   * Today's format of a resolved Constructed card: `standard` when the
+   * Standard catalog lists it, else `wild`; `null` when unknown.
+   */
+  format: 'standard' | 'wild' | null;
   /** Line under the name: "Малый аксессуар", "Броня героя". */
   subtitle: string | null;
   changes: PatchNotesChange[];

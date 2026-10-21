@@ -1,8 +1,8 @@
+export { filterPatchView, patchGroupOptions, patchHighlights } from './model/patchSelection';
 export {
-  PATCH_SECTION_TITLES, changeDirection, filterPatchView, patchCardImage, patchGroupOptions, patchKind, patchNotesHref,
-  sentenceCase, toPatchView,
+  PATCH_SECTION_TITLES, changeDirection, patchCardImage, patchKind, patchNotesHref, sentenceCase, toPatchView,
   type PatchCardArt, type PatchCardView, type PatchChangeView, type PatchDirection, type PatchFilter, type PatchGroupView,
-  type PatchKind, type PatchKindCounts, type PatchSectionView, type PatchView,
+  type PatchKind, type PatchKindCounts, type PatchSectionId, type PatchSectionView, type PatchView,
 } from './model/patchEntries';
 export { normalizePatchVersion } from './model/types';
 export type {

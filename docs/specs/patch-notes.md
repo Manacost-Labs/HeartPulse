@@ -84,21 +84,38 @@ budget (`apps/public-web/lib/publicPatchNotes.ts`); a part that misses it is
 loaded by the browser. Dates render in Europe/Moscow before hydration and in
 the viewer's zone after it.
 
-- The header states the version, date, the article lead, counts of changes by
-  kind (усиления, ослабления, изменения) and by mode, and links the official
-  Blizzard notes and the source article when they are known.
-- Filters: mode tabs, kind, class (Constructed, Arena) or card type
-  (Battlegrounds: list headings such as "Малый аксессуар" first, then catalog
-  types), and a search over Russian and English names and change text.
-- A change card shows `/api/card-image/<id>/thumb.webp` (a card render for
-  Constructed, square art for Battlegrounds, a portrait for heroes) with
-  fixed width and height, so lazy images do not shift the layout; the first
-  four load eagerly. Hover or focus shows the full current card (the catalog
-  render, else the HearthstoneJSON render); a tap opens it in a sheet.
-  No source has card images from before a patch, so the "before" state is
-  the struck-out value or the word diff of the old text.
+- Reading order: the version switcher (above the patch on narrow screens),
+  the header (version, date, article lead, counts by kind, links to the
+  official Blizzard notes and the source article), "Главное в патче", the
+  contents, the filters and the sections.
+- "Главное в патче" picks up to six changes with a picture: Standard first,
+  then the largest number moves; a stated buff or nerf outranks a rework and
+  one section fills at most half the list while others have candidates.
+  Constructed cards of a known format link to their card page
+  (`/standard/cards/<format>/<id>/`), which lists decks with the card; patch
+  data has no card-to-archetype link, so there is no direct archetype link.
+- Sections are Стандарт, Вольный, Стандарт и Вольный (cards of unknown
+  format), Арена, Поля сражений and Другие режимы, each a `<details>` open by
+  default with its count. Constructed entries carry `format`: `standard` when
+  today's Standard catalog (`loadPublicCards('standard')`) lists the card or
+  its `CORE_` reprint, else `wild`; `null` without a match or a catalog.
+  Groups are classes (Constructed, Arena) or card types (Battlegrounds: list
+  headings such as "Малый аксессуар" first, then catalog types).
+- Filters: search over Russian and English names and change text, "Только
+  бафы / нерфы / изменения", and class or card type. Filtering hides the
+  highlights and section notes.
+- A change card shows one picture in a fixed card-shaped box: the
+  Constructed render `/api/card-image/<id>/thumb.webp`, the Battlegrounds
+  catalog render resized through `/api/public-resource` (else the proxy's
+  square art). Images have width and height, the first four load eagerly.
+  Hover or focus shows the full current card; a tap opens it in a sheet. No
+  source has card images from before a patch, so there is no before/after
+  render toggle: the before state is the struck-out value or the word diff.
 - Number changes read `старое → новое` coloured by direction; text changes
-  show "Было" and "Стало" with removed and added words marked.
-- The archive is a sticky side list when the content column is at least
-  960 px wide and a version select in the header otherwise; the layout uses a
-  container query because the site rail takes part of the viewport.
+  show "Было" and "Стало" with removed and added words marked. The badge is
+  coloured and carries an arrow or a rework icon.
+- On content at least 960 px wide the version switcher (newer, select,
+  older) and the contents with section and group links stay in a sticky
+  side column; otherwise both sit above the patch and the cards form one
+  column. The layout uses a container query because the site rail takes part
+  of the viewport.

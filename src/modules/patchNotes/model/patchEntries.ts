@@ -9,11 +9,15 @@ export type PatchCardArt = 'card' | 'square' | 'hero';
 
 export type PatchChangeView = PatchNotesChange & { direction: PatchDirection };
 
+/** Page sections: Constructed splits by today's format; `constructed` holds cards of unknown format. */
+export type PatchSectionId = 'standard' | 'wild' | 'constructed' | 'arena' | 'battlegrounds' | 'other';
+
 export type PatchCardView = {
   id: string;
   name: string;
   sourceName: string | null;
-  section: PatchNotesMode;
+  mode: PatchNotesMode;
+  section: PatchSectionId;
   group: string;
   /** "Существо · Воин", "Малый аксессуар", "Дуэли · Уиллоу". */
   typeLabel: string | null;
@@ -22,6 +26,8 @@ export type PatchCardView = {
   /** Catalog render for the hover preview; the page falls back to the HearthstoneJSON render. */
   renderUrl: string | null;
   art: PatchCardArt;
+  /** The card's page on the site (statistics and decks with it), for Constructed cards of a known format. */
+  cardUrl: string | null;
   kind: PatchKind;
   changes: PatchChangeView[];
   note: string | null;
@@ -30,19 +36,29 @@ export type PatchCardView = {
   search: string;
 };
 
-export type PatchGroupView = { id: string; section: PatchNotesMode; title: string; entries: PatchCardView[] };
+export type PatchGroupView = { id: string; section: PatchSectionId; title: string; entries: PatchCardView[] };
 export type PatchKindCounts = Record<PatchKind, number>;
-export type PatchSectionView = { id: PatchNotesMode; title: string; count: number; kinds: PatchKindCounts };
+export type PatchSectionView = { id: PatchSectionId; mode: PatchNotesMode; title: string; count: number; kinds: PatchKindCounts };
 export type PatchView = { sections: PatchSectionView[]; groups: PatchGroupView[]; kinds: PatchKindCounts; total: number };
-export type PatchFilter = { section: PatchNotesMode | 'all'; kind: PatchKind | 'all'; group: string; query: string };
+export type PatchFilter = { section: PatchSectionId | 'all'; kind: PatchKind | 'all'; group: string; query: string };
 
-export const PATCH_SECTION_TITLES: Record<PatchNotesMode, string> = {
+export const PATCH_SECTION_TITLES: Record<PatchSectionId, string> = {
+  standard: 'Стандарт',
+  wild: 'Вольный',
   constructed: 'Стандарт и Вольный',
   arena: 'Арена',
   battlegrounds: 'Поля сражений',
   other: 'Другие режимы',
 };
-const SECTION_ORDER: PatchNotesMode[] = ['constructed', 'arena', 'battlegrounds', 'other'];
+const SECTION_ORDER: PatchSectionId[] = ['standard', 'wild', 'constructed', 'arena', 'battlegrounds', 'other'];
+const SECTION_MODE: Record<PatchSectionId, PatchNotesMode> = {
+  standard: 'constructed', wild: 'constructed', constructed: 'constructed', arena: 'arena', battlegrounds: 'battlegrounds', other: 'other',
+};
+
+function sectionOf(entry: PatchNotesEntry): PatchSectionId {
+  if (entry.mode !== 'constructed') return entry.mode;
+  return entry.format ?? 'constructed';
+}
 
 const CLASS_LABELS: Record<string, string> = {
   DEATHKNIGHT: 'Рыцарь смерти',
@@ -98,6 +114,7 @@ export function patchCardImage(cardId: string): string {
 }
 
 function placement(entry: PatchNotesEntry): { group: string; groupTitle: string; typeLabel: string | null } {
+  const section = sectionOf(entry);
   if (entry.mode === 'battlegrounds') {
     const type = entry.cardType ? BATTLEGROUND_TYPES[entry.cardType] : undefined;
     const title = entry.subtitle ?? type?.group ?? OTHER_CARDS;
@@ -110,7 +127,7 @@ function placement(entry: PatchNotesEntry): { group: string; groupTitle: string;
   const classLabel = entry.cardClass ? CLASS_LABELS[entry.cardClass] : undefined;
   const typeLabel = [entry.cardType ? CONSTRUCTED_TYPES[entry.cardType] : undefined, classLabel].filter(Boolean).join(' · ');
   return {
-    group: `${entry.mode}:${classLabel ? entry.cardClass : 'unknown'}`,
+    group: `${section}:${classLabel ? entry.cardClass : 'unknown'}`,
     groupTitle: classLabel ?? 'Карты не из коллекции',
     typeLabel: [typeLabel, entry.subtitle].filter(Boolean).join(' · ') || null,
   };
@@ -138,21 +155,24 @@ const emptyKinds = (): PatchKindCounts => ({ buff: 0, nerf: 0, rework: 0 });
 export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchView {
   const groups = new Map<string, PatchGroupView>();
   const kinds = emptyKinds();
-  const sections = new Map<PatchNotesMode, PatchSectionView>();
+  const sections = new Map<PatchSectionId, PatchSectionView>();
   for (const entry of detail.entries) {
     const { group, groupTitle, typeLabel } = placement(entry);
     const changes = entry.changes.map(change => ({ ...change, direction: changeDirection(change) }));
+    const sectionId = sectionOf(entry);
     const card: PatchCardView = {
       id: entry.id,
       name: entry.name,
       sourceName: entry.sourceName ?? null,
-      section: entry.mode,
+      mode: entry.mode,
+      section: sectionId,
       group,
       typeLabel,
       cardId: entry.cardId,
       thumb: entry.cardId ? patchCardImage(entry.cardId) : null,
       renderUrl: entry.renderUrl ?? null,
       art: art(entry),
+      cardUrl: entry.cardId && entry.format ? `/standard/cards/${entry.format}/${encodeURIComponent(entry.cardId)}/` : null,
       kind: patchKind(entry.changes),
       changes,
       note: entry.note,
@@ -161,14 +181,15 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       search: [entry.name, entry.sourceName, typeLabel, ...entry.changes.flatMap(change => [change.label, change.before, change.after])]
         .filter(value => value !== undefined && value !== null).join(' ').toLocaleLowerCase('ru-RU').replace(/ё/g, 'е'),
     };
-    const known = groups.get(group) ?? { id: group, section: entry.mode, title: groupTitle, entries: [] };
+    const known = groups.get(group) ?? { id: group, section: sectionId, title: groupTitle, entries: [] };
     known.entries.push(card);
     groups.set(group, known);
     kinds[card.kind] += 1;
-    const section = sections.get(entry.mode) ?? { id: entry.mode, title: PATCH_SECTION_TITLES[entry.mode], count: 0, kinds: emptyKinds() };
+    const section = sections.get(sectionId)
+      ?? { id: sectionId, mode: SECTION_MODE[sectionId], title: PATCH_SECTION_TITLES[sectionId], count: 0, kinds: emptyKinds() };
     section.count += 1;
     section.kinds[card.kind] += 1;
-    sections.set(entry.mode, section);
+    sections.set(sectionId, section);
   }
   const ordered = [...groups.values()].map((group, index) => ({ group, index })).sort((left, right) =>
     SECTION_ORDER.indexOf(left.group.section) - SECTION_ORDER.indexOf(right.group.section)
@@ -179,27 +200,6 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
     kinds,
     total: detail.entries.length,
   };
-}
-
-/** Groups a section offers in the class/type filter, with their card counts. */
-export function patchGroupOptions(view: PatchView, section: PatchFilter['section']): {
-  id: string; section: PatchNotesMode; title: string; count: number;
-}[] {
-  return view.groups.filter(group => section === 'all' || group.section === section)
-    .map(group => ({ id: group.id, section: group.section, title: group.title, count: group.entries.length }));
-}
-
-/** Filtered groups, empty ones left out. Search matches names in both languages and the change text. */
-export function filterPatchView(view: PatchView, filter: PatchFilter): PatchGroupView[] {
-  const words = filter.query.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').split(/\s+/).filter(Boolean);
-  return view.groups
-    .filter(group => (filter.section === 'all' || group.section === filter.section) && (filter.group === 'all' || group.id === filter.group))
-    .map(group => ({
-      ...group,
-      entries: group.entries.filter(entry => (filter.kind === 'all' || entry.kind === filter.kind)
-        && words.every(word => entry.search.includes(word))),
-    }))
-    .filter(group => group.entries.length > 0);
 }
 
 /** `/standard/patches/` for the newest patch, else the archive address of one version. */

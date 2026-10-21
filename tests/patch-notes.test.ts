@@ -83,7 +83,7 @@ test('articles become per-card changes with their notes, modes and resolved card
   const serpent = entries.find(entry => entry.name === 'Змей ветреных вершин');
   assert.deepEqual(serpent, {
     id: 'constructed-змей-ветреных-вершин', name: 'Змей ветреных вершин', sourceName: null, mode: 'constructed',
-    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, subtitle: null,
+    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, format: null, subtitle: null,
     note: 'Родня срабатывала слишком рано.',
     changes: [{ label: 'Текст', before: 'Боевой клич: наносит 5 ед. урона. Родня: стоит на (3) меньше.',
       after: 'Боевой клич: наносит 5 ед. урона. Родня: стоит на (2) меньше.' }],
@@ -186,6 +186,15 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
   assert.equal((await load()).length, 3, 'a failed reload keeps the last good copy');
 });
 
+test('Constructed entries carry today\'s format from the Standard catalog, reprints included', () => {
+  const snapshot = buildPatchNotesSnapshot(rows, resolver, 'x', new Set(['CORE_TLC_600']));
+  assert.equal(snapshot.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.cardId === 'TLC_600')?.format, 'standard');
+  const wild = buildPatchNotesSnapshot(rows, resolver, 'x', new Set(['OTHER']));
+  assert.equal(wild.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.cardId === 'TLC_600')?.format, 'wild');
+  assert.equal(buildPatchNotesSnapshot(rows, resolver, 'x').patches[1].entries.every(entry => entry.format === null), true,
+    'no Standard catalog, no format');
+});
+
 test('pre-release builds matched to a modern article are dropped from the archive', () => {
   const shared = { match_state: 'matched', source_url: 'https://hs-manacost.ru/28-2-3/', title: 'Обновление 28.2.3 уже в игре' };
   assert.deepEqual(dropForeignArticleBuilds([
@@ -276,11 +285,12 @@ test('routes serve the archive, the latest patch with changes and one version; f
 });
 
 test('the page groups cards by mode, class or type and derives kinds only from directed numbers', async () => {
-  const { toPatchView, filterPatchView, patchGroupOptions, normalizePatchVersion, patchNotesHref, sentenceCase } =
+  const { toPatchView, filterPatchView, patchGroupOptions, patchHighlights, normalizePatchVersion, patchNotesHref, sentenceCase } =
     await import('../src/modules/patchNotes/public');
   const { entries } = parsePatchArticle(article, sections, resolver);
-  const view = toPatchView({ entries });
-  assert.deepEqual(view.sections.map(section => [section.id, section.count]), [['constructed', 3], ['battlegrounds', 5]]);
+  const view = toPatchView({ entries: entries.map(entry => entry.cardId === 'TLC_600' ? { ...entry, format: 'standard' as const } : entry) });
+  assert.deepEqual(view.sections.map(section => [section.id, section.count]), [['standard', 1], ['constructed', 2], ['battlegrounds', 5]],
+    'cards of unknown format stay under "Стандарт и Вольный"');
   assert.deepEqual(view.groups.map(group => group.title),
     ['Воин', 'Карты не из коллекции', 'Существа', 'Броня героя', 'Малый аксессуар', 'Большой аксессуар']);
   const serpent = view.groups.flatMap(group => group.entries).find(entry => entry.name === 'Змей ветреных вершин');
@@ -288,6 +298,9 @@ test('the page groups cards by mode, class or type and derives kinds only from d
   assert.equal(serpent?.typeLabel, 'Существо · Воин');
   assert.equal(serpent?.kind, 'rework', 'a text change carries no direction');
   assert.equal(serpent?.hasText, true);
+  assert.equal(serpent?.cardUrl, '/standard/cards/standard/TLC_600/');
+  assert.deepEqual(patchHighlights(view, 4).map(card => card.name), ['Змей ветреных вершин', 'Рено Джексон', 'Молот Сумерек', 'Алчная гиена'],
+    'Standard first, then the largest number moves; one section fills half the list until nothing else is left');
   const cards = view.groups.flatMap(group => group.entries);
   const hammer = cards.find(entry => entry.cardId === 'BG36_MagicItem_403');
   assert.deepEqual([hammer?.name, hammer?.sourceName, hammer?.art, hammer?.kind, hammer?.changes[0].direction],
@@ -306,8 +319,7 @@ test('the page groups cards by mode, class or type and derives kinds only from d
     .flatMap(group => group.entries).length, 2, 'English names are searchable');
   assert.equal(filterPatchView(view, { section: 'all', kind: 'all', group: 'all', query: 'стоит на (2)' }).length, 1,
     'change text is searchable');
-  assert.deepEqual(patchGroupOptions(view, 'constructed').map(option => [option.title, option.count]),
-    [['Воин', 1], ['Карты не из коллекции', 2]]);
+  assert.deepEqual(patchGroupOptions(view, 'constructed').map(option => [option.title, option.count]), [['Карты не из коллекции', 2]]);
   assert.equal(sentenceCase('ИЗМЕНЕНИЯ ТЕМНЫХ ДАРОВ'), 'Изменения темных даров');
   assert.equal(sentenceCase('Изменения Арены'), 'Изменения Арены');
   assert.equal(normalizePatchVersion('36.6.3.253932'), '36.6.3');

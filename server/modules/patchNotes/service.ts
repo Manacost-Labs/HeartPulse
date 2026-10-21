@@ -1,4 +1,4 @@
-import { shortPatchVersion, type PatchNotesDetail, type PatchNotesSummary } from './contract.js';
+import { shortPatchVersion, type PatchNotesDetail, type PatchNotesEntry, type PatchNotesSummary } from './contract.js';
 import { cleanArticleText, parsePatchArticle, type PatchCardResolver } from './parser.js';
 import { createBattlegroundNameResolver, type BattlegroundCatalogCard } from './battlegroundCatalog.js';
 
@@ -13,6 +13,8 @@ export type PatchNotesServiceDependencies = {
   loadCardNames: () => Promise<Record<string, CardName>>;
   /** Battlegrounds catalog; without it Battlegrounds entries keep the article's names and no pictures. */
   loadBattlegroundCards?: () => Promise<BattlegroundCatalogCard[]>;
+  /** Ids of today's Standard cards; without them Constructed entries have no format. */
+  loadStandardCardIds?: () => Promise<Iterable<string>>;
   ttlMs: number;
   now?: () => number;
 };
@@ -108,8 +110,17 @@ function compareVersions(left: unknown, right: unknown): number {
   return 0;
 }
 
+/** A reprint resolves to its original id while the Standard catalog may list the `CORE_` copy. */
+function withFormat(entry: PatchNotesEntry, standard: ReadonlySet<string>): PatchNotesEntry {
+  if (entry.mode !== 'constructed' || !entry.cardId || standard.size === 0) return entry;
+  const id = entry.cardId;
+  return { ...entry, format: standard.has(id) || standard.has(`CORE_${id}`) || standard.has(id.replace(/^CORE_/, '')) ? 'standard' : 'wild' };
+}
+
 /** Parses every stored article once per refresh; the newest build of a version wins. */
-export function buildPatchNotesSnapshot(rows: Row[], resolve: PatchCardResolver, updatedAt: string): PatchNotesSnapshot {
+export function buildPatchNotesSnapshot(
+  rows: Row[], resolve: PatchCardResolver, updatedAt: string, standard: ReadonlySet<string> = new Set(),
+): PatchNotesSnapshot {
   const newest = new Map<string, Row>();
   for (const row of dropForeignArticleBuilds(rows)) {
     const key = shortPatchVersion(row.version) || shortPatchVersion(row.hs_manacost_version);
@@ -132,7 +143,7 @@ export function buildPatchNotesSnapshot(rows: Row[], resolve: PatchCardResolver,
       changeCount: parsed.entries.length,
       // The stored summary runs on into the first heading; its first paragraph is the lead.
       summary: text(cleanArticleText(String(row.summary ?? '').split('\n').find(line => line.trim()) ?? '')),
-      entries: parsed.entries,
+      entries: parsed.entries.map(entry => withFormat(entry, standard)),
       missingBefore: parsed.missingBefore,
       pictureSections: parsed.pictureSections,
       generalChanges: parsed.generalChanges,
@@ -161,14 +172,16 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   let pending: Promise<PatchNotesSnapshot> | null = null;
 
   const refresh = async () => {
-    const [payload, cards, battlegrounds] = await Promise.all([
+    const [payload, cards, battlegrounds, standard] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
       dependencies.loadCardNames().catch(() => ({})),
       (dependencies.loadBattlegroundCards?.() ?? Promise.resolve([])).catch(() => []),
+      (dependencies.loadStandardCardIds?.() ?? Promise.resolve([])).catch(() => []),
     ]);
     const rows = (payload as { patches?: unknown })?.patches;
     if (!Array.isArray(rows)) throw new Error('Patch archive payload has no patches');
-    const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString());
+    const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString(),
+      new Set(standard));
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     return value;
   };

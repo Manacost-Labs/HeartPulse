@@ -47,21 +47,22 @@ test('patch notes render the stored article as compact change cards, and the hom
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);
       assert.deepEqual(state.violations, [], `axe at ${width}px`);
     }
-    assert.deepEqual(await page.$$eval('.hp-patch-card', cards => cards.map(card => [
+    assert.deepEqual(await page.$$eval('.hp-patch-section .hp-patch-card', cards => cards.map(card => [
       card.querySelector('.hp-patch-card__name')?.textContent, card.dataset.kind])), [
       // The fixture blocks HearthstoneJSON, so Constructed cards stay unmatched; trinkets resolve through the catalog.
       ['Змей ветреных вершин', 'rework'], ['Паучок', 'nerf'], ['Пагубные благовония', 'buff'], ['Молот Сумерек', 'nerf'],
     ]);
-    assert.match(await page.$eval('.hp-patch-card[data-kind="buff"] .hp-patch-card__meta', node => node.textContent ?? ''),
+    assert.match(await page.$eval('.hp-patch-section .hp-patch-card[data-kind="buff"] .hp-patch-card__meta', node => node.textContent ?? ''),
       /Малый аксессуар · Baleful Incense/, 'the article\'s English name stays as a caption');
     assert.equal(await page.$$eval('.hp-patch-card del', nodes => nodes.some(node => node.textContent?.includes('(3)'))), true,
       'the old text is struck out');
     await page.click('.hp-patch-kinds button[data-kind="nerf"]');
     await page.waitForFunction(() => document.querySelectorAll('.hp-patch-card').length === 2);
-    // At 412 px the archive is a version select in the header.
-    await page.select('.hp-patch-picker select', '35.6.2');
+    // At 412 px the version switcher sits above the patch.
+    await page.select('.hp-patch-versions--top select', '35.6.2');
     await page.waitForFunction(() => document.querySelector('.hp-patch-hero__title')?.textContent?.includes('35.6.2'));
-    assert.equal(await page.$eval('.hp-patch-archive [aria-current="page"]', node => node.textContent?.includes('35.6.2')), true);
+    assert.equal(await page.$eval('.hp-patch-versions--top a', node => node.getAttribute('href')), '/standard/patches/',
+      'the newer patch link leads back to the newest patch');
     assert.equal(new URL(page.url()).searchParams.get('version'), '35.6.2');
     assert.equal((await fetch(`${pilot.origin}/api/patch-notes/9.9.9`)).status, 404);
 

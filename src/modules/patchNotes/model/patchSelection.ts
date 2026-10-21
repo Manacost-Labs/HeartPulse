@@ -1,0 +1,57 @@
+import type { PatchCardView, PatchFilter, PatchGroupView, PatchSectionId, PatchView } from './patchEntries';
+
+/* Which cards the page shows: filter results, filter options and the "what matters" pick. */
+
+const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+/** Groups a section offers in the class/type filter, with their card counts. */
+export function patchGroupOptions(view: PatchView, section: PatchFilter['section']): {
+  id: string; section: PatchSectionId; title: string; count: number;
+}[] {
+  return view.groups.filter(group => section === 'all' || group.section === section)
+    .map(group => ({ id: group.id, section: group.section, title: group.title, count: group.entries.length }));
+}
+
+/** Filtered groups, empty ones left out. Search matches names in both languages and the change text. */
+export function filterPatchView(view: PatchView, filter: PatchFilter): PatchGroupView[] {
+  const words = filter.query.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').split(/\s+/).filter(Boolean);
+  return view.groups
+    .filter(group => (filter.section === 'all' || group.section === filter.section) && (filter.group === 'all' || group.id === filter.group))
+    .map(group => ({
+      ...group,
+      entries: group.entries.filter(entry => (filter.kind === 'all' || entry.kind === filter.kind)
+        && words.every(word => entry.search.includes(word))),
+    }))
+    .filter(group => group.entries.length > 0);
+}
+
+const HIGHLIGHT_WEIGHT: Record<PatchSectionId, number> = { standard: 300, constructed: 250, arena: 200, wild: 150, battlegrounds: 100, other: 50 };
+
+/**
+ * The patch at a glance: up to `limit` changes with a picture, Standard first,
+ * then the largest number moves; a stated buff or nerf outranks a rework and
+ * no section fills more than half the list unless nothing else is left.
+ */
+export function patchHighlights(view: PatchView, limit = 6): PatchCardView[] {
+  const score = (card: PatchCardView) => HIGHLIGHT_WEIGHT[card.section] + (card.kind === 'rework' ? 0 : 40)
+    + Math.min(50, 10 * card.changes.reduce((sum, change) =>
+      sum + (isNumber(change.before) && isNumber(change.after) ? Math.abs(change.after - change.before) : 0), 0))
+    + (card.hasText ? 20 : 0);
+  const ranked = view.groups.flatMap(group => group.entries).filter(card => card.cardId)
+    .map((card, index) => ({ card, index, score: score(card) }))
+    .sort((left, right) => right.score - left.score || left.index - right.index).map(({ card }) => card);
+  const cap = Math.ceil(limit / 2);
+  const picked: PatchCardView[] = [];
+  const perSection = new Map<PatchSectionId, number>();
+  for (const card of ranked) {
+    if (picked.length === limit) break;
+    if ((perSection.get(card.section) ?? 0) >= cap) continue;
+    picked.push(card);
+    perSection.set(card.section, (perSection.get(card.section) ?? 0) + 1);
+  }
+  for (const card of ranked) {
+    if (picked.length >= limit) break;
+    if (!picked.includes(card)) picked.push(card);
+  }
+  return picked;
+}

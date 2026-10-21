@@ -4,7 +4,7 @@ import type { PatchNotesDetail, PatchNotesEntry, PatchNotesSummary } from '../mo
 import { PatchNotesView } from './PatchNotesView';
 
 const trinket = (id: string, name: string, sourceName: string, subtitle: string, before: number, after: number): PatchNotesEntry => ({
-  id, name, sourceName, mode: 'battlegrounds', cardId: id, cardClass: null, cardType: 'trinket', renderUrl: null, subtitle, note: null,
+  id, name, sourceName, mode: 'battlegrounds', cardId: id, cardClass: null, cardType: 'trinket', renderUrl: null, format: null, subtitle, note: null,
   changes: [{ label: 'Стоимость', before, after, better: 'lower' }],
 });
 
@@ -16,11 +16,11 @@ const patch: PatchNotesDetail = {
   summary: 'Обновление Hearthstone 36.6.3, выход которого состоялся 1 октября, включает в себя ряд изменений для Стандарта и Полей сражений.',
   entries: [
     { id: 'serpent', name: 'Змей ветреных вершин', sourceName: null, mode: 'constructed', cardId: 'TLC_600', cardClass: 'WARRIOR',
-      cardType: 'minion', renderUrl: null, subtitle: null, note: null, changes: [{ label: 'Текст',
+      cardType: 'minion', renderUrl: null, format: 'standard', subtitle: null, note: null, changes: [{ label: 'Текст',
         before: 'Боевой клич: наносит 5 ед. урона. Вы получаете 5 ед. брони. Родня: стоит на (3) меньше.',
         after: 'Боевой клич: наносит 5 ед. урона. Вы получаете 5 ед. брони. Родня: стоит на (2) меньше.' }] },
     { id: 'pantry', name: 'Заражение кладовой', sourceName: null, mode: 'constructed', cardId: 'JAIL_200', cardClass: 'DRUID',
-      cardType: 'spell', renderUrl: null, subtitle: null, note: null,
+      cardType: 'spell', renderUrl: null, format: 'standard', subtitle: null, note: null,
       changes: [{ label: 'Текст', before: 'Призывает двух случайных существ за (3).', after: 'Призывает двух случайных существ за (2).' }] },
     trinket('BG36_MagicItem_403', 'Молот Сумерек', 'Hammer of Twilight', 'Малый аксессуар', 1, 2),
     trinket('BG36_MagicItem_400', 'Изображение оскверненной монетки', 'Corrupted Coin Portrait', 'Малый аксессуар', 0, 3),
@@ -51,33 +51,39 @@ export const CardChanges: Story = {
   parameters: { docs: { description: { story: 'Header with counts by kind and mode, filters, compact cards with was → now, picture-only sections and the archive.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByRole('article')).toHaveLength(6);
-    await userEvent.click(canvas.getByRole('button', { name: /^Ослабления/ }));
+    const listed = () => canvasElement.querySelectorAll('.hp-patch-section article');
+    await expect(canvas.getByRole('heading', { name: 'Главное в патче' })).toBeVisible();
+    await expect(listed()).toHaveLength(6);
+    await userEvent.click(canvas.getByRole('button', { name: /^Только нерфы/ }));
     await expect(canvas.getAllByRole('article')).toHaveLength(3);
+    await expect(canvas.queryByRole('heading', { name: 'Главное в патче' })).toBeNull();
     await userEvent.click(canvas.getByRole('button', { name: /^Все \d/ }));
     await userEvent.type(canvas.getByRole('searchbox'), 'booty');
     await expect(canvas.getAllByRole('article')).toHaveLength(1);
     await expect(canvas.getByRole('heading', { name: 'Пойло из Пиратской Бухты' })).toBeVisible();
   },
 };
-export const BattlegroundsOnly: Story = {
+export const CollapsedSection: Story = {
+  parameters: { docs: { description: { story: 'Sections fold; the contents link opens a folded section again.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(within(canvas.getByRole('group', { name: 'Режим' })).getByRole('button', { name: /^Поля сражений/ }));
-    await expect(canvas.getAllByRole('article')).toHaveLength(4);
+    const section = canvasElement.querySelector<HTMLDetailsElement>('#hp-patch-section-battlegrounds');
     await expect(canvas.getByText(/в статье только картинками/)).toBeVisible();
+    await userEvent.click(canvas.getByRole('heading', { name: /^Поля сражений/ }));
+    await expect(section?.open).toBe(false);
+    await userEvent.click(within(canvas.getAllByRole('navigation', { name: 'Содержание патча' })[0]).getByRole('link', { name: /^Поля сражений/ }));
+    await expect(section?.open).toBe(true);
   },
 };
 export const PhoneVersionPicker: Story = {
-  parameters: { docs: { description: { story: 'Below 960 px of content width the archive becomes a version select in the header.' } } },
+  parameters: { docs: { description: { story: 'Below 960 px of content width the version switcher and contents sit above the patch, in one column.' } } },
   decorators: [Story => <div style={{ width: 380 }}><Story /></div>],
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.queryByRole('navigation', { name: 'Архив патчей' })).toBeNull();
-    await userEvent.selectOptions(canvas.getByLabelText('Версия'), '36.4.2');
+    const [switcher] = canvas.getAllByRole('navigation', { name: 'Версии патча' });
+    await expect(within(switcher).getByRole('link', { name: /новый патч 37\.0\.0/ })).toHaveAttribute('href', '/standard/patches/');
+    await userEvent.selectOptions(within(switcher).getByLabelText('Версия патча'), '36.4.2');
     await expect(args.onSelectVersion).toHaveBeenCalledWith('/standard/patches/?version=36.4.2');
-    await userEvent.selectOptions(canvas.getByLabelText('Версия'), '37.0.0');
-    await expect(args.onSelectVersion).toHaveBeenLastCalledWith('/standard/patches/');
   },
 };
 export const OnlyNewValues: Story = {
