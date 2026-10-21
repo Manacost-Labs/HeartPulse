@@ -6,6 +6,7 @@ import '../shared/ui/LoadingSurface.css';
 import './deckrender/DeckRenderPreview.css';
 import './ConstructedArchetypes.css';
 import './ConstructedArchetypeDetailSkeletons.css';
+import './ConstructedArchetypeInsights.css';
 import { Title, Value, Words } from './archetypeSkeletonText';
 
 // Placeholders for the independently loaded parts of an archetype page. Each
@@ -52,11 +53,11 @@ export function ArchetypeBuildsSkeleton({ deckCount = FIRST_BUILDS }: { deckCoun
   </LoadingSurface>;
 }
 
-const HISTORY_CHARTS = ['Винрейт', 'Популярность', 'Количество игр'];
+const HISTORY_CHARTS = ['Популярность', 'Количество игр'];
 /** The width of a slice date («24 июл., 12:00») in figure spaces: the scrubber labels wrap where real dates wrap. */
 const CHART_DATE = '\u2007\u2007 июл., \u2007\u2007:\u2007\u2007';
 
-/** The history section: real heading frame and three real chart frames with a 240 px plot and selection controls. */
+/** The history section: real heading frame, the winrate band's reserve and two chart frames with a 240 px plot and selection controls. */
 export function ArchetypeHistorySkeleton() {
   return <LoadingSurface label="Загружаем историю архетипа" quiet layout="rows" className="archetype-detail-skeleton">
     <div className="archetype-history" inert>
@@ -68,6 +69,7 @@ export function ArchetypeHistorySkeleton() {
         </div>
         <span className="archetype-section-heading__count"><Value /></span>
       </div>
+      <div className="archetype-band-slot"><LoadingBlock className="archetype-band-slot__reserve" /></div>
       <div className="archetype-history__charts">
         {HISTORY_CHARTS.map(title => <ChartFrame key={title} title={title} subtitle={'   срезов · история архетипа'}>
           <div className="analytics-chart__plot">

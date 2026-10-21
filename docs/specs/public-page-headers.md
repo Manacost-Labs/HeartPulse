@@ -56,6 +56,22 @@ shown rows as CSV with one column per metric. Phases measured on fewer than
 dimmed to 78% when the sorted phase is. The tile previews the full card on
 hover or focus and opens it on click or tap.
 Card previews and subscription boundaries stay intact.
+
+The dossier's statistics strip is the VaryloUI KPI group. For subscribers the
+winrate, popularity and games tiles show the change against the newest history
+slice at least a day older (percentage points for the two rates) and a 7-day
+sparkline; games compare only inside the latest HSGuru period, because their
+count restarts with a new period. Every tile reserves that room, so the
+history's arrival moves nothing; phones keep the change line and drop the
+sparkline. Below the builds, subscribers compare two builds (winrate, games and
+mana curve from the resolved deck lists). The history leads with a winrate
+chart whose 95% and 50% bands are Wilson intervals from each slice's games, so
+a small sample draws a wide band. A heatmap shows the winrate by rank and
+period, and a radar puts the archetype against another one of the format, each
+axis as a percentile among the format's archetypes. Dust is not compared: no
+source states a card's crafting cost (the deck renderer computes it itself),
+and a variance breakdown is not drawn: matchups and card statistics have no
+per-period history.
 The source URL was verified from the public Koloda card search for `CAP_105`:
 [horizontal artwork](https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/CAP_105.webp).
 

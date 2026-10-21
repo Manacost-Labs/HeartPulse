@@ -16,6 +16,8 @@ const IGNORED_DIRECTORIES = new Set([
   'dist',
   'node_modules',
   'storybook-static',
+  // Vendored sources stay byte-identical to their upstream (src/vendor/*/README.md or ORIGIN.md).
+  'vendor',
 ]);
 
 function relativePath(repositoryRoot, absolutePath) {

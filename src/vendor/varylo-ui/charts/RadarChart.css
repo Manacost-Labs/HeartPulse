@@ -1,0 +1,115 @@
+.ui-radar-chart__ring {
+  fill: none;
+  stroke: var(--ui-chart-grid);
+  stroke-width: 1;
+}
+
+/* Inner rings follow the grid style; the outer ring frames the chart. */
+.ui-radar-chart__ring:not(:last-of-type) {
+  stroke-dasharray: var(--ui-chart-grid-dasharray);
+}
+
+.ui-radar-chart__ring:last-of-type {
+  stroke: var(--ui-border-strong);
+}
+
+.ui-radar-chart__spoke {
+  stroke: var(--ui-chart-grid);
+  stroke-width: 1;
+  transition: stroke var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-radar-chart__spoke[data-active] {
+  stroke: var(--ui-border-strong);
+}
+
+.ui-radar-chart__tick {
+  fill: var(--ui-chart-axis);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.ui-radar-chart__label {
+  fill: var(--ui-fg-muted);
+  font-size: 12px;
+  user-select: none;
+  transition: fill var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-chart__svg[data-compact] .ui-radar-chart__label {
+  font-size: 11px;
+}
+
+.ui-radar-chart__label[data-active] {
+  fill: var(--ui-fg);
+  font-weight: var(--ui-weight-medium);
+}
+
+/* Each polygon unfolds from the centre (transform-origin is set inline). */
+.ui-radar-chart__series {
+  transform-box: view-box;
+  transition: opacity var(--ui-duration) var(--ui-ease);
+  animation: ui-radar-chart-unfold calc(var(--ui-duration-slow) * 2.5) var(--ui-ease-spring) both;
+  animation-delay: min(calc(var(--_i, 0) * var(--ui-duration-fast)), calc(var(--ui-duration-fast) * 2.5));
+}
+
+.ui-radar-chart__series[data-dimmed] {
+  opacity: 0.15;
+}
+
+/* --_fill: the series' radial gradient, set by the chart when the theme has --ui-chart-fill: gradient. */
+.ui-radar-chart__area {
+  fill: var(--_fill, color-mix(in srgb, var(--_color) 14%, transparent));
+  stroke: var(--_color);
+  stroke-width: var(--ui-radar-chart-area-stroke-width);
+  stroke-linejoin: round;
+  filter: var(--ui-chart-glow, var(--_glow));
+}
+
+.ui-radar-chart__vertex {
+  fill: var(--_color);
+  stroke: var(--ui-bg);
+  stroke-width: 1.5;
+  transition: r var(--ui-duration-fast) var(--ui-ease);
+}
+
+/* Same alignment as the other charts' legends, a little further from the bottom axis label. */
+.ui-radar-chart__legend {
+  margin-top: var(--ui-space-1);
+}
+
+.ui-radar-chart__tick-bg {
+  fill: var(--ui-bg);
+  fill-opacity: 0.88;
+  stroke: var(--ui-chart-grid);
+}
+
+@keyframes ui-radar-chart-unfold {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+/* Gradient fills: luminous areas that fade towards the rim. */
+.ui-radar-chart__stop[data-pos='start'] {
+  stop-color: var(--_color);
+  stop-opacity: 0.06;
+}
+
+.ui-radar-chart__stop[data-pos='end'] {
+  stop-color: var(--_color);
+  stop-opacity: 0.32;
+}
+
+@media (forced-colors: active) {
+  .ui-chart__svg :is(.ui-radar-chart__ring, .ui-radar-chart__spoke) {
+    stroke: GrayText;
+  }
+
+  .ui-chart__svg .ui-radar-chart__vertex {
+    stroke: Canvas;
+  }
+}
+

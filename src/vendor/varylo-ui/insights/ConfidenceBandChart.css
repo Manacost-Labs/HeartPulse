@@ -1,0 +1,251 @@
+.ui-confidence-band {
+  --_actual: var(--ui-confidence-band-actual, var(--ui-fg, #111));
+  --_forecast: var(--ui-confidence-band-forecast, var(--ui-chart-1, var(--ui-accent, #3b82f6)));
+  --_outer: var(--ui-confidence-band-outer, color-mix(in srgb, var(--_forecast) 14%, transparent));
+  --_inner: var(--ui-confidence-band-inner, color-mix(in srgb, var(--_forecast) 30%, transparent));
+  --_outlier: var(--ui-confidence-band-outlier, var(--ui-danger, #e5484d));
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3, 12px);
+  min-width: 0;
+  margin: 0;
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm, 14px);
+}
+
+.ui-confidence-band__title {
+  margin: 0;
+  font-family: var(--ui-font-display, inherit);
+  font-size: var(--ui-text-md, 15px);
+  font-weight: var(--ui-weight-semibold, 600);
+}
+
+.ui-confidence-band__readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--ui-space-3, 12px);
+  min-block-size: 1.5em;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-confidence-band__readout strong {
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm, 14px);
+}
+
+.ui-confidence-band__readout [data-key='outlier'] {
+  color: var(--ui-danger-text, var(--_outlier));
+  font-weight: var(--ui-weight-semibold, 600);
+}
+
+.ui-confidence-band__chart {
+  position: relative;
+  padding-inline-start: 3.5rem;
+}
+
+.ui-confidence-band__ticks {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 3.5rem;
+  color: var(--ui-fg-subtle);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-confidence-band__ticks > span {
+  position: absolute;
+  inset-inline-end: 8px;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.ui-confidence-band__plot {
+  position: relative;
+  border-radius: 2px;
+  outline: none;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.ui-confidence-band__plot:focus-visible {
+  box-shadow: 0 0 0 2px var(--ui-surface, #fff), var(--ui-focus-ring);
+}
+
+.ui-confidence-band__svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+
+.ui-confidence-band__svg:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.ui-confidence-band__grid {
+  stroke: var(--ui-border, rgba(127, 127, 127, 0.25));
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.ui-confidence-band__outer { fill: var(--_outer); }
+.ui-confidence-band__inner { fill: var(--_inner); }
+
+.ui-confidence-band__actual,
+.ui-confidence-band__forecast {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.ui-confidence-band__actual {
+  stroke: var(--_actual);
+  stroke-width: 2;
+}
+
+.ui-confidence-band__forecast {
+  stroke: var(--_forecast);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+.ui-confidence-band__split {
+  position: absolute;
+  inset-block: 0;
+  border-inline-start: 1px dashed var(--ui-fg-subtle, #888);
+}
+
+.ui-confidence-band__split > span {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 6px;
+  color: var(--ui-fg-subtle);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ui-confidence-band__outlier,
+.ui-confidence-band__dot {
+  position: absolute;
+  inline-size: 10px;
+  block-size: 10px;
+  margin-block-start: -5px;
+  margin-inline-start: -5px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ui-confidence-band__outlier {
+  border: 2px solid var(--_outlier);
+  background: var(--ui-surface, #fff);
+}
+
+.ui-confidence-band__cursor {
+  position: absolute;
+  inset-block: 0;
+  inline-size: 1px;
+  background: color-mix(in srgb, var(--ui-fg, #000) 35%, transparent);
+  pointer-events: none;
+}
+
+.ui-confidence-band__dot {
+  border: 2px solid var(--ui-surface, #fff);
+  background: var(--_actual);
+  box-shadow: 0 0 0 1px var(--_actual);
+}
+
+.ui-confidence-band__dot[data-key='forecast'] {
+  background: var(--_forecast);
+  box-shadow: 0 0 0 1px var(--_forecast);
+}
+
+.ui-confidence-band__axis {
+  position: relative;
+  block-size: 1.6em;
+  margin-block-start: 4px;
+  color: var(--ui-fg-subtle);
+  font-size: 11px;
+}
+
+.ui-confidence-band__axis > span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.ui-confidence-band__axis > span:dir(rtl) { transform: translateX(50%); }
+.ui-confidence-band__axis > [data-edge='start'] { transform: none; }
+.ui-confidence-band__axis > [data-edge='end'] { transform: translateX(-100%); }
+.ui-confidence-band__axis > [data-edge='start']:dir(rtl) { transform: none; }
+.ui-confidence-band__axis > [data-edge='end']:dir(rtl) { transform: translateX(100%); }
+
+/* ── Legend: a real list ── */
+.ui-confidence-band__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--ui-space-4, 16px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs, 12px);
+}
+
+.ui-confidence-band__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-confidence-band__legend li::before {
+  content: '';
+  inline-size: 16px;
+  block-size: 3px;
+  border-radius: 2px;
+}
+
+.ui-confidence-band__legend [data-key='actual']::before { background: var(--_actual); }
+.ui-confidence-band__legend [data-key='forecast']::before {
+  background: repeating-linear-gradient(90deg, var(--_forecast) 0 5px, transparent 5px 8px);
+}
+.ui-confidence-band__legend [data-key='inner']::before { block-size: 10px; background: var(--_inner); }
+.ui-confidence-band__legend [data-key='outer']::before { block-size: 10px; background: var(--_outer); }
+.ui-confidence-band__legend [data-key='outlier']::before {
+  inline-size: 8px;
+  block-size: 8px;
+  border: 2px solid var(--_outlier);
+  border-radius: 50%;
+}
+
+.ui-confidence-band__state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2, 8px);
+  margin: 0;
+  color: var(--ui-fg-muted);
+}
+
+.ui-confidence-band__state[data-state='error'] {
+  flex-direction: row;
+  color: var(--ui-danger-text, var(--ui-danger));
+}
+
+.ui-confidence-band__state[data-state='error'] > svg {
+  flex-shrink: 0;
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+@media (forced-colors: active) {
+  .ui-confidence-band__outer,
+  .ui-confidence-band__inner {
+    fill: Highlight;
+    fill-opacity: 0.2;
+  }
+}

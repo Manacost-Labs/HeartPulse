@@ -243,6 +243,10 @@ try {
   assert.equal(await page.$$eval('.archetype-deck-card', nodes => nodes.length), 0);
   assert.equal(await page.$$eval('.constructed-card-stats', nodes => nodes.length), 0);
   assert.equal(await page.$$eval('.archetype-history', nodes => nodes.length), 0);
+  assert.equal(await page.$$eval('.archetype-ranks, .archetype-radar-section, .archetype-compare', nodes => nodes.length), 0,
+    'rank, radar and build comparisons are subscriber analytics');
+  assert.equal(await page.$$eval('.archetype-dossier__metrics .ui-kpi-group__delta', nodes => nodes.length), 0,
+    'guests see the statistics without the subscriber history');
   assert.equal(await page.$$eval('.archetype-build-preview', nodes => nodes.length), 1);
   assert.equal(
     await page.$eval('.arena-inline-paywall__primary span', node => node.textContent),
@@ -260,7 +264,7 @@ try {
   const detailLayout = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     primaryHeight: document.querySelector('.arena-inline-paywall__primary')?.getBoundingClientRect().height ?? 0,
-    metricCount: document.querySelectorAll('.archetype-dossier__metrics > div').length,
+    metricCount: document.querySelectorAll('.archetype-dossier__metrics > li').length,
   }));
   assert.ok(detailLayout.overflow <= 1, `archetype teaser overflowed by ${detailLayout.overflow}px`);
   assert.ok(detailLayout.primaryHeight >= 48);

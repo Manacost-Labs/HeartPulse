@@ -2815,7 +2815,7 @@ for (const [device, viewport] of [
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
-    if (!archetypeDetailState.title.includes('Чётный') || archetypeDetailState.charts !== 3
+    if (!archetypeDetailState.title.includes('Чётный') || archetypeDetailState.charts !== 2
       || archetypeDetailState.builds !== 6 || archetypeDetailState.deckCards !== 30
       || archetypeDetailState.renderSurfaces !== 6 || archetypeDetailState.previews < 1
       || archetypeDetailState.previewButtons < 1 || archetypeDetailState.copyButtons !== 6

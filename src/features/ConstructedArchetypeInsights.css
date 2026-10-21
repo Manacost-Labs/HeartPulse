@@ -1,0 +1,94 @@
+/* VaryloUI insights on the archetype page (ConstructedArchetypeInsights). Reserves in
+   ArchetypeInsightSlots use the same heights, so a late chunk shifts nothing. */
+
+.archetype-band-slot {
+  /* One fixed height per layout: the loaded chart and its placeholder share it. */
+  height: 22.5rem;
+  box-sizing: border-box;
+  margin: 0.85rem 0.85rem 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(92, 54, 24, 0.22);
+  background: rgba(255, 248, 225, 0.6);
+}
+
+.archetype-band-slot__reserve { height: 100%; border-radius: 0; }
+/* The page draws observed slices only; the kit's forecast entry has nothing to name. */
+.archetype-band-chart .ui-confidence-band__legend [data-key='forecast'] { display: none; }
+.archetype-band-chart { margin: 0; }
+.archetype-band-chart :is(h3, .ui-confidence-band__title) { margin: 0; font-family: var(--font-display); font-size: 1rem; }
+
+.archetype-insight {
+  margin-top: 1rem;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+}
+
+.archetype-insight .archetypes-eyebrow { color: #8d171d; }
+.archetype-insight h2 { margin: 0.2rem 0 0; font-family: var(--font-display); font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
+.archetype-insight .archetype-section-heading p { margin: 0.35rem 0 0; color: var(--archetype-muted); font-size: 0.72rem; }
+
+.archetype-rank-heatmap { padding: 0.85rem; }
+.archetype-ranks__reserve { height: 16rem; margin: 0.85rem; border-radius: 0; }
+
+.archetype-insight-empty,
+.archetype-insight-note {
+  margin: 0.85rem;
+  color: var(--archetype-muted);
+  font-size: 0.72rem;
+}
+
+.archetype-build-comparison-slot {
+  margin: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(92, 54, 24, 0.22);
+  background: rgba(255, 248, 225, 0.6);
+}
+.archetype-build-comparison-slot__reserve { height: 30rem; border-radius: 0; }
+
+.archetype-build-comparison__pick,
+.archetype-radar__pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.archetype-build-comparison__pick label,
+.archetype-radar__pick { display: inline-flex; gap: 0.45rem; align-items: center; color: var(--archetype-muted); }
+
+.archetype-build-comparison__pick select,
+.archetype-radar__pick select {
+  min-height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid rgba(111, 26, 32, 0.35);
+  color: var(--archetype-ink);
+  background: #fff6dc;
+  font: inherit;
+  font-weight: 800;
+}
+
+.archetype-radar { padding: 0.85rem; }
+.archetype-radar__reserve { height: 25rem; margin: 0.85rem; border-radius: 0; }
+
+@media (max-width: 820px) {
+  .archetype-band-slot { height: 26rem; margin: 0.55rem 0.55rem 0; padding: 0.55rem; }
+  .archetype-build-comparison-slot__reserve { height: 47rem; }
+  .archetype-insight { border-width: 5px; }
+  .archetype-build-comparison-slot { margin: 0.55rem; padding: 0.55rem; }
+  .archetype-build-comparison__pick select,
+  .archetype-radar__pick select { min-height: 44px; }
+  .archetype-rank-heatmap,
+  .archetype-radar { padding: 0.55rem; }
+}
+
+/* The charts size their SVG from a ResizeObserver; until it fires after a viewport change the
+   old width must not widen the page. */
+.archetype-band-slot,
+.archetype-insight,
+.archetype-build-comparison-slot { overflow-x: clip; }

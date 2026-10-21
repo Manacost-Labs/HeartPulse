@@ -1,6 +1,8 @@
 import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
 import { archetypeClassBackdrop, archetypeHeroArt } from './archetypeDetailModel';
 import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
+import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
+import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection, WinrateBandSlot } from './ArchetypeInsightSlots';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
@@ -439,11 +441,15 @@ type ArchetypeDetailProps = {
 function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending }: ArchetypeDetailProps) {
   const Root = embedded ? 'section' : 'main';
   const [visibleBuilds, setVisibleBuilds] = useState(6);
-  const { detail, core, history: historyRead, analysis: analysisRead, fullAccess, denied } = useArchetypeDetail({
+  const { detail, core, history: historyRead, analysis: analysisRead, ranks: ranksRead, fullAccess, denied } = useArchetypeDetail({
     format, slug, hasFullAccess, accessPending, seed: initialDetail,
   });
   // The analysis chunk loads beside the analysis request, so its placeholder and view are usually ready first.
-  useEffect(() => { if (fullAccess && !accessPending) loadArchetypeAnalysis().catch(() => undefined); }, [fullAccess, accessPending]);
+  useEffect(() => {
+    if (!fullAccess || accessPending) return;
+    loadArchetypeAnalysis().catch(() => undefined);
+    loadInsights().catch(() => undefined);
+  }, [fullAccess, accessPending]);
   const archetypeLabel = detail?.item.archetypeLabel;
   useEffect(() => {
     if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | Manacost Stats`;
@@ -514,14 +520,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           <img src={classIcon(item.classKey)} alt="" width="92" height="92" />
           <h1>{item.archetypeLabel}</h1>
         </div>
-        <dl className="archetype-dossier__metrics">
-          <div><dt>Винрейт</dt><dd className={`metric-${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</dd></div>
-          <div><dt>Популярность</dt><dd>{formatNumber(item.popularity, '%')}</dd></div>
-          <div><dt>Игры</dt><dd>{item.games.toLocaleString('ru-RU')}</dd></div>
-          <div><dt>Сборки</dt><dd>{item.deckCount}</dd></div>
-          <div><dt>Средний матч</dt><dd>{formatNumber(item.durationMinutes, ' мин')}</dd></div>
-          <div><dt>Средний ход</dt><dd>{formatNumber(item.turns)}</dd></div>
-        </dl>
+        <ArchetypeDossierKpis item={item} history={history} />
       </section>
 
       {/* While access is checked the paid sections hold their loading place; the
@@ -591,6 +590,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         />
       ) : null}
 
+      {fullAccess && !core.loading ? <BuildComparisonSection builds={item.builds} format={item.format} archetype={item.archetype} /> : null}
+
       {fullAccess && !core.loading ? (
         <ArchetypeDetailSection title="История архетипа" loading={historyRead.loading} error={historyRead.error} onRetry={historyRead.retry}
           skeleton={<ArchetypeHistorySkeleton />}>
@@ -603,14 +604,16 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           </div>
           <span className="archetype-section-heading__count">{history.length} срезов</span>
         </header>
+        <WinrateBandSlot history={history} />
         <div className="archetype-history__charts">
-          <TrendChart title="Винрейт" unit="%" points={history} value={point => point.winrate} color="#2f7a3e" />
           <TrendChart title="Популярность" unit="%" points={history} value={point => point.popularity} color="#8d171d" />
           <TrendChart title="Количество игр" unit="" points={history} value={point => point.games} color="#8a5b24" />
         </div>
         </section>
         </ArchetypeDetailSection>
       ) : null}
+
+      {fullAccess && !core.loading ? <RankHeatmapSection read={ranksRead} /> : null}
 
       {fullAccess && !core.loading ? <ArchetypeDetailSection title="Матчапы и муллиган" loading={analysisRead.loading}
         error={analysisRead.error} onRetry={analysisRead.retry} skeleton={<ArchetypeAnalysisLoading />}>
@@ -621,6 +624,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </RecoverableSurfaceBoundary>
       </ArchetypeDetailSection> : null}
 
+
+      {fullAccess && !core.loading ? <ArchetypeRadarSection item={item} /> : null}
 
       {!core.loading ? <section className="archetype-methodology">
         <BarChart3 size={24} aria-hidden="true" />

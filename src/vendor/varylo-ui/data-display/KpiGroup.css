@@ -1,0 +1,196 @@
+.ui-kpi-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--_min, 200px)), 1fr));
+  gap: var(--ui-space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Joined: one panel; each tile draws its start and top hairline, the panel clips the outer ones. */
+.ui-kpi-group[data-variant='joined'] {
+  gap: 0;
+  overflow: hidden;
+}
+
+.ui-kpi-group[data-variant='joined'] > .ui-kpi-group__tile {
+  margin-block-start: -1px;
+  margin-inline-start: -1px;
+  border-block-start: 1px solid var(--ui-divider);
+  border-inline-start: 1px solid var(--ui-divider);
+}
+
+.ui-kpi-group__tile {
+  --_tone: var(--ui-fg-muted);
+  --_line: var(--ui-fg-subtle);
+
+  /* A query container: a narrow tile (two in a phone row) tightens its label and delta below. */
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  padding: var(--ui-kpi-group-padding);
+}
+
+.ui-kpi-group__tile[data-tone='positive'] {
+  --_tone: var(--ui-success-text);
+  --_line: var(--ui-success);
+}
+
+.ui-kpi-group__tile[data-tone='negative'] {
+  --_tone: var(--ui-danger-text);
+  --_line: var(--ui-danger);
+}
+
+.ui-kpi-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  min-height: 20px;
+}
+
+.ui-kpi-group__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The same icon tile as StatsCard (and its theme tokens), so the two metric components read as one family. */
+.ui-kpi-group__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--ui-stats-card-icon-size);
+  height: var(--ui-stats-card-icon-size);
+  border: var(--ui-tile-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-stats-card-icon-bg);
+  box-shadow: var(--ui-stats-card-icon-shadow);
+  color: var(--ui-stats-card-icon-fg);
+}
+
+.ui-kpi-group__value {
+  overflow: hidden;
+  font-family: var(--ui-font-display, inherit);
+  font-size: var(--ui-kpi-group-value-size);
+  font-weight: var(--ui-kpi-group-value-weight);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--ui-leading-tight);
+  letter-spacing: var(--ui-tracking-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-kpi-group__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: var(--ui-text-sm);
+}
+
+.ui-kpi-group__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: var(--ui-kpi-group-delta-padding);
+  border-radius: var(--ui-radius-full);
+  background: color-mix(in srgb, var(--_line) var(--ui-kpi-group-delta-fill), transparent);
+  color: var(--_tone);
+  font-weight: var(--ui-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-kpi-group__caption {
+  color: var(--ui-fg-subtle);
+}
+
+.ui-kpi-group__target {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.ui-kpi-group__target-bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-surface-3);
+}
+
+.ui-kpi-group__target-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ui-accent);
+  transition: inline-size var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-kpi-group__target[data-complete] .ui-kpi-group__target-bar > span {
+  background: var(--ui-success);
+}
+
+.ui-kpi-group__target-text {
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-kpi-group__spark {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin-top: auto;
+  padding-top: var(--ui-space-2);
+  box-sizing: content-box;
+}
+
+/* The sparkline stretches with the tile; strokes keep their width. */
+.ui-kpi-group__spark :is(.ui-sparkline__line, .ui-sparkline__area) {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Narrow tile: the label takes two lines instead of an ellipsis, and the delta keeps to its percentage
+   (the comparison text stays for screen readers). */
+@container (max-width: 160px) {
+  .ui-kpi-group__label {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .ui-kpi-group__caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (forced-colors: active) {
+  .ui-kpi-group[data-variant='joined'] > .ui-kpi-group__tile {
+    border-color: CanvasText;
+  }
+
+  .ui-kpi-group__target-bar {
+    border: 1px solid CanvasText;
+  }
+
+  .ui-kpi-group__target-bar > span {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+}

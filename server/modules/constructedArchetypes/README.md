@@ -27,3 +27,11 @@ The detail handler serves compatible `core`, `history`, `analysis` and default
 full projections through injected readers. Mount it after access/private
 response guards. It never starts optional reads for `core` and surfaces optional
 section failures without changing the legacy full response contract.
+
+`createArchetypeRankMatrixLoader` builds the `ranks` detail section: one
+archetype's winrate and games in every rank × period slice of the HSGuru meta
+matrix (five ranks of the site's meta filters, five rolling windows and the
+current expansion window). Composition injects the cached Standard meta slice
+reader, so the section adds no upstream requests beyond those slices. A failed
+or archetype-less slice is an empty cell; a matrix with no readable slice
+fails the section with 502.

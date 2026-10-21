@@ -1,0 +1,98 @@
+/* Weekday labels pinned on the left, the weeks scroll beside them. */
+.ui-calendar-heatmap__body {
+  display: flex;
+  align-items: flex-start;
+  direction: ltr;
+}
+
+.ui-calendar-heatmap__weekdays {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+/* Padding keeps the focus ring and an overlay scrollbar off the cells. */
+.ui-calendar-heatmap__scroll {
+  /* Weeks run left to right (like the plot) and the scroll offsets in Heatmap.tsx assume it. */
+  direction: ltr;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: -4px;
+  padding: 4px 4px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+/* An end that hides weeks fades out, so a cut column reads as "more this way". */
+.ui-calendar-heatmap__scroll[data-fade-start] {
+  -webkit-mask-image: linear-gradient(to right, transparent 4px, #000 32px);
+  mask-image: linear-gradient(to right, transparent 4px, #000 32px);
+}
+
+.ui-calendar-heatmap__scroll[data-fade-end] {
+  -webkit-mask-image: linear-gradient(to left, transparent 4px, #000 32px);
+  mask-image: linear-gradient(to left, transparent 4px, #000 32px);
+}
+
+.ui-calendar-heatmap__scroll[data-fade-start][data-fade-end] {
+  -webkit-mask-image: linear-gradient(to right, transparent 4px, #000 32px, #000 calc(100% - 32px), transparent calc(100% - 4px));
+  mask-image: linear-gradient(to right, transparent 4px, #000 32px, #000 calc(100% - 32px), transparent calc(100% - 4px));
+}
+
+:is(.ui-calendar-heatmap__cell, .ui-heatmap__cell) {
+  stroke: transparent;
+  stroke-width: 1.5;
+  transition: stroke var(--ui-duration-fast) var(--ui-ease);
+  animation: ui-fade-in calc(var(--ui-duration-slow) * 2) var(--ui-ease) both;
+  /* A left-to-right wave on mount. */
+  animation-delay: min(calc(var(--_c, 0) * var(--ui-duration-fast) / 12), calc(var(--ui-duration-fast) * 2.5));
+}
+
+:is(.ui-calendar-heatmap__cell, .ui-heatmap__cell)[data-active] {
+  stroke: var(--ui-primary);
+}
+
+.ui-heatmap__row-label {
+  fill: var(--ui-fg-muted);
+  font-size: 12px;
+}
+
+/* Black or white by the cell's own lightness (the ink of [data-ink], Chart.css), one weight throughout. */
+.ui-heatmap__value {
+  fill: var(--_ink, var(--ui-fg));
+  font-size: 11px;
+  font-weight: var(--ui-weight-medium);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.ui-heatmap-tooltip__value {
+  margin-top: 2px;
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+}
+
+.ui-heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+}
+
+.ui-heatmap-legend > span:first-child {
+  margin-inline-end: 4px;
+}
+
+.ui-heatmap-legend > span:last-child {
+  margin-inline-start: 4px;
+}
+
+.ui-heatmap-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--ui-heatmap-legend-swatch-radius);
+}

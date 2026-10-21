@@ -1,4 +1,4 @@
-import { createArchetypeDetailHandler } from './modules/constructedArchetypes/public.js';
+import { createArchetypeDetailHandler, type ArchetypeRankMatrix } from './modules/constructedArchetypes/public.js';
 import { createHash } from 'node:crypto';
 import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
@@ -43,6 +43,8 @@ export type ConstructedArchetypeHistoryPoint = {
   turns: number | null;
   durationMinutes: number | null;
   climbingSpeed: number | null;
+  /** HSGuru period of the slice (`black_empire`, `patch_36.6.3`); games accumulate within it. */
+  patch?: string | null;
 };
 
 export type ConstructedArchetypeClassMatchup = {
@@ -101,7 +103,8 @@ export type ConstructedArchetypeRouterDependencies = {
   ) => Promise<ConstructedArchetypeHistoryPoint[]>;
   loadCardCatalog?: (format: ConstructedArchetypeFormat) => Promise<{ cards: Record<string, unknown>[] }>;
   loadAnalysis: (format: ConstructedArchetypeFormat, archetype: string) => Promise<ConstructedArchetypeAnalysis | null>;
-  onError?: (scope: 'catalog' | 'detail' | 'history' | 'analysis' | 'media', error: unknown) => void;
+  loadRanks?: (format: ConstructedArchetypeFormat, archetype: string) => Promise<ArchetypeRankMatrix>;
+  onError?: (scope: 'catalog' | 'detail' | 'history' | 'analysis' | 'media' | 'ranks', error: unknown) => void;
 };
 
 const FORMATS = new Set<ConstructedArchetypeFormat>(['standard', 'wild']);
@@ -237,6 +240,7 @@ export function createConstructedArchetypeRouter(
       ]);
       return analysis ? { ...analysis, cardStats: withCatalogCardMedia(analysis.cardStats, cardCatalog) } : null;
     },
+    loadRanks: dependencies.loadRanks,
     onError: dependencies.onError,
   }));
 

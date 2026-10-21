@@ -19,8 +19,10 @@ export function useArchetypeDetail<D extends DetailModel>({ format, slug, hasFul
     hasFullAccess ? null : publicSeed, onDenied);
   const history = useDetailSection<Pick<D, 'history'>>(`${endpoint}?section=history`, enabled && fullAccess, null, onDenied);
   const analysis = useDetailSection<Pick<D, 'analysis'>>(`${endpoint}?section=analysis`, enabled && fullAccess, null, onDenied);
+  // Winrate by rank and period: subscriber data read beside history and analysis.
+  const ranks = useDetailSection<{ ranks: unknown }>(`${endpoint}?section=ranks`, enabled && fullAccess, null, onDenied);
   const base = denied ? publicSeed : core.data ?? publicSeed;
   const detail = base ? { ...base, history: fullAccess ? history.data?.history ?? [] : [],
     analysis: fullAccess ? analysis.data?.analysis ?? null : null } as D : null;
-  return { detail, core, history, analysis, fullAccess, denied };
+  return { detail, core, history, analysis, ranks, fullAccess, denied };
 }

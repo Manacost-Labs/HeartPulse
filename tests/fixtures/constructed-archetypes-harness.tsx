@@ -140,6 +140,20 @@ const detail = {
   },
 };
 
+const rankPeriods = [['past_day', 'Сутки'], ['past_3_days', '3 дня'], ['past_week', 'Неделя'], ['past_2_weeks', '2 недели'], ['past_30_days', '30 дней'], ['black_empire', 'Тёмная империя']];
+const rankRows = [['diamond', 'Алмаз 1–4'], ['diamond_legend', 'Алмаз — Легенда'], ['legend', 'Легенда'], ['top_5k', 'Топ-5000'], ['top_legend', 'Топ-1000']];
+/** Winrate by rank and period; the Top-1000 day slice has too few games and stays empty. */
+const ranks = {
+  ranks: rankRows.map(([id, label]) => ({ id, label })),
+  periods: rankPeriods.map(([id, label]) => ({ id, label })),
+  cells: rankRows.flatMap(([rank], row) => rankPeriods.map(([period], column) => ({
+    rank, period,
+    winrate: rank === 'top_legend' && period === 'past_day' ? null : 54 + row * 0.8 - column * 0.6,
+    games: rank === 'top_legend' && period === 'past_day' ? null : 4_000 - row * 600 + column * 900,
+  }))),
+  updatedAt: '2026-07-24T12:38:57.727Z',
+};
+
 const resolvedDeck = {
   ok: true,
   format: 'wild',
@@ -211,6 +225,8 @@ export function installConstructedArchetypeFixtures(): () => void {
           style: 'parchment',
           imageUrl: '/wallpaper/home-paladin-hero.webp',
         }
+      : url.includes('section=ranks')
+      ? { ranks }
       : url.includes('/api/deck/resolve')
       ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
       : url.includes('/wild/yogg-warrior')

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
 import { setImmediate as flush } from 'node:timers/promises';
-import { createArchetypeCatalogCache } from '../server/modules/constructedArchetypes/public.js';
+import { createArchetypeCatalogCache, createArchetypeRankMatrixLoader } from '../server/modules/constructedArchetypes/public.js';
 import { withCatalogCardMedia } from '../server/modules/constructedCards/public.js';
 import {
   createConstructedArchetypeRouter,
@@ -137,6 +137,16 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
   }); },
 };
 
+let rankReads = 0;
+dependencies.loadRanks = createArchetypeRankMatrixLoader(async (_format, rank, period) => {
+  rankReads++;
+  if (rank === 'top_legend' && period === 'past_day') throw new Error('slice unavailable');
+  return {
+    updatedAt: `2026-10-2${period === 'past_week' ? '1' : '0'}T08:00:00.000Z`,
+    items: rank === 'legend' && period === 'past_3_days' ? [] : [{ archetype: 'Thief Priest', winrate: 55.5, games: 1_234 }],
+  };
+});
+
 const app = express();
 app.use('/api', createConstructedArchetypeRouter(dependencies));
 const server = app.listen(0, '127.0.0.1');
@@ -211,6 +221,22 @@ try {
     assert.equal((await fetch(`${origin}/wild/thief-priest?section=${section}`, { headers })).status, 400);
   }
   assert.equal((await fetch(`${origin}/wild/missing?section=analysis`, { headers })).status, 404);
+
+  // Winrate by rank and period: 5 ranks × 6 periods; a failed or missing slice leaves one empty cell.
+  assert.equal((await fetch(`${origin}/wild/thief-priest?section=ranks`)).status, 403);
+  const ranks = await fetch(`${origin}/wild/thief-priest?section=ranks`, { headers });
+  assert.equal(ranks.status, 200);
+  const ranksBody = await ranks.json() as any;
+  assert.deepEqual(ranksBody.ranks.ranks.map((rank: any) => rank.label), ['Алмаз 1–4', 'Алмаз — Легенда', 'Легенда', 'Топ-5000', 'Топ-1000']);
+  assert.equal(ranksBody.ranks.periods.at(-1).label, 'Тёмная империя');
+  assert.equal(ranksBody.ranks.cells.length, 30);
+  assert.equal(rankReads, 30);
+  assert.deepEqual(ranksBody.ranks.cells.find((cell: any) => cell.rank === 'diamond' && cell.period === 'past_week'),
+    { rank: 'diamond', period: 'past_week', winrate: 55.5, games: 1_234 });
+  assert.equal(ranksBody.ranks.cells.find((cell: any) => cell.rank === 'top_legend' && cell.period === 'past_day').winrate, null);
+  assert.equal(ranksBody.ranks.cells.find((cell: any) => cell.rank === 'legend' && cell.period === 'past_3_days').games, null);
+  assert.equal(ranksBody.ranks.updatedAt, '2026-10-21T08:00:00.000Z');
+  assert.equal(ranks.headers.get('cache-control'), 'no-store');
 
   const detail = await fetch(`${origin}/wild/thief-priest`, { headers });
   assert.equal(detail.status, 200);

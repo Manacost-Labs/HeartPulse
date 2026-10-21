@@ -101,7 +101,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createMetaSliceCache, loadWithRetiredPatchFallback, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
+import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, loadWithRetiredPatchFallback, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
@@ -6168,6 +6168,8 @@ async function loadConstructedArchetypeHistory(
       turns: parseNumber(row?.avg_turns),
       durationMinutes: parseNumber(row?.avg_duration_minutes),
       climbingSpeed: parseNumber(row?.climbing_speed_stars_per_hour),
+      // Games accumulate per HSGuru period, so slices of different periods are not one series of counts.
+      patch: typeof row?.patch === 'string' && row.patch ? row.patch : null,
     }];
   });
   points.sort((left, right) => Date.parse(left.recordedAt) - Date.parse(right.recordedAt));
@@ -7585,6 +7587,7 @@ app.use('/api', createConstructedArchetypeRouter({
   loadCatalog: loadConstructedArchetypeCatalog,
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
+  loadRanks: createArchetypeRankMatrixLoader((format, rank, period) => loadStandardMeta(format, rank, period, 'any_player', 100)),
   loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
   setPrivateNoStore,
   onError: (scope, error) => console.error(
