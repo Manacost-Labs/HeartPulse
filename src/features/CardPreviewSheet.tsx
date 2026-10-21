@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
-import { LightboxImage } from '../components/ModalSurface/LightboxImage';
 import { fallbackCardRender } from './CardPreviewTooltip';
 import './CardPreviewSheet.css';
 
@@ -56,8 +55,10 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
 
       <figure className="card-preview-sheet__media">
         {!imageFailed ? (
-          <LightboxImage
-            key={source}
+          // The sheet keeps one picture and its own error path (fallback render,
+          // then a retry): it zooms once the picture was preloaded, else fades.
+          <img
+            data-lightbox-media=""
             src={source}
             alt={card.name}
             onError={() => {

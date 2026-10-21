@@ -352,7 +352,10 @@ until then route entrances, list items and modal sheets fade.
    `--motion-base` while the lightbox fades in under it, and back on every
    close (Esc, backdrop, `[data-modal-close]`, a swipe down on the picture on
    touch screens) before `onClose`. The picture opens with that thumbnail
-   (`LightboxImage`) and swaps to the decoded full size in the same box.
+   (`LightboxImage`) and swaps to the decoded full size in the same box; the
+   card preview sheet keeps its one picture and error path (fallback render,
+   retry), so it zooms when that picture is already loaded and fades
+   otherwise.
    Triggers mark `data-lightbox-src` (and `data-lightbox-module` for a lazy
    lightbox chunk), preloaded on hover, focus and touch
    (`src/shared/ui/lightboxIntent.ts`). Without a visible, loaded origin

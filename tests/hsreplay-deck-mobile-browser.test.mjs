@@ -184,10 +184,13 @@ try {
   );
 
   let retryCardRequests = 0;
+  // The preferred image fails until the reader asks to retry: a hover warm-up
+  // and the sheet may each request it once, in either order.
+  let retryAsked = false;
   const interceptRetryImage = request => {
     if (new URL(request.url()).pathname === '/retry-card.png') {
       retryCardRequests += 1;
-      if (retryCardRequests === 1) void request.respond({ status: 503, body: '' });
+      if (!retryAsked) void request.respond({ status: 503, body: '' });
       else void request.respond({
         status: 200,
         contentType: 'image/gif',
@@ -215,9 +218,11 @@ try {
     await page.$eval('[data-card-preview-image-state="error"]', element => element.textContent || ''),
     /Изображение карты временно недоступно/,
   );
+  const failedRequests = retryCardRequests;
+  retryAsked = true;
   await page.click('[data-card-preview-image-retry]');
   await page.waitForSelector('.card-preview-sheet img');
-  assert.ok(retryCardRequests >= 2, 'image retry must request the preferred Russian card image again');
+  assert.ok(retryCardRequests > failedRequests, 'image retry must request the preferred Russian card image again');
   await page.keyboard.press('Escape');
   page.off('request', interceptRetryImage);
   await page.setRequestInterception(false);
@@ -304,6 +309,8 @@ try {
     backdropAnimation: getComputedStyle(document.querySelector('.card-preview-sheet__backdrop')).animationName,
   })), { panelAnimation: 'none', backdropAnimation: 'none' });
   await page.keyboard.press('Escape');
+  // A lightbox plays its closing before it leaves the page.
+  await page.waitForSelector('.card-preview-sheet', { hidden: true });
 
   const client = await page.createCDPSession();
   await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });

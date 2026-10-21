@@ -168,6 +168,9 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     }), { top: 0, closeVisible: true }, 'the locked page keeps its sticky header and close button on screen');
     await page.evaluate(() => addEventListener('pagehide', () => sessionStorage.setItem('left-at',
       JSON.stringify({ y: scrollY, locked: document.body.style.position }))));
+    // The drawer slides in on a transition: click once it is on screen.
+    await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').getBoundingClientRect().left >= 0
+      && !document.querySelector('#arena-mobile-menu').getAnimations().length, { timeout: 5_000 });
     await page.click('#arena-mobile-menu a[href="/tierlist/"]');
     await page.waitForFunction(() => location.pathname === '/tierlist/' && document.readyState === 'complete', { timeout: 10_000 });
     assert.equal(await page.evaluate(() => sessionStorage.getItem('left-at')), null, 'client navigation keeps the document');

@@ -51,7 +51,9 @@ export function LightboxImage({ src, srcSet, sizes, alt, className, thumb, onErr
             const loaded = event.currentTarget;
             void loaded.decode().catch(() => undefined).then(() => setSharp(true));
           }}
-          onError={() => setSharp(true)}
+          // A failed full size is the caller's to handle (its fallback or error
+          // state); without a handler the picture tries it in place.
+          onError={event => { if (onError) onError(event); else setSharp(true); }}
         />
       )}
     </>
