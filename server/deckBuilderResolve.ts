@@ -1,4 +1,5 @@
 import { decode, encode, type DeckDefinition, type FormatType, type Sideboard } from '@firestone-hs/deckstrings';
+import { archetypeLabel } from './modules/constructedArchetypes/public.js';
 
 export type DeckBuilderFormat = 'standard' | 'wild';
 
@@ -140,27 +141,6 @@ function countsFromPairs(pairs: Iterable<[unknown, unknown]>): Array<{ dbfId: nu
 
 export function isValidDeckDbfId(dbfId: number): boolean {
   return Number.isSafeInteger(dbfId) && dbfId > 0 && dbfId <= MAX_DBF_ID;
-}
-
-export function normalizeArchetypeKey(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-export function translateArchetypeName(
-  name: string,
-  translations: Record<string, string>,
-): string {
-  const normalized = normalizeArchetypeKey(name);
-  if (translations[normalized]) return translations[normalized];
-  let bestMatch = '';
-  let bestLength = 0;
-  for (const [english, russian] of Object.entries(translations)) {
-    if (normalized.includes(english) && english.length > bestLength) {
-      bestMatch = russian;
-      bestLength = english.length;
-    }
-  }
-  return bestMatch || name;
 }
 
 export function indexCardsByDbf(cards: DeckBuilderCardRecord[]): Map<number, DeckBuilderCardRecord> {
@@ -403,7 +383,7 @@ export function resolveDeckFromCode(input: {
     archetype: matched
       ? {
         archetype: matched.nameEn,
-        archetypeLabel: translateArchetypeName(matched.nameEn, input.archetypeTranslations),
+        archetypeLabel: archetypeLabel(matched.nameEn, input.archetypeTranslations),
         score: matched.score,
         deckCode: matched.deckCode,
       }

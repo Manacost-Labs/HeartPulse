@@ -36,9 +36,19 @@ reader, so the section adds no upstream requests beyond those slices. A failed
 or archetype-less slice is an empty cell; a matrix with no readable slice
 fails the section with 502.
 
-`translateStandardArchetype` gives an HSGuru archetype name its Russian label:
-the exact translation, otherwise the longest translated name inside it with
-the remaining words in brackets, so HSGuru's variants ("Harold Piglock" next to
-"Piglock") never borrow one bare label. `disambiguateArchetypeLabels` keeps the
-labels of one meta slice distinct when the translation data itself gives two
-archetypes one name. Verification: `npx tsx tests/standard-archetype-label.test.ts`.
+`archetypeLabel` is the only place that gives an HSGuru archetype name its
+Russian label, for the meta, matchups, archetype pages, card pages and the deck
+builder: the exact translation, otherwise the longest translated name inside it
+with the remaining words in brackets, so HSGuru's variants ("Harold Piglock"
+next to "Piglock") never borrow one bare label. `matchArchetypeTranslation` is
+the same matcher for callers that need the matched key (admin coverage).
+`disambiguateArchetypeLabels` keeps the labels of one list distinct when the
+translation data itself gives two archetypes one name: all but the
+shortest-named archetype add the English name in brackets.
+
+Translations are the admin table `archetype_translations` layered over
+`archetypeFallbackTranslations()` (`fallbackTranslations.ts`, the only built-in
+dictionary; the client renders the server's labels). The admin list reports
+`findDuplicateArchetypeLabels` and refuses a manual Russian name that another
+archetype already has. Verification: `npx tsx tests/standard-archetype-label.test.ts`
+and `npx tsx tests/archetype-label-golden.test.ts`.

@@ -104,7 +104,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, loadWithRetiredPatchFallback, translateStandardArchetype, warmMetaEntrySlices } from './modules/constructedArchetypes/public.js';
+import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
@@ -4344,83 +4344,6 @@ const STANDARD_META_PERSISTED_RECOMMENDATION_MAX_AGE_MS = 24 * 60 * 60_000;
 const HSGURU_DECK_INFO_API_URL = 'https://api.hsguru.com/api/deck-info';
 const STANDARD_META_PREVIEW_CACHE_MS = 30 * 24 * 60 * 60_000;
 const DECKVIEW_RENDER = deckviewPreviewConfigFromEnv();
-const STANDARD_ARCHETYPE_RU: Record<string, string> = {
-  'Ace Hunter': 'Эйс Охотник',
-  'Aggro Paladin': 'Агро Паладин',
-  'Ashamane Rogue': 'Ашамейн Разбойник',
-  'Aura Paladin': 'Аура Паладин',
-  'Azshara Druid': 'Азшара Друид',
-  'Briarspawn Warrior': 'Брайарспаун Воин',
-  'Broxigar DH': 'Броксигар Охотник на демонов',
-  'Burn Mage': 'Берн Маг',
-  'Burn Rogue': 'Берн Разбойник',
-  'Burn Warrior': 'Берн Воин',
-  'Companion Hunter': 'Компаньон Охотник',
-  'Control Priest': 'Контроль Жрец',
-  'Chef Druid': 'Шеф-повар Друид',
-  'Dino Egglock': 'Дино Кхелос Чернокнижник',
-  'Divergence Warlock': 'Дивергенция Чернокнижник',
-  'Dragon Druid': 'Дракон Друид',
-  'Dragon Hunter': 'Дракон Охотник',
-  'Dragon Warrior': 'Дракон Воин',
-  'Egg Paladin': 'Кхелос Паладин',
-  'Dude Paladin': 'Токен Паладин',
-  'Egg Warrior': 'Кхелос Воин',
-  'Egglock': 'Кхелос Чернокнижник',
-  'Elemental Mage': 'Элементаль Маг',
-  'End of Turnadin': 'Ноздорму Паладин',
-  'Enrage Warrior': 'Исступление Воин',
-  'Frost DK': 'Фрост Рыцарь смерти',
-  'Glacial Shaman': 'Ледяной Шаман',
-  'Gladiator Warrior': 'Гладиатор Воин',
-  'Harold DH': 'Охотник на демонов на возвещении',
-  'Harold DK': 'Рыцарь смерти на возвещении',
-  'Harold Egglock': 'Кхелос Чернокнижник на возвещении',
-  'Harold Rogue': 'Разбойник на возвещении',
-  'Harold Shaman': 'Шаман на возвещении',
-  'Harold Warrior': 'Воин на возвещении',
-  'Herald DH': 'Охотник на демонов на возвещении',
-  'Herald DK': 'Рыцарь смерти на возвещении',
-  'Herald Rogue': 'Разбойник на возвещении',
-  'Herald DeathKnight': 'Рыцарь смерти на возвещении',
-  'Herald Shaman': 'Шаман на возвещении',
-  'Herald Warrior': 'Воин на возвещении',
-  'Hostage Druid': 'Заложник Друид',
-  'Imbue Paladin': 'Паладин на силе героя',
-  'Imbue Priest': 'Жрец на силе героя',
-  'Imbue Rogue': 'Разбойник на силе героя',
-  'Krona Druid': 'Крона Друид',
-  'Leyline Mage': 'Лейлайн Маг',
-  'Manastorm Mage': 'Манашторм Маг',
-  'Mug Shaman': 'Кружечный Шаман',
-  'Merithra Druid': 'Меритра Друид',
-  'No Hand Hunter': 'Охотник без руки',
-  'No Minion DH': 'Спелл Охотник на демонов',
-  'Quest DH': 'Квест Охотник на демонов',
-  'Quest Druid': 'Квест Друид',
-  'Quest Hunter': 'Квест Охотник',
-  'Quest Mage': 'Квест Маг',
-  'Quest Rogue': 'Квест Разбойник',
-  'Quest Shaman': 'Квест Шаман',
-  'Quest Warrior': 'Квест Воин',
-  'Pure Paladin': 'Чистый Паладин',
-  'Rafaam Warlock': 'Рафаам Чернокнижник',
-  'Soothsayer Priest': 'Предсказатель Жрец',
-  'Thief Priest': 'Вор Жрец',
-  'Two Rogue': 'Двухбитный Разбойник',
-  'Unholy DeathKnight': 'Нечестивый Рыцарь смерти',
-  'Void DemonHunter': 'Бездна Охотник на демонов',
-  'Blood Warrior': 'Кровавый Воин',
-  'Animancer Warlock': 'Анимансер Чернокнижник',
-  'Ayaya Rogue': 'Ая Разбойник',
-  'Face Hunter': 'Фейс Охотник',
-  'Zee Shaman': 'Зи Шаман',
-  'Rafaamlock': 'Рафаам Чернокнижник',
-  'Token Druid': 'Токен Друид',
-  'Unholy DK': 'Нечестивый Рыцарь смерти',
-  'Vanessa Rogue': 'Ванесса Разбойник',
-  'Wallow Warlock': 'Валлоу Чернокнижник',
-};
 interface StandardArchetypeTranslations {
   map: Record<string, string>;
   source: 'admin-db' | 'deckview-api' | 'deckview-csv' | 'fallback';
@@ -5579,16 +5502,6 @@ async function fetchConstructedCardJson(url: string, timeoutMs = 8_000): Promise
   }
 }
 
-function normalizeStandardArchetypeKey(name: string): string {
-  return name.toLowerCase().trim();
-}
-
-function buildFallbackStandardArchetypeTranslations(): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(STANDARD_ARCHETYPE_RU).map(([eng, rus]) => [normalizeStandardArchetypeKey(eng), rus.trim()]),
-  );
-}
-
 function loadAdminArchetypeTranslations(): Record<string, string> {
   const rows = dbAll<{ name_en: string; name_ru: string }>(`
     SELECT name_en, name_ru
@@ -5599,7 +5512,7 @@ function loadAdminArchetypeTranslations(): Record<string, string> {
   for (const row of rows) {
     const nameEn = String(row.name_en || '').trim();
     const nameRu = String(row.name_ru || '').trim();
-    if (nameEn && nameRu) translations[normalizeStandardArchetypeKey(nameEn)] = nameRu;
+    if (nameEn && nameRu) translations[archetypeTranslationKey(nameEn)] = nameRu;
   }
   return translations;
 }
@@ -5637,7 +5550,7 @@ function parseDeckviewArchetypeCsv(text: string): Record<string, string> {
     const eng = parts[1]?.trim().replace(/^"+|"+$/g, '');
     const rus = parts[2]?.trim().replace(/^"+|"+$/g, '');
     if (!eng || !rus) continue;
-    translations[normalizeStandardArchetypeKey(eng)] = rus.trim();
+    translations[archetypeTranslationKey(eng)] = rus.trim();
   }
   return translations;
 }
@@ -5659,7 +5572,7 @@ function normalizeDeckviewArchetypesPayload(payload: any): Record<string, string
     const eng = Array.isArray(item) ? item[0] : item?.eng ?? item?.english ?? item?.name;
     const rus = Array.isArray(item) ? item[1] : item?.rus ?? item?.russian ?? item?.label;
     if (!eng || !rus) continue;
-    translations[normalizeStandardArchetypeKey(String(eng))] = String(rus).trim();
+    translations[archetypeTranslationKey(String(eng))] = String(rus).trim();
   }
   return translations;
 }
@@ -5687,7 +5600,7 @@ async function fetchDeckviewCsvArchetypes(): Promise<Record<string, string> | nu
 }
 
 async function loadStandardArchetypeTranslations(): Promise<StandardArchetypeTranslations> {
-  const fallback = buildFallbackStandardArchetypeTranslations();
+  const fallback = archetypeFallbackTranslations();
   try {
     await ensureArchetypeTranslationsSeeded();
     const localTranslations = loadAdminArchetypeTranslations();
@@ -5756,7 +5669,7 @@ async function loadObservedStandardArchetypes() {
     const uniqueNames = new Map<string, string>();
     for (const value of names) {
       const nameEn = String(value ?? '').trim().replace(/\s+/g, ' ');
-      if (nameEn) uniqueNames.set(normalizeStandardArchetypeKey(nameEn), nameEn);
+      if (nameEn) uniqueNames.set(archetypeTranslationKey(nameEn), nameEn);
     }
     return [...uniqueNames.values()].map(nameEn => ({
       nameEn,
@@ -5783,7 +5696,7 @@ async function loadObservedStandardArchetypes() {
     format: StandardMetaFormat,
     rank: StandardMetaRank,
   ): string | null => {
-    const cacheKey = `${format}:${normalizeStandardArchetypeKey(nameEn)}`;
+    const cacheKey = `${format}:${archetypeTranslationKey(nameEn)}`;
     if (exactDeckCodes.has(cacheKey)) return exactDeckCodes.get(cacheKey) ?? null;
     const candidates = parseConstructedDecks({ data: constructedRows }, nameEn, nameEn, format, rank)
       .sort((left, right) => right.quality - left.quality);
@@ -5797,7 +5710,7 @@ async function loadObservedStandardArchetypes() {
     const uniqueNames = new Map<string, string>();
     for (const row of rows) {
       const nameEn = String(Array.isArray(row) ? row[0] : '').trim().replace(/\s+/g, ' ');
-      if (nameEn) uniqueNames.set(normalizeStandardArchetypeKey(nameEn), nameEn);
+      if (nameEn) uniqueNames.set(archetypeTranslationKey(nameEn), nameEn);
     }
     return [...uniqueNames.values()].map(nameEn => ({
       nameEn,
@@ -5826,7 +5739,7 @@ function transformStandardMatchups(
     formatLabel: STANDARD_MATCHUPS_FORMAT_LABEL[format],
     sourceId: STANDARD_MATCHUPS_DATASET_BY_FORMAT[format],
     translationSource: archetypeTranslations.source,
-    translate: name => translateStandardArchetype(name, archetypeTranslations.map),
+    translate: name => archetypeLabel(name, archetypeTranslations.map),
   });
 }
 
@@ -5846,9 +5759,9 @@ async function loadHsguruMatchupRow(archetypeName: string) {
       expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
     });
   }
-  const wanted = normalizeStandardArchetypeKey(archetypeName);
+  const wanted = archetypeTranslationKey(archetypeName);
   const row = (Array.isArray(data?.rows) ? data.rows : [])
-    .find((candidate: any) => normalizeStandardArchetypeKey(String(candidate?.archetype || '')) === wanted);
+    .find((candidate: any) => archetypeTranslationKey(String(candidate?.archetype || '')) === wanted);
   if (!row || !Array.isArray(row.cells)) return null;
   return row.cells.map((cell: any, index: number) => ({
     opponent_archetype_id: index + 1,
@@ -5891,8 +5804,8 @@ function transformHsguruMeta(
       id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
       slug: constructedArchetypeSlug(archetype),
       archetype,
-      archetypeLabel: translateStandardArchetype(archetype, translations),
-      translated: translateStandardArchetype(archetype, translations) !== archetype,
+      archetypeLabel: archetypeLabel(archetype, translations),
+      translated: archetypeLabel(archetype, translations) !== archetype,
       classKey: inferStandardMetaClass(archetype),
       winrate: parseNumber(row[1]),
       popularity,
@@ -5991,13 +5904,13 @@ async function readStandardMetaSlice(
     items: disambiguateArchetypeLabels(rows.flatMap((row: any) => {
       const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
       if (!archetype) return [];
-      const archetypeLabel = translateStandardArchetype(archetype, translations.map);
+      const label = archetypeLabel(archetype, translations.map);
       return [{
         id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
         slug: constructedArchetypeSlug(archetype),
         archetype,
-        archetypeLabel,
-        translated: archetypeLabel !== archetype,
+        archetypeLabel: label,
+        translated: label !== archetype,
         classKey: inferStandardMetaClass(archetype),
         winrate: parseNumber(row.winrate),
         popularity: parseNumber(row.popularity),
@@ -6039,7 +5952,7 @@ async function fetchConstructedArchetypeCatalog(
   const items = (Array.isArray(payload?.data) ? payload.data : []).flatMap((row: any) => {
     const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
     if (!archetype) return [];
-    const archetypeLabel = translateStandardArchetype(archetype, translations.map);
+    const label = archetypeLabel(archetype, translations.map);
     const builds = (Array.isArray(row?.decks) ? row.decks : []).flatMap((deck: any) => {
       const deckCode = String(deck?.deck_code ?? '').trim();
       if (!deckCode) return [];
@@ -6057,8 +5970,8 @@ async function fetchConstructedArchetypeCatalog(
     return [{
       slug: constructedArchetypeSlug(archetype),
       archetype,
-      archetypeLabel,
-      translated: archetypeLabel !== archetype,
+      archetypeLabel: label,
+      translated: label !== archetype,
       classKey: inferStandardMetaClass(archetype)
         ?? normalizeStandardMetaClass(builds[0]?.classKey),
       format,
@@ -6258,9 +6171,9 @@ function findViciousGoldBuild(
   deckLabel: string,
 ): ViciousGoldBuild | null {
   const { matchedArchetype, matchMethod } = resolveViciousGoldArchetype(deck);
-  const wanted = normalizeStandardArchetypeKey(matchedArchetype);
+  const wanted = archetypeTranslationKey(matchedArchetype);
   const candidates = rows.filter(row => {
-    if (normalizeStandardArchetypeKey(String(row?.archetype ?? '')) !== wanted) return false;
+    if (archetypeTranslationKey(String(row?.archetype ?? '')) !== wanted) return false;
     const format = String(row?.format ?? '').trim().toLowerCase();
     if (format && format !== 'standard') return false;
     return /^[A-Za-z0-9+/=]{40,}$/.test(String(row?.deck_code ?? '').trim());
@@ -6308,7 +6221,7 @@ function findViciousGoldCatalogBuild(
   const selected = item?.builds[0];
   if (!item || !selected) return null;
   const matchedArchetype = item.archetype;
-  const matchMethod = normalizeStandardArchetypeKey(matchedArchetype) === normalizeStandardArchetypeKey(deck) ? 'exact' : 'alias';
+  const matchMethod = archetypeTranslationKey(matchedArchetype) === archetypeTranslationKey(deck) ? 'exact' : 'alias';
   const classKey = selected.classKey ?? item.classKey ?? inferStandardMetaClass(matchedArchetype);
   if (!classKey) return null;
   return {
@@ -6398,7 +6311,7 @@ async function loadViciousSyndicateGold() {
   const catalogItem = (deck: string) => (catalog ? findViciousGoldCatalogItem(catalog.items, deck) : null);
   const translatedDeck = (deck: string) => {
     const item = catalogItem(deck);
-    return item?.translated ? item.archetypeLabel : translateStandardArchetype(deck, translations.map);
+    return item?.translated ? item.archetypeLabel : archetypeLabel(deck, translations.map);
   };
   const archetypeSlug = (deck: string) => catalogItem(deck)?.slug ?? null;
   const eligibleDecks = rawDecks.flatMap((row: any) => {
@@ -6604,14 +6517,14 @@ function parseHsguruStreamerDecks(
   deckInfo: Map<string, HsguruDeckInfo> = new Map(),
 ): StandardMetaDeckCandidate[] {
   const rows = hsguruStreamerRows(payload);
-  const wanted = normalizeStandardArchetypeKey(archetype);
+  const wanted = archetypeTranslationKey(archetype);
   return rows.flatMap((row: unknown) => {
     if (!Array.isArray(row)) return [];
     const deckCell = String(row[0] ?? '').trim();
     const match = deckCell.match(/^###\s+(.+?)\s+([A-Za-z0-9+/=]{40,})\s+#/);
     if (!match) return [];
     const canonicalArchetype = hsguruStreamerArchetype(match[2], match[1], deckInfo);
-    if (normalizeStandardArchetypeKey(canonicalArchetype) !== wanted) return [];
+    if (archetypeTranslationKey(canonicalArchetype) !== wanted) return [];
     const rowFormat = String(row[2] ?? '').trim().toLowerCase();
     if (rowFormat !== format) return [];
     const score = parseDeckScore(row[6]);
@@ -6644,13 +6557,13 @@ function parseConstructedDecks(
   format: StandardMetaFormat,
   rank: StandardMetaRank,
 ): StandardMetaDeckCandidate[] {
-  const wanted = normalizeStandardArchetypeKey(archetype);
+  const wanted = archetypeTranslationKey(archetype);
   const wantedClass = inferStandardMetaClass(archetype);
   const rows = Array.isArray(payload?.data) ? payload.data : [];
   return rows.flatMap((row: any) => {
     const matchedArchetype = String(row?.archetype ?? '').trim();
     const rowClass = normalizeStandardMetaClass(row?.class) ?? inferStandardMetaClass(matchedArchetype);
-    const isExact = normalizeStandardArchetypeKey(matchedArchetype) === wanted;
+    const isExact = archetypeTranslationKey(matchedArchetype) === wanted;
     if (!isExact) return [];
     const rowFormat = String(row?.format ?? '').trim().toLowerCase();
     if (format === 'wild' && rowFormat !== 'wild') return [];
@@ -6708,11 +6621,11 @@ async function fetchExactHsguruDecks(
   if (response.status === 404) return [];
   if (!response.ok) throw new Error(`Exact HSGuru deck HTTP ${response.status}`);
   const payload = await response.json();
-  const wanted = normalizeStandardArchetypeKey(archetype);
+  const wanted = archetypeTranslationKey(archetype);
   const rows = Array.isArray(payload?.data) ? payload.data : [];
   return rows.flatMap((row: any) => {
     const matchedArchetype = String(row?.archetype ?? '').trim();
-    if (normalizeStandardArchetypeKey(matchedArchetype) !== wanted) return [];
+    if (archetypeTranslationKey(matchedArchetype) !== wanted) return [];
     const deckCode = String(row?.deck_code ?? '').trim();
     if (!/^[A-Za-z0-9+/=]{40,}$/.test(deckCode)) return [];
     const classKey = normalizeStandardMetaClass(row?.class) ?? inferStandardMetaClass(archetype);
@@ -6743,7 +6656,7 @@ const archetypeDeckCodeJobs = new Map<string, Promise<string | null>>();
 function readCachedArchetypeDeckCode(nameEn: string): string | null {
   const row = dbGet<{ deck_code: string }>(
     'SELECT deck_code FROM archetype_deck_codes WHERE name_en_key = ?',
-    normalizeStandardArchetypeKey(nameEn),
+    archetypeTranslationKey(nameEn),
   );
   const deckCode = String(row?.deck_code ?? '').trim();
   return /^[A-Za-z0-9+/=]{40,}$/.test(deckCode) ? deckCode : null;
@@ -6760,7 +6673,7 @@ function readPersistedStandardMetaDeck(
     SELECT deck_code, source, updated_at
     FROM archetype_deck_codes
     WHERE name_en_key = ? AND format = ? AND updated_at >= ?
-  `, normalizeStandardArchetypeKey(archetype), format, cutoff);
+  `, archetypeTranslationKey(archetype), format, cutoff);
   const deckCode = String(row?.deck_code ?? '').trim();
   const classKey = inferStandardMetaClass(archetype);
   if (!/^[A-Za-z0-9+/=]{40,}$/.test(deckCode) || !classKey) return null;
@@ -6799,7 +6712,7 @@ function persistArchetypeDeckCode(
       source = excluded.source,
       updated_at = excluded.updated_at
   `,
-  normalizeStandardArchetypeKey(nameEn),
+  archetypeTranslationKey(nameEn),
   nameEn,
   deck.deckCode,
   deck.format,
@@ -6814,7 +6727,7 @@ async function resolveExactArchetypeDeckCode(
 ): Promise<string | null> {
   const cached = readCachedArchetypeDeckCode(nameEn);
   if (cached) return cached;
-  const key = normalizeStandardArchetypeKey(nameEn);
+  const key = archetypeTranslationKey(nameEn);
   const active = archetypeDeckCodeJobs.get(key);
   if (active) return active;
   const job = (async () => {
@@ -6848,7 +6761,7 @@ async function resolveUntranslatedArchetypeDeckCodes(
   for (const item of observed) {
     if (!item.format || !item.rankKey) continue;
     if (!STANDARD_META_SUPPORTED_RANKS.has(item.rankKey as StandardMetaRank)) continue;
-    const key = normalizeStandardArchetypeKey(item.nameEn);
+    const key = archetypeTranslationKey(item.nameEn);
     const contexts = contextsByName.get(key) ?? [];
     contexts.push({ format: item.format, rank: item.rankKey as StandardMetaRank });
     contextsByName.set(key, contexts);
@@ -6861,7 +6774,7 @@ async function resolveUntranslatedArchetypeDeckCodes(
       cursor += 1;
       const item = result[index];
       if (item.deckCode) {
-        const contexts = contextsByName.get(normalizeStandardArchetypeKey(item.nameEn)) ?? [];
+        const contexts = contextsByName.get(archetypeTranslationKey(item.nameEn)) ?? [];
         const context = contexts[0] ?? { format: 'standard' as const, rank: 'legend' as const };
         persistArchetypeDeckCode(item.nameEn, {
           deckCode: item.deckCode,
@@ -6873,7 +6786,7 @@ async function resolveUntranslatedArchetypeDeckCodes(
       }
       const deckCode = await resolveExactArchetypeDeckCode(
         item.nameEn,
-        contextsByName.get(normalizeStandardArchetypeKey(item.nameEn)) ?? [],
+        contextsByName.get(archetypeTranslationKey(item.nameEn)) ?? [],
       );
       if (deckCode) result[index] = { ...item, deckCode };
     }
@@ -6888,7 +6801,7 @@ async function findStandardMetaRecommendation(
   format: StandardMetaFormat,
   rank: StandardMetaRank,
 ): Promise<StandardMetaRecommendation | null> {
-  const cacheKey = `${format}:${rank}:${normalizeStandardArchetypeKey(archetype)}`;
+  const cacheKey = `${format}:${rank}:${archetypeTranslationKey(archetype)}`;
   const now = Date.now();
   const cached = standardMetaRecommendationCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.data;
@@ -9358,14 +9271,14 @@ app.use('/api', createAdminArchetypesRouter({
     // The translation source is Arena's DB/manual overrides plus fallback map.
     // A missing label intentionally returns the English HSReplay name unchanged.
     const translations = await getStandardArchetypeTranslations();
-    return translateStandardArchetype(name, translations.map);
+    return archetypeLabel(name, translations.map);
   },
   resolveCanonicalArchetype: async ({ detail }) => {
     const translations = await getStandardArchetypeTranslations();
     return resolveArchetypeDeckIdentity({
       payload: detail as any,
       candidates: loadArchetypeDeckCandidates(db(), 'standard'),
-      translate: name => translateStandardArchetype(name, translations.map),
+      translate: name => archetypeLabel(name, translations.map),
     });
   },
   loadCanonicalMatchups: loadHsguruMatchupRow,

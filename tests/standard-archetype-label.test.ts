@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import { disambiguateArchetypeLabels, translateStandardArchetype } from '../server/modules/constructedArchetypes/public.js';
+import {
+  archetypeLabel,
+  disambiguateArchetypeLabels,
+  findDuplicateArchetypeLabels,
+  matchArchetypeTranslation,
+} from '../server/modules/constructedArchetypes/public.js';
 
 const translations = {
   piglock: 'Чернокнижник с Расхождением',
@@ -9,26 +14,26 @@ const translations = {
   'zee shaman': 'Зи Шаман',
 };
 
-assert.equal(translateStandardArchetype('Piglock', translations), 'Чернокнижник с Расхождением');
-assert.equal(translateStandardArchetype('  Pirate Warrior ', translations), 'Пират Воин');
+assert.equal(archetypeLabel('Piglock', translations), 'Чернокнижник с Расхождением');
+assert.equal(archetypeLabel('  Pirate Warrior ', translations), 'Пират Воин');
 
 // HSGuru's variants of a translated archetype keep the words that set them apart,
 // so two archetypes of one slice never share a label.
-assert.equal(translateStandardArchetype('Harold Piglock', translations), 'Чернокнижник с Расхождением (Harold)');
-assert.equal(translateStandardArchetype('Dragon Pirate Warrior', translations), 'Пират Воин (Dragon)');
-assert.equal(translateStandardArchetype('Sneaky Harold Rogue', translations), 'Разбойник на возвещении (Sneaky)');
-assert.equal(translateStandardArchetype('XL Zee Shaman Deluxe', translations), 'Зи Шаман (XL Deluxe)');
-assert.equal(translateStandardArchetype('Harold Void DH', translations), 'Охотник на демонов Бездны (Harold)');
+assert.equal(archetypeLabel('Harold Piglock', translations), 'Чернокнижник с Расхождением (Harold)');
+assert.equal(archetypeLabel('Dragon Pirate Warrior', translations), 'Пират Воин (Dragon)');
+assert.equal(archetypeLabel('Sneaky Harold Rogue', translations), 'Разбойник на возвещении (Sneaky)');
+assert.equal(archetypeLabel('XL Zee Shaman Deluxe', translations), 'Зи Шаман (XL Deluxe)');
+assert.equal(archetypeLabel('Harold Void DH', translations), 'Охотник на демонов Бездны (Harold)');
 
 // The longest contained name wins, and a name without any keeps its English form.
 assert.equal(
-  translateStandardArchetype('Harold Pirate Warrior', { ...translations, 'harold pirate warrior': 'Пират Воин на возвещении' }),
+  archetypeLabel('Harold Pirate Warrior', { ...translations, 'harold pirate warrior': 'Пират Воин на возвещении' }),
   'Пират Воин на возвещении',
 );
-assert.equal(translateStandardArchetype('Quest Priest', translations), 'Quest Priest');
+assert.equal(archetypeLabel('Quest Priest', translations), 'Quest Priest');
 
 const labels = ['Piglock', 'Harold Piglock', 'Pirate Warrior', 'Dragon Pirate Warrior', 'Void DH', 'Harold Void DH']
-  .map(name => translateStandardArchetype(name, translations));
+  .map(name => archetypeLabel(name, translations));
 assert.equal(new Set(labels).size, labels.length);
 
 // Two names translated alike in the source data still get distinct labels in one list.
@@ -42,4 +47,28 @@ assert.equal(new Set(labels).size, labels.length);
   assert.deepEqual(labelled.map(row => row.archetypeLabel), ['Охотник на демонов Бездны (Void Soul DH)', 'Охотник на демонов Бездны', 'Квест Жрец']);
   assert.equal(labelled[2], rows[2]);
   assert.equal(labelled[0].winrate, 55.9);
+}
+
+// Keys of any casing or spacing match, and the matcher reports what it covered.
+assert.equal(archetypeLabel('Harold   piglock', { ' PIGLOCK ': 'Чернокнижник с Расхождением' }), 'Чернокнижник с Расхождением (Harold)');
+assert.deepEqual(matchArchetypeTranslation('Dragon Pirate Warrior', translations), { key: 'pirate warrior', label: 'Пират Воин', qualifier: 'Dragon' });
+assert.equal(matchArchetypeTranslation('Quest Priest', translations), null);
+assert.equal(matchArchetypeTranslation('   ', translations), null);
+
+// Summoner Mage / Manastorm Mage: the admin table gave both one Russian name.
+// The list keeps the shorter English name bare and qualifies the other, and the
+// admin lists the pair so a translator can tell them apart.
+{
+  const adminRows = [
+    { nameEn: 'Manastorm Mage', nameRu: 'Манашторм Маг' },
+    { nameEn: 'Summoner Mage', nameRu: 'манашторм маг' },
+    { nameEn: 'Void DH', nameRu: 'Охотник на демонов Бездны' },
+  ];
+  assert.deepEqual(findDuplicateArchetypeLabels(adminRows), [{ nameRu: 'Манашторм Маг', namesEn: ['Manastorm Mage', 'Summoner Mage'] }]);
+  const map = Object.fromEntries(adminRows.map(row => [row.nameEn.toLowerCase(), row.nameRu]));
+  const labelled = disambiguateArchetypeLabels(['Manastorm Mage', 'Summoner Mage'].map(archetype => ({
+    archetype,
+    archetypeLabel: archetypeLabel(archetype, { ...map, 'summoner mage': 'Манашторм Маг' }),
+  })));
+  assert.deepEqual(labelled.map(row => row.archetypeLabel), ['Манашторм Маг (Manastorm Mage)', 'Манашторм Маг']);
 }

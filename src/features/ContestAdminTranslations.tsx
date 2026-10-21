@@ -23,6 +23,8 @@ type TranslationResponse = {
   pageSize: number;
   pages: number;
   stats: { total: number; manual: number; blizzcore: number; lastSyncedAt: string | null };
+  /** Russian names shared by different archetypes across the whole table. */
+  duplicates?: Array<{ nameRu: string; namesEn: string[] }>;
 };
 
 type TranslationDraft = { nameEn: string; nameRu: string };
@@ -144,6 +146,26 @@ type TranslationWorkspaceViewProps = {
   englishInputRef: React.RefObject<HTMLInputElement | null>;
   russianInputRef: React.RefObject<HTMLInputElement | null>;
 };
+
+function DuplicateLabelsNotice({ duplicates, onSearch }: {
+  duplicates: TranslationResponse['duplicates'];
+  onSearch: (value: string) => void;
+}) {
+  if (!duplicates?.length) return null;
+  return (
+    <div className="admin-translation-duplicates" role="status">
+      <strong>Одинаковые русские названия у разных архетипов: {duplicates.length}</strong>
+      <ul>
+        {duplicates.map(duplicate => (
+          <li key={duplicate.nameRu}>
+            <button type="button" onClick={() => onSearch(duplicate.nameRu)}>«{duplicate.nameRu}»</button>
+            {' — '}{duplicate.namesEn.join(', ')}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function TranslationWorkspaceView({
   data,
@@ -312,6 +334,7 @@ function TranslationWorkspaceView({
               <p className="contest-muted">Найдено: {data.total}. Изменения сразу применяются к названиям архетипов.</p>
             </div>
           </div>
+          <DuplicateLabelsNotice duplicates={data.duplicates} onSearch={onQueryChange} />
           <div className="admin-list-toolbar admin-translation-toolbar">
             <label htmlFor="admin-translation-search">
               Поиск

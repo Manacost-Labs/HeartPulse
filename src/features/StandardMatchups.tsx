@@ -90,69 +90,10 @@ function emptyMatchups(format: StandardMatchupsFormat): StandardMatchupsData {
   };
 }
 
-const STANDARD_ARCHETYPE_LABELS_RU: Record<string, string> = {
-  'Ace Hunter': 'Эйс Охотник',
-  'Aggro Paladin': 'Агро Паладин',
-  'Ashamane Rogue': 'Ашамейн Разбойник',
-  'Aura Paladin': 'Аура Паладин',
-  'Azshara Druid': 'Азшара Друид',
-  'Briarspawn Warrior': 'Брайарспаун Воин',
-  'Broxigar DH': 'Броксигар Охотник на демонов',
-  'Burn Mage': 'Берн Маг',
-  'Burn Rogue': 'Берн Разбойник',
-  'Burn Warrior': 'Берн Воин',
-  'Companion Hunter': 'Компаньон Охотник',
-  'Control Priest': 'Контроль Жрец',
-  'Dino Egglock': 'Дино Кхелос Чернокнижник',
-  'Divergence Warlock': 'Дивергенция Чернокнижник',
-  'Dragon Druid': 'Дракон Друид',
-  'Dragon Hunter': 'Дракон Охотник',
-  'Dragon Warrior': 'Дракон Воин',
-  'Dude Paladin': 'Токен Паладин',
-  'Egg Warrior': 'Кхелос Воин',
-  Egglock: 'Кхелос Чернокнижник',
-  'Elemental Mage': 'Элементаль Маг',
-  'End of Turnadin': 'Ноздорму Паладин',
-  'Enrage Warrior': 'Исступление Воин',
-  'Frost DK': 'Фрост Рыцарь смерти',
-  'Glacial Shaman': 'Ледяной Шаман',
-  'Gladiator Warrior': 'Гладиатор Воин',
-  'Harold DH': 'Охотник на демонов на возвещении',
-  'Harold DK': 'Рыцарь смерти на возвещении',
-  'Harold Egglock': 'Кхелос Чернокнижник на возвещении',
-  'Harold Rogue': 'Разбойник на возвещении',
-  'Harold Shaman': 'Шаман на возвещении',
-  'Harold Warrior': 'Воин на возвещении',
-  'Herald DH': 'Охотник на демонов на возвещении',
-  'Herald DK': 'Рыцарь смерти на возвещении',
-  'Herald Rogue': 'Разбойник на возвещении',
-  'Herald Shaman': 'Шаман на возвещении',
-  'Herald Warrior': 'Воин на возвещении',
-  'Hostage Druid': 'Заложник Друид',
-  'Imbue Paladin': 'Паладин на силе героя',
-  'Imbue Priest': 'Жрец на силе героя',
-  'Imbue Rogue': 'Разбойник на силе героя',
-  'Krona Druid': 'Крона Друид',
-  'Leyline Mage': 'Лейлайн Маг',
-  'Merithra Druid': 'Меритра Друид',
-  'No Hand Hunter': 'Охотник без руки',
-  'No Minion DH': 'Спелл Охотник на демонов',
-  'Quest DH': 'Квест Охотник на демонов',
-  'Quest Druid': 'Квест Друид',
-  'Quest Hunter': 'Квест Охотник',
-  'Quest Mage': 'Квест Маг',
-  'Quest Rogue': 'Квест Разбойник',
-  'Quest Shaman': 'Квест Шаман',
-  'Quest Warrior': 'Квест Воин',
-  Rafaamlock: 'Рафаам Чернокнижник',
-  'Token Druid': 'Токен Друид',
-  'Unholy DK': 'Нечестивый Рыцарь смерти',
-  'Vanessa Rogue': 'Ванесса Разбойник',
-  'Wallow Warlock': 'Валлоу Чернокнижник',
-};
-
+// The server labels every archetype (`archetypeLabel`); the English name is
+// only a guard for a payload without labels.
 function getStandardArchetypeLabel(name: string, label?: string): string {
-  return label || STANDARD_ARCHETYPE_LABELS_RU[name] || name;
+  return label || name;
 }
 
 function isOtherStandardArchetype(name: string): boolean {
