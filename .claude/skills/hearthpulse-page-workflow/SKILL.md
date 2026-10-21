@@ -20,8 +20,10 @@ cd /srv/projects/tasks/hearthpulse-<task>-<YYYYMMDD>
 npm run agent:session:preflight
 ```
 
-Трогай только свои файлы. Если другая сессия владеет страницей, не правь
-её файлы — договорись или ограничься точкой подключения.
+Основная копия `/srv/projects/web/arena.hs-manacost.ru` — общая, в ней не
+работай: только своя папка в `/srv/projects/tasks/`. Трогай только свои
+файлы. Если другая сессия владеет страницей, не правь её файлы —
+договорись или ограничься точкой подключения.
 
 ## Шаг 2. Аудит до правок
 
@@ -38,6 +40,19 @@ npm run agent:session:preflight
 список «что убираю / сворачиваю / оставляю». Полируй после ответа.
 Это экономит круги: владелец часто правит направление по черновику.
 
+Куда: сообщением сессии, которая дала задачу (`SendMessage` её id), с
+абсолютными путями к скриншотам в своём scratchpad; если работаешь с
+владельцем напрямую — ему в ответе. Не жди молча: после черновика закончи
+ход и продолжай, когда придёт ответ.
+
+**Стоп-условия — спроси, прежде чем делать:**
+
+- нужных данных нет в API (новый эндпоинт, новый расчёт на сервере);
+- задача требует менять paywall, маршрут или nginx;
+- файлы страницы сейчас правит другая сессия;
+- эталона для такого блока нет, а решение не из таблицы
+  `hearthpulse-page-design`.
+
 ## Шаг 4. Реализация
 
 - Новый визуальный компонент — со Storybook-историей рядом
@@ -51,6 +66,74 @@ npm run agent:session:preflight
 - Картинки: первая на экране — `fetchpriority="high"` и `sizes`, остальные
   `loading="lazy"` с зарезервированным размером (нет CLS).
 
+## Шаблоны для копирования
+
+**Модель + unit-тест.** Логика (интервалы, группировки, цвета) — в
+`src/features/<page>Model.ts`, тест — `tests/<page>-model.test.ts`, и путь
+теста добавь в `tests/test-suites.json` → набор `"unit"` (иначе
+`test:discovery` упадёт). Образец: `src/features/standardMetaTableModel.ts`
+и `tests/standard-meta-table-model.test.ts`.
+
+```ts
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { pageRows } from '../src/features/pageModel';
+
+test('rows below the sample threshold are muted, not dropped', () => {
+  const rows = pageRows([{ name: 'A', games: 40, winrate: 55 }]);
+  assert.equal(rows[0].lowSample, true);
+});
+```
+
+**Storybook-история** рядом с компонентом, на реальной фикстуре из
+`tests/fixtures/`, с проверкой в `play`. Образец:
+`src/features/ArchetypeHistoryCharts.stories.tsx`.
+
+```tsx
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
+import { PageBlock } from './PageBlock';
+import real from '../../tests/fixtures/<page>-real-<YYYYMMDD>.json';
+import './PageBlock.css';
+
+const meta = {
+  title: '<Раздел>/<Блок>',
+  component: PageBlock,
+  args: { rows: real.rows },
+  parameters: { layout: 'padded' },
+} satisfies Meta<typeof PageBlock>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Real: Story = {
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('tbody tr').length).toBeGreaterThan(0);
+  },
+};
+export const Phone: Story = {
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
+};
+```
+
+**Одобрение роста бандла** —
+`config/next-bundle-budgets/approvals/<slug>.json`:
+
+```json
+{
+  "reason": "Что добавлено и почему это нельзя загрузить лениво.",
+  "routes": {
+    "/standard/archetypes/": { "jsGzipBytes": 1024, "cssGzipBytes": 256 }
+  }
+}
+```
+
+**Фрагмент changelog** — `changelog.d/<YYYY-MM-DD>-<slug>.md`, одной
+строкой по-русски, без заголовка и маркера списка:
+
+```text
+Мета: таблица на всю ширину, винрейт с интервалом, тиры S–D с пояснением.
+```
+
 ## Шаг 5. Проверки
 
 ```bash
@@ -61,9 +144,7 @@ npm run qa:ci            # сборки + браузерная обсерват�
 npm run agent:integration:preflight
 ```
 
-- Бюджет бандла превышен осознанно → файл
-  `config/next-bundle-budgets/approvals/<slug>.json`
-  (`{"reason": "...", "routes": {"/route/": {"jsGzipBytes": N, "cssGzipBytes": N}}}`).
+- Бюджет бандла превышен осознанно → файл одобрения (шаблон выше).
   Базовые значения руками не правь.
 - Замерь LCP, CLS и INP на телефоне (Slow 4G, CPU ×4) до и после;
   медиана 3 прогонов. Хуже стало — не сдавай.
