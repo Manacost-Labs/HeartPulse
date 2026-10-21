@@ -1,0 +1,86 @@
+.bg-strategy-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bg-strategy-list li + li { border-top: 1px solid var(--arena-paper-line); }
+
+.bg-strategy-list__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem 1rem;
+  align-items: center;
+  min-height: 52px;
+  padding: 0.55rem 0.4rem;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.bg-strategy-list__row:hover { background: rgba(123, 21, 27, 0.06); }
+.bg-strategy-list__row:focus-visible { outline: 2px solid var(--arena-red); outline-offset: -2px; }
+
+.bg-strategy-list__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+/* The site paints content text grey-blue; each span sets its own ink. */
+.bg-strategy-list__label {
+  color: var(--arena-red);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bg-strategy-list__title {
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  line-height: 1.25;
+}
+
+.bg-strategy-list__description {
+  overflow: hidden;
+  color: var(--arena-muted-ink);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bg-strategy-list__minions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.bg-strategy-list__minions img {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: 50% 30%;
+}
+
+.bg-strategy-list__minions img[data-current] { border: 2px solid #c08a42; }
+
+.bg-strategy-list__more {
+  min-height: 42px;
+  margin-top: 0.4rem;
+  padding: 0 0.4rem;
+  border: 0;
+  color: var(--arena-red);
+  background: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bg-strategy-list__more:focus-visible { outline: 2px solid var(--arena-red); }
+
+@media (max-width: 640px) {
+  .bg-strategy-list__row { grid-template-columns: minmax(0, 1fr); }
+  .bg-strategy-list__minions img { width: 34px; height: 34px; }
+}

@@ -49,8 +49,8 @@ test('loading cards and class rows fit their loaded counterparts at public page 
         ['bg hero frame', 'battlegrounds-hero-detail-measured-loading-geometry--ready', 'battlegrounds-hero-detail-measured-loading-geometry--loading', '.bg-hero-reliquary', '.bg-hero-reliquary', 768],
         ['bg hero frame from teaser', 'battlegrounds-hero-detail-measured-loading-geometry--ready', 'battlegrounds-hero-detail-measured-loading-geometry--loading-from-teaser', '.bg-hero-reliquary', '.bg-hero-reliquary', 768],
         ['bg hero ledger', 'battlegrounds-hero-detail-measured-loading-geometry--ready', 'battlegrounds-hero-detail-measured-loading-geometry--loading', '.bg-hero-detail-page > section:nth-of-type(3)', '.bg-hero-detail-page > section:nth-of-type(3)'],
-        ['bg card dossier', 'battlegrounds-card-detail-measured-loading-geometry--ready', 'battlegrounds-card-detail-measured-loading-geometry--loading', '.bg-library-card-dossier', '.bg-library-card-dossier', 412],
-        ['bg card dossier from teaser', 'battlegrounds-card-detail-measured-loading-geometry--ready', 'battlegrounds-card-detail-measured-loading-geometry--loading-from-teaser', '.bg-library-card-dossier', '.bg-library-card-dossier', 412],
+        ['bg minion header', 'battlegrounds-card-detail-measured-loading-geometry--ready', 'battlegrounds-card-detail-measured-loading-geometry--loading', '.minion-header', '.minion-header', 412],
+        ['bg minion header from teaser', 'battlegrounds-card-detail-measured-loading-geometry--ready', 'battlegrounds-card-detail-measured-loading-geometry--loading-from-teaser', '.minion-header', '.minion-header', 412],
       ]) {
         if (width < fromWidth) continue;
         const ready = await geometry(readyStory, readySelector);

@@ -1,5 +1,6 @@
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { Line } from './BattlegroundsSkeletons';
+import { BattlegroundMinionHeader } from './BattlegroundMinionHeader';
 import '../shared/ui/LoadingSurface.css';
 import './BattlegroundsSkeletons.css';
 
@@ -51,8 +52,10 @@ const METRICS = 4;
  * statistics panels are placeholders. The single status is the back control's
  * placeholder, outside the busy dossier.
  */
-export function BgLibraryDetailSkeleton({ kicker, stats, teaser }: {
+export function BgLibraryDetailSkeleton({ kicker, stats, minion = false, teaser }: {
   kicker: string;
+  /** A current-pool minion: the plate of BattlegroundMinionHeader instead of the dossier. */
+  minion?: boolean;
   /** The card has current-pool statistics: the metrics carry a caption and statistics panels follow. */
   stats: boolean;
   teaser?: BgLibraryCardTeaser;
@@ -63,6 +66,13 @@ export function BgLibraryDetailSkeleton({ kicker, stats, teaser }: {
         className="bg-skeleton-back inline-flex items-center gap-2 rounded-md border border-[#cbd9ed] bg-[#ffffff] px-4 py-2 text-sm font-semibold">
         <LoadingBlock className="bg-library-detail-skeleton__back" />
       </LoadingSurface>
+      {minion ? (
+        <div className={teaser ? 'data-surface' : undefined} aria-busy={teaser ? true : undefined} aria-hidden={teaser ? undefined : true}>
+          <BattlegroundMinionHeader loading title={teaser?.name ?? null} facts={[]} kpis={[]} emptyText=""
+            card={teaser ? <img src={teaser.image} alt={teaser.name} decoding="async" /> : null}
+            rulesText={teaser?.text ?? undefined} />
+        </div>
+      ) : (
       <section
         className={`bg-library-card-dossier overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]${teaser ? ' data-surface' : ''}`}
         aria-busy={teaser ? true : undefined}
@@ -107,6 +117,7 @@ export function BgLibraryDetailSkeleton({ kicker, stats, teaser }: {
           </div>
         </div>
       </section>
+      )}
       {stats && <section className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-sm sm:p-5" aria-hidden="true">
         <p className="mb-4 font-hs text-2xl text-[#26374f]"><Line className="bg-skeleton-w-title" /></p>
         <LoadingBlock className="bg-library-detail-skeleton__panel" />

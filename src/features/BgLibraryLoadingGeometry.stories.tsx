@@ -12,7 +12,13 @@ const card = {
   creature_type: { slug: 'aberration', name_ru: 'Аберрация' }, card_type: { slug: 'minion' },
   attack: 2, health: 3, tavern_tier: 4, in_pool: true, mechanics: [], images: { card: cardArt }, artist: 'Konstantin Turovec',
 };
-const minion = { dbfId: 131718, impact: 0.42, popularity: 0.18, avg_placement_with: 3.91, avg_placement_without: 4.3, rounds: [] };
+const minionStats = {
+  minion: { dbfId: 131718, cardId: 'BG36_110', nameRu: 'Счастье', tavernTier: 4, attack: 2, health: 3, images: { card: null, cardGolden: null, art: null } },
+  slice: { mmr: 'TOP_50_PERCENT', period: 'LAST_7_DAYS', fetchedAt: '2026-10-21T16:51:13Z', updatedAt: '2026-10-21T13:41:24Z' },
+  normal: { impact: 0.42, combatWinrate: 55.1, popularity: 18, gamesWith: 2400, placementWith: 3.91, placementWithout: 4.3, wins: 900, losses: 700 },
+  golden: null, rounds: [], purchases: [],
+  positions: { compositionId: 0, defaultBoard: 'normal', normal: null, taunt: null, compositions: [] },
+};
 const teaser = { dbfId: 131718, name: 'Счастье', typeName: 'Существо', text, image: cardArt };
 
 function mockFetch(pending: boolean) {
@@ -22,7 +28,7 @@ function mockFetch(pending: boolean) {
     if (pending) return new Promise<Response>(() => {});
     if (path === '/api/bg/library/cards/by-dbf/131718') return Response.json(card);
     if (path === '/api/bg/library/cards') return Response.json({ data: [card] });
-    if (path === '/api/bg/library/minions/131718') return Response.json(minion);
+    if (path === '/api/bg/library/minions/131718/stats') return Response.json(minionStats);
     if (path === '/bg-legacy/comps-data.js') return new Response('');
     return originalFetch(input, init);
   };

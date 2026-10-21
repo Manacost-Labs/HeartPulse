@@ -191,7 +191,10 @@
         "tests/battleground-builder-workbench.test.ts",
         "tests/data-visualizations.test.ts",
         "tests/battleground-library-catalog-cache.test.ts",
-        "tests/constructed-card-catalog-readers.test.ts"
+        "tests/constructed-card-catalog-readers.test.ts",
+        "tests/bg-minion-stats-contract.test.ts",
+        "tests/bg-minion-stats-model.test.ts",
+        "tests/bg-library-strategy-rows.test.ts"
       ]
     },
     {

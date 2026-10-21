@@ -122,8 +122,13 @@ application-wide barrel. Native-table surfaces preserve domain-owned pagination
 and sorting; they export the rendered rows and label that scope explicitly.
 
 `src/modules/battlegrounds/model/heroAnalytics.ts` normalizes hero values and
-tavern distributions. Its `ui/HeroAnalytics.tsx` and `ui/RoundAnalytics.tsx`
-compose shared charts and tables behind explicit exports in `public.ts`.
+tavern distributions. Its `ui/HeroAnalytics.tsx` composes shared charts and
+tables behind explicit exports in `public.ts`. Minion statistics of the library
+detail page come from `server/modules/battlegroundLibrary/minionStats.ts`,
+which validates the hs-data-api answer in `minionStatsContract.ts`. The browser
+mirror of that response and its request live in `model/minionStats.ts` of this
+module; the view model and VaryloUI presentation live in
+`src/features/BattlegroundMinion*`, because modules may not import `src/vendor`.
 Legacy Battlegrounds views own loading, tabs and permission checks. Analytics
 adapters perform no requests and introduce no new access path.
 

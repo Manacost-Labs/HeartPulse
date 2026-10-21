@@ -55,6 +55,7 @@ import { createPublicResourceRouter } from './publicResourceRoutes.js';
 import { articleImageSrc, canonicalArticleUrl } from '../shared/articleImageSrc.js';
 import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
+import { createBattlegroundMinionStatsRouter, createBattlegroundMinionStatsSource } from './modules/battlegroundLibrary/public.js';
 import { proxyHsReplayStrategyPayload } from './modules/publicApi/public.js';
 import {
   battlegroundImageTransformCacheKey,
@@ -8101,6 +8102,11 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
   }
 }
 
+app.use('/api', createBattlegroundMinionStatsRouter({
+  requireAccess: requireBattlegroundsAccess,
+  read: createBattlegroundMinionStatsSource({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN }).read,
+  onError: error => console.error('[bg minion stats] upstream failed:', (error as Error)?.message ?? error),
+}));
 app.use('/api', createBattlegroundProxyRouter({
   requireAccess: requireBattlegroundsAccess,
   proxyLegacy: proxyLegacyBattlegroundEndpoint,

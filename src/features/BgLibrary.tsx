@@ -1,10 +1,9 @@
 import '../shared/ui/analytics/Analytics.css';
-import { RoundAnalytics } from '../modules/battlegrounds/public';
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import '../modules/battlegrounds/public.css';
-import { createBattlegroundLibraryResource, useBattlegroundLibraryData, LibraryControls, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
+import { createBattlegroundLibraryResource, fetchBattlegroundMinionStats, useBattlegroundLibraryData, type BattlegroundMinionStats, LibraryControls, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BarChart3, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { publicResourceUrl } from '../publicResourceUrl';
@@ -23,6 +22,12 @@ import {
 } from './bgLibraryCatalogModel';
 import { BgLibraryDetailSkeleton, BgLibraryListSkeleton, type BgLibraryCardTeaser } from './BgLibrarySkeletons';
 import { BattlegroundLoadError } from './BattlegroundsSkeletons';
+import { BattlegroundMinionHeader } from './BattlegroundMinionHeader';
+import { BattlegroundMinionStatsSections } from './BattlegroundMinionStatsSections';
+import { minionPlacementTone, minionStatsKpis, minionStatsSourceLine } from './battlegroundMinionStatsModel';
+import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
+import { BattlegroundStrategyList } from './BattlegroundStrategyList';
+import { strategyRows, type StrategyEntry } from './bgLibraryStrategyRows';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import '../route-parchment.css';
 import '../battlegrounds-shell.css';
@@ -79,36 +84,8 @@ interface LibraryMeta {
   mechanics?: Array<{ slug: string; name_ru: string }>;
 }
 
-interface MinionStat {
-  dbf_id: number;
-  card_id: string;
-  name: string;
-  name_ru: string;
-  tavern_tier: number;
-  impact: number | null;
-  combat_winrate: number | null;
-  popularity: number | null;
-  games_with_minion: number | null;
-  games_without_minion: number | null;
-  avg_placement_with: number | null;
-  avg_placement_without: number | null;
-}
-
-interface MinionRoundStat {
-  combat_round: number;
-  games_with_minion: number;
-  games_without_minion: number;
-  avg_placement_with: number;
-  avg_placement_without: number;
-  impact: number;
-  combat_winrate: number;
-  wins: number;
-  losses: number;
-}
-
-interface MinionDetail extends MinionStat {
-  rounds?: MinionRoundStat[];
-}
+/** Minion statistics of the detail page: `missing` is a slice without games, `failed` an unavailable source. */
+type MinionStatsLoad = BattlegroundMinionStats | 'missing' | 'failed';
 
 interface FirestoneSpellStat {
   id: string;
@@ -121,25 +98,6 @@ interface FirestoneSpellStat {
   average_placement: number;
   average_placement_other: number;
   impact: number;
-}
-
-interface StrategyCard {
-  id?: string;
-  dbfId?: number | null;
-  name?: string;
-  ruName?: string;
-  role?: string;
-}
-
-interface StrategyEntry {
-  key: string;
-  source: string;
-  title: string;
-  description?: string;
-  tier?: string;
-  difficulty?: string;
-  avgPlacement?: string;
-  cards?: StrategyCard[];
 }
 
 interface BgLibraryProps {
@@ -360,11 +318,6 @@ function formatDecimal(value: unknown, digits = 2): string {
   return Number(value).toFixed(digits).replace('.', ',');
 }
 
-function formatPercent(value: unknown, digits = 1): string {
-  if (!Number.isFinite(Number(value))) return '—';
-  return `${formatDecimal(value, digits)}%`;
-}
-
 function formatCount(value: unknown): string {
   if (!Number.isFinite(Number(value))) return '—';
   return Number(value).toLocaleString('ru-RU');
@@ -438,10 +391,15 @@ function cardEnName(card: LibraryCard): string {
 }
 
 function cardRulesText(card: LibraryCard): string {
-  return String(card.text?.ru || card.text_ru || card.text?.en || '')
-    .replace(/\[x\]/gi, '')
+  const raw = String(card.text?.ru || card.text_ru || card.text?.en || '');
+  // The catalog appends a service tail ("Механики: AURA", "EN: …") to the Russian text.
+  const text = raw.split(/\n(?:Механики|EN):/)[0]
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
+    .replace(/\u00a0/g, ' ');
+  // `[x]` marks manual line breaks of the in-game card frame, not paragraphs.
+  return (/\[x\]/i.test(text) ? text.replace(/\[x\]/gi, '').replace(/\s*\n\s*/g, ' ') : text)
+    .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -1205,7 +1163,7 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
 
 function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: LibraryKind; pool: PoolMode; dbfId: number; navigatePath: (path: string) => void; teaser?: BgLibraryCardTeaser }) {
   const [card, setCard] = useState<LibraryCard | null>(null);
-  const [detail, setDetail] = useState<MinionDetail | null>(null);
+  const [minionStats, setMinionStats] = useState<MinionStatsLoad>('missing');
   const [spellStats, setSpellStats] = useState<FirestoneSpellStat[]>([]);
   const [relatedCards, setRelatedCards] = useState<LibraryCard[]>([]);
   const [strategies, setStrategies] = useState<StrategyEntry[]>([]);
@@ -1237,7 +1195,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
         : fetchAuxiliaryLibraryCards(kind, pool).catch(() => []),
     ];
     if (kind === 'minion' && pool === 'current') {
-      baseRequests.push(fetchJsonOrNull<MinionDetail>(`/api/bg/library/minions/${dbfId}`));
+      baseRequests.push(fetchBattlegroundMinionStats(dbfId).then(stats => stats ?? 'missing', () => 'failed'));
     } else if (kind === 'spell' && pool === 'current') {
       baseRequests.push(fetchJsonOrNull<any>('/api/bg/library/spell-stats'));
     } else {
@@ -1276,14 +1234,14 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
           item => battlegroundBaseCardId(item.card_id) !== battlegroundBaseCardId(normalCard.card_id),
         )));
         if (kind === 'minion' && pool === 'current') {
-          setDetail(results[3] as MinionDetail | null);
+          setMinionStats(results[3] as MinionStatsLoad);
           setSpellStats([]);
         } else if (kind === 'spell' && pool === 'current') {
           setSpellStats(results[3] ? flattenSpellStats(results[3]) : []);
-          setDetail(null);
+          setMinionStats('missing');
         } else {
           setSpellStats([]);
-          setDetail(null);
+          setMinionStats('missing');
         }
         const loadedCardName = cardRuName(normalCard);
         const title = pool === 'archive'
@@ -1304,7 +1262,11 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
   }, [attempt, dbfId, kind, pool]);
 
   const spellStat = useMemo(() => spellStats.find(item => Number(item.dbfId) === Number(dbfId)), [dbfId, spellStats]);
-  const usedStrategies = useMemo(() => card ? strategies.filter(strategy => cardMatchesStrategy(card, strategy)).slice(0, 10) : [], [card, strategies]);
+  const usedStrategies = useMemo(() => card ? strategies.filter(strategy => cardMatchesStrategy(card, strategy)) : [], [card, strategies]);
+  const usedStrategyRows = useMemo(() => strategyRows(usedStrategies, dbfId,
+    cardId => optimizedBattlegroundThumbnailUrl(localDbImageUrl(cardId, 'art'), 96))
+    .map((row, index) => ({ ...row, href: strategyTierListPath(usedStrategies.find(strategy => strategy.key === row.key) ?? usedStrategies[index]) })),
+  [dbfId, usedStrategies]);
   const similar = useMemo(() => {
     if (!card) return [];
     const mechanicSet = new Set((card.mechanics || []).map(item => item.slug));
@@ -1327,56 +1289,90 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
 
   if (loading) {
     return <BgLibraryDetailSkeleton kicker={`${sectionFor(kind).shortTitle} · ${pool === 'archive' ? 'Архив' : 'Активный пул'}`}
-      stats={pool === 'current' && isBaseLibraryKind(kind)} teaser={teaser} />;
+      stats={pool === 'current' && isBaseLibraryKind(kind)} minion={kind === 'minion' && pool === 'current'} teaser={teaser} />;
   }
   if (error) return <BattlegroundLoadError message={error} onRetry={() => setAttempt(value => value + 1)} />;
   if (!card) return <div className="rounded-lg border border-[#efb4b4] bg-[#fff1f1] p-6 text-[#8f2424]">Карта не найдена</div>;
 
   const backPath = sectionHref(kind, pool);
-  const rounds = detail?.rounds || [];
-  const mainImpact = kind === 'spell' ? spellStat?.impact : detail?.impact;
-  const mainAverage = kind === 'spell' ? spellStat?.average_placement : detail?.avg_placement_with;
-  const mainPopularity = kind === 'spell' ? spellStat?.total_played : detail?.popularity;
   const showStats = pool === 'current' && isBaseLibraryKind(kind);
-  const reliableGoldenImage = goldenVariant ? goldenVariantImage(goldenVariant) : null;
-  const hasGoldenVariant = kind === 'minion' && Boolean(goldenVariant && reliableGoldenImage);
+  const stats = typeof minionStats === 'object' ? minionStats : null;
+  // The statistics carry the golden render even when the catalog has no golden card record.
+  const reliableGoldenImage = (goldenVariant ? goldenVariantImage(goldenVariant) : null) ?? (stats?.golden ? stats.minion.images.cardGolden : null);
+  const hasGoldenVariant = kind === 'minion' && Boolean(reliableGoldenImage);
   const selectedVariantCard = selectedVariant === 'golden' && hasGoldenVariant && goldenVariant
     ? goldenVariant
     : card;
   const heroImage = selectedVariant === 'golden' && reliableGoldenImage
     ? reliableGoldenImage
     : detailCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
-  const heroFallbacks = selectedVariant === 'golden' && goldenVariant
-    ? goldenVariantFallbackImages(goldenVariant, heroImage)
+  const heroFallbacks = selectedVariant === 'golden' && reliableGoldenImage
+    ? (goldenVariant ? goldenVariantFallbackImages(goldenVariant, heroImage) : [])
     : fallbackCardImages(card, heroImage, true);
   const currentCardName = cardRuName(selectedVariantCard);
   const section = sectionFor(kind);
   const rulesText = cardRulesText(selectedVariantCard);
   const wikiUrl = selectedVariantCard.wiki_page?.url || selectedVariantCard.wiki?.page?.url || '';
+  const minionView = kind === 'minion' && pool === 'current';
+  const variantTotals = stats ? stats[selectedVariant === 'golden' && hasGoldenVariant ? 'golden' : 'normal'] : null;
+  const variantToggle = hasGoldenVariant ? (
+    <BattlegroundCardVariantToggle
+      value={selectedVariant}
+      normalStats={{ attack: card.attack, health: card.health }}
+      goldenStats={goldenVariant ? { attack: goldenVariant.attack, health: goldenVariant.health } : undefined}
+      onChange={setSelectedVariant}
+    />
+  ) : null;
+  const heroCard = (
+    <img
+      src={heroImage}
+      alt={`${currentCardName}${selectedVariant === 'golden' ? ' — золотая версия' : ''}`}
+      className="w-full drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]"
+      data-fallbacks={heroFallbacks.join('|') || undefined}
+      onError={fallbackBrokenHeroImage}
+    />
+  );
 
   return (
     <div className="bg-library-detail-page space-y-6 text-[#26374f]">
       <button type="button" onClick={() => navigatePath(backPath)} className="inline-flex items-center gap-2 rounded-md border border-[#cbd9ed] bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#33445d] hover:border-[#d3af55]">
         <ArrowLeft size={16} /> Назад в {pool === 'archive' ? 'архив' : 'библиотеку'}
       </button>
+      {minionView ? (
+        // A wrapper keeps the plate out of the BG skin's `> section` card rules.
+        <div>
+          <BattlegroundMinionHeader
+            identityTourId="bg-library-detail-dossier"
+            title={currentCardName}
+            card={heroCard}
+            variant={variantToggle}
+            facts={[
+              ...(selectedVariantCard.tavern_tier ? [{ key: 'tier', label: `Таверна ${selectedVariantCard.tavern_tier}`, icon: tavernIcon(selectedVariantCard.tavern_tier) }] : []),
+              ...(selectedVariantCard.creature_type ? [{ key: 'type', label: selectedVariantCard.creature_type.name_ru, icon: RACE_ICON_BY_SLUG[selectedVariantCard.creature_type.slug] }] : []),
+              // A mechanic without a translation arrives as its game enum (BACON_BLOOD_GEM_TOOLTIP).
+              ...(selectedVariantCard.mechanics || []).filter(mechanic => !/^[A-Z0-9_]+$/.test(mechanic.name_ru))
+                .map(mechanic => ({ key: mechanic.slug, label: mechanic.name_ru })),
+              ...(selectedVariantCard.duos_only ? [{ key: 'duos', label: 'Дуо' }] : []),
+            ]}
+            rulesText={rulesText}
+            art={optimizedBattlegroundThumbnailUrl(stats?.minion.images.art ?? localDbImageUrl(battlegroundBaseCardId(card.card_id), 'art'), 512)}
+            kpis={minionStatsKpis(variantTotals)}
+            placementTone={minionPlacementTone(variantTotals)}
+            metricsTourId="bg-library-detail-statistics"
+            emptyText={minionStats === 'failed'
+              ? 'Статистика HSReplay сейчас недоступна. Попробуйте обновить страницу позже.'
+              : selectedVariant === 'golden' && stats
+                ? 'По золотой версии мало игр за последние 7 дней.'
+                : 'По этому существу нет игр в выборке HSReplay за последние 7 дней.'}
+            source={stats ? minionStatsSourceLine(stats) : null}
+          />
+        </div>
+      ) : (
       <section className="bg-library-card-dossier overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]">
         <div className="bg-library-card-dossier__layout grid gap-6 p-4 sm:p-6 lg:grid-cols-[320px_1fr]">
           <div className="bg-library-card-dossier__art relative mx-auto w-full max-w-xs flex-col">
-            <img
-              src={heroImage}
-              alt={`${currentCardName}${selectedVariant === 'golden' ? ' — золотая версия' : ''}`}
-              className="w-full drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]"
-              data-fallbacks={heroFallbacks.join('|') || undefined}
-              onError={fallbackBrokenHeroImage}
-            />
-            {hasGoldenVariant && goldenVariant ? (
-              <BattlegroundCardVariantToggle
-                value={selectedVariant}
-                normalStats={{ attack: card.attack, health: card.health }}
-                goldenStats={{ attack: goldenVariant.attack, health: goldenVariant.health }}
-                onChange={setSelectedVariant}
-              />
-            ) : null}
+            {heroCard}
+            {variantToggle}
           </div>
           <div className="bg-library-card-dossier__copy min-w-0 space-y-5">
             <div data-tour-id="bg-library-detail-dossier">
@@ -1402,9 +1398,9 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
 
             {showStats ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard label="Impact" value={formatDecimal(mainImpact, 2)} tone={metricTone(mainImpact)} tourId="bg-library-detail-statistics" />
-                <MetricCard label="Среднее место" value={formatDecimal(mainAverage, 2)} />
-                <MetricCard label={kind === 'spell' ? 'Сыграно' : 'Популярность'} value={kind === 'spell' ? formatCount(mainPopularity) : formatPercent(mainPopularity, 1)} />
+                <MetricCard label="Impact" value={formatDecimal(spellStat?.impact, 2)} tone={metricTone(spellStat?.impact)} tourId="bg-library-detail-statistics" />
+                <MetricCard label="Среднее место" value={formatDecimal(spellStat?.average_placement, 2)} />
+                <MetricCard label="Сыграно" value={formatCount(spellStat?.total_played)} />
                 <MetricCard label="Стратегии" value={String(usedStrategies.length)} caption="где карта встречается" />
               </div>
             ) : (
@@ -1428,18 +1424,12 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
           </div>
         </div>
       </section>
+      )}
 
-      {kind === 'minion' && showStats && detail && (
-        <section className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-sm sm:p-5">
-          <div
-            className="mb-4 flex items-center gap-3"
-            data-tour-id="bg-library-detail-rounds"
-          >
-            <BarChart3 className="text-[#8a651f]" />
-            <h2 className="font-hs text-2xl text-[#26374f]">Раунды и динамика</h2>
-          </div>
-          <RoundAnalytics rows={rounds} />
-        </section>
+      {minionView && stats && (
+        <div>
+          <BattlegroundMinionStatsSections key={stats.minion.dbfId} stats={stats} tourId="bg-library-detail-rounds" variant={selectedVariant === 'golden' && hasGoldenVariant ? 'golden' : 'normal'} />
+        </div>
       )}
 
       {kind === 'spell' && showStats && (
@@ -1462,41 +1452,11 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
         >
           Используется в стратегиях
         </h2>
-        {usedStrategies.length ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            {usedStrategies.map(strategy => {
-              const href = strategyTierListPath(strategy);
-              return (
-              <a
-                key={strategy.key}
-                href={href}
-                onClick={(event) => { event.preventDefault(); navigatePath(href); }}
-                className="group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-4 transition-colors hover:border-[#d3af55] hover:bg-[#fffaf0]"
-                style={{ textDecoration: 'none' }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8a651f]">{strategy.source} · {strategy.tier || 'meta'}</p>
-                    <h3 className="mt-1 font-hs text-xl text-[#26374f]">{strategy.title}</h3>
-                  </div>
-                  <ExternalLink size={18} className="text-[#7b8da6]" />
-                </div>
-                {strategy.description && <p className="mt-2 line-clamp-2 text-sm text-[#657893]">{strategy.description}</p>}
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {(strategy.cards || []).slice(0, 8).map(item => (
-                    <span key={`${strategy.key}-${item.id}-${item.dbfId}`} className={`rounded px-2 py-1 text-xs ${Number(item.dbfId) === Number(card.dbf) || item.id === card.card_id ? 'bg-[#e4c675] text-[#101827]' : 'bg-[#eef4fd] text-[#33445d]'}`}>
-                      {item.ruName || item.name || item.id}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-[#d3af55] bg-[#fff3c4] px-3 py-2 text-sm font-bold text-[#4b3419] transition-colors group-hover:bg-[#e4c675]">
-                  Открыть стратегию
-                  <ExternalLink size={15} />
-                </div>
-              </a>
-              );
-            })}
-          </div>
+        {usedStrategyRows.length ? (
+          <BattlegroundStrategyList
+            rows={usedStrategyRows}
+            onOpen={(href, event) => { event.preventDefault(); navigatePath(href); }}
+          />
         ) : (
           <div className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-6 text-center text-[#657893]">
             В текущих мета-сборках эта карта не найдена.

@@ -25,11 +25,13 @@ export { battlegroundBuilderWorkbenchV1 } from './legacy/builderWorkbench';
 
 export { LibraryControls } from './ui/LibraryControls';
 
+export { fetchBattlegroundMinionStats } from './model/minionStats';
+export type { BattlegroundMinionBoard, BattlegroundMinionStats, BattlegroundMinionStatsTotals } from './model/minionStats';
+
 export { createBattlegroundLibraryResource } from './model/libraryResource';
 export { useBattlegroundLibraryData } from './useLibraryData';
 
 export { HeroBarChart, HeroPowerChart, HeroTavernChart, HeroDataTable, HeroCompositionAnalytics } from './ui/HeroAnalytics';
-export { RoundAnalytics } from './ui/RoundAnalytics';
 
 export {
   buildTierBuilderCards, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount, plainCardText,

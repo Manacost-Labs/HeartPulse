@@ -257,14 +257,26 @@ export const fixtures = {
     images: { card: qaCard.imageRu, golden: qaCard.imageRu, art: qaCard.imageRu },
     source: 'qa-fixture', updated_at: '2026-07-11T00:00:00.000Z',
   },
-  '/api/bg/library/minions/9101': {
-    dbf_id: 9101, card_id: 'BG_QA_1', name: 'QA Minion', name_ru: 'Контрольное существо', tavern_tier: 3,
-    impact: 0.42, combat_winrate: 55.1, popularity: 12.4, games_with_minion: 200, games_without_minion: 800,
-    avg_placement_with: 3.7, avg_placement_without: 4.2,
+  '/api/bg/library/minions/9101/stats': {
+    minion: { dbfId: 9101, cardId: 'BG_QA_1', nameRu: 'Контрольное существо', tavernTier: 3, attack: 4, health: 5,
+      images: { card: null, cardGolden: null, art: qaCardImage } },
+    slice: { mmr: 'TOP_50_PERCENT', period: 'LAST_7_DAYS', fetchedAt: '2026-07-11T00:00:00.000Z', updatedAt: '2026-07-11T00:00:00.000Z' },
+    normal: { impact: 0.42, combatWinrate: 55.1, popularity: 12.4, gamesWith: 200, placementWith: 3.7, placementWithout: 4.2, wins: 111, losses: 89 },
+    golden: null,
     rounds: [
-      { combat_round: 8, games_with_minion: 90, games_without_minion: 300, avg_placement_with: 3.9, avg_placement_without: 4.3, impact: 0.4, combat_winrate: 54, wins: 49, losses: 41 },
-      { combat_round: 9, games_with_minion: 110, games_without_minion: 500, avg_placement_with: 3.6, avg_placement_without: 4.1, impact: 0.5, combat_winrate: 56, wins: 62, losses: 48 },
+      { round: 8, normal: { impact: 0.4, combatWinrate: 54, popularity: 10, wins: 49, losses: 41 }, golden: null, median: { normal: [4, 5], golden: null } },
+      { round: 9, normal: { impact: 0.5, combatWinrate: 56, popularity: 12, wins: 62, losses: 48 }, golden: null, median: { normal: [6, 7], golden: null } },
     ],
+    purchases: [
+      { round: 8, copies: [24, 12, null], discover: [30, null, null] },
+      { round: 9, copies: [21, 15, 8], discover: [28, 40, null] },
+    ],
+    positions: {
+      compositionId: 0, defaultBoard: 'normal', taunt: null, compositions: [{ id: 3, name: 'Звери' }],
+      normal: { occurrences: 900, slots: [1, 2, 3, 4, 5, 6, 7].map(position => ({
+        position, popularity: [6, 14, 21, 22, 19, 12, 6][position - 1], impact: position === 7 ? null : 0.05 * (4 - position), occurrences: 120,
+      })) },
+    },
   },
   '/api/standard/matchups': {
     format: 'standard', formatLabel: 'Стандарт',

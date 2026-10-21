@@ -1,0 +1,127 @@
+.minion-section {
+  margin-top: 1rem;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+}
+
+.minion-section__heading {
+  padding: 1rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+}
+
+.minion-section__eyebrow {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  color: var(--arena-red);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.minion-section__eyebrow svg {
+  width: 14px;
+  height: 14px;
+}
+
+.minion-section__heading h2 {
+  margin: 0.2rem 0 0;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+}
+
+.minion-section__heading p {
+  max-width: 740px;
+  margin: 0.35rem 0 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.minion-section__body {
+  padding: 1rem;
+}
+
+.minion-section__charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: 1rem;
+}
+
+.minion-section__heatmap { min-width: 0; }
+
+.minion-board {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.minion-board__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.minion-board__controls .ui-select { width: auto; min-width: 11rem; }
+
+.minion-board__slots {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.minion-board__slots[aria-busy='true'] { opacity: 0.55; }
+
+.minion-board__slots li {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: center;
+  padding: 0.65rem 0.25rem;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, #8d171d calc(var(--heat) * 42%), rgba(255, 248, 225, 0.6));
+  font-variant-numeric: tabular-nums;
+}
+
+.minion-board__slots strong {
+  font-size: 1.05rem;
+}
+
+/* The site paints every content `li` grey-blue, so the slot text sets its own ink;
+   strong heat darkens the slot and turns the text light. */
+.minion-board__slots li > * { color: var(--arena-ink); }
+.minion-board__slots li[data-strong] > * { color: #fff0c8; }
+
+.minion-board__position {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.minion-board__impact { font-size: 0.78rem; font-weight: 700; }
+.minion-board__impact[data-tone='muted'] { opacity: 0.75; cursor: help; }
+li:not([data-strong]) > .minion-board__impact[data-tone='better'] { color: #2f6d34; }
+li:not([data-strong]) > .minion-board__impact[data-tone='worse'] { color: var(--arena-red); }
+
+.minion-board__note {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 520px) {
+  .minion-section__body { padding: 0.75rem; }
+  .minion-board__slots { gap: 0.2rem; }
+  .minion-board__slots li { padding: 0.5rem 0.1rem; }
+  .minion-board__slots strong { font-size: 0.8rem; }
+  .minion-board__impact { font-size: 0.66rem; }
+}

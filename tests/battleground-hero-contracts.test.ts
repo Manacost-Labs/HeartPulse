@@ -99,7 +99,8 @@ const TIER_BUILDER_RUNTIME_NAMES = [
   'TIER_BUILDER_TIERS', 'tierBuilderCardImage', 'tierBuilderCardMeta', 'tierBuilderDraft', 'withTierBuilderSource',
 ];
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ANALYTICS_CONTRACT_NAMES = ['HeroBarChart', 'HeroPowerChart', 'HeroTavernChart', 'HeroDataTable', 'HeroCompositionAnalytics', 'RoundAnalytics'];
+const ANALYTICS_CONTRACT_NAMES = ['HeroBarChart', 'HeroPowerChart', 'HeroTavernChart', 'HeroDataTable', 'HeroCompositionAnalytics'];
+const MINION_STATS_TYPE_NAMES = ['BattlegroundMinionBoard', 'BattlegroundMinionStats', 'BattlegroundMinionStatsTotals'];
 
 function parsedSource(relativePath: string, scriptKind: ts.ScriptKind): ts.SourceFile {
   const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
@@ -119,9 +120,9 @@ for (const statement of publicEntry.statements) {
   const destination = statement.isTypeOnly ? publicTypeNames : publicRuntimeNames;
   destination.push(...statement.exportClause.elements.map(element => element.name.text));
 }
-assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData', ...TIER_BUILDER_TYPE_NAMES].sort(),
+assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData', ...TIER_BUILDER_TYPE_NAMES, ...MINION_STATS_TYPE_NAMES].sort(),
   'the Battlegrounds public entry exposes the hero catalog and tier-data contracts');
-assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData', ...TIER_BUILDER_RUNTIME_NAMES].sort(),
+assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData', ...TIER_BUILDER_RUNTIME_NAMES].sort(),
   'the Battlegrounds public entry exposes the image policy, legacy bridge, tier resource and library controls');
 
 const heroCatalogModel = parsedSource(
@@ -188,8 +189,8 @@ function assertConsumerImports(
   return sourceFile;
 }
 
-assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'], [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES.filter(name => name !== 'RoundAnalytics')]);
-assertConsumerImports('../src/features/BgLibrary.tsx', [], ['LibraryControls', 'RoundAnalytics', 'battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'useBattlegroundLibraryData']);
+assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'], [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES]);
+assertConsumerImports('../src/features/BgLibrary.tsx', ['BattlegroundMinionStats'], ['LibraryControls', 'battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData']);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
   CONTRACT_NAMES.filter(name => name !== 'BattlegroundHeroRelatedCard'),
@@ -213,6 +214,12 @@ assert.deepEqual(battlegroundPublicEdges, [
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'type',
   },
+  { source: 'src/features/BattlegroundMinionBoard.tsx', target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' },
+  ...[
+    'src/features/BattlegroundMinionStats.stories.tsx',
+    'src/features/battlegroundMinionStatsModel.ts',
+    'src/features/BattlegroundMinionStatsSections.tsx',
+  ].map(source => ({ source, target: 'src/modules/battlegrounds/public.ts', kind: 'type' })),
   {
     source: 'src/features/Battlegrounds.tsx',
     target: 'src/modules/battlegrounds/public.ts',
@@ -229,7 +236,7 @@ assert.deepEqual(battlegroundPublicEdges, [
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'runtime',
   },
-], 'the canonical module graph must contain only the intended hero, tier-builder and library edges to the public entry');
+], 'the canonical module graph must contain only the intended hero, tier-builder, library and minion-statistics edges to the public entry');
 
 function statsHeroes(count: number): unknown {
   return {
