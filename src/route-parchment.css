@@ -141,7 +141,6 @@
 }
 
 .arena-app-standard-matchups .standard-matchups__ledger-heading h2,
-.arena-app-standard-matchups .standard-matchups__picker h3,
 .arena-app-standard-matchups .standard-matchups__summary-card h3 {
   color: #3e291c !important;
 }
@@ -152,51 +151,6 @@
   color: #dec18b !important;
   background: #4d0b10 !important;
   box-shadow: none !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__picker {
-  margin-bottom: 1.2rem !important;
-  padding: 1rem 1rem 1.2rem 1.25rem !important;
-  border: 0 !important;
-  border-left: 5px solid var(--arena-red) !important;
-  border-radius: 0 !important;
-  background: rgba(255, 244, 216, 0.35) !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__picker select {
-  min-height: 44px;
-  border-color: rgba(99, 58, 26, 0.42) !important;
-  border-radius: 1px !important;
-  color: #3e291c !important;
-  background: rgba(255, 244, 216, 0.88) !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__quick-list button {
-  min-height: 38px;
-  border-radius: 1px !important;
-  color: #543a28 !important;
-  background: rgba(255, 244, 216, 0.56) !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__quick-list button[aria-pressed='true'] {
-  border-color: #efc568 !important;
-  color: #fff0c4 !important;
-  background: #6d1117 !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__group {
-  border-radius: 2px !important;
-  background: rgba(255, 244, 216, 0.46) !important;
-  box-shadow: none !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__group:nth-child(1) { border-top: 4px solid #397548 !important; }
-.arena-app-standard-matchups .standard-matchups__group:nth-child(2) { border-top: 4px solid #9a7743 !important; }
-.arena-app-standard-matchups .standard-matchups__group:nth-child(3) { border-top: 4px solid #8b3034 !important; }
-
-.arena-app-standard-matchups .standard-matchups__group [class*='rounded-lg'] {
-  border-radius: 1px !important;
-  background: rgba(255, 249, 232, 0.58) !important;
 }
 
 .arena-app-standard-matchups .standard-matchups__summary {
@@ -212,15 +166,6 @@
   border: 0 !important;
   border-radius: 0 !important;
   background: rgba(255, 244, 216, 0.32) !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__summary-card + .standard-matchups__summary-card {
-  border-left: 1px solid var(--arena-paper-line) !important;
-}
-
-.arena-app-standard-matchups .standard-matchups__summary-card [class*='rounded-lg'] {
-  border-radius: 1px !important;
-  background: rgba(255, 249, 232, 0.5) !important;
 }
 
 @media (max-width: 720px) {
@@ -242,11 +187,6 @@
   }
 
   .arena-app-standard-matchups .standard-matchups__rank-switcher button { padding-inline: 0.65rem !important; }
-  .arena-app-standard-matchups .standard-matchups__picker { padding-left: 1rem !important; }
-  .arena-app-standard-matchups .standard-matchups__summary-card + .standard-matchups__summary-card {
-    border-top: 1px solid var(--arena-paper-line) !important;
-    border-left: 0 !important;
-  }
 }
 
 /* Tier list and legendary groups — shared Arena data shell. */

@@ -56,7 +56,8 @@ export function pairConfidence(a: number | undefined, b: number | undefined): St
   return mean >= CONFIDENCE_SHARE.high ? 'high' : mean >= CONFIDENCE_SHARE.medium ? 'medium' : 'low';
 }
 
-function minSample(sourceUrl: string | undefined): number | null {
+/** The source's minimum games for a published pair, read from its URL. */
+export function matchupMinSample(sourceUrl: string | undefined): number | null {
   try {
     const value = Number(new URL(sourceUrl ?? '').searchParams.get('min_matchup_sample'));
     return Number.isInteger(value) && value > 0 ? value : null;
@@ -84,5 +85,5 @@ export function standardMatrix(data: StandardMatchupsData, labelOf: (name: strin
         games: CONFIDENCE_RANK[pairConfidence(shareOf.get(row.archetype), shareOf.get(cell.opponent))] });
     }
   }
-  return { archetypes, pairs, minSample: minSample(data.sourceUrl) };
+  return { archetypes, pairs, minSample: matchupMinSample(data.sourceUrl) };
 }

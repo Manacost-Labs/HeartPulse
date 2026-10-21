@@ -4,7 +4,7 @@ Source copied from the VaryloUI registry (`r/<name>.json`, local release in
 `/home/debian/varylo-ui-release`, equivalent to `npx varylo-cli add <name…>`).
 Items: data-table, kpi-group, confidence-band-chart, heatmap,
 metric-comparison, radar-chart, matchup-matrix (`gaming/`, `agents/labels.ts`),
-scatter-chart, treemap, sparkline, trend-value, meta-table and their registry
+scatter-chart, treemap, sparkline, trend-value, meta-table, combobox and their registry
 dependencies (skeleton, primitives, styles, icon-button, tooltip, button,
 spinner, empty-state, icons, theme, badge, stats-card, text-input,
 search-input, select, listbox, segmented-control, breadcrumbs, dropdown-menu).

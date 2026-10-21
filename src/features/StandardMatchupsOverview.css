@@ -1,0 +1,231 @@
+/* The archetype overview: a class-art header with the picker, a one-line
+   summary with the class strip, and every pair as one list of 50%-bars. */
+.standard-matchups-overview {
+  /* Listbox geometry the parchment mapping leaves to a theme (the matrix scope sets the same). */
+  --ui-popover-padding: 6px;
+  --ui-menu-item-h: 36px;
+  --ui-listbox-label-indent: 8px;
+  --ui-menu-highlight-bg: rgba(123, 21, 27, 0.1);
+  --ui-menu-highlight-fg: var(--arena-ink);
+
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  color: #3d2208;
+}
+
+.standard-matchups-overview__layer { display: contents; }
+
+/* ── Header: class art under a wood gradient, as on the archetype page ── */
+.standard-matchups-overview__hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  grid-template-areas: 'identity picker' 'stats picker' 'link picker';
+  gap: 0.85rem 1.5rem;
+  overflow: hidden;
+  padding: 1.25rem 1.4rem;
+  border: 6px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 / 6px stretch;
+  color: #fff3d6;
+  background: #2c1a10;
+  isolation: isolate;
+}
+
+.standard-matchups-overview__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(30, 16, 8, 0.96) 0%, rgba(30, 16, 8, 0.86) 45%, rgba(30, 16, 8, 0.55) 100%);
+}
+
+.standard-matchups-overview__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.standard-matchups-overview__identity { grid-area: identity; display: flex; gap: 0.9rem; align-items: center; min-width: 0; }
+.standard-matchups-overview__identity h3 { margin: 0; color: #fff3d6; font-family: var(--font-hs); font-size: 1.7rem; line-height: 1.1; }
+.standard-matchups-overview__eyebrow { margin: 0 0 0.15rem; color: #e6c27a; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.standard-matchups-overview__english { margin: 0.2rem 0 0; color: #d9c4a0; font-size: 0.8rem; }
+
+.standard-matchups-overview__stats { grid-area: stats; display: flex; flex-wrap: wrap; gap: 0.6rem 1.75rem; margin: 0; }
+.standard-matchups-overview__stats dt { color: #d9c4a0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.standard-matchups-overview__stats dd { display: grid; margin: 0.1rem 0 0; font-size: 1.35rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.standard-matchups-overview__stats dd small { color: #d9c4a0; font-size: 0.66rem; font-weight: 600; }
+.standard-matchups-overview__stats dd[data-side='up'] { color: #8fd6a2; }
+.standard-matchups-overview__stats dd[data-side='down'] { color: #f0a0a0; }
+
+.standard-matchups-overview__archetype-link {
+  grid-area: link;
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  justify-self: start;
+  min-height: 40px;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid rgba(239, 197, 104, 0.7);
+  color: #fff0c4;
+  background: #6d1117;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.standard-matchups-overview__archetype-link:hover { background: #82161d; }
+.standard-matchups-overview__archetype-link:focus-visible { outline: 2px solid #efc568; outline-offset: 2px; }
+
+.standard-matchups-overview__picker { grid-area: picker; display: grid; align-content: start; gap: 0.5rem; min-width: 0; }
+.standard-matchups-overview__picker-label { color: #e6c27a; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.standard-matchups-overview__picker .ui-combobox { color: #3d2208; }
+
+.standard-matchups-overview__chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+.standard-matchups-overview__chips button {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.2rem 0.6rem 0.2rem 0.25rem;
+  border: 1px solid rgba(239, 197, 104, 0.4);
+  color: #f3e2bd;
+  background: rgba(30, 16, 8, 0.55);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.standard-matchups-overview__chips button:hover { border-color: rgba(239, 197, 104, 0.8); }
+.standard-matchups-overview__chips button[aria-pressed='true'] { border-color: #efc568; color: #fff0c4; background: #6d1117; }
+.standard-matchups-overview__chips button:focus-visible { outline: 2px solid #efc568; outline-offset: 2px; }
+
+/* ── Summary and the class strip ── */
+.standard-matchups-overview__summary {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(99, 58, 26, 0.22);
+  background: rgba(255, 249, 232, 0.6);
+}
+
+.standard-matchups-overview__summary p { margin: 0; font-size: 0.92rem; line-height: 1.5; }
+
+.standard-matchups-overview__classes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standard-matchups-overview__classes li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.4rem;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid rgba(99, 58, 26, 0.18);
+  background: rgba(255, 249, 232, 0.7);
+}
+
+.standard-matchups-overview__classes strong { font-size: 0.95rem; font-variant-numeric: tabular-nums; text-align: end; }
+.standard-matchups-overview__classes li[data-side='up'] strong { color: #1f6034; }
+.standard-matchups-overview__classes li[data-side='down'] strong { color: #8d171d; }
+.standard-matchups-overview__classes .standard-matchups-bar { grid-column: 1 / -1; min-inline-size: 0; block-size: 6px; }
+
+/* ── The list ── */
+.standard-matchups-overview__list { display: grid; gap: 0.75rem; min-width: 0; }
+/* The filter chips scroll sideways; they must not widen the list. */
+.standard-matchups-overview__list > *,
+.standard-matchups-overview__tools > * { min-width: 0; }
+.standard-matchups-overview__tools { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+
+.standard-matchups-overview__rows,
+.standard-matchups-overview__group > ol { display: grid; margin: 0; padding: 0; list-style: none; }
+.standard-matchups-overview__rows { gap: 0.9rem; }
+
+.standard-matchups-overview__group h4 {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  margin: 0 0 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--group);
+  color: var(--group);
+  font-family: var(--font-hs);
+  font-size: 1.1rem;
+}
+
+.standard-matchups-overview__group h4 span { color: #6f5236; font-family: var(--font-body, inherit); font-size: 0.75rem; font-weight: 700; }
+.standard-matchups-overview__group[data-group='strong'] { --group: #1f6034; }
+.standard-matchups-overview__group[data-group='even'] { --group: #7a5a2c; }
+.standard-matchups-overview__group[data-group='weak'] { --group: #8d171d; }
+
+.standard-matchups-overview__row {
+  display: grid;
+  grid-template-columns: auto minmax(10rem, 1.3fr) minmax(8rem, 2fr) 4.2rem;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 48px;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid rgba(102, 63, 27, 0.14);
+}
+
+.standard-matchups-overview__row:hover { background: rgba(255, 249, 232, 0.7); }
+.standard-matchups-overview__row[data-confidence='low'] { opacity: 0.58; }
+.standard-matchups-overview__name { display: grid; min-width: 0; line-height: 1.25; }
+.standard-matchups-overview__name a { color: #3d2208; font-weight: 800; text-decoration: none; }
+.standard-matchups-overview__name a:hover { color: #6d1117; text-decoration: underline; }
+.standard-matchups-overview__name small { color: #6f5236; font-size: 0.72rem; }
+.standard-matchups-overview__rate { font-size: 1rem; font-variant-numeric: tabular-nums; text-align: end; }
+.standard-matchups-overview__rate[data-side='up'] { color: #1f6034; }
+.standard-matchups-overview__rate[data-side='down'] { color: #8d171d; }
+
+.standard-matchups-overview__more {
+  justify-self: center;
+  min-height: 40px;
+  padding: 0.4rem 1.2rem;
+  border: 1px solid rgba(99, 58, 26, 0.35);
+  color: #6d1117;
+  background: rgba(255, 249, 232, 0.6);
+  font-size: 0.85rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.standard-matchups-overview__more:focus-visible { outline: 2px solid #6d1117; outline-offset: 2px; }
+.standard-matchups-overview__empty,
+.standard-matchups-overview__note { margin: 0; color: #6f5236; font-size: 0.78rem; line-height: 1.45; }
+
+@media (max-width: 860px) {
+  .standard-matchups-overview__hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'identity' 'stats' 'link' 'picker';
+    padding: 1rem;
+  }
+}
+
+/* Phone: each pair is a compact card — name on top, bar and rate below. */
+@media (max-width: 640px) {
+  .standard-matchups-overview__identity h3 { font-size: 1.35rem; }
+  .standard-matchups-overview__stats dd { font-size: 1.1rem; }
+
+  .standard-matchups-overview__row {
+    grid-template-columns: auto minmax(0, 1fr) 4rem;
+    grid-template-areas: 'icon name rate' 'icon bar bar';
+    gap: 0.3rem 0.6rem;
+    padding: 0.5rem 0.25rem;
+  }
+
+  .standard-matchups-overview__row > img { grid-area: icon; align-self: start; }
+  .standard-matchups-overview__name { grid-area: name; }
+  .standard-matchups-overview__row .standard-matchups-bar { grid-area: bar; min-inline-size: 0; }
+  .standard-matchups-overview__rate { grid-area: rate; }
+  .standard-matchups-overview__tools > * { flex: 1 1 100%; }
+}

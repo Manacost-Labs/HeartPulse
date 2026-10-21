@@ -310,6 +310,7 @@
         "tests/standard-matchup-routes.test.ts",
         "tests/standard-matchups-client.test.ts",
         "tests/standard-matchups-matrix.test.ts",
+        "tests/standard-matchups-overview.test.ts",
         "tests/standard-meta-routes.test.ts",
         "tests/patch-notes.test.ts",
         "tests/battleground-tier-builder.test.ts",

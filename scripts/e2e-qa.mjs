@@ -3317,55 +3317,51 @@ for (const [device, viewport] of [
     await page.click('.standard-matchups__view-switcher button[aria-pressed="false"]');
     await page.waitForFunction(() => (
       document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.includes('Стандарт')
-      && document.querySelector('#matchups-picker select')?.value === 'Control Warrior'
+      && document.querySelector('#matchups-archetype')?.value === 'Контроль Воин'
     ), { timeout: 10_000 });
     await page.click('.standard-matchups__filter-chips button:nth-child(2)');
     await page.waitForFunction(() => (
       document.querySelector('.standard-matchups__filter-chips button:nth-child(2)')?.getAttribute('aria-pressed') === 'true'
     ));
+    // One list of 50%-bars: a group filter leaves one full-width row, never a nested scroll.
     const focusedMatchupsState = await page.evaluate(() => {
-      const group = document.querySelector('.standard-matchups__groups--focused .standard-matchups__group');
-      const list = group?.querySelector('.standard-matchups__group-list');
-      const card = list?.querySelector('.standard-matchups__group-item');
-      const groupRect = group?.getBoundingClientRect();
-      const cardRect = card?.getBoundingClientRect();
-      const listStyle = list ? getComputedStyle(list) : null;
+      const list = document.querySelector('.standard-matchups-overview__rows');
+      const row = list?.querySelector('.standard-matchups-overview__row');
       return {
-        groups: document.querySelectorAll('.standard-matchups__groups--focused .standard-matchups__group').length,
-        cards: document.querySelectorAll('.standard-matchups__groups--focused .standard-matchups__group-item').length,
-        display: listStyle?.display || '',
-        columns: listStyle?.gridTemplateColumns.split(/\s+/).filter(Boolean).length ?? 0,
-        groupWidth: groupRect?.width ?? 0,
-        cardWidth: cardRect?.width ?? 0,
+        groups: document.querySelectorAll('.standard-matchups-overview__group').length,
+        rows: document.querySelectorAll('.standard-matchups-overview__row').length,
+        icon: Boolean(row?.querySelector('img.standard-matchups-class-icon')),
+        bar: row?.querySelector('.standard-matchups-bar')?.getAttribute('data-side') || '',
+        listWidth: list?.getBoundingClientRect().width ?? 0,
+        rowWidth: row?.getBoundingClientRect().width ?? 0,
+        innerScroll: [...document.querySelectorAll('.standard-matchups-overview *')]
+          .some(node => ['auto', 'scroll'].includes(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight + 1),
         pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
-    if (focusedMatchupsState.groups !== 1 || focusedMatchupsState.cards !== 1
-      || focusedMatchupsState.display !== 'grid' || focusedMatchupsState.cardWidth <= 0
-      || focusedMatchupsState.cardWidth > 354 || focusedMatchupsState.pageOverflow
-      || (device === 'desktop' && (focusedMatchupsState.columns < 2
-        || focusedMatchupsState.cardWidth >= focusedMatchupsState.groupWidth * 0.7))
-      || (device === 'mobile' && focusedMatchupsState.columns !== 1)) {
-      failures.push(`standard matchups focused columns [${device}]: cards stretched or stopped using the responsive grid (${JSON.stringify(focusedMatchupsState)})`);
+    if (focusedMatchupsState.groups !== 1 || focusedMatchupsState.rows !== 1 || !focusedMatchupsState.icon
+      || focusedMatchupsState.bar !== 'up' || focusedMatchupsState.rowWidth < focusedMatchupsState.listWidth - 2
+      || focusedMatchupsState.innerScroll || focusedMatchupsState.pageOverflow) {
+      failures.push(`standard matchups overview list [${device}]: grouped bar list regressed (${JSON.stringify(focusedMatchupsState)})`);
     }
     await page.screenshot({ path: `${OUT}/standard-matchups-focused-${device}.png`, fullPage: false });
     await page.click('button[aria-label="Показать матчапы: Вольный"]');
     await page.waitForFunction(() => (
       document.querySelector('button[aria-label="Показать матчапы: Вольный"]')?.getAttribute('aria-pressed') === 'true'
       && document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.includes('Вольный')
-      && document.querySelector('#matchups-picker select')?.value === 'Wild Control Rogue'
+      && document.querySelector('#matchups-archetype')?.value === 'Вольный Контроль Разбойник'
     ), { timeout: 10_000 });
     const wildMatchupsState = await page.evaluate(() => ({
       heading: document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       selectedFormat: document.querySelector('button[aria-label="Показать матчапы: Вольный"]')?.getAttribute('aria-pressed') || '',
-      selectedArchetype: document.querySelector('#matchups-picker select')?.value || '',
-      overviewCards: document.querySelectorAll('.standard-matchups__group-list > div').length,
+      selectedArchetype: document.querySelector('#matchups-archetype')?.value || '',
+      overviewCards: document.querySelectorAll('.standard-matchups-overview__row').length,
       matrixDeferred: !document.querySelector('#matchups-matrix'),
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (!wildMatchupsState.heading.includes('Вольный')
       || wildMatchupsState.selectedFormat !== 'true'
-      || wildMatchupsState.selectedArchetype !== 'Wild Control Rogue'
+      || wildMatchupsState.selectedArchetype !== 'Вольный Контроль Разбойник'
       || wildMatchupsState.overviewCards !== 2
       || !wildMatchupsState.matrixDeferred
       || wildMatchupsState.pageOverflow

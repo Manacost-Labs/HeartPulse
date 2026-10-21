@@ -64,3 +64,37 @@ The API adds `classKey` (inferred from the English name by
 accepts only known class keys; responses cached before the field existed still
 parse and fall back to initials. Column `popularity` reads the HSGuru popularity
 row at `index - 2`: that row has no cells for the win-rate and name columns.
+
+## Archetype overview
+
+The "Обзор архетипа" view (`StandardMatchupsOverview`, model
+`model/overview.ts`) shows one archetype against the field:
+
+- a header with the class icon over the class art (`archetypeClassBackdrop`,
+  as on the archetype page), the win rate against the field and share of games
+  as HSGuru publishes them, the count of favoured, even and unfavoured pairs and
+  a link to the archetype page (slug derived from the English name with the
+  server's `constructedArchetypeSlug` rule). The archetype is picked in a
+  VaryloUI combobox with search and class icons, grouped by class, or with
+  chips for the six archetypes with the largest share;
+- a one-line summary: the best and worst pair (low-confidence pairs are left out
+  while trusted ones remain; no worst when it ties the best) and the best and
+  worst opponent class, then a strip with the average win rate against each
+  class, weighted by its archetypes' shares;
+- every published pair in one list, sorted by win rate and split by the
+  headers Хорошие (52%+), Ровные (48–52%) and Сложные (below 48%). A row has
+  the class icon, the name linking to the opponent's archetype page, its share
+  of games and reliability, a bar from 50% (green right, red left, clipped at
+  ±25 points) and the win rate. Search and the group chips filter it. With
+  more than 15 pairs the list shows the five best favoured, five even and five
+  worst unfavoured pairs until "Показать все"; nothing scrolls inside it.
+
+HSGuru publishes no game count per pair or per archetype in the matchup table,
+so the view shows no games and no confidence interval: reliability is the
+share-based rank above, and low pairs are muted. Below 640px a row is a
+compact card (name and rate on top, the bar below).
+
+"Сильнейшие архетипы" under the view replaces the former "Лучшие архетипы" and
+"Быстрые ориентиры": the six archetypes with the best win rate against the
+field, each with its share, a bar and its best and worst pair; a card opens
+that archetype's overview.

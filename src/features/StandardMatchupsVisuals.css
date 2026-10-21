@@ -1,0 +1,82 @@
+/* Matchup bars, class icons and the strongest-archetypes list on the matchups parchment. */
+.standard-matchups-class-icon {
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--arena-wood-dark, #3a2210);
+  box-shadow: 0 0 0 1px rgba(217, 171, 73, 0.7);
+}
+
+/* A track with the 50% line in the middle; the fill runs right (favoured) or left. */
+.standard-matchups-bar {
+  position: relative;
+  display: block;
+  min-inline-size: 4rem;
+  block-size: 10px;
+  border-radius: 2px;
+  background: rgba(102, 63, 27, 0.12);
+}
+
+.standard-matchups-bar::before {
+  content: '';
+  position: absolute;
+  inset-block: -3px;
+  inset-inline-start: 50%;
+  inline-size: 1px;
+  background: rgba(58, 40, 28, 0.5);
+}
+
+.standard-matchups-bar i {
+  position: absolute;
+  inset-block: 1px;
+  border-radius: 2px;
+  background: #8b6c42;
+}
+
+.standard-matchups-bar[data-side='up'] i { background: #2f7d46; }
+.standard-matchups-bar[data-side='down'] i { background: #a2272b; }
+
+.standard-matchups__summary-lead {
+  margin: 0 0 0.85rem;
+  color: #6b4c2a;
+  font-size: 0.85rem;
+}
+
+.standard-matchups-leaders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standard-matchups-leaders__card {
+  display: grid;
+  gap: 0.55rem;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(99, 58, 26, 0.24);
+  color: #3d2208;
+  background: rgba(255, 249, 232, 0.66);
+  text-align: start;
+  cursor: pointer;
+}
+
+.standard-matchups-leaders__card:hover { border-color: rgba(109, 17, 23, 0.55); background: rgba(255, 249, 232, 0.9); }
+.standard-matchups-leaders__card:focus-visible { outline: 2px solid #6d1117; outline-offset: 2px; }
+
+.standard-matchups-leaders__head { display: flex; gap: 0.6rem; align-items: center; min-width: 0; }
+.standard-matchups-leaders__name { display: grid; flex: 1; min-width: 0; line-height: 1.25; }
+.standard-matchups-leaders__name strong { overflow: hidden; font-size: 0.95rem; text-overflow: ellipsis; white-space: nowrap; }
+.standard-matchups-leaders__name small { color: #6f5236; font-size: 0.72rem; }
+.standard-matchups-leaders__rate { font-size: 1.15rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.standard-matchups-leaders__rate[data-side='up'] { color: #1f6034; }
+.standard-matchups-leaders__rate[data-side='down'] { color: #8d171d; }
+
+.standard-matchups-leaders__pairs { display: grid; gap: 0.25rem; color: #5b412e; font-size: 0.76rem; }
+.standard-matchups-leaders__pairs > span { display: flex; gap: 0.35rem; align-items: center; min-width: 0; }
+.standard-matchups-leaders__pairs b { margin-inline-start: auto; font-variant-numeric: tabular-nums; }
+.standard-matchups-leaders__pairs [data-side='up'] b { color: #1f6034; }
+.standard-matchups-leaders__pairs [data-side='down'] b { color: #8d171d; }
+.standard-matchups-leaders__empty { margin: 0; color: #7a5a35; font-size: 0.85rem; }

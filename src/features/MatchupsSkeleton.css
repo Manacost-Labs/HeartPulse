@@ -1,13 +1,16 @@
 .matchups-skeleton-body { gap: 0; }
 .matchups-skeleton-view { height: 50px; margin-bottom: 16px; }
-.matchups-skeleton-heading { visibility: hidden; }
-.matchups-skeleton-select { height: 64px; flex-shrink: 0; }
-.matchups-skeleton-quick { height: 42px; margin-top: 12px; }
-.matchups-skeleton-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.matchups-skeleton-overview { display: grid; gap: 16px; }
+.matchups-skeleton-hero { height: 236px; }
+.matchups-skeleton-summary { height: 120px; }
+.matchups-skeleton-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .matchups-skeleton-tools .loading-block { height: 44px; }
-.matchups-skeleton-group { display: grid; align-content: space-around; gap: 12px; height: 105px; padding: 12px; border: 1px solid var(--arena-paper-line); }
-.matchups-skeleton-group .loading-block:first-child { height: 24px; width: 70%; }
-.matchups-skeleton-group .loading-block:last-child { height: 32px; }
+.matchups-skeleton-rows { display: grid; gap: 8px; }
+.matchups-skeleton-rows .loading-block { height: 48px; }
+/* The header stacks the picker under the stats, as the overview does. */
+@media (max-width: 860px) {
+  .matchups-skeleton-hero { height: 420px; }
+}
 @media (max-width: 720px) {
   .matchups-skeleton-view { height: 60.5625px; }
   .matchups-skeleton-tools { grid-template-columns: 1fr; }
