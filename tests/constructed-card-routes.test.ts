@@ -138,6 +138,12 @@ assert.deepEqual(
   ['2026-07-27T10:00:00.000Z'],
   'a validated upstream refresh must be persisted for the history chart',
 );
+assert.deepEqual(
+  await historyService.loadCardHistoryContext?.('standard', 'CARD_1', '1d', 'legend', 30,
+    await historyService.loadCardHistory('standard', 'CARD_1', '1d', 'legend', 30)),
+  { trackedSince: '2026-07-27T10:00:00.000Z', references: [] },
+  'one sampled card is not enough for a class or format average',
+);
 assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: 'battlecry' }).map(card => card.card_id), ['CARD_1']);
 assert.deepEqual(
   queryConstructedCards([
@@ -332,6 +338,13 @@ const dependencies: ConstructedCardRouterDependencies = {
       },
     } : null;
   },
+  loadCardHistoryContext: async (format, cardId, period, rank, days, points) => {
+    calls.push(`history-context:${format}:${cardId}:${period}:${rank}:${days}:${points.length}`);
+    return {
+      trackedSince: '2026-06-30T10:00:00.000Z',
+      references: [{ scope: 'class', label: 'Среднее класса «Маг»', points: [] }],
+    };
+  },
   loadCardHistory: async (format, cardId, period, rank, days) => {
     calls.push(`history:${format}:${cardId}:${period}:${rank}:${days}`);
     return cardId === 'CARD_1' ? [{
@@ -441,8 +454,10 @@ try {
   const publicHistoryPayload = await publicHistory.json() as any;
   assert.equal(publicHistoryPayload.statsAccess, false);
   assert.deepEqual(publicHistoryPayload.points, []);
-  assert.ok(!calls.some(call => call.startsWith('history:')),
+  assert.ok(!calls.some(call => call.startsWith('history:') || call.startsWith('history-context:')),
     'locked users must not trigger or receive persisted history reads');
+  assert.deepEqual([publicHistoryPayload.trackedSince, publicHistoryPayload.references], [null, []],
+    'locked users receive neither the history start nor the paid averages');
 
   const invalidFormat = await fetch(`${origin}?format=classic`, { headers: adminHeaders });
   assert.equal(invalidFormat.status, 400);
@@ -490,6 +505,9 @@ try {
   assert.equal(historyPayload.days, 30);
   assert.equal(historyPayload.points[0].deckPopularity, 12.5);
   assert.ok(calls.includes('history:wild:CARD_1:patch:diamond_4_1:30'));
+  assert.equal(historyPayload.trackedSince, '2026-06-30T10:00:00.000Z', 'the history start comes from the whole store');
+  assert.equal(historyPayload.references[0].label, 'Среднее класса «Маг»');
+  assert.ok(calls.includes('history-context:wild:CARD_1:patch:diamond_4_1:30:1'));
 
   const preview = await fetch(`${origin}/CARD_1/decks/754/preview?format=standard`, { method: 'POST', headers: adminHeaders });
   assert.equal(preview.status, 200);

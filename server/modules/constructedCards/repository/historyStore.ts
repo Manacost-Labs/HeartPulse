@@ -3,10 +3,12 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type {
   ConstructedCardFormat,
+  ConstructedCardHistoryAveragePoint,
   ConstructedCardHistoryPoint,
   ConstructedCardPeriod,
   ConstructedCardRank,
 } from '../serviceContracts.js';
+import { readPlayWeightedAverages, readTrackedSince } from './historyQueries.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -215,7 +217,7 @@ export class ConstructedCardHistoryStore {
         average_turn_played AS averageTurnPlayed
       FROM card_stat_history
       WHERE format = ? AND rank = ? AND period = ? AND card_id = ? AND recorded_at >= ?
-      ORDER BY recorded_at ASC
+      ORDER BY recorded_at DESC
       LIMIT 1000
     `).all(
       format,
@@ -224,7 +226,21 @@ export class ConstructedCardHistoryStore {
       cardId,
       new Date(this.now() - boundedDays * DAY_MS).toISOString(),
     ) as ConstructedCardHistoryPoint[];
-    return rows.map(row => ({ ...row }));
+    // The cap keeps the newest snapshots: a long range loses its oldest end, never today.
+    return rows.reverse().map(row => ({ ...row }));
+  }
+
+  /** First snapshot of the card in this slice, outside any requested range. */
+  trackedSince(format: ConstructedCardFormat, period: ConstructedCardPeriod, rank: ConstructedCardRank, cardId: string): string | null {
+    const id = String(cardId ?? '').trim().toUpperCase();
+    return CARD_ID.test(id) ? readTrackedSince(this.database, { format, period, rank }, id) : null;
+  }
+
+  /** See `readPlayWeightedAverages`; `cardIds` null means every card of the slice. */
+  readAverages(format: ConstructedCardFormat, period: ConstructedCardPeriod, rank: ConstructedCardRank,
+    cardIds: string[] | null, since: string, minimumCards = 5): ConstructedCardHistoryAveragePoint[] {
+    const ids = cardIds?.map(id => id.trim().toUpperCase()).filter(id => CARD_ID.test(id)) ?? null;
+    return ids?.length === 0 ? [] : readPlayWeightedAverages(this.database, { format, period, rank }, ids, since, minimumCards);
   }
 
   close(): void {

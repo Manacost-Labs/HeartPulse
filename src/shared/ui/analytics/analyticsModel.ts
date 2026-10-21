@@ -1,11 +1,12 @@
 /**
  * One observation. `segment` names the series period the point belongs to: the line breaks and a
  * labelled boundary is drawn where it changes, because values of different periods are not one
- * continuous series. `low`/`high` draw an interval band; `tick` is a short axis label.
+ * continuous series. `low`/`high` draw an interval band; `tick` is a short axis label;
+ * `reference` is a comparison value at the same x, drawn as a dashed line.
  */
 export type ChartPoint = {
   x: string | number; y: number | null; label?: string; tick?: string; detail?: string;
-  segment?: string; low?: number | null; high?: number | null;
+  segment?: string; low?: number | null; high?: number | null; reference?: number | null;
 };
 export type DomainOptions = { minimum?: number; maximum?: number };
 

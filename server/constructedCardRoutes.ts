@@ -14,6 +14,7 @@ import {
   ConstructedCardDetailUnavailableError,
   ConstructedCardHistoryStore,
   ConstructedCardUpstreamError,
+  createCardHistoryContextReader,
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
   fetchConstructedCatalogPage,
@@ -923,6 +924,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     rank: ConstructedCardRank = 'legend',
     days = 90,
   ): Promise<ConstructedCardHistoryPoint[]> => historyStore.read(format, period, rank, cardId, days);
+  const loadCardHistoryContext = createCardHistoryContextReader({ store: historyStore, loadCards, now });
 
   const getCatalogHealth = (format: ConstructedCardFormat): ConstructedCardCatalogHealth => {
     const cached = catalogCache.get(format)?.value;
@@ -963,7 +965,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     decksJob = null;
   };
 
-  return { loadCards, loadPublicCards, loadCardDetail, loadCardHistory, getCatalogHealth, invalidate };
+  return { loadCards, loadPublicCards, loadCardDetail, loadCardHistory, loadCardHistoryContext, getCatalogHealth, invalidate };
 }
 
 export function createConstructedCardRouter(dependencies: ConstructedCardRouterDependencies): Router {
@@ -1108,30 +1110,19 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
       const responseRank = rankDescriptor(rank);
       if (!statsAccess) {
         return response.json({
-          format,
-          rank: responseRank.id,
-          rankLabel: responseRank.label,
-          rankRange: responseRank.rankRange,
-          period: responsePeriod,
-          statsAccess: false,
-          days,
-          points: [],
+          format, rank: responseRank.id, rankLabel: responseRank.label, rankRange: responseRank.rankRange,
+          period: responsePeriod, statsAccess: false, days, trackedSince: null, references: [], points: [],
         });
       }
       const collection = await dependencies.loadCards(format, period, rank);
       const points = await dependencies.loadCardHistory(format, cardId, period, rank, days);
+      const context = await dependencies.loadCardHistoryContext?.(format, cardId, period, rank, days, points);
       const collectionRank = collection.rank ?? responseRank;
       setDataHeaders(response, collection);
       return response.json({
-        format,
-        rank: collectionRank.id,
-        rankLabel: collectionRank.label,
-        rankRange: collectionRank.rankRange,
-        period: collection.period ?? responsePeriod,
-        statsAccess: true,
-        days,
-        updatedAt: collection.updatedAt,
-        points,
+        format, rank: collectionRank.id, rankLabel: collectionRank.label, rankRange: collectionRank.rankRange,
+        period: collection.period ?? responsePeriod, statsAccess: true, days, updatedAt: collection.updatedAt,
+        trackedSince: context?.trackedSince ?? points[0]?.recordedAt ?? null, references: context?.references ?? [], points,
       });
     } catch (error) {
       return unavailable(response, error, 'history');

@@ -40,13 +40,17 @@ export type {
   ConstructedCardDeck,
   ConstructedCardDetailResult,
   ConstructedCardFormat,
+  ConstructedCardHistoryAveragePoint,
+  ConstructedCardHistoryContext,
   ConstructedCardHistoryPoint,
+  ConstructedCardHistoryReference,
   ConstructedCardPeriod,
   ConstructedCardPeriodDescriptor,
   ConstructedCardRank,
   ConstructedCardRankDescriptor,
 } from './serviceContracts.js';
 export { ConstructedCardHistoryStore } from './repository/historyStore.js';
+export { createCardHistoryContextReader } from './historyContext.js';
 
 export { isIndexableConstructedCard, projectPublicConstructedCardSeoData } from './publicCardProjection.js';
 export type { PublicConstructedCardSeoData } from './publicCardProjection.js';

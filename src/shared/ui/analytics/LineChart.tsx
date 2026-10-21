@@ -10,6 +10,8 @@ type LineChartProps = {
   segmentLabel?: (segment: string) => string;
   /** Tooltip name of the `low`–`high` band. */
   bandLabel?: string;
+  /** Name of the points' `reference` values; without it they are not drawn. */
+  referenceLabel?: string;
 };
 
 const HEIGHT = 240;
@@ -18,7 +20,7 @@ const BOTTOM = HEIGHT - 34;
 const GAP = 14;
 
 /** Shared line chart: one line, area and optional interval band per period segment, a hover card and a keyboard scrubber. */
-export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d', domain, invert = false, xLabel = '', tourId, segmentLabel, bandLabel }: LineChartProps) {
+export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d', domain, invert = false, xLabel = '', tourId, segmentLabel, bandLabel, referenceLabel }: LineChartProps) {
   const { ref, width } = usePlotWidth();
   const id = useId();
   const gradientId = `${id.replace(/:/g, '')}-area`;
@@ -30,7 +32,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
   const latest = observed.at(-1);
   const activeIndex = Math.min(selection ?? data.lastIndexOf(latest ?? data[data.length - 1]), data.length - 1);
   const active = data[activeIndex];
-  const [low, high] = chartDomain(data.flatMap(point => [point.y, point.low ?? null, point.high ?? null]), domain);
+  const [low, high] = chartDomain(data.flatMap(point => [point.y, point.low ?? null, point.high ?? null, referenceLabel ? point.reference ?? null : null]), domain);
   const axisDigits = unit === 'count' ? 0 : Math.min(6, Math.max(2, Math.ceil(-Math.log10((high - low) / 4))));
   const axisValues = [...new Set(axisTicks(low, high, unit === 'count').map(value => Number(value.toFixed(axisDigits))))].filter(value => value >= low && value <= high);
   const axisLabels = axisValues.map(value => formatChartValue(value, unit, axisDigits));
@@ -39,6 +41,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
   const x = (position: number) => left + position * (right - left);
   const y = (value: number) => TOP + (invert ? (value - low) / (high - low) : 1 - (value - low) / (high - low)) * (BOTTOM - TOP);
   const runs = lineRuns(data);
+  const referenceRuns = referenceLabel ? lineRuns(data.map(point => ({ ...point, y: Number.isFinite(point.reference) ? point.reference as number : null }))) : [];
   const line = (run: typeof data) => run.map((point, index) => `${index ? 'L' : 'M'}${x(point.position).toFixed(1)},${y(point.y as number).toFixed(1)}`).join(' ');
   const area = (run: typeof data) => `${line(run)} L${x(run[run.length - 1].position).toFixed(1)},${BOTTOM} L${x(run[0].position).toFixed(1)},${BOTTOM} Z`;
   const band = (run: typeof data) => {
@@ -100,6 +103,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
             {run.length > 1 && !band(run) && <path d={area(run)} fill={`url(#${gradientId})`} />}
             <path d={line(run)} fill="none" stroke={color} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
           </g>)}
+          {referenceRuns.map((run, index) => run.length > 1 && <path key={index} className="analytics-chart__reference" d={line(run)} />)}
           {boundaryLabels.map(boundary => <g key={boundary.index} className="analytics-chart__boundary">
             {boundary.line && <line x1={boundary.at} x2={boundary.at} y1={TOP - 14} y2={BOTTOM} />}
             {boundary.shown && <text x={boundary.anchorEnd ? boundary.at - 4 : boundary.at + 4} y={TOP - 6} textAnchor={boundary.anchorEnd ? 'end' : 'start'}>{boundary.label}</text>}
@@ -121,6 +125,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
           <strong>{formatChartValue(active.y, unit)}</strong>
           {Number.isFinite(active.low) && Number.isFinite(active.high) && <span>{bandLabel ?? 'Интервал'}: {formatChartValue(active.low ?? null, unit)}–{formatChartValue(active.high ?? null, unit)}</span>}
           {active.detail && <span>{active.detail}</span>}
+          {referenceLabel && Number.isFinite(active.reference) && <span>{referenceLabel}: {formatChartValue(active.reference ?? null, unit)}</span>}
           {segmentName(active) && <em>{segmentName(active)}</em>}
         </div>}
         <div className="analytics-chart__selection">

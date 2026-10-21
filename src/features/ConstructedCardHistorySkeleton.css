@@ -1,7 +1,16 @@
-.constructed-card-history-loading dd .loading-block { height: 1lh; width: 65%; }
-/* Real frame typography wraps the same title; the measured plot and scrubber
-   reserve their controls without constructing a chart from fabricated data. */
+/* Real frame typography wraps the same title; the measured plot, scrubber and KPI tiles reserve
+   their space without constructing a chart from fabricated data. */
 .history-loading-plot { height: 240px; }
 .history-loading-value { height: 24px; }
 .history-loading-scrubber { height: 45px; }
 .constructed-card-history-loading .analytics-chart__header > * { visibility: hidden; }
+.history-loading-kpis :is(.ui-kpi-group__value, .ui-kpi-group__caption, .ui-kpi-group__spark) { visibility: hidden; }
+.history-loading-kpis .ui-kpi-group__tile { position: relative; }
+.history-loading-kpis .ui-kpi-group__tile::after {
+  content: '';
+  position: absolute;
+  inset: 2.1rem auto auto var(--ui-space-3, 0.75rem);
+  width: 55%;
+  height: 1.2rem;
+  background: rgba(92, 54, 24, 0.12);
+}

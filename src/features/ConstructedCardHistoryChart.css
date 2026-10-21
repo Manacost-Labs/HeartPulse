@@ -8,9 +8,7 @@
 }
 
 .constructed-card-history__header,
-.constructed-card-history__heading,
-.constructed-card-history__ranges,
-.constructed-card-history__summary dd {
+.constructed-card-history__heading {
   display: flex;
   align-items: center;
 }
@@ -68,141 +66,104 @@
 .constructed-card-history__disclosure svg { transition: transform var(--motion-base) var(--motion-ease); }
 .constructed-card-history[open] .constructed-card-history__disclosure svg { transform: rotate(180deg); }
 
-.constructed-card-history__body { padding-top: 0.7rem; }
-.constructed-card-history__ranges {
-  gap: 0.35rem;
-  justify-content: flex-end;
-  padding: 0 0.8rem;
-  color: #765b3e;
-}
-
-.constructed-card-history__ranges button,
-.constructed-card-history__metrics button {
-  min-height: 42px;
-  border: 1px solid rgba(92, 57, 27, 0.28);
-  color: #5f432a;
-  background: rgba(255, 246, 218, 0.62);
-  font-weight: 850;
-  cursor: pointer;
-}
-.constructed-card-history__ranges button { min-width: 58px; padding: 0.45rem 0.62rem; font-size: 0.7rem; }
-.constructed-card-history__ranges button[aria-pressed='true'],
-.constructed-card-history__metrics button[aria-pressed='true'] {
-  border-color: #4e326b;
-  color: #fff3c9;
-  background: linear-gradient(145deg, #704b8f, #4e326b);
-}
-
-.constructed-card-history__metrics {
+.constructed-card-history__body {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.45rem;
-  padding: 0.7rem 0.8rem 0;
+  gap: 0.7rem;
+  padding: 0.75rem 0.8rem 0.85rem;
 }
-.constructed-card-history__metrics button {
-  min-height: 44px;
-  padding: 0.55rem 0.65rem;
+/* The meta page's plum segmented thumb on this parchment; doubled class to win over the shared
+   `.hp-varylo` theme whatever the stylesheet order. */
+.constructed-card-history__body.hp-varylo {
+  --ui-segmented-control-bg: rgba(92, 54, 24, 0.1);
+  --ui-segmented-control-thumb-bg: #4a2f66;
+  --ui-segmented-control-item-fg: #3a281c;
+  --ui-segmented-control-radius: 0;
+  --ui-segmented-control-pad: 3px;
+  --ui-segmented-control-shadow: inset 0 0 0 1px rgba(92, 54, 24, 0.22);
+  --ui-segmented-control-thumb-shadow: 0 1px 2px rgba(48, 30, 14, 0.3);
+  --ui-segmented-control-item-tracking: normal;
+  --ui-label-transform: none;
+  --ui-font-sans: var(--font-body);
+}
+/* Grid and flex items may shrink below their content: a long control must not widen the card. */
+.constructed-card-history__body > *,
+.constructed-card-history__toolbar > *,
+.constructed-card-history__content > * { min-width: 0; }
+.constructed-card-history__label-short { display: none; }
+.constructed-card-history__body .ui-segmented-control__item[data-active] { color: #fff0c4; }
+.constructed-card-history__body .ui-segmented-control__item:disabled { opacity: 0.42; cursor: not-allowed; }
+
+.constructed-card-history__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+.constructed-card-history__ranges,
+.constructed-card-history__compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  color: #765b3e;
   font-size: 0.72rem;
 }
-.constructed-card-history__ranges button:hover,
-.constructed-card-history__metrics button:hover { filter: brightness(1.04); }
-.constructed-card-history__ranges button:focus-visible,
-.constructed-card-history__metrics button:focus-visible {
-  outline: 3px solid #4e326b;
-  outline-offset: 2px;
+.constructed-card-history__compare > span:first-child { font-weight: 800; }
+.constructed-card-history__legend { display: inline-flex; align-items: center; gap: 0.4rem; }
+.constructed-card-history__legend i {
+  width: 22px;
+  border-top: 2px dashed #4e326b;
 }
 
 .constructed-card-history__state {
   display: grid;
-  place-items: center;
-  min-height: 230px;
-  padding: 2rem 1rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed rgba(102, 63, 27, 0.32);
   color: #795d3e;
-  text-align: center;
+  background: rgba(255, 246, 218, 0.5);
 }
-.constructed-card-history__state svg { margin-bottom: 0.55rem; color: #704b8f; }
-.constructed-card-history__state strong { color: #46301f; font-family: var(--font-display); font-size: 1rem; }
-.constructed-card-history__state span {
-  width: min(100%, 560px);
-  margin-top: 0.4rem;
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
+.constructed-card-history__state > svg { color: #704b8f; }
+.constructed-card-history__state strong { display: block; color: #46301f; font-family: var(--font-display); font-size: 0.98rem; }
+.constructed-card-history__state span { display: block; margin-top: 0.2rem; font-size: 0.72rem; line-height: 1.45; }
+.constructed-card-history__state p { display: grid; margin: 0; text-align: right; }
+.constructed-card-history__state p span { margin: 0; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; }
+.constructed-card-history__state p strong { font-family: var(--font-body); font-size: 1.15rem; font-weight: 900; }
 
-.constructed-card-history__content { padding: 0.75rem 0.8rem 0.85rem; }
-.constructed-card-history__summary {
+.constructed-card-history__content {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  margin: 0 0 0.65rem;
-  border: 1px solid rgba(102, 63, 27, 0.18);
-  background: rgba(255, 244, 213, 0.62);
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 250px);
+  align-items: stretch;
+  gap: 0.75rem;
 }
-.constructed-card-history__summary div { padding: 0.58rem 0.72rem; }
-.constructed-card-history__summary div + div { border-left: 1px solid rgba(102, 63, 27, 0.18); }
-.constructed-card-history__summary dt {
-  color: #806244;
-  font-size: 0.58rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-.constructed-card-history__summary dd {
-  gap: 0.3rem;
-  margin: 0.12rem 0 0;
-  font-size: 0.9rem;
-  font-weight: 900;
-}
-.constructed-card-history__summary dd.is-positive { color: #2f6a39; }
-.constructed-card-history__summary dd.is-negative { color: #993d32; }
-
-.constructed-card-history__figure {
-  margin: 0;
-  border: 1px solid rgba(102, 63, 27, 0.2);
-  background: rgba(255, 248, 226, 0.62);
-}
-.constructed-card-history__figure svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  min-height: 240px;
-  font-family: var(--font-body);
-}
-.constructed-card-history__figure figcaption {
-  padding: 0.48rem 0.68rem;
-  border-top: 1px solid rgba(102, 63, 27, 0.14);
-  color: #765b3e;
-  font-size: 0.62rem;
-}
-.constructed-card-history__tick line {
-  stroke: rgba(80, 57, 37, 0.14);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.constructed-card-history__tick--x line { stroke: rgba(80, 57, 37, 0.08); }
-.constructed-card-history__tick text { fill: #765d43; font-size: 12px; }
-.constructed-card-history__area { pointer-events: none; }
-.constructed-card-history__line {
-  fill: none;
-  stroke: #5b3b78;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 3;
-  vector-effect: non-scaling-stroke;
-}
-.constructed-card-history__point {
-  fill: #f3d78d;
-  stroke: #5b3b78;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-}
-.constructed-card-history__point.is-current {
-  fill: #5b3b78;
-  stroke: #fff0c4;
-  stroke-width: 3;
+.constructed-card-history__kpis.ui-kpi-group {
+  --ui-kpi-group-padding: 0.6rem 0.75rem;
+  --ui-kpi-group-value-size: 1.15rem;
+  --ui-kpi-group-value-weight: 850;
+  --ui-kpi-group-delta-padding: 1px 4px;
+  --ui-kpi-group-delta-fill: transparent;
+  /* Numbers read like the chart's axis and hover card, not like headings. */
+  --ui-font-display: var(--font-body);
+  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .constructed-card-history__disclosure svg { transition: none; }
+}
+
+@media (max-width: 860px) {
+  .constructed-card-history__content { grid-template-columns: minmax(0, 1fr); }
+  /* Above the chart on narrow screens: four compact tiles in two columns. */
+  .constructed-card-history__kpis.ui-kpi-group { order: -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* The kit hides captions in tiles under 160px; here they carry the dates of the extremes and the change. */
+  .constructed-card-history__kpis .ui-kpi-group__caption { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; }
+  /* The change and its start may wrap in a half-width tile; two lines are reserved so the
+     loading frame and every value keep one height. */
+  .constructed-card-history__kpis .ui-kpi-group__tile:first-child .ui-kpi-group__meta { align-content: flex-start; min-height: calc(2lh + 4px); }
 }
 
 @media (max-width: 720px) {
@@ -213,13 +174,11 @@
   .constructed-card-history__heading h2 { font-size: 1.08rem; }
   .constructed-card-history__heading p { line-height: 1.35; }
   .constructed-card-history__disclosure span { display: none; }
-  .constructed-card-history__body { padding-top: 0.6rem; }
-  .constructed-card-history__ranges { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); width: 100%; padding-inline: 0.62rem; }
-  .constructed-card-history__ranges button { min-height: 44px; min-width: 0; }
-  .constructed-card-history__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0.6rem 0.62rem 0; }
-  .constructed-card-history__content { padding: 0.6rem 0.62rem 0.7rem; }
-  .constructed-card-history__summary div { padding: 0.5rem; }
-  .constructed-card-history__summary dd { font-size: 0.78rem; }
-  .constructed-card-history__figure svg { min-height: 180px; }
-  .constructed-card-history__tick text { font-size: 14px; }
+  .constructed-card-history__body { padding: 0.6rem 0.62rem 0.7rem; }
+  .constructed-card-history__metrics { width: 100%; }
+  .constructed-card-history__label-long { display: none; }
+  .constructed-card-history__label-short { display: inline; }
+  .constructed-card-history__metrics .ui-segmented-control__item { flex: 1 1 0; min-width: 0; padding-inline: 4px; white-space: normal; text-align: center; line-height: 1.1; }
+  .constructed-card-history__state { grid-template-columns: auto minmax(0, 1fr); }
+  .constructed-card-history__state p { grid-column: 1 / -1; text-align: left; }
 }

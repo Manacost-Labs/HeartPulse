@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ConstructedCardPeriod, ConstructedCardRank } from './constructedCardPeriods';
-import type { ConstructedCardHistoryPoint } from './constructedCardHistoryModel';
+import type { ConstructedCardHistoryPoint, ConstructedCardHistoryReference } from './constructedCardHistoryModel';
 
 type ConstructedCardHistoryOptions = {
   cardId: string;
@@ -19,6 +19,8 @@ export function useConstructedCardHistory({
 }: ConstructedCardHistoryOptions) {
   const [days, setDays] = useState(90);
   const [points, setPoints] = useState<ConstructedCardHistoryPoint[]>([]);
+  const [trackedSince, setTrackedSince] = useState<string | null>(null);
+  const [references, setReferences] = useState<ConstructedCardHistoryReference[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,9 +48,12 @@ export function useConstructedCardHistory({
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить историю');
         setPoints(Array.isArray(payload.points) ? payload.points : []);
+        setTrackedSince(typeof payload.trackedSince === 'string' ? payload.trackedSince : null);
+        setReferences(Array.isArray(payload.references) ? payload.references : []);
       } catch (historyLoadError) {
         if (!controller.signal.aborted) {
           setPoints([]);
+          setReferences([]);
           setError(historyLoadError instanceof Error
             ? historyLoadError.message
             : 'Не удалось загрузить историю');
@@ -65,6 +70,8 @@ export function useConstructedCardHistory({
     days,
     setDays,
     points,
+    trackedSince,
+    references,
     loading,
     error,
   };

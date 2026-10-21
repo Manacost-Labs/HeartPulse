@@ -690,7 +690,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
       {serverStatsAccess && (
         <ConstructedCardHistoryChart
-          points={history.points}
+          points={history.points} trackedSince={history.trackedSince} references={history.references}
           periodLabel={periodLabel}
           formatLabel={statsFormatLabel}
           rankLabel={rankLabel}

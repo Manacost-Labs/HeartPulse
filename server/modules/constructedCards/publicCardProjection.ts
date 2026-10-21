@@ -20,7 +20,8 @@ export type PublicConstructedCardSeoData = {
   image: string | null;
 };
 
-const CLASS_LABELS: Record<string, string> = {
+/** Russian class names by Hearthstone class code; NEUTRAL names a neutral card. */
+export const CLASS_LABELS: Record<string, string> = {
   DEATHKNIGHT: 'Рыцарь смерти',
   DEMONHUNTER: 'Охотник на демонов',
   DRUID: 'Друид',

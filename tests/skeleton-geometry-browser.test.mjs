@@ -15,7 +15,7 @@ test('loading cards and class rows fit their loaded counterparts at public page 
       await openStory(page, storybook.storyUrl(storyId));
       await page.waitForSelector(selector, { visible: true });
       if (storyId === 'meta-chart-loading-geometry--expanded') await page.waitForSelector('.standard-meta-map .ui-chart__svg', { visible: true });
-      if (storyId === 'cards-statistics-history--dense-small-values') await page.waitForSelector('.analytics-chart__plot > svg', { visible: true });
+      if (storyId === 'cards-statistics-history--long-history') await page.waitForSelector('.analytics-chart__plot > svg', { visible: true });
       await page.evaluate(() => document.fonts.ready);
       await page.evaluate(() => Promise.all(document.getAnimations()
         .filter(animation => Number.isFinite(animation.effect?.getComputedTiming().endTime))
@@ -37,7 +37,7 @@ test('loading cards and class rows fit their loaded counterparts at public page 
         ['classes', 'arena-classes-data--ready', 'arena-classes-data--loading', '.arena-class-row', '.arena-classes-loading .arena-class-row'],
         ['contests', 'contests-measured-loading-geometry--ready', 'contests-measured-loading-geometry--loading', '.contest-card', '.contest-card--loading'],
         ['archetypes', 'constructed-archetype-catalog-loading--ready', 'constructed-archetype-catalog-loading--loading', '.archetype-row', '.archetypes-loading__row'],
-        ['card history', 'cards-statistics-history--dense-small-values', 'cards-statistics-history--loading', '.constructed-card-history__content', '.constructed-card-history__content'],
+        ['card history', 'cards-statistics-history--long-history', 'cards-statistics-history--loading', '.constructed-card-history__content', '.constructed-card-history__content'],
         ['meta chart', 'meta-chart-loading-geometry--expanded', 'meta-chart-loading-geometry--loading', '.standard-meta-chart__content', '.standard-meta-chart__content'],
         ['tier controls', 'tier-list-measured-loading-geometry--ready', 'tier-list-measured-loading-geometry--loading', '.arena-tier-controls', '.arena-tier-controls'],
         ['tier group', 'tier-list-measured-loading-geometry--ready', 'tier-list-measured-loading-geometry--loading', '.tierlist-group', '.tierlist-group'],

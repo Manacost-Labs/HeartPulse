@@ -31,6 +31,26 @@ export type ConstructedCardHistoryPoint = {
   averageTurnPlayed: number | null;
 };
 
+/** Play-weighted average of sampled cards at one snapshot. */
+export type ConstructedCardHistoryAveragePoint = {
+  recordedAt: string;
+  deckWinrate: number | null;
+  winrateWhenPlayed: number | null;
+};
+
+/** Comparison line of the card history: its class, or the whole format for neutral cards. */
+export type ConstructedCardHistoryReference = {
+  scope: 'class' | 'format';
+  label: string;
+  points: ConstructedCardHistoryAveragePoint[];
+};
+
+export type ConstructedCardHistoryContext = {
+  /** First snapshot of the card in the slice, whatever range was requested. */
+  trackedSince: string | null;
+  references: ConstructedCardHistoryReference[];
+};
+
 export type ConstructedCardCollection = {
   cards: JsonRecord[];
   updatedAt: string | null;
@@ -95,6 +115,15 @@ export type ConstructedCardDataService = {
     rank?: ConstructedCardRank,
     days?: number,
   ) => Promise<ConstructedCardHistoryPoint[]>;
+  /** Paid: history start and class/format averages at the snapshots of `points`. */
+  loadCardHistoryContext?: (
+    format: ConstructedCardFormat,
+    cardId: string,
+    period: ConstructedCardPeriod,
+    rank: ConstructedCardRank,
+    days: number,
+    points: ConstructedCardHistoryPoint[],
+  ) => Promise<ConstructedCardHistoryContext>;
   getCatalogHealth: (format: ConstructedCardFormat) => ConstructedCardCatalogHealth;
   invalidate?: () => void;
 };

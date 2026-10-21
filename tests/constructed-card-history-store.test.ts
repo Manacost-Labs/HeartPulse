@@ -83,6 +83,44 @@ try {
   );
   restarted.close();
 
+  const capped = new ConstructedCardHistoryStore({ stateDirectory: join(directory, 'capped'), now: () => now });
+  const firstSnapshot = Date.parse('2026-08-20T00:00:00.000Z');
+  for (let index = 0; index < 1005; index++) {
+    capped.recordSnapshot('standard', '1d', 'legend', new Date(firstSnapshot + index * 10 * 60_000).toISOString(), cards);
+  }
+  const cappedPoints = capped.read('standard', '1d', 'legend', 'CARD_1', 90);
+  assert.equal(cappedPoints.length, 1000);
+  assert.equal(cappedPoints.at(-1)?.recordedAt, new Date(firstSnapshot + 1004 * 600_000).toISOString(),
+    'a capped range must keep the newest snapshots, not stop days before today');
+  assert.ok(Date.parse(cappedPoints[0].recordedAt) < Date.parse(cappedPoints[1].recordedAt), 'points stay oldest first');
+  assert.equal(capped.trackedSince('standard', '1d', 'legend', 'card_1'), new Date(firstSnapshot).toISOString(),
+    'the history start is known beyond the returned cap');
+  assert.equal(capped.trackedSince('standard', '1d', 'legend', 'MISSING_CARD'), null);
+  capped.close();
+
+  const averages = new ConstructedCardHistoryStore({ stateDirectory: join(directory, 'averages'), now: () => now });
+  const sampled = (id: string, cardClass: string, deckWinrate: number | null, timesPlayed: number, winrateWhenPlayed: number | null) => ({
+    card_id: id, class: cardClass, stats: { deckPopularity: 1, deckWinrate, timesPlayed, winrateWhenPlayed },
+  });
+  averages.recordSnapshot('standard', '1d', 'legend', '2026-08-28T08:00:00.000Z', [
+    sampled('MAGE_1', 'MAGE', 50, 100, 52),
+    sampled('MAGE_2', 'MAGE', 56, 300, null),
+    sampled('ROGUE_1', 'ROGUE', 40, 600, 44),
+    sampled('NEW_1', 'MAGE', null, 2, null),
+  ]);
+  const formatAverage = averages.readAverages('standard', '1d', 'legend', null, '2026-08-01T00:00:00.000Z', 1);
+  assert.equal(formatAverage.length, 1);
+  assert.ok(Math.abs((formatAverage[0].deckWinrate ?? 0) - (50 * 100 + 56 * 300 + 40 * 600) / 1000) < 1e-9,
+    'the average is weighted by plays and ignores cards without a sample');
+  assert.ok(Math.abs((formatAverage[0].winrateWhenPlayed ?? 0) - (52 * 100 + 44 * 600) / 700) < 1e-9,
+    'cards without a played winrate do not dilute it');
+  const mageAverage = averages.readAverages('standard', '1d', 'legend', ['mage_1', 'MAGE_2', 'NEW_1'], '2026-08-01T00:00:00.000Z', 1);
+  assert.ok(Math.abs((mageAverage[0].deckWinrate ?? 0) - (50 * 100 + 56 * 300) / 400) < 1e-9);
+  assert.deepEqual(averages.readAverages('standard', '1d', 'legend', null, '2026-08-01T00:00:00.000Z', 4), [],
+    'a snapshot with too few sampled cards has no average');
+  assert.deepEqual(averages.readAverages('standard', '1d', 'legend', [], '2026-08-01T00:00:00.000Z', 1), []);
+  averages.close();
+
   const legacyDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-history-legacy-'));
   try {
     const legacyStateDirectory = join(legacyDirectory, 'constructed-card-history-v1');

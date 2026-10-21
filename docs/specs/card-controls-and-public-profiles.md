@@ -29,6 +29,34 @@ Improve constructed-card detail controls and add privacy-safe public user profil
 - “Динамика карты” is a native disclosure, closed by default, keyboard operable,
   and fetches history only after opening.
 
+### Card history (“Динамика карты”)
+
+- Snapshots before the card's first sampled snapshot are “no data yet”, not
+  zeros: a snapshot is sampled when it has a deck winrate or at least 100
+  plays (the statistics source publishes winrates only from 100 plays, so a
+  pre-release card shows 0–3 stray plays and 0% popularity). Later small
+  samples stay on the line: a card leaving the meta is real information.
+- Change, minimum and maximum use only real values of the shown range. With
+  fewer than three real values the block shows a short note (“Мало данных:
+  карта отслеживается с 20 окт…”, or “Мало игр…” before the first sample) and
+  the current value instead of a chart.
+- Histories within three calendar days plot every refresh, labelled with its
+  time (“21 окт, 08:36”); longer ones plot the last snapshot of each day, and a
+  day without snapshots breaks the line instead of bridging it.
+- Range buttons (30/90/180 days) are offered up to the first range that already
+  shows the whole history; longer ones are disabled. A history shorter than 30
+  days offers no range choice. The start date (“данные с …”) is always shown.
+- Winrate when played carries a Wilson 95% band from its play count; deck
+  winrate has no known game count and no band.
+- Winrate metrics can be compared with the play-weighted average of sampled
+  cards of the card's class and of the whole format at the same snapshots. The
+  switch appears only when an average has at least two shown snapshots.
+- `GET /api/constructed-cards/:cardId/history` additionally returns
+  `trackedSince` (the first snapshot in the slice, beyond the requested range)
+  and `references` (`scope`, `label`, `points`). Both are paid data: a reader
+  without statistics access receives `null` and `[]`. Points are capped at the
+  newest 1000 snapshots of the range.
+
 ### Public profiles
 
 - Canonical route: `/id/:publicProfileId/`, for example `/id/1/`.

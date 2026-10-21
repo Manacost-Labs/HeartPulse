@@ -46,6 +46,7 @@
 .analytics-chart__baseline { stroke: #735e49; opacity: .4; stroke-width: 1; }
 .analytics-chart__band { opacity: .13; }
 .analytics-chart__guide { stroke: #30251c; stroke-width: 1; opacity: .35; }
+.analytics-chart__reference { fill: none; stroke: #4e326b; stroke-width: 1.75; stroke-dasharray: 6 4; stroke-linecap: round; opacity: .8; }
 .analytics-chart__boundary line { stroke: #8a5b24; stroke-width: 1; stroke-dasharray: 4 3; opacity: .7; }
 .analytics-chart__boundary text { fill: #6b4a24; font: 600 11px var(--font-body, Inter, sans-serif); paint-order: stroke; stroke: #fbf3de; stroke-width: 3px; }
 /* Hover card: opaque, beside the point (placed in LineChart), never over the line it explains. */
