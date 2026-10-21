@@ -17,6 +17,7 @@ import {
 } from './constructedCardHistoryModel';
 import { ConstructedCardHistoryKpis } from './ConstructedCardHistoryKpis';
 import { ConstructedCardHistorySkeleton } from './ConstructedCardHistorySkeleton';
+import { useViewEntrance } from '../components/transitions/useViewEntrance';
 
 export type ConstructedCardHistoryPanelProps = {
   points: ConstructedCardHistoryPoint[];
@@ -55,6 +56,8 @@ export default function ConstructedCardHistoryPanel({
 }: ConstructedCardHistoryPanelProps) {
   const [metric, setMetric] = useState<ConstructedCardHistoryMetric>('deckPopularity');
   const [referenceScope, setReferenceScope] = useState<string>(NO_REFERENCE);
+  // Another metric or comparison redraws the chart with the ValyroUI fade-through.
+  const contentRef = useViewEntrance<HTMLDivElement>(`${metric}|${referenceScope}`);
   const definition = CONSTRUCTED_CARD_HISTORY_METRICS.find(item => item.id === metric) ?? CONSTRUCTED_CARD_HISTORY_METRICS[0];
   const comparable = CONSTRUCTED_CARD_REFERENCE_METRICS.has(metric) ? references : [];
   const reference = comparable.find(item => item.scope === referenceScope);
@@ -116,7 +119,7 @@ export default function ConstructedCardHistoryPanel({
           latest={view.latest ? formatChartValue(view.latest.value, unit) : null}
         />
       ) : (
-        <div className="constructed-card-history__content">
+        <div className="constructed-card-history__content" ref={contentRef}>
           <LineChart
             title={definition.label} subtitle={subtitle} points={view.points} unit={unit}
             domain={metric === 'deckPopularity' || metric === 'timesPlayed' ? { minimum: 0 } : undefined}

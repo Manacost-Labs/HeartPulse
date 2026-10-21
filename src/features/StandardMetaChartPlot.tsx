@@ -14,6 +14,8 @@ import {
 import '../vendor/varylo-ui/styles/index.css';
 import './StandardMetaVarylo.css';
 import './StandardMetaChartSkeleton.css';
+import { ViewSwitch } from '../components/transitions/ViewSwitch';
+import { useListTransition } from '../components/transitions/useListTransition';
 import './StandardMetaChartPlot.css';
 
 /** One plotted archetype: an item of the chart with both coordinates known. */
@@ -30,6 +32,8 @@ export type StandardMetaChartPoint = {
 };
 
 type MapView = 'scatter' | 'shares';
+/** The order of the Карта / Доли switch. */
+const MAP_VIEWS: readonly MapView[] = ['scatter', 'shares'];
 /** Rows of the share list before "Показать все". */
 const SHARE_LIST_ROWS = 12;
 const percent = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: value > 0 && value < 0.1 ? 2 : 1 })}%`;
@@ -112,7 +116,7 @@ export default function StandardMetaChartPlot({ points, format, formatLabel, ran
           ? 'Размер — число игр, цвет — класс. Нажмите на точку, чтобы открыть архетип.'
           : 'Площадь — доля игр, оттенок класса темнее у популярных архетипов. Нажмите на класс, затем на архетип.'}</p>
       </div>
-      {view === 'scatter' ? (
+      <ViewSwitch viewKey={view} order={MAP_VIEWS}>{view === 'scatter' ? (
         <ScatterChart
           className="standard-meta-map__chart"
           series={series}
@@ -153,7 +157,7 @@ export default function StandardMetaChartPlot({ points, format, formatLabel, ran
           />
           <MetaShareList points={shown} totalGames={totalGames} classKey={shareClass} onClassChange={setShareClass} format={format} />
         </div>
-      )}
+      )}</ViewSwitch>
     </section>
   );
 }
@@ -173,6 +177,8 @@ function MetaShareList({ points, totalGames, classKey, onClassChange, format }: 
   const rows = withGames.filter(point => !classKey || point.classKey === classKey);
   const shown = expanded ? rows : rows.slice(0, SHARE_LIST_ROWS);
   const top = rows[0]?.games ?? 0;
+  // A class filter or "Показать все": rows that stay glide, the others enter.
+  const listRef = useListTransition<HTMLOListElement>(`${classKey}|${expanded}|${rows.length}`);
   return (
     <section className="standard-meta-shares__list" aria-label="Архетипы по доле игр">
       <div className="standard-meta-shares__classes" role="group" aria-label="Класс">
@@ -184,7 +190,7 @@ function MetaShareList({ points, totalGames, classKey, onClassChange, format }: 
           </button>
         ))}
       </div>
-      <ol>
+      <ol ref={listRef}>
         {shown.map(point => {
           const color = classOf(point) ? STANDARD_META_CLASS_COLORS[classOf(point) as StandardMetaClass] : STANDARD_META_NEUTRAL_COLOR;
           return (

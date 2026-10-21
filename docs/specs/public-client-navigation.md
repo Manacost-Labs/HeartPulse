@@ -315,20 +315,24 @@ until then route entrances, list items and modal sheets fade.
 2. Views of one page (`ViewSwitch`, over `PageTransition`). Стандарт ↔ Вольный
    on meta and matchups (client state; the view changes when the new mode's
    data arrives, `data.format`), meta Карточки / Тиры / Таблица, matchups
-   Полная матрица / Обзор: `shared-x` towards the pressed button. The old view
+   Полная матрица / Обзор, the meta map's Карта / Доли: `shared-x` towards the
+   pressed button. The old view
    stays mounted, inert and hidden from assistive technology, until the new
    one has entered; both cross through opacity 0, so they never mix. A change
    during a change takes over from where the views are drawn.
-3. Lighter switches (`useViewEntrance`): card library Галерея / Таблица and
-   the Battlegrounds hero grid / table play the entering half of
-   `fade-through` on their container; the old view goes at once.
+3. Lighter switches (`useViewEntrance`): card library Галерея / Таблица, the
+   Battlegrounds hero grid / table and the card page's history metric and
+   comparison play the entering half of `fade-through` on their container;
+   the old view goes at once.
 4. Lists (`useListTransition`). A filter or page change of the card library
    grid (rarity, class, mana, set…) and of the archetype list (class, search):
    new items enter with the fade-through entrance row by row
    (`--motion-stagger`, at most two steps), items that stayed glide to their
    new place (FLIP) while at most 60 moved; items off screen do not animate.
    The archetype list's Стандарт ↔ Вольный is a list change too: the other
-   mode's rows slide in with `shared-x` towards the chosen mode.
+   mode's rows slide in with `shared-x` towards the chosen mode. The same hook
+   moves the matchup overview's groups (strength filter, search, another
+   archetype) and the meta share list (class filter, «Показать все»).
 5. Modals. A `ModalSurface` panel docked to the bottom across the screen (the
    card preview bottom sheet on a phone) rises as the `sheet` preset; one
    docked to the right over the full height slides in as `cover`; centred
