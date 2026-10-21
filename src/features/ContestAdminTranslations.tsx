@@ -2,6 +2,7 @@ import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
+import { DuplicateLabelsNotice, type ArchetypeLabelDuplicate } from './ContestAdminTranslationDuplicates';
 import type { AdminMessage } from './adminWorkspaceState';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 export type ArchetypeTranslation = {
@@ -23,8 +24,7 @@ type TranslationResponse = {
   pageSize: number;
   pages: number;
   stats: { total: number; manual: number; blizzcore: number; lastSyncedAt: string | null };
-  /** Russian names shared by different archetypes across the whole table. */
-  duplicates?: Array<{ nameRu: string; namesEn: string[] }>;
+  duplicates?: ArchetypeLabelDuplicate[];
 };
 
 type TranslationDraft = { nameEn: string; nameRu: string };
@@ -79,14 +79,6 @@ function useLatestRequestCoordinator(): LatestRequestCoordinator {
   const coordinatorRef = useRef<LatestRequestCoordinator | null>(null);
   if (!coordinatorRef.current) coordinatorRef.current = createLatestRequestCoordinator();
   return coordinatorRef.current;
-}
-
-function formatSyncDate(value: string | null): string {
-  if (!value) return 'ещё не выполнялась';
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime())
-    ? parsed.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })
-    : value;
 }
 
 async function copyText(value: string): Promise<boolean> {
@@ -146,26 +138,6 @@ type TranslationWorkspaceViewProps = {
   englishInputRef: React.RefObject<HTMLInputElement | null>;
   russianInputRef: React.RefObject<HTMLInputElement | null>;
 };
-
-function DuplicateLabelsNotice({ duplicates, onSearch }: {
-  duplicates: TranslationResponse['duplicates'];
-  onSearch: (value: string) => void;
-}) {
-  if (!duplicates?.length) return null;
-  return (
-    <div className="admin-translation-duplicates" role="status">
-      <strong>Одинаковые русские названия у разных архетипов: {duplicates.length}</strong>
-      <ul>
-        {duplicates.map(duplicate => (
-          <li key={duplicate.nameRu}>
-            <button type="button" onClick={() => onSearch(duplicate.nameRu)}>«{duplicate.nameRu}»</button>
-            {' — '}{duplicate.namesEn.join(', ')}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function TranslationWorkspaceView({
   data,

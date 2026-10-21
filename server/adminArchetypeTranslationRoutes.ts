@@ -1,7 +1,8 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
-import { findDuplicateArchetypeLabels, matchArchetypeTranslation } from './modules/constructedArchetypes/public.js';
+import { matchArchetypeTranslation } from './modules/constructedArchetypes/public.js';
+import { duplicateLabelError, insertManualTranslation, listDuplicateLabels, loadTranslationMap, russianLabelOwner } from './adminArchetypeTranslationStore.js';
 
 const DEFAULT_PAGE_SIZE = 40;
 const MAX_PAGE_SIZE = 100;
@@ -194,10 +195,7 @@ export function analyzeArchetypeTranslationCoverage(
   database: DatabaseSync,
   observed: ObservedArchetype[],
 ): ArchetypeTranslationCoverage {
-  const translations = Object.fromEntries(
-    (database.prepare('SELECT name_en_key, name_ru FROM archetype_translations').all() as Array<{ name_en_key: string; name_ru: string }>)
-      .map(row => [String(row.name_en_key || ''), String(row.name_ru || '')]),
-  );
+  const translations = loadTranslationMap(database);
   const grouped = new Map<string, { nameEn: string; ranks: Set<string>; deckCode: string | null }>();
   for (const item of observed) {
     const nameEn = String(item?.nameEn || '').trim().replace(/\s+/g, ' ');
@@ -263,10 +261,9 @@ function listTranslations(database: DatabaseSync, request: Request) {
       MAX(synced_at) AS last_synced_at
     FROM archetype_translations
   `).get() as Record<string, unknown>;
-  const allNames = database.prepare('SELECT name_en, name_ru FROM archetype_translations').all() as Array<{ name_en: string; name_ru: string }>;
   return {
     items: items.map(fromRow),
-    duplicates: findDuplicateArchetypeLabels(allNames.map(row => ({ nameEn: String(row.name_en || ''), nameRu: String(row.name_ru || '') }))),
+    duplicates: listDuplicateLabels(database),
     total,
     page,
     pageSize,
@@ -278,33 +275,6 @@ function listTranslations(database: DatabaseSync, request: Request) {
       lastSyncedAt: stats.last_synced_at ? String(stats.last_synced_at) : null,
     },
   };
-}
-
-function insertManualTranslation(
-  database: DatabaseSync,
-  translation: ReturnType<typeof normalizeArchetypeTranslation>,
-  actorId: string,
-  timestamp: string,
-): Record<string, unknown> {
-  const result = database.prepare(`
-    INSERT INTO archetype_translations (
-      blizzcore_id, name_en, name_en_key, name_ru, name_ru_key, source, created_at, updated_at, synced_at, updated_by
-    ) VALUES (NULL, ?, ?, ?, ?, 'manual', ?, ?, NULL, ?)
-  `).run(translation.nameEn, translation.nameKey, translation.nameRu, translation.nameRuKey, timestamp, timestamp, actorId);
-  return database.prepare('SELECT * FROM archetype_translations WHERE id = ?')
-    .get(Number(result.lastInsertRowid)) as Record<string, unknown>;
-}
-
-/** English name of another archetype that already uses this Russian label, if any. */
-function russianLabelOwner(database: DatabaseSync, nameRuKey: string, nameKey: string, ownId = 0): string | null {
-  const row = database.prepare(`
-    SELECT name_en FROM archetype_translations WHERE name_ru_key = ? AND name_en_key <> ? AND id <> ? LIMIT 1
-  `).get(nameRuKey, nameKey, ownId) as { name_en?: string } | undefined;
-  return row?.name_en ? String(row.name_en) : null;
-}
-
-function duplicateLabelError(owner: string): { error: string } {
-  return { error: `Это русское название уже у архетипа «${owner}». Уточните перевод, чтобы архетипы различались.` };
 }
 
 function isUniqueConstraint(error: unknown): boolean {
