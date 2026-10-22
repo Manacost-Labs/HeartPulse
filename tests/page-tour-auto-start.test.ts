@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   AUTO_TOUR_OPT_OUT_KEY,
+  TOUR_INVITE_DELAY_MS,
+  TOUR_INVITE_SESSION_KEY,
   isAutomatedVisitor,
   pageTourQueryIntent,
   shouldAutoStartPageTour,
@@ -11,7 +13,7 @@ const storage = (entries: Record<string, string>) => ({ getItem: (key: string) =
 const key = 'manacost:page-tour:standard-meta:v4';
 const visitor = { storage: storage({}), storageKey: key, userAgent: chrome, webdriver: false, search: '' };
 
-assert.equal(shouldAutoStartPageTour(visitor), true, 'a new visitor sees the tour once');
+assert.equal(shouldAutoStartPageTour(visitor), true, 'a new visitor is offered the tour once');
 for (const status of ['completed', 'dismissed', 'in-progress']) {
   assert.equal(
     shouldAutoStartPageTour({ ...visitor, storage: storage({ [key]: JSON.stringify({ status }) }) }),
@@ -38,6 +40,19 @@ assert.equal(
 );
 assert.equal(shouldAutoStartPageTour({ ...visitor, webdriver: true }), false, 'automated browsers never get an automatic tour');
 assert.equal(shouldAutoStartPageTour({ ...visitor, search: '?tour=0' }), false, '?tour=0 keeps the tour closed');
+
+assert.equal(
+  shouldAutoStartPageTour({ ...visitor, session: storage({ [TOUR_INVITE_SESSION_KEY]: '1' }) }),
+  false,
+  'a tab that was already offered a tour is not offered another one on the next page',
+);
+assert.equal(shouldAutoStartPageTour({ ...visitor, session: storage({}) }), true, 'a fresh tab may be offered a tour');
+assert.equal(
+  shouldAutoStartPageTour({ ...visitor, session: { getItem: () => { throw new Error('denied'); } } }),
+  false,
+  'blocked session storage never offers a tour',
+);
+assert.ok(TOUR_INVITE_DELAY_MS >= 5_000, 'the offer waits until the visitor has had time to read the page');
 
 for (const bot of ['Googlebot/2.1', 'Mozilla/5.0 (compatible; YandexBot/3.0)', 'facebookexternalhit/1.1', 'Mozilla/5.0 HeadlessChrome/141.0', 'Chrome-Lighthouse']) {
   assert.equal(isAutomatedVisitor(bot, false), true, `${bot} is a crawler`);

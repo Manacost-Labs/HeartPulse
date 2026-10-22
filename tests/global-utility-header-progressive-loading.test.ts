@@ -32,5 +32,15 @@ assert.match(
   /lazy\(\(\) => import\('\.\/PageTour'\)\)/,
   'the tour UI stays a lazy chunk',
 );
+assert.match(
+  launcherSource,
+  /lazy\(\(\) => import\('\.\/PageTourInvite'\)\)/,
+  'the first-visit offer is a lazy chunk too',
+);
+assert.match(
+  launcherSource,
+  /invite: storageKey => setInvite/,
+  'a first visit only offers the tour; the tour itself opens from the offer or the header button',
+);
 
 console.log('global utility-header progressive-loading contracts passed');

@@ -1,0 +1,32 @@
+{
+  "reason": "Тур больше не открывается сам: шапка держит состояние предложения тура и ленивый слой PageTourInvite (около 0,15 КБ gzip на маршрут). Сама карточка предложения, её CSS и тур остаются ленивыми чанками. Превышение только у маршрутов, которые уже стояли у предела накопленного допуска.",
+  "routes": {
+    "/articles/": {
+      "jsGzipBytes": 256
+    },
+    "/faq/": {
+      "jsGzipBytes": 256
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 256
+    },
+    "/privacy/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/matchups/": {
+      "jsGzipBytes": 256
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 256
+    }
+  }
+}

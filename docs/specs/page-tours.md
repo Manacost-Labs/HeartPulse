@@ -24,6 +24,7 @@ order and the Vicious Gold specifics are in
 - **Explainers:** `PageTourMedia.tsx` draws the step pictures as inline SVG.
   They are decorative: the step text carries the whole meaning.
 - **First-visit rules:** `pageTourAutoStart.ts`.
+- **First-visit offer:** `PageTourInvite.tsx`, a lazy non-modal card.
 
 ## Anchors
 
@@ -45,15 +46,23 @@ order and the Vicious Gold specifics are in
 - **Link.** `?tour=1` opens the tour after the page loads, and `?tour=0`
   suppresses the first-visit tour.
 - **First visit.**
-  - The tour starts by itself once per page and tour version. Any saved
-    progress counts as seen: completed, skipped or left half-way.
-  - It waits for the `load` event plus 1.5 s and an idle callback.
-  - It does not start while a modal dialog is open or the tab is hidden.
-  - It stays invisible until a step can be shown, and closes silently when
-    no step appears within 8 s.
-  - It never starts with only the subscription step: for a guest on a paid
+  - A tour never opens by itself. A new visitor gets a small non-modal
+    offer in the bottom corner: «Впервые на этой странице?» with «Показать»,
+    «Не сейчас» and «Больше не предлагать». It does not dim the page, take
+    focus or move the layout, and Escape works as «Не сейчас».
+  - At most one offer per browser tab (`sessionStorage`), so browsing
+    several pages does not produce an offer on each of them.
+  - The offer appears once per page and tour version. Any saved progress
+    counts as seen: completed, skipped or left half-way; «Не сейчас» saves
+    `dismissed`.
+  - It waits for the `load` event plus 6 s of reading and an idle callback.
+  - It does not appear while a modal dialog is open or the tab is hidden.
+  - An untouched offer leaves after 20 s and the page stays eligible for a
+    later visit; hovering or focusing it holds it open.
+  - «Показать» starts the tour at step 1. The tour stays invisible until a
+    step can be shown, and closes silently when no step appears within 8 s.
+    It never starts with only the subscription step: for a guest on a paid
     page that would be an advertisement, not a walkthrough.
-  - It always begins at step 1.
 - **Never automatic.**
   - Crawlers, preview fetchers and automated browsers never get a
     first-visit tour. This covers a bot user agent and
@@ -72,7 +81,10 @@ fields.
 
 - `manacost:page-tour:<id>:v<version>` holds
   `{ status: 'in-progress' | 'dismissed' | 'completed', stepId? }`.
-- `manacost:page-tours:auto-off` is `'1'` after «Больше не показывать».
+- `manacost:page-tours:auto-off` is `'1'` after «Больше не показывать» in the
+  tour or «Больше не предлагать» in the offer.
+- `sessionStorage` `manacost:page-tours:invited` is `'1'` once the tab has
+  been offered a tour.
 - Bump a tour's `version` when its meaning changes. Visitors then see the new
   tour once.
 - A manual start resumes at the saved step unless the tour was completed.
@@ -98,15 +110,17 @@ fields.
     on phones.
   - A gold and red ring marks the target.
 - **Motion:**
-  - Motion uses `transform` and `opacity` only.
+  - Between steps the dimmed cut-out and the ring glide together to the next
+    target in `--motion-slow`, and the step card settles in with a short
+    rise instead of a pop. The offer slides in and fades out.
   - Under `prefers-reduced-motion` the ring, the explainers and the
     scrolling are static.
 
 ## Performance
 
 - The tour UI, its CSS and its copy are lazy chunks.
-- They load on a click, on `?tour=1`, or for an eligible first visit after
-  load and idle.
+- They load on a click, on `?tour=1`, or from the first-visit offer. The
+  offer is its own small lazy chunk, loaded only for an eligible visitor.
 - The header adds only the route list and the path resolver; the first-visit
   rules are a separate small chunk. `config/next-bundle-budgets/approvals/page-tours.json`
   approves the growth on the routes that were already at their budget.
@@ -116,7 +130,10 @@ fields.
 
 - `tests/page-tour.test.ts`, `tests/page-tour-engine-contracts.test.ts`:
   resolving and restoring tours, and step planning.
-- `tests/page-tour-auto-start.test.ts`: first-visit, opt-out and bot rules.
+- `tests/page-tour-auto-start.test.ts`: first-visit, once-per-tab, opt-out
+  and bot rules.
+- `src/features/pageTour/PageTourInvite.stories.tsx`: the offer never takes
+  focus, «Показать» and «Не сейчас» behaviour, phone layout.
 - `tests/page-tour-registry.test.ts`: the registry, copy limits, rendered
   anchors and the equality of the route list.
 - `tests/global-utility-header-progressive-loading.test.ts`: the header never
