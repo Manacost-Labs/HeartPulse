@@ -91,6 +91,12 @@
   --draft-gold: #f4b63c;
   --draft-coral: #ec6b6b;
   --draft-navy: #081a33;
+
+  /* The vendored UI kits ship no theme, and their Floating layer (combobox and
+     select lists, menus, popovers) sets z-index: var(--ui-z-popover). Without
+     a value it fell back to auto and later positioned content (the sticky
+     archetype radar) painted over an open list. */
+  --ui-z-popover: 1200;
 }
 
 /* Phones paint the parchment from the stylesheet itself: a CSS background is

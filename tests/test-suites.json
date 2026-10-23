@@ -451,6 +451,7 @@
     {
       "id": "browser",
       "files": [
+        "tests/archetype-radar-picker-browser.test.mjs",
         "tests/archetypes-detail-browser.test.mjs",
         "tests/arena-card-motion.browser.test.mjs",
         "tests/arena-tier-card-geometry.browser.test.mjs",

@@ -322,6 +322,8 @@
 .archetype-radar .ui-field { font-weight: 800; }
 .archetype-radar__layer .ui-listbox__popover { max-height: min(22rem, 60vh); font-size: 0.78rem; }
 .archetype-radar__layer .ui-listbox__description { color: var(--archetype-muted, #735e49); }
+/* Archetype names run past the field width ("Ренатал Хайландер Разбойник на воровстве"): wrap instead of an ellipsis. */
+.archetype-radar__layer .ui-menu-item__label { white-space: normal; overflow-wrap: break-word; }
 .profile-class-icon { display: block; flex: 0 0 auto; object-fit: contain; }
 
 .archetype-radar__summary {

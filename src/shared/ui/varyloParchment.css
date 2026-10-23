@@ -138,5 +138,10 @@
   --ui-weight-medium: 500;
   --ui-weight-semibold: 600;
   --ui-z-tooltip: 1300;
+  /* Listbox geometry: without a popover padding the group separators'
+     negative margins overflow the list and add a horizontal scrollbar. */
+  --ui-popover-padding: 6px;
+  --ui-menu-item-h: 36px;
+  --ui-listbox-label-indent: 8px;
   color: var(--ui-fg);
 }

@@ -25,6 +25,8 @@ their registry dependencies (`segmented-control`, `search-input`,
 `text-input` and the shared `gaming/`, `agents/`, `ai/`, `editorial/`,
 `commerce/` helpers). They use the parchment token mapping in
 `src/shared/ui/varyloParchment.css`, which also supplies the geometry tokens
-(control heights, spacing, type scale) that only a theme would define.
+(control heights, spacing, type scale, list padding) that only a theme would
+define. The stacking order of the kits' floating layers (`--ui-z-popover`)
+is global and lives in `src/styles/tokens.css`.
 React Doctor skips this directory (`doctor.config.json`), as
 `scripts/react-doctor-changed.mjs` already leaves it out of its file list.
