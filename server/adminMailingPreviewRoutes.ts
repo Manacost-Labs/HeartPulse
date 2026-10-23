@@ -1,11 +1,12 @@
 import { Router, type Request, type Response } from 'express';
+import type { MailingSegment } from './mailingAudience.js';
 
 export type AdminMailingDraft = {
   subject: string;
   preheader: string;
   htmlBody: string;
   textBody: string;
-  segment: 'all-consented' | 'active' | 'former';
+  segment: MailingSegment;
   templateKey: string;
 };
 

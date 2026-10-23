@@ -109,6 +109,7 @@
         "tests/battleground-minion-pool.test.mjs",
         "tests/battleground-card-variants.test.ts",
         "tests/card-patch-changes.test.ts",
+        "tests/mailing-audience.test.ts",
         "tests/hearthstone-card-plurals.test.ts",
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-strategy-audit.test.ts",
