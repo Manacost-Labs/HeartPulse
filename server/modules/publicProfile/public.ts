@@ -18,18 +18,20 @@ export {
   type NicknameValidation,
 } from './nickname.js';
 export {
-  claimNickname,
-  ensurePublicNicknameSchema,
   ensurePublicProfileIds,
   ensurePublicProfileSchema,
   findPublicProfile,
-  findPublicProfileIdByNickname,
-  readOwnPublicIdentity,
   resolveUserPublicProfileId,
-  type NicknameClaimResult,
-  type OwnPublicIdentity,
   type PublicProfileIdentityOptions,
 } from './repository.js';
+export {
+  claimNickname,
+  ensurePublicNicknameSchema,
+  findPublicProfileIdByNickname,
+  readOwnPublicIdentity,
+  type NicknameClaimResult,
+  type OwnPublicIdentity,
+} from './nicknameRepository.js';
 export {
   createPublicProfileRouter,
   type PublicProfileRouterDependencies,

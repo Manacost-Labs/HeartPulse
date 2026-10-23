@@ -9,7 +9,7 @@ import {
   validateNickname,
   type NicknameContentCheck,
 } from './nickname.js';
-import type { NicknameClaimResult, OwnPublicIdentity } from './repository.js';
+import type { NicknameClaimResult, OwnPublicIdentity } from './nicknameRepository.js';
 
 export type PublicProfileRouterDependencies = {
   findProfile: (publicProfileId: string) => PublicProfileCandidate | null;
