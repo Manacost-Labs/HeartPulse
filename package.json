@@ -312,10 +312,10 @@
   },
   "devDependencies": {
     "@google/design.md": "0.4.0",
-    "@storybook/addon-a11y": "10.6.0",
-    "@storybook/addon-docs": "10.6.0",
-    "@storybook/addon-mcp": "10.6.0",
-    "@storybook/react-vite": "10.6.0",
+    "@storybook/addon-a11y": "10.6.2",
+    "@storybook/addon-docs": "10.6.2",
+    "@storybook/addon-mcp": "10.6.2",
+    "@storybook/react-vite": "10.6.2",
     "@tailwindcss/postcss": "4.3.3",
     "@tailwindcss/vite": "^4.1.14",
     "@types/compression": "^1.8.1",
@@ -334,7 +334,7 @@
     "oxlint": "1.89.0",
     "puppeteer": "25.12.0",
     "react-doctor": "0.9.14",
-    "storybook": "10.6.0",
+    "storybook": "10.6.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.22.4",
     "typescript": "~5.9.3",
@@ -346,7 +346,7 @@
     "postcss": "8.5.23",
     "qs": "6.16.0",
     "shell-quote": "1.12.0",
-    "smol-toml": "1.8.0",
+    "smol-toml": "1.9.0",
     "valibot": "1.4.2"
   },
   "description": "Russian Hearthstone Arena and Battlegrounds analytics platform"
