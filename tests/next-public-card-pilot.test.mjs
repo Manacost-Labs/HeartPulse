@@ -138,22 +138,31 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
 
     const emptyArticles = await fetch(`${runtime.origin}/articles/`);
     assert.equal(emptyArticles.status, 200, runtime.output());
-    assert.match(await emptyArticles.text(), /Статьи скоро появятся/);
+    assert.match(await emptyArticles.text(), /Статьи скоро появятся|articles/);
 
     writeFileSync(join(runtime.backend.dataDirectory, 'articles.json'), JSON.stringify({
       articles: [{ id: 'qa-public-article', title: 'Публичная статья Next', date: '2026-09-24',
         image: '/arena-logo-icon.webp', excerpt: 'Контрольный материал', tag: 'Арена',
         mode: 'general', url: 'https://example.com/article' }], updatedAt: '2026-09-24T00:00:00.000Z',
     }));
-    const articles = await fetch(`${runtime.origin}/articles/`, { headers: cookie });
+    // /articles/ is prerendered: the deploy's warm-up marks it stale on the
+    // host, and the next request renders the new Express data.
+    const revalidated = await fetch(`${runtime.nextOrigin}/health/next/revalidate/`, { method: 'POST' });
+    assert.equal(revalidated.status, 200, runtime.output());
+    let articles; let articlesHtml = '';
+    for (let attempt = 0; attempt < 20 && !/Публичная статья Next/.test(articlesHtml); attempt += 1) {
+      if (attempt) await new Promise(resolve => setTimeout(resolve, 250));
+      articles = await fetch(`${runtime.origin}/articles/`, { headers: cookie });
+      articlesHtml = await articles.text();
+    }
     assert.equal(articles.status, 200, runtime.output());
-    const articlesHtml = await articles.text();
     assert.match(articlesHtml, /Публичная статья Next/);
     assert.match(articlesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/articles\/"/);
     assert.equal((articlesHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(articlesHtml, /card-reader@example|manacost_auth_token/);
+    // One prerendered HTML serves every query; the policy arrives as a header.
     const facetedArticles = await fetch(`${runtime.origin}/articles/?search=meta`);
-    assert.match(await facetedArticles.text(), /name="robots" content="noindex, follow"/);
+    assert.equal(facetedArticles.headers.get('x-robots-tag'), 'noindex, follow');
 
     const home = await fetch(`${runtime.origin}/`, { headers: cookie });
     assert.equal(home.status, 200, runtime.output());

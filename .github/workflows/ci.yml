@@ -438,6 +438,13 @@ jobs:
           artifact="$RUNNER_TEMP/hs-arena-release-$GITHUB_SHA"
           sudo /usr/local/sbin/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=9665026b13ba76d2dfcf3223e2546afe59d39b378361c3bd3d1df66a13d29bcf "$artifact" "$GITHUB_SHA"
 
+      - name: Regenerate prerendered data pages
+        if: steps.deployment.outcome == 'success'
+        continue-on-error: true
+        env:
+          PRODUCTION_BASE_URL: https://hearthpulse.net
+        run: node scripts/warm-prerendered-pages.mjs
+
       - name: Verify exact release availability
         env:
           PRODUCTION_BASE_URL: https://hearthpulse.net

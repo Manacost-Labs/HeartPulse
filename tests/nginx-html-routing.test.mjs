@@ -1514,6 +1514,11 @@ http {
     assert.match(cosmeticsRedirect.headers.location || '', /\/cosmetics\/heroes\/HERO_QA_001\/$/);
     const guideFilter = await requestNginx(port, '/guides-archive/?q=arena');
     assert.equal(guideFilter.headers['x-robots-tag'], 'noindex, follow');
+    // /articles/ is prerendered: its HTML is the same for every query, so a
+    // paginated URL stays out of the index through Nginx.
+    const articlesPage = await requestNginx(port, '/articles/?page=2');
+    assert.equal(articlesPage.headers['x-robots-tag'], 'noindex, follow');
+    assert.equal((await requestNginx(port, '/articles/')).headers['x-robots-tag'], undefined);
     for (const path of ['/guides-archive/guide-1/?fail=1', '/standard/archetypes/standard/tempo-mage/?fail=1', '/library/?fail=1', '/library/archive/minions/?fail=1']) {
       const failed = await requestNginx(port, path);
       assert.equal(failed.status, 503);

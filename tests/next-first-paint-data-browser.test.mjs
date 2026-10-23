@@ -92,7 +92,14 @@ test('public previews render on the server and hydrate without a guest data requ
   const gateway = createPublicWebGateway({ legacyOrigin, nextOrigin: next.origin, enabled: true, pagesEnabled: true });
   const origin = await listen(gateway);
   let browser;
+  // /standard/meta/ is prerendered: as after a deploy, mark it stale on the host
+  // so the next request regenerates it from the fixture Express.
+  const regenerate = async () => {
+    const response = await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' });
+    assert.equal(response.status, 200, 'the local revalidation call is accepted');
+  };
   try {
+    await regenerate();
     const metaHtml = await (await fetch(`${origin}/standard/meta/`, { headers: { Cookie: 'session=guest-fixture' } })).text();
     assert.equal(metaHtml.match(/class="standard-meta-card"/g)?.length, 3, 'the three teaser archetypes are in the HTML');
     assert.match(metaHtml, /В предпросмотре<\/dt><dd>3<\/dd>/, 'the summary counts the teaser, not a placeholder zero');
@@ -103,7 +110,7 @@ test('public previews render on the server and hydrate without a guest data requ
     const stylesheets = [...metaHtml.matchAll(/href="(\/_next\/static\/css\/[^"]+\.css)"/g)].map(match => match[1]);
     const css = (await Promise.all([...new Set(stylesheets)].map(href => fetch(`${origin}${href}`).then(response => response.text())))).join('');
     assert.match(css, /\.standard-meta-chart__header\{/, 'the chart stylesheet loads with the document');
-    assert.deepEqual(state.reads.filter(read => read.path.startsWith('/api/standard-meta')).map(read => read.path), [
+    assert.deepEqual(state.reads.filter(read => read.path.startsWith('/api/standard-meta')).map(read => read.path).slice(0, 2), [
       '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100',
       '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100&period=patch_36.6.3',
     ], 'Express answers its own default period first; the page opens on the current one');
@@ -154,22 +161,24 @@ test('public previews render on the server and hydrate without a guest data requ
       await page.close();
     }
 
-    // A slow Express: the meta reads run in parallel (the period is known from
-    // the first request), so 350 ms each still fits the 600 ms budget.
+    // A slow Express during a regeneration: the meta reads run in parallel (the
+    // period is known from the first request) and fit the budget.
     state.delay = 350;
+    await regenerate();
     let started = Date.now();
     const slowHtml = await (await fetch(`${origin}/standard/meta/`)).text();
     assert.ok(Date.now() - started < 1500, `a slow Express read is awaited in parallel (${Date.now() - started} ms)`);
     assert.equal(slowHtml.match(/class="standard-meta-card"/g)?.length, 3, 'two parallel reads fit the budget');
     state.delay = 0;
 
-    // A stalled Express: the document leaves after the budget with the loader,
-    // and the browser loads the teaser itself.
+    // A stalled Express during a regeneration: it gives up after the 5 s
+    // budget with the loader (no 500), and the browser loads the teaser itself.
     state.stall = true;
+    await regenerate();
     started = Date.now();
     const stalled = await (await fetch(`${origin}/standard/meta/`)).text();
     const stalledMs = Date.now() - started;
-    assert.ok(stalledMs >= 550 && stalledMs < 2000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
+    assert.ok(stalledMs >= 4500 && stalledMs < 9000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
     assert.match(stalled, /data-loading-surface="panel"/, 'without data the page renders its loader');
     assert.match(stalled, /В предпросмотре<\/dt><dd><span class="loading-block loading-value"/, 'and no fake zero: a value placeholder');
     const page = await browser.newPage();

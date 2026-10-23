@@ -9,7 +9,7 @@ const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
  * sends the same header in production). tests/next-prerendered-robots.test.mjs
  * fails when a prerendered page with a query policy is missing here.
  */
-const PRERENDERED_QUERY_ROBOTS = ['/battlegrounds/tier-list', '/guides-archive'];
+const PRERENDERED_QUERY_ROBOTS = ['/articles', '/battlegrounds/tier-list', '/guides-archive'];
 
 function prerenderedQueryRobotsHeaders() {
   const inventory = JSON.parse(readFileSync(new URL('../../src/shared/seo/publicRouteInventory.json', import.meta.url), 'utf8'));
