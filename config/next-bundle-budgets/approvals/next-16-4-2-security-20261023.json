@@ -1,0 +1,77 @@
+{
+  "reason": "Безопасность: Next.js 16.3.8 → 16.4.2 закрывает критические уязвимости GHSA-2464-fhr4-w9xw (RCE в Image Optimization с SVG), GHSA-673q-mjm6-r5xr (RCE в `use cache`) и GHSA-p3m5-59mp-jv5r (DoS через Server Actions). Новый runtime Next добавляет около 2 КБ gzip к общему клиентскому коду каждого маршрута; ветки 16.3 с исправлением нет.",
+  "routes": {
+    "/": {
+      "jsGzipBytes": 2304
+    },
+    "/articles/": {
+      "jsGzipBytes": 2304
+    },
+    "/battlegrounds/tier-list/": {
+      "jsGzipBytes": 2304
+    },
+    "/classes/": {
+      "jsGzipBytes": 2304
+    },
+    "/connect/": {
+      "jsGzipBytes": 2304
+    },
+    "/contests/": {
+      "jsGzipBytes": 2304
+    },
+    "/cosmetics/": {
+      "jsGzipBytes": 2304
+    },
+    "/developers/api/": {
+      "jsGzipBytes": 2304
+    },
+    "/faq/": {
+      "jsGzipBytes": 2304
+    },
+    "/gallery/": {
+      "jsGzipBytes": 2304
+    },
+    "/guides-archive/": {
+      "jsGzipBytes": 2304
+    },
+    "/heroes/": {
+      "jsGzipBytes": 2304
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 2304
+    },
+    "/library/": {
+      "jsGzipBytes": 2304
+    },
+    "/library/minions/": {
+      "jsGzipBytes": 2304
+    },
+    "/privacy/": {
+      "jsGzipBytes": 2304
+    },
+    "/standard/archetypes/": {
+      "jsGzipBytes": 1792
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 2304
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 2304
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 2304
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 2048
+    },
+    "/standard/matchups/": {
+      "jsGzipBytes": 2304
+    },
+    "/standard/meta/": {
+      "jsGzipBytes": 2304
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 2304
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Безопасность: Next.js обновлён с 16.3.8 до 16.4.2 — закрыты критические уязвимости удалённого выполнения кода (Image Optimization с SVG и `use cache`) и DoS через Server Actions. Также обновлены sanitize-html (2.18.1) и ip-address (10.7.4).

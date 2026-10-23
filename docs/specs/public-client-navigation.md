@@ -117,7 +117,7 @@ request counts and existing bundle budgets. Review desktop and phone transitions
 in Chrome DevTools after automated checks. Record lab measurements separately
 from field Web Vitals; this task does not claim a field-score improvement.
 
-Next.js 16.3.8 and React 19.3.0 are the installed dependencies. App Router
+Next.js 16.4.2 and React 19.3.0 are the installed dependencies. App Router
 navigation uses `router.push` and `router.prefetch` from
 [`useRouter`](https://nextjs.org/docs/app/api-reference/functions/use-router).
 Prefetch freshness uses the documented `onInvalidate` callback rather than
