@@ -1,6 +1,5 @@
-import { useId, useMemo, useState } from 'react';
+import { lazy, Suspense, useId, useMemo, useState } from 'react';
 import { CircleAlert, Heart, Star, Swords } from 'lucide-react';
-import { AnchoredImagePreview } from '../../../shared/ui/AnchoredImagePreview';
 import { ColumnChart } from '../../../shared/ui/analytics/ColumnChart';
 import { LineChart } from '../../../shared/ui/analytics/LineChart';
 import { StackedBarChart } from '../../../shared/ui/analytics/StackedBarChart';
@@ -31,6 +30,9 @@ const TAVERN_SERIES = [
 const LOW_SAMPLE_HINT = `Меньше ${HERO_LOW_SAMPLE_GAMES} игр: оценка приблизительная`;
 /** Matrix cells with fewer observations are faded: their share swings from game to game. */
 const MATRIX_LOW_SAMPLE = 50;
+
+// Loaded on the first hover: the preview brings its own stylesheet, and the module's public entry must stay importable without CSS.
+const AnchoredImagePreview = lazy(() => import('../../../shared/ui/AnchoredImagePreview').then(module => ({ default: module.AnchoredImagePreview })));
 
 const tavernIcon = (tier: number | null | undefined) => `/bg-legacy/assset/tier${Math.min(7, Math.max(1, Number(tier) || 1))}.png`;
 const percent = (value: number | null, digits = 1) => (value === null ? '—' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: digits })}%`);
@@ -134,8 +136,10 @@ function CardPreview({ card, name }: { card: HeroAnalyticsCard | undefined; name
   return <span className="bg-hero-card-name" tabIndex={0} aria-describedby={anchor ? previewId : undefined}
     onPointerEnter={show} onPointerLeave={hide} onFocus={show} onBlur={hide}>
     {name}
-    {anchor && <AnchoredImagePreview key={anchor.key} id={previewId} previewId={previewId} source={sources[0]} fallbackSource={sources[1] ?? sources[0]}
-      name={name} accessibleName={`Полная карта ${name}`} anchorRect={anchor.rect} />}
+    {anchor && <Suspense fallback={null}>
+      <AnchoredImagePreview key={anchor.key} id={previewId} previewId={previewId} source={sources[0]} fallbackSource={sources[1] ?? sources[0]}
+        name={name} accessibleName={`Полная карта ${name}`} anchorRect={anchor.rect} />
+    </Suspense>}
   </span>;
 }
 
