@@ -226,7 +226,8 @@ import {
 } from './newsletterUnsubscribeRoutes.js';
 import { isMailingEntrySubscribed, syncMailingContact, type MailingContactSyncOptions } from './mailingContactSync.js';
 import {
-  canReceiveCampaign, ensureBoostySeenColumn, hasMailingConsent, isBoostyAudienceContact, mailingSegment, type MailingSegment,
+  canReceiveCampaign, ensureBoostySeenColumn, hasMailingConsent, isBoostyAudienceContact, mailingFooterReason, mailingSegment,
+  type MailingSegment,
 } from './mailingAudience.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { ADMIN_CRM_SCHEMA_SQL } from './adminCrmRoutes.js';
@@ -2713,7 +2714,7 @@ function renderNewsletterHtml(draft: NewsletterDraft, unsubscribeUrl: string, pr
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mail-card">
         <tr><td class="mail-head"><small>HearthPulse · Manacost</small><strong>${safeSubject}</strong></td></tr>
         <tr><td class="mail-content">${draft.htmlBody}</td></tr>
-        <tr><td class="mail-foot">Вы получили письмо, потому что согласились на рассылку Manacost. <a href="${safeUnsubscribeUrl}">Отписаться от рассылки</a>.</td></tr>
+        <tr><td class="mail-foot">${escapeNewsletterHtml(mailingFooterReason(draft.segment))} <a href="${safeUnsubscribeUrl}">Отписаться от рассылки</a>.</td></tr>
       </table>
     </td></tr></table>
   </body>

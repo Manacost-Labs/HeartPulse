@@ -21,3 +21,6 @@ need a verified opt-in.
   between queueing and sending is honoured. Every letter carries the
   personal unsubscribe link and `List-Unsubscribe` header.
 - The send confirmation says the audience includes people who never opted in.
+- The letter footer says why the reader got it: a consented audience "agreed
+  to the newsletter", the Boosty audience "subscribed to Manacost on Boosty"
+  (`mailingFooterReason`), so no letter claims a consent that was not given.

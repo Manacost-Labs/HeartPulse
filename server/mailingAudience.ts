@@ -43,6 +43,13 @@ export function isBoostyAudienceContact(contact: MailingAudienceContact, isRealE
     && reachable(contact, isRealEmail);
 }
 
+/** Why the reader gets the letter, for its footer: only consented segments may say they agreed to it. */
+export function mailingFooterReason(segment: MailingSegment): string {
+  return segment === 'boosty-all'
+    ? 'Вы получили письмо, потому что подписывались на Manacost на Boosty.'
+    : 'Вы получили письмо, потому что согласились на рассылку Manacost.';
+}
+
 /** The send-time check of one delivery: the rule of the campaign's own segment. */
 export function canReceiveCampaign(
   segment: MailingSegment,
