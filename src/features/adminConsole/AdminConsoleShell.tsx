@@ -1,4 +1,4 @@
-import React, { useMemo, useState, type ReactNode } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ExternalLink, X } from 'lucide-react';
 import { ThemeScope } from '../../vendor/valyro-ui/theme/ThemeScope';
 import { AppShell, type AppShellLabels, type AppShellState } from '../../vendor/valyro-ui/layout/AppShell';
@@ -128,6 +128,30 @@ function ConsoleSidebar({ shell, navigation, activeSection, accessLabel, onNavig
   );
 }
 
+const MAIN_ID = 'main-content';
+
+/**
+ * Each section keeps its own scroll position in the shared scrolling main area: returning to a
+ * section lands where the operator left it, a section opened for the first time starts at the top.
+ */
+function useSectionScrollMemory(section: string) {
+  const positions = useRef(new Map<string, number>());
+  const current = useRef(section);
+  useEffect(() => {
+    const main = document.getElementById(MAIN_ID);
+    if (!main) return undefined;
+    const remember = () => positions.current.set(current.current, main.scrollTop);
+    main.addEventListener('scroll', remember, { passive: true });
+    return () => main.removeEventListener('scroll', remember);
+  }, []);
+  useLayoutEffect(() => {
+    if (current.current === section) return;
+    current.current = section;
+    const main = document.getElementById(MAIN_ID);
+    if (main) main.scrollTop = positions.current.get(section) ?? 0;
+  }, [section]);
+}
+
 export type AdminConsoleShellProps = {
   navigation: Navigation;
   activeSection: AdminWorkspaceSection;
@@ -164,11 +188,12 @@ export function AdminConsoleShell({
   useCommandPaletteHotkey(setPaletteOpen);
   const active = navigation.find(item => item.id === activeSection) ?? navigation[0];
   const commands = useMemo(() => paletteCommands(navigation, onNavigate), [navigation, onNavigate]);
+  useSectionScrollMemory(activeSection);
 
   return (
     <ThemeScope theme="manacost" mode="light" className="admin-console">
       <AppShell
-        mainId="main-content"
+        mainId={MAIN_ID}
         labels={SHELL_LABELS}
         mobileBreakpoint={960}
         sidebarCollapsed={collapsed}

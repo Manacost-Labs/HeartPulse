@@ -5,25 +5,16 @@ import {
 } from '../src/features/adminWorkspaceState.js';
 
 const initial = createAdminWorkspaceState('dashboard');
-assert.deepEqual(initial, {
-  section: 'dashboard',
-  openUserMenuId: '',
-  message: null,
-});
+assert.deepEqual(initial, { section: 'dashboard', message: null });
 
-const userMenuOpen = adminWorkspaceReducer(initial, { type: 'toggleUserMenu', userId: 'user-1' });
-assert.equal(userMenuOpen.openUserMenuId, 'user-1');
-const withMessage = adminWorkspaceReducer(userMenuOpen, {
+const withMessage = adminWorkspaceReducer(initial, {
   type: 'setMessage',
   message: { type: 'ok', text: 'Сохранено' },
 });
+assert.equal(withMessage.message?.text, 'Сохранено');
 
 const navigated = adminWorkspaceReducer(withMessage, { type: 'navigate', section: 'contests' });
-assert.deepEqual(navigated, {
-  section: 'contests',
-  openUserMenuId: '',
-  message: null,
-});
+assert.deepEqual(navigated, { section: 'contests', message: null }, 'opening another section clears the toast');
 assert.strictEqual(
   adminWorkspaceReducer(navigated, { type: 'navigate', section: 'contests' }),
   navigated,
@@ -34,19 +25,13 @@ const funDecks = adminWorkspaceReducer(navigated, { type: 'navigate', section: '
 assert.equal(funDecks.section, 'fun-decks');
 const apiKeys = adminWorkspaceReducer(funDecks, { type: 'navigate', section: 'api-keys' });
 assert.equal(apiKeys.section, 'api-keys');
-
 const referrals = adminWorkspaceReducer(funDecks, { type: 'navigate', section: 'referrals' });
 assert.equal(referrals.section, 'referrals');
 
-const sameUserMenuClosed = adminWorkspaceReducer(
-  adminWorkspaceReducer(initial, { type: 'toggleUserMenu', userId: 'user-1' }),
-  { type: 'toggleUserMenu', userId: 'user-1' },
-);
-assert.equal(sameUserMenuClosed.openUserMenuId, '');
 assert.strictEqual(
-  adminWorkspaceReducer(initial, { type: 'closeUserMenu' }),
+  adminWorkspaceReducer(initial, { type: 'setMessage', message: null }),
   initial,
-  'closing an already closed user menu must not rerender',
+  'clearing an absent toast must not rerender',
 );
 
 console.log('admin workspace state reducer tests passed');

@@ -4,10 +4,13 @@ import { createAdminBoostyRouter } from '../server/adminBoostyRoutes.js';
 
 let failure: 'status' | 'subscribers' | null = null;
 let includeInactive: boolean | null = null;
+let statusCalls = 0;
+let subscriberCalls = 0;
 const app = express();
 app.use('/api', createAdminBoostyRouter({
   adminAuth: request => request.headers['x-admin'] === 'yes' ? { id: 'admin-1' } : null,
   getStatus: async () => {
+    statusCalls += 1;
     if (failure === 'status') throw new Error('token at /private/boosty.env');
     return {
       configured: true,
@@ -23,7 +26,9 @@ app.use('/api', createAdminBoostyRouter({
     };
   },
   getSubscribers: async value => {
+    subscriberCalls += 1;
     includeInactive = value;
+    await new Promise(resolve => setTimeout(resolve, 20));
     if (failure === 'subscribers') throw new Error('token at /private/boosty.env');
     return { configured: true, source: 'snapshot', stale: false, subscribers: [{ id: 'subscriber-1' }] };
   },
@@ -63,8 +68,20 @@ try {
   await request('/subscribers?includeInactive=0');
   assert.equal(includeInactive, false);
 
+  // A repeated read within the cache window does not ask boosty-auth again; «Обновить» (fresh=1) does.
+  const callsBefore = { status: statusCalls, subscribers: subscriberCalls };
+  assert.equal((await request('/status')).status, 200);
+  assert.equal((await request('/subscribers')).status, 200);
+  assert.deepEqual({ status: statusCalls, subscribers: subscriberCalls }, callsBefore);
+  await request('/subscribers?fresh=1');
+  assert.equal(subscriberCalls, callsBefore.subscribers + 1);
+  // Concurrent fresh reads share one upstream request.
+  await Promise.all([request('/subscribers?fresh=1'), request('/subscribers?fresh=1')]);
+  assert.equal(subscriberCalls, callsBefore.subscribers + 2);
+
   failure = 'status';
-  const failedStatus = await request('/status');
+  assert.equal((await request('/status')).status, 200, 'a cached answer is served while boosty-auth fails');
+  const failedStatus = await request('/status?fresh=1');
   assert.equal(failedStatus.status, 502);
   assert.deepEqual(await failedStatus.json(), {
     configured: true,
@@ -81,7 +98,7 @@ try {
   });
 
   failure = 'subscribers';
-  const failedSubscribers = await request('/subscribers');
+  const failedSubscribers = await request('/subscribers?fresh=1');
   assert.equal(failedSubscribers.status, 502);
   assert.equal(failedSubscribers.headers.get('cache-control'), 'private, no-store');
   const failedSubscribersPayload = await failedSubscribers.json();
@@ -96,6 +113,9 @@ try {
     error: 'Не удалось загрузить подписчиков Boosty',
   });
   assert.doesNotMatch(JSON.stringify(failedSubscribersPayload), /private|127\.0\.0\.1|token/i);
+  const statusCallsAfterFailure = statusCalls;
+  await request('/status');
+  assert.equal(statusCalls, statusCallsAfterFailure, 'the last good status stays cached after a failed refresh');
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }

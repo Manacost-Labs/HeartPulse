@@ -18,20 +18,16 @@ export type AdminWorkspaceSection =
 
 export type AdminWorkspaceState = {
   section: AdminWorkspaceSection;
-  openUserMenuId: string;
   message: AdminMessage | null;
 };
 
 export type AdminWorkspaceAction =
   | { type: 'navigate'; section: AdminWorkspaceSection }
-  | { type: 'toggleUserMenu'; userId: string }
-  | { type: 'closeUserMenu' }
   | { type: 'setMessage'; message: AdminMessage | null };
 
 export function createAdminWorkspaceState(section: AdminWorkspaceSection): AdminWorkspaceState {
   return {
     section,
-    openUserMenuId: '',
     message: null,
   };
 }
@@ -43,17 +39,9 @@ export function adminWorkspaceReducer(
   if (action.type === 'navigate') {
     if (
       state.section === action.section
-      && !state.openUserMenuId
       && !state.message
     ) return state;
     return createAdminWorkspaceState(action.section);
-  }
-  if (action.type === 'toggleUserMenu') {
-    const openUserMenuId = state.openUserMenuId === action.userId ? '' : action.userId;
-    return openUserMenuId === state.openUserMenuId ? state : { ...state, openUserMenuId };
-  }
-  if (action.type === 'closeUserMenu') {
-    return state.openUserMenuId ? { ...state, openUserMenuId: '' } : state;
   }
   if (action.message === state.message) return state;
   return { ...state, message: action.message };
