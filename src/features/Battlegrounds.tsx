@@ -1382,8 +1382,7 @@ function BattlegroundHeroMediaLightbox({
   onClose: () => void;
   onIndexChange: (next: number) => void;
 }) {
-  // 240 ms: the panel's transform, the longest of the transitions below.
-  const { shown: visible, close } = useOverlayFade(onClose, 240);
+  const { ref: fadeRef, shown: visible, close } = useOverlayFade<HTMLDivElement>(onClose, 600);
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const item = items[index] || null;
   usePageScrollLock(Boolean(item));
@@ -1404,6 +1403,7 @@ function BattlegroundHeroMediaLightbox({
 
   return createPortal(
     <div
+      ref={fadeRef}
       className="bg-hero-media-lightbox"
       style={{
         position: 'fixed',

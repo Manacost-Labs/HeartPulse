@@ -118,7 +118,12 @@ for (const [name, viewport] of [
   });
 }
 
-/** The opacity of the hero media lightbox on every frame after Escape, until it has been gone a while. */
+/**
+ * The opacity of the hero media lightbox on every frame after Escape, until it
+ * has been gone a while. A busy runner renders few, late frames: the CPU is
+ * slowed down for the close, as on CI, where a close timed from the key press
+ * unmounted the lightbox while it was still a fifth visible.
+ */
 async function heroLightboxClose({ reducedMotion }) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
@@ -129,6 +134,8 @@ async function heroLightboxClose({ reducedMotion }) {
   await page.waitForSelector('.bg-hero-action-card', { visible: true });
   await page.click('.bg-hero-action-card');
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.bg-hero-media-lightbox')).opacity === '1');
+  const cdp = await page.createCDPSession();
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
   const opacities = await page.evaluate(() => new Promise(resolve => {
     const samples = [];
     let goneFor = 0;
@@ -150,7 +157,7 @@ async function heroLightboxClose({ reducedMotion }) {
 test('the hero media lightbox fades out before it unmounts', async () => {
   const { opacities, bodyLocked } = await heroLightboxClose({ reducedMotion: false });
   const fading = opacities.filter(opacity => opacity !== null && opacity > 0.02 && opacity < 0.98);
-  assert.ok(fading.length >= 3, `the lightbox must fade out over several frames: ${opacities.join(', ')}`);
+  assert.ok(fading.length >= 1, `the lightbox must fade out instead of vanishing: ${opacities.join(', ')}`);
   const shown = opacities.filter(opacity => opacity !== null);
   assert.ok(shown.every((opacity, index) => index === 0 || opacity <= shown[index - 1] + 0.001), `the fade must only fall: ${shown.join(', ')}`);
   assert.ok(shown.at(-1) < 0.05, `the lightbox unmounts once faded out: ${shown.join(', ')}`);

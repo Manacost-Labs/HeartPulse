@@ -596,6 +596,8 @@ in. The lock now keeps `scrollbar-gutter: stable` on the root while locked when
 the page had a classic scrollbar, and the desktop header sticks at
 `--page-scroll-lock-offset`, which holds it in place wherever it sits on the
 page (a translation is exact only for a header at the very top). The hand-made
-hero media lightbox also fades out before it unmounts (`useOverlayFade`).
+hero media lightbox also fades out before it unmounts (`useOverlayFade`): it
+unmounts on its own opacity `transitionend`, not on a timer, since a busy
+runner starts the transition frames late.
 `tests/lightbox-close-stability-browser.test.mjs` samples every frame of a
 close at 1440px with real scrollbars and at 412px, and fails on the old lock.
