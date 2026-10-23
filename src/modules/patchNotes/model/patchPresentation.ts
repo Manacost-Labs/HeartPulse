@@ -1,4 +1,4 @@
-import type { PatchCardView, PatchKindCounts, PatchView } from './patchEntries';
+import type { PatchCardView, PatchView } from './patchEntries';
 import type { PatchNotesSummary } from './types';
 
 /* What the page shows around the changes: the expansion cycle, the hero's lead and the archive timeline. */
@@ -94,14 +94,6 @@ export function patchArchiveByExpansion(patches: readonly PatchNotesSummary[]): 
     else groups.push({ key, code, patches: [patch] });
   }
   return groups;
-}
-
-/** Whole-percent shares of buffs, nerfs and reworks for share bars; all zero for an empty count. */
-export function patchKindShares(kinds: PatchKindCounts): PatchKindCounts {
-  const total = kinds.buff + kinds.nerf + kinds.rework;
-  if (!total) return { buff: 0, nerf: 0, rework: 0 };
-  const share = (value: number) => Math.round((value / total) * 100);
-  return { buff: share(kinds.buff), nerf: share(kinds.nerf), rework: share(kinds.rework) };
 }
 
 /** A node of the "changed cards → affected archetypes" flow; `href` is where a click leads. */

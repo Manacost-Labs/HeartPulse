@@ -365,7 +365,6 @@ test('routes serve the archive, the latest patch with changes and one version; f
 test('the page groups cards by mode, class or type and derives kinds only from directed numbers', async () => {
   const {
     toPatchView, filterPatchView, patchGroupOptions, patchHighlights, normalizePatchVersion, patchNotesHref, sentenceCase,
-    patchGroupKinds,
   } = await import('../src/modules/patchNotes/public');
   const { entries } = parsePatchArticle(article, sections, resolver);
   const view = toPatchView({ entries: entries.map(entry => entry.cardId === 'TLC_600' ? { ...entry, format: 'standard' as const } : entry) });
@@ -381,7 +380,6 @@ test('the page groups cards by mode, class or type and derives kinds only from d
   assert.equal(serpent?.cardUrl, '/standard/cards/standard/TLC_600/');
   assert.equal(serpent?.anchor, 'card-constructed-змей-ветреных-вершин');
   assert.deepEqual(view.groups.map(group => group.icon).slice(0, 3), [{ classKey: 'warrior' }, { cardType: null }, { cardType: 'minion' }]);
-  assert.deepEqual(patchGroupKinds(view.groups.find(group => group.title === 'Броня героя') ?? view.groups[0]), { buff: 0, nerf: 2, rework: 0 });
   const use = (slug: string, popularity: number) => ({ format: 'standard' as const, slug, name: slug, classKey: 'warrior', popularity, decks: 1, totalDecks: 2 });
   const withMeta = toPatchView({ entries: entries.map(entry => (entry.cardId === 'TLC_600'
     ? { ...entry, archetypes: [use('control', 2), use('dragon', 9)], history: [{ version: '36.4.2', entryId: 'x', publishedAt: null }] }
@@ -423,7 +421,7 @@ test('the page groups cards by mode, class or type and derives kinds only from d
 });
 
 test('presentation: the expansion of a version, the hero lead, wide art and the archive by expansion', async () => {
-  const { toPatchView, patchExpansionCode, patchHeroLead, patchFeaturedArtwork, patchArchiveByExpansion, patchKindShares, patchHeadline } =
+  const { toPatchView, patchExpansionCode, patchHeroLead, patchFeaturedArtwork, patchArchiveByExpansion, patchHeadline } =
     await import('../src/modules/patchNotes/public');
   assert.equal(patchHeadline('Обновление 36.6.3: балансные изменения Стандарта и Полей сражений'), 'Балансные изменения Стандарта и Полей сражений');
   assert.equal(patchHeadline('Обновление 36.4.2 уже в игре: баланс Стандарта, Арены и Полей сражений'), 'Баланс Стандарта, Арены и Полей сражений');
@@ -452,8 +450,6 @@ test('presentation: the expansion of a version, the hero lead, wide art and the 
   assert.deepEqual(patchArchiveByExpansion([summary('36.0.3', '2026-07-21'), summary('35.6.2', '2026-06-11'), summary('35.0.3', '2026-04-02'),
     summary('19.2.0', '2021-01-01')]).map(group => [group.code, group.patches.map(patch => patch.version)]),
   [['ESCAPEFROM_VIOLET_HOLD', ['36.0.3']], ['CATACLYSM', ['35.6.2', '35.0.3']], [null, ['19.2.0']]]);
-  assert.deepEqual(patchKindShares({ buff: 1, nerf: 3, rework: 0 }), { buff: 25, nerf: 75, rework: 0 });
-  assert.deepEqual(patchKindShares({ buff: 0, nerf: 0, rework: 0 }), { buff: 0, nerf: 0, rework: 0 });
 });
 
 test('meta flow: changed cards to the archetypes whose builds play them, weighted by those builds', async () => {

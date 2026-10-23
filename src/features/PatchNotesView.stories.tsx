@@ -62,9 +62,9 @@ export const CardChanges: Story = {
     // Six changes are read whole: "Главное" keeps only the cards → archetypes flow.
     await expect(canvasElement.querySelector('.hp-patch-highlights__list')).toBeNull();
     await expect(listed()).toHaveLength(6);
-    await userEvent.click(canvas.getByRole('button', { name: /^Только нерфы/ }));
+    await userEvent.click(canvas.getByRole('button', { name: /^Только ослабления/ }));
     await expect(canvas.getAllByRole('article')).toHaveLength(3);
-    await userEvent.click(canvas.getByRole('button', { name: /^Все \d/ }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Все' }));
     await userEvent.type(canvas.getByRole('searchbox'), 'booty');
     await expect(canvas.getAllByRole('article')).toHaveLength(1);
     await expect(canvas.getByRole('heading', { name: /Пойло из Пиратской Бухты/ })).toBeVisible();

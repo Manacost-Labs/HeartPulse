@@ -52,9 +52,10 @@ export function VersionSwitcher({ patches, current, onSelect, formatDate }: {
   );
 }
 
+/* The header counts each kind with the same marks, so a toggle is its mark alone; its name is the label. */
 const KIND_FILTERS: { kind: PatchKind; label: string; Icon: typeof ArrowUp }[] = [
-  { kind: 'buff', label: 'Только бафы', Icon: ArrowUp },
-  { kind: 'nerf', label: 'Только нерфы', Icon: ArrowDown },
+  { kind: 'buff', label: 'Только усиления', Icon: ArrowUp },
+  { kind: 'nerf', label: 'Только ослабления', Icon: ArrowDown },
   { kind: 'rework', label: 'Только переработки', Icon: RefreshCw },
 ];
 
@@ -106,14 +107,12 @@ export function PatchBar({ view, filter, onChange }: {
             autoComplete="off" onChange={event => onChange({ query: event.target.value })} />
         </div>
         <div className="hp-patch-kinds" role="group" aria-label="Тип изменения">
-          <button type="button" aria-pressed={filter.kind === 'all'} onClick={() => onChange({ kind: 'all' })}>
-            Все <span>{view.total}</span>
-          </button>
+          <button type="button" aria-pressed={filter.kind === 'all'} onClick={() => onChange({ kind: 'all' })}>Все</button>
           {KIND_FILTERS.map(({ kind, label, Icon }) => (
             <button key={kind} type="button" data-kind={kind} aria-pressed={filter.kind === kind} title={label}
               aria-label={`${label}: ${view.kinds[kind]}`} disabled={view.kinds[kind] === 0 && filter.kind !== kind}
               onClick={() => onChange({ kind })}>
-              <Icon aria-hidden="true" /><span>{view.kinds[kind]}</span>
+              <Icon aria-hidden="true" />
             </button>
           ))}
         </div>
