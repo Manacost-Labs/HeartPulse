@@ -69,6 +69,26 @@ GitHub повторно выполнит CI, CodeQL, Gitleaks, OSV-Scanner, Triv
 Review и OpenSSF Scorecard. Не отключайте проверку ради зелёного статуса:
 исправьте причину либо явно документируйте подтверждённое исключение.
 
+## Как запустить часть тестов
+
+Все тесты перечислены в `tests/test-suites.json`, `npm test` выполняет их
+целиком. Для одного файла отдельный npm-скрипт не нужен:
+
+```bash
+npx tsx tests/page-tour-auto-start.test.ts
+node --test tests/next-page-transitions-browser.test.mjs
+```
+
+Тесты модуля из `config/architecture-catalog.json` и группа реестра:
+
+```bash
+npm run test:module -- <module-id>
+node scripts/test-suite-runner.mjs --suite browser
+```
+
+Скрипты `test:*` в `package.json` остаются для составных проверок и тех, на
+которые ссылаются CI, конфигурация и документация.
+
 ## Pull request
 
 - Делайте одну законченную тему на PR.
