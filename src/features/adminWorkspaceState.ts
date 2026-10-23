@@ -1,8 +1,5 @@
 export type AdminMessage = { type: 'ok' | 'err'; text: string };
 
-// Keep this media query aligned with the drawer breakpoint in adminWorkspace.css.
-export const ADMIN_DRAWER_MEDIA_QUERY = '(max-width: 1023px)';
-
 export type AdminWorkspaceSection =
   | 'dashboard'
   | 'users'
@@ -21,15 +18,12 @@ export type AdminWorkspaceSection =
 
 export type AdminWorkspaceState = {
   section: AdminWorkspaceSection;
-  adminMenuOpen: boolean;
   openUserMenuId: string;
   message: AdminMessage | null;
 };
 
 export type AdminWorkspaceAction =
   | { type: 'navigate'; section: AdminWorkspaceSection }
-  | { type: 'toggleAdminMenu' }
-  | { type: 'closeAdminMenu' }
   | { type: 'toggleUserMenu'; userId: string }
   | { type: 'closeUserMenu' }
   | { type: 'setMessage'; message: AdminMessage | null };
@@ -37,7 +31,6 @@ export type AdminWorkspaceAction =
 export function createAdminWorkspaceState(section: AdminWorkspaceSection): AdminWorkspaceState {
   return {
     section,
-    adminMenuOpen: false,
     openUserMenuId: '',
     message: null,
   };
@@ -50,17 +43,10 @@ export function adminWorkspaceReducer(
   if (action.type === 'navigate') {
     if (
       state.section === action.section
-      && !state.adminMenuOpen
       && !state.openUserMenuId
       && !state.message
     ) return state;
     return createAdminWorkspaceState(action.section);
-  }
-  if (action.type === 'toggleAdminMenu') {
-    return { ...state, adminMenuOpen: !state.adminMenuOpen };
-  }
-  if (action.type === 'closeAdminMenu') {
-    return state.adminMenuOpen ? { ...state, adminMenuOpen: false } : state;
   }
   if (action.type === 'toggleUserMenu') {
     const openUserMenuId = state.openUserMenuId === action.userId ? '' : action.userId;
