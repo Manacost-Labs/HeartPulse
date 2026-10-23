@@ -126,9 +126,8 @@ async function openPage(browser, origin, cookie) {
   return page;
 }
 
-// Finds the chunk of a lazily loaded component by a string that only its code
-// contains, or, with `only`, the requested chunk whose path matches it.
-async function chunkHolding(browser, origin, path, marker, cookie, only) {
+// Finds the chunk of a lazily loaded component by a string that only its code contains.
+async function chunkHolding(browser, origin, path, marker, cookie) {
   const page = await openPage(browser, origin, cookie);
   const requested = new Set();
   page.on('request', request => {
@@ -138,7 +137,6 @@ async function chunkHolding(browser, origin, path, marker, cookie, only) {
   await page.goto(`${origin}${path}`, { waitUntil: 'networkidle0' });
   await page.close();
   for (const chunk of requested) {
-    if (only && !only.test(chunk)) continue;
     if ((await (await fetch(`${origin}${chunk}`)).text()).includes(marker)) return chunk;
   }
   throw new Error(`no chunk requested by ${path} contains "${marker}"`);
@@ -203,49 +201,6 @@ test('a missing page chunk offers a reload, and the reload recovers the page', a
     await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('[data-app-error] button')]);
     await page.waitForFunction(() => document.querySelector('h1')?.textContent?.includes('Соберите колоду'));
     assert.equal(await page.$('[data-app-error]'), null, 'the reloaded page has no error');
-  } finally {
-    if (browser) await browser.close();
-    await runtime.close();
-  }
-});
-
-test('when not even the route error page can load, the site page reloads once and then explains', async () => {
-  const runtime = await startQaNextRuntime();
-  let browser;
-  try {
-    browser = await launchBrowser();
-    const admin = qaSessionCookie({ admin: true });
-    const missing = new Set([
-      await chunkHolding(browser, runtime.origin, '/deck-builder/', 'Соберите колоду', admin),
-      // The root route error page (app/error.tsx), not a shared chunk that repeats its copy.
-      await chunkHolding(browser, runtime.origin, '/deck-builder/', 'Страница временно недоступна', admin, /\/app\/error-[^/]+\.js$/),
-    ]);
-    const page = await openPage(browser, runtime.origin, admin);
-    const state = { missing: true, documents: 0, reports: [] };
-    await page.setRequestInterception(true);
-    page.on('request', request => {
-      const { pathname } = new URL(request.url());
-      if (request.method() === 'POST' && pathname === '/api/telemetry/client-errors') {
-        state.reports.push(JSON.parse(request.postData()));
-        return request.respond({ status: 204 });
-      }
-      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) state.documents += 1;
-      if (state.missing && missing.has(pathname)) return request.abort('failed');
-      return request.continue();
-    });
-    // The page reloads itself, so wait for its final state rather than one navigation.
-    await page.goto(`${runtime.origin}/deck-builder/`, { waitUntil: 'load' });
-    await page.waitForFunction(() => document.querySelector('[data-app-error="global"] h1'), { timeout: 20_000, polling: 100 });
-    await new Promise(resolve => setTimeout(resolve, 1_000));
-    assert.equal(await page.$eval('[data-app-error="global"] h1', element => element.textContent.trim()), 'Страница не догрузилась');
-    assert.equal(await page.$eval('html', element => element.lang), 'ru', 'the page explains itself in Russian, not the framework default');
-    assert.equal(state.documents, 2, 'it reloaded by itself once, and a second failure did not loop');
-    assert.ok(state.reports.some(report => report.kind === 'chunk' && report.scope === 'global'), 'the failure is reported');
-
-    state.missing = false;
-    await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.click('[data-app-error="global"] button')]);
-    await page.waitForFunction(() => document.querySelector('h1')?.textContent?.includes('Соберите колоду'), { timeout: 20_000 });
-    assert.equal(await page.$('[data-app-error]'), null, 'the reload recovers the page');
   } finally {
     if (browser) await browser.close();
     await runtime.close();

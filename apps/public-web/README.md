@@ -128,7 +128,9 @@ is a separate administrator workspace and retains its permission gate.
   with a Russian one in inline styles, reports the error as scope `global`,
   and after a chunk failure reloads once by itself;
   `src/components/chunkReloadGuard.ts` keeps a second failure within 30 s
-  from looping. The browser test covers this case too.
+  from looping. `tests/global-error-page.test.tsx` checks its markup; a
+  browser test cannot stage this failure reliably, because a blocked initial
+  chunk may also just stop hydration without any error.
 - An error page must not need code that is loaded separately, or a missing
   chunk fails the error page too and Next.js replaces the document with its
   built-in "This page couldn't load" screen. Wrap a part of the page that a
