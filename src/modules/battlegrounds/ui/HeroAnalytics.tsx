@@ -131,7 +131,11 @@ function CardPreview({ card, name }: { card: HeroAnalyticsCard | undefined; name
   const [anchor, setAnchor] = useState<{ rect: DOMRect; key: number } | null>(null);
   const sources = heroCardImageSources(card, false);
   if (!sources.length) return <span className="bg-hero-card-name">{name}</span>;
-  const show = (event: { currentTarget: HTMLElement }) => setAnchor(current => ({ rect: event.currentTarget.getBoundingClientRect(), key: (current?.key ?? 0) + 1 }));
+  // The rect is read while the event is live: React may run the updater later, after it has cleared `currentTarget`.
+  const show = (event: { currentTarget: HTMLElement }) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setAnchor(current => ({ rect, key: (current?.key ?? 0) + 1 }));
+  };
   const hide = () => setAnchor(null);
   return <span className="bg-hero-card-name" tabIndex={0} aria-describedby={anchor ? previewId : undefined}
     onPointerEnter={show} onPointerLeave={hide} onFocus={show} onBlur={hide}>
@@ -162,7 +166,8 @@ export function HeroCompositionAnalytics({ best, compositions, cards }: { best: 
           const card = cards[dbf];
           const name = card?.name || String(minion.name ?? 'Существо');
           const golden = Boolean(minion.premium);
-          const sources = heroCardImageSources(card, golden);
+          // Every slot shows the normal card so the board reads as one set; the star marks a golden minion.
+          const sources = heroCardImageSources(card, false);
           const attack = heroMinionStat(minion.attack);
           const health = heroMinionStat(minion.health);
           return <li key={`${dbf}-${String(minion.zone_position ?? index)}`} className="bg-hero-lineup__minion" title={card?.text ? `${name}: ${card.text}` : name}>
