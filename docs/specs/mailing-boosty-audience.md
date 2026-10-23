@@ -7,7 +7,8 @@ audiences («Все согласившиеся», «Только активны�
 need a verified opt-in.
 
 - `mailing_contacts.boosty_seen_at` marks a contact the Boosty list showed.
-  It is set when the list is read and never cleared. A site reader who later
+  It is set when the list is read and never cleared; subscribers the author
+  blacklisted on Boosty are not marked. A site reader who later
   appears on Boosty keeps their own consent and gains the mark. Older
   databases get the column at start; contacts the Boosty list created before
   (`consent_source = 'boosty-observed'`) are marked from `first_seen_at`.

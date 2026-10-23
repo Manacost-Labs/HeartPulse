@@ -1458,7 +1458,8 @@ function updateMailingConsent(user: AdminUser, subscribed: boolean, source: stri
   }
 }
 
-function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, active: boolean, formerAt?: unknown) {
+// A subscriber the author blacklisted on Boosty is kept in the register but never joins the Boosty audience.
+function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, active: boolean, formerAt?: unknown, blacklisted = false) {
   const email = normalizeEmail(emailValue);
   if (!isRealEmail(email)) return;
   const nowIso = new Date().toISOString();
@@ -1474,7 +1475,7 @@ function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, a
       former_at = CASE WHEN mailing_contacts.user_id IS NULL AND ? = 0 THEN COALESCE(mailing_contacts.former_at, excluded.former_at) ELSE mailing_contacts.former_at END,
       last_seen_at = excluded.last_seen_at,
       updated_at = excluded.updated_at
-  `, mailingContactId(email), email, normalizeOptionalText(nameValue, 120), formerAtIso, nowIso, nowIso, nowIso, nowIso, active ? 1 : 0);
+  `, mailingContactId(email), email, normalizeOptionalText(nameValue, 120), formerAtIso, blacklisted ? null : nowIso, nowIso, nowIso, nowIso, active ? 1 : 0);
 }
 
 function upsertUserRow(database: DatabaseSync, user: AdminUser) {
@@ -3407,7 +3408,7 @@ async function fetchBoostySubscribers(includeInactive = true): Promise<Record<st
     };
   });
   for (const row of rows) {
-    rememberBoostyMailingContact(row.email, row.name, Boolean(row.active || row.hasActivePaidAccess), row.dates?.unsubscribedAt);
+    rememberBoostyMailingContact(row.email, row.name, Boolean(row.active || row.hasActivePaidAccess), row.dates?.unsubscribedAt, row.blacklisted);
   }
   const levels = rows.reduce((acc: Record<string, number>, row: any) => {
     const key = row.level.name || 'Без уровня';
