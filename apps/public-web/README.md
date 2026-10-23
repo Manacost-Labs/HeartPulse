@@ -122,6 +122,13 @@ is a separate administrator workspace and retains its permission gate.
   production observer and browser QA recognise an error page by it.
   `tests/next-error-boundary-browser.test.mjs` checks the copy, the marker,
   the report and the reload after a missing chunk.
+- `app/global-error.tsx` takes over when the root layout itself fails, for
+  example when a network blip loses both a page chunk and the chunk of its
+  `error.tsx`. It replaces the Next.js default (an English page on black)
+  with a Russian one in inline styles, reports the error as scope `global`,
+  and after a chunk failure reloads once by itself;
+  `src/components/chunkReloadGuard.ts` keeps a second failure within 30 s
+  from looping. The browser test covers this case too.
 - An error page must not need code that is loaded separately, or a missing
   chunk fails the error page too and Next.js replaces the document with its
   built-in "This page couldn't load" screen. Wrap a part of the page that a

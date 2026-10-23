@@ -100,6 +100,7 @@
     "tests/battleground-builders-browser.test.mjs": 16,
     "tests/card-patch-changes.test.ts": 0.3,
     "tests/mailing-audience.test.ts": 0.2,
+    "tests/chunk-reload-guard.test.ts": 0.2,
     "tests/hearthstone-card-plurals.test.ts": 0.2,
     "tests/battleground-card-variants.test.ts": 0.2,
     "tests/battleground-hero-cache.test.ts": 0.4,
