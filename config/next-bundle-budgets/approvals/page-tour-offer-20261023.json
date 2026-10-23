@@ -1,0 +1,80 @@
+{
+  "reason": "Тур больше не открывается сам: шапка каждой страницы держит состояние предложения тура и ленивый слой PageTourInvite (около 0,15 КБ gzip). Сама карточка предложения, её CSS и тур остаются ленивыми чанками. Шапка общая для всех публичных маршрутов, поэтому рост одобрен для каждого из них.",
+  "routes": {
+    "/": {
+      "jsGzipBytes": 256
+    },
+    "/articles/": {
+      "jsGzipBytes": 256
+    },
+    "/battlegrounds/tier-list/": {
+      "jsGzipBytes": 256
+    },
+    "/classes/": {
+      "jsGzipBytes": 256
+    },
+    "/connect/": {
+      "jsGzipBytes": 256
+    },
+    "/contests/": {
+      "jsGzipBytes": 256
+    },
+    "/cosmetics/": {
+      "jsGzipBytes": 256
+    },
+    "/developers/api/": {
+      "jsGzipBytes": 256
+    },
+    "/faq/": {
+      "jsGzipBytes": 256
+    },
+    "/gallery/": {
+      "jsGzipBytes": 256
+    },
+    "/guides-archive/": {
+      "jsGzipBytes": 256
+    },
+    "/heroes/": {
+      "jsGzipBytes": 256
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 256
+    },
+    "/library/": {
+      "jsGzipBytes": 256
+    },
+    "/library/minions/": {
+      "jsGzipBytes": 256
+    },
+    "/privacy/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/archetypes/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/deck-builder/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/matchups/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/meta/": {
+      "jsGzipBytes": 256
+    },
+    "/standard/vicious-gold/": {
+      "jsGzipBytes": 256
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 256
+    }
+  }
+}

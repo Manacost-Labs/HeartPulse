@@ -9,6 +9,15 @@ import { pageTourStorageKey } from './pageTourModel';
 /** «Больше не показывать»: no tour starts by itself on any page; the header button still opens one. */
 export const AUTO_TOUR_OPT_OUT_KEY = 'manacost:page-tours:auto-off';
 
+/**
+ * sessionStorage flag: this browser tab has already been offered a tour. A
+ * visitor who browses several pages gets one quiet offer, not one per page.
+ */
+export const TOUR_INVITE_SESSION_KEY = 'manacost:page-tours:invited';
+
+/** How long a visitor reads the page before the offer appears. */
+export const TOUR_INVITE_DELAY_MS = 6_000;
+
 const BOT_USER_AGENT = /bot|crawl|spider|slurp|lighthouse|headless|facebookexternalhit|embedly|preview/i;
 
 type StorageReader = Pick<Storage, 'getItem'>;
@@ -32,17 +41,37 @@ export function pageTourQueryIntent(search: string): 'open' | 'never' | null {
  */
 export function shouldAutoStartPageTour(options: {
   storage: StorageReader | null;
+  /** Without a session store the once-per-tab rule is not enforced. */
+  session?: StorageReader | null;
   storageKey?: string;
   userAgent: string;
   webdriver: boolean;
   search: string;
 }): boolean {
-  const { storage, storageKey, userAgent, webdriver, search } = options;
+  const { storage, session, storageKey, userAgent, webdriver, search } = options;
   if (!storage || isAutomatedVisitor(userAgent, webdriver) || pageTourQueryIntent(search) === 'never') return false;
   try {
+    if (session?.getItem(TOUR_INVITE_SESSION_KEY) === '1') return false;
     return storage.getItem(AUTO_TOUR_OPT_OUT_KEY) !== '1' && (!storageKey || storage.getItem(storageKey) === null);
   } catch {
     return false;
+  }
+}
+
+function markInvitedThisSession(session: Storage | null): void {
+  try {
+    session?.setItem(TOUR_INVITE_SESSION_KEY, '1');
+  } catch {
+    // Without session storage the next page may offer its own tour once more.
+  }
+}
+
+/** «Не сейчас» on the offer: this page and tour version never offers itself again; the header button still opens it. */
+export function writeTourInviteDeclined(storageKey: string): void {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify({ status: 'dismissed' }));
+  } catch {
+    // Without storage the choice lasts for this page view only.
   }
 }
 
@@ -55,7 +84,7 @@ export function writeAutoTourOptOut(): void {
 }
 
 /** Runs `task` once the page has loaded and the main thread is idle, never before `delay` ms after load. */
-export function whenPageIdle(task: () => void, delay = 1_500): () => void {
+export function whenPageIdle(task: () => void, delay = TOUR_INVITE_DELAY_MS): () => void {
   let cancelled = false;
   let timer = 0;
   let idle = 0;
@@ -78,18 +107,25 @@ export function whenPageIdle(task: () => void, delay = 1_500): () => void {
 }
 
 /**
- * `?tour=1` opens the tour at once; otherwise an eligible visitor gets it after
- * load and idle. The version-specific key needs the definitions, so they load
- * only for a visitor who passed the cheap checks. Returns a cancel function.
+ * `?tour=1` opens the tour at once. Otherwise an eligible visitor is offered
+ * it, not shown it: after load, a reading pause and idle, a small non-modal
+ * card asks first (`invite`). The version-specific key needs the definitions,
+ * so they load only for a visitor who passed the cheap checks. Returns a
+ * cancel function.
  */
-export function startPageTourOnFirstVisit(tourId: string, start: (launch: 'manual' | 'auto') => void): () => void {
+export function startPageTourOnFirstVisit(
+  tourId: string,
+  handlers: { open: () => void; invite: (storageKey: string) => void },
+): () => void {
   if (pageTourQueryIntent(window.location.search) === 'open') {
-    start('manual');
+    handlers.open();
     return () => undefined;
   }
   let storage: Storage | null = null;
+  let session: Storage | null = null;
   try { storage = window.localStorage; } catch { storage = null; }
-  const visitor = { storage, userAgent: navigator.userAgent, webdriver: navigator.webdriver === true, search: window.location.search };
+  try { session = window.sessionStorage; } catch { session = null; }
+  const visitor = { storage, session, userAgent: navigator.userAgent, webdriver: navigator.webdriver === true, search: window.location.search };
   if (!shouldAutoStartPageTour(visitor)) return () => undefined;
   let active = true;
   const cancelIdle = whenPageIdle(() => {
@@ -97,7 +133,10 @@ export function startPageTourOnFirstVisit(tourId: string, start: (launch: 'manua
       const tour = PAGE_TOURS.find(item => item.id === tourId);
       if (!active || !tour || document.visibilityState !== 'visible') return;
       if (document.querySelector('[aria-modal="true"]')) return;
-      if (shouldAutoStartPageTour({ ...visitor, storageKey: pageTourStorageKey(tour) })) start('auto');
+      const storageKey = pageTourStorageKey(tour);
+      if (!shouldAutoStartPageTour({ ...visitor, storageKey })) return;
+      markInvitedThisSession(session);
+      handlers.invite(storageKey);
     }).catch(() => undefined);
   });
   return () => {

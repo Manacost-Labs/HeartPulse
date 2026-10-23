@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import './GlobalUtilityHeader.css';
 import type { PageTourAccess } from '../features/pageTour/pageTourDefinitions';
-import { PageTourLayer, usePageTourLauncher } from '../features/pageTour/usePageTourLauncher';
+import { PageTourInviteLayer, PageTourLayer, usePageTourLauncher } from '../features/pageTour/usePageTourLauncher';
 import {
   hasSubscriptionEntitlement,
   type SubscriptionAccess,
@@ -304,6 +304,7 @@ export default function GlobalUtilityHeader({
         </div>
       </div>
       <PageTourLayer pagePath={pagePath} access={tourAccess} launch={tour.launch} onClose={tour.close} />
+      <PageTourInviteLayer invite={tour.invite} launch={tour.launch} onAccept={tour.acceptInvite} onDismiss={tour.dismissInvite} />
     </header>
   );
 }

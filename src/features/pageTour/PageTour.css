@@ -2,8 +2,7 @@
  * The Valyro tour in the site's parchment and wood. Its layers portal into
  * `.page-tour-host` on <body>, outside every page scope, so the host carries
  * the parchment token mapping (`hp-varylo-parchment`) plus the layer tokens
- * below. Motion is transform and opacity only; reduced motion keeps the
- * spotlight still.
+ * below. Reduced motion keeps the spotlight still.
  */
 .page-tour-host {
   --ui-z-modal: 10020;
@@ -27,18 +26,32 @@
     0 0 26px 6px rgba(255, 211, 112, 0.42);
 }
 
-/* The kit glides the ring by animating its box; here it fades in place instead. */
-.page-tour-host .ui-tour[data-moving] :is(.ui-tour__spotlight, .ui-tour__blocker),
-.page-tour-host .ui-tour[data-moving] .ui-tour__overlay {
-  transition: none;
+/*
+ * Between steps the dimmed cut-out and the ring glide together to the next
+ * target on the site's tempo; the kit keeps `data-moving` for 450 ms, so the
+ * glide fits inside it. Reduced motion jumps straight to the target.
+ */
+.page-tour-host {
+  --ui-duration-slow: var(--motion-slow);
+  --ui-ease: var(--motion-ease);
 }
 
-.page-tour-host .ui-tour[data-moving] .ui-tour__spotlight {
-  animation: page-tour-ring-in var(--motion-base) var(--motion-ease) both;
+@media (prefers-reduced-motion: reduce) {
+  .page-tour-host .ui-tour[data-moving] :is(.ui-tour__spotlight, .ui-tour__blocker),
+  .page-tour-host .ui-tour[data-moving] .ui-tour__overlay {
+    transition: none;
+  }
 }
 
-@keyframes page-tour-ring-in {
-  from { opacity: 0; transform: scale(1.04); }
+/* A new step's card settles in from its target's side instead of popping. */
+@media (prefers-reduced-motion: no-preference) {
+  .page-tour__dialog.ui-tour__card[data-state='open']:not([data-sheet]) {
+    animation: page-tour-card-in var(--motion-slow) var(--motion-ease) both;
+  }
+}
+
+@keyframes page-tour-card-in {
+  from { opacity: 0; transform: translateY(var(--motion-rise)); }
   to { opacity: 1; transform: none; }
 }
 
