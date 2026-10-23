@@ -49,7 +49,8 @@ function createTtlCache(now: () => number) {
 export function createPlayerStatsService(dependencies: PlayerStatsDependencies) {
   const now = dependencies.now ?? Date.now;
   const cached = createTtlCache(now);
-  const global = dependencies.global;
+  const { battlegroundsHeroes, battlegroundsHeroCombat, arenaClasses, constructedArchetypes } = dependencies.global;
+  const resolveCardNames = dependencies.resolveCardNames;
 
   async function attempt<T>(load: (() => Promise<T>) | undefined): Promise<T | null> {
     if (!load) return null;
@@ -61,23 +62,23 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
   }
 
   async function battlegroundsGlobal(query: PlayerStatsQuery, heroCardIds: string[]): Promise<BattlegroundsGlobal | null> {
-    const heroes = await attempt(global.battlegroundsHeroes && (() => cached(`bg:${query.duos}:${query.mmr}`,
-      () => global.battlegroundsHeroes!({ duos: query.duos, mmr: query.mmr }))));
+    const heroes = await attempt(battlegroundsHeroes && (() => cached(`bg:${query.duos}:${query.mmr}`,
+      () => battlegroundsHeroes({ duos: query.duos, mmr: query.mmr }))));
     if (!heroes?.length) return null;
     const byCard = new Map<string, GlobalBattlegroundsHero>(heroes.map(hero => [hero.cardId, hero]));
     const combat = new Map<string, Array<{ turn: number; winrate: number }>>();
     await Promise.all(heroCardIds.slice(0, GLOBAL_COMBAT_HEROES).map(async cardId => {
       const hero = byCard.get(cardId);
-      if (!hero || !global.battlegroundsHeroCombat) return;
+      if (!hero || !battlegroundsHeroCombat) return;
       const rounds = await attempt(() => cached(`bg-combat:${hero.heroId}:${query.duos}:${query.mmr}`,
-        () => global.battlegroundsHeroCombat!(hero.heroId, { duos: query.duos, mmr: query.mmr })));
+        () => battlegroundsHeroCombat(hero.heroId, { duos: query.duos, mmr: query.mmr })));
       if (rounds?.length) combat.set(cardId, rounds);
     }));
     return { heroes: byCard, combat };
   }
 
   async function names(stats: PlayerStats): Promise<Record<string, string>> {
-    if (stats.mode !== 'battlegrounds' || !dependencies.resolveCardNames) return {};
+    if (stats.mode !== 'battlegrounds' || !resolveCardNames) return {};
     const ids = new Set<string>();
     for (const hero of stats.heroes) ids.add(hero.heroCardId);
     for (const point of stats.ratingSeries) {
@@ -85,7 +86,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
       if (point.anomalyCardId) ids.add(point.anomalyCardId);
       for (const minion of point.board) ids.add(minion.cardId);
     }
-    return await attempt(() => dependencies.resolveCardNames!([...ids])) ?? {};
+    return await attempt(() => resolveCardNames([...ids])) ?? {};
   }
 
   function availability(allowed: boolean, loaded: boolean): GlobalAvailability {
@@ -114,7 +115,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
       if (query.mode === 'arena') {
         const arenaGames = games.filter((game): game is Extract<PlayerGame, { mode: 'arena' }> => game.mode === 'arena');
         const globalData = globalAllowed && arenaGames.length
-          ? await attempt(global.arenaClasses && (() => cached('arena', () => global.arenaClasses!())))
+          ? await attempt(arenaClasses && (() => cached('arena', arenaClasses)))
           : null;
         return buildArenaStats(arenaGames, { period: query.period,
           global: { availability: availability(globalAllowed, Boolean(globalData?.length)) } }, globalData);
@@ -123,7 +124,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
       const constructedGames = games.filter((game): game is Extract<PlayerGame, { mode: 'standard' | 'wild' }> =>
         game.mode === format);
       const globalData = globalAllowed && constructedGames.length
-        ? await attempt(global.constructedArchetypes && (() => cached(`meta:${format}`, () => global.constructedArchetypes!(format))))
+        ? await attempt(constructedArchetypes && (() => cached(`meta:${format}`, () => constructedArchetypes(format))))
         : null;
       return buildConstructedStats(constructedGames, { mode: format, period: query.period,
         global: { availability: availability(globalAllowed, Boolean(globalData?.length)) } }, globalData);

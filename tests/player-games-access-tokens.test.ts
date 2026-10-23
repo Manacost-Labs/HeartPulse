@@ -29,7 +29,8 @@ async function issue(options: { expiresIn?: number } = {}) {
   runtime.bindings.bind(grantId, 'player', sessionHash);
   const client = await provider.Client.find('test-reader');
   const token = new provider.AccessToken({ accountId: 'player', client, grantId, scope: 'openid profile', gty: 'authorization_code' });
-  if (options.expiresIn !== undefined) token.expiresIn = options.expiresIn;
+  // The lifetime is a runtime model field that the provider typings leave out.
+  if (options.expiresIn !== undefined) (token as unknown as { expiresIn: number }).expiresIn = options.expiresIn;
   return token.save();
 }
 
