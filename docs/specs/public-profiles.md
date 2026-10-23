@@ -96,7 +96,12 @@ A real change starts a 30-day cooldown and moves the previous nickname into
 
 Direct API reads of `/api/profiles/*` are limited to 60 per minute per client
 on top of the general API budget. Loopback reads by the Next server are not
-counted there; the documents are limited in Nginx instead.
+counted there; the documents are limited in Nginx instead: `/id/<n>/` and
+everything under `/id/`, `/profiles/` and `/u/` share the
+`arena_public_profiles` zone (`deploy/nginx/arena-seo-map.conf`), 30 requests
+per minute per visitor address with a burst of 20; the excess answers `429`.
+The profile namespace stays `no-store` at the origin, so the edge does not
+cache profile documents.
 
 ## Data
 
