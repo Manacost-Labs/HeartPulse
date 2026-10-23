@@ -164,8 +164,8 @@ is a separate administrator workspace and retains its permission gate.
   fade from 0 showed the bright parchment for a frame: a blink); a page
   committed with skeletons shows them at once and settles each section in from
   a light dip as it replaces them (`ENTRANCE_OPACITY_FLOOR`). Focus moves to
-  `#main-content`. First paint, Back/Forward, query/hash-only changes and reduced motion stay immediate. A page opened in
-  the last 30 seconds is shown from the router cache (`staleTimes.dynamic`),
+  `#main-content`. First paint, Back/Forward, query/hash-only changes and
+  reduced motion stay immediate. A page opened in the last 30 seconds is shown from the router cache (`staleTimes.dynamic`),
   because public pages render anonymously. `NavigationProgress` shows a gold
   line after `--motion-base` of a pending navigation that grows while the route
   loads, then fills and fades, without changing page geometry or blocking
