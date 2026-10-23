@@ -599,7 +599,7 @@ const BG_RACE_NAMES: Record<string, string> = {
 };
 
 const BG_RACE_ICON: Record<string, string> = {
-  ABERRATION: '/bg-legacy/assset/aberration.webp',
+  ABERRATION: '/bg-legacy/assset/аберрации.webp',
   ALL: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
   NONE: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
   BEAST: '/api/public-resource/bg/assset/%D0%B7%D0%B2%D0%B5%D1%80%D1%8C.webp',

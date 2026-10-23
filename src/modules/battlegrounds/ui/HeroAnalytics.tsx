@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { CircleAlert } from 'lucide-react';
+import { useId, useMemo, useState } from 'react';
+import { CircleAlert, Heart, Star, Swords } from 'lucide-react';
+import { AnchoredImagePreview } from '../../../shared/ui/AnchoredImagePreview';
 import { ColumnChart } from '../../../shared/ui/analytics/ColumnChart';
 import { LineChart } from '../../../shared/ui/analytics/LineChart';
 import { StackedBarChart } from '../../../shared/ui/analytics/StackedBarChart';
@@ -8,10 +9,15 @@ import {
   HERO_LOW_SAMPLE_GAMES, heroCompositionRows, heroFinalBoards, heroPlacementColumns, heroPowerMatrix, heroTavernDistribution,
   heroTavernPace, heroTurnPoints, type HeroAnalyticsRow,
 } from '../model/heroAnalytics';
-import { battlegroundMinionIconByRussianName, battlegroundMinionIconBySlug } from '../model/minionTypeIcons';
+import { heroCardImageSources, heroMinionStat } from '../model/heroCardImages';
+import { battlegroundMinionIconByRussianName } from '../model/minionTypeIcons';
 
 /** Card data the hero detail payload carries for its minions, keyed by dbfId. */
-export type HeroAnalyticsCard = { name?: string; text?: string; image?: string; image_gold?: string | null; tavern_tier?: number; creature_type_name?: string | null; creature_type?: string | null };
+export type HeroAnalyticsCard = {
+  name?: string; text?: string; card_id?: string | null;
+  /** The normal card of a golden minion; the server adds it from the BG card library. */
+  base_card_id?: string | null;
+};
 
 // Palette of the site's analytics: winrate red, share blue (docs: template-chart.md).
 const WINRATE = '#8d171d';
@@ -27,10 +33,6 @@ const LOW_SAMPLE_HINT = `Меньше ${HERO_LOW_SAMPLE_GAMES} игр: оцен�
 const MATRIX_LOW_SAMPLE = 50;
 
 const tavernIcon = (tier: number | null | undefined) => `/bg-legacy/assset/tier${Math.min(7, Math.max(1, Number(tier) || 1))}.png`;
-const raceIcon = (card: HeroAnalyticsCard | undefined) => {
-  const name = String(card?.creature_type_name ?? '');
-  return battlegroundMinionIconByRussianName[name] ?? battlegroundMinionIconBySlug[String(card?.creature_type ?? '').toLowerCase()] ?? null;
-};
 const percent = (value: number | null, digits = 1) => (value === null ? '—' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: digits })}%`);
 const decimal = (value: number | null) => (value === null ? '—' : value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
@@ -113,11 +115,27 @@ export function HeroTavernAnalytics({ byTurn, distribution }: { byTurn: unknown;
   </div>;
 }
 
+/** Tries each full-card source in turn; the name stands in when none loads. */
+function CardImage({ sources, name }: { sources: string[]; name: string }) {
+  const [index, setIndex] = useState(0);
+  const source = sources[index];
+  if (!source) return <span className="bg-hero-lineup__fallback">{name}</span>;
+  return <img src={source} alt={name} width="256" height="388" loading="lazy" decoding="async" onError={() => setIndex(current => current + 1)} />;
+}
+
+/** A minion name that shows its full card beside it on hover or focus, outside the page flow. */
 function CardPreview({ card, name }: { card: HeroAnalyticsCard | undefined; name: string }) {
-  const image = card?.image || card?.image_gold;
-  return <span className="bg-hero-card-name" tabIndex={image ? 0 : undefined}>
+  const previewId = useId();
+  const [anchor, setAnchor] = useState<{ rect: DOMRect; key: number } | null>(null);
+  const sources = heroCardImageSources(card, false);
+  if (!sources.length) return <span className="bg-hero-card-name">{name}</span>;
+  const show = (event: { currentTarget: HTMLElement }) => setAnchor(current => ({ rect: event.currentTarget.getBoundingClientRect(), key: (current?.key ?? 0) + 1 }));
+  const hide = () => setAnchor(null);
+  return <span className="bg-hero-card-name" tabIndex={0} aria-describedby={anchor ? previewId : undefined}
+    onPointerEnter={show} onPointerLeave={hide} onFocus={show} onBlur={hide}>
     {name}
-    {image && <img className="bg-hero-card-name__preview" src={image} alt="" width="160" height="242" loading="lazy" />}
+    {anchor && <AnchoredImagePreview key={anchor.key} id={previewId} previewId={previewId} source={sources[0]} fallbackSource={sources[1] ?? sources[0]}
+      name={name} accessibleName={`Полная карта ${name}`} anchorRect={anchor.rect} />}
   </span>;
 }
 
@@ -139,19 +157,20 @@ export function HeroCompositionAnalytics({ best, compositions, cards }: { best: 
           const dbf = String(minion.dbfId ?? minion.minion_dbf_id ?? '');
           const card = cards[dbf];
           const name = card?.name || String(minion.name ?? 'Существо');
-          const image = (minion.premium && card?.image_gold) || card?.image;
-          const race = raceIcon(card);
+          const golden = Boolean(minion.premium);
+          const sources = heroCardImageSources(card, golden);
+          const attack = heroMinionStat(minion.attack);
+          const health = heroMinionStat(minion.health);
           return <li key={`${dbf}-${String(minion.zone_position ?? index)}`} className="bg-hero-lineup__minion" title={card?.text ? `${name}: ${card.text}` : name}>
-            <span className="bg-hero-lineup__art" data-golden={minion.premium ? '' : undefined}>
-              {image ? <img src={image} alt={name} width="120" height="182" loading="lazy" /> : <span className="bg-hero-lineup__fallback">{name}</span>}
+            <span className="bg-hero-lineup__art">
+              <CardImage key={sources.join('|')} sources={sources} name={name} />
+              {golden && <span className="bg-hero-lineup__golden" role="img" aria-label="Золотое"><Star aria-hidden="true" /></span>}
             </span>
             <strong>{name}</strong>
-            <small>
-              <img src={tavernIcon(card?.tavern_tier ?? Number(minion.techLevel))} alt={`Таверна ${card?.tavern_tier ?? minion.techLevel ?? ''}`} width="18" height="18" loading="lazy" />
-              {race && <img src={race} alt={card?.creature_type_name ?? ''} width="18" height="18" loading="lazy" />}
-              <span>{String(minion.attack ?? '—')}/{String(minion.health ?? '—')}</span>
-              {Boolean(minion.premium) && <span className="bg-hero-lineup__golden">золотое</span>}
-            </small>
+            <span className="bg-hero-lineup__stats" role="img" aria-label={`Атака ${attack}, здоровье ${health}`}>
+              <span><Swords aria-hidden="true" />{attack}</span>
+              <span><Heart aria-hidden="true" />{health}</span>
+            </span>
           </li>;
         })}
       </ol>

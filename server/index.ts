@@ -56,6 +56,7 @@ import { createPublicResourceRouter } from './publicResourceRoutes.js';
 import { articleImageSrc, canonicalArticleUrl } from '../shared/articleImageSrc.js';
 import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
+import { createBattlegroundLibraryCardLookup, enrichBattlegroundHeroCards } from './battlegroundHeroCards.js';
 import { createBattlegroundMinionStatsRouter, createBattlegroundMinionStatsSource } from './modules/battlegroundLibrary/public.js';
 import { proxyHsReplayStrategyPayload } from './modules/publicApi/public.js';
 import {
@@ -1000,7 +1001,13 @@ function kolodahsFullArtForCard(card: any, fallbackDbf?: unknown): string {
     || '';
 }
 
-function enrichBattlegroundHeroPayload(payload: any): any {
+const battlegroundLibraryCard = createBattlegroundLibraryCardLookup({ baseUrl: 'http://127.0.0.1:3108' });
+
+async function enrichBattlegroundHeroPayload(payload: unknown): Promise<unknown> {
+  return enrichBattlegroundHeroCards(withBattlegroundHeroPowerFullArt(payload), battlegroundLibraryCard);
+}
+
+function withBattlegroundHeroPowerFullArt(payload: any): any {
   const heroPower = payload?.libraryHero?.hero_power;
   const card = heroPower?.card;
   if (!card || card.full_art || card.fullArt) return payload;
@@ -7912,7 +7919,7 @@ async function proxyBattlegroundAppEndpoint(
     }
 
     const cacheKey = upstreamUrl.href;
-    const redisKey = redisHashedDataKey('bg-app-proxy-v2', cacheKey);
+    const redisKey = redisHashedDataKey('bg-app-proxy-v3', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       const clientCacheControl = res.locals.subscriptionGuarded && !cached.contentType.includes('image/')
@@ -7950,7 +7957,7 @@ async function proxyBattlegroundAppEndpoint(
     if (upstream.status >= 200 && upstream.status < 300 && contentType.includes('application/json')) {
       try {
         const payload = JSON.parse(body.toString('utf8'));
-        const transformed = transformJson ? transformJson(payload) : payload;
+        const transformed = transformJson ? await transformJson(payload) : payload;
         body = Buffer.from(JSON.stringify(renderPayloadCardPlurals(transformed, originalCardTexts.current())));
         contentType = 'application/json; charset=utf-8';
       } catch (err: any) {
