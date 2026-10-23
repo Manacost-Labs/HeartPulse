@@ -1,19 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import '../route-parchment.css';
-import {
-  CircleDollarSign,
-  Database,
-  Image as ImageIcon,
-  LayoutDashboard,
-  Link2,
-  Mail,
-  MessageCircle,
-  Newspaper,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
-  Users,
-} from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import './contests.css';
 import '../shared/ui/LoadingSurface.css';
 import { LoadingSurface } from '../shared/ui/LoadingSurface';
@@ -28,8 +15,6 @@ import {
 import type { AuthUser } from '../modules/identity/public';
 import {
   ContestAdminReferrals,
-  type AdminReferralClick,
-  type AdminReferralLink,
   type ReferralDraft,
 } from './ContestAdminReferrals';
 import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
@@ -40,12 +25,9 @@ import {
 } from './ContestAdminUsers';
 import {
   ContestAdminBoosty,
-  type BoostyAdminStatus,
-  type BoostySubscribersPayload,
 } from './ContestAdminBoosty';
 import {
   ContestAdminTelegram,
-  type TelegramAccountsPayload,
 } from './ContestAdminTelegram';
 import {
   ContestAdminMailing,
@@ -64,51 +46,42 @@ import {
   type ContestEntry,
   type ContestWorkspaceView,
 } from './ContestAdminContests';
-import { ADMIN_INPUT } from './contestAdminUi';
 import { useAdminUsersList } from './useAdminUsersList';
-import { loadAdminOverviewPage, type AdminCrmSegmentId } from '../modules/adminCrm/public';
+import type { AdminCrmSegmentId } from '../modules/adminCrm/public';
 import {
-  ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
   createAdminWorkspaceState,
   type AdminMessage,
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
-import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
+import { useAdminResource } from '../modules/adminWorkspace/public';
+import { AdminConsoleShell } from './adminConsole/AdminConsoleShell';
+import {
+  ADMIN_NAV_ITEMS,
+  CONTEST_ADMIN_NAV_ITEMS,
+  adminSectionFromSearch,
+  isAdminSection,
+} from './adminConsole/adminNavigation';
+import { SECTION_CHUNKS, prefetchSectionCode } from './adminConsole/sectionPreload';
+import {
+  ADMIN_READS,
+  boostyStatusFailure,
+  boostySubscribersFailure,
+  telegramAccountsFailure,
+} from './adminConsole/adminPanelRequests';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { AdminSectionFrame } from './AdminSectionFrame';
 export { ContestsPage } from '../modules/contests/public';
 
-const AdminWorkspaceShell = React.lazy(loadAdminWorkspaceShell);
-const AdminOverviewPage = React.lazy(loadAdminOverviewPage);
-
-const ContestAdminArticles = React.lazy(async () => ({ default: (await import('./ContestAdminArticles')).ContestAdminArticles }));
-const ContestAdminGallery = React.lazy(async () => ({ default: (await import('./ContestAdminGallery')).ContestAdminGallery }));
-const ContestAdminTranslations = React.lazy(async () => {
-  const module = await import('./ContestAdminTranslations');
-  return { default: module.ContestAdminTranslations };
-});
-const ContestAdminMechanicTranslations = React.lazy(async () => {
-  const module = await import('./ContestAdminMechanicTranslations');
-  return { default: module.ContestAdminMechanicTranslations };
-});
-const ContestAdminStandardOperations = React.lazy(async () => {
-  const module = await import('./ContestAdminStandardOperations');
-  return { default: module.ContestAdminStandardOperations };
-});
-const ContestAdminFunDecks = React.lazy(async () => {
-  const module = await import('./ContestAdminStandardOperations');
-  return { default: module.ContestAdminFunDecks };
-});
-const AdminApiKeys = React.lazy(async () => {
-  const module = await import('../modules/developerApi/public');
-  return { default: module.AdminApiKeys };
-});
-
-
-
-
+const AdminOverviewPage = React.lazy(SECTION_CHUNKS.dashboard);
+const ContestAdminArticles = React.lazy(async () => ({ default: (await SECTION_CHUNKS.articles()).ContestAdminArticles }));
+const ContestAdminGallery = React.lazy(async () => ({ default: (await SECTION_CHUNKS.gallery()).ContestAdminGallery }));
+const ContestAdminTranslations = React.lazy(async () => ({ default: (await SECTION_CHUNKS.translations()).ContestAdminTranslations }));
+const ContestAdminMechanicTranslations = React.lazy(async () => ({ default: (await SECTION_CHUNKS.mechanics()).ContestAdminMechanicTranslations }));
+const ContestAdminStandardOperations = React.lazy(async () => ({ default: (await SECTION_CHUNKS.operations()).ContestAdminStandardOperations }));
+const ContestAdminFunDecks = React.lazy(async () => ({ default: (await SECTION_CHUNKS.operations()).ContestAdminFunDecks }));
+const AdminApiKeys = React.lazy(async () => ({ default: (await SECTION_CHUNKS.apiKeys()).AdminApiKeys }));
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
@@ -154,10 +127,6 @@ function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
   </div>;
 }
 
-// The server waits up to 15 s (status) and 25 s (subscribers) for boosty-auth before it answers.
-const BOOSTY_STATUS_DEADLINE_MS = 30_000;
-const BOOSTY_SUBSCRIBERS_DEADLINE_MS = 45_000;
-
 function authJsonHeaders(): HeadersInit {
   return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
 }
@@ -176,49 +145,16 @@ function parseWinnerIds(value: string): string[] {
   return Array.from(new Set(value.split(/[\n,;]/).map(item => item.trim()).filter(Boolean)));
 }
 
-const ADMIN_NAV_ITEMS: ReadonlyArray<{
-  id: AdminWorkspaceSection;
-  label: string;
-  caption: string;
-  status: string;
-  group: string;
-  icon: React.ElementType;
-}> = [
-  { id: 'dashboard', label: 'Обзор', caption: 'Что требует внимания, показатели и события', status: 'Сводка проекта', group: 'Рабочий стол', icon: LayoutDashboard },
-  { id: 'users', label: 'Пользователи', caption: 'Поиск людей, доступ, заметки и история', status: 'Действия с подтверждением', group: 'Люди и деньги', icon: Users },
-  { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Люди и деньги', icon: Mail },
-  { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
-  { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
-  { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', status: 'Ручные правки защищены', group: 'Контент', icon: Newspaper },
-  { id: 'mechanics', label: 'Механики и теги', caption: 'Русские переводы, примеры карт и контроль покрытия', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
-  { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Контент', icon: Sparkles },
-  { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', status: 'Сохранение по кнопке', group: 'Рост', icon: Trophy },
-  { id: 'referrals', label: 'Реферальная ссылка', caption: 'Кампании: переходы, регистрации и доступ', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
-  { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Интеграции и система', icon: CircleDollarSign },
-  { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Интеграции и система', icon: MessageCircle },
-  { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', status: 'Центр управления данными', group: 'Интеграции и система', icon: Database },
-  { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Интеграции и система', icon: ShieldCheck },
-];
-const CONTEST_ADMIN_NAV_ITEMS = ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
-
 const ADMIN_ENTRIES_PAGE_SIZE = 20;
-const ADMIN_WORKSPACE_SECTION_IDS = new Set(ADMIN_NAV_ITEMS.map(item => item.id));
+const NO_CONTESTS: Contest[] = [];
 
 function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminWorkspaceSection {
-  const params = new URLSearchParams(window.location.search);
-  const requestedSection = params.get('section');
-  if (requestedSection === 'list') return 'articles';
-  if (requestedSection && ADMIN_WORKSPACE_SECTION_IDS.has(requestedSection as AdminWorkspaceSection)) {
-    return requestedSection as AdminWorkspaceSection;
-  }
-  if (params.has('contest') || params.has('contests')) return 'contests';
-  return defaultSection;
+  return adminSectionFromSearch(window.location.search, defaultSection);
 }
 
 export function ContestAdminPanel({ authUser, authChecking = false }: { authUser: AuthUser | null; authChecking?: boolean }) {
   const allowed = canManageContests(authUser);
   const hasFullAdminAccess = canAccessAdminWorkspace(authUser);
-  const [contests, setContests] = useState<Contest[]>([]);
   const [entries, setEntries] = useState<ContestEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [contestSelection, dispatchContestSelection] = useReducer(contestSelectionReducer, INITIAL_CONTEST_SELECTION);
@@ -256,7 +192,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   );
   const {
     section: adminSection,
-    adminMenuOpen,
     openUserMenuId,
     message,
   } = adminWorkspace;
@@ -271,18 +206,31 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   }, [message, setMessage]);
   const usersList = useAdminUsersList(hasFullAdminAccess && adminSection === 'users', text => setMessage({ type: 'err', text }));
   const openUserSegment = (segment: AdminCrmSegmentId) => { usersList.changeSegment({ segment, tag: '' }); changeAdminSection('users'); };
-  const [referrals, setReferrals] = useState<AdminReferralLink[]>([]);
-  const [referralClicks, setReferralClicks] = useState<AdminReferralClick[]>([]);
-  const [boostyStatus, setBoostyStatus] = useState<BoostyAdminStatus | null>(null);
-  const [boostyStatusLoading, setBoostyStatusLoading] = useState(false);
-  const [boostySubscribers, setBoostySubscribers] = useState<BoostySubscribersPayload | null>(null);
-  const [boostySubscribersLoading, setBoostySubscribersLoading] = useState(false);
-  const [telegramAccounts, setTelegramAccounts] = useState<TelegramAccountsPayload | null>(null);
-  const [telegramAccountsLoading, setTelegramAccountsLoading] = useState(false);
+  // Section data is read through the tab-wide cache: a section opened before shows its last answer at once.
+  const fullSection = (section: AdminWorkspaceSection) => hasFullAdminAccess && adminSection === section;
+  const { contests: contestsRead, referrals: referralsRead, boostyStatus: statusRead, boostySubscribers: subscribersRead, telegram: telegramRead } = ADMIN_READS;
+  const contestsResource = useAdminResource(allowed && adminSection === 'contests' ? contestsRead.key : null, contestsRead.load);
+  const referralsResource = useAdminResource(fullSection('referrals') ? referralsRead.key : null, referralsRead.load);
+  const boostyStatusResource = useAdminResource(fullSection('boosty') ? statusRead.key : null, statusRead.load);
+  const boostySubscribersResource = useAdminResource(fullSection('boosty') ? subscribersRead.key : null, subscribersRead.load);
+  const telegramResource = useAdminResource(fullSection('telegram') ? telegramRead.key : null, telegramRead.load);
+  const contests = contestsResource.data ?? NO_CONTESTS;
+  const preferredContestRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    dispatchContestSelection({ type: 'sync', contests, preferredContestId: preferredContestRef.current });
+    preferredContestRef.current = undefined;
+  }, [contests]);
+  useEffect(() => {
+    const error = contestsResource.error ?? referralsResource.error;
+    if (error) setMessage({ type: 'err', text: error.message });
+  }, [contestsResource.error, referralsResource.error, setMessage]);
+  const { reload: reloadContestList } = contestsResource;
+  const reloadContests = useCallback(async (preferredContestId?: string) => {
+    preferredContestRef.current = preferredContestId;
+    await reloadContestList();
+  }, [reloadContestList]);
 
   const entriesRequestRef = useRef(0);
-  const adminMenuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const adminNavRef = useRef<HTMLElement | null>(null);
   const contestFormRef = useRef<HTMLFormElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userMenuTriggerMap = useMemo(() => new Map<string, HTMLButtonElement>(), []);
@@ -317,54 +265,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [hasFullAdminAccess]);
-
-  useEffect(() => {
-    const drawerMedia = window.matchMedia(ADMIN_DRAWER_MEDIA_QUERY);
-    const closeDrawerOnDesktop = () => {
-      if (!drawerMedia.matches) dispatchAdminWorkspace({ type: 'closeAdminMenu' });
-    };
-    closeDrawerOnDesktop();
-    drawerMedia.addEventListener('change', closeDrawerOnDesktop);
-    return () => drawerMedia.removeEventListener('change', closeDrawerOnDesktop);
-  }, []);
-
-  useEffect(() => {
-    if (!adminMenuOpen || !window.matchMedia(ADMIN_DRAWER_MEDIA_QUERY).matches) return;
-    const menuButton = adminMenuButtonRef.current;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const focusable = (): HTMLElement[] => {
-      const menu = adminNavRef.current;
-      return menu ? Array.from(menu.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]')) : [];
-    };
-    const focusFrame = window.requestAnimationFrame(() => focusable()[0]?.focus());
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        dispatchAdminWorkspace({ type: 'closeAdminMenu' });
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const items = focusable();
-      if (!items.length) return;
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      window.requestAnimationFrame(() => menuButton?.focus());
-    };
-  }, [adminMenuOpen]);
 
   useEffect(() => {
     if (!openUserMenuId) return;
@@ -436,148 +336,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   useEffect(() => {
     if (!allowed) return;
     const label = ADMIN_NAV_ITEMS.find(item => item.id === adminSection)?.label ?? 'Админка';
-    document.title = `${label} — Админка | Manacost Stats`;
+    document.title = `${label} — Админка | HearthPulse`;
   }, [adminSection, allowed]);
-
-  const loadAdminContests = useCallback(async (preferredContestId?: string) => {
-    if (!allowed) return;
-    setLoading(true);
-    try {
-      const res = await fetchWithDeadline('/api/admin/contests', { headers: authJsonHeaders() });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить конкурсы');
-      const list = Array.isArray(data.contests) ? data.contests : [];
-      setContests(list);
-      dispatchContestSelection({ type: 'sync', contests: list, preferredContestId });
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    } finally {
-      setLoading(false);
-    }
-  }, [allowed]);
-
-  useEffect(() => { void loadAdminContests(); }, [loadAdminContests]);
-
-  const loadReferrals = useCallback(async () => {
-    if (!hasFullAdminAccess) return;
-    try {
-      const res = await fetchWithDeadline(`/api/admin/referrals?t=${Date.now()}`, { headers: authJsonHeaders(), cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить реферальные ссылки');
-      setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
-      setReferralClicks(Array.isArray(data.recentClicks) ? data.recentClicks : []);
-    } catch (err: any) {
-      setMessage({ type: 'err', text: err.message });
-    }
-  }, [hasFullAdminAccess]);
-
-  const loadBoostyStatus = useCallback(async () => {
-    if (!hasFullAdminAccess) return;
-    setBoostyStatusLoading(true);
-    try {
-      const res = await fetchWithDeadline(`/api/admin/boosty/status?t=${Date.now()}`, {
-        headers: authJsonHeaders(),
-        cache: 'no-store', deadlineMs: BOOSTY_STATUS_DEADLINE_MS,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить статус Boosty');
-      setBoostyStatus(data as BoostyAdminStatus);
-    } catch (err: any) {
-      setBoostyStatus({
-        configured: true,
-        ok: false,
-        importStatus: 'error',
-        source: 'admin-panel',
-        stale: true,
-        snapshotAgeSeconds: null,
-        lastErrorCategory: 'admin-request-failed',
-        lastErrorMessage: err?.message || 'Не удалось загрузить статус Boosty',
-        warnings: ['admin-request-failed'],
-        summary: {},
-        checkedAt: new Date().toISOString(),
-        graceHours: 24,
-      });
-    } finally {
-      setBoostyStatusLoading(false);
-    }
-  }, [hasFullAdminAccess]);
-
-  const loadBoostySubscribers = useCallback(async () => {
-    if (!hasFullAdminAccess) return;
-    setBoostySubscribersLoading(true);
-    try {
-      const res = await fetchWithDeadline(`/api/admin/boosty/subscribers?includeInactive=1&t=${Date.now()}`, {
-        headers: authJsonHeaders(),
-        cache: 'no-store', deadlineMs: BOOSTY_SUBSCRIBERS_DEADLINE_MS,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить подписчиков Boosty');
-      setBoostySubscribers({
-        configured: Boolean(data.configured),
-        source: String(data.source || ''),
-        stale: Boolean(data.stale),
-        summary: data.summary && typeof data.summary === 'object' ? data.summary : {},
-        levels: data.levels && typeof data.levels === 'object' ? data.levels : {},
-        subscribers: Array.isArray(data.subscribers) ? data.subscribers : [],
-        fetchedAt: String(data.fetchedAt || new Date().toISOString()),
-        error: data.error ? String(data.error) : undefined,
-      });
-    } catch (err: any) {
-      setBoostySubscribers({
-        configured: true,
-        source: 'admin-panel',
-        stale: true,
-        summary: {},
-        levels: {},
-        subscribers: [],
-        fetchedAt: new Date().toISOString(),
-        error: err?.message || 'Не удалось загрузить подписчиков Boosty',
-      });
-    } finally {
-      setBoostySubscribersLoading(false);
-    }
-  }, [hasFullAdminAccess]);
-
-  const loadTelegramAccounts = useCallback(async () => {
-    if (!hasFullAdminAccess) return;
-    setTelegramAccountsLoading(true);
-    try {
-      const res = await fetchWithDeadline(`/api/admin/telegram/accounts?t=${Date.now()}`, {
-        headers: authJsonHeaders(),
-        cache: 'no-store',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить Telegram-аккаунты');
-      setTelegramAccounts({
-        configured: Boolean(data.configured),
-        chatIds: Array.isArray(data.chatIds) ? data.chatIds.map(String) : [],
-        summary: data.summary && typeof data.summary === 'object'
-          ? {
-            total: Number(data.summary.total || 0),
-            access: Number(data.summary.access || 0),
-            checkable: Number(data.summary.checkable || 0),
-            contactOnly: Number(data.summary.contactOnly || 0),
-            stale: Number(data.summary.stale || 0),
-            blocked: Number(data.summary.blocked || 0),
-          }
-          : { total: 0, access: 0, checkable: 0, contactOnly: 0, stale: 0, blocked: 0 },
-        accounts: Array.isArray(data.accounts) ? data.accounts : [],
-        fetchedAt: String(data.fetchedAt || new Date().toISOString()),
-        error: data.error ? String(data.error) : undefined,
-      });
-    } catch (err: any) {
-      setTelegramAccounts({
-        configured: true,
-        chatIds: [],
-        summary: { total: 0, access: 0, checkable: 0, contactOnly: 0, stale: 0, blocked: 0 },
-        accounts: [],
-        fetchedAt: new Date().toISOString(),
-        error: err?.message || 'Не удалось загрузить Telegram-аккаунты',
-      });
-    } finally {
-      setTelegramAccountsLoading(false);
-    }
-  }, [hasFullAdminAccess]);
 
   const loadMailingOverview = useCallback(async (options?: { quiet?: boolean }) => {
     if (!hasFullAdminAccess) return;
@@ -626,13 +386,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   }, []);
 
   useEffect(() => {
-    if (!hasFullAdminAccess) return;
-    if (adminSection === 'referrals') void loadReferrals();
-    if (adminSection === 'boosty') void loadBoostyStatus();
-    if (adminSection === 'boosty') void loadBoostySubscribers();
-    if (adminSection === 'telegram') void loadTelegramAccounts();
-    if (adminSection === 'mailing') void loadMailingOverview();
-  }, [adminSection, hasFullAdminAccess, loadBoostyStatus, loadBoostySubscribers, loadMailingOverview, loadReferrals, loadTelegramAccounts]);
+    if (hasFullAdminAccess && adminSection === 'mailing') void loadMailingOverview();
+  }, [adminSection, hasFullAdminAccess, loadMailingOverview]);
 
   useEffect(() => {
     if (adminSection !== 'mailing' || !mailingOverview?.campaigns.some(campaign => campaign.status === 'queued' || campaign.status === 'sending')) return;
@@ -704,7 +459,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       if (!res.ok) throw new Error(data.error || 'Не удалось сохранить конкурс');
       setMessage({ type: 'ok', text: 'Конкурс сохранен.' });
       setForm({ id: '', title: '', prize: '', imageUrl: '', startsAt: '', endsAt: '', status: 'active', description: '' });
-      await loadAdminContests(data.contest?.id ? String(data.contest.id) : undefined);
+      await reloadContests(data.contest?.id ? String(data.contest.id) : undefined);
       setContestWorkspaceView('manage');
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
@@ -725,7 +480,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось создать ссылку');
       setMessage({ type: 'ok', text: 'Реферальная ссылка создана.' });
-      await loadReferrals();
+      await referralsResource.reload();
       return true;
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
@@ -891,7 +646,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось сохранить победителей');
       setMessage({ type: 'ok', text: 'Победители опубликованы.' });
-      await loadAdminContests();
+      await reloadContests();
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
     } finally {
@@ -913,7 +668,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       setMessage({ type: 'ok', text: 'Конкурс удален.' });
       if (selectedContestId === contest.id) dispatchContestSelection({ type: 'select' });
       if (form.id === contest.id) setForm({ id: '', title: '', prize: '', imageUrl: '', startsAt: '', endsAt: '', status: 'active', description: '' });
-      await loadAdminContests();
+      await reloadContests();
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
     } finally {
@@ -1012,27 +767,28 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const previewEndsAt = form.endsAt ? formatDate(form.endsAt) : 'без даты окончания';
   const adminNav = hasFullAdminAccess ? ADMIN_NAV_ITEMS : CONTEST_ADMIN_NAV_ITEMS;
 
+  const boostyStatus = boostyStatusResource.error ? boostyStatusFailure(boostyStatusResource.error) : boostyStatusResource.data ?? null;
+  const boostySubscribers = boostySubscribersResource.error
+    ? boostySubscribersFailure(boostySubscribersResource.error)
+    : boostySubscribersResource.data ?? null;
+  const telegramAccounts = telegramResource.error ? telegramAccountsFailure(telegramResource.error) : telegramResource.data ?? null;
+
   return (
-    <React.Suspense fallback={<output className="admin-access-state">Загружаем админ-панель…</output>}>
-      <AdminWorkspaceShell
-        navigation={adminNav}
-        activeSection={adminSection}
-        menuOpen={adminMenuOpen}
-        accessLabel={hasFullAdminAccess ? 'Полный доступ' : 'Управление конкурсами'}
-        userLabel={authUser?.name || authUser?.email || 'Администратор'}
-        userTitle={authUser?.email || undefined}
-        message={message}
-        menuButtonRef={adminMenuButtonRef}
-        navigationRef={adminNavRef}
-        onToggleMenu={() => dispatchAdminWorkspace({ type: 'toggleAdminMenu' })}
-        onCloseMenu={() => dispatchAdminWorkspace({ type: 'closeAdminMenu' })}
-        onNavigate={changeAdminSection}
-        onDismissMessage={() => setMessage(null)}
-      >
+    <AdminConsoleShell
+      navigation={adminNav}
+      activeSection={adminSection}
+      accessLabel={hasFullAdminAccess ? 'Полный доступ' : 'Управление конкурсами'}
+      userLabel={authUser?.name || authUser?.email || 'Администратор'}
+      userTitle={authUser?.email || undefined}
+      message={message}
+      onNavigate={changeAdminSection}
+      onIntent={hasFullAdminAccess ? prefetchSectionCode : undefined}
+      onDismissMessage={() => setMessage(null)}
+    >
         <AdminSectionFrame section={adminSection}>
           {hasFullAdminAccess && adminSection === 'dashboard' && (
             <React.Suspense fallback={<RouteFallback minHeight={420} />}>
-              <AdminOverviewPage onNavigate={section => { if (ADMIN_WORKSPACE_SECTION_IDS.has(section as AdminWorkspaceSection)) changeAdminSection(section as AdminWorkspaceSection); }} onOpenSegment={openUserSegment} />
+              <AdminOverviewPage onNavigate={section => { if (isAdminSection(section)) changeAdminSection(section); }} onOpenSegment={openUserSegment} />
             </React.Suspense>
           )}
 
@@ -1087,12 +843,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           {hasFullAdminAccess && adminSection === 'boosty' && (
             <ContestAdminBoosty
               status={boostyStatus}
-              statusLoading={boostyStatusLoading}
+              statusLoading={boostyStatusResource.loading || boostyStatusResource.refreshing}
               subscribers={boostySubscribers}
-              subscribersLoading={boostySubscribersLoading}
+              subscribersLoading={boostySubscribersResource.loading || boostySubscribersResource.refreshing}
               onReload={() => {
-                void loadBoostyStatus();
-                void loadBoostySubscribers();
+                void boostyStatusResource.reload();
+                void boostySubscribersResource.reload();
               }}
               formatDate={formatDate}
               entitlementLabels={subscriber => subscriptionEntitlementLabels({
@@ -1109,8 +865,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           {hasFullAdminAccess && adminSection === 'telegram' && (
             <ContestAdminTelegram
               payload={telegramAccounts}
-              loading={telegramAccountsLoading}
-              onReload={() => void loadTelegramAccounts()}
+              loading={telegramResource.loading || telegramResource.refreshing}
+              onReload={() => void telegramResource.reload()}
               formatDate={formatDate}
               entitlementLabels={account => subscriptionEntitlementLabels({
                 hasAccess: account.hasAccess,
@@ -1172,7 +928,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               currentStatusLabel={currentStatus.label}
               previewStartsAt={previewStartsAt}
               previewEndsAt={previewEndsAt}
-              loading={loading}
+              loading={loading || contestsResource.loading || contestsResource.refreshing}
               statusFilter={contestStatusFilter}
               onStatusFilterChange={setContestStatusFilter}
               stats={contestStats}
@@ -1181,7 +937,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               selectedContest={selectedContest}
               onSelectContest={contest => dispatchContestSelection({ type: 'select', contest })}
               onEditSelected={editSelectedContest}
-              onReload={() => void loadAdminContests()}
+              onReload={() => void reloadContests()}
               onDelete={contest => void deleteContest(contest)}
               selectedContestEntryCount={selectedContestEntryCount}
               approvedEntryCount={approvedEntries.length}
@@ -1208,16 +964,15 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
 
           {hasFullAdminAccess && adminSection === 'referrals' && (
             <ContestAdminReferrals
-              referrals={referrals}
-              referralClicks={referralClicks}
-              loading={loading}
+              referrals={referralsResource.data?.referrals ?? []}
+              referralClicks={referralsResource.data?.recentClicks ?? []}
+              loading={loading || referralsResource.loading || referralsResource.refreshing}
               formatDate={formatDate}
               onCopy={copyText}
               onSubmit={submitReferral}
             />
           )}
         </AdminSectionFrame>
-      </AdminWorkspaceShell>
-    </React.Suspense>
+    </AdminConsoleShell>
   );
 }

@@ -13,7 +13,7 @@ test('Next admin HTML checks the Express session and keeps private data out of S
     assert.match(guest.headers.get('cache-control') ?? '', /no-store/);
     assert.match(guestHtml, /Админ панель недоступна/);
     assert.match(guestHtml, /name="robots" content="noindex, nofollow"/);
-    assert.doesNotMatch(guestHtml, /admin-tailadmin-shell|ContestAdminPanel|card-reader@example\.test/);
+    assert.doesNotMatch(guestHtml, /admin-console|ui-app-shell|ContestAdminPanel|card-reader@example\.test/);
     assert.equal((await fetch(`${runtime.origin}/admin/unknown/`)).status, 404);
 
     const regularUser = await fetch(`${runtime.origin}/admin/`, { headers: { Cookie: runtime.cookie } });
@@ -39,20 +39,24 @@ test('Next admin HTML checks the Express session and keeps private data out of S
       await page.setViewport({ width, height: 900 });
       const response = await page.goto(`${runtime.origin}/admin/`, { waitUntil: 'domcontentloaded' });
       assert.equal(response.status(), 200);
-      await page.waitForSelector('.admin-tailadmin-shell', { timeout: 15000 });
+      await page.waitForSelector('.admin-console .ui-app-shell[data-measured]', { timeout: 15000 });
       const state = await page.evaluate(() => ({
         heading: document.querySelector('h1')?.textContent?.trim(),
         overflow: document.documentElement.scrollWidth > innerWidth,
-        mainCount: document.querySelectorAll('main').length,
+        mainCount: document.querySelectorAll('main, [role="main"]').length,
       }));
       assert.ok(state.heading, `admin heading at ${width}px`);
       assert.equal(state.overflow, false, `admin overflow at ${width}px`);
       assert.equal(state.mainCount, 1, `admin main landmark at ${width}px`);
       if (width === 390) {
         await page.click('button[aria-label="Открыть меню"]');
+        await page.waitForSelector('[role="dialog"][aria-label="Разделы админ панели"]:not([hidden])');
         assert.equal(await page.$eval('button[aria-label="Закрыть меню"]', button => button.getAttribute('aria-expanded')), 'true');
-        await page.click('button[aria-label^="Статьи:"]');
+        await page.evaluate(() => [...document.querySelectorAll('.ui-sidebar__item')]
+          .find(item => item.textContent?.trim() === 'Статьи')?.click());
         await page.waitForFunction(() => document.querySelector('h1')?.textContent?.trim() === 'Статьи');
+        await page.waitForFunction(() => !document.querySelector('[role="dialog"][aria-label="Разделы админ панели"]:not([hidden])'));
+        assert.match(page.url(), /section=articles/);
       }
     }
     await page.close();
@@ -68,7 +72,7 @@ test('Next admin HTML checks the Express session and keeps private data out of S
     });
     await demotedPage.goto(`${runtime.origin}/admin/`, { waitUntil: 'domcontentloaded' });
     await demotedPage.waitForSelector('.admin-access-card');
-    assert.equal(await demotedPage.$('.admin-tailadmin-shell'), null);
+    assert.equal(await demotedPage.$('.admin-console'), null);
     await demotedPage.close();
 
     runtime.backend.database.prepare("UPDATE users SET blocked_at = ? WHERE id = ?")

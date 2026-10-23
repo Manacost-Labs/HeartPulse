@@ -1,9 +1,32 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { invalidateAdminResources, useAdminResource } from '../modules/adminWorkspace/public';
 import type { AdminMessage } from './adminWorkspaceState';
 
 const errorText = (error: unknown, fallback: string) => (error instanceof Error && error.message ? error.message : fallback);
 
+const sourceIds = new WeakMap<object, number>();
+let lastSourceId = 0;
+
+/**
+ * Cache key of one request function. Sections receive their client as a prop (stories pass fakes),
+ * so the key follows the function rather than a URL; the production client keeps one key per tab.
+ */
+export function useAdminSourceKey(source: () => Promise<unknown>, name: string): string {
+  const [key] = useState(() => {
+    let id = sourceIds.get(source);
+    if (id === undefined) {
+      lastSourceId += 1;
+      id = lastSourceId;
+      sourceIds.set(source, id);
+    }
+    return `admin-content:${id}:${name}`;
+  });
+  return key;
+}
+
 export type AdminContentList<Item> = {
+  /** Cache key of the list; related answers use it as their prefix (`${key}:reads`). */
+  key: string;
   items: Item[];
   /** True until the first response arrives. */
   loading: boolean;
@@ -19,33 +42,27 @@ export type AdminContentList<Item> = {
   run: (key: string, work: () => Promise<unknown>, okText: string, toastError?: boolean) => Promise<string>;
 };
 
-/** Loading, refreshing and mutating one admin content list (articles or gallery items). */
-export function useAdminContentList<Item>(load: () => Promise<Item[]>, onMessage: (message: AdminMessage | null) => void): AdminContentList<Item> {
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+const NO_ITEMS: never[] = [];
+
+/**
+ * Loading, refreshing and mutating one admin content list (articles or gallery items). The list is
+ * cached per tab, so returning to the section shows it at once and refreshes it in the background.
+ */
+export function useAdminContentList<Item>(load: () => Promise<Item[]>, onMessage: (message: AdminMessage | null) => void, name = 'list'): AdminContentList<Item> {
+  const key = useAdminSourceKey(load, name);
+  const resource = useAdminResource(key, load);
   const [busy, setBusy] = useState('');
+  const { reload } = resource;
 
-  const reload = useCallback(async () => {
-    try {
-      setItems(await load());
-      setLoadError('');
-    } catch (error) {
-      setLoadError(errorText(error, 'Не удалось загрузить список'));
-    } finally {
-      setLoading(false);
-    }
-  }, [load]);
-
-  useEffect(() => { void reload(); }, [reload]);
-
-  const run = useCallback(async (key: string, work: () => Promise<unknown>, okText: string, toastError = true) => {
-    setBusy(key);
+  const run = useCallback(async (actionKey: string, work: () => Promise<unknown>, okText: string, toastError = true) => {
+    setBusy(actionKey);
     onMessage(null);
     try {
       await work();
       onMessage({ type: 'ok', text: okText });
       await reload();
+      // Secondary answers about the same items (e.g. read statistics) are refreshed with the list.
+      invalidateAdminResources(`${key}:`);
       return '';
     } catch (error) {
       const text = errorText(error, 'Действие не выполнено');
@@ -54,7 +71,15 @@ export function useAdminContentList<Item>(load: () => Promise<Item[]>, onMessage
     } finally {
       setBusy('');
     }
-  }, [onMessage, reload]);
+  }, [key, onMessage, reload]);
 
-  return { items, loading, loadError, busy, reload, run };
+  return {
+    key,
+    items: resource.data ?? NO_ITEMS,
+    loading: resource.loading,
+    loadError: resource.error ? errorText(resource.error, 'Не удалось загрузить список') : '',
+    busy,
+    reload,
+    run,
+  };
 }

@@ -55,3 +55,10 @@ account does not import `valyro-ui/styles` either: the wrapper
 `src/features/AccountBillingPlanCard.tsx` uses the VaryloUI base, the shared
 parchment mapping and, in `AccountBillingPlanCard.css`, the few theme-only
 tokens the card reads (`--ui-space-6`, `--ui-text-2xl`, …).
+
+Also vendored for the admin console (`src/features/adminConsole/`):
+`app-shell` (`layout/AppShell`), `sidebar` (`navigation/Sidebar`, `Menu`,
+`DropdownMenu`, `internal`), `command-palette` and the `manacost` theme
+(`styles/themes/manacost.css`). The console imports `styles/index.css` and the
+theme inside a `ThemeScope`, so the tokens apply only under the admin frame.
+Its local change is `patches/menu-es2022-typing.md`.

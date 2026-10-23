@@ -1,0 +1,112 @@
+.ui-command-palette {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  overflow: hidden;
+  border: var(--ui-material-border);
+  border-radius: var(--ui-radius-modal);
+  background: var(--ui-elevated);
+  box-shadow: var(--ui-highlight), var(--ui-shadow-modal);
+  color: var(--ui-fg);
+  -webkit-backdrop-filter: var(--ui-blur-strong);
+  backdrop-filter: var(--ui-blur-strong);
+}
+
+/* In the page flow: a raised panel rather than a dialog over a scrim. */
+.ui-command-palette[data-inline] {
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  box-shadow: var(--ui-highlight), var(--ui-shadow-card);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.ui-command-palette__search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ui-space-3);
+  height: 56px;
+  padding: 0 var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-divider);
+}
+
+.ui-command-palette__input {
+  font-size: var(--ui-text-lg);
+}
+
+.ui-command-palette__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(380px, 50vh);
+  padding: var(--ui-space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding: var(--ui-space-2);
+}
+
+.ui-command-palette__group + .ui-command-palette__group {
+  margin-top: var(--ui-space-1);
+}
+
+.ui-command-palette__option {
+  min-height: 40px;
+  padding: 0 var(--ui-space-3);
+}
+
+.ui-command-palette__shortcut,
+.ui-command-palette__trailing {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.ui-command-palette__empty {
+  padding: var(--ui-space-10) var(--ui-space-4);
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-sm);
+  text-align: center;
+}
+
+.ui-command-palette__footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ui-space-4);
+  height: 44px;
+  padding: 0 var(--ui-space-4);
+  border-top: 1px solid var(--ui-divider);
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+}
+
+.ui-command-palette__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Shortcut keys on the highlighted row, which a theme may fill with the accent. */
+.ui-command-palette__option[data-highlighted='true'] .ui-kbd {
+  border-color: var(--ui-command-palette-kbd-highlight-border-color);
+  background: var(--ui-command-palette-kbd-highlight-bg);
+  color: var(--ui-command-palette-kbd-highlight-fg);
+}
+
+/* Touch devices have no keyboard to hint at. */
+@media (hover: none) and (pointer: coarse) {
+  .ui-command-palette__esc,
+  .ui-command-palette__shortcut,
+  .ui-command-palette__footer {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .ui-command-palette {
+    border: 1px solid CanvasText;
+  }
+}

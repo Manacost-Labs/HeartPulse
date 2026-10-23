@@ -1,23 +1,17 @@
 import assert from 'node:assert/strict';
 import {
-  ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
   createAdminWorkspaceState,
 } from '../src/features/adminWorkspaceState.js';
 
-assert.equal(ADMIN_DRAWER_MEDIA_QUERY, '(max-width: 1023px)');
-
 const initial = createAdminWorkspaceState('dashboard');
 assert.deepEqual(initial, {
   section: 'dashboard',
-  adminMenuOpen: false,
   openUserMenuId: '',
   message: null,
 });
 
-const menuOpen = adminWorkspaceReducer(initial, { type: 'toggleAdminMenu' });
-assert.equal(menuOpen.adminMenuOpen, true);
-const userMenuOpen = adminWorkspaceReducer(menuOpen, { type: 'toggleUserMenu', userId: 'user-1' });
+const userMenuOpen = adminWorkspaceReducer(initial, { type: 'toggleUserMenu', userId: 'user-1' });
 assert.equal(userMenuOpen.openUserMenuId, 'user-1');
 const withMessage = adminWorkspaceReducer(userMenuOpen, {
   type: 'setMessage',
@@ -27,7 +21,6 @@ const withMessage = adminWorkspaceReducer(userMenuOpen, {
 const navigated = adminWorkspaceReducer(withMessage, { type: 'navigate', section: 'contests' });
 assert.deepEqual(navigated, {
   section: 'contests',
-  adminMenuOpen: false,
   openUserMenuId: '',
   message: null,
 });
@@ -50,11 +43,6 @@ const sameUserMenuClosed = adminWorkspaceReducer(
   { type: 'toggleUserMenu', userId: 'user-1' },
 );
 assert.equal(sameUserMenuClosed.openUserMenuId, '');
-assert.strictEqual(
-  adminWorkspaceReducer(initial, { type: 'closeAdminMenu' }),
-  initial,
-  'closing an already closed admin menu must not rerender',
-);
 assert.strictEqual(
   adminWorkspaceReducer(initial, { type: 'closeUserMenu' }),
   initial,

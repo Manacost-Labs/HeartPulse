@@ -853,13 +853,12 @@
       "name": "frontend-admin-workspace",
       "status": "modular",
       "owner": "admin-platform",
-      "purpose": "Own the reusable administrator workspace shell, navigation and responsive presentation.",
+      "purpose": "Own the administrator section data cache and the shared look of admin section content; the Valyro console frame is composed in src/features/adminConsole.",
       "paths": [
         "src/modules/adminWorkspace"
       ],
       "publicEntrypoints": [
-        "src/modules/adminWorkspace/public.ts",
-        "src/modules/adminWorkspace/AdminWorkspaceShell.lazy.ts"
+        "src/modules/adminWorkspace/public.ts"
       ],
       "frontendRoutes": [
         "/admin"
@@ -871,7 +870,8 @@
       "dataStores": [],
       "externalServices": [],
       "tests": [
-        "tests/admin-workspace-shell.test.tsx",
+        "tests/admin-console-navigation.test.tsx",
+        "tests/admin-resource-store.test.ts",
         "tests/admin-workspace-state.test.ts"
       ],
       "allowedDependencies": [

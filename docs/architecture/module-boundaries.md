@@ -162,6 +162,15 @@ retry scheduling and the React subscription hook. The legacy feature
 it retains source normalization and rendering while consuming the module's
 public resource contract. Disposing a view stops its timers and callbacks.
 
+`src/modules/adminWorkspace` owns the tab-wide cache of admin section data
+(`useAdminResource`, `invalidateAdminResources`, `prefetchAdminResource`) and
+the shared look of section content. Modules may not import `src/vendor`, so
+the Valyro console frame (`AppShell`, `Sidebar`, `CommandPalette` under the
+`manacost` theme) lives in `src/features/adminConsole/`, which also owns the
+section list and URL parsing; `src/features/Contests.tsx` composes the
+sections. `src/modules/adminCrm` reads through the same cache
+([admin console](../specs/admin-valyro-console.md)).
+
 `src/modules/arenaClasses` owns validated class statistics, account-scoped
 browser caching, request lifecycle and ranking presentation. The Arena classes
 page composes this module with its permission gate and page chrome; the page

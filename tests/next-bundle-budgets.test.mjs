@@ -33,7 +33,7 @@ function gzipBytes(files) {
 }
 
 // The administrator workspace shell must stay a lazy asset of the admin page.
-const ADMIN_SHELL_MARKERS = { js: 'admin-primary-navigation', css: '--admin-nav-w:' };
+const ADMIN_SHELL_MARKERS = { js: 'hp-admin-sidebar-collapsed', css: '.admin-console-search' };
 function adminShellAssets(assets) {
   return ['js', 'css'].flatMap(kind => assets[kind]
     .filter(file => readFileSync(join(nextRoot, file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])));
