@@ -41,3 +41,12 @@ export const CopyPublicLink: Story = {
     await expect(canvas.getByRole('button', { name: 'Ссылка скопирована' })).toBeVisible();
   },
 };
+
+/** A signed-in visitor is led to their own account instead of the sign-up invitation. */
+export const SignedInViewer: Story = {
+  args: { signedIn: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('link', { name: 'Мой кабинет' })).toHaveAttribute('href', '/?login');
+    await expect(canvas.queryByRole('link', { name: 'Создать свой профиль' })).toBeNull();
+  },
+};

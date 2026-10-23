@@ -8,7 +8,6 @@ const authAvatarSource = readFileSync(new URL('../src/modules/identity/ui/AuthAv
 const authAvatarStyles = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.css', import.meta.url), 'utf8');
 const initialStyles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const identityPublicStyles = readFileSync(new URL('../src/modules/identity/public.css', import.meta.url), 'utf8');
-const profileIdentityStyles = readFileSync(new URL('../src/modules/identity/ui/ProfileIdentityHero.css', import.meta.url), 'utf8');
 const accountDashboardStyles = readFileSync(new URL('../src/modules/identity/ui/AccountDashboard.css', import.meta.url), 'utf8');
 const deferredStyles = readFileSync(new URL('../src/features/DeferredRoutes.css', import.meta.url), 'utf8');
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
@@ -35,7 +34,7 @@ assert.match(identityPublicStyles, /@import "\.\/ui\/AuthAvatar\.css"/,
 assert.match(authAvatarStyles, /--auth-avatar-size/,
   'avatar CSS must retain its size-driven presentation contract');
 assert.doesNotMatch(
-  `${profileIdentityStyles}\n${deferredStyles}`,
+  deferredStyles,
   /profile-hero__body\s*>\s*(?:span|\.auth-avatar):first-child/,
   'legacy profile selectors must not override the eager avatar baseline',
 );

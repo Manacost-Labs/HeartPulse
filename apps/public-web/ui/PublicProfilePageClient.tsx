@@ -11,11 +11,9 @@ const PublicProfileCard = dynamic(loadPublicProfileCard);
 export function PublicProfilePageClient({ profile, pathname }: { profile: PublicProfile; pathname: string }) {
   const access = usePublicAccess();
   return <PublicPageShell activeTab="home" pathname={pathname} account access={access} navigate={navigate}>
-    <div className="public-profile-page">
-      {/* The server validated the numeric ID; the shared link is the canonical page. */}
-      <PublicProfileCard profile={profile} onCopyLink={() => navigator.clipboard.writeText(
-        new URL(`/id/${profile.publicProfileId}/`, window.location.origin).href,
-      )} />
-    </div>
+    {/* The server validated the numeric ID; the shared link is the canonical page. */}
+    <PublicProfileCard profile={profile} signedIn={Boolean(access.user)} onCopyLink={() => navigator.clipboard.writeText(
+      new URL(`/id/${profile.publicProfileId}/`, window.location.origin).href,
+    )} />
   </PublicPageShell>;
 }

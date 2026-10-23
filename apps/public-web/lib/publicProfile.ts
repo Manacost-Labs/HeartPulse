@@ -54,9 +54,8 @@ export const loadPublicProfile = cache(async (id: string): Promise<PublicProfile
 export function publicProfileMetadata(profile: PublicProfile): Metadata {
   const url = `${SITE_URL}/id/${profile.publicProfileId}/`;
   const title = `${profile.displayName} — профиль игрока | HearthPulse`;
-  const description = profile.nickname
-    ? `Профиль игрока ${profile.nickname} на HearthPulse — статистика Hearthstone.`
-    : 'Профиль игрока на HearthPulse — статистика Hearthstone.';
+  const description = `${profile.displayName} на HearthPulse${profile.isSubscriber ? ', подписчик' : ''}. `
+    + 'Статистика Hearthstone на русском: мета, тир-листы, Арена и Поля сражений.';
   return {
     title,
     description,

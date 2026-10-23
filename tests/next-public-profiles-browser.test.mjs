@@ -97,12 +97,14 @@ test('a player sets a nickname and shares a public profile that shows only publi
       await visitor.evaluate(axe);
       const state = await visitor.evaluate(async () => ({
         h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
-        chips: [...document.querySelectorAll('.profile-status-chip')].map(node => node.textContent?.trim()),
+        chips: [...document.querySelectorAll('.identity-plate__facts li')].map(node => node.textContent?.trim()),
+        headers: document.querySelectorAll('#root .identity-plate, #root .section-banner-modern').length,
         overflow: document.documentElement.scrollWidth > innerWidth + 1,
         violations: (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
           .violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) })),
       }));
       assert.deepEqual(state.h1, ['Arena_Master']);
+      assert.equal(state.headers, 1, 'one identity header, no second page banner');
       assert.equal(state.chips.length, 1, 'only the member-since chip: this account has no subscription');
       assert.match(state.chips[0], /^На HearthPulse с /);
       assert.equal(state.overflow, false, `profile overflow at ${width}px`);
