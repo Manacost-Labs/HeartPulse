@@ -37,7 +37,7 @@ export const Compositions: Story = {
     const lineup = canvasElement.querySelector<HTMLElement>('.bg-hero-lineup') ?? canvasElement;
     const golden = heroDetailStats.best_composition.lineup.filter(minion => minion.premium).length;
     await expect(within(lineup).getAllByRole('img', { name: 'Золотое' })).toHaveLength(golden);
-    for (const image of lineup.querySelectorAll('img')) await expect(image.getAttribute('src')).not.toMatch(/framed|_G\.png/);
+    for (const image of lineup.querySelectorAll('img')) await expect(image.getAttribute('src')).not.toMatch(/framed|golden|_G\.png/);
     // Final-board minions carry the Russian names the server adds from the card library.
     const names = [...canvasElement.querySelectorAll('.bg-hero-final .bg-hero-card-name')].map(name => name.textContent ?? '');
     await expect(names.filter(name => /[A-Za-z]/.test(name))).toEqual([]);

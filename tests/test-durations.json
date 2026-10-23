@@ -117,6 +117,7 @@
     "tests/battleground-seo-routes.test.ts": 0.5,
     "tests/battleground-strategy-audit.test.ts": 0.2,
     "tests/battleground-trinket-metrics.test.ts": 0.2,
+    "tests/bg-hero-card-preview-browser.test.mjs": 6,
     "tests/bg-library-catalog-model.test.ts": 0.2,
     "tests/bg-library-controls-browser.test.mjs": 14,
     "tests/blizzard-card-images.test.ts": 0.2,
