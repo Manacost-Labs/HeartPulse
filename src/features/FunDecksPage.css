@@ -442,7 +442,8 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
-  padding: 0.34rem 0.25rem 0.38rem;
+  /* Tighter than before the 11px text floor so the two-line labels keep the card's height. */
+  padding: 0.2rem 0.25rem 0.24rem;
 }
 
 .fun-deck-card__metrics div {

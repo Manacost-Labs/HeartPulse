@@ -472,8 +472,8 @@
 .archetypes-loading__header-line { height: 1lh; width: 12rem; max-width: 75%; }
 .archetypes-loading__rows { display: grid; }
 .archetypes-loading__row { height: 88px; border-radius: 0; border-bottom: 1px solid var(--arena-paper-line); }
-@media (max-width: 1120px) { .archetypes-loading__row { height: 130.2px; } }
-@media (max-width: 820px) { .archetypes-loading__row { height: 175.2px; } }
+@media (max-width: 1120px) { .archetypes-loading__row { height: 137.5px; } }
+@media (max-width: 820px) { .archetypes-loading__row { height: 185.5px; } }
 
 .archetypes-state {
   display: grid;

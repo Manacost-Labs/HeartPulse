@@ -65,6 +65,7 @@
 .constructed-matchup-summary dt {
   color: var(--archetype-muted);
   font-size: 0.6875rem;
+  line-height: 1.1;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -131,6 +132,8 @@
   margin-top: 0.2rem;
   color: var(--archetype-muted);
   font-size: 0.6875rem;
+  /* 11px on one tight line keeps the row as tall as the 9px label did (and its placeholder). */
+  line-height: 1;
 }
 
 .constructed-matchup-ledger__meter {
