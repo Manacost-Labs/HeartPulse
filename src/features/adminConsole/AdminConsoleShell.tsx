@@ -13,6 +13,7 @@ import '../../vendor/valyro-ui/styles/index.css';
 import '../../vendor/valyro-ui/styles/themes/manacost.css';
 import '../../modules/adminWorkspace/public.css';
 import './AdminConsoleShell.css';
+import './AdminConsoleLegacy.css';
 import type { AdminMessage, AdminWorkspaceSection } from '../adminWorkspaceState';
 import type { AdminNavigationItem } from './adminNavigation';
 import { ConsoleToast, ConsoleTopBar } from './AdminConsoleChrome';
