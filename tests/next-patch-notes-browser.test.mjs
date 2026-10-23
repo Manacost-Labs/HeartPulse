@@ -27,6 +27,9 @@ test('patch notes render the stored article as compact change cards, and the hom
   const pilot = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
   try {
+    // The first request to a fresh server loads the route's modules, which can
+    // outlast the 600 ms first-paint read budget on a busy runner.
+    await (await fetch(`${pilot.origin}/standard/patches/`)).text();
     const document = await fetch(`${pilot.origin}/standard/patches/`);
     assert.equal(document.status, 200);
     const html = await document.text();
