@@ -14,6 +14,13 @@ export type AccountPublicProfileProps = {
   origin?: string;
 };
 
+/**
+ * `/u/<nickname>/` needs the Nginx contract that routes it to Next; until that
+ * contract is installed in production the account page offers only the short
+ * link. See docs/specs/public-profiles.md.
+ */
+const NICKNAME_LINKS_LIVE = false;
+
 function changeDate(value: string): string {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
@@ -71,7 +78,7 @@ export default function AccountPublicProfile({ identity, failed, saving, saveNic
         <>
           <ul className="account-links__list">
             <ProfileLink label="Короткая ссылка" href={new URL(publicProfilePath(identity.publicProfileId), siteOrigin).href} copyLabel="Скопировать короткую ссылку" />
-            {identity.nickname && (
+            {NICKNAME_LINKS_LIVE && identity.nickname && (
               <ProfileLink label="Ссылка по нику" href={new URL(`/u/${encodeURIComponent(identity.nickname)}/`, siteOrigin).href} copyLabel="Скопировать ссылку по нику" />
             )}
           </ul>

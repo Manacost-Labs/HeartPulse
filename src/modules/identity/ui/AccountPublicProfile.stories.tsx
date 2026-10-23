@@ -30,13 +30,12 @@ export const FirstNickname: Story = {
   },
 };
 
-/** Right after a change: both links, and the field waits out the 30 days. */
+/** Right after a change: the field waits out the 30 days. */
 export const RecentlyChanged: Story = {
   args: {
     identity: { publicProfileId: '7', nickname: 'Arena_Master', nicknameChangeAvailableAt: '2026-11-22T12:00:00.000Z' },
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('link', { name: 'https://hearthpulse.net/u/Arena_Master/' })).toBeVisible();
     await expect(canvas.getByLabelText('Ник')).toBeDisabled();
   },
 };

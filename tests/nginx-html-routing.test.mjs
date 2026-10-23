@@ -485,15 +485,6 @@ for (const route of inventory.routes) {
     expectRegexAction(path, 'return 410;', route.id);
     continue;
   }
-  if (route.id === 'public-profile-nickname') {
-    assert.equal(route.expectedStatus, 301, 'a nickname link redirects permanently to /id/<n>/');
-    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', route.id);
-    const nicknameAlias = firstMatchingRegexLocation(`${path}/`);
-    assert.match(nicknameAlias?.body || '', /limit_req zone=arena_public_profiles\b/,
-      'nickname lookups share the per-client profile budget');
-    assert.match(nicknameAlias?.body || '', /proxy_intercept_errors\s+off;/);
-    continue;
-  }
   if (route.kind === 'redirect') {
     assert.equal(route.expectedStatus, 302, `${route.id} inventory redirect status`);
     expectRegexAction(path, 'proxy_pass http://127.0.0.1:3101;', route.id);
@@ -551,10 +542,6 @@ for (const route of inventory.routes) {
       'public profiles must stay out of search indexes');
     assert.match(profileShell?.body || '', /proxy_hide_header X-Robots-Tag;/);
     assert.match(profileShell?.body || '', /proxy_intercept_errors\s+off;/);
-    if (route.id === 'public-profile') {
-      assert.match(profileShell?.body || '', /limit_req zone=arena_public_profiles burst=\d+ nodelay;/,
-        'sequential public profile IDs must be rate-limited per client');
-    }
     continue;
   }
   if (route.id === 'gallery') {

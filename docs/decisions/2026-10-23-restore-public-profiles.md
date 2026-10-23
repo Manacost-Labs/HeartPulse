@@ -59,7 +59,7 @@ everyone and decides field by field what may be on it.
 
 | Threat | Mitigation |
 | --- | --- |
-| Enumerating all profiles through sequential IDs | Only harmless fields exist on a profile. Express limits direct API reads to 60 per minute per client; Nginx limits `/id/` and `/u/` documents to 30 per minute per IPv4 address or IPv6 /64. |
+| Enumerating all profiles through sequential IDs | Only harmless fields exist on a profile. Express limits direct API reads to 60 per minute per client; an Nginx limit for `/id/` and `/u/` documents (30 per minute per IPv4 address or IPv6 /64) waits for its contract installation. |
 | Leaking identities or contact data (mail, Telegram, Discord, Yandex, Google, Patreon, Boosty) | Allow-listed projection; `users.name` and provider avatars are never read; test with poisoned rows. |
 | Leaking payment data | Only a boolean; no level, price, source or dates. |
 | Learning that an account is blocked or the internal ID | Missing, blocked and malformed IDs share one `404` body; `users.id` never leaves the server. |

@@ -96,10 +96,7 @@ response; Express still owns the session and device-approval API. Public
 projection through Next. Check a live profile, the legacy alias, a missing ID,
 an invalid ID, the slash redirect and the numeric canonical. Successful
 profiles retain `noindex, follow`; errors are `noindex, nofollow`, and the
-entire profile namespace remains `no-store`. `/u/<nickname>/` goes to Next,
-which answers a 301 to `/id/<n>/` or a 404; `/id/`, `/profiles/` and `/u/`
-share the `arena_public_profiles` request limit (`limit_req_zone` in the SEO
-map, which therefore must be installed together with the route snippet).
+entire profile namespace remains `no-store`.
 The exact `/admin/` document also uses Next, while `/admin` retains its
 query-preserving 301. The Next server checks the existing Express session and
 renders no private user fields into HTML; the browser rechecks access before

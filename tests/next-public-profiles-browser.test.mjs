@@ -39,14 +39,14 @@ test('a player sets a nickname and shares a public profile that shows only publi
     await owner.$eval('#account-nickname', input => { input.select(); });
     await owner.type('#account-nickname', 'Arena_Master');
     await owner.click('#account-public-profile button[type="submit"]');
-    await owner.waitForFunction(() => document.querySelectorAll('#account-public-profile .account-links__row').length === 2);
+    await owner.waitForFunction(() => document.querySelector('#account-nickname')?.disabled === true);
+    assert.match(await owner.$eval('#account-nickname-hint', hint => hint.textContent), /Следующая смена/,
+      'the 30-day limit locks the field and says until when');
     assert.deepEqual(await owner.$$eval('#account-public-profile .account-links__row a', links => links.map(link => link.textContent)),
-      [`${runtime.origin}/id/7/`, `${runtime.origin}/u/Arena_Master/`]);
-    assert.equal(await owner.$eval('#account-nickname', input => input.disabled), true, 'the 30-day limit locks the field');
-    assert.match(await owner.$eval('#account-nickname-hint', hint => hint.textContent), /Следующая смена/);
-    await owner.click('button[aria-label="Скопировать ссылку по нику"]');
+      [`${runtime.origin}/id/7/`], 'the nickname link waits for the Nginx /u/ route');
+    await owner.click('button[aria-label="Скопировать короткую ссылку"]');
     await owner.waitForFunction(() => Boolean(window.__copied));
-    assert.equal(await owner.evaluate(() => window.__copied), `${runtime.origin}/u/Arena_Master/`);
+    assert.equal(await owner.evaluate(() => window.__copied), `${runtime.origin}/id/7/`);
 
     for (const width of [320, 390, 1440]) {
       await owner.setViewport({ width, height: 1000 });

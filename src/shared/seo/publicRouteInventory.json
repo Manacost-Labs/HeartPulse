@@ -274,25 +274,6 @@
       }
     },
     {
-      "id": "public-profile-nickname",
-      "pattern": "/u/:nickname",
-      "kind": "redirect",
-      "owner": "identity",
-      "indexPolicy": "noindex-nofollow",
-      "canonicalPolicy": "none",
-      "sitemap": false,
-      "htmlStrategy": "redirect",
-      "expectedStatus": 301,
-      "criticality": "P2",
-      "mobileFixture": "public-profile-nickname",
-      "entitlement": null,
-      "pathParameters": {
-        "nickname": {
-          "pattern": "^[^/]{3,24}$"
-        }
-      }
-    },
-    {
       "id": "standard-matchups",
       "pattern": "/standard/matchups",
       "kind": "static",

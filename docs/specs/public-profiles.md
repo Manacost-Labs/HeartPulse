@@ -99,13 +99,16 @@ the old link answers `404` meanwhile.
 
 Direct API reads of `/api/profiles/*` are limited to 60 per minute per client
 on top of the general API budget. Loopback reads by the Next server are not
-counted there; the documents are limited in Nginx instead: `/id/<n>/` and
-everything under `/id/`, `/profiles/` and `/u/` share the
-`arena_public_profiles` zone (`deploy/nginx/arena-seo-map.conf`), 30 requests
-per minute per visitor (an IPv4 address or an IPv6 /64) with a burst of 20;
-the excess answers `429`.
-The profile namespace stays `no-store` at the origin, so the edge does not
-cache profile documents.
+counted there.
+
+Pending Nginx contract: production Nginx does not yet route `/u/` to Next
+(the catch-all answers `404`) and has no per-visitor limit for profile
+documents. The prepared change adds `u` to the profile namespace location and
+an `arena_public_profiles` `limit_req` zone (30 requests per minute per IPv4
+address or IPv6 /64, burst 20). It must be installed by root together with the
+release that carries its contract hash (`docs/runbooks/nextjs-production-cutover.md`).
+Until then the account page shows only the short link
+(`NICKNAME_LINKS_LIVE` in `AccountPublicProfile.tsx`).
 
 ## Data
 
