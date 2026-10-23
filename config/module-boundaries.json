@@ -574,6 +574,22 @@
       ]
     },
     {
+      "id": "server.playerGames",
+      "runtime": "server",
+      "root": "server/modules/playerGames",
+      "purpose": "Own desktop-tracker game uploads, their storage and the personal statistics read model of the account page.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/playerGames/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:player-games"
+      ],
+      "docs": [
+        "docs/specs/player-game-stats.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "server.coverAdminSso",
       "runtime": "server",
       "root": "server/modules/coverAdminSso",

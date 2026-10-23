@@ -374,6 +374,7 @@
         "tests/telegram-identity-repository.test.ts",
         "tests/tierlist-cache-bust-routes.test.ts",
         "tests/tierlist-routes.test.ts",
+        "tests/player-games-schema.test.ts",
         "tests/tracker-ingestion-routes.test.ts",
         "tests/web-vitals-routes.test.ts",
         "tests/winrate-routes.test.ts"

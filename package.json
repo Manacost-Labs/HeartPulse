@@ -60,6 +60,7 @@
     "test:telegram-identity": "tsx tests/telegram-auth-intent.test.ts && tsx tests/telegram-identity-resolution.test.ts && tsx tests/telegram-identity-repository.test.ts",
     "test:application-auth": "tsx tests/application-auth-model.test.ts && tsx tests/application-auth-repository.test.ts && tsx tests/application-auth-profile.test.ts && tsx tests/application-auth-routes.test.ts",
     "test:tracker-ingestion": "tsx tests/tracker-ingestion-routes.test.ts",
+    "test:player-games": "tsx tests/player-games-schema.test.ts",
     "test:browser-identity": "tsx --test tests/browser-identity-*.test.ts",
     "test:application-connect": "tsx tests/application-connect-api.test.ts && tsx tests/application-connect-page.test.ts",
     "test:csrf": "tsx tests/csrf.test.ts",
