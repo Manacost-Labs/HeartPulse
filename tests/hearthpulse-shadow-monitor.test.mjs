@@ -39,6 +39,9 @@ fi
 url="\${@: -1}"
 if [[ "$*" == *" --head "* ]]; then
   status=200
+  if [[ -n "\${FAKE_MISSING_CHUNK_MOSCOW:-}" && "$url" == https://hearthpulse.net/_next/static/* && "$*" == *194.67.92.242* ]]; then
+    status=404
+  fi
   if [[ -n "\${FAKE_FAIL_WWW:-}" && "$url" == https://www.hearthpulse.net/* ]]; then
     status=502
   elif [[ "$url" == https://www.hearthpulse.net/* || "$url" == https://arena.hs-manacost.ru/* || "$url" == https://cdn.arena.hs-manacost.ru/* ]]; then
@@ -60,6 +63,9 @@ if [[ "$*" == *" --head "* ]]; then
   else
     printf 'Strict-Transport-Security: max-age=%s\\r\\n' "\${FAKE_HSTS_MAX_AGE:-31536000}"
   fi
+  if [[ "$url" == https://hearthpulse.net/_next/static/chunks/* ]]; then
+    printf 'Content-Type: application/javascript; charset=UTF-8\\r\\n'
+  fi
   if [[ "$url" == https://hearthpulse.net/favicon.ico ]]; then
     edge_cache=HIT
     [[ -z "\${FAKE_BYPASS_NOVOSIBIRSK:-}" || "$*" != *186.246.28.244* ]] || edge_cache=BYPASS
@@ -70,6 +76,8 @@ elif [[ "$url" == */api/subscription/status ]]; then
   printf 404
 elif [[ -n "\${FAKE_FAIL_FANOUT:-}" && "$url" == https://hearthpulse.net/articles/ ]]; then
   printf 502
+elif [[ "$url" == https://hearthpulse.net/ && "$*" != *--write-out* ]]; then
+  [[ -n "\${FAKE_NO_CHUNK:-}" ]] || printf '<script src="/_next/static/chunks/webpack-0a1b2c.js" async></script>'
 elif [[ "$url" == */robots.txt ]]; then
   printf 'Sitemap: https://hearthpulse.net/sitemap.xml\\n'
 else
@@ -93,6 +101,14 @@ try {
   const healthy = runMonitor();
   assert.equal(healthy.status, 0, healthy.stderr || healthy.stdout);
   assert.match(healthy.stdout, /checks passed/);
+
+  const missingChunk = runMonitor({ FAKE_MISSING_CHUNK_MOSCOW: '1' });
+  assert.notEqual(missingChunk.status, 0, 'an edge that cannot deliver the release chunks fails');
+  assert.match(missingChunk.stderr, /moscow 194\.67\.92\.242 cannot deliver current build chunk \/_next\/static\/chunks\/webpack-0a1b2c\.js: HTTP 404/);
+
+  const noChunk = runMonitor({ FAKE_NO_CHUNK: '1' });
+  assert.notEqual(noChunk.status, 0);
+  assert.match(noChunk.stderr, /home page names no Next build chunk/);
 
   const quarantined = runMonitor({
     FAKE_QUARANTINE: 'novosibirsk',
