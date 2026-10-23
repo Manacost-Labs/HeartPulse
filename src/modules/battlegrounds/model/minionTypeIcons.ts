@@ -1,6 +1,6 @@
 export const battlegroundMinionIconByRussianName: Record<string, string> = {
-  Аберрация: '/bg-legacy/assset/aberration.webp',
-  Аберрации: '/bg-legacy/assset/aberration.webp',
+  Аберрация: '/bg-legacy/assset/аберрации.webp',
+  Аберрации: '/bg-legacy/assset/аберрации.webp',
   Механизмы: '/bg-legacy/assset/механизмы.webp',
   Механизм: '/bg-legacy/assset/механизмы.webp',
   Мурлоки: '/bg-legacy/assset/мурлоки.webp',
@@ -24,7 +24,7 @@ export const battlegroundMinionIconByRussianName: Record<string, string> = {
 
 export const battlegroundMinionIconBySlug: Record<string, string> = {
   all: '/bg-legacy/assset/общее.webp',
-  aberration: '/bg-legacy/assset/aberration.webp',
+  aberration: '/bg-legacy/assset/аберрации.webp',
   mech: '/bg-legacy/assset/механизмы.webp',
   mechanical: '/bg-legacy/assset/механизмы.webp',
   murloc: '/bg-legacy/assset/мурлоки.webp',

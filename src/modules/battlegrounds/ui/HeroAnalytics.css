@@ -92,7 +92,7 @@
 .bg-hero-tavern-pace__steps strong { color: var(--arena-ink); font-family: var(--font-display); font-size: 1rem; line-height: 1.2; }
 .bg-hero-tavern-pace__steps small { color: var(--arena-muted-ink); font-size: 0.75rem; }
 
-/* The final board: cards in one row, no frame around each. */
+/* The final board: seven full cards of one size in one row, no frame around each. */
 .bg-hero-lineup {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -104,20 +104,21 @@
 
 .bg-hero-lineup__minion {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   justify-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   min-width: 0;
   text-align: center;
+  container-type: inline-size;
 }
 
 .bg-hero-lineup__art {
+  position: relative;
   display: grid;
   place-items: center;
   width: 100%;
-  aspect-ratio: 512 / 776;
   max-width: 132px;
+  aspect-ratio: 256 / 388;
 }
 
 .bg-hero-lineup__art img {
@@ -130,33 +131,63 @@
 .bg-hero-lineup__fallback {
   display: grid;
   place-items: center;
-  width: 80%;
-  height: 80%;
-  border-radius: 40% / 30%;
+  width: 86%;
+  height: 92%;
+  padding: 0.5rem;
+  border-radius: 12px;
   background: rgba(139, 108, 66, 0.16);
   color: var(--arena-muted-ink);
   font-size: 0.75rem;
 }
 
+/* One marker for every golden slot, in the empty corner beside the card frame. */
+.bg-hero-lineup__golden {
+  position: absolute;
+  top: 4%;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #8a5b24;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #ffe7a3, #d29a35);
+  color: #5a3711;
+  box-shadow: 0 1px 3px rgba(61, 42, 30, 0.3);
+}
+
+.bg-hero-lineup__golden svg { width: 12px; height: 12px; fill: currentColor; }
+
 .bg-hero-lineup__minion > strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-height: 2.5em;
   color: var(--arena-ink);
   font-size: 0.8125rem;
   line-height: 1.25;
 }
 
-.bg-hero-lineup__minion > small {
+.bg-hero-lineup__stats {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 0.15rem 0.6rem;
   align-items: center;
   justify-content: center;
-  color: var(--arena-muted-ink);
+  color: var(--arena-ink);
   font-size: 0.75rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.bg-hero-lineup__minion > small img { width: 18px; height: 18px; object-fit: contain; }
-.bg-hero-lineup__golden { color: #8a5b24; font-weight: 700; }
+.bg-hero-lineup__stats > span { display: inline-flex; gap: 0.2rem; align-items: center; }
+.bg-hero-lineup__stats svg { width: 12px; height: 12px; color: var(--arena-muted-ink); }
+
+/* Slots share one width, so they all stack attack over health together instead of wrapping one by one. */
+@container (max-width: 135px) {
+  .bg-hero-lineup__stats { flex-direction: column; }
+}
 
 /* Compositions: one list, the share as a thin bar. */
 .bg-hero-compositions { display: grid; min-width: 0; font-variant-numeric: tabular-nums; }
@@ -192,7 +223,8 @@
 }
 
 .bg-hero-compositions__row:last-child { border-bottom: 0; }
-.bg-hero-compositions__row.is-low-sample { opacity: 0.75; }
+/* A small sample dims its numbers; the composition name and icon stay as in every row. */
+.bg-hero-compositions__row.is-low-sample > :not(.bg-hero-compositions__name) { opacity: 0.75; }
 
 .bg-hero-compositions__name {
   display: flex;
@@ -277,26 +309,10 @@
 .bg-hero-final__golden { grid-column: 1 / -1; color: var(--arena-muted-ink); font-size: 0.75rem; }
 .bg-hero-final__golden:empty { display: none; }
 
-/* Minion name with its card on hover or focus. */
-.bg-hero-card-name { position: relative; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+/* Minion name with its card beside it on hover or focus (AnchoredImagePreview). */
+.bg-hero-card-name { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 .bg-hero-card-name[tabindex] { cursor: help; text-decoration: underline dotted rgba(84, 51, 22, 0.4); text-underline-offset: 3px; }
 .bg-hero-card-name[tabindex]:focus-visible { outline: 2px solid var(--arena-red); outline-offset: 2px; }
-
-.bg-hero-card-name__preview {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  width: 160px;
-  height: auto;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  filter: drop-shadow(0 12px 18px rgba(61, 42, 30, 0.28));
-  transition: opacity var(--motion-fast) var(--motion-ease);
-}
-
-.bg-hero-card-name:is(:hover, :focus-visible) .bg-hero-card-name__preview { visibility: visible; opacity: 1; }
 
 @media (max-width: 1023px) {
   /* The matrix scrolls sideways here; the tier names stay in view. */
@@ -312,7 +328,9 @@
 @media (max-width: 640px) {
   .bg-hero-lineup { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem 0.4rem; }
   .bg-hero-lineup__minion > strong { font-size: 0.6875rem; }
-  .bg-hero-lineup__minion > small { font-size: 0.6875rem; }
+  .bg-hero-lineup__stats { font-size: 0.6875rem; }
+  .bg-hero-lineup__golden { width: 16px; height: 16px; }
+  .bg-hero-lineup__golden svg { width: 9px; height: 9px; }
   .bg-hero-power-matrix__tier-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .bg-hero-compositions__head { display: none; }
   .bg-hero-compositions__row {
@@ -327,8 +345,4 @@
   .bg-hero-compositions__games { grid-area: games; font-size: 0.75rem; }
   .bg-hero-compositions__games::before { content: 'игр'; margin-right: 0.15rem; }
   .bg-hero-compositions__place::before { content: 'место '; color: var(--arena-muted-ink); font-size: 0.75rem; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bg-hero-card-name__preview { transition: none; }
 }

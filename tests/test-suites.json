@@ -117,6 +117,7 @@
         "tests/global-error-page.test.tsx",
         "tests/battleground-hero-patch-changes.test.ts",
         "tests/battleground-hero-analytics-model.test.ts",
+        "tests/battleground-hero-cards-enrichment.test.ts",
         "tests/hearthstone-card-plurals.test.ts",
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-strategy-audit.test.ts",

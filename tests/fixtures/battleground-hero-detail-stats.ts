@@ -4,7 +4,10 @@
 import snapshot from '../../src/modules/battlegrounds/ui/heroDetailSnapshot.json';
 
 export const heroDetailStats = snapshot.stats;
-export const heroDetailCards: Record<string, { dbf: number; card_id: string; name: string; text: string; tavern_tier: number; creature_type_name: string | null; creature_type: string | null }> = snapshot.cards;
+export const heroDetailCards: Record<string, {
+  dbf: number; card_id: string; base_card_id?: string; name: string; text: string; tavern_tier: number;
+  creature_type_name?: string | null; creature_type?: string | null;
+}> = snapshot.cards;
 
 /** The hero's wiki change groups as the library API returns them. */
 export const heroDetailWiki = {

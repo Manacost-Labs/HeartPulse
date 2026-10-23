@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   heroCompositionRows, heroFinalBoards, heroPlacementColumns, heroPowerMatrix, heroTavernPace, heroTurnPoints,
 } from '../src/modules/battlegrounds/model/heroAnalytics.js';
+import { heroCardBaseId, heroCardImageSources, heroMinionStat } from '../src/modules/battlegrounds/model/heroCardImages.js';
 
 // Places: percent strings become numbers, the top four are the accent, a missing place is not 0%.
 assert.deepEqual(heroPlacementColumns(['16.66%', '16,6%', null, '10%']).map(column => [column.label, column.value, column.accent]), [
@@ -57,3 +58,21 @@ assert.deepEqual(boards.map(board => [board.tier, board.minions.map(minion => [m
   [5, [['Persistent Poet', 71.31, 58.19], ['Crimson Vindicator', 50.81, 17.21]]],
 ]);
 assert.equal(new Set(boards.flatMap(board => board.minions.map(minion => minion.key))).size, 4, 'every minion row has its own key');
+
+// Final-board cards: every slot is a full card of the base id; golden slots try the golden card first, never a `_G` render.
+assert.deepEqual(heroCardImageSources({ card_id: 'BG36_241_G' }, true), [
+  '/api/public-resource/db/uploads/golden/BG36_241.png',
+  '/api/public-resource/hsjson/v1/bgs/latest/ruRU/256x/BG36_241.png',
+  '/api/public-resource/db/uploads/cards/BG36_241.png',
+]);
+assert.deepEqual(heroCardImageSources({ card_id: 'BGS_040' }, false), [
+  '/api/public-resource/hsjson/v1/bgs/latest/ruRU/256x/BGS_040.png',
+  '/api/public-resource/db/uploads/cards/BGS_040.png',
+]);
+assert.equal(heroCardBaseId({ card_id: 'TB_BaconUps_045', base_card_id: 'BG_LOE_077' }), 'BG_LOE_077', 'the library base id wins');
+assert.equal(heroCardBaseId({ card_id: 'BG25_043_Gt' }), 'BG25_043t');
+assert.deepEqual(heroCardImageSources(undefined, true), [], 'an unknown card has no image, its name stands in');
+assert.deepEqual(heroCardImageSources({ card_id: '../x' }, false), []);
+
+// Final stats are average end-of-game values; five digits stay readable.
+assert.deepEqual([heroMinionStat(23701), heroMinionStat('26'), heroMinionStat(null), heroMinionStat('n/a')], ['23 701', '26', '—', '—']);

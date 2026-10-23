@@ -54,6 +54,18 @@ red `#8d171d`, share blue `#2f6c9e`, tavern tiers on one warm scale.
   fewer than 100 games are dimmed with an ⓘ), and the key minions of the final
   board grouped by the tavern tier the game ended on. A tier group where every
   minion is on 100% of boards is a single game and is left out.
+  Every final-board slot is a full card of the base card id (`heroCardImageSources`):
+  the HearthstoneJSON Battlegrounds render, or the golden card
+  `db/uploads/golden/<base>.png` with one star marker for a golden minion —
+  never a framed portrait or a `_G` render. Attack and health under a card are
+  the average end-of-game stats, grouped by thousands. Tribe icons are one set
+  of round badges. A minion name shows its full card beside it on hover or
+  focus (`AnchoredImagePreview`, portalled, kept in the viewport).
+  The BG app's details carry `cards` only for the lineup, so the proxy
+  (`server/battlegroundHeroCards.ts`) adds a library card for every lineup and
+  final-board minion from `/api/bg/library/cards/by-dbf/:dbf` before caching:
+  the Russian name, tier, tribe and `base_card_id`. A failed lookup
+  leaves the English name.
 
 ### Patch history
 

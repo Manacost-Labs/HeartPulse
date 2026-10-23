@@ -1307,33 +1307,93 @@
   "58400": {
    "dbf": 58400,
    "card_id": "TB_BaconUps_045",
+   "base_card_id": "BG_LOE_077",
    "name": "Бранн Бронзобород",
    "text": "Ваши «Боевые кличи» срабатывают трижды.",
    "tavern_tier": 5,
    "creature_type_name": null,
    "creature_type": null
   },
+  "60558": {
+   "dbf": 60558,
+   "card_id": "BGS_034",
+   "base_card_id": "BGS_034",
+   "name": "Бронзовый страж",
+   "text": "Божественный щит\nПерерождение\nМеханики: DIVINE_SHIELD, REBORN\nEN: Divine Shield\nReborn",
+   "tavern_tier": 2,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
   "60629": {
    "dbf": 60629,
    "card_id": "BGS_040",
+   "base_card_id": "BGS_040",
    "name": "Надина Красная",
    "text": "Предсмертный хрип: 3 ваших дракона получают «Божественный щит».",
    "tavern_tier": 6,
    "creature_type_name": null,
    "creature_type": null
   },
+  "60630": {
+   "dbf": 60630,
+   "card_id": "BGS_041",
+   "base_card_id": "BGS_041",
+   "name": "Калесгос, аспект магии",
+   "text": "После того как вы активируете «Боевой клич», ваши драконы получают +2/+2.\nМеханики: TRIGGER_VISUAL, BATTLECRY\nEN: [x]After you trigger a Battlecry,\ngive your Dragons +2/+2.",
+   "tavern_tier": 5,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "72062": {
+   "dbf": 72062,
+   "card_id": "BG21_015",
+   "base_card_id": "BG21_015",
+   "name": "Таресгоса",
+   "text": "Навсегда сохраняет бонусные свойства и характеристики, полученные в бою.\nМеханики: TRIGGER_VISUAL\nEN: This permanently keeps Bonus Keywords and stats gained in combat.",
+   "tavern_tier": 2,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "90425": {
+   "dbf": 90425,
+   "card_id": "BG23_318",
+   "base_card_id": "BG23_318",
+   "name": "Лирой Бесшабашный",
+   "text": "Предсмертный хрип: уничтожает существо, которое убило это существо.\nМеханики: DEATHRATTLE\nEN: Deathrattle: Destroy the minion that killed this.",
+   "tavern_tier": 5
+  },
+  "95006": {
+   "dbf": 95006,
+   "card_id": "BG24_500",
+   "base_card_id": "BG24_500",
+   "name": "Янтарный страж",
+   "text": "Провокация\nНачало боя: другой ваш\nдракон получает +2/+2 [x] и «Божественный щит».\nМеханики: START_OF_COMBAT, TAUNT, TRIGGER_VISUAL, DIVINE_SHIELD\nEN: [x]Taunt\nStart of Combat: Give another\n friendly Dragon +2/+2\nand Divine Shield.",
+   "tavern_tier": 3,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
   "96786": {
    "dbf": 96786,
    "card_id": "BG_LOE_077",
+   "base_card_id": "BG_LOE_077",
    "name": "Бранн Бронзобород",
    "text": "Ваши «Боевые кличи» срабатывают дважды.",
    "tavern_tier": 5,
    "creature_type_name": null,
    "creature_type": null
   },
+  "101314": {
+   "dbf": 101314,
+   "card_id": "BG26_ICC_901",
+   "base_card_id": "BG26_ICC_901",
+   "name": "Чародейка драккари",
+   "text": "Ваши эффекты конца хода срабатывают дважды.\nМеханики: AURA\nEN: Your end of turn effects trigger twice.",
+   "tavern_tier": 5
+  },
   "108463": {
    "dbf": 108463,
    "card_id": "BG29_813",
+   "base_card_id": "BG29_813",
    "name": "Упорный поэт",
    "text": "Божественный щит Соседние драконы навсегда сохраняют бонусные свойства и характеристики, полученные в бою.",
    "tavern_tier": 4,
@@ -1343,6 +1403,7 @@
   "108464": {
    "dbf": 108464,
    "card_id": "BG29_813_G",
+   "base_card_id": "BG29_813",
    "name": "Упорный поэт",
    "text": "Божественный щит Соседние драконы навсегда сохраняют бонусные свойства и характеристики, полученные в бою.",
    "tavern_tier": 4,
@@ -1352,6 +1413,7 @@
   "120299": {
    "dbf": 120299,
    "card_id": "BG32_821",
+   "base_card_id": "BG32_821",
    "name": "Кудесник Скверны",
    "text": "В конце вашего хода ваши заклинания таверны начинают давать еще +1/+1 до конца матча.",
    "tavern_tier": 5,
@@ -1361,15 +1423,37 @@
   "122674": {
    "dbf": 122674,
    "card_id": "BG33_924",
+   "base_card_id": "BG33_924",
    "name": "Синий дракончик",
    "text": "Боевой раж: ваши заклинания таверны дают еще +1 к здоровью в этом матче.",
    "tavern_tier": 3,
    "creature_type_name": "Дракон",
    "creature_type": "dragon"
   },
+  "126860": {
+   "dbf": 126860,
+   "card_id": "BG34_633",
+   "base_card_id": "BG34_633",
+   "name": "Драконья хранительница",
+   "text": "Боевой клич и предсмертный хрип: вы получаете случайного хроматического дракона.\nМеханики: BATTLECRY, DEATHRATTLE\nEN: Battlecry and Deathrattle: Get a random Chromadrake.",
+   "tavern_tier": 5,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "127441": {
+   "dbf": 127441,
+   "card_id": "BG34_Giant_314",
+   "base_card_id": "BG34_Giant_314",
+   "name": "Хрономальный поэт",
+   "text": "Божественный щит\nВаши драконы сохраняют бонусные свойства и прибавки\nк характеристикам, полученные в бою.\nМеханики: DIVINE_SHIELD, TRIGGER_VISUAL\nEN: [x]Divine Shield\nAll your Dragons keep\nBonus Keywords and stats\ngained in combat.",
+   "tavern_tier": 5,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
   "132953": {
    "dbf": 132953,
    "card_id": "BG36_241",
+   "base_card_id": "BG36_241",
    "name": "Багровый воздаятель",
    "text": "Божественный щит Боевой раж: применяет «Могучее дыхание дракона».",
    "tavern_tier": 6,
@@ -1379,6 +1463,7 @@
   "132954": {
    "dbf": 132954,
    "card_id": "BG36_241_G",
+   "base_card_id": "BG36_241",
    "name": "Багровый воздаятель",
    "text": "Божественный щит Боевой раж: применяет «Могучее дыхание дракона».",
    "tavern_tier": 6,
@@ -1388,6 +1473,7 @@
   "132955": {
    "dbf": 132955,
    "card_id": "BG36_242",
+   "base_card_id": "BG36_242",
    "name": "Бронзовый Дозорный Времени",
    "text": "Боевой раж: вы получаете случайного хроматического дракона.",
    "tavern_tier": 4,
@@ -1397,6 +1483,7 @@
   "132956": {
    "dbf": 132956,
    "card_id": "BG36_242_G",
+   "base_card_id": "BG36_242",
    "name": "Бронзовый Дозорный Времени",
    "text": "Боевой раж: вы получаете случайного хроматического дракона.",
    "tavern_tier": 4,
@@ -1406,6 +1493,7 @@
   "132957": {
    "dbf": 132957,
    "card_id": "BG36_243",
+   "base_card_id": "BG36_243",
    "name": "Дракончик-беглец",
    "text": "Активация (1): вызывает срабатывание «Боевого ража» вашего существа.",
    "tavern_tier": 4,
@@ -1415,6 +1503,7 @@
   "132985": {
    "dbf": 132985,
    "card_id": "BG36_245",
+   "base_card_id": "BG36_245",
    "name": "Рунический чародей",
    "text": "Начало боя: дважды применяет «Блестящее кольцо».",
    "tavern_tier": 4,
@@ -1424,6 +1513,7 @@
   "132986": {
    "dbf": 132986,
    "card_id": "BG36_245_G",
+   "base_card_id": "BG36_245",
    "name": "Рунический чародей",
    "text": "Начало боя: дважды применяет «Блестящее кольцо».",
    "tavern_tier": 4,
@@ -1433,6 +1523,7 @@
   "134411": {
    "dbf": 134411,
    "card_id": "BG36_364",
+   "base_card_id": "BG36_364",
    "name": "Вестник надежды",
    "text": "Начало боя: ваши существа получают +4/+3. (Навсегда улучшается, после того как ваше существо теряет «Божественный щит»!)",
    "tavern_tier": 5,
@@ -1442,6 +1533,7 @@
   "134494": {
    "dbf": 134494,
    "card_id": "BG36_849",
+   "base_card_id": "BG36_849",
    "name": "Героическая праматерь",
    "text": "Боевой раж: получает «Божественный щит». Начало боя: мгновенно атакует.",
    "tavern_tier": 6,
