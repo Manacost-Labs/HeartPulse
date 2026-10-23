@@ -109,11 +109,11 @@ Manacost Arena превращает разрозненные игровые да
 
 | Быстрый вход | Ссылка |
 | --- | --- |
-| Арена: винрейты классов | [Открыть `/classes`](https://hearthpulse.net/classes) |
-| Арена: тир-лист карт | [Открыть `/tierlist`](https://hearthpulse.net/tierlist) |
-| Поля Сражений: герои | [Открыть `/heroes`](https://hearthpulse.net/heroes) |
-| Поля Сражений: библиотека | [Открыть `/library`](https://hearthpulse.net/library) |
-| Косметика: скины, монеты и питомцы | [Открыть `/cosmetics`](https://hearthpulse.net/cosmetics) |
+| Арена: винрейты классов | [Открыть `/classes`](https://hearthpulse.net/classes/) |
+| Арена: тир-лист карт | [Открыть `/tierlist`](https://hearthpulse.net/tierlist/) |
+| Поля Сражений: герои | [Открыть `/heroes`](https://hearthpulse.net/heroes/) |
+| Поля Сражений: библиотека | [Открыть `/library`](https://hearthpulse.net/library/) |
+| Косметика: скины, монеты и питомцы | [Открыть `/cosmetics`](https://hearthpulse.net/cosmetics/) |
 | Состояние production | [Readiness API](https://hearthpulse.net/api/health/ready) |
 
 ## О проекте

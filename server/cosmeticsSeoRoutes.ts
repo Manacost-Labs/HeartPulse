@@ -120,7 +120,7 @@ function renderDetailDocument(options: {
 }) {
   const projection = detailProjection(options.kind, options.detail);
   const canonical = `${options.origin}/cosmetics/${options.kind}/${encodeURIComponent(options.cardId)}/`;
-  const title = `${projection.name} — косметика Hearthstone | Manacost`;
+  const title = `${projection.name} — косметика Hearthstone | HearthPulse`;
   const image = sameOriginPublicResourceUrl(projection.image, options.origin);
   const structuredData = {
     '@context': 'https://schema.org',
@@ -201,7 +201,7 @@ export function createCosmeticsSeoRouter(dependencies: CosmeticsSeoRouterDepende
     const cardId = String(request.params.cardId ?? '');
     if (!KINDS.has(kind) || !CARD_ID_PATTERN.test(cardId)) {
       return sendHtml(response, 404, NOINDEX_ROBOTS, baseDocument({
-        title: 'Косметика не найдена | Manacost',
+        title: 'Косметика не найдена | HearthPulse',
         description: 'Запрошенный объект косметики Hearthstone не найден.',
         robots: NOINDEX_ROBOTS,
         routeStatus: '404',
@@ -212,7 +212,7 @@ export function createCosmeticsSeoRouter(dependencies: CosmeticsSeoRouterDepende
       const detail = await withDeadline(dependencies.loadDetail(kind, cardId), timeoutMs);
       if (!detail) {
         return sendHtml(response, 404, NOINDEX_ROBOTS, baseDocument({
-          title: 'Косметика не найдена | Manacost',
+          title: 'Косметика не найдена | HearthPulse',
           description: 'Запрошенный объект косметики Hearthstone не найден.',
           robots: NOINDEX_ROBOTS,
           routeStatus: '404',
@@ -230,7 +230,7 @@ export function createCosmeticsSeoRouter(dependencies: CosmeticsSeoRouterDepende
       dependencies.onError?.(error);
       response.set('Retry-After', '300');
       return sendHtml(response, 503, NOINDEX_ROBOTS, baseDocument({
-        title: 'Библиотека косметики временно недоступна | Manacost',
+        title: 'Библиотека косметики временно недоступна | HearthPulse',
         description: 'Источник косметики Hearthstone временно недоступен. Попробуйте открыть страницу позже.',
         robots: NOINDEX_ROBOTS,
         routeStatus: '503',

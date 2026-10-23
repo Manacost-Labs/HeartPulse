@@ -5,6 +5,7 @@ import { constructedCardPath, type CardFormat } from '@/src/modules/constructedC
 import { loadPublicCard } from '@/apps/public-web/lib/publicCard';
 import { LegacyCardDetailPage } from '@/apps/public-web/ui/LegacyCardDetailPage';
 import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
+import { fitMetaDescription } from '@/src/shared/seo/metaDescription';
 
 type Props = { params: Promise<{ format: string; cardId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,10 @@ async function resolveCard() {
 export async function generateMetadata(): Promise<Metadata> {
   const { card, format, canonical } = await resolveCard();
   const title = `${card.name.ru} — карта Hearthstone (${format === 'standard' ? 'Стандарт' : 'Вольный формат'}, ${card.card_id}) | HearthPulse`;
-  const description = card.text.ru || `${card.name.ru} — характеристики карты Hearthstone.`;
+  const formatName = format === 'standard' ? 'Стандарте' : 'Вольном формате';
+  const description = fitMetaDescription(card.text.ru
+    ? `${card.name.ru}: ${card.text.ru.trim()}${/[.!?…]$/.test(card.text.ru.trim()) ? '' : '.'} Статистика и колоды с картой в ${formatName} на HearthPulse.`
+    : `${card.name.ru} — характеристики, статистика и колоды с картой Hearthstone в ${formatName}.`);
   return { title, description, alternates: { canonical }, robots: INDEXABLE_ROBOTS,
     openGraph: { title, description, url: canonical, images: card.images.card ? [card.images.card] : [] } };
 }

@@ -394,6 +394,7 @@
     "tests/security-tooling-contract.test.mjs": 0.1,
     "tests/sentry-privacy.test.ts": 0.2,
     "tests/seo-registry.test.ts": 0.4,
+    "tests/seo-meta-description.test.ts": 0.3,
     "tests/seo-structured-data.test.ts": 0.2,
     "tests/skeleton-geometry-browser.test.mjs": 144,
     "tests/skeleton-route-geometry-browser.test.mjs": 83,

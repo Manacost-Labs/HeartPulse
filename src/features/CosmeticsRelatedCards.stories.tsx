@@ -41,10 +41,12 @@ type Story = StoryObj<typeof meta>;
 
 export const GeneratedCards: Story = {
   play: async ({ canvas, args }) => {
-    const firstCard = canvas.getByRole('link', { name: /Жадность/i });
-    await expect(firstCard).toBeVisible();
-    await userEvent.click(firstCard);
-    await expect(args.navigatePath).toHaveBeenCalledWith('/standard/cards/wild/TTN_002t20');
+    // Tokens have no card page, so they are shown without a link.
+    await expect(canvas.getByText('Жадность')).toBeVisible();
+    await expect(canvas.queryByRole('link', { name: /Жадность/i })).toBeNull();
+    const card = canvas.getByRole('link', { name: /Агент Древних/i });
+    await userEvent.click(card);
+    await expect(args.navigatePath).toHaveBeenCalledWith('/standard/cards/wild/CATA_200/');
   },
 };
 

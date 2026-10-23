@@ -41,7 +41,7 @@ export default function NotFoundPage({ navigatePath, state = 'not-found' }: NotF
         <p className="not-found-page__eyebrow">Ошибка 404</p>
         <p className="not-found-page__description">
           Возможно, адрес изменился или в ссылке есть опечатка. Вернитесь на главную
-          либо продолжите поиск в открытых разделах Manacost Stats.
+          либо продолжите поиск в открытых разделах HearthPulse.
         </p>
         <div className="not-found-page__actions" aria-label="Куда перейти дальше">
           <a className="not-found-page__primary" href="/" onClick={event => navigate(event, '/')}>
