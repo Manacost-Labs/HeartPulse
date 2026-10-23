@@ -118,6 +118,10 @@ const constructedCardsSource = readFileSync(new URL('../src/features/StandardCar
 assert.match(constructedCardsSource, /карта Hearthstone.*\| HearthPulse/);
 assert.doesNotMatch(constructedCardsSource, /карта Hearthstone.*\| Manacost Stats/);
 
+// One brand in every public title: the canonical domain is hearthpulse.net.
+const seoPagesSource = readFileSync('config/public-seo-pages.json', 'utf8');
+assert.doesNotMatch(seoPagesSource, /\| Manacost Stats"/, 'public page titles end with | HearthPulse');
+
 const battlegroundsLibrarySource = readFileSync(new URL('../src/features/BgLibrary.tsx', import.meta.url), 'utf8');
 assert.match(battlegroundsLibrarySource, /библиотека BG Hearthstone \| HearthPulse/);
 assert.match(battlegroundsLibrarySource, /shortTitle} BG Hearthstone \| HearthPulse/);

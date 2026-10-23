@@ -20,7 +20,7 @@ export async function archetypeDetailMetadata(params: ArchetypeRouteParams, fami
   const { format, slug, detail } = await resolveArchetypeRoute(params);
   const pathname = `/standard/${family}/${format}/${slug}`;
   const policy = await resolvePublicUrlPolicy(pathname, '');
-  const title = `${detail.item.archetypeLabel} — сборки и статистика | Manacost Stats`;
+  const title = `${detail.item.archetypeLabel} — сборки и статистика | HearthPulse`;
   const description = `${detail.item.archetypeLabel}: винрейт, популярность и обзор архетипа ${detail.formatLabel.toLowerCase()} режима.`;
   const canonical = policy.canonicalUrl ?? `https://hearthpulse.net${pathname}/`;
   return {

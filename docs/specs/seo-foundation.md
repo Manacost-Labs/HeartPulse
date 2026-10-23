@@ -38,6 +38,16 @@ This slice must not open private API responses to indexing or shared caches.
 - Legacy `arena.hs-manacost.ru`, `cdn.arena.hs-manacost.ru`, and
   `hs-manacost.ru` remain migration transports; this slice does not remove
   them.
+- Public titles end with `| HearthPulse`; the WebSite JSON-LD is named
+  `HearthPulse` with `Manacost Arena` as `alternateName`. Manacost stays the
+  publishing organization and the legal party in privacy and terms titles.
+  The `/standard/meta` title deliberately leads with «HSGuru» for that query.
+- Every URL in JSON-LD, sitemaps and internal links is the canonical
+  trailing-slash form; a slash-less page URL costs a `301`.
+- Meta descriptions go through `fitMetaDescription` (`src/shared/seo/metaDescription.ts`):
+  at most 160 characters, cut at a word boundary.
+- Generated tokens (`…t3`, `…t8_t`) have no card page; galleries show them
+  without a link instead of linking to a `404`.
 - Only the closed public media routes may omit `X-Robots-Tag: noindex`.
 - Empty Nginx `add_header` map values intentionally suppress that header.
 - The canonical edge bypasses its proxy cache but does not overwrite

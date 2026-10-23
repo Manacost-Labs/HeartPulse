@@ -21,7 +21,7 @@ async function resolveGuide(params: Props['params']) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { teaser, pathname, canonical } = await resolveGuide(params);
   const policy = await resolvePublicUrlPolicy(pathname, '');
-  const title = `${teaser.title} | Manacost Stats`;
+  const title = `${teaser.title} | HearthPulse`;
   const description = teaser.description || `Архивный гайд Hearthstone: ${teaser.title}.`;
   return {
     title, description, alternates: { canonical },

@@ -394,13 +394,13 @@
   pointer-events: none;
 }
 
-.cosmetics-related-card:hover,
+.cosmetics-related-card:is(a):hover,
 .cosmetics-related-card:focus-visible {
   --cosmetics-related-glow: var(--cosmetics-gold-bright);
   z-index: 1;
 }
 
-.cosmetics-related-card:hover::before,
+.cosmetics-related-card:is(a):hover::before,
 .cosmetics-related-card:focus-visible::before {
   opacity: 1;
 }

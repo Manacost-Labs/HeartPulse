@@ -6,6 +6,7 @@ import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { loadPublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHero';
 import { BattlegroundHeroDetailPageClient } from '@/apps/public-web/ui/BattlegroundHeroDetailPageClient';
 import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
+import { fitMetaDescription } from '@/src/shared/seo/metaDescription';
 
 type Props = { params: Promise<{ dbfId: string }> };
 export const dynamic = 'force-dynamic';
@@ -17,13 +18,17 @@ async function resolveHero(params: Props['params']) {
   return hero;
 }
 
+function heroDescription(hero: Awaited<ReturnType<typeof resolveHero>>): string {
+  return fitMetaDescription(hero.heroPower?.text
+    ? `${hero.name} — герой Полей сражений Hearthstone. Сила героя «${hero.heroPower.name}»: ${hero.heroPower.text}`
+    : `${hero.name} — герой режима «Поля сражений» в Hearthstone: сила героя, арт и описание на HearthPulse.`);
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const hero = await resolveHero(params);
   const canonical = `https://hearthpulse.net/heroes/${hero.dbfId}/`;
   const title = `${hero.name} — герой Полей сражений | HearthPulse`;
-  const description = hero.heroPower?.text
-    ? `${hero.name} — герой Полей сражений Hearthstone. Сила героя «${hero.heroPower.name}»: ${hero.heroPower.text}`.slice(0, 300)
-    : `${hero.name} — герой режима «Поля сражений» в Hearthstone.`;
+  const description = heroDescription(hero);
   return {
     title, description, alternates: { canonical }, robots: INDEXABLE_ROBOTS,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
@@ -36,9 +41,7 @@ export default async function Page({ params }: Props) {
   const origin = 'https://hearthpulse.net';
   const canonical = `${origin}/heroes/${hero.dbfId}/`;
   const title = `${hero.name} — герой Полей сражений | HearthPulse`;
-  const description = hero.heroPower?.text
-    ? `${hero.name} — герой Полей сражений Hearthstone. Сила героя «${hero.heroPower.name}»: ${hero.heroPower.text}`.slice(0, 300)
-    : `${hero.name} — герой режима «Поля сражений» в Hearthstone.`;
+  const description = heroDescription(hero);
   const structured = buildEntityStructuredData({
     canonical, title, description, origin, image: hero.image, entityFragment: 'hero',
     entity: {

@@ -888,7 +888,7 @@ function DetailView({
         ? (detail as CoinDetail).images.crop
         : (detail as PetDetail).images.card;
     void applyDocumentPageMeta({
-      title: `${displayName} — косметика Hearthstone | Manacost`,
+      title: `${displayName} — косметика Hearthstone | HearthPulse`,
       description: kind === 'heroes'
         ? `Скин героя «${displayName}»: редкость, класс, художник, анимация, полный арт и звуковые дорожки.`
         : kind === 'coins'

@@ -212,7 +212,7 @@ export async function applyDocumentPageMeta(meta: DocumentPageMeta): Promise<Res
     if (currentPath !== expectedPath || window.location.search !== expectedSearch) return policy;
   }
 
-  const title = policy.known ? meta.title : 'Страница не найдена | Manacost Stats';
+  const title = policy.known ? meta.title : 'Страница не найдена | HearthPulse';
   const description = policy.known ? meta.description : 'Запрошенная страница не найдена.';
   document.title = title;
   upsertMeta('meta[name="description"]', 'name', 'description', description);

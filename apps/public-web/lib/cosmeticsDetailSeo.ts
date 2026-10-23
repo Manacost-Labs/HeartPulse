@@ -35,7 +35,7 @@ export function cosmeticsDetailSeo(kind: CosmeticKind, detail: DetailPayload) {
   }
   const canonical = `${origin}/cosmetics/${kind}/${encodeURIComponent(detail.cardId)}/`;
   const image = sameOriginPublicResourceUrl(imageSource, origin);
-  const title = `${name} — косметика Hearthstone | Manacost`;
+  const title = `${name} — косметика Hearthstone | HearthPulse`;
   const structured = {
     '@context': 'https://schema.org', '@type': 'CreativeWork', name,
     alternateName: englishName ?? undefined, description, image: image ?? undefined,

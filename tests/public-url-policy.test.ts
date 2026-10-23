@@ -211,7 +211,7 @@ try {
     pathname: '/articlesevil',
     search: '',
   });
-  assert.equal(fakeDocument.title, 'Страница не найдена | Manacost Stats');
+  assert.equal(fakeDocument.title, 'Страница не найдена | HearthPulse');
   assert.equal(nodes.get('meta[name="robots"]')?.content, 'noindex, nofollow');
   assert.equal(nodes.has('link[rel="canonical"]'), false, 'unknown client route must remove stale canonical');
   assert.equal(nodes.has('meta[property="og:url"]'), false, 'unknown client route must remove stale og:url');

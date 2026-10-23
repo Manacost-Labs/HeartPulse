@@ -443,7 +443,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
   }, [fullAccess, accessPending]);
   const archetypeLabel = detail?.item.archetypeLabel;
   useEffect(() => {
-    if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | Manacost Stats`;
+    if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | HearthPulse`;
   }, [archetypeLabel]);
 
   if (core.loading && !detail) {

@@ -45,7 +45,7 @@
     "/standard/matchups": {
       "policyRouteId": "standard-matchups",
       "navigationRouteId": "standard-matchups",
-      "title": "Матчапы Стандарта Hearthstone {year} | Manacost Stats",
+      "title": "Матчапы Стандарта Hearthstone {year} | HearthPulse",
       "description": "Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.",
       "sitemap": true
     },
@@ -59,21 +59,21 @@
     "/standard/fun-decks": {
       "policyRouteId": "fun-decks",
       "navigationRouteId": "fun-decks",
-      "title": "Фан-колоды Hearthstone {year}: Стандарт и Вольный | Manacost Stats",
+      "title": "Фан-колоды Hearthstone {year}: Стандарт и Вольный | HearthPulse",
       "description": "Свежая подборка необычных и off-meta колод Hearthstone для Стандарта и Вольного режима: составы карт, винрейт, число игр и готовые коды.",
       "sitemap": true
     },
     "/standard/archetypes": {
       "policyRouteId": "constructed-archetypes",
       "navigationRouteId": "constructed-archetypes",
-      "title": "Архетипы Hearthstone {year}: Стандарт и Вольный | Manacost Stats",
+      "title": "Архетипы Hearthstone {year}: Стандарт и Вольный | HearthPulse",
       "description": "Актуальные архетипы Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, отдельные страницы, история и готовые сборки.",
       "sitemap": true
     },
     "/standard/vicious-gold": {
       "policyRouteId": "standard-vicious-gold",
       "navigationRouteId": "standard-vicious-gold",
-      "title": "Vicious Syndicate Gold — мета Стандарта {year} | Manacost Stats",
+      "title": "Vicious Syndicate Gold — мета Стандарта {year} | HearthPulse",
       "description": "Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.",
       "sitemap": true
     },
@@ -94,7 +94,7 @@
     "/standard/patches": {
       "policyRouteId": "patch-notes",
       "navigationRouteId": "patch-notes",
-      "title": "Патчноуты Hearthstone {year}: изменения карт по патчам | HearthPulse",
+      "title": "Патчноуты Hearthstone {year}: изменения карт | HearthPulse",
       "description": "Изменения карт Hearthstone в каждом патче: было → стало, усиления и ослабления по классам, Поля сражений и архив обновлений.",
       "sitemap": true
     },
@@ -136,39 +136,39 @@
     "/cosmetics": {
       "policyRouteId": "cosmetics",
       "navigationRouteId": "cosmetics",
-      "title": "Косметика Hearthstone: скины, монеты и питомцы | Manacost",
+      "title": "Косметика Hearthstone: скины, монеты и питомцы | HearthPulse",
       "description": "Полная библиотека косметики Hearthstone: скины героев с анимациями, косметические монеты, питомцы, арты, звуки и способы получения.",
       "sitemap": true
     },
     "/cosmetics/heroes": {
       "policyRouteId": "cosmetics-kind",
-      "title": "Скины героев Hearthstone: все портреты и анимации | Manacost",
+      "title": "Скины героев Hearthstone: все портреты и анимации | HearthPulse",
       "description": "Галерея скинов героев Hearthstone с русскими названиями, фильтрами по классу, редкости и способу получения, анимациями и звуками.",
       "sitemap": true
     },
     "/cosmetics/coins": {
       "policyRouteId": "cosmetics-kind",
-      "title": "Косметические монеты Hearthstone: полная галерея | Manacost",
+      "title": "Косметические монеты Hearthstone: полная галерея | HearthPulse",
       "description": "Все косметические монеты Hearthstone с изображениями карт, crop-артами и списками карт, которые генерируют монеты или связаны с ними.",
       "sitemap": true
     },
     "/cosmetics/pets": {
       "policyRouteId": "cosmetics-kind",
-      "title": "Питомцы Hearthstone: все раскраски и End Screen | Manacost",
+      "title": "Питомцы Hearthstone: все раскраски и End Screen | HearthPulse",
       "description": "Галерея питомцев Hearthstone со всеми вариантами раскрасок, отдельными страницами, дополнительными артами и изображениями End Screen.",
       "sitemap": true
     },
     "/guides-archive": {
       "policyRouteId": "guides-archive",
       "navigationRouteId": "guides-archive",
-      "title": "Архив гайдов Hearthstone | Manacost Stats",
+      "title": "Архив гайдов Hearthstone | HearthPulse",
       "description": "Архив старых гайдов, мета-отчетов и материалов Koloda Hearthstone в удобном формате для чтения.",
       "sitemap": true
     },
     "/contests": {
       "policyRouteId": "contests",
       "navigationRouteId": "contests",
-      "title": "Конкурсы Манакоста | Manacost Stats",
+      "title": "Конкурсы Манакоста | HearthPulse",
       "description": "Конкурсы для подписчиков Манакоста: участие, автоматическая проверка подписки и публикация ID победителей после завершения.",
       "sitemap": true
     },
