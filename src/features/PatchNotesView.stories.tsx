@@ -167,14 +167,32 @@ export const ExpansionArchive: Story = {
 };
 
 export const MetaFlow: Story = {
-  parameters: { docs: { description: { story: 'Valyro Sankey: changed cards (buff/nerf colour) flow into the archetypes whose builds play them; the flow is the number of those builds. Below 640 px of content the same links are a list.' } } },
+  parameters: { docs: { description: { story: 'Fewer than three changed cards in today\'s meta read as a list: each card, then the archetypes that play it with their class icon and the number of builds.' } } },
   play: async ({ canvasElement }) => {
     const flow = canvasElement.querySelector<HTMLElement>('.hp-patch-flow');
-    await expect(flow).not.toBeNull();
-    await waitFor(() => expect(flow?.querySelectorAll('.ui-sankey-chart__node[data-clickable]').length).toBe(3));
-    await expect(flow?.querySelectorAll('.ui-sankey-chart__link')).toHaveLength(2);
-    // The phone list is hidden at this width; its links carry the same targets as the nodes.
+    await expect(flow?.dataset.layout).toBe('list');
+    await expect(flow?.querySelector('.ui-sankey-chart')).toBeNull();
     await expect([...(flow?.querySelectorAll('.hp-patch-flow__targets a') ?? [])].map(link => link.getAttribute('href')))
       .toContain('/standard/archetypes/standard/std-dragon-warrior/');
+  },
+};
+
+const druidUse = { format: 'standard' as const, slug: 'aggro-druid', name: 'Друид на атаке', classKey: 'druid', popularity: 2.4, decks: 3, totalDecks: 9 };
+const spider: PatchNotesEntry = {
+  id: 'spider', name: 'Паучок', sourceName: null, mode: 'constructed', cardId: 'EDR_528', cardClass: 'DRUID', cardType: 'minion',
+  renderUrl: null, artwork: null, format: 'standard', subtitle: null, history: [], note: null, archetypes: [{ ...druidUse, decks: 6 }],
+  changes: [{ label: 'Здоровье', before: 3, after: 2, better: 'higher' }],
+};
+
+export const MetaFlowSankey: Story = {
+  args: { patch: { ...patch, entries: [
+    ...patch.entries.map(entry => entry.id === 'pantry' ? { ...entry, archetypes: [druidUse] } : entry), spider,
+  ] } },
+  parameters: { docs: { description: { story: 'Valyro Sankey: three or more changed cards (buff/nerf/rework colour) flow into the archetypes whose builds play them; the flow is the number of those builds. Below 640 px of content the same links are a list.' } } },
+  play: async ({ canvasElement }) => {
+    const flow = canvasElement.querySelector<HTMLElement>('.hp-patch-flow');
+    await expect(flow?.dataset.layout).toBe('chart');
+    await waitFor(() => expect(flow?.querySelectorAll('.ui-sankey-chart__node[data-clickable]').length).toBe(6));
+    await expect(flow?.querySelectorAll('.ui-sankey-chart__link')).toHaveLength(4);
   },
 };

@@ -5,6 +5,7 @@ import { loadStandardMetaTeaserSeed, standardMetaTeaserPath } from '../apps/publ
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { cosmeticsCatalogSeed, cosmeticsCatalogSeedRequest } from '../apps/public-web/lib/publicCosmeticsCatalogData';
 import { publicFunDecksPreview } from '../apps/public-web/lib/publicFunDecksPreviewData';
+import { createPatchNotesReader } from '../apps/public-web/lib/publicPatchNotesData';
 
 // Server reads that put anonymous public data into the first paint. They must
 // answer exactly the request the page makes, carry no paid data, and give up
@@ -180,6 +181,60 @@ assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(1, '2026-10
   'only https source links are kept');
 assert.equal(publicFunDecksPreview({ ...funRaw, stats: { total: -1, standard: 0, wild: 0 } }), null);
 assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
+
+// Patch notes: the last good copy is served at once and refreshed behind it,
+// so a slow Express never ships the page without the patch once it was read.
+{
+  const patch = (version: string) => ({ version, title: `Патч ${version}`, entries: [] });
+  const archive = { patches: [{ version: '36.6.3' }] };
+  let clock = 0;
+  let mode: 'ok' | 'stall' | 'fail' = 'ok';
+  const reads: string[] = [];
+  const stalled: (() => void)[] = [];
+  const load = createPatchNotesReader({
+    now: () => clock, freshMs: 1000, refreshBudgetMs: 5000, maxEntries: 3,
+    request: async path => {
+      reads.push(path);
+      if (mode === 'fail') return json({ error: 'upstream' }, 502);
+      const body = path === '/api/patch-notes' ? archive : patch(path.split('/').pop() ?? '');
+      if (mode === 'stall') await new Promise<void>(resolve => { stalled.push(resolve); });
+      return json(body);
+    },
+  });
+  const deadline = () => Date.now() + 200;
+
+  // A cold read that misses the deadline is null, but keeps going and fills the cache.
+  mode = 'stall';
+  assert.deepEqual(await load(null, Date.now() + 20), { patch: null, archive: null });
+  mode = 'ok';
+  for (const resume of stalled) resume();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  reads.length = 0;
+  const warm = await load(null, deadline());
+  assert.equal(warm.patch?.version, 'latest');
+  assert.deepEqual(reads.filter(path => path !== '/api/patch-notes'), [], 'a fresh copy needs no Express read');
+
+  // Stale: served at once while one refresh runs; a failed refresh keeps the last good copy.
+  clock = 5000;
+  mode = 'fail';
+  reads.length = 0;
+  assert.equal((await load(null, Date.now() - 1)).patch?.version, 'latest', 'a stale copy ignores the spent budget');
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.deepEqual(reads.sort(), ['/api/patch-notes', '/api/patch-notes/latest']);
+  assert.equal((await load(null, deadline())).patch?.version, 'latest');
+
+  // Unknown versions are not kept; known ones are bounded, least recently served first.
+  mode = 'fail';
+  assert.equal((await load('9.9.9', deadline())).patch, null);
+  mode = 'ok';
+  for (const version of ['1.0.0', '2.0.0', '3.0.0']) await load(version, deadline());
+  reads.length = 0;
+  clock = 5500;
+  await load('3.0.0', deadline());
+  assert.equal(reads.includes('/api/patch-notes/3.0.0'), false, 'a cached version is served from memory');
+  await load('1.0.0', deadline());
+  assert.ok(reads.includes('/api/patch-notes/1.0.0'), 'the oldest version was dropped at the bound');
+}
 
 // The loaders are server-only, anonymous (fetchPublicExpress) and bounded.
 for (const loader of ['publicStandardMetaTeaser', 'publicArchetypeCatalogTeaser', 'publicCosmeticsCatalog',

@@ -1,31 +1,19 @@
 import 'server-only';
-import type { PatchNotesDetail, PatchNotesSummary } from '@/src/modules/patchNotes/public';
 import { fetchPublicExpress } from './expressApi';
-import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPaintRead';
+import { FIRST_PAINT_READ_BUDGET_MS } from './publicFirstPaintRead';
+import { createPatchNotesReader, type PublicPatchNotes } from './publicPatchNotesData';
 
-export type PublicPatchNotes = { patch: PatchNotesDetail | null; archive: PatchNotesSummary[] | null };
+export type { PublicPatchNotes } from './publicPatchNotesData';
 
-function patchDetail(value: unknown): PatchNotesDetail | null {
-  const patch = value as PatchNotesDetail | null;
-  return patch && typeof patch.version === 'string' && typeof patch.title === 'string' && Array.isArray(patch.entries)
-    ? patch : null;
-}
-
-function archive(value: unknown): PatchNotesSummary[] | null {
-  const patches = (value as { patches?: unknown } | null)?.patches;
-  return Array.isArray(patches) && patches.every(item => typeof item?.version === 'string') ? patches : null;
-}
+// One cache per Next process (`next start` runs one); it starts empty after a restart.
+const readPatchNotes = createPatchNotesReader({ request: (path, signal) => fetchPublicExpress(path, signal) });
 
 /**
- * The patch and the archive for the first paint, read anonymously within the
- * shared first-paint budget. A part that misses it is `null` and the browser
- * loads it; patch notes are public, so nothing here depends on the viewer.
+ * The patch and the archive for the first paint, read anonymously. A copy
+ * the process already holds is used at once; a part never read before waits
+ * at most the shared first-paint budget, else it is `null` and the browser
+ * loads it. Patch notes are public, so nothing here depends on the viewer.
  */
-export async function loadPublicPatchNotes(version: string | null): Promise<PublicPatchNotes> {
-  const deadline = Date.now() + FIRST_PAINT_READ_BUDGET_MS;
-  const [patch, list] = await Promise.all([
-    readFirstPaintJson(signal => fetchPublicExpress(`/api/patch-notes/${encodeURIComponent(version ?? 'latest')}`, signal), deadline),
-    readFirstPaintJson(signal => fetchPublicExpress('/api/patch-notes', signal), deadline),
-  ]);
-  return { patch: patchDetail(patch), archive: archive(list) };
+export function loadPublicPatchNotes(version: string | null): Promise<PublicPatchNotes> {
+  return readPatchNotes(version, Date.now() + FIRST_PAINT_READ_BUDGET_MS);
 }

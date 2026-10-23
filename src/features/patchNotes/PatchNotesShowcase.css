@@ -351,19 +351,37 @@
 
 /* ── Featured highlights: a larger render; wide art on top with the render laid over its edge ── */
 
-/* Highlights are the page's only boxed cards: one paper panel each, no colour edge and no shadow. */
+/*
+ * Highlights are the page's only boxed cards: one paper tile each, the render
+ * above the name and the change, centred, no colour edge and no shadow.
+ */
 .hp-patch-card[data-featured] {
-  grid-template-columns: 6.25rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 0.75rem;
+  justify-items: center;
   overflow: hidden;
-  padding: 0.85rem;
+  padding: 1rem 0.85rem;
   border: 1px solid var(--patch-line);
   border-radius: 6px;
   background: var(--patch-paper);
+  text-align: center;
 }
 
-.hp-patch-card[data-featured] .hp-patch-card__name { font-size: 1.2rem; }
-.hp-patch-card[data-featured] .hp-patch-card__body { align-self: center; }
-.hp-patch-card[data-plate] { grid-template-rows: auto 1fr; padding-top: 0; }
+.hp-patch-card[data-featured] > .hp-patch-card__art { width: 6.25rem; }
+.hp-patch-card[data-featured] .hp-patch-card__body { justify-items: center; width: 100%; }
+/* The mark runs inline before the first word, so a name on two lines stays centred with it. */
+.hp-patch-card[data-featured] .hp-patch-card__title { display: block; padding-right: 0; }
+.hp-patch-card[data-featured] .hp-patch-kind { display: inline-grid; margin-right: 0.4rem; vertical-align: -0.1rem; }
+.hp-patch-card[data-featured] .hp-patch-card__name { display: inline; font-size: 1.15rem; }
+.hp-patch-card[data-featured] .hp-patch-card__changes { justify-content: center; }
+.hp-patch-card[data-plate] { grid-template-rows: auto auto 1fr; padding-top: 0; }
+
+@container (max-width: 640px) {
+  .hp-patch-card[data-featured] { gap: 0.6rem; padding: 0.75rem 0.6rem; }
+  .hp-patch-card[data-featured] > .hp-patch-card__art { width: 4.75rem; }
+  .hp-patch-card[data-featured] .hp-patch-card__name { font-size: 0.95rem; overflow-wrap: anywhere; }
+}
 
 .hp-patch-card__plate {
   position: relative;
@@ -384,9 +402,9 @@
   content: '';
 }
 
-.hp-patch-card[data-plate] > .hp-patch-card__art { position: relative; z-index: 1; margin-top: -3.5rem; }
+.hp-patch-card[data-plate] > .hp-patch-card__art { position: relative; z-index: 1; margin-top: -4.5rem; }
 .hp-patch-card[data-plate] > .hp-patch-card__art img { filter: drop-shadow(0 6px 10px rgba(30, 10, 4, 0.45)); }
-.hp-patch-card[data-plate] .hp-patch-card__body { align-self: start; padding-top: 0.6rem; }
+.hp-patch-card[data-plate] .hp-patch-card__body { align-self: start; }
 
 /* ── Stat gems ──────────────────────────────────────────────────────────── */
 
@@ -429,21 +447,10 @@
 .hp-stat[data-stat='armor'] svg { color: #c9d3dc; }
 .hp-stat:is([data-stat='gold'], [data-stat='armor']) > span { font-size: 0.92rem; text-shadow: none; }
 
-.hp-change[data-stat] .hp-change__values s { position: relative; opacity: 0.55; text-decoration: none; }
-
-.hp-change[data-stat] .hp-change__values s::after {
-  position: absolute;
-  top: 50%;
-  right: -2px;
-  left: -2px;
-  height: 2px;
-  border-radius: 1px;
-  background: #7b151b;
-  content: '';
-  transform: rotate(-24deg);
-}
-
-.hp-change[data-stat] .hp-change__values b { position: relative; }
+/* The old value is a smaller, faded, greyed gem: the arrow says which is old, a strike over art reads as damage. */
+.hp-change[data-stat] .hp-change__values s { display: inline-flex; opacity: 0.5; filter: grayscale(0.8); text-decoration: none; }
+.hp-change[data-stat] s .hp-stat:not([data-stat='gold'], [data-stat='armor']) { width: 1.6rem; height: 1.6rem; }
+.hp-change[data-stat] s .hp-stat > span { font-size: 0.85rem; }
 
 /* ── Archive drawer ─────────────────────────────────────────────────────── */
 
@@ -598,10 +605,10 @@
 
 .hp-patch-flow {
   /* Tokens a Valyro theme would define; the Sankey reads them. */
-  --ui-sankey-chart-link-opacity: 0.2;
-  --ui-sankey-chart-link-opacity-active: 0.5;
-  --ui-sankey-chart-link-opacity-dimmed: 0.08;
-  --ui-sankey-chart-node-w: 10px;
+  --ui-sankey-chart-link-opacity: 0.34;
+  --ui-sankey-chart-link-opacity-active: 0.6;
+  --ui-sankey-chart-link-opacity-dimmed: 0.1;
+  --ui-sankey-chart-node-w: 12px;
   --ui-chart-glow: none;
   --ui-chart-swatch-radius: 2px;
   --ui-radius-sm: 4px;
@@ -626,21 +633,44 @@
 .hp-patch-flow .ui-sankey-chart__link { stroke-dasharray: none; animation: none; }
 
 .hp-patch-flow h4 { margin: 0; font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; }
-.hp-patch-flow__list { display: none; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
-.hp-patch-flow__list li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
-.hp-patch .hp-patch-flow__card { display: inline-flex; gap: 0.35rem; color: var(--arena-ink); font-weight: 700; text-decoration: none; }
-.hp-patch-flow__card[data-kind='buff'] span { color: var(--patch-buff); }
-.hp-patch-flow__card[data-kind='nerf'] span { color: var(--patch-nerf); }
-.hp-patch-flow__card[data-kind='rework'] span { color: var(--patch-rework); }
+/* The list: one row per card, its archetypes beside it on wide content and below it on phones. */
+.hp-patch-flow__list { display: none; margin: 0; padding: 0; list-style: none; }
+.hp-patch-flow[data-layout='list'] .hp-patch-flow__list { display: grid; }
+
+.hp-patch-flow__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.35rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--patch-line);
+}
+
+.hp-patch .hp-patch-flow__card {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  align-self: start;
+  min-height: 32px;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.hp-patch .hp-patch-flow__card:hover { color: #7b151b; }
 .hp-patch-flow__arrow { display: none; }
 .hp-patch-flow__targets { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 
+@container (min-width: 641px) {
+  .hp-patch-flow__list li { grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr); gap: 1rem; }
+}
+
 .hp-patch .hp-patch-flow__targets a {
   display: inline-flex;
-  gap: 0.3rem;
+  gap: 0.35rem;
   align-items: center;
   min-height: 32px;
-  padding: 0 0.6rem;
+  padding: 0 0.6rem 0 0.3rem;
   border-radius: 999px;
   background: rgba(84, 51, 22, 0.07);
   color: var(--arena-ink);
@@ -648,11 +678,13 @@
   text-decoration: none;
 }
 
+.hp-patch .hp-patch-flow__targets a:hover { background: rgba(84, 51, 22, 0.13); color: #7b151b; }
+.hp-patch-flow__targets img { width: 1.25rem; height: 1.25rem; object-fit: contain; }
 .hp-patch-flow__targets small { color: var(--arena-muted-ink); font-variant-numeric: tabular-nums; }
 .hp-patch-flow__note { margin: 0; color: var(--arena-muted-ink); font-size: 0.75rem; }
 
 /* A phone cannot fit a dozen labels a side: the same links read as a list there. */
 @container (max-width: 640px) {
   .hp-patch-flow__chart { display: none; }
-  .hp-patch-flow__list { display: grid; }
+  .hp-patch-flow .hp-patch-flow__list { display: grid; }
 }
