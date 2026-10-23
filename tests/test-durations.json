@@ -245,6 +245,7 @@
     "tests/koloda-domain-links.test.mjs": 0.1,
     "tests/legendaries-motion.test.ts": 0.1,
     "tests/legendary-routes.test.ts": 0.4,
+    "tests/lightbox-close-stability-browser.test.mjs": 3.5,
     "tests/loading-keyframes.test.mjs": 0.1,
     "tests/loading-surface.test.tsx": 0.3,
     "tests/local-smtp.test.ts": 0.2,
