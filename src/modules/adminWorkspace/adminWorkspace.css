@@ -120,7 +120,9 @@
   box-shadow: var(--ui-focus-ring, 0 0 0 3px rgba(42, 119, 191, 0.35));
 }
 
-.admin-tailadmin-shell .contest-primary-button {
+/* The doubled class outranks the older .admin-workspace-page rules in contests.css; with equal
+   specificity the stylesheet that loaded last decided the colour of the console's main action. */
+.admin-tailadmin-shell .contest-primary-button.contest-primary-button {
   min-height: 36px;
   border: 1px solid transparent;
   border-radius: var(--ui-radius-button, 3px);
@@ -130,7 +132,7 @@
   font-weight: 600;
 }
 
-.admin-tailadmin-shell .contest-primary-button:hover:not(:disabled) {
+.admin-tailadmin-shell .contest-primary-button.contest-primary-button:hover:not(:disabled) {
   background: var(--admin-blue-dark);
 }
 
@@ -173,7 +175,7 @@
 .admin-tailadmin-shell .admin-activity-mark { width: 8px; height: 8px; border-radius: 50%; background: var(--ui-success, #1ea672); }
 
 @media (pointer: coarse) {
-  .admin-tailadmin-shell :is(.contest-primary-button, .contest-secondary-button, .admin-pagination button) {
+  .admin-tailadmin-shell :is(.contest-primary-button.contest-primary-button, .contest-secondary-button, .admin-pagination button) {
     min-height: 44px;
   }
 }

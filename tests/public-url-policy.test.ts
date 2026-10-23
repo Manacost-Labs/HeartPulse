@@ -124,28 +124,34 @@ const indexableAgain = await resolvePublicUrlPolicy('/articles');
 assert.equal(noindex.indexPolicy, 'noindex-nofollow');
 assert.equal(indexableAgain.indexPolicy, 'index', 'policy resolution must not retain prior navigation state');
 
+// Next renders each route's metadata and JSON-LD through React, which removes
+// those nodes itself on navigation. A node taken out by this code makes that
+// removal throw and the page falls into the global error screen, so the fakes
+// of server-rendered nodes refuse to be removed.
+const reactOwned = (what: string) => () => { throw new Error(`${what} belongs to React and must not be removed`); };
 const nodes = new Map<string, any>();
-const trackedNode = (selector: string) => {
+const trackedNode = (selector: string, value: string) => {
   const node: any = {
-    content: '',
-    href: '',
+    content: selector.startsWith('meta') ? value : '',
+    href: selector.startsWith('link') ? value : '',
     rel: '',
     attributes: {} as Record<string, string>,
-    setAttribute(name: string, value: string) { this.attributes[name] = value; },
-    remove() { nodes.delete(selector); },
+    setAttribute(name: string, attribute: string) { this.attributes[name] = attribute; },
+    removeAttribute(name: 'href' | 'content') { this[name] = ''; },
+    remove: reactOwned(selector),
   };
   nodes.set(selector, node);
   return node;
 };
-trackedNode('link[rel="canonical"]');
-trackedNode('meta[property="og:url"]');
-let structuredDataRemoved = false;
-const structuredDataNode = { remove: () => { structuredDataRemoved = true; } };
-let entityStructuredDataRemoved = false;
-const entityStructuredDataNode = {
-  dataset: { entityPath: '/standard/cards/standard/CARD_1' },
-  remove: () => { entityStructuredDataRemoved = true; },
-};
+trackedNode('link[rel="canonical"]', `${ORIGIN}/articles/`);
+trackedNode('meta[property="og:url"]', `${ORIGIN}/articles/`);
+const jsonLd = (entityPath?: string) => ({ type: 'application/ld+json', dataset: entityPath ? { entityPath } : {}, remove: reactOwned('JSON-LD') });
+const structuredDataNode = jsonLd();
+const entityStructuredDataNode = jsonLd('/standard/cards/standard/CARD_1');
+// Next writes entity paths with the trailing slash the site serves.
+const ownStructuredDataNode = jsonLd('/articles/');
+const scripts = [structuredDataNode, entityStructuredDataNode, ownStructuredDataNode];
+const active = (node: { type: string }) => node.type === 'application/ld+json';
 const fakeDocument: any = {
   title: '',
   head: {
@@ -155,7 +161,6 @@ const fakeDocument: any = {
         : node.attributes.name
           ? `meta[name="${node.attributes.name}"]`
           : `meta[property="${node.attributes.property}"]`;
-      node.remove = () => nodes.delete(selector);
       nodes.set(selector, node);
       return node;
     },
@@ -167,23 +172,19 @@ const fakeDocument: any = {
       rel: '',
       attributes: {} as Record<string, string>,
       setAttribute(name: string, value: string) { this.attributes[name] = value; },
-      remove() {},
+      removeAttribute(name: 'href' | 'content') { this[name] = ''; },
     };
   },
   querySelector(selector: string) { return nodes.get(selector) ?? null; },
   querySelectorAll(selector: string) {
-    if (selector === 'script[data-server-entity-jsonld]' && !entityStructuredDataRemoved) {
-      return [entityStructuredDataNode];
-    }
-    return selector === 'script[type="application/ld+json"]' && !structuredDataRemoved
-      ? [structuredDataNode]
-      : [];
+    if (selector.includes('[data-server-entity-jsonld]')) return scripts.filter(node => active(node) && node.dataset.entityPath);
+    return selector === 'script[type="application/ld+json"]' ? scripts.filter(active) : [];
   },
 };
 Object.defineProperty(globalThis, 'document', { configurable: true, value: fakeDocument });
 Object.defineProperty(globalThis, 'window', {
   configurable: true,
-  value: { location: { pathname: '/articles', search: '' } },
+  value: { location: { pathname: '/articles/', search: '' } },
 });
 try {
   await applyDocumentPageMeta({
@@ -193,10 +194,12 @@ try {
     search: '',
     image: 'javascript:alert(1)',
   });
-  assert.equal(entityStructuredDataRemoved, true,
-    'indexable SPA navigation must remove JSON-LD belonging to the previous entity path');
-  assert.equal(structuredDataRemoved, false,
-    'indexable SPA navigation must not remove unrelated structured data globally');
+  assert.equal(active(entityStructuredDataNode), false,
+    'indexable SPA navigation must turn off JSON-LD belonging to the previous entity path');
+  assert.equal(active(ownStructuredDataNode), true,
+    'the JSON-LD of the current page stays on although its path ends with a slash');
+  assert.equal(active(structuredDataNode), true,
+    'indexable SPA navigation must not turn off unrelated structured data globally');
   assert.equal(
     nodes.get('meta[property="og:image"]')?.content,
     `${ORIGIN}/assets/og-preview.png`,
@@ -213,9 +216,14 @@ try {
   });
   assert.equal(fakeDocument.title, 'Страница не найдена | HearthPulse');
   assert.equal(nodes.get('meta[name="robots"]')?.content, 'noindex, nofollow');
-  assert.equal(nodes.has('link[rel="canonical"]'), false, 'unknown client route must remove stale canonical');
-  assert.equal(nodes.has('meta[property="og:url"]'), false, 'unknown client route must remove stale og:url');
-  assert.equal(structuredDataRemoved, true, 'unknown client route must remove stale JSON-LD');
+  assert.equal(nodes.get('link[rel="canonical"]')?.href, '', 'unknown client route must clear the stale canonical');
+  assert.equal(nodes.get('meta[property="og:url"]')?.content, '', 'unknown client route must clear the stale og:url');
+  assert.deepEqual(scripts.filter(active), [], 'unknown client route must turn off stale JSON-LD');
+
+  (globalThis.window as any).location.pathname = '/articles/';
+  await applyDocumentPageMeta({ title: 'Статьи', description: 'Описание статей', pathname: '/articles', search: '' });
+  assert.equal(nodes.get('link[rel="canonical"]')?.href, `${ORIGIN}/articles/`, 'a known route fills the cleared canonical again');
+  assert.equal(nodes.get('meta[property="og:url"]')?.content, `${ORIGIN}/articles/`);
 } finally {
   delete (globalThis as any).document;
   delete (globalThis as any).window;
