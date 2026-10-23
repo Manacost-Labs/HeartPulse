@@ -40,7 +40,7 @@ export default function AccountSettings({ values, countries, saving, onChange, o
         </fieldset>
         <fieldset className="account-settings__contacts">
           <legend>Контакты для призов</legend>
-          <p className="account-muted">Оставьте удобный способ связи, чтобы мы могли передать приз. Эти поля не привязывают аккаунты и не подтверждают подписку.</p>
+          <p className="account-muted">Только чтобы передать приз: эти поля не привязывают аккаунты и не подтверждают подписку.</p>
           <div className="account-settings__field">
             <label htmlFor="account-country">Страна</label>
             <select id="account-country" value={values.country} onChange={event => onChange({ country: event.target.value })}>

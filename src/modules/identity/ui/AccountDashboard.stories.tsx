@@ -106,7 +106,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Subscriber: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/продлится автоматически/)).toBeVisible();
+    await expect(canvas.getByText(/Следующий платёж/)).toBeVisible();
     await expect(canvas.getByRole('link', { name: /Управлять на Boosty/ })).toHaveAttribute('href', 'https://boosty.to/kolodahearthstone');
   },
 };
@@ -114,7 +114,7 @@ export const Subscriber: Story = {
 export const SubscriptionWillNotRenew: Story = {
   args: { subscription: { ...subscriber, boosty: { ...subscriber.boosty, willRenew: false } } },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/не продлится/)).toBeVisible();
+    await expect(canvas.getByText(/Доступ до/)).toBeVisible();
   },
 };
 

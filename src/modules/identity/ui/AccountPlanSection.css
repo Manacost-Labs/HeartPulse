@@ -69,16 +69,12 @@ a.account-access__tile:hover { border-color: var(--arena-red); }
 .account-access__tile--locked { border-style: dashed; color: var(--arena-muted-ink); background: transparent; }
 .account-access__tile--locked > svg { color: var(--arena-muted-ink); }
 
-.account-dashboard__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .account-links__ok { display: inline-flex; align-items: center; gap: 0.3rem; color: #2f7a3e; font-size: 0.9rem; font-weight: 700; }
 .account-contests__all { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
 
 .account-help { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1.1rem; padding: 0.5rem 0; color: var(--arena-muted-ink); }
 .account-help a { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 44px; color: var(--arena-red); font-weight: 700; }
 
-@media (max-width: 900px) {
-  .account-dashboard__columns { grid-template-columns: minmax(0, 1fr); }
-}
 @media (max-width: 600px) {
   .account-section { padding: 0.9rem; }
   .account-plan__plain { grid-template-columns: minmax(0, 1fr); }

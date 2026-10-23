@@ -11,14 +11,14 @@ has no such data for readers.
 
 ## Layout
 
-- One cinematic header plate (`AccountHero`): the tavern art across the whole
-  plate inside the wood border, the avatar, the owner name as the page's only
-  `h1` (`#account-title`), the main contact, and a translucent plan strip:
-  «Подписка активна / Без подписки / Проверяем / Не удалось проверить», the
-  plan name and one status line such as «Boosty · до 12 нояб., продлится
-  автоматически» or «…, не продлится». Without a subscription the strip links
-  to the plan section instead of repeating its state. Actions: «Публичный
-  профиль», «Копировать ссылку», «Выйти» (the only sign-out on the page).
+- One identity plate (`AccountHero` on `IdentityPlate.css`, shared in look
+  with the public profile): the tavern art across the plate inside the wood
+  border, the avatar, the owner name as the page's only `h1`
+  (`#account-title`), one status pill «Подписка активна / Без подписки /
+  Проверяем подписку / Не удалось проверить» and the main contact. The plan's
+  name, dates and renewal live only in the plan section right below. Actions:
+  «Мой профиль» (the public page `/id/<n>/`, only for a numeric ID) and
+  «Выйти» (the only sign-out on the page).
 - «Подписка» (`#account-access`). With Boosty access the vendored Valyro
   `BillingPlanCard` shows the level, the price per month, «Следующий платёж»,
   «Доступ до» (no renewal) or «Оплачено до» (renewal unknown) with the date,
@@ -30,9 +30,17 @@ has no such data for readers.
   offers the Boosty e-mail confirmation, Patreon (when configured) and a
   Boosty subscription link, then lists what a subscription opens.
   «Проверить снова» and the last check time sit in the section head.
+- «Публичный профиль» (`#account-public-profile`): the short link and, once
+  chosen, the nickname link with «Скопировать ссылку» beside the nickname
+  form (stacked below 900 px); see [public profiles](public-profiles.md).
 - «Вход и привязки»: e-mail, Telegram, Google, Discord and Yandex (each only
   when the server offers it and the account's linked providers are known),
-  Boosty and Patreon, each with «Привязан» or the action that links it. Social
+  Boosty and Patreon, each with «Привязан» or the action that links it. Without
+  any access the Boosty row keeps a short state («Почта подписки не
+  подтверждена», «Этот уровень не открывает разделы», «Boosty не ответил,
+  проверьте позже») because the plan section's description carries the
+  server's full reason; with access from another source the row shows that
+  reason itself. Social
   linking uses the providers' own `/api/auth/{provider}/start`, which attaches
   the signed-in account; the return `?login&linked=<provider>` or
   `?login&<provider>=error` becomes one floating message and is removed from
@@ -40,7 +48,9 @@ has no such data for readers.
   browsers ([account sessions](account-sessions.md)): this browser first,
   marked «Этот браузер», each other one with «Завершить», and «Выйти на всех
   других устройствах» behind an inline confirmation.
-- «Рассылка и контакты»: the newsletter switch first, then the prize contacts.
+- Sections are stacked at full width, one parchment frame each.
+- «Рассылка и контакты»: the newsletter switch first, then the prize contacts
+  (four in one row from 1100 px).
   Contact fields do not link Telegram, change the login e-mail or confirm a
   subscription.
 - «Мои конкурсы», then one line of help links to specific FAQ answers.
@@ -110,7 +120,7 @@ not sending.
   at least 40 px high; buttons and inputs are 44 px. Focus is a 3 px outline.
 - `/?login` has the tab title «Личный кабинет — HearthPulse» and stays
   `noindex` through the public URL policy.
-- The page tour targets the header, plan strip, Telegram row, Boosty form,
+- The page tour targets the header, status pill, Telegram row, Boosty form,
   contests, contacts and header actions by their `data-tour-id` values.
 
 ## Files
@@ -118,7 +128,7 @@ not sending.
 `src/modules/identity/ui/LoginPanel.tsx` keeps the account state, requests
 and the signed-out login view and passes the signed-in state to
 `AccountDashboard.tsx`, which composes `AccountHero`, `AccountPlanSection`
-(with `AccountAccessOptions`), `AccountLinks`, `AccountSettings` and
+(with `AccountAccessOptions`), `AccountPublicProfile`, `AccountLinks`, `AccountSettings` and
 `AccountContests`; each section head is `AccountSectionHead`.
 `model/accountPlan.ts` derives the plan, its date and renewal line;
 `model/accountDashboard.ts` derives the section links, the linked sign-in rows

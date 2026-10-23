@@ -1,0 +1,20 @@
+/* The public profile section: the links beside the nickname form, one line
+   between them; stacked on narrow screens. */
+.account-public-profile__body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1rem 2rem; align-items: start; }
+.account-public-profile__links { margin: 0; }
+.account-public-profile__links .account-links__row:first-child { border-top: 0; padding-top: 0; }
+.account-public-profile__nickname { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-left: 2rem; border-left: 1px solid var(--arena-paper-line); }
+.account-public-profile__nickname label { font-weight: 700; }
+.account-public-profile__field { display: flex; gap: 8px; }
+.account-public-profile__field input { flex: 1 1 auto; min-width: 0; }
+.account-public-profile__field .account-button { flex: 0 0 auto; }
+.account-public-profile__nickname .account-muted { font-size: 0.9rem; }
+
+@media (max-width: 900px) {
+  .account-public-profile__body { grid-template-columns: minmax(0, 1fr); }
+  .account-public-profile__nickname { padding: 1rem 0 0; border-top: 1px solid var(--arena-paper-line); border-left: 0; }
+}
+
+@media (max-width: 480px) {
+  .account-public-profile__field { flex-direction: column; }
+}
