@@ -32,16 +32,19 @@ export function AdminPageClient() {
   useEffect(() => {
     // The server already accepted this session for /admin/, so the console code downloads while the
     // browser re-checks access instead of after it. The chunk holds code only, never admin data.
-    const panel = import('@/src/features/Contests');
-    panel.catch(() => { /* the dynamic loader reports a failed chunk */ });
+    void import('@/src/features/Contests').catch(() => { /* the dynamic loader reports a failed chunk */ });
+    const sectionPreload = import('@/src/features/adminConsole/sectionPreload');
+    sectionPreload.catch(() => { /* the section loads on its own when the panel renders */ });
     const controller = new AbortController();
     void fetchCurrentAuthUser(controller.signal)
       .then(user => {
         if (controller.signal.aborted) return;
         const allowed = Boolean(user && canManageContests(user));
         setAccess(user && allowed ? { status: 'allowed', user } : { status: 'denied' });
-        // The opening section's code and data start with the panel code, not after the panel renders.
-        if (allowed) void panel.then(module => module.preloadAdminSection(window.location.search, canAccessAdminWorkspace(user)), () => {});
+        // The opening section's code and data start beside the panel code, not after the panel renders.
+        if (allowed) {
+          void sectionPreload.then(module => module.preloadAdminSection(window.location.search, canAccessAdminWorkspace(user)), () => {});
+        }
       })
       .catch(() => { if (!controller.signal.aborted) setAccess({ status: 'unavailable' }); });
     return () => controller.abort();

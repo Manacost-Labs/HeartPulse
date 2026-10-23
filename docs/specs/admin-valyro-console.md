@@ -62,8 +62,9 @@ are unchanged and parsed in `adminConsole/adminNavigation.ts`.
   the chunk contains code, never admin data.
 - The frame and its stylesheet are part of the panel chunk, so the frame never
   renders unstyled.
-- When the opening section is known (after the access re-check) its code and
-  data start together with the panel code (`preloadAdminSection`).
+- A small module (`adminConsole/sectionPreload.ts`) downloads beside the panel
+  code; once the access re-check succeeds it starts the opening section's code
+  and data (`preloadAdminSection`), so the first screen shows its data at once.
 - Pointing at a menu item, or focusing it with the keyboard, starts
   downloading that section's code before the click. Code is not prefetched
   on idle: a section the operator never opens costs nothing, and a connection
@@ -102,7 +103,12 @@ settles plus the API requests made.
 After the first slice:
 
 - first-load CLS: 0.93 → 0.006;
-- overview data requested at 2.3 s → 2.2 s, in parallel with its chunk;
+- without network delay: frame at 1.20 s and overview data settled at 1.34 s →
+  frame and data together at 1.08–1.26 s (the overview request starts with
+  the panel code instead of after the frame);
+- at 150 ms on the local HTTP/1.1 server the frame now waits for more CSS
+  files (2.5–2.8 s, data included) than the old shell (2.0 s, data at 2.45 s);
+  production serves HTTP/2, where those files load in parallel;
 - returning to Boosty: 4.4 s and 2 requests → 0.11 s and none;
 - returning to the people list: 222 ms and 2 requests → 87 ms and none;
 - returning to contests, referrals, Telegram or the gallery: 47–184 ms and

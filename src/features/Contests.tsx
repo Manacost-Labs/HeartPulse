@@ -46,15 +46,15 @@ import {
   type ContestEntry,
   type ContestWorkspaceView,
 } from './ContestAdminContests';
-import { preloadAdminUsers, useAdminUsersList } from './useAdminUsersList';
-import { loadAdminOverviewPage, preloadAdminOverview, type AdminCrmSegmentId } from '../modules/adminCrm/public';
+import { useAdminUsersList } from './useAdminUsersList';
+import type { AdminCrmSegmentId } from '../modules/adminCrm/public';
 import {
   adminWorkspaceReducer,
   createAdminWorkspaceState,
   type AdminMessage,
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
-import { prefetchAdminResource, useAdminResource } from '../modules/adminWorkspace/public';
+import { useAdminResource } from '../modules/adminWorkspace/public';
 import { AdminConsoleShell } from './adminConsole/AdminConsoleShell';
 import {
   ADMIN_NAV_ITEMS,
@@ -62,6 +62,7 @@ import {
   adminSectionFromSearch,
   isAdminSection,
 } from './adminConsole/adminNavigation';
+import { SECTION_CHUNKS, prefetchSectionCode } from './adminConsole/sectionPreload';
 import {
   ADMIN_READS,
   boostyStatusFailure,
@@ -73,17 +74,6 @@ import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { AdminSectionFrame } from './AdminSectionFrame';
 export { ContestsPage } from '../modules/contests/public';
 
-// One loader per lazy section, so the idle prefetch and React.lazy share the same chunk request.
-const SECTION_CHUNKS = {
-  dashboard: loadAdminOverviewPage,
-  articles: () => import('./ContestAdminArticles'),
-  gallery: () => import('./ContestAdminGallery'),
-  translations: () => import('./ContestAdminTranslations'),
-  mechanics: () => import('./ContestAdminMechanicTranslations'),
-  operations: () => import('./ContestAdminStandardOperations'),
-  apiKeys: () => import('../modules/developerApi/public'),
-} as const;
-
 const AdminOverviewPage = React.lazy(SECTION_CHUNKS.dashboard);
 const ContestAdminArticles = React.lazy(async () => ({ default: (await SECTION_CHUNKS.articles()).ContestAdminArticles }));
 const ContestAdminGallery = React.lazy(async () => ({ default: (await SECTION_CHUNKS.gallery()).ContestAdminGallery }));
@@ -92,48 +82,6 @@ const ContestAdminMechanicTranslations = React.lazy(async () => ({ default: (awa
 const ContestAdminStandardOperations = React.lazy(async () => ({ default: (await SECTION_CHUNKS.operations()).ContestAdminStandardOperations }));
 const ContestAdminFunDecks = React.lazy(async () => ({ default: (await SECTION_CHUNKS.operations()).ContestAdminFunDecks }));
 const AdminApiKeys = React.lazy(async () => ({ default: (await SECTION_CHUNKS.apiKeys()).AdminApiKeys }));
-const SECTION_CODE: Partial<Record<AdminWorkspaceSection, () => Promise<unknown>>> = {
-  dashboard: SECTION_CHUNKS.dashboard,
-  articles: SECTION_CHUNKS.articles,
-  gallery: SECTION_CHUNKS.gallery,
-  translations: SECTION_CHUNKS.translations,
-  mechanics: SECTION_CHUNKS.mechanics,
-  'fun-decks': SECTION_CHUNKS.operations,
-  'standard-data': SECTION_CHUNKS.operations,
-  'api-keys': SECTION_CHUNKS.apiKeys,
-};
-
-/** Pointing at a menu item starts downloading that section's code, ahead of the click. */
-function prefetchSectionCode(section: AdminWorkspaceSection) {
-  void SECTION_CODE[section]?.().catch(() => { /* the section shows its own error when it is opened */ });
-}
-
-const prefetchRead = (read: { key: string; load: () => Promise<unknown> }) => prefetchAdminResource(read.key, read.load);
-const SECTION_PRELOADS: Partial<Record<AdminWorkspaceSection, () => void>> = {
-  dashboard: () => { prefetchSectionCode('dashboard'); preloadAdminOverview(); },
-  users: preloadAdminUsers,
-  articles: () => prefetchSectionCode('articles'),
-  gallery: () => prefetchSectionCode('gallery'),
-  translations: () => prefetchSectionCode('translations'),
-  mechanics: () => prefetchSectionCode('mechanics'),
-  'fun-decks': () => prefetchSectionCode('fun-decks'),
-  'standard-data': () => prefetchSectionCode('standard-data'),
-  'api-keys': () => prefetchSectionCode('api-keys'),
-  contests: () => prefetchRead(ADMIN_READS.contests),
-  referrals: () => prefetchRead(ADMIN_READS.referrals),
-  boosty: () => { prefetchRead(ADMIN_READS.boostyStatus); prefetchRead(ADMIN_READS.boostySubscribers); },
-  telegram: () => prefetchRead(ADMIN_READS.telegram),
-};
-
-/**
- * Starts the code and data of the section the address opens while the panel itself is still
- * mounting, so its first screen does not wait for a second round of requests. Called only after
- * the browser confirmed the session; the API checks every request again.
- */
-export function preloadAdminSection(search: string, fullAccess: boolean): void {
-  const section = fullAccess ? adminSectionFromSearch(search, 'dashboard') : 'contests';
-  SECTION_PRELOADS[section]?.();
-}
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';

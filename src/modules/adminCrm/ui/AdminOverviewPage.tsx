@@ -37,7 +37,9 @@ export function AdminOverviewPage({ client = adminCrmClient, onNavigate, onOpenS
     freshRef.current = false;
     return client.overview(fresh);
   }, [client]);
-  const overview = useAdminResource<AdminCrmOverview>(overviewKey(client), load);
+  // Pinned per mount: a caller that rebuilds its client on every render must not start a new request each time.
+  const [key] = useState(() => overviewKey(client));
+  const overview = useAdminResource<AdminCrmOverview>(key, load);
   const refresh = () => {
     freshRef.current = true;
     void overview.reload();
