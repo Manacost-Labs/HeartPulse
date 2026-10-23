@@ -55,3 +55,18 @@ account does not import `valyro-ui/styles` either: the wrapper
 `src/features/AccountBillingPlanCard.tsx` uses the VaryloUI base, the shared
 parchment mapping and, in `AccountBillingPlanCard.css`, the few theme-only
 tokens the card reads (`--ui-space-6`, `--ui-text-2xl`, …).
+
+Also vendored for the account game statistics, with the free release CLI
+(`npx valyro-cli@0.1.0 init --dir src/vendor/valyro-ui`, then `add`; the
+settings are in the root `valyro.json`): `tabs`, `segmented-control`,
+`kpi-group`, `data-table`, `empty-state` and their new registry dependencies
+(`stats-card`, `sparkline`, `navigation/internal`, `forms/useRadioGroup`,
+`forms/form-reset`, `forms-advanced/form-field-context`,
+`primitives/prop-getters`, `primitives/liveAnnouncer`). Files that already
+existed were kept as they are (the CLI does not overwrite them). `select` was
+not kept: it needs a newer `primitives/useListNavigation` than the copy other
+pages use. Files the CLI added but nothing imports were removed. The
+statistics do not import `valyro-ui/styles` either: the composition
+`src/features/playerStats/` uses the VaryloUI base, the shared parchment
+mapping and, in `PlayerStatsPanel.css`, the theme-only tokens these widgets
+read.

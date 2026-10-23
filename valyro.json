@@ -1,0 +1,9 @@
+{
+  "registry": "https://valyro.xyz/r",
+  "framework": "next",
+  "installDir": "src/vendor/valyro-ui",
+  "alias": "@/src/vendor/valyro-ui",
+  "rsc": true,
+  "theme": "vercel",
+  "mode": "dark"
+}

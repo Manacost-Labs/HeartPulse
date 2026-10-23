@@ -70,6 +70,7 @@
         "tests/admin-content-lists-model.test.ts",
         "tests/admin-article-reads-model.test.ts",
         "tests/fetch-with-deadline.test.ts",
+        "tests/player-stats-client.test.ts",
         "tests/font-faces.test.mjs",
         "tests/public-media-assets.test.mjs",
         "tests/admin-overview-model.test.ts",

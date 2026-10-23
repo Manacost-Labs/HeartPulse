@@ -4,10 +4,10 @@
 
 The personal account opened with `/?login` answers, in this order: who is
 signed in and what plan they have until when; what the plan includes or how
-to get one; which ways into the account are linked; the newsletter and prize
-contacts; contests. Only sections backed by real data are shown: there is no
-payment history, device list, theme or saved-deck section because the server
-has no such data for readers.
+to get one; the player's own game statistics; which ways into the account
+are linked; the newsletter and prize contacts; contests. Only sections
+backed by real data are shown: there is no payment history, device list,
+theme or saved-deck section because the server has no such data for readers.
 
 ## Layout
 
@@ -30,6 +30,14 @@ has no such data for readers.
   offers the Boosty e-mail confirmation, Patreon (when configured) and a
   Boosty subscription link, then lists what a subscription opens.
   «Проверить снова» and the last check time sit in the section head.
+- «Моя статистика» (`#account-game-stats`): the games the Hearthpulse
+  desktop tracker uploaded, in the tabs «Поля сражений», «Стандарт»,
+  «Вольный» and «Арена», like HSReplay «My Stats»
+  ([player game statistics](player-game-stats.md)). The account owns the
+  section head; the body comes through `AccountGameStatsSlot` from the Valyro
+  composition `src/features/playerStats` and loads only with the signed-in
+  account. Without games it says «Установите Hearthpulse и войдите, чтобы игры
+  появились здесь» and links the desktop releases.
 - «Вход и привязки»: e-mail, Telegram, Google, Discord and Yandex (each only
   when the server offers it and the account's linked providers are known),
   Boosty and Patreon, each with «Привязан» or the action that links it. Social

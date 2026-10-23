@@ -1247,6 +1247,37 @@
       ]
     },
     {
+      "name": "frontend-player-stats",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns the account game-statistics response contract, formatting and the custom rating, rank, placement, combat and board charts; the Valyro composition lives in src/features/playerStats.",
+      "paths": [
+        "src/modules/playerStats"
+      ],
+      "publicEntrypoints": [
+        "src/modules/playerStats/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "src/modules/playerStats/public.ts",
+        "docs/specs/player-game-stats.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/player-stats-client.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals",
+        "server/**",
+        "src/vendor/**"
+      ]
+    },
+    {
       "name": "frontend-subscriptions",
       "status": "modular",
       "owner": "identity-platform",

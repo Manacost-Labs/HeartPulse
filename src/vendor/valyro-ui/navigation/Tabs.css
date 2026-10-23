@@ -1,0 +1,425 @@
+.ui-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+
+.ui-tabs__list {
+  /* Gradient directions for the edge fades: towards the inline end / start. */
+  --_to-end: to right;
+  --_to-start: to left;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  overflow-x: auto;
+  /* Tabbing scrolls a tab in clear of the edge (as arrow keys do, revealInList), so its ring is neither cut nor faded. */
+  scroll-padding-inline: 24px;
+  scrollbar-width: none;
+}
+
+.ui-tabs__list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tabs that fit do not scroll (useOverflowScroll), so nothing clips their rings and touch hit areas;
+   server markup (no attribute yet) keeps scrolling. */
+.ui-tabs__list[data-overflow='false'] {
+  overflow: visible;
+}
+
+.ui-tabs__list:dir(rtl) {
+  --_to-end: to left;
+  --_to-start: to right;
+}
+
+/* Fades an edge while more tabs are scrolled past it; a track that veils its edges instead sets --_fade-mask. */
+.ui-tabs__list[data-fade-start] {
+  mask-image: var(--_fade-mask, linear-gradient(var(--_to-end), transparent, #000 32px));
+}
+
+.ui-tabs__list[data-fade-end] {
+  mask-image: var(--_fade-mask, linear-gradient(var(--_to-start), transparent, #000 32px));
+}
+
+.ui-tabs__list[data-fade-start][data-fade-end] {
+  mask-image: var(--_fade-mask, linear-gradient(var(--_to-end), transparent, #000 32px, #000 calc(100% - 32px), transparent));
+}
+
+.ui-tabs__tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--ui-tabs-tab-radius);
+  corner-shape: var(--ui-control-corner-shape);
+  background: transparent;
+  color: var(--ui-fg-muted);
+  font: inherit;
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-tabs-tab-weight, inherit);
+  letter-spacing: var(--ui-label-tracking, var(--ui-control-tracking, inherit));
+  text-transform: var(--ui-label-transform, inherit);
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color var(--ui-duration-fast) var(--ui-ease),
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    box-shadow var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-tabs__tab:hover:not(:disabled),
+.ui-tabs__tab[data-active] {
+  color: var(--ui-fg);
+}
+
+.ui-tabs__tab:disabled {
+  color: var(--ui-fg-disabled);
+  cursor: not-allowed;
+}
+
+.ui-tabs__tab:focus-visible {
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-tabs__icon {
+  display: inline-flex;
+}
+
+.ui-tabs__indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  transition:
+    transform var(--ui-duration) var(--ui-ease-spring),
+    width var(--ui-duration) var(--ui-ease-spring);
+}
+
+.ui-tabs__indicator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  corner-shape: var(--ui-control-corner-shape);
+}
+
+.ui-tabs__panel {
+  min-width: 0;
+  border-radius: var(--ui-tabs-panel-radius);
+  outline: none;
+}
+
+.ui-tabs__panel:focus-visible {
+  box-shadow: var(--ui-focus-ring);
+}
+
+/* ── Underline: hover wash inside the tab, 2px bar on the baseline (Vercel). A theme can turn it into a
+   tab bar instead (Glass: the iOS 26 one, a frosted capsule track with a tinted glass lens under the active
+   tab; 1px border + 3px padding + 32px tabs = the 40px control height). ── */
+.ui-tabs[data-variant='underline'] .ui-tabs__list {
+  /* The track is also the scroll container, so a mask would erase its rounded end along with the tabs:
+     a theme that draws one veils the scrolled edges instead (sticky overlays in the track's fill, below). */
+  --_fade-mask: var(--ui-tabs-underline-list-mask);
+
+  align-self: var(--ui-tabs-underline-list-align);
+  gap: var(--ui-tabs-underline-list-gap);
+  /* A trackless theme can hang the tabs' side padding outside the column (minus the tab padding), so
+     the first label lines up with the panel content; a track (Glass) keeps 0. */
+  margin-inline: var(--ui-tabs-underline-list-margin-inline, 0px);
+  padding: var(--ui-tabs-underline-list-padding);
+  border: var(--ui-material-border);
+  border-radius: var(--ui-tabs-underline-list-radius);
+  background: var(--ui-control-track-bg);
+  box-shadow: var(--ui-tabs-underline-list-shadow);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__list::before,
+.ui-tabs[data-variant='underline'] .ui-tabs__list::after {
+  content: var(--ui-tabs-underline-list-veil-content);
+  position: sticky;
+  z-index: 2;
+  flex: none;
+  align-self: stretch;
+  width: 40px;
+  border-radius: var(--ui-radius-full);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__list::before {
+  order: -1;
+  inset-inline-start: 0;
+  margin-inline-end: -40px;
+  background: linear-gradient(var(--_to-end), var(--ui-bg) 25%, transparent);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__list::after {
+  order: 1;
+  inset-inline-end: 0;
+  margin-inline-start: -40px;
+  background: linear-gradient(var(--_to-start), var(--ui-bg) 25%, transparent);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__list[data-fade-start]::before,
+.ui-tabs[data-variant='underline'] .ui-tabs__list[data-fade-end]::after {
+  opacity: 1;
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__tab {
+  height: var(--ui-tabs-underline-tab-h);
+  padding: 0 var(--ui-space-4);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__tab[data-active] {
+  color: var(--ui-action-fg);
+}
+
+/* The wash and focus ring sit inset so the scrolling list never clips them. */
+.ui-tabs[data-variant='underline'] .ui-tabs__tab::before {
+  content: '';
+  position: absolute;
+  inset: var(--ui-tabs-underline-wash-inset);
+  z-index: -1;
+  border-radius: var(--ui-tabs-underline-wash-radius);
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    box-shadow var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__tab:hover:not(:disabled)::before {
+  background: var(--ui-hover);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__tab[data-active]:hover:not(:disabled)::before {
+  background: var(--ui-tabs-underline-active-wash);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__tab:focus-visible {
+  box-shadow: none;
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__tab:focus-visible::before {
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__indicator {
+  top: var(--ui-tabs-underline-indicator-offset);
+  bottom: var(--ui-tabs-underline-indicator-offset);
+}
+
+.ui-tabs[data-variant='underline'] .ui-tabs__indicator::after {
+  inset: var(--ui-tabs-underline-bar-inset);
+  height: var(--ui-tabs-underline-bar-h);
+  border-radius: var(--ui-tabs-underline-bar-radius);
+  background: var(--ui-tabs-underline-bar-bg);
+  box-shadow: var(--ui-tabs-underline-bar-shadow);
+}
+
+/* ── Pills: a filled shape slides behind the active tab (in Glass a solid accent capsule, no track) ── */
+.ui-tabs[data-variant='pills'] .ui-tabs__list {
+  gap: 2px;
+  padding: 4px;
+}
+
+.ui-tabs[data-variant='pills'] .ui-tabs__tab {
+  height: 32px;
+  padding: 0 var(--ui-tabs-pills-tab-padding-x);
+}
+
+.ui-tabs[data-variant='pills'] .ui-tabs__tab[data-active] {
+  color: var(--ui-tabs-pills-tab-active-fg);
+}
+
+/* Its badge on the active pill (`initial` in the theme: the badge's own subtle tint). */
+.ui-tabs[data-variant='pills'] .ui-tabs__tab[data-active] .ui-badge {
+  background: var(--ui-tabs-pills-active-badge-bg, color-mix(in srgb, var(--_c) 14%, transparent));
+  color: var(--ui-tabs-pills-active-badge-fg, var(--_ink));
+}
+
+.ui-tabs[data-variant='pills'] .ui-tabs__tab:hover:not(:disabled, [data-active]) {
+  background: var(--ui-hover);
+}
+
+.ui-tabs[data-variant='pills'] .ui-tabs__indicator {
+  top: 4px;
+  bottom: 4px;
+}
+
+.ui-tabs[data-variant='pills'] .ui-tabs__indicator::after {
+  border-radius: var(--ui-tabs-pills-indicator-radius);
+  background: var(--ui-tabs-pills-indicator-bg);
+  box-shadow: var(--ui-tabs-pills-indicator-shadow);
+}
+
+/* Forced colors: the sliding fill is repainted Canvas, so every variant marks the selected tab
+   with a Highlight bar on its baseline. */
+/* Touch: tabs get a 44px-tall hit area (WCAG 2.5.5); widths stay as drawn, since tabs sit side by side. */
+@media (pointer: coarse) {
+  .ui-tabs__tab::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: max(100%, 44px);
+    translate: 0 -50%;
+  }
+}
+
+@media (forced-colors: active) {
+  .ui-tabs[data-variant] .ui-tabs__indicator::after {
+    inset: auto 4px 0;
+    height: 3px;
+    border-radius: 0;
+    background: Highlight;
+    box-shadow: none;
+  }
+
+  .ui-tabs[data-variant] .ui-tabs__tab[data-active] {
+    color: CanvasText;
+  }
+
+  .ui-tabs__tab:disabled {
+    color: GrayText;
+  }
+}
+
+/* animation="spring": the indicator springs between tabs (its width on the same spring); the new panel slides
+   in from the side of the previous tab as it is shown (Tabs.tsx sets data-from at the first switch, so the
+   first render stays still); the panel area clips only while it eases to a new height — a transition from the
+   height Tabs.tsx holds it at to auto where interpolate-size works, else a Web Animation from Tabs.tsx. */
+.ui-tabs[data-motion='spring'] .ui-tabs__indicator {
+  transition:
+    transform calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy),
+    width calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy);
+}
+
+.ui-tabs__panels[data-from] > .ui-tabs__panel:not([hidden]) {
+  animation: ui-tabs-panel-in calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy);
+}
+
+.ui-tabs__panels[data-from='end'],
+.ui-tabs__panels[data-from='start']:dir(rtl) {
+  --_tabs-from-x: var(--ui-motion-distance, 24px);
+}
+
+.ui-tabs__panels[data-from='start'],
+.ui-tabs__panels[data-from='end']:dir(rtl) {
+  --_tabs-from-x: calc(var(--ui-motion-distance, 24px) * -1);
+}
+
+/* Beside a vertical list the panel comes from above or below, the way the tabs run. */
+.ui-tabs[data-orientation='vertical'] > .ui-tabs__panels[data-from] {
+  --_tabs-from-x: 0px;
+}
+
+.ui-tabs[data-orientation='vertical'] > .ui-tabs__panels[data-from='end'] {
+  --_tabs-from-y: calc(var(--ui-motion-distance, 24px) * 2 / 3);
+}
+
+.ui-tabs[data-orientation='vertical'] > .ui-tabs__panels[data-from='start'] {
+  --_tabs-from-y: calc(var(--ui-motion-distance, 24px) * -2 / 3);
+}
+
+@keyframes ui-tabs-panel-in {
+  from {
+    opacity: 0;
+    translate: var(--_tabs-from-x, 0px) var(--_tabs-from-y, 0px);
+  }
+}
+
+.ui-tabs__panels[data-animating] {
+  overflow: clip;
+  overflow-clip-margin: 4px;
+}
+
+@supports (interpolate-size: allow-keywords) {
+  .ui-tabs[data-motion='spring'] > .ui-tabs__panels {
+    interpolate-size: allow-keywords;
+  }
+
+  .ui-tabs[data-motion='spring'] > .ui-tabs__panels[data-animating] {
+    transition: height calc(var(--ui-duration-slow) * 1.92) var(--ui-spring-smooth);
+  }
+}
+
+/* ── orientation="vertical": the tabs stack in a column at the inline start, the panel beside them; the
+   indicator slides on the Y axis (Tabs.tsx) and the underline becomes a bar on the tabs' inline-start edge. ── */
+.ui-tabs[data-orientation='vertical'] {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.ui-tabs[data-orientation='vertical'] > .ui-tabs__panel,
+.ui-tabs[data-orientation='vertical'] > .ui-tabs__panels {
+  flex: 1;
+}
+
+.ui-tabs[data-orientation='vertical'] .ui-tabs__list {
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: stretch;
+  align-self: flex-start;
+  max-width: none;
+  overflow: visible;
+  margin-inline: 0;
+  mask-image: none;
+}
+
+.ui-tabs[data-orientation='vertical'] .ui-tabs__list::before,
+.ui-tabs[data-orientation='vertical'] .ui-tabs__list::after {
+  content: none;
+}
+
+.ui-tabs[data-orientation='vertical'] .ui-tabs__tab {
+  justify-content: flex-start;
+}
+
+.ui-tabs[data-orientation='vertical'] .ui-tabs__indicator,
+.ui-tabs[data-orientation='vertical'][data-variant] .ui-tabs__indicator {
+  top: 0;
+  bottom: auto;
+  inset-inline: 0;
+  transition:
+    transform var(--ui-duration) var(--ui-ease-spring),
+    height var(--ui-duration) var(--ui-ease-spring);
+}
+
+.ui-tabs[data-orientation='vertical'][data-variant='pills'] .ui-tabs__indicator {
+  inset-inline: 4px;
+}
+
+.ui-tabs[data-orientation='vertical'][data-variant='underline'] .ui-tabs__indicator::after {
+  inset-block: 6px;
+  inset-inline: 0 auto;
+  width: var(--ui-tabs-underline-bar-h);
+  height: auto;
+}
+
+.ui-tabs[data-orientation='vertical'][data-motion='spring'] .ui-tabs__indicator {
+  transition:
+    transform calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy),
+    height calc(var(--ui-duration-slow) * 1.36) var(--ui-spring-snappy);
+}
+
+@media (forced-colors: active) {
+  .ui-tabs[data-orientation='vertical'][data-variant] .ui-tabs__indicator::after {
+    inset-block: 4px;
+    inset-inline: 0 auto;
+    width: 3px;
+    height: auto;
+  }
+}

@@ -788,6 +788,23 @@
       ]
     },
     {
+      "id": "client.playerStats",
+      "runtime": "client",
+      "root": "src/modules/playerStats",
+      "purpose": "Owns the account game-statistics response contract, its formatting and the custom charts (rating and rank lines, placements, combat sparklines, final board) of the account page.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/playerStats/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:player-stats-client",
+        "npm run test:player-games"
+      ],
+      "docs": [
+        "docs/specs/player-game-stats.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "client.deckBuilder",
       "runtime": "client",
       "root": "src/modules/deckBuilder",

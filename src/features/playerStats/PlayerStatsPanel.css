@@ -1,0 +1,311 @@
+/*
+ * Tokens the vendored Valyro tabs, segmented controls, KPI group, data table
+ * and empty state read that the VaryloUI base and the shared parchment mapping
+ * do not define: Valyro ships them only in its themes. Values follow its
+ * default theme; colours resolve to the parchment palette.
+ */
+.player-stats-panel.hp-varylo-parchment {
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-16: 64px;
+  --ui-text-2xl: 1.5rem;
+  --ui-leading-tight: 1.2;
+  --ui-tracking-tight: 0;
+  --ui-radius-sm: 4px;
+  --ui-weight-label: var(--ui-weight-medium);
+  --ui-action-fg: var(--ui-fg);
+  --ui-border-strong: rgba(84, 51, 22, 0.42);
+  --ui-choice-size: 16px;
+  --ui-control-track-bg: transparent;
+  --ui-dashed-border-width: 1px;
+  --ui-material-border: none;
+  --ui-tile-border: 1px solid var(--ui-border);
+  --ui-skeleton-bg: var(--ui-surface-2);
+  --ui-skeleton-shine: rgba(255, 248, 225, 0.5);
+  --ui-tabs-panel-radius: 4px;
+  --ui-tabs-tab-radius: 4px;
+  --ui-tabs-pills-indicator-bg: var(--ui-surface-2);
+  --ui-tabs-pills-indicator-radius: 4px;
+  --ui-tabs-pills-indicator-shadow: inset 0 0 0 1px var(--ui-border);
+  --ui-tabs-pills-tab-active-fg: var(--ui-fg);
+  --ui-tabs-pills-tab-padding-x: 12px;
+  --ui-tabs-underline-active-wash: var(--ui-hover);
+  --ui-tabs-underline-bar-bg: var(--arena-red);
+  --ui-tabs-underline-bar-h: 3px;
+  --ui-tabs-underline-bar-inset: auto 4px 0;
+  --ui-tabs-underline-bar-radius: 2px 2px 0 0;
+  --ui-tabs-underline-bar-shadow: none;
+  --ui-tabs-underline-indicator-offset: 0;
+  --ui-tabs-underline-list-align: auto;
+  --ui-tabs-underline-list-gap: normal;
+  --ui-tabs-underline-list-mask: initial;
+  --ui-tabs-underline-list-padding: 0;
+  --ui-tabs-underline-list-radius: 0;
+  --ui-tabs-underline-list-shadow: inset 0 -1px 0 var(--arena-paper-line);
+  --ui-tabs-underline-list-veil-content: none;
+  --ui-tabs-underline-tab-h: 46px;
+  --ui-tabs-underline-wash-inset: 8px 4px;
+  --ui-tabs-underline-wash-radius: 4px;
+  --ui-kpi-group-delta-fill: 0%;
+  --ui-kpi-group-delta-padding: 0;
+  --ui-kpi-group-padding: 14px 16px;
+  --ui-kpi-group-value-size: 1.55rem;
+  --ui-kpi-group-value-weight: 400;
+  --ui-data-table-cell-content-position: static;
+  --ui-data-table-cell-content-z: auto;
+  --ui-data-table-cell-y: 10px;
+  --ui-data-table-cell-y-compact: 6px;
+  --ui-data-table-container-bg: rgba(255, 249, 226, 0.45);
+  --ui-data-table-container-isolation: auto;
+  --ui-data-table-container-position: static;
+  --ui-data-table-divider-width: 1px;
+  --ui-data-table-frost: transparent;
+  --ui-data-table-frost-content: none;
+  --ui-data-table-head-bg: rgba(234, 214, 167, 0.55);
+  --ui-data-table-head-bg-pinned: var(--ui-data-table-head-bg);
+  --ui-data-table-head-bg-scrolled: var(--ui-data-table-head-bg);
+  --ui-data-table-head-fg: var(--arena-muted-ink);
+  --ui-data-table-head-fg-sorted: var(--arena-ink);
+  --ui-data-table-head-h: 38px;
+  --ui-data-table-head-h-compact: 32px;
+  --ui-empty-state-bordered-bg: transparent;
+  --ui-empty-state-icon-bg: rgba(255, 249, 226, 0.7);
+  --ui-empty-state-icon-fg: var(--arena-red);
+  --ui-empty-state-icon-radius: 50%;
+  --ui-empty-state-icon-radius-ratio: 0;
+  --ui-empty-state-icon-shadow: none;
+
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  color: var(--arena-ink);
+}
+
+.player-stats-panel .ui-tabs__tab {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.player-stats-mode {
+  display: grid;
+  gap: 1.25rem;
+  padding-top: 1rem;
+  min-width: 0;
+}
+
+.player-stats-mode[aria-busy] {
+  opacity: 0.75;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.player-stats-mode__filters,
+.player-stats-block__aside {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.player-stats-mode__error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  color: var(--arena-red);
+}
+
+.player-stats-mode__error p {
+  margin: 0;
+}
+
+.player-stats-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, 12.5rem);
+  gap: 1rem;
+  align-items: center;
+}
+
+.player-stats-summary--wide {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.player-stats-summary .ui-kpi-group {
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-summary .ui-kpi-group__value {
+  font-family: var(--font-display);
+}
+
+.player-stats-ranks {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.player-stats-ranks dt {
+  color: var(--arena-muted-ink);
+  font-size: 0.7rem;
+}
+
+.player-stats-ranks dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.player-stats-block {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  min-width: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--arena-paper-line);
+}
+
+.player-stats-block__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.player-stats-block__head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.player-stats-note {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.8rem;
+}
+
+.player-stats-note a {
+  color: var(--arena-red);
+}
+
+.player-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 0 1.5rem;
+}
+
+.player-stats-panel .ui-data-table {
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-hero,
+.player-stats-class {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-width: 0;
+}
+
+/* The card render cropped to the portrait, the way the game shows a hero. */
+.player-stats-hero__art {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 2px solid var(--arena-wood-dark);
+  border-radius: 50%;
+  background: var(--arena-parchment);
+}
+
+.player-stats-hero__art img {
+  width: 200%;
+  max-width: none;
+  height: auto;
+  margin: -45% 0 0 -50%;
+}
+
+.player-stats-hero strong,
+.player-stats-class strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.player-stats-hero small,
+.player-stats-class small {
+  display: block;
+  color: var(--arena-muted-ink);
+  font-size: 0.7rem;
+}
+
+.player-stats-metric {
+  display: inline-grid;
+  justify-items: end;
+}
+
+.player-stats-signed[data-tone='better'],
+.player-stats-matchups td[data-tone='better'] {
+  color: #326233;
+}
+
+.player-stats-signed[data-tone='worse'],
+.player-stats-matchups td[data-tone='worse'] {
+  color: #8c2730;
+}
+
+.player-stats-score {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+}
+
+.player-stats-score[data-best] {
+  color: var(--arena-red);
+}
+
+.player-stats-score small {
+  color: var(--arena-muted-ink);
+  font-family: inherit;
+  font-size: 0.68rem;
+}
+
+.player-stats-matchups {
+  overflow-x: auto;
+}
+
+.player-stats-matchups table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-matchups th,
+.player-stats-matchups td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+  text-align: center;
+}
+
+.player-stats-matchups tbody th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.player-stats-matchups .player-stats-class {
+  min-width: max-content;
+}
+
+@media (max-width: 767px) {
+  .player-stats-summary,
+  .player-stats-summary--wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

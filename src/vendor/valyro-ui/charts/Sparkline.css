@@ -1,0 +1,47 @@
+.ui-sparkline {
+  --_color: var(--ui-accent);
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: visible;
+  vertical-align: middle;
+}
+
+.ui-sparkline:is([data-trend='up']:not([data-inverted]), [data-trend='down'][data-inverted]) {
+  --_color: var(--ui-success);
+}
+
+.ui-sparkline:is([data-trend='down']:not([data-inverted]), [data-trend='up'][data-inverted]) {
+  --_color: var(--ui-danger);
+}
+
+.ui-sparkline[data-trend='flat'] {
+  --_color: var(--ui-fg-subtle);
+}
+
+.ui-sparkline__line {
+  fill: none;
+  stroke: var(--_color);
+  stroke-width: var(--ui-sparkline-line-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: var(--ui-chart-glow, var(--_glow));
+}
+
+.ui-sparkline__stop {
+  stop-color: var(--_color);
+  stop-opacity: var(--ui-sparkline-fill-opacity);
+}
+
+.ui-sparkline__stop[data-pos='end'] {
+  stop-opacity: 0;
+}
+
+.ui-sparkline__bar {
+  fill: var(--_color);
+}
+
+.ui-sparkline__dot {
+  fill: var(--_color);
+  stroke: var(--ui-bg);
+  stroke-width: 1.5;
+}
