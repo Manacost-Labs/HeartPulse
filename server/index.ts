@@ -159,6 +159,9 @@ import {
 } from './app/registerTrackerIngestion.js';
 import { TRACKER_MAX_BATCH_BYTES } from './modules/trackerIngestion/public.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
+import { registerPlayerGames, registerPlayerGamesRateLimit } from './app/registerPlayerGames.js';
+import { createPlayerGamesGlobalSources } from './app/playerGamesGlobalSources.js';
+import { createCardNameLookup } from './app/cardNameLookup.js';
 import { normalizeBoostyPaymentDates } from './modules/readerEntitlements/public.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
@@ -7147,6 +7150,7 @@ app.use(createUploadAuthorizationGuard({
 }));
 const browserIdentity = registerBrowserIdentity({ app, getDatabase: db, authCookieName: AUTH_COOKIE_NAME, legacyAuthCookieName: AUTH_LEGACY_COOKIE_NAME });
 registerTrackerIngestionRateLimit(app);
+registerPlayerGamesRateLimit(app);
 app.use(createRouteAwareJsonParser({
   defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
   adminUploadMaxBytes: ADMIN_UPLOAD_MAX_BYTES,
@@ -7180,6 +7184,10 @@ const applicationAuth = registerApplicationAuth({
   setPrivateNoStore,
 });
 registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore });
+registerPlayerGames({ app, getDatabase: db, accessTokens: browserIdentity?.accessTokens, userAuth, setPrivateNoStore,
+  hasEntitlement: requestHasEntitlementAccess, resolveCardNames: createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL }),
+  global: createPlayerGamesGlobalSources({ loadArenaClasses: fetchFirestoneClassWinratesData,
+    loadConstructedMeta: format => loadStandardMeta(format, 'all', 'past_week', 'any_player', 100) }) });
 registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, publicOrigin: APP_URL, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')

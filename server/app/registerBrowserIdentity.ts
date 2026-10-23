@@ -1,13 +1,14 @@
 import type { Application } from 'express';
 import type { DatabaseSync } from 'node:sqlite';
 import { createBrowserIdentityRuntime, startIdentityCleanup } from '../modules/browserIdentity/public.js';
+import { createBrowserIdentityAccessTokens, type BrowserIdentityAccessTokens } from './browserIdentityAccessTokens.js';
 import { createReaderEntitlementsRouter } from '../modules/readerEntitlements/public.js';
 import { assertReaderPermissionsClient, createReaderPermissionsRouter } from '../modules/readerPermissions/public.js';
 
 /** Opt-in composition only: unset configuration must not change the existing login or public site. */
 export function registerBrowserIdentity({ app, getDatabase, authCookieName, legacyAuthCookieName, environment = process.env }: {
   app: Application; getDatabase: () => DatabaseSync; authCookieName: string; legacyAuthCookieName?: string; environment?: NodeJS.ProcessEnv;
-}): { stop: () => void } | undefined {
+}): { stop: () => void; accessTokens: BrowserIdentityAccessTokens } | undefined {
   if (environment.BROWSER_IDENTITY_ENABLED !== '1') return;
   try {
     const deployment = environment.BROWSER_IDENTITY_DEPLOYMENT;
@@ -41,6 +42,6 @@ export function registerBrowserIdentity({ app, getDatabase, authCookieName, lega
       }));
     }
     app.use('/identity', runtime.router);
-    return startIdentityCleanup(getDatabase());
+    return { ...startIdentityCleanup(getDatabase()), accessTokens: createBrowserIdentityAccessTokens(runtime) };
   } catch { throw new Error('Browser identity configuration invalid; no secret values are logged'); }
 }

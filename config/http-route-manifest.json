@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 86,
-    "routeRegistrations": 242,
-    "middlewareRegistrations": 127,
+    "sourceFiles": 89,
+    "routeRegistrations": 245,
+    "middlewareRegistrations": 131,
     "explicitGuardRouteRegistrations": 62,
     "unresolvedPaths": 0
   },
@@ -1009,6 +1009,62 @@
       "guardSignals": [],
       "source": "server/app/registerBrowserIdentity.ts",
       "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/me/games"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerPlayerGames.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/account/game-stats"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerPlayerGames.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createPlayerGameRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerPlayerGames.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createPlayerStatsRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerPlayerGames.ts",
+      "sourceOrder": 3
     },
     {
       "kind": "middleware",
@@ -4001,6 +4057,42 @@
       "guardSignals": [],
       "source": "server/modules/patchNotes/routes.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/me/games",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/playerGames/routes/gameRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/me/games",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/playerGames/routes/gameRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/account/game-stats",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/playerGames/routes/statsRoutes.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",

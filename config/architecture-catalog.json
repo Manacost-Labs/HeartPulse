@@ -309,13 +309,29 @@
         "server/modules/playerGames/public.ts"
       ],
       "frontendRoutes": [],
-      "backendRoutes": [],
+      "backendRoutes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/me/games"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/me/games"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/game-stats"
+        }
+      ],
       "contracts": [
         "server/modules/playerGames/public.ts",
         "docs/specs/player-game-stats.md"
       ],
       "jobs": [],
-      "cacheNamespaces": [],
+      "cacheNamespaces": [
+        "memory:player-games-global",
+        "memory:card-names-ru"
+      ],
       "dataStores": [
         "sqlite:player_games"
       ],
@@ -323,6 +339,8 @@
         "Hearthpulse desktop clients authorized through the browser identity provider"
       ],
       "tests": [
+        "tests/player-games-access-tokens.test.ts",
+        "tests/player-games-routes.test.ts",
         "tests/player-games-schema.test.ts"
       ],
       "allowedDependencies": [

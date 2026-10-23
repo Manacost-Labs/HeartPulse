@@ -57,7 +57,8 @@ export function optionalCardId(value: unknown, field: string): string | null {
 /** Free text from the client: trimmed, control characters refused, empty treated as absent. */
 export function optionalText(value: unknown, field: string, maximum: number): string | null {
   if (value === undefined || value === null) return null;
-  if (typeof value !== 'string' || value.length > maximum || /[\u0000-\u001f\u007f]/.test(value)) {
+  const control = (text: string) => [...text].some(character => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127);
+  if (typeof value !== 'string' || value.length > maximum || control(value)) {
     throw new GameFieldError(field);
   }
   const trimmed = value.trim();

@@ -236,14 +236,17 @@ Errors use `{ "error": { "code": "...", "message": "..." } }`; retry only
   `WWW-Authenticate: Bearer` is set.
 - 403: `CLIENT_NOT_ALLOWED`; The token belongs to another client.
 - 413: Body above 1 MiB. Send smaller batches.
-- 429: Rate limit: 120 requests per 15 minutes per address for each method.
+- 429: Rate limit: 120 requests per 15 minutes per address, upload and sync
+  check together.
 - 503: `STORAGE_UNAVAILABLE`; Temporary storage failure.
+- 503: `IDENTITY_UNAVAILABLE`; The deployment has no OIDC provider
+  (`BROWSER_IDENTITY_ENABLED` is not `1`). Retry later; do not sign out.
 
 ## Sync check: `GET /api/v1/me/games`
 
 Same authorization. Query: `limit` 1–500 (default 100), `before` (cursor
 from a previous page), `since` (ISO 8601: only games that started at or
-after it). Newest games first.
+after it). Newest games first. A malformed query answers 400 `INVALID_QUERY`.
 
 ```json
 {
@@ -293,10 +296,13 @@ Indexes: `(user_id, mode, started_at DESC)`, `(user_id, started_at DESC)`.
 ## Statistics: `GET /api/account/game-stats`
 
 Cookie session of the account page only (no bearer, no CORS); 401 without a
-session. Query: `mode` (required), `period` `all` (default), `7`, `30`,
+session, 400 for an unknown parameter value, 60 requests per minute per
+address. Query: `mode` (required), `period` `all` (default), `7`, `30`,
 `90` days or `season` (since the first day of the current month, the
-Hearthstone ranked season), and for Battlegrounds `duos` `0`/`1`. The server
-reads at most the newest 5 000 games of the mode and period.
+Hearthstone ranked season); for Battlegrounds `duos` `0`/`1` and `mmr`, the
+global bracket `TOP_50_PERCENT` (default), `TOP_20_PERCENT`, `TOP_5_PERCENT`
+or `TOP_1_PERCENT`. The server reads at most the newest 5 000 games of the
+mode and period.
 
 Every answer has `games` (count) and, when empty, the page shows «Установите
 Hearthpulse и войдите, чтобы игры появились здесь» with a link to the
@@ -316,10 +322,28 @@ desktop releases (`https://github.com/Zulut30/IceCrowV2/releases`).
 
 ### Global comparison
 
-The «vs Global» columns use only data the site already has. When a value has
-no global source the field is `null` and the page hides the comparison
-instead of inventing one. See the `global` objects in the response type
-`server/modules/playerGames/model/stats.ts` for which fields are filled.
+The «vs Global» values use only data the site already publishes, read in
+process through `server/app/playerGamesGlobalSources.ts` and cached for an
+hour per query:
+
+- Battlegrounds heroes: average placement, pick rate and placement
+  distribution from the HSReplay mirror (`/api/bg/heroes`, selected `mmr`
+  bracket, current patch), combat win rate by turn from the hero detail for
+  the eight most played heroes. Duos has no placement distribution.
+- Standard and Wild: archetype win rate from the HSGuru meta (all ranks,
+  past week) matched by English or Russian name, class win rate as the
+  games-weighted mean of its archetypes. There is no global class-vs-class
+  constructed matchup, so the matchup grid has no comparison.
+- Arena: class win rate and average wins per run from Firestone.
+
+These datasets are paid sections of the site. The comparison is filled only
+when the viewer has that section's entitlement (Wild uses Standard's);
+otherwise `global.availability` is `subscription` and every global field is
+`null`. A failing source gives `unavailable`. The page hides a comparison
+whose value is `null` instead of inventing one.
+
+Card and hero names come from HearthstoneJSON (`HEARTHSTONE_RU_CARDS_URL`),
+loaded once a day; without them the page shows card art only.
 
 ## Development data
 

@@ -16,6 +16,12 @@ export const BATTLEGROUNDS_OFFER_KINDS = ['hero', 'discover', 'trinket', 'quest'
 
 export type GameResult = 'win' | 'loss' | 'tie';
 
+/**
+ * The only OIDC client allowed to upload games. Until the provider issues a
+ * dedicated write scope, the client id is the authorization.
+ */
+export const DESKTOP_GAMES_CLIENT_ID = 'hearthpulse-desktop';
+
 export const PLAYER_GAME_SCHEMA_VERSION = 1;
 export const MAX_GAMES_PER_BATCH = 50;
 export const MAX_GAME_BYTES = 16 * 1024;
