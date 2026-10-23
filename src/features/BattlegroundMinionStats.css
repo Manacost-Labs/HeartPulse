@@ -45,12 +45,28 @@
 
 .minion-section__body {
   padding: 1rem;
+  container: minion-section / inline-size;
 }
 
+/*
+ * One, two or three round charts by the width of the section, not the
+ * window: a narrow column stacks them, a medium one pairs them and lets an
+ * odd last chart span the row (no empty half row), a wide one lines three up.
+ */
 .minion-section__charts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
+}
+
+@container minion-section (min-width: 40rem) {
+  .minion-section__charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .minion-section__charts > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+@container minion-section (min-width: 60rem) {
+  .minion-section__charts:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .minion-section__charts:has(> :nth-child(3):last-child) > :last-child { grid-column: auto; }
 }
 
 .minion-section__heatmap { min-width: 0; }
@@ -124,4 +140,13 @@ li:not([data-strong]) > .minion-board__impact[data-tone='worse'] { color: var(--
   .minion-board__slots li { padding: 0.5rem 0.1rem; }
   .minion-board__slots strong { font-size: 0.8rem; }
   .minion-board__impact { font-size: 0.66rem; }
+}
+
+/*
+ * Seven slots in one row leave a phone about 45px per slot, too little for
+ * "30,3%" and its impact: below 30rem the board wraps into rows of four
+ * (positions stay numbered left to right).
+ */
+@media (max-width: 30rem) {
+  .minion-board__slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
