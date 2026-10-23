@@ -7,6 +7,8 @@ export {
   type AdminResourceOptions,
 } from './ui/useAdminResource';
 
+export { ADMIN_LAYER_HOST_ATTRIBUTE, adminLayerHost } from './ui/adminLayerHost';
+
 /** Loads the private Wild catalog only for the Next page that renders it. */
 export function loadWildArchetypesPage() {
   return import('./ui/WildArchetypesPage');

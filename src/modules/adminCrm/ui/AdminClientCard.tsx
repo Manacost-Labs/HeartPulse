@@ -6,6 +6,7 @@ import '../adminCrm.css';
 import { accessBadge, accessSourceLabel, formatDate } from './adminClientCardModel';
 import { AccessSection, AccountsSection, HistorySection, NotesSection, TagsSection } from './AdminClientCardSections';
 import { useModalSheet } from './useModalSheet';
+import { adminLayerHost } from '../../adminWorkspace/public';
 
 export type AdminClientCardProps = {
   userId: string;
@@ -72,7 +73,7 @@ export function AdminClientCard({ userId, client = adminCrmClient, onClose, onMa
     .then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1500); })
     .catch(() => undefined);
 
-  // Portalled to <body> so route transitions that transform an ancestor cannot re-anchor the fixed sheet.
+  // Portalled to the console's layer host (or <body>) so a transformed ancestor cannot re-anchor the fixed sheet.
   // The card only opens from a click, so there is no server render; the guard keeps SSR safe regardless.
   if (typeof document === 'undefined') return null;
   return createPortal(
@@ -132,6 +133,6 @@ export function AdminClientCard({ userId, client = adminCrmClient, onClose, onMa
         )}
       </aside>
     </div>,
-    document.body,
+    adminLayerHost(),
   );
 }

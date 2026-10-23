@@ -135,6 +135,15 @@ the operations header status has a fixed width with the full text in its
 title, mailing shows template placeholders, and «Кеши и DeckView» waits until
 the data panel above it has loaded.
 
+## Side sheets
+
+The client card and the editor sheets of `src/modules/adminCrm` portal into the
+console's layer host (`[data-admin-layer-host]`, `adminLayerHost()` from
+`adminWorkspace/public.ts`), an element inside the theme scope that carries the
+shared content classes; outside the console (stories) they fall back to
+`<body>`. Before, they portalled to `<body>` and took the public site's gold
+buttons and parchment background.
+
 ## Boosty answers on the server
 
 `server/adminBoostyRoutes.ts` reuses a successful boosty-auth answer for one
