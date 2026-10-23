@@ -16,8 +16,9 @@ function pluralIndex(count: number, forms: number): number {
   return 2;
 }
 
-function plainText(markup: string): string {
-  return markup.replace(/<[^>]*>/g, '').replace(/\[x\]/gi, '');
+// Only for finding counts and comparing forms: the text players see keeps its markup.
+function visibleWords(markup: string): string {
+  return markup.split(/<[^>]*>|\[x\]/i).join('');
 }
 
 function splitForms(group: string): string[] {
@@ -25,12 +26,12 @@ function splitForms(group: string): string[] {
 }
 
 function formsKey(forms: string[]): string {
-  return forms.map(form => plainText(form).replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru')).join(',');
+  return forms.map(form => visibleWords(form).replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru')).join(',');
 }
 
 /** The number the marker at `index` counts, or null when it counts a game placeholder (`{0}`, `@`) or nothing. */
 function countBefore(text: string, index: number): number | null {
-  const tokens = plainText(text.slice(0, index)).match(/\{\d+\}|@|\d+/g);
+  const tokens = visibleWords(text.slice(0, index)).match(/\{\d+\}|@|\d+/g);
   const last = tokens?.at(-1);
   return last && /^\d/.test(last) ? Number(last) : null;
 }
@@ -64,7 +65,7 @@ export function restoreCardPlurals(text: string, original: string | null | undef
       const forms = splitForms(bare[1]);
       if (restored.slice(bare.index - 2, bare.index) === '|4' || forms.length < 2 || formsKey(forms) !== key) continue;
       const before = restored.slice(0, bare.index);
-      const keepsNumber = new RegExp(`(?:^|\\D)${count}[\\s\\u00a0]*$`).test(plainText(before));
+      const keepsNumber = new RegExp(`(?:^|\\D)${count}[\\s\\u00a0]*$`).test(visibleWords(before));
       const replacement = `${keepsNumber ? '' : `${count} `}${forms[pluralIndex(count, forms.length)]}`;
       restored = before + replacement + restored.slice(bare.index + bare[0].length);
       searchFrom = bare.index + replacement.length;
