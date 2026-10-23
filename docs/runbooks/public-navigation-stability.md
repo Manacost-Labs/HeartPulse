@@ -585,3 +585,17 @@ SVG interaction checks wait until the observed plot width matches its SVG
 viewBox. They center the measured SVG target and verify its hit point before
 clicking; Chromium’s automatic SVG scrolling can otherwise place it under the
 fixed mobile header.
+
+## Desktop lightbox close (2026-10-23)
+
+Closing a lightbox flickered on desktop. With a classic scrollbar,
+`overflow: hidden` removed its 15px gutter, so the page reflowed wider under
+every dialog and jumped back on the frame it closed; the desktop search header
+(sticky from 1024px) also scrolled away with the fixed body and popped back
+in. The lock now keeps `scrollbar-gutter: stable` on the root while locked when
+the page had a classic scrollbar, and the desktop header sticks at
+`--page-scroll-lock-offset`, which holds it in place wherever it sits on the
+page (a translation is exact only for a header at the very top). The hand-made
+hero media lightbox also fades out before it unmounts (`useOverlayFade`).
+`tests/lightbox-close-stability-browser.test.mjs` samples every frame of a
+close at 1440px with real scrollbars and at 412px, and fails on the old lock.

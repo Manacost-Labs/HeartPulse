@@ -5,6 +5,7 @@ import { battlegroundMinionIconByRussianName as BG_DETAIL_RACE_ICON_BY_RU, battl
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import { useOverlayFade } from '../hooks/useOverlayFade';
 import {
   BattlegroundsStrategyBuilderSearchIntro,
   BattlegroundsTierListSearchIntro,
@@ -1381,24 +1382,23 @@ function BattlegroundHeroMediaLightbox({
   onClose: () => void;
   onIndexChange: (next: number) => void;
 }) {
-  const [visible, setVisible] = useState(false);
+  // 240 ms: the panel's transform, the longest of the transitions below.
+  const { shown: visible, close } = useOverlayFade(onClose, 240);
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const item = items[index] || null;
   usePageScrollLock(Boolean(item));
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setVisible(true));
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') close();
       if (event.key === 'ArrowLeft' && items.length > 1) onIndexChange((index - 1 + items.length) % items.length);
       if (event.key === 'ArrowRight' && items.length > 1) onIndexChange((index + 1) % items.length);
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onKey);
     };
-  }, [index, items.length, onClose, onIndexChange]);
+  }, [index, items.length, close, onIndexChange]);
 
   if (!item) return null;
 
@@ -1417,7 +1417,7 @@ function BattlegroundHeroMediaLightbox({
         transition: 'opacity 0.2s ease',
         WebkitTapHighlightColor: 'transparent',
       }}
-      onClick={onClose}
+      onClick={close}
       onTouchStart={event => {
         const touch = event.touches[0];
         touchOrigin.current = { x: touch.clientX, y: touch.clientY };
@@ -1429,7 +1429,7 @@ function BattlegroundHeroMediaLightbox({
         touchOrigin.current = null;
         if (moved < 12) {
           event.preventDefault();
-          onClose();
+          close();
         }
       }}
     >
@@ -1504,7 +1504,7 @@ function BattlegroundHeroMediaLightbox({
                     key={entry.key}
                     type="button"
                     onClick={() => onIndexChange(entryIndex)}
-                    className="h-2.5 rounded-full transition-all"
+                    className="h-2.5 rounded-full transition-[width,background-color]"
                     style={{
                       width: entryIndex === index ? 28 : 10,
                       background: entryIndex === index ? '#8b4513' : '#d7b66a',
@@ -1530,7 +1530,7 @@ function BattlegroundHeroMediaLightbox({
         type="button"
         onClick={event => {
           event.stopPropagation();
-          onClose();
+          close();
         }}
         className="hs-lightbox-close absolute right-4 top-4 z-[2] flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white transition-colors hover:bg-black/35"
         aria-label="Закрыть"

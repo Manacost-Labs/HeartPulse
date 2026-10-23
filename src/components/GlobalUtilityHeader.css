@@ -372,7 +372,9 @@ a.global-search-result { text-decoration: none; }
 }
 
 @media (min-width: 1024px) {
-  .global-utility-header { position: sticky; top: 0; }
+  /* A locked page is a fixed body shifted up by the scroll offset (usePageScrollLock);
+     sticking that far down keeps the header where it was instead of popping back on unlock. */
+  .global-utility-header { position: sticky; top: var(--page-scroll-lock-offset, 0px); }
   .global-utility-header__inner { padding-inline: clamp(1rem, 2.8vw, 2.8rem); }
 }
 

@@ -31,3 +31,7 @@ export const OpenAndClose: Story = {
 
 export const Phone: Story = { ...OpenAndClose, parameters: { viewport: { defaultViewport: 'mobile1' } } };
 
+// `tests/lightbox-close-stability-browser.test.mjs` drives this one: under the
+// lightbox and while it closes, the page keeps its width, scroll position and
+// sticky header.
+export const OnAScrolledPage: Story = { args: { scrolledPage: true } };
