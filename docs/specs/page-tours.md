@@ -59,10 +59,10 @@ order and the Vicious Gold specifics are in
   - It does not appear while a modal dialog is open or the tab is hidden.
   - An untouched offer leaves after 20 s and the page stays eligible for a
     later visit; hovering or focusing it holds it open.
-  - «Показать» starts the tour at step 1. The tour stays invisible until a
-    step can be shown, and closes silently when no step appears within 8 s.
-    It never starts with only the subscription step: for a guest on a paid
-    page that would be an advertisement, not a walkthrough.
+  - «Показать» opens the tour like the header button, at step 1: the
+    visitor asked for it, so it also opens where a guest sees only the
+    subscription step (an automatic launch would close itself there and the
+    button would do nothing).
 - **Never automatic.**
   - Crawlers, preview fetchers and automated browsers never get a
     first-visit tour. This covers a bot user agent and
