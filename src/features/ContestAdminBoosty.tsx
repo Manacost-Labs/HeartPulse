@@ -16,6 +16,7 @@ import {
 import { AdminListPager } from './AdminListPager';
 import { adminListSummary } from './adminListText';
 import './adminPeople.css';
+import { AdminTableSkeleton } from './adminConsole/AdminTableSkeleton';
 
 export type { BoostyAdminStatus, BoostySubscriberRow, BoostySubscribersPayload } from './adminIntegrationListModel';
 
@@ -162,7 +163,7 @@ export function ContestAdminBoosty({ status, statusLoading, subscribers, subscri
             </tbody>
           </table></TableSurface>
         </div>
-      ) : subscribers && !subscribers.error && !subscribersLoading && (
+      ) : subscribersLoading ? <AdminTableSkeleton label="Загружаем подписчиков Boosty" /> : subscribers && !subscribers.error && (
         <p className="admin-people-empty">Подписчики Boosty не найдены по текущим фильтрам.</p>
       )}
       <AdminListPager label="Страницы списка подписчиков Boosty" page={page} pageCount={pageCount} onPage={setPage} />

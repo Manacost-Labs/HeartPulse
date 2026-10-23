@@ -15,6 +15,7 @@ import {
 import { AdminListPager } from './AdminListPager';
 import { adminListSummary } from './adminListText';
 import './adminPeople.css';
+import { AdminTableSkeleton } from './adminConsole/AdminTableSkeleton';
 
 export type { TelegramAccountsPayload, TelegramAdminAccount } from './adminIntegrationListModel';
 
@@ -145,7 +146,7 @@ export function ContestAdminTelegram({ payload, loading, onReload, formatDate, e
             </tbody>
           </table></TableSurface>
         </div>
-      ) : payload && !payload.error && !loading && (
+      ) : loading ? <AdminTableSkeleton label="Загружаем Telegram-аккаунты" /> : payload && !payload.error && (
         <p className="admin-people-empty">Telegram-аккаунты не найдены по текущим фильтрам.</p>
       )}
       <AdminListPager label="Страницы списка Telegram-аккаунтов" page={page} pageCount={pageCount} onPage={setPage} />
