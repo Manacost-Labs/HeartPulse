@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 87,
-    "routeRegistrations": 243,
-    "middlewareRegistrations": 128,
+    "sourceFiles": 86,
+    "routeRegistrations": 242,
+    "middlewareRegistrations": 127,
     "explicitGuardRouteRegistrations": 62,
     "unresolvedPaths": 0
   },
@@ -3115,7 +3115,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createPublicProfileRouter(...)"
+        "createSubscriptionRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3128,7 +3128,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createSubscriptionRouter(...)"
+        "createAccountSessionsRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3141,7 +3141,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAccountSessionsRouter(...)"
+        "createAccountSignInsRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3154,7 +3154,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAccountSignInsRouter(...)"
+        "createContestRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3167,7 +3167,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createContestRouter(...)"
+        "createAdminContestReadRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3180,7 +3180,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminContestReadRouter(...)"
+        "createAdminContestMutationRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3193,7 +3193,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminContestMutationRouter(...)"
+        "createAdminUserReadRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3206,7 +3206,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminUserReadRouter(...)"
+        "createAdminBoostyRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3219,7 +3219,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminBoostyRouter(...)"
+        "createAdminBoostyAnalyticsRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3232,7 +3232,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminBoostyAnalyticsRouter(...)"
+        "createAdminTelegramReadRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3245,7 +3245,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminTelegramReadRouter(...)"
+        "createAdminUserMutationRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3258,7 +3258,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminUserMutationRouter(...)"
+        "createAdminMailingReadRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3271,7 +3271,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminMailingReadRouter(...)"
+        "createAdminMailingPreviewRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3284,7 +3284,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminMailingPreviewRouter(...)"
+        "createAdminMailingDeliveryRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -3297,24 +3297,11 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminMailingDeliveryRouter(...)"
-      ],
-      "guardSignals": [],
-      "source": "server/index.ts",
-      "sourceOrder": 81
-    },
-    {
-      "kind": "middleware",
-      "paths": [
-        "/api"
-      ],
-      "receiver": "app",
-      "handlers": [
         "createNewsletterUnsubscribeRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 82
+      "sourceOrder": 81
     },
     {
       "kind": "route",
@@ -3330,7 +3317,7 @@
         "authCodeRequestLimiter"
       ],
       "source": "server/index.ts",
-      "sourceOrder": 83
+      "sourceOrder": 82
     },
     {
       "kind": "route",
@@ -3346,7 +3333,7 @@
         "authCodeVerifyLimiter"
       ],
       "source": "server/index.ts",
-      "sourceOrder": 84
+      "sourceOrder": 83
     },
     {
       "kind": "middleware",
@@ -3359,7 +3346,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 85
+      "sourceOrder": 84
     },
     {
       "kind": "middleware",
@@ -3372,7 +3359,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 86
+      "sourceOrder": 85
     },
     {
       "kind": "middleware",
@@ -3385,7 +3372,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 87
+      "sourceOrder": 86
     },
     {
       "kind": "route",
@@ -3397,7 +3384,7 @@
       "handler": "createReferralRedirectHandler(referralRouterDependencies)",
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 88
+      "sourceOrder": 87
     },
     {
       "kind": "middleware",
@@ -3410,7 +3397,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 89
+      "sourceOrder": 88
     },
     {
       "kind": "middleware",
@@ -3423,7 +3410,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 90
+      "sourceOrder": 89
     },
     {
       "kind": "middleware",
@@ -3436,7 +3423,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 91
+      "sourceOrder": 90
     },
     {
       "kind": "middleware",
@@ -3449,7 +3436,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 92
+      "sourceOrder": 91
     },
     {
       "kind": "middleware",
@@ -3462,7 +3449,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 93
+      "sourceOrder": 92
     },
     {
       "kind": "middleware",
@@ -3475,7 +3462,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 94
+      "sourceOrder": 93
     },
     {
       "kind": "middleware",
@@ -3488,7 +3475,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 95
+      "sourceOrder": 94
     },
     {
       "kind": "middleware",
@@ -3501,7 +3488,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 96
+      "sourceOrder": 95
     },
     {
       "kind": "middleware",
@@ -3514,7 +3501,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 97
+      "sourceOrder": 96
     },
     {
       "kind": "middleware",
@@ -3527,7 +3514,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 98
+      "sourceOrder": 97
     },
     {
       "kind": "middleware",
@@ -3540,7 +3527,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 99
+      "sourceOrder": 98
     },
     {
       "kind": "middleware",
@@ -3553,7 +3540,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 100
+      "sourceOrder": 99
     },
     {
       "kind": "middleware",
@@ -3566,7 +3553,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 101
+      "sourceOrder": 100
     },
     {
       "kind": "route",
@@ -4338,18 +4325,6 @@
       "guardSignals": [],
       "source": "server/modules/publicApi/routes.ts",
       "sourceOrder": 26
-    },
-    {
-      "kind": "route",
-      "method": "GET",
-      "path": "/profiles/:publicProfileId",
-      "pathKind": "string",
-      "receiver": "router",
-      "middleware": [],
-      "handler": "<inline-handler>",
-      "guardSignals": [],
-      "source": "server/modules/publicProfile/routes.ts",
-      "sourceOrder": 0
     },
     {
       "kind": "route",

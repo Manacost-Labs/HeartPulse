@@ -233,16 +233,16 @@ test('the plan card names the paid-until date and whether it renews', () => {
   assert.match(unknown, /Оплачено до/);
 });
 
-test('the hero names the plan once and offers the profile and logout actions', () => {
+test('the hero names the plan once and offers only the logout action', () => {
   const hero = (input: SubscriptionStatus | null, checked = true) => renderToStaticMarkup(
     <AccountHero user={user} name="Мария" contact="maria@example.com" plan={accountPlanSummary(input, checked, NOW)}
-      publicProfileHref="/id/7/" linkCopied={false} onCopyLink={noop} onLogout={noop} />,
+      onLogout={noop} />,
   );
   const subscriber = hero(renewing(true));
   assert.match(subscriber, /<h1 id="account-title">Мария<\/h1>/);
   assert.match(subscriber, /Подписка активна/);
   assert.match(subscriber, /Boosty · до 12 нояб\., продлится автоматически/);
-  assert.match(subscriber, /href="\/id\/7\/"/);
+  assert.doesNotMatch(subscriber, /Публичный профиль|href="\/id\//, 'public profiles were removed');
   assert.equal(subscriber.match(/>Выйти</g)?.length, 1);
   const free = hero(subscription());
   assert.equal(free.match(/Без подписки/g)?.length, 1, 'no repeated status');

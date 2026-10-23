@@ -2,11 +2,8 @@ import assert from 'node:assert/strict';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
 import {
-  createSqlitePublicProfileFinder,
   ensurePublicProfileIds,
-  isLegacyPublicProfileId,
   isPublicProfileId,
-  isPublicProfileLookupId,
   resolveUserPublicProfileId,
 } from '../server/modules/publicProfile/public.js';
 
@@ -17,10 +14,6 @@ assert.equal(isPublicProfileId('01'), false);
 assert.equal(isPublicProfileId('2147483648'), false);
 assert.equal(isPublicProfileId('user_42368c85b8de'), false,
   'an internal account ID must never be accepted as a public profile ID');
-assert.equal(isLegacyPublicProfileId('p_AbCdEfGhIjKlMnOpQrStUv'), true);
-assert.equal(isPublicProfileLookupId('p_AbCdEfGhIjKlMnOpQrStUv'), true,
-  'old shared links remain valid lookup keys during migration');
-assert.equal(isPublicProfileLookupId('p_../../admin'), false);
 
 const database = new DatabaseSync(':memory:');
 database.exec(`
@@ -50,7 +43,7 @@ assert.deepEqual(firstPass.map(row => [row.id, row.public_numeric_id]), [
   ['member-third', 3],
 ]);
 assert.equal(firstPass[0].public_profile_id, 'p_AbCdEfGhIjKlMnOpQrStUv',
-  'the old opaque ID must remain available for compatibility redirects/lookups');
+  'the old opaque ID column is kept untouched');
 
 ensurePublicProfileIds(database, { preferredUserIds: ['member-third'] });
 const secondPass = database.prepare(
@@ -67,30 +60,6 @@ const preserved = resolveUserPublicProfileId(database, {
 });
 assert.equal(preserved, '1',
   'saving an older in-memory user shape must preserve its stored numeric public ID');
-
-database.prepare(`
-  UPDATE users
-  SET avatar_initials = ?, created_at = ?
-  WHERE id = ?
-`).run('ОВ', '2026-07-28T00:00:00.000Z', 'site-owner');
-const findPublicProfile = createSqlitePublicProfileFinder(() => database);
-assert.deepEqual({ ...findPublicProfile('1') }, {
-  publicProfileId: '1',
-  name: 'Owner',
-  avatarInitials: 'ОВ',
-  createdAt: '2026-07-28T00:00:00.000Z',
-});
-assert.deepEqual(
-  findPublicProfile('p_ZyXwVuTsRqPoNmLkJiHgFe'),
-  findPublicProfile('1'),
-  'a legacy lookup must resolve to the canonical numeric public identity',
-);
-database.prepare('UPDATE users SET blocked_at = ? WHERE id = ?')
-  .run('2026-08-17T00:00:00.000Z', 'site-owner');
-assert.equal(findPublicProfile('1'), null,
-  'blocked accounts must remain hidden at the repository boundary');
-assert.equal(findPublicProfile('p_ZyXwVuTsRqPoNmLkJiHgFe'), null,
-  'legacy lookup aliases must not reveal blocked accounts');
 
 assert.throws(
   () => database.prepare(

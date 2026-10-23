@@ -742,17 +742,14 @@
       "name": "frontend-account-route",
       "status": "transitional",
       "owner": "identity-platform",
-      "purpose": "Compose login, application-connect and public-profile account surfaces behind one lazy route entrypoint.",
+      "purpose": "Compose the login/account and application-connect surfaces behind one lazy route entrypoint.",
       "paths": [
         "src/modules/accountRoute"
       ],
       "publicEntrypoints": [
         "src/modules/accountRoute/public.ts"
       ],
-      "frontendRoutes": [
-        "/id/:publicProfileId",
-        "/profiles/:legacyPublicProfileId"
-      ],
+      "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": [],
       "jobs": [],
@@ -760,7 +757,8 @@
       "dataStores": [],
       "externalServices": [],
       "tests": [
-        "tests/public-profile-client-routes.test.ts"
+        "tests/account-dashboard-ui.test.tsx",
+        "tests/next-public-profiles-removed.test.mjs"
       ],
       "allowedDependencies": [
         "frontend-application-connect public entrypoint",
@@ -1183,8 +1181,6 @@
         "tests/csrf.test.ts",
         "tests/password-reset-routes.test.ts",
         "tests/public-profile-identity.test.ts",
-        "tests/public-profile-routes.test.ts",
-        "tests/public-profile-client-routes.test.ts",
         "tests/subscription-access.test.ts"
       ],
       "allowedDependencies": [
@@ -1289,7 +1285,7 @@
       "name": "backend-publicProfile",
       "status": "modular",
       "owner": "identity-platform",
-      "purpose": "Owns public profile identity, SQLite persistence, privacy-safe serialization and HTTP routes.",
+      "purpose": "Owns the stable numeric account ID (public_numeric_id) used by connected applications; the public profile page and its HTTP route were removed.",
       "paths": [
         "server/modules/publicProfile"
       ],
@@ -1308,9 +1304,7 @@
       "dataStores": [],
       "externalServices": [],
       "tests": [
-        "tests/public-profile-identity.test.ts",
-        "tests/public-profile-routes.test.ts",
-        "tests/public-profile-client-routes.test.ts"
+        "tests/public-profile-identity.test.ts"
       ],
       "allowedDependencies": [],
       "forbiddenImports": [

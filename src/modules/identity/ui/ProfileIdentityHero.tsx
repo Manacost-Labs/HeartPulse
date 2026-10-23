@@ -51,7 +51,7 @@ export default function ProfileIdentityHero({
           <div className="profile-hero__identity" data-tour-id={tourId}>
             <p className="profile-hero__eyebrow">{eyebrow}</p>
             {contact && <p className="profile-hero__contact">{contact}</p>}
-            <p className="profile-hero__id" title={`Публичный ID ${publicProfileId}`}>
+            <p className="profile-hero__id" title={`ID аккаунта ${publicProfileId}`}>
               ID <code>/{publicProfileId}</code>
             </p>
             {actions}

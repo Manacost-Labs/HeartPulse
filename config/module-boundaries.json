@@ -57,7 +57,7 @@
       "id": "client.accountRoute",
       "runtime": "client",
       "root": "src/modules/accountRoute",
-      "purpose": "Composes the login, application-connect and public-profile account routes.",
+      "purpose": "Composes the login/account and application-connect routes.",
       "owner": "identity-platform",
       "publicEntry": "src/modules/accountRoute/public.ts",
       "dependencies": [
@@ -66,7 +66,6 @@
       ],
       "focusedTests": [
         "npm run test:application-connect",
-        "npm run test:public-profiles",
         "npm run test:routes"
       ],
       "docs": [
@@ -444,7 +443,7 @@
       "id": "server.publicProfile",
       "runtime": "server",
       "root": "server/modules/publicProfile",
-      "purpose": "Owns public profile identity, SQLite persistence, privacy-safe serialization and HTTP routes.",
+      "purpose": "Owns the stable numeric account ID used by connected applications; the public profile page was removed.",
       "owner": "identity-platform",
       "publicEntry": "server/modules/publicProfile/public.ts",
       "dependencies": [],

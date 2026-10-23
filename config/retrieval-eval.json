@@ -2,15 +2,15 @@
   "version": 1,
   "cases": [
     {
-      "id": "public-profile-link",
-      "query": "canonical numeric public profile link",
-      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/publicResourceUrl.ts"],
-      "expected_path": "src/modules/identity/model/publicProfilePath.ts"
+      "id": "auth-session-hint",
+      "query": "remember in the browser that the reader may have a signed-in session",
+      "source": ["src/modules/identity/model/authSessionHint.ts", "src/publicResourceUrl.ts"],
+      "expected_path": "src/modules/identity/model/authSessionHint.ts"
     },
     {
       "id": "route-tab-from-path",
       "query": "resolve the navigation tab that owns a public path",
-      "source": ["src/app/routing/navigationRoutes.ts", "src/modules/identity/model/publicProfilePath.ts"],
+      "source": ["src/app/routing/navigationRoutes.ts", "src/modules/identity/model/authSessionHint.ts"],
       "expected_path": "src/app/routing/navigationRoutes.ts"
     },
     {
@@ -34,13 +34,13 @@
     {
       "id": "public-image-url",
       "query": "build public resource image URL",
-      "source": ["src/publicResourceUrl.ts", "src/modules/identity/model/publicProfilePath.ts"],
+      "source": ["src/publicResourceUrl.ts", "src/modules/identity/model/authSessionHint.ts"],
       "expected_path": "src/publicResourceUrl.ts"
     },
     {
       "id": "absent-billing-refund",
       "query": "refund a completed subscription invoice",
-      "source": ["src/modules/identity/model/publicProfilePath.ts", "src/app/routing/navigationRoutes.ts"],
+      "source": ["src/modules/identity/model/authSessionHint.ts", "src/app/routing/navigationRoutes.ts"],
       "expected_path": null
     }
   ]

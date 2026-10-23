@@ -1,4 +1,4 @@
-import { Check, Copy, ExternalLink, Lock, LogOut, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Check, Lock, LogOut, RefreshCw, TriangleAlert } from 'lucide-react';
 import type { AccountPlanSummary } from '../model/accountPlan';
 import type { AuthUser } from '../model/authUser';
 import AuthAvatar from './AuthAvatar';
@@ -9,9 +9,6 @@ export type AccountHeroProps = {
   name: string;
   contact: string;
   plan: AccountPlanSummary;
-  publicProfileHref: string;
-  linkCopied: boolean;
-  onCopyLink: () => void;
   onLogout: () => void;
 };
 
@@ -22,7 +19,7 @@ const PLAN_LABELS = { active: 'Подписка активна', none: 'Без �
  * One cinematic plate for the signed-in reader: who they are, what they pay for
  * and until when, and the few actions about the account itself.
  */
-export default function AccountHero({ user, name, contact, plan, publicProfileHref, linkCopied, onCopyLink, onLogout }: AccountHeroProps) {
+export default function AccountHero({ user, name, contact, plan, onLogout }: AccountHeroProps) {
   const PlanIcon = PLAN_ICONS[plan.state];
   return (
     <header className="account-hero" data-tour-id="profile-summary">
@@ -42,14 +39,6 @@ export default function AccountHero({ user, name, contact, plan, publicProfileHr
           : <span className="account-hero__plan-line">{plan.statusLine}</span>}
       </div>
       <div className="account-hero__actions" data-tour-id="profile-account-actions">
-        {publicProfileHref && (
-          <>
-            <a className="account-hero__action" href={publicProfileHref}><ExternalLink size={17} aria-hidden="true" />Публичный профиль</a>
-            <button type="button" className="account-hero__action" onClick={onCopyLink}>
-              <Copy size={17} aria-hidden="true" />{linkCopied ? 'Ссылка скопирована' : 'Копировать ссылку'}
-            </button>
-          </>
-        )}
         <button type="button" className="account-hero__action account-hero__action--quiet account-logout" onClick={onLogout}><LogOut size={17} aria-hidden="true" />Выйти</button>
       </div>
     </header>

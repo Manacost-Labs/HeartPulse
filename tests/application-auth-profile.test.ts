@@ -19,7 +19,7 @@ const user = serializeApplicationProfileUser(internalUser, 'https://arena.hs-man
 assert.deepEqual(user, {
   id: 'user-1',
   publicProfileId: '7',
-  profileUrl: 'https://arena.hs-manacost.ru/id/7',
+  profileUrl: 'https://arena.hs-manacost.ru/profile/',
   email: 'player@example.test',
   name: 'Игрок',
   avatarInitials: 'ИИ',

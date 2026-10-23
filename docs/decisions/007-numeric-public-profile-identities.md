@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted.
+Accepted. The public profile pages were removed on 2026-10-23; see
+[Remove public profile pages](2026-10-23-remove-public-profiles.md). The numeric
+account ID itself stays.
 
 ## Context
 
