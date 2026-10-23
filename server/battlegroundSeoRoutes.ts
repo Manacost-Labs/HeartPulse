@@ -4,6 +4,7 @@ import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
 import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
+import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
 export type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -88,7 +89,7 @@ export function projectPublicBattlegroundHero(value: unknown): PublicBattlegroun
     heroPower: powerName
       ? {
           name: powerName,
-          text: plainCatalogText(powerCard.text, 500),
+          text: plainCatalogText(renderTextPlurals(powerCard.text), 500),
           image: text(powerCard.image, 1_000),
         }
       : null,
@@ -133,7 +134,7 @@ function projectLibraryHero(value: unknown): PublicBattlegroundHero | null {
     heroPower: powerName
       ? {
           name: powerName,
-          text: plainCatalogText(powerCard.text, 500),
+          text: plainCatalogText(renderTextPlurals(powerCard.text), 500),
           image: text(powerCard.image, 1_000),
         }
       : null,

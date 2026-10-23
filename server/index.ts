@@ -51,6 +51,7 @@ import { createReferralRedirectHandler, createReferralRouter } from './referralR
 import { REFERRAL_ATTRIBUTION_SCHEMA_SQL, createReferralAttributionMiddleware } from './referralAttribution.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { createCosmeticsDataService, createCosmeticsRouter } from './cosmeticsRoutes.js';
+import { createOriginalCardTexts, renderPayloadCardPlurals } from './cardPluralTexts.js';
 import { createPublicResourceRouter } from './publicResourceRoutes.js';
 import { articleImageSrc, canonicalArticleUrl } from '../shared/articleImageSrc.js';
 import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
@@ -612,6 +613,18 @@ const KHA_VIP_ARTICLE_HOSTS = new Set([
 const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://api.kolodahearthstone.com/api/v1').replace(/\/$/, '');
 const HEARTHSTONE_RU_CARDS_URL = process.env.HEARTHSTONE_RU_CARDS_URL
   || 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.json';
+// Original card texts keep the `2 |4(ход,хода,ходов)` counts the card catalog
+// sometimes strips; they are loaded at start (with background jobs) or by the
+// first catalog request, and refreshed twice a day after.
+const originalCardTexts = createOriginalCardTexts({
+  url: HEARTHSTONE_RU_CARDS_URL,
+  fetchJson: async url => {
+    const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) throw new Error(`HearthstoneJSON returned HTTP ${response.status}`);
+    return response.json();
+  },
+});
+if (BACKGROUND_JOBS_ENABLED) void originalCardTexts.load();
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
@@ -5503,11 +5516,13 @@ async function fetchConstructedCardJson(url: string, timeoutMs = 8_000): Promise
       upstream.status,
     );
   }
+  let payload: unknown;
   try {
-    return await upstream.json();
+    payload = await upstream.json();
   } catch (error) {
     throw new ConstructedCardUpstreamError('Constructed card upstream returned invalid JSON', null, { cause: error });
   }
+  return renderPayloadCardPlurals(payload, await originalCardTexts.within(3_000));
 }
 
 function loadAdminArchetypeTranslations(): Record<string, string> {
@@ -7707,7 +7722,7 @@ const cosmeticsDataService = createCosmeticsDataService({
       error.status = upstream.status;
       throw error;
     }
-    return upstream.json();
+    return renderPayloadCardPlurals(await upstream.json(), originalCardTexts.current());
   },
 });
 app.use('/api', createPublicResourceRouter());
@@ -7769,6 +7784,16 @@ app.use('/api', createArticleCoverRouter({
   maxBytes: ARTICLE_COVER_MAX_BYTES, readUpload: adminUploadReader(ADMIN_UPLOAD_DIR),
 }));
 
+/** A proxied JSON body with its card texts' plural markup rendered; anything else as it came. */
+function renderProxiedCardPlurals(body: Buffer, status: number, contentType: string): Buffer {
+  if (status < 200 || status >= 300 || !contentType.includes('application/json')) return body;
+  try {
+    return Buffer.from(JSON.stringify(renderPayloadCardPlurals(JSON.parse(body.toString('utf8')), originalCardTexts.current())));
+  } catch {
+    return body;
+  }
+}
+
 async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: express.Response, upstreamPath: string) {
   try {
     const upstreamUrl = new URL(upstreamPath, 'http://127.0.0.1:3107');
@@ -7789,7 +7814,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       ? `:${battlegroundImageTransformCacheKey(imageTransform)}`
       : '';
     const cacheKey = `legacy:${upstreamUrl.href}${transformCacheKey}`;
-    const redisKey = redisHashedDataKey('bg-legacy-proxy', cacheKey);
+    const redisKey = redisHashedDataKey('bg-legacy-proxy-v2', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(cached.status);
@@ -7831,6 +7856,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
         console.warn('[bg image optimizer] using original image:', error?.message ?? error);
       }
     }
+    body = renderProxiedCardPlurals(body, upstream.status, contentType);
     const etag = `"bg-legacy-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
     if (
       upstream.status >= 200
@@ -7885,7 +7911,7 @@ async function proxyBattlegroundAppEndpoint(
     }
 
     const cacheKey = upstreamUrl.href;
-    const redisKey = redisHashedDataKey('bg-app-proxy', cacheKey);
+    const redisKey = redisHashedDataKey('bg-app-proxy-v2', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       const clientCacheControl = res.locals.subscriptionGuarded && !cached.contentType.includes('image/')
@@ -7920,10 +7946,11 @@ async function proxyBattlegroundAppEndpoint(
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(25_000) });
     let body = Buffer.from(await upstream.arrayBuffer());
     let contentType = upstream.headers.get('content-type') || 'application/octet-stream';
-    if (transformJson && upstream.status >= 200 && upstream.status < 300 && contentType.includes('application/json')) {
+    if (upstream.status >= 200 && upstream.status < 300 && contentType.includes('application/json')) {
       try {
         const payload = JSON.parse(body.toString('utf8'));
-        body = Buffer.from(JSON.stringify(transformJson(payload)));
+        const transformed = transformJson ? transformJson(payload) : payload;
+        body = Buffer.from(JSON.stringify(renderPayloadCardPlurals(transformed, originalCardTexts.current())));
         contentType = 'application/json; charset=utf-8';
       } catch (err: any) {
         console.warn('[bg app proxy] JSON transform failed:', upstreamPath, err?.message ?? err);
@@ -7973,7 +8000,7 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
     }
 
     const cacheKey = `extra-library:${upstreamUrl.href}`;
-    const redisKey = redisHashedDataKey('bg-extra-library', cacheKey);
+    const redisKey = redisHashedDataKey('bg-extra-library-v2', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(cached.status);
@@ -8000,8 +8027,8 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
     }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(25_000) });
-    const body = Buffer.from(await upstream.arrayBuffer());
     const contentType = upstream.headers.get('content-type') || 'application/json; charset=utf-8';
+    const body = renderProxiedCardPlurals(Buffer.from(await upstream.arrayBuffer()), upstream.status, contentType);
     const etag = `"bg-extra-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
     if (upstream.status >= 200 && upstream.status < 300) {
       const cacheEntry = {
