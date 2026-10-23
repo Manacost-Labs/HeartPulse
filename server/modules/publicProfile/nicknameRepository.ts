@@ -28,6 +28,17 @@ export function ensurePublicNicknameSchema(database: DatabaseSync): void {
     );
     CREATE INDEX IF NOT EXISTS idx_public_nickname_history_released
       ON public_nickname_history(released_at);
+    -- A deleted account keeps its nickname held for the same 90 days, so an
+    -- old shared /u/ link never starts pointing at a stranger. The timestamp
+    -- matches Date#toISOString() so the hold comparisons stay lexical.
+    CREATE TRIGGER IF NOT EXISTS trg_users_release_nickname_on_delete
+      AFTER DELETE ON users
+      WHEN OLD.nickname_key IS NOT NULL
+    BEGIN
+      INSERT INTO public_nickname_history (nickname_key, user_id, released_at)
+      VALUES (OLD.nickname_key, OLD.id, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ON CONFLICT(nickname_key, user_id) DO UPDATE SET released_at = excluded.released_at;
+    END;
   `);
 }
 

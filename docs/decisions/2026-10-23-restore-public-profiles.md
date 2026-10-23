@@ -59,11 +59,11 @@ everyone and decides field by field what may be on it.
 
 | Threat | Mitigation |
 | --- | --- |
-| Enumerating all profiles through sequential IDs | Only harmless fields exist on a profile. Express limits direct API reads to 60 per minute per client; Nginx limits `/id/` and `/u/` documents per client. |
+| Enumerating all profiles through sequential IDs | Only harmless fields exist on a profile. Express limits direct API reads to 60 per minute per client; Nginx limits `/id/` and `/u/` documents to 30 per minute per IPv4 address or IPv6 /64. |
 | Leaking identities or contact data (mail, Telegram, Discord, Yandex, Google, Patreon, Boosty) | Allow-listed projection; `users.name` and provider avatars are never read; test with poisoned rows. |
 | Leaking payment data | Only a boolean; no level, price, source or dates. |
 | Learning that an account is blocked or the internal ID | Missing, blocked and malformed IDs share one `404` body; `users.id` never leaves the server. |
-| Impersonating staff, the brand or another player | Reserved words, brand fragments, single-alphabet rule, look-alike folding in the uniqueness key, 90-day hold of released nicknames. |
+| Impersonating staff, the brand or another player | Reserved words and brand fragments compared without separators, single-alphabet rule, look-alike folding in the uniqueness key, 90-day hold of released nicknames, including those of deleted accounts. |
 | Stored XSS through the nickname | The character set excludes markup; React and Next metadata escape the text anyway. |
 | Forged nickname change from another site | `PUT /api/account/public-profile/nickname` passes the site-wide same-origin rule and requires `X-CSRF-Request: 1`; the route checks it again. |
 | Two players claiming one nickname at once | `BEGIN IMMEDIATE` plus the unique index; a lost race answers `409`. |

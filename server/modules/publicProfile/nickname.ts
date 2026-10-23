@@ -21,7 +21,7 @@ const ALLOWED_CHARACTERS = /^[a-zа-яёіїєґў0-9_-]+$/;
 const LOOK_ALIKE_FOLD: Readonly<Record<string, string>> = {
   а: 'a', в: 'b', е: 'e', ё: 'e', є: 'e', з: '3', к: 'k', м: 'm', н: 'h',
   о: 'o', р: 'p', с: 'c', т: 't', у: 'y', ў: 'y', х: 'x', і: 'l', ї: 'l',
-  б: '6', ч: '4', п: 'n', г: 'r', ґ: 'r',
+  б: '6', ч: '4', п: 'n', г: 'r', ґ: 'r', ь: 'b', и: 'u', ш: 'w',
   i: 'l', '1': 'l', '0': 'o', '-': '_',
 };
 
@@ -88,8 +88,14 @@ export function nicknameKey(lowerCased: string): string {
   return key;
 }
 
-const RESERVED_KEYS = new Set(RESERVED_NICKNAMES.map(word => nicknameKey(word.normalize('NFKC').toLowerCase())));
-const BLOCKED_FRAGMENT_KEYS = BLOCKED_NICKNAME_FRAGMENTS.map(word => nicknameKey(word.normalize('NFKC').toLowerCase()));
+// Reserved and blocked words are compared without separators, so `Ad_min`
+// and `Hearth-Pulse` are judged as `admin` and `hearthpulse`.
+function bareKey(word: string): string {
+  return nicknameKey(word.normalize('NFKC').toLowerCase()).replaceAll('_', '');
+}
+
+const RESERVED_KEYS = new Set(RESERVED_NICKNAMES.map(bareKey));
+const BLOCKED_FRAGMENT_KEYS = BLOCKED_NICKNAME_FRAGMENTS.map(bareKey);
 
 type ParsedNickname =
   | { ok: true; display: string; key: string }
@@ -122,7 +128,8 @@ export function validateNickname(
   const parsed = parseNickname(raw);
   if (parsed.ok === false) return reject(parsed.reason);
   const { display, key } = parsed;
-  if (RESERVED_KEYS.has(key) || BLOCKED_FRAGMENT_KEYS.some(fragment => key.includes(fragment))) {
+  const bare = key.replaceAll('_', '');
+  if (RESERVED_KEYS.has(bare) || BLOCKED_FRAGMENT_KEYS.some(fragment => bare.includes(fragment))) {
     return reject('reserved');
   }
   if (!contentAllowed(key, display)) return reject('content');

@@ -42,7 +42,7 @@ Rules for a new nickname (`server/modules/publicProfile/nickname.ts`):
 - NFKC-normalized and trimmed; 3–24 characters;
 - only `a–z`, Cyrillic letters (`а–я`, `ё`, `і`, `ї`, `є`, `ґ`, `ў`), digits,
   `_` and `-`; letters of one alphabet only; at least one letter;
-- not a reserved word (every top-level route segment, `admin`, `root`, `null`,
+- not a reserved word, compared without `_`/`-` (every top-level route segment, `admin`, `root`, `null`,
   `support`, …) and without a brand/staff fragment (`admin`, `moderator`,
   `hearthpulse`, `manacost`, `official`, `support` and Russian equivalents);
 - unique by key: lower case with look-alikes folded (Cyrillic `а е о р с у х
@@ -72,6 +72,9 @@ now; `profilePath` is `/id/<n>/`.
 
 A real change starts a 30-day cooldown and moves the previous nickname into
 `public_nickname_history` for 90 days. Changing only the letter case is free.
+Deleting an account also moves its nickname there (trigger
+`trg_users_release_nickname_on_delete`), so it stays unavailable for 90 days;
+the old link answers `404` meanwhile.
 
 ## Pages
 
@@ -99,7 +102,8 @@ on top of the general API budget. Loopback reads by the Next server are not
 counted there; the documents are limited in Nginx instead: `/id/<n>/` and
 everything under `/id/`, `/profiles/` and `/u/` share the
 `arena_public_profiles` zone (`deploy/nginx/arena-seo-map.conf`), 30 requests
-per minute per visitor address with a burst of 20; the excess answers `429`.
+per minute per visitor (an IPv4 address or an IPv6 /64) with a burst of 20;
+the excess answers `429`.
 The profile namespace stays `no-store` at the origin, so the edge does not
 cache profile documents.
 
