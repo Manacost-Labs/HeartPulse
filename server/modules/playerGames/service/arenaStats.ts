@@ -1,4 +1,4 @@
-import type { HearthstoneClass, PlayerGame } from '../model/game.js';
+import type { ArenaRunRecord, HearthstoneClass, PlayerGame } from '../model/game.js';
 import type { GlobalArenaClass } from '../model/globalSources.js';
 import { average, rate, type ArenaRun, type ArenaStats } from '../model/stats.js';
 
@@ -7,8 +7,24 @@ const MAX_WINS = 12;
 const MAX_LOSSES = 3;
 const MAX_RUNS = 100;
 
+/** A run with an `arena_run` record: the record's score, the games only for dates. */
+function runFromRecord(record: ArenaRunRecord, games: ArenaGame[]): ArenaRun {
+  const times = games.map(game => game.startedAt);
+  return {
+    runId: record.runId,
+    playerClass: record.playerClass,
+    wins: record.wins,
+    losses: record.losses,
+    games: Math.max(games.length, record.wins + record.losses),
+    startedAt: times.length ? Math.min(...times) : record.occurredAt,
+    lastPlayedAt: Math.max(record.occurredAt, ...times),
+    complete: record.complete ?? (record.wins >= MAX_WINS || record.losses >= MAX_LOSSES),
+    underground: record.underground,
+  };
+}
+
 /**
- * Builds runs from their games. When the client reported the record before a
+ * Builds a run from its games. When the client reported the record before a
  * game, it wins over counting, so a run whose early games were never uploaded
  * still shows its real score.
  */
@@ -37,15 +53,29 @@ function buildRun(games: ArenaGame[]): ArenaRun {
   };
 }
 
-/** Aggregates Arena games (newest first) into runs, classes and totals. */
+/**
+ * Aggregates Arena games (newest first) into runs, classes and totals. An
+ * `arena_run` record is the run's authoritative score; its newest record wins.
+ */
 export function buildArenaStats(
   games: readonly ArenaGame[],
+  records: readonly ArenaRunRecord[],
   options: Pick<ArenaStats, 'period' | 'global'>,
   global: readonly GlobalArenaClass[] | null,
 ): ArenaStats {
   const byRun = new Map<string, ArenaGame[]>();
   for (const game of games) byRun.set(game.arena.runId, [...(byRun.get(game.arena.runId) ?? []), game]);
-  const runs = [...byRun.values()].map(buildRun).sort((left, right) => right.lastPlayedAt - left.lastPlayedAt);
+  const latestRecord = new Map<string, ArenaRunRecord>();
+  for (const record of records) {
+    const known = latestRecord.get(record.runId);
+    if (!known || record.occurredAt > known.occurredAt) latestRecord.set(record.runId, record);
+  }
+  const runIds = new Set([...byRun.keys(), ...latestRecord.keys()]);
+  const runs = [...runIds].map(runId => {
+    const record = latestRecord.get(runId);
+    const runGames = byRun.get(runId) ?? [];
+    return record ? runFromRecord(record, runGames) : buildRun(runGames);
+  }).sort((left, right) => right.lastPlayedAt - left.lastPlayedAt);
   const globalByClass = new Map((global ?? []).map(item => [item.playerClass, item]));
   const classes = new Map<HearthstoneClass, ArenaStats['classes'][number] & { totalWins: number }>();
   for (const run of runs) {
@@ -76,7 +106,7 @@ export function buildArenaStats(
       twelveWinRuns: runs.filter(run => run.wins >= MAX_WINS).length,
       wins,
       losses,
-      gameWinrate: rate(wins, wins + losses),
+      gameWinrate: rate(wins, games.length),
       timePlayedSeconds: games.reduce((sum, game) => sum + game.durationSeconds, 0),
     },
     runs: runs.slice(0, MAX_RUNS),

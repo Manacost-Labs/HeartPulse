@@ -16,16 +16,6 @@ export const BATTLEGROUNDS_OFFER_KINDS = ['hero', 'discover', 'trinket', 'quest'
 
 export type GameResult = 'win' | 'loss' | 'tie';
 
-/**
- * The only OIDC client allowed to upload games. Until the provider issues a
- * dedicated write scope, the client id is the authorization.
- */
-export const DESKTOP_GAMES_CLIENT_ID = 'hearthpulse-desktop';
-
-export const PLAYER_GAME_SCHEMA_VERSION = 1;
-export const MAX_GAMES_PER_BATCH = 50;
-export const MAX_GAME_BYTES = 16 * 1024;
-export const MAX_GAMES_PER_ACCOUNT = 50_000;
 
 export type BoardMinion = { cardId: string; attack: number; health: number; golden: boolean };
 export type CombatRound = {
@@ -87,26 +77,31 @@ export type ArenaDetail = {
   deckCode: string | null;
 };
 
+/** `id` is the tracker event id; `startedAt` its `occurredAt`, the start of the game. */
 type PlayerGameBase = {
   id: string;
   startedAt: number;
   durationSeconds: number;
   result: GameResult;
   turns: number | null;
-  client: { name: string; version: string };
 };
 
-/** A validated upload, normalized so equal content always serializes equally. */
+/** One game read from a tracker event, in the shape the statistics aggregate. */
 export type PlayerGame =
   | PlayerGameBase & { mode: 'battlegrounds'; battlegrounds: BattlegroundsDetail }
   | PlayerGameBase & { mode: 'standard' | 'wild'; constructed: ConstructedDetail }
   | PlayerGameBase & { mode: 'arena'; arena: ArenaDetail };
 
-export type IngestStatus = 'created' | 'updated' | 'unchanged';
-export type RejectionCode = 'INVALID_GAME' | 'UNSUPPORTED_MODE' | 'GAME_TOO_LARGE' | 'DUPLICATE_ID' | 'QUOTA_EXCEEDED';
-export type IngestResult =
-  | { id: string; status: IngestStatus }
-  | { id: string; status: 'rejected'; code: RejectionCode; field?: string };
+/** An `arena_run` event: the run's final or latest record, which wins over counting its games. */
+export type ArenaRunRecord = {
+  runId: string;
+  playerClass: HearthstoneClass;
+  wins: number;
+  losses: number;
+  complete: boolean | null;
+  underground: boolean;
+  occurredAt: number;
+};
 
 /** Battlegrounds wins are a top half finish: top 4 solo, top 2 in Duos. */
 export function battlegroundsResult(placement: number, duos: boolean): GameResult {

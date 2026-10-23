@@ -6,6 +6,8 @@ import {
   createSqliteTrackerEventRepository,
   createTrackerIngestionRouter,
   initializeTrackerEventRepository,
+  type TrackerEventRepository,
+  type TrackerPayloadValidator,
 } from '../modules/trackerIngestion/public.js';
 
 type RegisterTrackerIngestionDependencies = {
@@ -13,6 +15,8 @@ type RegisterTrackerIngestionDependencies = {
   getDatabase: () => DatabaseSync;
   accessTokens: ApplicationAuthManager;
   setPrivateNoStore: (response: Response) => void;
+  /** Strict check of `schemaVersion` 2 payloads, owned by the statistics module. */
+  validatePayload?: TrackerPayloadValidator;
 };
 
 export function registerTrackerIngestionRateLimit(app: Application): void {
@@ -24,11 +28,15 @@ export function registerTrackerIngestionRateLimit(app: Application): void {
   }));
 }
 
-export function registerTrackerIngestion(dependencies: RegisterTrackerIngestionDependencies): void {
+/** Returns the repository so composition can hand its event reader to the account statistics. */
+export function registerTrackerIngestion(dependencies: RegisterTrackerIngestionDependencies): TrackerEventRepository {
   initializeTrackerEventRepository(dependencies.getDatabase);
+  const repository = createSqliteTrackerEventRepository(dependencies.getDatabase);
   dependencies.app.use('/api/v1', createTrackerIngestionRouter({
     accessTokens: dependencies.accessTokens,
-    repository: createSqliteTrackerEventRepository(dependencies.getDatabase),
+    repository,
     setPrivateNoStore: dependencies.setPrivateNoStore,
+    validatePayload: dependencies.validatePayload,
   }));
+  return repository;
 }

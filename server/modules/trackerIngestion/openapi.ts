@@ -52,7 +52,7 @@ export const TRACKER_INGESTION_OPENAPI_SCHEMAS = {
         type: 'string',
         enum: ['constructed_match', 'arena_match', 'arena_run', 'arena_draft_pick', 'battlegrounds_match', 'collection_snapshot'],
       },
-      schemaVersion: { type: 'integer', const: 1 },
+      schemaVersion: { type: 'integer', enum: [1, 2], description: '2 validates the statistics payloads of docs/specs/player-game-stats.md' },
       occurredAt: { type: 'string', format: 'date-time' },
       payload: { type: 'object' },
     },
@@ -72,6 +72,7 @@ export const TRACKER_INGESTION_OPENAPI_SCHEMAS = {
           properties: {
             eventId: { type: 'string', format: 'uuid' },
             code: { type: 'string', enum: ['INVALID_EVENT', 'EVENT_LIMIT_EXCEEDED'] },
+            field: { type: 'string', description: 'First invalid payload field of a version 2 event' },
           },
         },
       },

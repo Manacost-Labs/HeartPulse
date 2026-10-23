@@ -570,14 +570,15 @@
       ],
       "docs": [
         "docs/specs/tracker-ingestion.md",
-        "docs/architecture/module-boundaries.md"
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/player-game-stats.md"
       ]
     },
     {
       "id": "server.playerGames",
       "runtime": "server",
       "root": "server/modules/playerGames",
-      "purpose": "Own desktop-tracker game uploads, their storage and the personal statistics read model of the account page.",
+      "purpose": "Owns the personal statistics read model of the account page over the tracker events, and the schemaVersion 2 statistics payload check the tracker ingestion applies.",
       "owner": "identity-platform",
       "publicEntry": "server/modules/playerGames/public.ts",
       "dependencies": [],

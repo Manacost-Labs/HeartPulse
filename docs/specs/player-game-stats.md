@@ -4,305 +4,227 @@
 
 A signed-in player sees personal statistics on the account page `/profile/`
 in the spirit of HSReplay «My Stats», in four tabs: Battlegrounds, Standard,
-Wild and Arena. The games come from the Hearthpulse desktop tracker; the site
-never parses logs itself. Local tracking in the desktop application stays
-authoritative and usable offline; this contract is only the upload boundary.
+Wild and Arena. The games come from the desktop tracker through the existing
+[tracker ingestion](tracker-ingestion.md); the site never parses logs and
+adds no second upload path. Local tracking in the desktop application stays
+authoritative; this page only reads what the tracker uploaded.
 
-Owner: `server/modules/playerGames` (ingestion, storage, aggregation) and
+Owners: `server/modules/trackerIngestion` (upload, storage),
+`server/modules/playerGames` (statistics payload check, aggregation),
 `src/modules/playerStats` with its Valyro composition in
 `src/features/playerStats` (the account tabs).
 
-## Authorization
+## Upload
 
-The desktop application signs in through the site's OIDC provider
-(issuer `https://hearthpulse.net/identity`, public native client
-`hearthpulse-desktop`, authorization code + PKCE). It calls the game API with
-the provider's access token:
+The tracker keeps using `POST /api/v1/tracker/events/batch` with the OAuth
+device-flow token of client `manacost-tracker` and scope `tracker.write`
+([tracker ingestion](tracker-ingestion.md)): batches of 1–50 events,
+idempotent by `eventId`, `202` with `accepted` and `rejected`. Nothing about
+authorization, limits or idempotency changes.
 
-```http
-Authorization: Bearer <access token>
-```
+### Versions
 
-The server resolves the token through the provider's own token store
-(`server/app/browserIdentityAccessTokens.ts`): it must exist, be unexpired,
-belong to client `hearthpulse-desktop` and to a grant whose account is still
-active (the same session binding that revokes Reader grants on logout, reset
-or block). The token's `sub` is the HearthPulse account id; every game is
-stored under it.
+- `schemaVersion: 1` stays what it was: an opaque, bounded payload. A v1
+  event appears in the statistics only when its payload already carries the
+  version 2 fields below; otherwise it is stored and ignored by the page.
+- `schemaVersion: 2` uses the same event types and every v1 list field
+  (`playerMulligan.*`, `opponentDeck.observedCards`, `finalBoard.minions`,
+  `offeredCardIds`, `finalDeckCardIds`) with the same limits, and adds the
+  statistics fields. For `battlegrounds_match`, `constructed_match`,
+  `arena_match` and `arena_run` the server checks them strictly; an invalid
+  event is rejected with `INVALID_EVENT` and `field`, the first failing field.
+  `arena_draft_pick` and `collection_snapshot` are not checked further. The
+  payload is stored exactly as sent.
+- `occurredAt` of a game is the time the game started; of `arena_run`, the
+  time of the run's latest record.
+- Send a game once, when it is over: the first stored copy of an `eventId`
+  wins and later copies are only acknowledged.
 
-There is no write scope yet. Until the provider issues a dedicated scope
-(proposed name `games:write`), the client id is the authorization: any other
-client's token gets 403 `CLIENT_NOT_ALLOWED`. When the scope exists, the
-route will additionally require it and answer 403 `INSUFFICIENT_SCOPE`.
+Opponent names, BattleTags, chat and log lines are not part of any payload.
 
-Responses are `Cache-Control: no-store` with `Vary: Cookie, Authorization`.
-Tokens are never logged or stored by this module.
+### Common game fields (v2)
 
-## Upload: `POST /api/v1/me/games`
+- `durationSeconds`: integer, 0–14 400. Required.
+- `turns`: integer, 0–200, optional. Constructed and Arena: the player's own
+  turns; Battlegrounds: tavern turns.
+- `result`: `win`, `loss` or `tie`. Required for `constructed_match` and
+  `arena_match`; Battlegrounds derives it from the placement (top 4, Duos
+  top 2). A tie counts as «not a win» in every win rate on the page.
 
-Body: `{ "games": [ ... ] }` with 1–50 games, at most 1 MiB in total
-(`API_JSON_BODY_LIMIT`) and 16 KiB per serialized game.
+### `battlegrounds_match` (v2)
 
-### Common fields
+- `heroCardId`: card id of the hero played. Required.
+- `placement`: 1–8; Duos 1–4. Required.
+- `duos`: boolean, default `false`.
+- `ratingBefore`, `ratingAfter`: 0–30 000 or null.
+- `anomalyCardId`: card id or null.
+- `races`: at most 6 of `BEAST`, `DEMON`, `DRAGON`, `ELEMENTAL`, `MECHANICAL`,
+  `MURLOC`, `NAGA`, `PIRATE`, `QUILBOAR`, `UNDEAD`.
+- `tavernTier`: 1–7.
+- `finalBoard.minions`: at most 7 `{ cardId, attack, health, golden }`;
+  attack and health 0–100 000.
+- `combats`: at most 60 `{ turn, result, damageDealt, damageTaken,
+  opponentHeroCardId }`; turn 1–60, result `win`/`loss`/`tie`, damage 0–200.
+- `heroOptions`: at most 4 hero card ids offered at the start, including the
+  one picked. Pick rate counts only games whose options include the hero.
+- `offers`: at most 80 `{ turn, kind, offered, picked }`; kind `hero`,
+  `discover`, `trinket`, `quest`, `reward`, `buddy` or `other`; `offered` at
+  most 8 card ids; `picked` a card id or null.
 
-- `id`: string; Client game id, 8–64 of `A-Z a-z 0-9 . _ : -`, starting with a
-  letter or digit. Generate it once per game and keep it locally (a UUID is
-  ideal). Never put a BattleTag in it.
-- `mode`: string; `battlegrounds`, `standard`, `wild` or `arena`. Other modes
-  are rejected with `UNSUPPORTED_MODE`; do not retry them.
-- `startedAt`: string; ISO 8601 with offset, between 2014-01-01 and one day in
-  the future.
-- `durationSeconds`: integer; 0–14 400.
-- `result`: string; `win`, `loss` or `tie`. Required for Standard, Wild and
-  Arena; ignored for Battlegrounds, where the server derives it from the
-  placement (top 4, Duos top 2).
-- `turns`: integer; Optional, 0–200. Constructed and Arena: the player's own
-  turns. Battlegrounds: tavern turns.
-- `client`: object; `{ "name": "hearthpulse-desktop", "version": "1.4.0" }`;
-  name 1–40 of `a-z 0-9 -`, version 1–32 of `A-Z a-z 0-9 . + -`.
+Card ids match `[A-Za-z0-9_]{2,64}`.
 
-Exactly one of `battlegrounds`, `constructed` or `arena` matches the mode:
-`constructed` for both Standard and Wild.
+### `constructed_match` (v2)
 
-### Battlegrounds
-
-- `heroCardId`: string; Card id of the hero played.
-- `placement`: integer; 1–8; Duos 1–4.
-- `duos`: boolean; Optional, default `false`.
-- `ratingBefore`, `ratingAfter`: integer or null; 0–30 000.
-- `anomalyCardId`: string or null; Optional.
-- `races`: string[]; Optional lobby minion types, at most 6 of `BEAST`, `DEMON`,
-  `DRAGON`, `ELEMENTAL`, `MECHANICAL`, `MURLOC`, `NAGA`, `PIRATE`, `QUILBOAR`,
-  `UNDEAD`.
-- `tavernTier`: integer; Optional, 1–7.
-- `finalBoard`: object[]; At most 7 `{ cardId, attack, health, golden }`; attack
-  and health 0–100 000.
-- `combats`: object[]; At most 60 `{ turn, result, damageDealt, damageTaken,
-  opponentHeroCardId? }`; turn 1–60, result `win`/`loss`/`tie`, damage 0–200.
-- `heroOptions`: string[]; Optional, at most 4 hero card ids offered at the
-  start, including the one picked.
-- `offers`: object[]; Optional, at most 80 `{ turn, kind, offered, picked }`:
-  kind `hero`, `discover`, `trinket`, `quest`, `reward`, `buddy` or `other`;
-  `offered` at most 8 card ids; `picked` a card id or null.
-
-### Standard and Wild (`constructed`)
-
-- `ranked`: boolean; Optional, default `true`; casual games are kept but shown
-  separately.
-- `playerClass`, `opponentClass`: string; `DEATHKNIGHT`, `DEMONHUNTER`, `DRUID`,
+- `format`: `standard` or `wild`. Required.
+- `ranked`: boolean, default `true`; casual games count in the totals only.
+- `playerClass`, `opponentClass`: `DEATHKNIGHT`, `DEMONHUNTER`, `DRUID`,
   `HUNTER`, `MAGE`, `PALADIN`, `PRIEST`, `ROGUE`, `SHAMAN`, `WARLOCK`,
-  `WARRIOR`.
-- `heroCardId`, `opponentHeroCardId`: string; Optional.
-- `deckCode`: string; Optional deck string, at most 256 of base64 characters.
-- `deckName`: string; Optional, at most 80 characters.
-- `archetype`, `opponentArchetype`: string; Optional archetype names as the
-  client knows them, at most 80 characters.
+  `WARRIOR`. Required.
+- `heroCardId`, `opponentHeroCardId`: optional card ids.
+- `deckCode`: optional deck string, 4–256 base64 characters.
+- `deckName`, `archetype`, `opponentArchetype`: optional text, at most 80
+  characters, no control characters.
 - `wentFirst`: boolean or null; `false` means the player had the coin.
-- `rankBefore`, `rankAfter`: object or null; `{ starLevel, stars?, legendRank?
-  }`: `starLevel` 1–51 as in the client (Bronze 10 = 1 … Diamond 1 = 50, Legend
-  = 51), `stars` 0–3, `legendRank` 1–1 000 000 only with `starLevel` 51.
+- `rankBefore`, `rankAfter`: `{ starLevel, stars, legendRank }` or null;
+  `starLevel` 1–51 as the client counts it (Bronze 10 = 1 … Diamond 1 = 50,
+  Legend = 51), `stars` 0–3, `legendRank` 1–1 000 000 only with level 51.
+- v1 fields `playerMulligan` and `opponentDeck` stay as they were.
 
-### Arena
+### `arena_match` (v2)
 
-- `runId`: string; The run's id, same pattern as the game id.
-- `playerClass`, `opponentClass`: string; Class names as above.
-- `gameNumber`: integer; 1–20, the game's place in the run.
-- `winsBefore`, `lossesBefore`: integer; Optional record before this game: 0–12
-  and 0–3.
-- `underground`: boolean; Optional, default `false`.
-- `wentFirst`: boolean or null; Optional.
-- `deckCode`: string; Optional.
+- `runId`: the run's id, 8–64 of `A-Z a-z 0-9 . _ : -`. Required.
+- `playerClass`, `opponentClass`: class names as above. Required.
+- `gameNumber`: 1–20, the game's place in the run. Required.
+- `winsBefore` (0–12), `lossesBefore` (0–3): optional record before the game.
+- `underground`: boolean, default `false`; `wentFirst`; `deckCode`.
 
-Opponent names, BattleTags, chat and log lines are not part of the contract
-and are never stored.
+### `arena_run` (v2)
+
+- `runId`, `playerClass`, `wins` (0–12), `losses` (0–3). Required.
+- `complete`: boolean or null (null: complete at 12 wins or 3 losses).
+- `underground`: boolean. v1 `finalDeckCardIds` stays as it was.
+
+The newest `arena_run` record of a run is its score on the page, even when
+not every game of the run was uploaded.
 
 ### Example
 
 ```json
 {
-  "games": [
+  "events": [
     {
-      "id": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4b",
-      "mode": "battlegrounds",
-      "startedAt": "2026-10-22T18:04:11+03:00",
-      "durationSeconds": 1260,
-      "turns": 13,
-      "client": { "name": "hearthpulse-desktop", "version": "1.4.0" },
-      "battlegrounds": {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4b",
+      "type": "battlegrounds_match",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T15:04:11Z",
+      "payload": {
+        "durationSeconds": 1260,
+        "turns": 13,
         "heroCardId": "BG20_HERO_242",
         "placement": 2,
         "duos": false,
         "ratingBefore": 6412,
         "ratingAfter": 6451,
-        "anomalyCardId": null,
         "races": ["BEAST", "DEMON", "MECHANICAL", "NAGA", "UNDEAD"],
         "tavernTier": 6,
-        "finalBoard": [
-          { "cardId": "BG25_008", "attack": 48, "health": 51, "golden": true }
-        ],
+        "finalBoard": {
+          "minions": [
+            { "cardId": "BG25_008", "attack": 48, "health": 51, "golden": true }
+          ]
+        },
         "combats": [
           { "turn": 1, "result": "tie", "damageDealt": 0, "damageTaken": 0 },
           { "turn": 2, "result": "win", "damageDealt": 3, "damageTaken": 0 }
         ],
-        "heroOptions": ["BG20_HERO_242", "TB_BaconShop_HERO_56", "BG22_HERO_000"],
-        "offers": [
-          {
-            "turn": 6,
-            "kind": "trinket",
-            "offered": ["BG30_MagicItem_301", "BG30_MagicItem_412"],
-            "picked": "BG30_MagicItem_412"
-          }
-        ]
+        "heroOptions": ["BG20_HERO_242", "BG22_HERO_000"]
       }
     },
     {
-      "id": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4c",
-      "mode": "standard",
-      "startedAt": "2026-10-22T19:10:00Z",
-      "durationSeconds": 540,
-      "result": "win",
-      "turns": 9,
-      "client": { "name": "hearthpulse-desktop", "version": "1.4.0" },
-      "constructed": {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4c",
+      "type": "constructed_match",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T19:10:00Z",
+      "payload": {
+        "format": "standard",
         "ranked": true,
+        "result": "win",
+        "durationSeconds": 540,
+        "turns": 9,
         "playerClass": "DEATHKNIGHT",
         "opponentClass": "MAGE",
         "deckCode": "AAECAfHhBAA=",
         "deckName": "Blood DK",
         "archetype": "Blood Death Knight",
-        "opponentArchetype": null,
         "wentFirst": false,
         "rankBefore": { "starLevel": 46, "stars": 2 },
-        "rankAfter": { "starLevel": 46, "stars": 3 }
+        "rankAfter": { "starLevel": 46, "stars": 3 },
+        "playerMulligan": { "initial": ["CARD_1"], "kept": ["CARD_1"] }
       }
     },
     {
-      "id": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d",
-      "mode": "arena",
-      "startedAt": "2026-10-22T20:00:00Z",
-      "durationSeconds": 720,
-      "result": "loss",
-      "client": { "name": "hearthpulse-desktop", "version": "1.4.0" },
-      "arena": {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d",
+      "type": "arena_match",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T20:00:00Z",
+      "payload": {
+        "result": "loss",
+        "durationSeconds": 720,
         "runId": "arena-0199b2d2-0001",
         "playerClass": "PALADIN",
         "opponentClass": "ROGUE",
         "gameNumber": 5,
         "winsBefore": 3,
-        "lossesBefore": 1,
-        "underground": false,
-        "wentFirst": true
+        "lossesBefore": 1
+      }
+    },
+    {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4e",
+      "type": "arena_run",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T21:30:00Z",
+      "payload": {
+        "runId": "arena-0199b2d2-0001",
+        "playerClass": "PALADIN",
+        "wins": 6,
+        "losses": 3,
+        "complete": true
       }
     }
   ]
 }
 ```
 
-### Response
-
-200 with one result per input game, in input order:
+A rejected v2 event names its first invalid field:
 
 ```json
 {
-  "results": [
-    { "id": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4b", "status": "created" },
-    { "id": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4c", "status": "unchanged" },
-    { "id": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d", "status": "rejected",
-      "code": "INVALID_GAME", "field": "arena.gameNumber" }
+  "accepted": ["0199b2d2-7cc7-7d75-bcea-7d28b628ef4b"],
+  "rejected": [
+    { "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d",
+      "code": "INVALID_EVENT", "field": "gameNumber" }
   ]
 }
 ```
 
-- `created`: a new game was stored.
-- `updated`: the id existed and the new content replaced it (for example a
-  rating learned after the game). The latest upload wins.
-- `unchanged`: the same content was already stored. Replaying a batch after a
-  network failure is safe; drop every `created`, `updated` and `unchanged`
-  item from the outbox.
-- `rejected`: the item will never be accepted as sent; drop it or fix the
-  client. Codes: `INVALID_GAME` (with the first failing `field`),
-  `UNSUPPORTED_MODE`, `GAME_TOO_LARGE`, `DUPLICATE_ID` (the same id twice in
-  one batch: only the first is processed), `QUOTA_EXCEEDED` (the account
-  already stores 50 000 games).
-
-### Errors
-
-Errors use `{ "error": { "code": "...", "message": "..." } }`; retry only
-429 and 5xx, with exponential backoff.
-
-- 400: `INVALID_BATCH`; Body is not `{ games: [...] }` with 1–50 items, or an
-  item has no valid `id`.
-- 401: `INVALID_ACCESS_TOKEN`; Missing, expired or revoked token; refresh it.
-  `WWW-Authenticate: Bearer` is set.
-- 403: `CLIENT_NOT_ALLOWED`; The token belongs to another client.
-- 413: Body above 1 MiB. Send smaller batches.
-- 429: Rate limit: 120 requests per 15 minutes per address, upload and sync
-  check together.
-- 503: `STORAGE_UNAVAILABLE`; Temporary storage failure.
-- 503: `IDENTITY_UNAVAILABLE`; The deployment has no OIDC provider
-  (`BROWSER_IDENTITY_ENABLED` is not `1`). Retry later; do not sign out.
-
-## Sync check: `GET /api/v1/me/games`
-
-Same authorization. Query: `limit` 1–500 (default 100), `before` (cursor
-from a previous page), `since` (ISO 8601: only games that started at or
-after it). Newest games first. A malformed query answers 400 `INVALID_QUERY`.
-
-```json
-{
-  "total": 1287,
-  "byMode": { "battlegrounds": 940, "standard": 301, "wild": 12, "arena": 34 },
-  "latestStartedAt": "2026-10-22T20:00:00.000Z",
-  "games": [
-    {
-      "id": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d",
-      "mode": "arena",
-      "startedAt": "2026-10-22T20:00:00.000Z",
-      "updatedAt": "2026-10-22T20:12:31.120Z"
-    }
-  ],
-  "nextBefore": "MTc2MTE2MzIwMDAwMDowMTk5YjJkMg"
-}
-```
-
-`total`, `byMode` and `latestStartedAt` describe the whole account, not the
-page. A typical client uploads every local game newer than `latestStartedAt`,
-then pages with `before` to reconcile older history.
-
 ## Storage
 
-SQLite table `player_games`, owned by `server/modules/playerGames`, created
-idempotently at start-up (`CREATE TABLE IF NOT EXISTS`; no separate migration
-step):
-
-- `user_id`: Account id (`users.id`), `ON DELETE CASCADE`.
-- `client_game_id`: The client's `id`; primary key with `user_id`.
-- `mode`: `battlegrounds`, `standard`, `wild`, `arena`.
-- `started_at`, `duration_seconds`: Epoch ms and seconds.
-- `result`: `win`, `loss`, `tie`.
-- `hero`, `player_class`, `opponent_class`: BG hero card id; constructed/arena
-  classes.
-- `placement`, `duos`, `rating_before`, `rating_after`: Battlegrounds.
-- `rank_before`, `rank_after`, `legend_rank_after`, `ranked`, `deck_code`,
-  `archetype`: Constructed: rank as `starLevel * 4 + stars`.
-- `arena_run_id`, `arena_game_number`: Arena.
-- `client_name`, `client_version`, `schema_version`: Provenance.
-- `detail_json`: The validated mode object (board, combats, offers…).
-- `content_hash`: SHA-256 of the normalized game, decides `updated`/`unchanged`.
-- `received_at`, `updated_at`: Epoch ms.
-
-Indexes: `(user_id, mode, started_at DESC)`, `(user_id, started_at DESC)`.
+The statistics read `tracker_profile_events`
+(`server/modules/trackerIngestion`) through that module's
+`listEvents(userId, { types, since, limit })`; there is no second table and
+no migration. Rows cascade-delete with the account.
 
 ## Statistics: `GET /api/account/game-stats`
 
-Cookie session of the account page only (no bearer, no CORS); 401 without a
-session, 400 for an unknown parameter value, 60 requests per minute per
-address. Query: `mode` (required), `period` `all` (default), `7`, `30`,
-`90` days or `season` (since the first day of the current month, the
+The site's own account session (the cookie the page sends; the site's
+session token as `Authorization: Bearer` works the same), never a tracker
+token, no CORS; 401 without a session, 400 for an unknown parameter value,
+60 requests per minute per address. Query: `mode` (required), `period` `all`
+(default), `7`, `30`, `90` days or `season` (since the first day of the
+current month, the
 Hearthstone ranked season); for Battlegrounds `duos` `0`/`1` and `mmr`, the
 global bracket `TOP_50_PERCENT` (default), `TOP_20_PERCENT`, `TOP_5_PERCENT`
-or `TOP_1_PERCENT`. The server reads at most the newest 5 000 games of the
-mode and period.
+or `TOP_1_PERCENT`. The server reads at most the newest 5 000 events of the
+mode and period (Battlegrounds: Solo and Duos together, then filters).
 
 Every answer has `games` (count) and, when empty, the page shows «Установите
 Hearthpulse и войдите, чтобы игры появились здесь» with a link to the
@@ -348,8 +270,9 @@ loaded once a day; without them the page shows card art only.
 ## Development data
 
 `npx tsx scripts/dev-seed-player-games.ts --create-user` (or `--user <id>`,
-with `--reset` to replace them) writes about 550 realistic synthetic games
-through the same validation as uploads, and with `--create-user` prints a
+with `--reset` to replace them) writes about 570 realistic synthetic tracker
+events (`schemaVersion` 2) through the same validation and storage as
+uploads, and with `--create-user` prints a
 local session cookie. It writes only to `ECOSYSTEM_DB_FILE`, refuses
 `NODE_ENV=production` and the production database path, and takes real
 Battlegrounds hero and minion ids from HearthstoneJSON when it is reachable.

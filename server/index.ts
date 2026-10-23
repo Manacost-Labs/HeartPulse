@@ -162,6 +162,7 @@ import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { registerPlayerGames, registerPlayerGamesRateLimit } from './app/registerPlayerGames.js';
 import { createPlayerGamesGlobalSources } from './app/playerGamesGlobalSources.js';
 import { createCardNameLookup } from './app/cardNameLookup.js';
+import { validateStatisticsPayload } from './modules/playerGames/public.js';
 import { normalizeBoostyPaymentDates } from './modules/readerEntitlements/public.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
@@ -7183,8 +7184,9 @@ const applicationAuth = registerApplicationAuth({
   emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()),
   setPrivateNoStore,
 });
-registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore });
-registerPlayerGames({ app, getDatabase: db, accessTokens: browserIdentity?.accessTokens, userAuth, setPrivateNoStore,
+const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore,
+  validatePayload: validateStatisticsPayload });
+registerPlayerGames({ app, loadEvents: trackerEvents.listEvents, userAuth, setPrivateNoStore,
   hasEntitlement: requestHasEntitlementAccess, resolveCardNames: createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL }),
   global: createPlayerGamesGlobalSources({ loadArenaClasses: fetchFirestoneClassWinratesData,
     loadConstructedMeta: format => loadStandardMeta(format, 'all', 'past_week', 'any_player', 100) }) });

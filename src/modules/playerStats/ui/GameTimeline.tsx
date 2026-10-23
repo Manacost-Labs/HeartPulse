@@ -82,7 +82,8 @@ export function GameTimeline<T extends TimelinePoint>({ points, label, formatVal
         height={HEIGHT}
         onPointerMove={pick}
         onPointerDown={pick}
-        onPointerLeave={() => setActive(null)}
+        // A touch ends with pointerleave; only a mouse that leaves the chart clears the picked game.
+        onPointerLeave={event => { if (event.pointerType === 'mouse') setActive(null); }}
         onKeyDown={step}
         onBlur={() => setActive(null)}
       >

@@ -11,6 +11,7 @@ export const MODE_LABELS = {
 export const PERIOD_OPTIONS: Array<{ value: StatsPeriod; label: string }> = [
   { value: 'all', label: 'Всё время' },
   { value: 'season', label: 'Сезон' },
+  { value: '90', label: '90 дней' },
   { value: '30', label: '30 дней' },
   { value: '7', label: '7 дней' },
 ];

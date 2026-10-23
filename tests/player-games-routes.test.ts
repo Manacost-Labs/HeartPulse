@@ -1,40 +1,41 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
+import type { ApplicationAuthManager, ApplicationToken } from '../server/modules/applicationAuth/public.js';
+import { createPlayerStatsRouter, createPlayerStatsService, validateStatisticsPayload } from '../server/modules/playerGames/public.js';
 import {
-  createPlayerGameRouter,
-  createPlayerStatsRouter,
-  createPlayerStatsService,
-  createSqlitePlayerGameStore,
-  initializePlayerGameStore,
-  type GameUploadToken,
-} from '../server/modules/playerGames/public.js';
+  createSqliteTrackerEventRepository,
+  createTrackerIngestionRouter,
+  initializeTrackerEventRepository,
+} from '../server/modules/trackerIngestion/public.js';
 
 const database = new DatabaseSync(':memory:');
-database.exec('PRAGMA foreign_keys = ON; CREATE TABLE users (id TEXT PRIMARY KEY); INSERT INTO users(id) VALUES (\'user-1\');');
-initializePlayerGameStore(() => database);
-const store = createSqlitePlayerGameStore(() => database);
-
-const tokens: Record<string, GameUploadToken> = {
-  desktop: { userId: 'user-1', clientId: 'hearthpulse-desktop', scopes: ['openid', 'profile'] },
-  reader: { userId: 'user-1', clientId: 'manacost-reader', scopes: ['openid'] },
-};
-const verified: string[] = [];
+database.exec('PRAGMA foreign_keys = ON; CREATE TABLE users (id TEXT PRIMARY KEY); INSERT INTO users(id) VALUES (\'user-1\'), (\'user-2\');');
+initializeTrackerEventRepository(() => database);
+const repository = createSqliteTrackerEventRepository(() => database);
+const token = (userId: string): ApplicationToken => ({
+  id: `token-${userId}`, familyId: 'family', clientId: 'manacost-tracker', userId, scopes: ['tracker.write'],
+  accessTokenHash: 'unused', refreshTokenHash: 'unused', accessExpiresAt: Date.now() + 60_000,
+  refreshExpiresAt: Date.now() + 60_000, createdAt: Date.now(), revokedAt: null, replacedById: null,
+});
 let entitled = false;
 let globalCalls = 0;
 
 const app = express();
-app.use(express.json({ limit: '1mb' }));
-app.use('/api/v1', createPlayerGameRouter({
-  accessTokens: { verify: async value => { verified.push(value); return tokens[value] ?? null; } },
-  store,
-  setPrivateNoStore: response => response.set('Cache-Control', 'no-store'),
+app.use(express.json({ limit: '5mb' }));
+app.use('/api/v1', createTrackerIngestionRouter({
+  accessTokens: { authenticate: (value: unknown) => (value === 'one' ? token('user-1') : value === 'two' ? token('user-2') : null) } as
+    Pick<ApplicationAuthManager, 'authenticate'>,
+  repository,
+  setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
+  validatePayload: validateStatisticsPayload,
 }));
 app.use('/api', createPlayerStatsRouter({
   userAuth: request => (request.headers.cookie === 'session=1' ? { id: 'user-1' } : null),
   hasEntitlement: async () => entitled,
   service: createPlayerStatsService({
-    store,
+    loadEvents: repository.listEvents,
     global: {
       battlegroundsHeroes: async () => {
         globalCalls += 1;
@@ -58,90 +59,49 @@ const address = server.address();
 assert.ok(address && typeof address === 'object');
 const origin = `http://127.0.0.1:${address.port}`;
 
-const client = { name: 'hearthpulse-desktop', version: '1.4.0' };
-const bgGame = (id: string, placement: number, ratingAfter: number) => ({
-  id, mode: 'battlegrounds', startedAt: `2026-10-2${placement % 3}T18:0${placement}:00Z`, durationSeconds: 1200, client,
-  battlegrounds: { heroCardId: 'BG20_HERO_242', placement, ratingBefore: ratingAfter - 20, ratingAfter,
-    finalBoard: [{ cardId: 'BG25_008', attack: 10, health: 12, golden: false }],
-    combats: [{ turn: 1, result: 'win' }, { turn: 2, result: 'loss', damageTaken: 4 }],
-    heroOptions: ['BG20_HERO_242', 'BG22_HERO_000'] },
+const event = (type: string, occurredAt: string, payload: Record<string, unknown>, schemaVersion = 2) =>
+  ({ eventId: randomUUID(), type, schemaVersion, occurredAt, payload });
+const bg = (day: number, placement: number, ratingAfter: number) => event('battlegrounds_match', `2026-10-${day}T18:00:00Z`, {
+  durationSeconds: 1200, heroCardId: 'BG20_HERO_242', placement, ratingBefore: ratingAfter - 20, ratingAfter,
+  finalBoard: { minions: [{ cardId: 'BG25_008', attack: 10, health: 12, golden: false }] },
+  combats: [{ turn: 1, result: 'win' }, { turn: 2, result: 'loss', damageTaken: 4 }],
+  heroOptions: ['BG20_HERO_242', 'BG22_HERO_000'],
 });
-const arenaGame = (id: string, result: string, gameNumber: number) => ({
-  id, mode: 'arena', startedAt: `2026-10-22T1${gameNumber}:00:00Z`, durationSeconds: 600, result, client,
-  arena: { runId: 'arena-run-0001', playerClass: 'PALADIN', opponentClass: 'ROGUE', gameNumber },
+const arena = (game: number, result: string) => event('arena_match', `2026-10-22T1${game}:00:00Z`, {
+  durationSeconds: 600, result, runId: 'arena-run-0001', playerClass: 'PALADIN', opponentClass: 'ROGUE', gameNumber: game,
 });
-const post = (body: unknown, authorization = 'Bearer desktop') => fetch(`${origin}/api/v1/me/games`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', Authorization: authorization },
-  body: JSON.stringify(body),
+const upload = (events: unknown[], authorization = 'Bearer one') => fetch(`${origin}/api/v1/tracker/events/batch`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: authorization }, body: JSON.stringify({ events }),
 });
 const stats = (query: string, cookie = 'session=1') => fetch(`${origin}/api/account/game-stats?${query}`, { headers: { cookie } });
 
 try {
-  // Authorization at the route boundary.
-  const anonymous = await post({ games: [bgGame('bg-game-0001', 1, 6400)] }, '');
+  const games = [bg(20, 1, 6400), bg(21, 6, 6380), arena(1, 'win'), arena(2, 'loss'),
+    event('constructed_match', '2026-10-01T10:00:00Z', { matchId: 'legacy-v1', turns: 8 }, 1)];
+  const accepted = await (await upload(games)).json();
+  assert.equal(accepted.accepted.length, 5);
+  assert.equal((await (await upload(games)).json()).accepted.length, 5, 'a replay is acknowledged, not duplicated');
+  await upload([bg(22, 8, 1000)], 'Bearer two');
+
+  // Cookie session only, own events only.
+  const anonymous = await stats('mode=battlegrounds', '');
   assert.equal(anonymous.status, 401);
-  assert.equal(anonymous.headers.get('www-authenticate'), 'Bearer realm="HearthPulse"');
   assert.equal(anonymous.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(verified, []);
-  assert.equal((await post({ games: [bgGame('bg-game-0001', 1, 6400)] }, 'Bearer unknown')).status, 401);
-  const reader = await post({ games: [bgGame('bg-game-0001', 1, 6400)] }, 'Bearer reader');
-  assert.equal(reader.status, 403);
-  assert.equal((await reader.json()).error.code, 'CLIENT_NOT_ALLOWED');
-  assert.equal(database.prepare('SELECT COUNT(*) AS count FROM player_games').get()?.count, 0);
-
-  // Envelope validation happens before anything is written.
-  assert.equal((await post({ games: [] })).status, 400);
-  assert.equal((await post({ games: Array(51).fill(bgGame('bg-game-0001', 1, 6400)) })).status, 400);
-  const missingId = await post({ games: [bgGame('bg-game-0001', 1, 6400), { mode: 'arena' }] });
-  assert.equal(missingId.status, 400);
-  assert.equal((await missingId.json()).error.code, 'INVALID_BATCH');
-  assert.equal(database.prepare('SELECT COUNT(*) AS count FROM player_games').get()?.count, 0);
-
-  // Per-item results, idempotent replays.
-  const batch = { games: [bgGame('bg-game-0001', 1, 6400), bgGame('bg-game-0002', 6, 6380), arenaGame('arena-game-01', 'win', 1),
-    arenaGame('arena-game-02', 'loss', 2), { ...arenaGame('arena-game-03', 'win', 3), arena: { runId: 'x' } }] };
-  const accepted = await post(batch);
-  assert.equal(accepted.status, 200);
-  assert.deepEqual(await accepted.json(), { results: [
-    { id: 'bg-game-0001', status: 'created' },
-    { id: 'bg-game-0002', status: 'created' },
-    { id: 'arena-game-01', status: 'created' },
-    { id: 'arena-game-02', status: 'created' },
-    { id: 'arena-game-03', status: 'rejected', code: 'INVALID_GAME', field: 'arena.runId' },
-  ] });
-  const replay = await (await post(batch)).json();
-  assert.deepEqual(replay.results.slice(0, 4).map((result: { status: string }) => result.status),
-    ['unchanged', 'unchanged', 'unchanged', 'unchanged']);
-
-  // Sync listing with a cursor.
-  const firstPage = await fetch(`${origin}/api/v1/me/games?limit=3`, { headers: { Authorization: 'Bearer desktop' } });
-  assert.equal(firstPage.status, 200);
-  const page = await firstPage.json();
-  assert.equal(page.total, 4);
-  assert.deepEqual(page.byMode, { battlegrounds: 2, standard: 0, wild: 0, arena: 2 });
-  assert.equal(page.games.length, 3);
-  const secondPage = await (await fetch(`${origin}/api/v1/me/games?limit=3&before=${page.nextBefore}`,
-    { headers: { Authorization: 'Bearer desktop' } })).json();
-  assert.equal(secondPage.games.length, 1);
-  assert.equal(secondPage.nextBefore, null);
-  assert.equal((await fetch(`${origin}/api/v1/me/games?before=%%%`, { headers: { Authorization: 'Bearer desktop' } })).status, 400);
-
-  // Cookie statistics: no session, bad query, then subscription-gated comparisons.
-  assert.equal((await stats('mode=battlegrounds', '')).status, 401);
   assert.equal((await stats('mode=mercenaries')).status, 400);
+  assert.equal((await stats('mode=battlegrounds&period=year')).status, 400);
+
   const free = await (await stats('mode=battlegrounds')).json();
   assert.equal(free.games, 2);
   assert.equal(free.summary.highestRating, 6400);
   assert.equal(free.summary.averagePlacement, 3.5);
   assert.deepEqual(free.summary.placements, [1, 0, 0, 0, 0, 1, 0, 0]);
+  assert.deepEqual(free.ratingSeries.map((point: { rating: number }) => point.rating), [6400, 6380]);
   assert.equal(free.global.availability, 'subscription');
   assert.equal(free.heroes[0].global, null);
-  assert.equal(free.heroes[0].offered, 2);
-  assert.equal(free.heroes[0].picked, 2);
+  assert.deepEqual([free.heroes[0].offered, free.heroes[0].picked], [2, 2]);
   assert.deepEqual(free.heroes[0].combat, [{ turn: 1, winrate: 100, rounds: 2 }, { turn: 2, winrate: 0, rounds: 2 }]);
   assert.equal(free.cards.BG25_008, 'name:BG25_008');
-  assert.equal(globalCalls, 0);
+  assert.equal(globalCalls, 0, 'paid global data is not even requested without the entitlement');
 
   entitled = true;
   const paid = await (await stats('mode=battlegrounds&mmr=TOP_20_PERCENT')).json();
@@ -151,16 +111,21 @@ try {
   await stats('mode=battlegrounds&mmr=TOP_20_PERCENT');
   assert.equal(globalCalls, 1, 'global heroes are cached per query');
 
-  const duos = await (await stats('mode=battlegrounds&duos=1')).json();
-  assert.equal(duos.games, 0);
+  assert.equal((await (await stats('mode=battlegrounds&duos=1')).json()).games, 0);
+  assert.equal((await (await stats('mode=battlegrounds&period=7')).json()).games, 2);
 
-  const arena = await (await stats('mode=arena')).json();
-  assert.equal(arena.summary.runs, 1);
-  assert.deepEqual({ wins: arena.runs[0].wins, losses: arena.runs[0].losses }, { wins: 1, losses: 1 });
-  assert.equal(arena.global.availability, 'unavailable', 'a failing global source hides comparisons');
+  const arenaStats = await (await stats('mode=arena')).json();
+  assert.equal(arenaStats.summary.runs, 1);
+  assert.deepEqual([arenaStats.runs[0].wins, arenaStats.runs[0].losses], [1, 1]);
+  assert.equal(arenaStats.global.availability, 'unavailable', 'a failing global source hides comparisons');
 
-  const standard = await (await stats('mode=standard&period=7')).json();
-  assert.equal(standard.games, 0);
+  // The final arena_run record is the run's score, even before every game was uploaded.
+  await upload([event('arena_run', '2026-10-22T19:00:00Z', { runId: 'arena-run-0001', playerClass: 'PALADIN', wins: 5, losses: 3 })]);
+  const recorded = await (await stats('mode=arena')).json();
+  assert.deepEqual([recorded.runs[0].wins, recorded.runs[0].losses, recorded.runs[0].complete], [5, 3, true]);
+
+  const standard = await (await stats('mode=standard')).json();
+  assert.equal(standard.games, 0, 'an opaque v1 constructed event has no statistics');
 } finally {
   server.close();
 }

@@ -1,22 +1,17 @@
-import type { DatabaseSync } from 'node:sqlite';
 import type { Application, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
-  createPlayerGameRouter,
   createPlayerStatsRouter,
   createPlayerStatsService,
-  createSqlitePlayerGameStore,
-  initializePlayerGameStore,
-  type GameUploadToken,
   type GlobalStatisticsSources,
   type GlobalStatsEntitlement,
+  type LoadStatisticsEvents,
 } from '../modules/playerGames/public.js';
 
 type RegisterPlayerGamesDependencies = {
   app: Application;
-  getDatabase: () => DatabaseSync;
-  /** Undefined when browser identity is disabled: uploads then answer 503. */
-  accessTokens?: { verify: (token: string) => Promise<GameUploadToken | null> };
+  /** The tracker ingestion repository's event reader: the statistics never read its table directly. */
+  loadEvents: LoadStatisticsEvents;
   userAuth: (request: Request) => { id: string } | null;
   hasEntitlement: (request: Request, entitlement: GlobalStatsEntitlement) => Promise<boolean>;
   global: GlobalStatisticsSources;
@@ -24,25 +19,20 @@ type RegisterPlayerGamesDependencies = {
   setPrivateNoStore: (response: Response) => void;
 };
 
-/** Runs before the JSON parser, so floods are refused before their bodies are read. */
+/** Each statistics request aggregates up to 5 000 events, so it is limited before any work starts. */
 export function registerPlayerGamesRateLimit(app: Application): void {
-  app.use('/api/v1/me/games', rateLimit({ windowMs: 15 * 60_000, max: 120, standardHeaders: true, legacyHeaders: false }));
   app.use('/api/account/game-stats', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
 }
 
 export function registerPlayerGames(dependencies: RegisterPlayerGamesDependencies): void {
-  initializePlayerGameStore(dependencies.getDatabase);
-  const store = createSqlitePlayerGameStore(dependencies.getDatabase);
-  dependencies.app.use('/api/v1', createPlayerGameRouter({
-    accessTokens: dependencies.accessTokens ?? null,
-    store,
-    setPrivateNoStore: dependencies.setPrivateNoStore,
-    requiredScope: null,
-  }));
   dependencies.app.use('/api', createPlayerStatsRouter({
     userAuth: dependencies.userAuth,
     hasEntitlement: dependencies.hasEntitlement,
-    service: createPlayerStatsService({ store, global: dependencies.global, resolveCardNames: dependencies.resolveCardNames }),
+    service: createPlayerStatsService({
+      loadEvents: dependencies.loadEvents,
+      global: dependencies.global,
+      resolveCardNames: dependencies.resolveCardNames,
+    }),
     setPrivateNoStore: dependencies.setPrivateNoStore,
   }));
 }

@@ -301,7 +301,7 @@
       "name": "backend-player-games",
       "status": "modular",
       "owner": "identity-platform",
-      "purpose": "Own desktop-tracker game uploads, their storage and the personal statistics read model of the account page.",
+      "purpose": "Own the personal statistics read model of the account page over the tracker events, and the schemaVersion 2 statistics payload check the tracker ingestion applies.",
       "paths": [
         "server/modules/playerGames"
       ],
@@ -310,14 +310,6 @@
       ],
       "frontendRoutes": [],
       "backendRoutes": [
-        {
-          "method": "POST",
-          "path": "/api/v1/me/games"
-        },
-        {
-          "method": "GET",
-          "path": "/api/v1/me/games"
-        },
         {
           "method": "GET",
           "path": "/api/account/game-stats"
@@ -332,14 +324,11 @@
         "memory:player-games-global",
         "memory:card-names-ru"
       ],
-      "dataStores": [
-        "sqlite:player_games"
-      ],
+      "dataStores": [],
       "externalServices": [
-        "Hearthpulse desktop clients authorized through the browser identity provider"
+        "Global datasets of the site (HSReplay Battlegrounds mirror, HSGuru meta, Firestone Arena) and HearthstoneJSON names, injected by composition"
       ],
       "tests": [
-        "tests/player-games-access-tokens.test.ts",
         "tests/player-games-routes.test.ts",
         "tests/player-games-schema.test.ts"
       ],

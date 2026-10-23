@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { TrackerProfileEvent } from './model.js';
+import type { TrackerEventType, TrackerProfileEvent, TrackerSchemaVersion } from './model.js';
 
 export const TRACKER_EVENT_TABLES_SQL = `
   CREATE TABLE IF NOT EXISTS tracker_profile_events (
@@ -17,8 +17,12 @@ export const TRACKER_EVENT_TABLES_SQL = `
     ON tracker_profile_events(user_id, occurred_at DESC);
 `;
 
+export type TrackerEventQuery = { types: readonly TrackerEventType[]; since: string | null; limit: number };
+
 export type TrackerEventRepository = {
   acknowledge: (userId: string, events: readonly TrackerProfileEvent[], receivedAt: number) => void;
+  /** The account's newest events of the given types, newest first; payloads come back parsed. */
+  listEvents: (userId: string, query: TrackerEventQuery) => TrackerProfileEvent[];
 };
 
 export function createSqliteTrackerEventRepository(
@@ -50,6 +54,20 @@ export function createSqliteTrackerEventRepository(
         database.exec('ROLLBACK');
         throw error;
       }
+    },
+    listEvents(userId, query) {
+      if (!query.types.length) return [];
+      const rows = getDatabase().prepare(`SELECT event_id, event_type, schema_version, occurred_at, payload_json
+        FROM tracker_profile_events
+        WHERE user_id = ? AND event_type IN (${query.types.map(() => '?').join(', ')}) AND occurred_at >= ?
+        ORDER BY occurred_at DESC LIMIT ?`).all(userId, ...query.types, query.since ?? '', query.limit);
+      return rows.map(row => ({
+        eventId: String(row.event_id),
+        type: String(row.event_type) as TrackerEventType,
+        schemaVersion: Number(row.schema_version) as TrackerSchemaVersion,
+        occurredAt: String(row.occurred_at),
+        payload: JSON.parse(String(row.payload_json)) as Record<string, unknown>,
+      }));
     },
   };
 }

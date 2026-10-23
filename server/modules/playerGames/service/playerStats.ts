@@ -1,4 +1,5 @@
-import type { PlayerGame, PlayerGameMode } from '../model/game.js';
+import type { ArenaRunRecord, PlayerGame, PlayerGameMode } from '../model/game.js';
+import type { GameEventType, LoadStatisticsEvents } from '../model/events.js';
 import type { GlobalBattlegroundsHero, GlobalStatisticsSources } from '../model/globalSources.js';
 import {
   MAX_STATS_GAMES,
@@ -8,7 +9,7 @@ import {
   type PlayerStats,
   type StatsPeriod,
 } from '../model/stats.js';
-import type { PlayerGameStore } from '../repository/gameStore.js';
+import { statisticsFromEvent } from '../schema/gameSchema.js';
 import { buildArenaStats } from './arenaStats.js';
 import { buildBattlegroundsStats, type BattlegroundsGlobal } from './battlegroundsStats.js';
 import { buildConstructedStats } from './constructedStats.js';
@@ -16,16 +17,25 @@ import { buildConstructedStats } from './constructedStats.js';
 const GLOBAL_TTL_MS = 60 * 60_000;
 const GLOBAL_COMBAT_HEROES = 8;
 const MAX_CACHE_ENTRIES = 64;
+const EVENT_TYPES: Record<PlayerGameMode, GameEventType[]> = {
+  battlegrounds: ['battlegrounds_match'],
+  standard: ['constructed_match'],
+  wild: ['constructed_match'],
+  arena: ['arena_match', 'arena_run'],
+};
 
 export type PlayerStatsQuery = { mode: PlayerGameMode; period: StatsPeriod; duos: boolean; mmr: GlobalMmrFilter };
 
 export type PlayerStatsDependencies = {
-  store: PlayerGameStore;
+  /** The account's tracker events, newest first (the tracker ingestion repository). */
+  loadEvents: LoadStatisticsEvents;
   global: GlobalStatisticsSources;
   /** Localized names for card ids; missing names fall back to the id on the page. */
   resolveCardNames?: (cardIds: string[]) => Promise<Record<string, string>>;
   now?: () => number;
 };
+
+const isGame = (read: PlayerGame | ArenaRunRecord): read is PlayerGame => 'mode' in read;
 
 /** Shared by all accounts: global data does not depend on the viewer, only on the query. */
 function createTtlCache(now: () => number) {
@@ -42,7 +52,8 @@ function createTtlCache(now: () => number) {
 }
 
 /**
- * Reads the account's newest games of one mode and period and aggregates them.
+ * Reads the account's newest tracker events of one mode and period, as games,
+ * and aggregates them. Events without the statistics fields are skipped.
  * Paid global comparisons are requested only when the route says the viewer
  * may see them; a failing global source hides comparisons and never fails the page.
  */
@@ -96,11 +107,16 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
 
   return {
     async load(userId: string, query: PlayerStatsQuery, globalAllowed: boolean): Promise<PlayerStats> {
-      const games: PlayerGame[] = dependencies.store.loadGames(userId, {
-        mode: query.mode,
-        since: periodStart(query.period, now()),
-        limit: MAX_STATS_GAMES,
-      });
+      const since = periodStart(query.period, now());
+      const games: PlayerGame[] = [];
+      const runs: ArenaRunRecord[] = [];
+      for (const event of dependencies.loadEvents(userId, { types: EVENT_TYPES[query.mode],
+        since: since === null ? null : new Date(since).toISOString(), limit: MAX_STATS_GAMES })) {
+        const read = statisticsFromEvent(event);
+        if (!read) continue;
+        if (isGame(read)) games.push(read);
+        else runs.push(read);
+      }
       if (query.mode === 'battlegrounds') {
         const bgGames = games.filter((game): game is Extract<PlayerGame, { mode: 'battlegrounds' }> =>
           game.mode === 'battlegrounds' && game.battlegrounds.duos === query.duos);
@@ -117,7 +133,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
         const globalData = globalAllowed && arenaGames.length
           ? await attempt(arenaClasses && (() => cached('arena', arenaClasses)))
           : null;
-        return buildArenaStats(arenaGames, { period: query.period,
+        return buildArenaStats(arenaGames, runs, { period: query.period,
           global: { availability: availability(globalAllowed, Boolean(globalData?.length)) } }, globalData);
       }
       const format = query.mode;

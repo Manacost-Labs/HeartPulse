@@ -2,17 +2,16 @@ import {
   BATTLEGROUNDS_OFFER_KINDS,
   BATTLEGROUNDS_RACES,
   HEARTHSTONE_CLASSES,
-  MAX_GAME_BYTES,
-  PLAYER_GAME_MODES,
   battlegroundsResult,
   type ArenaDetail,
+  type ArenaRunRecord,
   type BattlegroundsDetail,
   type ConstructedDetail,
   type GameResult,
   type LadderRank,
   type PlayerGame,
-  type RejectionCode,
 } from '../model/game.js';
+import { GAME_EVENT_TYPES, type GameEventType, type StatisticsEvent } from '../model/events.js';
 import {
   CLIENT_ID_PATTERN,
   GameFieldError,
@@ -30,89 +29,23 @@ import {
 } from './fields.js';
 
 const RESULTS: readonly GameResult[] = ['win', 'loss', 'tie'];
-const EARLIEST_GAME_MS = Date.UTC(2014, 0, 1);
-const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?(?:Z|[+-]\d{2}:\d{2})$/;
 const DECK_CODE = /^[A-Za-z0-9+/=_-]{4,256}$/;
 
-export type GameValidation =
-  | { ok: true; game: PlayerGame }
-  | { ok: false; id: string | null; code: RejectionCode; field?: string };
+type Payload = Record<string, unknown>;
 
-/** Reads only the client id, so an otherwise invalid item can still be answered individually. */
-export function clientGameId(input: unknown): string | null {
-  if (!isObject(input) || typeof input.id !== 'string') return null;
-  return CLIENT_ID_PATTERN.test(input.id) ? input.id : null;
-}
-
-/**
- * Validates one uploaded game against `docs/specs/player-game-stats.md`.
- * Unknown fields are dropped, so stored content is exactly the documented shape.
- */
-export function validatePlayerGame(input: unknown, now: number): GameValidation {
-  const id = clientGameId(input);
-  if (!id || !isObject(input)) return { ok: false, id, code: 'INVALID_GAME', field: 'id' };
-  let serialized: string;
-  try {
-    serialized = JSON.stringify(input);
-  } catch {
-    return { ok: false, id, code: 'INVALID_GAME' };
-  }
-  if (Buffer.byteLength(serialized, 'utf8') > MAX_GAME_BYTES) return { ok: false, id, code: 'GAME_TOO_LARGE' };
-  if (typeof input.mode !== 'string' || !PLAYER_GAME_MODES.includes(input.mode as PlayerGame['mode'])) {
-    return { ok: false, id, code: 'UNSUPPORTED_MODE', field: 'mode' };
-  }
-  try {
-    return { ok: true, game: readGame(id, input, now) };
-  } catch (error) {
-    if (error instanceof GameFieldError) return { ok: false, id, code: 'INVALID_GAME', field: error.field };
-    throw error;
-  }
-}
-
-function readGame(id: string, input: Record<string, unknown>, now: number): PlayerGame {
-  const mode = input.mode as PlayerGame['mode'];
-  const startedAt = timestamp(input.startedAt, now);
-  const durationSeconds = integer(input.durationSeconds, 'durationSeconds', 0, 14_400);
-  const turns = optionalInteger(input.turns, 'turns', 0, 200);
-  const clientInput = object(input.client, 'client');
-  const client = {
-    name: pattern(clientInput.name, 'client.name', /^[a-z0-9-]{1,40}$/),
-    version: pattern(clientInput.version, 'client.version', /^[A-Za-z0-9.+-]{1,32}$/),
-  };
-  const base = { id, startedAt, durationSeconds, turns, client };
-  if (mode === 'battlegrounds') {
-    const battlegrounds = readBattlegrounds(object(input.battlegrounds, 'battlegrounds'));
-    return { ...base, mode, result: battlegroundsResult(battlegrounds.placement, battlegrounds.duos), battlegrounds };
-  }
-  const result = oneOf(input.result, 'result', RESULTS);
-  if (mode === 'arena') return { ...base, mode, result, arena: readArena(object(input.arena, 'arena')) };
-  return { ...base, mode, result, constructed: readConstructed(object(input.constructed, 'constructed')) };
-}
-
-function timestamp(value: unknown, now: number): number {
-  if (typeof value !== 'string' || value.length > 40 || !ISO_TIMESTAMP.test(value)) {
-    throw new GameFieldError('startedAt');
-  }
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed) || parsed < EARLIEST_GAME_MS || parsed > now + 86_400_000) {
-    throw new GameFieldError('startedAt');
-  }
-  return parsed;
-}
-
-function readBattlegrounds(input: Record<string, unknown>): BattlegroundsDetail {
-  const duos = optionalBoolean(input.duos, 'battlegrounds.duos', false) as boolean;
+function readBattlegrounds(input: Payload): BattlegroundsDetail {
+  const duos = optionalBoolean(input.duos, 'duos', false) as boolean;
+  const board = input.finalBoard === undefined || input.finalBoard === null ? {} : object(input.finalBoard, 'finalBoard');
   return {
-    heroCardId: cardId(input.heroCardId, 'battlegrounds.heroCardId'),
-    placement: integer(input.placement, 'battlegrounds.placement', 1, duos ? 4 : 8),
+    heroCardId: cardId(input.heroCardId, 'heroCardId'),
+    placement: integer(input.placement, 'placement', 1, duos ? 4 : 8),
     duos,
-    ratingBefore: optionalInteger(input.ratingBefore, 'battlegrounds.ratingBefore', 0, 30_000),
-    ratingAfter: optionalInteger(input.ratingAfter, 'battlegrounds.ratingAfter', 0, 30_000),
-    anomalyCardId: optionalCardId(input.anomalyCardId, 'battlegrounds.anomalyCardId'),
-    races: [...new Set(list(input.races, 'battlegrounds.races', 6,
-      (race, field) => oneOf(race, field, BATTLEGROUNDS_RACES)))].sort(),
-    tavernTier: optionalInteger(input.tavernTier, 'battlegrounds.tavernTier', 1, 7),
-    finalBoard: list(input.finalBoard, 'battlegrounds.finalBoard', 7, (item, field) => {
+    ratingBefore: optionalInteger(input.ratingBefore, 'ratingBefore', 0, 30_000),
+    ratingAfter: optionalInteger(input.ratingAfter, 'ratingAfter', 0, 30_000),
+    anomalyCardId: optionalCardId(input.anomalyCardId, 'anomalyCardId'),
+    races: [...new Set(list(input.races, 'races', 6, (race, field) => oneOf(race, field, BATTLEGROUNDS_RACES)))].sort(),
+    tavernTier: optionalInteger(input.tavernTier, 'tavernTier', 1, 7),
+    finalBoard: list(board.minions, 'finalBoard.minions', 7, (item, field) => {
       const minion = object(item, field);
       return {
         cardId: cardId(minion.cardId, `${field}.cardId`),
@@ -121,7 +54,7 @@ function readBattlegrounds(input: Record<string, unknown>): BattlegroundsDetail 
         golden: optionalBoolean(minion.golden, `${field}.golden`, false) as boolean,
       };
     }),
-    combats: list(input.combats, 'battlegrounds.combats', 60, (item, field) => {
+    combats: list(input.combats, 'combats', 60, (item, field) => {
       const combat = object(item, field);
       return {
         turn: integer(combat.turn, `${field}.turn`, 1, 60),
@@ -131,8 +64,8 @@ function readBattlegrounds(input: Record<string, unknown>): BattlegroundsDetail 
         opponentHeroCardId: optionalCardId(combat.opponentHeroCardId, `${field}.opponentHeroCardId`),
       };
     }),
-    heroOptions: list(input.heroOptions, 'battlegrounds.heroOptions', 4, cardId),
-    offers: list(input.offers, 'battlegrounds.offers', 80, (item, field) => {
+    heroOptions: list(input.heroOptions, 'heroOptions', 4, cardId),
+    offers: list(input.offers, 'offers', 80, (item, field) => {
       const offer = object(item, field);
       return {
         turn: integer(offer.turn, `${field}.turn`, 0, 60),
@@ -157,33 +90,106 @@ function optionalDeckCode(value: unknown, field: string): string | null {
   return value === undefined || value === null ? null : pattern(value, field, DECK_CODE);
 }
 
-function readConstructed(input: Record<string, unknown>): ConstructedDetail {
+function readConstructed(input: Payload): ConstructedDetail {
   return {
-    ranked: optionalBoolean(input.ranked, 'constructed.ranked', true) as boolean,
-    playerClass: oneOf(input.playerClass, 'constructed.playerClass', HEARTHSTONE_CLASSES),
-    opponentClass: oneOf(input.opponentClass, 'constructed.opponentClass', HEARTHSTONE_CLASSES),
-    heroCardId: optionalCardId(input.heroCardId, 'constructed.heroCardId'),
-    opponentHeroCardId: optionalCardId(input.opponentHeroCardId, 'constructed.opponentHeroCardId'),
-    deckCode: optionalDeckCode(input.deckCode, 'constructed.deckCode'),
-    deckName: optionalText(input.deckName, 'constructed.deckName', 80),
-    archetype: optionalText(input.archetype, 'constructed.archetype', 80),
-    opponentArchetype: optionalText(input.opponentArchetype, 'constructed.opponentArchetype', 80),
-    wentFirst: optionalBoolean(input.wentFirst, 'constructed.wentFirst', null),
-    rankBefore: readRank(input.rankBefore, 'constructed.rankBefore'),
-    rankAfter: readRank(input.rankAfter, 'constructed.rankAfter'),
+    ranked: optionalBoolean(input.ranked, 'ranked', true) as boolean,
+    playerClass: oneOf(input.playerClass, 'playerClass', HEARTHSTONE_CLASSES),
+    opponentClass: oneOf(input.opponentClass, 'opponentClass', HEARTHSTONE_CLASSES),
+    heroCardId: optionalCardId(input.heroCardId, 'heroCardId'),
+    opponentHeroCardId: optionalCardId(input.opponentHeroCardId, 'opponentHeroCardId'),
+    deckCode: optionalDeckCode(input.deckCode, 'deckCode'),
+    deckName: optionalText(input.deckName, 'deckName', 80),
+    archetype: optionalText(input.archetype, 'archetype', 80),
+    opponentArchetype: optionalText(input.opponentArchetype, 'opponentArchetype', 80),
+    wentFirst: optionalBoolean(input.wentFirst, 'wentFirst', null),
+    rankBefore: readRank(input.rankBefore, 'rankBefore'),
+    rankAfter: readRank(input.rankAfter, 'rankAfter'),
   };
 }
 
-function readArena(input: Record<string, unknown>): ArenaDetail {
+function readArena(input: Payload): ArenaDetail {
   return {
-    runId: pattern(input.runId, 'arena.runId', CLIENT_ID_PATTERN),
-    playerClass: oneOf(input.playerClass, 'arena.playerClass', HEARTHSTONE_CLASSES),
-    opponentClass: oneOf(input.opponentClass, 'arena.opponentClass', HEARTHSTONE_CLASSES),
-    gameNumber: integer(input.gameNumber, 'arena.gameNumber', 1, 20),
-    winsBefore: optionalInteger(input.winsBefore, 'arena.winsBefore', 0, 12),
-    lossesBefore: optionalInteger(input.lossesBefore, 'arena.lossesBefore', 0, 3),
-    underground: optionalBoolean(input.underground, 'arena.underground', false) as boolean,
-    wentFirst: optionalBoolean(input.wentFirst, 'arena.wentFirst', null),
-    deckCode: optionalDeckCode(input.deckCode, 'arena.deckCode'),
+    runId: pattern(input.runId, 'runId', CLIENT_ID_PATTERN),
+    playerClass: oneOf(input.playerClass, 'playerClass', HEARTHSTONE_CLASSES),
+    opponentClass: oneOf(input.opponentClass, 'opponentClass', HEARTHSTONE_CLASSES),
+    gameNumber: integer(input.gameNumber, 'gameNumber', 1, 20),
+    winsBefore: optionalInteger(input.winsBefore, 'winsBefore', 0, 12),
+    lossesBefore: optionalInteger(input.lossesBefore, 'lossesBefore', 0, 3),
+    underground: optionalBoolean(input.underground, 'underground', false) as boolean,
+    wentFirst: optionalBoolean(input.wentFirst, 'wentFirst', null),
+    deckCode: optionalDeckCode(input.deckCode, 'deckCode'),
   };
+}
+
+function readCommon(input: Payload, resultRequired: boolean) {
+  return {
+    durationSeconds: integer(input.durationSeconds, 'durationSeconds', 0, 14_400),
+    turns: optionalInteger(input.turns, 'turns', 0, 200),
+    result: resultRequired ? oneOf(input.result, 'result', RESULTS) : null,
+  };
+}
+
+/** Throws `GameFieldError` on the first invalid statistics field of a game or run payload. */
+function readPayload(type: GameEventType, input: Payload): unknown {
+  if (type === 'arena_run') {
+    return {
+      runId: pattern(input.runId, 'runId', CLIENT_ID_PATTERN),
+      playerClass: oneOf(input.playerClass, 'playerClass', HEARTHSTONE_CLASSES),
+      wins: integer(input.wins, 'wins', 0, 12),
+      losses: integer(input.losses, 'losses', 0, 3),
+      complete: optionalBoolean(input.complete, 'complete', null),
+      underground: optionalBoolean(input.underground, 'underground', false) as boolean,
+    };
+  }
+  if (type === 'battlegrounds_match') return { ...readCommon(input, false), battlegrounds: readBattlegrounds(input) };
+  if (type === 'arena_match') return { ...readCommon(input, true), arena: readArena(input) };
+  const format = oneOf(input.format, 'format', ['standard', 'wild'] as const);
+  return { ...readCommon(input, true), format, constructed: readConstructed(input) };
+}
+
+const isGameEventType = (type: string): type is GameEventType => GAME_EVENT_TYPES.includes(type as GameEventType);
+
+/**
+ * The tracker ingestion's payload check for `schemaVersion` 2: game and run
+ * events must carry the documented statistics fields. Version 1 stays the
+ * original opaque payload, and other event types are not checked here. The
+ * payload is stored as sent, so v1 fields such as `playerMulligan` survive.
+ */
+export function validateStatisticsPayload(type: string, schemaVersion: number, payload: Payload)
+  : { ok: true; payload: Payload } | { ok: false; field?: string } {
+  if (schemaVersion < 2 || !isGameEventType(type)) return { ok: true, payload };
+  try {
+    readPayload(type, payload);
+    return { ok: true, payload };
+  } catch (error) {
+    if (error instanceof GameFieldError) return { ok: false, field: error.field };
+    throw error;
+  }
+}
+
+/**
+ * Reads one stored event as a game or an Arena run. A version 1 payload is
+ * read the same way when it happens to carry the fields; otherwise it has no
+ * statistics and `null` is returned.
+ */
+export function statisticsFromEvent(event: StatisticsEvent): PlayerGame | ArenaRunRecord | null {
+  if (!isGameEventType(event.type) || !isObject(event.payload)) return null;
+  const startedAt = Date.parse(event.occurredAt);
+  if (!Number.isFinite(startedAt)) return null;
+  let read: Record<string, unknown>;
+  try {
+    read = readPayload(event.type, event.payload) as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof GameFieldError) return null;
+    throw error;
+  }
+  if (event.type === 'arena_run') return { ...(read as Omit<ArenaRunRecord, 'occurredAt'>), occurredAt: startedAt };
+  const base = { id: event.eventId, startedAt, durationSeconds: read.durationSeconds as number, turns: read.turns as number | null };
+  if (event.type === 'battlegrounds_match') {
+    const battlegrounds = read.battlegrounds as BattlegroundsDetail;
+    return { ...base, mode: 'battlegrounds', result: battlegroundsResult(battlegrounds.placement, battlegrounds.duos), battlegrounds };
+  }
+  if (event.type === 'arena_match') return { ...base, mode: 'arena', result: read.result as GameResult, arena: read.arena as ArenaDetail };
+  return { ...base, mode: read.format as 'standard' | 'wild', result: read.result as GameResult,
+    constructed: read.constructed as ConstructedDetail };
 }

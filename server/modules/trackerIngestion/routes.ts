@@ -3,6 +3,7 @@ import type { ApplicationAuthManager } from '../applicationAuth/public.js';
 import {
   TRACKER_MAX_BATCH_EVENTS,
   validateTrackerProfileEvent,
+  type TrackerPayloadValidator,
   type TrackerProfileEvent,
 } from './model.js';
 import type { TrackerEventRepository } from './repository.js';
@@ -11,6 +12,7 @@ type TrackerIngestionRouterDependencies = {
   accessTokens: Pick<ApplicationAuthManager, 'authenticate'>;
   repository: TrackerEventRepository;
   setPrivateNoStore: (response: Response) => void;
+  validatePayload?: TrackerPayloadValidator;
   now?: () => number;
 };
 
@@ -48,13 +50,13 @@ export function createTrackerIngestionRouter(
     }
 
     const valid: TrackerProfileEvent[] = [];
-    const rejected: Array<{ eventId: string; code: string }> = [];
+    const rejected: Array<{ eventId: string; code: string; field?: string }> = [];
     for (const input of events) {
-      const result = validateTrackerProfileEvent(input);
+      const result = validateTrackerProfileEvent(input, dependencies.validatePayload);
       if (result.ok === true) {
         valid.push(result.event);
       } else if (result.eventId) {
-        rejected.push({ eventId: result.eventId, code: result.code });
+        rejected.push({ eventId: result.eventId, code: result.code, ...(result.field ? { field: result.field } : {}) });
       } else {
         return response.status(400).json(apiError('INVALID_EVENT_ID', 'Every event needs a valid eventId'));
       }

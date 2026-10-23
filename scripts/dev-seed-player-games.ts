@@ -1,18 +1,26 @@
 /**
- * Development only: fills a local account with realistic synthetic games so the
- * account statistics can be viewed without the desktop tracker.
+ * Development only: fills a local account with realistic synthetic tracker
+ * events (schemaVersion 2) so the account statistics can be viewed without the
+ * desktop tracker.
  *
  *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --create-user
  *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --user <id> [--reset]
  *
  * It writes only to ECOSYSTEM_DB_FILE, refuses NODE_ENV=production and the
- * production database path, and goes through the same validation as uploads.
+ * production database path, and goes through the same validation and storage
+ * as `POST /api/v1/tracker/events/batch`.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { createSqlitePlayerGameStore, ingestGameBatch, initializePlayerGameStore } from '../server/modules/playerGames/public.js';
+import { validateStatisticsPayload } from '../server/modules/playerGames/public.js';
+import {
+  createSqliteTrackerEventRepository,
+  initializeTrackerEventRepository,
+  validateTrackerProfileEvent,
+  type TrackerProfileEvent,
+} from '../server/modules/trackerIngestion/public.js';
 
 const PRODUCTION_DB = '/var/lib/manacost-ecosystem/users.sqlite';
 const args = process.argv.slice(2);
@@ -31,7 +39,6 @@ let state = 20261023;
 const random = () => { state = (state * 1664525 + 1013904223) % 4294967296; return state / 4294967296; };
 const between = (low: number, high: number) => Math.floor(low + random() * (high - low + 1));
 const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)];
-const client = { name: 'hearthpulse-desktop', version: '1.4.0' };
 const DAY = 86_400_000;
 const now = Date.now();
 
@@ -86,7 +93,7 @@ function battlegroundsGames(heroes: string[], minions: Card[]) {
     });
     return {
       id: `seed-bg-${index.toString().padStart(4, '0')}`, mode: 'battlegrounds', startedAt: new Date(startedAt).toISOString(),
-      durationSeconds: 600 + turns * 95 + between(0, 120), turns, client,
+      durationSeconds: 600 + turns * 95 + between(0, 120), turns,
       battlegrounds: { heroCardId: hero, placement, duos: false, ratingBefore, ratingAfter: rating, tavernTier: tier,
         finalBoard: board, combats, heroOptions: options.sort() },
     };
@@ -117,7 +124,7 @@ function constructedGames(mode: 'standard' | 'wild', count: number) {
     return {
       id: `seed-${mode}-${index.toString().padStart(4, '0')}`, mode,
       startedAt: new Date(now - (count - index) * (75 / count) * DAY).toISOString(),
-      durationSeconds: turns * between(45, 70), result: win ? 'win' : 'loss', turns, client,
+      durationSeconds: turns * between(45, 70), result: win ? 'win' : 'loss', turns,
       constructed: { ranked: index % 9 !== 0, playerClass: deck.playerClass, opponentClass, deckCode: deck.deckCode,
         deckName: deck.deckName, archetype: deck.archetype, wentFirst: random() < 0.5, rankBefore,
         rankAfter: { starLevel, stars, ...(starLevel === 51 ? { legendRank } : {}) } },
@@ -139,7 +146,7 @@ function arenaGames() {
       games.push({
         id: `${runId}-g${(wins + losses + 1).toString().padStart(2, '0')}`, mode: 'arena',
         startedAt: new Date(startedAt + (wins + losses) * 1_200_000).toISOString(), durationSeconds: between(420, 900),
-        result: win ? 'win' : 'loss', turns: between(7, 13), client,
+        result: win ? 'win' : 'loss', turns: between(7, 13),
         arena: { runId, playerClass, opponentClass: pick(CLASSES), gameNumber: wins + losses + 1, winsBefore: wins,
           lossesBefore: losses, wentFirst: random() < 0.5 },
       });
@@ -147,6 +154,51 @@ function arenaGames() {
     }
   }
   return games;
+}
+
+type SeedGame = {
+  id: string;
+  mode: string;
+  startedAt: string;
+  durationSeconds: number;
+  turns: number;
+  result?: string;
+  battlegrounds?: Record<string, unknown>;
+  constructed?: Record<string, unknown>;
+  arena?: Record<string, unknown> & { runId: string; playerClass: string };
+};
+
+/** A stable UUID per synthetic game, so seeding twice stores nothing new. */
+function eventId(seedId: string): string {
+  const hex = createHash('sha256').update(seedId).digest('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+/** The tracker event a desktop client would send for one synthetic game (docs/specs/player-game-stats.md). */
+function toEvent(game: SeedGame) {
+  const common = { durationSeconds: game.durationSeconds, turns: game.turns };
+  const envelope = { eventId: eventId(game.id), schemaVersion: 2, occurredAt: game.startedAt };
+  if (game.mode === 'battlegrounds') {
+    const { finalBoard, ...battlegrounds } = game.battlegrounds ?? {};
+    return { ...envelope, type: 'battlegrounds_match', payload: { ...common, ...battlegrounds, finalBoard: { minions: finalBoard } } };
+  }
+  if (game.mode === 'arena') return { ...envelope, type: 'arena_match', payload: { ...common, result: game.result, ...game.arena } };
+  return { ...envelope, type: 'constructed_match', payload: { ...common, format: game.mode, result: game.result, ...game.constructed } };
+}
+
+/** One final `arena_run` record per finished synthetic run. */
+function arenaRunEvents(games: SeedGame[]) {
+  const runs = new Map<string, SeedGame[]>();
+  for (const game of games) {
+    if (game.arena) runs.set(game.arena.runId, [...(runs.get(game.arena.runId) ?? []), game]);
+  }
+  return [...runs.entries()].flatMap(([runId, runGames]) => {
+    const wins = runGames.filter(game => game.result === 'win').length;
+    const losses = runGames.length - wins;
+    if (wins < 12 && losses < 3) return [];
+    return [{ eventId: eventId(`${runId}-run`), type: 'arena_run', schemaVersion: 2, occurredAt: runGames[runGames.length - 1].startedAt,
+      payload: { runId, playerClass: runGames[0].arena?.playerClass, wins, losses, complete: true } }];
+  });
 }
 
 mkdirSync(dirname(dbFile), { recursive: true });
@@ -172,16 +224,18 @@ if (!userId) {
   console.error('[seed-player-games] pass --user <id> or --create-user');
   process.exit(1);
 }
-initializePlayerGameStore(() => database);
-if (args.includes('--reset')) database.prepare('DELETE FROM player_games WHERE user_id = ?').run(userId);
-const store = createSqlitePlayerGameStore(() => database);
+initializeTrackerEventRepository(() => database);
+if (args.includes('--reset')) database.prepare('DELETE FROM tracker_profile_events WHERE user_id = ?').run(userId);
+const repository = createSqliteTrackerEventRepository(() => database);
 const { heroes, minions } = await battlegroundsCards();
-const games = [...battlegroundsGames(heroes, minions), ...constructedGames('standard', 160), ...constructedGames('wild', 40), ...arenaGames()];
-const counts: Record<string, number> = {};
-for (let offset = 0; offset < games.length; offset += 50) {
-  for (const result of ingestGameBatch(store, userId, games.slice(offset, offset + 50), now)) {
-    counts[result.status] = (counts[result.status] ?? 0) + 1;
-    if (result.status === 'rejected') console.warn('[seed-player-games] rejected', result);
-  }
+const games = [...battlegroundsGames(heroes, minions), ...constructedGames('standard', 160), ...constructedGames('wild', 40),
+  ...arenaGames()] as SeedGame[];
+const events: TrackerProfileEvent[] = [];
+let rejected = 0;
+for (const input of [...games.map(toEvent), ...arenaRunEvents(games)]) {
+  const result = validateTrackerProfileEvent(input, validateStatisticsPayload);
+  if (result.ok === true) events.push(result.event);
+  else { rejected += 1; console.warn('[seed-player-games] rejected', result); }
 }
-console.log(`[seed-player-games] ${dbFile}: ${JSON.stringify(counts)}`);
+repository.acknowledge(userId, events, now);
+console.log(`[seed-player-games] ${dbFile}: ${events.length} events acknowledged (replays are ignored), ${rejected} rejected`);

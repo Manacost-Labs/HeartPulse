@@ -8,10 +8,21 @@ export const TRACKER_EVENT_TYPES = [
 ] as const;
 
 export type TrackerEventType = typeof TRACKER_EVENT_TYPES[number];
+/** 1 is the original opaque payload; 2 adds the documented statistics fields (docs/specs/player-game-stats.md). */
+export const TRACKER_SCHEMA_VERSIONS = [1, 2] as const;
+export type TrackerSchemaVersion = typeof TRACKER_SCHEMA_VERSIONS[number];
+
+/**
+ * Optional strict check of a payload, supplied by the composition root so this
+ * module stays independent of the statistics domain. It may return a
+ * normalized payload (unknown fields dropped) that is stored instead.
+ */
+export type TrackerPayloadValidator = (type: TrackerEventType, schemaVersion: TrackerSchemaVersion, payload: Record<string, unknown>)
+  => { ok: true; payload: Record<string, unknown> } | { ok: false; field?: string };
 export type TrackerProfileEvent = {
   eventId: string;
   type: TrackerEventType;
-  schemaVersion: 1;
+  schemaVersion: TrackerSchemaVersion;
   occurredAt: string;
   payload: Record<string, unknown>;
 };
@@ -49,9 +60,9 @@ const listLimits: Partial<Record<TrackerEventType, Array<[string, number]>>> = {
 
 export type TrackerEventValidation =
   | { ok: true; event: TrackerProfileEvent }
-  | { ok: false; eventId: string | null; code: 'INVALID_EVENT' | 'EVENT_LIMIT_EXCEEDED' };
+  | { ok: false; eventId: string | null; code: 'INVALID_EVENT' | 'EVENT_LIMIT_EXCEEDED'; field?: string };
 
-export function validateTrackerProfileEvent(input: unknown): TrackerEventValidation {
+export function validateTrackerProfileEvent(input: unknown, validatePayload?: TrackerPayloadValidator): TrackerEventValidation {
   if (!isRecord(input)) return invalid(null);
   const eventId = typeof input.eventId === 'string' && UUID_PATTERN.test(input.eventId)
     ? input.eventId.toLowerCase()
@@ -62,7 +73,7 @@ export function validateTrackerProfileEvent(input: unknown): TrackerEventValidat
     : null;
   if (
     !type
-    || input.schemaVersion !== 1
+    || !TRACKER_SCHEMA_VERSIONS.includes(input.schemaVersion as TrackerSchemaVersion)
     || typeof input.occurredAt !== 'string'
     || input.occurredAt.length > 64
     || !ISO_TIMESTAMP_PATTERN.test(input.occurredAt)
@@ -85,14 +96,18 @@ export function validateTrackerProfileEvent(input: unknown): TrackerEventValidat
     return { ok: false, eventId, code: 'EVENT_LIMIT_EXCEEDED' };
   }
 
+  const schemaVersion = input.schemaVersion as TrackerSchemaVersion;
+  const checked = validatePayload ? validatePayload(type, schemaVersion, input.payload) : { ok: true as const, payload: input.payload };
+  if (checked.ok !== true) return { ok: false, eventId, code: 'INVALID_EVENT', ...(checked.field ? { field: checked.field } : {}) };
+
   return {
     ok: true,
     event: {
       eventId,
       type,
-      schemaVersion: 1,
+      schemaVersion,
       occurredAt: new Date(input.occurredAt).toISOString(),
-      payload: input.payload,
+      payload: checked.payload,
     },
   };
 }

@@ -71,8 +71,8 @@ export function buildConstructedStats(
     const deck = tally(decks, deckKey, () => ({ key: deckKey, deckCode: detail.deckCode, deckName: detail.deckName,
       archetype: detail.archetype, playerClass: detail.playerClass, lastPlayedAt: game.startedAt, games: 0, wins: 0 }), game);
     deck.lastPlayedAt = Math.max(deck.lastPlayedAt, game.startedAt);
-    if (detail.archetype) {
-      tally(archetypes, archetypeKey(detail.archetype), () => ({ archetype: detail.archetype as string,
+    if (detail.archetype && archetypeKey(detail.archetype)) {
+      tally(archetypes, `${detail.playerClass}:${archetypeKey(detail.archetype)}`, () => ({ archetype: detail.archetype as string,
         playerClass: detail.playerClass, globalWinrate: globalRate.archetype(detail.archetype as string), games: 0, wins: 0 }), game);
     }
     tally(classes, detail.playerClass, () => ({ playerClass: detail.playerClass,

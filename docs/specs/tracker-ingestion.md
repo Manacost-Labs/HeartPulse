@@ -25,7 +25,10 @@ The JSON envelope contains `events`, with 1–50 items. Each event has:
 - `eventId`: UUID idempotency key;
 - `type`: `constructed_match`, `arena_match`, `arena_run`,
   `arena_draft_pick`, `battlegrounds_match`, or `collection_snapshot`;
-- `schemaVersion`: currently exactly `1`;
+- `schemaVersion`: `1` (opaque payload) or `2` (game and run payloads carry
+  the statistics fields of [player game statistics](player-game-stats.md),
+  checked strictly; an invalid one is rejected with `INVALID_EVENT` and
+  `field`, its first invalid field);
 - `occurredAt`: ISO 8601 timestamp;
 - `payload`: a JSON object using the matching IceCrow v1 record shape.
 
@@ -62,5 +65,6 @@ forever.
 
 HearthPulse stores the normalized envelope fields and the bounded JSON payload
 in SQLite table `tracker_profile_events`, owned by the tracker-ingestion module.
+The account statistics read it only through the module's `listEvents`.
 Rows are tied to the approving HearthPulse user and cascade-delete with that
 user. Tokens are never written to this table or application logs.

@@ -50,7 +50,7 @@ function heroStats(heroCardId: string, games: BattlegroundsGame[], slots: number
     combat: [...rounds.entries()].sort(([left], [right]) => left - right)
       .map(([turn, value]) => ({ turn, winrate: rate(value.wins, value.total) ?? 0, rounds: value.total })),
     offered,
-    picked: games.filter(game => game.battlegrounds.heroOptions.length > 0).length,
+    picked: games.filter(game => game.battlegrounds.heroOptions.includes(heroCardId)).length,
     global: globalHero ? {
       averagePlacement: globalHero.averagePlacement,
       pickRatePercent: globalHero.pickRatePercent,
@@ -62,8 +62,9 @@ function heroStats(heroCardId: string, games: BattlegroundsGame[], slots: number
 
 /**
  * Aggregates Battlegrounds games (newest first) into the account statistics.
- * A hero counts as offered only in games whose client reported the hero choice,
- * so the personal pick rate is never diluted by games without that data.
+ * A hero counts as offered and picked only in games whose client reported the
+ * hero choice with that hero among the options, so the pick rate stays within
+ * 0–100% and is not diluted by games without that data.
  */
 export function buildBattlegroundsStats(
   games: readonly BattlegroundsGame[],
