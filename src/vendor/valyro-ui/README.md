@@ -72,8 +72,8 @@ console above; the copy here is the newer registry file, whose keyboard
 helper also accepts a vertical orientation. Files that already existed were
 kept as they are (the CLI does not overwrite them). The KPI group, data
 table, empty state, segmented control and button of the statistics are the
-VaryloUI copies the site already uses, so no second set of those widgets is vendored here. The
-statistics do not import `valyro-ui/styles` either: the composition
-`src/features/playerStats/` uses the VaryloUI base, the shared parchment
-mapping and, in `PlayerStatsPanel.css`, the theme-only tokens these widgets
-read.
+VaryloUI copies the site already uses, so no second set of those widgets is
+vendored here. The statistics do not import `valyro-ui/styles` either: the
+composition `src/features/playerStats/` uses the VaryloUI base, the shared
+parchment mapping and, in `PlayerStatsPanel.css`, the theme-only tokens these
+widgets read.
