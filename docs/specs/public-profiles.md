@@ -82,7 +82,13 @@ the old link answers `404` meanwhile.
   the card on the server from the anonymous projection (`lib/publicProfile.ts`
   reads it through `fetchPublicExpress()` without cookies and copies only the
   contract's fields). Missing and blocked profiles are the site's `404`.
-  Metadata: title `<displayName> — профиль игрока | HearthPulse`,
+  The page (`PublicProfileCard`) is one identity plate — portrait (the
+  initials, or the site mark before a nickname exists), «Профиль игрока»,
+  the display name, the member-since month, the «Подписчик» badge and
+  «Скопировать ссылку» — and one section about HearthPulse that invites the
+  visitor to create a profile («Мой кабинет» for a signed-in viewer).
+  Metadata: title `<displayName> — профиль игрока | HearthPulse`, a
+  description built only from the display name and the subscriber flag,
   `robots: noindex, follow`, `rel=canonical` to `https://hearthpulse.net/id/<n>/`,
   Open Graph `profile` with the site share image (there are no profile images)
   and a large Twitter card, so links preview in Telegram and Discord.

@@ -1,22 +1,26 @@
 import { useState } from 'react';
-import { BadgeCheck, CalendarDays, Copy, Home } from 'lucide-react';
+import { BadgeCheck, CalendarDays, Check, Copy, Sparkles } from 'lucide-react';
 import type { PublicProfile } from '../model/publicProfile';
 import { memberSinceLabel } from '../model/publicProfile';
-import type { ProfileIdentityBadge } from './ProfileIdentityHero';
-import ProfileIdentityHero from './ProfileIdentityHero';
-import './IdentityProfile.css';
-import './PublicProfilePage.css';
+import AuthAvatar from './AuthAvatar';
+import './IdentityPlate.css';
+import './PublicProfileCard.css';
 
 export type PublicProfileCardProps = {
   profile: PublicProfile;
   onCopyLink: () => Promise<void> | void;
+  /** The viewer is signed in: the invitation leads to their own account instead of sign-up. */
+  signedIn?: boolean;
 };
+
+/** A player without a nickname has no initials of their own; the site's mark stands in. */
+const NEUTRAL_PORTRAIT = '/arena-logo-icon-256.webp';
 
 /**
  * The public player card at `/id/<n>/`. It renders only the fields of the
  * public projection; everything here is visible to anyone with the link.
  */
-export default function PublicProfileCard({ profile, onCopyLink }: PublicProfileCardProps) {
+export default function PublicProfileCard({ profile, onCopyLink, signedIn = false }: PublicProfileCardProps) {
   const [copied, setCopied] = useState(false);
   const copyLink = async () => {
     try {
@@ -28,35 +32,50 @@ export default function PublicProfileCard({ profile, onCopyLink }: PublicProfile
     }
   };
   const since = memberSinceLabel(profile.memberSince);
-  const badges: ProfileIdentityBadge[] = [
-    ...(since ? [{ label: since, icon: <CalendarDays size={14} aria-hidden="true" /> }] : []),
-    ...(profile.isSubscriber ? [{ label: 'Подписчик', icon: <BadgeCheck size={14} aria-hidden="true" /> }] : []),
-  ];
+  const CopyIcon = copied ? Check : Copy;
 
   return (
-    <div className="profile-workspace public-profile-card-shell">
-      <div className="profile-card">
-        <ProfileIdentityHero
-          eyebrow="Профиль игрока"
-          name={profile.displayName}
-          publicProfileId={profile.publicProfileId}
-          avatarInitials={profile.avatarInitials}
-          headingId="public-profile-title"
-          actions={(
-            <div className="profile-public-link">
-              <button type="button" onClick={() => { void copyLink(); }}>
-                <Copy size={14} aria-hidden="true" />
-                {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
-              </button>
-              <a href="/">
-                <Home size={14} aria-hidden="true" />
-                На главную
-              </a>
-            </div>
-          )}
-          badges={badges}
+    <article className="public-profile" aria-labelledby="public-profile-title">
+      <header className="identity-plate">
+        <AuthAvatar
+          user={{
+            name: profile.displayName,
+            email: '',
+            avatarInitials: profile.avatarInitials,
+            photoUrl: profile.nickname ? undefined : NEUTRAL_PORTRAIT,
+          }}
+          size={96}
         />
-      </div>
-    </div>
+        <div className="identity-plate__text">
+          <p className="identity-plate__eyebrow">Профиль игрока</p>
+          <h1 id="public-profile-title">{profile.displayName}</h1>
+          {(since || profile.isSubscriber) && (
+            <ul className="identity-plate__facts" aria-label="Сведения о профиле">
+              {since && <li><CalendarDays size={16} aria-hidden="true" />{since}</li>}
+              {profile.isSubscriber && (
+                <li className="identity-plate__fact--accent"><BadgeCheck size={16} aria-hidden="true" />Подписчик</li>
+              )}
+            </ul>
+          )}
+        </div>
+        <div className="identity-plate__actions">
+          <button type="button" className="identity-plate__action" onClick={() => { void copyLink(); }}>
+            <CopyIcon size={16} aria-hidden="true" />
+            {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+          </button>
+        </div>
+      </header>
+      <section className="public-profile__about" aria-labelledby="public-profile-about">
+        <div className="public-profile__about-text">
+          <p className="public-profile__eyebrow"><Sparkles size={14} aria-hidden="true" />HearthPulse</p>
+          <h2 id="public-profile-about">Статистика Hearthstone на русском</h2>
+          <p>
+            Мета, тир-листы и матчапы Стандарта, Арены и Полей сражений. Такая страница есть у каждого
+            аккаунта: ник, месяц регистрации и значок подписчика — без почты и контактов.
+          </p>
+        </div>
+        <a className="public-profile__cta" href="/?login">{signedIn ? 'Мой кабинет' : 'Создать свой профиль'}</a>
+      </section>
+    </article>
   );
 }
