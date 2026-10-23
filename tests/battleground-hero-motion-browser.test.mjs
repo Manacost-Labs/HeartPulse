@@ -92,7 +92,8 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
         assert.ok(heights.every(height => height < 270), 'mobile media uses compact image-and-text rows');
       }
       if (width === 1600) {
-        const mediaRows = await page.$$eval('[data-tour-id="bg-hero-detail-media"] button', buttons => buttons.map(button => Math.round(button.getBoundingClientRect().y)));
+        // Layout rows, not painted ones: a hovered card lifts by its hover transform.
+        const mediaRows = await page.$$eval('[data-tour-id="bg-hero-detail-media"] button', buttons => buttons.map(button => button.offsetTop));
         assert.equal(new Set(mediaRows).size, 1, 'wide screens keep all three media cards in one compact row');
       }
     }

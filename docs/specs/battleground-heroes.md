@@ -16,3 +16,17 @@ and upstream failures return retryable 503. Next.js does not forward account
 cookies to this endpoint and returns a real 404 for missing IDs. The full hero
 statistics client mounts only after account verification. Public Nginx traffic
 continues to use the legacy detail route until deployment checks are complete.
+
+## Hero detail layout
+
+The header holds everything a player checks first: the portrait, the name, a
+row of fact chips (armor, the latest balance change or that there was none,
+Hearthstone Wiki and HSReplay links), the four statistic plaques, and compact
+hero power and buddy plates that open the media viewer. The profile panel
+appears only when the library has a description, race or artist. The patch
+history appears only when the hero has recorded balance changes; the header
+chip links to it. Statistics tabs sit in the same framed ledger as the other
+panels. The loading skeleton mirrors this header and the profile panel.
+
+The hero rating lays its portrait cards out with `auto-fill`, so a tier shows
+as many heroes per row as fit (two on a phone) instead of four wide cards.

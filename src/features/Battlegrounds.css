@@ -67,3 +67,12 @@
     transform: none;
   }
 }
+
+/* Hero rating: as many portrait cards per row as fit, so a tier reads at a glance. */
+.bg-heroes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+}
+
+.bg-heroes-grid .battleground-hero-related-card {
+  max-width: 92%;
+}
