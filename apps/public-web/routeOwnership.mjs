@@ -8,7 +8,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pagesEnabled && /^\/standard\/deck-builder(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/archetypes(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/connect(?:\/.*)?$/.test(pathname)) return 'next';
-  if (pagesEnabled && /^\/(?:id|profiles)(?:\/.*)?$/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/(?:id|profiles|u)(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/cosmetics(?:\/[^/]+){0,2}\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/tier-list(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/(?:strategies|tier-builder)(?:\/.*)?$/.test(pathname)) return 'next';

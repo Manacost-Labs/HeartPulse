@@ -42,7 +42,7 @@ Rules for a new nickname (`server/modules/publicProfile/nickname.ts`):
 - NFKC-normalized and trimmed; 3–24 characters;
 - only `a–z`, Cyrillic letters (`а–я`, `ё`, `і`, `ї`, `є`, `ґ`, `ў`), digits,
   `_` and `-`; letters of one alphabet only; at least one letter;
-- not a reserved word (every top-level route segment, `admin`, `root`, `null`,
+- not a reserved word, compared without `_`/`-` (every top-level route segment, `admin`, `root`, `null`,
   `support`, …) and without a brand/staff fragment (`admin`, `moderator`,
   `hearthpulse`, `manacost`, `official`, `support` and Russian equivalents);
 - unique by key: lower case with look-alikes folded (Cyrillic `а е о р с у х
@@ -72,12 +72,43 @@ now; `profilePath` is `/id/<n>/`.
 
 A real change starts a 30-day cooldown and moves the previous nickname into
 `public_nickname_history` for 90 days. Changing only the letter case is free.
+Deleting an account also moves its nickname there (trigger
+`trg_users_release_nickname_on_delete`), so it stays unavailable for 90 days;
+the old link answers `404` meanwhile.
+
+## Pages
+
+- `/id/<n>/` (`apps/public-web/app/id/[publicProfileId]/page.tsx`) renders
+  the card on the server from the anonymous projection (`lib/publicProfile.ts`
+  reads it through `fetchPublicExpress()` without cookies and copies only the
+  contract's fields). Missing and blocked profiles are the site's `404`.
+  Metadata: title `<displayName> — профиль игрока | HearthPulse`,
+  `robots: noindex, follow`, `rel=canonical` to `https://hearthpulse.net/id/<n>/`,
+  Open Graph `profile` with the site share image (there are no profile images)
+  and a large Twitter card, so links preview in Telegram and Discord.
+  Profiles are not in the sitemap.
+- `/u/<nickname>/` is answered in `apps/public-web/proxy.ts`: an existing
+  nickname gets a `301` to `/id/<n>/` (`Cache-Control: public, max-age=60`),
+  anything else falls through to the page's `404`.
+- The account page (`/?login`) has a «Публичный профиль» section
+  (`AccountPublicProfile`): the short link and, once chosen, the nickname link,
+  each with «Скопировать ссылку», and the nickname form with the rules and the
+  date of the next allowed change.
 
 ## Limits
 
 Direct API reads of `/api/profiles/*` are limited to 60 per minute per client
 on top of the general API budget. Loopback reads by the Next server are not
-counted there; the documents are limited in Nginx instead.
+counted there.
+
+Pending Nginx contract: production Nginx does not yet route `/u/` to Next
+(the catch-all answers `404`) and has no per-visitor limit for profile
+documents. The prepared change adds `u` to the profile namespace location and
+an `arena_public_profiles` `limit_req` zone (30 requests per minute per IPv4
+address or IPv6 /64, burst 20). It must be installed by root together with the
+release that carries its contract hash (`docs/runbooks/nextjs-production-cutover.md`).
+Until then the account page shows only the short link
+(`NICKNAME_LINKS_LIVE` in `AccountPublicProfile.tsx`).
 
 ## Data
 
@@ -92,3 +123,9 @@ start; nothing existing is rewritten.
 projection allow-list (`tests/public-profile-nickname.test.ts`), and the routes
 on a real SQLite database (`tests/public-profile-routes.test.ts`: allow-list,
 `404` parity, CSRF, validation, uniqueness, cooldown, hold, race, rate limit).
+`tests/next-public-profiles-browser.test.mjs` runs Express and Next together:
+the account section sets a nickname, copies the link and refuses a change
+without the CSRF header; `/u/` redirects, `/id/` shows only public fields with
+the right metadata, has no axe violations or overflow at 320–1440 px, and a
+blocked account becomes a `404`. Stories: `Identity/Public Profile` and
+`Identity/Account Public Profile`.

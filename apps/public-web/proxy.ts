@@ -114,6 +114,42 @@ async function checkConstructedCard(format: string, cardId: string, headers: Hea
   }
 }
 
+const PUBLIC_PROFILE_ID = /^[1-9][0-9]{0,9}$/;
+
+/**
+ * `/u/<nickname>/` is a sharing alias of the canonical `/id/<n>/`: an existing
+ * nickname answers a permanent 301 here, a missing one falls through to the
+ * page's 404. Express applies the nickname rules; this only bounds the input.
+ * Next turns the same-origin Location into a relative one, so the redirect
+ * stays on whatever host served it.
+ */
+async function redirectPublicNickname(url: NextRequest['nextUrl'], method: string): Promise<Response | null> {
+  const match = url.pathname.match(/^\/u\/([^/]{1,200})\/?$/u);
+  if (!match) return null;
+  let nickname: string;
+  try {
+    nickname = decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+  try {
+    const response = await fetchPublicExpress(`/api/profiles/by-nickname/${encodeURIComponent(nickname)}`);
+    if (response.status === 404) {
+      await response.body?.cancel();
+      return null;
+    }
+    if (!response.ok) return unavailableResponse(response.headers.get('retry-after'), method);
+    const { publicProfileId } = await response.json() as { publicProfileId?: unknown };
+    if (typeof publicProfileId !== 'string' || !PUBLIC_PROFILE_ID.test(publicProfileId)) return unavailableResponse(null, method);
+    const target = new URL(`/id/${publicProfileId}/`, url);
+    const redirect = NextResponse.redirect(target, 301);
+    redirect.headers.set('Cache-Control', 'public, max-age=60');
+    return redirect;
+  } catch {
+    return unavailableResponse(null, method);
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const route = constructedCardRoute(request.nextUrl.pathname);
   const headers = new Headers(request.headers);
@@ -137,6 +173,8 @@ export async function proxy(request: NextRequest) {
       const unavailable = await checkBattlegroundDetail(probe, headers, request.method);
       if (unavailable) return unavailable;
     }
+    const nicknameRedirect = await redirectPublicNickname(request.nextUrl, request.method);
+    if (nicknameRedirect) return nicknameRedirect;
     const cosmeticsUnavailable = await checkCosmeticsDetail(request.nextUrl.pathname, headers, request.method);
     if (cosmeticsUnavailable) return cosmeticsUnavailable;
     // The other public families get this header from `next.config.mjs`.
@@ -146,4 +184,4 @@ export async function proxy(request: NextRequest) {
   }
   return NextResponse.next({ request: { headers } });
 }
-export const config = { matcher: ['/', '/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*'] };
+export const config = { matcher: ['/', '/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*', '/u/:path*'] };

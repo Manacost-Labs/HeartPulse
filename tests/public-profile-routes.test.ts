@@ -157,6 +157,14 @@ try {
     'nickname lookups are case-insensitive');
   assert.equal(((await read('/api/profiles/1')).body.profile as Record<string, unknown>).displayName, 'Alpha_One');
 
+  // Deleting an account (the trigger stamps real time; the clock is still today) keeps its nickname held: nobody else can take it at once.
+  database.exec(`INSERT INTO users (id, public_numeric_id, email, name, created_at) VALUES
+    ('user_leaving', 4, 'leaving@example.com', 'Leaving', '2026-05-01T00:00:00.000Z')`);
+  assert.equal((await setNickname('user_leaving', 'Leaver')).status, 200);
+  database.exec("DELETE FROM users WHERE id = 'user_leaving'");
+  assert.equal((await read('/api/profiles/by-nickname/leaver')).status, 404, 'a deleted account has no profile');
+  assert.equal((await setNickname('user_beta', 'Leaver')).status, 409, 'its nickname stays held');
+
   // Uniqueness: case and look-alike variants of a held nickname are taken.
   assert.equal((await setNickname('user_beta', 'ALPHA_ONE')).status, 409);
   assert.equal((await setNickname('user_beta', 'Alpha-0ne')).status, 409);

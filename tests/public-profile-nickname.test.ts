@@ -49,13 +49,16 @@ assert.equal(accepted('асе').key, accepted('ace').key, 'Cyrillic «асе» a
 assert.equal(accepted('c00l').key, accepted('cool').key);
 assert.equal(accepted('Mila').key, accepted('M1la').key);
 assert.equal(accepted('pro-gamer').key, accepted('pro_gamer').key);
+assert.equal(accepted('ьоь').key, accepted('bob').key, 'Cyrillic «ь» reads as Latin «b»');
+assert.equal(accepted('шиш').key, accepted('wuw').key);
 assert.notEqual(accepted('player1').key, accepted('player2').key);
 
 // Reserved words, route segments and impersonation fragments.
 for (const raw of ['admin', 'Admin', 'ADM1N', 'root', 'null', 'support', 'login', 'api', 'tierlist', 'heroes', 'profile']) {
   assert.equal(rejectedFor(raw), 'reserved', raw);
 }
-for (const raw of ['hearthpulse_team', 'ManacostFan', 'real-admin', 'Админ_Вася', 'модератор_1', 'official-news']) {
+for (const raw of ['hearthpulse_team', 'ManacostFan', 'real-admin', 'Админ_Вася', 'модератор_1', 'official-news',
+  'Hearth_Pulse', 'Mana-Cost', 'Ad_min', 'Moder-ator', 'r_o_o_t', 'Deck_Builder']) {
   assert.equal(rejectedFor(raw), 'reserved', raw);
 }
 
