@@ -26,7 +26,7 @@ export async function startQaBackend({ distDir }) {
     // Server rendering reads only JSON. Card images stay with the browser mock,
     // and every answer is re-serialized as JSON so a fixture that echoes a
     // query value can never be served as markup.
-    const answered = !url.pathname.startsWith('/api/card-image/')
+    const answered = !/^\/api\/(?:card-image|public-resource)\//.test(url.pathname)
       && handle({ url, method: request.method, postData }, answer => {
         response.status(answer.status ?? 200).set(answer.headers ?? {});
         if (answer.body) response.json(JSON.parse(answer.body));

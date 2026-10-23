@@ -169,7 +169,7 @@ function collectRuntimeErrors(page, { sameOriginNetwork = false } = {}) {
         return;
       }
       const contentType = response.headers()['content-type'] || '';
-      const isCardImageResponse = /^\/api\/card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp$/.test(url.pathname);
+      const isCardImageResponse = /^\/api\/(?:card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp|public-resource\/[\w./-]+\.png)$/.test(url.pathname);
       if (isCardImageResponse && !/^image\/(?:avif|gif|jpe?g|png|svg\+xml|webp)(?:;|$)/i.test(contentType)) {
         errors.push(`unexpected card image content-type ${contentType || 'missing'}: ${url.pathname}`);
       } else if (url.pathname.startsWith('/api/')
