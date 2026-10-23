@@ -12,6 +12,7 @@ import { IconButton } from '../../vendor/valyro-ui/basic/IconButton';
 import '../../vendor/valyro-ui/styles/index.css';
 import '../../vendor/valyro-ui/styles/themes/manacost.css';
 import '../../modules/adminWorkspace/public.css';
+import { ADMIN_LAYER_HOST_ATTRIBUTE } from '../../modules/adminWorkspace/public';
 import './AdminConsoleShell.css';
 import './AdminConsoleLegacy.css';
 import type { AdminMessage, AdminWorkspaceSection } from '../adminWorkspaceState';
@@ -235,6 +236,8 @@ export function AdminConsoleShell({
       />
 
       {message && <ConsoleToast message={message} onDismiss={onDismissMessage} />}
+      {/* Side sheets of the sections portal here: inside the theme, with the shared content styles. */}
+      <div {...{ [ADMIN_LAYER_HOST_ATTRIBUTE]: '' }} className="admin-console-layers admin-workspace-page admin-tailadmin-shell" />
     </ThemeScope>
   );
 }

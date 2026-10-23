@@ -403,3 +403,8 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
   background: none;
   color: var(--ui-accent);
 }
+
+/* Holds only fixed side sheets: no box of its own. */
+.admin-console-layers {
+  display: contents;
+}

@@ -40,7 +40,7 @@ async function openSection(page, label) {
   return page.evaluate(() => window.__shift);
 }
 
-test('admin sections open without moving their content, and sticky panels follow the scroll', async () => {
+test('admin sections open without moving their content, sticky panels follow the scroll and sheets take the console theme', async () => {
   const runtime = await startQaNextRuntime();
   let browser;
   try {
@@ -69,6 +69,31 @@ test('admin sections open without moving their content, and sticky panels follow
     assert.ok(preview, 'mailing preview card is rendered');
     assert.equal(preview.position, 'sticky');
     assert.ok(preview.top >= 0 && preview.top <= 40, `preview stays at the top of the scrolled area (offset ${preview.top}px)`);
+
+    // Side sheets portal into the console's layer host: they take the theme instead of the public
+    // site's gold buttons, and their buttons fit their labels.
+    await openSection(page, 'Пользователи');
+    await page.waitForSelector('.admin-people-row .admin-crm-open', { visible: true });
+    // Sections the console keeps hidden hold their own names; open the person from the visible table.
+    await page.evaluate(() => [...document.querySelectorAll('.admin-people-row .admin-crm-open')]
+      .find(button => button.offsetParent)?.click());
+    await page.waitForSelector('.admin-crm-sheet[role="dialog"] .admin-crm-actions .contest-primary-button');
+    await page.waitForNetworkIdle({ idleTime: 600, timeout: 20_000 });
+    const sheet = await page.evaluate(() => {
+      const dialog = document.querySelector('.admin-crm-sheet[role="dialog"]');
+      const primary = dialog?.querySelector('.admin-crm-actions .contest-primary-button');
+      const clipped = [...(dialog?.querySelectorAll('button') ?? [])]
+        .filter(button => button.offsetParent && button.scrollWidth > button.clientWidth + 1)
+        .map(button => button.textContent?.trim());
+      return {
+        inHost: Boolean(dialog?.closest('[data-admin-layer-host]')),
+        primaryBackground: primary ? getComputedStyle(primary).backgroundColor : '',
+        clipped,
+      };
+    });
+    assert.equal(sheet.inHost, true, 'the client card renders inside the console layer host');
+    assert.equal(sheet.primaryBackground, 'rgb(42, 119, 191)', 'the main action uses the console primary colour');
+    assert.deepEqual(sheet.clipped, [], 'no button in the client card cuts its label');
   } finally {
     if (browser) await browser.close();
     await runtime.close();

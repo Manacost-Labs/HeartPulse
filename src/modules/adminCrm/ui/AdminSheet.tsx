@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import '../adminCrm.css';
 import { useModalSheet } from './useModalSheet';
+import { adminLayerHost } from '../../adminWorkspace/public';
 
 export type AdminSheetProps = {
   title: string;
@@ -27,7 +28,7 @@ export function AdminSheet({ title, description, closeLabel = 'Закрыть', 
     if (initialFocus) sheetRef.current?.querySelector<HTMLElement>(initialFocus)?.focus();
   }, [initialFocus]);
 
-  // Portalled to <body> so route transitions that transform an ancestor cannot re-anchor the fixed sheet.
+  // Portalled to the console's layer host (or <body>) so a transformed ancestor cannot re-anchor the fixed sheet.
   if (typeof document === 'undefined') return null;
   return createPortal(
     <div className="admin-crm-sheet-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
@@ -42,6 +43,6 @@ export function AdminSheet({ title, description, closeLabel = 'Закрыть', 
         <div className="admin-crm-sheet-body">{children}</div>
       </aside>
     </div>,
-    document.body,
+    adminLayerHost(),
   );
 }
