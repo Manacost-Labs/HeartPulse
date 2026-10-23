@@ -21,7 +21,7 @@ assert.match(chunkPage, /прервалась связь или сайт тол�
 assert.match(chunkPage, /<button type="button"[^>]*>Обновить страницу<\/button>/);
 assert.match(chunkPage, /<a href="\/"[^>]*>На главную<\/a>/);
 assert.match(chunkPage, /<meta name="robots" content="noindex"\/>/);
-assert.doesNotMatch(chunkPage, /<link[^>]+stylesheet|<script/, 'it needs no stylesheet or script loaded separately');
+assert.doesNotMatch(chunkPage, /<link[^>]+stylesheet|<script/i, 'it needs no stylesheet or script loaded separately');
 
 const crash = Object.assign(new Error('Cannot read properties of undefined'), { digest: '2930861743' });
 const crashPage = render(crash);
