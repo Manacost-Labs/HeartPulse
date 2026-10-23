@@ -1,4 +1,4 @@
-import type { PatchCardView, PatchFilter, PatchGroupView, PatchKindCounts, PatchSectionId, PatchView } from './patchEntries';
+import type { PatchCardView, PatchFilter, PatchGroupView, PatchSectionId, PatchView } from './patchEntries';
 
 /* Which cards the page shows: filter results, filter options and the "what matters" pick. */
 
@@ -62,11 +62,4 @@ export function patchHighlights(view: PatchView, limit = 4): PatchCardView[] {
     if (!picked.includes(card)) picked.push(card);
   }
   return picked;
-}
-
-/** Buff, nerf and rework counts of a group, for its heading. */
-export function patchGroupKinds(group: PatchGroupView): PatchKindCounts {
-  const kinds: PatchKindCounts = { buff: 0, nerf: 0, rework: 0 };
-  for (const card of group.entries) kinds[card.kind] += 1;
-  return kinds;
 }

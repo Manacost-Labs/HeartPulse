@@ -1,32 +1,19 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ImageOff, Shapes } from 'lucide-react';
 import {
-  patchGroupKinds, patchHasWideArtwork, sentenceCase,
+  patchHasWideArtwork, sentenceCase,
   type PatchCardView, type PatchGroupView, type PatchKindCounts, type PatchNotesDetail, type PatchNotesMode, type PatchSectionId,
 } from '../../modules/patchNotes/public';
 import { EAGER_CARDS, PatchCard, type CardHandlers } from './PatchCard';
 import { GroupIcon } from './PatchMetaImpact';
 import { groupAnchor, sectionAnchor } from './PatchNotesNavigation';
-import { SECTION_ICONS, SECTION_PLATES, classAccent, classIcon96 } from './patchArt';
-import { KIND_ICONS, KIND_LABELS } from './patchKinds';
+import { SECTION_ICONS, SECTION_PLATES, classIcon96 } from './patchArt';
 
-/* The reading flow below the header: what matters first, then collapsible sections of change cards. */
-
-/** Buff, nerf and rework counts as marks; the words are read out, the marks are seen. */
-export function KindCounts({ kinds, className }: { kinds: PatchKindCounts; className: string }) {
-  return (
-    <span className={className}>
-      {(['buff', 'nerf', 'rework'] as const).filter(kind => kinds[kind] > 0).map(kind => {
-        const Icon = KIND_ICONS[kind];
-        return (
-          <span key={kind} data-kind={kind} title={KIND_LABELS[kind]}>
-            <Icon aria-hidden="true" />{kinds[kind]}<span className="sr-only"> — {KIND_LABELS[kind].toLocaleLowerCase('ru-RU')}</span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
+/*
+ * The reading flow below the header: what matters first, then collapsible
+ * sections of change rows. Counts live in the header and the bar only; each
+ * row carries its own kind mark, so banners and groups repeat no number.
+ */
 
 /** "Главное в патче": three or four large cards, then the cards → archetypes flow (`children`). */
 export function Highlights({ cards, handlers, children }: { cards: PatchCardView[]; handlers: CardHandlers; children?: ReactNode }) {
@@ -83,7 +70,7 @@ function ModeEmblem({ section }: { section: { id: PatchSectionId } }) {
   );
 }
 
-/** A class group carries its class icon and colour, like the class portraits elsewhere on the site. */
+/** A class group carries its class icon, like the class portraits elsewhere on the site. */
 function GroupHeading({ group }: { group: PatchGroupView }) {
   const classKey = 'classKey' in group.icon ? group.icon.classKey : null;
   return (
@@ -92,7 +79,6 @@ function GroupHeading({ group }: { group: PatchGroupView }) {
         ? <img className="hp-patch-group__icon" src={classIcon96(classKey)} alt="" width={96} height={96} loading="lazy" decoding="async" />
         : <GroupIcon icon={group.icon} />}
       <span className="hp-patch-group__name">{group.title}</span>
-      <KindCounts kinds={patchGroupKinds(group)} className="hp-patch-group__kinds" />
     </h4>
   );
 }
@@ -105,9 +91,7 @@ function SectionBanner({ section }: { section: { id: PatchSectionId; title: stri
         width={plate.width} height={plate.height} style={{ objectPosition: plate.focus }} alt="" loading="lazy" decoding="async" />
       <ModeEmblem section={section} />
       <h3 className="hp-patch-section__title">{section.title}</h3>
-      {section.count > 0
-        ? <KindCounts kinds={section.kinds} className="hp-patch-section__kinds" />
-        : <span className="hp-patch-section__kinds">Общие изменения режима</span>}
+      {section.count === 0 && <span className="hp-patch-section__hint">Общие изменения режима</span>}
     </summary>
   );
 }
@@ -121,21 +105,17 @@ export function PatchSection({ section, groups, patch, notes, filtered, eagerFro
     <details className="hp-patch-section" id={sectionAnchor(section.id)} data-section={section.id} open>
       <SectionBanner section={section} />
       <div className="hp-patch-section__body">
-        {groups.map(group => {
-          const accent = classAccent('classKey' in group.icon ? group.icon.classKey : null);
-          return (
-            <div key={group.id} className="hp-patch-group" id={groupAnchor(group.id)}
-              style={accent ? { '--group-accent': accent } as CSSProperties : undefined}>
-              {/* A section of one group would only repeat its banner. */}
-              {groups.length > 1 || group.title !== section.title ? <GroupHeading group={group} /> : null}
-              <ul className="hp-patch-group__list">
-                {group.entries.map(card => (
-                  <li key={card.id}><PatchCard card={card} anchored eager={rendered++ < EAGER_CARDS} {...handlers} /></li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+        {groups.map(group => (
+          <div key={group.id} className="hp-patch-group" id={groupAnchor(group.id)}>
+            {/* A section of one group would only repeat its banner. */}
+            {groups.length > 1 || group.title !== section.title ? <GroupHeading group={group} /> : null}
+            <ul className="hp-patch-group__list">
+              {group.entries.map(card => (
+                <li key={card.id}><PatchCard card={card} anchored eager={rendered++ < EAGER_CARDS} {...handlers} /></li>
+              ))}
+            </ul>
+          </div>
+        ))}
         {!filtered && notes && <SectionNotes patch={patch} mode={notes} />}
       </div>
     </details>

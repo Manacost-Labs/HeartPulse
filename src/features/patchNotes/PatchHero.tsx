@@ -2,30 +2,21 @@ import type { ReactNode } from 'react';
 import { preload } from 'react-dom';
 import { ArrowDown, ArrowUp, ExternalLink, RefreshCw } from 'lucide-react';
 import {
-  patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHeroLead, patchKindShares,
-  type PatchCardView, type PatchKindCounts, type PatchNotesDetail, type PatchView,
+  patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHeroLead,
+  type PatchCardView, type PatchNotesDetail, type PatchView,
 } from '../../modules/patchNotes/public';
+import { pluralRu } from '../../shared/text/pluralRu';
 import { cardArtSources, expansionBadge, heroPlate } from './patchArt';
 
 /* The patch header: art, version, date, the patch's point in one line and one buff/nerf tally. */
 
 const KIND_ROWS = [
-  { kind: 'buff', label: 'усилений', Icon: ArrowUp },
-  { kind: 'nerf', label: 'ослаблений', Icon: ArrowDown },
-  { kind: 'rework', label: 'переработок', Icon: RefreshCw },
+  { kind: 'buff', forms: ['усиление', 'усиления', 'усилений'], Icon: ArrowUp },
+  { kind: 'nerf', forms: ['ослабление', 'ослабления', 'ослаблений'], Icon: ArrowDown },
+  { kind: 'rework', forms: ['переработка', 'переработки', 'переработок'], Icon: RefreshCw },
 ] as const;
 
 const HERO_SIZES = '(min-width: 1480px) 1180px, 100vw';
-
-/** Buff, nerf and rework shares as one bar; the numbers next to it carry the meaning, the bar is decoration. */
-export function KindShareBar({ kinds, className = '' }: { kinds: PatchKindCounts; className?: string }) {
-  const shares = patchKindShares(kinds);
-  return (
-    <span className={`hp-patch-share ${className}`} aria-hidden="true">
-      {KIND_ROWS.map(({ kind }) => shares[kind] > 0 && <span key={kind} data-kind={kind} style={{ inlineSize: `${shares[kind]}%` }} />)}
-    </span>
-  );
-}
 
 /** The expansion glyph in a gold seal; a set without a glyph keeps the seal with its initial. */
 export function ExpansionSeal({ code, size = 'large' }: { code: string; size?: 'large' | 'small' }) {
@@ -48,6 +39,7 @@ export function PatchHero({ patch, view, date, highlights, versions }: {
   const art = featured ? cardArtSources(featured.url) : null;
   const expansion = patchExpansionCode(patch.version);
   const headline = patchHeadline(patch.title) ?? `Патч ${patch.version}`;
+  const kinds = KIND_ROWS.filter(({ kind }) => view.kinds[kind] > 0);
   // The plate leads the paint; React hoists this into <head> during the server render.
   preload(plate.src, { as: 'image', imageSrcSet: plate.srcSet, imageSizes: HERO_SIZES, fetchPriority: 'high' });
   return (
@@ -69,15 +61,13 @@ export function PatchHero({ patch, view, date, highlights, versions }: {
         </div>
         <h2 className="hp-patch-hero__title">{headline}</h2>
         {view.total > 0 && (
-          <div className="hp-patch-hero__tally">
-            <p className="hp-patch-hero__counts">
-              <span data-kind="total"><b>{view.total}</b> изм.</span>
-              {KIND_ROWS.filter(({ kind }) => view.kinds[kind] > 0).map(({ kind, label, Icon }) => (
-                <span key={kind} data-kind={kind}><Icon aria-hidden="true" /><b>{view.kinds[kind]}</b> {label}</span>
-              ))}
-            </p>
-            <KindShareBar kinds={view.kinds} />
-          </div>
+          <p className="hp-patch-hero__counts">
+            {/* With one kind the total is that kind's number: shown once. */}
+            {kinds.length > 1 && <span data-kind="total"><b>{view.total}</b> {pluralRu(view.total, 'изменение', 'изменения', 'изменений')}</span>}
+            {kinds.map(({ kind, forms, Icon }) => (
+              <span key={kind} data-kind={kind}><Icon aria-hidden="true" /><b>{view.kinds[kind]}</b> {pluralRu(view.kinds[kind], forms[0], forms[1], forms[2])}</span>
+            ))}
+          </p>
         )}
         {(patch.officialUrl || patch.sourceUrl) && (
           <p className="hp-patch-hero__links">

@@ -16,22 +16,6 @@
   --patch-glass-line: rgba(239, 201, 111, 0.28);
 }
 
-/* ── Share bar ──────────────────────────────────────────────────────────── */
-
-.hp-patch-share {
-  display: flex;
-  overflow: hidden;
-  min-width: 0;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255, 240, 200, 0.16);
-}
-
-.hp-patch-share > span { flex: none; height: 100%; }
-.hp-patch-share > [data-kind='buff'] { background: #6fbf63; }
-.hp-patch-share > [data-kind='nerf'] { background: #e0646c; }
-.hp-patch-share > [data-kind='rework'] { background: #e3b45c; }
-
 /* ── Expansion seal ─────────────────────────────────────────────────────── */
 
 .hp-patch-seal {
@@ -145,12 +129,6 @@
   text-shadow: 0 3px 14px rgba(21, 5, 2, 0.7);
 }
 
-.hp-patch-hero__tally {
-  display: grid;
-  gap: 0.45rem;
-  width: min(100%, 30rem);
-}
-
 .hp-patch-hero__counts {
   display: flex;
   flex-wrap: wrap;
@@ -227,6 +205,7 @@
   font: inherit;
   font-size: 0.85rem;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -248,6 +227,20 @@
   .hp-patch-hero__counts b { font-size: 1.25rem; }
 }
 
+/* A phone fits the arrows and the select on one line only when "Все патчи" keeps just its icon. */
+@container (max-width: 480px) {
+  .hp-patch-versions__all { justify-content: center; width: 2.25rem; padding: 0; }
+
+  .hp-patch-versions__all > span {
+    position: absolute;
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* ── Section banner and class headers ───────────────────────────────────── */
 
 .hp-patch-section > summary {
@@ -256,8 +249,8 @@
   gap: 0.75rem;
   align-items: center;
   overflow: hidden;
-  min-height: 4rem;
-  padding: 0.6rem 2.75rem 0.6rem 0.85rem;
+  min-height: 3.25rem;
+  padding: 0.45rem 2.75rem 0.45rem 0.85rem;
   border-radius: 6px;
   background: var(--patch-night);
   color: var(--patch-cream);
@@ -293,39 +286,24 @@
 
 .hp-patch-section:not([open]) > summary::after { transform: rotate(-45deg); }
 .hp-patch-section > summary:focus-visible { outline: 3px solid #8d171d; outline-offset: 3px; }
-.hp-patch-section > summary .hp-patch-emblem img { width: 2.4rem; height: 2.4rem; }
+.hp-patch-section > summary .hp-patch-emblem img { width: 2.1rem; height: 2.1rem; }
 
 @container (max-width: 640px) {
   .hp-patch-section > summary { gap: 0.55rem; padding-inline: 0.65rem 2.4rem; }
-  .hp-patch-section__title { font-size: 1.2rem; }
-  .hp-patch-section > summary .hp-patch-emblem img { width: 2rem; height: 2rem; }
+  .hp-patch-section__title { font-size: 1.15rem; }
+  .hp-patch-section > summary .hp-patch-emblem img { width: 1.85rem; height: 1.85rem; }
 }
 
 .hp-patch-section__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 400;
   line-height: 1.15;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
-.hp-patch-section__kinds,
-.hp-patch-group__kinds {
-  display: inline-flex;
-  gap: 0.6rem;
-  margin-left: auto;
-  font-size: 0.85rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-:is(.hp-patch-section__kinds, .hp-patch-group__kinds) > span { display: inline-flex; gap: 0.15rem; align-items: center; }
-:is(.hp-patch-section__kinds, .hp-patch-group__kinds) svg { width: 0.9rem; height: 0.9rem; }
-.hp-patch-section__kinds { color: var(--patch-cream-muted); font-weight: 700; }
-.hp-patch-section__kinds [data-kind='buff'] { color: var(--patch-buff-light); }
-.hp-patch-section__kinds [data-kind='nerf'] { color: var(--patch-nerf-light); }
-.hp-patch-section__kinds [data-kind='rework'] { color: var(--patch-rework-light); }
+.hp-patch-section__hint { margin-left: auto; color: var(--patch-cream-muted); font-size: 0.85rem; }
 
 /* Mode emblem: the format shield, Arena portal or tavern shield; side modes get a neutral glyph. */
 .hp-patch-emblem { display: inline-flex; flex: none; align-items: center; }
@@ -342,9 +320,7 @@
   color: var(--patch-gold);
 }
 
-/* A group heading is a line of type with a hairline after it, not another panel. */
-.hp-patch-group { --group-accent: #806044; }
-
+/* A group heading is a line of type; the hairline of its first row closes it. */
 .hp-patch-group__title {
   display: flex;
   gap: 0.55rem;
@@ -353,22 +329,10 @@
   color: #3b2414;
 }
 
-.hp-patch-group__title::after {
-  flex: 1;
-  order: 2;
-  height: 1px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--group-accent) 55%, transparent), transparent);
-  content: '';
-}
-
-.hp-patch-group__kinds { order: 3; margin-left: 0; }
-.hp-patch-group__icon { flex: none; width: 2rem; height: 2rem; object-fit: contain; }
+.hp-patch-group__icon { flex: none; width: 1.75rem; height: 1.75rem; object-fit: contain; }
 .hp-patch-group__title .hp-patch-type-icon { width: 1.75rem; height: 1.75rem; }
 .hp-patch-group__title .hp-patch-type-icon svg { width: 1rem; height: 1rem; }
-.hp-patch-group__name { font-family: var(--font-display); font-size: 1.15rem; font-weight: 400; }
-.hp-patch-group__kinds [data-kind='buff'] { color: var(--patch-buff); }
-.hp-patch-group__kinds [data-kind='nerf'] { color: var(--patch-nerf); }
-.hp-patch-group__kinds [data-kind='rework'] { color: var(--patch-rework); }
+.hp-patch-group__name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; }
 
 .hp-patch-class-icon { width: 1.35rem; height: 1.35rem; flex: none; object-fit: contain; }
 
@@ -387,16 +351,16 @@
 
 /* ── Featured highlights: a larger render; wide art on top with the render laid over its edge ── */
 
+/* Highlights are the page's only boxed cards: one paper panel each, no colour edge and no shadow. */
 .hp-patch-card[data-featured] {
   grid-template-columns: 6.25rem minmax(0, 1fr);
   overflow: hidden;
-  padding: 0.85rem 0.85rem 0.85rem 0.75rem;
-  border-color: rgba(122, 88, 46, 0.3);
-  box-shadow: inset 3px 0 0 var(--patch-rework), 0 6px 18px -12px rgba(70, 34, 12, 0.5);
+  padding: 0.85rem;
+  border: 1px solid var(--patch-line);
+  border-radius: 6px;
+  background: var(--patch-paper);
 }
 
-.hp-patch-card[data-featured][data-kind='buff'] { box-shadow: inset 3px 0 0 var(--patch-buff), 0 6px 18px -12px rgba(70, 34, 12, 0.5); }
-.hp-patch-card[data-featured][data-kind='nerf'] { box-shadow: inset 3px 0 0 var(--patch-nerf), 0 6px 18px -12px rgba(70, 34, 12, 0.5); }
 .hp-patch-card[data-featured] .hp-patch-card__name { font-size: 1.2rem; }
 .hp-patch-card[data-featured] .hp-patch-card__body { align-self: center; }
 .hp-patch-card[data-plate] { grid-template-rows: auto 1fr; padding-top: 0; }
@@ -406,7 +370,7 @@
   display: block;
   grid-column: 1 / -1;
   height: 8rem;
-  margin: 0 -0.85rem 0 -0.75rem;
+  margin: 0 -0.85rem;
   overflow: hidden;
   background: var(--patch-night);
 }
@@ -480,9 +444,6 @@
 }
 
 .hp-change[data-stat] .hp-change__values b { position: relative; }
-.hp-change[data-direction='buff'] .hp-change__values b > .hp-stat { border-radius: 50%; box-shadow: 0 0 0 2px rgba(47, 110, 57, 0.6); }
-.hp-change[data-direction='nerf'] .hp-change__values b > .hp-stat { border-radius: 50%; box-shadow: 0 0 0 2px rgba(147, 32, 42, 0.55); }
-.hp-change[data-direction]:is([data-stat='gold'], [data-stat='armor']) .hp-change__values b > .hp-stat { border-radius: 999px; }
 
 /* ── Archive drawer ─────────────────────────────────────────────────────── */
 
@@ -637,8 +598,8 @@
 
 .hp-patch-flow {
   /* Tokens a Valyro theme would define; the Sankey reads them. */
-  --ui-sankey-chart-link-opacity: 0.32;
-  --ui-sankey-chart-link-opacity-active: 0.62;
+  --ui-sankey-chart-link-opacity: 0.2;
+  --ui-sankey-chart-link-opacity-active: 0.5;
   --ui-sankey-chart-link-opacity-dimmed: 0.08;
   --ui-sankey-chart-node-w: 10px;
   --ui-chart-glow: none;
@@ -656,6 +617,13 @@
   border-radius: 6px;
   background: var(--patch-paper);
 }
+
+/*
+ * The kit draws each flow with a dash animated over pathLength 1; Chrome then
+ * paints the wide flows of this chart partly or not at all, so they are drawn
+ * whole and still.
+ */
+.hp-patch-flow .ui-sankey-chart__link { stroke-dasharray: none; animation: none; }
 
 .hp-patch-flow h4 { margin: 0; font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; }
 .hp-patch-flow__list { display: none; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }

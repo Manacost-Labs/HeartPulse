@@ -58,7 +58,6 @@
   padding: 0.5rem;
   border-bottom: 1px solid var(--patch-line);
   background: rgba(248, 234, 200, 0.96);
-  box-shadow: 0 8px 14px -12px rgba(70, 34, 12, 0.45);
 }
 
 .hp-patch-bar__nav,
@@ -71,6 +70,8 @@
 }
 
 .hp-patch-bar__filters { flex: 1 1 26rem; }
+/* A one-section patch without a class select leaves the bar to the search. */
+.hp-patch-bar__nav:empty { display: none; }
 
 .hp-patch-bar__modes {
   display: flex;
@@ -166,13 +167,13 @@
   cursor: pointer;
 }
 
-.hp-patch-kinds button svg { width: 0.95rem; height: 0.95rem; }
-.hp-patch-kinds button span { color: var(--arena-muted-ink); }
+.hp-patch-kinds button svg { width: 1rem; height: 1rem; }
+.hp-patch-kinds button[data-kind] { justify-content: center; min-width: 2.75rem; }
 .hp-patch-kinds button[data-kind='buff'] svg { color: var(--patch-buff); }
 .hp-patch-kinds button[data-kind='nerf'] svg { color: var(--patch-nerf); }
 .hp-patch-kinds button[data-kind='rework'] svg { color: var(--patch-rework); }
 .hp-patch-kinds button[aria-pressed='true'] { background: #4a3323; color: #fff6dc; }
-.hp-patch-kinds button[aria-pressed='true'] :is(span, svg) { color: #efc96f; }
+.hp-patch-kinds button[aria-pressed='true'] svg { color: #efc96f; }
 .hp-patch-kinds button[data-kind='buff'][aria-pressed='true'] { background: var(--patch-buff); }
 .hp-patch-kinds button[data-kind='nerf'][aria-pressed='true'] { background: var(--patch-nerf); }
 .hp-patch-kinds button:disabled { cursor: default; opacity: 0.4; }
@@ -212,10 +213,9 @@
     padding: 0.4rem 0.5rem;
     border-bottom: 1px solid var(--patch-line);
     background: rgba(248, 234, 200, 0.97);
-    box-shadow: 0 8px 14px -12px rgba(70, 34, 12, 0.45);
   }
 
-  .hp-patch-kinds button { padding: 0 0.5rem; }
+  .hp-patch-kinds button { padding: 0 0.6rem; }
   .hp-patch-search { flex-basis: 7rem; }
 }
 
@@ -246,11 +246,10 @@
 @container (min-width: 960px) {
   .hp-patch-highlights__list[data-count='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.hp-patch-group__list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 16.5rem), 1fr)); }
-
-/* A rule-text change needs a wider line than a cost or stat move. */
-@container (min-width: 700px) {
-  .hp-patch-group__list > li:has(.hp-change--text) { grid-column: span 2; }
+/* Change rows: two columns on wide content, rows of one height so their hairlines line up. */
+.hp-patch-group__list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: 0 2rem;
 }
 
 .hp-patch-highlights__list > li,
@@ -272,26 +271,21 @@
   min-width: 0;
 }
 
-/* ── Change card ────────────────────────────────────────────────────────── */
+/* ── Change row ─────────────────────────────────────────────────────────── */
 
+/* A row on the parchment, not a box: one hairline above, the kind told once by the mark before the name. */
 .hp-patch-card {
   position: relative;
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 0 0.8rem;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: 0 1rem;
   align-content: start;
   min-width: 0;
   height: 100%;
   box-sizing: border-box;
-  padding: 0.65rem 2.4rem 0.65rem 0.65rem;
-  border: 1px solid var(--patch-line);
-  border-radius: 6px;
-  background: var(--patch-paper);
-  box-shadow: inset 3px 0 0 var(--patch-rework);
+  padding: 0.85rem 2.5rem 0.85rem 0;
+  border-top: 1px solid var(--patch-line);
 }
-
-.hp-patch-card[data-kind='buff'] { box-shadow: inset 3px 0 0 var(--patch-buff); }
-.hp-patch-card[data-kind='nerf'] { box-shadow: inset 3px 0 0 var(--patch-nerf); }
 
 /* Every picture sits in the same card-shaped box, so cards line up whatever the source. */
 .hp-patch-card__art {
@@ -366,15 +360,14 @@
   flex: none;
   place-items: center;
   align-self: flex-start;
-  margin-top: 0.12rem;
-  width: 1.1rem;
-  height: 1.1rem;
-  border-radius: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 4px;
   background: var(--patch-rework-soft);
   color: var(--patch-rework);
 }
 
-.hp-patch-kind svg { width: 0.75rem; height: 0.75rem; }
+.hp-patch-kind svg { width: 0.8rem; height: 0.8rem; stroke-width: 2.5; }
 .hp-patch-kind[data-kind='buff'] { background: var(--patch-buff-soft); color: var(--patch-buff); }
 .hp-patch-kind[data-kind='nerf'] { background: var(--patch-nerf-soft); color: var(--patch-nerf); }
 
@@ -425,19 +418,16 @@
 
 .hp-change__text small { color: var(--arena-muted-ink); font-size: 0.78rem; font-style: italic; }
 
+/* Removed words fade under a strike; added words carry a highlighter stroke, not a chip. */
 .hp-change__text del {
-  margin-right: 0.15em;
-  padding: 0 0.1em;
-  border-radius: 3px;
-  background: var(--patch-nerf-soft);
-  color: var(--patch-nerf);
+  margin-right: 0.2em;
+  color: var(--arena-muted-ink);
+  text-decoration-color: rgba(147, 32, 42, 0.7);
   text-decoration-thickness: 1.5px;
 }
 
 .hp-change__text ins {
-  padding: 0 0.1em;
-  border-radius: 3px;
-  background: rgba(47, 110, 57, 0.16);
+  background: linear-gradient(transparent 60%, rgba(47, 110, 57, 0.2) 60%);
   color: #1f5229;
   font-weight: 700;
   text-decoration: none;
@@ -457,8 +447,8 @@
 
 .hp-patch-card__more > summary {
   position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
+  top: 0.55rem;
+  right: 0;
   display: grid;
   place-items: center;
   width: 2rem;
@@ -478,7 +468,7 @@
 .hp-patch-card__details {
   display: grid;
   gap: 0.5rem;
-  margin: 0.6rem -1.75rem 0 0;
+  margin: 0.6rem -2.5rem 0 0;
   padding-top: 0.6rem;
   border-top: 1px solid var(--patch-line);
   font-size: 0.8rem;
@@ -676,6 +666,7 @@
 }
 
 @container (max-width: 640px) {
+  .hp-patch-card { grid-template-columns: 3.5rem minmax(0, 1fr); gap: 0 0.8rem; }
   .hp-patch-card[data-featured] { grid-template-columns: 5rem minmax(0, 1fr); }
   .hp-patch-heading { font-size: 1.25rem; }
 }
