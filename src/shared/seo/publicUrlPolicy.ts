@@ -179,7 +179,7 @@ function upsertMeta(selector: string, attribute: 'name' | 'property', key: strin
 function upsertCanonical(href: string | null): void {
   const existing = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (!href) {
-    existing?.remove();
+    existing?.removeAttribute('href');
     return;
   }
   const canonical = existing ?? document.createElement('link');
@@ -199,6 +199,13 @@ function absoluteImageUrl(image: string | null | undefined, baseUrl: string | nu
     return DEFAULT_OG_IMAGE_URL;
   }
 }
+
+// Entity paths compare as the site normalises them: no trailing slash, decoded.
+const entityPathKey = (path: string) => decodePathPart(normalizePublicPathname(path)) ?? normalizePublicPathname(path);
+
+// React owns the JSON-LD and metadata nodes Next renders and removes them on navigation; one
+// removed here makes that throw into the global error screen, so stale nodes are turned off in place.
+const retireStructuredData = (element: HTMLScriptElement) => { element.type = 'application/x-stale+json'; };
 
 export async function applyDocumentPageMeta(meta: DocumentPageMeta): Promise<ResolvedPublicUrlPolicy> {
   const revision = ++documentMetaRevision;
@@ -223,21 +230,17 @@ export async function applyDocumentPageMeta(meta: DocumentPageMeta): Promise<Res
   upsertMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
   upsertCanonical(policy.canonicalUrl);
 
-  document.querySelectorAll<HTMLScriptElement>('script[data-server-entity-jsonld]')
+  document.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"][data-server-entity-jsonld]')
     .forEach(element => {
-      if (element.dataset.entityPath !== policy.normalizedPathname) element.remove();
+      if (entityPathKey(element.dataset.entityPath ?? '') !== entityPathKey(policy.normalizedPathname)) retireStructuredData(element);
     });
 
   if (policy.indexPolicy !== 'index') {
-    document.querySelectorAll('script[type="application/ld+json"]').forEach(element => element.remove());
+    document.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"]').forEach(retireStructuredData);
   }
 
-  const staleOgUrl = document.querySelector<HTMLMetaElement>('meta[property="og:url"]');
-  if (policy.canonicalUrl) {
-    upsertMeta('meta[property="og:url"]', 'property', 'og:url', policy.canonicalUrl);
-  } else {
-    staleOgUrl?.remove();
-  }
+  if (policy.canonicalUrl) upsertMeta('meta[property="og:url"]', 'property', 'og:url', policy.canonicalUrl);
+  else document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.removeAttribute('content');
 
   const imageUrl = absoluteImageUrl(meta.image, policy.canonicalUrl);
   upsertMeta('meta[property="og:image"]', 'property', 'og:image', imageUrl);
