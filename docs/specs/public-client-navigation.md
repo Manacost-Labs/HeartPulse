@@ -234,6 +234,21 @@ cancels the request; a chunk arriving after expiry must not start a late fetch.
 An unsuccessful response releases its unread body immediately, including a
 server that sends error headers and then stops streaming.
 
+### No blink (2026-10-23)
+
+The owner reported the page blinking on navigation. A screencast of production
+showed why: the old content left at the commit and the new one started at
+`opacity: 0`, so for one or two frames the content area was empty parchment
+(mean luminance about 225 against 100–150 for the pages) before it faded in.
+The earlier whole-page settle from 0.8 had read as a flicker too.
+
+`ENTRANCE_OPACITY_FLOOR` (`src/shared/ui/motionTokens.ts`) now lifts every
+content-replacing entrance: a navigated page and a switched view
+(`useViewEntrance`) keep full opacity and only move (rise, slide or zoom), and
+a section replacing its skeleton settles from 0.6. Measured on the same
+transitions, luminance now goes straight from the old page to the new one with
+no overshoot. Panels and popovers that appear over content keep their fades.
+
 ### Entrance, immediate feedback and revisits (2026-10-18, revised 2026-10-20)
 
 The owner found the committed-route settle (opacity 0.8 to 1) reading as a
@@ -253,9 +268,10 @@ that boundary had costs no animation may have:
 The revised contract keeps the owner's rhythm without those costs:
 
 1. `RouteTransition` (shared) gives the committed destination one entrance:
-   the children of the shell's `data-route-content` box enter from opacity 0
-   over `--motion-base` (220 ms) with `--motion-ease`, with the ValyroUI preset
-   the navigation chose (see "ValyroUI transitions" below; until 2026-10-21 a
+   the children of the shell's `data-route-content` box enter over
+   `--motion-base` (220 ms) with `--motion-ease`, with the motion of the
+   ValyroUI preset the navigation chose, at full opacity since 2026-10-23
+   (see "No blink" below) (see "ValyroUI transitions" below; until 2026-10-21 a
    plain 140 ms fade). The outgoing content is
    replaced at the commit; there is no document snapshot, so nothing is
    captured, every click stays live and no commit waits for motion.
@@ -267,7 +283,7 @@ The revised contract keeps the owner's rhythm without those costs:
    `[data-loading-surface]` of `LoadingSurface`) shows them at once, without
    an entrance. Each section arrives when it replaces its skeleton (the new
    outermost elements; more than eight new siblings arrive as their parent):
-   opacity 0 to 1 and a rise by `--motion-rise` over `--motion-base`, the
+   opacity 0.6 to 1 and a rise by `--motion-rise` over `--motion-base`, the
    sections of one batch `--motion-stagger` apart (at most three steps), for
    at most 10 seconds and until no skeleton remains. The first document does
    the same from hydration on, for sections that replace a skeleton or the

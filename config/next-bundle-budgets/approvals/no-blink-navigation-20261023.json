@@ -1,0 +1,9 @@
+{
+  "reason": "Переходы без моргания: общий помощник ENTRANCE_OPACITY_FLOOR / withOpacityFloor в движке входа страниц (около 80 байт gzip). Превышение только у маршрутов, которые уже стояли у предела накопленного допуска.",
+  "routes": {
+    "/standard/cards/": { "jsGzipBytes": 256 },
+    "/standard/cards/standard/": { "jsGzipBytes": 256 },
+    "/standard/matchups/": { "jsGzipBytes": 256 },
+    "/tierlist/": { "jsGzipBytes": 256 }
+  }
+}

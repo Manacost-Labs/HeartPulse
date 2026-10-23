@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
-import { motionEasing, motionMs, prefersReducedMotion } from './motionTokens';
+import { ENTRANCE_OPACITY_FLOOR, motionEasing, motionMs, prefersReducedMotion, withOpacityFloor } from './motionTokens';
 import { setRouteEntranceActive, takeExpectedRouteEntrance } from './routeEntrance';
 
 /** Skeleton primitives of LoadingSurface.tsx: content that is not the page yet. */
@@ -21,8 +21,8 @@ function fadeIn(elements: Element[], keyframes: Keyframe[] = FADE, token = '--mo
 }
 
 /**
- * Sections that replace their skeletons: a short fade and rise by
- * `--motion-rise`, neighbours of one batch a `--motion-stagger` step apart
+ * Sections that replace their skeletons: a short rise by `--motion-rise`
+ * from a light dip (never from nothing: see `ENTRANCE_OPACITY_FLOOR`), neighbours of one batch a `--motion-stagger` step apart
  * (header, then figures, then content, in document order). Transform and
  * opacity only, so nothing is laid out again and no layout shift is counted.
  */
@@ -45,7 +45,8 @@ function arrive(candidates: Element[], box: HTMLElement): Animation[] {
   const easing = motionEasing('--motion-ease');
   const step = motionMs('--motion-stagger');
   const rise = getComputedStyle(document.documentElement).getPropertyValue('--motion-rise').trim() || '0px';
-  const keyframes: Keyframe[] = [{ opacity: 0, transform: `translateY(${rise})` }, { opacity: 1, transform: 'none' }];
+  const keyframes = withOpacityFloor([{ opacity: 0, transform: `translateY(${rise})` }, { opacity: 1, transform: 'none' }],
+    ENTRANCE_OPACITY_FLOOR.section);
   return elements.map((element, index) => element.animate(keyframes,
     { duration, easing, delay: Math.min(index, STAGGER_STEPS) * step, fill: 'backwards' }));
 }
@@ -93,7 +94,7 @@ function arrivedContent(records: MutationRecord[], box: HTMLElement, placeholder
 
 /**
  * Plays the page's single entrance: at once when it commits ready, with the
- * navigation's `keyframes` over `--motion-base`, otherwise as the short
+ * navigation's motion over `--motion-base` at full opacity, otherwise as the short
  * arrival of each section as it replaces a `placeholder` (not the navigation's
  * larger preset: a late section only settles in), until none is left, the
  * reader acts or `ARRIVAL_WINDOW_MS` passes. Returns the cancellation.
@@ -102,7 +103,7 @@ function enter(box: HTMLElement, keyframes: Keyframe[], placeholder = SKELETON, 
   const animations: Animation[] = [];
   if (!box.querySelector(placeholder)) {
     const content = [...box.children].filter(child => !(child as HTMLElement).hidden);
-    animations.push(...fadeIn(content, keyframes, '--motion-base'));
+    animations.push(...fadeIn(content, withOpacityFloor(keyframes, ENTRANCE_OPACITY_FLOOR.page), '--motion-base'));
     clipWhileMoving(box, animations);
     return () => animations.forEach(animation => animation.cancel());
   }

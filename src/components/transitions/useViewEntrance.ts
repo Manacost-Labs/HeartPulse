@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type Key, type RefObject } from 'react';
-import { motionEasing, motionMs, prefersReducedMotion } from '../../shared/ui/motionTokens';
+import { ENTRANCE_OPACITY_FLOOR, motionEasing, motionMs, prefersReducedMotion, withOpacityFloor } from '../../shared/ui/motionTokens';
 import { transitionPresetsNow } from './lazyTransitionPresets';
 import type { SiteTransitionPreset } from './transitionPresets';
 
@@ -24,7 +24,8 @@ export function useViewEntrance<T extends HTMLElement>(viewKey: Key, preset: Sit
     if (!element?.animate || !duration) return undefined;
     const reduced = prefersReducedMotion();
     const keyframes = transitionPresetsNow()?.entranceKeyframes(preset, 'forward', reduced) ?? FADE;
-    const entrance = element.animate(keyframes, { duration, easing: motionEasing('--motion-ease') });
+    // The old view vanished in this frame: start visible, or the switch blinks.
+    const entrance = element.animate(withOpacityFloor(keyframes, ENTRANCE_OPACITY_FLOOR.page), { duration, easing: motionEasing('--motion-ease') });
     return () => entrance.cancel();
   }, [viewKey, preset]);
   return ref;
