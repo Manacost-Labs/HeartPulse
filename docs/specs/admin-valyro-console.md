@@ -88,8 +88,14 @@ are unchanged and parsed in `adminConsole/adminNavigation.ts`.
 
 Sections on the cache: overview, people list and segment counts, articles
 and their read statistics, gallery, contests, referral links, Boosty status
-and subscribers, Telegram accounts and the mailing overview (refreshed every
-2.5 s while a campaign is queued or sending).
+and subscribers, Telegram accounts, the mailing overview (refreshed every
+2.5 s while a campaign is queued or sending) and the translation coverage
+check (up to 45 s on the server; «Проверить ещё раз», a saved translation and
+the BlizzCore sync refresh it).
+
+While the first page of the people, Boosty or Telegram table loads, a Valyro
+skeleton of about the same height holds its place
+(`adminConsole/AdminTableSkeleton.tsx`), so the pager does not jump.
 
 ## Sections
 
