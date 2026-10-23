@@ -13,9 +13,27 @@ export function ArticlesPageClient({ initialData }: { initialData: ArticlesData 
   const [personalError, setPersonalError] = useState(false);
   const [retry, setRetry] = useState(0);
   const userId = access.user?.id;
+  // The build prerenders without the API (no articles, no date); until the
+  // post-deploy regeneration replaces that copy, the browser reads them itself.
+  const seedMissing = initialData.updatedAt === null && initialData.articles.length === 0;
+  const [publicData, setPublicData] = useState<ArticlesData | null>(null);
   // Votes belong to the viewer who fetched them: anyone else, or nobody while
   // access is checked again (a restored page), sees the public data at once.
-  const data = personal && userId && personal.owner === userId ? personal.data : initialData;
+  const data = personal && userId && personal.owner === userId ? personal.data : publicData ?? initialData;
+
+  useEffect(() => {
+    if (!seedMissing) return;
+    const controller = new AbortController();
+    void fetch('/api/articles', {
+      credentials: 'omit', signal: controller.signal, headers: { Accept: 'application/json' },
+    }).then(async response => {
+      if (!response.ok) throw new Error('Articles unavailable');
+      return articlesData(await response.json());
+    }).then(value => {
+      if (!controller.signal.aborted) setPublicData(value);
+    }).catch(() => undefined);
+    return () => controller.abort();
+  }, [seedMissing]);
 
   useEffect(() => {
     if (access.checking) return;

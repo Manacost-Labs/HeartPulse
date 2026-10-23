@@ -136,7 +136,7 @@ assert.doesNotMatch(accessSource, /hasAuthSessionHint/);
 // Viewer-specific parts of public pages follow the viewer in the same render,
 // so a restored page that hides its viewer also drops them.
 const articlesSource = readFileSync(new URL('../apps/public-web/ui/ArticlesPageClient.tsx', import.meta.url), 'utf8');
-assert.match(articlesSource, /const data = personal && userId && personal\.owner === userId \? personal\.data : initialData;/);
+assert.match(articlesSource, /const data = personal && userId && personal\.owner === userId \? personal\.data : publicData \?\? initialData;/);
 const contestsSource = readFileSync(new URL('../apps/public-web/ui/ContestsPageClient.tsx', import.meta.url), 'utf8');
 assert.match(contestsSource, /<ContestsPage key=\{access\.user\?\.id \?\? 'guest'\}/);
 const articleVotesSource = readFileSync(new URL('../src/modules/articles/ui/ArticlesTab.tsx', import.meta.url), 'utf8');

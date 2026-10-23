@@ -23,14 +23,20 @@ export function expressOrigin(): URL {
  * personal data cannot reach shared server-rendered HTML. The path must be
  * origin-relative (`/api/...`) and may carry a query string. A caller's signal
  * can shorten the deadline and cancel a body that is still being read.
+ * `revalidate` (seconds) is for prerendered pages; the default never caches.
  */
-export function fetchPublicExpress(path: string, signal?: AbortSignal): Promise<Response> {
+export function fetchPublicExpress(path: string, signal?: AbortSignal, options: { revalidate?: number } = {}): Promise<Response> {
   // An absolute or protocol-relative URL would leave the loopback origin.
   if (!path.startsWith('/') || path.startsWith('//')) {
     throw new Error('Express path must be origin-relative');
   }
+  // A prerendered page passes its `revalidate`: the read joins the page's
+  // regeneration instead of making the route dynamic (`no-store`).
+  const caching: RequestInit = options.revalidate
+    ? { next: { revalidate: options.revalidate } } as RequestInit
+    : { cache: 'no-store' };
   return fetch(new URL(path, expressOrigin()), {
-    cache: 'no-store', credentials: 'omit', redirect: 'error',
+    ...caching, credentials: 'omit', redirect: 'error',
     signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
     headers: { Accept: 'application/json' },
   });

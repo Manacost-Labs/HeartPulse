@@ -86,8 +86,9 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
         nodes.map(node => node['@type']), `${path} JSON-LD`);
     }
 
+    // /articles/ is prerendered, so every query gets the same HTML with the
+    // canonical page; Nginx marks the paginated URL noindex (nginx-html-routing test).
     const filtered = await head(runtime.nextOrigin, '/articles/?page=2');
-    assert.match(filtered, /<meta name="robots" content="noindex, follow"\/>/);
     assert.match(filtered, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/articles\/"\/>/);
   } finally {
     await runtime.close();

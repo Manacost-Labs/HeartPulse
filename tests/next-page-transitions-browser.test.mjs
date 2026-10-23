@@ -285,7 +285,8 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await page.waitForFunction(() => location.pathname === '/gallery/' && !document.querySelector('[data-navigation-progress="pending"]'));
     await new Promise(resolve => setTimeout(resolve, 1100));
     assert.equal(await page.evaluate(() => location.pathname), '/gallery/', 'a slow earlier route cannot replace the newer destination');
-    await page.click('.arena-sidebar a[href="/articles/"]');
+    // A dynamic page: /articles/ is prerendered and opens without a pending route.
+    await page.click('.arena-sidebar a[href="/standard/fun-decks/"]');
     await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
     await page.goBack();
     await page.waitForFunction(() => location.pathname === '/faq/' && !document.querySelector('[data-navigation-progress="pending"]'));
@@ -331,12 +332,12 @@ test('hover prepares a complete dynamic page before click, including its route c
     await visitByClick(page, contests, '/contests/');
     assert.equal(pageRequests('/contests/').length, 1, 'the click reuses the prefetch that was still downloading');
     // Back while a click waits for its prefetch wins at once, and the late prefetch never navigates.
-    const articles = '.arena-sidebar a[href="/articles/"]';
-    await page.hover(articles);
-    for (let attempt = 0; attempt < 100 && pageRequests('/articles/').length === 0; attempt += 1) {
+    const funDecks = '.arena-sidebar a[href="/standard/fun-decks/"]';
+    await page.hover(funDecks);
+    for (let attempt = 0; attempt < 100 && pageRequests('/standard/fun-decks/').length === 0; attempt += 1) {
       await new Promise(resolve => setTimeout(resolve, 10));
     }
-    await page.click(articles);
+    await page.click(funDecks);
     const backAt = Date.now();
     await page.evaluate(() => history.back());
     await page.waitForFunction(() => location.pathname === '/gallery/');

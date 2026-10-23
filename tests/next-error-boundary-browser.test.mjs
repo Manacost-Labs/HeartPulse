@@ -91,9 +91,11 @@ test('route error pages keep their recovery copy and report the error once', asy
     }
 
     // A section boundary keeps its own copy and reports under its own scope.
+    // /articles/ is prerendered and its Express read never throws (an outage
+    // ships the empty seed and the browser loads the list), so an API failure
+    // no longer reaches its boundary.
     for (const [path, heading, scope] of [
       ['/standard/cards/standard/', 'Данные карты временно недоступны', 'route:standard-cards'],
-      ['/articles/', 'Статьи временно недоступны', 'route:articles'],
       ['/contests/', 'Конкурсы временно недоступны', 'route:contests'],
     ]) {
       const seen = reports.length;
