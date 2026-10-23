@@ -50,6 +50,7 @@ import {
 import {
   ContestAdminMailing,
   EMPTY_MAILING_DRAFT,
+  mailingAudienceWarning,
   type MailingDraft,
   type MailingOverview,
   type MailingPreviewMode,
@@ -846,9 +847,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const preview = await requestMailingPreview(mailingDraft);
       if (!preview) return;
       const recipients = Number(preview.recipientCount || 0);
-      if (!recipients) throw new Error('В выбранной аудитории нет адресов с подтверждённым согласием.');
-      const includeFormer = mailingDraft.segment === 'former' || mailingDraft.segment === 'all-consented';
-      const warning = includeFormer ? '\nВ выборку могут входить бывшие подписчики, которые не отписались от писем.' : '';
+      if (!recipients) throw new Error('В выбранной аудитории нет адресов для отправки.');
+      const warning = mailingAudienceWarning(mailingDraft.segment);
       if (!window.confirm(`Запустить рассылку «${mailingDraft.subject}» для ${recipients} получателей?${warning}\n\nОтправку нельзя отменить после запуска.`)) return;
       const res = await fetchWithDeadline('/api/admin/mailings/send', {
         method: 'POST',

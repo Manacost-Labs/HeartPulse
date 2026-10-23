@@ -225,6 +225,9 @@ import {
   type NewsletterUnsubscribeStore,
 } from './newsletterUnsubscribeRoutes.js';
 import { isMailingEntrySubscribed, syncMailingContact, type MailingContactSyncOptions } from './mailingContactSync.js';
+import {
+  canReceiveCampaign, ensureBoostySeenColumn, hasMailingConsent, isBoostyAudienceContact, mailingSegment, type MailingSegment,
+} from './mailingAudience.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { ADMIN_CRM_SCHEMA_SQL } from './adminCrmRoutes.js';
 import { registerAdminCrm } from './app/registerAdminCrm.js';
@@ -1419,6 +1422,7 @@ function syncMailingContactForUser(database: DatabaseSync, user: AdminUser, opti
 }
 
 function syncExistingMailingContacts(database: DatabaseSync) {
+  ensureBoostySeenColumn(database);
   const migrated = database.prepare('SELECT value FROM meta WHERE key = ?').get(NEWSLETTER_LEGACY_MIGRATION_KEY) as { value?: string } | undefined;
   if (migrated?.value === '1') return;
 
@@ -1462,14 +1466,15 @@ function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, a
   dbRun(`
     INSERT INTO mailing_contacts (
       id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
-      unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
-    ) VALUES (?, ?, NULL, ?, 'unknown', 'boosty-observed', NULL, NULL, NULL, '', 'former', ?, ?, ?, ?)
+      unsubscribed_at, suppressed_reason, account_state, former_at, boosty_seen_at, first_seen_at, last_seen_at, updated_at
+    ) VALUES (?, ?, NULL, ?, 'unknown', 'boosty-observed', NULL, NULL, NULL, '', 'former', ?, ?, ?, ?, ?)
     ON CONFLICT(email) DO UPDATE SET
       name = CASE WHEN mailing_contacts.name = '' THEN excluded.name ELSE mailing_contacts.name END,
+      boosty_seen_at = COALESCE(mailing_contacts.boosty_seen_at, excluded.boosty_seen_at),
       former_at = CASE WHEN mailing_contacts.user_id IS NULL AND ? = 0 THEN COALESCE(mailing_contacts.former_at, excluded.former_at) ELSE mailing_contacts.former_at END,
       last_seen_at = excluded.last_seen_at,
       updated_at = excluded.updated_at
-  `, mailingContactId(email), email, normalizeOptionalText(nameValue, 120), formerAtIso, nowIso, nowIso, nowIso, active ? 1 : 0);
+  `, mailingContactId(email), email, normalizeOptionalText(nameValue, 120), formerAtIso, nowIso, nowIso, nowIso, nowIso, active ? 1 : 0);
 }
 
 function upsertUserRow(database: DatabaseSync, user: AdminUser) {
@@ -2559,8 +2564,6 @@ function sendAuthCodeEmail(to: string, code: string): Promise<void> {
   });
 }
 
-type MailingSegment = 'all-consented' | 'active' | 'former';
-
 interface NewsletterDraft {
   subject: string;
   preheader: string;
@@ -2622,8 +2625,7 @@ function newsletterTextFromHtml(htmlBody: string): string {
 function normalizeNewsletterDraft(value: any): NewsletterDraft {
   const subject = normalizeOptionalText(value?.subject, 160);
   const preheader = normalizeOptionalText(value?.preheader, 220);
-  const segmentRaw = normalizeOptionalText(value?.segment, 40);
-  const segment: MailingSegment = segmentRaw === 'active' || segmentRaw === 'former' ? segmentRaw : 'all-consented';
+  const segment = mailingSegment(normalizeOptionalText(value?.segment, 40));
   const templateKey = normalizeOptionalText(value?.templateKey, 60) || 'custom';
   const htmlBody = sanitizeNewsletterFragment(value?.htmlBody ?? value?.html);
   const suppliedText = normalizeOptionalText(value?.textBody, 100_000);
@@ -2768,21 +2770,17 @@ function mailingContactRows(): any[] {
     ORDER BY mc.updated_at DESC
   `).map(row => {
     const active = Boolean(row.provider_access || row.manual_access);
-    const eligible = row.consent_status === 'subscribed'
-      && Boolean(row.consented_at)
-      && Boolean(row.verified_at)
-      && isRealEmail(String(row.email || ''))
-      && !row.blocked_at
-      && !row.suppressed_reason;
     return {
       ...row,
-      eligible,
+      eligible: hasMailingConsent(row, isRealEmail),
+      boostyAudience: isBoostyAudienceContact(row, isRealEmail),
       lifecycle: active ? 'active' : 'former',
     };
   });
 }
 
 function eligibleMailingContacts(segment: MailingSegment): any[] {
+  if (segment === 'boosty-all') return mailingContactRows().filter(row => row.boostyAudience);
   return mailingContactRows().filter(row => row.eligible && (segment === 'all-consented' || row.lifecycle === segment));
 }
 
@@ -2794,6 +2792,7 @@ function mailingSummary() {
     eligible: eligible.length,
     active: eligible.filter(row => row.lifecycle === 'active').length,
     former: eligible.filter(row => row.lifecycle === 'former').length,
+    boostyAll: contacts.filter(row => row.boostyAudience).length,
     excluded: contacts.length - eligible.length,
     unsubscribed: contacts.filter(row => row.consent_status === 'unsubscribed').length,
     pendingConsent: contacts.filter(row => row.consent_status === 'unknown').length,
@@ -2898,7 +2897,7 @@ async function sendNewsletterToContact(campaign: any, contact: any) {
     preheader: String(campaign.preheader || ''),
     htmlBody: sanitizeNewsletterFragment(campaign.html_body),
     textBody: String(campaign.text_body || ''),
-    segment: campaign.segment as MailingSegment,
+    segment: mailingSegment(campaign.segment),
     templateKey: String(campaign.template_key || 'custom'),
   };
   const token = newsletterUnsubscribeToken(String(contact.id));
@@ -2944,7 +2943,7 @@ async function runNewsletterCampaign(campaignId: string) {
 
     while (true) {
       const delivery = dbGet<any>(`
-        SELECT d.*, mc.email, mc.consent_status, mc.consented_at, mc.verified_at, mc.suppressed_reason, u.blocked_at
+        SELECT d.*, mc.email, mc.consent_status, mc.consented_at, mc.verified_at, mc.suppressed_reason, mc.boosty_seen_at, u.blocked_at
         FROM mailing_deliveries d
         LEFT JOIN mailing_contacts mc ON mc.id = d.contact_id
         LEFT JOIN users u ON u.id = mc.user_id
@@ -2954,12 +2953,7 @@ async function runNewsletterCampaign(campaignId: string) {
       `, campaignId);
       if (!delivery) break;
       const nowIso = new Date().toISOString();
-      const stillEligible = delivery.consent_status === 'subscribed'
-        && Boolean(delivery.consented_at)
-        && Boolean(delivery.verified_at)
-        && !delivery.suppressed_reason
-        && !delivery.blocked_at
-        && isRealEmail(String(delivery.email || ''));
+      const stillEligible = canReceiveCampaign(mailingSegment(campaign.segment), delivery, isRealEmail);
       if (!stillEligible) {
         dbRun("UPDATE mailing_deliveries SET status = 'skipped', last_error = 'contact-suppressed', updated_at = ? WHERE campaign_id = ? AND contact_id = ?",
           nowIso, campaignId, delivery.contact_id);
@@ -8819,6 +8813,16 @@ app.use('/api', createAdminBoostyRouter({
   configured: () => Boolean(BOOSTY_AUTH_API_URL),
   setPrivateNoStore,
 }));
+
+// The «все подписчики Boosty» mailing audience is as complete as the last
+// subscriber list, so the list is read in the background, not only when an
+// admin opens the Boosty page.
+const syncBoostyMailingContacts = () => fetchBoostySubscribers(true)
+  .catch((error: any) => console.warn('[mailing] Boosty contact sync failed:', error?.message ?? error));
+if (BACKGROUND_JOBS_ENABLED && BOOSTY_AUTH_API_URL) {
+  setTimeout(syncBoostyMailingContacts, 60_000).unref();
+  setInterval(syncBoostyMailingContacts, 6 * 60 * 60_000).unref();
+}
 
 app.use('/api', createAdminBoostyAnalyticsRouter({
   adminAuth,
