@@ -1,7 +1,8 @@
 # Patch notes page
 
 `/standard/patches/` shows the card changes of one Hearthstone patch
-(`src/features/PatchNotesView.tsx`, parchment styles of the site). Without a
+(`src/features/PatchNotesView.tsx` and `src/features/patchNotes/`, parchment
+styles of the site). Without a
 query it opens the newest patch that has card changes; `?version=36.6.3` opens
 one patch of the archive. The archive lists every patch with at least one
 parsed change. The page is public: no entitlement, no paywall and no viewer
@@ -86,7 +87,9 @@ answers `502`.
   builds. A card node opens the card page (else its change on this page),
   an archetype node its archetype page; on touch the first tap shows the
   tooltip. The plot is one block 200–360 px tall (30 px per row of the
-  taller column). Below 640 px of content the same links are a list. It is
+  taller column). With fewer than three cards, and below 640 px of content,
+  the same links are a list: one row per card (its kind mark and name),
+  then its archetypes with their class icon and number of builds. It is
   shown only with at least two links; a format whose catalog failed is named
   in its note.
 - A card's archetypes ("В архетипах текущей меты", at most four and a count
@@ -119,7 +122,8 @@ One way to do each thing:
   the archive timeline in a modal side drawer (a native `<dialog>`). The
   drawer is rendered with the page, so the links to every patch are in the
   server HTML.
-- One bar under the header carries the section links (when the patch has
+- One bar under the header, a framed toolbar whose controls share one
+  height, carries the section links (when the patch has
   more than one section), the class/card-type select (grouped by section),
   the search and the kind filter (Все / ↑ / ↓ / ↻; the header counts each
   kind with the same marks, so the toggles repeat no number and carry their
@@ -150,15 +154,25 @@ build of a version wins when hs-data-api stores two builds of one article.
 
 ## Rendering
 
-The server component reads both routes within the shared 600 ms first-paint
-budget (`apps/public-web/lib/publicPatchNotes.ts`); a part that misses it is
-loaded by the browser. Dates render in Europe/Moscow before hydration and in
+The server component reads both routes through a cache in the Next process
+(`apps/public-web/lib/publicPatchNotesData.ts`): the last good answer of each
+path is served at once and refreshed in the background once it is five
+minutes old, so a slow Express no longer ships the page without the patch
+(the regional edge keeps an anonymous document for a minute, bots included).
+Only a path the process has never read waits, within the shared 600 ms
+first-paint budget; its read goes on for up to ten seconds and fills the
+cache for the next request, and a part that missed the budget is loaded by
+the browser. Failed, `404` and malformed answers are not kept; at most 48
+paths are, the least recently served dropped first. After a deploy
+`scripts/warm-prerendered-pages.mjs` requests the page on the local Next
+origin to fill the cache. Dates render in Europe/Moscow before hydration and in
 the viewer's zone after it.
 
 - Reading order: the header, the bar, "Главное в патче" (highlight cards,
-  then the Sankey), the sections and a one-paragraph source note. The Sankey
-  draws its flows without the kit's dash animation, which Chrome leaves
-  unpainted on this chart's wide flows.
+  then the cards → archetypes block), the sections and a one-paragraph source
+  note. A patch of one or two changes has no bar: there is nothing to
+  filter. The Sankey draws its flows without the kit's dash animation,
+  which Chrome leaves unpainted on this chart's wide flows.
 - The page heading (`h1` "Патчноуты Hearthstone") sits in the patch header
   instead of the tall route banner, which only the missing, failed and
   loading states still show.
@@ -188,8 +202,9 @@ the viewer's zone after it.
   section or patch is read whole below, so it is not repeated): Standard
   first, then the largest number moves; a stated buff or nerf outranks a
   rework and one section fills at most half the list while others have
-  candidates. Highlights are large cards without details, two by two (three
-  in one row, one column on phones); when every highlight has wiki art at
+  candidates. Highlights are centred tiles without details — the render
+  above the name and the change — all in one row on content at least
+  760 px wide, two a row narrower; when every highlight has wiki art at
   least 1000 px wide, the art runs across the top and the render is laid
   over its lower edge, otherwise no highlight has art, so they read as one
   kind of card.
@@ -205,9 +220,12 @@ the viewer's zone after it.
   highlights and section notes.
 - A change row shows only the render, the name with a ↑↓↻ mark (a small
   square badge, the only place the row's kind is shown) and the change.
-  Rows sit on the parchment without a box, a hairline above each, in columns
-  of about 24 rem (two on wide content, one on phones); only highlights are
-  boxed cards. The row's "…" (a `<details>` in its corner) holds the
+  Rows sit on the parchment without a box, a hairline above each, in one,
+  two (content from 700 px) or three (from 1080 px) columns; only
+  highlights are boxed cards. A group of one or two cards spans only its
+  columns, so small classes share a row; larger groups take the full width.
+  Groups share the section's columns (CSS subgrid), so rows line up. The
+  row's "…" (a `<details>` in its corner) holds the
   type and the article's English name, the archetypes of today's meta, the
   earlier patches that changed it, "Карта и колоды с ней" for Constructed
   cards of a known format (`/standard/cards/<format>/<id>/`, which lists decks
@@ -222,11 +240,14 @@ the viewer's zone after it.
 - Number changes read `старое → новое`; cost, attack and health are drawn on
   the game's mana crystal, attack and health icons, a tavern tier as its tier
   shield; a Battlegrounds cost is gold and armor has no game icon on the
-  site, so both use an interface glyph. The old value is faded and struck
-  through, the new one plain; the label and the direction stay for assistive
-  technology. A rule-text change is one sentence: removed words muted and
-  struck out, added words bold with a highlighter stroke ("было:"/"стало:"
-  for assistive technology); its label is shown only when it is not "Текст".
+  site, so both use an interface glyph. The old value is a smaller, faded,
+  grey gem (a value without an icon is struck through), the new one plain;
+  the label and the direction stay for assistive technology. A rule-text
+  change is one sentence: changed words separated only by spaces form one
+  phrase (`patchDiffHunks`), shown as the whole old phrase muted and struck
+  out, then the whole new phrase bold with a highlighter stroke
+  ("было:"/"стало:" for assistive technology), never alternating single
+  words; its label is shown only when it is not "Текст".
 - A patch without line-by-line changes says so in a panel that points to the
   header links. Picture-only article sections are one quiet line with the
   article link; "Общие изменения" is a short list.

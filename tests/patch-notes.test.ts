@@ -474,3 +474,16 @@ test('meta flow: changed cards to the archetypes whose builds play them, weighte
   assert.equal(flow.nodes[0].cardKind, 'rework');
   assert.deepEqual(patchMetaFlow(toPatchView({ entries })), { nodes: [], links: [] }, 'no meta, no flow');
 });
+
+test('a word diff reads as whole old and new phrases, not alternating words', async () => {
+  const { patchDiffHunks } = await import('../src/modules/patchNotes/public');
+  const { wordDiff } = await import('../src/vendor/varylo-ui/gaming/patch');
+  const render = (before: string, after: string) => patchDiffHunks(wordDiff(before, after))
+    .map(token => token.op === 'same' ? token.text : token.op === 'remove' ? `[-${token.text}-]` : `{+${token.text}+}`).join('');
+  assert.equal(render('вы получаете копию этого заклинания».', 'вы получаете случайное заклинание природы».'),
+    'вы получаете [-копию этого заклинания».-] {+случайное заклинание природы».+}');
+  assert.equal(render('Родня: стоит на (3) меньше.', 'Родня: стоит на (2) меньше.'), 'Родня: стоит на [-(3)-] {+(2)+} меньше.');
+  assert.equal(render('наносит 5 ед. урона.', 'наносит 5 ед. урона. Вы получаете 5 ед. брони.'),
+    'наносит 5 ед. урона.{+ Вы получаете 5 ед. брони.+}');
+  assert.equal(render('a b', 'a b'), 'a b');
+});

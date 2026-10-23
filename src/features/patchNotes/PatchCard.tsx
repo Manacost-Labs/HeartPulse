@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, Coins, Ellipsis, ImageOff, Shield } from 'lucide-react';
-import { patchHasWideArtwork, type PatchCardView, type PatchChangeView, type PatchKind, type PatchNotesMode } from '../../modules/patchNotes/public';
+import { patchDiffHunks, patchHasWideArtwork, type PatchCardView, type PatchChangeView, type PatchKind, type PatchNotesMode } from '../../modules/patchNotes/public';
 import { wordDiff } from '../../vendor/varylo-ui/gaming/patch';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
 import { CardHistory, CopyLinkButton } from './PatchCardExtras';
@@ -51,7 +51,7 @@ function KindMark({ kind }: { kind: PatchKind }) {
   return <span className="hp-patch-kind" data-kind={kind} title={KIND_LABELS[kind]}><Icon aria-hidden="true" /><span className="sr-only">{KIND_LABELS[kind]}</span></span>;
 }
 
-/** Old and new rule text as one sentence: removed words struck out, added words marked. */
+/** Old and new rule text as one sentence: each changed phrase struck out whole, then the new phrase marked. */
 function TextDiff({ change }: { change: PatchChangeView }) {
   const before = change.before?.toString();
   const after = change.after?.toString();
@@ -65,7 +65,7 @@ function TextDiff({ change }: { change: PatchChangeView }) {
   }
   return (
     <p className="hp-change__text">
-      {wordDiff(before, after).map((token, index) => {
+      {patchDiffHunks(wordDiff(before, after)).map((token, index) => {
         if (token.op === 'remove') return <del key={index}><span className="sr-only">было: </span>{token.text}</del>;
         if (token.op === 'add') return <ins key={index}><span className="sr-only">стало: </span>{token.text}</ins>;
         return <React.Fragment key={index}>{token.text}</React.Fragment>;

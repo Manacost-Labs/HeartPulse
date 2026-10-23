@@ -141,3 +141,45 @@ export function patchMetaFlow(view: PatchView, { archetypes = 10 } = {}): { node
     .sort((left, right) => right.popularity - left.popularity).map(({ node }) => node);
   return { nodes: [...cardNodes, ...archetypeNodes], links };
 }
+
+export type PatchDiffToken = { text: string; op: 'same' | 'add' | 'remove' };
+
+/**
+ * A word diff reads as phrases: changed words separated only by spaces form
+ * one hunk, shown as the whole old phrase struck out, a space, then the whole
+ * new phrase ("копию этого заклинания" → "случайное заклинание природы")
+ * instead of alternating single words. Unchanged text keeps its place.
+ */
+export function patchDiffHunks(tokens: readonly PatchDiffToken[]): PatchDiffToken[] {
+  const out: PatchDiffToken[] = [];
+  let removed = '';
+  let added = '';
+  let gap = '';
+  const flush = () => {
+    if (removed) out.push({ text: removed, op: 'remove' });
+    if (removed && added) out.push({ text: ' ', op: 'same' });
+    if (added) out.push({ text: added, op: 'add' });
+    removed = '';
+    added = '';
+  };
+  for (const token of tokens) {
+    if (token.op === 'same' && !token.text.trim() && (removed || added)) {
+      gap += token.text;
+    } else if (token.op === 'same') {
+      flush();
+      out.push({ text: gap + token.text, op: 'same' });
+      gap = '';
+    } else {
+      if (gap) {
+        if (removed) removed += gap;
+        if (added) added += gap;
+        gap = '';
+      }
+      if (token.op === 'remove') removed += token.text;
+      else added += token.text;
+    }
+  }
+  flush();
+  if (gap) out.push({ text: gap, op: 'same' });
+  return out;
+}

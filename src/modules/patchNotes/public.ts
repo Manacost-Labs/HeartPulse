@@ -6,8 +6,8 @@ export {
   type PatchKind, type PatchKindCounts, type PatchSectionId, type PatchSectionView, type PatchView,
 } from './model/patchEntries';
 export {
-  patchArchiveByExpansion, patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHasWideArtwork, patchHeroLead, patchMetaFlow,
-  type PatchArchiveGroup, type PatchFlowLink, type PatchFlowNode, type PatchHeroLead,
+  patchArchiveByExpansion, patchDiffHunks, patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHasWideArtwork, patchHeroLead, patchMetaFlow,
+  type PatchArchiveGroup, type PatchDiffToken, type PatchFlowLink, type PatchFlowNode, type PatchHeroLead,
 } from './model/patchPresentation';
 export { normalizePatchVersion } from './model/types';
 export type {
