@@ -55,10 +55,13 @@ export function usePageTourLauncher({ pagePath, auth }: { pagePath: string; auth
     setLaunch('manual');
   }, []);
 
+  // The visitor asked for it, so it opens like the header button: an automatic
+  // launch would close itself on a paid page where a guest sees only the
+  // subscription step, and «Показать» would do nothing.
   const acceptInvite = useCallback(() => {
     returnRef.current = null;
     setInvite(null);
-    setLaunch('auto');
+    setLaunch('manual');
   }, []);
 
   const dismissInvite = useCallback(() => setInvite(null), []);

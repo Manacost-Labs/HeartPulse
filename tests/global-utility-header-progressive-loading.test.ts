@@ -42,5 +42,10 @@ assert.match(
   /invite: storageKey => setInvite/,
   'a first visit only offers the tour; the tour itself opens from the offer or the header button',
 );
+assert.match(
+  launcherSource,
+  /const acceptInvite = useCallback\(\(\) => \{[\s\S]*?setLaunch\('manual'\);/,
+  '«Показать» on the offer opens the tour like the header button, even where a guest sees only the subscription step',
+);
 
 console.log('global utility-header progressive-loading contracts passed');
