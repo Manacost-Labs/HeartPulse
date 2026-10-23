@@ -281,7 +281,12 @@ import {
   type TelegramAuthIdentityClaim,
 } from './modules/telegramAuth/public.js';
 import {
-  ensurePublicProfileIds,
+  claimNickname,
+  createPublicProfileRouter,
+  ensurePublicProfileSchema,
+  findPublicProfile,
+  findPublicProfileIdByNickname,
+  readOwnPublicIdentity,
   resolveUserPublicProfileId,
 } from './modules/publicProfile/public.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
@@ -1323,7 +1328,7 @@ function db(): DatabaseSync {
   ensureAccountColumns(ecosystemDb);
   ensureAccountSessionColumns(ecosystemDb);
   ensureTelegramAuthDatabaseConstraints(ecosystemDb);
-  ensurePublicProfileIds(ecosystemDb, { preferredUserIds: [...ADMIN_USER_IDS] });
+  ensurePublicProfileSchema(ecosystemDb, { preferredUserIds: [...ADMIN_USER_IDS] });
   const manualGrantColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(manual_subscription_grants)').all() as any[]).map(row => String(row.name)));
   if (!manualGrantColumns.has('expires_at')) ecosystemDb.exec('ALTER TABLE manual_subscription_grants ADD COLUMN expires_at TEXT');
   migrateLegacyAuthStore(ecosystemDb);
@@ -8686,6 +8691,29 @@ app.use('/api', createAuthProfileRouter({
   normalizeContactTelegram,
   normalizeContactVkUrl,
   setPrivateNoStore,
+}));
+
+// Next renders /id/ and /u/ over loopback and Nginx limits those documents per
+// client; these budgets bound direct API reads and nickname probing.
+app.use('/api', createPublicProfileRouter({
+  findProfile: publicProfileId => findPublicProfile(db(), publicProfileId),
+  findPublicProfileIdByNickname: (nicknameKey, now) => findPublicProfileIdByNickname(db(), nicknameKey, now),
+  readOwnIdentity: (userId, now) => readOwnPublicIdentity(db(), userId, now),
+  claimNickname: (userId, nickname, now) => claimNickname(db(), userId, nickname, now),
+  userAuth,
+  csrfAllowed: cookieMutationCsrfAllowed,
+  setPrivateNoStore,
+  publicReadLimiter: rateLimit({
+    windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false,
+    keyGenerator: rateLimitClientKey,
+    message: { error: 'Слишком много запросов профилей. Попробуйте через минуту.' },
+    skip: req => req.ip === '127.0.0.1' || req.ip === '::1',
+  }),
+  nicknameChangeLimiter: rateLimit({
+    windowMs: 15 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
+    keyGenerator: rateLimitClientKey,
+    message: { error: 'Слишком много попыток сменить ник. Попробуйте позже.' },
+  }),
 }));
 
 app.use('/api', createSubscriptionRouter({

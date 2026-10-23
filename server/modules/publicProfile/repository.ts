@@ -1,15 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { isPublicProfileId, MAX_PUBLIC_PROFILE_ID } from './identity.js';
+import { isPublicProfileId, MAX_PUBLIC_PROFILE_ID, normalizeStoredPublicId } from './identity.js';
+import { ensurePublicNicknameSchema } from './nicknameRepository.js';
+import type { PublicProfileCandidate } from './model.js';
 
 export type PublicProfileIdentityOptions = {
   /** Existing owner accounts that should receive the first available IDs. */
   preferredUserIds?: readonly string[];
 };
 
-function normalizeStoredPublicId(value: unknown): number | null {
-  const normalized = String(value ?? '');
-  return isPublicProfileId(normalized) ? Number(normalized) : null;
-}
 
 function nextAvailablePublicId(reserved: Set<number>): number {
   for (let candidate = 1; candidate <= MAX_PUBLIC_PROFILE_ID; candidate += 1) {
@@ -108,4 +106,35 @@ export function resolveUserPublicProfileId(
     throw new Error('Не удалось создать публичный ID профиля');
   }
   return String(candidate);
+}
+
+/** Runs every public-profile migration in order; each one is idempotent. */
+export function ensurePublicProfileSchema(
+  database: DatabaseSync,
+  options: PublicProfileIdentityOptions = {},
+): void {
+  ensurePublicProfileIds(database, options);
+  ensurePublicNicknameSchema(database);
+}
+
+/**
+ * Reads only the columns the public projection needs. Blocked accounts are
+ * filtered here, so they are indistinguishable from missing ones.
+ */
+export function findPublicProfile(
+  database: DatabaseSync,
+  publicProfileId: string,
+): PublicProfileCandidate | null {
+  if (!isPublicProfileId(publicProfileId)) return null;
+  return (database.prepare(`
+    SELECT
+      u.public_numeric_id AS publicNumericId,
+      u.nickname AS nickname,
+      u.created_at AS createdAt,
+      COALESCE(s.has_access, 0) AS hasSubscription
+    FROM users u
+    LEFT JOIN subscriptions s ON s.user_id = u.id
+    WHERE u.public_numeric_id = ? AND COALESCE(u.blocked_at, '') = ''
+    LIMIT 1
+  `).get(Number(publicProfileId)) as PublicProfileCandidate | undefined) ?? null;
 }
