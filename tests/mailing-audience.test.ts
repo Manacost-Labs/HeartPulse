@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { canReceiveCampaign, ensureBoostySeenColumn, hasMailingConsent, isBoostyAudienceContact, mailingSegment } from '../server/mailingAudience.js';
+import {
+  canReceiveCampaign, ensureBoostySeenColumn, hasMailingConsent, isBoostyAudienceContact, mailingFooterReason, mailingSegment,
+} from '../server/mailingAudience.js';
 
 const realEmail = (email: string) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email) && !email.endsWith('@example.invalid');
 const consented = {
@@ -47,4 +49,9 @@ assert.deepEqual(database.prepare('SELECT id, boosty_seen_at FROM mailing_contac
   { id: 'patron', boosty_seen_at: '2025-01-01' },
   { id: 'reader', boosty_seen_at: null },
 ], 'the migration runs once and marks only Boosty-created contacts');
+// The footer never claims a consent the Boosty audience did not give.
+assert.match(mailingFooterReason('boosty-all'), /подписывались на Manacost на Boosty/);
+for (const segment of ['all-consented', 'active', 'former'] as const) {
+  assert.match(mailingFooterReason(segment), /согласились на рассылку/);
+}
 console.log('mailing audience: ok');
