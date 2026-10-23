@@ -1,0 +1,1452 @@
+{
+ "capturedAt": "2026-10-21",
+ "source": "BG service /api/bg/heroes/61488/details (solo, TOP_50_PERCENT, current patch)",
+ "stats": {
+  "hero": {
+   "hero": "Alexstrasza",
+   "dbfId": 61488,
+   "tier": "A",
+   "pick_rate": "26.12%",
+   "avg_placement": 4.155,
+   "placement_distribution": [
+    "16.66%",
+    "16.60%",
+    "13.15%",
+    "10.83%",
+    "10.09%",
+    "9.36%",
+    "10.22%",
+    "13.10%"
+   ],
+   "best_composition": "Драконы"
+  },
+  "tavern_up": [
+   {
+    "turn": 1,
+    "tavern_tier": 1,
+    "pct_at_tier": 100,
+    "num_games": 1736
+   },
+   {
+    "turn": 2,
+    "tavern_tier": 1,
+    "pct_at_tier": 5.12,
+    "num_games": 1736
+   },
+   {
+    "turn": 2,
+    "tavern_tier": 2,
+    "pct_at_tier": 94.87,
+    "num_games": 1736
+   },
+   {
+    "turn": 3,
+    "tavern_tier": 1,
+    "pct_at_tier": 0.51,
+    "num_games": 1736
+   },
+   {
+    "turn": 3,
+    "tavern_tier": 2,
+    "pct_at_tier": 68.26,
+    "num_games": 1736
+   },
+   {
+    "turn": 3,
+    "tavern_tier": 3,
+    "pct_at_tier": 31.22,
+    "num_games": 1736
+   },
+   {
+    "turn": 4,
+    "tavern_tier": 2,
+    "pct_at_tier": 13.88,
+    "num_games": 1736
+   },
+   {
+    "turn": 4,
+    "tavern_tier": 3,
+    "pct_at_tier": 80.41,
+    "num_games": 1736
+   },
+   {
+    "turn": 4,
+    "tavern_tier": 4,
+    "pct_at_tier": 5.7,
+    "num_games": 1736
+   },
+   {
+    "turn": 5,
+    "tavern_tier": 3,
+    "pct_at_tier": 21.6,
+    "num_games": 1736
+   },
+   {
+    "turn": 5,
+    "tavern_tier": 4,
+    "pct_at_tier": 78.39,
+    "num_games": 1736
+   },
+   {
+    "turn": 6,
+    "tavern_tier": 3,
+    "pct_at_tier": 5.18,
+    "num_games": 1736
+   },
+   {
+    "turn": 6,
+    "tavern_tier": 4,
+    "pct_at_tier": 92.39,
+    "num_games": 1736
+   },
+   {
+    "turn": 6,
+    "tavern_tier": 5,
+    "pct_at_tier": 2.41,
+    "num_games": 1736
+   },
+   {
+    "turn": 7,
+    "tavern_tier": 3,
+    "pct_at_tier": 0.28,
+    "num_games": 1736
+   },
+   {
+    "turn": 7,
+    "tavern_tier": 4,
+    "pct_at_tier": 53.85,
+    "num_games": 1736
+   },
+   {
+    "turn": 7,
+    "tavern_tier": 5,
+    "pct_at_tier": 45.39,
+    "num_games": 1736
+   },
+   {
+    "turn": 7,
+    "tavern_tier": 6,
+    "pct_at_tier": 0.46,
+    "num_games": 1736
+   },
+   {
+    "turn": 8,
+    "tavern_tier": 3,
+    "pct_at_tier": 0.11,
+    "num_games": 1736
+   },
+   {
+    "turn": 8,
+    "tavern_tier": 4,
+    "pct_at_tier": 13.07,
+    "num_games": 1736
+   },
+   {
+    "turn": 8,
+    "tavern_tier": 5,
+    "pct_at_tier": 72.23,
+    "num_games": 1736
+   },
+   {
+    "turn": 8,
+    "tavern_tier": 6,
+    "pct_at_tier": 14.57,
+    "num_games": 1736
+   },
+   {
+    "turn": 9,
+    "tavern_tier": 3,
+    "pct_at_tier": 0.05,
+    "num_games": 1736
+   },
+   {
+    "turn": 9,
+    "tavern_tier": 4,
+    "pct_at_tier": 6.97,
+    "num_games": 1736
+   },
+   {
+    "turn": 9,
+    "tavern_tier": 5,
+    "pct_at_tier": 61.05,
+    "num_games": 1736
+   },
+   {
+    "turn": 9,
+    "tavern_tier": 6,
+    "pct_at_tier": 31.91,
+    "num_games": 1736
+   },
+   {
+    "turn": 10,
+    "tavern_tier": 4,
+    "pct_at_tier": 2.01,
+    "num_games": 1736
+   },
+   {
+    "turn": 10,
+    "tavern_tier": 5,
+    "pct_at_tier": 36.86,
+    "num_games": 1736
+   },
+   {
+    "turn": 10,
+    "tavern_tier": 6,
+    "pct_at_tier": 61.11,
+    "num_games": 1736
+   },
+   {
+    "turn": 11,
+    "tavern_tier": 4,
+    "pct_at_tier": 0.74,
+    "num_games": 1736
+   },
+   {
+    "turn": 11,
+    "tavern_tier": 5,
+    "pct_at_tier": 22.92,
+    "num_games": 1736
+   },
+   {
+    "turn": 11,
+    "tavern_tier": 6,
+    "pct_at_tier": 76.32,
+    "num_games": 1736
+   },
+   {
+    "turn": 12,
+    "tavern_tier": 4,
+    "pct_at_tier": 0.23,
+    "num_games": 1736
+   },
+   {
+    "turn": 12,
+    "tavern_tier": 5,
+    "pct_at_tier": 14.82,
+    "num_games": 1736
+   },
+   {
+    "turn": 12,
+    "tavern_tier": 6,
+    "pct_at_tier": 84.94,
+    "num_games": 1736
+   },
+   {
+    "turn": 13,
+    "tavern_tier": 4,
+    "pct_at_tier": 0.12,
+    "num_games": 1736
+   },
+   {
+    "turn": 13,
+    "tavern_tier": 5,
+    "pct_at_tier": 11.25,
+    "num_games": 1736
+   },
+   {
+    "turn": 13,
+    "tavern_tier": 6,
+    "pct_at_tier": 88.62,
+    "num_games": 1736
+   },
+   {
+    "turn": 14,
+    "tavern_tier": 5,
+    "pct_at_tier": 9.23,
+    "num_games": 1736
+   },
+   {
+    "turn": 14,
+    "tavern_tier": 6,
+    "pct_at_tier": 90.76,
+    "num_games": 1736
+   },
+   {
+    "turn": 15,
+    "tavern_tier": 5,
+    "pct_at_tier": 7.93,
+    "num_games": 1736
+   },
+   {
+    "turn": 15,
+    "tavern_tier": 6,
+    "pct_at_tier": 92.06,
+    "num_games": 1736
+   },
+   {
+    "turn": 16,
+    "tavern_tier": 5,
+    "pct_at_tier": 5.88,
+    "num_games": 1736
+   },
+   {
+    "turn": 16,
+    "tavern_tier": 6,
+    "pct_at_tier": 94.11,
+    "num_games": 1736
+   }
+  ],
+  "tavern_up_by_turn": [
+   {
+    "turn": 1,
+    "recommended_tavern_tier": 1,
+    "pct_at_tier": 100,
+    "num_games": 1736
+   },
+   {
+    "turn": 2,
+    "recommended_tavern_tier": 2,
+    "pct_at_tier": 94.87,
+    "num_games": 1736
+   },
+   {
+    "turn": 3,
+    "recommended_tavern_tier": 2,
+    "pct_at_tier": 68.26,
+    "num_games": 1736
+   },
+   {
+    "turn": 4,
+    "recommended_tavern_tier": 3,
+    "pct_at_tier": 80.41,
+    "num_games": 1736
+   },
+   {
+    "turn": 5,
+    "recommended_tavern_tier": 4,
+    "pct_at_tier": 78.39,
+    "num_games": 1736
+   },
+   {
+    "turn": 6,
+    "recommended_tavern_tier": 4,
+    "pct_at_tier": 92.39,
+    "num_games": 1736
+   },
+   {
+    "turn": 7,
+    "recommended_tavern_tier": 4,
+    "pct_at_tier": 53.85,
+    "num_games": 1736
+   },
+   {
+    "turn": 8,
+    "recommended_tavern_tier": 5,
+    "pct_at_tier": 72.23,
+    "num_games": 1736
+   },
+   {
+    "turn": 9,
+    "recommended_tavern_tier": 5,
+    "pct_at_tier": 61.05,
+    "num_games": 1736
+   },
+   {
+    "turn": 10,
+    "recommended_tavern_tier": 6,
+    "pct_at_tier": 61.11,
+    "num_games": 1736
+   },
+   {
+    "turn": 11,
+    "recommended_tavern_tier": 6,
+    "pct_at_tier": 76.32,
+    "num_games": 1736
+   },
+   {
+    "turn": 12,
+    "recommended_tavern_tier": 6,
+    "pct_at_tier": 84.94,
+    "num_games": 1736
+   },
+   {
+    "turn": 13,
+    "recommended_tavern_tier": 6,
+    "pct_at_tier": 88.62,
+    "num_games": 1736
+   },
+   {
+    "turn": 14,
+    "recommended_tavern_tier": 6,
+    "pct_at_tier": 90.76,
+    "num_games": 1736
+   },
+   {
+    "turn": 15,
+    "recommended_tavern_tier": 6,
+    "pct_at_tier": 92.06,
+    "num_games": 1736
+   },
+   {
+    "turn": 16,
+    "recommended_tavern_tier": 6,
+    "pct_at_tier": 94.11,
+    "num_games": 1736
+   }
+  ],
+  "hero_power": [
+   {
+    "turn": 1,
+    "tavern_tier": 1,
+    "gold": 3,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 1736
+   },
+   {
+    "turn": 2,
+    "tavern_tier": 1,
+    "gold": 4,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 89
+   },
+   {
+    "turn": 2,
+    "tavern_tier": 2,
+    "gold": 4,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 1647
+   },
+   {
+    "turn": 3,
+    "tavern_tier": 2,
+    "gold": 5,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 1185
+   },
+   {
+    "turn": 3,
+    "tavern_tier": 3,
+    "gold": 5,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 542
+   },
+   {
+    "turn": 4,
+    "tavern_tier": 2,
+    "gold": 6,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 241
+   },
+   {
+    "turn": 4,
+    "tavern_tier": 3,
+    "gold": 6,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 1396
+   },
+   {
+    "turn": 4,
+    "tavern_tier": 4,
+    "gold": 6,
+    "times_invoked": 23,
+    "invoked_rate": 23.23,
+    "total_data_points": 99
+   },
+   {
+    "turn": 5,
+    "tavern_tier": 3,
+    "gold": 7,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 375
+   },
+   {
+    "turn": 5,
+    "tavern_tier": 4,
+    "gold": 7,
+    "times_invoked": 1309,
+    "invoked_rate": 96.17,
+    "total_data_points": 1361
+   },
+   {
+    "turn": 6,
+    "tavern_tier": 3,
+    "gold": 8,
+    "times_invoked": 0,
+    "invoked_rate": 0,
+    "total_data_points": 90
+   },
+   {
+    "turn": 6,
+    "tavern_tier": 4,
+    "gold": 8,
+    "times_invoked": 1587,
+    "invoked_rate": 98.94,
+    "total_data_points": 1604
+   },
+   {
+    "turn": 6,
+    "tavern_tier": 5,
+    "gold": 8,
+    "times_invoked": 39,
+    "invoked_rate": 92.85,
+    "total_data_points": 42
+   },
+   {
+    "turn": 7,
+    "tavern_tier": 4,
+    "gold": 9,
+    "times_invoked": 921,
+    "invoked_rate": 98.5,
+    "total_data_points": 935
+   },
+   {
+    "turn": 7,
+    "tavern_tier": 5,
+    "gold": 9,
+    "times_invoked": 777,
+    "invoked_rate": 98.6,
+    "total_data_points": 788
+   },
+   {
+    "turn": 8,
+    "tavern_tier": 4,
+    "gold": 10,
+    "times_invoked": 222,
+    "invoked_rate": 97.79,
+    "total_data_points": 227
+   },
+   {
+    "turn": 8,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 1242,
+    "invoked_rate": 99.04,
+    "total_data_points": 1254
+   },
+   {
+    "turn": 8,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 250,
+    "invoked_rate": 98.81,
+    "total_data_points": 253
+   },
+   {
+    "turn": 9,
+    "tavern_tier": 4,
+    "gold": 10,
+    "times_invoked": 116,
+    "invoked_rate": 95.86,
+    "total_data_points": 121
+   },
+   {
+    "turn": 9,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 1050,
+    "invoked_rate": 99.05,
+    "total_data_points": 1060
+   },
+   {
+    "turn": 9,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 539,
+    "invoked_rate": 97.29,
+    "total_data_points": 554
+   },
+   {
+    "turn": 10,
+    "tavern_tier": 4,
+    "gold": 10,
+    "times_invoked": 32,
+    "invoked_rate": 91.42,
+    "total_data_points": 35
+   },
+   {
+    "turn": 10,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 629,
+    "invoked_rate": 98.28,
+    "total_data_points": 640
+   },
+   {
+    "turn": 10,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 1047,
+    "invoked_rate": 98.68,
+    "total_data_points": 1061
+   },
+   {
+    "turn": 11,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 387,
+    "invoked_rate": 97.23,
+    "total_data_points": 398
+   },
+   {
+    "turn": 11,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 1296,
+    "invoked_rate": 97.81,
+    "total_data_points": 1325
+   },
+   {
+    "turn": 12,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 237,
+    "invoked_rate": 92.21,
+    "total_data_points": 257
+   },
+   {
+    "turn": 12,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 1434,
+    "invoked_rate": 97.35,
+    "total_data_points": 1473
+   },
+   {
+    "turn": 13,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 166,
+    "invoked_rate": 88.77,
+    "total_data_points": 187
+   },
+   {
+    "turn": 13,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 1404,
+    "invoked_rate": 95.31,
+    "total_data_points": 1473
+   },
+   {
+    "turn": 14,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 102,
+    "invoked_rate": 89.47,
+    "total_data_points": 114
+   },
+   {
+    "turn": 14,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 1046,
+    "invoked_rate": 93.39,
+    "total_data_points": 1120
+   },
+   {
+    "turn": 15,
+    "tavern_tier": 5,
+    "gold": 10,
+    "times_invoked": 42,
+    "invoked_rate": 82.35,
+    "total_data_points": 51
+   },
+   {
+    "turn": 15,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 544,
+    "invoked_rate": 91.89,
+    "total_data_points": 592
+   },
+   {
+    "turn": 16,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 190,
+    "invoked_rate": 84.82,
+    "total_data_points": 224
+   },
+   {
+    "turn": 17,
+    "tavern_tier": 6,
+    "gold": 10,
+    "times_invoked": 63,
+    "invoked_rate": 78.75,
+    "total_data_points": 80
+   }
+  ],
+  "hero_power_by_turn": [
+   {
+    "turn": 1,
+    "invoked_rate": 0,
+    "total_data_points": 1736
+   },
+   {
+    "turn": 2,
+    "invoked_rate": 0,
+    "total_data_points": 1647
+   },
+   {
+    "turn": 3,
+    "invoked_rate": 0,
+    "total_data_points": 1727
+   },
+   {
+    "turn": 4,
+    "invoked_rate": 0,
+    "total_data_points": 1637
+   },
+   {
+    "turn": 5,
+    "invoked_rate": 75.4,
+    "total_data_points": 1736
+   },
+   {
+    "turn": 6,
+    "invoked_rate": 98.94,
+    "total_data_points": 1604
+   },
+   {
+    "turn": 7,
+    "invoked_rate": 98.55,
+    "total_data_points": 1723
+   },
+   {
+    "turn": 8,
+    "invoked_rate": 98.84,
+    "total_data_points": 1734
+   },
+   {
+    "turn": 9,
+    "invoked_rate": 98.27,
+    "total_data_points": 1735
+   },
+   {
+    "turn": 10,
+    "invoked_rate": 98.53,
+    "total_data_points": 1701
+   },
+   {
+    "turn": 11,
+    "invoked_rate": 97.68,
+    "total_data_points": 1723
+   },
+   {
+    "turn": 12,
+    "invoked_rate": 96.59,
+    "total_data_points": 1730
+   },
+   {
+    "turn": 13,
+    "invoked_rate": 94.57,
+    "total_data_points": 1660
+   },
+   {
+    "turn": 14,
+    "invoked_rate": 93.03,
+    "total_data_points": 1234
+   },
+   {
+    "turn": 15,
+    "invoked_rate": 91.89,
+    "total_data_points": 592
+   },
+   {
+    "turn": 16,
+    "invoked_rate": 84.82,
+    "total_data_points": 224
+   }
+  ],
+  "combat_winrate": [
+   {
+    "combat_round": 1,
+    "data_points": 2733,
+    "combat_winrate": 44.82
+   },
+   {
+    "combat_round": 2,
+    "data_points": 3812,
+    "combat_winrate": 29.8
+   },
+   {
+    "combat_round": 3,
+    "data_points": 3221,
+    "combat_winrate": 42.03
+   },
+   {
+    "combat_round": 4,
+    "data_points": 4677,
+    "combat_winrate": 34.78
+   },
+   {
+    "combat_round": 5,
+    "data_points": 7044,
+    "combat_winrate": 30.96
+   },
+   {
+    "combat_round": 6,
+    "data_points": 8892,
+    "combat_winrate": 58.53
+   },
+   {
+    "combat_round": 7,
+    "data_points": 9487,
+    "combat_winrate": 66.15
+   },
+   {
+    "combat_round": 8,
+    "data_points": 9456,
+    "combat_winrate": 66.76
+   },
+   {
+    "combat_round": 9,
+    "data_points": 8845,
+    "combat_winrate": 67.5
+   },
+   {
+    "combat_round": 10,
+    "data_points": 7954,
+    "combat_winrate": 68.51
+   },
+   {
+    "combat_round": 11,
+    "data_points": 6964,
+    "combat_winrate": 65.99
+   },
+   {
+    "combat_round": 12,
+    "data_points": 5698,
+    "combat_winrate": 63.95
+   },
+   {
+    "combat_round": 13,
+    "data_points": 4323,
+    "combat_winrate": 60.32
+   },
+   {
+    "combat_round": 14,
+    "data_points": 2748,
+    "combat_winrate": 56.84
+   },
+   {
+    "combat_round": 15,
+    "data_points": 1323,
+    "combat_winrate": 52.07
+   },
+   {
+    "combat_round": 16,
+    "data_points": 505,
+    "combat_winrate": 47.12
+   }
+  ],
+  "compositions": [
+   {
+    "composition_id": 2,
+    "name": "Мурлоки",
+    "num_games": 45,
+    "avg_placement": 3.977,
+    "confidence_interval": 0.74,
+    "popularity": "0.45%",
+    "popularity_top_4": "0.51%"
+   },
+   {
+    "composition_id": 20,
+    "name": "Драконы",
+    "num_games": 9389,
+    "avg_placement": 4.114,
+    "confidence_interval": 0.05,
+    "popularity": "94.21%",
+    "popularity_top_4": "95.60%"
+   },
+   {
+    "composition_id": 47,
+    "name": "Нежить",
+    "num_games": 24,
+    "avg_placement": 4.359,
+    "confidence_interval": 0.93,
+    "popularity": "0.24%",
+    "popularity_top_4": "0.21%"
+   },
+   {
+    "composition_id": 36,
+    "name": "Пираты",
+    "num_games": 41,
+    "avg_placement": 4.397,
+    "confidence_interval": 0.84,
+    "popularity": "0.41%",
+    "popularity_top_4": "0.39%"
+   },
+   {
+    "composition_id": 8,
+    "name": "Механизмы",
+    "num_games": 55,
+    "avg_placement": 4.887,
+    "confidence_interval": 0.58,
+    "popularity": "0.55%",
+    "popularity_top_4": "0.37%"
+   },
+   {
+    "composition_id": 9,
+    "name": "Демоны",
+    "num_games": 89,
+    "avg_placement": 4.95,
+    "confidence_interval": 0.62,
+    "popularity": "0.89%",
+    "popularity_top_4": "0.74%"
+   },
+   {
+    "composition_id": 56,
+    "name": "Aberrations",
+    "num_games": 96,
+    "avg_placement": 5.059,
+    "confidence_interval": 0.69,
+    "popularity": "0.96%",
+    "popularity_top_4": "0.54%"
+   },
+   {
+    "composition_id": 3,
+    "name": "Звери",
+    "num_games": 65,
+    "avg_placement": 5.087,
+    "confidence_interval": 0.8,
+    "popularity": "0.65%",
+    "popularity_top_4": "0.51%"
+   },
+   {
+    "composition_id": 41,
+    "name": "Свинобраз",
+    "num_games": 122,
+    "avg_placement": 5.249,
+    "confidence_interval": 0.46,
+    "popularity": "1.22%",
+    "popularity_top_4": "0.86%"
+   },
+   {
+    "composition_id": 39,
+    "name": "Элементали",
+    "num_games": 39,
+    "avg_placement": 5.343,
+    "confidence_interval": 0.82,
+    "popularity": "0.39%",
+    "popularity_top_4": "0.28%"
+   }
+  ],
+  "best_composition": {
+   "composition_id": 20,
+   "name": "Драконы",
+   "num_games": 9389,
+   "avg_placement": 4.114,
+   "confidence_interval": 0.05,
+   "popularity": "94.21%",
+   "popularity_top_4": "95.60%",
+   "lineup": [
+    {
+     "dbfId": 132954,
+     "name": "Crimson Vindicator",
+     "techLevel": 6,
+     "zone_position": 1,
+     "premium": true,
+     "attack": 1308,
+     "health": 2394
+    },
+    {
+     "dbfId": 108464,
+     "name": "Persistent Poet",
+     "techLevel": 4,
+     "zone_position": 2,
+     "premium": true,
+     "attack": 443,
+     "health": 659
+    },
+    {
+     "dbfId": 134494,
+     "name": "Heroic Broodmother",
+     "techLevel": 6,
+     "zone_position": 3,
+     "premium": false,
+     "attack": 1284,
+     "health": 2354
+    },
+    {
+     "dbfId": 132956,
+     "name": "Bronze Timewalker",
+     "techLevel": 4,
+     "zone_position": 4,
+     "premium": true,
+     "attack": 912,
+     "health": 1141
+    },
+    {
+     "dbfId": 60629,
+     "name": "Nadina the Red",
+     "techLevel": 6,
+     "zone_position": 5,
+     "premium": false,
+     "attack": 26,
+     "health": 40
+    },
+    {
+     "dbfId": 132986,
+     "name": "Runic Arcanist",
+     "techLevel": 4,
+     "zone_position": 6,
+     "premium": true,
+     "attack": 340,
+     "health": 573
+    },
+    {
+     "dbfId": 58400,
+     "name": "Brann Bronzebeard",
+     "techLevel": 5,
+     "zone_position": 7,
+     "premium": true,
+     "attack": 1104,
+     "health": 1519
+    }
+   ],
+   "final_form_minions": [
+    {
+     "dbfId": 132985,
+     "name": "Runic Arcanist",
+     "tavern_tier": 4,
+     "at_least_one": "100.00%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "100.00%"
+    },
+    {
+     "dbfId": 132957,
+     "name": "Sky-hatch Runaway",
+     "tavern_tier": 4,
+     "at_least_one": "100.00%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "100.00%"
+    },
+    {
+     "dbfId": 132953,
+     "name": "Crimson Vindicator",
+     "tavern_tier": 4,
+     "at_least_one": "100.00%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "100.00%"
+    },
+    {
+     "dbfId": 122674,
+     "name": "Blue Whelp",
+     "tavern_tier": 4,
+     "at_least_one": "100.00%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "100.00%"
+    },
+    {
+     "dbfId": 120299,
+     "name": "Felfire Conjurer",
+     "tavern_tier": 4,
+     "at_least_one": "100.00%",
+     "more_than_one": "100.00%",
+     "at_least_one_premium": "0.00%"
+    },
+    {
+     "dbfId": 132953,
+     "name": "Crimson Vindicator",
+     "tavern_tier": 6,
+     "at_least_one": "73.29%",
+     "more_than_one": "17.22%",
+     "at_least_one_premium": "40.72%"
+    },
+    {
+     "dbfId": 108463,
+     "name": "Persistent Poet",
+     "tavern_tier": 5,
+     "at_least_one": "71.31%",
+     "more_than_one": "16.39%",
+     "at_least_one_premium": "58.19%"
+    },
+    {
+     "dbfId": 108463,
+     "name": "Persistent Poet",
+     "tavern_tier": 6,
+     "at_least_one": "68.89%",
+     "more_than_one": "24.05%",
+     "at_least_one_premium": "56.55%"
+    },
+    {
+     "dbfId": 132985,
+     "name": "Runic Arcanist",
+     "tavern_tier": 5,
+     "at_least_one": "58.19%",
+     "more_than_one": "13.11%",
+     "at_least_one_premium": "45.08%"
+    },
+    {
+     "dbfId": 134494,
+     "name": "Heroic Broodmother",
+     "tavern_tier": 6,
+     "at_least_one": "57.81%",
+     "more_than_one": "15.96%",
+     "at_least_one_premium": "28.24%"
+    },
+    {
+     "dbfId": 132953,
+     "name": "Crimson Vindicator",
+     "tavern_tier": 5,
+     "at_least_one": "50.81%",
+     "more_than_one": "9.01%",
+     "at_least_one_premium": "17.21%"
+    },
+    {
+     "dbfId": 132985,
+     "name": "Runic Arcanist",
+     "tavern_tier": 6,
+     "at_least_one": "42.74%",
+     "more_than_one": "10.11%",
+     "at_least_one_premium": "35.56%"
+    },
+    {
+     "dbfId": 132955,
+     "name": "Bronze Timewalker",
+     "tavern_tier": 6,
+     "at_least_one": "41.70%",
+     "more_than_one": "0.76%",
+     "at_least_one_premium": "37.51%"
+    },
+    {
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "tavern_tier": 6,
+     "at_least_one": "37.02%",
+     "more_than_one": "0.13%",
+     "at_least_one_premium": "20.01%"
+    },
+    {
+     "dbfId": 134411,
+     "name": "Hopebringer",
+     "tavern_tier": 6,
+     "at_least_one": "36.12%",
+     "more_than_one": "7.88%",
+     "at_least_one_premium": "26.56%"
+    },
+    {
+     "dbfId": 134494,
+     "name": "Heroic Broodmother",
+     "tavern_tier": 5,
+     "at_least_one": "36.06%",
+     "more_than_one": "4.91%",
+     "at_least_one_premium": "11.47%"
+    },
+    {
+     "dbfId": 132955,
+     "name": "Bronze Timewalker",
+     "tavern_tier": 5,
+     "at_least_one": "35.24%",
+     "more_than_one": "2.45%",
+     "at_least_one_premium": "31.14%"
+    },
+    {
+     "dbfId": 134411,
+     "name": "Hopebringer",
+     "tavern_tier": 5,
+     "at_least_one": "34.42%",
+     "more_than_one": "9.01%",
+     "at_least_one_premium": "22.13%"
+    },
+    {
+     "dbfId": 72062,
+     "name": "Tarecgosa",
+     "tavern_tier": 5,
+     "at_least_one": "31.96%",
+     "more_than_one": "8.19%",
+     "at_least_one_premium": "24.59%"
+    },
+    {
+     "dbfId": 132957,
+     "name": "Sky-hatch Runaway",
+     "tavern_tier": 6,
+     "at_least_one": "30.61%",
+     "more_than_one": "3.90%",
+     "at_least_one_premium": "25.66%"
+    },
+    {
+     "dbfId": 60630,
+     "name": "Kalecgos, Arcane Aspect",
+     "tavern_tier": 6,
+     "at_least_one": "30.54%",
+     "more_than_one": "5.64%",
+     "at_least_one_premium": "20.64%"
+    },
+    {
+     "dbfId": 60630,
+     "name": "Kalecgos, Arcane Aspect",
+     "tavern_tier": 5,
+     "at_least_one": "30.32%",
+     "more_than_one": "9.01%",
+     "at_least_one_premium": "24.59%"
+    },
+    {
+     "dbfId": 120299,
+     "name": "Felfire Conjurer",
+     "tavern_tier": 5,
+     "at_least_one": "29.50%",
+     "more_than_one": "2.45%",
+     "at_least_one_premium": "18.03%"
+    },
+    {
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "tavern_tier": 5,
+     "at_least_one": "28.68%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "18.03%"
+    },
+    {
+     "dbfId": 60629,
+     "name": "Nadina the Red",
+     "tavern_tier": 6,
+     "at_least_one": "25.80%",
+     "more_than_one": "1.53%",
+     "at_least_one_premium": "2.02%"
+    },
+    {
+     "dbfId": 120299,
+     "name": "Felfire Conjurer",
+     "tavern_tier": 6,
+     "at_least_one": "24.19%",
+     "more_than_one": "1.81%",
+     "at_least_one_premium": "14.92%"
+    },
+    {
+     "dbfId": 132957,
+     "name": "Sky-hatch Runaway",
+     "tavern_tier": 5,
+     "at_least_one": "20.49%",
+     "more_than_one": "5.73%",
+     "at_least_one_premium": "11.47%"
+    },
+    {
+     "dbfId": 60629,
+     "name": "Nadina the Red",
+     "tavern_tier": 5,
+     "at_least_one": "18.85%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "2.45%"
+    },
+    {
+     "dbfId": 90425,
+     "name": "Leeroy the Reckless",
+     "tavern_tier": 5,
+     "at_least_one": "13.11%",
+     "more_than_one": "0.81%",
+     "at_least_one_premium": "0.00%"
+    },
+    {
+     "dbfId": 72062,
+     "name": "Tarecgosa",
+     "tavern_tier": 6,
+     "at_least_one": "12.41%",
+     "more_than_one": "1.39%",
+     "at_least_one_premium": "9.27%"
+    },
+    {
+     "dbfId": 95006,
+     "name": "Amber Guardian",
+     "tavern_tier": 5,
+     "at_least_one": "11.47%",
+     "more_than_one": "0.81%",
+     "at_least_one_premium": "4.09%"
+    },
+    {
+     "dbfId": 122674,
+     "name": "Blue Whelp",
+     "tavern_tier": 5,
+     "at_least_one": "10.65%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "7.37%"
+    },
+    {
+     "dbfId": 101314,
+     "name": "Drakkari Enchanter",
+     "tavern_tier": 5,
+     "at_least_one": "10.65%",
+     "more_than_one": "0.81%",
+     "at_least_one_premium": "2.45%"
+    },
+    {
+     "dbfId": 60558,
+     "name": "Bronze Warden",
+     "tavern_tier": 5,
+     "at_least_one": "10.65%",
+     "more_than_one": "2.45%",
+     "at_least_one_premium": "3.27%"
+    },
+    {
+     "dbfId": 126860,
+     "name": "Draconic Warden",
+     "tavern_tier": 6,
+     "at_least_one": "10.59%",
+     "more_than_one": "0.69%",
+     "at_least_one_premium": "7.32%"
+    },
+    {
+     "dbfId": 127441,
+     "name": "Timewarped Poet",
+     "tavern_tier": 6,
+     "at_least_one": "10.46%",
+     "more_than_one": "0.00%",
+     "at_least_one_premium": "0.83%"
+    },
+    {
+     "dbfId": 90425,
+     "name": "Leeroy the Reckless",
+     "tavern_tier": 6,
+     "at_least_one": "10.18%",
+     "more_than_one": "1.74%",
+     "at_least_one_premium": "0.06%"
+    }
+   ]
+  }
+ },
+ "cards": {
+  "58400": {
+   "dbf": 58400,
+   "card_id": "TB_BaconUps_045",
+   "name": "Бранн Бронзобород",
+   "text": "Ваши «Боевые кличи» срабатывают трижды.",
+   "tavern_tier": 5,
+   "creature_type_name": null,
+   "creature_type": null
+  },
+  "60629": {
+   "dbf": 60629,
+   "card_id": "BGS_040",
+   "name": "Надина Красная",
+   "text": "Предсмертный хрип: 3 ваших дракона получают «Божественный щит».",
+   "tavern_tier": 6,
+   "creature_type_name": null,
+   "creature_type": null
+  },
+  "96786": {
+   "dbf": 96786,
+   "card_id": "BG_LOE_077",
+   "name": "Бранн Бронзобород",
+   "text": "Ваши «Боевые кличи» срабатывают дважды.",
+   "tavern_tier": 5,
+   "creature_type_name": null,
+   "creature_type": null
+  },
+  "108463": {
+   "dbf": 108463,
+   "card_id": "BG29_813",
+   "name": "Упорный поэт",
+   "text": "Божественный щит Соседние драконы навсегда сохраняют бонусные свойства и характеристики, полученные в бою.",
+   "tavern_tier": 4,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "108464": {
+   "dbf": 108464,
+   "card_id": "BG29_813_G",
+   "name": "Упорный поэт",
+   "text": "Божественный щит Соседние драконы навсегда сохраняют бонусные свойства и характеристики, полученные в бою.",
+   "tavern_tier": 4,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "120299": {
+   "dbf": 120299,
+   "card_id": "BG32_821",
+   "name": "Кудесник Скверны",
+   "text": "В конце вашего хода ваши заклинания таверны начинают давать еще +1/+1 до конца матча.",
+   "tavern_tier": 5,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "122674": {
+   "dbf": 122674,
+   "card_id": "BG33_924",
+   "name": "Синий дракончик",
+   "text": "Боевой раж: ваши заклинания таверны дают еще +1 к здоровью в этом матче.",
+   "tavern_tier": 3,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "132953": {
+   "dbf": 132953,
+   "card_id": "BG36_241",
+   "name": "Багровый воздаятель",
+   "text": "Божественный щит Боевой раж: применяет «Могучее дыхание дракона».",
+   "tavern_tier": 6,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "132954": {
+   "dbf": 132954,
+   "card_id": "BG36_241_G",
+   "name": "Багровый воздаятель",
+   "text": "Божественный щит Боевой раж: применяет «Могучее дыхание дракона».",
+   "tavern_tier": 6,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "132955": {
+   "dbf": 132955,
+   "card_id": "BG36_242",
+   "name": "Бронзовый Дозорный Времени",
+   "text": "Боевой раж: вы получаете случайного хроматического дракона.",
+   "tavern_tier": 4,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "132956": {
+   "dbf": 132956,
+   "card_id": "BG36_242_G",
+   "name": "Бронзовый Дозорный Времени",
+   "text": "Боевой раж: вы получаете случайного хроматического дракона.",
+   "tavern_tier": 4,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "132957": {
+   "dbf": 132957,
+   "card_id": "BG36_243",
+   "name": "Дракончик-беглец",
+   "text": "Активация (1): вызывает срабатывание «Боевого ража» вашего существа.",
+   "tavern_tier": 4,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "132985": {
+   "dbf": 132985,
+   "card_id": "BG36_245",
+   "name": "Рунический чародей",
+   "text": "Начало боя: дважды применяет «Блестящее кольцо».",
+   "tavern_tier": 4,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "132986": {
+   "dbf": 132986,
+   "card_id": "BG36_245_G",
+   "name": "Рунический чародей",
+   "text": "Начало боя: дважды применяет «Блестящее кольцо».",
+   "tavern_tier": 4,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "134411": {
+   "dbf": 134411,
+   "card_id": "BG36_364",
+   "name": "Вестник надежды",
+   "text": "Начало боя: ваши существа получают +4/+3. (Навсегда улучшается, после того как ваше существо теряет «Божественный щит»!)",
+   "tavern_tier": 5,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  },
+  "134494": {
+   "dbf": 134494,
+   "card_id": "BG36_849",
+   "name": "Героическая праматерь",
+   "text": "Боевой раж: получает «Божественный щит». Начало боя: мгновенно атакует.",
+   "tavern_tier": 6,
+   "creature_type_name": "Дракон",
+   "creature_type": "dragon"
+  }
+ }
+}

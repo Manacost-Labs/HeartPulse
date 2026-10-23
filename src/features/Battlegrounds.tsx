@@ -1,7 +1,6 @@
 import '../shared/ui/analytics/Analytics.css';
-import { HeroBarChart as BattlegroundHeroBarChart, HeroPowerChart as BattlegroundHeroLineChart, HeroTavernChart as BattlegroundHeroTavernStack, HeroDataTable as BattlegroundHeroDataTable, HeroCompositionAnalytics as BattlegroundHeroTopCompositions } from '../modules/battlegrounds/public';
+import { HeroCompositionAnalytics, HeroOverview, HeroPowerAnalytics, HeroTavernAnalytics } from '../modules/battlegrounds/public';
 import '../modules/battlegrounds/public.css';
-import { battlegroundMinionIconByRussianName as BG_DETAIL_RACE_ICON_BY_RU, battlegroundMinionIconBySlug as BG_DETAIL_RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
@@ -52,6 +51,8 @@ import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
 import { BattlegroundHeroStatistics } from './BattlegroundHeroStatistics';
+import { CardPatchTimeline } from './CardPatchTimeline';
+import { battlegroundHeroPatchEntries } from './battlegroundHeroPatchChanges';
 import { BattlegroundHeroDetailSkeleton, BattlegroundHeroListSkeleton, BattlegroundLoadError, type BattlegroundHeroTeaser } from './BattlegroundsSkeletons';
 import { BattlegroundTierListSkeleton } from './BattlegroundTierListSkeleton';
 import { useBattlegroundHeroDetail } from './useBattlegroundHeroDetail';
@@ -657,30 +658,41 @@ function bgFormatCount(value: any): string {
   return Number(value).toLocaleString('ru-RU');
 }
 
+// Keys are lower case without spaces or hyphens: the wiki writes "Night elf", "Blood elf", "Titan-forged".
 const BG_HERO_RACE_NAMES: Record<string, string> = {
-  BloodElf: 'Эльф крови',
-  Draenei: 'Дреней',
-  Dwarf: 'Дворф',
-  Gnome: 'Гном',
-  Goblin: 'Гоблин',
-  HalfOrc: 'Полуорк',
-  HighElf: 'Высший эльф',
-  Human: 'Человек',
-  Murloc: 'Мурлок',
-  Naga: 'Нага',
-  NightElf: 'Ночной эльф',
-  Orc: 'Орк',
-  Pandaren: 'Пандарен',
-  Tauren: 'Таурен',
-  Troll: 'Тролль',
-  Undead: 'Нежить',
-  Worgen: 'Ворген',
+  aberration: 'Аберрация', abomination: 'Поганище', ancient: 'Древний', arakkoa: 'Араккоа', beast: 'Зверь',
+  bloodelf: 'Эльф крови', broken: 'Сломленный', cat: 'Кошка', djinn: 'Джинн', draenei: 'Дреней', dragon: 'Дракон',
+  dwarf: 'Дворф', elemental: 'Элементаль', eredar: 'Эредар', eternalone: 'Вечный', ethereal: 'Эфириал',
+  forsaken: 'Отрекшийся', gnoll: 'Гнолл', gnome: 'Гном', goblin: 'Гоблин', golem: 'Голем', halforc: 'Полуорк',
+  highelf: 'Высший эльф', human: 'Человек', infernal: 'Инфернал', kobold: 'Кобольд', lich: 'Лич', mechagnome: 'Механогном',
+  mechanical: 'Механизм', murloc: 'Мурлок', naga: 'Нага', nightborne: 'Ночнорождённый',
+  nightelf: 'Ночной эльф', nraqi: 'Н\'раки', observer: 'Наблюдатель', ogre: 'Огр', oldgod: 'Древний бог', ooze: 'Слизень',
+  orc: 'Орк', pandaren: 'Пандарен', plant: 'Растение', primate: 'Примат', protodragon: 'Протодракон', protoss: 'Протосс',
+  quilboar: 'Свинобраз', rat: 'Крыса', satyr: 'Сатир', tauren: 'Таурен', titanforged: 'Созданный титанами',
+  tortollan: 'Тортолланец', troll: 'Тролль', undead: 'Нежить', undeaddragon: 'Дракон-нежить', vulpera: 'Вульпера',
+  wildgod: 'Дикий бог', worgen: 'Ворген', zerg: 'Зерг',
 };
 
 function bgHeroRaceLabel(value: any): string {
   const race = String(value || '').trim();
   if (!race) return '—';
-  return BG_HERO_RACE_NAMES[race] || BG_HERO_RACE_NAMES[race.replace(/\s+/g, '')] || race;
+  return BG_HERO_RACE_NAMES[race.toLowerCase().replace(/[\s'’-]+/g, '')] || race;
+}
+
+const BG_HERO_PATCH_KIND_LABELS = { added: 'Добавлен', removed: 'Убран' };
+const BG_HERO_STAT_MODES: Record<string, string> = { solo: 'Соло', duos: 'Дуо' };
+const BG_HERO_STAT_TIME_RANGES: Record<string, string> = {
+  CURRENT_BATTLEGROUNDS_PATCH: 'текущий патч', CURRENT_PATCH: 'текущий патч', LAST_7_DAYS: 'последние 7 дней',
+  LAST_14_DAYS: 'последние 14 дней', LAST_30_DAYS: 'последние 30 дней',
+};
+
+/** One line under the statistics heading: which games the numbers come from. */
+function bgHeroStatisticsScope(stats: any): string {
+  const mode = BG_HERO_STAT_MODES[String(stats?.mode || '')];
+  const percentile = String(stats?.filters?.mmr_percentile || '').match(/^TOP_(\d+)_PERCENT$/);
+  const range = BG_HERO_STAT_TIME_RANGES[String(stats?.filters?.time_range || '')];
+  const scope = [mode, percentile ? `топ-${percentile[1]}% по рейтингу` : '', range].filter(Boolean).join(' · ');
+  return scope ? `${scope}. Данные HSReplay.` : 'Данные HSReplay.';
 }
 
 function bgHeroArmorValue(armor: any, key: 'normal' | 'duos'): string {
@@ -719,29 +731,6 @@ function bgHeroExternalLinks(libraryHero: any, heroName: string): Array<{ label:
   if (Number.isFinite(Number(dbf)) && !links.has('HSReplay.net')) links.set('HSReplay.net', `https://hsreplay.net/cards/${dbf}`);
   if (!links.has('Hearthstone Wiki')) links.set('Hearthstone Wiki', `https://hearthstone.wiki.gg/wiki/Battlegrounds/${bgHeroWikiSlug(heroName)}`);
   return Array.from(links, ([label, url]) => ({ label, url }));
-}
-
-function bgHeroPatchEntries(libraryHero: any): BattlegroundHeroPatchEntry[] {
-  const groups = Array.isArray(libraryHero?.wiki?.card_changes) ? libraryHero.wiki.card_changes : [];
-  return groups
-    .flatMap((group: any) => Array.isArray(group?.entries) ? group.entries : [])
-    .filter((entry: any) => entry && (entry.patch || entry.date || Array.isArray(entry.items)))
-    .slice(0, 4);
-}
-
-function bgHeroPatchTextRu(text: string): string {
-  const value = String(text || '').trim();
-  let match = value.match(/^Now has (\d+) armor in Duos \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Броня в дуо: ${match[1]} (было: ${match[2]}).`;
-  match = value.match(/^Now has (\d+) armor at lower levels \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Броня на низком рейтинге: ${match[1]} (было: ${match[2]}).`;
-  match = value.match(/^Now has (\d+) armor \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Броня: ${match[1]} (было: ${match[2]}).`;
-  match = value.match(/^Now has (\d+) Health \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Здоровье: ${match[1]} (было: ${match[2]}).`;
-  if (/^Added\.?$/i.test(value)) return 'Герой добавлен.';
-  if (/^Removed\.?$/i.test(value)) return 'Герой удален из доступного пула.';
-  return value;
 }
 
 function bgDetailCardTooltipText(value: any): string {
@@ -796,14 +785,6 @@ function bgHeroBuddySoundGroups(...sources: any[]): BattlegroundHeroSoundGroup[]
     });
   });
   return Array.from(groups, ([heading, clips]) => ({ heading, clips }));
-}
-
-function bgFormatPatchDate(value: any): string {
-  const text = String(value || '').trim();
-  if (!text) return '';
-  const date = new Date(text);
-  if (!Number.isNaN(date.getTime())) return date.toLocaleDateString('ru-RU');
-  return text;
 }
 
 function bgStatChips(item: any, list: BattlegroundTierListKey): Array<{ label: string; value: string }> {
@@ -1215,29 +1196,6 @@ function BattlegroundHeroLedgerRow({
   );
 }
 
-
-
-function bgDetailPercent(value: any): number {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-  const parsed = Number(String(value || '').replace('%', '').replace(',', '.'));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function bgDetailRaceIcon(nameOrSlug: any): string {
-  const raw = String(nameOrSlug || '').trim();
-  return BG_DETAIL_RACE_ICON_BY_RU[raw] || BG_DETAIL_RACE_ICON_BY_SLUG[raw.toLowerCase()] || '/bg-legacy/assset/общее.webp';
-}
-
-function bgDetailTavernIcon(tier: any): string {
-  const safe = Number.isFinite(Number(tier)) ? Number(tier) : 1;
-  return `/bg-legacy/assset/tier${safe}.png`;
-}
-
-function bgDetailFormatPercent(value: any): string {
-  const num = bgDetailPercent(value);
-  return `${num.toFixed(num >= 10 ? 1 : 2).replace('.', ',')}%`;
-}
-
 type BattlegroundHeroMediaItem = {
   key: string;
   title: string;
@@ -1259,14 +1217,6 @@ type BattlegroundHeroSoundGroup = {
   heading?: string | null;
   clips?: BattlegroundHeroSoundClip[];
 };
-
-type BattlegroundHeroPatchEntry = {
-  date?: string | null;
-  patch?: string | null;
-  patch_url?: string | null;
-  items?: string[];
-};
-
 
 function bgDetailCardImage(card: any): string {
   return card?.image || card?.image_gold || card?.crop_image || '';
@@ -1588,105 +1538,6 @@ function BattlegroundHeroMediaCard({
   );
 }
 
-function BattlegroundHeroCompositionLineup({ composition, cards, tourId }: {
-  composition: any;
-  cards: Record<string, any>;
-  tourId?: string;
-}) {
-  const lineup = Array.isArray(composition?.lineup) ? composition.lineup : [];
-  if (!lineup.length) return null;
-  return (
-    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div
-        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
-        data-tour-id={tourId}
-      >
-        <div>
-          <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Лучший состав</p>
-          <h3 className="font-hs text-2xl text-[#3d2a1e]">{composition?.name || 'Состав'}</h3>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs font-bold text-[#6b4c2a]">
-          <span className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1">Среднее {bgFormatDecimal(composition?.avg_placement, 2)}</span>
-          <span className="rounded-full border border-[#bfdbfe] bg-[#dbeafe] px-3 py-1 text-[#1e3a8a]">{composition?.popularity || '—'} выбор</span>
-          <span className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1">{bgFormatCount(composition?.num_games)} игр</span>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
-        {lineup.map((minion: any) => {
-          const dbf = String(minion.dbfId || minion.minion_dbf_id || '');
-          const card = cards[dbf] || {};
-          const isPremium = Boolean(minion.premium);
-          const raceLabel = card.creature_type_name || minion.raceRu || '';
-          const cardName = card.name || minion.name;
-          const cardText = bgDetailCardText(card, 'normal');
-          const sources = bgDetailImageSources(card.image, card.image_gold);
-          return (
-            <article
-              key={`${dbf}-${minion.zone_position}`}
-              title={cardText ? `${cardName}: ${cardText}` : cardName}
-              className="group relative rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 text-center shadow-sm transition-shadow duration-200 hover:shadow-[0_14px_30px_rgba(61,42,30,0.16)]"
-            >
-              <div className="relative mx-auto flex h-40 items-center justify-center rounded-xl bg-[radial-gradient(circle_at_top,#fff5d2,transparent_60%),linear-gradient(180deg,#fffdf8,#f2e1bc)] p-2">
-                <BattlegroundHeroImage
-                  sources={sources}
-                  alt={cardName}
-                  className="w-full"
-                  imgClassName="mx-auto max-h-36 w-full object-contain drop-shadow-[0_10px_14px_rgba(61,42,30,0.18)]"
-                  fallback={
-                    <div className="flex h-36 w-24 items-center justify-center rounded-md bg-[#efe2bf] px-2 text-center text-xs font-bold text-[#6b4c2a]">
-                      {minion.name}
-                    </div>
-                  }
-                />
-                {isPremium && <span className="absolute right-2 top-2 rounded-full bg-[#f6ce68] px-2 py-0.5 text-[11px] font-black text-[#3d2a1e]">G</span>}
-              </div>
-              {cardText && (
-                <div className="pointer-events-none invisible absolute left-2 right-2 top-2 z-30 rounded-xl border border-[#d7b66a] bg-[#fffdf7]/98 p-3 text-left opacity-0 shadow-[0_16px_36px_rgba(61,42,30,0.2)] backdrop-blur transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
-                  <p className="font-hs text-[11px] uppercase tracking-[0.14em] text-[#8b6c42]">Описание карты</p>
-                  <p className="mt-1 text-xs font-bold leading-snug text-[#3d2a1e]">{cardText}</p>
-                </div>
-              )}
-              <h4 className="mt-2 min-h-[2.4rem] text-sm font-bold leading-tight text-[#3d2a1e]">{cardName}</h4>
-              <div className="mt-2 flex items-center justify-center gap-2">
-                <img src={bgDetailTavernIcon(card.tavern_tier || minion.techLevel)} alt={`Таверна ${card.tavern_tier || minion.techLevel || ''}`} className="h-6 w-6 object-contain" loading="lazy" />
-                <img src={bgDetailRaceIcon(raceLabel || card.creature_type)} alt={raceLabel || 'Тип существа'} className="h-6 w-6 object-contain" loading="lazy" />
-              </div>
-              <p className="mt-1 text-[11px] font-bold text-[#6b4c2a]">{minion.attack ?? '—'} / {minion.health ?? '—'}</p>
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function BattlegroundHeroMinionNameTooltip({ name, card }: { name: string; card: any }) {
-  const sources = bgDetailCardSources(card);
-  if (!sources.length) {
-    return <span className="truncate text-sm font-bold text-[#3d2a1e]">{name}</span>;
-  }
-
-  return (
-    <span className="group relative inline-block max-w-full align-top">
-      <button
-        type="button"
-        aria-label={`Показать карту: ${name}`}
-        className="block max-w-full truncate rounded-sm text-left text-sm font-bold text-[#3d2a1e] outline-none transition-colors group-hover:text-[#8b4513] focus-visible:text-[#8b4513] focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
-      >
-        {name}
-      </button>
-      <span className="pointer-events-none invisible absolute bottom-full left-0 z-50 mb-3 w-[170px] rounded-2xl border border-[#d7b66a] bg-[#fff9ed] p-2 opacity-0 shadow-[0_18px_42px_rgba(61,42,30,0.24)] transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-        <BattlegroundHeroImage
-          sources={sources}
-          alt={name}
-          className="mx-auto w-full"
-          imgClassName="mx-auto max-h-60 w-full object-contain drop-shadow-[0_12px_18px_rgba(61,42,30,0.2)]"
-        />
-      </span>
-    </span>
-  );
-}
-
 /** Who the hero is, when the library knows it. Armor and links live in the header. */
 function BattlegroundHeroProfileInfo({ heroName, libraryHero }: { heroName: string; libraryHero: any }) {
   const description = bgHeroDescriptionRu(heroName, libraryHero?.character?.description);
@@ -1717,46 +1568,10 @@ function BattlegroundHeroProfileInfo({ heroName, libraryHero }: { heroName: stri
   );
 }
 
-/** The latest balance changes of the hero; the header says when there are none. */
-function BattlegroundHeroPatchChange({ changes, tourId }: { changes: BattlegroundHeroPatchEntry[]; tourId?: string }) {
-  if (changes.length === 0) return null;
-  return (
-    <section id="hero-patches" className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 p-4">
-      <div data-tour-id={tourId}>
-        <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">История баланса</p>
-        <h2 className="font-hs text-xl text-[#3d2a1e]">Изменения по патчам</h2>
-      </div>
-      <ol className="bg-hero-patches mt-3">
-        {changes.map((entry, index) => {
-          const body = Array.isArray(entry.items) && entry.items.length ? entry.items : ['Подробности изменения не указаны.'];
-          const entryKey = [entry.patch, entry.date, entry.patch_url, body.join('|')].filter(Boolean).join('|');
-          const date = bgFormatPatchDate(entry.date);
-          return (
-            <li key={entryKey} className="bg-hero-patches__entry">
-              <p className="bg-hero-patches__version">
-                <strong>{entry.patch ? `Патч ${entry.patch}` : `Изменение ${index + 1}`}</strong>
-                {date && <time>{date}</time>}
-                {entry.patch_url && (
-                  <a href={entry.patch_url} target="_blank" rel="noreferrer">
-                    Патчноут <ExternalLink aria-hidden="true" className="inline h-3.5 w-3.5" />
-                  </a>
-                )}
-              </p>
-              <ul>
-                {body.map(item => <li key={item}>{bgHeroPatchTextRu(item)}</li>)}
-              </ul>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}
-
 /** Armor, the patch state and the reference links: one line of facts under the hero name. */
-function BattlegroundHeroFacts({ libraryHero, latestChange, links }: {
+function BattlegroundHeroFacts({ libraryHero, latestPatch, links }: {
   libraryHero: any;
-  latestChange: BattlegroundHeroPatchEntry | undefined;
+  latestPatch: string | null;
   links: Array<{ label: string; url: string }>;
 }) {
   const solo = bgHeroArmorValue(libraryHero?.armor, 'normal');
@@ -1766,8 +1581,8 @@ function BattlegroundHeroFacts({ libraryHero, latestChange, links }: {
     <ul className="bg-hero-facts" aria-label="Факты о герое">
       {armor && <li className="bg-hero-facts__item"><span>Броня</span> {armor}</li>}
       <li className="bg-hero-facts__item">
-        {latestChange
-          ? <a href="#hero-patches">{latestChange.patch ? `Последнее изменение: патч ${latestChange.patch}` : 'История изменений'}</a>
+        {latestPatch
+          ? <a href="#hero-patches">Последнее изменение: {latestPatch.replace(/^Патч/, 'патч')}</a>
           : 'Изменений баланса не было'}
       </li>
       {links.map(link => (
@@ -2067,7 +1882,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
     : null;
   const skins = Array.isArray(libraryHero?.skins) ? libraryHero.skins : [];
   const externalLinks = bgHeroExternalLinks(libraryHero, heroName);
-  const patchChanges = bgHeroPatchEntries(libraryHero);
+  const patchEntries = battlegroundHeroPatchEntries(libraryHero?.wiki?.card_changes);
   const heroMediaItems = [
     heroPower && {
       key: `hero-power-${dbfId}`,
@@ -2130,18 +1945,8 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
       link: skin.url || '',
     }] : [];
   });
-  const placementRows = (hero.placement_distribution || []).map((value: any, index: number) => ({
-    label: `${index + 1} место`,
-    value: bgDetailPercent(value),
-  }));
-  const tavernByTurnRows = (stats.tavern_up_by_turn || []).map((row: any) => ({
-    label: `Ход ${row.turn}`,
-    value: bgDetailPercent(row.pct_at_tier),
-    sub: `T${row.recommended_tavern_tier} · ${bgDetailFormatPercent(row.pct_at_tier)}`,
-    icon: bgDetailTavernIcon(row.recommended_tavern_tier),
-  }));
-  const topComps = Array.isArray(stats.compositions) ? stats.compositions.slice(0, 10) : [];
-  const finalForm = Array.isArray(stats.best_composition?.final_form_minions) ? stats.best_composition.final_form_minions.slice(0, 12) : [];
+  // Card texts carry the English original and the mechanics list; the hover titles show only the Russian text.
+  const analyticsCards = Object.fromEntries(Object.entries(cards).map(([dbf, card]: [string, any]) => [dbf, { ...card, text: bgDetailCardTooltipText(card?.text) }]));
 
   return (
     <div className="bg-hero-detail-page space-y-6 text-[#3d2a1e]">
@@ -2173,7 +1978,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
           <div className="bg-hero-reliquary__identity min-w-0">
             <p className="bg-hero-reliquary__kicker font-hs text-xs uppercase tracking-[0.18em]">Поля сражений · герой</p>
             <h1 className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{heroName}</h1>
-            <BattlegroundHeroFacts libraryHero={libraryHero} latestChange={patchChanges[0]} links={externalLinks} />
+            <BattlegroundHeroFacts libraryHero={libraryHero} latestPatch={patchEntries.find(entry => entry.changes.some(change => !change.minor))?.version ?? null} links={externalLinks} />
             <div
               className="bg-hero-stat-grid mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4"
               data-tour-id="bg-hero-detail-summary"
@@ -2219,70 +2024,34 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
       <BattlegroundHeroProfileInfo heroName={heroName} libraryHero={libraryHero} />
 
       <BattlegroundHeroStatistics
-        overview={placementRows.length ?
-          <BattlegroundHeroBarChart
-            title="Распределение по местам"
-            rows={placementRows}
-          />
-        : null}
-        tavern={(tavernByTurnRows.length || stats.tavern_up?.length) ? <div className="grid items-start gap-4 xl:grid-cols-2">
-          <BattlegroundHeroBarChart title="Когда улучшать таверну" rows={tavernByTurnRows} />
-          <BattlegroundHeroTavernStack rows={stats.tavern_up || []} />
-        </div> : null}
-        power={(stats.hero_power_by_turn?.length || stats.hero_power?.length) ? <>
-          <BattlegroundHeroLineChart rows={stats.hero_power_by_turn || []} />
-          <BattlegroundHeroDataTable
-            title="Сила героя по таверне"
-            rows={stats.hero_power || []}
-            columns={[
-              { key: 'turn', label: 'Ход' },
-              { key: 'tavern_tier', label: 'Таверна', render: row => <span className="inline-flex items-center gap-2"><img src={bgDetailTavernIcon(row.tavern_tier)} alt="" className="h-6 w-6" />{String(row.tavern_tier)}</span> },
-              { key: 'gold', label: 'Золото' },
-              { key: 'invoked_rate', label: 'Сила героя', render: row => bgDetailFormatPercent(row.invoked_rate) },
-              { key: 'times_invoked', label: 'Прожато', render: row => bgFormatCount(row.times_invoked) },
-              { key: 'total_data_points', label: 'Точек', render: row => bgFormatCount(row.total_data_points) },
-            ]}
-          />
-        </> : null}
-        compositions={(topComps.length || stats.best_composition?.lineup?.length || finalForm.length) ? <>
-          <BattlegroundHeroCompositionLineup composition={stats.best_composition} cards={cards} />
-          <BattlegroundHeroTopCompositions rows={topComps} />
-          {finalForm.length > 0 && (
-            <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-              <h3 className="font-hs text-xl text-[#3d2a1e]">Ключевые существа финального стола</h3>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {finalForm.map((item: any, index: number) => {
-                  const card = cards[String(item.dbfId || item.minion_dbf_id)] || {};
-                  const minionName = card.name || item.name || 'Существо';
-                  return (
-                    <div key={`${item.dbfId}-${item.tavern_tier}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 shadow-sm">
-                      <img src={bgDetailTavernIcon(item.tavern_tier || card.tavern_tier)} alt="" className="h-9 w-9 object-contain" loading="lazy" />
-                      <div className="min-w-0 flex-1">
-                        <BattlegroundHeroMinionNameTooltip name={minionName} card={card} />
-                        <p className="text-xs text-[#6b4c2a]">{item.at_least_one || '—'} игр · золотые {item.at_least_one_premium || '—'}</p>
-                      </div>
-                      <img src={bgDetailRaceIcon(card.creature_type_name || card.creature_type)} alt="" className="h-8 w-8 object-contain" loading="lazy" />
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-        </> : null}
+        description={bgHeroStatisticsScope(stats)}
+        overview={hero.placement_distribution?.length || stats.combat_winrate?.length
+          ? <HeroOverview placement={hero.placement_distribution} combat={stats.combat_winrate} /> : null}
+        power={stats.hero_power_by_turn?.length || stats.hero_power?.length
+          ? <HeroPowerAnalytics byTurn={stats.hero_power_by_turn} byTier={stats.hero_power} /> : null}
+        tavern={stats.tavern_up_by_turn?.length || stats.tavern_up?.length
+          ? <HeroTavernAnalytics byTurn={stats.tavern_up_by_turn} distribution={stats.tavern_up} /> : null}
+        compositions={stats.compositions?.length || stats.best_composition?.lineup?.length || stats.best_composition?.final_form_minions?.length
+          ? <HeroCompositionAnalytics best={stats.best_composition} compositions={stats.compositions} cards={analyticsCards} /> : null}
       />
 
-      <BattlegroundHeroPatchChange changes={patchChanges} tourId="bg-hero-detail-patches" />
+      {patchEntries.length > 0 && (
+        <section id="hero-patches" className="bg-hero-ledger-panel bg-hero-section" aria-labelledby="hero-patches-title">
+          <header className="bg-hero-section__heading" data-tour-id="bg-hero-detail-patches">
+            <p className="bg-hero-section__eyebrow">История баланса</p>
+            <h2 id="hero-patches-title">Изменения по патчам</h2>
+          </header>
+          <CardPatchTimeline entries={patchEntries} kindLabels={BG_HERO_PATCH_KIND_LABELS} limit={5} />
+        </section>
+      )}
 
       {skins.length > 0 && (
-        <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Коллекция</p>
-              <h3 className="font-hs text-xl text-[#3d2a1e]">Скины героя</h3>
-            </div>
-            <p className="text-xs font-bold text-[#6b4c2a]">{skins.length} вариантов</p>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section className="bg-hero-ledger-panel bg-hero-section" aria-labelledby="hero-skins-title">
+          <header className="bg-hero-section__heading">
+            <p className="bg-hero-section__eyebrow">Коллекция</p>
+            <h2 id="hero-skins-title">Скины героя</h2>
+          </header>
+          <div className="bg-hero-skins grid grid-cols-2 gap-3 lg:grid-cols-4">
             {skins.map((skin: any, index: number) => (
               <button
                 key={skin.card_id || skin.image}

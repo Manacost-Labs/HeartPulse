@@ -1424,67 +1424,10 @@
   font-weight: 800;
 }
 
-/* Patch history: a short timeline, newest first. */
-.arena-app-battlegrounds .bg-hero-patches {
-  display: grid;
-  gap: 0.9rem;
-  margin: 0;
-  padding: 0 0 0 1.1rem;
-  border-left: 2px solid rgba(139, 90, 44, 0.35);
-  list-style: none;
-}
-
-.arena-app-battlegrounds .bg-hero-patches__entry {
-  position: relative;
-}
-
-.arena-app-battlegrounds .bg-hero-patches__entry::before {
-  content: '';
-  position: absolute;
-  top: 0.4rem;
-  left: calc(-1.1rem - 6px);
-  width: 10px;
-  height: 10px;
-  border: 2px solid #f5e1b2;
-  border-radius: 999px;
-  background: #8b3a52;
-}
-
-.arena-app-battlegrounds .bg-hero-patches__version {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.75rem;
-  color: #3d2a1e;
-}
-
-.arena-app-battlegrounds .bg-hero-patches__version time {
-  color: #8b6c42;
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.arena-app-battlegrounds .bg-hero-patches__version a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: #7a2f45;
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.arena-app-battlegrounds .bg-hero-patches__entry ul {
-  display: grid;
-  gap: 0.3rem;
-  margin: 0.4rem 0 0;
-  padding-left: 1rem;
-  color: #4a3424;
-  font-size: 0.875rem;
-  line-height: 1.55;
-  list-style: disc;
-}
-
+/* Hero page sections: one rail frame each, a light parchment fill and room to breathe; nothing framed inside. */
 .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-ledger-panel {
+  --bg-hero-panel-fill: #f8ead0;
+  padding: clamp(1rem, 2vw, 1.5rem) !important;
   border: 7px solid transparent !important;
   border-radius: 0 !important;
   border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
@@ -1492,9 +1435,60 @@
   border-image-width: 7px !important;
   border-image-repeat: stretch !important;
   background:
-    linear-gradient(135deg, rgba(245, 225, 178, 0.95), rgba(218, 184, 125, 0.9)),
+    linear-gradient(180deg, rgba(251, 241, 218, 0.95), rgba(240, 222, 184, 0.92)),
     var(--arena-parchment-texture) center / 865px auto repeat !important;
-  box-shadow: 0 12px 24px rgba(63, 34, 18, 0.16) !important;
+  box-shadow: 0 4px 12px rgba(63, 34, 18, 0.08) !important;
+}
+
+/* The same eyebrow as the profile and gallery panels; the page's paragraph colour rule would mute it. */
+.arena-app-battlegrounds .bg-hero-detail-page .bg-hero-section__eyebrow {
+  margin: 0;
+  color: #7d405b;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.arena-app-battlegrounds .bg-hero-section__heading h2 {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
+  line-height: 1.25;
+}
+
+.arena-app-battlegrounds .bg-hero-section__heading .bg-hero-section__description {
+  max-width: 740px;
+  margin: 0.3rem 0 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.arena-app-battlegrounds .bg-hero-section > .bg-hero-section__heading { margin-bottom: 1rem; }
+
+/* The patch timeline sits on the section fill, without a card around each patch. */
+.arena-app-battlegrounds .bg-hero-section .card-patch-timeline__entry {
+  border-color: transparent;
+  background: transparent;
+  padding-block: 0.35rem;
+}
+
+.arena-app-battlegrounds .bg-hero-section .card-patch-timeline__entry + .card-patch-timeline__entry {
+  border-top-color: var(--arena-paper-line);
+  border-radius: 0;
+  padding-top: 0.85rem;
+}
+
+/* Gallery and skin tiles: the image on the section fill, no boxed card. */
+.arena-app-battlegrounds .bg-hero-detail-page .bg-hero-ledger-panel :is(.bg-hero-gallery, .bg-hero-skins) > button {
+  border-color: transparent !important;
+  background: rgba(255, 249, 236, 0.45) !important;
+  box-shadow: none !important;
+}
+
+.arena-app-battlegrounds .bg-hero-detail-page .bg-hero-ledger-panel :is(.bg-hero-gallery, .bg-hero-skins) > button:hover {
+  background: rgba(255, 249, 236, 0.75) !important;
 }
 
 .arena-app-battlegrounds .bg-hero-detail-page

@@ -22,6 +22,9 @@
 .bg-skeleton-w-value { inline-size: 4.5rem; }
 .bg-skeleton-w-title { inline-size: 9rem; }
 .bg-skeleton-w-fact { inline-size: 6.5rem; }
+/* Hero profile facts: "Раса: Дракон" and an artist credit, which wrap onto two lines on a phone like the real ones. */
+.bg-skeleton-w-race { inline-size: 6rem; }
+.bg-skeleton-w-artist { inline-size: 12.5rem; }
 .bg-skeleton-w-name { inline-size: min(100%, 22rem); }
 
 .bg-skeleton-fill {

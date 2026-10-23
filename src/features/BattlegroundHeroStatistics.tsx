@@ -9,15 +9,19 @@ const TABS = [
 ] as const;
 type TabId = typeof TABS[number]['id'];
 
-/** Retain each data view, but expose only the selected section to layout and focus. */
-export function BattlegroundHeroStatistics({ overview, power, tavern, compositions }: Record<TabId, ReactNode>) {
+/** Retain each data view, but expose only the selected section to layout and focus. `description` names the games behind the numbers. */
+export function BattlegroundHeroStatistics({ description, overview, power, tavern, compositions }: Record<TabId, ReactNode> & { description?: string }) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const id = useId();
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const panels = { overview, power, tavern, compositions };
   return (
     <section className="bg-hero-statistics bg-hero-ledger-panel" aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`} className="font-hs text-xl">Статистика героя</h2>
+      <header className="bg-hero-section__heading">
+        <p className="bg-hero-section__eyebrow">Статистика</p>
+        <h2 id={`${id}-heading`}>Статистика героя</h2>
+        {description && <p className="bg-hero-section__description">{description}</p>}
+      </header>
       <div role="tablist" aria-label="Статистика героя" className="bg-hero-statistics__tabs">
         {TABS.map((tab, index) => (
           <button

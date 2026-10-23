@@ -109,3 +109,8 @@
 
 .analytics-chart__plot g[role=button] { cursor: pointer; }
 .analytics-chart__plot g[role=button]:focus-visible { outline: 2px solid #64416f; outline-offset: 2px; }
+.analytics-chart__axis-title { margin: 2px 0 0; color: #735e49; font-size: 12px; text-align: center; }
+.analytics-chart__tooltip-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 6px; }
+.analytics-chart__tooltip-row i { width: 10px; height: 10px; border-radius: 2px; }
+.analytics-chart__tooltip-row b { font-weight: 700; }
+.analytics-chart__stack-row[data-active] .analytics-chart__bar-label { fill: #8d171d; }
