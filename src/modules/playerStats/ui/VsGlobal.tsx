@@ -19,10 +19,10 @@ export function VsGlobal({ own, global, digits = 1, unit = '', lowerIsBetter = f
   const amount = `${formatNumber(Math.abs(result.delta), digits)}${unit}`;
   const meaning = result.tone === 'better' ? 'лучше среднего' : result.tone === 'worse' ? 'хуже среднего' : 'как в среднем';
   return (
-    <span className="player-stats-vs" data-tone={result.tone} title={`В среднем: ${formatNumber(global, digits)}${unit}`}>
+    <span className="player-stats-vs" data-tone={result.tone} title={`В среднем по данным Hearthpulse: ${formatNumber(global, digits)}${unit}`}>
       {result.tone === 'even' ? null : <Arrow aria-hidden="true" />}
       {amount}
-      <span className="player-stats-visually-hidden"> — {meaning}, в среднем {formatNumber(global, digits)}{unit}</span>
+      <span className="player-stats-visually-hidden"> — {meaning}, в среднем по данным Hearthpulse {formatNumber(global, digits)}{unit}</span>
     </span>
   );
 }

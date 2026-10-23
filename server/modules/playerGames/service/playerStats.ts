@@ -63,7 +63,7 @@ function createTtlCache(now: () => number) {
 export function createPlayerStatsService(dependencies: PlayerStatsDependencies) {
   const now = dependencies.now ?? Date.now;
   const cached = createTtlCache(now);
-  const { battlegroundsHeroes, battlegroundsHeroCombat, arenaClasses, constructedArchetypes } = dependencies.global;
+  const { battlegroundsHeroes, battlegroundsHeroCombat, constructedArchetypes } = dependencies.global;
   const resolveCardNames = dependencies.resolveCardNames;
 
   async function attempt<T>(load: (() => Promise<T>) | undefined): Promise<T | null> {
@@ -163,11 +163,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
       }
       if (query.mode === 'arena') {
         const arenaGames = games.filter((game): game is Extract<PlayerGame, { mode: 'arena' }> => game.mode === 'arena');
-        const globalData = globalAllowed && arenaGames.length
-          ? await attempt(arenaClasses && (() => cached('arena', arenaClasses)))
-          : null;
-        return buildArenaStats(arenaGames, runs, { period: query.period,
-          global: { availability: availability(globalAllowed, Boolean(globalData?.length)) } }, globalData);
+        return buildArenaStats(arenaGames, runs, { period: query.period, global: { availability: 'none' } });
       }
       const format = query.mode;
       const constructedGames = games.filter((game): game is Extract<PlayerGame, { mode: 'standard' | 'wild' }> =>

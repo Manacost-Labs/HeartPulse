@@ -43,6 +43,12 @@ const wildPayload = check('constructed_match', constructed()).payload;
 assert.deepEqual(wildPayload.playerMulligan, { initial: ['CARD_1'] }, 'v1 lists survive');
 assert.deepEqual(check('constructed_match', wildPayload), { ok: true, payload: wildPayload }, 'normalizing twice changes nothing');
 
+// Nested v1 lists keep card ids only, so nothing else hidden in them is stored.
+const nested = check('constructed_match', constructed({ playerMulligan: { initial: ['CARD_1', { cardId: 'CARD_2', owner: 'Name#1234' }, 7], note: 'x' },
+  opponentDeck: { observedCards: ['CARD_3'], opponentName: 'Someone' } })).payload;
+assert.deepEqual(nested.playerMulligan, { initial: ['CARD_1', 'CARD_2'] });
+assert.deepEqual(nested.opponentDeck, { observedCards: ['CARD_3'] });
+
 // An invalid statistics field never loses the event: it is stored with the v1 lists and marked.
 assert.deepEqual(check('battlegrounds_match', battlegrounds({ duos: true, placement: 5 })),
   { ok: true, payload: { statisticsError: 'placement' }, warning: 'placement' });

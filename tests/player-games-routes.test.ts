@@ -33,7 +33,6 @@ const service = createPlayerStatsService({
         placementPercent: [14, 13, 13, 12, 12, 12, 12, 12] }];
     },
     battlegroundsHeroCombat: async () => [{ turn: 1, winrate: 48.2 }],
-    arenaClasses: async () => { throw new Error('upstream down'); },
   },
   resolveCardNames: async ids => Object.fromEntries(ids.map(id => [id, `name:${id}`])),
   now: () => Date.parse('2026-10-23T12:00:00Z'),
@@ -134,7 +133,7 @@ try {
   const arenaStats = await (await stats('mode=arena')).json();
   assert.equal(arenaStats.summary.runs, 1);
   assert.deepEqual([arenaStats.runs[0].wins, arenaStats.runs[0].losses], [1, 1]);
-  assert.equal(arenaStats.global.availability, 'unavailable', 'a failing global source hides comparisons');
+  assert.equal(arenaStats.global.availability, 'none', 'Arena has no global comparison');
 
   // The final arena_run record is the run's score, even before every game was uploaded.
   await upload([event('arena_run', '2026-10-22T19:00:00Z', { runId: 'arena-run-0001', playerClass: 'PALADIN', wins: 5, losses: 3 })]);

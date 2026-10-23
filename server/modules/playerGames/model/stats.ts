@@ -15,7 +15,7 @@ export const MAX_SERIES_POINTS = 500;
  * `subscription`: global statistics need the section's subscription;
  * `unavailable`: the global source failed or has no data, so comparisons are hidden.
  */
-export type GlobalAvailability = 'available' | 'subscription' | 'unavailable';
+export type GlobalAvailability = 'available' | 'subscription' | 'unavailable' | 'none';
 
 export type WinLoss = { games: number; wins: number };
 
@@ -121,8 +121,7 @@ export type ArenaStats = {
     timePlayedSeconds: number;
   };
   runs: ArenaRun[];
-  classes: Array<{ playerClass: HearthstoneClass; runs: number; averageWins: number; games: number; wins: number;
-    globalWinrate: number | null; globalAverageWins: number | null }>;
+  classes: Array<{ playerClass: HearthstoneClass; runs: number; averageWins: number; games: number; wins: number; }>;
   global: { availability: GlobalAvailability };
 };
 

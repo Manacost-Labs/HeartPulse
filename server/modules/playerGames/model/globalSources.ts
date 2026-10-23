@@ -19,12 +19,6 @@ export type GlobalArchetype = {
   games: number;
 };
 
-export type GlobalArenaClass = {
-  playerClass: HearthstoneClass;
-  winrate: number | null;
-  averageWins: number | null;
-};
-
 /**
  * Global statistics the site already publishes. Every source is optional and
  * may throw; the statistics then mark comparisons `unavailable` instead of failing.
@@ -34,7 +28,6 @@ export type GlobalStatisticsSources = {
   battlegroundsHeroCombat?: (heroId: string, query: { duos: boolean; mmr: GlobalMmrFilter })
     => Promise<Array<{ turn: number; winrate: number }>>;
   constructedArchetypes?: (format: 'standard' | 'wild') => Promise<GlobalArchetype[]>;
-  arenaClasses?: () => Promise<GlobalArenaClass[]>;
 };
 
 /** Upper-case letters only, so `death-knight`, `deathknight` and `DEATHKNIGHT` compare equal. */

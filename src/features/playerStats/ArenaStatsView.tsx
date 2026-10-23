@@ -5,7 +5,6 @@ import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedCon
 import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import {
   CLASS_LABELS,
-  VsGlobal,
   classIconUrl,
   formatGameDate,
   formatNumber,
@@ -14,7 +13,7 @@ import {
   type ArenaStats,
 } from '../../modules/playerStats/public';
 import { DATA_TABLE_LABELS, KPI_LABELS } from './playerStatsLabels';
-import { GlobalNote, StatsBlock } from './StatsBlock';
+import { StatsBlock } from './StatsBlock';
 
 type Run = ArenaStats['runs'][number];
 type ClassRow = ArenaStats['classes'][number];
@@ -46,18 +45,9 @@ const CLASS_COLUMNS: DataTableColumn<ClassRow>[] = [
   { key: 'playerClass', header: 'Класс', sortable: true, accessor: row => CLASS_LABELS[row.playerClass],
     cell: row => <ClassCell playerClass={row.playerClass} /> },
   { key: 'runs', header: 'Забегов', align: 'right', sortable: true },
-  { key: 'averageWins', header: 'Средние победы', align: 'right', sortable: true, cell: row => (
-    <span className="player-stats-metric">
-      <strong>{formatNumber(row.averageWins, 2)}</strong>
-      <VsGlobal own={row.averageWins} global={row.globalAverageWins} digits={2} />
-    </span>
-  ) },
-  { key: 'winrate', header: 'Винрейт игр', align: 'right', sortable: true, accessor: row => winrate(row) ?? -1, cell: row => (
-    <span className="player-stats-metric">
-      <strong>{formatPercent(winrate(row))}</strong>
-      <VsGlobal own={winrate(row)} global={row.globalWinrate} unit="%" />
-    </span>
-  ) },
+  { key: 'averageWins', header: 'Средние победы', align: 'right', sortable: true, cell: row => formatNumber(row.averageWins, 2) },
+  { key: 'winrate', header: 'Винрейт игр', align: 'right', sortable: true, accessor: row => winrate(row) ?? -1,
+    cell: row => formatPercent(winrate(row)) },
 ];
 
 const RUN_ORDER: Record<string, SortState> = {
@@ -84,7 +74,6 @@ export function ArenaStatsView({ stats }: { stats: ArenaStats }) {
             format: { style: 'unit', unit: 'hour', unitDisplay: 'short', maximumFractionDigits: 1 } },
         ]} />
       </div>
-      <GlobalNote availability={stats.global.availability} section="arena" />
       <StatsBlock title="Забеги" aside={(
         <SegmentedControl aria-label="Порядок забегов" size="sm" value={sort?.key === 'wins' ? 'best' : 'recent'}
           onValueChange={value => setSort(RUN_ORDER[value])}

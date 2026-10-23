@@ -38,6 +38,10 @@ theme or saved-deck section because the server has no such data for readers.
   composition `src/features/playerStats` and loads only with the signed-in
   account. Without games it says «Установите Hearthpulse и войдите, чтобы игры
   появились здесь» and links the desktop releases.
+- «Данные приложения» (`#account-tracker-data`), only while the desktop
+  tracker has stored events: how many and over which dates, «Скачать мои
+  данные» (a JSON export) and «Удалить данные» behind an inline
+  confirmation, independent of the statistics switch.
 - «Вход и привязки»: e-mail, Telegram, Google, Discord and Yandex (each only
   when the server offers it and the account's linked providers are known),
   Boosty and Patreon, each with «Привязан» or the action that links it. Social

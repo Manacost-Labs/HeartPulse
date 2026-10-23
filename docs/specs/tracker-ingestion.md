@@ -72,6 +72,8 @@ forever.
 
 HearthPulse stores the normalized envelope fields and the bounded JSON payload
 in SQLite table `tracker_profile_events`, owned by the tracker-ingestion module.
-The account statistics read it only through the module's `listEvents`.
+The account statistics read it only through the module's `listEvents`. The
+player can export and delete their own events from the account page through
+`/api/account/tracker-data` ([player game statistics](player-game-stats.md)).
 Rows are tied to the approving HearthPulse user and cascade-delete with that
 user. Tokens are never written to this table or application logs.

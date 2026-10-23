@@ -220,3 +220,8 @@
 .account-sessions__others:disabled { cursor: wait; opacity: 0.7; }
 .account-sessions__confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 8px; }
 .account-sessions__confirm p { flex: 1 1 100%; margin: 0; color: var(--account-ink); font-size: 0.95rem; }
+
+/* Tracker data: export, deletion and its confirmation reuse the session controls above. */
+.account-tracker-data__done { margin: 0; color: var(--account-ink); font-size: 0.95rem; }
+.account-tracker-data__error { margin: 0; color: var(--arena-red); font-size: 0.95rem; }
+.account-tracker-data .account-button svg { vertical-align: -2px; }

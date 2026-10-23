@@ -21,3 +21,4 @@ export {
   type TrackerEventRepository,
 } from './repository.js';
 export { createTrackerIngestionRouter } from './routes.js';
+export { createTrackerAccountDataRouter, type TrackerAccountDataDependencies } from './accountData.js';

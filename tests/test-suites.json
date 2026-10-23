@@ -71,6 +71,7 @@
         "tests/admin-article-reads-model.test.ts",
         "tests/fetch-with-deadline.test.ts",
         "tests/player-stats-client.test.ts",
+        "tests/account-tracker-data-client.test.ts",
         "tests/font-faces.test.mjs",
         "tests/public-media-assets.test.mjs",
         "tests/admin-overview-model.test.ts",
@@ -377,6 +378,7 @@
         "tests/tierlist-routes.test.ts",
         "tests/player-games-routes.test.ts",
         "tests/player-games-schema.test.ts",
+        "tests/tracker-account-data-routes.test.ts",
         "tests/tracker-ingestion-routes.test.ts",
         "tests/web-vitals-routes.test.ts",
         "tests/winrate-routes.test.ts"

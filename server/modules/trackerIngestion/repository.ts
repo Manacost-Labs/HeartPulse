@@ -32,6 +32,12 @@ export type TrackerEventRepository = {
   listEvents: (userId: string, query: TrackerEventQuery) => TrackerProfileEvent[];
   /** Stored events per type from `minSchemaVersion` on, without reading any payload. */
   countEvents: (userId: string, types: readonly TrackerEventType[], minSchemaVersion: number) => Partial<Record<TrackerEventType, number>>;
+  /** What the account page tells the player about the stored events. */
+  summarize: (userId: string) => { events: number; firstOccurredAt: string | null; lastOccurredAt: string | null };
+  /** Every stored event of the account, oldest first, one at a time (for a streamed export). */
+  eachEvent: (userId: string) => Iterable<TrackerProfileEvent & { receivedAt: number }>;
+  /** Deletes every stored event of the account and returns how many there were. */
+  deleteAll: (userId: string) => number;
 };
 
 export function createSqliteTrackerEventRepository(
@@ -75,6 +81,32 @@ export function createSqliteTrackerEventRepository(
         throw error;
       }
       return refused;
+    },
+    summarize(userId) {
+      const row = getDatabase().prepare(`SELECT COUNT(*) AS events, MIN(occurred_at) AS first, MAX(occurred_at) AS last
+        FROM tracker_profile_events WHERE user_id = ?`).get(userId);
+      return {
+        events: Number(row?.events ?? 0),
+        firstOccurredAt: row?.first ? String(row.first) : null,
+        lastOccurredAt: row?.last ? String(row.last) : null,
+      };
+    },
+    *eachEvent(userId) {
+      const rows = getDatabase().prepare(`SELECT event_id, event_type, schema_version, occurred_at, payload_json, received_at
+        FROM tracker_profile_events WHERE user_id = ? ORDER BY occurred_at, event_id`).iterate(userId);
+      for (const row of rows) {
+        yield {
+          eventId: String(row.event_id),
+          type: String(row.event_type) as TrackerEventType,
+          schemaVersion: Number(row.schema_version) as TrackerSchemaVersion,
+          occurredAt: String(row.occurred_at),
+          payload: JSON.parse(String(row.payload_json)) as Record<string, unknown>,
+          receivedAt: Number(row.received_at),
+        };
+      }
+    },
+    deleteAll(userId) {
+      return Number(getDatabase().prepare('DELETE FROM tracker_profile_events WHERE user_id = ?').run(userId).changes);
     },
     countEvents(userId, types, minSchemaVersion) {
       if (!types.length) return {};

@@ -7189,10 +7189,10 @@ const playerStats = registerPlayerGames({ app, userAuth, setPrivateNoStore,
   loadEvents: (userId, query) => trackerEvents.listEvents(userId, query),
   countEvents: (userId, types, minSchemaVersion) => trackerEvents.countEvents(userId, types, minSchemaVersion),
   hasEntitlement: requestHasEntitlementAccess, resolveCardNames: createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL }),
-  global: createPlayerGamesGlobalSources({ loadArenaClasses: fetchFirestoneClassWinratesData,
+  global: createPlayerGamesGlobalSources({
     loadConstructedMeta: format => loadStandardMeta(format, 'all', 'past_week', 'any_player', 100) }) });
 const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore,
-  validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate });
+  validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate, userAuth, onDeleted: playerStats.invalidate });
 registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, publicOrigin: APP_URL, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')

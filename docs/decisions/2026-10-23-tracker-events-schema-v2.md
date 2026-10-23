@@ -48,6 +48,10 @@ same data was built and withdrawn: one ingestion path stays the only one.
 
 ## Consequences
 
+- Arena has no global comparison: Firestone data may not be used, and no
+  other per-class Arena run dataset is available.
+- The player can export and delete their tracker events from the account
+  page at any time; the privacy policy describes the data and its retention.
 - The desktop tracker must map its local history to the version 2 fields
   (result and format values, board field names, rank as star level) and must
   not send player names; the specification is the contract it checks

@@ -270,6 +270,18 @@
         {
           "method": "POST",
           "path": "/api/v1/tracker/events/batch"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/tracker-data"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/tracker-data/export"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/account/tracker-data"
         }
       ],
       "contracts": [
@@ -285,6 +297,7 @@
         "IceCrow desktop clients authorized through applicationAuth"
       ],
       "tests": [
+        "tests/tracker-account-data-routes.test.ts",
         "tests/tracker-ingestion-routes.test.ts"
       ],
       "allowedDependencies": [

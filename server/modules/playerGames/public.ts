@@ -3,7 +3,6 @@ export { GAME_EVENT_TYPES, type CountStatisticsEvents, type LoadStatisticsEvents
 export {
   classKey,
   type GlobalArchetype,
-  type GlobalArenaClass,
   type GlobalBattlegroundsHero,
   type GlobalStatisticsSources,
 } from './model/globalSources.js';

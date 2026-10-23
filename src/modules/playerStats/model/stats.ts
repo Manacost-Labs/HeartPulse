@@ -5,7 +5,7 @@
 export type PlayerStatsMode = 'battlegrounds' | 'standard' | 'wild' | 'arena';
 export type StatsPeriod = 'all' | '7' | '30' | '90' | 'season';
 export type GlobalMmrFilter = 'TOP_50_PERCENT' | 'TOP_20_PERCENT' | 'TOP_5_PERCENT' | 'TOP_1_PERCENT';
-export type GlobalAvailability = 'available' | 'subscription' | 'unavailable';
+export type GlobalAvailability = 'available' | 'subscription' | 'unavailable' | 'none';
 export type HearthstoneClass = 'DEATHKNIGHT' | 'DEMONHUNTER' | 'DRUID' | 'HUNTER' | 'MAGE' | 'PALADIN'
   | 'PRIEST' | 'ROGUE' | 'SHAMAN' | 'WARLOCK' | 'WARRIOR';
 
@@ -118,8 +118,7 @@ export type ArenaStats = {
     timePlayedSeconds: number;
   };
   runs: ArenaRun[];
-  classes: Array<{ playerClass: HearthstoneClass; runs: number; averageWins: number; games: number; wins: number;
-    globalWinrate: number | null; globalAverageWins: number | null }>;
+  classes: Array<{ playerClass: HearthstoneClass; runs: number; averageWins: number; games: number; wins: number; }>;
   global: { availability: GlobalAvailability };
 };
 

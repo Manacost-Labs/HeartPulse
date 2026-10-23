@@ -172,6 +172,6 @@ export const arenaFixture: ArenaStats = {
   },
   runs,
   classes: RUN_CLASSES.map((playerClass, index) => ({ playerClass, runs: 2, averageWins: 6 - index * 0.7, games: 18 - index,
-    wins: 11 - index, globalWinrate: null, globalAverageWins: null })),
-  global: { availability: 'subscription' },
+    wins: 11 - index })),
+  global: { availability: 'none' },
 };

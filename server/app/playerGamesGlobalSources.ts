@@ -5,7 +5,6 @@ import {
 import {
   classKey,
   type GlobalArchetype,
-  type GlobalArenaClass,
   type GlobalStatisticsSources,
 } from '../modules/playerGames/public.js';
 
@@ -14,19 +13,20 @@ const record = (value: unknown): Json => (value && typeof value === 'object' && 
 const finite = (value: unknown): number | null => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const CLASSES = new Set(['DEATHKNIGHT', 'DEMONHUNTER', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN', 'PRIEST', 'ROGUE', 'SHAMAN', 'WARLOCK', 'WARRIOR']);
 
-function knownClass(value: unknown): GlobalArenaClass['playerClass'] | null {
+function knownClass(value: unknown): GlobalArchetype['playerClass'] {
   const key = classKey(value);
-  return CLASSES.has(key) ? key as GlobalArenaClass['playerClass'] : null;
+  return CLASSES.has(key) ? key as GlobalArchetype['playerClass'] : null;
 }
 
 /**
  * Adapts the site's existing global datasets to the player-statistics ports:
  * Battlegrounds heroes from the loopback HSReplay mirror, constructed
- * archetypes from the HSGuru meta and Arena classes from Firestone.
+ * archetypes from the HSGuru meta. Arena has no global comparison: the only
+ * per-class Arena dataset with run results comes from Firestone, whose data the
+ * site may not use.
  */
 export function createPlayerGamesGlobalSources(options: {
   loadConstructedMeta: (format: 'standard' | 'wild') => Promise<unknown>;
-  loadArenaClasses: () => Promise<unknown>;
 }): GlobalStatisticsSources {
   const battlegrounds = createPublicBattlegroundStatistics(createLocalBattlegroundStatisticsSource());
   return {
@@ -58,20 +58,6 @@ export function createPlayerGamesGlobalSources(options: {
           playerClass: knownClass(source.classKey), winrate: finite(source.winrate),
           games: finite(source.games) ?? 0 };
       }).filter((item): item is GlobalArchetype => Boolean(item));
-    },
-    async arenaClasses() {
-      const payload = record(await options.loadArenaClasses());
-      const classes = Array.isArray(payload.classes) ? payload.classes : [];
-      return classes.map((item): GlobalArenaClass | null => {
-        const source = record(item);
-        const playerClass = knownClass(source.id);
-        if (!playerClass) return null;
-        const distribution = (Array.isArray(source.winsDistribution) ? source.winsDistribution : []).map(record);
-        const runs = distribution.reduce((sum, entry) => sum + (finite(entry.games) ?? 0), 0);
-        const wins = distribution.reduce((sum, entry) => sum + (finite(entry.wins) ?? 0) * (finite(entry.games) ?? 0), 0);
-        return { playerClass, winrate: finite(source.winrate),
-          averageWins: runs > 0 ? Math.round((wins / runs) * 100) / 100 : null };
-      }).filter((item): item is GlobalArenaClass => Boolean(item));
     },
   };
 }

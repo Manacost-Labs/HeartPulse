@@ -295,7 +295,9 @@ hour per query:
   past week) matched by English or Russian name, class win rate as the
   games-weighted mean of its archetypes. There is no global class-vs-class
   constructed matchup, so the matchup grid has no comparison.
-- Arena: class win rate and average wins per run from Firestone.
+- Arena: no global comparison. The only per-class Arena dataset with run
+  results is Firestone's, whose data the site may not use; Arena answers carry
+  `global.availability: "none"` and the page shows no note about it.
 
 These datasets are paid sections of the site. The comparison is filled only
 when the viewer has that section's entitlement (Wild uses Standard's);
@@ -305,6 +307,32 @@ whose value is `null` instead of inventing one.
 
 Card and hero names come from HearthstoneJSON (`HEARTHSTONE_RU_CARDS_URL`),
 loaded once a day; without them the page shows card art only.
+
+On the page a comparison is called «в среднем по данным Hearthpulse»; the
+page names no third-party source. Whether the site may show the Battlegrounds
+and constructed datasets this way is the owner's decision (legal review
+L-M4); switching `PLAYER_STATS_ENABLED` off hides every comparison.
+
+## Own data: export and deletion
+
+Independent of the switch, the account page lists what the tracker stored
+and lets the player take it out or erase it (right of access and erasure):
+
+- `GET /api/account/tracker-data`: `{ events, firstOccurredAt,
+  lastOccurredAt }` of the account's tracker events;
+- `GET /api/account/tracker-data/export`: every stored event of the account
+  as one JSON file (`hearthpulse-tracker-data-YYYY-MM-DD.json`, events
+  oldest first with `receivedAt`), streamed; 10 exports per hour per address;
+- `DELETE /api/account/tracker-data`: deletes every tracker event of the
+  account, `{ deleted }`; the statistics cache of the account is dropped.
+
+All three need the site session (`no-store`, 401 without it); the deletion
+is a cookie mutation and follows the site's CSRF rule. The block «Данные
+приложения» appears on the account page only while events are stored; the
+deletion asks for confirmation. Retention: events stay while the account
+exists or until the player deletes them; deleting the account deletes them.
+The privacy policy (`src/modules/legalPages/content.json`, section 6) says
+the same.
 
 ## Development data
 

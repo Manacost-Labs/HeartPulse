@@ -27,6 +27,7 @@ import {
   optionalText,
   pattern,
 } from './fields.js';
+import { v1Lists } from './v1Lists.js';
 
 const RESULTS: readonly GameResult[] = ['win', 'loss', 'tie'];
 const DECK_CODE = /^[A-Za-z0-9+/=_-]{4,256}$/;
@@ -151,9 +152,6 @@ const isGameEventType = (type: string): type is GameEventType => GAME_EVENT_TYPE
 
 const EARLIEST_GAME_MS = Date.UTC(2014, 0, 1);
 const FUTURE_TOLERANCE_MS = 86_400_000;
-/** v1 lists other features read; a v2 event keeps them next to the statistics fields. */
-const V1_LIST_FIELDS = ['playerMulligan', 'opponentDeck', 'finalDeckCardIds', 'offeredCardIds'];
-
 function inGameWindow(occurredAt: string, now: number): boolean {
   const time = Date.parse(occurredAt);
   return Number.isFinite(time) && time >= EARLIEST_GAME_MS && time <= now + FUTURE_TOLERANCE_MS;
@@ -182,7 +180,7 @@ function wireShape(type: GameEventType, read: Record<string, unknown>): Payload 
 export function validateStatisticsPayload(type: string, schemaVersion: number, payload: Payload,
   context: { occurredAt: string; now: number }): { ok: true; payload: Payload; warning?: string } {
   if (schemaVersion < 2 || !isGameEventType(type)) return { ok: true, payload };
-  const lists = Object.fromEntries(V1_LIST_FIELDS.filter(field => payload[field] !== undefined).map(field => [field, payload[field]]));
+  const lists = v1Lists(payload);
   try {
     if (!inGameWindow(context.occurredAt, context.now)) throw new GameFieldError('occurredAt');
     return { ok: true, payload: { ...wireShape(type, readPayload(type, payload) as Record<string, unknown>), ...lists } };

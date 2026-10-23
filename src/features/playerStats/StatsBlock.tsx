@@ -14,11 +14,11 @@ export function StatsBlock({ title, aside, children }: { title: string; aside?: 
   );
 }
 
-const SECTION_NAMES = { battlegrounds: 'Полей сражений', standard: 'Стандарта', arena: 'Арены' } as const;
+const SECTION_NAMES = { battlegrounds: 'Полей сражений', standard: 'Стандарта' } as const;
 
 /** Why «в среднем» columns are missing: the paid section's subscription, or the source is down. */
 export function GlobalNote({ availability, section }: { availability: GlobalAvailability; section: keyof typeof SECTION_NAMES }) {
-  if (availability === 'available') return null;
+  if (availability === 'available' || availability === 'none') return null;
   return (
     <p className="player-stats-note">
       {availability === 'subscription'

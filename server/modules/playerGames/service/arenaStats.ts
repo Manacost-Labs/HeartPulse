@@ -1,5 +1,4 @@
 import type { ArenaRunRecord, HearthstoneClass, PlayerGame } from '../model/game.js';
-import type { GlobalArenaClass } from '../model/globalSources.js';
 import { average, rate, type ArenaRun, type ArenaStats } from '../model/stats.js';
 
 type ArenaGame = Extract<PlayerGame, { mode: 'arena' }>;
@@ -61,7 +60,6 @@ export function buildArenaStats(
   games: readonly ArenaGame[],
   records: readonly ArenaRunRecord[],
   options: Pick<ArenaStats, 'period' | 'global'>,
-  global: readonly GlobalArenaClass[] | null,
 ): ArenaStats {
   const byRun = new Map<string, ArenaGame[]>();
   for (const game of games) {
@@ -80,12 +78,10 @@ export function buildArenaStats(
     const runGames = byRun.get(runId) ?? [];
     return record ? runFromRecord(record, runGames) : buildRun(runGames);
   }).sort((left, right) => right.lastPlayedAt - left.lastPlayedAt);
-  const globalByClass = new Map((global ?? []).map(item => [item.playerClass, item]));
   const classes = new Map<HearthstoneClass, ArenaStats['classes'][number] & { totalWins: number }>();
   for (const run of runs) {
     const entry = classes.get(run.playerClass) ?? { playerClass: run.playerClass, runs: 0, averageWins: 0, games: 0, wins: 0,
-      totalWins: 0, globalWinrate: globalByClass.get(run.playerClass)?.winrate ?? null,
-      globalAverageWins: globalByClass.get(run.playerClass)?.averageWins ?? null };
+      totalWins: 0 };
     entry.runs += 1;
     entry.totalWins += run.wins;
     classes.set(run.playerClass, entry);
