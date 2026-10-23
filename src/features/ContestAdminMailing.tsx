@@ -1,4 +1,5 @@
 import { Mail, Monitor, Newspaper, Send, Smartphone, Trophy } from 'lucide-react';
+import { Skeleton } from '../vendor/valyro-ui/basic/Skeleton';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
 
 export type MailingSegment = 'all-consented' | 'active' | 'former' | 'boosty-all';
@@ -132,8 +133,8 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
           { label: 'Исключены', value: overview?.summary.excluded ?? '—', detail: 'не получат письмо' },
         ]}
         actions={(
-          <button type="button" className="contest-secondary-button" disabled={loading} onClick={onReload}>
-            {loading ? 'Обновляем…' : 'Обновить данные'}
+          <button type="button" className="contest-secondary-button" disabled={loading} aria-busy={loading} onClick={onReload}>
+            Обновить данные
           </button>
         )}
       />
@@ -147,7 +148,8 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
               <span><TemplateIcon size={20} /></span><strong>{template.label}</strong><small>{template.description}</small>
             </button>;
           })}
-          {!loading && !overview?.templates.length && <p className="contest-muted" role="status">Шаблоны пока недоступны.</p>}
+          {!overview && Array.from({ length: 3 }, (_, index) => <Skeleton key={index} height={72} radius={7} />)}
+          {!loading && overview && !overview.templates.length && <p className="contest-muted" role="status">Шаблоны пока недоступны.</p>}
         </div>
       </section>
 

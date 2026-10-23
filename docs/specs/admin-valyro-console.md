@@ -119,6 +119,22 @@ that section alone.
 - The overview's segment shortcuts open the people list on that segment once;
   showing the section again keeps the operator's own filters.
 
+## Older section styles
+
+`src/features/contests.css` still styles most sections. Its `--admin-*`
+values come from the bridge in `src/modules/adminWorkspace/adminWorkspace.css`
+(`tests/admin-css-variables.test.ts` fails when a used name is not defined; the
+removed frame's `--admin-bar-h` had silently disabled the sticky mailing
+preview and translation form). Panels it paints with fixed parchment colours
+take the theme's surfaces in `adminConsole/AdminConsoleLegacy.css`; status
+colours keep their meaning.
+
+Opening a section must not move it when its data arrives
+(`tests/admin-console-layout-browser.test.mjs`, answers delayed by 400 ms):
+the operations header status has a fixed width with the full text in its
+title, mailing shows template placeholders, and «Кеши и DeckView» waits until
+the data panel above it has loaded.
+
 ## Boosty answers on the server
 
 `server/adminBoostyRoutes.ts` reuses a successful boosty-auth answer for one
