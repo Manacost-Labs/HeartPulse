@@ -128,8 +128,9 @@ not sending.
 `src/modules/identity/ui/LoginPanel.tsx` keeps the account state, requests
 and the signed-out login view and passes the signed-in state to
 `AccountDashboard.tsx`, which composes `AccountHero`, `AccountPlanSection`
-(with `AccountAccessOptions`), `AccountPublicProfile`, `AccountLinks`, `AccountSettings` and
-`AccountContests`; each section head is `AccountSectionHead`.
+(with `AccountAccessOptions`), `AccountPublicProfile`, `AccountLinks`,
+`AccountSettings` and `AccountContests`; each section head is
+`AccountSectionHead`.
 `model/accountPlan.ts` derives the plan, its date and renewal line;
 `model/accountDashboard.ts` derives the section links, the linked sign-in rows
 and the link-return message. The plan card is
