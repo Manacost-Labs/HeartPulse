@@ -32,7 +32,7 @@
 .standard-meta-modal__close { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 2; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgba(239, 197, 104, 0.45); color: #ffe9b6; background: rgba(35, 3, 8, 0.64); cursor: pointer; }
 .standard-meta-modal__header { display: flex; gap: 0.7rem; align-items: center; padding-right: 3rem; padding-bottom: 0.65rem; border-bottom: 1px solid rgba(239, 197, 104, 0.22); }
 .standard-meta-modal__header img { width: 52px; height: 52px; filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.38)); }
-.standard-meta-modal__eyebrow { color: var(--meta-gold); font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; }
+.standard-meta-modal__eyebrow { color: var(--meta-gold); font-size: 0.6875rem; font-weight: 900; letter-spacing: 0.1em; }
 .standard-meta-modal__header h2 { margin: 0.08rem 0 0; color: #fff0c4; font-family: var(--font-display); font-size: clamp(1.45rem, 3vw, 2.15rem); line-height: 1; }
 .standard-meta-modal__header p { margin: 0.1rem 0 0; color: #caa875; }
 .standard-meta-modal__content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(195px, 0.3fr); grid-template-rows: auto minmax(0, 1fr); gap: 0.75rem; min-height: 0; overflow: hidden; padding-top: 0.75rem; }
@@ -47,8 +47,8 @@
 .standard-meta-modal__deck-meta { display: flex; flex-wrap: wrap; gap: 0.55rem; }
 .standard-meta-modal__deck-meta span { display: inline-flex; gap: 0.35rem; align-items: center; padding: 0.45rem 0.65rem; border: 1px solid rgba(239, 197, 104, 0.24); color: #e6ca93; background: rgba(31, 3, 8, 0.35); font-size: 0.7rem; }
 .standard-meta-modal__code-block { display: grid; gap: 0.4rem; padding: 0.65rem 0.75rem; border: 1px solid rgba(239, 197, 104, 0.28); background: rgba(24, 2, 8, 0.42); }
-.standard-meta-modal__code-block > span { color: var(--meta-gold); font-size: 0.65rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
-.standard-meta-modal__code-block code { display: block; max-height: 5.2rem; overflow: auto; color: #f7e7bd; font-size: 0.68rem; line-height: 1.45; overflow-wrap: anywhere; white-space: normal; user-select: all; }
+.standard-meta-modal__code-block > span { color: var(--meta-gold); font-size: 0.6875rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.standard-meta-modal__code-block code { display: block; max-height: 5.2rem; overflow: auto; color: #f7e7bd; font-size: 0.6875rem; line-height: 1.45; overflow-wrap: anywhere; white-space: normal; user-select: all; }
 .standard-meta-modal__status { display: grid; place-items: center; gap: 0.45rem; min-height: 190px; padding: 1.5rem; color: #e8cc96; text-align: center; }
 .standard-meta-modal__status--full { align-self: stretch; min-height: 0; }
 .standard-meta-modal__status strong { color: #fff0c4; font-family: var(--font-display); font-size: 1.2rem; }

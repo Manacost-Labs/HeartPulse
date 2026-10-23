@@ -120,7 +120,7 @@
 
 /* The action menu is laid out here because its labels no longer sit inside the old badge column. */
 .admin-people .contest-user-menu button > span { display: block; min-width: 0; font-size: 0.75rem; text-align: left; color: inherit; }
-.admin-people .contest-user-menu button small { display: block; margin-top: 0.12rem; color: #52606d; font-size: 0.63rem; font-weight: 600; line-height: 1.25; }
+.admin-people .contest-user-menu button small { display: block; margin-top: 0.12rem; color: #52606d; font-size: 0.6875rem; font-weight: 600; line-height: 1.25; }
 /* An open popover can cover the triggers of the following rows; take them out of hit testing until it closes. */
 .admin-people-table:has(.contest-user-menu) .contest-user-menu-trigger[aria-expanded='false'] { visibility: hidden; }
 

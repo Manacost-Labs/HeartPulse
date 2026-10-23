@@ -27,7 +27,7 @@
 
 .arena-app-home .home-arena-directory .home-arena-directory__sign > span {
   color: #efc568;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 850;
   letter-spacing: 0.16em;
   transform: translateY(-5px);
@@ -106,7 +106,7 @@
 
 .arena-app-home .home-arena-directory__link small {
   color: var(--arena-red);
-  font-size: 0.64rem;
+  font-size: 0.6875rem;
   font-weight: 820;
   letter-spacing: 0.07em;
   text-transform: uppercase;

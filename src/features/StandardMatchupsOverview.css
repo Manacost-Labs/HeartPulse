@@ -51,13 +51,13 @@
 
 .standard-matchups-overview__identity { grid-area: identity; display: flex; gap: 0.9rem; align-items: center; min-width: 0; }
 .standard-matchups-overview__identity h3 { margin: 0; color: #fff3d6; font-family: var(--font-hs); font-size: 1.7rem; line-height: 1.1; }
-.standard-matchups-overview__eyebrow { margin: 0 0 0.15rem; color: #e6c27a; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.standard-matchups-overview__eyebrow { margin: 0 0 0.15rem; color: #e6c27a; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 .standard-matchups-overview__english { margin: 0.2rem 0 0; color: #d9c4a0; font-size: 0.8rem; }
 
 .standard-matchups-overview__stats { grid-area: stats; display: flex; flex-wrap: wrap; gap: 0.6rem 1.75rem; margin: 0; }
 .standard-matchups-overview__stats dt { color: #d9c4a0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .standard-matchups-overview__stats dd { display: grid; margin: 0.1rem 0 0; font-size: 1.35rem; font-weight: 900; font-variant-numeric: tabular-nums; }
-.standard-matchups-overview__stats dd small { color: #d9c4a0; font-size: 0.66rem; font-weight: 600; }
+.standard-matchups-overview__stats dd small { color: #d9c4a0; font-size: 0.6875rem; font-weight: 600; }
 .standard-matchups-overview__stats dd[data-side='up'] { color: #8fd6a2; }
 .standard-matchups-overview__stats dd[data-side='down'] { color: #f0a0a0; }
 

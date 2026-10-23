@@ -255,6 +255,7 @@
     "tests/module-boundary-graph.test.mjs": 0.6,
     "tests/module-boundary-inventory.test.mjs": 0.5,
     "tests/module-boundary-path-policy.test.mjs": 0.5,
+    "tests/readable-text.test.mjs": 0.4,
     "tests/motion-tokens.test.mjs": 0.6,
     "tests/network-boundary.test.ts": 0.4,
     "tests/newsletter-consent-integration.test.mjs": 11,

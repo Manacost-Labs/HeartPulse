@@ -160,7 +160,7 @@
 .arena-mobile-menu-section-title,
 .arena-sidebar-section-title {
   color: #dfb65f;
-  font-size: 0.63rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -481,7 +481,7 @@
 .arena-app-home .home-stage__label,
 .arena-app-home .home-section-heading > div > span {
   color: var(--arena-red);
-  font-size: 0.67rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.13em;
 }
 
@@ -573,7 +573,7 @@
 
 .arena-app-home .home-orbit-empty > span { min-width: 0; display: grid; gap: 0.22rem; }
 .arena-app-home .home-orbit-empty strong { color: #fff0c8; font-size: 0.75rem; }
-.arena-app-home .home-orbit-empty small { color: #c9ab74; font-size: 0.62rem; line-height: 1.35; }
+.arena-app-home .home-orbit-empty small { color: #c9ab74; font-size: 0.6875rem; line-height: 1.35; }
 
 .arena-app-home .home-page-index {
   min-height: 50px;
@@ -605,7 +605,7 @@
 .arena-app-home .home-page-index > span {
   padding-left: 0.2rem;
   color: var(--arena-red);
-  font-size: 0.61rem;
+  font-size: 0.6875rem;
   font-weight: 850;
   letter-spacing: 0.11em;
   text-transform: uppercase;

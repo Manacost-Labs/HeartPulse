@@ -249,7 +249,7 @@ a.global-search-result { text-decoration: none; }
 .global-search-result__copy small {
   margin-top: 0.18rem;
   color: #ceb585;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
 }
 
 .global-search-result__diamond {
@@ -259,7 +259,7 @@ a.global-search-result { text-decoration: none; }
   padding: 0.2rem 0.35rem;
   border: 1px solid rgba(201, 160, 74, 0.34);
   color: #dfc27e;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   white-space: nowrap;
 }
 

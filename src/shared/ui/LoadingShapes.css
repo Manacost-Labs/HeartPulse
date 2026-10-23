@@ -20,7 +20,7 @@
   .loading-block.loading-value--wide { inline-size: 6em; }
   .loading-header { display: grid; gap: 0.35rem; }
   .loading-header__title { font-family: var(--font-display); font-size: clamp(1.3rem, 2.5vw, 1.8rem); line-height: 1.15; }
-  .loading-header__eyebrow { font-size: 0.66rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
+  .loading-header__eyebrow { font-size: 0.6875rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
   .loading-header__description { margin: 0; font-size: 0.9rem; line-height: 1.5; }
   .loading-chart { inline-size: 100%; }
   .loading-card-tile { aspect-ratio: 512 / 776; inline-size: 100%; }

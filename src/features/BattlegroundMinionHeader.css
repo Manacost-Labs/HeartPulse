@@ -138,7 +138,7 @@
   backdrop-filter: blur(10px) saturate(1.15);
 }
 
-.minion-header__metrics .ui-kpi-group__label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.minion-header__metrics .ui-kpi-group__label { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .minion-header__metrics .ui-kpi-group__value { color: var(--ui-fg); font-family: var(--font-body); font-variant-numeric: tabular-nums; }
 /* The kit hides captions in tiles under 160 px; the placement pair is the point of the first tile. */
 .minion-header__metrics .ui-kpi-group__caption { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 0.72rem; white-space: normal; }
@@ -204,7 +204,7 @@
   .minion-header .minion-header__identity > .minion-header__title { font-size: clamp(1.25rem, 5.6vw, 2.1rem); }
   .minion-header__text { font-size: 0.85rem; }
   .minion-header__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); --ui-kpi-group-padding: 0.55rem 0.5rem; --ui-kpi-group-value-size: 1.1rem; }
-  .minion-header__metrics .ui-kpi-group__label { font-size: 0.58rem; letter-spacing: 0; }
+  .minion-header__metrics .ui-kpi-group__label { font-size: 0.6875rem; letter-spacing: 0; }
   /* Loaded and loading tiles share one height, and the source keeps room for its wrapped line,
      so the header does not move when statistics arrive (tests/skeleton-geometry-browser.test.mjs). */
   .minion-header__metrics .ui-kpi-group__tile { min-height: 7.9rem; }

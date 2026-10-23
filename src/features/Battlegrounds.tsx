@@ -1675,11 +1675,11 @@ function BattlegroundHeroCompositionLineup({ composition, cards, tourId }: {
                     </div>
                   }
                 />
-                {isPremium && <span className="absolute right-2 top-2 rounded-full bg-[#f6ce68] px-2 py-0.5 text-[10px] font-black text-[#3d2a1e]">G</span>}
+                {isPremium && <span className="absolute right-2 top-2 rounded-full bg-[#f6ce68] px-2 py-0.5 text-[11px] font-black text-[#3d2a1e]">G</span>}
               </div>
               {cardText && (
                 <div className="pointer-events-none invisible absolute left-2 right-2 top-2 z-30 rounded-xl border border-[#d7b66a] bg-[#fffdf7]/98 p-3 text-left opacity-0 shadow-[0_16px_36px_rgba(61,42,30,0.2)] backdrop-blur transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
-                  <p className="font-hs text-[10px] uppercase tracking-[0.14em] text-[#8b6c42]">Описание карты</p>
+                  <p className="font-hs text-[11px] uppercase tracking-[0.14em] text-[#8b6c42]">Описание карты</p>
                   <p className="mt-1 text-xs font-bold leading-snug text-[#3d2a1e]">{cardText}</p>
                 </div>
               )}

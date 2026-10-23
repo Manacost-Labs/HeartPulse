@@ -49,7 +49,7 @@
 .profile-workspace .profile-hero__eyebrow {
   margin: 0 0 0.25rem;
   color: #e8bb58;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -78,7 +78,7 @@
 .profile-workspace .profile-hero__id {
   margin: 0.32rem 0 0;
   color: #c9a96e;
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -86,7 +86,7 @@
 .profile-workspace .profile-hero__id code {
   color: inherit;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   letter-spacing: 0;
   text-transform: none;
   overflow-wrap: anywhere;
@@ -270,7 +270,7 @@ html .arena-app-profile .profile-workspace .profile-account-actions__logout {
   .profile-workspace .profile-status-chip {
     padding: 0.38rem 0.55rem;
     justify-content: center;
-    font-size: 0.68rem;
+    font-size: 0.6875rem;
     text-align: center;
   }
 

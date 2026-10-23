@@ -143,7 +143,7 @@
 }
 
 .build-pick__stats b { font-family: var(--font-display); font-size: 0.9rem; }
-.build-pick__stats small { color: var(--archetype-muted); font-size: 0.66rem; font-weight: 700; }
+.build-pick__stats small { color: var(--archetype-muted); font-size: 0.6875rem; font-weight: 700; }
 
 .build-pick__sides {
   display: grid;
@@ -178,7 +178,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--archetype-muted);
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
 }
 
 /* ---- Mana curve: both histograms in one plot ---- */
@@ -368,7 +368,7 @@
 }
 
 .archetype-radar__legend span { display: inline-flex; gap: 0.35rem; align-items: center; color: var(--side); }
-.archetype-radar__legend small { flex-basis: 100%; color: var(--archetype-muted); font-size: 0.64rem; font-weight: 600; text-align: center; }
+.archetype-radar__legend small { flex-basis: 100%; color: var(--archetype-muted); font-size: 0.6875rem; font-weight: 600; text-align: center; }
 
 .profile-percentiles { display: grid; gap: 3px; }
 
@@ -394,7 +394,7 @@
 
 .profile-percentiles__row small {
   color: var(--side);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-align: end;
   white-space: nowrap;

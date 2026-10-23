@@ -501,7 +501,7 @@
 .deck-builder__deck-counter span {
   margin-top: 0.18rem;
   color: var(--db-ink-soft);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 750;
 }
 
@@ -554,7 +554,7 @@
 
 .deck-builder__panel-heading strong {
   color: var(--db-ink-soft);
-  font-size: 0.61rem;
+  font-size: 0.6875rem;
   font-weight: 650;
   text-align: right;
 }
@@ -638,11 +638,11 @@
 
 .deck-builder__mana-curve strong {
   color: #fff0c8;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
 }
 
 .deck-builder__mana-curve small {
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 800;
 }
 
@@ -687,7 +687,7 @@
 
 .deck-builder__control-label {
   color: var(--db-brass-light);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -754,7 +754,7 @@
 .deck-builder__filter-group legend {
   padding: 0 0.38rem;
   color: var(--db-brass-light);
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   font-weight: 850;
   letter-spacing: 0.08em;
   text-transform: uppercase;

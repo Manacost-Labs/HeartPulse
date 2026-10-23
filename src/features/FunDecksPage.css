@@ -125,7 +125,7 @@
   display: block;
   margin-top: 0.35rem;
   color: #cbaa78;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   line-height: 1.25;
 }
 
@@ -168,7 +168,7 @@
 
 .fun-decks-method__intro > span {
   color: var(--fun-red);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 850;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -408,7 +408,7 @@
   gap: 0.24rem;
   align-items: center;
   color: var(--fun-red);
-  font-size: 0.48rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -419,7 +419,7 @@
   border-radius: 999px;
   color: #fff0c8;
   background: var(--fun-red);
-  font-size: 0.43rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.05em;
 }
 
@@ -435,14 +435,15 @@
 .fun-deck-card__identity p {
   margin: 0.12rem 0 0;
   color: var(--fun-muted);
-  font-size: 0.52rem;
+  font-size: 0.6875rem;
 }
 
 .fun-deck-card__metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
-  padding: 0.34rem 0.25rem 0.38rem;
+  /* Tighter than before the 11px text floor so the two-line labels keep the card's height. */
+  padding: 0.2rem 0.25rem 0.24rem;
 }
 
 .fun-deck-card__metrics div {
@@ -458,7 +459,7 @@
 .fun-deck-card__metrics dt {
   min-height: 2em;
   color: var(--fun-muted);
-  font-size: 0.45rem;
+  font-size: 0.6875rem;
   line-height: 1;
 }
 
@@ -494,13 +495,13 @@
 
 .fun-deck-card__deck .deck-list-view__subtitle {
   margin-top: 0.07rem;
-  font-size: 0.5rem;
+  font-size: 0.6875rem;
   line-height: 1;
 }
 
 .fun-deck-card__deck .deck-list-view__head > span {
   padding: 0.08rem 0.28rem;
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
 }
 
 .fun-deck-card__deck .deck-list-view__sideboard {
@@ -510,7 +511,7 @@
 .fun-deck-card__deck .deck-list-view__sideboard-head {
   gap: 0.25rem;
   padding: 0.22rem 0.08rem 0.18rem;
-  font-size: 0.5rem;
+  font-size: 0.6875rem;
 }
 
 .fun-deck-card__deck .deck-list-view__sideboard-head span:last-child {
@@ -616,7 +617,7 @@
   align-items: center;
   gap: 0.22rem;
   color: var(--fun-red-dark);
-  font-size: 0.54rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-decoration: none;
 }

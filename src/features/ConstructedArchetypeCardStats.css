@@ -257,7 +257,7 @@
 .card-stat-phase small {
   color: var(--archetype-muted);
   font-variant-numeric: tabular-nums;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   line-height: 1.2;
 }
 
@@ -384,7 +384,7 @@
 
 .constructed-card-stats__list dt {
   color: var(--archetype-muted);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;

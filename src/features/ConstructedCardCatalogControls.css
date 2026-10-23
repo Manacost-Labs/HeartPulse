@@ -14,14 +14,14 @@
 
 .constructed-card-search__heading label {
   color: #684222;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 900;
 }
 
 .constructed-card-search__heading output {
   overflow: hidden;
   color: #806044;
-  font-size: 0.56rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;

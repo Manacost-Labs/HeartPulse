@@ -74,7 +74,7 @@
 .analytics-chart__selection input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border: 2px solid #fbf3de; border-radius: 50%; background: var(--analytics-series, #8d171d); box-shadow: 0 0 0 1px rgba(48, 37, 28, .25); }
 .analytics-chart__selection input::-moz-range-thumb { width: 10px; height: 10px; border: 2px solid #fbf3de; border-radius: 50%; background: var(--analytics-series, #8d171d); box-shadow: 0 0 0 1px rgba(48, 37, 28, .25); }
 .analytics-chart__scrubber { min-width: 0; }
-.analytics-chart__scrubber > div { display: flex; justify-content: space-between; gap: 8px; color: #735e49; font-size: 10px; }
+.analytics-chart__scrubber > div { display: flex; justify-content: space-between; gap: 8px; color: #735e49; font-size: 11px; }
 .analytics-chart__legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 14px; font-size: 12px; }
 .analytics-chart__legend span { display: inline-flex; align-items: center; gap: 6px; }
 .analytics-chart__legend i { width: 10px; height: 10px; border-radius: 2px; }

@@ -292,7 +292,7 @@
 .admin-tailadmin-shell .admin-nav-group {
   margin: 8px 10px 5px;
   color: #a9947c;
-  font-size: 0.63rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -686,7 +686,7 @@
   align-items: center;
   gap: 6px;
   color: var(--admin-gold-dark);
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   font-weight: 820;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1075,7 +1075,7 @@
   margin: 9px 10px 6px;
   padding-left: 9px;
   color: #9caec3;
-  font-size: 0.61rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.14em;
 }
 .admin-tailadmin-shell .admin-workspace-nav.is-open .admin-nav-group::before {

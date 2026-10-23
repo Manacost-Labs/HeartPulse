@@ -58,7 +58,7 @@
   display: block;
   margin-bottom: 0.35rem;
   color: var(--paywall-burgundy);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -152,7 +152,7 @@
 
 .arena-inline-paywall__actions-label {
   color: var(--paywall-burgundy);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.11em;
   text-align: center;
@@ -230,7 +230,7 @@
 
 .arena-inline-paywall__provider-copy small {
   color: rgba(255, 242, 205, 0.8);
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   line-height: 1;
@@ -308,7 +308,7 @@
 .arena-inline-paywall__status {
   margin: 0;
   color: var(--paywall-muted);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   line-height: 1.4;
   text-align: center;
 }

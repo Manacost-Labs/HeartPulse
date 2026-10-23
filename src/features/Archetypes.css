@@ -90,7 +90,7 @@
   gap: 0.45rem;
   align-items: center;
   color: var(--archetypes-gold);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   line-height: 1.4;
   letter-spacing: 0.14em;
@@ -201,7 +201,7 @@
 .archetypes-hero__summary span {
   margin-top: 0.28rem;
   color: rgba(255, 240, 200, 0.68);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -230,7 +230,7 @@
 
 .archetypes-format-badge span {
   color: rgba(255, 240, 200, 0.64);
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -405,7 +405,7 @@
 .archetypes-class__heading span {
   display: block;
   color: var(--class-accent);
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -447,7 +447,7 @@
 .archetypes-row__index,
 .archetypes-row__id {
   color: #8a6a45;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -490,7 +490,7 @@
   overflow-wrap: anywhere;
   margin-top: 0.12rem;
   color: var(--archetypes-muted);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   line-height: 1.25;
 }
 
@@ -582,7 +582,7 @@
 .archetypes-detail__summary span {
   margin-top: 0.2rem;
   color: var(--archetypes-muted);
-  font-size: 0.64rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
