@@ -23,7 +23,7 @@ assert.equal(battlegroundImageTransformCacheKey(transform!), 'webp:w220:q76');
 assert.equal(battlegroundImageTransformFromQuery({}), null);
 assert.deepEqual(
   battlegroundImageTransformFromQuery({ width: '9999', quality: '2' }),
-  { width: 512, quality: 55, format: 'webp' },
+  { width: 1024, quality: 55, format: 'webp' },
 );
 
 const source = await sharp({

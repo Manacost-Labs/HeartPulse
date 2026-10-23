@@ -4,6 +4,7 @@ import { Tooltip } from '../vendor/varylo-ui/basic/Tooltip';
 import { KpiGroup, type KpiItem } from '../vendor/varylo-ui/data-display/KpiGroup';
 import { LoadingBlock } from '../shared/ui/LoadingSurface';
 import { Line } from './BattlegroundsSkeletons';
+import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
 import '../vendor/varylo-ui/styles/index.css';
 import './archetypeVaryloTheme.css';
 import './BattlegroundMinionHeader.css';
@@ -28,7 +29,7 @@ type BattlegroundMinionHeaderProps = {
   variant?: ReactNode;
   facts: MinionHeaderFact[];
   rulesText?: string;
-  /** Same-origin art behind the plate; hidden when it fails. */
+  /** Full-size same-origin art behind the plate; the header picks optimized widths, hides it when it fails. */
   art?: string | null;
   kpis: KpiItem[];
   /** Colours the leading placement gap: lower placement with the minion is better. */
@@ -47,6 +48,9 @@ type BattlegroundMinionHeaderProps = {
   loading?: boolean;
 };
 
+/** The art covers up to 700 CSS px of the plate: 768 px is sharp at 1×, 1024 px close to it on dense screens. */
+const ART_WIDTHS = [768, 1024];
+
 /** Methodology of hs-data-api (HSReplay formulas), retold for the tooltip. */
 const METHODOLOGY = [
   'Место с ним и без — среднее итоговое место в играх, где существо стояло на столе, против игр без него. Меньше — лучше.',
@@ -62,7 +66,9 @@ export function BattlegroundMinionHeader({ title, card, variant, facts, rulesTex
       {art ? (
         <img
           className="minion-header__backdrop"
-          src={art}
+          src={optimizedBattlegroundThumbnailUrl(art, ART_WIDTHS[0])}
+          srcSet={ART_WIDTHS.map(width => `${optimizedBattlegroundThumbnailUrl(art, width)} ${width}w`).join(', ')}
+          sizes="(max-width: 820px) 90vw, 700px"
           width={512}
           height={680}
           alt=""
