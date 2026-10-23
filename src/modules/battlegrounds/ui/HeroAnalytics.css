@@ -1,0 +1,334 @@
+/* Hero statistics panels: rows, lines and one accent per block instead of boxed cards. */
+.bg-hero-analytics__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1.5rem 2rem;
+  min-width: 0;
+}
+
+.bg-hero-analytics__stack {
+  display: grid;
+  gap: 1.75rem;
+  min-width: 0;
+}
+
+/* Hero power by turn × tavern tier: a heat table on the share-blue scale. */
+.bg-hero-power-matrix__scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.bg-hero-power-matrix table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-hero-power-matrix th {
+  color: var(--arena-muted-ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bg-hero-power-matrix thead th {
+  padding: 0 0 0.3rem;
+  text-align: center;
+}
+
+.bg-hero-power-matrix thead th > * { display: block; }
+.bg-hero-power-matrix thead small { color: #94806a; font-size: 0.6875rem; font-weight: 500; }
+
+.bg-hero-power-matrix tbody th {
+  padding-right: 0.5rem;
+  text-align: left;
+}
+
+.bg-hero-power-matrix tbody th img {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.bg-hero-power-matrix td {
+  min-width: 2.3rem;
+  height: 1.85rem;
+  border-radius: 3px;
+  background: rgba(47, 108, 158, calc(0.07 + var(--cell, 0) * 0.78));
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Section paragraph and cell colours are muted page-wide in Battlegrounds; the matrix keeps its own contrast. */
+.bg-hero-power-matrix td:not(.is-empty) { color: var(--arena-ink) !important; }
+.bg-hero-power-matrix td[data-strong] { color: #fff !important; }
+.bg-hero-power-matrix td[data-low] { background: rgba(47, 108, 158, 0.12); }
+.bg-hero-power-matrix td[data-low]:not(.is-empty) { color: var(--arena-muted-ink) !important; font-weight: 500; }
+.bg-hero-power-matrix td.is-empty { background: transparent; }
+
+/* Upgrade pace: one step per tavern tier. */
+.bg-hero-tavern-pace__steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bg-hero-tavern-pace__steps li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.bg-hero-tavern-pace__steps img { flex: none; width: 34px; height: 34px; object-fit: contain; }
+.bg-hero-tavern-pace__steps span { display: grid; min-width: 0; }
+.bg-hero-tavern-pace__steps strong { color: var(--arena-ink); font-family: var(--font-display); font-size: 1rem; line-height: 1.2; }
+.bg-hero-tavern-pace__steps small { color: var(--arena-muted-ink); font-size: 0.75rem; }
+
+/* The final board: cards in one row, no frame around each. */
+.bg-hero-lineup {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bg-hero-lineup__minion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  justify-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.bg-hero-lineup__art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 512 / 776;
+  max-width: 132px;
+}
+
+.bg-hero-lineup__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 8px rgba(61, 42, 30, 0.18));
+}
+
+.bg-hero-lineup__fallback {
+  display: grid;
+  place-items: center;
+  width: 80%;
+  height: 80%;
+  border-radius: 40% / 30%;
+  background: rgba(139, 108, 66, 0.16);
+  color: var(--arena-muted-ink);
+  font-size: 0.75rem;
+}
+
+.bg-hero-lineup__minion > strong {
+  color: var(--arena-ink);
+  font-size: 0.8125rem;
+  line-height: 1.25;
+}
+
+.bg-hero-lineup__minion > small {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--arena-muted-ink);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-hero-lineup__minion > small img { width: 18px; height: 18px; object-fit: contain; }
+.bg-hero-lineup__golden { color: #8a5b24; font-weight: 700; }
+
+/* Compositions: one list, the share as a thin bar. */
+.bg-hero-compositions { display: grid; min-width: 0; font-variant-numeric: tabular-nums; }
+
+.bg-hero-compositions__head,
+.bg-hero-compositions__row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.2fr) minmax(9rem, 1.4fr) 8rem 5.5rem;
+  gap: 1rem;
+  align-items: center;
+}
+
+.bg-hero-compositions__head {
+  padding: 0 0 0.4rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+  color: var(--arena-muted-ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bg-hero-compositions__head > :nth-child(n + 3),
+.bg-hero-compositions__place,
+.bg-hero-compositions__games { text-align: right; justify-content: flex-end; }
+
+.bg-hero-compositions__row {
+  min-height: 46px;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--arena-paper-line);
+  color: var(--arena-ink);
+  font-size: 0.875rem;
+}
+
+.bg-hero-compositions__row:last-child { border-bottom: 0; }
+.bg-hero-compositions__row.is-low-sample { opacity: 0.75; }
+
+.bg-hero-compositions__name {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.bg-hero-compositions__name img,
+.bg-hero-compositions__icon-gap { flex: none; width: 26px; height: 26px; object-fit: contain; }
+
+.bg-hero-compositions__share {
+  display: grid;
+  grid-template-columns: minmax(3rem, 1fr) 4rem;
+  gap: 0.6rem;
+  align-items: center;
+  text-align: right;
+}
+
+.bg-hero-compositions__bar,
+.bg-hero-final__bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(84, 51, 22, 0.1);
+}
+
+.bg-hero-compositions__bar i,
+.bg-hero-final__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2f6c9e;
+}
+
+.bg-hero-compositions__place strong { font-weight: 700; }
+.bg-hero-compositions__place small { color: var(--arena-muted-ink); font-size: 0.75rem; }
+
+.bg-hero-compositions__games {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  color: var(--arena-muted-ink);
+}
+
+.bg-hero-compositions__games svg { width: 13px; height: 13px; }
+
+/* Key minions of the final board, one column per final tavern tier. */
+.bg-hero-final {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: 1rem 2rem;
+}
+
+.bg-hero-final__group h4 {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0 0 0.35rem;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.bg-hero-final__group ul { margin: 0; padding: 0; list-style: none; }
+
+.bg-hero-final__group li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(3rem, 6rem) 2.75rem;
+  gap: 0.25rem 0.65rem;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--arena-paper-line);
+  color: var(--arena-ink);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-hero-final__value { font-weight: 700; text-align: right; }
+.bg-hero-final__golden { grid-column: 1 / -1; color: var(--arena-muted-ink); font-size: 0.75rem; }
+.bg-hero-final__golden:empty { display: none; }
+
+/* Minion name with its card on hover or focus. */
+.bg-hero-card-name { position: relative; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.bg-hero-card-name[tabindex] { cursor: help; text-decoration: underline dotted rgba(84, 51, 22, 0.4); text-underline-offset: 3px; }
+.bg-hero-card-name[tabindex]:focus-visible { outline: 2px solid var(--arena-red); outline-offset: 2px; }
+
+.bg-hero-card-name__preview {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: 160px;
+  height: auto;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 18px rgba(61, 42, 30, 0.28));
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.bg-hero-card-name:is(:hover, :focus-visible) .bg-hero-card-name__preview { visibility: visible; opacity: 1; }
+
+@media (max-width: 1023px) {
+  /* The matrix scrolls sideways here; the tier names stay in view. */
+  .bg-hero-power-matrix tbody th {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--bg-hero-panel-fill, #f6e8c8);
+  }
+  .bg-hero-lineup { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .bg-hero-lineup { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem 0.4rem; }
+  .bg-hero-lineup__minion > strong { font-size: 0.6875rem; }
+  .bg-hero-lineup__minion > small { font-size: 0.6875rem; }
+  .bg-hero-power-matrix__tier-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .bg-hero-compositions__head { display: none; }
+  .bg-hero-compositions__row {
+    grid-template-areas: 'name place' 'share games';
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem 0.75rem;
+    padding: 0.5rem 0;
+  }
+  .bg-hero-compositions__name { grid-area: name; }
+  .bg-hero-compositions__place { grid-area: place; }
+  .bg-hero-compositions__share { grid-area: share; grid-template-columns: minmax(3rem, 1fr) 3.75rem; }
+  .bg-hero-compositions__games { grid-area: games; font-size: 0.75rem; }
+  .bg-hero-compositions__games::before { content: 'игр'; margin-right: 0.15rem; }
+  .bg-hero-compositions__place::before { content: 'место '; color: var(--arena-muted-ink); font-size: 0.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-hero-card-name__preview { transition: none; }
+}

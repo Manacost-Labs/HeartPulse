@@ -73,8 +73,8 @@ function HeroReliquary({ teaser }: { teaser?: BattlegroundHeroTeaser }) {
             ? <h1 className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{teaser.name}</h1>
             : <p className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl"><Line className="bg-skeleton-w-name" /></p>}
           <ul className="bg-hero-facts" aria-hidden="true">
-            {FACT_WIDTHS.map(width => (
-              <li key={width} className="bg-hero-facts__item"><Line className={width} /></li>
+            {FACT_WIDTHS.map((width, index) => (
+              <li key={`${width}-${index}`} className="bg-hero-facts__item"><Line className={width} /></li>
             ))}
           </ul>
           <div className="bg-hero-stat-grid mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4" aria-hidden="true">
@@ -105,6 +105,8 @@ function HeroLedgers() {
       <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Профиль героя</p>
       <p className="font-hs text-2xl text-[#3d2a1e]">Кто это</p>
       <p className="bg-hero-profile__text mt-2 text-sm leading-7 text-[#5f4730]"><Line /><Line className="bg-skeleton-line--phone" /><Line className="bg-skeleton-line--narrow" /><Line className="bg-skeleton-w-short" /></p>
+      {/* Race and artist: nearly every library hero has both. */}
+      <dl className="bg-hero-profile__facts mt-3"><div><dd><Line className="bg-skeleton-w-race" /></dd></div><div><dd><Line className="bg-skeleton-w-artist" /></dd></div></dl>
     </section>
   );
 }

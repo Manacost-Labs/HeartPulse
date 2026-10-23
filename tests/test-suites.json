@@ -112,6 +112,8 @@
         "tests/mailing-audience.test.ts",
         "tests/chunk-reload-guard.test.ts",
         "tests/global-error-page.test.tsx",
+        "tests/battleground-hero-patch-changes.test.ts",
+        "tests/battleground-hero-analytics-model.test.ts",
         "tests/hearthstone-card-plurals.test.ts",
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-strategy-audit.test.ts",
