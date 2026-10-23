@@ -20,7 +20,11 @@ export default function PageTourInvite({ storageKey, onAccept, onDismiss }: {
   const titleId = useId();
   const [closing, setClosing] = useState(false);
   const [held, setHeld] = useState(false);
+  // The body is read after mount, never during render, so the module stays server-safe.
+  const [host, setHost] = useState<HTMLElement | null>(null);
   const rootRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => { setHost(document.body); }, []);
 
   const leave = (after: () => void) => {
     if (closing) return;
@@ -41,6 +45,7 @@ export default function PageTourInvite({ storageKey, onAccept, onDismiss }: {
     leave(onDismiss);
   };
 
+  if (!host) return null;
   return createPortal(
     <aside
       ref={rootRef}
@@ -76,6 +81,6 @@ export default function PageTourInvite({ storageKey, onAccept, onDismiss }: {
         <X size={16} aria-hidden="true" />
       </button>
     </aside>,
-    document.body,
+    host,
   );
 }
