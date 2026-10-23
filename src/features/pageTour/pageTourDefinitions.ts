@@ -183,7 +183,7 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
   {
     id: 'battlegrounds-hero-detail', version: 1, paths: ['/heroes/:dbfId'], title: 'Как читать досье героя',
     steps: [
-      { id: 'summary', target: 'bg-hero-detail-summary', title: 'Главное о герое', description: 'В верхнем блоке собраны имя, тир, среднее место, частота выбора и дата актуальности статистики.', audience: 'battlegrounds' },
+      { id: 'summary', target: 'bg-hero-detail-summary', title: 'Главное о герое', description: 'В верхнем блоке собраны имя, броня, тир, среднее место, частота выбора и ссылки на справочники.', audience: 'battlegrounds' },
       { id: 'media', target: 'bg-hero-detail-media', title: 'Сила героя и компаньон', description: 'Изучите актуальную силу героя, её официальный текст и компаньона, если он доступен в текущем пуле.', audience: 'battlegrounds' },
       { id: 'placement', target: 'bg-hero-detail-placement', title: 'Обзор статистики', description: 'Вкладка «Обзор» показывает распределение мест. Переключайте разделы, чтобы видеть нужный график без длинной ленты.', audience: 'battlegrounds' },
       { id: 'compositions', target: 'bg-hero-detail-compositions', title: 'Лучшие составы', description: 'Откройте вкладку «Составы», чтобы сравнить финальные композиции, их показатели и ключевых существ.', audience: 'battlegrounds', preferredPlacement: 'top' },

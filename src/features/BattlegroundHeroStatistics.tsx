@@ -16,7 +16,7 @@ export function BattlegroundHeroStatistics({ overview, power, tavern, compositio
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const panels = { overview, power, tavern, compositions };
   return (
-    <section className="bg-hero-statistics" aria-labelledby={`${id}-heading`}>
+    <section className="bg-hero-statistics bg-hero-ledger-panel" aria-labelledby={`${id}-heading`}>
       <h2 id={`${id}-heading`} className="font-hs text-xl">Статистика героя</h2>
       <div role="tablist" aria-label="Статистика героя" className="bg-hero-statistics__tabs">
         {TABS.map((tab, index) => (
