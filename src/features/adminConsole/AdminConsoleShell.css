@@ -319,12 +319,15 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
   color: var(--ui-fg-subtle);
 }
 
-.admin-console :is(.analytics-chart, .analytics-table) button {
+/* Only the tables' and charts' own controls: buttons inside cells keep their section's styles. */
+.admin-console :is(.analytics-table__tools, .analytics-table__footer, .analytics-chart__header, .analytics-chart__actions) button,
+.admin-console .analytics-table th button {
   border-color: var(--ui-border-strong);
   color: var(--ui-fg);
 }
 
-.admin-console :is(.analytics-chart, .analytics-table) button:hover,
+.admin-console :is(.analytics-table__tools, .analytics-table__footer, .analytics-chart__header, .analytics-chart__actions) button:hover,
+.admin-console .analytics-table th button:hover,
 .admin-console .analytics-chart .analytics-chart__download:hover {
   border-color: var(--ui-border-strong);
   background: var(--ui-hover);
