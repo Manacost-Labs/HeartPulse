@@ -47,3 +47,46 @@
 
 .admin-access-card a:focus-visible,
 .admin-access-card button:focus-visible { outline: 3px solid #f0b65a; outline-offset: 3px; }
+
+/*
+ * Placeholder of the admin console while access is checked and its code loads. Its rail and bar
+ * match the Valyro "manacost" app shell (248px sidebar, 56px bar), so the console replaces it in place.
+ */
+.admin-console-placeholder {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: #eef2f6;
+  color: #3d4a63;
+  font-family: var(--font-body, 'Inter'), system-ui, sans-serif;
+}
+
+.admin-console-placeholder__rail {
+  flex: none;
+  width: 248px;
+  border-right: 1px solid #e3e7ed;
+  background: #fff;
+}
+
+.admin-console-placeholder__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-console-placeholder__bar {
+  flex: none;
+  height: 56px;
+  border-bottom: 1px solid #e3e7ed;
+  background: #fff;
+}
+
+.admin-console-placeholder__main {
+  padding: 24px clamp(16px, 3vw, 40px);
+  font-size: 13px;
+}
+
+@media (max-width: 959px) {
+  .admin-console-placeholder__rail { display: none; }
+}

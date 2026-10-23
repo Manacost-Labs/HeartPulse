@@ -36,6 +36,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/guides-archive/[guideSlug]/',
   '/heroes/',
   '/heroes/[dbfId]/',
+  '/id/[publicProfileId]/',
   '/legendaries/',
   '/library/',
   '/library/[kind]/',
@@ -57,6 +58,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/standard/meta/[format]/[archetypeSlug]/',
   '/standard/vicious-gold/',
   '/terms/',
+  '/u/[nickname]/',
   '/tierlist/',
 ] as const;
 

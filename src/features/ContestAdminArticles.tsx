@@ -1,5 +1,5 @@
 import { TableSurface } from '../shared/ui/analytics/TableSurface';
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useMemo, useRef, useState } from 'react';
 import { BookOpen, ExternalLink, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { AdminFilterChips } from '../modules/adminCrm/public';
 import {
@@ -34,6 +34,7 @@ import { AdminListPager } from './AdminListPager';
 import { adminListCount } from './adminListText';
 import type { AdminMessage } from './adminWorkspaceState';
 import { useAdminContentList } from './useAdminContent';
+import { useAdminResource } from '../modules/adminWorkspace/public';
 import './adminPeople.css';
 import './adminContent.css';
 
@@ -107,17 +108,10 @@ export function ContestAdminArticles({ onMessage, client = adminContentClient }:
   // `null` closes the editor; an empty id opens it for a new article.
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedOrder, setOrder] = useState<ArticleOrder>('date');
-  const [reads, setReads] = useState<ArticleReads | null>(null);
   const summaryRef = useRef<HTMLParagraphElement | null>(null);
   const articles = list.items;
-  // Reads are secondary: the list works without them, and they refresh whenever the list does.
-  const listLoading = list.loading;
-  useEffect(() => {
-    if (listLoading) return undefined;
-    let current = true;
-    client.articleReads().then(value => { if (current) setReads(value); }).catch(() => { if (current) setReads(null); });
-    return () => { current = false; };
-  }, [articles, client, listLoading]);
+  // Reads are secondary: the list works without them; they load beside it and refresh after a change.
+  const reads: ArticleReads | null = useAdminResource(`${list.key}:reads`, client.articleReads).data ?? null;
   const modeOptions = useMemo(() => articleModeOptions(articles), [articles]);
   const issueOptions = useMemo(() => articleIssueOptions(articles), [articles]);
   const mode = activeChip(modeOptions, selectedMode, 'all');

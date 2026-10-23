@@ -81,7 +81,9 @@
       "purpose": "Owns the administrator CRM surfaces: people segments, the client card, notes and tags.",
       "owner": "operations",
       "publicEntry": "src/modules/adminCrm/public.ts",
-      "dependencies": [],
+      "dependencies": [
+        "client.adminWorkspace"
+      ],
       "focusedTests": [
         "npm run test:admin-crm"
       ],
@@ -94,7 +96,7 @@
       "id": "client.adminWorkspace",
       "runtime": "client",
       "root": "src/modules/adminWorkspace",
-      "purpose": "Owns the authenticated administrator workspace shell, navigation and responsive drawer.",
+      "purpose": "Owns the administrator workspace contracts: the tab-wide section data cache and the shared look of admin section content. The Valyro console frame lives in src/features/adminConsole.",
       "owner": "operations",
       "publicEntry": "src/modules/adminWorkspace/public.ts",
       "dependencies": [],
@@ -103,7 +105,7 @@
       ],
       "docs": [
         "docs/architecture/module-boundaries.md",
-        "docs/specs/admin-tailadmin-workspace-shell.md"
+        "docs/specs/admin-valyro-console.md"
       ],
       "publicStyleEntry": "src/modules/adminWorkspace/public.css"
     },
@@ -443,7 +445,7 @@
       "id": "server.publicProfile",
       "runtime": "server",
       "root": "server/modules/publicProfile",
-      "purpose": "Owns the stable numeric account ID used by connected applications; the public profile page was removed.",
+      "purpose": "Owns the stable numeric account ID, the public profile projection, nicknames and their HTTP routes.",
       "owner": "identity-platform",
       "publicEntry": "server/modules/publicProfile/public.ts",
       "dependencies": [],
@@ -453,7 +455,8 @@
       "docs": [
         "docs/architecture/module-boundaries.md",
         "docs/architecture/modularization-plan.md",
-        "docs/specs/card-controls-and-public-profiles.md"
+        "docs/specs/card-controls-and-public-profiles.md",
+        "docs/specs/public-profiles.md"
       ]
     },
     {

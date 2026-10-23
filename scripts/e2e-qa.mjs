@@ -1698,8 +1698,8 @@ for (const [device, viewport] of [
         historyCharts: document.querySelectorAll('.admin-overview-charts .analytics-chart').length,
         activity: [...document.querySelectorAll('.admin-overview-feed > li')].map(element => text(element.querySelector('div'))),
         quickActions: [...document.querySelectorAll('.admin-overview-actions button')].map(element => text(element)),
-        commandBarHeight: document.querySelector('.admin-command-bar')?.getBoundingClientRect().height ?? 0,
-        commandLogoSize: document.querySelector('.admin-command-logo')?.getBoundingClientRect().width ?? 0,
+        commandBarHeight: document.querySelector('.admin-console .ui-app-shell__header')?.getBoundingClientRect().height ?? 0,
+        sectionSearch: Boolean(document.querySelector('.admin-console-search[aria-keyshortcuts]')),
         hasRedundantAccessStatus: Boolean(document.querySelector('.admin-system-pulse')),
         overviewColumns: getComputedStyle(document.querySelector('.admin-overview-grid')).gridTemplateColumns.split(/\s+/).length,
         scrollWidth: root.scrollWidth,
@@ -1727,10 +1727,8 @@ for (const [device, viewport] of [
       failures.push(`admin overview [${device}]: activity feed mismatch ${JSON.stringify(state.activity)}`);
     }
     if (state.quickActions.length !== 6) failures.push(`admin overview [${device}]: expected 6 quick actions, got ${state.quickActions.length}`);
-    const commandBarHeight = device === 'desktop' ? 84 : 56;
-    const commandLogoSize = 0;
-    if (state.commandBarHeight !== commandBarHeight || state.commandLogoSize !== commandLogoSize || state.hasRedundantAccessStatus) {
-      failures.push(`admin overview [${device}]: compact command bar regressed (${JSON.stringify(state)})`);
+    if (state.commandBarHeight !== 56 || !state.sectionSearch || state.hasRedundantAccessStatus) {
+      failures.push(`admin overview [${device}]: console top bar regressed (${JSON.stringify(state)})`);
     }
     if (state.overviewColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin overview [${device}]: expected ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.overviewColumns}`);
     if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin overview [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
@@ -2080,7 +2078,7 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/admin?section=mechanics`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-mechanic-table tbody tr').length === 2);
     const mechanicInitialState = await page.evaluate(() => ({
-      navLabel: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
+      navLabel: document.querySelector('#admin-section-title')?.textContent?.trim() || '',
       rows: document.querySelectorAll('.admin-mechanic-table tbody tr').length,
       examples: document.querySelectorAll('.admin-mechanic-example img').length,
       inputs: document.querySelectorAll('.admin-mechanic-table input').length,
@@ -2114,7 +2112,7 @@ for (const [device, viewport] of [
     const standardOperationsState = await page.evaluate(() => {
       const scheduleCard = document.querySelector('#parser-schedules-title')?.closest('.admin-parser-card');
       return {
-        title: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
+        title: document.querySelector('#admin-section-title')?.textContent?.trim() || '',
         parserMode: document.querySelector('.admin-parser-mode-badge')?.textContent?.replace(/\s+/g, ' ').trim() || '',
         parserSections: document.querySelectorAll('.admin-parser-section').length,
         parserSchedules: scheduleCard?.querySelectorAll('.admin-parser-schedule').length ?? 0,
@@ -2674,7 +2672,7 @@ for (const [device, viewport] of [
       || profileState.headings.join() !== 'account-title'
       || profileState.headerBackground !== 'rgb(58, 6, 16)'
       || profileState.openSections < 1
-      || profileState.publicProfileActions.join('|') !== 'Выйти'
+      || profileState.publicProfileActions.join('|') !== 'Мой профиль|Выйти'
       || profileState.contactsVisible !== true
       || profileState.smallControls.length > 0
       || profileState.scrollWidth > profileState.clientWidth + 1) {
@@ -5138,7 +5136,8 @@ for (const [device, viewport] of [
   await page.setViewport({ width: 1440, height: 900 });
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState, strictApi: true });
   const openSection = label => page.evaluate(name => {
-    const button = document.querySelector(`button[data-admin-nav-label="${name}"]`);
+    const button = [...document.querySelectorAll('.admin-console .ui-sidebar__item')]
+      .find(item => item.textContent?.trim() === name);
     if (!(button instanceof HTMLButtonElement)) throw new Error(`Missing admin navigation item: ${name}`);
     button.click();
   }, label);
@@ -5152,7 +5151,7 @@ for (const [device, viewport] of [
     adminState.adminChunkFailure = false;
     const sectionFailure = await page.evaluate(() => ({
       title: document.querySelector('#admin-section-title')?.textContent?.trim() || '',
-      navigation: document.querySelectorAll('button[data-admin-nav-label]').length,
+      navigation: document.querySelectorAll('.admin-console .ui-sidebar__item').length,
       action: document.querySelector('.admin-workspace-content .recoverable-surface__action')?.textContent?.trim() || '',
       appError: Boolean(document.querySelector('[data-app-error]')),
     }));

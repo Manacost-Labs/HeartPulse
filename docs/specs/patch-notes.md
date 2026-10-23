@@ -104,7 +104,7 @@ answers `502`.
   (`loadPublicCards('wild')`, `images.art` with `art_metadata` width and
   height; `null` when unstated). An id also finds the art of its `CORE_`
   reprint or original. Battlegrounds entries have none. Only `http(s)` URLs
-  are kept; the page loads them through the image proxy (at most 512 px).
+  are kept; the page loads them through the image proxy at 320 and 512 px.
 - The art catalog never delays a snapshot: the patches are parsed with the
   last art lookup (none after a restart); the catalog is read only after the
   snapshot is built, because reading it alongside the archive slowed the
@@ -121,7 +121,9 @@ One way to do each thing:
   server HTML.
 - One bar under the header carries the section links (when the patch has
   more than one section), the class/card-type select (grouped by section),
-  the search and the kind filter (Все / ↑ / ↓ / ↻ with counts). On content at
+  the search and the kind filter (Все / ↑ / ↓ / ↻; the header counts each
+  kind with the same marks, so the toggles repeat no number and carry their
+  names as labels). On content at
   least 760 px wide the whole bar sticks under the site header; narrower,
   only the search and kind row sticks and the rest scrolls away. The layout
   uses container queries because the site rail takes part of the viewport.
@@ -154,7 +156,9 @@ loaded by the browser. Dates render in Europe/Moscow before hydration and in
 the viewer's zone after it.
 
 - Reading order: the header, the bar, "Главное в патче" (highlight cards,
-  then the Sankey), the sections and a one-paragraph source note.
+  then the Sankey), the sections and a one-paragraph source note. The Sankey
+  draws its flows without the kit's dash animation, which Chrome leaves
+  unpainted on this chart's wide flows.
 - The page heading (`h1` "Патчноуты Hearthstone") sits in the patch header
   instead of the tall route banner, which only the missing, failed and
   loading states still show.
@@ -170,12 +174,15 @@ the viewer's zone after it.
   set glyph of the card library in a small seal, the article title without
   its version prefix as the `h2` (`patchHeadline`: "Обновление 36.4.2 уже в
   игре: баланс…" → "Баланс…"; "Патч 36.4.2" when nothing else is left), one
-  line of counts (changes, ↑ buffs, ↓ nerfs, ↻ reworks) over a thin share
-  bar, and quiet links to the article and the official notes.
-- Section summaries are banners with the mode plate and emblem, the title and
-  ↑↓↻ counts. Groups are a line of type: the 96 px class icon (or card-type
-  glyph), the name, a hairline in the class colour of the meta page and the
-  ↑↓↻ counts; a section of one group of the section's own name has none.
+  line of counts with Russian plural forms (changes, ↑ buffs, ↓ nerfs,
+  ↻ reworks; the total is left out when only one kind is present, because it
+  would repeat that number), and quiet links to the article and the official
+  notes. On content under 480 px "Все патчи" keeps only its icon.
+- Each number is said once: the header counts kinds, the section links count
+  their section. Section summaries are banners with the mode plate and
+  emblem and the title only. Groups are a line of type: the 96 px class icon
+  (or card-type glyph) and the name; a section of one group of the section's
+  own name has none.
 - "Главное в патче" picks up to four changes with a picture from sections
   longer than three cards of a patch longer than eight changes (a shorter
   section or patch is read whole below, so it is not repeated): Standard
@@ -196,10 +203,11 @@ the viewer's zone after it.
 - Filters: search over Russian and English names and change text, the kind
   (buffs, nerfs, reworks), and class or card type. Filtering hides the
   highlights and section notes.
-- A change card shows only the render, the name with a ↑↓↻ mark and the
-  change; its border carries the kind colour. Cards form a grid of about
-  17 rem columns; a card with a rule-text change spans two columns on content
-  at least 700 px wide. The card's "…" (a `<details>` in its corner) holds the
+- A change row shows only the render, the name with a ↑↓↻ mark (a small
+  square badge, the only place the row's kind is shown) and the change.
+  Rows sit on the parchment without a box, a hairline above each, in columns
+  of about 24 rem (two on wide content, one on phones); only highlights are
+  boxed cards. The row's "…" (a `<details>` in its corner) holds the
   type and the article's English name, the archetypes of today's meta, the
   earlier patches that changed it, "Карта и колоды с ней" for Constructed
   cards of a known format (`/standard/cards/<format>/<id>/`, which lists decks
@@ -215,9 +223,9 @@ the viewer's zone after it.
   the game's mana crystal, attack and health icons, a tavern tier as its tier
   shield; a Battlegrounds cost is gold and armor has no game icon on the
   site, so both use an interface glyph. The old value is faded and struck
-  through, the new one ringed in the direction colour; the label and the
-  direction stay for assistive technology. A rule-text change is one
-  sentence: removed words struck out, added words marked ("было:"/"стало:"
+  through, the new one plain; the label and the direction stay for assistive
+  technology. A rule-text change is one sentence: removed words muted and
+  struck out, added words bold with a highlighter stroke ("было:"/"стало:"
   for assistive technology); its label is shown only when it is not "Текст".
 - A patch without line-by-line changes says so in a panel that points to the
   header links. Picture-only article sections are one quiet line with the

@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted on 2026-10-23. Supersedes the public-route part of
+Superseded on the same day by
+[Restore public profiles with nicknames](2026-10-23-restore-public-profiles.md).
+Originally accepted on 2026-10-23; it superseded the public-route part of
 [007. Numeric public profile identities](007-numeric-public-profile-identities.md).
 
 ## Context

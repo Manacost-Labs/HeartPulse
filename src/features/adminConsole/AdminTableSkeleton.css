@@ -1,0 +1,30 @@
+.admin-table-skeleton {
+  overflow: hidden;
+  border: 1px solid var(--admin-divider, #e3e7ed);
+  border-radius: var(--admin-radius, 6px);
+  background: var(--admin-surface, #fff);
+}
+
+.admin-table-skeleton__row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 2fr) 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--admin-divider, #e3e7ed);
+}
+
+.admin-table-skeleton__row > span:nth-child(2) {
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .admin-table-skeleton__row {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .admin-table-skeleton__row > :nth-child(n + 3) {
+    display: none;
+  }
+}

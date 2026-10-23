@@ -105,6 +105,18 @@ export function isRealAuthEmail(email?: string): boolean {
   return Boolean(email && email.includes('@') && !email.endsWith('@telegram.local') && !email.endsWith('.local'));
 }
 
+/**
+ * Why Boosty does not open access. Without any access the plan section's
+ * description already carries the server's full reason, so the row keeps a
+ * short state; with access from another source the row is the only place for it.
+ */
+function boostyMissingDetail(subscription: SubscriptionStatus): string {
+  if (subscription.hasAccess) return subscription.boosty?.message || 'Почта подписки не подтверждена';
+  if (subscription.stale) return 'Boosty не ответил, проверьте позже';
+  if (subscription.boosty?.found) return 'Этот уровень не открывает разделы';
+  return 'Почта подписки не подтверждена';
+}
+
 /** Every known way into the account, with whether it is linked. */
 export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus | null, social?: AccountSocialLinks): AccountLinkRow[] {
   const realEmail = isRealAuthEmail(user.email);
@@ -127,7 +139,7 @@ export function accountLinkRows(user: AuthUser, subscription: SubscriptionStatus
         ? 'Статус появится после проверки'
         : boosty?.hasAccess
           ? `${boosty.email || 'Почта подтверждена'} · подписка активна`
-          : boosty?.message || 'Почта подписки не подтверждена',
+          : boostyMissingDetail(subscription),
       linked: Boolean(boosty?.hasAccess),
     },
   ];

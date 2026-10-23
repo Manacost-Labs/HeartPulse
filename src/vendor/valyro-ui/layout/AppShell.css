@@ -1,0 +1,357 @@
+.ui-app-shell {
+  --ui-app-shell-header-height: var(--ui-app-shell-header-h);
+  --ui-app-shell-aside-width: 320px;
+
+  position: relative;
+  display: flex;
+  width: 100%;
+  /* Full page by default; any explicit height bounds it (e.g. inside a preview frame). */
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--ui-page-bg);
+  color: var(--ui-fg);
+}
+
+/* ── Skip link: first stop for keyboard users, visible only when focused ── */
+.ui-app-shell__skip {
+  position: absolute;
+  top: var(--ui-space-2);
+  inset-inline-start: var(--ui-space-2);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  height: var(--ui-control-h-sm);
+  padding-inline: var(--ui-space-3);
+  border-radius: var(--ui-radius-button);
+  background: var(--ui-primary);
+  color: var(--ui-primary-fg);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(-100% - var(--ui-space-4)));
+  transition:
+    transform var(--ui-duration) var(--ui-ease),
+    opacity var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-app-shell__skip:focus {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* ── Sidebar column ── */
+.ui-app-shell__sidebar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  height: 100%;
+  min-height: 0;
+  outline: none;
+}
+
+.ui-app-shell__sidebar[hidden] {
+  display: none;
+}
+
+/* A Sidebar header (logo, workspace switcher) is as tall as the shell header beside it, so the two bottom
+   borders form one line. */
+.ui-app-shell:has(> .ui-app-shell__body > .ui-app-shell__header) > .ui-app-shell__sidebar .ui-sidebar__header {
+  /* A column keeps the content as wide as before (it stretches) and centres it vertically. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--ui-app-shell-header-height);
+  padding-block: 0;
+}
+
+.ui-app-shell:has(> .ui-app-shell__body > .ui-app-shell__header) > .ui-app-shell__sidebar .ui-sidebar[data-collapsed] .ui-sidebar__header {
+  align-items: center;
+}
+
+/* ── Body: header over a scrolling main area and the aside ── */
+.ui-app-shell__body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ui-app-shell__header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  min-height: var(--ui-app-shell-header-height);
+  padding-inline: var(--ui-app-shell-header-padding-start) var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-app-shell-header-border-color);
+  background: var(--ui-app-shell-header-bg);
+}
+
+.ui-app-shell__frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ui-app-shell__column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ui-app-shell__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  outline: none;
+}
+
+.ui-app-shell__footer {
+  position: relative;
+  flex: none;
+  min-width: 0;
+}
+
+/* ── Aside: a column on wide shells, docked to the inline-end edge or (Glass) an inset frosted panel ── */
+.ui-app-shell__aside {
+  position: relative;
+  display: flex;
+  flex: none;
+  width: var(--ui-app-shell-aside-width);
+  max-width: 100%;
+  min-height: 0;
+  margin: var(--ui-app-shell-aside-margin);
+  overflow: hidden;
+  border: var(--ui-material-border);
+  border-inline-start: var(--ui-app-shell-aside-border-start);
+  border-radius: var(--ui-inset-panel-radius);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-inset-panel-shadow);
+  outline: none;
+  -webkit-backdrop-filter: var(--ui-blur-strong);
+  backdrop-filter: var(--ui-blur-strong);
+}
+
+.ui-app-shell__aside[hidden] {
+  display: none;
+}
+
+/* Fixed width, so the content doesn't reflow while the column opens or closes. */
+.ui-app-shell__aside-inner {
+  flex: none;
+  width: var(--ui-app-shell-aside-width);
+  max-width: 100%;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+@keyframes ui-app-shell-column-in {
+  from {
+    width: 0;
+    margin-inline: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes ui-app-shell-column-out {
+  to {
+    width: 0;
+    margin-inline: 0;
+    opacity: 0;
+  }
+}
+
+.ui-app-shell:not([data-aside-floating]) .ui-app-shell__aside[data-motion][data-state='open'] {
+  animation: ui-app-shell-column-in var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-app-shell:not([data-aside-floating]) .ui-app-shell__aside[data-motion][data-state='closed'] {
+  animation: ui-app-shell-column-out var(--ui-duration) var(--ui-ease) forwards;
+}
+
+/* ── Off-canvas layers: the mobile drawer and the floating aside ── */
+@keyframes ui-app-shell-slide-in {
+  from {
+    translate: var(--_from) 0;
+  }
+}
+
+@keyframes ui-app-shell-slide-out {
+  to {
+    translate: var(--_from) 0;
+  }
+}
+
+.ui-app-shell__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--ui-overlay);
+  -webkit-backdrop-filter: var(--ui-overlay-blur);
+  backdrop-filter: var(--ui-overlay-blur);
+  animation: ui-fade-in var(--ui-duration) var(--ui-ease);
+}
+
+.ui-app-shell__scrim[data-state='closed'] {
+  pointer-events: none;
+  animation: ui-fade-out var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-app-shell[data-mobile] .ui-app-shell__sidebar {
+  --_from: -100%;
+
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 21;
+  max-width: calc(100% - var(--ui-space-12));
+  /* A sidebar that floats with its own shadow and inset needs none. */
+  box-shadow: var(--ui-app-shell-drawer-shadow);
+  animation: ui-app-shell-slide-in var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-app-shell[data-mobile] .ui-app-shell__sidebar:dir(rtl) {
+  --_from: 100%;
+}
+
+.ui-app-shell[data-mobile] .ui-app-shell__sidebar[data-state='closed'] {
+  animation: ui-app-shell-slide-out var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-app-shell[data-aside-floating] .ui-app-shell__aside {
+  --_from: calc(100% + var(--ui-app-shell-floating-inset));
+
+  position: absolute;
+  inset-block: 0 var(--ui-app-shell-floating-inset);
+  inset-inline-end: var(--ui-app-shell-floating-inset);
+  z-index: 10;
+  width: min(var(--ui-app-shell-aside-width), calc(100% - var(--ui-space-12)));
+  margin: 0;
+  background: var(--ui-app-shell-floating-aside-bg);
+  box-shadow: var(--ui-highlight), var(--ui-shadow-modal);
+  animation: ui-app-shell-slide-in var(--ui-duration-slow) var(--ui-ease);
+}
+
+.ui-app-shell[data-aside-floating] .ui-app-shell__aside:dir(rtl) {
+  --_from: calc(-100% - var(--ui-app-shell-floating-inset));
+}
+
+.ui-app-shell[data-aside-floating] .ui-app-shell__aside[data-state='closed'] {
+  animation: ui-app-shell-slide-out var(--ui-duration) var(--ui-ease) forwards;
+}
+
+.ui-app-shell[data-aside-floating] .ui-app-shell__aside-inner {
+  width: 100%;
+}
+
+/* Before the first measurement (server render), hide what the default breakpoints would hide. */
+@media (max-width: 767.98px) {
+  .ui-app-shell:not([data-measured]) .ui-app-shell__sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .ui-app-shell:not([data-measured]) .ui-app-shell__aside {
+    display: none;
+  }
+}
+
+/* Scroll-edge fades. Content fades out above a footer (e.g. a chat composer) instead of being cut off.
+   A theme with a transparent toolbar (Glass, with floating inset panels like macOS Tahoe / iPadOS 26)
+   fades both edges of every main area instead: once it scrolls, content fades out beneath the toolbar,
+   and towards the bottom while there is more below. Of --ui-app-shell-main-fade-footer and -edges
+   exactly one is `initial` (on), the other empty (off). */
+@property --ui-app-shell-fade-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --ui-app-shell-fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Both edges fade only while there is more to scroll towards them. */
+@keyframes ui-app-shell-fade-start {
+  to {
+    --ui-app-shell-fade-start: 28px;
+  }
+}
+
+@keyframes ui-app-shell-fade-end {
+  from {
+    --ui-app-shell-fade-end: 28px;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .ui-app-shell__main {
+    --_edges: linear-gradient(
+      to bottom,
+      transparent,
+      #000 var(--ui-app-shell-fade-start),
+      #000 calc(100% - var(--ui-app-shell-fade-end)),
+      transparent
+    );
+
+    -webkit-mask-image: var(--ui-app-shell-main-fade-footer, none) var(--ui-app-shell-main-fade-edges, var(--_edges));
+    mask-image: var(--ui-app-shell-main-fade-footer, none) var(--ui-app-shell-main-fade-edges, var(--_edges));
+    animation:
+      var(--ui-app-shell-main-fade-footer, none)
+      var(--ui-app-shell-main-fade-edges, ui-app-shell-fade-start linear both, ui-app-shell-fade-end linear both);
+    animation-timeline: var(--ui-app-shell-main-fade-footer, auto) var(--ui-app-shell-main-fade-edges, scroll(self), scroll(self));
+    animation-range: var(--ui-app-shell-main-fade-footer, normal) var(--ui-app-shell-main-fade-edges, 0px 48px, calc(100% - 48px) 100%);
+  }
+
+  .ui-app-shell__main:has(+ .ui-app-shell__footer) {
+    --_footer: linear-gradient(to bottom, #000 calc(100% - var(--ui-app-shell-fade-end)), transparent);
+
+    -webkit-mask-image: var(--ui-app-shell-main-fade-footer, var(--_footer)) var(--ui-app-shell-main-fade-edges, var(--_edges));
+    mask-image: var(--ui-app-shell-main-fade-footer, var(--_footer)) var(--ui-app-shell-main-fade-edges, var(--_edges));
+    animation:
+      var(--ui-app-shell-main-fade-footer, ui-app-shell-fade-end linear both)
+      var(--ui-app-shell-main-fade-edges, ui-app-shell-fade-start linear both, ui-app-shell-fade-end linear both);
+    animation-timeline: var(--ui-app-shell-main-fade-footer, scroll(self)) var(--ui-app-shell-main-fade-edges, scroll(self), scroll(self));
+    animation-range:
+      var(--ui-app-shell-main-fade-footer, calc(100% - 48px) 100%)
+      var(--ui-app-shell-main-fade-edges, 0px 48px, calc(100% - 48px) 100%);
+  }
+}
+
+@media (forced-colors: active) {
+  .ui-app-shell__header {
+    border-bottom: 1px solid CanvasText;
+  }
+
+  .ui-app-shell__aside,
+  .ui-app-shell[data-mobile] .ui-app-shell__sidebar {
+    border: 1px solid CanvasText;
+  }
+
+  .ui-app-shell__skip {
+    border: 1px solid CanvasText;
+  }
+}

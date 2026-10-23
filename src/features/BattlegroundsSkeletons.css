@@ -16,10 +16,15 @@
 
 .bg-skeleton-w-short { inline-size: 62%; }
 
-/* Texts that wrap to one more line only in the narrow phone column. */
+/* Texts that wrap to one more line only in the phone column (and once more below 24rem). */
 @media (min-width: 40rem) { .bg-skeleton-line--phone { display: none; } }
+@media (min-width: 24rem) { .bg-skeleton-line--narrow { display: none; } }
 .bg-skeleton-w-value { inline-size: 4.5rem; }
 .bg-skeleton-w-title { inline-size: 9rem; }
+.bg-skeleton-w-fact { inline-size: 6.5rem; }
+/* Hero profile facts: "Раса: Дракон" and an artist credit, which wrap onto two lines on a phone like the real ones. */
+.bg-skeleton-w-race { inline-size: 6rem; }
+.bg-skeleton-w-artist { inline-size: 12.5rem; }
 .bg-skeleton-w-name { inline-size: min(100%, 22rem); }
 
 .bg-skeleton-fill {
@@ -41,20 +46,9 @@
 }
 
 .bg-hero-skeleton-portrait {
-  inline-size: 210px;
+  inline-size: 100%;
   max-inline-size: 100%;
   aspect-ratio: 256 / 272;
-}
-
-.bg-hero-skeleton-pill {
-  inline-size: 5.2rem;
-  block-size: 1.65rem;
-  border-radius: 999px;
-}
-
-.bg-hero-skeleton-link {
-  block-size: 2.75rem;
-  border-radius: 0.75rem;
 }
 
 /* The back control's placeholder doubles as the page's loading status. */

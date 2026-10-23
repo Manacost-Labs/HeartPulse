@@ -30,7 +30,8 @@ export const ActiveSubscription: Story = {
     const canvas = within(canvasElement);
     await canvas.findByRole('heading', { name: 'Ваш план' });
     await expect(canvas.getByRole('heading', { level: 1, name: 'Александр' })).toBeVisible();
-    await expect(canvas.getByText(/до 12 нояб\. 2099 г\., продлится автоматически/)).toBeVisible();
+    await expect(canvas.getByText('Подписка активна')).toBeVisible();
+    await expect(canvas.getAllByText(/12 ноября 2099/)).toHaveLength(1);
     await expect(await canvas.findByRole('link', { name: /^Арена/ })).toHaveAttribute('href', '/tierlist/');
     await expect(await canvas.findByRole('link', { name: 'Привязать' })).toHaveAttribute('href', expect.stringContaining('/api/auth/google/start'));
     await expect(canvas.getByRole('textbox', { name: 'Почта для связи' })).toBeVisible();

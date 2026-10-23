@@ -1,0 +1,2153 @@
+/*
+ * Manacost theme — inspired by the hs-manacost.ru Hearthstone portal: white article pages on a light grey
+ * page, cards and dialogs topped by a 3px portal-blue rule like the site's news blocks, blue-tinted table heads in
+ * blue ink, the portal blue (#2a77bf) for actions, navy (#183a7a) for the accent and #0f2256 for text and
+ * section titles, blue links, the site's yellow (#ffcd3f) for warnings and the active navigation marker, red
+ * (#ea1717 family) for errors, square news-site corners and bold Roboto headings. Dark mode is deep navy under a
+ * blue glow, with the same blue rules. Built from stripe.css:
+ * component tokens keep its geometry. No logos or proprietary assets (Roboto Flex stands in for Roboto /
+ * Open Sans). Every token name matches the reference theme (src/lib/styles/theming-contract.test.ts); light
+ * block first, then dark overrides and the accessibility fallbacks at the end of the file.
+ */
+
+/* ───────────────────────── Manacost · light ───────────────────────── */
+[data-theme='manacost'] {
+  color-scheme: light;
+
+  /* Decoration hooks (styles/tokens.css): a portal-blue top rule on cards and dialogs, a yellow active marker. */
+  --ui-frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Crect width='12' height='3' fill='%232a77bf'/%3E%3Cpath d='M.5 3V11.5H11.5V3' stroke='%23d3dbe5' stroke-opacity='1'/%3E%3C/svg%3E") 3 1 1 1 / 3px 1px 1px 1px / 0 stretch;
+  --ui-active-indicator: #ffcd3f;
+
+  /* Typography: self-hosted Inter and JetBrains Mono (ui-kit/fonts/inter.css, jetbrains-mono.css), each with a
+     metric-matched local fallback; Inter's variable axis gives the 510 / 590 weights. */
+  --ui-font-sans: 'Roboto Flex', 'Roboto Flex Fallback', Roboto, 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --ui-font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, 'Cascadia Mono', 'Roboto Mono', Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --ui-text-xs: 12px;
+  --ui-text-sm: 13px;
+  --ui-text-md: 15px;
+  --ui-text-lg: 17px;
+  --ui-text-xl: 20px;
+  --ui-text-2xl: 24px;
+  --ui-text-3xl: 32px;
+  --ui-text-4xl: 48px;
+  --ui-text-5xl: 64px;
+  --ui-leading-tight: 1.15;
+  --ui-leading: 1.5;
+  --ui-weight-regular: 400;
+  --ui-weight-medium: 500;
+  --ui-weight-semibold: 600;
+  --ui-weight-bold: 700;
+  --ui-tracking-tight: 0em;
+  --ui-tracking-display: -0.01em;
+
+  /* Spacing (4px grid) */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-12: 48px;
+  --ui-space-16: 64px;
+
+  /* Shape */
+  --ui-radius-xs: 2px;
+  --ui-radius-sm: 3px;
+  --ui-radius-md: 4px;
+  --ui-radius-lg: 6px;
+  --ui-radius-xl: 8px;
+  --ui-radius-full: 9999px;
+  --ui-radius-button: 3px;
+  --ui-radius-field: 3px;
+  --ui-radius-card: 2px;
+  --ui-radius-popover: 4px;
+  --ui-radius-modal: 2px;
+
+  /* Control sizes */
+  --ui-control-h-sm: 30px;
+  --ui-control-h-md: 36px;
+  --ui-control-h-lg: 44px;
+  /* Icons: 16px in sm/md controls, 18px in lg controls, 14px for hints, separators and chevrons in rows. */
+  --ui-icon-sm: 14px;
+  --ui-icon-md: 16px;
+  --ui-icon-lg: 18px;
+  /* Menus and listbox popovers: inset of the panel and height of a row. */
+  --ui-popover-padding: 6px;
+  --ui-menu-item-h: 34px;
+
+  /* Cool gray scale (primitives; components use the semantic tokens below). */
+  --ui-gray-100: #f2f4f7;
+  --ui-gray-200: #eaedf2;
+  --ui-gray-300: #e3e7ed;
+  --ui-gray-400: #d8dee6;
+  --ui-gray-500: #c1c9d2;
+  --ui-gray-600: #a3acb9;
+  --ui-gray-700: #8792a2;
+  --ui-gray-800: #697386;
+  --ui-gray-900: #3d4a63;
+  --ui-gray-1000: #0f2256;
+  --ui-gray-alpha-100: rgba(15, 34, 86, 0.04);
+  --ui-gray-alpha-200: rgba(15, 34, 86, 0.07);
+  --ui-gray-alpha-300: rgba(15, 34, 86, 0.1);
+  --ui-gray-alpha-400: rgba(15, 34, 86, 0.1);
+  --ui-gray-alpha-500: rgba(15, 34, 86, 0.2);
+  --ui-gray-alpha-600: rgba(15, 34, 86, 0.32);
+  --ui-gray-alpha-700: rgba(15, 34, 86, 0.45);
+  --ui-gray-alpha-800: rgba(15, 34, 86, 0.55);
+  --ui-gray-alpha-900: rgba(15, 34, 86, 0.7);
+  --ui-gray-alpha-1000: rgba(15, 34, 86, 0.94);
+
+  /* Page & surfaces */
+  --ui-page-bg: #eef2f6;
+  --ui-bg: #ffffff;
+  --ui-surface: #ffffff;
+  --ui-surface-2: var(--ui-gray-100);
+  --ui-surface-3: var(--ui-gray-200);
+  --ui-elevated: #ffffff;
+  --ui-hover: rgba(15, 34, 86, 0.045);
+  --ui-active: rgba(15, 34, 86, 0.08);
+  --ui-overlay: rgba(15, 34, 86, 0.32);
+  --ui-overlay-blur: none;
+  --ui-tooltip-bg: #0f2256;
+  --ui-tooltip-fg: #ffffff;
+  /* Tooltips and value bubbles (Slider). */
+  --ui-tooltip-shadow: 0 0 0 1px rgba(15, 34, 86, 0.08), 0 6px 12px -2px rgba(15, 34, 86, 0.2), 0 3px 7px -3px rgba(0, 0, 0, 0.2);
+
+  /* Borders */
+  --ui-border: #e3e7ed;
+  --ui-border-strong: #c9d2dc;
+  /* Field edges reach 3:1 (WCAG 1.4.11); the pointer darkens them a step (decoration hook, styles/tokens.css). */
+  --ui-border-field: #738ead;
+  --ui-field-border-hover: #5d7ca0;
+  /* Hairlines between rows/sections inside a surface (Glass --ui-border is a white edge highlight). */
+  --ui-divider: var(--ui-border);
+  /* Fill of text fields (.ui-field). */
+  --ui-field-bg: var(--ui-bg);
+
+  /* Text */
+  --ui-fg: var(--ui-gray-1000);
+  --ui-fg-muted: #3d4a63;
+  /* Text tiers: muted > subtle, both ≥ 4.5:1 on every surface up to --ui-surface-3 (subtle: 5.09 there). */
+  --ui-fg-subtle: #56657a;
+  /* Non-text decoration only (field icons, chevrons, separators, ticks): ≥ 3:1, never for text. */
+  --ui-fg-faint: #7f8b9c;
+  --ui-fg-disabled: #a3acb9;
+  --ui-fg-inverse: #ffffff;
+
+  /* Accent: navy for selection, focus rings, progress and the Accent button; blue ink for links */
+  --ui-accent: #183a7a;
+  --ui-accent-hover: #122d63;
+  --ui-accent-fg: #ffffff;
+  --ui-accent-soft: #e8f1fa;
+  --ui-accent-text: #1f64a6;
+
+  /* Primary action: the portal blue (white text 4.7:1; hover deepens) */
+  --ui-primary: #2a77bf;
+  --ui-primary-hover: #1f64a6;
+  --ui-primary-fg: #ffffff;
+
+  /* Status */
+  --ui-success: #1ea672;
+  --ui-success-soft: #d7f7e6;
+  --ui-success-text: #0e6245;
+  --ui-warning: #ffcd3f;
+  --ui-warning-soft: #fff6d6;
+  --ui-warning-text: #7a5200;
+  /* Solid fill that carries white text (≥ 4.5:1). */
+  --ui-danger: #d91a1a;
+  --ui-danger-hover: #c01616;
+  --ui-danger-soft: #fde8e8;
+  --ui-danger-text: #c01616;
+  --ui-info: #2a77bf;
+  --ui-info-soft: #e8f1fa;
+  --ui-info-text: #1f64a6;
+
+  /* Named hues (badges, avatars, tags) */
+  --ui-gray: #8792a2;
+  --ui-blue: #2a77bf;
+  --ui-green: #1ea672;
+  --ui-amber: #ffcd3f;
+  --ui-red: #ea1717;
+  --ui-purple: #9966ff;
+  --ui-pink: #e5367a;
+  --ui-teal: #1aa4ce;
+
+  /* Data visualisation: portal blue, epic purple, a marker gold deep enough for 3:1 on white, navy ink, red, teal. */
+  --ui-chart-1: #2a77bf;
+  --ui-chart-2: #8b4fc8;
+  --ui-chart-3: #b88600;
+  --ui-chart-4: #0f2256;
+  --ui-chart-5: #ea1717;
+  --ui-chart-6: #0e8f86;
+  --ui-chart-7: #8792a2;
+  --ui-chart-8: #b75500;
+  --ui-chart-grid: rgba(15, 34, 86, 0.07);
+  --ui-chart-axis: #6a7687;
+
+  /* Elevation: layered shadows (a 1px ring stands in for the border of floating layers). */
+  --ui-shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.06), 0 2px 5px rgba(15, 34, 86, 0.06);
+  --ui-shadow-card: 0 1px 0 rgba(15, 34, 86, 0.06), 0 2px 6px -2px rgba(15, 34, 86, 0.12);
+  --ui-shadow-popover: 0 0 0 1px rgba(15, 34, 86, 0.06), 0 6px 12px -2px rgba(15, 34, 86, 0.25), 0 3px 7px -3px rgba(0, 0, 0, 0.3);
+  --ui-shadow-modal: 0 0 0 1px rgba(15, 34, 86, 0.06), 0 30px 60px -12px rgba(15, 34, 86, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3);
+  /* The ring itself reaches 3:1 against the page (WCAG 1.4.11); it follows the accent. */
+  --ui-focus-color: #2a77bf;
+  --ui-focus-ring: 0 0 0 1px var(--ui-bg), 0 0 0 3px var(--ui-focus-color), 0 0 0 6px color-mix(in srgb, var(--ui-accent) 14%, transparent);
+  /* Same geometry as --ui-focus-ring, in red, for focused invalid fields. */
+  --ui-focus-ring-invalid: 0 0 0 1px var(--ui-bg), 0 0 0 3px color-mix(in srgb, var(--ui-danger) 80%, transparent), 0 0 0 6px color-mix(in srgb, var(--ui-danger) 12%, transparent);
+
+  /* Material: no blur; --ui-highlight / --ui-sheen light the top edge of raised panels in dark mode. */
+  --ui-blur-thin: none;
+  --ui-blur: none;
+  --ui-blur-strong: none;
+  --ui-highlight: 0 0 #0000;
+  /* Inner light falloff along the top edge of large glass surfaces (panels, popovers, dialogs). */
+  --ui-sheen: 0 0 #0000;
+  --ui-glass-border: #dbe2ea;
+
+  /* Motion */
+  --ui-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ui-ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+  --ui-duration-fast: 150ms;
+  --ui-duration: 200ms;
+  --ui-duration-slow: 300ms;
+
+  /* Layers */
+  --ui-z-sticky: 100;
+  --ui-z-modal: 1000;
+  --ui-z-popover: 1100;
+  --ui-z-toast: 1200;
+  --ui-z-tooltip: 1300;
+
+  /* ── Roles: values many components share, set once per theme ── */
+  /* Weights: labels (column heads, item titles, form labels) and headings (titles, big figures). */
+  --ui-weight-label: var(--ui-weight-medium);
+  --ui-weight-heading: var(--ui-weight-bold);
+  /* Metadata labels, counters and eyebrows: the sans face with tabular figures. */
+  --ui-font-meta: var(--ui-font-sans);
+  /* Decoration hook (tokens.css): icon stroke width on the 24-unit grid. */
+  --ui-icon-stroke: 2;
+  /* Decoration hook: badges are small rounded rectangles, not pills. */
+  --ui-badge-radius: 2px;
+  /* Text and icons that mark an action or a selection: the indigo accent text. */
+  --ui-action-fg: var(--ui-accent-text);
+  --ui-action-fg-muted: var(--ui-fg-muted);
+  /* Edge of icon tiles and thumbnails. */
+  --ui-tile-border: 1px solid var(--ui-border);
+  /* [roles] */
+  /* Dialogs and drawers: the rule between the body and a header or footer band, the footer band's fill and
+     bottom padding (`initial`: the panel's own padding), and the close button's fill (`initial`: the
+     IconButton's own). */
+  --ui-modal-section-border: 1px solid var(--ui-divider);
+  --ui-modal-footer-bg: var(--ui-page-bg);
+  --ui-modal-footer-pad-bottom: var(--ui-space-4);
+  --ui-modal-close-bg: initial;
+  /* Shape morphs and pointer-driven settles (effects): the standard curve and duration here. */
+  --ui-ease-fluid: var(--ui-ease);
+  --ui-duration-fluid: var(--ui-duration-slow);
+  /* Letter-spacing of control labels (buttons, tabs, navbar and sidebar items, step titles);
+     `initial` keeps the inherited spacing (components read it with an `inherit` fallback). */
+  --ui-control-tracking: initial;
+  /* Resting text of navigation items: navbar links, sidebar rows, page buttons. */
+  --ui-nav-item-fg: var(--ui-fg-muted);
+  /* Edge of frosted bars, tracks and docked panels (navbar, sidebar, app-shell aside, breadcrumb path,
+     pagination, tab bar, command palette); single-side dividers stay with each component. */
+  --ui-material-border: none;
+  /* Track behind a row of controls: breadcrumb path, pagination, attached button group, tab bar. */
+  --ui-control-track-bg: transparent;
+  /* Bars and panels that float inset from the window edge (navbar, sidebar, app-shell aside): depth, and
+     the corner of the panels. */
+  --ui-inset-panel-shadow: none;
+  --ui-inset-panel-radius: 0;
+  /* Lines between a panel's sections (headers, toolbars, list and table rows); -faint / -strong: lighter / heavier. */
+  --ui-section-divider: var(--ui-divider);
+  --ui-section-divider-faint: var(--ui-divider);
+  --ui-section-divider-strong: var(--ui-divider);
+  /* Fill of raised pieces (chips, suggestion cards, the prompt composer, icon tiles), paired with --ui-raised-shadow. */
+  --ui-raised-bg: var(--ui-bg);
+  /* Raised pieces (suggestion cards, capsule triggers, source cards) with keyboard focus. */
+  --ui-raised-shadow-focus: var(--ui-focus-ring);
+  /* Shimmer swept across an assistant's in-progress label ("Thinking…", "Generating…"), clipped to the text. */
+  --ui-ai-shimmer: linear-gradient(90deg, var(--ui-fg-subtle) 0%, var(--ui-fg-subtle) 35%, var(--ui-fg) 50%, var(--ui-fg-subtle) 65%, var(--ui-fg-subtle) 100%);
+  /* Rule between sections inside cards, sheets and panels (a border shorthand). */
+  --ui-separator: 1px solid var(--ui-divider);
+  /* Depth of thumbnails, paired with --ui-tile-border (a hairline here, a soft shadow in Glass). */
+  --ui-tile-shadow: none;
+  /* Checkbox and radio indicators: box size per control size; the edge of a checked one under the pointer. */
+  --ui-choice-size: 16px;
+  --ui-choice-size-sm: 14px;
+  --ui-choice-size-lg: 20px;
+  --ui-choice-checked-border-color-hover: var(--ui-fg-faint);
+  /* Checked checkbox / radio: gloss over the fill, and its depth. */
+  --ui-checked-sheen: none;
+  --ui-checked-shadow: 0 1px 1px rgba(0, 0, 0, 0.08), 0 2px 5px rgba(42, 119, 191, 0.2);
+  /* Small controls while pressed (checkbox, radio, calendar day). */
+  --ui-press-transform: none;
+  /* Depth of small raised pieces: checkbox and radio indicators, option cards, file rows, code boxes. */
+  --ui-raised-shadow: var(--ui-shadow-sm);
+  /* Small pills: chips, tags, keycaps and icon buttons inside fields. */
+  --ui-radius-chip: var(--ui-radius-xs);
+  /* Value chips (MultiSelect, TagsInput): fill and the inset of their text. */
+  --ui-chip-bg: var(--ui-surface-2);
+  --ui-chip-text-inset: 8px;
+  /* Fields that host buttons or chips (picker triggers, number and tags inputs), in place of --ui-field-shadow. */
+  --ui-compound-field-shadow: var(--ui-field-shadow);
+  /* Date, time and colour picker popovers: corner, and the fill of the chosen day or time. */
+  --ui-picker-popover-radius: var(--ui-radius-popover);
+  --ui-picker-selected-bg: var(--ui-primary);
+  /* Dashed outlines: empty states, drop zones, the slot a dragged item leaves. */
+  --ui-dashed-border-width: 1px;
+  /* Filled rating stars. */
+  --ui-rating-fg: var(--ui-accent);
+
+  /* Shared building blocks (base.css, primitives): .ui-floating edge, .ui-field depth, keyboard-highlighted
+     .ui-menu-item, the gap between an edge sheet (drawer) and the screen edge. */
+  --ui-floating-border-color: transparent;
+  --ui-field-shadow: 0 1px 1px rgba(0, 0, 0, 0.04), 0 2px 5px rgba(15, 34, 86, 0.07);
+  --ui-menu-highlight-bg: var(--ui-accent-soft);
+  --ui-menu-highlight-fg: var(--ui-accent-text);
+  --ui-menu-highlight-hint-fg: var(--ui-fg-muted);
+  --ui-menu-highlight-icon-fg: var(--ui-accent-text);
+  --ui-menu-danger-highlight-bg: var(--ui-danger-soft);
+  --ui-menu-danger-highlight-fg: var(--ui-danger-text);
+  --ui-modal-layer-edge-gap: 0px;
+
+  /* ── Component tokens: --ui-<component>-<property>, one value per theme file ── */
+  /* AI assistant components (voice, agent plan, streaming text, answer card) */
+  --ui-voice-orb-base: #e8f1fa;
+  --ui-voice-orb-color-1: #2a77bf;
+  --ui-voice-orb-color-2: #4db2ec;
+  --ui-voice-orb-color-3: #ffffff;
+  --ui-voice-orb-color-4: #4db2ec;
+  --ui-voice-orb-glow: rgba(42, 119, 191, 0.3);
+  --ui-voice-orb-shine: rgba(255, 255, 255, 0.85);
+  --ui-voice-input-wave-start: var(--ui-fg);
+  --ui-voice-input-wave-end: var(--ui-fg);
+  --ui-agent-plan-glow: 0 0 0 3px var(--ui-accent-soft);
+  --ui-streaming-text-caret: var(--ui-fg);
+  --ui-streaming-text-caret-glow: 0 0 #0000;
+  --ui-answer-card-mark-bg: var(--ui-fg);
+  --ui-answer-card-mark-fg: var(--ui-bg);
+  --ui-answer-card-mark-glow: 0 0 #0000;
+  /* [ai] */
+  /* AIChatWindow: the composer sits on a fade; a bordered empty-state tile; flat suggestion cards. */
+  --ui-ai-chat-window-heading-gap: var(--ui-space-1);
+  --ui-ai-chat-window-separator-display: inline;
+  --ui-ai-chat-window-composer-bg: linear-gradient(to bottom, transparent, var(--ui-surface) 45%);
+  --ui-ai-chat-window-scroll-edge-content: none;
+  --ui-ai-chat-window-empty-icon-border: 1px solid var(--ui-border);
+  --ui-ai-chat-window-empty-icon-radius: var(--ui-radius-lg);
+  --ui-ai-chat-window-empty-icon-bg: var(--ui-bg);
+  --ui-ai-chat-window-empty-icon-fg: currentcolor;
+  --ui-ai-chat-window-empty-icon-shadow: var(--ui-shadow-sm);
+  --ui-ai-chat-window-empty-icon-animation: none;
+  --ui-ai-chat-window-suggestion-radius: var(--ui-radius-md);
+  --ui-ai-chat-window-suggestion-border-color-hover: var(--ui-border-strong);
+  --ui-ai-chat-window-suggestion-bg-hover: var(--ui-surface-2);
+  --ui-ai-chat-window-suggestion-transform-active: none;
+  /* ChatMessage: a bordered avatar tile (breathing icon while streaming), grey user bubbles (the page's
+     selection colour), ruled system notes. */
+  --ui-chat-message-avatar-size: 28px;
+  --ui-chat-message-avatar-border: 1px solid var(--ui-border);
+  --ui-chat-message-avatar-radius: var(--ui-radius-sm);
+  --ui-chat-message-avatar-bg: var(--ui-bg);
+  --ui-chat-message-avatar-fg: var(--ui-fg);
+  --ui-chat-message-avatar-shadow: var(--ui-shadow-sm);
+  --ui-chat-message-avatar-shadow-streaming: var(--ui-shadow-sm);
+  --ui-chat-message-avatar-animation-streaming: none;
+  --ui-chat-message-avatar-icon-animation-streaming: ui-ai-breathe 1.4s var(--ui-ease) infinite;
+  --ui-chat-message-bubble-padding: 9px 14px;
+  --ui-chat-message-bubble-tail-radius: var(--ui-radius-lg);
+  --ui-chat-message-bubble-bg: var(--ui-surface-2);
+  --ui-chat-message-bubble-fg: var(--ui-fg);
+  --ui-chat-message-bubble-shadow: none;
+  --ui-chat-message-bubble-selection-bg: var(--ui-accent-soft);
+  --ui-chat-message-system-flex: 1;
+  --ui-chat-message-system-margin-inline: 0;
+  --ui-chat-message-system-padding: 0;
+  --ui-chat-message-system-radius: 0;
+  --ui-chat-message-system-bg: none;
+  --ui-chat-message-system-rule-content: '';
+  /* PromptComposer: a field-like frame with a focus ring, no rim, no change while generating
+     (loading border/shadow `initial`: the frame of the current state). */
+  --ui-prompt-composer-isolation: auto;
+  --ui-prompt-composer-border-color: var(--ui-border-field);
+  --ui-prompt-composer-border-color-hover: var(--ui-border-strong);
+  --ui-prompt-composer-border-color-focus: var(--ui-border-strong);
+  --ui-prompt-composer-border-color-dragging: var(--ui-accent);
+  --ui-prompt-composer-border-color-loading: initial;
+  --ui-prompt-composer-border-style-dragging: dashed;
+  --ui-prompt-composer-radius: var(--ui-radius-lg);
+  --ui-prompt-composer-shadow: var(--ui-shadow-sm);
+  --ui-prompt-composer-shadow-focus: var(--ui-focus-ring);
+  --ui-prompt-composer-shadow-loading: initial;
+  --ui-prompt-composer-input-padding-inline: var(--ui-space-3);
+  --ui-prompt-composer-notice-radius: var(--ui-radius-md);
+  --ui-prompt-composer-drop-bg: color-mix(in srgb, var(--ui-accent) 8%, var(--ui-bg));
+  --ui-prompt-composer-rim-content: none;
+  /* ModelSelector: a ghost trigger; on the keyboard highlight the row keeps its tiles and tags
+     (tag fill and ink `initial`: the Badge's own). */
+  --ui-model-selector-bg: transparent;
+  --ui-model-selector-bg-hover: var(--ui-hover);
+  --ui-model-selector-icon-radius: var(--ui-radius-sm);
+  --ui-model-selector-icon-border-color-highlight: var(--ui-border);
+  --ui-model-selector-icon-bg-highlight: var(--ui-bg);
+  --ui-model-selector-offer-fg-highlight: var(--ui-accent-text);
+  --ui-model-selector-secondary-opacity-highlight: 1;
+  --ui-model-selector-tag-bg-highlight: initial;
+  --ui-model-selector-tag-fg-highlight: initial;
+  /* TokenUsage */
+  --ui-token-usage-dot-radius: 2px;
+  --ui-token-usage-cost-bg: var(--ui-surface-2);
+  --ui-token-usage-segment-sheen: none;
+  /* CodeBlock: theme code colours, each keeping ≥ 4.5:1 on the block background
+     (keyword weight `initial`: the surrounding weight). DiffReview and DiffViewer read the palette too. */
+  --ui-code-block-bg: var(--ui-bg);
+  --ui-code-block-header-bg: color-mix(in srgb, var(--ui-surface-2) 55%, var(--ui-bg));
+  --ui-code-block-keyword-fg: #7c3aed;
+  --ui-code-block-string-fg: #0e6245;
+  --ui-code-block-number-fg: #b54708;
+  --ui-code-block-constant-fg: #b54708;
+  --ui-code-block-function-fg: #1f64a6;
+  --ui-code-block-type-fg: #0e7490;
+  --ui-code-block-tag-fg: #1f64a6;
+  --ui-code-block-attr-fg: #983705;
+  --ui-code-block-property-fg: #0055bc;
+  --ui-code-block-variable-fg: #b54708;
+  --ui-code-block-comment-fg: #56657a;
+  --ui-code-block-punctuation-fg: #3d4a63;
+  --ui-code-block-inserted-fg: #0e6245;
+  --ui-code-block-deleted-fg: #c0123c;
+  --ui-code-block-keyword-weight: initial;
+  /* MarkdownPreview: bordered inline code, quotes with a start-edge border, a blinking block caret. */
+  --ui-markdown-preview-code-border-color: var(--ui-border);
+  --ui-markdown-preview-code-bg: var(--ui-surface-2);
+  --ui-markdown-preview-blockquote-padding-block: 0.1em;
+  --ui-markdown-preview-blockquote-padding-inline: 1em 0;
+  --ui-markdown-preview-blockquote-border: 3px solid var(--ui-border-strong);
+  --ui-markdown-preview-blockquote-radius: 0;
+  --ui-markdown-preview-blockquote-bg: none;
+  --ui-markdown-preview-blockquote-bar-color: transparent;
+  --ui-markdown-preview-checkbox-radius: var(--ui-radius-xs);
+  --ui-markdown-preview-checkbox-bg: var(--ui-bg);
+  --ui-markdown-preview-table-bg: none;
+  --ui-markdown-preview-table-head-bg: color-mix(in srgb, var(--ui-surface-2) 60%, transparent);
+  --ui-markdown-preview-caret-w: 0.55em;
+  --ui-markdown-preview-caret-h: 1.15em;
+  --ui-markdown-preview-caret-gap: 2px;
+  --ui-markdown-preview-caret-radius: 1px;
+  --ui-markdown-preview-caret-bg: var(--ui-fg);
+  --ui-markdown-preview-caret-align: text-bottom;
+  --ui-markdown-preview-caret-shadow: none;
+  --ui-markdown-preview-caret-animation: ui-ai-blink 1s steps(1) infinite;
+  /* ActivityFeed: neutral nodes, only alerts carry colour (alert edge `initial`: the event's hue). */
+  --ui-activity-feed-icon-size: 28px;
+  --ui-activity-feed-icon-border: 1px solid var(--ui-border);
+  --ui-activity-feed-icon-bg: var(--ui-bg);
+  --ui-activity-feed-icon-fg: var(--ui-fg-muted);
+  --ui-activity-feed-icon-shadow: none;
+  --ui-activity-feed-alert-icon-border-color: initial;
+  --ui-activity-feed-alert-icon-bg: var(--ui-danger-soft);
+  --ui-activity-feed-alert-icon-fg: var(--ui-danger-text);
+  --ui-activity-feed-rail-bg: var(--ui-border);
+  --ui-activity-feed-detail-radius: var(--ui-radius-md);
+  --ui-activity-feed-detail-bg: color-mix(in srgb, var(--ui-surface-2) 50%, transparent);
+  /* BillingPlanCard: plain name, notices in the soft tone with a tone edge (both `initial`), ruled details. */
+  --ui-billing-plan-card-name-bg: none;
+  --ui-billing-plan-card-name-clip: border-box;
+  --ui-billing-plan-card-name-fg: currentcolor;
+  --ui-billing-plan-card-notice-border-color: initial;
+  --ui-billing-plan-card-notice-tone-amount: initial;
+  --ui-billing-plan-card-notice-radius: var(--ui-radius-md);
+  --ui-billing-plan-card-details-padding-inline: 0;
+  --ui-billing-plan-card-details-border: 1px solid var(--ui-divider);
+  --ui-billing-plan-card-details-radius: 0;
+  --ui-billing-plan-card-details-bg: none;
+  /* UsageQuota */
+  --ui-usage-quota-footer-border-color: var(--ui-divider);
+  --ui-usage-quota-footer-bg: color-mix(in srgb, var(--ui-surface-2) 50%, transparent);
+  /* ChainOfThought: a bare trigger; the badge breathes while thinking; a hairline rail. */
+  --ui-chain-of-thought-trigger-margin-start: -6px;
+  --ui-chain-of-thought-trigger-padding-block: 2px;
+  --ui-chain-of-thought-trigger-padding-inline: 6px;
+  --ui-chain-of-thought-trigger-border: 0;
+  --ui-chain-of-thought-trigger-bg: none;
+  --ui-chain-of-thought-trigger-bg-hover: var(--ui-hover);
+  --ui-chain-of-thought-badge-align: normal;
+  --ui-chain-of-thought-badge-size: auto;
+  --ui-chain-of-thought-badge-radius: 0;
+  --ui-chain-of-thought-badge-bg: none;
+  --ui-chain-of-thought-badge-icon-size: var(--ui-icon-md);
+  --ui-chain-of-thought-badge-bg-streaming: none;
+  --ui-chain-of-thought-badge-fg-streaming: var(--ui-fg);
+  --ui-chain-of-thought-badge-shadow-streaming: none;
+  --ui-chain-of-thought-badge-animation-streaming: ui-ai-breathe 1.4s var(--ui-ease) infinite;
+  --ui-chain-of-thought-steps-indent: 0;
+  --ui-chain-of-thought-rail-bg: var(--ui-border);
+  --ui-chain-of-thought-node-radius-active: 0;
+  --ui-chain-of-thought-node-bg-active: none;
+  --ui-chain-of-thought-node-shadow-active: none;
+  /* ToolCall: a flat card, no glow while it runs or waits (`initial` icon tint: the variant's own fill). */
+  --ui-tool-call-radius: var(--ui-radius-lg);
+  --ui-tool-call-shadow: var(--ui-shadow-sm);
+  --ui-tool-call-shadow-active: var(--ui-shadow-sm);
+  --ui-tool-call-transition: all 0s ease 0s;
+  --ui-tool-call-border-color-awaiting: color-mix(in srgb, var(--ui-warning) 45%, var(--ui-border));
+  --ui-tool-call-status-padding: 0;
+  --ui-tool-call-status-radius: 0;
+  --ui-tool-call-status-tint-amount: initial;
+  --ui-tool-call-icon-border: 1px solid var(--ui-border);
+  --ui-tool-call-icon-radius: var(--ui-radius-sm);
+  --ui-tool-call-icon-bg: var(--ui-bg);
+  --ui-tool-call-icon-bg-running: initial;
+  --ui-tool-call-section-title-tracking: 0.04em;
+  --ui-tool-call-section-title-transform: uppercase;
+  --ui-tool-call-callout-radius: var(--ui-radius-md);
+  /* Sources: mono citation chips that invert on hover (hover glow `initial`: none, or the focus ring). */
+  --ui-citation-radius: 5px;
+  --ui-citation-bg: var(--ui-surface-3);
+  --ui-citation-shadow-hover: initial;
+  --ui-sources-favicon-radius: 4px;
+  --ui-sources-stack-radius: 6px;
+  --ui-sources-stack-ring-color: var(--ui-bg);
+  --ui-sources-trigger-bg-hover: var(--ui-hover);
+  --ui-sources-card-radius: var(--ui-radius-md);
+  --ui-sources-card-border-color-hover: var(--ui-border-strong);
+  --ui-sources-card-bg-hover: var(--ui-surface-2);
+  /* ArtifactPanel: a flat panel (streaming shadow `initial`: the panel's own; version weight `initial`: inherited). */
+  --ui-artifact-panel-transition: all 0s ease 0s;
+  --ui-artifact-panel-modal-bg: var(--ui-bg);
+  --ui-artifact-panel-shadow-streaming: initial;
+  --ui-artifact-panel-icon-border: 1px solid var(--ui-border);
+  --ui-artifact-panel-icon-radius: var(--ui-radius-sm);
+  --ui-artifact-panel-icon-bg: var(--ui-surface-2);
+  --ui-artifact-panel-icon-bg-code: var(--ui-surface-2);
+  --ui-artifact-panel-icon-fg: var(--ui-fg-muted);
+  --ui-artifact-panel-icon-shadow: none;
+  --ui-artifact-panel-type-tracking: 0.02em;
+  --ui-artifact-panel-version-weight: initial;
+  --ui-artifact-panel-notice-bg: var(--ui-surface-2);
+  /* DiffReview: hunks run edge to edge between rules; the active one has a bar at its start
+     (stats weight `initial`: inherited). */
+  --ui-diff-review-radius: var(--ui-radius-md);
+  --ui-diff-review-stats-weight: initial;
+  --ui-diff-review-hunk-margin-block: var(--ui-space-1);
+  --ui-diff-review-hunk-margin-inline: 0;
+  --ui-diff-review-hunk-overflow: visible;
+  --ui-diff-review-hunk-border: none;
+  --ui-diff-review-hunk-radius: 0;
+  --ui-diff-review-hunk-bg: none;
+  --ui-diff-review-hunk-transition: all 0s ease 0s;
+  --ui-diff-review-hunk-shadow-active: none;
+  --ui-diff-review-bar-border-start: 1px solid var(--ui-divider);
+  --ui-diff-review-bar-shadow-active: inset 2px 0 0 var(--ui-fg);
+  --ui-diff-review-expand-margin-inline: 0;
+  --ui-diff-review-expand-w: 100%;
+  --ui-diff-review-expand-border: 1px dashed var(--ui-divider);
+  --ui-diff-review-expand-radius: 0;
+  --ui-diff-review-expand-bg: color-mix(in srgb, var(--ui-accent) 4%, transparent);
+  --ui-diff-review-expand-bg-hover: color-mix(in srgb, var(--ui-accent) 9%, transparent);
+  /* [basic] */
+  /* Avatar: rings in the page colour; initials on a flat tint with a hairline (`initial`: Avatar.css). */
+  --ui-avatar-status-ring: var(--ui-bg);
+  --ui-avatar-fallback-bg: initial;
+  --ui-avatar-fallback-gradient: none;
+  --ui-avatar-fallback-shadow: initial;
+  --ui-avatar-group-item-shadow: 0 0 0 2px var(--ui-bg);
+  --ui-avatar-group-more-bg: var(--ui-surface-2);
+  --ui-avatar-group-more-fg: var(--ui-fg-muted);
+  /* Badge: white text on solid fills (`initial`: dark ink in the badge's hue), saturated hues deepened so
+     it reaches 4.5:1; no hairline on subtle badges. */
+  --ui-badge-solid-fg: #ffffff;
+  --ui-badge-solid-blue: color-mix(in srgb, var(--ui-blue) 84%, #000000);
+  --ui-badge-solid-red: color-mix(in srgb, var(--ui-red) 84%, #000000);
+  --ui-badge-solid-purple: color-mix(in srgb, var(--ui-purple) 84%, #000000);
+  --ui-badge-solid-pink: color-mix(in srgb, var(--ui-pink) 84%, #000000);
+  --ui-badge-subtle-shadow: none;
+  /* Button: flat fills, no press scale. Secondary buttons read core tokens in their own scope (CTASection
+     re-maps them), so the theme picks a set, not values: of --ui-button-secondary-field (hover
+     --ui-surface-2, ring --ui-border-field) and -glass (--ui-elevated, --ui-glass-border) exactly one is
+     `initial` (on), the other empty (off). Ghost text `initial`: --ui-fg in the button's own scope. */
+  --ui-button-transform-active: none;
+  --ui-button-solid-sheen: none;
+  --ui-button-solid-highlight: 0 0 #0000;
+  --ui-button-solid-glow: 0 1px 0 rgba(15, 34, 86, 0.25);
+  --ui-button-secondary-field: initial;
+  --ui-button-secondary-glass: ;
+  --ui-button-secondary-bg-active: var(--ui-surface-3);
+  --ui-button-secondary-shadow: 0 1px 1px rgba(0, 0, 0, 0.06), 0 2px 5px rgba(15, 34, 86, 0.08);
+  --ui-button-ghost-fg: initial;
+  /* ButtonGroup: attached segments share 1px borders (`initial`: the secondary button's own fill and ring). */
+  --ui-button-group-inset: 0px;
+  --ui-button-group-gap: 0;
+  --ui-button-group-radius: 0;
+  --ui-button-group-radius-vertical: 0;
+  --ui-button-group-item-radius: 0;
+  --ui-button-group-item-bg: initial;
+  --ui-button-group-item-bg-hover: initial;
+  --ui-button-group-item-ring: initial;
+  /* ProgressBar */
+  --ui-progress-track-shadow: none;
+  --ui-progress-fill-sheen: none;
+  --ui-progress-fill-glow: none;
+  /* Skeleton */
+  --ui-skeleton-bg: var(--ui-surface-2);
+  --ui-skeleton-shine: color-mix(in srgb, var(--ui-fg) 6%, transparent);
+  /* Tooltip: a solid chip; the arrow has no edge to trace. */
+  --ui-tooltip-padding: 8px 12px;
+  --ui-tooltip-radius: var(--ui-radius-md);
+  --ui-tooltip-arrow-filter: drop-shadow(0 1px 0 rgba(15, 34, 86, 0.12));
+  --ui-tooltip-arrow-clip: none;
+  --ui-tooltip-arrow-bg: var(--ui-tooltip-bg);
+  /* [charts] */
+  /* Charts. Geometry drawn in JS (curve, radii, gaps, grid shape) is read with useThemeTokens. */
+  --ui-chart-curve: linear;
+  /* 1: corner radii are capped at half a shape's short side, so a large radius gives a capsule. */
+  --ui-chart-capsule: 0;
+  /* Glow under lines, bars and markers: a filter, `none`, or `initial` for the chart's own coloured SVG glow. */
+  --ui-chart-glow: none;
+  /* Radar areas and scatter points: `flat` tint or radial `gradient`. */
+  --ui-chart-fill: flat;
+  /* What series tints (treemap tiles, gantt bars) are mixed into: the card colour, or transparent. */
+  --ui-chart-tint-base: var(--ui-bg);
+  --ui-chart-line-width: 2;
+  --ui-chart-grid-dasharray: none;
+  --ui-chart-crosshair-dasharray: none;
+  /* Series swatches in legends, tooltips and keys. */
+  --ui-chart-swatch-radius: 9999px;
+  /* AnalyticsFilterBar */
+  --ui-analytics-filter-bar-segment-selected-bg: var(--ui-surface-2);
+  --ui-analytics-filter-bar-segment-selected-shadow: 0 0 #0000;
+  --ui-analytics-filter-bar-chip-border-color: var(--ui-border-field);
+  --ui-analytics-filter-bar-chip-shadow: none;
+  --ui-analytics-filter-bar-chip-remove-radius: calc(var(--ui-radius-button) - 2px);
+  --ui-analytics-filter-bar-switch-w: 28px;
+  --ui-analytics-filter-bar-switch-h: 16px;
+  --ui-analytics-filter-bar-switch-on-bg: var(--ui-accent);
+  /* AreaChart */
+  --ui-area-chart-line-width: 1.5;
+  --ui-area-chart-fill-opacity: 0.2;
+  --ui-area-chart-fill-opacity-stacked: 0.3;
+  /* BarChart */
+  --ui-bar-chart-bar-radius: 2px;
+  --ui-bar-chart-hover-radius: 4px;
+  /* CandlestickChart */
+  --ui-candlestick-chart-body-radius: 0px;
+  --ui-candlestick-chart-volume-radius: 0px;
+  --ui-candlestick-chart-ma-width: 1.5;
+  /* DonutChart */
+  --ui-donut-chart-gap: 2px;
+  --ui-donut-chart-segment-radius: 0px;
+  /* FunnelChart */
+  --ui-funnel-chart-bar-radius: 4px;
+  --ui-funnel-chart-pill-radius: 6px;
+  --ui-funnel-chart-pill-bg: var(--ui-bg);
+  --ui-funnel-chart-connector-mix: 12%;
+  /* GanttChart: phase summaries in the foreground colour, like a bracket over their tasks
+     (`initial`: the phase's series colour). */
+  --ui-gantt-chart-bar-h: 18px;
+  --ui-gantt-chart-bar-radius: 4px;
+  --ui-gantt-chart-bar-mix: 18%;
+  --ui-gantt-chart-bar-border-mix: 55%;
+  --ui-gantt-chart-names-bg: var(--ui-surface);
+  --ui-gantt-chart-summary-fill: var(--ui-fg);
+  --ui-gantt-chart-summary-opacity: 0.85;
+  --ui-gantt-chart-dependency-dasharray: none;
+  /* GaugeChart */
+  --ui-gauge-chart-linecap: butt;
+  /* Heatmap, CalendarHeatmap: cell corner radius = ratio × cell side, at most the radius. */
+  --ui-heatmap-cell-radius: 3px;
+  --ui-heatmap-cell-radius-ratio: 0.25;
+  --ui-calendar-heatmap-cell-radius: 2px;
+  --ui-heatmap-legend-swatch-radius: 2px;
+  /* MetricComparison */
+  --ui-metric-comparison-bar-radius: 1.5px;
+  /* RadarChart */
+  --ui-radar-chart-grid: polygon;
+  --ui-radar-chart-area-stroke-width: 1.5;
+  /* SankeyChart */
+  --ui-sankey-chart-node-w: 10px;
+  --ui-sankey-chart-node-radius: 2px;
+  --ui-sankey-chart-link-opacity: 0.28;
+  --ui-sankey-chart-link-opacity-active: 0.6;
+  --ui-sankey-chart-link-opacity-dimmed: 0.08;
+  /* ScatterChart: crisp points with a rim in the card colour (`initial`: the series colour, lightened). */
+  --ui-scatter-chart-point-stroke: var(--ui-bg);
+  --ui-scatter-chart-point-stroke-opacity: 1;
+  --ui-scatter-chart-bubble-fill-opacity: 1;
+  --ui-scatter-chart-trend-width: 1.5;
+  /* Sparkline */
+  --ui-sparkline-line-width: 1.5;
+  --ui-sparkline-fill-opacity: 0.24;
+  --ui-sparkline-bar-radius: 1px;
+  /* Treemap: tiles tinted with mix + value × range of their colour, with a crisp rim
+     (active rim `initial`: the tile's colour). Value colouring has its own scale. */
+  --ui-treemap-gap: 2px;
+  --ui-treemap-tile-radius: 3px;
+  --ui-treemap-group-radius: 4px;
+  --ui-treemap-tile-mix: 14%;
+  --ui-treemap-tile-mix-active: 24%;
+  --ui-treemap-tile-mix-range: 24%;
+  --ui-treemap-value-mix: 8%;
+  --ui-treemap-value-mix-range: 64%;
+  --ui-treemap-tile-border-mix: 55%;
+  --ui-treemap-tile-border-base: var(--ui-bg);
+  --ui-treemap-tile-border-active: initial;
+  --ui-treemap-group-mix: 5%;
+  --ui-treemap-group-border-mix: 28%;
+  --ui-treemap-group-border-base: var(--ui-border);
+  --ui-treemap-group-border-mix-hover: 60%;
+  --ui-treemap-group-border-base-hover: var(--ui-border);
+  /* [commerce] */
+  --ui-reviews-summary-bar: var(--ui-fg);
+  --ui-order-tracking-eta-size: var(--ui-text-2xl);
+  --ui-order-tracking-eta-weight: var(--ui-weight-semibold);
+  /* MediaPlaceholder: soft, slightly desaturated tones so media sits calmly in a monochrome UI */
+  --ui-media-placeholder-light-mix: 30%;
+  --ui-media-placeholder-shade-mix: 70%;
+  --ui-media-placeholder-stop-mix: 78%;
+  /* MediaGallery: tiles divided by hairlines inside one frame; dark lightbox */
+  --ui-media-gallery-gap: 2px;
+  --ui-media-gallery-radius: var(--ui-radius-lg);
+  --ui-media-gallery-bg: var(--ui-border);
+  --ui-media-gallery-tile-radius: 0;
+  --ui-media-lightbox-bg: color-mix(in srgb, var(--ui-fg-inverse) 96%, transparent);
+  /* ProductCard */
+  --ui-product-card-padding: var(--ui-space-3);
+  --ui-product-card-border-color-hover: var(--ui-border-strong);
+  /* = the .ui-panel shadow: only the edge reacts to hover */
+  --ui-product-card-shadow-hover: var(--ui-highlight), var(--ui-sheen), var(--ui-shadow-card);
+  --ui-product-card-transform-hover: none;
+  --ui-product-card-title-tracking: normal;
+  --ui-product-card-swatch-shadow-checked: 0 0 0 2px var(--ui-surface), 0 0 0 3.5px var(--ui-fg);
+  --ui-product-card-swatch-shadow-checked-focus: var(--ui-focus-ring);
+  /* ProductGrid */
+  --ui-product-grid-views-pad: 2px;
+  --ui-product-grid-views-border-color: var(--ui-border-field);
+  --ui-product-grid-view-w: 28px;
+  --ui-product-grid-view-h: 26px;
+  --ui-product-grid-view-radius: calc(var(--ui-radius-field) - 2px);
+  --ui-product-grid-view-bg-pressed: var(--ui-surface-3);
+  --ui-product-grid-view-shadow-pressed: none;
+  --ui-product-grid-view-shadow-pressed-focus: var(--ui-focus-ring);
+  --ui-product-grid-sort-padding-x: var(--ui-space-2);
+  --ui-product-grid-empty-border-color: var(--ui-border-strong);
+  --ui-product-grid-empty-bg: transparent;
+  --ui-product-grid-empty-icon-bg: var(--ui-surface-2);
+  /* ProductFilters */
+  --ui-product-filters-padding: var(--ui-space-4) var(--ui-space-4) var(--ui-space-2);
+  --ui-product-filters-chip-border-color: var(--ui-border);
+  --ui-product-filters-chip-bg-hover: var(--ui-surface-3);
+  --ui-product-filters-chip-icon-fg: var(--ui-fg-subtle);
+  --ui-product-filters-chip-icon-fg-hover: var(--ui-fg);
+  --ui-product-filters-check-radius: var(--ui-radius-xs);
+  --ui-product-filters-range-h: 4px;
+  --ui-product-filters-thumb-w: 18px;
+  --ui-product-filters-thumb-h: 18px;
+  --ui-product-filters-thumb-border: 1px solid var(--ui-border-strong);
+  --ui-product-filters-thumb-radius: 50%;
+  --ui-product-filters-thumb-bg: var(--ui-bg);
+  --ui-product-filters-thumb-shadow: var(--ui-shadow-sm);
+  --ui-product-filters-thumb-shadow-focus: var(--ui-shadow-sm);
+  --ui-product-filters-thumb-transform-active: none;
+  --ui-product-filters-swatch-shadow-pressed: 0 0 0 2px var(--ui-surface), 0 0 0 4px var(--ui-fg);
+  --ui-product-filters-swatch-shadow-pressed-focus: var(--ui-focus-ring);
+  --ui-product-filters-size-border-color: var(--ui-border-field);
+  --ui-product-filters-size-border-color-pressed-hover: var(--ui-border-strong);
+  --ui-product-filters-size-shadow-focus: var(--ui-focus-ring);
+  --ui-product-filters-rating-bg-pressed: var(--ui-surface-2);
+  --ui-product-filters-rating-shadow-pressed: inset 0 0 0 1px var(--ui-border-strong);
+  --ui-product-filters-rating-shadow-pressed-focus: var(--ui-focus-ring);
+  /* ShoppingCartDrawer: docked to the edge, hairline-divided sections */
+  --ui-shopping-cart-drawer-overflow: visible;
+  --ui-shopping-cart-drawer-border: 0;
+  --ui-shopping-cart-drawer-radius: 0;
+  --ui-shopping-cart-drawer-bg: var(--ui-bg);
+  --ui-shopping-cart-drawer-inset: var(--ui-space-5);
+  --ui-shopping-cart-drawer-header-padding-block: var(--ui-space-3);
+  --ui-shopping-cart-drawer-header-inset-end: var(--ui-space-3);
+  --ui-shopping-cart-drawer-header-border: 1px solid var(--ui-divider);
+  --ui-shopping-cart-drawer-title-size: var(--ui-text-lg);
+  --ui-shopping-cart-drawer-close-bg: transparent;
+  --ui-shopping-cart-drawer-close-fg: var(--ui-fg);
+  --ui-shopping-cart-drawer-shipping-margin: 0;
+  --ui-shopping-cart-drawer-shipping-padding: var(--ui-space-4) var(--ui-space-5);
+  --ui-shopping-cart-drawer-shipping-border: 1px solid var(--ui-divider);
+  --ui-shopping-cart-drawer-shipping-radius: 0;
+  --ui-shopping-cart-drawer-shipping-bg: transparent;
+  --ui-shopping-cart-drawer-thumb-radius: var(--ui-radius-md);
+  --ui-shopping-cart-drawer-stepper-border: 1px solid var(--ui-border-field);
+  --ui-shopping-cart-drawer-stepper-bg: var(--ui-bg);
+  --ui-shopping-cart-drawer-step-fg-disabled: var(--ui-fg-disabled);
+  /* CheckoutSummary */
+  --ui-checkout-summary-padding: var(--ui-space-5);
+  --ui-checkout-summary-title-size: var(--ui-text-lg);
+  --ui-checkout-summary-qty-bg: var(--ui-fg-muted);
+  --ui-checkout-summary-promo-applied-border: 1px dashed color-mix(in srgb, var(--ui-success) 50%, transparent);
+  /* PostCard */
+  --ui-post-card-padding: var(--ui-space-4);
+  --ui-post-card-link-bg: var(--ui-surface);
+  --ui-post-card-link-divider: var(--ui-divider);
+  --ui-post-card-link-shadow-focus: var(--ui-focus-ring);
+  /* CommentThread */
+  --ui-comment-thread-total-bg: var(--ui-surface-2);
+  --ui-comment-toggle-line-bg: var(--ui-border-strong);
+  --ui-comment-toggle-line-opacity: 1;
+  --ui-comment-guide-bg: var(--ui-border);
+  --ui-comment-guide-bg-hover: var(--ui-fg-subtle);
+  --ui-comment-guide-opacity: 1;
+  /* ProfileCard */
+  --ui-profile-card-cover-h: 104px;
+  --ui-profile-card-avatar-shadow: 0 0 #0000;
+  --ui-profile-card-horizontal-padding: var(--ui-space-3) var(--ui-space-4);
+  --ui-profile-card-horizontal-radius: var(--ui-radius-card);
+  /* ReactionBar */
+  --ui-reaction-bar-pill-border-color-hover: var(--ui-border-strong);
+  --ui-reaction-bar-pill-bg-hover: var(--ui-surface-2);
+  --ui-reaction-bar-pill-border-color-pressed: color-mix(in srgb, var(--ui-accent) 55%, transparent);
+  --ui-reaction-bar-pill-bg-pressed: var(--ui-accent-soft);
+  --ui-reaction-bar-add-border-style: dashed;
+  --ui-reaction-bar-add-border-color-expanded: var(--ui-border-strong);
+  --ui-reaction-picker-padding: var(--ui-space-2);
+  --ui-reaction-picker-item-radius: var(--ui-radius-md);
+  --ui-reaction-picker-preview-border-color: var(--ui-divider);
+  /* [data-display] */
+  --ui-kpi-group-padding: var(--ui-space-5);
+  --ui-kpi-group-value-size: var(--ui-text-2xl);
+  --ui-kpi-group-value-weight: var(--ui-weight-semibold);
+  /* Delta chip: plain coloured text. */
+  --ui-kpi-group-delta-fill: 0%;
+  --ui-kpi-group-delta-padding: 0;
+  /* Card: 24px padding; outline = plain hairline; interactive = crisp border + soft shadow, no movement. */
+  --ui-card-padding: var(--ui-space-6);
+  --ui-card-title-size: var(--ui-text-xl);
+  --ui-card-outline-border-color: var(--ui-border);
+  --ui-card-outline-bg: transparent;
+  --ui-card-interactive-border-color-hover: var(--ui-border-strong);
+  --ui-card-interactive-bg-hover: var(--ui-surface);
+  --ui-card-interactive-bg-active: color-mix(in srgb, var(--ui-hover) 50%, var(--ui-surface));
+  --ui-card-interactive-transform-hover: translateY(-2px);
+  --ui-card-interactive-transform-active: none;
+  --ui-card-interactive-shadow-hover: var(--ui-highlight), 0 13px 27px -5px rgba(15, 34, 86, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.3);
+  /* Overlapping states: disabled beats focus beats hover. */
+  --ui-card-interactive-shadow-hover-focus: var(--ui-highlight), var(--ui-shadow-card), var(--ui-focus-ring);
+  --ui-card-interactive-shadow-disabled-hover: var(--ui-highlight), var(--ui-shadow-card);
+  --ui-card-interactive-shadow-disabled-focus: var(--ui-highlight), var(--ui-shadow-card);
+  /* Accordion: hairline-separated rows, underlined title on hover, muted chevron that flips. */
+  --ui-accordion-overflow: visible;
+  --ui-accordion-border: none;
+  --ui-accordion-radius: 0;
+  --ui-accordion-bg: transparent;
+  --ui-accordion-shadow: none;
+  --ui-accordion-padding-x: 2px;
+  --ui-accordion-item-position: static;
+  --ui-accordion-item-border: 1px solid var(--ui-divider);
+  --ui-accordion-separator-content: none;
+  --ui-accordion-trigger-h: 52px;
+  --ui-accordion-trigger-padding-y: var(--ui-space-3);
+  --ui-accordion-trigger-radius: var(--ui-radius-xs);
+  --ui-accordion-trigger-size: var(--ui-text-md);
+  --ui-accordion-trigger-weight: var(--ui-weight-medium);
+  --ui-accordion-trigger-transition: color;
+  --ui-accordion-trigger-bg-hover: transparent;
+  --ui-accordion-trigger-bg-active: transparent;
+  --ui-accordion-trigger-shadow-focus: var(--ui-focus-ring);
+  --ui-accordion-title-decoration-hover: underline var(--ui-border-strong);
+  --ui-accordion-chevron-fg: var(--ui-fg-muted);
+  --ui-accordion-chevron-fg-disabled: var(--ui-fg-muted);
+  --ui-accordion-chevron-transform: none;
+  --ui-accordion-chevron-transform-open: rotate(180deg);
+  --ui-accordion-chevron-duration: var(--ui-duration);
+  /* Media player: controls over the picture (video is dark, so the marks stay light in every mode). */
+  --ui-media-player-radius: var(--ui-radius-lg);
+  --ui-media-player-scrim: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.28) 60%, transparent);
+  --ui-media-player-bar-bg: transparent;
+  --ui-media-player-bar-blur: none;
+  --ui-media-player-bar-border: transparent;
+  --ui-media-player-bar-radius: 0px;
+  --ui-media-player-bar-inset: 0px;
+  --ui-media-player-fg: #ffffff;
+  --ui-media-player-track: rgba(255, 255, 255, 0.28);
+  --ui-media-player-buffered: rgba(255, 255, 255, 0.5);
+  --ui-media-player-progress: #ffffff;
+  --ui-media-player-big-play-bg: rgba(0, 0, 0, 0.55);
+  --ui-media-player-big-play-blur: none;
+  /* EmptyState: dashed outline only; the icon sits on a hairline surface tile. */
+  --ui-empty-state-bordered-bg: transparent;
+  --ui-empty-state-icon-radius: var(--ui-radius-lg);
+  --ui-empty-state-icon-radius-ratio: 0;
+  --ui-empty-state-icon-bg: var(--ui-surface);
+  --ui-empty-state-icon-shadow: var(--ui-shadow-sm);
+  --ui-empty-state-icon-fg: var(--ui-fg-muted);
+  /* StatsCard: compact figures; the delta is plain coloured text (fill `none`: no chip background). */
+  --ui-stats-card-gap: var(--ui-space-3);
+  --ui-stats-card-padding: var(--ui-space-6);
+  --ui-stats-card-label-size: var(--ui-text-sm);
+  --ui-stats-card-icon-size: 28px;
+  --ui-stats-card-icon-bg: transparent;
+  --ui-stats-card-icon-shadow: none;
+  --ui-stats-card-icon-fg: var(--ui-fg-muted);
+  --ui-stats-card-value-size: var(--ui-text-2xl);
+  --ui-stats-card-delta-padding: 0;
+  --ui-stats-card-delta-radius: 0;
+  --ui-stats-card-delta-fill: none;
+  --ui-stats-card-sparkline-w: 96px;
+  --ui-stats-card-sparkline-h: 36px;
+  --ui-stats-card-sparkline-dot-size: 6px;
+  --ui-stats-card-sparkline-dot-shadow: 0 0 0 2px var(--ui-surface);
+  /* JSONViewer: a tinted panel with the semantic colours; booleans keep the surrounding weight (`initial`). */
+  --ui-json-viewer-bg: color-mix(in srgb, var(--ui-surface-2) 45%, var(--ui-surface));
+  --ui-json-viewer-shadow: none;
+  --ui-json-viewer-padding: var(--ui-space-3);
+  --ui-json-viewer-guide-color: var(--ui-border);
+  --ui-json-viewer-key-fg: var(--ui-fg);
+  --ui-json-viewer-string-fg: var(--ui-success-text);
+  --ui-json-viewer-number-fg: var(--ui-info-text);
+  --ui-json-viewer-boolean-fg: var(--ui-warning-text);
+  --ui-json-viewer-boolean-weight: initial;
+  --ui-json-viewer-badge-bg: var(--ui-surface-3);
+  --ui-json-viewer-status-bg: var(--ui-surface-2);
+  /* TreeView: dense rows; the selection stays neutral grey when the tree has focus. */
+  --ui-tree-row-h: 30px;
+  --ui-tree-indent: 16px;
+  --ui-tree-pad: 6px;
+  --ui-tree-font-size: var(--ui-text-sm);
+  --ui-tree-row-radius: var(--ui-radius-sm);
+  --ui-tree-guide-color: var(--ui-border);
+  --ui-tree-guide-color-selected: var(--ui-border-strong);
+  --ui-tree-folder-fg: var(--ui-fg-muted);
+  --ui-tree-row-bg-selected-focus: var(--ui-active);
+  --ui-tree-row-fg-selected-focus: currentcolor;
+  --ui-tree-row-shadow-selected-focus: none;
+  --ui-tree-row-shadow-selected-focus-visible: var(--ui-focus-ring);
+  --ui-tree-icon-fg-selected-focus: var(--ui-fg-muted);
+  --ui-tree-chevron-fg-selected-focus: var(--ui-fg-subtle);
+  /* KanbanBoard: tinted columns; cards keep still on hover, a grabbed card keeps its tilt. */
+  --ui-kanban-gap: var(--ui-space-3);
+  --ui-kanban-card-gap: 8px;
+  --ui-kanban-column-padding: var(--ui-space-2);
+  --ui-kanban-column-bg: color-mix(in srgb, var(--ui-surface-2) 55%, transparent);
+  --ui-kanban-column-border-color-over: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-border));
+  --ui-kanban-column-bg-over: color-mix(in srgb, var(--ui-accent) 5%, color-mix(in srgb, var(--ui-surface-2) 55%, transparent));
+  --ui-kanban-column-shadow-over: inset 0 0 0 1px color-mix(in srgb, var(--ui-accent) 25%, transparent);
+  --ui-kanban-column-title-size: var(--ui-text-sm);
+  --ui-kanban-accent-size: 8px;
+  --ui-kanban-accent-highlight: initial;
+  --ui-kanban-accent-halo: none;
+  --ui-kanban-card-border-color-hover: var(--ui-border-strong);
+  --ui-kanban-card-transform-hover: none;
+  --ui-kanban-card-grabbed-transform: rotate(-1.5deg) scale(1.02);
+  --ui-kanban-card-grabbed-border-color-hover: var(--ui-accent);
+  --ui-kanban-card-grabbed-transform-hover: var(--ui-kanban-card-grabbed-transform);
+  --ui-kanban-card-lifted-border-color: var(--ui-border-strong);
+  --ui-kanban-card-lifted-bg: var(--ui-surface);
+  --ui-kanban-card-lifted-transform: rotate(2deg) scale(1.03);
+  /* Timeline: a hairline connector, flat status dots with a halo, tinted icon badges. `none` / `initial`
+     switch off the Glass-only layers (see Timeline.css). */
+  --ui-timeline-marker-size: 24px;
+  --ui-timeline-dot-size: 10px;
+  --ui-timeline-dot-gap: 6px;
+  --ui-timeline-connector-w: 1px;
+  --ui-timeline-connector-radius: 0;
+  --ui-timeline-connector-bg: var(--ui-border-strong);
+  --ui-timeline-connector-tint: none;
+  --ui-timeline-connector-opacity: 1;
+  --ui-timeline-dot-highlight: initial;
+  --ui-timeline-dot-halo: 3px;
+  --ui-timeline-dot-halo-fill: 18%;
+  --ui-timeline-dot-glow: initial;
+  --ui-timeline-dot-default-border: 2px solid var(--ui-border-strong);
+  --ui-timeline-dot-default-bg: var(--ui-bg);
+  --ui-timeline-dot-default-shadow: none;
+  --ui-timeline-icon-size: 13px;
+  --ui-timeline-icon-border-tint: 35%;
+  --ui-timeline-icon-fill: 12%;
+  --ui-timeline-icon-gradient: none;
+  --ui-timeline-icon-shadow: 0 0 #0000;
+  --ui-timeline-icon-glow: none;
+  --ui-timeline-icon-fg: initial;
+  --ui-timeline-icon-default-border-color: var(--ui-border);
+  --ui-timeline-title-leading: 20px;
+  /* CalendarView: a hairline grid; today is a filled monochrome circle, all-day events carry a start stripe. */
+  --ui-calendar-view-padding-x: var(--ui-space-5);
+  --ui-calendar-view-header-padding-top: var(--ui-space-4);
+  --ui-calendar-view-title-size: var(--ui-text-lg);
+  --ui-calendar-view-head-border: 1px solid var(--ui-divider);
+  --ui-calendar-view-head-fg: var(--ui-fg-muted);
+  --ui-calendar-view-head-align: start;
+  --ui-calendar-view-outside-bg: color-mix(in srgb, var(--ui-surface-2) 45%, transparent);
+  --ui-calendar-view-date-align: flex-start;
+  --ui-calendar-view-date-size: 24px;
+  --ui-calendar-view-today-bg: var(--ui-fg);
+  --ui-calendar-view-today-shadow: none;
+  --ui-calendar-view-today-fg: var(--ui-fg-inverse);
+  --ui-calendar-view-today-compact-fg: var(--ui-accent-text);
+  --ui-calendar-view-weekend-fg: var(--ui-fg);
+  --ui-calendar-view-weekend-fg-pressed: var(--ui-fg-inverse);
+  --ui-calendar-view-event-radius: var(--ui-radius-xs);
+  --ui-calendar-view-event-stripe: 2px;
+  --ui-calendar-view-event-fill: 16%;
+  --ui-calendar-view-event-fill-hover: 26%;
+  --ui-calendar-view-event-all-day-shadow-focus: var(--ui-focus-ring);
+  --ui-calendar-view-agenda-row-radius: var(--ui-radius-md);
+  /* DataTable: a solid panel with a tinted sticky header and hairline rows; pinned cells are opaque and carry
+     the row tint. `initial` keeps a component default (see DataTable.css). */
+  --ui-data-table-cell-y: 12px;
+  --ui-data-table-cell-y-compact: 6px;
+  --ui-data-table-head-h: 40px;
+  --ui-data-table-head-h-compact: 32px;
+  --ui-data-table-head-bg: #e8f1fa;
+  --ui-data-table-head-bg-scrolled: var(--ui-data-table-head-bg);
+  --ui-data-table-head-bg-pinned: linear-gradient(var(--ui-data-table-head-bg), var(--ui-data-table-head-bg)), var(--ui-surface);
+  --ui-data-table-head-fg: #1f64a6;
+  --ui-data-table-head-fg-sorted: var(--ui-fg);
+  --ui-data-table-divider-width: 1px;
+  --ui-data-table-select-divider-color: initial;
+  --ui-data-table-row-selected: color-mix(in srgb, var(--ui-accent) 6%, transparent);
+  --ui-data-table-row-selected-hover: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+  --ui-data-table-pin-bg: var(--ui-surface);
+  --ui-data-table-pin-tint: initial;
+  --ui-data-table-pin-shadow: rgba(0, 0, 0, 0.08);
+  --ui-data-table-container-position: static;
+  --ui-data-table-container-isolation: auto;
+  --ui-data-table-container-bg: var(--ui-surface);
+  --ui-data-table-frost-content: none;
+  --ui-data-table-frost: transparent;
+  --ui-data-table-cell-content-position: static;
+  --ui-data-table-cell-content-z: auto;
+  --ui-data-table-checkbox-border-width: 1px;
+  --ui-data-table-checkbox-radius: var(--ui-radius-xs);
+  --ui-data-table-checkbox-bg: var(--ui-bg);
+  --ui-data-table-checkbox-shadow-checked: none;
+  --ui-data-table-checkbox-shadow-checked-focus: var(--ui-focus-ring);
+  --ui-data-table-checkbox-border-color-checked-hover: var(--ui-fg-subtle);
+  /* [effects] */
+  --ui-aurora-background-1: var(--ui-chart-1);
+  --ui-aurora-background-2: var(--ui-chart-2);
+  --ui-aurora-background-3: var(--ui-chart-5);
+  --ui-aurora-background-opacity: 0.3;
+  --ui-aurora-background-blend: normal;
+  --ui-animated-border-beam: var(--ui-fg);
+  --ui-animated-border-tail: transparent;
+  --ui-animated-border-spectrum: #2a77bf, #4db2ec, #ffcd3f, #ea1717, #2a77bf;
+  --ui-animated-border-glow: 0.35;
+  --ui-shimmer-text-shine: var(--ui-fg);
+  --ui-shimmer-text-sweep: var(--ui-fg-faint);
+  /* Light can't be brighter than a white page: in light mode the stage is shaded and the light is the page colour. */
+  --ui-spotlight-color: var(--ui-bg);
+  --ui-spotlight-color-2: var(--ui-bg);
+  --ui-spotlight-shade: color-mix(in srgb, var(--ui-fg) 6%, transparent);
+  --ui-meteors-color: var(--ui-fg-muted);
+  --ui-meteors-glow: transparent;
+  --ui-background-pattern-color: var(--ui-gray-alpha-300);
+  --ui-text-reveal-blur: 0px;
+  --ui-text-reveal-caret: currentColor;
+  /* Read by JS (canvas): plain colours, comma-separated. */
+  --ui-confetti-colors: var(--ui-gray-1000), var(--ui-gray-700), var(--ui-gray-500), var(--ui-blue), var(--ui-purple);
+  --ui-particles-color: var(--ui-gray-800);
+  --ui-particles-glow: 0;
+  --ui-magnetic-stiffness: 320;
+  --ui-magnetic-damping: 36;
+  --ui-tilt-card-glare: color-mix(in srgb, var(--ui-fg) 7%, transparent);
+  --ui-ripple-fill: currentColor;
+  --ui-ripple-opacity: 0.14;
+  /* GlassLens: a crisp frosted panel; as a magnifier an untinted lens with a hairline ring and no frost (zoom
+     saturation `none`). It refracts only to zoom (`initial`: no refracted frost, no brightness lift). */
+  --ui-glass-lens-tint: color-mix(in srgb, var(--ui-bg) 72%, transparent);
+  --ui-glass-lens-shadow: var(--ui-shadow-popover);
+  --ui-glass-lens-zoom-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px var(--ui-border-strong), 0 12px 32px -12px rgba(0, 0, 0, 0.35);
+  --ui-glass-lens-drag-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px var(--ui-border-strong), 0 20px 40px -12px rgba(0, 0, 0, 0.4);
+  --ui-glass-lens-saturate: 1.5;
+  --ui-glass-lens-zoom-saturate: none;
+  --ui-glass-lens-brightness: initial;
+  --ui-glass-lens-refraction-brightness: initial;
+  --ui-glass-lens-rim-content: none;
+  --ui-glass-lens-rim-opacity: 1;
+  --ui-glass-lens-edge-content: none;
+  --ui-glass-lens-edge-opacity: 1;
+  /* CursorGlow: a restrained border spotlight, no tilt. */
+  --ui-cursor-glow-tilt: 0;
+  --ui-cursor-glow-light: color-mix(in srgb, var(--ui-fg) 4%, transparent);
+  --ui-cursor-glow-edge: color-mix(in srgb, var(--ui-fg) 50%, transparent);
+  --ui-cursor-glow-falloff: transparent;
+  /* MorphingCapsule: a solid capsule with a hairline rim and a soft drop shadow. */
+  --ui-morphing-capsule-duration: 460ms;
+  --ui-morphing-capsule-fill: var(--ui-bg);
+  --ui-morphing-capsule-rim: var(--ui-border-strong);
+  --ui-morphing-capsule-shine: transparent;
+  --ui-morphing-capsule-shadow: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.08)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.06));
+  --ui-morphing-capsule-frost: blur(8px) saturate(1.4);
+  /* FloatingTabBar: a crisp frosted bar with a 1px border and a monochrome selection. */
+  --ui-floating-tab-bar-duration: 420ms;
+  --ui-floating-tab-bar-bg: color-mix(in srgb, var(--ui-bg) 82%, transparent);
+  --ui-floating-tab-bar-shadow: 0 0 0 1px var(--ui-border), 0 8px 24px -8px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --ui-floating-tab-bar-frost: blur(12px) saturate(1.8);
+  --ui-floating-tab-bar-indicator-bg: var(--ui-hover);
+  --ui-floating-tab-bar-indicator-shadow: none;
+  --ui-floating-tab-bar-fg: var(--ui-fg-muted);
+  --ui-floating-tab-bar-rim-content: none;
+  --ui-floating-tab-bar-rim-opacity: 1;
+  /* [feedback] */
+  /* Alert: a tinted box with a bare status icon (`initial`: the variant's border, fill and text colours, Alert.css;
+     the empty wash adds no background layer). */
+  --ui-alert-padding: var(--ui-space-3) var(--ui-space-4);
+  --ui-alert-align: flex-start;
+  --ui-alert-radius: var(--ui-radius-md);
+  --ui-alert-border-color: initial;
+  --ui-alert-bg: initial;
+  --ui-alert-bg-wash: ;
+  --ui-alert-icon-w: 16px;
+  --ui-alert-icon-display: inline-flex;
+  --ui-alert-icon-place-items: normal;
+  --ui-alert-icon-align: auto;
+  --ui-alert-icon-size: auto;
+  --ui-alert-icon-margin-top: 2px;
+  --ui-alert-icon-radius: 0;
+  --ui-alert-icon-bg: none;
+  --ui-alert-icon-shadow: none;
+  --ui-alert-icon-fg: initial;
+  --ui-alert-title-fg: initial;
+  --ui-alert-body-fg: initial;
+  --ui-alert-content-align: auto;
+  --ui-alert-close-align: auto;
+  --ui-alert-close-margin: -6px -8px -6px 0;
+  --ui-alert-close-fg: initial;
+  /* ConfirmDialog */
+  --ui-confirm-dialog-error-justify-sm: normal;
+  /* CopyToClipboard: the snippet is a field-like well. */
+  --ui-copy-snippet-border-color: var(--ui-border-field);
+  --ui-copy-snippet-bg: var(--ui-surface-2);
+  /* Dialog: a ruled footer band (roles: --ui-modal-*); on phones every dialog becomes an edge-to-edge bottom
+     sheet. `initial`: inherited text alignment and the actions' own flex (Dialog.css). */
+  --ui-dialog-pad: var(--ui-space-6);
+  --ui-dialog-header-pad-bottom: var(--ui-space-4);
+  --ui-dialog-header-shadow-scrolled: 0 1px 0 var(--ui-border);
+  --ui-dialog-body-pad-top: 0;
+  --ui-dialog-body-mask: none;
+  --ui-dialog-footer-pad-top: var(--ui-space-4);
+  --ui-dialog-footer-bleed: 1;
+  --ui-dialog-w-sm: 400px;
+  --ui-dialog-pad-sm: var(--ui-dialog-pad);
+  --ui-dialog-close-room-sm: 32px;
+  --ui-dialog-text-align-sm: initial;
+  --ui-dialog-header-align-sm: normal;
+  --ui-dialog-title-size-sm: var(--ui-text-xl);
+  --ui-dialog-description-size-sm: var(--ui-text-md);
+  --ui-dialog-action-flex-sm: initial;
+  --ui-dialog-footer-stack-direction-sm: row;
+  --ui-dialog-footer-stack-align-sm: center;
+  --ui-dialog-close-display-sm: inline-flex;
+  --ui-dialog-sheet-layer-padding: max(var(--ui-space-6), env(safe-area-inset-top)) 0 0;
+  --ui-dialog-pad-compact: var(--ui-space-5);
+  --ui-dialog-radius-compact: var(--ui-radius-modal) var(--ui-radius-modal) 0 0;
+  --ui-dialog-footer-pad-bottom-compact: calc(var(--ui-space-4) + env(safe-area-inset-bottom));
+  --ui-dialog-layer-align-sm-compact: flex-end;
+  --ui-dialog-layer-padding-sm-compact: var(--ui-dialog-sheet-layer-padding);
+  --ui-dialog-w-sm-compact: 100%;
+  --ui-dialog-enter-sm-compact: ui-modal-from-bottom var(--ui-duration-slow) var(--ui-ease);
+  --ui-dialog-exit-sm-compact: ui-modal-to-bottom var(--ui-duration) var(--ui-ease) forwards;
+  /* Drawer: square side panels, a ruled header and footer (roles: --ui-modal-*). */
+  --ui-drawer-radius: 0;
+  --ui-drawer-bottom-radius: var(--ui-radius-modal) var(--ui-radius-modal) 0 0;
+  --ui-drawer-handle-w: 36px;
+  --ui-drawer-handle-bg: var(--ui-border-strong);
+  --ui-drawer-handle-bg-hover: var(--ui-fg-subtle);
+  --ui-drawer-header-pad-top: var(--ui-space-5);
+  --ui-drawer-header-pad-bottom: var(--ui-space-4);
+  --ui-drawer-bottom-header-pad-top: var(--ui-space-2);
+  --ui-drawer-title-size: var(--ui-text-lg);
+  --ui-drawer-footer-pad-top: var(--ui-space-4);
+  --ui-drawer-close-inset: var(--ui-space-4);
+  --ui-drawer-bottom-close-top: 22px;
+  /* HoverCard */
+  --ui-hover-card-padding: var(--ui-space-4);
+  /* LoadingOverlay: a light blurred scrim with bare text (fullscreen: a modal card, LoadingOverlay.css). */
+  --ui-loading-overlay-bg-mix: 72%;
+  --ui-loading-overlay-backdrop: blur(2px);
+  --ui-loading-overlay-panel-min-w: auto;
+  --ui-loading-overlay-panel-padding: 0;
+  --ui-loading-overlay-panel-border: 0;
+  --ui-loading-overlay-panel-radius: 0;
+  --ui-loading-overlay-panel-bg: transparent;
+  --ui-loading-overlay-panel-shadow: none;
+  --ui-loading-overlay-panel-fg: var(--ui-fg-muted);
+  --ui-loading-overlay-panel-animation: none;
+  /* NotificationCenter: filter buttons over a rule, ringed item icons, the EmptyState sm tile
+     (`initial` header start: the shorthand's physical value, NotificationCenter.css). */
+  --ui-notification-center-badge-shadow: 0 0 0 2px var(--ui-bg);
+  --ui-notification-center-header-pad-start: initial;
+  --ui-notification-center-title-size: var(--ui-text-md);
+  --ui-notification-center-tabs-margin: 0;
+  --ui-notification-center-tabs-padding: var(--ui-space-1) var(--ui-space-3) var(--ui-space-2);
+  --ui-notification-center-tabs-border-bottom: 1px solid var(--ui-divider);
+  --ui-notification-center-tabs-radius: 0;
+  --ui-notification-center-tabs-bg: transparent;
+  --ui-notification-center-tab-flex: 0 1 auto;
+  --ui-notification-center-tab-justify: normal;
+  --ui-notification-center-tab-bg-selected: var(--ui-surface-2);
+  --ui-notification-center-list-padding: var(--ui-space-1);
+  --ui-notification-center-icon-radius: 50%;
+  --ui-notification-center-icon-bg: var(--ui-surface-2);
+  --ui-notification-center-icon-shadow: inset 0 0 0 1px var(--ui-border);
+  --ui-notification-center-icon-fg: var(--ui-fg-muted);
+  --ui-notification-center-empty-icon-radius: var(--ui-radius-md);
+  --ui-notification-center-empty-icon-bg: var(--ui-surface);
+  --ui-notification-center-empty-icon-shadow: var(--ui-shadow-sm);
+  --ui-notification-center-empty-icon-fg: var(--ui-fg-muted);
+  --ui-notification-center-footer-border-color: var(--ui-divider);
+  /* Popover: an arrow points at the trigger (`--ui-popover-arrow` 1: drawn, 0: none; read by Popover.tsx). */
+  --ui-popover-content-padding: var(--ui-space-4);
+  --ui-popover-arrow: 1;
+  /* Toast (Sonner): a bare status icon beside the text; the loading spinner in the muted text colour.
+     `initial`: the status colour of the icon, inherited title spacing (Toast.css). */
+  --ui-toast-radius: var(--ui-radius-lg);
+  --ui-toast-line-height: 20px;
+  --ui-toast-inner-align: flex-start;
+  --ui-toast-inner-gap: 10px;
+  --ui-toast-inner-padding: 14px 16px;
+  --ui-toast-icon-display: inline-flex;
+  --ui-toast-icon-place-items: normal;
+  --ui-toast-icon-size: auto;
+  --ui-toast-icon-margin-top: 2px;
+  --ui-toast-icon-radius: 0;
+  --ui-toast-icon-bg: none;
+  --ui-toast-icon-shadow: none;
+  --ui-toast-icon-fg: initial;
+  --ui-toast-icon-glyph-size: 16px;
+  --ui-toast-loading-color: var(--ui-fg-muted);
+  --ui-toast-title-tracking: initial;
+  --ui-toast-close-border-color: var(--ui-border-strong);
+  /* BottomSheet: attached to the bottom edge, square bottom corners. */
+  --ui-bottom-sheet-inset: 0px;
+  --ui-bottom-sheet-end-radius: 0px;
+  /* [forms] */
+  /* TextInput: addon fill; the clear button is a plain icon button (its icon keeps XIcon's 12px). */
+  --ui-text-input-addon-bg: var(--ui-surface-2);
+  --ui-text-input-clear-size: 24px;
+  --ui-text-input-clear-margin-end: -4px;
+  --ui-text-input-clear-bg: transparent;
+  --ui-text-input-clear-fg: var(--ui-fg-faint);
+  --ui-text-input-clear-bg-hover: var(--ui-hover);
+  --ui-text-input-clear-fg-hover: var(--ui-fg);
+  --ui-text-input-clear-icon-size: 12px;
+  /* SearchInput */
+  --ui-search-input-padding-x-sm: var(--ui-space-2);
+  --ui-search-input-icon-fg: var(--ui-fg-faint);
+  --ui-search-input-kbd-border-color: var(--ui-border);
+  --ui-search-input-kbd-bg: var(--ui-surface-2);
+  /* Checkbox: square-ish box; hovering a checked or an invalid checked box shows the hover edge. */
+  --ui-checkbox-radius: 4px;
+  --ui-checkbox-radius-sm: 3px;
+  --ui-checkbox-radius-lg: 5px;
+  --ui-checkbox-invalid-checked-border-color-hover: var(--ui-fg-faint);
+  --ui-checkbox-icon-stroke-width: 2;
+  --ui-checkbox-icon-transform: none;
+  /* The initial value: no transition. */
+  --ui-checkbox-icon-transition: all 0s ease 0s;
+  /* RadioGroup: a dot on the plain circle; option cards with a plain edge. */
+  --ui-radio-checked-bg: var(--ui-bg);
+  --ui-radio-invalid-checked-border-color: var(--ui-danger);
+  --ui-radio-dot-size: 50%;
+  --ui-radio-dot-bg: var(--ui-primary);
+  --ui-radio-dot-shadow: none;
+  --ui-radio-card-padding: var(--ui-space-3) var(--ui-space-4);
+  --ui-radio-card-border-color: var(--ui-border-field);
+  --ui-radio-card-border-color-checked-hover: var(--ui-border-strong);
+  --ui-radio-card-bg-checked: var(--ui-bg);
+  --ui-radio-card-shadow-checked: inset 0 0 0 1px var(--ui-primary);
+  --ui-radio-card-shadow-checked-focus: inset 0 0 0 1px var(--ui-primary), var(--ui-focus-ring);
+  /* Switch: compact track; the round knob stretches a little while pressed. */
+  --ui-switch-w: 32px;
+  --ui-switch-w-sm: 26px;
+  --ui-switch-w-lg: 40px;
+  --ui-switch-h: 18px;
+  --ui-switch-h-sm: 14px;
+  --ui-switch-h-lg: 22px;
+  /* Knob width ÷ knob height, and the extra width while pressed (× track height). */
+  --ui-switch-knob-stretch: 1;
+  --ui-switch-knob-stretch-active: 0.22;
+  --ui-switch-track-shadow: inset 0 0 0 1px var(--ui-border-strong);
+  --ui-switch-track-bg-hover: color-mix(in srgb, var(--ui-surface-3) 70%, var(--ui-fg-faint));
+  --ui-switch-track-bg-checked: var(--ui-primary);
+  --ui-switch-track-shadow-checked: none;
+  --ui-switch-knob-shadow: var(--ui-shadow-sm), 0 0 0 0.5px var(--ui-border-strong);
+  --ui-switch-knob-transition:
+    inset-inline-start var(--ui-duration) var(--ui-ease-spring),
+    width var(--ui-duration) var(--ui-ease-spring);
+  --ui-switch-knob-bg-active: #fff;
+  --ui-switch-knob-shadow-active: var(--ui-switch-knob-shadow);
+  --ui-switch-knob-transform-active: none;
+  /* Slider: thin track, small round thumb with a halo on hover and while dragged. */
+  --ui-slider-track-h: 4px;
+  --ui-slider-track-shadow: none;
+  --ui-slider-thumb-w: 16px;
+  --ui-slider-thumb-h: 16px;
+  --ui-slider-control-min-h: 20px;
+  --ui-slider-thumb-border: 1px solid var(--ui-border-strong);
+  --ui-slider-thumb-shadow: var(--ui-shadow-sm);
+  --ui-slider-thumb-shadow-hover: var(--ui-shadow-sm), 0 0 0 4px color-mix(in srgb, var(--ui-primary) 14%, transparent);
+  --ui-slider-thumb-shadow-dragging: var(--ui-slider-thumb-shadow-hover);
+  --ui-slider-thumb-shadow-focus: var(--ui-focus-ring);
+  --ui-slider-thumb-bg-dragging: #fff;
+  --ui-slider-thumb-scale-dragging: 1;
+  --ui-slider-value-offset: 8px;
+  --ui-slider-value-padding: 3px 7px;
+  /* Listbox: trailing checkmark; the highlighted row keeps its colours. */
+  --ui-listbox-check-order: 0;
+  --ui-listbox-check-fg-highlight: var(--ui-fg);
+  --ui-listbox-label-indent: var(--ui-space-2);
+  --ui-listbox-description-fg-highlight: var(--ui-fg-muted);
+  --ui-listbox-description-opacity-highlight: 1;
+  --ui-listbox-checkbox-size: 16px;
+  --ui-listbox-checkbox-radius: var(--ui-radius-xs);
+  --ui-listbox-checkbox-border-color-highlight: var(--ui-border-strong);
+  --ui-listbox-checkbox-bg-highlight: var(--ui-bg);
+  --ui-listbox-checkbox-checked-bg-highlight: var(--ui-primary);
+  --ui-listbox-checkbox-checked-fg-highlight: var(--ui-primary-fg);
+  /* MultiSelect: outlined chips; the popover search is a row with a divider under it. */
+  --ui-multi-select-chip-border-color: var(--ui-border);
+  --ui-multi-select-chip-remove-radius: calc(var(--ui-radius-xs) - 1px);
+  --ui-multi-select-chip-remove-fg: var(--ui-fg-subtle);
+  --ui-multi-select-chip-remove-fg-hover: var(--ui-fg);
+  --ui-multi-select-chip-remove-bg-hover: var(--ui-hover);
+  --ui-multi-select-chip-remove-opacity: 1;
+  --ui-multi-select-search-h: 40px;
+  --ui-multi-select-search-margin: 0;
+  --ui-multi-select-search-border: 1px solid var(--ui-divider);
+  --ui-multi-select-search-radius: 0;
+  --ui-multi-select-search-bg: transparent;
+  --ui-multi-select-footer-margin: 0;
+  --ui-multi-select-footer-padding-x: var(--ui-space-3) var(--ui-space-1);
+  /* [forms-advanced] */
+  /* Calendar: square days, a translucent range band that reads on any surface (page, card, popover), a dot
+     under today. When states combine, disabled colours the number. */
+  --ui-calendar-cell-size: 36px;
+  --ui-calendar-band-bg: var(--ui-active);
+  --ui-calendar-caption-size: 1em;
+  --ui-calendar-caption-tracking: normal;
+  --ui-calendar-weekday-weight: var(--ui-weight-regular);
+  --ui-calendar-weekday-tracking: normal;
+  --ui-calendar-weekday-transform: none;
+  --ui-calendar-day-size: 1em;
+  --ui-calendar-day-today-fg: currentcolor;
+  --ui-calendar-day-today-dot: '';
+  --ui-calendar-day-selected-weight: var(--ui-weight-regular);
+  --ui-calendar-day-selected-shadow: none;
+  --ui-calendar-day-selected-shadow-focus: var(--ui-focus-ring);
+  --ui-calendar-day-selected-animation: none;
+  --ui-calendar-day-today-fg-disabled: var(--ui-fg-disabled);
+  --ui-calendar-day-selected-fg-disabled: var(--ui-fg-disabled);
+  --ui-calendar-day-outside-selected-fg: var(--ui-primary-fg);
+  --ui-calendar-day-outside-disabled-fg: var(--ui-fg-disabled);
+  /* DateRangePicker */
+  --ui-date-range-picker-presets-padding: var(--ui-space-2);
+  --ui-date-range-picker-preset-size: var(--ui-text-sm);
+  --ui-date-range-picker-preset-bg-pressed: var(--ui-surface-2);
+  --ui-date-range-picker-preset-bg-pressed-hover: var(--ui-hover);
+  --ui-date-range-picker-preset-fg-pressed: var(--ui-fg);
+  --ui-date-range-picker-preset-shadow-pressed: none;
+  --ui-date-range-picker-preset-shadow-pressed-focus: var(--ui-focus-ring);
+  --ui-date-range-picker-footer-padding: var(--ui-space-2) var(--ui-space-3);
+  /* PickerTrigger: the .ui-field focus rings. */
+  --ui-picker-trigger-shadow-focus-within: var(--ui-focus-ring);
+  --ui-picker-trigger-shadow-focus-invalid: var(--ui-focus-ring-invalid);
+  /* ColorPicker */
+  --ui-color-picker-padding: var(--ui-space-3);
+  --ui-color-picker-area-radius: var(--ui-radius-sm);
+  --ui-color-picker-thumb-size: 16px;
+  --ui-color-picker-thumb-border-width: 2px;
+  --ui-color-picker-thumb-shadow: 0 0 0 1px var(--ui-border-strong), var(--ui-shadow-sm);
+  --ui-color-picker-thumb-shadow-focus: 0 0 0 1px var(--ui-border-strong), var(--ui-focus-ring);
+  --ui-color-picker-slider-h: 12px;
+  --ui-color-picker-swatch-radius: var(--ui-radius-xs);
+  --ui-color-picker-swatch-outline-selected: var(--ui-fg);
+  /* FileUploader: dashed drop zone with an outlined icon; flat file rows. */
+  --ui-file-uploader-dropzone-border-color-hover: var(--ui-fg-subtle);
+  --ui-file-uploader-dropzone-bg-hover: var(--ui-surface-2);
+  --ui-file-uploader-dropzone-shadow-dragging: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+  --ui-file-uploader-dropzone-shadow-dragging-focus: var(--ui-file-uploader-dropzone-shadow-dragging);
+  --ui-file-uploader-icon-size: 40px;
+  --ui-file-uploader-icon-bg: var(--ui-surface);
+  --ui-file-uploader-icon-fg: var(--ui-fg);
+  --ui-file-uploader-icon-shadow: var(--ui-shadow-sm);
+  --ui-file-uploader-icon-fg-dragging: var(--ui-accent-text);
+  --ui-file-uploader-icon-transform-dragging: translateY(-4px) scale(1.08);
+  --ui-file-uploader-browse-fg: currentcolor;
+  --ui-file-uploader-browse-decoration: underline;
+  --ui-file-uploader-item-radius: var(--ui-radius-md);
+  --ui-file-uploader-item-error-border-color: color-mix(in srgb, var(--ui-danger) 40%, transparent);
+  --ui-file-uploader-item-error-bg: color-mix(in srgb, var(--ui-danger) 5%, var(--ui-bg));
+  --ui-file-uploader-file-icon-radius: var(--ui-radius-sm);
+  --ui-file-uploader-file-icon-bg: var(--ui-surface-2);
+  --ui-file-uploader-file-icon-preview-bg-error: var(--ui-danger-soft);
+  /* FormField */
+  --ui-form-field-inset: 0;
+  --ui-form-field-label-fg: var(--ui-fg-muted);
+  /* NumberInput: flush stepper buttons separated by the field edge. */
+  --ui-number-input-padding-end: 0;
+  --ui-number-input-padding-end-sm: 0;
+  --ui-number-input-padding-end-lg: 0;
+  --ui-number-input-steppers-align: stretch;
+  --ui-number-input-steppers-h: auto;
+  --ui-number-input-steppers-h-sm: auto;
+  --ui-number-input-steppers-h-lg: auto;
+  --ui-number-input-steppers-overflow: visible;
+  --ui-number-input-steppers-radius: 0;
+  --ui-number-input-steppers-bg: transparent;
+  --ui-number-input-step-position: static;
+  --ui-number-input-step-extra-w: 0px;
+  --ui-number-input-step-border: 1px solid var(--ui-border-field);
+  --ui-number-input-step-fg: var(--ui-fg-muted);
+  --ui-number-input-step-transform-active: none;
+  --ui-number-input-step-divider-content: none;
+  /* OTPInput: mono digits; a filled box gets the strong edge. */
+  --ui-otp-input-box-w: 44px;
+  --ui-otp-input-box-ratio: 44 / 52;
+  --ui-otp-input-box-radius: var(--ui-radius-field);
+  --ui-otp-input-box-font: var(--ui-font-mono);
+  --ui-otp-input-box-size: var(--ui-text-xl);
+  --ui-otp-input-box-weight: var(--ui-weight-medium);
+  --ui-otp-input-box-border-color-filled: var(--ui-border-strong);
+  --ui-otp-input-box-border-color-focus-hover: var(--ui-border-strong);
+  --ui-otp-input-box-transform-focus: none;
+  --ui-otp-input-box-invalid-ring-w: 3px;
+  /* RatingInput: stars grow on hover, also while pressed. */
+  --ui-rating-input-empty-fg: var(--ui-border-strong);
+  --ui-rating-input-star-radius: var(--ui-radius-xs);
+  --ui-rating-input-fill-filter: none;
+  --ui-rating-input-star-transform-active: none;
+  --ui-rating-input-star-transform-hover-active: scale(1.15);
+  /* TagsInput: outlined tags (weight: the field's inherited regular weight). */
+  --ui-tags-input-tag-border: 1px solid var(--ui-border);
+  --ui-tags-input-tag-weight: var(--ui-weight-regular);
+  --ui-tags-input-remove-radius: 3px;
+  --ui-tags-input-remove-fg: var(--ui-fg-muted);
+  --ui-tags-input-remove-fg-hover: var(--ui-fg);
+  --ui-tags-input-remove-bg-hover: var(--ui-hover);
+  /* TimePicker: joined columns (square inner corners). */
+  --ui-time-picker-column-h: 232px;
+  --ui-time-picker-column-w: 60px;
+  --ui-time-picker-column-radius: var(--ui-radius-sm);
+  --ui-time-picker-column-joined-radius: 0;
+  --ui-time-picker-option-h: 32px;
+  --ui-time-picker-option-radius: var(--ui-radius-xs);
+  --ui-time-picker-option-size: 1em;
+  --ui-time-picker-option-selected-shadow: 0 0 #0000;
+  /* WheelPicker: row height (the label size follows it). */
+  --ui-wheel-picker-item-h: 32px;
+  /* [layout] */
+  /* AppShell: docked header and aside; content fades out only above a footer. Of the fade pair exactly one
+     is `initial` (on), the other empty (off): -footer fades above a footer, -edges both edges of every main. */
+  --ui-app-shell-header-h: 56px;
+  --ui-app-shell-header-padding-start: var(--ui-space-3);
+  --ui-app-shell-header-border-color: var(--ui-divider);
+  --ui-app-shell-header-bg: var(--ui-bg);
+  --ui-app-shell-main-fade-footer: initial;
+  --ui-app-shell-main-fade-edges: ;
+  --ui-app-shell-aside-margin: 0;
+  --ui-app-shell-aside-border-start: 1px solid var(--ui-divider);
+  --ui-app-shell-drawer-shadow: var(--ui-shadow-modal);
+  --ui-app-shell-floating-inset: 0px;
+  --ui-app-shell-floating-aside-bg: var(--ui-surface);
+  /* ResizablePanels: a hairline with an accent line on hover; the grip is a small outlined tab with dots. */
+  --ui-resizable-handle-line-bg: var(--ui-accent);
+  --ui-resizable-handle-grip-line-display: block;
+  --ui-resizable-handle-grip-w: 12px;
+  --ui-resizable-handle-grip-h: 22px;
+  --ui-resizable-handle-grip-border: 1px solid var(--ui-border-strong);
+  --ui-resizable-handle-grip-radius: var(--ui-radius-xs);
+  --ui-resizable-handle-grip-bg: var(--ui-bg);
+  --ui-resizable-handle-grip-bg-hover: var(--ui-bg);
+  --ui-resizable-handle-grip-bg-active: var(--ui-bg);
+  --ui-resizable-handle-grip-scale-hover: none;
+  --ui-resizable-handle-grip-transition:
+    border-color var(--ui-duration-fast) var(--ui-ease),
+    color var(--ui-duration-fast) var(--ui-ease),
+    background-color var(--ui-duration-fast) var(--ui-ease);
+  --ui-resizable-handle-grip-icon-display: inline;
+  /* VirtualList: full-bleed rows and separators, an opaque section header. */
+  --ui-virtual-list-inset: 0px;
+  --ui-virtual-list-item-radius: 0px;
+  --ui-virtual-list-selected-bg: color-mix(in srgb, var(--ui-accent) 8%, transparent);
+  --ui-virtual-list-selected-bg-hover: color-mix(in srgb, var(--ui-accent) 12%, transparent);
+  --ui-virtual-list-header-bg: color-mix(in srgb, var(--ui-surface-2) 70%, var(--ui-surface));
+  --ui-virtual-list-header-fill: var(--ui-virtual-list-header-bg);
+  --ui-virtual-list-header-fg: var(--ui-fg-muted);
+  --ui-virtual-list-header-tracking: 0.02em;
+  --ui-virtual-list-header-backdrop: none;
+  --ui-virtual-list-divider-start: 0px;
+  --ui-virtual-list-divider-w: 1px;
+  --ui-virtual-list-panel-radius: var(--ui-radius-lg);
+  /* [marketing] */
+  /* MarketingHeading: mono, uppercase eyebrow */
+  --ui-marketing-heading-eyebrow-fg: var(--ui-accent-text);
+  --ui-marketing-heading-eyebrow-size: var(--ui-text-md);
+  --ui-marketing-heading-eyebrow-tracking: 0.06em;
+  --ui-marketing-heading-eyebrow-transform: uppercase;
+  /* Scroll reveal (reveal.css): rise distance and keyframes */
+  --ui-marketing-reveal-y: 16px;
+  --ui-marketing-reveal-animation: ui-marketing-reveal;
+  /* Testimonials: the featured quote sits on the page, unframed */
+  --ui-testimonials-featured-position: static;
+  --ui-testimonials-featured-isolation: auto;
+  --ui-testimonials-featured-border: 0;
+  --ui-testimonials-featured-radius: 0;
+  --ui-testimonials-featured-bg: transparent;
+  --ui-testimonials-featured-shadow: none;
+  --ui-testimonials-featured-tint-content: none;
+  --ui-testimonials-mark-fg: var(--ui-fg-subtle);
+  /* HeroSection: hairline grid backdrop fading out from the top centre, soft glow, framed visual */
+  --ui-hero-backdrop-inset: 0;
+  --ui-hero-backdrop-bg: radial-gradient(38% 70% at 12% 8%, rgba(42, 119, 191, 0.3), transparent 70%), radial-gradient(36% 70% at 88% 0%, rgba(77, 178, 236, 0.3), transparent 70%), radial-gradient(40% 60% at 62% 18%, rgba(255, 205, 63, 0.26), transparent 70%);
+  --ui-hero-backdrop-position: 50% 0;
+  --ui-hero-backdrop-size: 100% 100%;
+  --ui-hero-backdrop-mask: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.6) 32%, transparent 62%);
+  --ui-hero-backdrop-filter: none;
+  --ui-hero-backdrop-animation: none;
+  --ui-hero-backdrop-glow-display: none;
+  --ui-hero-highlight-bg: linear-gradient(90deg, #0f2256, #2a77bf 55%, #4db2ec);
+  --ui-hero-eyebrow-bg-hover: var(--ui-surface-2);
+  --ui-hero-visual-shadow: 0 0 0 1px rgba(15, 34, 86, 0.06), 0 50px 100px -20px rgba(15, 34, 86, 0.25), 0 30px 60px -30px rgba(0, 0, 0, 0.3);
+  /* ComparisonTable: opaque card, opaque sticky cells, monochrome highlight */
+  --ui-comparison-table-line: var(--ui-border);
+  --ui-comparison-table-frame-isolation: auto;
+  --ui-comparison-table-frame-bg: var(--ui-bg);
+  --ui-comparison-table-frame-material-content: none;
+  --ui-comparison-table-sticky-bg: var(--ui-bg);
+  --ui-comparison-table-group-bg: color-mix(in srgb, var(--ui-fg) 2.5%, var(--ui-bg));
+  --ui-comparison-table-highlight-bg: color-mix(in srgb, var(--ui-fg) 3%, var(--ui-bg));
+  --ui-comparison-table-head-highlight-bg: var(--ui-comparison-table-highlight-bg);
+  --ui-comparison-table-highlight-rule: var(--ui-fg);
+  --ui-comparison-table-feature-bg-fits: var(--ui-bg);
+  /* FAQSection: hairline-divided rows */
+  --ui-faq-section-list-display: block;
+  --ui-faq-section-list-direction: row;
+  --ui-faq-section-list-gap: normal;
+  --ui-faq-section-item-padding: 0;
+  --ui-faq-section-item-border: 0;
+  --ui-faq-section-item-divider: var(--ui-divider);
+  --ui-faq-section-item-radius: 0;
+  --ui-faq-section-item-bg: transparent;
+  --ui-faq-section-item-bg-open: transparent;
+  --ui-faq-section-item-shadow: none;
+  --ui-faq-section-item-shadow-open: none;
+  --ui-faq-section-item-shadow-focus: none;
+  --ui-faq-section-item-transition: all 0s ease 0s;
+  --ui-faq-section-trigger-shadow-focus: var(--ui-focus-ring);
+  --ui-faq-section-icon-bg: transparent;
+  --ui-faq-section-icon-bg-open: transparent;
+  --ui-faq-section-icon-bg-open-hover: var(--ui-hover);
+  --ui-faq-section-icon-fg: var(--ui-fg-muted);
+  --ui-faq-section-icon-fg-open: var(--ui-fg);
+  --ui-faq-section-contact-bg: var(--ui-bg);
+  /* LogoCloud: bare monochrome logos */
+  --ui-logo-cloud-title-size: var(--ui-text-sm);
+  --ui-logo-cloud-gap: clamp(var(--ui-space-8), 5cqi, var(--ui-space-16));
+  --ui-logo-cloud-row-gap: var(--ui-space-8);
+  --ui-logo-cloud-item-h: 40px;
+  --ui-logo-cloud-item-padding: 0;
+  --ui-logo-cloud-item-border: 0;
+  --ui-logo-cloud-item-bg: transparent;
+  --ui-logo-cloud-item-bg-hover: transparent;
+  --ui-logo-cloud-item-transition: all 0s ease 0s;
+  /* CTASection: light/dark palette ends regardless of mode; grid + glow backdrop */
+  --ui-cta-section-light: var(--ui-fg-inverse);
+  --ui-cta-section-dark: var(--ui-fg);
+  --ui-cta-section-card-radius: var(--ui-radius-xl);
+  --ui-cta-section-inverted-bg: var(--ui-fg);
+  --ui-cta-section-inverted-border-color: transparent;
+  --ui-cta-section-gradient-border-color: transparent;
+  --ui-cta-section-gradient-bg: radial-gradient(70% 120% at 0% 0%, color-mix(in srgb, var(--ui-teal) 55%, transparent), transparent 60%), radial-gradient(70% 120% at 100% 100%, color-mix(in srgb, var(--ui-pink) 75%, transparent), transparent 60%), linear-gradient(125deg, color-mix(in srgb, var(--ui-blue) 85%, var(--ui-cta-section-dark)), color-mix(in srgb, var(--ui-purple) 82%, var(--ui-cta-section-dark)));
+  --ui-cta-section-gradient-shadow: 0 32px 64px -32px color-mix(in srgb, var(--ui-purple) 55%, transparent);
+  --ui-cta-section-gradient-fg-muted-mix: 74%;
+  --ui-cta-section-gradient-text-shadow: none;
+  /* `initial` → the component's hairline grid in the card's own (re-mapped) border colour */
+  --ui-cta-section-backdrop-bg: initial;
+  --ui-cta-section-gradient-backdrop-bg: initial;
+  --ui-cta-section-backdrop-inset: 0;
+  --ui-cta-section-backdrop-position: 50% 50%;
+  --ui-cta-section-backdrop-size: 48px 48px;
+  --ui-cta-section-backdrop-mask: radial-gradient(ellipse 65% 90% at 50% 100%, #000 20%, transparent 75%);
+  --ui-cta-section-backdrop-filter: none;
+  --ui-cta-section-backdrop-glow-display: block;
+  /* NewsletterSignup */
+  --ui-newsletter-signup-card-padding: var(--ui-space-8);
+  --ui-newsletter-signup-card-radius: var(--ui-radius-card);
+  --ui-newsletter-signup-field-padding-x: var(--ui-space-3);
+  /* Footer: hairline-topped bar, bare social icons */
+  --ui-footer-border-color: var(--ui-divider);
+  --ui-footer-bottom-border-color: var(--ui-divider);
+  --ui-footer-socials-gap: var(--ui-space-1);
+  --ui-footer-socials-offset: calc(-1 * var(--ui-space-2));
+  --ui-footer-social-border: 0;
+  --ui-footer-social-bg: transparent;
+  --ui-footer-social-bg-hover: var(--ui-hover);
+  --ui-footer-social-fg: var(--ui-fg-muted);
+  --ui-footer-social-shadow-focus: var(--ui-focus-ring);
+  /* PricingTable: segmented billing toggle; the highlighted plan gets a dark edge and a blue wash */
+  --ui-pricing-table-toggle-radius: var(--ui-radius-md);
+  --ui-pricing-table-toggle-bg: var(--ui-surface-2);
+  --ui-pricing-table-toggle-item-radius: calc(var(--ui-radius-md) - 3px);
+  --ui-pricing-table-thumb-bg: var(--ui-bg);
+  --ui-pricing-table-thumb-shadow: 0 0 0 1px var(--ui-border), var(--ui-shadow-sm);
+  --ui-pricing-table-plan-border-color-highlighted: var(--ui-accent);
+  --ui-pricing-table-plan-bg-highlighted: linear-gradient(180deg, color-mix(in srgb, var(--ui-accent) 7%, transparent), transparent 42%), var(--ui-bg);
+  --ui-pricing-table-plan-shadow-highlighted: var(--ui-shadow-popover);
+  --ui-pricing-table-plan-ring-content: none;
+  --ui-pricing-table-badge-bg: var(--ui-accent);
+  --ui-pricing-table-badge-fg: var(--ui-accent-fg);
+  --ui-pricing-table-features-border-color: var(--ui-divider);
+  /* FeatureGrid: one bordered grid divided by hairlines; square icon tiles */
+  --ui-feature-grid-icon-size: 36px;
+  --ui-feature-grid-icon-glyph-size: var(--ui-icon-lg);
+  --ui-feature-grid-icon-bg: var(--ui-surface-2);
+  --ui-feature-grid-icon-fg: var(--ui-fg);
+  --ui-feature-grid-icon-shadow: var(--ui-shadow-sm);
+  --ui-feature-grid-title-size: var(--ui-text-lg);
+  --ui-feature-grid-frame-gap: normal;
+  --ui-feature-grid-frame-overflow: hidden;
+  --ui-feature-grid-frame-border: 1px solid var(--ui-border);
+  --ui-feature-grid-frame-radius: var(--ui-radius-card);
+  --ui-feature-grid-frame-bg: var(--ui-bg);
+  --ui-feature-grid-frame-shadow: var(--ui-shadow-card);
+  --ui-feature-grid-card-overlap: -1px;
+  --ui-feature-grid-card-padding: clamp(var(--ui-space-6), 3.4cqi, var(--ui-space-10)) clamp(var(--ui-space-5), 3cqi, var(--ui-space-8));
+  --ui-feature-grid-card-border: 0;
+  --ui-feature-grid-card-divider: var(--ui-divider);
+  --ui-feature-grid-card-radius: 0;
+  --ui-feature-grid-card-bg: transparent;
+  --ui-feature-grid-card-bg-hover: color-mix(in srgb, var(--ui-fg) 2.5%, transparent);
+  --ui-feature-grid-card-shadow: none;
+  --ui-feature-grid-card-shadow-hover: none;
+  --ui-feature-grid-card-translate-hover: none;
+  --ui-feature-grid-card-transition: background-color var(--ui-duration) var(--ui-ease);
+  /* [navigation] */
+  /* Breadcrumbs: a plain path, small square crumbs. */
+  --ui-breadcrumbs-list-display: flex;
+  --ui-breadcrumbs-list-max-w: none;
+  --ui-breadcrumbs-list-padding: 0;
+  --ui-breadcrumbs-list-radius: 0;
+  --ui-breadcrumbs-link-padding-x: 4px;
+  --ui-breadcrumbs-crumb-radius: var(--ui-radius-xs);
+  --ui-breadcrumbs-link-bg-hover: none;
+  --ui-breadcrumbs-ellipsis-w: 28px;
+  --ui-breadcrumbs-ellipsis-padding: 0;
+  /* CommandPalette: shortcut keys on the highlighted row look like everywhere else. */
+  --ui-command-palette-kbd-highlight-border-color: var(--ui-border);
+  --ui-command-palette-kbd-highlight-bg: var(--ui-surface-2);
+  --ui-command-palette-kbd-highlight-fg: var(--ui-fg-muted);
+  /* Navbar: a translucent bar across the top edge; the active link is underlined on its bottom edge. */
+  --ui-navbar-padding: 0;
+  --ui-navbar-bar-h: 64px;
+  --ui-navbar-bar-padding-inline: var(--ui-space-6);
+  --ui-navbar-bar-padding-inline-compact: var(--ui-space-4) var(--ui-space-3);
+  --ui-navbar-bar-border-bottom: 1px solid var(--ui-divider);
+  --ui-navbar-bar-radius: 0;
+  --ui-navbar-bar-bg: color-mix(in srgb, var(--ui-bg) 80%, transparent);
+  --ui-navbar-link-h: 32px;
+  --ui-navbar-link-padding-x: 10px;
+  --ui-navbar-link-radius: var(--ui-radius-sm);
+  --ui-navbar-link-weight: initial;
+  --ui-navbar-link-active-bg: transparent;
+  --ui-navbar-link-active-bg-hover: var(--ui-hover);
+  --ui-navbar-link-active-shadow: none;
+  --ui-navbar-link-active-shadow-focus: var(--ui-focus-ring);
+  --ui-navbar-link-underline-content: '';
+  --ui-navbar-sheet-radius: var(--ui-radius-popover);
+  --ui-navbar-sheet-link-h: 44px;
+  --ui-navbar-sheet-link-padding-x: var(--ui-space-3);
+  --ui-navbar-sheet-link-radius: var(--ui-radius-sm);
+  --ui-navbar-sheet-link-active-bg: var(--ui-hover);
+  /* Pagination: loose page buttons; the current page and the steps are outlined. */
+  --ui-pagination-list-gap: 4px;
+  --ui-pagination-list-padding: 0;
+  --ui-pagination-list-padding-compact: 0;
+  --ui-pagination-list-radius: 0;
+  --ui-pagination-item-radius: var(--ui-radius-sm);
+  --ui-pagination-item-transform-active: none;
+  --ui-pagination-item-current-bg: var(--ui-bg);
+  --ui-pagination-item-current-fg: var(--ui-fg);
+  --ui-pagination-item-current-shadow: inset 0 0 0 1px var(--ui-border-strong);
+  --ui-pagination-step-bg: var(--ui-bg);
+  --ui-pagination-step-shadow: inset 0 0 0 1px var(--ui-border-field);
+  --ui-pagination-step-bg-hover: var(--ui-surface-2);
+  --ui-pagination-step-fg-disabled: var(--ui-fg);
+  --ui-pagination-step-opacity-disabled: 0.45;
+  /* Sidebar: docked to the edge, square rows, a tinted active row (its badge keeps its own tint: `initial`). */
+  --ui-sidebar-w: 248px;
+  --ui-sidebar-rail-w: 56px;
+  --ui-sidebar-item-h: 32px;
+  --ui-sidebar-inset: 0px;
+  --ui-sidebar-border-end: 1px solid var(--ui-divider);
+  --ui-sidebar-nav-padding: var(--ui-space-2);
+  --ui-sidebar-section-label-inset: var(--ui-space-2);
+  --ui-sidebar-sublist-inset: 15px;
+  --ui-sidebar-item-padding-x: var(--ui-space-2);
+  --ui-sidebar-item-radius: var(--ui-radius-sm);
+  --ui-sidebar-rail-item-h: 40px;
+  --ui-sidebar-icon-fg: currentcolor;
+  --ui-sidebar-item-active-bg: var(--ui-accent-soft);
+  --ui-sidebar-item-active-fg: var(--ui-accent-text);
+  --ui-sidebar-item-active-shadow: none;
+  --ui-sidebar-item-active-bg-hover: color-mix(in srgb, var(--ui-accent) 14%, var(--ui-bg));
+  --ui-sidebar-item-active-fg-hover: var(--ui-accent-text);
+  --ui-sidebar-item-active-shadow-focus: var(--ui-focus-ring);
+  --ui-sidebar-item-active-chevron-fg: var(--ui-fg-faint);
+  --ui-sidebar-item-active-badge-bg: initial;
+  --ui-sidebar-item-active-badge-fg: initial;
+  --ui-sidebar-dot-ring: var(--ui-bg);
+  /* Stepper: outlined indicators, monochrome progress. */
+  --ui-stepper-indicator-size: 24px;
+  --ui-stepper-line-w: 1px;
+  --ui-stepper-indicator-shadow: inset 0 0 0 1px var(--ui-border-strong);
+  --ui-stepper-connector-bg: var(--ui-border-strong);
+  --ui-stepper-connector-bg-passed: var(--ui-fg);
+  --ui-stepper-indicator-complete-bg: var(--ui-primary);
+  --ui-stepper-indicator-complete-shadow: none;
+  --ui-stepper-indicator-current-shadow: inset 0 0 0 1.5px var(--ui-fg), 0 0 0 4px var(--ui-hover);
+  --ui-stepper-indicator-error-bg: var(--ui-danger);
+  --ui-stepper-indicator-error-shadow: none;
+  /* Tabs: the underline variant keeps the scroll fades (`initial`) and draws a 2px bar on the baseline;
+     pills slide a soft fill behind the active tab (its badge keeps its own tint: `initial`). */
+  --ui-tabs-tab-radius: var(--ui-radius-sm);
+  --ui-tabs-tab-weight: initial;
+  --ui-tabs-panel-radius: var(--ui-radius-sm);
+  --ui-tabs-underline-list-mask: initial;
+  --ui-tabs-underline-list-align: auto;
+  --ui-tabs-underline-list-gap: normal;
+  --ui-tabs-underline-list-padding: 0;
+  --ui-tabs-underline-list-radius: 0;
+  --ui-tabs-underline-list-shadow: inset 0 -2px 0 #d5e3f2;
+  --ui-tabs-underline-list-veil-content: none;
+  --ui-tabs-underline-tab-h: 44px;
+  --ui-tabs-underline-wash-inset: 8px 4px;
+  --ui-tabs-underline-wash-radius: var(--ui-radius-sm);
+  --ui-tabs-underline-active-wash: var(--ui-hover);
+  --ui-tabs-underline-indicator-offset: 0;
+  --ui-tabs-underline-bar-inset: auto 4px 0;
+  --ui-tabs-underline-bar-h: 3px;
+  --ui-tabs-underline-bar-radius: 0;
+  --ui-tabs-underline-bar-bg: var(--ui-primary);
+  --ui-tabs-underline-bar-shadow: none;
+  --ui-tabs-pills-tab-padding-x: 12px;
+  --ui-tabs-pills-tab-active-fg: var(--ui-accent-text);
+  --ui-tabs-pills-active-badge-bg: initial;
+  --ui-tabs-pills-active-badge-fg: initial;
+  --ui-tabs-pills-indicator-radius: var(--ui-radius-sm);
+  --ui-tabs-pills-indicator-bg: var(--ui-accent-soft);
+  --ui-tabs-pills-indicator-shadow: none;
+  /* SegmentedControl */
+  --ui-segmented-control-bg: var(--ui-surface-2);
+  --ui-segmented-control-shadow: inset 0 0 0 1px var(--ui-border);
+  --ui-segmented-control-radius: var(--ui-radius-md);
+  --ui-segmented-control-pad: 3px;
+  --ui-segmented-control-pad-lg: 4px;
+  --ui-segmented-control-item-fg: var(--ui-fg-muted);
+  --ui-segmented-control-item-tracking: normal;
+  --ui-segmented-control-item-press-opacity: 1;
+  --ui-segmented-control-thumb-bg: var(--ui-bg);
+  --ui-segmented-control-thumb-shadow: 0 0 0 1px rgba(15, 34, 86, 0.08), 0 1px 1px rgba(0, 0, 0, 0.06), 0 2px 5px rgba(15, 34, 86, 0.12);
+  /* [node-editor] */
+  /* NodeCanvas: backdrop, port/edge labels (mono in Vercel), wire colour per socket type (MODEL, CLIP, CONDITIONING, LATENT, IMAGE, VAE, MASK, numbers, text, other). */
+  --ui-node-canvas-bg: var(--ui-page-bg);
+  --ui-node-canvas-label-font: var(--ui-font-mono);
+  --ui-node-canvas-wire-1: #2a77bf;
+  --ui-node-canvas-wire-2: #b07a00;
+  --ui-node-canvas-wire-3: #d0660f;
+  --ui-node-canvas-wire-4: #d6336c;
+  --ui-node-canvas-wire-5: #0a8ac0;
+  --ui-node-canvas-wire-6: #df1b41;
+  --ui-node-canvas-wire-7: #12875c;
+  --ui-node-canvas-wire-8: #0e9c8e;
+  --ui-node-canvas-wire-9: #6d8b2f;
+  --ui-node-canvas-wire-10: #9966ff;
+  /* [productivity] */
+  /* BulkActionBar: an inverted navy bar. */
+  --ui-bulk-action-bar-bg: #0f2256;
+  --ui-bulk-action-bar-fg: #f4f6f9;
+  --ui-bulk-action-bar-fg-muted: #adbdcc;
+  --ui-bulk-action-bar-hover: rgba(200, 220, 255, 0.1);
+  --ui-bulk-action-bar-active: rgba(200, 220, 255, 0.16);
+  --ui-bulk-action-bar-divider: rgba(200, 220, 255, 0.18);
+  --ui-bulk-action-bar-border: transparent;
+  --ui-bulk-action-bar-shadow: 0 6px 12px -2px rgba(15, 34, 86, 0.25), 0 3px 7px -3px rgba(0, 0, 0, 0.3);
+  --ui-bulk-action-bar-radius: var(--ui-radius-lg);
+  --ui-bulk-action-bar-danger: #ff7a93;
+  --ui-bulk-action-bar-link: #8cc4f2;
+  /* DataGrid: an opaque tinted header, square ticks, pinned columns that cover what scrolls under them.
+     `initial`: the row's fill over pinned cells; the empty frost layer adds no background layer (DataGrid.css).
+     --ui-data-grid-row-h-extra is added to the row and header heights (read by DataGrid.tsx). */
+  --ui-data-grid-row-h-extra: 0px;
+  --ui-data-grid-head-bg: #e8f1fa;
+  --ui-data-grid-head-solid: var(--ui-data-grid-head-bg);
+  --ui-data-grid-head-fg: #1f64a6;
+  --ui-data-grid-head-backdrop: none;
+  --ui-data-grid-divider-w: 1px;
+  --ui-data-grid-row-bg-hover: var(--ui-hover);
+  --ui-data-grid-row-bg-selected: color-mix(in srgb, var(--ui-accent) 6%, transparent);
+  --ui-data-grid-row-bg-selected-hover: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+  --ui-data-grid-group-bg: color-mix(in srgb, var(--ui-surface-2) 45%, transparent);
+  --ui-data-grid-number-size: 0.93em;
+  --ui-data-grid-container-position: static;
+  --ui-data-grid-container-isolation: auto;
+  --ui-data-grid-container-bg: var(--ui-surface);
+  --ui-data-grid-container-frost-content: none;
+  --ui-data-grid-pin-bg: var(--ui-surface);
+  --ui-data-grid-pin-row-tint: initial;
+  --ui-data-grid-pin-shadow: rgba(0, 0, 0, 0.08);
+  --ui-data-grid-pin-bg-scrolled: var(--ui-surface);
+  --ui-data-grid-pin-frost-layer: ;
+  --ui-data-grid-pin-backdrop-scrolled: none;
+  --ui-data-grid-head-pin-bg: var(--ui-data-grid-head-bg);
+  --ui-data-grid-head-pin-bg-scrolled: var(--ui-data-grid-head-bg);
+  --ui-data-grid-cell-focus-color: var(--ui-accent);
+  --ui-data-grid-cell-focus-radius: 0;
+  --ui-data-grid-search-radius: var(--ui-radius-field);
+  --ui-data-grid-pill-bg: var(--ui-surface-2);
+  --ui-data-grid-check-border-w: 1px;
+  --ui-data-grid-check-radius: var(--ui-radius-xs);
+  --ui-data-grid-bool-bg: transparent;
+  --ui-data-grid-checkbox-bg: var(--ui-bg);
+  --ui-data-grid-check-shadow-checked: none;
+  --ui-data-grid-check-border-color-checked-hover: var(--ui-fg-subtle);
+  /* RichTextEditor (.ui-rte): a field-like frame with a grey focus halo, grey active tools and code wells. */
+  --ui-rte-bg: var(--ui-field-bg);
+  --ui-rte-border-color: var(--ui-border-field);
+  --ui-rte-shadow: none;
+  --ui-rte-border-color-focus: var(--ui-border-strong);
+  --ui-rte-shadow-focus: 0 0 0 3px color-mix(in srgb, var(--ui-fg) 6%, transparent);
+  --ui-rte-tool-bg-active: var(--ui-active);
+  --ui-rte-quote-border-color: var(--ui-border-strong);
+  --ui-rte-code-bg: var(--ui-surface-2);
+  --ui-rte-inline-code-bg: var(--ui-surface-2);
+  --ui-rte-bubble-radius: var(--ui-radius-md);
+  --ui-rte-bubble-toolbar-padding: 4px;
+  --ui-rte-option-icon-bg: var(--ui-bg);
+  --ui-rte-option-icon-border-color-highlight: var(--ui-glass-border);
+  --ui-rte-option-icon-bg-highlight: var(--ui-rte-option-icon-bg);
+  --ui-rte-option-meta-fg-highlight: var(--ui-fg-muted);
+  /* Scheduler: today in the text colour, a hatch outside working hours, dashed half-hour lines, solid tinted
+     event chips. `initial`: the grid's line colours and a date's own colour (Scheduler.css). */
+  --ui-scheduler-pad-x: var(--ui-space-4);
+  --ui-scheduler-pad-x-compact: var(--ui-space-3);
+  --ui-scheduler-hour-h: 52px;
+  --ui-scheduler-bar-h: 22px;
+  --ui-scheduler-event-radius: 6px;
+  --ui-scheduler-head-bg: var(--ui-bg);
+  --ui-scheduler-sticky-bg: var(--ui-bg);
+  --ui-scheduler-today-bg: var(--ui-fg);
+  --ui-scheduler-today-fg: var(--ui-fg-inverse);
+  --ui-scheduler-today-shadow: none;
+  --ui-scheduler-today-weekday-fg: var(--ui-fg);
+  --ui-scheduler-off-bg:
+    repeating-linear-gradient(-45deg, transparent 0 5px, color-mix(in srgb, var(--ui-fg) 4%, transparent) 5px 6px),
+    color-mix(in srgb, var(--ui-fg) 1.5%, transparent);
+  --ui-scheduler-toolbar-pad-y: var(--ui-space-3);
+  --ui-scheduler-toolbar-border-color: initial;
+  --ui-scheduler-title-size: var(--ui-text-lg);
+  --ui-scheduler-title-size-compact: var(--ui-scheduler-title-size);
+  --ui-scheduler-weekday-fg: var(--ui-fg-muted);
+  --ui-scheduler-weekday-justify: normal;
+  --ui-scheduler-colhead-weekday-tracking: 0.04em;
+  --ui-scheduler-colhead-date-size: var(--ui-text-lg);
+  --ui-scheduler-colhead-date-weight: var(--ui-weight-semibold);
+  --ui-scheduler-half-hour-line: initial;
+  --ui-scheduler-first-hour-line: transparent;
+  --ui-scheduler-day-display: block;
+  --ui-scheduler-day-direction: row;
+  --ui-scheduler-day-align: normal;
+  --ui-scheduler-day-outside-bg: color-mix(in srgb, var(--ui-surface-2) 45%, transparent);
+  --ui-scheduler-weekend-date-fg: initial;
+  --ui-scheduler-strip-today-fg: var(--ui-accent-text);
+  --ui-scheduler-event-fill-mix: 13%;
+  --ui-scheduler-event-fill-mix-hover: 20%;
+  --ui-scheduler-event-fill-base: var(--ui-bg);
+  --ui-scheduler-event-ink-mix: 40%;
+  --ui-scheduler-event-fill-mix-dragging: 5%;
+  --ui-scheduler-event-fill-base-dragging: transparent;
+  --ui-scheduler-ghost-fill-mix: 20%;
+  --ui-scheduler-draft-fill-mix: 12%;
+  --ui-scheduler-event-backdrop: none;
+  --ui-scheduler-agenda-event-backdrop: none;
+  --ui-scheduler-timeline-lane-h: 40px;
+}
+
+/* ───────────────────────── Manacost · dark ───────────────────────── */
+[data-theme='manacost'][data-mode='dark'] {
+  color-scheme: dark;
+
+  --ui-gray-100: #14264d;
+  --ui-gray-200: #1b305c;
+  --ui-gray-300: #223a68;
+  --ui-gray-400: #294474;
+  --ui-gray-500: #3a5478;
+  --ui-gray-600: #4a5d78;
+  --ui-gray-700: #7187a0;
+  --ui-gray-800: #8296ac;
+  --ui-gray-900: #adbdcc;
+  --ui-gray-1000: #f4f6f9;
+  --ui-gray-alpha-100: rgba(200, 220, 255, 0.05);
+  --ui-gray-alpha-200: rgba(200, 220, 255, 0.08);
+  --ui-gray-alpha-300: rgba(200, 220, 255, 0.11);
+  --ui-gray-alpha-400: rgba(200, 220, 255, 0.12);
+  --ui-gray-alpha-500: rgba(200, 220, 255, 0.2);
+  --ui-gray-alpha-600: rgba(200, 220, 255, 0.4);
+  --ui-gray-alpha-700: rgba(200, 220, 255, 0.5);
+  --ui-gray-alpha-800: rgba(200, 220, 255, 0.56);
+  --ui-gray-alpha-900: rgba(200, 220, 255, 0.68);
+  --ui-gray-alpha-1000: rgba(246, 249, 252, 0.94);
+
+  --ui-page-bg: radial-gradient(100% 60% at 50% 0%, rgba(42, 119, 191, 0.18), transparent 60%), #0a1530;
+  --ui-bg: #0f1d3d;
+  --ui-surface: #0f1d3d;
+  --ui-surface-2: #14264d;
+  --ui-surface-3: #1b305c;
+  --ui-elevated: #132448;
+  --ui-hover: rgba(200, 220, 255, 0.06);
+  --ui-active: rgba(200, 220, 255, 0.1);
+  --ui-overlay: rgba(4, 10, 22, 0.7);
+  --ui-tooltip-bg: #1b305c;
+  --ui-tooltip-fg: #f4f6f9;
+
+  --ui-border: rgba(200, 220, 255, 0.12);
+  --ui-border-strong: rgba(200, 220, 255, 0.22);
+  --ui-border-field: rgba(200, 220, 255, 0.45);
+  --ui-field-border-hover: rgba(200, 220, 255, 0.54);
+
+  --ui-fg: #f4f6f9;
+  --ui-fg-muted: #adbdcc;
+  /* Muted ≥ 6.8:1 and subtle ≥ 5:1 on every surface up to --ui-surface-3. */
+  --ui-fg-subtle: #8fa3b8;
+  --ui-fg-faint: #7187a0;
+  --ui-fg-disabled: #4a5d78;
+  --ui-fg-inverse: #0f2256;
+
+  --ui-accent: #6cb4f5;
+  --ui-accent-hover: #8cc4f7;
+  --ui-accent-fg: #0a1a3d;
+  --ui-accent-soft: rgba(77, 178, 236, 0.16);
+  --ui-accent-text: #8cc4f7;
+
+  --ui-primary: #2a77bf;
+  --ui-primary-hover: #2368a8;
+  --ui-primary-fg: #ffffff;
+
+  --ui-success: #2fbf8a;
+  --ui-success-soft: rgba(47, 191, 138, 0.16);
+  --ui-success-text: #4fd1a1;
+  --ui-warning: #ffcd3f;
+  --ui-warning-soft: rgba(255, 205, 63, 0.14);
+  --ui-warning-text: #ffd966;
+  --ui-danger: #df1b41;
+  --ui-danger-hover: #cd1a3c;
+  --ui-danger-soft: rgba(255, 90, 120, 0.16);
+  --ui-danger-text: #ff7a93;
+  --ui-info: #2b8fff;
+  --ui-info-soft: rgba(43, 143, 255, 0.16);
+  --ui-info-text: #6ec1ff;
+
+  --ui-gray: #8296ac;
+  --ui-blue: #4aa8ff;
+  --ui-green: #2fbf8a;
+  --ui-amber: #ffc46b;
+  --ui-red: #ff5a78;
+  --ui-purple: #b48cff;
+  --ui-pink: #ff7aa8;
+  --ui-teal: #2ed3c4;
+
+  /* Same hues as the light series, in the same order (navy ink turns to a pale ink). */
+  --ui-chart-1: #6fb0ec;
+  --ui-chart-2: #b48cff;
+  --ui-chart-3: #ffcd3f;
+  --ui-chart-4: #e6ecf5;
+  --ui-chart-5: #ff6b6b;
+  --ui-chart-6: #2ed3c4;
+  --ui-chart-7: #8296ac;
+  --ui-chart-8: #ff9f4a;
+  --ui-chart-grid: rgba(200, 220, 255, 0.08);
+  --ui-chart-axis: #798fa8;
+
+  --ui-shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.3), 0 2px 5px rgba(0, 0, 0, 0.2);
+  --ui-shadow-card: 0 2px 5px -1px rgba(0, 0, 0, 0.35), 0 1px 3px -1px rgba(0, 0, 0, 0.4);
+  --ui-shadow-popover: 0 0 0 1px rgba(200, 220, 255, 0.1), 0 6px 12px -2px rgba(0, 0, 0, 0.5), 0 3px 7px -3px rgba(0, 0, 0, 0.6);
+  --ui-shadow-modal: 0 0 0 1px rgba(200, 220, 255, 0.1), 0 30px 60px -12px rgba(0, 0, 0, 0.6), 0 18px 36px -18px rgba(0, 0, 0, 0.7);
+  /* The lighter accent tint keeps 3:1 against the near-black page. */
+  --ui-focus-color: #6fb0ec;
+
+  /* [roles · dark] */
+  /* Decoration hooks · dark: the brighter blue rule over a faint navy hairline. */
+  --ui-frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Crect width='12' height='3' fill='%233b8fe0'/%3E%3Cpath d='M.5 3V11.5H11.5V3' stroke='%23c8dcff' stroke-opacity='0.2'/%3E%3C/svg%3E") 3 1 1 1 / 3px 1px 1px 1px / 0 stretch;
+
+  /* ── Component tokens: --ui-<component>-<property>, one value per theme file ── */
+  /* AI assistant components */
+  --ui-voice-orb-base: #0b1430;
+  --ui-voice-orb-color-1: #2a77bf;
+  --ui-voice-orb-color-2: #4db2ec;
+  --ui-voice-orb-color-3: #cfe2f5;
+  --ui-voice-orb-color-4: #4db2ec;
+  --ui-voice-orb-glow: rgba(42, 119, 191, 0.5);
+  --ui-voice-orb-shine: rgba(255, 255, 255, 0.34);
+  /* [ai · dark] */
+  /* CodeBlock: lavender / mint / amber dark code colours */
+  --ui-code-block-keyword-fg: #c3a6ff;
+  --ui-code-block-string-fg: #4fd1a1;
+  --ui-code-block-number-fg: #ffb26b;
+  --ui-code-block-constant-fg: #ffb26b;
+  --ui-code-block-function-fg: #8cc4f2;
+  --ui-code-block-type-fg: #5fdcf0;
+  --ui-code-block-tag-fg: #8cc4f2;
+  --ui-code-block-attr-fg: #ffc46b;
+  --ui-code-block-property-fg: #6ec1ff;
+  --ui-code-block-variable-fg: #ffb26b;
+  --ui-code-block-comment-fg: #8fa3b8;
+  --ui-code-block-punctuation-fg: #adbdcc;
+  --ui-code-block-inserted-fg: #4fd1a1;
+  --ui-code-block-deleted-fg: #ff7a93;
+  /* [basic · dark] */
+  /* Badge: dark ink on solid fills (`initial`: Badge.css), hues not deepened */
+  --ui-badge-solid-fg: initial;
+  --ui-badge-solid-blue: var(--ui-blue);
+  --ui-badge-solid-red: var(--ui-red);
+  --ui-badge-solid-purple: var(--ui-purple);
+  --ui-badge-solid-pink: var(--ui-pink);
+  /* [charts · dark] */
+  /* Treemap */
+  --ui-treemap-value-mix: 10%;
+  --ui-treemap-value-mix-range: 72%;
+  /* [commerce · dark] */
+  /* [data-display · dark] */
+  /* Card: a deeper hover shadow, which also beats the focus ring and the disabled shadow. */
+  --ui-card-interactive-shadow-hover: var(--ui-highlight), 0 13px 27px -5px rgba(0, 0, 0, 0.5), 0 8px 16px -8px rgba(0, 0, 0, 0.6);
+  --ui-card-interactive-shadow-hover-focus: var(--ui-card-interactive-shadow-hover);
+  --ui-card-interactive-shadow-disabled-hover: var(--ui-card-interactive-shadow-hover);
+  /* DataTable: a deeper edge shadow on the pinned column. */
+  --ui-data-table-pin-shadow: rgba(0, 0, 0, 0.4);
+  /* [effects · dark] */
+  --ui-aurora-background-opacity: 0.45;
+  --ui-aurora-background-blend: screen;
+  --ui-spotlight-color: color-mix(in srgb, var(--ui-fg) 12%, transparent);
+  --ui-spotlight-color-2: color-mix(in srgb, var(--ui-fg) 12%, transparent);
+  --ui-spotlight-shade: transparent;
+  --ui-tilt-card-glare: color-mix(in srgb, var(--ui-fg) 10%, transparent);
+  --ui-ripple-opacity: 0.2;
+  --ui-particles-color: var(--ui-gray-1000);
+  /* [feedback · dark] */
+  /* [forms · dark] */
+  /* Switch: the checked track takes the accent. */
+  --ui-switch-track-bg-checked: var(--ui-accent);
+  /* [forms-advanced · dark] */
+  /* [layout · dark] */
+  /* [marketing · dark] */
+  /* CTASection: the palette ends swap */
+  --ui-cta-section-light: var(--ui-fg);
+  --ui-cta-section-dark: var(--ui-fg-inverse);
+  /* PricingTable */
+  --ui-pricing-table-thumb-bg: var(--ui-surface-3);
+  /* [navigation · dark] */
+  /* [node-editor · dark] */
+  --ui-node-canvas-wire-1: #8cc4f2;
+  --ui-node-canvas-wire-2: #ffd36b;
+  --ui-node-canvas-wire-3: #ffa65c;
+  --ui-node-canvas-wire-4: #ff7aa8;
+  --ui-node-canvas-wire-5: #4aa8ff;
+  --ui-node-canvas-wire-6: #ff5a78;
+  --ui-node-canvas-wire-7: #2fbf8a;
+  --ui-node-canvas-wire-8: #4db2ec;
+  --ui-node-canvas-wire-9: #a3d36b;
+  --ui-node-canvas-wire-10: #b48cff;
+  /* [productivity · dark] */
+  --ui-bulk-action-bar-bg: #1b305c;
+  --ui-bulk-action-bar-border: rgba(200, 220, 255, 0.14);
+  --ui-bulk-action-bar-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.7);
+  /* DataGrid: a deeper edge shadow on pinned columns. */
+  --ui-data-grid-pin-shadow: rgba(0, 0, 0, 0.45);
+  /* Scheduler: denser event tints, lighter ink. */
+  --ui-scheduler-event-fill-mix: 22%;
+  --ui-scheduler-event-fill-mix-hover: 30%;
+  --ui-scheduler-event-ink-mix: 38%;
+  --ui-tooltip-shadow: 0 0 0 1px rgba(200, 220, 255, 0.12), 0 6px 12px -2px rgba(0, 0, 0, 0.45), 0 3px 7px -3px rgba(0, 0, 0, 0.5);
+  --ui-field-bg: #0b1a30;
+  --ui-focus-ring: 0 0 0 1px var(--ui-bg), 0 0 0 3px var(--ui-focus-color), 0 0 0 6px color-mix(in srgb, var(--ui-accent) 28%, transparent);
+  --ui-glass-border: rgba(200, 220, 255, 0.12);
+  --ui-highlight: inset 0 1px 0 rgba(200, 220, 255, 0.06);
+  --ui-field-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
+  --ui-checked-shadow: 0 0 0 1px rgba(42, 119, 191, 0.4), 0 2px 8px rgba(42, 119, 191, 0.45);
+  --ui-raised-bg: var(--ui-surface-2);
+  --ui-modal-footer-bg: #0b1a30;
+  --ui-button-solid-glow: 0 0 0 1px rgba(77, 178, 236, 0.35), 0 4px 14px -2px rgba(42, 119, 191, 0.55);
+  --ui-button-solid-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --ui-button-secondary-shadow: var(--ui-highlight), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --ui-segmented-control-bg: var(--ui-page-bg);
+  --ui-segmented-control-thumb-bg: var(--ui-surface-3);
+  --ui-segmented-control-thumb-shadow: 0 0 0 1px var(--ui-border), var(--ui-highlight), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --ui-sidebar-item-active-bg-hover: color-mix(in srgb, var(--ui-accent) 28%, var(--ui-bg));
+  --ui-tooltip-arrow-filter: none;
+  --ui-pricing-table-plan-bg-highlighted: linear-gradient(180deg, color-mix(in srgb, var(--ui-accent) 18%, transparent), transparent 46%), var(--ui-bg);
+  --ui-pricing-table-plan-shadow-highlighted: 0 0 0 1px rgba(77, 178, 236, 0.3), 0 20px 48px -12px rgba(42, 119, 191, 0.35);
+  --ui-hero-backdrop-bg: radial-gradient(38% 70% at 12% 8%, rgba(77, 178, 236, 0.4), transparent 70%), radial-gradient(36% 70% at 88% 0%, rgba(255, 205, 63, 0.28), transparent 70%), radial-gradient(40% 60% at 62% 18%, rgba(42, 119, 191, 0.4), transparent 70%), radial-gradient(34% 56% at 36% 26%, rgba(255, 51, 61, 0.14), transparent 70%);
+  --ui-hero-visual-shadow: 0 0 0 1px rgba(200, 220, 255, 0.1), 0 50px 100px -20px rgba(0, 0, 0, 0.6), 0 0 80px -20px rgba(42, 119, 191, 0.35);
+  --ui-hero-highlight-bg: linear-gradient(90deg, #8cc4f2, #4db2ec 55%, #ffcd3f);
+  --ui-data-table-head-bg: #14264d;
+  --ui-data-table-head-fg: #8cc4f7;
+  --ui-data-grid-head-bg: #14264d;
+  --ui-data-grid-head-fg: #8cc4f7;
+  --ui-tabs-underline-list-shadow: inset 0 -2px 0 rgba(108, 180, 245, 0.18);
+}
+
+/* ───────────────────────── Increased contrast ─────────────────────────
+   macOS / iOS "Increase contrast": firmer edges and darker secondary text. */
+@media (prefers-contrast: more) {
+  [data-theme='manacost']:not([data-mode='dark']) {
+    --ui-border: rgba(15, 34, 86, 0.3);
+    --ui-border-strong: rgba(15, 34, 86, 0.5);
+    --ui-border-field: rgba(15, 34, 86, 0.6);
+    --ui-field-border-hover: var(--ui-fg-subtle);
+    --ui-divider: rgba(15, 34, 86, 0.24);
+    --ui-hover: rgba(15, 34, 86, 0.08);
+    --ui-active: rgba(15, 34, 86, 0.14);
+    --ui-fg-muted: #2c3e52;
+    --ui-fg-subtle: #38495d;
+    --ui-fg-faint: #56657a;
+    --ui-fg-disabled: #7f8b9c;
+    --ui-focus-color: var(--ui-accent);
+  }
+
+  [data-theme='manacost'][data-mode='dark'] {
+    --ui-border: rgba(200, 220, 255, 0.32);
+    --ui-border-strong: rgba(200, 220, 255, 0.52);
+    --ui-border-field: rgba(200, 220, 255, 0.52);
+    --ui-field-border-hover: var(--ui-fg-subtle);
+    --ui-divider: rgba(200, 220, 255, 0.26);
+    --ui-hover: rgba(200, 220, 255, 0.1);
+    --ui-active: rgba(200, 220, 255, 0.16);
+    --ui-fg-muted: #d3dde8;
+    --ui-fg-subtle: #bfcbd8;
+    --ui-fg-faint: #a0b2c5;
+    --ui-fg-disabled: #6f84a0;
+    --ui-focus-color: var(--ui-accent-text);
+  }
+}
+
+/* ───────────────────────── Reduced transparency ─────────────────────────
+   Effects that frost what lies behind them turn solid. */
+@media (prefers-reduced-transparency: reduce) {
+  [data-theme='manacost'] {
+    --ui-morphing-capsule-fill: Canvas;
+    --ui-morphing-capsule-frost: none;
+    --ui-floating-tab-bar-bg: Canvas;
+    --ui-floating-tab-bar-frost: none;
+    /* The sticky navbar loses its see-through fill (it has no blur to soften what scrolls under it). */
+    --ui-navbar-bar-bg: var(--ui-bg);
+  }
+}
+
+/* ───────────────────────── Reduced motion ─────────────────────────
+   Components take durations from these tokens, so zeroing them disables motion. */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='manacost'] {
+    --ui-duration-fast: 1ms;
+    --ui-duration: 1ms;
+    --ui-duration-slow: 1ms;
+  }
+}

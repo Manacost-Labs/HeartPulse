@@ -1,6 +1,7 @@
 export type { AdminClientCardProps } from './ui/AdminClientCard';
 export { AdminSegmentBar } from './ui/AdminSegmentBar';
 export { adminCrmClient } from './api/adminCrmClient';
+export { preloadAdminOverview } from './api/overviewPreload';
 export type { AdminCrmPerson, AdminCrmSegmentId, AdminCrmSegments } from './api/adminCrmClient';
 
 /** The client card opens only on demand, so it stays out of the admin route chunk. */

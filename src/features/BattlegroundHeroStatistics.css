@@ -6,38 +6,43 @@
   color: var(--arena-ink);
 }
 
+/* Quiet underline tabs: the selected one carries the only accent of the bar. */
 .bg-hero-statistics__tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-block: 1rem;
+  gap: 0.25rem;
+  margin: 0.75rem 0 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--arena-paper-line);
+  scrollbar-width: none;
 }
 
 .bg-hero-statistics__tabs button {
+  flex: none;
   min-height: 44px;
-  padding: 0.5rem 1rem;
-  border: 1px solid #8b6c42;
-  border-radius: 3px;
-  background: var(--arena-parchment-light);
-  color: var(--arena-ink);
+  margin-bottom: -1px;
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--arena-muted-ink);
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color var(--motion-base) var(--motion-ease), color var(--motion-base) var(--motion-ease);
+  transition: color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
 }
 
-.bg-hero-statistics__tabs button:hover { background: #e5c994; }
+.bg-hero-statistics__tabs button:hover { color: var(--arena-ink); }
 .bg-hero-statistics__tabs button[aria-selected='true'] {
-  border-color: var(--arena-red);
-  background: var(--arena-red);
-  color: #fff0c4;
-  box-shadow: inset 0 -3px var(--arena-gold);
+  border-bottom-color: var(--arena-red);
+  color: var(--arena-red);
 }
 
 .bg-hero-statistics :is([role='tab'], [role='tabpanel']):focus-visible {
   outline: 2px solid var(--arena-red);
   outline-offset: 3px;
 }
+
+.bg-hero-statistics [role='tab']:focus-visible { outline-offset: -2px; }
 
 .bg-hero-statistics [role='tabpanel'][hidden] { display: none; }
 .bg-hero-statistics [role='tabpanel'] {
@@ -60,11 +65,30 @@
   min-width: 0;
 }
 
+.bg-hero-statistics__content > p {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.875rem;
+}
+
+/* Charts sit straight on the section: no second frame inside the framed panel. */
 .bg-hero-statistics .analytics-chart {
-  width: min(100%, 72rem);
+  width: 100%;
   min-width: 0;
-  justify-self: center;
-  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.bg-hero-statistics .analytics-chart__header h3 { font-size: clamp(1rem, 1.6vw, 1.2rem); }
+.bg-hero-statistics .analytics-chart__header p { margin-top: 2px; font-size: 0.8125rem; }
+.bg-hero-statistics .analytics-chart__header { margin-bottom: 10px; }
+.bg-hero-statistics .analytics-chart__selection { border-top-color: var(--arena-paper-line); }
+
+@media (max-width: 480px) {
+  .bg-hero-statistics__tabs { gap: 0; }
+  .bg-hero-statistics__tabs button { flex: 1 1 auto; padding-inline: 0.45rem; font-size: 0.875rem; }
 }
 
 @keyframes bg-hero-stat-panel-in {

@@ -5,6 +5,7 @@ import { AdminOperationsHeader } from './AdminOperationsHeader';
 import { DuplicateLabelsNotice, type ArchetypeLabelDuplicate } from './ContestAdminTranslationDuplicates';
 import type { AdminMessage } from './adminWorkspaceState';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
+import { useAdminResource } from '../modules/adminWorkspace/public';
 export type ArchetypeTranslation = {
   id: number;
   blizzcoreId: number | null;
@@ -47,6 +48,17 @@ const EMPTY_COVERAGE: TranslationCoverage = {
 
 function requestHeaders(): HeadersInit {
   return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
+}
+
+const COVERAGE_KEY = '/api/admin/archetype-translations/untranslated';
+
+async function fetchTranslationCoverage(): Promise<TranslationCoverage> {
+  const response = await fetchWithDeadline(COVERAGE_KEY, {
+    headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', deadlineMs: 45_000,
+  });
+  const payload: { error?: string } & Partial<TranslationCoverage> = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || 'Не удалось проверить актуальные архетипы');
+  return payload as TranslationCoverage;
 }
 
 type LatestRequestLease = { signal: AbortSignal; isCurrent: () => boolean; release: () => void };
@@ -372,10 +384,14 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [coverage, setCoverage] = useState<TranslationCoverage>(EMPTY_COVERAGE);
-  const [coverageLoading, setCoverageLoading] = useState(true);
-  const [coverageLoaded, setCoverageLoaded] = useState(false);
-  const [coverageError, setCoverageError] = useState('');
+  // The coverage check reads every current matchup and meta slice (up to 45 s), so its answer is
+  // shared through the admin cache: returning to the section shows it at once.
+  const coverageResource = useAdminResource(COVERAGE_KEY, fetchTranslationCoverage);
+  const coverage = coverageResource.data ?? EMPTY_COVERAGE;
+  const coverageLoading = coverageResource.loading || coverageResource.refreshing;
+  const coverageLoaded = coverageResource.data !== undefined;
+  const coverageError = coverageResource.error?.message ?? '';
+  const loadCoverage = coverageResource.reload;
   const [editing, setEditing] = useState<ArchetypeTranslation | null>(null);
   const [draft, setDraft] = useState<TranslationDraft>(EMPTY_DRAFT);
   const [copiedDeckName, setCopiedDeckName] = useState('');
@@ -383,7 +399,6 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const englishInputRef = useRef<HTMLInputElement>(null);
   const russianInputRef = useRef<HTMLInputElement>(null);
   const loadCoordinator = useLatestRequestCoordinator();
-  const coverageCoordinator = useLatestRequestCoordinator();
 
   const load = useCallback(async () => {
     const request = loadCoordinator.begin();
@@ -408,27 +423,6 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     }
   }, [loadCoordinator, onMessage, page, query, source]);
 
-  const loadCoverage = useCallback(async () => {
-    const request = coverageCoordinator.begin();
-    setCoverageLoading(true);
-    setCoverageError('');
-    try {
-      const response = await fetchWithDeadline('/api/admin/archetype-translations/untranslated', {
-        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal: request.signal, deadlineMs: 45_000,
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Не удалось проверить актуальные архетипы');
-      if (!request.isCurrent()) return;
-      setCoverage(payload as TranslationCoverage);
-      setCoverageLoaded(true);
-    } catch (error) {
-      if (!request.isCurrent()) return;
-      setCoverageError(error instanceof Error ? error.message : 'Не удалось проверить актуальные архетипы');
-    } finally {
-      if (request.isCurrent()) setCoverageLoading(false);
-      request.release();
-    }
-  }, [coverageCoordinator]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), query.trim() ? 220 : 0);
@@ -437,11 +431,6 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       loadCoordinator.cancel();
     };
   }, [load, loadCoordinator, query, refreshVersion]);
-
-  useEffect(() => {
-    void loadCoverage();
-    return () => coverageCoordinator.cancel();
-  }, [coverageCoordinator, loadCoverage]);
 
   useEffect(() => () => {
     if (copiedDeckTimerRef.current !== null) window.clearTimeout(copiedDeckTimerRef.current);

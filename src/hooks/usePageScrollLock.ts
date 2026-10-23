@@ -4,7 +4,7 @@ const scrollOffsetProperty = '--page-scroll-lock-offset';
 
 type SavedInlineStyles = {
   body: Pick<CSSStyleDeclaration, 'position' | 'top' | 'left' | 'right' | 'width' | 'overflow' | 'overscrollBehavior'>;
-  html: Pick<CSSStyleDeclaration, 'overflow' | 'overscrollBehavior'>;
+  html: Pick<CSSStyleDeclaration, 'overflow' | 'overscrollBehavior' | 'scrollbarGutter'>;
   scrollOffset: [string, string];
 };
 
@@ -18,6 +18,9 @@ function lockPageScroll() {
   const body = document.body;
   const html = document.documentElement;
   lockedScrollY = window.scrollY;
+  // A classic scrollbar disappears with `overflow: hidden`: without its gutter
+  // the page reflows wider under the dialog and jumps back when it closes.
+  const classicScrollbar = window.innerWidth - html.clientWidth > 0;
   savedStyles = {
     body: {
       position: body.style.position,
@@ -31,12 +34,14 @@ function lockPageScroll() {
     html: {
       overflow: html.style.overflow,
       overscrollBehavior: html.style.overscrollBehavior,
+      scrollbarGutter: html.style.scrollbarGutter,
     },
     scrollOffset: [body.style.getPropertyValue(scrollOffsetProperty), body.style.getPropertyPriority(scrollOffsetProperty)],
   };
 
   html.style.overflow = 'hidden';
   html.style.overscrollBehavior = 'none';
+  if (classicScrollbar) html.style.scrollbarGutter = 'stable';
   body.style.position = 'fixed';
   body.style.top = `-${lockedScrollY}px`;
   body.style.setProperty(scrollOffsetProperty, `${lockedScrollY}px`);

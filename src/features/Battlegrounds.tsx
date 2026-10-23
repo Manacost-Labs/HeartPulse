@@ -1,10 +1,10 @@
 import '../shared/ui/analytics/Analytics.css';
-import { HeroBarChart as BattlegroundHeroBarChart, HeroPowerChart as BattlegroundHeroLineChart, HeroTavernChart as BattlegroundHeroTavernStack, HeroDataTable as BattlegroundHeroDataTable, HeroCompositionAnalytics as BattlegroundHeroTopCompositions } from '../modules/battlegrounds/public';
+import { HeroCompositionAnalytics, HeroOverview, HeroPowerAnalytics, HeroTavernAnalytics } from '../modules/battlegrounds/public';
 import '../modules/battlegrounds/public.css';
-import { battlegroundMinionIconByRussianName as BG_DETAIL_RACE_ICON_BY_RU, battlegroundMinionIconBySlug as BG_DETAIL_RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import { useOverlayFade } from '../hooks/useOverlayFade';
 import {
   BattlegroundsStrategyBuilderSearchIntro,
   BattlegroundsTierListSearchIntro,
@@ -52,6 +52,8 @@ import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
 import { BattlegroundHeroStatistics } from './BattlegroundHeroStatistics';
+import { CardPatchTimeline } from './CardPatchTimeline';
+import { battlegroundHeroPatchEntries } from './battlegroundHeroPatchChanges';
 import { BattlegroundHeroDetailSkeleton, BattlegroundHeroListSkeleton, BattlegroundLoadError, type BattlegroundHeroTeaser } from './BattlegroundsSkeletons';
 import { BattlegroundTierListSkeleton } from './BattlegroundTierListSkeleton';
 import { useBattlegroundHeroDetail } from './useBattlegroundHeroDetail';
@@ -70,6 +72,7 @@ import {
   ExternalLink,
   LayoutGrid,
   List,
+  Maximize2,
   Pause,
   Play,
   Search,
@@ -596,7 +599,7 @@ const BG_RACE_NAMES: Record<string, string> = {
 };
 
 const BG_RACE_ICON: Record<string, string> = {
-  ABERRATION: '/bg-legacy/assset/aberration.webp',
+  ABERRATION: '/bg-legacy/assset/аберрации.webp',
   ALL: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
   NONE: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
   BEAST: '/api/public-resource/bg/assset/%D0%B7%D0%B2%D0%B5%D1%80%D1%8C.webp',
@@ -656,30 +659,41 @@ function bgFormatCount(value: any): string {
   return Number(value).toLocaleString('ru-RU');
 }
 
+// Keys are lower case without spaces or hyphens: the wiki writes "Night elf", "Blood elf", "Titan-forged".
 const BG_HERO_RACE_NAMES: Record<string, string> = {
-  BloodElf: 'Эльф крови',
-  Draenei: 'Дреней',
-  Dwarf: 'Дворф',
-  Gnome: 'Гном',
-  Goblin: 'Гоблин',
-  HalfOrc: 'Полуорк',
-  HighElf: 'Высший эльф',
-  Human: 'Человек',
-  Murloc: 'Мурлок',
-  Naga: 'Нага',
-  NightElf: 'Ночной эльф',
-  Orc: 'Орк',
-  Pandaren: 'Пандарен',
-  Tauren: 'Таурен',
-  Troll: 'Тролль',
-  Undead: 'Нежить',
-  Worgen: 'Ворген',
+  aberration: 'Аберрация', abomination: 'Поганище', ancient: 'Древний', arakkoa: 'Араккоа', beast: 'Зверь',
+  bloodelf: 'Эльф крови', broken: 'Сломленный', cat: 'Кошка', djinn: 'Джинн', draenei: 'Дреней', dragon: 'Дракон',
+  dwarf: 'Дворф', elemental: 'Элементаль', eredar: 'Эредар', eternalone: 'Вечный', ethereal: 'Эфириал',
+  forsaken: 'Отрекшийся', gnoll: 'Гнолл', gnome: 'Гном', goblin: 'Гоблин', golem: 'Голем', halforc: 'Полуорк',
+  highelf: 'Высший эльф', human: 'Человек', infernal: 'Инфернал', kobold: 'Кобольд', lich: 'Лич', mechagnome: 'Механогном',
+  mechanical: 'Механизм', murloc: 'Мурлок', naga: 'Нага', nightborne: 'Ночнорождённый',
+  nightelf: 'Ночной эльф', nraqi: 'Н\'раки', observer: 'Наблюдатель', ogre: 'Огр', oldgod: 'Древний бог', ooze: 'Слизень',
+  orc: 'Орк', pandaren: 'Пандарен', plant: 'Растение', primate: 'Примат', protodragon: 'Протодракон', protoss: 'Протосс',
+  quilboar: 'Свинобраз', rat: 'Крыса', satyr: 'Сатир', tauren: 'Таурен', titanforged: 'Созданный титанами',
+  tortollan: 'Тортолланец', troll: 'Тролль', undead: 'Нежить', undeaddragon: 'Дракон-нежить', vulpera: 'Вульпера',
+  wildgod: 'Дикий бог', worgen: 'Ворген', zerg: 'Зерг',
 };
 
 function bgHeroRaceLabel(value: any): string {
   const race = String(value || '').trim();
   if (!race) return '—';
-  return BG_HERO_RACE_NAMES[race] || BG_HERO_RACE_NAMES[race.replace(/\s+/g, '')] || race;
+  return BG_HERO_RACE_NAMES[race.toLowerCase().replace(/[\s'’-]+/g, '')] || race;
+}
+
+const BG_HERO_PATCH_KIND_LABELS = { added: 'Добавлен', removed: 'Убран' };
+const BG_HERO_STAT_MODES: Record<string, string> = { solo: 'Соло', duos: 'Дуо' };
+const BG_HERO_STAT_TIME_RANGES: Record<string, string> = {
+  CURRENT_BATTLEGROUNDS_PATCH: 'текущий патч', CURRENT_PATCH: 'текущий патч', LAST_7_DAYS: 'последние 7 дней',
+  LAST_14_DAYS: 'последние 14 дней', LAST_30_DAYS: 'последние 30 дней',
+};
+
+/** One line under the statistics heading: which games the numbers come from. */
+function bgHeroStatisticsScope(stats: any): string {
+  const mode = BG_HERO_STAT_MODES[String(stats?.mode || '')];
+  const percentile = String(stats?.filters?.mmr_percentile || '').match(/^TOP_(\d+)_PERCENT$/);
+  const range = BG_HERO_STAT_TIME_RANGES[String(stats?.filters?.time_range || '')];
+  const scope = [mode, percentile ? `топ-${percentile[1]}% по рейтингу` : '', range].filter(Boolean).join(' · ');
+  return scope ? `${scope}. Данные HSReplay.` : 'Данные HSReplay.';
 }
 
 function bgHeroArmorValue(armor: any, key: 'normal' | 'duos'): string {
@@ -718,29 +732,6 @@ function bgHeroExternalLinks(libraryHero: any, heroName: string): Array<{ label:
   if (Number.isFinite(Number(dbf)) && !links.has('HSReplay.net')) links.set('HSReplay.net', `https://hsreplay.net/cards/${dbf}`);
   if (!links.has('Hearthstone Wiki')) links.set('Hearthstone Wiki', `https://hearthstone.wiki.gg/wiki/Battlegrounds/${bgHeroWikiSlug(heroName)}`);
   return Array.from(links, ([label, url]) => ({ label, url }));
-}
-
-function bgHeroPatchEntries(libraryHero: any): BattlegroundHeroPatchEntry[] {
-  const groups = Array.isArray(libraryHero?.wiki?.card_changes) ? libraryHero.wiki.card_changes : [];
-  return groups
-    .flatMap((group: any) => Array.isArray(group?.entries) ? group.entries : [])
-    .filter((entry: any) => entry && (entry.patch || entry.date || Array.isArray(entry.items)))
-    .slice(0, 4);
-}
-
-function bgHeroPatchTextRu(text: string): string {
-  const value = String(text || '').trim();
-  let match = value.match(/^Now has (\d+) armor in Duos \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Броня в дуо: ${match[1]} (было: ${match[2]}).`;
-  match = value.match(/^Now has (\d+) armor at lower levels \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Броня на низком рейтинге: ${match[1]} (было: ${match[2]}).`;
-  match = value.match(/^Now has (\d+) armor \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Броня: ${match[1]} (было: ${match[2]}).`;
-  match = value.match(/^Now has (\d+) Health \(previously: ([^)]+)\)\.?$/i);
-  if (match) return `Здоровье: ${match[1]} (было: ${match[2]}).`;
-  if (/^Added\.?$/i.test(value)) return 'Герой добавлен.';
-  if (/^Removed\.?$/i.test(value)) return 'Герой удален из доступного пула.';
-  return value;
 }
 
 function bgDetailCardTooltipText(value: any): string {
@@ -795,14 +786,6 @@ function bgHeroBuddySoundGroups(...sources: any[]): BattlegroundHeroSoundGroup[]
     });
   });
   return Array.from(groups, ([heading, clips]) => ({ heading, clips }));
-}
-
-function bgFormatPatchDate(value: any): string {
-  const text = String(value || '').trim();
-  if (!text) return '';
-  const date = new Date(text);
-  if (!Number.isNaN(date.getTime())) return date.toLocaleDateString('ru-RU');
-  return text;
 }
 
 function bgStatChips(item: any, list: BattlegroundTierListKey): Array<{ label: string; value: string }> {
@@ -1214,37 +1197,6 @@ function BattlegroundHeroLedgerRow({
   );
 }
 
-
-
-const BG_DETAIL_DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
-  day: '2-digit',
-  month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
-
-function bgDetailPercent(value: any): number {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-  const parsed = Number(String(value || '').replace('%', '').replace(',', '.'));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function bgDetailRaceIcon(nameOrSlug: any): string {
-  const raw = String(nameOrSlug || '').trim();
-  return BG_DETAIL_RACE_ICON_BY_RU[raw] || BG_DETAIL_RACE_ICON_BY_SLUG[raw.toLowerCase()] || '/bg-legacy/assset/общее.webp';
-}
-
-function bgDetailTavernIcon(tier: any): string {
-  const safe = Number.isFinite(Number(tier)) ? Number(tier) : 1;
-  return `/bg-legacy/assset/tier${safe}.png`;
-}
-
-function bgDetailFormatPercent(value: any): string {
-  const num = bgDetailPercent(value);
-  return `${num.toFixed(num >= 10 ? 1 : 2).replace('.', ',')}%`;
-}
-
 type BattlegroundHeroMediaItem = {
   key: string;
   title: string;
@@ -1266,21 +1218,6 @@ type BattlegroundHeroSoundGroup = {
   heading?: string | null;
   clips?: BattlegroundHeroSoundClip[];
 };
-
-type BattlegroundHeroPatchNote = {
-  label: string;
-  value: string;
-  tone?: 'blue' | 'gold';
-};
-
-type BattlegroundHeroPatchEntry = {
-  date?: string | null;
-  patch?: string | null;
-  patch_url?: string | null;
-  items?: string[];
-};
-
-const EMPTY_HERO_PATCH_ENTRIES: BattlegroundHeroPatchEntry[] = [];
 
 function bgDetailCardImage(card: any): string {
   return card?.image || card?.image_gold || card?.crop_image || '';
@@ -1346,27 +1283,6 @@ function bgHeroSkinLargeImage(image: any): string {
   return raw.replace(/\/\d+px-/, '/720px-');
 }
 
-function bgDetailFormatDate(value: any): string {
-  const raw = String(value || '').trim();
-  if (!raw) return '—';
-  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) return raw;
-  return BG_DETAIL_DATE_FORMATTER.format(date);
-}
-
-function bgDetailLatestDate(...values: any[]): string {
-  let latest = 0;
-  for (const value of values) {
-    const entries = Array.isArray(value) ? value : [value];
-    for (const entry of entries) {
-      const time = new Date(String(entry || '').replace(' ', 'T')).getTime();
-      if (Number.isFinite(time)) latest = Math.max(latest, time);
-    }
-  }
-  return latest ? bgDetailFormatDate(new Date(latest).toISOString()) : '—';
-}
-
 function BattlegroundHeroImage({
   sources,
   alt,
@@ -1416,29 +1332,28 @@ function BattlegroundHeroMediaLightbox({
   onClose: () => void;
   onIndexChange: (next: number) => void;
 }) {
-  const [visible, setVisible] = useState(false);
+  const { ref: fadeRef, shown: visible, close } = useOverlayFade<HTMLDivElement>(onClose, 600);
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const item = items[index] || null;
   usePageScrollLock(Boolean(item));
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setVisible(true));
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') close();
       if (event.key === 'ArrowLeft' && items.length > 1) onIndexChange((index - 1 + items.length) % items.length);
       if (event.key === 'ArrowRight' && items.length > 1) onIndexChange((index + 1) % items.length);
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onKey);
     };
-  }, [index, items.length, onClose, onIndexChange]);
+  }, [index, items.length, close, onIndexChange]);
 
   if (!item) return null;
 
   return createPortal(
     <div
+      ref={fadeRef}
       className="bg-hero-media-lightbox"
       style={{
         position: 'fixed',
@@ -1452,7 +1367,7 @@ function BattlegroundHeroMediaLightbox({
         transition: 'opacity 0.2s ease',
         WebkitTapHighlightColor: 'transparent',
       }}
-      onClick={onClose}
+      onClick={close}
       onTouchStart={event => {
         const touch = event.touches[0];
         touchOrigin.current = { x: touch.clientX, y: touch.clientY };
@@ -1464,7 +1379,7 @@ function BattlegroundHeroMediaLightbox({
         touchOrigin.current = null;
         if (moved < 12) {
           event.preventDefault();
-          onClose();
+          close();
         }
       }}
     >
@@ -1539,7 +1454,7 @@ function BattlegroundHeroMediaLightbox({
                     key={entry.key}
                     type="button"
                     onClick={() => onIndexChange(entryIndex)}
-                    className="h-2.5 rounded-full transition-all"
+                    className="h-2.5 rounded-full transition-[width,background-color]"
                     style={{
                       width: entryIndex === index ? 28 : 10,
                       background: entryIndex === index ? '#8b4513' : '#d7b66a',
@@ -1565,7 +1480,7 @@ function BattlegroundHeroMediaLightbox({
         type="button"
         onClick={event => {
           event.stopPropagation();
-          onClose();
+          close();
         }}
         className="hs-lightbox-close absolute right-4 top-4 z-[2] flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white transition-colors hover:bg-black/35"
         aria-label="Закрыть"
@@ -1601,8 +1516,7 @@ function BattlegroundHeroMediaCard({
           : 'border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffdf8,#f8eed9)]'
       }`}
     >
-      <p className="bg-hero-action-card__kicker font-hs text-xs uppercase tracking-[0.16em]">{title}</p>
-      <div className="bg-hero-action-card__body mt-2 grid items-start gap-3 sm:grid-cols-[96px_1fr]">
+      <div className="bg-hero-action-card__body grid items-start gap-3">
         <BattlegroundHeroImage
           sources={sources}
           alt={card.name || title}
@@ -1610,275 +1524,75 @@ function BattlegroundHeroMediaCard({
           imgClassName="bg-hero-action-card__image"
         />
         <div className="min-w-0">
-          <h3 className="bg-hero-action-card__title font-hs text-lg leading-tight text-[#3d2a1e]">{card.name || title}</h3>
+          <p className="bg-hero-action-card__kicker font-hs text-xs uppercase tracking-[0.16em]">{title}</p>
+          <h3 className="bg-hero-action-card__title mt-1 font-hs text-lg leading-tight text-[#3d2a1e]">{card.name || title}</h3>
           {text && (
-            <p className="bg-hero-action-card__text mt-2 text-sm leading-relaxed">
+            <p className="bg-hero-action-card__text mt-1.5 text-sm leading-relaxed">
               {text}
             </p>
           )}
-          <span className="mt-3 inline-flex items-center rounded-full border border-[#d7b66a] bg-white/55 px-3 py-1 text-[11px] font-bold uppercase tracking-wide">
-            Открыть
-          </span>
         </div>
       </div>
+      <Maximize2 aria-hidden="true" className="bg-hero-action-card__zoom" />
     </button>
   );
 }
 
-function BattlegroundHeroCompositionLineup({ composition, cards, tourId }: {
-  composition: any;
-  cards: Record<string, any>;
-  tourId?: string;
-}) {
-  const lineup = Array.isArray(composition?.lineup) ? composition.lineup : [];
-  if (!lineup.length) return null;
-  return (
-    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div
-        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
-        data-tour-id={tourId}
-      >
-        <div>
-          <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Лучший состав</p>
-          <h3 className="font-hs text-2xl text-[#3d2a1e]">{composition?.name || 'Состав'}</h3>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs font-bold text-[#6b4c2a]">
-          <span className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1">Среднее {bgFormatDecimal(composition?.avg_placement, 2)}</span>
-          <span className="rounded-full border border-[#bfdbfe] bg-[#dbeafe] px-3 py-1 text-[#1e3a8a]">{composition?.popularity || '—'} выбор</span>
-          <span className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1">{bgFormatCount(composition?.num_games)} игр</span>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
-        {lineup.map((minion: any) => {
-          const dbf = String(minion.dbfId || minion.minion_dbf_id || '');
-          const card = cards[dbf] || {};
-          const isPremium = Boolean(minion.premium);
-          const raceLabel = card.creature_type_name || minion.raceRu || '';
-          const cardName = card.name || minion.name;
-          const cardText = bgDetailCardText(card, 'normal');
-          const sources = bgDetailImageSources(card.image, card.image_gold);
-          return (
-            <article
-              key={`${dbf}-${minion.zone_position}`}
-              title={cardText ? `${cardName}: ${cardText}` : cardName}
-              className="group relative rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 text-center shadow-sm transition-shadow duration-200 hover:shadow-[0_14px_30px_rgba(61,42,30,0.16)]"
-            >
-              <div className="relative mx-auto flex h-40 items-center justify-center rounded-xl bg-[radial-gradient(circle_at_top,#fff5d2,transparent_60%),linear-gradient(180deg,#fffdf8,#f2e1bc)] p-2">
-                <BattlegroundHeroImage
-                  sources={sources}
-                  alt={cardName}
-                  className="w-full"
-                  imgClassName="mx-auto max-h-36 w-full object-contain drop-shadow-[0_10px_14px_rgba(61,42,30,0.18)]"
-                  fallback={
-                    <div className="flex h-36 w-24 items-center justify-center rounded-md bg-[#efe2bf] px-2 text-center text-xs font-bold text-[#6b4c2a]">
-                      {minion.name}
-                    </div>
-                  }
-                />
-                {isPremium && <span className="absolute right-2 top-2 rounded-full bg-[#f6ce68] px-2 py-0.5 text-[11px] font-black text-[#3d2a1e]">G</span>}
-              </div>
-              {cardText && (
-                <div className="pointer-events-none invisible absolute left-2 right-2 top-2 z-30 rounded-xl border border-[#d7b66a] bg-[#fffdf7]/98 p-3 text-left opacity-0 shadow-[0_16px_36px_rgba(61,42,30,0.2)] backdrop-blur transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
-                  <p className="font-hs text-[11px] uppercase tracking-[0.14em] text-[#8b6c42]">Описание карты</p>
-                  <p className="mt-1 text-xs font-bold leading-snug text-[#3d2a1e]">{cardText}</p>
-                </div>
-              )}
-              <h4 className="mt-2 min-h-[2.4rem] text-sm font-bold leading-tight text-[#3d2a1e]">{cardName}</h4>
-              <div className="mt-2 flex items-center justify-center gap-2">
-                <img src={bgDetailTavernIcon(card.tavern_tier || minion.techLevel)} alt={`Таверна ${card.tavern_tier || minion.techLevel || ''}`} className="h-6 w-6 object-contain" loading="lazy" />
-                <img src={bgDetailRaceIcon(raceLabel || card.creature_type)} alt={raceLabel || 'Тип существа'} className="h-6 w-6 object-contain" loading="lazy" />
-              </div>
-              <p className="mt-1 text-[11px] font-bold text-[#6b4c2a]">{minion.attack ?? '—'} / {minion.health ?? '—'}</p>
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function BattlegroundHeroMinionNameTooltip({ name, card }: { name: string; card: any }) {
-  const sources = bgDetailCardSources(card);
-  if (!sources.length) {
-    return <span className="truncate text-sm font-bold text-[#3d2a1e]">{name}</span>;
-  }
-
-  return (
-    <span className="group relative inline-block max-w-full align-top">
-      <button
-        type="button"
-        aria-label={`Показать карту: ${name}`}
-        className="block max-w-full truncate rounded-sm text-left text-sm font-bold text-[#3d2a1e] outline-none transition-colors group-hover:text-[#8b4513] focus-visible:text-[#8b4513] focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
-      >
-        {name}
-      </button>
-      <span className="pointer-events-none invisible absolute bottom-full left-0 z-50 mb-3 w-[170px] rounded-2xl border border-[#d7b66a] bg-[#fff9ed] p-2 opacity-0 shadow-[0_18px_42px_rgba(61,42,30,0.24)] transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-        <BattlegroundHeroImage
-          sources={sources}
-          alt={name}
-          className="mx-auto w-full"
-          imgClassName="mx-auto max-h-60 w-full object-contain drop-shadow-[0_12px_18px_rgba(61,42,30,0.2)]"
-        />
-      </span>
-    </span>
-  );
-}
-
-function BattlegroundHeroProfileInfo({
-  heroName,
-  libraryHero,
-  externalLinks,
-}: {
-  heroName: string;
-  libraryHero: any;
-  externalLinks: Array<{ label: string; url: string }>;
-}) {
+/** Who the hero is, when the library knows it. Armor and links live in the header. */
+function BattlegroundHeroProfileInfo({ heroName, libraryHero }: { heroName: string; libraryHero: any }) {
   const description = bgHeroDescriptionRu(heroName, libraryHero?.character?.description);
   const race = bgHeroRaceLabel(libraryHero?.race);
   const artist = String(libraryHero?.artist || '').trim();
-  const normalArmor = bgHeroArmorValue(libraryHero?.armor, 'normal');
-  const duosArmor = bgHeroArmorValue(libraryHero?.armor, 'duos');
-  const armorText = typeof libraryHero?.armor?.text === 'string' ? libraryHero.armor.text : '';
   // A missing fact is left out instead of shown as «—»: an empty tile reads as a broken page.
   const facts = [
-    { label: 'Раса', value: race, tone: 'plain' },
-    { label: 'Художник', value: artist, tone: 'plain' },
-    { label: 'Броня соло', value: normalArmor, tone: 'blue' },
-    { label: 'Броня дуо', value: duosArmor, tone: 'gold' },
+    { label: 'Раса', value: race },
+    { label: 'Художник', value: artist },
   ].filter(fact => fact.value && fact.value !== '—');
-  const factTone = {
-    plain: ['border-[#e2cf99] bg-[#fff9ed]', 'text-[#8b6c42]', 'text-base text-[#3d2a1e]'],
-    blue: ['border-[#bfdbfe] bg-[#dbeafe]/80', 'text-[#1e3a8a]', 'text-xl text-[#1e3a8a]'],
-    gold: ['border-[#d6a74c] bg-[#fff2cf]', 'text-[#70450e]', 'text-xl text-[#70450e]'],
-  } as const;
-
+  if (!description && facts.length === 0) return null;
   return (
-    <section className={`bg-hero-ledger-panel grid gap-4 rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)] ${externalLinks.length ? 'lg:grid-cols-[1fr_320px]' : ''}`}>
-      <div>
-        <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Профиль героя</p>
-        <h3 className="font-hs text-2xl text-[#3d2a1e]">{description ? 'Кто это' : 'Характеристики'}</h3>
-        {description && <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f4730]">{description}</p>}
-        {facts.length > 0 && (
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            {facts.map(fact => {
-              const [box, label, value] = factTone[fact.tone as keyof typeof factTone];
-              return (
-                <div key={fact.label} className={`rounded-2xl border p-3 ${box}`}>
-                  <p className={`text-xs font-bold uppercase tracking-[0.14em] ${label}`}>{fact.label}</p>
-                  <p className={`mt-1 font-black ${value}`}>{fact.value}</p>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {armorText && (
-          <p className="mt-3 text-xs font-semibold text-[#8b6c42]">Оригинальная строка брони: {armorText}</p>
-        )}
-      </div>
-      {externalLinks.length > 0 && <aside className="rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3">
-        <p className="font-hs text-sm uppercase tracking-[0.14em] text-[#8b6c42]">Внешние ссылки</p>
-        <div className="mt-3 grid gap-2">
-          {externalLinks.map(link => (
-            <a
-              key={`${link.label}-${link.url}`}
-              href={link.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center justify-between gap-3 rounded-xl border border-[#d7b66a] bg-[#fff8ea] px-3 py-2 text-sm font-black text-[#3d2a1e] transition-colors hover:bg-[#fff1c8]"
-            >
-              <span>{link.label}</span>
-              <span aria-hidden="true" className="text-[#8b6c42]">↗</span>
-            </a>
+    <section className="bg-hero-ledger-panel bg-hero-profile rounded-2xl border border-[#d7b66a]/65 p-4">
+      <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Профиль героя</p>
+      <h2 className="font-hs text-2xl text-[#3d2a1e]">Кто это</h2>
+      {description && <p className="bg-hero-profile__text mt-2 text-sm leading-7 text-[#5f4730]">{description}</p>}
+      {facts.length > 0 && (
+        <dl className="bg-hero-profile__facts mt-3">
+          {facts.map(fact => (
+            <div key={fact.label}>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
           ))}
-        </div>
-      </aside>}
+        </dl>
+      )}
     </section>
   );
 }
 
-function BattlegroundHeroPatchChange({
-  notes,
-  sourceUrl,
-  changes,
-  tourId,
-}: {
-  notes: BattlegroundHeroPatchNote[];
-  sourceUrl?: string;
-  changes?: BattlegroundHeroPatchEntry[];
-  tourId?: string;
+/** Armor, the patch state and the reference links: one line of facts under the hero name. */
+function BattlegroundHeroFacts({ libraryHero, latestPatch, links }: {
+  libraryHero: any;
+  latestPatch: string | null;
+  links: Array<{ label: string; url: string }>;
 }) {
-  const patchEntries = changes || EMPTY_HERO_PATCH_ENTRIES;
+  const solo = bgHeroArmorValue(libraryHero?.armor, 'normal');
+  const duos = bgHeroArmorValue(libraryHero?.armor, 'duos');
+  const armor = [solo !== '—' ? `${solo}` : '', duos !== '—' ? `дуо ${duos}` : ''].filter(Boolean).join(' · ');
   return (
-    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div
-        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
-        data-tour-id={tourId}
-      >
-        <div>
-          <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Текущий патч</p>
-          <h3 className="font-hs text-xl text-[#3d2a1e]">Изменения патча</h3>
-        </div>
-        {sourceUrl && (
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-xl border border-[#d7b66a] bg-[#fff8ea] px-3 py-2 text-sm font-bold text-[#3d2a1e] transition-colors hover:bg-[#fff1c8]"
-          >
-            Источник данных
+    <ul className="bg-hero-facts" aria-label="Факты о герое">
+      {armor && <li className="bg-hero-facts__item"><span>Броня</span> {armor}</li>}
+      <li className="bg-hero-facts__item">
+        {latestPatch
+          ? <a href="#hero-patches">Последнее изменение: {latestPatch.replace(/^Патч/, 'патч')}</a>
+          : 'Изменений баланса не было'}
+      </li>
+      {links.map(link => (
+        <li key={link.url} className="bg-hero-facts__item bg-hero-facts__item--link">
+          <a href={link.url} target="_blank" rel="noreferrer">
+            {link.label} <ExternalLink aria-hidden="true" className="inline h-3.5 w-3.5" />
           </a>
-        )}
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {notes.filter(note => note.value && note.value !== '—').map(note => (
-          <div
-            key={note.label}
-            className={`rounded-2xl border p-3 ${
-              note.tone === 'blue'
-                ? 'border-[#bfdbfe] bg-[#dbeafe]/75 text-[#1e3a8a]'
-                : note.tone === 'gold'
-                  ? 'border-[#d6a74c] bg-[#fff2cf] text-[#70450e]'
-                  : 'border-[#e2cf99] bg-[#fff9ed] text-[#3d2a1e]'
-            }`}
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.12em]">{note.label}</p>
-            <p className="mt-1 text-base font-black leading-tight">{note.value || '—'}</p>
-          </div>
-        ))}
-      </div>
-      {patchEntries.length === 0 && (
-        <p className="mt-3 text-sm text-[#5f4730]">В текущем патче герой не менялся.</p>
-      )}
-      {patchEntries.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3">
-          <p className="font-hs text-sm uppercase tracking-[0.14em] text-[#8b6c42]">Последние изменения</p>
-          <div className="mt-3 grid gap-3 lg:grid-cols-2">
-            {patchEntries.map((entry, index) => {
-              const patchLabel = [entry.patch ? `Патч ${entry.patch}` : '', bgFormatPatchDate(entry.date)].filter(Boolean).join(' · ');
-              const body = Array.isArray(entry.items) && entry.items.length ? entry.items : ['Подробности изменения не указаны.'];
-              const entryKey = [entry.patch, entry.date, entry.patch_url, body.join('|')].filter(Boolean).join('|');
-              const content = (
-                <article className="h-full rounded-xl border border-[#ead9a7] bg-[#fffdfa] p-3 text-sm text-[#3d2a1e] transition-colors hover:bg-[#fff8ea]">
-                  <p className="font-black text-[#70450e]">{patchLabel || `Изменение ${index + 1}`}</p>
-                  <ul className="mt-2 space-y-1.5">
-                    {body.map(item => (
-                      <li key={item} className="leading-6">{bgHeroPatchTextRu(item)}</li>
-                    ))}
-                  </ul>
-                </article>
-              );
-              return entry.patch_url ? (
-                <a key={entryKey} href={entry.patch_url} target="_blank" rel="noreferrer" className="block">
-                  {content}
-                </a>
-              ) : (
-                <div key={entryKey}>{content}</div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </section>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -2055,7 +1769,7 @@ function BattlegroundHeroGallery({
       </div>
 
       {items.length > 0 && (
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="bg-hero-gallery mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {items.map((item, index) => (
             <button
               key={item.key}
@@ -2063,7 +1777,7 @@ function BattlegroundHeroGallery({
               onClick={() => onOpen(index)}
               className="group rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_24px_rgba(61,42,30,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
             >
-              <div className="aspect-square overflow-hidden rounded-xl bg-[radial-gradient(circle_at_top,#fff5d2,transparent_60%),linear-gradient(180deg,#fffdf8,#f2e1bc)]">
+              <div className="aspect-[4/3] overflow-hidden rounded-xl bg-[radial-gradient(circle_at_top,#fff5d2,transparent_60%),linear-gradient(180deg,#fffdf8,#f2e1bc)]">
                 <BattlegroundHeroImage
                   sources={bgDetailImageSources(item.image)}
                   alt={item.title}
@@ -2073,7 +1787,6 @@ function BattlegroundHeroGallery({
               </div>
               <p className="mt-2 font-hs text-xs uppercase tracking-[0.14em] text-[#8b6c42]">{item.kicker || 'Арт'}</p>
               <h4 className="mt-1 text-sm font-bold leading-tight text-[#3d2a1e]">{item.title}</h4>
-              {item.text && <p className="mt-1 line-clamp-2 text-xs font-semibold leading-snug text-[#6b4c2a]">{bgDetailCardTooltipText(item.text)}</p>}
             </button>
           ))}
         </div>
@@ -2169,13 +1882,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
     : null;
   const skins = Array.isArray(libraryHero?.skins) ? libraryHero.skins : [];
   const externalLinks = bgHeroExternalLinks(libraryHero, heroName);
-  const patchChanges = bgHeroPatchEntries(libraryHero);
-  const asOfValues = stats.as_of && typeof stats.as_of === 'object' ? Object.values(stats.as_of) : [];
-  // The header already shows tier, average place and pick rate, the profile the armor:
-  // the patch block keeps only what is new here, the update date and the changes.
-  const patchNotes: BattlegroundHeroPatchNote[] = [
-    { label: 'Обновлено', value: bgDetailLatestDate(asOfValues, libraryHero?.updated_at, payload.fetched_at), tone: 'gold' },
-  ];
+  const patchEntries = battlegroundHeroPatchEntries(libraryHero?.wiki?.card_changes);
   const heroMediaItems = [
     heroPower && {
       key: `hero-power-${dbfId}`,
@@ -2238,18 +1945,8 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
       link: skin.url || '',
     }] : [];
   });
-  const placementRows = (hero.placement_distribution || []).map((value: any, index: number) => ({
-    label: `${index + 1} место`,
-    value: bgDetailPercent(value),
-  }));
-  const tavernByTurnRows = (stats.tavern_up_by_turn || []).map((row: any) => ({
-    label: `Ход ${row.turn}`,
-    value: bgDetailPercent(row.pct_at_tier),
-    sub: `T${row.recommended_tavern_tier} · ${bgDetailFormatPercent(row.pct_at_tier)}`,
-    icon: bgDetailTavernIcon(row.recommended_tavern_tier),
-  }));
-  const topComps = Array.isArray(stats.compositions) ? stats.compositions.slice(0, 10) : [];
-  const finalForm = Array.isArray(stats.best_composition?.final_form_minions) ? stats.best_composition.final_form_minions.slice(0, 12) : [];
+  // Card texts carry the English original and the mechanics list; the hover titles show only the Russian text.
+  const analyticsCards = Object.fromEntries(Object.entries(cards).map(([dbf, card]: [string, any]) => [dbf, { ...card, text: bgDetailCardTooltipText(card?.text) }]));
 
   return (
     <div className="bg-hero-detail-page space-y-6 text-[#3d2a1e]">
@@ -2281,6 +1978,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
           <div className="bg-hero-reliquary__identity min-w-0">
             <p className="bg-hero-reliquary__kicker font-hs text-xs uppercase tracking-[0.18em]">Поля сражений · герой</p>
             <h1 className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{heroName}</h1>
+            <BattlegroundHeroFacts libraryHero={libraryHero} latestPatch={patchEntries.find(entry => entry.changes.some(change => !change.minor))?.version ?? null} links={externalLinks} />
             <div
               className="bg-hero-stat-grid mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4"
               data-tour-id="bg-hero-detail-summary"
@@ -2323,78 +2021,37 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
         </div>
       </section>
 
-      <BattlegroundHeroProfileInfo heroName={heroName} libraryHero={libraryHero} externalLinks={externalLinks} />
-
-      <BattlegroundHeroPatchChange
-        notes={patchNotes}
-        sourceUrl={stats.source_url}
-        changes={patchChanges}
-        tourId="bg-hero-detail-patches"
-      />
+      <BattlegroundHeroProfileInfo heroName={heroName} libraryHero={libraryHero} />
 
       <BattlegroundHeroStatistics
-        overview={placementRows.length ?
-          <BattlegroundHeroBarChart
-            title="Распределение по местам"
-            rows={placementRows}
-          />
-        : null}
-        tavern={(tavernByTurnRows.length || stats.tavern_up?.length) ? <div className="grid items-start gap-4 xl:grid-cols-2">
-          <BattlegroundHeroBarChart title="Когда улучшать таверну" rows={tavernByTurnRows} />
-          <BattlegroundHeroTavernStack rows={stats.tavern_up || []} />
-        </div> : null}
-        power={(stats.hero_power_by_turn?.length || stats.hero_power?.length) ? <>
-          <BattlegroundHeroLineChart rows={stats.hero_power_by_turn || []} />
-          <BattlegroundHeroDataTable
-            title="Сила героя по таверне"
-            rows={stats.hero_power || []}
-            columns={[
-              { key: 'turn', label: 'Ход' },
-              { key: 'tavern_tier', label: 'Таверна', render: row => <span className="inline-flex items-center gap-2"><img src={bgDetailTavernIcon(row.tavern_tier)} alt="" className="h-6 w-6" />{String(row.tavern_tier)}</span> },
-              { key: 'gold', label: 'Золото' },
-              { key: 'invoked_rate', label: 'Сила героя', render: row => bgDetailFormatPercent(row.invoked_rate) },
-              { key: 'times_invoked', label: 'Прожато', render: row => bgFormatCount(row.times_invoked) },
-              { key: 'total_data_points', label: 'Точек', render: row => bgFormatCount(row.total_data_points) },
-            ]}
-          />
-        </> : null}
-        compositions={(topComps.length || stats.best_composition?.lineup?.length || finalForm.length) ? <>
-          <BattlegroundHeroCompositionLineup composition={stats.best_composition} cards={cards} />
-          <BattlegroundHeroTopCompositions rows={topComps} />
-          {finalForm.length > 0 && (
-            <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-              <h3 className="font-hs text-xl text-[#3d2a1e]">Ключевые существа финального стола</h3>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {finalForm.map((item: any, index: number) => {
-                  const card = cards[String(item.dbfId || item.minion_dbf_id)] || {};
-                  const minionName = card.name || item.name || 'Существо';
-                  return (
-                    <div key={`${item.dbfId}-${item.tavern_tier}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 shadow-sm">
-                      <img src={bgDetailTavernIcon(item.tavern_tier || card.tavern_tier)} alt="" className="h-9 w-9 object-contain" loading="lazy" />
-                      <div className="min-w-0 flex-1">
-                        <BattlegroundHeroMinionNameTooltip name={minionName} card={card} />
-                        <p className="text-xs text-[#6b4c2a]">{item.at_least_one || '—'} игр · золотые {item.at_least_one_premium || '—'}</p>
-                      </div>
-                      <img src={bgDetailRaceIcon(card.creature_type_name || card.creature_type)} alt="" className="h-8 w-8 object-contain" loading="lazy" />
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-        </> : null}
+        description={bgHeroStatisticsScope(stats)}
+        overview={hero.placement_distribution?.length || stats.combat_winrate?.length
+          ? <HeroOverview placement={hero.placement_distribution} combat={stats.combat_winrate} /> : null}
+        power={stats.hero_power_by_turn?.length || stats.hero_power?.length
+          ? <HeroPowerAnalytics byTurn={stats.hero_power_by_turn} byTier={stats.hero_power} /> : null}
+        tavern={stats.tavern_up_by_turn?.length || stats.tavern_up?.length
+          ? <HeroTavernAnalytics byTurn={stats.tavern_up_by_turn} distribution={stats.tavern_up} /> : null}
+        compositions={stats.compositions?.length || stats.best_composition?.lineup?.length || stats.best_composition?.final_form_minions?.length
+          ? <HeroCompositionAnalytics best={stats.best_composition} compositions={stats.compositions} cards={analyticsCards} /> : null}
       />
 
+      {patchEntries.length > 0 && (
+        <section id="hero-patches" className="bg-hero-ledger-panel bg-hero-section" aria-labelledby="hero-patches-title">
+          <header className="bg-hero-section__heading" data-tour-id="bg-hero-detail-patches">
+            <p className="bg-hero-section__eyebrow">История баланса</p>
+            <h2 id="hero-patches-title">Изменения по патчам</h2>
+          </header>
+          <CardPatchTimeline entries={patchEntries} kindLabels={BG_HERO_PATCH_KIND_LABELS} limit={5} />
+        </section>
+      )}
+
       {skins.length > 0 && (
-        <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Коллекция</p>
-              <h3 className="font-hs text-xl text-[#3d2a1e]">Скины героя</h3>
-            </div>
-            <p className="text-xs font-bold text-[#6b4c2a]">{skins.length} вариантов</p>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section className="bg-hero-ledger-panel bg-hero-section" aria-labelledby="hero-skins-title">
+          <header className="bg-hero-section__heading">
+            <p className="bg-hero-section__eyebrow">Коллекция</p>
+            <h2 id="hero-skins-title">Скины героя</h2>
+          </header>
+          <div className="bg-hero-skins grid grid-cols-2 gap-3 lg:grid-cols-4">
             {skins.map((skin: any, index: number) => (
               <button
                 key={skin.card_id || skin.image}
@@ -3334,7 +2991,7 @@ function BattlegroundHeroTierList({ onNavigate, onRetry }: { onNavigate: (path: 
                         <p className="text-xs text-[#8b6c42]">{bgHeroCountLabel(heroes.length)}</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
+                    <div className="bg-heroes-grid grid gap-3">
                       {heroes.map((hero, heroIndex) => (
                         <MemoBattlegroundHeroCard
                           key={`${section.tier}-${hero.dbfId || hero.name}`}

@@ -68,7 +68,7 @@ export function ArchiveDrawer({ patches, current, formatDate }: {
   return (
     <>
       <button type="button" className="hp-patch-versions__all" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
-        <CalendarClock aria-hidden="true" />Все патчи
+        <CalendarClock aria-hidden="true" /><span>Все патчи</span>
       </button>
       {/* `closedby="any"` closes it on a backdrop click where supported; Esc and the button close it everywhere. */}
       <dialog ref={dialog} className="hp-patch-drawer" aria-labelledby="hp-patch-archive-title" closedby="any">

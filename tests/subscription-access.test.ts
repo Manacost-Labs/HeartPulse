@@ -122,8 +122,8 @@ for (const relativePath of [
   '../apps/public-web/ui/usePublicAccess.ts',
   '../src/app/routing/navigationDefinitions.ts',
   '../src/components/GlobalUtilityHeader.tsx',
-  '../src/features/Contests.tsx',
   '../src/features/DeferredRoutes.tsx',
+  '../src/features/adminConsole/sections/IntegrationSections.tsx',
   '../src/modules/identity/ui/LoginPanel.tsx',
 ]) {
   const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');

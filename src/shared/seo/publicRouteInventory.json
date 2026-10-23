@@ -236,13 +236,13 @@
       "pattern": "/id/:publicProfileId",
       "kind": "detail",
       "owner": "identity",
-      "indexPolicy": "noindex-nofollow",
-      "canonicalPolicy": "none",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "self",
       "sitemap": false,
-      "htmlStrategy": "not-found",
-      "expectedStatus": 404,
+      "htmlStrategy": "spa-shell",
+      "expectedStatus": 200,
       "criticality": "P1",
-      "mobileFixture": "not-found",
+      "mobileFixture": "public-profile",
       "entitlement": null,
       "pathParameters": {
         "publicProfileId": {
@@ -270,6 +270,25 @@
       "pathParameters": {
         "legacyPublicProfileId": {
           "pattern": "^p_[A-Za-z0-9_-]{22}$"
+        }
+      }
+    },
+    {
+      "id": "public-profile-nickname",
+      "pattern": "/u/:nickname",
+      "kind": "redirect",
+      "owner": "identity",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "redirect",
+      "expectedStatus": 301,
+      "criticality": "P2",
+      "mobileFixture": "public-profile-nickname",
+      "entitlement": null,
+      "pathParameters": {
+        "nickname": {
+          "pattern": "^[^/]{3,24}$"
         }
       }
     },

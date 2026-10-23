@@ -51,10 +51,12 @@ import { createReferralRedirectHandler, createReferralRouter } from './referralR
 import { REFERRAL_ATTRIBUTION_SCHEMA_SQL, createReferralAttributionMiddleware } from './referralAttribution.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { createCosmeticsDataService, createCosmeticsRouter } from './cosmeticsRoutes.js';
+import { createOriginalCardTexts, renderPayloadCardPlurals } from './cardPluralTexts.js';
 import { createPublicResourceRouter } from './publicResourceRoutes.js';
 import { articleImageSrc, canonicalArticleUrl } from '../shared/articleImageSrc.js';
 import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
+import { createBattlegroundLibraryCardLookup, enrichBattlegroundHeroCards } from './battlegroundHeroCards.js';
 import { createBattlegroundMinionStatsRouter, createBattlegroundMinionStatsSource } from './modules/battlegroundLibrary/public.js';
 import { proxyHsReplayStrategyPayload } from './modules/publicApi/public.js';
 import {
@@ -228,6 +230,10 @@ import {
   type NewsletterUnsubscribeStore,
 } from './newsletterUnsubscribeRoutes.js';
 import { isMailingEntrySubscribed, syncMailingContact, type MailingContactSyncOptions } from './mailingContactSync.js';
+import {
+  canReceiveCampaign, ensureBoostySeenColumn, hasMailingConsent, isBoostyAudienceContact, mailingFooterReason, mailingSegment,
+  type MailingSegment,
+} from './mailingAudience.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { ADMIN_CRM_SCHEMA_SQL } from './adminCrmRoutes.js';
 import { registerAdminCrm } from './app/registerAdminCrm.js';
@@ -281,7 +287,12 @@ import {
   type TelegramAuthIdentityClaim,
 } from './modules/telegramAuth/public.js';
 import {
-  ensurePublicProfileIds,
+  claimNickname,
+  createPublicProfileRouter,
+  ensurePublicProfileSchema,
+  findPublicProfile,
+  findPublicProfileIdByNickname,
+  readOwnPublicIdentity,
   resolveUserPublicProfileId,
 } from './modules/publicProfile/public.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
@@ -616,6 +627,18 @@ const KHA_VIP_ARTICLE_HOSTS = new Set([
 const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://api.kolodahearthstone.com/api/v1').replace(/\/$/, '');
 const HEARTHSTONE_RU_CARDS_URL = process.env.HEARTHSTONE_RU_CARDS_URL
   || 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.json';
+// Original card texts keep the `2 |4(ход,хода,ходов)` counts the card catalog
+// sometimes strips; they are loaded at start (with background jobs) or by the
+// first catalog request, and refreshed twice a day after.
+const originalCardTexts = createOriginalCardTexts({
+  url: HEARTHSTONE_RU_CARDS_URL,
+  fetchJson: async url => {
+    const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) throw new Error(`HearthstoneJSON returned HTTP ${response.status}`);
+    return response.json();
+  },
+});
+if (BACKGROUND_JOBS_ENABLED) void originalCardTexts.load();
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
@@ -982,7 +1005,13 @@ function kolodahsFullArtForCard(card: any, fallbackDbf?: unknown): string {
     || '';
 }
 
-function enrichBattlegroundHeroPayload(payload: any): any {
+const battlegroundLibraryCard = createBattlegroundLibraryCardLookup({ baseUrl: 'http://127.0.0.1:3108' });
+
+async function enrichBattlegroundHeroPayload(payload: unknown): Promise<unknown> {
+  return enrichBattlegroundHeroCards(withBattlegroundHeroPowerFullArt(payload), battlegroundLibraryCard);
+}
+
+function withBattlegroundHeroPowerFullArt(payload: any): any {
   const heroPower = payload?.libraryHero?.hero_power;
   const card = heroPower?.card;
   if (!card || card.full_art || card.fullArt) return payload;
@@ -1311,7 +1340,7 @@ function db(): DatabaseSync {
   ensureAccountColumns(ecosystemDb);
   ensureAccountSessionColumns(ecosystemDb);
   ensureTelegramAuthDatabaseConstraints(ecosystemDb);
-  ensurePublicProfileIds(ecosystemDb, { preferredUserIds: [...ADMIN_USER_IDS] });
+  ensurePublicProfileSchema(ecosystemDb, { preferredUserIds: [...ADMIN_USER_IDS] });
   const manualGrantColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(manual_subscription_grants)').all() as any[]).map(row => String(row.name)));
   if (!manualGrantColumns.has('expires_at')) ecosystemDb.exec('ALTER TABLE manual_subscription_grants ADD COLUMN expires_at TEXT');
   migrateLegacyAuthStore(ecosystemDb);
@@ -1410,6 +1439,7 @@ function syncMailingContactForUser(database: DatabaseSync, user: AdminUser, opti
 }
 
 function syncExistingMailingContacts(database: DatabaseSync) {
+  ensureBoostySeenColumn(database);
   const migrated = database.prepare('SELECT value FROM meta WHERE key = ?').get(NEWSLETTER_LEGACY_MIGRATION_KEY) as { value?: string } | undefined;
   if (migrated?.value === '1') return;
 
@@ -1445,7 +1475,8 @@ function updateMailingConsent(user: AdminUser, subscribed: boolean, source: stri
   }
 }
 
-function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, active: boolean, formerAt?: unknown) {
+// A subscriber the author blacklisted on Boosty is kept in the register but never joins the Boosty audience.
+function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, active: boolean, formerAt?: unknown, blacklisted = false) {
   const email = normalizeEmail(emailValue);
   if (!isRealEmail(email)) return;
   const nowIso = new Date().toISOString();
@@ -1453,14 +1484,15 @@ function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, a
   dbRun(`
     INSERT INTO mailing_contacts (
       id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
-      unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
-    ) VALUES (?, ?, NULL, ?, 'unknown', 'boosty-observed', NULL, NULL, NULL, '', 'former', ?, ?, ?, ?)
+      unsubscribed_at, suppressed_reason, account_state, former_at, boosty_seen_at, first_seen_at, last_seen_at, updated_at
+    ) VALUES (?, ?, NULL, ?, 'unknown', 'boosty-observed', NULL, NULL, NULL, '', 'former', ?, ?, ?, ?, ?)
     ON CONFLICT(email) DO UPDATE SET
       name = CASE WHEN mailing_contacts.name = '' THEN excluded.name ELSE mailing_contacts.name END,
+      boosty_seen_at = COALESCE(mailing_contacts.boosty_seen_at, excluded.boosty_seen_at),
       former_at = CASE WHEN mailing_contacts.user_id IS NULL AND ? = 0 THEN COALESCE(mailing_contacts.former_at, excluded.former_at) ELSE mailing_contacts.former_at END,
       last_seen_at = excluded.last_seen_at,
       updated_at = excluded.updated_at
-  `, mailingContactId(email), email, normalizeOptionalText(nameValue, 120), formerAtIso, nowIso, nowIso, nowIso, active ? 1 : 0);
+  `, mailingContactId(email), email, normalizeOptionalText(nameValue, 120), formerAtIso, blacklisted ? null : nowIso, nowIso, nowIso, nowIso, active ? 1 : 0);
 }
 
 function upsertUserRow(database: DatabaseSync, user: AdminUser) {
@@ -2550,8 +2582,6 @@ function sendAuthCodeEmail(to: string, code: string): Promise<void> {
   });
 }
 
-type MailingSegment = 'all-consented' | 'active' | 'former';
-
 interface NewsletterDraft {
   subject: string;
   preheader: string;
@@ -2613,8 +2643,7 @@ function newsletterTextFromHtml(htmlBody: string): string {
 function normalizeNewsletterDraft(value: any): NewsletterDraft {
   const subject = normalizeOptionalText(value?.subject, 160);
   const preheader = normalizeOptionalText(value?.preheader, 220);
-  const segmentRaw = normalizeOptionalText(value?.segment, 40);
-  const segment: MailingSegment = segmentRaw === 'active' || segmentRaw === 'former' ? segmentRaw : 'all-consented';
+  const segment = mailingSegment(normalizeOptionalText(value?.segment, 40));
   const templateKey = normalizeOptionalText(value?.templateKey, 60) || 'custom';
   const htmlBody = sanitizeNewsletterFragment(value?.htmlBody ?? value?.html);
   const suppliedText = normalizeOptionalText(value?.textBody, 100_000);
@@ -2696,7 +2725,7 @@ function renderNewsletterHtml(draft: NewsletterDraft, unsubscribeUrl: string, pr
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mail-card">
         <tr><td class="mail-head"><small>HearthPulse · Manacost</small><strong>${safeSubject}</strong></td></tr>
         <tr><td class="mail-content">${draft.htmlBody}</td></tr>
-        <tr><td class="mail-foot">Вы получили письмо, потому что согласились на рассылку Manacost. <a href="${safeUnsubscribeUrl}">Отписаться от рассылки</a>.</td></tr>
+        <tr><td class="mail-foot">${escapeNewsletterHtml(mailingFooterReason(draft.segment))} <a href="${safeUnsubscribeUrl}">Отписаться от рассылки</a>.</td></tr>
       </table>
     </td></tr></table>
   </body>
@@ -2759,21 +2788,17 @@ function mailingContactRows(): any[] {
     ORDER BY mc.updated_at DESC
   `).map(row => {
     const active = Boolean(row.provider_access || row.manual_access);
-    const eligible = row.consent_status === 'subscribed'
-      && Boolean(row.consented_at)
-      && Boolean(row.verified_at)
-      && isRealEmail(String(row.email || ''))
-      && !row.blocked_at
-      && !row.suppressed_reason;
     return {
       ...row,
-      eligible,
+      eligible: hasMailingConsent(row, isRealEmail),
+      boostyAudience: isBoostyAudienceContact(row, isRealEmail),
       lifecycle: active ? 'active' : 'former',
     };
   });
 }
 
 function eligibleMailingContacts(segment: MailingSegment): any[] {
+  if (segment === 'boosty-all') return mailingContactRows().filter(row => row.boostyAudience);
   return mailingContactRows().filter(row => row.eligible && (segment === 'all-consented' || row.lifecycle === segment));
 }
 
@@ -2785,6 +2810,7 @@ function mailingSummary() {
     eligible: eligible.length,
     active: eligible.filter(row => row.lifecycle === 'active').length,
     former: eligible.filter(row => row.lifecycle === 'former').length,
+    boostyAll: contacts.filter(row => row.boostyAudience).length,
     excluded: contacts.length - eligible.length,
     unsubscribed: contacts.filter(row => row.consent_status === 'unsubscribed').length,
     pendingConsent: contacts.filter(row => row.consent_status === 'unknown').length,
@@ -2889,7 +2915,7 @@ async function sendNewsletterToContact(campaign: any, contact: any) {
     preheader: String(campaign.preheader || ''),
     htmlBody: sanitizeNewsletterFragment(campaign.html_body),
     textBody: String(campaign.text_body || ''),
-    segment: campaign.segment as MailingSegment,
+    segment: mailingSegment(campaign.segment),
     templateKey: String(campaign.template_key || 'custom'),
   };
   const token = newsletterUnsubscribeToken(String(contact.id));
@@ -2935,7 +2961,7 @@ async function runNewsletterCampaign(campaignId: string) {
 
     while (true) {
       const delivery = dbGet<any>(`
-        SELECT d.*, mc.email, mc.consent_status, mc.consented_at, mc.verified_at, mc.suppressed_reason, u.blocked_at
+        SELECT d.*, mc.email, mc.consent_status, mc.consented_at, mc.verified_at, mc.suppressed_reason, mc.boosty_seen_at, u.blocked_at
         FROM mailing_deliveries d
         LEFT JOIN mailing_contacts mc ON mc.id = d.contact_id
         LEFT JOIN users u ON u.id = mc.user_id
@@ -2945,12 +2971,7 @@ async function runNewsletterCampaign(campaignId: string) {
       `, campaignId);
       if (!delivery) break;
       const nowIso = new Date().toISOString();
-      const stillEligible = delivery.consent_status === 'subscribed'
-        && Boolean(delivery.consented_at)
-        && Boolean(delivery.verified_at)
-        && !delivery.suppressed_reason
-        && !delivery.blocked_at
-        && isRealEmail(String(delivery.email || ''));
+      const stillEligible = canReceiveCampaign(mailingSegment(campaign.segment), delivery, isRealEmail);
       if (!stillEligible) {
         dbRun("UPDATE mailing_deliveries SET status = 'skipped', last_error = 'contact-suppressed', updated_at = ? WHERE campaign_id = ? AND contact_id = ?",
           nowIso, campaignId, delivery.contact_id);
@@ -3404,7 +3425,7 @@ async function fetchBoostySubscribers(includeInactive = true): Promise<Record<st
     };
   });
   for (const row of rows) {
-    rememberBoostyMailingContact(row.email, row.name, Boolean(row.active || row.hasActivePaidAccess), row.dates?.unsubscribedAt);
+    rememberBoostyMailingContact(row.email, row.name, Boolean(row.active || row.hasActivePaidAccess), row.dates?.unsubscribedAt, row.blacklisted);
   }
   const levels = rows.reduce((acc: Record<string, number>, row: any) => {
     const key = row.level.name || 'Без уровня';
@@ -5507,11 +5528,13 @@ async function fetchConstructedCardJson(url: string, timeoutMs = 8_000): Promise
       upstream.status,
     );
   }
+  let payload: unknown;
   try {
-    return await upstream.json();
+    payload = await upstream.json();
   } catch (error) {
     throw new ConstructedCardUpstreamError('Constructed card upstream returned invalid JSON', null, { cause: error });
   }
+  return renderPayloadCardPlurals(payload, await originalCardTexts.within(3_000));
 }
 
 function loadAdminArchetypeTranslations(): Record<string, string> {
@@ -7720,7 +7743,7 @@ const cosmeticsDataService = createCosmeticsDataService({
       error.status = upstream.status;
       throw error;
     }
-    return upstream.json();
+    return renderPayloadCardPlurals(await upstream.json(), originalCardTexts.current());
   },
 });
 app.use('/api', createPublicResourceRouter());
@@ -7782,6 +7805,16 @@ app.use('/api', createArticleCoverRouter({
   maxBytes: ARTICLE_COVER_MAX_BYTES, readUpload: adminUploadReader(ADMIN_UPLOAD_DIR),
 }));
 
+/** A proxied JSON body with its card texts' plural markup rendered; anything else as it came. */
+function renderProxiedCardPlurals(body: Buffer, status: number, contentType: string): Buffer {
+  if (status < 200 || status >= 300 || !contentType.includes('application/json')) return body;
+  try {
+    return Buffer.from(JSON.stringify(renderPayloadCardPlurals(JSON.parse(body.toString('utf8')), originalCardTexts.current())));
+  } catch {
+    return body;
+  }
+}
+
 async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: express.Response, upstreamPath: string) {
   try {
     const upstreamUrl = new URL(upstreamPath, 'http://127.0.0.1:3107');
@@ -7802,7 +7835,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       ? `:${battlegroundImageTransformCacheKey(imageTransform)}`
       : '';
     const cacheKey = `legacy:${upstreamUrl.href}${transformCacheKey}`;
-    const redisKey = redisHashedDataKey('bg-legacy-proxy', cacheKey);
+    const redisKey = redisHashedDataKey('bg-legacy-proxy-v2', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(cached.status);
@@ -7844,6 +7877,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
         console.warn('[bg image optimizer] using original image:', error?.message ?? error);
       }
     }
+    body = renderProxiedCardPlurals(body, upstream.status, contentType);
     const etag = `"bg-legacy-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
     if (
       upstream.status >= 200
@@ -7898,7 +7932,7 @@ async function proxyBattlegroundAppEndpoint(
     }
 
     const cacheKey = upstreamUrl.href;
-    const redisKey = redisHashedDataKey('bg-app-proxy', cacheKey);
+    const redisKey = redisHashedDataKey('bg-app-proxy-v3', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       const clientCacheControl = res.locals.subscriptionGuarded && !cached.contentType.includes('image/')
@@ -7933,10 +7967,11 @@ async function proxyBattlegroundAppEndpoint(
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(25_000) });
     let body = Buffer.from(await upstream.arrayBuffer());
     let contentType = upstream.headers.get('content-type') || 'application/octet-stream';
-    if (transformJson && upstream.status >= 200 && upstream.status < 300 && contentType.includes('application/json')) {
+    if (upstream.status >= 200 && upstream.status < 300 && contentType.includes('application/json')) {
       try {
         const payload = JSON.parse(body.toString('utf8'));
-        body = Buffer.from(JSON.stringify(transformJson(payload)));
+        const transformed = transformJson ? await transformJson(payload) : payload;
+        body = Buffer.from(JSON.stringify(renderPayloadCardPlurals(transformed, originalCardTexts.current())));
         contentType = 'application/json; charset=utf-8';
       } catch (err: any) {
         console.warn('[bg app proxy] JSON transform failed:', upstreamPath, err?.message ?? err);
@@ -7986,7 +8021,7 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
     }
 
     const cacheKey = `extra-library:${upstreamUrl.href}`;
-    const redisKey = redisHashedDataKey('bg-extra-library', cacheKey);
+    const redisKey = redisHashedDataKey('bg-extra-library-v2', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(cached.status);
@@ -8013,8 +8048,8 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
     }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(25_000) });
-    const body = Buffer.from(await upstream.arrayBuffer());
     const contentType = upstream.headers.get('content-type') || 'application/json; charset=utf-8';
+    const body = renderProxiedCardPlurals(Buffer.from(await upstream.arrayBuffer()), upstream.status, contentType);
     const etag = `"bg-extra-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
     if (upstream.status >= 200 && upstream.status < 300) {
       const cacheEntry = {
@@ -8679,6 +8714,29 @@ app.use('/api', createAuthProfileRouter({
   setPrivateNoStore,
 }));
 
+// Next renders /id/ and /u/ over loopback and Nginx limits those documents per
+// client; these budgets bound direct API reads and nickname probing.
+app.use('/api', createPublicProfileRouter({
+  findProfile: publicProfileId => findPublicProfile(db(), publicProfileId),
+  findPublicProfileIdByNickname: (nicknameKey, now) => findPublicProfileIdByNickname(db(), nicknameKey, now),
+  readOwnIdentity: (userId, now) => readOwnPublicIdentity(db(), userId, now),
+  claimNickname: (userId, nickname, now) => claimNickname(db(), userId, nickname, now),
+  userAuth,
+  csrfAllowed: cookieMutationCsrfAllowed,
+  setPrivateNoStore,
+  publicReadLimiter: rateLimit({
+    windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false,
+    keyGenerator: rateLimitClientKey,
+    message: { error: 'Слишком много запросов профилей. Попробуйте через минуту.' },
+    skip: req => req.ip === '127.0.0.1' || req.ip === '::1',
+  }),
+  nicknameChangeLimiter: rateLimit({
+    windowMs: 15 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
+    keyGenerator: rateLimitClientKey,
+    message: { error: 'Слишком много попыток сменить ник. Попробуйте позже.' },
+  }),
+}));
+
 app.use('/api', createSubscriptionRouter({
   userAuth,
   refreshSubscription: refreshSubscriptionForUser,
@@ -8805,6 +8863,16 @@ app.use('/api', createAdminBoostyRouter({
   configured: () => Boolean(BOOSTY_AUTH_API_URL),
   setPrivateNoStore,
 }));
+
+// The «все подписчики Boosty» mailing audience is as complete as the last
+// subscriber list, so the list is read in the background, not only when an
+// admin opens the Boosty page.
+const syncBoostyMailingContacts = () => fetchBoostySubscribers(true)
+  .catch((error: any) => console.warn('[mailing] Boosty contact sync failed:', error?.message ?? error));
+if (BACKGROUND_JOBS_ENABLED && BOOSTY_AUTH_API_URL) {
+  setTimeout(syncBoostyMailingContacts, 60_000).unref();
+  setInterval(syncBoostyMailingContacts, 6 * 60 * 60_000).unref();
+}
 
 app.use('/api', createAdminBoostyAnalyticsRouter({
   adminAuth,

@@ -1,8 +1,17 @@
 import { Mail, Monitor, Newspaper, Send, Smartphone, Trophy } from 'lucide-react';
+import { Skeleton } from '../vendor/valyro-ui/basic/Skeleton';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
 
-export type MailingSegment = 'all-consented' | 'active' | 'former';
+export type MailingSegment = 'all-consented' | 'active' | 'former' | 'boosty-all';
 export type MailingPreviewMode = 'desktop' | 'mobile';
+
+/** The line the send confirmation adds about who the audience includes. */
+export function mailingAudienceWarning(segment: MailingSegment): string {
+  if (segment === 'boosty-all') {
+    return '\nВ выборку входят все подписчики Boosty за всю историю, в том числе не дававшие согласия на письма. Отписавшиеся исключены.';
+  }
+  return segment === 'active' ? '' : '\nВ выборку могут входить бывшие подписчики, которые не отписались от писем.';
+}
 
 export type MailingTemplate = {
   id: string;
@@ -43,7 +52,7 @@ export type MailingCampaign = {
 };
 
 export type MailingOverview = {
-  summary: { total: number; eligible: number; active: number; former: number; excluded: number; unsubscribed: number; pendingConsent: number; suppressed: number };
+  summary: { total: number; eligible: number; active: number; former: number; boostyAll?: number; excluded: number; unsubscribed: number; pendingConsent: number; suppressed: number };
   templates: MailingTemplate[];
   contacts: MailingContact[];
   campaigns: MailingCampaign[];
@@ -108,6 +117,7 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
     { id: 'all-consented', label: 'Все согласившиеся', count: overview?.summary.eligible ?? 0, caption: 'Активные и бывшие подписчики' },
     { id: 'active', label: 'Только активные', count: overview?.summary.active ?? 0, caption: 'Есть подписка или бессрочный доступ' },
     { id: 'former', label: 'Только бывшие', count: overview?.summary.former ?? 0, caption: 'Ушли, но не отписались от писем' },
+    { id: 'boosty-all', label: 'Все подписчики Boosty', count: overview?.summary.boostyAll ?? 0, caption: 'За всю историю, включая не дававших согласия на письма' },
   ];
 
   return (
@@ -123,8 +133,8 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
           { label: 'Исключены', value: overview?.summary.excluded ?? '—', detail: 'не получат письмо' },
         ]}
         actions={(
-          <button type="button" className="contest-secondary-button" disabled={loading} onClick={onReload}>
-            {loading ? 'Обновляем…' : 'Обновить данные'}
+          <button type="button" className="contest-secondary-button" disabled={loading} aria-busy={loading} onClick={onReload}>
+            Обновить данные
           </button>
         )}
       />
@@ -138,7 +148,8 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
               <span><TemplateIcon size={20} /></span><strong>{template.label}</strong><small>{template.description}</small>
             </button>;
           })}
-          {!loading && !overview?.templates.length && <p className="contest-muted" role="status">Шаблоны пока недоступны.</p>}
+          {!overview && Array.from({ length: 3 }, (_, index) => <Skeleton key={index} height={72} radius={7} />)}
+          {!loading && overview && !overview.templates.length && <p className="contest-muted" role="status">Шаблоны пока недоступны.</p>}
         </div>
       </section>
 

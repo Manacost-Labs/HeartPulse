@@ -4,6 +4,7 @@ import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryIdentityReader, createBattlegroundLibraryAuxiliaryPublicRouter,
   createBattlegroundLibraryPublicRouter, readBattlegroundLibraryIdentity, withBattlegroundLibraryDeadline as withDeadline } from './modules/battlegroundLibrary/public.js';
+import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -157,9 +158,9 @@ function splitLegacyText(value: unknown): { ru: string | null; en: string | null
 
 function publicRulesText(card: JsonRecord): { ru: string | null; en: string | null } {
   const rules = record(card.text);
-  const structuredRu = plainCatalogText(rules.ru, 1_000);
-  const structuredEn = plainCatalogText(rules.en, 1_000);
-  const legacy = splitLegacyText(card.text_ru);
+  const structuredRu = plainCatalogText(renderTextPlurals(rules.ru), 1_000);
+  const structuredEn = plainCatalogText(renderTextPlurals(rules.en), 1_000);
+  const legacy = splitLegacyText(renderTextPlurals(card.text_ru));
   return {
     ru: structuredRu ?? legacy.ru,
     en: structuredEn ?? legacy.en,
@@ -530,7 +531,7 @@ export function createBattlegroundLibrarySeoRouter(
 
   router.use(createBattlegroundLibraryPublicRouter({ loadCatalog, retryAfterSeconds, onError: dependencies.onError }));
   router.use(createBattlegroundLibraryAuxiliaryPublicRouter({
-    fetchImpl, retryAfterSeconds, onError: dependencies.onError,
+    fetchImpl, retryAfterSeconds, onError: dependencies.onError, cardText: renderTextPlurals,
     apiBaseUrl: dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1',
     publicImageUrl: value => sameOriginPublicResourceUrl(value, origin) ?? `${origin}/assets/og-preview.png`,
   }));

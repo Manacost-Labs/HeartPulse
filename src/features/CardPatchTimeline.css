@@ -93,3 +93,19 @@
   .card-patch-timeline__entry { grid-template-columns: minmax(0, 1fr); }
   .card-patch-timeline__when { grid-auto-flow: column; justify-content: start; align-items: baseline; gap: 0.6rem; }
 }
+
+.card-patch-timeline__more {
+  min-height: 40px;
+  margin-top: 0.6rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(109, 68, 31, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #71181e;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.card-patch-timeline__more:hover { background: rgba(255, 251, 236, 0.6); }
+.card-patch-timeline__more:focus-visible { outline: 2px solid #71181e; outline-offset: 2px; }

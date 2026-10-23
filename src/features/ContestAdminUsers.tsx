@@ -4,6 +4,7 @@ import { RefreshCw, Search, X } from 'lucide-react';
 import { ContestAdminUserRow, type AdminUserPatch, type AdminUserSearchResult } from './ContestAdminUserRow';
 import { ADMIN_INPUT } from './contestAdminUi';
 import './adminPeople.css';
+import { AdminTableSkeleton } from './adminConsole/AdminTableSkeleton';
 import {
   AdminSegmentBar,
   loadAdminClientCard,
@@ -140,7 +141,7 @@ export function ContestAdminUsers({
             </tbody>
           </table></TableSurface>
         </div>
-      ) : !loading && (
+      ) : loading ? <AdminTableSkeleton label="Загружаем список людей" rowHeight={80} /> : (
         <p className="admin-people-empty">
           {filtered ? 'По этому фильтру никого нет. Сбросьте сегмент или измените запрос.' : 'В базе пока нет пользователей.'}
         </p>

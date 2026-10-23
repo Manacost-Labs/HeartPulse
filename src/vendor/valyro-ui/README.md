@@ -56,14 +56,23 @@ account does not import `valyro-ui/styles` either: the wrapper
 parchment mapping and, in `AccountBillingPlanCard.css`, the few theme-only
 tokens the card reads (`--ui-space-6`, `--ui-text-2xl`, …).
 
+Also vendored for the admin console (`src/features/adminConsole/`):
+`app-shell` (`layout/AppShell`), `sidebar` (`navigation/Sidebar`, `Menu`,
+`DropdownMenu`, `internal`), `command-palette` and the `manacost` theme
+(`styles/themes/manacost.css`). The console imports `styles/index.css` and the
+theme inside a `ThemeScope`, so the tokens apply only under the admin frame.
+Its local change is `patches/menu-es2022-typing.md`.
+
 Also vendored for the account game statistics, with the free release CLI
 (`npx valyro-cli@0.1.0 init --dir src/vendor/valyro-ui`, then `add tabs`; the
 settings are in the root `valyro.json`): `tabs` and its new registry
 dependencies (`navigation/internal`, `navigation/useTabs`,
-`primitives/prop-getters`). Files that already existed were kept as they are
-(the CLI does not overwrite them). The KPI group, data table, empty state,
-segmented control and button of the statistics are the VaryloUI copies the
-site already uses, so no second set of those widgets is vendored here. The
+`primitives/prop-getters`). `navigation/internal` is shared with the admin
+console above; the copy here is the newer registry file, whose keyboard
+helper also accepts a vertical orientation. Files that already existed were
+kept as they are (the CLI does not overwrite them). The KPI group, data
+table, empty state, segmented control and button of the statistics are the
+VaryloUI copies the site already uses, so no second set of those widgets is vendored here. The
 statistics do not import `valyro-ui/styles` either: the composition
 `src/features/playerStats/` uses the VaryloUI base, the shared parchment
 mapping and, in `PlayerStatsPanel.css`, the theme-only tokens these widgets

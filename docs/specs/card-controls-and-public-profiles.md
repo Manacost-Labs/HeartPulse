@@ -57,23 +57,11 @@ Improve constructed-card detail controls and add privacy-safe public user profil
   without statistics access receives `null` and `[]`. Points are capped at the
   newest 1000 snapshots of the range.
 
-### Public profiles (removed 2026-10-23)
+### Public profiles
 
-Public profile pages were removed at the owner's request; see
-[`docs/decisions/2026-10-23-remove-public-profiles.md`](../decisions/2026-10-23-remove-public-profiles.md).
-
-- `/id/:publicProfileId/` and the legacy `/profiles/p_…/` addresses now answer
-  the ordinary Next.js `404` with `noindex`. Nginx keeps routing them to Next
-  unchanged, so no profile lookup reaches Express: `GET /api/profiles/:id` is
-  gone.
-- The account page (`/profile/`) no longer offers «Публичный профиль» or
-  «Копировать ссылку».
-- The numeric account ID stays. Positive, immutable, unique integers are still
-  assigned and backfilled, are separate from the internal account ID, and are
-  never accepted by a mutation or authorization path. Connected applications
-  and the Reader API keep `publicProfileId`; their `profileUrl` now leads to
-  the signed-in account page `/profile/`.
-- No stored data was deleted.
+Public profiles were removed and restored on 2026-10-23 with nicknames and a
+narrower field list. Their contract lives in
+[`public-profiles.md`](public-profiles.md).
 
 ### Future saved decks
 
@@ -91,8 +79,8 @@ Public profile pages were removed at the owner's request; see
   changed-React checks pass.
 - Browser verification covers desktop and mobile layouts, keyboard disclosure,
   console errors, and API response contents.
-- `tests/next-public-profiles-removed.test.mjs` keeps the removed profile
-  addresses a real `404` without a profile lookup.
+- `tests/next-public-profiles-browser.test.mjs` covers the restored profile
+  pages and the account nickname flow.
 - Production smoke test covers health, one Wild-only card, and a `404` for a
   former public profile URL.
 

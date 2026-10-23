@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Activity, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { LogIn, RefreshCw } from 'lucide-react';
 import { canManageContests, fetchCurrentAuthUser } from '../modules/identity/public';
 import { ACCESS_REJECTED_EVENT } from '../shared/http/fetchWithDeadline';
@@ -50,22 +50,34 @@ function AdminSessionNotice({ onRecheck }: { onRecheck: () => void }) {
 }
 
 /**
- * Frame of the active admin section. A section that fails to load or render shows its own error
- * while the menu and the other sections keep working; switching sections starts with a clean frame.
+ * The admin sections. The first visit mounts a section; afterwards it stays mounted behind
+ * React's Activity while another section is shown, so its drafts, filters and loaded rows are
+ * there on return without a render or a request. A hidden section's effects
+ * (polling, listeners) are stopped and start again when it is shown. Each section has its own
+ * error boundary: a section that fails to load or render shows its error while the menu and the
+ * other sections keep working.
  */
-export function AdminSectionFrame({ section, children }: { section: string; children: ReactNode }) {
+export function AdminSectionFrame<Section extends string>({ section, renderSection }: {
+  section: Section;
+  renderSection: (section: Section) => ReactNode;
+}) {
   const session = useAdminSessionWatch();
+  const [visited, setVisited] = useState<Section[]>([section]);
+  if (!visited.includes(section)) setVisited([...visited, section]);
   return (
     <>
       {session.lost && <AdminSessionNotice onRecheck={session.recheck} />}
-      <RecoverableSurfaceBoundary
-        key={section}
-        scope={`admin:${section}`}
-        title="Раздел не открылся"
-        message="Остальные разделы работают: выберите другой в меню или нажмите «Повторить»."
-      >
-        {children}
-      </RecoverableSurfaceBoundary>
+      {visited.map(id => (
+        <Activity key={id} mode={id === section ? 'visible' : 'hidden'}>
+          <RecoverableSurfaceBoundary
+            scope={`admin:${id}`}
+            title="Раздел не открылся"
+            message="Остальные разделы работают: выберите другой в меню или нажмите «Повторить»."
+          >
+            {renderSection(id)}
+          </RecoverableSurfaceBoundary>
+        </Activity>
+      ))}
     </>
   );
 }

@@ -1,0 +1,410 @@
+/*
+ * Admin console frame on the Valyro "manacost" theme. Only the font follows the site (Inter is
+ * already self-hosted for the public pages); everything else reads the theme's --ui-* tokens.
+ */
+.admin-console[data-theme='manacost'] {
+  --ui-font-sans: var(--font-body, 'Inter'), system-ui, sans-serif;
+  --ui-font-display: var(--ui-font-sans);
+  /* Older section and chart styles name the site's decorative fonts; the console reads them as UI text. */
+  --font-display: var(--ui-font-sans);
+  --font-hs: var(--ui-font-sans);
+  /* The site's !important focus outline on fields (src/index.css) reads this: the theme's ring colour. */
+  --field-focus-outline: 2px solid var(--ui-focus-color);
+  min-height: 100dvh;
+}
+
+/* After a pointer press the site hides field outlines (src/styles/field-focus.css); keep that rule. */
+html[data-pointer-focus] .admin-console[data-theme='manacost'] {
+  --field-focus-outline: none;
+}
+
+/* A bare input inside a Valyro field: the field draws the focus, not the input. */
+.admin-console .ui-field__input {
+  --field-focus-outline: none;
+}
+
+.admin-console .ui-app-shell__header {
+  border-bottom: 1px solid var(--ui-divider);
+  background: var(--ui-bg);
+}
+
+/* Touch screens get 44px rows and controls (WCAG 2.5.5 target size); the desktop rail stays compact. */
+@media (pointer: coarse) {
+  .admin-console[data-theme='manacost'] {
+    --ui-sidebar-item-h: 44px;
+    --ui-control-h-sm: 44px;
+    --ui-control-h-md: 44px;
+  }
+}
+
+.admin-console-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  min-height: 40px;
+}
+
+.admin-console-brand__mark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-accent) url('/arena-logo-icon.webp') center / 22px no-repeat;
+}
+
+.admin-console-brand__name {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.admin-console-brand__name strong {
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+}
+
+.admin-console-brand__name small,
+.admin-console-site-link {
+  overflow: hidden;
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-console-brand__close {
+  margin-inline-start: auto;
+}
+
+.admin-console-site-link {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-height: 36px;
+  padding-inline: var(--ui-space-2);
+  border-radius: var(--ui-radius-md);
+  text-decoration: none;
+}
+
+.admin-console-site-link:hover {
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+.admin-console-site-link:focus-visible,
+.admin-console-search:focus-visible,
+.admin-toast button:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.admin-console-header {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  padding-inline-end: var(--ui-space-4);
+}
+
+.admin-console-crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  min-width: 0;
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-sm);
+  white-space: nowrap;
+}
+
+.admin-console-crumbs [aria-current='page'] {
+  overflow: hidden;
+  color: var(--ui-fg);
+  font-weight: var(--ui-weight-medium);
+  text-overflow: ellipsis;
+}
+
+.admin-console-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  margin-inline-start: auto;
+}
+
+.admin-console-search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 220px;
+  height: var(--ui-control-h-sm, 32px);
+  padding: 0 var(--ui-space-2) 0 var(--ui-space-3);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-field);
+  background: var(--ui-field-bg);
+  color: var(--ui-fg-subtle);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+  cursor: pointer;
+}
+
+.admin-console-search:hover {
+  border-color: var(--ui-field-border-hover);
+}
+
+.admin-console-search kbd {
+  margin-inline-start: auto;
+  padding: 1px 6px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface-2);
+  font: inherit;
+  font-size: var(--ui-text-xs);
+}
+
+.admin-console-user {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  max-width: 220px;
+  font-size: var(--ui-text-sm);
+}
+
+.admin-console-user__avatar {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+  font-weight: var(--ui-weight-semibold);
+}
+
+.admin-console-user__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-console .admin-workspace-content {
+  width: min(100%, 1480px);
+  margin-inline: auto;
+  padding: var(--ui-space-6) clamp(16px, 3vw, 40px) var(--ui-space-16);
+}
+
+.admin-console-page-head {
+  margin-bottom: var(--ui-space-6);
+}
+
+.admin-console-page-head h1 {
+  margin: 0;
+  color: var(--ui-fg);
+  font-size: var(--ui-text-2xl);
+  font-weight: var(--ui-weight-bold);
+  letter-spacing: var(--ui-tracking-display);
+  line-height: var(--ui-leading-tight);
+}
+
+.admin-console-page-head p {
+  margin: var(--ui-space-1) 0 0;
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-sm);
+}
+
+.admin-toast {
+  position: fixed;
+  inset-block-end: var(--ui-space-6);
+  inset-inline-end: var(--ui-space-6);
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+  max-width: min(440px, calc(100vw - 32px));
+  padding: var(--ui-space-3) var(--ui-space-3) var(--ui-space-3) var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-inline-start: 4px solid var(--ui-success);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-elevated);
+  box-shadow: var(--ui-shadow-popover);
+  color: var(--ui-fg);
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-leading);
+}
+
+.admin-toast.is-err {
+  border-inline-start-color: var(--ui-danger);
+}
+
+.admin-toast > span {
+  flex: 1;
+  padding-block: 2px;
+}
+
+.admin-toast button {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: var(--ui-radius-md);
+  background: transparent;
+  color: var(--ui-fg-subtle);
+  cursor: pointer;
+}
+
+.admin-toast button:hover {
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+@media (max-width: 959px) {
+  .admin-console-search {
+    min-width: 0;
+  }
+
+  .admin-console-search > span,
+  .admin-console-search kbd,
+  .admin-console-user__name {
+    display: none;
+  }
+
+  .admin-console .admin-workspace-content {
+    padding: var(--ui-space-4) var(--ui-space-3) var(--ui-space-12);
+  }
+
+  .admin-toast {
+    inset-inline: var(--ui-space-3);
+    inset-block-end: var(--ui-space-3);
+    max-width: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-console-search,
+  .admin-toast button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/*
+ * The shared analytics charts and tables (src/shared/ui/analytics) are painted for the public
+ * parchment pages; inside the console they take the theme's surfaces until each section moves to
+ * Valyro tables.
+ */
+.admin-console :is(.analytics-chart, .analytics-table) {
+  border-color: var(--ui-border);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow-card);
+  color: var(--ui-fg);
+}
+
+.admin-console .analytics-chart__header h3,
+.admin-console .analytics-table__header h3 {
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-semibold);
+}
+
+.admin-console :is(.analytics-chart__header p, .analytics-chart__downloads, .analytics-chart__selection output,
+  .analytics-chart__scrubber > div, .analytics-chart__empty, .analytics-chart__note, .analytics-table__footer,
+  .analytics-table--native small) {
+  color: var(--ui-fg-subtle);
+}
+
+.admin-console .analytics-chart .analytics-chart__download {
+  color: var(--ui-fg-subtle);
+}
+
+/* Only the tables' and charts' own controls: buttons inside cells keep their section's styles. */
+.admin-console :is(.analytics-table__tools, .analytics-table__footer, .analytics-chart__header, .analytics-chart__actions) button,
+.admin-console .analytics-table th button {
+  border-color: var(--ui-border-strong);
+  color: var(--ui-fg);
+}
+
+.admin-console :is(.analytics-table__tools, .analytics-table__footer, .analytics-chart__header, .analytics-chart__actions) button:hover,
+.admin-console .analytics-table th button:hover,
+.admin-console .analytics-chart .analytics-chart__download:hover {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+.admin-console :is(.analytics-chart, .analytics-table) :is(button, summary, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-focus-color);
+}
+
+.admin-console .analytics-table th,
+.admin-console .analytics-chart__data th,
+.admin-console .analytics-table--native :is(.analytics-table__scroll, .analytics-table__content) > table th {
+  background: var(--ui-surface-2);
+  color: var(--ui-fg-muted);
+}
+
+.admin-console .analytics-table :is(th, td),
+.admin-console .analytics-chart__data :is(th, td),
+.admin-console .analytics-table--native :is(.analytics-table__scroll, .analytics-table__content) > table :is(th, td),
+.admin-console .analytics-table--native > .analytics-table__tools,
+.admin-console .analytics-table__footer {
+  border-color: var(--ui-divider);
+}
+
+.admin-console .analytics-table--native :is(.analytics-table__scroll, .analytics-table__content) > table td {
+  color: var(--ui-fg);
+}
+
+.admin-console .analytics-table--native :is(.analytics-table__scroll, .analytics-table__content) > table tbody tr:nth-child(even),
+.admin-console .analytics-table:not(.analytics-table--native) :is(th, td):first-child {
+  background: var(--ui-surface);
+}
+
+.admin-console .analytics-table:not(.analytics-table--native) th:first-child {
+  background: var(--ui-surface-2);
+}
+
+.admin-console .analytics-table--native :is(.analytics-table__scroll, .analytics-table__content) > table tbody tr:hover,
+.admin-console .analytics-table tbody tr:hover td {
+  background: var(--ui-hover);
+}
+
+.admin-console .analytics-table__tools input {
+  border-color: var(--ui-border-field);
+  background: var(--ui-field-bg);
+}
+
+.admin-console .analytics-chart__tooltip {
+  border-color: var(--ui-border);
+  background: var(--ui-elevated);
+  box-shadow: var(--ui-shadow-popover);
+  color: var(--ui-fg);
+}
+
+.admin-console .analytics-chart__selection input::-webkit-slider-runnable-track { background: var(--ui-surface-3); }
+.admin-console .analytics-chart__selection input::-moz-range-track { background: var(--ui-surface-3); }
+
+/* Link-style buttons inside those tables (the person's name opens the client card). */
+.admin-console .analytics-table .admin-crm-open {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ui-accent-text);
+  font: inherit;
+  font-weight: var(--ui-weight-semibold);
+}
+
+.admin-console .analytics-table .admin-crm-open:hover {
+  background: none;
+  color: var(--ui-accent);
+}
+
+/* Holds only fixed side sheets: no box of its own. */
+.admin-console-layers {
+  display: contents;
+}

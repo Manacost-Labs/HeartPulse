@@ -114,7 +114,7 @@ const moduleBudgets = [
   },
   {
     path: 'src/features/Contests.tsx',
-    maxLines: 1_700,
+    maxLines: 160,
     owner: 'administrator workspace composition',
   },
   {

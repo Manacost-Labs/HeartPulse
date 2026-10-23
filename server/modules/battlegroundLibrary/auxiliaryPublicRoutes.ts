@@ -16,6 +16,8 @@ type Dependencies = {
   apiBaseUrl: string;
   retryAfterSeconds: number;
   publicImageUrl: (value: unknown) => string;
+  /** Renders card text markup (plural forms) before it is reduced to plain text. */
+  cardText?: (value: unknown) => unknown;
   onError?: (error: unknown) => void;
 };
 
@@ -73,7 +75,8 @@ export function createBattlegroundLibraryAuxiliaryPublicRouter(dependencies: Dep
       const nameValue = record(card.name).ru ?? card.name;
       const name = plainText(nameValue, 180);
       if (!name) throw new Error('Missing Battleground auxiliary card name');
-      const text = plainText(record(card.text).ru ?? card.text_ru, 500);
+      const rawText = record(card.text).ru ?? card.text_ru;
+      const text = plainText(dependencies.cardText ? dependencies.cardText(rawText) : rawText, 500);
       const images = record(card.images);
       const image = dependencies.publicImageUrl(images.card ?? images.framed ?? images.crop);
       const prefix = pool === 'archive' ? '/library/archive' : '/library';

@@ -14,6 +14,7 @@ import AccountLinks, { type AccountTelegramLink } from './AccountLinks';
 import AccountPlanSection from './AccountPlanSection';
 import AccountSectionHead from './AccountSectionHead';
 import AccountTrackerData from './AccountTrackerData';
+import AccountPublicProfile, { type AccountPublicProfileProps } from './AccountPublicProfile';
 import AccountSettings, { type AccountSettingsProps } from './AccountSettings';
 import './AccountDashboard.css';
 
@@ -34,6 +35,8 @@ export type AccountDashboardProps = {
   sessions?: AccountSessionsControl;
   contests: { entries: AccountContestEntry[]; loading: boolean };
   settings: AccountSettingsProps;
+  /** The public profile links and nickname form; omitted while the account is not loaded. */
+  publicProfile?: AccountPublicProfileProps;
   onLogout: () => void;
 };
 
@@ -63,12 +66,13 @@ function AccountMessage({ message }: Pick<AccountDashboardProps, 'message'>) {
 const HELP_LINKS = [
   { href: '/faq/#faq-access-missing', label: 'Оплатили, а доступ закрыт' },
   { href: '/faq/#faq-telegram-link', label: 'Как привязать Telegram' },
-  { href: '/faq/#faq-public-profile', label: 'Кто видит мой профиль' },
+  { href: '/faq/#faq-public-profile', label: 'Что видно в публичном профиле' },
 ] as const;
 
 /**
- * The signed-in account: who and what plan in the header, then the plan, the
- * ways into the account, settings and contests. State and requests stay in `LoginPanel`.
+ * The signed-in account: who and the plan's status in the header, then one
+ * full-width section each for the plan, the public profile, the ways into the
+ * account, settings and contests. State and requests stay in `LoginPanel`.
  */
 export default function AccountDashboard(props: AccountDashboardProps) {
   const plan = accountPlanSummary(props.subscription, props.subscriptionChecked);
@@ -109,10 +113,9 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         </Suspense>
       ) : null}
       <AccountTrackerData />
-      <div className="account-dashboard__columns">
-        <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />
-        <AccountSettings {...props.settings} />
-      </div>
+      {props.publicProfile && <AccountPublicProfile {...props.publicProfile} />}
+      <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />
+      <AccountSettings {...props.settings} />
       <AccountContests entries={props.contests.entries} loading={props.contests.loading} />
       <nav className="account-help" aria-label="Помощь по аккаунту">
         <span>Помощь:</span>

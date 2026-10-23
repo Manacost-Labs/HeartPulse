@@ -27,9 +27,9 @@ export function AdminOperationsHeader({
       <div className="admin-operations-heading">
         <p>{description}</p>
         <div className="admin-operations-command">
-          <span className={`admin-operations-status is-${statusTone}`} role="status">
+          <span className={`admin-operations-status is-${statusTone}`} role="status" title={status}>
             <i aria-hidden="true" />
-            {status}
+            <span className="admin-operations-status__text">{status}</span>
           </span>
           {actions && <div className="admin-operations-actions">{actions}</div>}
         </div>

@@ -5,6 +5,10 @@
 Approved for implementation on 2026-08-14 from the owner's request to adopt
 the free TailAdmin dashboard approach for the Arena administration workspace.
 
+Superseded on 2026-10-23: the frame (navigation, header, drawer) is now the
+Valyro console described in [admin-valyro-console.md](admin-valyro-console.md).
+The section ordering and loading notes below are historical.
+
 ## Goal
 
 Give administrators a calm, consistent operations workspace inspired by the

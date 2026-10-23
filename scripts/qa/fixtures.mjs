@@ -1021,7 +1021,7 @@ export const adminFixtures = {
       id: 'mail-contact-1', email: 'reader@example.test', name: 'Читатель', consentStatus: 'subscribed', consentSource: 'profile',
       lifecycle: 'active', accountState: 'current', eligible: true, updatedAt: '2026-07-11T00:00:00.000Z',
     }],
-    summary: { total: 4, eligible: 3, active: 2, former: 1, excluded: 1, unsubscribed: 1, pendingConsent: 0, suppressed: 0 },
+    summary: { total: 4, eligible: 3, active: 2, former: 1, boostyAll: 3, excluded: 1, unsubscribed: 1, pendingConsent: 0, suppressed: 0 },
     transport: { configured: true, from: 'Manacost <news@example.test>' },
   },
   '/api/admin/mailings/preview': {

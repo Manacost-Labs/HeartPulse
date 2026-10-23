@@ -48,7 +48,7 @@ export const AberrationFilter: Story = {
   play: async ({ canvas, args }) => {
     const filter = await canvas.findByRole('button', { name: 'Аберрация' });
     await expect(canvas.getByText('2 найдено · 2 загружено')).toBeVisible();
-    await expect(filter.querySelector('img')).toHaveAttribute('src', '/bg-legacy/assset/aberration.webp');
+    await expect(filter.querySelector('img')).toHaveAttribute('src', '/bg-legacy/assset/аберрации.webp');
     await userEvent.click(filter);
     await expect(filter).toHaveAttribute('aria-pressed', 'true');
     await expect(canvas.getByText('1 найдено · 2 загружено')).toBeVisible();

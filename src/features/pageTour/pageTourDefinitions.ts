@@ -45,7 +45,7 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     steps: [
       { id: 'summary', target: 'profile-summary', title: 'Ваш профиль', description: 'Здесь имя, основной контакт и ссылка на публичный профиль, которой можно поделиться.', preferredPlacement: 'bottom' },
       { id: 'contacts', target: 'profile-contacts', title: 'Контакты и рассылка', description: 'Контакты нужны, только чтобы передать приз победителю конкурса. Здесь же включается рассылка. Эти поля не подтверждают подписку.', preferredPlacement: 'bottom' },
-      { id: 'access', target: 'profile-access-status', title: 'Доступ к разделам', description: 'Какие разделы открыты, откуда доступ и когда его проверяли. «Проверить снова» заново спрашивает Boosty, Patreon и Telegram.', audience: 'authenticated', preferredPlacement: 'bottom' },
+      { id: 'access', target: 'profile-access-status', title: 'Доступ к разделам', description: 'Есть ли у вас подписка. Что она открывает и когда её проверяли — в разделе «Подписка» ниже; «Проверить снова» заново спрашивает Boosty, Patreon и Telegram.', audience: 'authenticated', preferredPlacement: 'bottom' },
       { id: 'telegram', target: 'profile-telegram-access', title: 'Привязка Telegram', description: 'Привяжите Telegram, чтобы входить через него и получать доступ по VIP-каналу. Поле @username в контактах привязкой не считается.', audience: 'non-admin', preferredPlacement: 'top' },
       { id: 'boosty', target: 'profile-boosty-access', title: 'Подтверждение Boosty', description: 'Введите почту из Boosty-профиля и шестизначный код из письма: сайт откроет разделы вашего уровня.', audience: 'non-admin', preferredPlacement: 'top' },
       { id: 'contests', target: 'profile-contests', title: 'Ваши конкурсы', description: 'Здесь появляются ваши заявки, их статус, призы и отметка победы.', preferredPlacement: 'top' },
@@ -183,11 +183,11 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
   {
     id: 'battlegrounds-hero-detail', version: 1, paths: ['/heroes/:dbfId'], title: 'Как читать досье героя',
     steps: [
-      { id: 'summary', target: 'bg-hero-detail-summary', title: 'Главное о герое', description: 'В верхнем блоке собраны имя, тир, среднее место, частота выбора и дата актуальности статистики.', audience: 'battlegrounds' },
+      { id: 'summary', target: 'bg-hero-detail-summary', title: 'Главное о герое', description: 'В верхнем блоке собраны имя, броня, тир, среднее место, частота выбора и ссылки на справочники.', audience: 'battlegrounds' },
       { id: 'media', target: 'bg-hero-detail-media', title: 'Сила героя и компаньон', description: 'Изучите актуальную силу героя, её официальный текст и компаньона, если он доступен в текущем пуле.', audience: 'battlegrounds' },
-      { id: 'placement', target: 'bg-hero-detail-placement', title: 'Обзор статистики', description: 'Вкладка «Обзор» показывает распределение мест. Переключайте разделы, чтобы видеть нужный график без длинной ленты.', audience: 'battlegrounds' },
-      { id: 'compositions', target: 'bg-hero-detail-compositions', title: 'Лучшие составы', description: 'Откройте вкладку «Составы», чтобы сравнить финальные композиции, их показатели и ключевых существ.', audience: 'battlegrounds', preferredPlacement: 'top' },
-      { id: 'tables', target: 'bg-hero-detail-tables', title: 'Сила героя и таверна', description: 'Во вкладке «Сила героя» находятся график по ходам и подробная таблица. Соседняя вкладка «Таверна» показывает её улучшения.', audience: 'battlegrounds', preferredPlacement: 'top' },
+      { id: 'placement', target: 'bg-hero-detail-placement', title: 'Обзор статистики', description: 'Вкладка «Обзор» показывает места в партиях и винрейт боёв по раундам. Переключайте разделы, чтобы видеть нужный график без длинной ленты.', audience: 'battlegrounds' },
+      { id: 'compositions', target: 'bg-hero-detail-compositions', title: 'Лучшие составы', description: 'Откройте вкладку «Составы», чтобы увидеть финальный стол, сравнить составы героя и ключевых существ финала.', audience: 'battlegrounds', preferredPlacement: 'top' },
+      { id: 'tables', target: 'bg-hero-detail-tables', title: 'Сила героя и таверна', description: 'Во вкладке «Сила героя» — график по ходам и таблица по уровням таверны. Соседняя вкладка «Таверна» показывает темп улучшений.', audience: 'battlegrounds', preferredPlacement: 'top' },
       { id: 'patches', target: 'bg-hero-detail-patches', title: 'История изменений', description: 'Патчи объясняют, когда характеристики героя менялись и почему старые показатели могли отличаться.', audience: 'battlegrounds', preferredPlacement: 'top' },
       { id: 'gallery', target: 'bg-hero-detail-gallery', title: 'Галерея и звуки', description: 'Дополнительные изображения и реплики появляются только при наличии данных; элементы можно открыть в полном размере.', audience: 'battlegrounds', preferredPlacement: 'top' },
     ],

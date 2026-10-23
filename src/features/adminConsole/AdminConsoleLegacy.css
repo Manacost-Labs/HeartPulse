@@ -1,0 +1,86 @@
+/*
+ * Older admin section styles (src/features/contests.css) paint their panels with fixed parchment
+ * colours that ignore the bridge variables. Inside the console those surfaces take the theme's
+ * tokens; status colours (amber warnings, red errors, green success) keep their meaning.
+ * Each block can go once its section is rebuilt on Valyro components.
+ */
+.admin-console .admin-workspace-content .admin-operations-header {
+  border-color: var(--ui-border);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow-card);
+}
+
+.admin-console .admin-workspace-content .admin-operations-header::before {
+  background: var(--ui-primary);
+}
+
+.admin-console .admin-workspace-content .admin-operations-metrics {
+  background: var(--ui-surface-2);
+}
+
+.admin-console .admin-workspace-content :is(
+  .admin-parser-card,
+  .admin-parser-overview > div,
+  .admin-parser-run-table-wrap,
+  .admin-parser-run-open,
+  .admin-parser-run-drawer > header button,
+  .admin-parser-run-drawer__meta > div,
+  ul.admin-parser-run-results > li,
+  .admin-untranslated-list li,
+  .admin-translation-stats > .needs-attention
+) {
+  border-color: var(--ui-border);
+  background: var(--ui-surface);
+}
+
+.admin-console .admin-workspace-content .admin-parser-run-actions input {
+  border-radius: var(--ui-radius-field);
+  background: var(--ui-field-bg);
+}
+
+.admin-console .admin-workspace-content .admin-parser-run-table-wrap tbody tr:hover {
+  background: var(--ui-hover);
+}
+
+.admin-console .admin-workspace-content .admin-parser-progress > span {
+  background: var(--ui-primary);
+}
+
+.admin-console .admin-workspace-content .admin-translation-editor {
+  border-left-color: var(--ui-primary) !important;
+  box-shadow: var(--ui-shadow-card) !important;
+}
+
+/* Template cards were sized for three per row with long descriptions; a single template looked empty. */
+.admin-console .admin-workspace-content .admin-mailing-template-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.admin-console .admin-workspace-content .admin-mailing-template-grid > button {
+  min-height: 72px;
+}
+
+/* The status pill keeps one width while its text changes (loading → a long sender address), so the
+   description beside it does not re-wrap and push the section down; the full text is in its title. */
+.admin-console .admin-workspace-content .admin-operations-status {
+  flex: none;
+  width: 300px;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.admin-console .admin-workspace-content .admin-operations-status__text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* «Кеши и DeckView» waits below until the data panel above it has loaded, instead of being pushed down. */
+.admin-console .admin-standard-operations:has(> .admin-parser-loading) > .admin-standard-operations__legacy {
+  display: none;
+}
+
+.admin-console .admin-workspace-content .admin-operations-actions button {
+  white-space: nowrap;
+}

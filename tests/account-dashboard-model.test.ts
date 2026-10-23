@@ -173,3 +173,12 @@ test('linked providers belong to the account they were fetched for', () => {
   assert.equal(linkedProvidersForAccount(null, 'a'), null);
   assert.equal(linkedProvidersForAccount({ accountId: 'b', providers: null }, 'b'), null, 'a failed request stays unknown');
 });
+
+test('the Boosty row names why Boosty opens nothing without repeating the plan section', () => {
+  const detail = (input: Partial<SubscriptionStatus>) => accountLinkRows(user(), subscription(input)).find(row => row.id === 'boosty')?.detail;
+  const message = 'Boosty не нашёл эту почту. Зайдите на Boosty и привяжите email.';
+  assert.equal(detail({ message, boosty: { message } }), 'Почта подписки не подтверждена');
+  assert.equal(detail({ boosty: { found: true, hasAccess: false } }), 'Этот уровень не открывает разделы');
+  assert.equal(detail({ stale: true }), 'Boosty не ответил, проверьте позже');
+  assert.equal(detail({ hasAccess: true, boosty: { message } }), message, 'with access from elsewhere the row is the only place for the reason');
+});

@@ -2,14 +2,21 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import ModalSurface from './ModalSurface';
 import { LightboxImage } from './LightboxImage';
+import '../GlobalUtilityHeader.css';
 
 const PICTURE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="512" height="776"><rect width="512" height="776" rx="40" fill="#7a2b16"/><circle cx="256" cy="300" r="150" fill="#e7b85b"/></svg>')}`;
 
-/** A thumbnail on a page and the zooming lightbox it opens (stories only). */
-export default function LightboxZoomFixture() {
+/**
+ * A thumbnail on a page and the zooming lightbox it opens (stories only).
+ * `scrolledPage` puts it halfway down a page taller than the screen, under the
+ * site's sticky search header, as on the gallery and card pages.
+ */
+export default function LightboxZoomFixture({ scrolledPage = false }: { scrolledPage?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ padding: 32, minHeight: "100vh", background: "#f1e1bd" }}>
+    <div style={{ padding: scrolledPage ? '0 0 1600px' : 32, minHeight: "100vh", background: "#f1e1bd" }}>
+      {scrolledPage && <header className="global-utility-header"><div className="global-utility-header__inner">Шапка</div></header>}
+      {scrolledPage && <div style={{ height: 1200 }} />}
       <button type="button" aria-label="Открыть картинку" data-lightbox-src={PICTURE} onClick={() => setOpen(true)}
         style={{ border: 0, padding: 0, background: 'none' }}>
         <img src={PICTURE} alt="" width={128} height={194} />

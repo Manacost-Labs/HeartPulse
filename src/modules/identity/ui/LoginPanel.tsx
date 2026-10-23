@@ -23,6 +23,7 @@ import {
 import { canAccessAdminWorkspace } from '../model/authAccess';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
 import { useAccountSessions } from '../hooks/useAccountSessions';
+import { useAccountPublicProfile } from '../hooks/useAccountPublicProfile';
 import { useAccountSignInLinks } from '../hooks/useAccountSignInLinks';
 import './IdentityProfile.css';
 import '../../../shared/ui/LoadingSurface.css';
@@ -273,7 +274,8 @@ export function LoginPanel({
     void fetchSubscription(false);
     void fetchContestHistory();
   }, [authUser, fetchSubscription, fetchContestHistory]);
-  const accountId = authUser?.id || authUser?.profileId || '', linkedProviders = useAccountSignInLinks(accountId, setMsg), accountSessions = useAccountSessions(accountId, setMsg);
+  const accountId = authUser?.id || authUser?.profileId || '', linkedProviders = useAccountSignInLinks(accountId, setMsg), accountSessions = useAccountSessions(accountId, setMsg),
+    publicProfile = useAccountPublicProfile(accountId, setMsg);
 
   const applyAuthenticatedUser = (user: AuthUser) => {
     setAuthUser(user);
@@ -511,7 +513,7 @@ export function LoginPanel({
           onCodeChange: setBoostyCode,
           onSubmit: boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm,
         }}
-        patreonLinkUrl={patreonLinkUrl} sessions={accountSessions}
+        patreonLinkUrl={patreonLinkUrl} sessions={accountSessions} publicProfile={publicProfile}
         telegram={{
           userId: accountId,
           mode: telegramMode,

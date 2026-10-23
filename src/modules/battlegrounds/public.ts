@@ -31,7 +31,8 @@ export type { BattlegroundMinionBoard, BattlegroundMinionStats, BattlegroundMini
 export { createBattlegroundLibraryResource } from './model/libraryResource';
 export { useBattlegroundLibraryData } from './useLibraryData';
 
-export { HeroBarChart, HeroPowerChart, HeroTavernChart, HeroDataTable, HeroCompositionAnalytics } from './ui/HeroAnalytics';
+export { HeroCompositionAnalytics, HeroOverview, HeroPowerAnalytics, HeroTavernAnalytics } from './ui/HeroAnalytics';
+export type { HeroAnalyticsCard } from './ui/HeroAnalytics';
 
 export {
   buildTierBuilderCards, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount, plainCardText,

@@ -1,0 +1,371 @@
+/* Docked to the inline-start edge, or (Glass) an inset frosted panel with pill-shaped rows. */
+.ui-sidebar {
+  --_w: var(--ui-sidebar-w);
+  --_rail: var(--ui-sidebar-rail-w);
+  --_item-h: var(--ui-sidebar-item-h);
+
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: var(--_w);
+  height: calc(100% - 2 * var(--ui-sidebar-inset));
+  min-height: 0;
+  margin: var(--ui-sidebar-inset);
+  overflow: hidden;
+  border: var(--ui-material-border);
+  border-inline-end: var(--ui-sidebar-border-end);
+  border-radius: var(--ui-inset-panel-radius);
+  background: var(--ui-sidebar-bg, var(--ui-surface));
+  box-shadow: var(--ui-inset-panel-shadow);
+  color: var(--ui-fg);
+  transition: width var(--ui-duration-slow) var(--ui-ease);
+  -webkit-backdrop-filter: var(--ui-blur-strong);
+  backdrop-filter: var(--ui-blur-strong);
+}
+
+.ui-sidebar[data-collapsed] {
+  width: var(--_rail);
+}
+
+.ui-sidebar__header,
+.ui-sidebar__footer {
+  flex: none;
+  padding: var(--ui-space-3);
+}
+
+.ui-sidebar__header {
+  border-bottom: 1px solid var(--ui-divider);
+}
+
+.ui-sidebar__footer {
+  border-top: 1px solid var(--ui-divider);
+}
+
+.ui-sidebar[data-collapsed] :is(.ui-sidebar__header, .ui-sidebar__footer) {
+  display: flex;
+  justify-content: center;
+  padding: var(--ui-space-2);
+}
+
+.ui-sidebar__nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  min-height: 0;
+  padding: var(--ui-sidebar-nav-padding);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ui-sidebar__section-label {
+  padding: 0 var(--ui-space-2) var(--ui-space-1);
+  padding-inline-start: var(--ui-sidebar-section-label-inset);
+  color: var(--ui-fg-subtle);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-label);
+  white-space: nowrap;
+}
+
+.ui-sidebar__divider {
+  height: 1px;
+  margin: 0 var(--ui-space-2) var(--ui-space-2);
+  background: var(--ui-divider);
+}
+
+.ui-sidebar__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Nested items hang off a guide line under the parent's icon. */
+.ui-sidebar__sublist {
+  margin-block: 1px;
+  margin-inline: var(--ui-sidebar-sublist-inset) 0;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--ui-divider);
+}
+
+/* A group folds open on a 0fr → 1fr grid row (no measuring). The list is clipped to the growing row
+   with clip-path rather than overflow, which leaves room for the rows' focus rings. */
+.ui-sidebar__group {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--ui-duration-slow) var(--ui-ease),
+    opacity var(--ui-duration) var(--ui-ease);
+}
+
+.ui-sidebar__group[data-state='open'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.ui-sidebar__group > .ui-sidebar__sublist {
+  min-height: 0;
+  clip-path: inset(-8px);
+  transition: margin-block var(--ui-duration-slow) var(--ui-ease);
+}
+
+/* Closed: no margins either (a 0fr row still holds them), and hidden once folded. */
+.ui-sidebar__group[data-state='closed'] > .ui-sidebar__sublist {
+  margin-block: 0;
+  visibility: hidden;
+  transition:
+    margin-block var(--ui-duration-slow) var(--ui-ease),
+    visibility 0s var(--ui-duration-slow);
+}
+
+.ui-sidebar__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: var(--_item-h);
+  padding: 0 var(--ui-sidebar-item-padding-x);
+  border: 0;
+  border-radius: var(--ui-sidebar-item-radius);
+  corner-shape: var(--ui-control-corner-shape);
+  background: transparent;
+  color: var(--ui-nav-item-fg);
+  font: inherit;
+  font-size: var(--ui-text-md);
+  letter-spacing: var(--ui-label-tracking, var(--ui-control-tracking, inherit));
+  text-transform: var(--ui-label-transform, inherit);
+  text-align: start;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--ui-duration-fast) var(--ui-ease),
+    color var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-sidebar__item:hover:not(:disabled) {
+  background: var(--ui-hover);
+  color: var(--ui-fg);
+}
+
+.ui-sidebar__item:active:not(:disabled, [data-active]) {
+  background: var(--ui-active);
+}
+
+.ui-sidebar__item:is([data-active], [data-has-active]) {
+  color: var(--ui-fg);
+}
+
+.ui-sidebar__item[data-active] {
+  background: var(--ui-sidebar-item-active-bg);
+  box-shadow: var(--ui-sidebar-item-active-shadow);
+  color: var(--ui-sidebar-item-active-fg);
+}
+
+/* Active pill (Windows 11), visible only when the theme sets --ui-active-indicator. */
+.ui-sidebar__item[data-active]::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 0;
+  width: 3px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--ui-active-indicator, transparent);
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+/* The active row's fill (and pill) as one indicator that glides to the newly chosen row (Sidebar.tsx
+   places it). The nav is isolated, so the indicator (z-index -1) paints under the rows. */
+.ui-sidebar__nav {
+  position: relative;
+  isolation: isolate;
+}
+
+.ui-sidebar__indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  display: none;
+  border-radius: var(--ui-sidebar-item-radius);
+  corner-shape: var(--ui-control-corner-shape);
+  background: var(--ui-sidebar-item-active-bg);
+  box-shadow: var(--ui-sidebar-item-active-shadow);
+  pointer-events: none;
+  transition:
+    transform var(--ui-duration-slow) var(--ui-ease-spring),
+    width var(--ui-duration-slow) var(--ui-ease-spring),
+    height var(--ui-duration-slow) var(--ui-ease-spring);
+}
+
+.ui-sidebar__nav[data-indicator] > .ui-sidebar__indicator {
+  display: block;
+}
+
+.ui-sidebar__indicator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 0;
+  width: 3px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--ui-active-indicator, transparent);
+  translate: 0 -50%;
+}
+
+.ui-sidebar__nav[data-indicator] .ui-sidebar__item[data-active]:not(:hover) {
+  background: transparent;
+}
+
+.ui-sidebar__nav[data-indicator] .ui-sidebar__item[data-active]:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.ui-sidebar__nav[data-indicator] .ui-sidebar__item[data-active]::before {
+  content: none;
+}
+
+.ui-sidebar__item:disabled {
+  color: var(--ui-fg-disabled);
+  cursor: not-allowed;
+}
+
+/* Lifted, so the next row's fill (active, hover) does not paint over the ring. */
+.ui-sidebar__item:focus-visible {
+  z-index: 1;
+  box-shadow: var(--ui-focus-ring);
+}
+
+/* A filled active row keeps its fill under the pointer and, where the theme says so, its depth when focused. */
+.ui-sidebar__item[data-active]:hover:not(:disabled) {
+  background: var(--ui-sidebar-item-active-bg-hover);
+  color: var(--ui-sidebar-item-active-fg-hover);
+}
+
+.ui-sidebar__item[data-active]:focus-visible {
+  box-shadow: var(--ui-sidebar-item-active-shadow-focus);
+}
+
+.ui-sidebar__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: var(--ui-sidebar-icon-fg);
+}
+
+:is(.ui-sidebar__item:disabled, .ui-sidebar__item[data-active]) .ui-sidebar__icon {
+  color: inherit;
+}
+
+.ui-sidebar__initial {
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+}
+
+.ui-sidebar__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-sidebar__badge {
+  flex: none;
+}
+
+.ui-sidebar__chevron {
+  flex: none;
+  color: var(--ui-fg-faint);
+  transform: rotate(-90deg);
+  transition: transform var(--ui-duration) var(--ui-ease);
+}
+
+.ui-sidebar__chevron:dir(rtl) {
+  transform: rotate(90deg);
+}
+
+.ui-sidebar__item[aria-expanded='true'] .ui-sidebar__chevron {
+  transform: none;
+}
+
+.ui-sidebar__item[data-active] .ui-sidebar__chevron {
+  color: var(--ui-sidebar-item-active-chevron-fg);
+}
+
+/* Its badge on a filled active row (`initial` in the theme: the badge's own subtle tint). */
+.ui-sidebar__item[data-active] .ui-badge {
+  background: var(--ui-sidebar-item-active-badge-bg, color-mix(in srgb, var(--_c) 14%, transparent));
+  color: var(--ui-sidebar-item-active-badge-fg, var(--_ink));
+}
+
+.ui-sidebar__dot {
+  position: absolute;
+  top: 7px;
+  inset-inline-end: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-accent);
+  box-shadow: 0 0 0 2px var(--ui-sidebar-dot-ring);
+}
+
+/* Rail: square icon buttons */
+.ui-sidebar[data-collapsed] .ui-sidebar__item {
+  justify-content: center;
+  height: var(--ui-sidebar-rail-item-h);
+  padding: 0;
+}
+
+/* When the nav overflows, its scrolled edges fade out, so an item cut off at the edge reads as
+   "more this way" instead of clipped. Sidebar.tsx marks the edges from the scroll position
+   (data-fade-top / data-fade-bottom), so the fade is there from the first paint, before any scrolling. */
+.ui-sidebar__nav[data-fade-top] {
+  mask-image: linear-gradient(to bottom, transparent, #000 32px);
+}
+
+.ui-sidebar__nav[data-fade-bottom] {
+  mask-image: linear-gradient(to top, transparent, #000 32px);
+}
+
+.ui-sidebar__nav[data-fade-top][data-fade-bottom] {
+  mask-image: linear-gradient(to bottom, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+
+@media (forced-colors: active) {
+  /* Without opting out, Chromium paints a Canvas backplate behind the label, hiding it on Highlight.
+     The row paints Highlight itself; the gliding indicator would only double it. */
+  .ui-sidebar__item[data-active],
+  .ui-sidebar__nav[data-indicator] .ui-sidebar__item[data-active]:not(:hover) {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .ui-sidebar__nav[data-indicator] > .ui-sidebar__indicator {
+    display: none;
+  }
+
+  .ui-sidebar__item[data-active] :is(.ui-sidebar__icon, .ui-sidebar__chevron) {
+    color: inherit;
+  }
+
+  .ui-sidebar__item:disabled {
+    color: GrayText;
+  }
+
+  .ui-sidebar__dot {
+    background: CanvasText;
+  }
+}
