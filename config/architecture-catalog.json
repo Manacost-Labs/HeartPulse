@@ -343,7 +343,7 @@
       ],
       "dataStores": [],
       "externalServices": [
-        "Global datasets of the site (HSReplay Battlegrounds mirror, HSGuru meta, Firestone Arena) and HearthstoneJSON names, injected by composition"
+        "Global datasets of the site (HSReplay Battlegrounds mirror, HSGuru meta; no Arena dataset) and HearthstoneJSON names, injected by composition"
       ],
       "tests": [
         "tests/player-games-routes.test.ts",
