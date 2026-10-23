@@ -18,9 +18,6 @@ export type AccountDashboardProps = {
   user: AuthUser;
   name: string;
   contact: string;
-  publicProfileHref: string;
-  linkCopied: boolean;
-  onCopyLink: () => void;
   message: { type: 'ok' | 'err'; text: string } | null;
   subscription: SubscriptionStatus | null;
   subscriptionLoading: boolean;
@@ -63,7 +60,7 @@ function AccountMessage({ message }: Pick<AccountDashboardProps, 'message'>) {
 const HELP_LINKS = [
   { href: '/faq/#faq-access-missing', label: 'Оплатили, а доступ закрыт' },
   { href: '/faq/#faq-telegram-link', label: 'Как привязать Telegram' },
-  { href: '/faq/#faq-public-profile', label: 'Что видно в публичном профиле' },
+  { href: '/faq/#faq-public-profile', label: 'Кто видит мой профиль' },
 ] as const;
 
 /**
@@ -79,9 +76,6 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         name={props.name}
         contact={props.contact}
         plan={plan}
-        publicProfileHref={props.publicProfileHref}
-        linkCopied={props.linkCopied}
-        onCopyLink={props.onCopyLink}
         onLogout={props.onLogout}
       />
       <AccountMessage message={props.message} />

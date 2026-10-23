@@ -26,9 +26,8 @@ export function serializeApplicationProfileUser(
   return {
     id: user.id,
     publicProfileId: user.publicProfileId ?? '',
-    profileUrl: user.publicProfileId
-      ? `${appUrl.replace(/\/+$/, '')}/id/${user.publicProfileId}`
-      : '',
+    // Public profile pages are gone; the field stays for connected clients and now leads to the account itself.
+    profileUrl: `${appUrl.replace(/\/+$/, '')}/profile/`,
     email: user.email,
     name: user.name,
     avatarInitials: user.avatarInitials ?? user.name.slice(0, 2).toUpperCase(),

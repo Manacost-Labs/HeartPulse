@@ -21,7 +21,6 @@ import {
   type AuthUser,
 } from '../model/authUser';
 import { canAccessAdminWorkspace } from '../model/authAccess';
-import { publicProfilePath } from '../model/publicProfilePath';
 import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
 import { useAccountSessions } from '../hooks/useAccountSessions';
 import { useAccountSignInLinks } from '../hooks/useAccountSignInLinks';
@@ -219,7 +218,6 @@ export function LoginPanel({
   ));
   const [contestHistory, setContestHistory] = useState<ContestHistoryItem[]>([]);
   const [contestHistoryLoading, setContestHistoryLoading] = useState(false);
-  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const authHeaders = useCallback((extra: Record<string, string> = {}) => ({
     ...extra,
     'X-CSRF-Request': '1',
@@ -493,23 +491,11 @@ export function LoginPanel({
       || (isRealAuthEmail(authUser.email) ? authUser.email : '')
       || (authUser.contactTelegram || authUser.telegramUsername ? `@${authUser.contactTelegram || authUser.telegramUsername}` : '')
       || authUser.email;
-    const publicProfileHref = authUser.publicProfileId
-      ? publicProfilePath(authUser.publicProfileId)
-      : '';
-    const copyPublicProfileLink = async () => {
-      if (!publicProfileHref) return;
-      await navigator.clipboard.writeText(new URL(publicProfileHref, window.location.origin).href);
-      setPublicLinkCopied(true);
-      window.setTimeout(() => setPublicLinkCopied(false), 2_000);
-    };
     return (
       <AccountDashboard
         user={authUser}
         name={profileName}
         contact={profileContact}
-        publicProfileHref={publicProfileHref}
-        linkCopied={publicLinkCopied}
-        onCopyLink={() => { void copyPublicProfileLink(); }}
         message={msg}
         subscription={subscription}
         subscriptionLoading={subscriptionLoading}

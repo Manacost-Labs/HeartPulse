@@ -1,6 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { isPublicProfileId, MAX_PUBLIC_PROFILE_ID } from './identity.js';
-import type { PublicProfileCandidate } from './model.js';
 
 export type PublicProfileIdentityOptions = {
   /** Existing owner accounts that should receive the first available IDs. */
@@ -109,32 +108,4 @@ export function resolveUserPublicProfileId(
     throw new Error('Не удалось создать публичный ID профиля');
   }
   return String(candidate);
-}
-
-/**
- * Reads only the four fields allowed by the public profile contract and keeps
- * blocked accounts indistinguishable from missing accounts.
- */
-function findPublicProfileById(
-  database: DatabaseSync,
-  publicProfileId: string,
-): PublicProfileCandidate | null {
-  return (database.prepare(`
-    SELECT
-      CAST(public_numeric_id AS TEXT) AS publicProfileId,
-      name,
-      avatar_initials AS avatarInitials,
-      created_at AS createdAt
-    FROM users
-    WHERE (CAST(public_numeric_id AS TEXT) = ? OR public_profile_id = ?)
-      AND COALESCE(blocked_at, '') = ''
-    LIMIT 1
-  `).get(publicProfileId, publicProfileId) as PublicProfileCandidate | undefined) ?? null;
-}
-
-/** Creates a lazy SQLite-backed candidate lookup for route composition. */
-export function createSqlitePublicProfileFinder(
-  database: () => DatabaseSync,
-): (publicProfileId: string) => PublicProfileCandidate | null {
-  return publicProfileId => findPublicProfileById(database(), publicProfileId);
 }

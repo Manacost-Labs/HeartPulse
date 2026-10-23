@@ -30,7 +30,7 @@ export function HomePageClient({ summary, articles, login }: {
     access={access} navigate={navigate}>
     {login ? <div style={{ minHeight: '100svh' }}>
       <AccountPlanCardSlot.Provider value={AccountBillingPlanCard}>
-        <ReaderAccountRoute connect={false} profileId={null} user={access.user}
+        <ReaderAccountRoute connect={false} user={access.user}
           checking={access.checking || access.provisional} onChange={access.onAuthChange} />
       </AccountPlanCardSlot.Provider>
     </div>

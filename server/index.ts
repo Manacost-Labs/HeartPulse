@@ -277,8 +277,6 @@ import {
   type TelegramAuthIdentityClaim,
 } from './modules/telegramAuth/public.js';
 import {
-  createPublicProfileRouter,
-  createSqlitePublicProfileFinder,
   ensurePublicProfileIds,
   resolveUserPublicProfileId,
 } from './modules/publicProfile/public.js';
@@ -8666,10 +8664,6 @@ app.use('/api', createAuthProfileRouter({
   normalizeContactTelegram,
   normalizeContactVkUrl,
   setPrivateNoStore,
-}));
-
-app.use('/api', createPublicProfileRouter({
-  findProfile: createSqlitePublicProfileFinder(db),
 }));
 
 app.use('/api', createSubscriptionRouter({

@@ -2674,7 +2674,7 @@ for (const [device, viewport] of [
       || profileState.headings.join() !== 'account-title'
       || profileState.headerBackground !== 'rgb(58, 6, 16)'
       || profileState.openSections < 1
-      || profileState.publicProfileActions.join('|') !== 'Публичный профиль|Копировать ссылку|Выйти'
+      || profileState.publicProfileActions.join('|') !== 'Выйти'
       || profileState.contactsVisible !== true
       || profileState.smallControls.length > 0
       || profileState.scrollWidth > profileState.clientWidth + 1) {
