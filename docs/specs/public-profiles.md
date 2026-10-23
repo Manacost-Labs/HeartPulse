@@ -73,6 +73,25 @@ now; `profilePath` is `/id/<n>/`.
 A real change starts a 30-day cooldown and moves the previous nickname into
 `public_nickname_history` for 90 days. Changing only the letter case is free.
 
+## Pages
+
+- `/id/<n>/` (`apps/public-web/app/id/[publicProfileId]/page.tsx`) renders
+  the card on the server from the anonymous projection (`lib/publicProfile.ts`
+  reads it through `fetchPublicExpress()` without cookies and copies only the
+  contract's fields). Missing and blocked profiles are the site's `404`.
+  Metadata: title `<displayName> — профиль игрока | HearthPulse`,
+  `robots: noindex, follow`, `rel=canonical` to `https://hearthpulse.net/id/<n>/`,
+  Open Graph `profile` with the site share image (there are no profile images)
+  and a large Twitter card, so links preview in Telegram and Discord.
+  Profiles are not in the sitemap.
+- `/u/<nickname>/` is answered in `apps/public-web/proxy.ts`: an existing
+  nickname gets a `301` to `/id/<n>/` (`Cache-Control: public, max-age=60`),
+  anything else falls through to the page's `404`.
+- The account page (`/?login`) has a «Публичный профиль» section
+  (`AccountPublicProfile`): the short link and, once chosen, the nickname link,
+  each with «Скопировать ссылку», and the nickname form with the rules and the
+  date of the next allowed change.
+
 ## Limits
 
 Direct API reads of `/api/profiles/*` are limited to 60 per minute per client
@@ -92,3 +111,9 @@ start; nothing existing is rewritten.
 projection allow-list (`tests/public-profile-nickname.test.ts`), and the routes
 on a real SQLite database (`tests/public-profile-routes.test.ts`: allow-list,
 `404` parity, CSRF, validation, uniqueness, cooldown, hold, race, rate limit).
+`tests/next-public-profiles-browser.test.mjs` runs Express and Next together:
+the account section sets a nickname, copies the link and refuses a change
+without the CSRF header; `/u/` redirects, `/id/` shows only public fields with
+the right metadata, has no axe violations or overflow at 320–1440 px, and a
+blocked account becomes a `404`. Stories: `Identity/Public Profile` and
+`Identity/Account Public Profile`.

@@ -4,6 +4,7 @@ import {
   type AuthProfileUpdate,
 } from '../model/authProfile';
 import { accountSessionsFromPayload, type AccountSession } from '../model/accountSessions';
+import { ownPublicProfileFromPayload, type OwnPublicProfile } from '../model/publicProfile';
 import { authErrorFromPayload, type AuthUser } from '../model/authUser';
 
 const AUTH_JSON_HEADERS = {
@@ -87,4 +88,26 @@ export function revokeAccountSession(id: string): Promise<number> {
 /** Ends every session of the account except this browser's; resolves with how many ended. */
 export function revokeOtherAccountSessions(): Promise<number> {
   return postSessionChange('/api/account/sessions/revoke-others', 'Не удалось завершить сеансы');
+}
+
+/** The signed-in person's public link and nickname state. Null when the answer is unavailable. */
+export async function fetchOwnPublicProfile(signal?: AbortSignal): Promise<OwnPublicProfile | null> {
+  try {
+    const response = await fetchWithDeadline('/api/account/public-profile', { signal, deadlineMs: 10_000 });
+    if (!response.ok) return null;
+    return ownPublicProfileFromPayload(await response.json().catch(() => null));
+  } catch {
+    return null;
+  }
+}
+
+/** Saves a nickname; rejects with the server's Russian message (taken, reserved, cooldown, …). */
+export async function saveOwnNickname(nickname: string): Promise<OwnPublicProfile> {
+  const response = await fetchWithDeadline('/api/account/public-profile/nickname', {
+    method: 'PUT', headers: AUTH_JSON_HEADERS, body: JSON.stringify({ nickname }), deadlineMs: 10_000,
+  });
+  const payload: unknown = await response.json().catch(() => ({}));
+  const saved = response.ok ? ownPublicProfileFromPayload(payload) : null;
+  if (!saved) throw new Error(authErrorFromPayload(payload) || 'Не удалось сохранить ник');
+  return saved;
 }

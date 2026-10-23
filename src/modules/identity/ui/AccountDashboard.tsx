@@ -11,6 +11,7 @@ import AccountContests, { type AccountContestEntry } from './AccountContests';
 import AccountHero from './AccountHero';
 import AccountLinks, { type AccountTelegramLink } from './AccountLinks';
 import AccountPlanSection from './AccountPlanSection';
+import AccountPublicProfile, { type AccountPublicProfileProps } from './AccountPublicProfile';
 import AccountSettings, { type AccountSettingsProps } from './AccountSettings';
 import './AccountDashboard.css';
 
@@ -31,6 +32,8 @@ export type AccountDashboardProps = {
   sessions?: AccountSessionsControl;
   contests: { entries: AccountContestEntry[]; loading: boolean };
   settings: AccountSettingsProps;
+  /** The public profile links and nickname form; omitted while the account is not loaded. */
+  publicProfile?: AccountPublicProfileProps;
   onLogout: () => void;
 };
 
@@ -60,7 +63,7 @@ function AccountMessage({ message }: Pick<AccountDashboardProps, 'message'>) {
 const HELP_LINKS = [
   { href: '/faq/#faq-access-missing', label: 'Оплатили, а доступ закрыт' },
   { href: '/faq/#faq-telegram-link', label: 'Как привязать Telegram' },
-  { href: '/faq/#faq-public-profile', label: 'Кто видит мой профиль' },
+  { href: '/faq/#faq-public-profile', label: 'Что видно в публичном профиле' },
 ] as const;
 
 /**
@@ -88,6 +91,7 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         boosty={props.boosty}
         patreonLinkUrl={props.patreonLinkUrl}
       />
+      {props.publicProfile && <AccountPublicProfile {...props.publicProfile} />}
       <div className="account-dashboard__columns">
         <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />
         <AccountSettings {...props.settings} />

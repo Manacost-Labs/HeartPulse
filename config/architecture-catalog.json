@@ -758,7 +758,7 @@
       "externalServices": [],
       "tests": [
         "tests/account-dashboard-ui.test.tsx",
-        "tests/next-public-profiles-removed.test.mjs"
+        "tests/next-public-profiles-browser.test.mjs"
       ],
       "allowedDependencies": [
         "frontend-application-connect public entrypoint",

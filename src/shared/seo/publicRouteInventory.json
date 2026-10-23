@@ -236,13 +236,13 @@
       "pattern": "/id/:publicProfileId",
       "kind": "detail",
       "owner": "identity",
-      "indexPolicy": "noindex-nofollow",
-      "canonicalPolicy": "none",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "self",
       "sitemap": false,
-      "htmlStrategy": "not-found",
-      "expectedStatus": 404,
+      "htmlStrategy": "spa-shell",
+      "expectedStatus": 200,
       "criticality": "P1",
-      "mobileFixture": "not-found",
+      "mobileFixture": "public-profile",
       "entitlement": null,
       "pathParameters": {
         "publicProfileId": {
