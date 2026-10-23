@@ -270,6 +270,18 @@
         {
           "method": "POST",
           "path": "/api/v1/tracker/events/batch"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/tracker-data"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/tracker-data/export"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/account/tracker-data"
         }
       ],
       "contracts": [
@@ -285,6 +297,7 @@
         "IceCrow desktop clients authorized through applicationAuth"
       ],
       "tests": [
+        "tests/tracker-account-data-routes.test.ts",
         "tests/tracker-ingestion-routes.test.ts"
       ],
       "allowedDependencies": [
@@ -295,6 +308,54 @@
       "forbiddenImports": [
         "src/**",
         "other server module internals except applicationAuth/public.ts"
+      ]
+    },
+    {
+      "name": "backend-player-games",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own the personal statistics read model of the account page over the tracker events, and the schemaVersion 2 statistics payload check the tracker ingestion applies.",
+      "paths": [
+        "server/modules/playerGames"
+      ],
+      "publicEntrypoints": [
+        "server/modules/playerGames/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        {
+          "method": "GET",
+          "path": "/api/account/game-stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/game-stats/modes"
+        }
+      ],
+      "contracts": [
+        "server/modules/playerGames/public.ts",
+        "docs/specs/player-game-stats.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [
+        "memory:player-games-global",
+        "memory:card-names-ru"
+      ],
+      "dataStores": [],
+      "externalServices": [
+        "Global datasets of the site (HSReplay Battlegrounds mirror, HSGuru meta; no Arena dataset) and HearthstoneJSON names, injected by composition"
+      ],
+      "tests": [
+        "tests/player-games-routes.test.ts",
+        "tests/player-games-schema.test.ts"
+      ],
+      "allowedDependencies": [
+        "Node.js crypto/sqlite",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
       ]
     },
     {
@@ -1189,6 +1250,37 @@
       ],
       "forbiddenImports": [
         "other module internals"
+      ]
+    },
+    {
+      "name": "frontend-player-stats",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns the account game-statistics response contract, formatting and the custom rating, rank, placement, combat and board charts; the Valyro composition lives in src/features/playerStats.",
+      "paths": [
+        "src/modules/playerStats"
+      ],
+      "publicEntrypoints": [
+        "src/modules/playerStats/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "src/modules/playerStats/public.ts",
+        "docs/specs/player-game-stats.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/player-stats-client.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals",
+        "server/**",
+        "src/vendor/**"
       ]
     },
     {

@@ -25,7 +25,11 @@ The JSON envelope contains `events`, with 1–50 items. Each event has:
 - `eventId`: UUID idempotency key;
 - `type`: `constructed_match`, `arena_match`, `arena_run`,
   `arena_draft_pick`, `battlegrounds_match`, or `collection_snapshot`;
-- `schemaVersion`: currently exactly `1`;
+- `schemaVersion`: `1` (opaque payload) or `2` (game and run payloads carry
+  the statistics fields of [player game statistics](player-game-stats.md),
+  are limited to 32 KiB and stored normalized; an invalid statistics field
+  keeps the event, marks it and names it in `warnings`; see the
+  [ADR](../decisions/2026-10-23-tracker-events-schema-v2.md));
 - `occurredAt`: ISO 8601 timestamp;
 - `payload`: a JSON object using the matching IceCrow v1 record shape.
 
@@ -50,8 +54,14 @@ Success returns 202:
 }
 ```
 
+A version 2 event whose statistics fields are invalid is also listed in an
+optional `warnings` array as `{ eventId, code: "INVALID_STATISTICS", field }`;
+the array is absent when empty. An account stores at most 100 000 events: a
+new event above that is rejected with `QUOTA_EXCEEDED`.
+
 The `(user_id, event_id)` key is unique. Replaying a previously stored valid
-event acknowledges it in `accepted` without creating another row. This lets the
+event acknowledges it in `accepted` without creating another row, even when
+the account is at its quota. This lets the
 desktop remove a safely persisted item from its outbox after network retries.
 
 Invalid envelopes or event identifiers return 400. Individually identifiable
@@ -62,5 +72,8 @@ forever.
 
 HearthPulse stores the normalized envelope fields and the bounded JSON payload
 in SQLite table `tracker_profile_events`, owned by the tracker-ingestion module.
+The account statistics read it only through the module's `listEvents`. The
+player can export and delete their own events from the account page through
+`/api/account/tracker-data` ([player game statistics](player-game-stats.md)).
 Rows are tied to the approving HearthPulse user and cascade-delete with that
 user. Tokens are never written to this table or application logs.

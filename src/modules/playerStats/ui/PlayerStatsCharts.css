@@ -1,0 +1,358 @@
+/*
+ * Player statistics charts on parchment. Better/worse colours are the ones the
+ * meta table already uses for a rising and a falling win rate.
+ */
+.player-stats-board,
+.player-stats-timeline,
+.player-stats-placements,
+.player-stats-sparkline,
+.player-stats-vs {
+  --player-stats-better: #326233;
+  --player-stats-worse: #8c2730;
+  --player-stats-line: var(--arena-red);
+  --player-stats-global: #a8812f;
+}
+
+.player-stats-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.player-stats-muted {
+  color: var(--arena-muted-ink);
+}
+
+/* Final board */
+.player-stats-board {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-stats-board li {
+  position: relative;
+  width: 46px;
+  height: 54px;
+}
+
+.player-stats-board--sm {
+  gap: 0.45rem;
+}
+
+.player-stats-board--sm li {
+  width: 34px;
+  height: 41px;
+}
+
+.player-stats-board__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 2px solid var(--arena-wood-dark);
+  border-radius: 50% / 46%;
+  background: var(--arena-parchment);
+}
+
+.player-stats-board .is-golden .player-stats-board__art {
+  border-color: var(--arena-gold);
+  box-shadow: 0 0 0 1px var(--arena-gold-light);
+}
+
+.player-stats-board__art img {
+  width: 175%;
+  max-width: none;
+  height: auto;
+  margin: -40% 0 0 -37.5%;
+}
+
+.player-stats-board__attack,
+.player-stats-board__health {
+  position: absolute;
+  bottom: -4px;
+  min-width: 18px;
+  padding: 0 3px;
+  border-radius: 9px;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  line-height: 18px;
+  text-align: center;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-board--sm .player-stats-board__attack,
+.player-stats-board--sm .player-stats-board__health {
+  min-width: 17px;
+  font-size: 0.6875rem;
+  line-height: 17px;
+}
+
+.player-stats-board__attack {
+  left: -4px;
+  background: #a87a14;
+}
+
+.player-stats-board__health {
+  right: -4px;
+  background: var(--arena-red-soft);
+}
+
+/* Rating over time */
+.player-stats-timeline {
+  position: relative;
+  min-width: 0;
+}
+
+.player-stats-timeline svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+  outline: none;
+}
+
+.player-stats-timeline svg:focus-visible {
+  outline: 2px solid var(--arena-red);
+  outline-offset: 2px;
+}
+
+.player-stats-timeline__grid line {
+  stroke: var(--arena-paper-line);
+}
+
+.player-stats-timeline__grid text,
+.player-stats-timeline__date {
+  fill: var(--arena-muted-ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-timeline__line {
+  fill: none;
+  stroke: var(--player-stats-line);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.player-stats-timeline__dot,
+.player-stats-timeline__cursor circle {
+  fill: var(--arena-parchment-light);
+  stroke: var(--player-stats-line);
+  stroke-width: 2;
+}
+
+.player-stats-timeline__cursor line {
+  stroke: var(--arena-muted-ink);
+  stroke-dasharray: 3 3;
+}
+
+.player-stats-timeline__card {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  gap: 0.6rem;
+  width: min(330px, 100%);
+  padding: 0.65rem 0.75rem 0.85rem;
+  border: 1px solid rgba(84, 51, 22, 0.35);
+  border-radius: 4px;
+  background: #fbf0d2;
+  box-shadow: 0 6px 18px rgba(46, 22, 11, 0.22);
+  pointer-events: none;
+}
+
+.player-stats-timeline__card-head {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.player-stats-timeline__card-head img {
+  width: 44px;
+  height: auto;
+}
+
+.player-stats-timeline__portrait {
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 2px solid var(--arena-wood-dark);
+  border-radius: 50%;
+}
+
+.player-stats-timeline__portrait img {
+  width: 200%;
+  max-width: none;
+  margin: -45% 0 0 -50%;
+}
+
+.player-stats-timeline__card-head small {
+  display: block;
+  color: var(--arena-muted-ink);
+  font-size: 0.6875rem;
+}
+
+.player-stats-timeline__card-head strong {
+  display: block;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-stats-timeline__card-head dl {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  text-align: right;
+}
+
+.player-stats-timeline__card-head dt {
+  color: var(--arena-muted-ink);
+  font-size: 0.6875rem;
+}
+
+.player-stats-timeline__card-head dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Placement distribution */
+.player-stats-placements {
+  margin: 0;
+}
+
+.player-stats-placements__bars {
+  position: relative;
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 4px;
+  align-items: end;
+  height: 72px;
+  border-bottom: 1px solid var(--arena-paper-line);
+}
+
+.player-stats-placements--compact .player-stats-placements__bars {
+  height: 40px;
+  gap: 2px;
+}
+
+.player-stats-placements__slot {
+  display: flex;
+  gap: 1px;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.player-stats-placements__own {
+  flex: 1;
+  min-block-size: 1px;
+  border-radius: 2px 2px 0 0;
+  background: #b4896a;
+}
+
+.player-stats-placements__slot[data-top] .player-stats-placements__own {
+  background: var(--arena-red);
+}
+
+.player-stats-placements__global {
+  flex: 0 0 4px;
+  border-radius: 2px 2px 0 0;
+  background: var(--player-stats-global);
+}
+
+.player-stats-placements__average {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--arena-ink);
+}
+
+.player-stats-placements__axis {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--arena-muted-ink);
+  font-size: 0.6875rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-placements--compact .player-stats-placements__axis {
+  gap: 2px;
+}
+
+/* Combat sparkline */
+.player-stats-sparkline {
+  display: block;
+  overflow: visible;
+}
+
+.player-stats-sparkline polyline {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.player-stats-sparkline__own {
+  stroke: var(--player-stats-line);
+  stroke-width: 2;
+}
+
+.player-stats-sparkline__global {
+  stroke: var(--player-stats-global);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+
+.player-stats-sparkline__half {
+  stroke: var(--arena-paper-line);
+  stroke-dasharray: 2 3;
+}
+
+/* vs global */
+.player-stats-vs {
+  display: inline-flex;
+  gap: 0.1rem;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-vs svg {
+  width: 12px;
+  height: 12px;
+}
+
+.player-stats-vs[data-tone='better'],
+.player-stats-timeline [data-tone='better'] {
+  color: var(--player-stats-better);
+}
+
+.player-stats-vs[data-tone='worse'],
+.player-stats-timeline [data-tone='worse'] {
+  color: var(--player-stats-worse);
+}
+
+.player-stats-vs[data-tone='even'] {
+  color: var(--arena-muted-ink);
+}

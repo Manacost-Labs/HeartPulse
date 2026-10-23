@@ -573,6 +573,23 @@
       ],
       "docs": [
         "docs/specs/tracker-ingestion.md",
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/player-game-stats.md"
+      ]
+    },
+    {
+      "id": "server.playerGames",
+      "runtime": "server",
+      "root": "server/modules/playerGames",
+      "purpose": "Owns the personal statistics read model of the account page over the tracker events, and the schemaVersion 2 statistics payload check the tracker ingestion applies.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/playerGames/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:player-games"
+      ],
+      "docs": [
+        "docs/specs/player-game-stats.md",
         "docs/architecture/module-boundaries.md"
       ]
     },
@@ -771,6 +788,23 @@
       ],
       "docs": [
         "docs/specs/standard-matchups.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "client.playerStats",
+      "runtime": "client",
+      "root": "src/modules/playerStats",
+      "purpose": "Owns the account game-statistics response contract, its formatting and the custom charts (rating and rank lines, placements, combat sparklines, final board) of the account page.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/playerStats/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:player-stats-client",
+        "npm run test:player-games"
+      ],
+      "docs": [
+        "docs/specs/player-game-stats.md",
         "docs/architecture/module-boundaries.md"
       ]
     },

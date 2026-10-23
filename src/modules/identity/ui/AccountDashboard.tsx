@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useContext, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, X } from 'lucide-react';
+import { Activity, ArrowRight, X } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { AccountSocialLinks } from '../model/accountDashboard';
 import { accountPlanSummary } from '../model/accountPlan';
@@ -8,9 +8,12 @@ import type { AuthUser } from '../model/authUser';
 import type { AccountSessionsControl } from '../hooks/useAccountSessions';
 import type { BoostyConfirmation } from './AccountAccessOptions';
 import AccountContests, { type AccountContestEntry } from './AccountContests';
+import { AccountGameStatsSlot } from './accountGameStatsSlot';
 import AccountHero from './AccountHero';
 import AccountLinks, { type AccountTelegramLink } from './AccountLinks';
 import AccountPlanSection from './AccountPlanSection';
+import AccountSectionHead from './AccountSectionHead';
+import AccountTrackerData from './AccountTrackerData';
 import AccountPublicProfile, { type AccountPublicProfileProps } from './AccountPublicProfile';
 import AccountSettings, { type AccountSettingsProps } from './AccountSettings';
 import './AccountDashboard.css';
@@ -73,6 +76,7 @@ const HELP_LINKS = [
  */
 export default function AccountDashboard(props: AccountDashboardProps) {
   const plan = accountPlanSummary(props.subscription, props.subscriptionChecked);
+  const GameStats = useContext(AccountGameStatsSlot);
   return (
     <div className="account-dashboard">
       <AccountHero
@@ -92,6 +96,23 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         boosty={props.boosty}
         patreonLinkUrl={props.patreonLinkUrl}
       />
+      {GameStats ? (
+        <Suspense fallback={null}>
+          <GameStats frame={body => (
+            <section id="account-game-stats" className="account-section account-game-stats" aria-labelledby="account-game-stats-title">
+              <AccountSectionHead
+                id="account-game-stats-title"
+                icon={<Activity size={15} aria-hidden="true" />}
+                eyebrow="Hearthpulse"
+                title="Моя статистика"
+                description="Ваши игры из приложения Hearthpulse: рейтинг, герои, колоды и забеги."
+              />
+              {body}
+            </section>
+          )} />
+        </Suspense>
+      ) : null}
+      <AccountTrackerData />
       {props.publicProfile && <AccountPublicProfile {...props.publicProfile} />}
       <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />
       <AccountSettings {...props.settings} />

@@ -4,10 +4,10 @@
 
 The personal account opened with `/?login` answers, in this order: who is
 signed in and what plan they have until when; what the plan includes or how
-to get one; which ways into the account are linked; the newsletter and prize
-contacts; contests. Only sections backed by real data are shown: there is no
-payment history, device list, theme or saved-deck section because the server
-has no such data for readers.
+to get one; the player's own game statistics; which ways into the account
+are linked; the newsletter and prize contacts; contests. Only sections
+backed by real data are shown: there is no payment history, device list,
+theme or saved-deck section because the server has no such data for readers.
 
 ## Layout
 
@@ -30,6 +30,18 @@ has no such data for readers.
   offers the Boosty e-mail confirmation, Patreon (when configured) and a
   Boosty subscription link, then lists what a subscription opens.
   «Проверить снова» and the last check time sit in the section head.
+- «Моя статистика» (`#account-game-stats`): the games the Hearthpulse
+  desktop tracker uploaded, in the tabs «Поля сражений», «Стандарт»,
+  «Вольный» and «Арена», like HSReplay «My Stats»
+  ([player game statistics](player-game-stats.md)). The account owns the
+  section head; the body comes through `AccountGameStatsSlot` from the composition
+  `src/features/playerStats`. It is shown only with `PLAYER_STATS_ENABLED=1`
+  and only to an account with version 2 tracker events, a tab per mode with
+  events; there is no empty section and no call to install the application.
+- «Данные приложения» (`#account-tracker-data`), only while the desktop
+  tracker has stored events: how many and over which dates, «Скачать мои
+  данные» (a JSON export) and «Удалить данные» behind an inline
+  confirmation, independent of the statistics switch.
 - «Публичный профиль» (`#account-public-profile`): the short link and, once
   chosen, the nickname link with «Скопировать ссылку» beside the nickname
   form (stacked below 900 px); see [public profiles](public-profiles.md).

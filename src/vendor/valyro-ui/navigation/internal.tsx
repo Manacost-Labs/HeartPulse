@@ -194,12 +194,13 @@ export function rovingTarget(
   count: number,
   from: number,
   isDisabled: (index: number) => boolean,
-  orientation: 'horizontal' | 'both' = 'horizontal',
+  orientation: 'horizontal' | 'vertical' | 'both' = 'horizontal',
   direction: Direction = 'ltr',
 ) {
-  const inline = inlineArrowStep(key, direction);
-  const prev = inline === -1 || (orientation === 'both' && key === 'ArrowUp');
-  const next = inline === 1 || (orientation === 'both' && key === 'ArrowDown');
+  // A vertical list moves on Up/Down only, leaving Left/Right to the page (APG tabs, React Aria).
+  const inline = orientation === 'vertical' ? 0 : inlineArrowStep(key, direction);
+  const prev = inline === -1 || (orientation !== 'horizontal' && key === 'ArrowUp');
+  const next = inline === 1 || (orientation !== 'horizontal' && key === 'ArrowDown');
   if (prev) return stepIndex(count, from, -1, isDisabled);
   if (next) return stepIndex(count, from, 1, isDisabled);
   if (key === 'Home') return stepIndex(count, -1, 1, isDisabled);
