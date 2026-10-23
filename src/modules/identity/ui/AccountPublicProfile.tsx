@@ -3,6 +3,7 @@ import { Copy, Globe } from 'lucide-react';
 import type { OwnPublicProfile } from '../model/publicProfile';
 import { publicProfilePath } from '../model/publicProfile';
 import AccountSectionHead from './AccountSectionHead';
+import './AccountPublicProfile.css';
 
 export type AccountPublicProfileProps = {
   /** Null while loading or when unavailable (`failed`). */
@@ -58,26 +59,26 @@ export default function AccountPublicProfile({ identity, failed, saving, saveNic
   };
 
   return (
-    <section id="account-public-profile" className="account-section account-settings" aria-labelledby="account-public-profile-title">
+    <section id="account-public-profile" className="account-section account-public-profile" aria-labelledby="account-public-profile-title">
       <AccountSectionHead
         id="account-public-profile-title"
         icon={<Globe size={15} aria-hidden="true" />}
         eyebrow="Профиль"
         title="Публичный профиль"
-        description="Страницу видят все, у кого есть ссылка: ник, месяц регистрации и значок «Подписчик». Почта, контакты, способы входа и детали подписки на ней не показываются."
+        description="Видна всем по ссылке: ник, месяц регистрации и значок «Подписчик». Почта, контакты, способы входа и детали подписки не показываются."
       />
       {!identity && <p className="account-muted">{failed ? 'Не удалось загрузить ссылку на профиль. Обновите страницу.' : 'Загружаем ссылку…'}</p>}
       {identity && (
-        <>
-          <ul className="account-links__list">
+        <div className="account-public-profile__body">
+          <ul className="account-links__list account-public-profile__links">
             <ProfileLink label="Короткая ссылка" href={new URL(publicProfilePath(identity.publicProfileId), siteOrigin).href} copyLabel="Скопировать короткую ссылку" />
             {identity.nickname && (
               <ProfileLink label="Ссылка по нику" href={new URL(`/u/${encodeURIComponent(identity.nickname)}/`, siteOrigin).href} copyLabel="Скопировать ссылку по нику" />
             )}
           </ul>
-          <form className="account-settings__form" onSubmit={onSubmit}>
-            <div className="account-settings__field">
-              <label htmlFor="account-nickname">Ник</label>
+          <form className="account-public-profile__nickname" onSubmit={onSubmit}>
+            <label htmlFor="account-nickname">Ник</label>
+            <div className="account-public-profile__field">
               <input
                 id="account-nickname"
                 value={nickname}
@@ -90,17 +91,17 @@ export default function AccountPublicProfile({ identity, failed, saving, saveNic
                 aria-describedby="account-nickname-hint"
                 placeholder="Например, Arena_Master"
               />
-              <p id="account-nickname-hint" className="account-muted">
-                {lockedUntil
-                  ? `Ник можно менять раз в 30 дней. Следующая смена — ${lockedUntil}.`
-                  : 'От 3 до 24 символов: латиница или кириллица, цифры, «_» и «-». Менять ник можно раз в 30 дней; старая ссылка по нику работает ещё 90 дней.'}
-              </p>
+              <button type="submit" className="account-button" disabled={saving || Boolean(lockedUntil) || nickname.trim() === (identity.nickname ?? '')}>
+                {saving ? 'Сохраняем…' : 'Сохранить ник'}
+              </button>
             </div>
-            <button type="submit" className="account-button" disabled={saving || Boolean(lockedUntil) || nickname.trim() === (identity.nickname ?? '')}>
-              {saving ? 'Сохраняем…' : 'Сохранить ник'}
-            </button>
+            <p id="account-nickname-hint" className="account-muted">
+              {lockedUntil
+                ? `Ник можно менять раз в 30 дней. Следующая смена — ${lockedUntil}.`
+                : 'От 3 до 24 символов: латиница или кириллица, цифры, «_» и «-». Менять ник можно раз в 30 дней; старая ссылка по нику работает ещё 90 дней.'}
+            </p>
           </form>
-        </>
+        </div>
       )}
     </section>
   );

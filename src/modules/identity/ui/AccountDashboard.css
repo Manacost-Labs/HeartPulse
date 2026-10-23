@@ -24,7 +24,6 @@
   line-height: 1.45;
 }
 
-.account-dashboard h1,
 .account-dashboard h2 {
   margin: 0;
   font-family: var(--font-hs);
@@ -194,6 +193,11 @@
 .account-settings__form .account-settings__newsletter { border-top: 1px solid var(--account-line); margin-top: 8px; }
 .account-settings__newsletter a { display: inline-flex; align-items: center; min-height: 44px; color: var(--account-accent); text-decoration: underline; }
 .account-settings__form > .account-button { align-self: flex-start; margin-top: 12px; }
+
+/* The settings span the page: the four contact fields fit one row on a wide screen. */
+@media (min-width: 1100px) {
+  .account-settings__contacts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 @media (max-width: 600px) {
   .account-settings__contacts { grid-template-columns: minmax(0, 1fr); }
