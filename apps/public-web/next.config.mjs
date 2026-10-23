@@ -47,7 +47,9 @@ const config = {
   htmlLimitedBots: /.*/,
   // Public pages render anonymously, so a page opened in the last 30 seconds is
   // shown again from the router cache instead of waiting for a new server render.
-  experimental: { staleTimes: { dynamic: 30 } },
+  // Releases are immutable, read-only directories: regenerated pages and the
+  // fetch cache live in memory instead of failing to write .next/cache (EACCES).
+  experimental: { staleTimes: { dynamic: 30 }, isrFlushToDisk: false },
   outputFileTracingRoot: repositoryRoot,
   turbopack: { root: repositoryRoot },
 };

@@ -33,6 +33,11 @@ against 96–170 ms for the prerendered sections.
 
 ## Consequences
 
+- Releases are read-only directories, so `experimental.isrFlushToDisk` is
+  off: regenerated copies and the fetch cache stay in the Next process's
+  memory (they were already failing to write `.next/cache` with `EACCES` for
+  every prerendered page) and start from the build copy after a restart.
+
 - Measured on a production build against the live API: the first tap to
   `/standard/meta/` on the same phone profile shows the page in 213 ms.
 - The pages may show data up to five minutes older than Express.
