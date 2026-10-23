@@ -110,11 +110,11 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .page-tour-invite[data-state='open'] {
-    animation: page-tour-invite-in var(--motion-slow, 360ms) var(--motion-ease, ease) both;
+    animation: page-tour-invite-in var(--motion-slow) var(--motion-ease) both;
   }
 
   .page-tour-invite[data-state='closed'] {
-    animation: page-tour-invite-out var(--motion-base, 220ms) var(--motion-ease, ease) both;
+    animation: page-tour-invite-out var(--motion-base) var(--motion-ease) both;
   }
 }
 
