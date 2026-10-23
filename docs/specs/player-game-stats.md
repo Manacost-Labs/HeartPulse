@@ -347,6 +347,9 @@ loaded once a day; without them the page shows card art only.
 
 ## Development data
 
-`npm run dev:seed-player-games -- --user <id>` inserts a few hundred
-realistic synthetic games for a local account. It refuses to run with
-`NODE_ENV=production` and only writes to the local `DATABASE_PATH`.
+`npx tsx scripts/dev-seed-player-games.ts --create-user` (or `--user <id>`,
+with `--reset` to replace them) writes about 550 realistic synthetic games
+through the same validation as uploads, and with `--create-user` prints a
+local session cookie. It writes only to `ECOSYSTEM_DB_FILE`, refuses
+`NODE_ENV=production` and the production database path, and takes real
+Battlegrounds hero and minion ids from HearthstoneJSON when it is reachable.

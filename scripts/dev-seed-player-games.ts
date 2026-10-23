@@ -2,8 +2,8 @@
  * Development only: fills a local account with realistic synthetic games so the
  * account statistics can be viewed without the desktop tracker.
  *
- *   npx tsx scripts/dev-seed-player-games.ts --create-user
- *   npx tsx scripts/dev-seed-player-games.ts --user <id> [--reset]
+ *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --create-user
+ *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --user <id> [--reset]
  *
  * It writes only to ECOSYSTEM_DB_FILE, refuses NODE_ENV=production and the
  * production database path, and goes through the same validation as uploads.
@@ -17,7 +17,11 @@ import { createSqlitePlayerGameStore, ingestGameBatch, initializePlayerGameStore
 const PRODUCTION_DB = '/var/lib/manacost-ecosystem/users.sqlite';
 const args = process.argv.slice(2);
 const option = (name: string) => { const index = args.indexOf(name); return index >= 0 ? args[index + 1] : undefined; };
-const dbFile = resolve(process.env.ECOSYSTEM_DB_FILE || '.local/ecosystem/users.sqlite');
+if (!process.env.ECOSYSTEM_DB_FILE) {
+  console.error('[seed-player-games] set ECOSYSTEM_DB_FILE to the local API server database');
+  process.exit(1);
+}
+const dbFile = resolve(process.env.ECOSYSTEM_DB_FILE);
 if (process.env.NODE_ENV === 'production' || dbFile === PRODUCTION_DB) {
   console.error('[seed-player-games] refused: development databases only');
   process.exit(1);
