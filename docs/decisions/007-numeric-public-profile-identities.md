@@ -2,9 +2,10 @@
 
 ## Status
 
-Accepted. The public profile pages were removed on 2026-10-23; see
-[Remove public profile pages](2026-10-23-remove-public-profiles.md). The numeric
-account ID itself stays.
+Accepted. The public profile pages were removed on 2026-10-23 and restored the
+same day with nicknames and a narrower field list; see
+[Restore public profiles with nicknames](2026-10-23-restore-public-profiles.md).
+That decision replaces the response allowlist below.
 
 ## Context
 

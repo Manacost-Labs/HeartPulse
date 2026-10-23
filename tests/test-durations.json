@@ -370,6 +370,8 @@
     "tests/public-navigation-shell.test.tsx": 0.5,
     "tests/local-revalidate-request.test.ts": 0.3,
     "tests/public-profile-identity.test.ts": 0.3,
+    "tests/public-profile-nickname.test.ts": 0.3,
+    "tests/public-profile-routes.test.ts": 1.0,
     "tests/public-resource-browser-contract.test.mjs": 0.1,
     "tests/public-resource-routes.test.ts": 0.5,
     "tests/public-resource-url.test.ts": 0.2,
