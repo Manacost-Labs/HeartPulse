@@ -141,35 +141,34 @@ is a separate administrator workspace and retains its permission gate.
   pages, in the server HTML and after hydration, for a guest and a
   subscriber, and fails on a page URL without the slash.
 - Public links use App Router after hydration, preserving the actual menu DOM,
-  its scroll and expanded desktop groups. A pointer dwell of `--motion-fast`,
-  a primary mouse press, a touch on a menu link, or keyboard focus fully
-  prefetches the route's RSC response and client code, including dynamic
-  pages. Visible menu links (and links marked `data-route-prefetch`), and on a
-  phone every drawer link, learn their route once when the browser is idle: a
-  prerendered page completely, a dynamic page only its tree. Save-Data,
-  offline and 2G connections skip all speculation. A click during a full
-  prefetch waits for that response (`ui/routeResponses.ts`)
-  instead of requesting the page again. The framework-independent lifecycle in
-  `src/shared/navigation/` cancels abandoned intent and bounds freshness
-  markers to 32. It does not execute a hidden document. Mobile
-  navigation releases the drawer scroll lock before saving the history entry.
-  Plain anchors still work before JavaScript, and Ctrl/Cmd-click,
-  external/download links, hashes,
-  authentication and API endpoints keep browser navigation. Code that cannot
-  render a link (search results, the sign-in step of an action) calls
-  `openPage()` from `src/shared/navigation/pageNavigation.ts`. Page content stays
-  visible until the next route is ready; the chosen menu item is marked current
-  at once (`useOptimistic`). When the pathname commits, the content of the
-  shell's `data-route-content` box rises into place once at full opacity (a
-  fade from 0 showed the bright parchment for a frame: a blink); a page
-  committed with skeletons shows them at once and settles each section in from
-  a light dip as it replaces them (`ENTRANCE_OPACITY_FLOOR`). Focus moves to
-  `#main-content`. First paint, Back/Forward, query/hash-only changes and
-  reduced motion stay immediate. A page opened in the last 30 seconds is shown from the router cache (`staleTimes.dynamic`),
-  because public pages render anonymously. `NavigationProgress` shows a gold
-  line after `--motion-base` of a pending navigation that grows while the route
-  loads, then fills and fades, without changing page geometry or blocking
-  another destination.
+  its scroll and expanded desktop groups. A pointer dwell of `--motion-fast`, a
+  primary mouse press, a touch on a menu link, or keyboard focus fully
+  prefetches the route's RSC response and client code, including dynamic pages.
+  Visible menu links (and links marked `data-route-prefetch`), and on a phone
+  every drawer link, learn their route once when the browser is idle: a
+  prerendered page completely, a dynamic page only its tree. Save-Data, offline
+  and 2G connections skip all speculation. A click during a full prefetch waits
+  for that response (`ui/routeResponses.ts`) instead of requesting the page
+  again. The framework-independent lifecycle in `src/shared/navigation/` cancels
+  abandoned intent and bounds freshness markers to 32. It does not execute a
+  hidden document. Mobile navigation releases the drawer scroll lock before
+  saving the history entry. Plain anchors still work before JavaScript, and
+  Ctrl/Cmd-click, external/download links, hashes, authentication and API
+  endpoints keep browser navigation. Code that cannot render a link (search
+  results, the sign-in step of an action) calls `openPage()` from
+  `src/shared/navigation/pageNavigation.ts`. Page content stays visible until
+  the next route is ready; the chosen menu item is marked current at once
+  (`useOptimistic`). When the pathname commits, the content of the shell's
+  `data-route-content` box rises into place once at full opacity (a fade from 0
+  showed the bright parchment for a frame: a blink); a page committed with
+  skeletons shows them at once and settles each section in from a light dip as
+  it replaces them (`ENTRANCE_OPACITY_FLOOR`). Focus moves to `#main-content`.
+  First paint, Back/Forward, query/hash-only changes and reduced motion stay
+  immediate. A page opened in the last 30 seconds is shown from the router cache
+  (`staleTimes.dynamic`), because public pages render anonymously.
+  `NavigationProgress` shows a gold line after `--motion-base` of a pending
+  navigation that grows while the route loads, then fills and fades, without
+  changing page geometry or blocking another destination.
   `tests/next-page-transitions-browser.test.mjs` covers this contract.
   See [navigation spec](../../docs/specs/public-client-navigation.md).
   The root access provider exposes a stable snapshot store, with guest state
