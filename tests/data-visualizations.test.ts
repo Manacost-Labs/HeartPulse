@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { axisTickIndexes, axisTicks, chartDomain, lineCoordinates, lineRuns, placeSegmentLabels, segmentStarts, csvDocument, formatChartValue } from '../src/shared/ui/analytics/analyticsModel';
+import { axisLabelIndexes, axisLabelWidth, axisTicks, chartDomain, lineCoordinates, lineRuns, placeSegmentLabels, segmentStarts, csvDocument, formatChartValue } from '../src/shared/ui/analytics/analyticsModel';
 
 test('a count domain never adds negative ticks', () => {
   assert.deepEqual(chartDomain([0, 3, 8], { minimum: 0 }), [0, 9]);
@@ -50,13 +50,21 @@ test('the newest period keeps its name when period labels collide', () => {
   assert.deepEqual(placed.map(mark => [mark.shown, mark.anchorEnd]), [[true, false], [false, false], [true, true]]);
   assert.equal(placeSegmentLabels([{ at: 10, label: 'Патч 36.6.3' }], 0, 400)[0].anchorEnd, false);
 });
-test('date ticks keep the ends and never crowd each other', () => {
-  const points = lineCoordinates(Array.from({ length: 166 }, (_, index) => ({ x: index, y: 1 })));
-  const ticks = axisTickIndexes(points, 6, 0.1);
+test('date ticks keep the ends and never print over each other', () => {
+  const extent = (centers: number[], widths: number[], ticks: number[]) => ticks.map((tick, index) => (index === 0
+    ? [centers[tick], centers[tick] + widths[tick]]
+    : index === ticks.length - 1 ? [centers[tick] - widths[tick], centers[tick]] : [centers[tick] - widths[tick] / 2, centers[tick] + widths[tick] / 2]));
+  // The card history case: «21 окт, 10:36» labels, two points 20 px apart at both ends.
+  const centers = [48, 68, 210, 330, 450, 560, 700, 820, 940, 1240, 1260];
+  const widths = centers.map(() => axisLabelWidth('21 окт, 10:36'));
+  const ticks = axisLabelIndexes(centers, widths);
   assert.equal(ticks[0], 0);
-  assert.equal(ticks.at(-1), 165);
-  assert.ok(ticks.every((tick, index) => index === 0 || points[tick].position - points[ticks[index - 1]].position >= 0.1));
-  assert.deepEqual(axisTickIndexes(lineCoordinates([{ x: 1, y: 1 }]), 6, 0.1), [0]);
+  assert.equal(ticks.at(-1), centers.length - 1);
+  const boxes = extent(centers, widths, ticks);
+  assert.ok(boxes.every((box, index) => index === 0 || box[0] >= boxes[index - 1][1] + 14), `labels overlap: ${JSON.stringify(boxes)}`);
+  assert.ok(ticks.length >= 4, 'a wide plot still gets labels in between');
+  assert.deepEqual(axisLabelIndexes([10], [80]), [0]);
+  assert.deepEqual(axisLabelIndexes([10, 60], [80, 80]), [1], 'two labels that cannot both fit keep the latest');
 });
 test('a small nonzero percentage is not labelled as zero', () => {
   assert.equal(formatChartValue(0.003, '%'), '0,003%');

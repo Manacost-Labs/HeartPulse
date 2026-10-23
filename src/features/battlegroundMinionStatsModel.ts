@@ -119,22 +119,3 @@ export function minionBoardSlots(board: BattlegroundMinionBoard | null): BoardSl
     return { position: offset + 1, popularity, impact: slot?.impact ?? null, heat: top > 0 && popularity !== null ? popularity / top : 0 };
   });
 }
-
-const MMR_LABELS: Record<string, string> = {
-  ALL: 'все игроки', TOP_50_PERCENT: 'MMR топ-50%', TOP_20_PERCENT: 'MMR топ-20%',
-};
-const PERIOD_LABELS: Record<string, string> = {
-  LAST_7_DAYS: '7 дней', CURRENT_BATTLEGROUNDS_PATCH: 'текущий патч',
-};
-
-/** One quiet line under the stats: source, slice and date of the newest upstream table. */
-export function minionStatsSourceLine(stats: BattlegroundMinionStats, timeZone?: string): string {
-  const date = stats.slice.updatedAt ?? stats.slice.fetchedAt;
-  const parts = [
-    'HSReplay',
-    MMR_LABELS[stats.slice.mmr] ?? stats.slice.mmr,
-    PERIOD_LABELS[stats.slice.period] ?? stats.slice.period,
-  ];
-  if (date) parts.push(`обновлено ${new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', timeZone }).format(new Date(date))}`);
-  return parts.join(' · ');
-}

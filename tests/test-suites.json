@@ -108,6 +108,7 @@
         "tests/background-jobs.test.ts",
         "tests/battleground-minion-pool.test.mjs",
         "tests/battleground-card-variants.test.ts",
+        "tests/card-patch-changes.test.ts",
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-strategy-audit.test.ts",
         "tests/bg-library-catalog-model.test.ts",

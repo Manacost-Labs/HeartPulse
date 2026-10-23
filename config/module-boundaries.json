@@ -917,8 +917,6 @@
       "runtime": "client",
       "roots": [
         "public/bg-legacy",
-        "src/features/BattlegroundCardVariantToggle.stories.tsx",
-        "src/features/BattlegroundCardVariantToggle.tsx",
         "src/features/BattlegroundHeroLedger.tsx",
         "src/features/BattlegroundTrinketGalleryStats.tsx",
         "src/features/BattlegroundTrinketTierRow.tsx",
@@ -972,8 +970,6 @@
         "src/features"
       ],
       "excludeRoots": [
-        "src/features/BattlegroundCardVariantToggle.stories.tsx",
-        "src/features/BattlegroundCardVariantToggle.tsx",
         "src/features/BattlegroundHeroLedger.tsx",
         "src/features/BattlegroundTrinketGalleryStats.tsx",
         "src/features/BattlegroundTrinketTierRow.tsx",

@@ -1,6 +1,6 @@
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChartFrame } from './ChartFrame';
-import { axisTickIndexes, axisTicks, chartDomain, formatChartValue, lineCoordinates, lineRuns, placeSegmentLabels, segmentStarts, type ChartPoint, type DomainOptions } from './analyticsModel';
+import { axisLabelIndexes, axisLabelWidth, axisTicks, chartDomain, formatChartValue, lineCoordinates, lineRuns, placeSegmentLabels, segmentStarts, type ChartPoint, type DomainOptions } from './analyticsModel';
 import { usePlotWidth } from './usePlotWidth';
 
 type LineChartProps = {
@@ -60,8 +60,8 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
     ...(starts.length && data[0].segment ? [{ index: 0, at: left, label: nameOf(data[0].segment), line: false }] : []),
     ...boundaries.map(boundary => ({ ...boundary, label: nameOf(boundary.segment), line: true })),
   ], left, right);
-  const tickIndexes = axisTickIndexes(data, Math.max(2, Math.floor((right - left) / 96)), 64 / Math.max(1, right - left));
   const tickText = (point: (typeof data)[number]) => point.tick ?? point.label ?? `${xLabel}${point.x}`;
+  const tickIndexes = axisLabelIndexes(data.map(point => x(point.position)), data.map(point => axisLabelWidth(String(tickText(point)))));
   const selectFromPointer = (event: React.PointerEvent<SVGSVGElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const position = ((event.clientX - bounds.left) * width / bounds.width - left) / (right - left);

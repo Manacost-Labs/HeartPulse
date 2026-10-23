@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchBattlegroundMinionStats, type BattlegroundMinionStats } from '../modules/battlegrounds/public';
 import { Select } from '../vendor/varylo-ui/forms/Select';
 import { SegmentedControl } from '../vendor/varylo-ui/navigation/SegmentedControl';
+import { PortalContainerContext } from '../vendor/varylo-ui/primitives/Portal';
 import { minionBoardSlots } from './battlegroundMinionStatsModel';
 import '../shared/ui/varyloParchment.css';
 
@@ -16,6 +17,9 @@ export function BattlegroundMinionBoard({ stats }: { stats: BattlegroundMinionSt
   const [positions, setPositions] = useState(stats.positions);
   const [state, setState] = useState<'ready' | 'loading' | 'error'>('ready');
   const [board, setBoard] = useState<Board>(stats.positions.defaultBoard);
+  // The composition list portals into this parchment-themed layer: on <body>
+  // it had no theme tokens, so no background, and floated over the slots.
+  const [layer, setLayer] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (composition === ALL) {
@@ -53,8 +57,11 @@ export function BattlegroundMinionBoard({ stats }: { stats: BattlegroundMinionSt
           />
         ) : null}
         {options.length > 1 ? (
-          <Select aria-label="Состав" size="sm" options={options} value={composition} onValueChange={setComposition} />
+          <PortalContainerContext.Provider value={layer}>
+            <Select aria-label="Состав" size="sm" options={options} value={composition} onValueChange={setComposition} />
+          </PortalContainerContext.Provider>
         ) : null}
+        <div ref={setLayer} className="minion-board__layer" />
       </div>
       {state === 'error' ? <p className="minion-board__note">Не удалось загрузить позиции этого состава.</p>
         : slots.length ? (

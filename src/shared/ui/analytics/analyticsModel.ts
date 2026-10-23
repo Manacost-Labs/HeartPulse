@@ -76,25 +76,47 @@ export function placeSegmentLabels<M extends { at: number; label: string }>(mark
   }).reverse();
 }
 
-/**
- * Axis ticks evenly spread over the positions, always the first and the last point, and never
- * closer than `minimumGap` (in plot fractions) so date labels do not collide.
- */
-export function axisTickIndexes(points: Array<{ position: number }>, slots: number, minimumGap: number): number[] {
-  if (!points.length) return [];
-  const last = points.length - 1;
-  const wanted = Math.max(2, Math.min(slots, points.length));
-  const picked: number[] = [0];
-  for (let slot = 1; slot < wanted - 1; slot++) {
-    const target = slot / (wanted - 1);
-    let nearest = 0;
-    points.forEach((point, index) => { if (Math.abs(point.position - target) < Math.abs(points[nearest].position - target)) nearest = index; });
-    if (points[nearest].position - points[picked.at(-1) ?? 0].position >= minimumGap && points[last].position - points[nearest].position >= minimumGap) picked.push(nearest);
-  }
-  if (last > 0 && points[last].position - points[picked.at(-1) ?? 0].position >= minimumGap) picked.push(last);
-  else if (last > 0) picked[picked.length - 1] = last;
-  return [...new Set(picked)];
+/** Rough width of an axis label in 12px Inter: enough to keep labels apart without measuring the DOM. */
+export function axisLabelWidth(text: string): number {
+  return Math.ceil(text.length * 6.8);
 }
+
+/**
+ * Which points get an x-axis label. The first label hangs right from its point
+ * and the last one left (they stay inside the plot), the others are centred;
+ * labels are picked evenly between them only where their real width leaves
+ * `gap` pixels to every neighbour, so dates never print over each other.
+ */
+export function axisLabelIndexes(centers: number[], widths: number[], gap = 14): number[] {
+  const count = centers.length;
+  if (count <= 1) return count ? [0] : [];
+  const last = count - 1;
+  const firstEnd = centers[0] + widths[0];
+  const lastStart = centers[last] - widths[last];
+  if (firstEnd + gap > lastStart) return [last];
+  const picked = [0];
+  let previousEnd = firstEnd;
+  const span = centers[last] - centers[0];
+  const average = widths.reduce((sum, value) => sum + value, 0) / count;
+  const slots = Math.max(0, Math.floor(span / (average + gap)) - 1);
+  for (let slot = 1; slot <= slots; slot += 1) {
+    const target = centers[0] + span * slot / (slots + 1);
+    let nearest = -1;
+    for (let index = 1; index < last; index += 1) {
+      if (nearest < 0 || Math.abs(centers[index] - target) < Math.abs(centers[nearest] - target)) nearest = index;
+    }
+    if (nearest <= (picked.at(-1) ?? 0)) continue;
+    const start = centers[nearest] - widths[nearest] / 2;
+    const end = centers[nearest] + widths[nearest] / 2;
+    if (start >= previousEnd + gap && end + gap <= lastStart) {
+      picked.push(nearest);
+      previousEnd = end;
+    }
+  }
+  picked.push(last);
+  return picked;
+}
+
 
 /** Round tick values (steps of 1, 2, 2.5 or 5 × 10ⁿ) inside the domain, about five intervals apart; counts step by whole numbers. */
 export function axisTicks(low: number, high: number, wholeNumbers = false): number[] {

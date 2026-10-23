@@ -1,6 +1,9 @@
+import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSwitch';
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
 import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { cardPatchEntries } from './cardPatchChanges';
+import { CardPatchTimeline } from './CardPatchTimeline';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -155,25 +158,6 @@ function formatDate(value: string | null | undefined): string {
   return Number.isFinite(date.getTime())
     ? date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : value;
-}
-
-function patchTimestamp(row: any): number {
-  for (const value of [row?.manacost_published_at, row?.date]) {
-    const timestamp = Date.parse(String(value ?? ''));
-    if (Number.isFinite(timestamp)) return timestamp;
-  }
-  return 0;
-}
-
-function patchDate(value: unknown): string {
-  const date = new Date(String(value ?? ''));
-  return Number.isFinite(date.getTime())
-    ? date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
-    : 'Дата не указана';
-}
-
-function patchVersion(value: unknown): string {
-  return String(value ?? '').trim().replace(/^patch\s+/i, '') || 'без номера';
 }
 
 function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }: {
@@ -590,9 +574,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   const wiki = card.wiki || {};
   const effectiveTranslations = mergeConstructedTranslationSources(wiki, card.mechanicOverrides);
   const mechanics = uniqueMechanicLabels([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])], effectiveTranslations);
-  const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : [])
-    .flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })))
-    .sort((left: any, right: any) => patchTimestamp(right) - patchTimestamp(left));
+  const patchEntries = cardPatchEntries(wiki.patch_changes);
   const relatedGroups = normalizeConstructedRelatedCardGroups(card);
   const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
     .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
@@ -650,10 +632,14 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
       <section className="constructed-card-detail__hero">
         <div className="constructed-card-detail__visual">
           <button type="button" className="constructed-card-detail__visual-button" data-lightbox-src={selectedImage} onClick={() => openMedia(selectedImage)} aria-label={`Открыть ${cardName(card)} в полном размере`}>
-            <img src={selectedImage} alt={cardName(card)} onError={fallbackCardImageToOrigin} />
+            <CardVariantImages images={variants.map(item => ({ id: item.id, src: item.url }))} value={variant}
+              alt={cardName(card)} onError={fallbackCardImageToOrigin} />
             <span>Открыть в полном размере</span>
           </button>
-          <div className="constructed-card-detail__variants" aria-label="Вариант изображения" data-tour-id="card-art">{variants.map(item => <button key={item.id} type="button" aria-pressed={variant === item.id} onClick={() => setVariant(item.id)}>{item.label}</button>)}</div>
+          {variants.length > 1 && <div className="constructed-card-detail__variants" data-tour-id="card-art">
+            <CardVariantSwitch label="Вариант изображения" options={variants.map(item => ({ id: item.id, label: item.label }))}
+              value={variant} onChange={setVariant} />
+          </div>}
         </div>
         <ConstructedCardIdentity
           name={cardName(card)} englishName={card.name?.en} classIconUrl={classIcon(card.class)}
@@ -704,13 +690,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
       <section className="constructed-card-detail__lower-grid">
         <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(item => <span key={item.key}>{item.label}</span>) : <p>Механики не указаны.</p>}</div></div>
-        <div className="constructed-card-detail__section constructed-card-detail__patches" data-tour-id="card-patches"><h2>Изменения по патчам</h2>{patchRows.length ? <div>{patchRows.map((row: any, index: number) => {
-          const dateValue = row.manacost_published_at || row.date;
-          const title = row.manacost_title || `Обновление ${patchVersion(row.patch)}`;
-          const description = row.manacost_summary || (row.manacost_url ? 'Подробности обновления доступны на HS-Manacost.' : 'Русская статья для этого обновления пока не найдена.');
-          const heading = <><span>{patchDate(dateValue)}</span><strong>{title}</strong>{row.manacost_url && <ExternalLink size={15} />}</>;
-          return <details key={`${row.patch}-${row.date}-${index}`}><summary><span className="constructed-card-detail__patch-heading">{heading}</span></summary><div className="constructed-card-detail__patch-body"><p>{description}</p>{row.manacost_url && <a href={row.manacost_url} target="_blank" rel="noreferrer">Читать на HS‑Manacost <ExternalLink size={14} /></a>}</div></details>;
-        })}</div> : <p>История изменений не найдена.</p>}</div>
+        <div className="constructed-card-detail__section constructed-card-detail__patches" data-tour-id="card-patches"><h2>Изменения по патчам</h2><CardPatchTimeline entries={patchEntries} /></div>
       </section>
 
       {relatedGroups.length > 0 && <RelatedCardGroups groups={relatedGroups} onOpen={openMedia} />}

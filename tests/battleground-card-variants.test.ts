@@ -64,8 +64,18 @@ assert.match(
 );
 assert.match(
   detailPageSource,
-  /<BattlegroundCardVariantToggle/,
+  /<CardVariantSwitch/,
   'detail page must render the normal/golden selector',
+);
+assert.match(
+  detailPageSource,
+  /localDbImageUrl\(minionBaseId, 'golden'\)/,
+  'a minion\'s golden card is the base id in golden/: `_G` renders show another card',
+);
+assert.match(
+  detailPageSource,
+  /hearthstoneJsonBgCardUrl\(minionBaseId\)/,
+  'a minion shows its full card, not the board portrait',
 );
 assert.match(
   detailPageSource,

@@ -38,7 +38,8 @@ type BattlegroundMinionHeaderProps = {
   metricsTourId?: string;
   /** Shown instead of the KPI strip when the slice has no games. */
   emptyText: string;
-  source?: string | null;
+  /** Shows «Как считается» with the methodology; the data source line itself is not shown. */
+  methodology?: boolean;
   /**
    * Loading geometry of the same plate: placeholders stand in for every missing
    * part, so the loaded header replaces it without a layout shift.
@@ -55,7 +56,7 @@ const METHODOLOGY = [
   'Пусто — меньше 30 игр или боёв, на позициях стола — меньше 200 досок.',
 ];
 
-export function BattlegroundMinionHeader({ title, card, variant, facts, rulesText, art, kpis, placementTone, identityTourId, metricsTourId, emptyText, source, loading = false }: BattlegroundMinionHeaderProps) {
+export function BattlegroundMinionHeader({ title, card, variant, facts, rulesText, art, kpis, placementTone, identityTourId, metricsTourId, emptyText, methodology = false, loading = false }: BattlegroundMinionHeaderProps) {
   return (
     <section className="minion-header">
       {art ? (
@@ -106,15 +107,14 @@ export function BattlegroundMinionHeader({ title, card, variant, facts, rulesTex
           data-tour-id={metricsTourId}
         />
       ) : <p className="minion-header__empty" data-tour-id={metricsTourId}>{emptyText}</p>}
-      {loading ? <p className="minion-header__source" aria-hidden="true"><Line className="bg-skeleton-w-name" /></p> : source ? (
+      {loading ? <p className="minion-header__source" aria-hidden="true"><Line className="bg-skeleton-w-short" /></p> : methodology ? (
         <p className="minion-header__source">
-          {source}
           <Tooltip
             className="minion-header__methodology"
             content={<ul>{METHODOLOGY.map(line => <li key={line}>{line}</li>)}</ul>}
           >
             <button type="button" aria-label="Как считается статистика">
-              <Info aria-hidden="true" size={15} />
+              <Info aria-hidden="true" size={15} /> Как считается
             </button>
           </Tooltip>
         </p>
