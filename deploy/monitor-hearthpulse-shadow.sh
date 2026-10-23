@@ -114,6 +114,21 @@ for edge_entry in "${edges[@]}"; do
 	[[ "$robots_body" == *'Sitemap: https://hearthpulse.net/sitemap.xml'* ]] ||
 		fail "$region $edge robots.txt has no HearthPulse sitemap"
 
+	# HTML comes from the origin, so the edge always names the current release's
+	# chunks; a page whose chunks the edge cannot deliver renders blank. Fetch the
+	# first script of the edge's own home page through the same edge.
+	home_body="$(resolved_body "$application_domain" "$edge" / 2>/dev/null || true)"
+	release_chunk="$(grep -oE '/_next/static/chunks/[A-Za-z0-9._/-]+\.js' <<<"$home_body" | head -n 1 || true)"
+	if [[ -z "$release_chunk" ]]; then
+		fail "$region $edge home page names no Next build chunk"
+	else
+		chunk_headers="$(resolved_headers "$application_domain" "$edge" "$release_chunk" 2>/dev/null || true)"
+		chunk_status="$(http_status <<<"$chunk_headers")"
+		chunk_type="$(header_value Content-Type <<<"$chunk_headers")"
+		[[ "$chunk_status" == 200 && "$chunk_type" == *javascript* ]] ||
+			fail "$region $edge cannot deliver current build chunk $release_chunk: HTTP ${chunk_status:-unavailable} ${chunk_type:-no type}"
+	fi
+
 	# An edge that runs an outdated application vhost proxies every public file
 	# through the origin tunnel; its answers then say BYPASS.
 	asset_cache="$(resolved_headers "$application_domain" "$edge" /favicon.ico 2>/dev/null | header_value X-Proxy-Cache || true)"
@@ -170,4 +185,4 @@ if ((failures > 0)); then exit 1; fi
 if [[ -n "$quarantined_regions" ]]; then
 	printf 'HearthPulse quarantined regions: %s\n' "$quarantined_regions"
 fi
-printf 'HearthPulse canonical DNS, TLS, regional application, legacy redirects and CDN checks passed at %s\n' "$(date -u +%FT%TZ)"
+printf 'HearthPulse canonical DNS, TLS, regional application, release chunks, legacy redirects and CDN checks passed at %s\n' "$(date -u +%FT%TZ)"

@@ -39,6 +39,13 @@ now versioned), so the cause was elsewhere on that host; the edge tuning of
 the same day restored `HIT`. `deploy/monitor-hearthpulse-shadow.sh` now fails
 whenever an edge answers public files or CDN cards with `BYPASS`.
 
+Release delivery: documents always come from the origin, so every edge names
+the current release's chunks, and `/_next/static/` is proxied to the origin
+through the edge cache. Since 2026-10-23 the monitor also fetches the first
+`/_next/static/chunks/*.js` of each edge's own home page through that edge and
+fails unless it answers `200` with a JavaScript type: an edge that serves the
+new HTML but cannot deliver its build would otherwise render a blank page.
+
 ## What each layer keeps
 
 | Response | Browser | Edge |
