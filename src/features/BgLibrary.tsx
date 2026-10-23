@@ -1373,7 +1373,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
               ...(selectedVariantCard.duos_only ? [{ key: 'duos', label: 'Дуо' }] : []),
             ]}
             rulesText={rulesText}
-            art={optimizedBattlegroundThumbnailUrl(stats?.minion.images.art ?? localDbImageUrl(battlegroundBaseCardId(card.card_id), 'art'), 512)}
+            art={stats?.minion.images.art ?? localDbImageUrl(battlegroundBaseCardId(card.card_id), 'art')}
             kpis={minionStatsKpis(variantTotals)}
             placementTone={minionPlacementTone(variantTotals)}
             metricsTourId="bg-library-detail-statistics"

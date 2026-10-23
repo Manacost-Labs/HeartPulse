@@ -11,7 +11,8 @@ export type BattlegroundImageTransform = {
 };
 
 const MIN_WIDTH = 96;
-const MAX_WIDTH = 512;
+// The minion plate art is drawn up to 700 CSS px wide, 1024 px for dense screens (src/features/BattlegroundMinionHeader.tsx).
+const MAX_WIDTH = 1024;
 const DEFAULT_QUALITY = 76;
 const MIN_QUALITY = 55;
 const MAX_QUALITY = 88;

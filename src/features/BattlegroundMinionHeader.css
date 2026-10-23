@@ -17,25 +17,39 @@
   isolation: isolate;
 }
 
-/* The art is a 512 px portrait: it covers the right part of the plate, not the whole width. */
+/* The art (a portrait, 3:4 to 1:1) sits at the right of the plate in a box close to its own
+   shape, so its subject stays in view. Two masks fade it in from the card side and out at the
+   bottom, so it never meets the plum with an edge; the filter mutes it to a backdrop. */
 .minion-header__backdrop {
   position: absolute;
   z-index: 0;
   top: 0;
   right: 0;
-  width: min(62%, 760px);
+  width: min(58%, 700px);
   height: 100%;
   object-fit: cover;
-  object-position: 50% 30%;
+  object-position: 50% 35%;
+  filter: saturate(0.75) brightness(0.76);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.14) 18%, rgba(0, 0, 0, 0.42) 38%, rgba(0, 0, 0, 0.78) 56%, #000 70%),
+    linear-gradient(180deg, #000 0%, #000 58%, rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0.15) 94%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.14) 18%, rgba(0, 0, 0, 0.42) 38%, rgba(0, 0, 0, 0.78) 56%, #000 70%),
+    linear-gradient(180deg, #000 0%, #000 58%, rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0.15) 94%, transparent 100%);
+  mask-composite: intersect;
 }
 
+/* The plum wash ties the art to the plate; its darker patch behind the name and the rules text
+   keeps them at WCAG AA over the brightest arts (measured on the Storybook minion stories). */
 .minion-header::after {
   position: absolute;
   z-index: 1;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(40, 3, 9, 0.96) 0%, rgba(52, 5, 11, 0.86) 38%, rgba(60, 6, 12, 0.42) 68%, rgba(60, 6, 12, 0.08) 100%),
-    linear-gradient(0deg, rgba(30, 3, 7, 0.7) 0%, rgba(30, 3, 7, 0) 45%);
+    radial-gradient(70% 42% at 38% 16%, rgba(40, 3, 9, 0.74) 0%, rgba(40, 3, 9, 0.38) 55%, rgba(40, 3, 9, 0) 100%),
+    linear-gradient(90deg, rgba(40, 3, 9, 0.92) 0%, rgba(44, 4, 10, 0.84) 42%, rgba(52, 5, 11, 0.56) 62%, rgba(58, 6, 12, 0.2) 82%, rgba(58, 6, 12, 0) 100%),
+    linear-gradient(0deg, rgba(34, 3, 8, 0.55) 0%, rgba(34, 3, 8, 0) 40%);
   content: '';
   pointer-events: none;
 }
@@ -124,6 +138,7 @@
   font-size: 0.95rem;
   line-height: 1.5;
   white-space: pre-line;
+  text-shadow: 0 1px 2px rgba(21, 1, 5, 0.9), 0 0 14px rgba(21, 1, 5, 0.8);
 }
 
 .minion-header__metrics {
@@ -134,9 +149,9 @@
 /* The plate's material outranks the kit's `.ui-panel` on the same element. */
 .minion-header .minion-header__metrics {
   border: 1px solid rgba(239, 201, 111, 0.28);
-  background: rgba(30, 4, 9, 0.5);
-  -webkit-backdrop-filter: blur(10px) saturate(1.15);
-  backdrop-filter: blur(10px) saturate(1.15);
+  background: rgba(32, 4, 10, 0.8);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .minion-header__metrics .ui-kpi-group__label { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -198,13 +213,16 @@
     border-width: 8px;
   }
 
-  .minion-header__backdrop { width: 100%; }
-
-  .minion-header::after {
-    background:
-      linear-gradient(180deg, rgba(40, 3, 9, 0.55) 0%, rgba(44, 4, 10, 0.78) 42%, rgba(36, 3, 8, 0.94) 100%),
-      linear-gradient(90deg, rgba(40, 3, 9, 0.55) 0%, rgba(40, 3, 9, 0) 80%);
+  /* One column: the art is a band behind the card that fades out before the title. */
+  .minion-header__backdrop {
+    width: 100%;
+    height: 340px;
+    filter: saturate(0.7) brightness(0.62);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.8) 35%, rgba(0, 0, 0, 0.35) 65%, rgba(0, 0, 0, 0.08) 85%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.8) 35%, rgba(0, 0, 0, 0.35) 65%, rgba(0, 0, 0, 0.08) 85%, transparent 100%);
   }
+
+  .minion-header::after { background: linear-gradient(180deg, rgba(40, 3, 9, 0.3) 0%, rgba(40, 3, 9, 0) 340px); }
 
   .minion-header .minion-header__identity > .minion-header__title { font-size: clamp(1.25rem, 5.6vw, 2.1rem); }
   .minion-header__text { font-size: 0.85rem; }

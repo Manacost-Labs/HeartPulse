@@ -104,7 +104,7 @@ answers `502`.
   (`loadPublicCards('wild')`, `images.art` with `art_metadata` width and
   height; `null` when unstated). An id also finds the art of its `CORE_`
   reprint or original. Battlegrounds entries have none. Only `http(s)` URLs
-  are kept; the page loads them through the image proxy (at most 512 px).
+  are kept; the page loads them through the image proxy at 320 and 512 px.
 - The art catalog never delays a snapshot: the patches are parsed with the
   last art lookup (none after a restart); the catalog is read only after the
   snapshot is built, because reading it alongside the archive slowed the
