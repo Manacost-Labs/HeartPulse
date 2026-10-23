@@ -108,7 +108,7 @@
   .archetype-rank-grid { padding: 0.55rem; }
   .archetype-rank-grid table { min-width: 0; border-spacing: 2px; }
   .archetype-rank-grid .archetype-rank-grid__corner { width: 5.4rem; }
-  .archetype-rank-grid tbody th { padding-right: 0.35rem; font-size: 0.66rem; white-space: normal; }
+  .archetype-rank-grid tbody th { padding-right: 0.35rem; font-size: 0.6875rem; white-space: normal; }
   .archetype-rank-grid td { height: 2.4rem; font-size: 0.72rem; }
   /* A phone cell fits «59,5» but not «59,5%»: the unit stays for screen readers, the legend shows it. */
   .archetype-rank-grid__full,

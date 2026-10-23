@@ -50,7 +50,7 @@
   padding: 0;
   color: #5e4733;
   background: #ecd9ad;
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -182,7 +182,7 @@
 .standard-meta-table__winrate-fill { inset-block: 3px; min-inline-size: 2px; background: var(--wr); }
 
 .standard-meta-table__change { justify-self: start; font-size: 0.7rem; font-weight: 700; }
-.standard-meta-table__change [aria-hidden] { margin-right: 0.1rem; font-size: 0.55rem; }
+.standard-meta-table__change [aria-hidden] { margin-right: 0.1rem; font-size: 0.6875rem; }
 .standard-meta-table__change[data-direction='up'] { color: #326233; }
 .standard-meta-table__change[data-direction='down'] { color: #8c2730; }
 .standard-meta-table__change[data-direction='flat'] { color: #6f5236; }
@@ -204,12 +204,12 @@
   border-radius: 3px;
   color: #6a4f36;
   background: rgba(102, 63, 27, 0.12);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
 .standard-meta-archetypes .standard-meta-table .standard-meta-table__secondary { color: #664b33; font-size: 0.72rem; }
-.standard-meta-archetypes .standard-meta-table thead .standard-meta-table__secondary { font-size: 0.6rem; }
+.standard-meta-archetypes .standard-meta-table thead .standard-meta-table__secondary { font-size: 0.6875rem; }
 .standard-meta-archetypes .standard-meta-table .standard-meta-table__climb--negative { color: #8c2730; }
 
 /* A small sample reads as the estimate it is. */
@@ -311,7 +311,7 @@
     content: attr(data-label);
     display: block;
     color: #6f5236;
-    font-size: 0.6rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;

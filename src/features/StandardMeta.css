@@ -66,7 +66,7 @@
   gap: 0.45rem;
   align-items: center;
   color: var(--meta-gold);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   line-height: 1.35;
   letter-spacing: 0.15em;
@@ -137,7 +137,7 @@
   padding: 1.2rem 1rem;
   border-right: 1px solid rgba(239, 197, 104, 0.14);
   color: #c9ad74;
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.075em;
   text-transform: uppercase;
 }
@@ -209,13 +209,13 @@
   font-family: var(--font-display);
   font-size: 1.05rem;
 }
-.standard-meta__panel-heading small { color: #846344; font-size: 0.65rem; }
+.standard-meta__panel-heading small { color: #846344; font-size: 0.6875rem; }
 
 .standard-meta__control-label {
   display: block;
   margin: 0 0 0.45rem;
   color: #6c5036;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -284,7 +284,7 @@
 .standard-meta__segmented strong,
 .standard-meta__segmented small { display: block; }
 .standard-meta__segmented strong { font-size: 0.84rem; }
-.standard-meta__segmented small { margin-top: 0.1rem; font-size: 0.66rem; opacity: 0.75; }
+.standard-meta__segmented small { margin-top: 0.1rem; font-size: 0.6875rem; opacity: 0.75; }
 .standard-meta__rank-tabs button { font-size: 0.72rem; font-weight: 800; }
 
 .standard-meta__rank-groups {
@@ -306,7 +306,7 @@
   gap: 0.3rem;
   align-items: center;
   color: #765536;
-  font-size: 0.56rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -503,7 +503,7 @@
   display: block;
   overflow: hidden;
   color: #8a6742;
-  font-size: 0.63rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-overflow: ellipsis;
@@ -530,7 +530,7 @@
 }
 
 .standard-meta__winrate strong { font-size: 1.05rem; }
-.standard-meta__winrate span { color: #765b3e; font-size: 0.61rem; text-transform: uppercase; }
+.standard-meta__winrate span { color: #765b3e; font-size: 0.6875rem; text-transform: uppercase; }
 .standard-meta__winrate--strong strong { color: #326233; }
 .standard-meta__winrate--even strong { color: #8b611b; }
 .standard-meta__winrate--weak strong { color: #8c2730; }
@@ -546,7 +546,7 @@
 
 .standard-meta-card__metrics div { padding: 0.65rem; border-right: 1px solid rgba(95, 58, 27, 0.16); }
 .standard-meta-card__metrics div:last-child { border-right: 0; }
-.standard-meta-card__metrics dt { color: #806244; font-size: 0.62rem; text-transform: uppercase; }
+.standard-meta-card__metrics dt { color: #806244; font-size: 0.6875rem; text-transform: uppercase; }
 .standard-meta-card__metrics dd { margin: 0.12rem 0 0; color: #3a281c; font-size: 0.86rem; font-weight: 900; }
 
 .standard-meta-card__climb {
@@ -918,30 +918,30 @@
     border-width: 6px;
     box-shadow: 0 8px 18px rgba(67, 35, 14, 0.15);
   }
-  .standard-meta__eyebrow { gap: 0.35rem; font-size: 0.56rem; letter-spacing: 0.11em; }
+  .standard-meta__eyebrow { gap: 0.35rem; font-size: 0.6875rem; letter-spacing: 0.11em; }
   .standard-meta__masthead h1 { margin-top: 0.42rem; font-size: clamp(1.85rem, 8.8vw, 2.35rem); line-height: 0.98; }
   .standard-meta__masthead p { margin-top: 0.42rem; font-size: 0.75rem; line-height: 1.36; }
   .standard-meta__hero-ornament { width: 100%; height: 11px; margin-top: 0.55rem; }
   .standard-meta__masthead-stats { grid-template-columns: repeat(3, 1fr); min-width: 0; min-height: 58px; }
-  .standard-meta__masthead-stats span { display: grid; gap: 0.08rem; padding: 0.34rem; font-size: 0.46rem; letter-spacing: 0.04em; }
+  .standard-meta__masthead-stats span { display: grid; gap: 0.08rem; padding: 0.34rem; font-size: 0.6875rem; letter-spacing: 0.04em; }
   .standard-meta__masthead-stats strong { font-size: 0.74rem; }
   .standard-meta__controls { grid-template-columns: 1fr; gap: 0.62rem; margin-top: 0.65rem; padding: 0.68rem; border-width: 5px; }
   .standard-meta__panel-heading { gap: 0.5rem; padding-bottom: 0.55rem; }
   .standard-meta__panel-heading > span { width: 36px; height: 36px; }
   .standard-meta__panel-heading strong { font-size: 0.92rem; }
-  .standard-meta__panel-heading small { font-size: 0.58rem; }
+  .standard-meta__panel-heading small { font-size: 0.6875rem; }
   .standard-meta__controls > div,
   .standard-meta__secondary-filters,
   .standard-meta__segmented,
   .standard-meta__rank-groups,
   .standard-meta__search { width: 100%; min-width: 0; max-width: 100%; }
-  .standard-meta__control-label { margin-bottom: 0.3rem; font-size: 0.6rem; }
+  .standard-meta__control-label { margin-bottom: 0.3rem; font-size: 0.6875rem; }
   .standard-meta__segmented,
   .standard-meta__rank-tabs { height: auto; min-height: 44px; padding: 0.15rem; }
   .standard-meta__segmented button,
   .standard-meta__rank-tabs button { min-height: 44px; padding: 0.3rem 0.48rem; }
   .standard-meta__segmented strong { font-size: 0.76rem; }
-  .standard-meta__segmented small { font-size: 0.6rem; }
+  .standard-meta__segmented small { font-size: 0.6875rem; }
   .standard-meta__search { grid-column: auto; }
   .standard-meta__secondary-filters { grid-template-columns: 1fr; gap: 0.55rem; }
   .standard-meta__select select { min-height: 44px; font-size: 16px; }
@@ -1009,7 +1009,7 @@
 
 @media (max-width: 380px) {
   .standard-meta__masthead { padding: 0.68rem 0.62rem; }
-  .standard-meta__eyebrow { font-size: 0.52rem; letter-spacing: 0.08em; }
+  .standard-meta__eyebrow { font-size: 0.6875rem; letter-spacing: 0.08em; }
   .standard-meta__masthead h1 { font-size: 1.78rem; }
   .standard-meta__masthead-stats span { padding-inline: 0.22rem; }
   .standard-meta__controls { padding: 0.56rem; }
@@ -1078,7 +1078,7 @@
 }
 
 .standard-meta-chart__header-actions { gap: 0.55rem; flex: 0 0 auto; }
-.standard-meta-chart__header-actions > span { color: #806244; font-size: 0.68rem; font-weight: 800; }
+.standard-meta-chart__header-actions > span { color: #806244; font-size: 0.6875rem; font-weight: 800; }
 
 .standard-meta-chart__header-actions button {
   gap: 0.38rem;

@@ -126,7 +126,7 @@ export function ArticleCard({
             </div>
           )}
           {article.tag && (
-            <span className="article-tag absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold">
+            <span className="article-tag absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-bold">
               {article.tag}
             </span>
           )}

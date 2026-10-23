@@ -172,7 +172,7 @@
   left: 50%;
   z-index: 3;
   color: #93bdd6;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 820;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -245,7 +245,7 @@
 
 .home-orbit-class__copy small {
   color: #86a7c0;
-  font-size: 0.61rem;
+  font-size: 0.6875rem;
   font-weight: 820;
 }
 
@@ -377,7 +377,7 @@
 
 .home-bg-directory__link small {
   color: #a89ce7;
-  font-size: 0.64rem;
+  font-size: 0.6875rem;
   font-weight: 770;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -433,7 +433,7 @@
 .home-community__lead small,
 .home-community > a small {
   color: var(--home-muted);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
 }
 
 .home-community__lead strong,
@@ -608,8 +608,8 @@
 
   .home-orbit-class__icon { width: 40px; height: 40px; }
   .home-orbit-class__icon img { width: 38px; height: 38px; }
-  .home-orbit-class__copy strong { font-size: 0.63rem; }
-  .home-orbit-class__copy b { font-size: 0.61rem; }
+  .home-orbit-class__copy strong { font-size: 0.6875rem; }
+  .home-orbit-class__copy b { font-size: 0.6875rem; }
   .home-orbit-class__copy small { display: none; }
 
   .home-section-heading {

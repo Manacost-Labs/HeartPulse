@@ -29,7 +29,7 @@
 /* The site paints content text grey-blue; each span sets its own ink. */
 .bg-strategy-list__label {
   color: var(--arena-red);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;

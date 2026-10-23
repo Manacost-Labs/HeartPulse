@@ -95,7 +95,7 @@
   backdrop-filter: blur(8px);
 }
 .vsgold-report__kpis .ui-kpi-group__tile { min-height: 6.4rem; }
-.vsgold-report__kpis .ui-kpi-group__label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.vsgold-report__kpis .ui-kpi-group__label { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .vsgold-report__kpis .ui-kpi-group__value { font-family: var(--font-body); }
 .vsgold-report__kpis .ui-kpi-group__caption { overflow: hidden; color: #f1d9a4; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -156,7 +156,7 @@
   gap: 0.75rem;
   align-items: center;
 }
-.vsgold-power__legend { padding: 0 0.6rem 0.35rem; color: var(--vs-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.vsgold-power__legend { padding: 0 0.6rem 0.35rem; color: var(--vs-muted); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .vsgold-power__legend > span:first-child { grid-column: 1 / 4; }
 .vsgold-power__legend > span:nth-child(2) { grid-column: 4 / 6; }
 .vsgold-power__legend > span:nth-child(3) { grid-column: 6 / 8; }

@@ -64,7 +64,7 @@
 
 .constructed-matchup-summary dt {
   color: var(--archetype-muted);
-  font-size: 0.52rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -130,7 +130,7 @@
 .constructed-matchup-ledger__identity small {
   margin-top: 0.2rem;
   color: var(--archetype-muted);
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
 }
 
 .constructed-matchup-ledger__meter {
@@ -187,7 +187,7 @@
   padding: 0.65rem 0.85rem;
   border-top: 1px solid rgba(92, 54, 24, 0.16);
   color: var(--archetype-muted);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
 }
 
 .constructed-analysis-source a {
@@ -237,7 +237,7 @@
   padding: 0.65rem;
   border: 1px solid rgba(239, 201, 111, 0.42);
   color: #fff0c8;
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1.45;
   text-align: left;

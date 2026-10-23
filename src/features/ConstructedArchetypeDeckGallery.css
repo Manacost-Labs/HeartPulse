@@ -78,7 +78,7 @@
 
 .archetype-deck-card__summary dt {
   color: rgba(255, 240, 200, 0.64);
-  font-size: 0.55rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -112,7 +112,7 @@
 
 .archetype-deck-card .deck-list-view__subtitle {
   margin-top: 0.08rem;
-  font-size: 0.64rem;
+  font-size: 0.6875rem;
   line-height: 1.1;
 }
 
@@ -207,7 +207,7 @@
 .archetype-deck-card__state--error span {
   max-width: 18rem;
   color: rgba(255, 240, 200, 0.7);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   line-height: 1.45;
 }
 
@@ -248,7 +248,7 @@
   justify-content: center;
   border: 1px solid rgba(239, 201, 111, 0.35);
   color: #fff0c8;
-  font-size: 0.67rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   text-decoration: none;
 }

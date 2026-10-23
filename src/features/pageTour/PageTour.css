@@ -82,7 +82,7 @@
 
 .page-tour__dialog .ui-tour__progress-text {
   color: #8d171d;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -206,7 +206,7 @@
 .page-tour-media .ptm-label { fill: var(--ptm-ink); font: 700 11px/1 var(--font-body, sans-serif); }
 .page-tour-media .ptm-label.is-strong { font-weight: 800; }
 .page-tour-media .ptm-label.is-good { fill: var(--ptm-good); }
-.page-tour-media .ptm-label.is-tag { fill: #fff0c8; font-size: 10px; }
+.page-tour-media .ptm-label.is-tag { fill: #fff0c8; font-size: 11px; }
 .page-tour-media .ptm-caption { fill: var(--ptm-muted); font: 600 9.5px/1 var(--font-body, sans-serif); }
 .page-tour-media .ptm-value { fill: var(--ptm-ink); font: 800 22px/1 var(--font-display, Georgia, serif); }
 .page-tour-media .ptm-chip { fill: rgba(84, 51, 22, 0.08); stroke: rgba(84, 51, 22, 0.32); }

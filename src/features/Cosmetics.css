@@ -438,7 +438,7 @@
 .cosmetics-related-card small {
   margin-top: 3px;
   color: #82654b;
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
 }
 
 .cosmetics-empty,
@@ -542,7 +542,7 @@
 
 .cosmetics-facts dt {
   color: #b99a66;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;

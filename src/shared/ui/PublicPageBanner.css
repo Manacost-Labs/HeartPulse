@@ -149,7 +149,7 @@
   overflow: hidden;
   margin-top: 0.22rem;
   color: #c9a45e;
-  font-size: 0.56rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.105em;
   text-overflow: ellipsis;
@@ -254,7 +254,7 @@ html[data-hp-viewer='remembered'] .traditional-mode-banner__summary[data-teaser]
   }
 
   .traditional-mode-banner__summary dt {
-    font-size: 0.5rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.07em;
   }
 

@@ -83,7 +83,7 @@
 .standard-meta-shares__list li > a { grid-area: name; overflow: hidden; color: #352319; font-size: 0.82rem; font-weight: 700; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .standard-meta-shares__list li > a:hover { color: #4a2f66; text-decoration: underline; }
 .standard-meta-shares__list li > strong { grid-area: share; font-size: 0.85rem; font-variant-numeric: tabular-nums; text-align: end; }
-.standard-meta-shares__list li > small { grid-area: games; color: #6f5236; font-size: 0.68rem; font-variant-numeric: tabular-nums; text-align: end; }
+.standard-meta-shares__list li > small { grid-area: games; color: #6f5236; font-size: 0.6875rem; font-variant-numeric: tabular-nums; text-align: end; }
 .standard-meta-shares__bar { grid-area: bar; height: 6px; border-radius: 2px; background: rgba(102, 63, 27, 0.1); }
 .standard-meta-shares__bar i { display: block; height: 100%; min-inline-size: 2px; border-radius: 2px; background: var(--share-color); }
 

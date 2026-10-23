@@ -75,7 +75,7 @@
 
 .profile-workspace .profile-hero__eyebrow {
   margin: 0 0 0.25rem;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -97,14 +97,14 @@
 
 .profile-workspace .profile-hero__id {
   margin: 0.32rem 0 0;
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .profile-workspace .profile-hero__id code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   letter-spacing: 0;
   text-transform: none;
   overflow-wrap: anywhere;
@@ -129,7 +129,7 @@
   color: #fff0c8;
   background: rgba(67, 6, 10, 0.5);
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-decoration: none;
   cursor: pointer;
@@ -337,7 +337,7 @@
     min-height: 38px;
     padding: 0.38rem 0.55rem;
     justify-content: center;
-    font-size: 0.68rem;
+    font-size: 0.6875rem;
     line-height: 1.18;
     text-align: center;
   }

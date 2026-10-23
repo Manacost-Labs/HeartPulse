@@ -40,7 +40,7 @@
   gap: 0.4rem;
   align-items: center;
   color: var(--analysis-wine);
-  font-size: 0.59rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -194,7 +194,7 @@ button.archetype-mulligan-card:focus-visible {
 .archetype-mulligan-card__copy small {
   margin-top: 0.14rem;
   color: rgba(255, 255, 255, 0.66);
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
 }
 
 .archetype-keep-rate {
@@ -210,7 +210,7 @@ button.archetype-mulligan-card:focus-visible {
 
 .archetype-keep-rate > div span {
   color: var(--analysis-muted);
-  font-size: 0.59rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -243,7 +243,7 @@ button.archetype-mulligan-card:focus-visible {
   margin-top: 0.28rem;
   overflow: hidden;
   color: #81694e;
-  font-size: 0.57rem;
+  font-size: 0.6875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -268,7 +268,7 @@ button.archetype-mulligan-card:focus-visible {
 
 .archetype-mulligan-metrics dt {
   color: var(--analysis-muted);
-  font-size: 0.54rem;
+  font-size: 0.6875rem;
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -306,7 +306,7 @@ button.archetype-mulligan-card:focus-visible {
 
 .archetype-matchup-summary dt {
   color: var(--analysis-muted);
-  font-size: 0.51rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
 }
 
@@ -391,7 +391,7 @@ button.archetype-mulligan-card:focus-visible {
 .archetype-matchup-row__identity span {
   margin-top: 0.18rem;
   color: var(--analysis-muted);
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
 }
 
 .archetype-matchup-row__tone {
@@ -400,7 +400,7 @@ button.archetype-mulligan-card:focus-visible {
   justify-self: start;
   padding: 0.25rem 0.42rem;
   border: 1px solid currentColor;
-  font-size: 0.54rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -537,7 +537,7 @@ button.archetype-mulligan-card:focus-visible {
 .archetype-deck-folio__title small,
 .archetype-deck-folio__metric small {
   color: var(--analysis-muted);
-  font-size: 0.56rem;
+  font-size: 0.6875rem;
 }
 
 .archetype-deck-folio__title small {
@@ -645,7 +645,7 @@ button.archetype-mulligan-card:focus-visible {
 
 .archetype-source-link {
   color: var(--analysis-wine);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
 }
 
@@ -769,7 +769,7 @@ button.archetype-mulligan-card:focus-visible {
   padding: 0.35rem 0.5rem;
   border: 0;
   color: inherit;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   line-height: 1.15;
   background: transparent;
@@ -797,7 +797,7 @@ button.archetype-mulligan-card:focus-visible {
 
 .archetype-mulligan-table thead button small {
   color: rgba(255, 240, 200, 0.65);
-  font-size: 0.51rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -864,7 +864,7 @@ button.archetype-mulligan-card:focus-visible {
 .archetype-mulligan-table__keep small {
   margin-top: 0.25rem;
   color: var(--analysis-muted);
-  font-size: 0.53rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 

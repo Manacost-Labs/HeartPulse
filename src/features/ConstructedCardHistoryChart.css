@@ -175,7 +175,7 @@
 .constructed-card-history__state strong { display: block; color: #46301f; font-family: var(--font-display); font-size: 0.98rem; }
 .constructed-card-history__state span { display: block; margin-top: 0.2rem; font-size: 0.72rem; line-height: 1.45; }
 .constructed-card-history__state p { display: grid; margin: 0; text-align: right; }
-.constructed-card-history__state p span { margin: 0; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; }
+.constructed-card-history__state p span { margin: 0; font-size: 0.6875rem; font-weight: 800; text-transform: uppercase; }
 .constructed-card-history__state p strong { font-family: var(--font-body); font-size: 1.15rem; font-weight: 900; }
 
 .constructed-card-history__content {

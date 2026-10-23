@@ -479,7 +479,7 @@
     margin: 0.35rem 0.3rem 0.1rem;
     color: #9fb1ca;
     font-family: var(--font-body);
-    font-size: 0.68rem;
+    font-size: 0.6875rem;
     font-weight: 900;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -724,7 +724,7 @@
 
     .arena-sidebar-profile-hint {
       color: #bda76f;
-      font-size: 0.68rem;
+      font-size: 0.6875rem;
       line-height: 1.2;
     }
 
@@ -771,6 +771,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Readable floor: 11px is the smallest text the site sets (see
+     docs/specs/readable-text.md). <small> shrinks its parent by default, which
+     took 11px labels down to 8.8px; inside larger text it still reads smaller. */
+  small {
+    font-size: max(0.6875rem, 0.8em);
   }
 
   /* Display headings read crisper with a touch of tracking */

@@ -423,7 +423,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
         <aside className="card-modal-stats card-modal-stats--parchment" aria-label={`Статистика карты ${card.name}`}>
           <div className="card-modal-header flex items-start justify-between gap-3 border-b border-[#d8b75e]/25 pb-3">
             <div className="min-w-0">
-              <p className="card-modal-source text-[10px] font-black uppercase tracking-wide text-[#c4a46a]">{sourceLabel}</p>
+              <p className="card-modal-source text-[11px] font-black uppercase tracking-wide text-[#c4a46a]">{sourceLabel}</p>
               <h2 className="card-modal-title mt-1 font-hs text-xl leading-tight text-[#fcd34d]">{card.name}</h2>
             </div>
             <TierBadge tier={tier} small />
@@ -665,7 +665,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
           </div>
         )}
         <div className="z-10 mt-auto mb-2 w-[112%] -ml-[6%] bg-gradient-to-b from-[#4a3018] to-[#2c1e16] border-y-2 border-[#a88a45] py-1 px-1">
-          <span className="font-hs text-[#fcd34d] text-[9px] sm:text-[11px] leading-tight block text-center truncate">{card.name}</span>
+          <span className="font-hs text-[#fcd34d] text-[11px] sm:text-[11px] leading-tight block text-center truncate">{card.name}</span>
         </div>
       </div>
     </button>
@@ -1138,7 +1138,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
                 const tone = key === 'arenaScore' ? metricTone(raw, 'score') : metricTone(raw, 'pct');
                 return (
                   <div key={key} className="rounded-lg border border-[#c4a46a]/35 bg-[#f5e2b8]/70 px-2 py-1">
-                    <dt className="text-[10px] font-bold uppercase leading-tight text-[#8b6c42]">{col.label}</dt>
+                    <dt className="text-[11px] font-bold uppercase leading-tight text-[#8b6c42]">{col.label}</dt>
                     <dd className={`mt-0.5 text-sm font-black leading-none ${tone}`}>{tableMetricValue(card, key)}</dd>
                   </div>
                 );
@@ -1160,7 +1160,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
             <th className="sticky left-0 z-20 w-[340px] bg-[#6b3b0b] px-2.5 py-1.5 text-left font-hs text-xs tracking-wide">Карта</th>
             <th className="w-14 px-2 py-1.5 text-center font-hs text-xs tracking-wide">Tier</th>
             {TABLE_METRIC_COLUMNS.map(col => (
-              <th key={col.key} className="px-2 py-1.5 text-right text-[10px] font-bold uppercase tracking-wide" title={col.hint}>
+              <th key={col.key} className="px-2 py-1.5 text-right text-[11px] font-bold uppercase tracking-wide" title={col.hint}>
                 {col.label}
               </th>
             ))}
@@ -1606,7 +1606,7 @@ const LegendaryCardThumb: React.FC<{
       title={card.name}
       aria-label={`Открыть карту ${card.name}`}
     >
-      <span className="font-hs text-[#fcd34d] text-[10px] leading-tight">{card.name}</span>
+      <span className="font-hs text-[#fcd34d] text-[11px] leading-tight">{card.name}</span>
     </button>
   );
 }) as React.FC<{ card: LegendaryCard; size: 'lg' | 'sm'; onClick: () => void }>;
@@ -2006,7 +2006,7 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
                           size="sm"
                           onClick={() => setModalCard({ card: toLegendaryCardData(pc), tier: 'C' })}
                         />
-                        <span className="text-[9px] text-[#6b4c2a] text-center leading-tight max-w-[80px]">{pc.name}</span>
+                        <span className="text-[11px] text-[#6b4c2a] text-center leading-tight max-w-[80px]">{pc.name}</span>
                       </div>
                     ))}
                   </div>
@@ -2023,7 +2023,7 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
                       border: '1px solid rgba(97, 56, 24, 0.22)',
                     }}
                   >
-                    <div className="truncate text-[10px] leading-tight text-[#735e49]">{stat.label}</div>
+                    <div className="truncate text-[11px] leading-tight text-[#735e49]">{stat.label}</div>
                     <div className={`text-sm font-black leading-tight ${stat.tone}`}>{stat.value}</div>
                   </div>
                 ))}

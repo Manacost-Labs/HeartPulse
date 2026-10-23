@@ -49,7 +49,7 @@
   gap: 0.4rem;
   min-height: 44px;
 }
-.constructed-cards .constructed-cards__secondary-controls .constructed-cards__direction-label { display: inline; font-size: 0.68rem; }
+.constructed-cards .constructed-cards__secondary-controls .constructed-cards__direction-label { display: inline; font-size: 0.6875rem; }
 :is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='free'],
 :is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='common'] { --card-rarity-glow: var(--card-rarity-glow-common); }
 :is(.constructed-cards__gallery-card, .constructed-catalog-tile)[data-rarity='rare'] { --card-rarity-glow: var(--card-rarity-glow-rare); }
