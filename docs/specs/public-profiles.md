@@ -90,6 +90,7 @@ the old link answers `404` meanwhile.
 - `/u/<nickname>/` is answered in `apps/public-web/proxy.ts`: an existing
   nickname gets a `301` to `/id/<n>/` (`Cache-Control: public, max-age=60`),
   anything else falls through to the page's `404`.
+- Nginx sends `/u/` to Next together with the rest of the profile namespace.
 - The account page (`/?login`) has a «Публичный профиль» section
   (`AccountPublicProfile`): the short link and, once chosen, the nickname link,
   each with «Скопировать ссылку», and the nickname form with the rules and the
@@ -101,14 +102,12 @@ Direct API reads of `/api/profiles/*` are limited to 60 per minute per client
 on top of the general API budget. Loopback reads by the Next server are not
 counted there.
 
-Pending Nginx contract: production Nginx does not yet route `/u/` to Next
-(the catch-all answers `404`) and has no per-visitor limit for profile
-documents. The prepared change adds `u` to the profile namespace location and
-an `arena_public_profiles` `limit_req` zone (30 requests per minute per IPv4
-address or IPv6 /64, burst 20). It must be installed by root together with the
-release that carries its contract hash (`docs/runbooks/nextjs-production-cutover.md`).
-Until then the account page shows only the short link
-(`NICKNAME_LINKS_LIVE` in `AccountPublicProfile.tsx`).
+The documents are limited in Nginx: `/id/<n>/` and everything under `/id/`,
+`/profiles/` and `/u/` share the `arena_public_profiles` zone
+(`deploy/nginx/arena-seo-map.conf`), 30 requests per minute per visitor (an
+IPv4 address or an IPv6 /64) with a burst of 20; the excess answers `429`.
+The profile namespace stays `no-store` at the origin, so the edge does not
+cache profile documents.
 
 ## Data
 
