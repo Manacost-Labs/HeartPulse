@@ -84,6 +84,7 @@
 }
 
 .minion-board__controls .ui-select { width: auto; min-width: 11rem; }
+.minion-board__layer { display: contents; }
 
 .minion-board__slots {
   display: grid;

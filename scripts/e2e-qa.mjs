@@ -169,7 +169,7 @@ function collectRuntimeErrors(page, { sameOriginNetwork = false } = {}) {
         return;
       }
       const contentType = response.headers()['content-type'] || '';
-      const isCardImageResponse = /^\/api\/card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp$/.test(url.pathname);
+      const isCardImageResponse = /^\/api\/(?:card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp|public-resource\/[\w./-]+\.png)$/.test(url.pathname);
       if (isCardImageResponse && !/^image\/(?:avif|gif|jpe?g|png|svg\+xml|webp)(?:;|$)/i.test(contentType)) {
         errors.push(`unexpected card image content-type ${contentType || 'missing'}: ${url.pathname}`);
       } else if (url.pathname.startsWith('/api/')
@@ -3708,9 +3708,9 @@ for (const [device, viewport] of [
       variants: document.querySelectorAll('.constructed-card-detail__variants button').length,
       variantLabels: [...document.querySelectorAll('.constructed-card-detail__variants button')].map(button => button.textContent?.trim()),
       tags: [...document.querySelectorAll('.constructed-card-detail__tags span')].map(tag => tag.textContent?.trim() || ''),
-      patches: document.querySelectorAll('.constructed-card-detail__patches details').length,
-      firstPatchText: document.querySelector('.constructed-card-detail__patches details:first-of-type summary')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      firstPatchHref: document.querySelector('.constructed-card-detail__patches details:first-of-type .constructed-card-detail__patch-body a')?.getAttribute('href') || '',
+      patches: document.querySelectorAll('.constructed-card-detail__patches .card-patch-timeline__entry').length,
+      firstPatchText: document.querySelector('.constructed-card-detail__patches .card-patch-timeline__entry')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      firstPatchHref: document.querySelector('.constructed-card-detail__patches .card-patch-timeline__entry .card-patch-timeline__links a')?.getAttribute('href') || '',
       relatedGroups: document.querySelectorAll('.constructed-card-detail__related-group').length,
       relatedCards: document.querySelectorAll('.constructed-card-detail__related-card').length,
       relatedHeadings: [...document.querySelectorAll('.constructed-card-detail__related-group h3')].map(element => element.textContent?.trim() || ''),
@@ -3738,7 +3738,7 @@ for (const [device, viewport] of [
       || constructedDetailState.variants !== 2 || constructedDetailState.variantLabels.includes('Арт') || constructedDetailState.tags.length < 3
       || new Set(constructedDetailState.tags.map(value => value.toLocaleLowerCase('ru-RU'))).size !== constructedDetailState.tags.length
       || constructedDetailState.tags.filter(value => value.toLocaleLowerCase('ru-RU') === 'боевой клич').length !== 1
-      || constructedDetailState.patches !== 2 || !constructedDetailState.firstPatchText.includes('Обновление 35.0')
+      || constructedDetailState.patches !== 2 || !constructedDetailState.firstPatchText.includes('Патч 35.0')
       || !constructedDetailState.firstPatchText.includes('2025') || !constructedDetailState.firstPatchHref.startsWith('https://hs-manacost.ru/')
       || constructedDetailState.relatedGroups !== 2 || constructedDetailState.relatedCards !== 4
       || constructedDetailState.relatedHeadings.join('|') !== 'Варианты задания|Награды'

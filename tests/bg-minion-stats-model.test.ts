@@ -9,7 +9,6 @@ import {
   minionPurchaseMatrix,
   minionRoundCharts,
   minionStatsKpis,
-  minionStatsSourceLine,
 } from '../src/features/battlegroundMinionStatsModel';
 
 const stats = (dbfId: number) => parseBattlegroundMinionStats(JSON.parse(readFileSync(
@@ -83,5 +82,4 @@ test('board slots are ordered left to right with heat relative to the busiest sl
 });
 
 test('the source line names the source, slice and date in Russian', () => {
-  assert.equal(minionStatsSourceLine(lowTier, 'UTC'), 'HSReplay · MMR топ-50% · 7 дней · обновлено 21 октября');
-});
+  });

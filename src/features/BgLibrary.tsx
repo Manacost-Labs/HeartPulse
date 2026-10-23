@@ -7,9 +7,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { publicResourceUrl } from '../publicResourceUrl';
-import BattlegroundCardVariantToggle, {
-  type BattlegroundCardVariant,
-} from './BattlegroundCardVariantToggle';
+import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSwitch';
 import {
   battlegroundBaseCardId,
   findBattlegroundCardVariants,
@@ -24,7 +22,7 @@ import { BgLibraryDetailSkeleton, BgLibraryListSkeleton, type BgLibraryCardTease
 import { BattlegroundLoadError } from './BattlegroundsSkeletons';
 import { BattlegroundMinionHeader } from './BattlegroundMinionHeader';
 import { BattlegroundMinionStatsSections } from './BattlegroundMinionStatsSections';
-import { minionPlacementTone, minionStatsKpis, minionStatsSourceLine } from './battlegroundMinionStatsModel';
+import { minionPlacementTone, minionStatsKpis } from './battlegroundMinionStatsModel';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
 import { BattlegroundStrategyList } from './BattlegroundStrategyList';
 import { strategyRows, type StrategyEntry } from './bgLibraryStrategyRows';
@@ -272,6 +270,9 @@ const HIDDEN_MECHANIC_KEYS = new Set([
   'secret',
 ]);
 
+
+/** Version of a Battlegrounds card shown on its detail page. */
+type BattlegroundCardVariant = 'normal' | 'golden';
 
 function tavernIcon(tier: number | string): string {
   return `/bg-legacy/assset/tier${tier}.png`;
@@ -1303,32 +1304,49 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
   const selectedVariantCard = selectedVariant === 'golden' && hasGoldenVariant && goldenVariant
     ? goldenVariant
     : card;
-  const heroImage = selectedVariant === 'golden' && reliableGoldenImage
-    ? reliableGoldenImage
-    : detailCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
-  const heroFallbacks = selectedVariant === 'golden' && reliableGoldenImage
-    ? (goldenVariant ? goldenVariantFallbackImages(goldenVariant, heroImage) : [])
-    : fallbackCardImages(card, heroImage, true);
   const currentCardName = cardRuName(selectedVariantCard);
   const section = sectionFor(kind);
   const rulesText = cardRulesText(selectedVariantCard);
   const wikiUrl = selectedVariantCard.wiki_page?.url || selectedVariantCard.wiki?.page?.url || '';
   const minionView = kind === 'minion' && pool === 'current';
   const variantTotals = stats ? stats[selectedVariant === 'golden' && hasGoldenVariant ? 'golden' : 'normal'] : null;
+  // Minions show the full card in both versions: the board portrait («framed»)
+  // read poorly, and `_G` renders are not the golden card (HearthstoneJSON has
+  // none, and the cached one shows other stats). The golden card is the base id
+  // in `golden/`, the normal one the 512 px HearthstoneJSON render.
+  const minionBaseId = kind === 'minion' ? battlegroundBaseCardId(card.card_id) : null;
+  const normalImage = minionBaseId ? publicResourceUrl(hearthstoneJsonBgCardUrl(minionBaseId))
+    : detailCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
+  const normalFallbacks = minionBaseId
+    ? uniqueStrings([publicResourceUrl(localDbImageUrl(minionBaseId, 'cards')), ...fallbackCardImages(card, normalImage, true)])
+    : fallbackCardImages(card, normalImage, true);
+  const goldenImage = minionBaseId && hasGoldenVariant ? publicResourceUrl(localDbImageUrl(minionBaseId, 'golden')) : reliableGoldenImage;
+  const goldenFallbacks = goldenImage
+    ? uniqueStrings([reliableGoldenImage, ...(goldenVariant ? goldenVariantFallbackImages(goldenVariant, goldenImage) : [])])
+      .filter(candidate => candidate !== goldenImage && !isLikelyGoldenCardId(candidate.split('/').pop()?.replace(/\.png$/, '') ?? ''))
+    : [];
+  const statsLabel = (attack?: number | null, health?: number | null) =>
+    typeof attack === 'number' && typeof health === 'number' ? `${attack}/${health}` : undefined;
   const variantToggle = hasGoldenVariant ? (
-    <BattlegroundCardVariantToggle
+    <CardVariantSwitch
+      tone={minionView ? 'plate' : 'parchment'}
       value={selectedVariant}
-      normalStats={{ attack: card.attack, health: card.health }}
-      goldenStats={goldenVariant ? { attack: goldenVariant.attack, health: goldenVariant.health } : undefined}
-      onChange={setSelectedVariant}
+      onChange={value => setSelectedVariant(value as BattlegroundCardVariant)}
+      options={[
+        { id: 'normal', label: 'Обычная', note: statsLabel(card.attack, card.health) },
+        { id: 'golden', label: 'Золотая', note: goldenVariant ? statsLabel(goldenVariant.attack, goldenVariant.health) : undefined },
+      ]}
     />
   ) : null;
   const heroCard = (
-    <img
-      src={heroImage}
+    <CardVariantImages
+      className="drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]"
+      value={selectedVariant === 'golden' && hasGoldenVariant ? 'golden' : 'normal'}
       alt={`${currentCardName}${selectedVariant === 'golden' ? ' — золотая версия' : ''}`}
-      className="w-full drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]"
-      data-fallbacks={heroFallbacks.join('|') || undefined}
+      images={[
+        { id: 'normal', src: normalImage, fallbacks: normalFallbacks },
+        ...(hasGoldenVariant && goldenImage ? [{ id: 'golden', src: goldenImage, fallbacks: goldenFallbacks }] : []),
+      ]}
       onError={fallbackBrokenHeroImage}
     />
   );
@@ -1364,7 +1382,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
               : selectedVariant === 'golden' && stats
                 ? 'По золотой версии мало игр за последние 7 дней.'
                 : 'По этому существу нет игр в выборке HSReplay за последние 7 дней.'}
-            source={stats ? minionStatsSourceLine(stats) : null}
+            methodology={Boolean(stats)}
           />
         </div>
       ) : (

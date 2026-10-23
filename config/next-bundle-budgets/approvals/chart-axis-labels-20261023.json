@@ -1,0 +1,14 @@
+{
+  "reason": "Подписи оси X в общем графике (LineChart) выбираются по их реальной ширине, чтобы даты не печатались одна поверх другой: функция axisLabelIndexes заменила прежнюю axisTickIndexes (около 0,15 КБ gzip).",
+  "routes": {
+    "/classes/": {
+      "jsGzipBytes": 256
+    },
+    "/legendaries/": {
+      "jsGzipBytes": 256
+    },
+    "/tierlist/": {
+      "jsGzipBytes": 256
+    }
+  }
+}

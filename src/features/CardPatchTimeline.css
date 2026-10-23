@@ -1,0 +1,95 @@
+.card-patch-timeline {
+  position: relative;
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  list-style: none;
+}
+
+/* The rail and the dot of each patch. */
+.card-patch-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  left: 0.3rem;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(116, 27, 32, 0.55), rgba(116, 27, 32, 0.08));
+}
+
+.card-patch-timeline__entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: 0.35rem 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(109, 68, 31, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 251, 236, 0.55);
+}
+
+.card-patch-timeline__entry::before {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  left: calc(-1.1rem + 0.3rem - 4px);
+  width: 10px;
+  height: 10px;
+  border: 2px solid #741b20;
+  border-radius: 50%;
+  background: #fff6dc;
+}
+
+.card-patch-timeline__when { display: grid; align-content: start; gap: 0.15rem; }
+.card-patch-timeline__when strong { color: #4b2f19; font-size: 0.9rem; }
+.card-patch-timeline__when time { color: #7e6045; font-size: 0.75rem; }
+
+.card-patch-timeline__what { display: grid; gap: 0.45rem; min-width: 0; }
+
+.card-patch-timeline__changes { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; }
+.card-patch-timeline__changes li { display: flex; flex-wrap: wrap; gap: 0.4rem 0.55rem; align-items: baseline; color: #3d2a1e; font-size: 0.875rem; line-height: 1.4; }
+
+.card-patch-timeline__badge {
+  display: inline-flex;
+  flex: none;
+  gap: 0.2rem;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b391f;
+  background: rgba(166, 121, 64, 0.16);
+}
+
+[data-kind='buff'] > .card-patch-timeline__badge,
+[data-kind='added'] > .card-patch-timeline__badge { color: #22572a; background: rgba(54, 128, 66, 0.14); }
+[data-kind='nerf'] > .card-patch-timeline__badge,
+[data-kind='removed'] > .card-patch-timeline__badge { color: #7b151b; background: rgba(123, 21, 27, 0.12); }
+
+.card-patch-timeline__minor { color: #7e6045; font-size: 0.75rem; }
+.card-patch-timeline__minor summary { cursor: pointer; width: fit-content; }
+.card-patch-timeline__minor ul { margin: 0.3rem 0 0; padding-left: 1rem; }
+
+.card-patch-timeline__links { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; margin: 0; }
+.card-patch-timeline__links a {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  min-height: 32px;
+  color: #71181e;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.card-patch-timeline__empty { margin: 0; color: #7e6045; }
+
+@media (max-width: 640px) {
+  .card-patch-timeline__entry { grid-template-columns: minmax(0, 1fr); }
+  .card-patch-timeline__when { grid-auto-flow: column; justify-content: start; align-items: baseline; gap: 0.6rem; }
+}

@@ -72,7 +72,9 @@ export function createQaApiHandler({
       });
       return true;
     }
-    if (/^\/api\/card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp$/.test(url.pathname)) {
+    // Card art, including images the proxy would fetch from HearthstoneJSON, is
+    // the control picture: the QA run never reaches the network.
+    if (/^\/api\/(?:card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp|public-resource\/[\w./-]+\.png)$/.test(url.pathname)) {
       respond({
         status: 200,
         contentType: 'image/svg+xml',
