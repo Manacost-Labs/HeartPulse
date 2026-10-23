@@ -88,8 +88,40 @@ are unchanged and parsed in `adminConsole/adminNavigation.ts`.
 
 Sections on the cache: overview, people list and segment counts, articles
 and their read statistics, gallery, contests, referral links, Boosty status
-and subscribers, Telegram accounts. The mailing section keeps its own loading
-until the all-time Boosty audience change lands.
+and subscribers, Telegram accounts and the mailing overview (refreshed every
+2.5 s while a campaign is queued or sending).
+
+## Sections
+
+Each section owns its state and data in `src/features/adminConsole/sections/`
+(people, mailing, contests, referrals, Boosty, Telegram) or in its own lazy
+feature file (overview, articles, gallery, translations, mechanics, parsers,
+fun decks, Public API). `src/features/Contests.tsx` keeps only access,
+the address bar, history and the toast, so typing in one section re-renders
+that section alone.
+
+- A section is mounted on its first visit and then kept behind React's
+  `Activity` while another one is shown: drafts, filters, the selected
+  contest and loaded rows are there on return without a render or a request.
+  A hidden section's effects (polling, listeners, open menus) stop and start
+  again when it is shown; sections on the data cache refresh then only when
+  their answer is older than 30 s.
+- Each section has its own error boundary; an error stays in that section
+  until its «Повторить», the others keep working.
+- The scrolling main area remembers the position per section; a section
+  opened for the first time starts at the top.
+- The overview's segment shortcuts open the people list on that segment once;
+  showing the section again keeps the operator's own filters.
+
+## Boosty answers on the server
+
+`server/adminBoostyRoutes.ts` reuses a successful boosty-auth answer for one
+minute and shares a request that is already running: the status and each
+subscriber list (with or without inactive subscribers) are separate entries.
+Failures are not cached. The section's «Обновить» sends `fresh=1` and always
+asks boosty-auth again; a revisit inside the minute is answered from memory.
+The mailing contact sync that rides on this read keeps running in the
+background every six hours ([mailing audience](mailing-boosty-audience.md)).
 
 ## Measurement
 

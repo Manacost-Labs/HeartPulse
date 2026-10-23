@@ -167,8 +167,9 @@ public resource contract. Disposing a view stops its timers and callbacks.
 the shared look of section content. Modules may not import `src/vendor`, so
 the Valyro console frame (`AppShell`, `Sidebar`, `CommandPalette` under the
 `manacost` theme) lives in `src/features/adminConsole/`, which also owns the
-section list and URL parsing; `src/features/Contests.tsx` composes the
-sections. `src/modules/adminCrm` reads through the same cache
+section list, URL parsing and the section containers (`sections/`), each
+owning its state; `src/features/Contests.tsx` keeps access, history and the
+toast. `src/modules/adminCrm` reads through the same cache
 ([admin console](../specs/admin-valyro-console.md)).
 
 `src/modules/arenaClasses` owns validated class statistics, account-scoped

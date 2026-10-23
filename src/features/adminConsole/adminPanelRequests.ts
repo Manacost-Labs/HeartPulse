@@ -46,8 +46,9 @@ export async function fetchReferrals(): Promise<AdminReferralsPayload> {
   };
 }
 
-export async function fetchBoostyStatus(): Promise<BoostyAdminStatus> {
-  return await readJson('/api/admin/boosty/status', 'Не удалось загрузить статус Boosty', {
+/** `fresh` skips the server's one-minute Boosty cache (the section's «Обновить»). */
+export async function fetchBoostyStatus(fresh = false): Promise<BoostyAdminStatus> {
+  return await readJson(`/api/admin/boosty/status${fresh ? '?fresh=1' : ''}`, 'Не удалось загрузить статус Boosty', {
     deadlineMs: BOOSTY_STATUS_DEADLINE_MS,
   }) as unknown as BoostyAdminStatus;
 }
@@ -70,8 +71,9 @@ export function boostyStatusFailure(error: Error): BoostyAdminStatus {
   };
 }
 
-export async function fetchBoostySubscribers(): Promise<BoostySubscribersPayload> {
-  const data = await readJson('/api/admin/boosty/subscribers?includeInactive=1', 'Не удалось загрузить подписчиков Boosty', {
+export async function fetchBoostySubscribers(fresh = false): Promise<BoostySubscribersPayload> {
+  const path = `/api/admin/boosty/subscribers?includeInactive=1${fresh ? '&fresh=1' : ''}`;
+  const data = await readJson(path, 'Не удалось загрузить подписчиков Boosty', {
     deadlineMs: BOOSTY_SUBSCRIBERS_DEADLINE_MS,
   });
   return {
@@ -140,7 +142,7 @@ export type AdminRead<T> = { key: string; load: () => Promise<T> };
 export const ADMIN_READS = {
   contests: { key: '/api/admin/contests', load: fetchAdminContests },
   referrals: { key: '/api/admin/referrals', load: fetchReferrals },
-  boostyStatus: { key: '/api/admin/boosty/status', load: fetchBoostyStatus },
-  boostySubscribers: { key: '/api/admin/boosty/subscribers', load: fetchBoostySubscribers },
+  boostyStatus: { key: '/api/admin/boosty/status', load: () => fetchBoostyStatus() },
+  boostySubscribers: { key: '/api/admin/boosty/subscribers', load: () => fetchBoostySubscribers() },
   telegram: { key: '/api/admin/telegram/accounts', load: fetchTelegramAccounts },
 } satisfies Record<string, AdminRead<unknown>>;
