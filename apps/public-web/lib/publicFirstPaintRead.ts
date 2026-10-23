@@ -31,7 +31,8 @@ export async function readFirstPaintJson(request: (signal: AbortSignal) => Promi
   }
 }
 
-async function withinDeadline<T>(promise: Promise<T>, deadline: number): Promise<T | null> {
+/** The promise's value, or `null` once the deadline passes or it rejects; the promise itself keeps running. */
+export async function withinDeadline<T>(promise: Promise<T>, deadline: number): Promise<T | null> {
   const remaining = deadline - Date.now();
   if (remaining <= 0) {
     promise.catch(() => undefined);

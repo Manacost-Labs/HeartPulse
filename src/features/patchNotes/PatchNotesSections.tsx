@@ -106,7 +106,9 @@ export function PatchSection({ section, groups, patch, notes, filtered, eagerFro
       <SectionBanner section={section} />
       <div className="hp-patch-section__body">
         {groups.map(group => (
-          <div key={group.id} className="hp-patch-group" id={groupAnchor(group.id)}>
+          // A group of one or two cards takes only its columns, so small classes share a row.
+          <div key={group.id} className="hp-patch-group" id={groupAnchor(group.id)}
+            data-size={group.entries.length > 2 ? 'many' : group.entries.length}>
             {/* A section of one group would only repeat its banner. */}
             {groups.length > 1 || group.title !== section.title ? <GroupHeading group={group} /> : null}
             <ul className="hp-patch-group__list">

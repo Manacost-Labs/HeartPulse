@@ -109,7 +109,8 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
         versions={archive.length > 1
           ? <VersionSwitcher patches={archive} current={patch.version} onSelect={onSelectVersion} formatDate={formatPatchDate} />
           : null} />
-      {view.total > 0 && <PatchBar view={view} filter={filter} onChange={change} />}
+      {/* One or two changes are read at a glance; a search and filters would outweigh them. */}
+      {view.total > 2 && <PatchBar view={view} filter={filter} onChange={change} />}
       {!filtered && (
         <Highlights cards={highlights} handlers={handlers}>
           {patch.meta !== null && flow.links.length >= 2 ? <PatchMetaFlow flow={flow} meta={patch.meta} /> : null}

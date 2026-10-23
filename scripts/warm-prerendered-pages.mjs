@@ -56,3 +56,19 @@ for (const path of paths) {
   }
   console.log(`[warm] ${path}: ${last}`);
 }
+
+// The patch notes page stays dynamic but keeps its Express reads in the Next
+// process (apps/public-web/lib/publicPatchNotesData.ts). Requested on the
+// local origin, so the edge never caches a copy rendered before they landed.
+for (let attempt = 1; attempt <= 3; attempt += 1) {
+  try {
+    const response = await fetch(new URL('/standard/patches/', nextOrigin), { signal: AbortSignal.timeout(15_000) });
+    const html = await response.text();
+    const ready = response.status === 200 && html.includes('hp-patch-hero__title');
+    console.log(`[warm] /standard/patches/ (local): HTTP ${response.status}, patch in HTML: ${ready}`);
+    if (ready) break;
+  } catch (error) {
+    console.log(`[warm] /standard/patches/ (local) failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  await sleep(2000);
+}

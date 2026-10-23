@@ -13,6 +13,10 @@
   --patch-rework-soft: rgba(122, 88, 46, 0.12);
   --patch-paper: rgba(255, 251, 238, 0.86);
   --patch-line: rgba(122, 88, 46, 0.22);
+  /* The sticky toolbar is opaque, so rows never show through it. */
+  --patch-toolbar: #f8ecce;
+  /* Every control of the toolbar has this height. */
+  --patch-control: 38px;
   /* The one vertical step between blocks and its half inside them. */
   --patch-step: 1.5rem;
   --patch-step-sm: 0.75rem;
@@ -54,10 +58,10 @@
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
-  margin-inline: -0.5rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--patch-line);
-  background: rgba(248, 234, 200, 0.96);
+  padding: 0.45rem;
+  border: 1px solid var(--patch-line);
+  border-radius: 8px;
+  background: var(--patch-toolbar);
 }
 
 .hp-patch-bar__nav,
@@ -84,7 +88,7 @@
   flex: none;
   gap: 0.35rem;
   align-items: center;
-  min-height: 36px;
+  min-height: var(--patch-control);
   padding: 0 0.7rem;
   border-radius: 999px;
   color: var(--arena-ink);
@@ -100,7 +104,7 @@
 .hp-patch-bar select {
   min-width: 0;
   max-width: 14rem;
-  min-height: 36px;
+  min-height: var(--patch-control);
   padding: 0 0.5rem;
   border: 1px solid var(--patch-line);
   border-radius: 999px;
@@ -131,7 +135,7 @@
 .hp-patch-search input {
   box-sizing: border-box;
   width: 100%;
-  min-height: 40px;
+  min-height: var(--patch-control);
   padding: 0.35rem 0.75rem 0.35rem 2.2rem;
   border: 1px solid var(--patch-line);
   border-radius: 999px;
@@ -155,7 +159,7 @@
   display: inline-flex;
   gap: 0.3rem;
   align-items: center;
-  min-height: 36px;
+  min-height: calc(var(--patch-control) - 4px);
   padding: 0 0.7rem;
   border: 0;
   border-radius: 999px;
@@ -177,7 +181,7 @@
 .hp-patch-kinds button[data-kind='buff'][aria-pressed='true'] { background: var(--patch-buff); }
 .hp-patch-kinds button[data-kind='nerf'][aria-pressed='true'] { background: var(--patch-nerf); }
 .hp-patch-kinds button:disabled { cursor: default; opacity: 0.4; }
-.hp-patch-reset { border: 1px solid var(--patch-line); background: #fffaf0; }
+.hp-patch-reset { min-height: var(--patch-control); border: 1px solid var(--patch-line); background: #fffaf0; }
 
 /*
  * Narrow content: only the search and kind row sticks; the modes and the
@@ -198,8 +202,7 @@
     flex: 1 1 100%;
     overflow-x: auto;
     scrollbar-width: none;
-    margin-inline: -0.5rem;
-    padding-inline: 0.25rem;
+    margin-inline: -0.7rem;
   }
 
   .hp-patch-bar__group { flex: 1 1 100%; }
@@ -209,10 +212,10 @@
     position: sticky;
     top: var(--patch-sticky-top);
     z-index: 5;
-    margin-inline: -0.5rem;
-    padding: 0.4rem 0.5rem;
-    border-bottom: 1px solid var(--patch-line);
-    background: rgba(248, 234, 200, 0.97);
+    padding: 0.4rem;
+    border: 1px solid var(--patch-line);
+    border-radius: 8px;
+    background: var(--patch-toolbar);
   }
 
   .hp-patch-kinds button { padding: 0 0.6rem; }
@@ -236,20 +239,12 @@
   list-style: none;
 }
 
-.hp-patch-highlights__list { grid-template-columns: minmax(0, 1fr); }
+/* Highlights are tiles: two a row on phones, all of them in one row on wide content. */
+.hp-patch-highlights__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-/* Two or four highlights go two by two, three in one row. */
-@container (min-width: 700px) {
-  .hp-patch-highlights__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@container (min-width: 960px) {
+@container (min-width: 760px) {
   .hp-patch-highlights__list[data-count='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-/* Change rows: two columns on wide content, rows of one height so their hairlines line up. */
-.hp-patch-group__list {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
-  gap: 0 2rem;
+  .hp-patch-highlights__list[data-count='4'] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 .hp-patch-highlights__list > li,
@@ -259,16 +254,47 @@
 
 .hp-patch-section { min-width: 0; }
 
+/*
+ * Change rows run in one, two or three columns by content width. A group of
+ * one or two cards spans only its columns, so a class with one change sits
+ * beside the next one instead of leaving the rest of its row empty; larger
+ * groups take the full width. Groups and their rows share the section's
+ * columns (subgrid), so hairlines line up across groups.
+ */
 .hp-patch-section__body {
+  --patch-cols: 1;
   display: grid;
-  gap: var(--patch-step);
+  grid-template-columns: repeat(var(--patch-cols), minmax(0, 1fr));
+  gap: var(--patch-step) 2rem;
   padding-top: var(--patch-step-sm);
+}
+
+@container (min-width: 700px) {
+  .hp-patch-section__body { --patch-cols: 2; }
+  .hp-patch-group[data-size='1'] { grid-column: span 1; }
+}
+
+@container (min-width: 1080px) {
+  .hp-patch-section__body { --patch-cols: 3; }
+  .hp-patch-group[data-size='2'] { grid-column: span 2; }
 }
 
 .hp-patch-group {
   display: grid;
-  gap: var(--patch-step-sm);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-content: start;
+  row-gap: var(--patch-step-sm);
   min-width: 0;
+}
+
+.hp-patch-group__title,
+.hp-patch-section-notes { grid-column: 1 / -1; }
+
+.hp-patch-group__list {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: 0 normal;
 }
 
 /* ── Change row ─────────────────────────────────────────────────────────── */
@@ -277,13 +303,13 @@
 .hp-patch-card {
   position: relative;
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr);
-  gap: 0 1rem;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0 0.9rem;
   align-content: start;
   min-width: 0;
   height: 100%;
   box-sizing: border-box;
-  padding: 0.85rem 2.5rem 0.85rem 0;
+  padding: 0.75rem 0;
   border-top: 1px solid var(--patch-line);
 }
 
@@ -343,6 +369,8 @@
   gap: 0.35rem;
   align-items: baseline;
   min-width: 0;
+  /* Room for the "…" in the corner; the change lines below use the full width. */
+  padding-right: 2.25rem;
 }
 
 .hp-patch-card__name {
@@ -420,7 +448,6 @@
 
 /* Removed words fade under a strike; added words carry a highlighter stroke, not a chip. */
 .hp-change__text del {
-  margin-right: 0.2em;
   color: var(--arena-muted-ink);
   text-decoration-color: rgba(147, 32, 42, 0.7);
   text-decoration-thickness: 1.5px;
@@ -447,8 +474,8 @@
 
 .hp-patch-card__more > summary {
   position: absolute;
-  top: 0.55rem;
-  right: 0;
+  top: 0.45rem;
+  right: -0.35rem;
   display: grid;
   place-items: center;
   width: 2rem;
@@ -468,7 +495,7 @@
 .hp-patch-card__details {
   display: grid;
   gap: 0.5rem;
-  margin: 0.6rem -2.5rem 0 0;
+  margin: 0.6rem 0 0;
   padding-top: 0.6rem;
   border-top: 1px solid var(--patch-line);
   font-size: 0.8rem;
@@ -666,7 +693,6 @@
 }
 
 @container (max-width: 640px) {
-  .hp-patch-card { grid-template-columns: 3.5rem minmax(0, 1fr); gap: 0 0.8rem; }
-  .hp-patch-card[data-featured] { grid-template-columns: 5rem minmax(0, 1fr); }
+  .hp-patch-card { grid-template-columns: 3.25rem minmax(0, 1fr); gap: 0 0.8rem; }
   .hp-patch-heading { font-size: 1.25rem; }
 }
