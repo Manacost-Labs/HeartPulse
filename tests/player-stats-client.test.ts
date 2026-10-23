@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { gameStatsFromPayload, gameStatsUrl } from '../src/modules/playerStats/api/gameStatsApi.js';
+import { fetchGameStatsModes, gameStatsFromPayload, gameStatsUrl } from '../src/modules/playerStats/api/gameStatsApi.js';
 import { comparison, formatDuration, formatSigned, pluralGames, rankLabel, winrate } from '../src/modules/playerStats/model/format.js';
 import { heroPickRate, visibleHeroes } from '../src/modules/playerStats/model/heroTable.js';
 import type { HeroStats } from '../src/modules/playerStats/model/stats.js';
@@ -48,5 +48,21 @@ const heroes = [hero('A', 2, 3), hero('B', 9, 4.5, 12, 9), hero('C', 9, 3.9), he
 assert.deepEqual(visibleHeroes(heroes, 3).map(item => item.heroCardId), ['C', 'B', 'D']);
 assert.equal(heroPickRate(heroes[1]), 75);
 assert.equal(heroPickRate(heroes[2]), null);
+
+// The section appears only when the server is switched on and the account has version 2 events.
+const answer = (status: number, body: unknown) => async () => new Response(JSON.stringify(body), { status });
+const realFetch = globalThis.fetch;
+try {
+  globalThis.fetch = answer(404, { error: 'Not found' }) as typeof fetch;
+  assert.equal(await fetchGameStatsModes(), null);
+  globalThis.fetch = answer(200, { modes: { battlegrounds: 0, standard: 0, wild: 0, arena: 0 } }) as typeof fetch;
+  assert.equal(await fetchGameStatsModes(), null);
+  globalThis.fetch = answer(200, { modes: { battlegrounds: 12, arena: 'x' } }) as typeof fetch;
+  assert.deepEqual(await fetchGameStatsModes(), { battlegrounds: 12, standard: 0, wild: 0, arena: 0 });
+  globalThis.fetch = (async () => { throw new TypeError('fetch failed'); }) as typeof fetch;
+  assert.equal(await fetchGameStatsModes(), null);
+} finally {
+  globalThis.fetch = realFetch;
+}
 
 console.log('player stats client: ok');

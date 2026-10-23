@@ -17,6 +17,8 @@ type RegisterTrackerIngestionDependencies = {
   setPrivateNoStore: (response: Response) => void;
   /** Strict check of `schemaVersion` 2 payloads, owned by the statistics module. */
   validatePayload?: TrackerPayloadValidator;
+  /** Called after new events of an account were stored. */
+  onStored?: (userId: string) => void;
 };
 
 export function registerTrackerIngestionRateLimit(app: Application): void {
@@ -37,6 +39,7 @@ export function registerTrackerIngestion(dependencies: RegisterTrackerIngestionD
     repository,
     setPrivateNoStore: dependencies.setPrivateNoStore,
     validatePayload: dependencies.validatePayload,
+    onStored: dependencies.onStored,
   }));
   return repository;
 }

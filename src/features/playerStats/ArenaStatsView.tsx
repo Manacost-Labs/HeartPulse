@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { DataTable, type DataTableColumn } from '../../vendor/valyro-ui/data-display/DataTable';
-import type { SortState } from '../../vendor/valyro-ui/data-display/data-table';
-import { SegmentedControl } from '../../vendor/valyro-ui/navigation/SegmentedControl';
-import { KpiGroup } from '../../vendor/valyro-ui/data-display/KpiGroup';
+import { DataTable, type DataTableColumn } from '../../vendor/varylo-ui/data-display/DataTable';
+import type { SortState } from '../../vendor/varylo-ui/data-display/data-table';
+import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedControl';
+import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import {
   CLASS_LABELS,
   VsGlobal,

@@ -1,5 +1,5 @@
 import type { ArenaRunRecord, PlayerGame, PlayerGameMode } from '../model/game.js';
-import type { GameEventType, LoadStatisticsEvents } from '../model/events.js';
+import { GAME_EVENT_TYPES, type CountStatisticsEvents, type GameEventType, type LoadStatisticsEvents } from '../model/events.js';
 import type { GlobalBattlegroundsHero, GlobalStatisticsSources } from '../model/globalSources.js';
 import {
   MAX_STATS_GAMES,
@@ -17,6 +17,8 @@ import { buildConstructedStats } from './constructedStats.js';
 const GLOBAL_TTL_MS = 60 * 60_000;
 const GLOBAL_COMBAT_HEROES = 8;
 const MAX_CACHE_ENTRIES = 64;
+const RESULT_TTL_MS = 5 * 60_000;
+const MAX_RESULT_ENTRIES = 500;
 const EVENT_TYPES: Record<PlayerGameMode, GameEventType[]> = {
   battlegrounds: ['battlegrounds_match'],
   standard: ['constructed_match'],
@@ -29,6 +31,7 @@ export type PlayerStatsQuery = { mode: PlayerGameMode; period: StatsPeriod; duos
 export type PlayerStatsDependencies = {
   /** The account's tracker events, newest first (the tracker ingestion repository). */
   loadEvents: LoadStatisticsEvents;
+  countEvents: CountStatisticsEvents;
   global: GlobalStatisticsSources;
   /** Localized names for card ids; missing names fall back to the id on the page. */
   resolveCardNames?: (cardIds: string[]) => Promise<Record<string, string>>;
@@ -105,14 +108,44 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
     return loaded ? 'available' : 'unavailable';
   }
 
+  const results = new Map<string, { expiresAt: number; value: PlayerStats }>();
+
   return {
+    /** Which tabs have data: version 2 game and run events per mode, counted without reading payloads. */
+    availableModes(userId: string): Record<PlayerGameMode, number> {
+      const counts = dependencies.countEvents(userId, GAME_EVENT_TYPES, 2);
+      const constructed = counts.constructed_match ?? 0;
+      return { battlegrounds: counts.battlegrounds_match ?? 0, standard: constructed, wild: constructed,
+        arena: (counts.arena_match ?? 0) + (counts.arena_run ?? 0) };
+    },
+
+    /** Drops the account's cached answers; the tracker ingestion calls it after storing new events. */
+    invalidate(userId: string): void {
+      for (const key of results.keys()) if (key.startsWith(`${userId}|`)) results.delete(key);
+    },
+
+    /**
+     * Aggregates are cached per account and query for a few minutes, so a page
+     * that reloads or switches tabs does not parse thousands of events again.
+     */
     async load(userId: string, query: PlayerStatsQuery, globalAllowed: boolean): Promise<PlayerStats> {
+      const key = `${userId}|${query.mode}:${query.period}:${query.duos}:${query.mmr}:${globalAllowed}`;
+      const hit = results.get(key);
+      if (hit && hit.expiresAt > now()) return hit.value;
+      const value = await compute(userId, query, globalAllowed);
+      results.set(key, { expiresAt: now() + RESULT_TTL_MS, value });
+      if (results.size > MAX_RESULT_ENTRIES) results.delete(results.keys().next().value as string);
+      return value;
+    },
+  };
+
+  async function compute(userId: string, query: PlayerStatsQuery, globalAllowed: boolean): Promise<PlayerStats> {
       const since = periodStart(query.period, now());
       const games: PlayerGame[] = [];
       const runs: ArenaRunRecord[] = [];
       for (const event of dependencies.loadEvents(userId, { types: EVENT_TYPES[query.mode],
         since: since === null ? null : new Date(since).toISOString(), limit: MAX_STATS_GAMES })) {
-        const read = statisticsFromEvent(event);
+        const read = statisticsFromEvent(event, now());
         if (!read) continue;
         if (isGame(read)) games.push(read);
         else runs.push(read);
@@ -144,8 +177,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
         : null;
       return buildConstructedStats(constructedGames, { mode: format, period: query.period,
         global: { availability: availability(globalAllowed, Boolean(globalData?.length)) } }, globalData);
-    },
-  };
+  }
 }
 
 export type PlayerStatsService = ReturnType<typeof createPlayerStatsService>;

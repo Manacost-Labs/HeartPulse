@@ -19,8 +19,9 @@ Owners: `server/modules/trackerIngestion` (upload, storage),
 The tracker keeps using `POST /api/v1/tracker/events/batch` with the OAuth
 device-flow token of client `manacost-tracker` and scope `tracker.write`
 ([tracker ingestion](tracker-ingestion.md)): batches of 1–50 events,
-idempotent by `eventId`, `202` with `accepted` and `rejected`. Nothing about
-authorization, limits or idempotency changes.
+idempotent by `eventId`, `202` with `accepted` and `rejected`. Authorization
+and idempotency do not change. Why version 2 exists and what it costs:
+[ADR 2026-10-23](../decisions/2026-10-23-tracker-events-schema-v2.md).
 
 ### Versions
 
@@ -30,17 +31,31 @@ authorization, limits or idempotency changes.
 - `schemaVersion: 2` uses the same event types and every v1 list field
   (`playerMulligan.*`, `opponentDeck.observedCards`, `finalBoard.minions`,
   `offeredCardIds`, `finalDeckCardIds`) with the same limits, and adds the
-  statistics fields. For `battlegrounds_match`, `constructed_match`,
-  `arena_match` and `arena_run` the server checks them strictly; an invalid
-  event is rejected with `INVALID_EVENT` and `field`, the first failing field.
-  `arena_draft_pick` and `collection_snapshot` are not checked further. The
-  payload is stored exactly as sent.
+  statistics fields. `arena_draft_pick` and `collection_snapshot` are not
+  checked further.
+- A version 2 `battlegrounds_match`, `constructed_match`, `arena_match` or
+  `arena_run` payload is at most 32 KiB (an event above it is rejected with
+  `EVENT_LIMIT_EXCEEDED`) and is stored normalized: the documented fields of
+  its type plus the v1 lists; any other field is dropped.
+- An invalid statistics field, or a game time before 2014-01-01 or more than
+  a day ahead of the server, does not reject the event. It is accepted and
+  stored with its v1 lists and `statisticsError` (the first failing field),
+  the statistics skip it, and the response adds
+  `warnings: [{ eventId, code: "INVALID_STATISTICS", field }]` (present only
+  when not empty). Fix the client; resending the same `eventId` changes
+  nothing.
+- An account stores at most 100 000 tracker events. A new event above the
+  quota is rejected with `QUOTA_EXCEEDED`; a replay of a stored id is still
+  acknowledged.
 - `occurredAt` of a game is the time the game started; of `arena_run`, the
   time of the run's latest record.
 - Send a game once, when it is over: the first stored copy of an `eventId`
   wins and later copies are only acknowledged.
 
 Opponent names, BattleTags, chat and log lines are not part of any payload.
+Free text (`deckName`, `archetype`, `opponentArchetype`) containing control or
+bidi characters or anything shaped like a BattleTag (`#` and 3–6 digits) is an
+invalid statistics field.
 
 ### Common game fields (v2)
 
@@ -194,14 +209,22 @@ not every game of the run was uploaded.
 }
 ```
 
-A rejected v2 event names its first invalid field:
+A v2 event with an invalid statistics field is still accepted and named in
+`warnings`; an event above the size limit or the quota is rejected:
 
 ```json
 {
-  "accepted": ["0199b2d2-7cc7-7d75-bcea-7d28b628ef4b"],
+  "accepted": [
+    "0199b2d2-7cc7-7d75-bcea-7d28b628ef4b",
+    "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d"
+  ],
   "rejected": [
+    { "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4e",
+      "code": "QUOTA_EXCEEDED" }
+  ],
+  "warnings": [
     { "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d",
-      "code": "INVALID_EVENT", "field": "gameNumber" }
+      "code": "INVALID_STATISTICS", "field": "gameNumber" }
   ]
 }
 ```
@@ -210,8 +233,23 @@ A rejected v2 event names its first invalid field:
 
 The statistics read `tracker_profile_events`
 (`server/modules/trackerIngestion`) through that module's
-`listEvents(userId, { types, since, limit })`; there is no second table and
-no migration. Rows cascade-delete with the account.
+`listEvents(userId, { types, since, limit })` and `countEvents`; there is no
+second table. The ingestion module creates the index
+`(user_id, event_type, occurred_at DESC)` at start-up (`CREATE INDEX IF NOT
+EXISTS`, no separate migration step). Rows cascade-delete with the account.
+Development databases seeded by an early build of this branch may hold an
+unused `player_games` table; it can be dropped by hand.
+
+## Switch
+
+The account statistics are off unless `PLAYER_STATS_ENABLED=1`: then the
+routes below exist and `GET /api/account/game-stats/modes` answers
+`{ "modes": { "battlegrounds": 0, "standard": 0, "wild": 0, "arena": 0 } }`,
+the version 2 game and run events per tab (Standard and Wild share
+`constructed_match`), counted without reading payloads. The account page
+shows «Моя статистика» only when a count is above zero, and a tab only for
+such a mode; while off (404) or without events it shows nothing, never a call
+to install the application. Version 2 events are accepted in both states.
 
 ## Statistics: `GET /api/account/game-stats`
 
@@ -220,15 +258,16 @@ session token as `Authorization: Bearer` works the same), never a tracker
 token, no CORS; 401 without a session, 400 for an unknown parameter value,
 60 requests per minute per address. Query: `mode` (required), `period` `all`
 (default), `7`, `30`, `90` days or `season` (since the first day of the
-current month, the
-Hearthstone ranked season); for Battlegrounds `duos` `0`/`1` and `mmr`, the
-global bracket `TOP_50_PERCENT` (default), `TOP_20_PERCENT`, `TOP_5_PERCENT`
-or `TOP_1_PERCENT`. The server reads at most the newest 5 000 events of the
-mode and period (Battlegrounds: Solo and Duos together, then filters).
+current month, the Hearthstone ranked season, counted in UTC); for
+Battlegrounds `duos` `0`/`1` and `mmr`, the global bracket `TOP_50_PERCENT`
+(default), `TOP_20_PERCENT`, `TOP_5_PERCENT` or `TOP_1_PERCENT`. The server
+reads at most the newest 5 000 events of the mode and period (Battlegrounds:
+Solo and Duos together; Standard and Wild together), then filters.
 
-Every answer has `games` (count) and, when empty, the page shows «Установите
-Hearthpulse и войдите, чтобы игры появились здесь» with a link to the
-desktop releases (`https://github.com/Zulut30/IceCrowV2/releases`).
+Every answer has `games` (count); a mode or filter without games shows
+«В этом режиме пока нет игр» or «За выбранный период игр нет». An answer is
+cached per account and query for five minutes, and storing new events of the
+account drops its cache.
 
 - Battlegrounds: `summary` (highest rating, average placement, games, time
   played, placement counts 1–8, top-4 rate, first places), `ratingSeries`
@@ -269,10 +308,12 @@ loaded once a day; without them the page shows card art only.
 
 ## Development data
 
-`npx tsx scripts/dev-seed-player-games.ts --create-user` (or `--user <id>`,
-with `--reset` to replace them) writes about 570 realistic synthetic tracker
-events (`schemaVersion` 2) through the same validation and storage as
-uploads, and with `--create-user` prints a
-local session cookie. It writes only to `ECOSYSTEM_DB_FILE`, refuses
-`NODE_ENV=production` and the production database path, and takes real
-Battlegrounds hero and minion ids from HearthstoneJSON when it is reachable.
+`npx tsx scripts/dev-seed-player-games.ts --dev-database --create-user` (or
+`--user <id>`, with `--reset` to replace them) writes about 570 realistic
+synthetic tracker events (`schemaVersion` 2) through the same validation and
+storage as uploads, and with `--create-user` prints a local session cookie.
+It writes only to `ECOSYSTEM_DB_FILE` and refuses without `--dev-database`,
+with `NODE_ENV=production`, for a database whose real path is under
+`/var/lib`, `/srv`, `/opt` or `/etc`, and for one with more than 50 accounts.
+It takes real Battlegrounds hero and minion ids from HearthstoneJSON when it
+is reachable.

@@ -32,6 +32,17 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback
  */
 export function createPlayerStatsRouter(dependencies: PlayerStatsRouterDependencies): Router {
   const router = Router();
+  // Lets the account page decide whether to show the section at all: no version 2 events, no section.
+  router.get('/account/game-stats/modes', (request, response) => {
+    dependencies.setPrivateNoStore(response);
+    const user = dependencies.userAuth(request);
+    if (!user) return response.status(401).json({ error: 'Требуется вход' });
+    try {
+      return response.json({ modes: dependencies.service.availableModes(user.id) });
+    } catch {
+      return response.status(503).json({ error: 'Не удалось загрузить статистику' });
+    }
+  });
   router.get('/account/game-stats', async (request, response) => {
     dependencies.setPrivateNoStore(response);
     const user = dependencies.userAuth(request);

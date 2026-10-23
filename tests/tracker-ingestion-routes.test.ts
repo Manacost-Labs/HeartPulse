@@ -103,25 +103,40 @@ try {
 
   assert.equal((await post(Array.from({ length: 51 }, () => event()))).status, 400);
 
-  // Version 2 carries the statistics fields and is checked strictly; v1 stays opaque.
+  // Version 2 carries the statistics fields. A bad statistics field never drops the
+  // event: it is stored with its v1 lists, marked, and reported in `warnings`.
   const v2Id = randomUUID();
   const v2Invalid = randomUUID();
   const v3 = randomUUID();
+  const oversized = randomUUID();
   const v2 = (eventId: ReturnType<typeof randomUUID>, payload: Record<string, unknown>) => ({ ...event(eventId), schemaVersion: 2, occurredAt: '2026-09-12T12:00:00Z', payload });
   const constructed = { format: 'standard', result: 'win', durationSeconds: 540, playerClass: 'MAGE', opponentClass: 'ROGUE',
     playerMulligan: { initial: ['CARD_1'], kept: ['CARD_1'] } };
-  const versions = await post([v2(v2Id, constructed), v2(v2Invalid, { ...constructed, opponentClass: 'NEUTRAL' }),
-    { ...event(v3), schemaVersion: 3 }]);
+  const versions = await post([v2(v2Id, { ...constructed, debugLog: 'dropped' }), v2(v2Invalid, { ...constructed, opponentClass: 'NEUTRAL' }),
+    { ...event(v3), schemaVersion: 3 }, v2(oversized, { ...constructed, deckName: 'x', padding: 'x'.repeat(33 * 1024) })]);
   assert.equal(versions.status, 202);
   assert.deepEqual(await versions.json(), {
-    accepted: [v2Id],
-    rejected: [{ eventId: v2Invalid, code: 'INVALID_EVENT', field: 'opponentClass' }, { eventId: v3, code: 'INVALID_EVENT' }],
+    accepted: [v2Id, v2Invalid],
+    rejected: [{ eventId: v3, code: 'INVALID_EVENT' }, { eventId: oversized, code: 'EVENT_LIMIT_EXCEEDED' }],
+    warnings: [{ eventId: v2Invalid, code: 'INVALID_STATISTICS', field: 'opponentClass' }],
   });
   const stored = repository.listEvents('user-1', { types: ['constructed_match'], since: '2026-09-12T00:00:00.000Z', limit: 10 });
-  assert.deepEqual(stored.map(item => [item.eventId, item.schemaVersion]), [[v2Id, 2]]);
-  assert.deepEqual(stored[0].payload, constructed, 'the payload is stored as sent, v1 fields included');
-  assert.equal(repository.listEvents('user-1', { types: ['constructed_match'], since: null, limit: 10 }).length, 2);
+  const byId = new Map(stored.map(item => [item.eventId, item]));
+  assert.equal(byId.get(v2Id)?.schemaVersion, 2);
+  assert.equal('debugLog' in (byId.get(v2Id)?.payload ?? {}), false, 'a v2 payload is stored normalized');
+  assert.deepEqual(byId.get(v2Id)?.payload.playerMulligan, constructed.playerMulligan, 'v1 lists survive');
+  assert.deepEqual(byId.get(v2Invalid)?.payload, { playerMulligan: constructed.playerMulligan, statisticsError: 'opponentClass' });
+  assert.equal(repository.listEvents('user-1', { types: ['constructed_match'], since: null, limit: 10 }).length, 3);
   assert.deepEqual(repository.listEvents('user-1', { types: [], since: null, limit: 10 }), []);
+  assert.deepEqual(repository.countEvents('user-1', ['constructed_match', 'arena_run'], 2), { constructed_match: 2 });
+
+  // The account quota refuses only new ids; a replay of a stored id is still acknowledged.
+  const full = createSqliteTrackerEventRepository(() => database);
+  const replayId = v2Id;
+  const overQuota = randomUUID();
+  assert.deepEqual(full.acknowledge('user-1', [{ eventId: replayId, type: 'constructed_match', schemaVersion: 2,
+    occurredAt: '2026-09-12T12:00:00.000Z', payload: {} }, { eventId: overQuota, type: 'constructed_match', schemaVersion: 1,
+    occurredAt: '2026-09-12T12:00:00.000Z', payload: {} }], Date.now(), 1), [overQuota]);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   database.close();

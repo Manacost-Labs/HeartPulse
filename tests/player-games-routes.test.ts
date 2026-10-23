@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import type { ApplicationAuthManager, ApplicationToken } from '../server/modules/applicationAuth/public.js';
 import { createPlayerStatsRouter, createPlayerStatsService, validateStatisticsPayload } from '../server/modules/playerGames/public.js';
+import { registerPlayerGames } from '../server/app/registerPlayerGames.js';
 import {
   createSqliteTrackerEventRepository,
   createTrackerIngestionRouter,
@@ -22,6 +23,21 @@ const token = (userId: string): ApplicationToken => ({
 let entitled = false;
 let globalCalls = 0;
 
+const service = createPlayerStatsService({
+  loadEvents: repository.listEvents,
+  countEvents: repository.countEvents,
+  global: {
+    battlegroundsHeroes: async () => {
+      globalCalls += 1;
+      return [{ heroId: '1', cardId: 'BG20_HERO_242', averagePlacement: 4.1, pickRatePercent: 31.5,
+        placementPercent: [14, 13, 13, 12, 12, 12, 12, 12] }];
+    },
+    battlegroundsHeroCombat: async () => [{ turn: 1, winrate: 48.2 }],
+    arenaClasses: async () => { throw new Error('upstream down'); },
+  },
+  resolveCardNames: async ids => Object.fromEntries(ids.map(id => [id, `name:${id}`])),
+  now: () => Date.parse('2026-10-23T12:00:00Z'),
+});
 const app = express();
 app.use(express.json({ limit: '5mb' }));
 app.use('/api/v1', createTrackerIngestionRouter({
@@ -30,24 +46,13 @@ app.use('/api/v1', createTrackerIngestionRouter({
   repository,
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
   validatePayload: validateStatisticsPayload,
+  onStored: service.invalidate,
+  now: () => Date.parse('2026-10-23T12:00:00Z'),
 }));
 app.use('/api', createPlayerStatsRouter({
   userAuth: request => (request.headers.cookie === 'session=1' ? { id: 'user-1' } : null),
   hasEntitlement: async () => entitled,
-  service: createPlayerStatsService({
-    loadEvents: repository.listEvents,
-    global: {
-      battlegroundsHeroes: async () => {
-        globalCalls += 1;
-        return [{ heroId: '1', cardId: 'BG20_HERO_242', averagePlacement: 4.1, pickRatePercent: 31.5,
-          placementPercent: [14, 13, 13, 12, 12, 12, 12, 12] }];
-      },
-      battlegroundsHeroCombat: async () => [{ turn: 1, winrate: 48.2 }],
-      arenaClasses: async () => { throw new Error('upstream down'); },
-    },
-    resolveCardNames: async ids => Object.fromEntries(ids.map(id => [id, `name:${id}`])),
-    now: () => Date.parse('2026-10-23T12:00:00Z'),
-  }),
+  service,
   setPrivateNoStore: response => response.set('Cache-Control', 'no-store'),
 }));
 const server = app.listen(0, '127.0.0.1');
@@ -76,6 +81,9 @@ const upload = (events: unknown[], authorization = 'Bearer one') => fetch(`${ori
 const stats = (query: string, cookie = 'session=1') => fetch(`${origin}/api/account/game-stats?${query}`, { headers: { cookie } });
 
 try {
+  assert.equal((await fetch(`${origin}/api/account/game-stats/modes`, { headers: { cookie: 'session=1' } })).status, 200);
+  assert.deepEqual((await (await fetch(`${origin}/api/account/game-stats/modes`, { headers: { cookie: 'session=1' } })).json()).modes,
+    { battlegrounds: 0, standard: 0, wild: 0, arena: 0 }, 'no events: the page shows no section');
   const games = [bg(20, 1, 6400), bg(21, 6, 6380), arena(1, 'win'), arena(2, 'loss'),
     event('constructed_match', '2026-10-01T10:00:00Z', { matchId: 'legacy-v1', turns: 8 }, 1)];
   const accepted = await (await upload(games)).json();
@@ -89,6 +97,10 @@ try {
   assert.equal(anonymous.headers.get('cache-control'), 'no-store');
   assert.equal((await stats('mode=mercenaries')).status, 400);
   assert.equal((await stats('mode=battlegrounds&period=year')).status, 400);
+
+  assert.deepEqual((await (await fetch(`${origin}/api/account/game-stats/modes`, { headers: { cookie: 'session=1' } })).json()).modes,
+    { battlegrounds: 2, standard: 0, wild: 0, arena: 2 }, 'opaque v1 events do not open a tab');
+  assert.equal((await fetch(`${origin}/api/account/game-stats/modes`)).status, 401);
 
   const free = await (await stats('mode=battlegrounds')).json();
   assert.equal(free.games, 2);
@@ -113,6 +125,11 @@ try {
 
   assert.equal((await (await stats('mode=battlegrounds&duos=1')).json()).games, 0);
   assert.equal((await (await stats('mode=battlegrounds&period=7')).json()).games, 2);
+  assert.equal((await (await stats('mode=battlegrounds')).json()).games, 2, 'served from the cache');
+
+  // Answers are cached per account and query, and a new upload drops the account's cache.
+  await upload([bg(22, 3, 6420)]);
+  assert.equal((await (await stats('mode=battlegrounds&duos=0')).json()).games, 3);
 
   const arenaStats = await (await stats('mode=arena')).json();
   assert.equal(arenaStats.summary.runs, 1);
@@ -129,5 +146,17 @@ try {
 } finally {
   server.close();
 }
+
+// Switched off unless PLAYER_STATS_ENABLED=1: no routes, nothing for the page to show.
+const disabled = express();
+const off = registerPlayerGames({ app: disabled, loadEvents: () => [], countEvents: () => ({}), userAuth: () => ({ id: 'user-1' }),
+  hasEntitlement: async () => false, global: {}, setPrivateNoStore: () => {}, environment: {} });
+off.invalidate('user-1');
+const disabledServer = disabled.listen(0, '127.0.0.1');
+await new Promise<void>(resolve => disabledServer.once('listening', resolve));
+const disabledAddress = disabledServer.address();
+assert.ok(disabledAddress && typeof disabledAddress === 'object');
+assert.equal((await fetch(`http://127.0.0.1:${disabledAddress.port}/api/account/game-stats/modes`)).status, 404);
+disabledServer.close();
 
 console.log('player games routes: ok');

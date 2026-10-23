@@ -15,22 +15,34 @@ export const TRACKER_EVENT_TABLES_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_tracker_profile_events_user_time
     ON tracker_profile_events(user_id, occurred_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_tracker_profile_events_user_type_time
+    ON tracker_profile_events(user_id, event_type, occurred_at DESC);
 `;
 
 export type TrackerEventQuery = { types: readonly TrackerEventType[]; since: string | null; limit: number };
 
 export type TrackerEventRepository = {
-  acknowledge: (userId: string, events: readonly TrackerProfileEvent[], receivedAt: number) => void;
+  /**
+   * Stores new events in one transaction and returns the ids refused because the
+   * account already holds `maxEvents`; an id that is already stored is a replay,
+   * never refused. Without `maxEvents` nothing is refused.
+   */
+  acknowledge: (userId: string, events: readonly TrackerProfileEvent[], receivedAt: number, maxEvents?: number) => string[];
   /** The account's newest events of the given types, newest first; payloads come back parsed. */
   listEvents: (userId: string, query: TrackerEventQuery) => TrackerProfileEvent[];
+  /** Stored events per type from `minSchemaVersion` on, without reading any payload. */
+  countEvents: (userId: string, types: readonly TrackerEventType[], minSchemaVersion: number) => Partial<Record<TrackerEventType, number>>;
 };
 
 export function createSqliteTrackerEventRepository(
   getDatabase: () => DatabaseSync,
 ): TrackerEventRepository {
   return {
-    acknowledge(userId, events, receivedAt) {
+    acknowledge(userId, events, receivedAt, maxEvents) {
       const database = getDatabase();
+      const stored = database.prepare('SELECT 1 FROM tracker_profile_events WHERE user_id = ? AND event_id = ?');
+      const count = database.prepare('SELECT COUNT(*) AS count FROM tracker_profile_events WHERE user_id = ?');
+      const refused: string[] = [];
       const insert = database.prepare(`
         INSERT OR IGNORE INTO tracker_profile_events (
           user_id, event_id, event_type, schema_version, occurred_at, payload_json, received_at
@@ -38,7 +50,15 @@ export function createSqliteTrackerEventRepository(
       `);
       database.exec('BEGIN IMMEDIATE');
       try {
+        let total = maxEvents === undefined ? 0 : Number(count.get(userId)?.count ?? 0);
         for (const event of events) {
+          if (maxEvents !== undefined && !stored.get(userId, event.eventId)) {
+            if (total >= maxEvents) {
+              refused.push(event.eventId);
+              continue;
+            }
+            total += 1;
+          }
           insert.run(
             userId,
             event.eventId,
@@ -54,6 +74,14 @@ export function createSqliteTrackerEventRepository(
         database.exec('ROLLBACK');
         throw error;
       }
+      return refused;
+    },
+    countEvents(userId, types, minSchemaVersion) {
+      if (!types.length) return {};
+      const rows = getDatabase().prepare(`SELECT event_type, COUNT(*) AS count FROM tracker_profile_events
+        WHERE user_id = ? AND event_type IN (${types.map(() => '?').join(', ')}) AND schema_version >= ?
+        GROUP BY event_type`).all(userId, ...types, minSchemaVersion);
+      return Object.fromEntries(rows.map(row => [String(row.event_type), Number(row.count)]));
     },
     listEvents(userId, query) {
       if (!query.types.length) return [];

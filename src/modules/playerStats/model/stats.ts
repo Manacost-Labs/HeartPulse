@@ -126,5 +126,3 @@ export type ArenaStats = {
 export type PlayerStats = BattlegroundsStats | ConstructedStats | ArenaStats;
 
 export type PlayerStatsQuery = { mode: PlayerStatsMode; period: StatsPeriod; duos: boolean; mmr: GlobalMmrFilter };
-
-export const DESKTOP_DOWNLOAD_URL = 'https://github.com/Zulut30/IceCrowV2/releases';

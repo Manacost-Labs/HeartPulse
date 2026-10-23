@@ -1,5 +1,5 @@
 export { PLAYER_GAME_MODES, type PlayerGame, type PlayerGameMode } from './model/game.js';
-export { GAME_EVENT_TYPES, type LoadStatisticsEvents, type StatisticsEvent } from './model/events.js';
+export { GAME_EVENT_TYPES, type CountStatisticsEvents, type LoadStatisticsEvents, type StatisticsEvent } from './model/events.js';
 export {
   classKey,
   type GlobalArchetype,

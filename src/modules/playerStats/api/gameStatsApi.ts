@@ -1,5 +1,7 @@
 import { fetchWithDeadline } from '../../../shared/http/fetchWithDeadline';
-import type { PlayerStats, PlayerStatsQuery } from '../model/stats';
+import type { PlayerStats, PlayerStatsMode, PlayerStatsQuery } from '../model/stats';
+
+const MODES: PlayerStatsMode[] = ['battlegrounds', 'standard', 'wild', 'arena'];
 
 export class GameStatsSignedOutError extends Error {
   constructor() {
@@ -41,4 +43,23 @@ export async function fetchGameStats(query: PlayerStatsQuery, signal?: AbortSign
   const stats = response.ok ? gameStatsFromPayload(payload, query.mode) : null;
   if (!stats) throw new Error('Не удалось загрузить статистику. Повторите позже.');
   return stats;
+}
+
+/**
+ * Version 2 events per tab, or `null` when the account has none to show: the
+ * statistics are switched off on this deployment (404), the visitor is signed
+ * out or the request failed. The page then shows no statistics section at all.
+ */
+export async function fetchGameStatsModes(signal?: AbortSignal): Promise<Record<PlayerStatsMode, number> | null> {
+  try {
+    const response = await fetchWithDeadline('/api/account/game-stats/modes', { signal, headers: { Accept: 'application/json' } });
+    if (!response.ok) return null;
+    const payload: unknown = await response.json().catch(() => null);
+    const modes = isRecord(payload) && isRecord(payload.modes) ? payload.modes : null;
+    if (!modes) return null;
+    const counts = Object.fromEntries(MODES.map(mode => [mode, Number.isSafeInteger(modes[mode]) ? Number(modes[mode]) : 0]));
+    return Object.values(counts).some(count => count > 0) ? counts as Record<PlayerStatsMode, number> : null;
+  } catch {
+    return null;
+  }
 }

@@ -10,7 +10,6 @@ export type {
   PlayerStatsQuery,
   StatsPeriod,
 } from './model/stats';
-export { DESKTOP_DOWNLOAD_URL } from './model/stats';
 export {
   CLASS_LABELS,
   MODE_LABELS,
@@ -28,6 +27,7 @@ export {
 } from './model/format';
 export { GameStatsSignedOutError, gameStatsFromPayload, gameStatsUrl } from './api/gameStatsApi';
 export { useGameStats, type GameStatsState } from './hooks/useGameStats';
+export { useGameStatsModes } from './hooks/useGameStatsModes';
 export { HERO_MIN_GAMES, heroPickRate, visibleHeroes } from './model/heroTable';
 export { CombatSparkline } from './ui/CombatSparkline';
 export { MinionBoard } from './ui/MinionBoard';

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { RotateCw } from 'lucide-react';
-import { Button } from '../../vendor/valyro-ui/basic/Button';
-import { KpiGroup } from '../../vendor/valyro-ui/data-display/KpiGroup';
-import { SegmentedControl } from '../../vendor/valyro-ui/navigation/SegmentedControl';
+import { Button } from '../../vendor/varylo-ui/basic/Button';
+import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
+import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedControl';
 import {
   PERIOD_OPTIONS,
   useGameStats,

@@ -149,33 +149,59 @@ function readPayload(type: GameEventType, input: Payload): unknown {
 
 const isGameEventType = (type: string): type is GameEventType => GAME_EVENT_TYPES.includes(type as GameEventType);
 
+const EARLIEST_GAME_MS = Date.UTC(2014, 0, 1);
+const FUTURE_TOLERANCE_MS = 86_400_000;
+/** v1 lists other features read; a v2 event keeps them next to the statistics fields. */
+const V1_LIST_FIELDS = ['playerMulligan', 'opponentDeck', 'finalDeckCardIds', 'offeredCardIds'];
+
+function inGameWindow(occurredAt: string, now: number): boolean {
+  const time = Date.parse(occurredAt);
+  return Number.isFinite(time) && time >= EARLIEST_GAME_MS && time <= now + FUTURE_TOLERANCE_MS;
+}
+
+/** The read statistics back in the wire shape, so stored v2 payloads hold only documented fields. */
+function wireShape(type: GameEventType, read: Record<string, unknown>): Payload {
+  const { battlegrounds, constructed, arena, ...common } = read as Record<string, Record<string, unknown>> & Payload;
+  if (type === 'battlegrounds_match') {
+    const { finalBoard, ...rest } = battlegrounds;
+    return { ...common, ...rest, finalBoard: { minions: finalBoard } };
+  }
+  if (type === 'constructed_match') return { ...common, ...constructed };
+  if (type === 'arena_match') return { ...common, ...arena };
+  return common;
+}
+
 /**
- * The tracker ingestion's payload check for `schemaVersion` 2: game and run
- * events must carry the documented statistics fields. Version 1 stays the
- * original opaque payload, and other event types are not checked here. The
- * payload is stored as sent, so v1 fields such as `playerMulligan` survive.
+ * The tracker ingestion's payload check for `schemaVersion` 2 game and run
+ * events. The stored payload is normalized: the documented statistics fields
+ * plus the v1 lists, nothing else. When a statistics field is invalid or the
+ * game time is implausible, the event is still stored with its v1 lists and a
+ * `statisticsError` naming the field, so other data is never lost; the page
+ * then skips it. Version 1 and other event types pass unchanged.
  */
-export function validateStatisticsPayload(type: string, schemaVersion: number, payload: Payload)
-  : { ok: true; payload: Payload } | { ok: false; field?: string } {
+export function validateStatisticsPayload(type: string, schemaVersion: number, payload: Payload,
+  context: { occurredAt: string; now: number }): { ok: true; payload: Payload; warning?: string } {
   if (schemaVersion < 2 || !isGameEventType(type)) return { ok: true, payload };
+  const lists = Object.fromEntries(V1_LIST_FIELDS.filter(field => payload[field] !== undefined).map(field => [field, payload[field]]));
   try {
-    readPayload(type, payload);
-    return { ok: true, payload };
+    if (!inGameWindow(context.occurredAt, context.now)) throw new GameFieldError('occurredAt');
+    return { ok: true, payload: { ...wireShape(type, readPayload(type, payload) as Record<string, unknown>), ...lists } };
   } catch (error) {
-    if (error instanceof GameFieldError) return { ok: false, field: error.field };
-    throw error;
+    if (!(error instanceof GameFieldError)) throw error;
+    return { ok: true, payload: { ...lists, statisticsError: error.field }, warning: error.field };
   }
 }
 
 /**
  * Reads one stored event as a game or an Arena run. A version 1 payload is
- * read the same way when it happens to carry the fields; otherwise it has no
- * statistics and `null` is returned.
+ * read the same way when it happens to carry the fields; an event marked with
+ * `statisticsError`, one dated outside the plausible window or one without
+ * the fields has no statistics, and `null` is returned.
  */
-export function statisticsFromEvent(event: StatisticsEvent): PlayerGame | ArenaRunRecord | null {
-  if (!isGameEventType(event.type) || !isObject(event.payload)) return null;
+export function statisticsFromEvent(event: StatisticsEvent, now = Date.now()): PlayerGame | ArenaRunRecord | null {
+  if (!isGameEventType(event.type) || !isObject(event.payload) || event.payload.statisticsError !== undefined) return null;
+  if (!inGameWindow(event.occurredAt, now)) return null;
   const startedAt = Date.parse(event.occurredAt);
-  if (!Number.isFinite(startedAt)) return null;
   let read: Record<string, unknown>;
   try {
     read = readPayload(event.type, event.payload) as Record<string, unknown>;

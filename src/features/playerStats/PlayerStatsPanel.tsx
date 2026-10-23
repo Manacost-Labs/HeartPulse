@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Tabs } from '../../vendor/valyro-ui/navigation/Tabs';
-import { MODE_LABELS, type PlayerStatsMode } from '../../modules/playerStats/public';
+import type { AccountGameStatsProps } from '../../modules/identity/public';
+import { MODE_LABELS, useGameStatsModes, type PlayerStatsMode } from '../../modules/playerStats/public';
 import { PlayerStatsModeView } from './PlayerStatsModeView';
 import '../../vendor/varylo-ui/styles/index.css';
 import '../../shared/ui/varyloParchment.css';
@@ -8,14 +9,10 @@ import './PlayerStatsPanel.css';
 
 const MODES: PlayerStatsMode[] = ['battlegrounds', 'standard', 'wild', 'arena'];
 
-/**
- * The account's «Моя статистика» body: one tab per mode, like HSReplay's
- * «My Stats». The account section around it owns the heading; a tab loads
- * its statistics only when opened, and keeps its filters while others are shown.
- */
-export default function PlayerStatsPanel({ initialMode = 'battlegrounds' }: { initialMode?: PlayerStatsMode }) {
-  const [mode, setMode] = useState<PlayerStatsMode>(initialMode);
-  const [opened, setOpened] = useState<Set<PlayerStatsMode>>(() => new Set([initialMode]));
+/** The tabs of one account with statistics; a tab loads only when opened and keeps its filters. */
+function PlayerStatsTabs({ modes }: { modes: PlayerStatsMode[] }) {
+  const [mode, setMode] = useState<PlayerStatsMode>(modes[0]);
+  const [opened, setOpened] = useState<Set<PlayerStatsMode>>(() => new Set([modes[0]]));
   return (
     <div className="player-stats-panel hp-varylo-parchment">
       <Tabs
@@ -26,7 +23,7 @@ export default function PlayerStatsPanel({ initialMode = 'battlegrounds' }: { in
           setMode(next);
           setOpened(previous => (previous.has(next) ? previous : new Set(previous).add(next)));
         }}
-        items={MODES.map(item => ({
+        items={modes.map(item => ({
           value: item,
           label: MODE_LABELS[item],
           content: opened.has(item) ? <PlayerStatsModeView mode={item} /> : null,
@@ -34,4 +31,18 @@ export default function PlayerStatsPanel({ initialMode = 'battlegrounds' }: { in
       />
     </div>
   );
+}
+
+/**
+ * The account's «Моя статистика», like HSReplay's «My Stats». Until the
+ * desktop tracker has sent version 2 events (or while the statistics are
+ * switched off on the server) nothing is rendered: no empty section and no
+ * call to install an application that does not send games yet. Only modes
+ * with events get a tab.
+ */
+export default function PlayerStatsPanel({ frame }: AccountGameStatsProps) {
+  const counts = useGameStatsModes();
+  const modes = counts ? MODES.filter(mode => counts[mode] > 0) : [];
+  if (!modes.length) return null;
+  return <>{frame(<PlayerStatsTabs modes={modes} />)}</>;
 }

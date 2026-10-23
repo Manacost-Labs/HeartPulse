@@ -1,28 +1,14 @@
-import { Download, Gamepad2 } from 'lucide-react';
-import { Button } from '../../vendor/valyro-ui/basic/Button';
-import { EmptyState } from '../../vendor/valyro-ui/data-display/EmptyState';
-import { DESKTOP_DOWNLOAD_URL } from '../../modules/playerStats/public';
+import { Gamepad2 } from 'lucide-react';
+import { EmptyState } from '../../vendor/varylo-ui/data-display/EmptyState';
 
 /**
- * No games yet: the way to get them is the desktop tracker. With a narrower
- * filter the games may exist elsewhere, so only the filter is mentioned.
+ * A mode or filter without games. The section is shown only to accounts the
+ * tracker already sends games for, so this never asks to install anything.
  */
 export function PlayerStatsEmpty({ filtered }: { filtered: boolean }) {
-  if (filtered) {
-    return <EmptyState size="sm" icon={<Gamepad2 aria-hidden="true" />} title="За выбранный период игр нет"
-      description="Выберите другой период или формат." />;
-  }
-  return (
-    <EmptyState
-      size="md"
-      icon={<Gamepad2 aria-hidden="true" />}
-      title="Пока нет игр"
-      description="Установите Hearthpulse и войдите, чтобы игры появились здесь."
-      primaryAction={(
-        <Button asChild variant="primary" size="sm" leftIcon={<Download size={15} aria-hidden="true" />}>
-          <a href={DESKTOP_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">Скачать Hearthpulse</a>
-        </Button>
-      )}
-    />
-  );
+  return filtered
+    ? <EmptyState size="sm" icon={<Gamepad2 aria-hidden="true" />} title="За выбранный период игр нет"
+      description="Выберите другой период или формат." />
+    : <EmptyState size="sm" icon={<Gamepad2 aria-hidden="true" />} title="В этом режиме пока нет игр"
+      description="Игры появятся здесь, когда Hearthpulse отправит их." />;
 }

@@ -270,7 +270,7 @@
 .player-stats-score small {
   color: var(--arena-muted-ink);
   font-family: inherit;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
 }
 
 .player-stats-matchups {

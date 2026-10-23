@@ -80,7 +80,9 @@ export function buildBattlegroundsStats(
   const byHero = new Map<string, BattlegroundsGame[]>();
   const offeredByHero = new Map<string, number>();
   for (const game of games) {
-    byHero.set(game.battlegrounds.heroCardId, [...(byHero.get(game.battlegrounds.heroCardId) ?? []), game]);
+    const heroGames = byHero.get(game.battlegrounds.heroCardId);
+    if (heroGames) heroGames.push(game);
+    else byHero.set(game.battlegrounds.heroCardId, [game]);
     for (const option of new Set(game.battlegrounds.heroOptions)) {
       offeredByHero.set(option, (offeredByHero.get(option) ?? 0) + 1);
     }

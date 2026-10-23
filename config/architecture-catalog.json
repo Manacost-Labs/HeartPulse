@@ -313,6 +313,10 @@
         {
           "method": "GET",
           "path": "/api/account/game-stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/game-stats/modes"
         }
       ],
       "contracts": [

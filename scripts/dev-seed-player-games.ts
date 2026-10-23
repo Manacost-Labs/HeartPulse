@@ -3,15 +3,15 @@
  * events (schemaVersion 2) so the account statistics can be viewed without the
  * desktop tracker.
  *
- *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --create-user
- *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --user <id> [--reset]
+ *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --dev-database --create-user
+ *   ECOSYSTEM_DB_FILE=<local users.sqlite> npx tsx scripts/dev-seed-player-games.ts --dev-database --user <id> [--reset]
  *
  * It writes only to ECOSYSTEM_DB_FILE, refuses NODE_ENV=production and the
  * production database path, and goes through the same validation and storage
  * as `POST /api/v1/tracker/events/batch`.
  */
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { validateStatisticsPayload } from '../server/modules/playerGames/public.js';
@@ -22,7 +22,8 @@ import {
   type TrackerProfileEvent,
 } from '../server/modules/trackerIngestion/public.js';
 
-const PRODUCTION_DB = '/var/lib/manacost-ecosystem/users.sqlite';
+const SERVER_ROOTS = /^(?:[A-Za-z]:)?\/(?:var\/lib|srv|opt|etc)(?:\/|$)/;
+const MAX_DEV_USERS = 50;
 const args = process.argv.slice(2);
 const option = (name: string) => { const index = args.indexOf(name); return index >= 0 ? args[index + 1] : undefined; };
 if (!process.env.ECOSYSTEM_DB_FILE) {
@@ -30,8 +31,10 @@ if (!process.env.ECOSYSTEM_DB_FILE) {
   process.exit(1);
 }
 const dbFile = resolve(process.env.ECOSYSTEM_DB_FILE);
-if (process.env.NODE_ENV === 'production' || dbFile === PRODUCTION_DB) {
-  console.error('[seed-player-games] refused: development databases only');
+const realFile = existsSync(dbFile) ? realpathSync(dbFile) : dbFile;
+// Three independent guards: an explicit flag, no server path even through a symlink, no production NODE_ENV.
+if (!args.includes('--dev-database') || process.env.NODE_ENV === 'production' || SERVER_ROOTS.test(realFile.replaceAll('\\', '/'))) {
+  console.error('[seed-player-games] refused: pass --dev-database and point ECOSYSTEM_DB_FILE at a local development database');
   process.exit(1);
 }
 
@@ -204,6 +207,12 @@ function arenaRunEvents(games: SeedGame[]) {
 mkdirSync(dirname(dbFile), { recursive: true });
 const database = new DatabaseSync(dbFile);
 database.exec('PRAGMA foreign_keys = ON');
+const hasUsers = database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'").get();
+const userCount = hasUsers ? Number(database.prepare('SELECT COUNT(*) AS count FROM users').get()?.count ?? 0) : 0;
+if (userCount > MAX_DEV_USERS) {
+  console.error(`[seed-player-games] refused: ${userCount} accounts look like a real database, not a development one`);
+  process.exit(1);
+}
 let userId = option('--user');
 if (args.includes('--create-user')) {
   userId = 'dev-player';

@@ -1,12 +1,11 @@
-import type { DataTableLabels } from '../../vendor/valyro-ui/data-display/DataTable';
-import type { KpiGroupLabels } from '../../vendor/valyro-ui/data-display/KpiGroup';
+import type { DataTableLabels } from '../../vendor/varylo-ui/data-display/DataTable';
+import type { KpiGroupLabels } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import { pluralRu } from '../../shared/text/pluralRu';
 
-/** Russian texts for the vendored Valyro widgets, which ship English defaults. */
+/** Russian texts for the vendored VaryloUI widgets, which ship English defaults. */
 export const DATA_TABLE_LABELS: Partial<DataTableLabels> = {
   search: label => (label ? `Поиск: ${label}` : 'Поиск'),
   searchPlaceholder: 'Поиск…',
-  sorted: (column, direction) => `${column}: ${direction === 'asc' ? 'по возрастанию' : direction === 'desc' ? 'по убыванию' : 'без сортировки'}`,
   range: (start, end, total) => `${start}–${end} из ${total}`,
   rows: count => `${count} ${pluralRu(count, 'строка', 'строки', 'строк')}`,
   page: (page, pageCount) => `Страница ${page} из ${pageCount}`,

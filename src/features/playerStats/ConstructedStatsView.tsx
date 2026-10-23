@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { DataTable, type DataTableColumn } from '../../vendor/valyro-ui/data-display/DataTable';
-import { KpiGroup } from '../../vendor/valyro-ui/data-display/KpiGroup';
+import { DataTable, type DataTableColumn } from '../../vendor/varylo-ui/data-display/DataTable';
+import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import {
   CLASS_LABELS,
   RankTimeline,

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { DataTable, type DataTableColumn } from '../../vendor/valyro-ui/data-display/DataTable';
-import { KpiGroup } from '../../vendor/valyro-ui/data-display/KpiGroup';
-import { SegmentedControl } from '../../vendor/valyro-ui/navigation/SegmentedControl';
+import { DataTable, type DataTableColumn } from '../../vendor/varylo-ui/data-display/DataTable';
+import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
+import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedControl';
 import {
   CombatSparkline,
   HERO_MIN_GAMES,

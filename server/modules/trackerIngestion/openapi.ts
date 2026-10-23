@@ -71,8 +71,22 @@ export const TRACKER_INGESTION_OPENAPI_SCHEMAS = {
           required: ['eventId', 'code'],
           properties: {
             eventId: { type: 'string', format: 'uuid' },
-            code: { type: 'string', enum: ['INVALID_EVENT', 'EVENT_LIMIT_EXCEEDED'] },
+            code: { type: 'string', enum: ['INVALID_EVENT', 'EVENT_LIMIT_EXCEEDED', 'QUOTA_EXCEEDED'] },
             field: { type: 'string', description: 'First invalid payload field of a version 2 event' },
+          },
+        },
+      },
+      warnings: {
+        type: 'array',
+        description: 'Stored version 2 events whose statistics fields are invalid; present only when not empty',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['eventId', 'code', 'field'],
+          properties: {
+            eventId: { type: 'string', format: 'uuid' },
+            code: { type: 'string', enum: ['INVALID_STATISTICS'] },
+            field: { type: 'string' },
           },
         },
       },

@@ -19,3 +19,14 @@ condition = "AND"
 paths = ['''^config/quality-guard\.json$''']
 regexTarget = "line"
 regexes = ['''"src/styles/tokens\.css": "fa20c3d18cb98aa57c29561b3c2e030b132c3dc104e1abaae09ed8676b98b7e6"''']
+
+# Commit 9f56f15 of the player statistics branch recorded Storybook fixtures in
+# which a deck's `key` was its synthetic deck string. Deck strings are public
+# game data, not credentials; only that shape in that file is allowed.
+[[allowlists]]
+description = "Synthetic deck strings in the player statistics fixtures"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^src/features/playerStats/playerStatsFixtures\.ts$''']
+regexTarget = "line"
+regexes = ['''"key": "AAE[A-Za-z0-9+/=]{8,}"''']

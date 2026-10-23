@@ -27,8 +27,9 @@ The JSON envelope contains `events`, with 1–50 items. Each event has:
   `arena_draft_pick`, `battlegrounds_match`, or `collection_snapshot`;
 - `schemaVersion`: `1` (opaque payload) or `2` (game and run payloads carry
   the statistics fields of [player game statistics](player-game-stats.md),
-  checked strictly; an invalid one is rejected with `INVALID_EVENT` and
-  `field`, its first invalid field);
+  are limited to 32 KiB and stored normalized; an invalid statistics field
+  keeps the event, marks it and names it in `warnings`; see the
+  [ADR](../decisions/2026-10-23-tracker-events-schema-v2.md));
 - `occurredAt`: ISO 8601 timestamp;
 - `payload`: a JSON object using the matching IceCrow v1 record shape.
 
@@ -53,8 +54,14 @@ Success returns 202:
 }
 ```
 
+A version 2 event whose statistics fields are invalid is also listed in an
+optional `warnings` array as `{ eventId, code: "INVALID_STATISTICS", field }`;
+the array is absent when empty. An account stores at most 100 000 events: a
+new event above that is rejected with `QUOTA_EXCEEDED`.
+
 The `(user_id, event_id)` key is unique. Replaying a previously stored valid
-event acknowledges it in `accepted` without creating another row. This lets the
+event acknowledges it in `accepted` without creating another row, even when
+the account is at its quota. This lets the
 desktop remove a safely persisted item from its outbox after network retries.
 
 Invalid envelopes or event identifiers return 400. Individually identifiable

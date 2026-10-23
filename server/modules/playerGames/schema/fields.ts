@@ -54,11 +54,18 @@ export function optionalCardId(value: unknown, field: string): string | null {
   return value === undefined || value === null ? null : cardId(value, field);
 }
 
-/** Free text from the client: trimmed, control characters refused, empty treated as absent. */
+const BATTLETAG = /#\d{3,6}(?!\d)/;
+const BIDI_CONTROLS = /[‪-‮⁦-⁩]/;
+
+/**
+ * Free text from the client: trimmed, empty treated as absent. Control and
+ * bidi characters and anything shaped like a BattleTag are refused, so a
+ * player name never ends up stored in an archetype or deck name.
+ */
 export function optionalText(value: unknown, field: string, maximum: number): string | null {
   if (value === undefined || value === null) return null;
   const control = (text: string) => [...text].some(character => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127);
-  if (typeof value !== 'string' || value.length > maximum || control(value)) {
+  if (typeof value !== 'string' || value.length > maximum || control(value) || BIDI_CONTROLS.test(value) || BATTLETAG.test(value)) {
     throw new GameFieldError(field);
   }
   const trimmed = value.trim();

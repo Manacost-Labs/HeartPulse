@@ -12,13 +12,21 @@ export type TrackerEventType = typeof TRACKER_EVENT_TYPES[number];
 export const TRACKER_SCHEMA_VERSIONS = [1, 2] as const;
 export type TrackerSchemaVersion = typeof TRACKER_SCHEMA_VERSIONS[number];
 
+/** Version 2 events that carry games or runs; they get a tighter size limit than other events. */
+export const TRACKER_STATISTICS_EVENT_TYPES: readonly TrackerEventType[] = ['battlegrounds_match', 'constructed_match', 'arena_match', 'arena_run'];
+
 /**
- * Optional strict check of a payload, supplied by the composition root so this
- * module stays independent of the statistics domain. It may return a
- * normalized payload (unknown fields dropped) that is stored instead.
+ * Optional check of a payload, supplied by the composition root so this module
+ * stays independent of the statistics domain. It returns the payload to store
+ * (normalized, unknown fields dropped) and may name a `warning` field: the
+ * event is still stored, but its statistics are marked invalid.
  */
-export type TrackerPayloadValidator = (type: TrackerEventType, schemaVersion: TrackerSchemaVersion, payload: Record<string, unknown>)
-  => { ok: true; payload: Record<string, unknown> } | { ok: false; field?: string };
+export type TrackerPayloadValidator = (
+  type: TrackerEventType,
+  schemaVersion: TrackerSchemaVersion,
+  payload: Record<string, unknown>,
+  context: { occurredAt: string; now: number },
+) => { ok: true; payload: Record<string, unknown>; warning?: string } | { ok: false; field?: string };
 export type TrackerProfileEvent = {
   eventId: string;
   type: TrackerEventType;
@@ -28,6 +36,9 @@ export type TrackerProfileEvent = {
 };
 
 export const TRACKER_MAX_BATCH_EVENTS = 50;
+/** Per-account ceiling of stored events; replays of stored ids never count against it. */
+export const TRACKER_MAX_EVENTS_PER_ACCOUNT = 100_000;
+const MAX_STATISTICS_EVENT_BYTES = 32 * 1024;
 export const TRACKER_MAX_BATCH_BYTES = 5 * 1024 * 1024;
 const MAX_EVENT_BYTES = 512 * 1024;
 const MAX_COLLECTION_EVENT_BYTES = 4 * 1024 * 1024;
@@ -59,10 +70,14 @@ const listLimits: Partial<Record<TrackerEventType, Array<[string, number]>>> = {
 };
 
 export type TrackerEventValidation =
-  | { ok: true; event: TrackerProfileEvent }
+  | { ok: true; event: TrackerProfileEvent; warning?: string }
   | { ok: false; eventId: string | null; code: 'INVALID_EVENT' | 'EVENT_LIMIT_EXCEEDED'; field?: string };
 
-export function validateTrackerProfileEvent(input: unknown, validatePayload?: TrackerPayloadValidator): TrackerEventValidation {
+export function validateTrackerProfileEvent(
+  input: unknown,
+  validatePayload?: TrackerPayloadValidator,
+  now: number = Date.now(),
+): TrackerEventValidation {
   if (!isRecord(input)) return invalid(null);
   const eventId = typeof input.eventId === 'string' && UUID_PATTERN.test(input.eventId)
     ? input.eventId.toLowerCase()
@@ -83,10 +98,11 @@ export function validateTrackerProfileEvent(input: unknown, validatePayload?: Tr
     return invalid(eventId);
   }
 
+  const schemaVersion = input.schemaVersion as TrackerSchemaVersion;
   const payloadJson = safeStringify(input.payload);
   const maximumBytes = type === 'collection_snapshot'
     ? MAX_COLLECTION_EVENT_BYTES
-    : MAX_EVENT_BYTES;
+    : schemaVersion >= 2 && TRACKER_STATISTICS_EVENT_TYPES.includes(type) ? MAX_STATISTICS_EVENT_BYTES : MAX_EVENT_BYTES;
   if (
     payloadJson === null
     || Buffer.byteLength(payloadJson, 'utf8') > maximumBytes
@@ -96,19 +112,16 @@ export function validateTrackerProfileEvent(input: unknown, validatePayload?: Tr
     return { ok: false, eventId, code: 'EVENT_LIMIT_EXCEEDED' };
   }
 
-  const schemaVersion = input.schemaVersion as TrackerSchemaVersion;
-  const checked = validatePayload ? validatePayload(type, schemaVersion, input.payload) : { ok: true as const, payload: input.payload };
+  const occurredAt = new Date(input.occurredAt).toISOString();
+  const checked = validatePayload
+    ? validatePayload(type, schemaVersion, input.payload, { occurredAt, now })
+    : { ok: true as const, payload: input.payload };
   if (checked.ok !== true) return { ok: false, eventId, code: 'INVALID_EVENT', ...(checked.field ? { field: checked.field } : {}) };
 
   return {
     ok: true,
-    event: {
-      eventId,
-      type,
-      schemaVersion,
-      occurredAt: new Date(input.occurredAt).toISOString(),
-      payload: checked.payload,
-    },
+    event: { eventId, type, schemaVersion, occurredAt, payload: checked.payload },
+    ...(checked.warning ? { warning: checked.warning } : {}),
   };
 }
 

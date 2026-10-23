@@ -92,16 +92,20 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         patreonLinkUrl={props.patreonLinkUrl}
       />
       {GameStats ? (
-        <section id="account-game-stats" className="account-section account-game-stats" aria-labelledby="account-game-stats-title">
-          <AccountSectionHead
-            id="account-game-stats-title"
-            icon={<Activity size={15} aria-hidden="true" />}
-            eyebrow="Hearthpulse"
-            title="Моя статистика"
-            description="Ваши игры из приложения Hearthpulse: рейтинг, герои, колоды и забеги."
-          />
-          <Suspense fallback={null}><GameStats /></Suspense>
-        </section>
+        <Suspense fallback={null}>
+          <GameStats frame={body => (
+            <section id="account-game-stats" className="account-section account-game-stats" aria-labelledby="account-game-stats-title">
+              <AccountSectionHead
+                id="account-game-stats-title"
+                icon={<Activity size={15} aria-hidden="true" />}
+                eyebrow="Hearthpulse"
+                title="Моя статистика"
+                description="Ваши игры из приложения Hearthpulse: рейтинг, герои, колоды и забеги."
+              />
+              {body}
+            </section>
+          )} />
+        </Suspense>
       ) : null}
       <div className="account-dashboard__columns">
         <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />

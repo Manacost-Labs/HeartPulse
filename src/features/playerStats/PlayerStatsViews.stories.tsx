@@ -84,10 +84,10 @@ export const Arena: Story = {
   },
 };
 
-export const Empty: Story = {
+export const EmptyMode: Story = {
   render: () => <Frame><PlayerStatsEmpty filtered={false} /></Frame>,
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Установите Hearthpulse и войдите, чтобы игры появились здесь.')).toBeInTheDocument();
-    await expect(canvas.getByRole('link', { name: 'Скачать Hearthpulse' })).toHaveAttribute('href', 'https://github.com/Zulut30/IceCrowV2/releases');
+    await expect(canvas.getByText('В этом режиме пока нет игр')).toBeInTheDocument();
+    await expect(canvas.queryByRole('link')).toBeNull();
   },
 };

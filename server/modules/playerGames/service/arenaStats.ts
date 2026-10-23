@@ -64,7 +64,11 @@ export function buildArenaStats(
   global: readonly GlobalArenaClass[] | null,
 ): ArenaStats {
   const byRun = new Map<string, ArenaGame[]>();
-  for (const game of games) byRun.set(game.arena.runId, [...(byRun.get(game.arena.runId) ?? []), game]);
+  for (const game of games) {
+    const run = byRun.get(game.arena.runId);
+    if (run) run.push(game);
+    else byRun.set(game.arena.runId, [game]);
+  }
   const latestRecord = new Map<string, ArenaRunRecord>();
   for (const record of records) {
     const known = latestRecord.get(record.runId);

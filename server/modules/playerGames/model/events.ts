@@ -17,3 +17,6 @@ export type GameEventType = typeof GAME_EVENT_TYPES[number];
 
 export type StatisticsEventQuery = { types: readonly GameEventType[]; since: string | null; limit: number };
 export type LoadStatisticsEvents = (userId: string, query: StatisticsEventQuery) => StatisticsEvent[];
+/** Stored events per type from a schema version on, read without payloads. */
+export type CountStatisticsEvents = (userId: string, types: readonly GameEventType[], minSchemaVersion: number)
+  => Partial<Record<string, number>>;
