@@ -20,7 +20,7 @@ export function ConsoleTopBar({ active, userLabel, userTitle, onSearch }: {
         <span aria-current="page">{active?.label ?? 'Админка'}</span>
       </nav>
       <div className="admin-console-header__actions">
-        <button type="button" className="admin-console-search" aria-keyshortcuts="Control+K Meta+K" onClick={onSearch}>
+        <button type="button" className="admin-console-search" aria-label="Найти раздел" aria-keyshortcuts="Control+K Meta+K" onClick={onSearch}>
           <Search size={16} aria-hidden="true" />
           <span>Найти раздел</span>
           <kbd aria-hidden="true">Ctrl K</kbd>

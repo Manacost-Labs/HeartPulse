@@ -32,7 +32,8 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
 @media (pointer: coarse) {
   .admin-console[data-theme='manacost'] {
     --ui-sidebar-item-h: 44px;
-    --ui-control-h-sm: 40px;
+    --ui-control-h-sm: 44px;
+    --ui-control-h-md: 44px;
   }
 }
 
