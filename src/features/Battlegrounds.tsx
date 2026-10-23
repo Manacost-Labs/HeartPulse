@@ -693,7 +693,6 @@ function bgHeroDescriptionRu(heroName: string, description: any): string {
   if (/Millificent|Миллифисент/i.test(key)) {
     return 'Миллифисент Манашторм — гениальная инженерка и признанная изобретательница. После побега из Аметистовой крепости она снова охотится за своим главным противником — собственным мужем.';
   }
-  if (!text) return 'Описание героя пока не найдено в библиотеке.';
   return text;
 }
 
@@ -1736,41 +1735,48 @@ function BattlegroundHeroProfileInfo({
 }) {
   const description = bgHeroDescriptionRu(heroName, libraryHero?.character?.description);
   const race = bgHeroRaceLabel(libraryHero?.race);
-  const artist = String(libraryHero?.artist || '').trim() || '—';
+  const artist = String(libraryHero?.artist || '').trim();
   const normalArmor = bgHeroArmorValue(libraryHero?.armor, 'normal');
   const duosArmor = bgHeroArmorValue(libraryHero?.armor, 'duos');
   const armorText = typeof libraryHero?.armor?.text === 'string' ? libraryHero.armor.text : '';
+  // A missing fact is left out instead of shown as «—»: an empty tile reads as a broken page.
+  const facts = [
+    { label: 'Раса', value: race, tone: 'plain' },
+    { label: 'Художник', value: artist, tone: 'plain' },
+    { label: 'Броня соло', value: normalArmor, tone: 'blue' },
+    { label: 'Броня дуо', value: duosArmor, tone: 'gold' },
+  ].filter(fact => fact.value && fact.value !== '—');
+  const factTone = {
+    plain: ['border-[#e2cf99] bg-[#fff9ed]', 'text-[#8b6c42]', 'text-base text-[#3d2a1e]'],
+    blue: ['border-[#bfdbfe] bg-[#dbeafe]/80', 'text-[#1e3a8a]', 'text-xl text-[#1e3a8a]'],
+    gold: ['border-[#d6a74c] bg-[#fff2cf]', 'text-[#70450e]', 'text-xl text-[#70450e]'],
+  } as const;
 
   return (
-    <section className="bg-hero-ledger-panel grid gap-4 rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)] lg:grid-cols-[1fr_320px]">
+    <section className={`bg-hero-ledger-panel grid gap-4 rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)] ${externalLinks.length ? 'lg:grid-cols-[1fr_320px]' : ''}`}>
       <div>
         <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Профиль героя</p>
-        <h3 className="font-hs text-2xl text-[#3d2a1e]">Кто это и откуда данные</h3>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f4730]">{description}</p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b6c42]">Раса</p>
-            <p className="mt-1 text-base font-black text-[#3d2a1e]">{race}</p>
+        <h3 className="font-hs text-2xl text-[#3d2a1e]">{description ? 'Кто это' : 'Характеристики'}</h3>
+        {description && <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f4730]">{description}</p>}
+        {facts.length > 0 && (
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {facts.map(fact => {
+              const [box, label, value] = factTone[fact.tone as keyof typeof factTone];
+              return (
+                <div key={fact.label} className={`rounded-2xl border p-3 ${box}`}>
+                  <p className={`text-xs font-bold uppercase tracking-[0.14em] ${label}`}>{fact.label}</p>
+                  <p className={`mt-1 font-black ${value}`}>{fact.value}</p>
+                </div>
+              );
+            })}
           </div>
-          <div className="rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b6c42]">Художник</p>
-            <p className="mt-1 text-base font-black text-[#3d2a1e]">{artist}</p>
-          </div>
-          <div className="rounded-2xl border border-[#bfdbfe] bg-[#dbeafe]/80 p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1e3a8a]">Броня соло</p>
-            <p className="mt-1 text-xl font-black text-[#1e3a8a]">{normalArmor}</p>
-          </div>
-          <div className="rounded-2xl border border-[#d6a74c] bg-[#fff2cf] p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#70450e]">Броня дуо</p>
-            <p className="mt-1 text-xl font-black text-[#70450e]">{duosArmor}</p>
-          </div>
-        </div>
+        )}
         {armorText && (
           <p className="mt-3 text-xs font-semibold text-[#8b6c42]">Оригинальная строка брони: {armorText}</p>
         )}
       </div>
-      <aside className="rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3">
-        <p className="font-hs text-sm uppercase tracking-[0.14em] text-[#8b6c42]">External links</p>
+      {externalLinks.length > 0 && <aside className="rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3">
+        <p className="font-hs text-sm uppercase tracking-[0.14em] text-[#8b6c42]">Внешние ссылки</p>
         <div className="mt-3 grid gap-2">
           {externalLinks.map(link => (
             <a
@@ -1785,7 +1791,7 @@ function BattlegroundHeroProfileInfo({
             </a>
           ))}
         </div>
-      </aside>
+      </aside>}
     </section>
   );
 }
@@ -1824,7 +1830,7 @@ function BattlegroundHeroPatchChange({
         )}
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {notes.map(note => (
+        {notes.filter(note => note.value && note.value !== '—').map(note => (
           <div
             key={note.label}
             className={`rounded-2xl border p-3 ${
@@ -1840,6 +1846,9 @@ function BattlegroundHeroPatchChange({
           </div>
         ))}
       </div>
+      {patchEntries.length === 0 && (
+        <p className="mt-3 text-sm text-[#5f4730]">В текущем патче герой не менялся.</p>
+      )}
       {patchEntries.length > 0 && (
         <div className="mt-4 rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3">
           <p className="font-hs text-sm uppercase tracking-[0.14em] text-[#8b6c42]">Последние изменения</p>
@@ -2162,13 +2171,10 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
   const externalLinks = bgHeroExternalLinks(libraryHero, heroName);
   const patchChanges = bgHeroPatchEntries(libraryHero);
   const asOfValues = stats.as_of && typeof stats.as_of === 'object' ? Object.values(stats.as_of) : [];
+  // The header already shows tier, average place and pick rate, the profile the armor:
+  // the patch block keeps only what is new here, the update date and the changes.
   const patchNotes: BattlegroundHeroPatchNote[] = [
     { label: 'Обновлено', value: bgDetailLatestDate(asOfValues, libraryHero?.updated_at, payload.fetched_at), tone: 'gold' },
-    { label: 'Тир героя', value: hero.tier || '—' },
-    { label: 'Среднее место', value: bgFormatDecimal(hero.avg_placement, 2) },
-    { label: 'Выбор героя', value: hero.pick_rate || '—', tone: 'blue' },
-    { label: 'Броня соло', value: bgHeroArmorValue(libraryHero?.armor, 'normal') },
-    { label: 'Броня дуо', value: bgHeroArmorValue(libraryHero?.armor, 'duos') },
   ];
   const heroMediaItems = [
     heroPower && {
