@@ -50,7 +50,9 @@ async function watchRouteMotion(page) {
         if (!target?.closest?.('[data-route-content]')) continue;
         const timing = animation.effect.getTiming();
         const frames = animation.effect.getKeyframes();
-        if (frames[0]?.opacity !== '0') continue;
+        // An entrance moves (a page keeps full opacity: a fade from 0 blinks) or settles from a dip.
+        const moves = frames[0]?.transform && frames[0].transform !== 'none';
+        if (!(Number(frames[0]?.opacity ?? 1) < 1) && !moves) continue;
         window.__routeMotion.push({ target: target.matches('[data-route-content] > *') ? 'content' : 'section',
           skeleton: Boolean(target.closest('.loading-block, [data-loading-surface]') || target.querySelector('.loading-block')),
           duration: timing.duration, delay: timing.delay, from: frames[0]?.opacity, to: frames.at(-1)?.opacity,
@@ -63,7 +65,8 @@ async function watchRouteMotion(page) {
 }
 
 const transitionRunning = () => document.getAnimations().some(animation => animation.playState === 'running'
-  && animation.effect?.target?.closest?.('[data-route-content]') && animation.effect.getKeyframes()[0]?.opacity === '0');
+  && animation.effect?.target?.closest?.('[data-route-content]')
+  && (Number(animation.effect.getKeyframes()[0]?.opacity ?? 1) < 1 || /translate|scale/.test(animation.effect.getKeyframes()[0]?.transform ?? '')));
 
 async function routeMotion(page) {
   await page.waitForFunction(`!(${transitionRunning})()`);
@@ -151,8 +154,8 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await watchRouteMotion(page);
     await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
     assert.deepEqual(await routeMotion(page), [
-      { target: 'content', skeleton: false, duration: 220, delay: 0, from: '0', to: '1', transform: 'translateY(16px)' },
-    ], 'the ready destination rises in once (ValyroUI rise), at commit, over --motion-base; nothing else moves');
+      { target: 'content', skeleton: false, duration: 220, delay: 0, from: '1', to: '1', transform: 'translateY(16px)' },
+    ], 'the ready destination rises in once (ValyroUI rise) at full opacity, at commit, over --motion-base; nothing else moves');
     assert.equal(await page.evaluate(() => scrollY), 0, 'the destination opens at its top');
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content', 'focus continues at the new page');
     await assertSameFrame(page);

@@ -17,3 +17,28 @@ export function motionEasing(token: '--motion-ease' | '--motion-ease-exit', elem
 export function prefersReducedMotion(): boolean {
   return matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
+
+/**
+ * How visible content that takes another content's place starts its entrance.
+ * The parchment behind the site is much lighter than most content: an entrance
+ * from `opacity: 0` shows an empty, bright page for a frame or two (a blink),
+ * and a whole-page dip from 0.8 read as a flicker too (2026-10-18). So a
+ * navigated page or switched view keeps full opacity and only its motion
+ * (rise, slide, zoom) carries the change; a section that replaces its own
+ * skeleton, whose spot was already marked, settles from a light dip.
+ */
+export const ENTRANCE_OPACITY_FLOOR = {
+  /** A navigated page or a switched view: the old one vanished in the same frame. */
+  page: 1,
+  /** A section replacing its skeleton. */
+  section: 0.6,
+} as const;
+
+/** `keyframes` with every opacity lifted onto [floor, 1]; frames without opacity are untouched. */
+export function withOpacityFloor(keyframes: Keyframe[], floor: number): Keyframe[] {
+  return keyframes.map(frame => {
+    if (frame.opacity === undefined || frame.opacity === null) return frame;
+    const opacity = Number(frame.opacity);
+    return Number.isFinite(opacity) ? { ...frame, opacity: floor + (1 - floor) * opacity } : frame;
+  });
+}

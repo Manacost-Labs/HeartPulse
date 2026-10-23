@@ -160,9 +160,10 @@ is a separate administrator workspace and retains its permission gate.
   `openPage()` from `src/shared/navigation/pageNavigation.ts`. Page content stays
   visible until the next route is ready; the chosen menu item is marked current
   at once (`useOptimistic`). When the pathname commits, the content of the
-  shell's `data-route-content` box fades in once over `--motion-fast`; a page
-  committed with skeletons shows them at once and fades each section in as it
-  replaces them. Focus moves to `#main-content`. First paint, Back/Forward,
+  shell's `data-route-content` box rises into place once at full opacity (a
+  fade from 0 showed the bright parchment for a frame: a blink); a page
+  committed with skeletons shows them at once and settles each section in from
+  a light dip as it replaces them (`ENTRANCE_OPACITY_FLOOR`). Focus moves to `#main-content`. First paint, Back/Forward,
   query/hash-only changes and reduced motion stay immediate. A page opened in
   the last 30 seconds is shown from the router cache (`staleTimes.dynamic`),
   because public pages render anonymously. `NavigationProgress` shows a gold
