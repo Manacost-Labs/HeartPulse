@@ -21,6 +21,31 @@ const event = (index: number) => ({
 repository.acknowledge('user-1', [event(1), event(2), event(3)], 1_000);
 repository.acknowledge('user-2', [event(4)], 1_000);
 
+// Export pages: ties in time, a row and a byte budget; every event exactly once, oldest first.
+database.exec('INSERT INTO users(id) VALUES (\'user-3\')');
+const tie = (index: number) => ({ ...event(index), occurredAt: '2026-09-01T00:00:00.000Z' });
+repository.acknowledge('user-3', [event(5), tie(20), tie(21), tie(22), { ...event(6), schemaVersion: 1 as const }], 1_000);
+for (const [maxRows, maxBytes, pages] of [[2, 1_000_000, 3], [200, 1, 5], [200, 1_000_000, 1]] as const) {
+  const seen: string[] = [];
+  let cursor = null;
+  let count = 0;
+  do {
+    const page = repository.exportPage('user-3', cursor, maxRows, maxBytes);
+    seen.push(...page.rows.map(row => JSON.parse(row).eventId));
+    cursor = page.next;
+    count += 1;
+  } while (cursor);
+  assert.equal(count, pages, `pages of ${maxRows} rows / ${maxBytes} bytes`);
+  assert.deepEqual([...seen.slice(0, 3)].sort(), [tie(20), tie(21), tie(22)].map(item => item.eventId));
+  assert.deepEqual(seen.slice(3), [event(5).eventId, event(6).eventId]);
+}
+assert.deepEqual(JSON.parse(repository.exportPage('user-3', null, 1, 1).rows[0]).payload, tie(20).payload);
+// The statistics read schema version 2 only; without the bound older events come back too.
+const constructed = (minSchemaVersion?: number) => repository.listEvents('user-3',
+  { types: ['constructed_match'], since: null, limit: 10, minSchemaVersion }).map(item => item.eventId);
+assert.equal(constructed(2).includes(event(6).eventId), false);
+assert.equal(constructed().includes(event(6).eventId), true);
+
 const deleted: string[] = [];
 const app = express();
 app.use('/api', createTrackerAccountDataRouter({

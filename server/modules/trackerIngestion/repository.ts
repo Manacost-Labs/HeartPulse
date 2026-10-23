@@ -19,7 +19,22 @@ export const TRACKER_EVENT_TABLES_SQL = `
     ON tracker_profile_events(user_id, event_type, occurred_at DESC);
 `;
 
-export type TrackerEventQuery = { types: readonly TrackerEventType[]; since: string | null; limit: number };
+export type TrackerEventQuery = {
+  types: readonly TrackerEventType[];
+  since: string | null;
+  limit: number;
+  /** Only events of this schema version or newer; older ones are not even read. */
+  minSchemaVersion?: number;
+};
+
+/** Where the next export page starts: after this event in export order. */
+export type TrackerExportCursor = { occurredAt: string; rowId: number };
+export type TrackerExportPage = {
+  /** Each event as one JSON object, the payload exactly as stored. */
+  rows: string[];
+  /** Null once the account has no more events. */
+  next: TrackerExportCursor | null;
+};
 
 export type TrackerEventRepository = {
   /**
@@ -34,8 +49,12 @@ export type TrackerEventRepository = {
   countEvents: (userId: string, types: readonly TrackerEventType[], minSchemaVersion: number) => Partial<Record<TrackerEventType, number>>;
   /** What the account page tells the player about the stored events. */
   summarize: (userId: string) => { events: number; firstOccurredAt: string | null; lastOccurredAt: string | null };
-  /** Every stored event of the account, oldest first, one at a time (for a streamed export). */
-  eachEvent: (userId: string) => Iterable<TrackerProfileEvent & { receivedAt: number }>;
+  /**
+   * One page of the account's events, oldest first, for a streamed export: at
+   * most `maxRows` events, and no more once `maxBytes` are reached (always at
+   * least one). Pass the previous page's `next`; null starts at the beginning.
+   */
+  exportPage: (userId: string, after: TrackerExportCursor | null, maxRows: number, maxBytes: number) => TrackerExportPage;
   /** Deletes every stored event of the account and returns how many there were. */
   deleteAll: (userId: string) => number;
 };
@@ -91,19 +110,27 @@ export function createSqliteTrackerEventRepository(
         lastOccurredAt: row?.last ? String(row.last) : null,
       };
     },
-    *eachEvent(userId) {
-      const rows = getDatabase().prepare(`SELECT event_id, event_type, schema_version, occurred_at, payload_json, received_at
-        FROM tracker_profile_events WHERE user_id = ? ORDER BY occurred_at, event_id`).iterate(userId);
+    exportPage(userId, after, maxRows, maxBytes) {
+      // Keyset paging in the order of idx_tracker_profile_events_user_time
+      // (time ascending, rowid descending within one time), so no page sorts.
+      const rows = getDatabase().prepare(`SELECT rowid AS row_id, event_id, event_type, schema_version, occurred_at,
+          payload_json, received_at
+        FROM tracker_profile_events
+        WHERE user_id = ? AND occurred_at >= ? AND (occurred_at > ? OR rowid < ?)
+        ORDER BY occurred_at, rowid DESC LIMIT ?`).iterate(userId, after?.occurredAt ?? '', after?.occurredAt ?? '', after?.rowId ?? 0, maxRows + 1);
+      const page: string[] = [];
+      let bytes = 0;
+      let last: TrackerExportCursor | null = null;
       for (const row of rows) {
-        yield {
-          eventId: String(row.event_id),
-          type: String(row.event_type) as TrackerEventType,
-          schemaVersion: Number(row.schema_version) as TrackerSchemaVersion,
-          occurredAt: String(row.occurred_at),
-          payload: JSON.parse(String(row.payload_json)) as Record<string, unknown>,
-          receivedAt: Number(row.received_at),
-        };
+        if (page.length === maxRows || (page.length && bytes >= maxBytes)) return { rows: page, next: last };
+        const payload = String(row.payload_json);
+        bytes += payload.length;
+        page.push(`{"eventId":${JSON.stringify(String(row.event_id))},"type":${JSON.stringify(String(row.event_type))},`
+          + `"schemaVersion":${Number(row.schema_version)},"occurredAt":${JSON.stringify(String(row.occurred_at))},`
+          + `"payload":${payload},"receivedAt":${Number(row.received_at)}}`);
+        last = { occurredAt: String(row.occurred_at), rowId: Number(row.row_id) };
       }
+      return { rows: page, next: null };
     },
     deleteAll(userId) {
       return Number(getDatabase().prepare('DELETE FROM tracker_profile_events WHERE user_id = ?').run(userId).changes);
@@ -120,7 +147,8 @@ export function createSqliteTrackerEventRepository(
       const rows = getDatabase().prepare(`SELECT event_id, event_type, schema_version, occurred_at, payload_json
         FROM tracker_profile_events
         WHERE user_id = ? AND event_type IN (${query.types.map(() => '?').join(', ')}) AND occurred_at >= ?
-        ORDER BY occurred_at DESC LIMIT ?`).all(userId, ...query.types, query.since ?? '', query.limit);
+          AND schema_version >= ?
+        ORDER BY occurred_at DESC LIMIT ?`).all(userId, ...query.types, query.since ?? '', query.minSchemaVersion ?? 1, query.limit);
       return rows.map(row => ({
         eventId: String(row.event_id),
         type: String(row.event_type) as TrackerEventType,

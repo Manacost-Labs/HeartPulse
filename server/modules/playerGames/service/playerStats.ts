@@ -144,7 +144,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
       const games: PlayerGame[] = [];
       const runs: ArenaRunRecord[] = [];
       for (const event of dependencies.loadEvents(userId, { types: EVENT_TYPES[query.mode],
-        since: since === null ? null : new Date(since).toISOString(), limit: MAX_STATS_GAMES })) {
+        since: since === null ? null : new Date(since).toISOString(), limit: MAX_STATS_GAMES, minSchemaVersion: 2 })) {
         const read = statisticsFromEvent(event, now());
         if (!read) continue;
         if (isGame(read)) games.push(read);

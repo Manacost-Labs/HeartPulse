@@ -250,6 +250,9 @@ the version 2 game and run events per tab (Standard and Wild share
 shows «Моя статистика» only when a count is above zero, and a tab only for
 such a mode; while off (404) or without events it shows nothing, never a call
 to install the application. Version 2 events are accepted in both states.
+In production the variable lives in `/etc/hs-arena/hs-arena.env` (the
+`EnvironmentFile` of `deploy/hs-arena.service`); a release does not set it, so
+switching on is adding the line there and restarting `hs-arena.service`.
 
 ## Statistics: `GET /api/account/game-stats`
 
@@ -322,7 +325,11 @@ and lets the player take it out or erase it (right of access and erasure):
   lastOccurredAt }` of the account's tracker events;
 - `GET /api/account/tracker-data/export`: every stored event of the account
   as one JSON file (`hearthpulse-tracker-data-YYYY-MM-DD.json`, events
-  oldest first with `receivedAt`), streamed; 10 exports per hour per address;
+  oldest first with `receivedAt`), streamed; 10 exports per hour per address.
+  The server reads it page by page (at most 200 events or about 1 MiB a page),
+  waits while the client has not taken the data and yields between pages, so
+  an export never holds the whole history in memory or the server busy; one
+  export per account runs at a time, a second one meanwhile gets 429;
 - `DELETE /api/account/tracker-data`: deletes every tracker event of the
   account, `{ deleted }`; the statistics cache of the account is dropped.
 
