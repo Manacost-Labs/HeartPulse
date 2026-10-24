@@ -23,7 +23,8 @@ export type StandardMetaServingRank = Exclude<
   'diamond_all' | 'top_500' | 'top_100'
 >;
 export type { StandardMetaPeriod } from './standardMetaPeriods.js';
-export type StandardMetaCoin = 'any_player';
+/** HSGuru's `player_has_coin` filter: any player, second with the Coin, or first. */
+export type StandardMetaCoin = 'any_player' | 'on_coin' | 'going_first';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 export type StandardMetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin'
   | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
@@ -69,7 +70,7 @@ const RANKS = new Set<StandardMetaServingRank>([
   'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
 ]);
 const DEFAULT_PERIODS: StandardMetaPeriod[] = [...STANDARD_META_ROLLING_PERIODS];
-const COINS = new Set<StandardMetaCoin>(['any_player']);
+const COINS = new Set<StandardMetaCoin>(['any_player', 'on_coin', 'going_first']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 const CLASSES = new Set<StandardMetaClass>([
   'deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin',

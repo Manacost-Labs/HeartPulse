@@ -8,7 +8,7 @@ const meta = {
   title: 'Meta/Archetype table', component: StandardMetaArchetypeTable,
   args: {
     items, rankById: new Map(items.map((item, index) => [item.id, index + 1])), format: 'standard', rank: 'diamond_legend',
-    period: 'past_day', minGames: 100, loadTrends: true, initialTrends: metaStoryTrends(items),
+    period: 'past_day', coin: 'any_player', minGames: 100, loadTrends: true, initialTrends: metaStoryTrends(items),
     formatLabel: 'Стандарт', rankLabel: 'Алмаз — Легенда', periodLabel: 'Сутки',
   },
   decorators: [Story => <div className="standard-meta" style={{ maxWidth: 1240, padding: 12, background: '#f3e2bd' }}><Story /></div>],

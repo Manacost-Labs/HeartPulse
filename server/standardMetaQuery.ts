@@ -4,14 +4,14 @@ export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_legend';
 export type { StandardMetaPeriod };
-export type StandardMetaCoin = 'any_player';
+export type StandardMetaCoin = 'any_player' | 'on_coin' | 'going_first';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
 const RANKS = new Set<StandardMetaRank>([
   'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
 ]);
-const COINS = new Set<StandardMetaCoin>(['any_player']);
+const COINS = new Set<StandardMetaCoin>(['any_player', 'on_coin', 'going_first']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 
 export function readFormat(value: unknown): StandardMetaFormat | null {

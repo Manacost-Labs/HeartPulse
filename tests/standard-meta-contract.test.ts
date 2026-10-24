@@ -316,8 +316,16 @@ assert.throws(
   () => parseStandardMetaApiResponse(candidate({ period: 'past_year' }), now),
   /period is unsupported/,
 );
+assert.equal(parseStandardMetaApiResponse(candidate({ coin: 'on_coin' }), now).data.coin, 'on_coin');
+assert.equal(parseStandardMetaApiResponse(candidate({ coin: 'going_first' }), now).data.coin, 'going_first');
+assert.equal(parseStandardMetaApiResponse(candidate({
+  period: 'black_empire_ban',
+  availablePeriods: [...blackEmpirePeriods, 'black_empire_ban'],
+  currentPeriod: 'black_empire',
+  currentPatchPeriod: 'patch_36.6.3',
+}), now).data.period, 'black_empire_ban');
 assert.throws(
-  () => parseStandardMetaApiResponse(candidate({ coin: 'on_coin' }), now),
+  () => parseStandardMetaApiResponse(candidate({ coin: 'second' }), now),
   /coin is unsupported/,
 );
 assert.throws(

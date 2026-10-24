@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   orderStandardMetaPeriods,
+  STANDARD_META_COINS,
   resolveStandardMetaDefaultPeriod,
   standardMetaPeriodLabel,
 } from '../src/features/standardMetaFilterModel.js';
@@ -20,7 +21,22 @@ const metaStyles = readFileSync(
   'utf8',
 );
 
-// HSGuru's menu order: expansion, patch, then rolling windows shortest first.
+// HSGuru's menu order: Bans, expansion, patch, then rolling windows shortest first.
+assert.deepEqual(
+  orderStandardMetaPeriods(
+    ['past_day', 'past_week', 'patch_36.6.3', 'black_empire', 'black_empire_ban'],
+    'black_empire',
+    'patch_36.6.3',
+  ),
+  ['black_empire_ban', 'black_empire', 'patch_36.6.3', 'past_day', 'past_week'],
+);
+assert.equal(standardMetaPeriodLabel('black_empire_ban'), 'Баны');
+assert.deepEqual(STANDARD_META_COINS.map(option => [option.id, option.label]),
+  [['any_player', 'Любая'], ['going_first', 'Ходит первым'], ['on_coin', 'С монеткой']]);
+// The coin filter is part of the request and of its identity.
+assert.match(metaSource, /const \[coin, setCoin\] = useState<MetaCoin>\(TEASER_SEED_FILTERS\.coin\)/);
+assert.match(metaSource, /metaRequestKey\(format, rank, period, coin, minGames, metaRevision, hasFullAccess\)/);
+assert.match(metaSource, /Очерёдность хода/);
 assert.deepEqual(
   orderStandardMetaPeriods(
     ['past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days',
@@ -51,7 +67,7 @@ assert.equal(
 // The page opens on Diamond–Legend; a server-rendered teaser also fixes the
 // period it was read for, otherwise the page resolves the current one itself.
 const teaserSource = readFileSync(new URL('../src/features/standardMetaTeaser.ts', import.meta.url), 'utf8');
-assert.match(teaserSource, /TEASER_SEED_FILTERS = \{ format: 'standard', rank: 'diamond_legend', minGames: 100 \} as const/);
+assert.match(teaserSource, /TEASER_SEED_FILTERS = \{ format: 'standard', rank: 'diamond_legend', coin: 'any_player', minGames: 100 \} as const/);
 assert.match(metaSource, /useState<MetaRank>\(TEASER_SEED_FILTERS\.rank\)/);
 assert.match(metaSource, /useState<MetaPeriod \| null>\(initialTeaser\?\.period \?\? null\)/);
 // Until a payload resolves the summary shows a value placeholder, never a fake zero.

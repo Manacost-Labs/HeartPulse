@@ -1,12 +1,14 @@
-import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
+import type { StandardMetaCoin, StandardMetaPeriod } from '../../shared/standardMetaContract';
 
 export function orderStandardMetaPeriods(
   availablePeriods: StandardMetaPeriod[],
   currentPeriod: StandardMetaPeriod | null,
   currentPatchPeriod: StandardMetaPeriod | null,
 ): StandardMetaPeriod[] {
-  // HSGuru's menu order: the current release window, the current patch, then rolling windows.
-  const preferredPeriods = [currentPeriod, currentPatchPeriod] satisfies Array<StandardMetaPeriod | null>;
+  // HSGuru's menu order: the Bans window, the current release window, the current patch, then rolling windows.
+  const preferredPeriods = [
+    ...availablePeriods.filter(period => period.endsWith('_ban')), currentPeriod, currentPatchPeriod,
+  ] satisfies Array<StandardMetaPeriod | null>;
   const available = new Set(availablePeriods);
 
   return [
@@ -29,6 +31,7 @@ export function resolveStandardMetaDefaultPeriod(
 
 const PERIOD_LABELS: Partial<Record<StandardMetaPeriod, string>> = {
   black_empire: 'Тёмная империя',
+  black_empire_ban: 'Баны',
   past_3_hours: '3 часа',
   past_6_hours: '6 часов',
   past_day: 'Сутки',
@@ -44,3 +47,10 @@ export function standardMetaPeriodLabel(period: StandardMetaPeriod): string {
   if (period.startsWith('patch_')) return `Патч ${period.slice('patch_'.length)}`;
   return PERIOD_LABELS[period] ?? period;
 }
+
+/** HSGuru's coin filter: whose turn the archetype's games started on. */
+export const STANDARD_META_COINS: ReadonlyArray<{ id: StandardMetaCoin; label: string }> = [
+  { id: 'any_player', label: 'Любая' },
+  { id: 'going_first', label: 'Ходит первым' },
+  { id: 'on_coin', label: 'С монеткой' },
+];

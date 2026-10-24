@@ -25,6 +25,7 @@ import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
 import {
   STANDARD_META_MEDIA_TYPE,
   parseStandardMetaApiResponse,
+  type StandardMetaCoin,
   type StandardMetaPeriod,
 } from '../../shared/standardMetaContract';
 import { STANDARD_META_ROLLING_PERIODS } from '../../shared/standardMetaPeriods';
@@ -32,6 +33,7 @@ import DeckListView, { type DeckListCard } from './decklist/DeckListView';
 import {
   orderStandardMetaPeriods,
   resolveStandardMetaDefaultPeriod,
+  STANDARD_META_COINS,
   standardMetaPeriodLabel,
 } from './standardMetaFilterModel';
 import StandardMetaChart from './StandardMetaChart';
@@ -48,7 +50,7 @@ type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_legend';
 type MetaPeriod = StandardMetaPeriod;
-type MetaCoin = 'any_player';
+type MetaCoin = StandardMetaCoin;
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'tiers' | 'table';
 /** The order of the view buttons; a format changes when its slice arrives (`data.format`). */
@@ -457,6 +459,18 @@ function useIdleMetaViews(ready: boolean) {
   }, [ready]);
 }
 
+/** HSGuru's coin filter: all games, the player going first, or second with the Coin. */
+function MetaCoinSelect({ value, onChange }: { value: MetaCoin; onChange: (coin: MetaCoin) => void }) {
+  return (
+    <label className="standard-meta__select">
+      <span className="standard-meta__control-label">Очерёдность хода</span>
+      <select value={value} onChange={event => onChange(event.target.value as MetaCoin)}>
+        {STANDARD_META_COINS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
 function StandardMetaContent({
   hasFullAccess,
   accessPending, teaserWaitsForAccess,
@@ -466,7 +480,7 @@ function StandardMetaContent({
   const [format, setFormat] = useState<MetaFormat>(TEASER_SEED_FILTERS.format);
   const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
   const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
-  const coin: MetaCoin = 'any_player';
+  const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
   const [minGames, setMinGames] = useState<MetaMinGames>(TEASER_SEED_FILTERS.minGames);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -479,7 +493,7 @@ function StandardMetaContent({
   const summaryReady = hasPayload && !(hasFullAccess && data === initialTeaser?.data);
   const [arrivesLater] = useState(!initialTeaser);
   const [metaRevision, setMetaRevision] = useState(0);
-  const requestKey = metaRequestKey(format, rank, period, minGames, metaRevision, hasFullAccess);
+  const requestKey = metaRequestKey(format, rank, period, coin, minGames, metaRevision, hasFullAccess);
   const seedKey = teaserSeedKey(initialTeaser, hasFullAccess);
   const answeredKey = useRef(seedKey);
   const [resolvedRequestKey, setResolvedRequestKey] = useState(seedKey);
@@ -636,6 +650,7 @@ function StandardMetaContent({
               {periodOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
           </label>
+          <MetaCoinSelect value={coin} onChange={setCoin} />
           <label className="standard-meta__select">
             <span className="standard-meta__control-label">Минимум игр</span>
             <select value={minGames} onChange={event => setMinGames(Number(event.target.value) as MetaMinGames)}>
@@ -731,7 +746,7 @@ function StandardMetaContent({
                   periodLabel={standardMetaPeriodLabel(selectedPeriod)} minGames={minGames} />
               ) : (
                 <StandardMetaArchetypeTable items={visibleItems} rankById={rankById} format={format} rank={rank} period={selectedPeriod}
-                  minGames={minGames} loadTrends={hasFullAccess} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
+                  coin={coin} minGames={minGames} loadTrends={hasFullAccess} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
                   periodLabel={standardMetaPeriodLabel(selectedPeriod)} tableRef={tableRef} />
               )}
             </React.Suspense>
