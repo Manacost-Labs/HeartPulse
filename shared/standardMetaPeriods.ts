@@ -6,8 +6,9 @@ export type StandardMetaRollingPeriod = 'past_3_hours' | 'past_6_hours' | 'past_
   | 'past_week' | 'past_2_weeks' | 'past_30_days';
 /** Release windows HSGuru no longer advertises; kept parseable for last-known-good payloads. */
 export type StandardMetaRetiredPeriod = 'violet_hold' | 'most_wanted';
-export type StandardMetaPeriod = StandardMetaRollingPeriod | 'black_empire' | StandardMetaRetiredPeriod
-  | `patch_${string}`;
+/** `black_empire_ban` is HSGuru's «Bans» window: games since the Black Empire ban update. */
+export type StandardMetaPeriod = StandardMetaRollingPeriod | 'black_empire' | 'black_empire_ban'
+  | StandardMetaRetiredPeriod | `patch_${string}`;
 
 export const STANDARD_META_ROLLING_PERIODS: readonly StandardMetaRollingPeriod[] = [
   'past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days',
@@ -17,7 +18,7 @@ const PERIOD_ALIASES: Readonly<Record<StandardMetaRetiredPeriod, StandardMetaPer
   violet_hold: 'black_empire',
   most_wanted: 'black_empire',
 };
-const SERVED_PERIODS = new Set<string>([...STANDARD_META_ROLLING_PERIODS, 'black_empire']);
+const SERVED_PERIODS = new Set<string>([...STANDARD_META_ROLLING_PERIODS, 'black_empire', 'black_empire_ban']);
 const PATCH_PERIOD = /^patch_\d+(?:\.\d+){1,3}$/;
 
 /** Whether a payload may name this period, retired windows included. */

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
-import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
+import type { StandardMetaCoin, StandardMetaPeriod } from '../../shared/standardMetaContract';
 import { parseStandardMetaTrends, type StandardMetaTrends } from '../../shared/standardMetaTrendsContract';
 
 export type StandardMetaTrendsQuery = {
   format: 'standard' | 'wild';
   rank: string;
   period: StandardMetaPeriod;
+  coin: StandardMetaCoin;
   minGames: number;
   /** Trends are a subscriber endpoint: without access nothing is requested. */
   loadTrends: boolean;
@@ -18,13 +19,13 @@ export type StandardMetaTrendsQuery = {
 type TrendsState = { key: string; trends: StandardMetaTrends | null; error: string };
 
 /** The slice's change against the previous window and its win rate over the rolling windows. */
-export function useStandardMetaTrends({ format, rank, period, minGames, loadTrends, initialTrends }: StandardMetaTrendsQuery) {
-  const key = `${format}:${rank}:${period}:${minGames}`;
+export function useStandardMetaTrends({ format, rank, period, coin, minGames, loadTrends, initialTrends }: StandardMetaTrendsQuery) {
+  const key = `${format}:${rank}:${period}:${coin}:${minGames}`;
   const [state, setState] = useState<TrendsState>({ key: initialTrends === undefined ? '' : key, trends: initialTrends ?? null, error: '' });
   useEffect(() => {
     if (!loadTrends || initialTrends !== undefined) return undefined;
     const controller = new AbortController();
-    const params = new URLSearchParams({ format, rank, period, coin: 'any_player', min_games: String(minGames) });
+    const params = new URLSearchParams({ format, rank, period, coin, min_games: String(minGames) });
     fetchWithDeadline(`/api/standard-meta/trends?${params}`, { signal: controller.signal, headers: { Accept: 'application/json' } })
       .then(response => {
         if (!response.ok) throw new Error('Динамика меты временно недоступна');
@@ -36,6 +37,6 @@ export function useStandardMetaTrends({ format, rank, period, minGames, loadTren
         setState({ key, trends: null, error: datasetContractErrorMessage(cause) });
       });
     return () => controller.abort();
-  }, [format, rank, period, minGames, loadTrends, initialTrends, key]);
+  }, [format, rank, period, coin, minGames, loadTrends, initialTrends, key]);
   return state.key === key ? state : { key, trends: null, error: '' };
 }

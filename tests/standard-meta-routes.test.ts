@@ -182,6 +182,17 @@ try {
   assert.deepEqual(calls, ['meta:standard:legend:black_empire:any_player:500']);
   calls.length = 0;
 
+  // The Bans window and both coin sides reach the source as asked.
+  for (const coin of ['on_coin', 'going_first']) {
+    const sided = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=black_empire_ban&coin=${coin}&min_games=100`, { headers: { 'X-Test-Access': 'allowed' } });
+    assert.equal(sided.status, 200);
+    assert.deepEqual(calls, [`meta:standard:legend:black_empire_ban:${coin}:100`]);
+    calls.length = 0;
+  }
+  const unknownCoin = await fetch(`${origin}/standard-meta?format=standard&rank=legend&coin=second`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(unknownCoin.status, 400, 'an unknown coin side fails before calling the upstream API');
+  assert.deepEqual(calls, []);
+
   // Retired release windows keep old links working by opening the current expansion.
   for (const retired of ['violet_hold', 'most_wanted']) {
     const retiredMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=${retired}&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
@@ -238,8 +249,8 @@ try {
   assert.match(meta.headers.get('x-dataset-version') ?? '', /^sm1-[a-f0-9]{20}$/);
   assert.deepEqual(calls, ['meta:wild:top_5k:past_2_weeks:any_player:5000']);
 
-  const removedCoin = await fetch(`${origin}/admin/standard-meta?format=standard&rank=legend&period=past_day&coin=on_coin&min_games=100`, { headers: adminHeaders });
-  assert.equal(removedCoin.status, 400);
+  const unknownAdminCoin = await fetch(`${origin}/admin/standard-meta?format=standard&rank=legend&period=past_day&coin=second&min_games=100`, { headers: adminHeaders });
+  assert.equal(unknownAdminCoin.status, 400);
 
   const removedThreshold = await fetch(`${origin}/admin/standard-meta?format=standard&rank=legend&period=past_day&coin=any_player&min_games=7500`, { headers: adminHeaders });
   assert.equal(removedThreshold.status, 400);
