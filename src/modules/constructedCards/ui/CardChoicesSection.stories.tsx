@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CardChoicesSection } from './CardChoicesSection';
 import legend from './cardChoicesSnapshot.json';
 import bronze from './cardChoicesBronzeSnapshot.json';
-import '../../../features/StandardCards.css';
 
 // Real answers of 25.10.2026 for Иллидариведение (CORE_YOP_001): /api/card-choices at Legend and Bronze–Gold.
 const meta = {
