@@ -98,6 +98,13 @@
       "description": "Изменения карт Hearthstone в каждом патче: было → стало, усиления и ослабления по классам, Поля сражений и архив обновлений.",
       "sitemap": true
     },
+    "/standard/radar": {
+      "policyRouteId": "radar",
+      "navigationRouteId": "radar",
+      "title": "Радар нерфов и баффов Hearthstone {year}: прогноз изменений баланса | HearthPulse",
+      "description": "Какие карты и архетипы Стандарта Hearthstone могут ослабить или усилить: прогноз по винрейту, популярности и обсуждениям Reddit и X с уверенностью для каждого кандидата.",
+      "sitemap": true
+    },
     "/classes": {
       "policyRouteId": "winrates",
       "navigationRouteId": "winrates",

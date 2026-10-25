@@ -909,6 +909,38 @@
         "docs/architecture/module-boundaries.md",
         "docs/specs/patch-notes.md"
       ]
+    },
+    {
+      "id": "client.radar",
+      "runtime": "client",
+      "root": "src/modules/radar",
+      "purpose": "Owns the public nerf and buff radar view: summary, sections, filters and candidate cards.",
+      "owner": "traditional-data",
+      "publicEntry": "src/modules/radar/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:radar"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/nerf-buff-radar.md"
+      ]
+    },
+    {
+      "id": "server.radar",
+      "runtime": "server",
+      "root": "server/modules/radar",
+      "purpose": "Owns the anonymous nerf and buff radar read from hs-data-api, its validation, cache and demo fixture.",
+      "owner": "traditional-data",
+      "publicEntry": "server/modules/radar/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:radar"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/nerf-buff-radar.md"
+      ]
     }
   ],
   "migrationAreas": [

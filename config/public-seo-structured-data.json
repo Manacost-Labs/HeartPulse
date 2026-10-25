@@ -771,6 +771,39 @@
         "inLanguage": "ru"
       }
     ],
+    "/standard/radar": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Традиционный режим",
+            "item": "https://hearthpulse.net/standard/radar/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Радар нерфов и баффов",
+            "item": "https://hearthpulse.net/standard/radar/"
+          }
+        ]
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/standard/radar/#page",
+        "name": "Радар нерфов и баффов Hearthstone",
+        "description": "Прогноз ослаблений и усилений карт и архетипов Стандарта по статистике и обсуждениям Reddit и X. Не официальная информация Blizzard.",
+        "url": "https://hearthpulse.net/standard/radar/",
+        "inLanguage": "ru"
+      }
+    ],
     "/classes": [
       {
         "@type": "BreadcrumbList",

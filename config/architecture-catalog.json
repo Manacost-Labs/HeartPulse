@@ -1900,6 +1900,42 @@
       "tests": ["tests/patch-notes.test.ts"],
       "allowedDependencies": [],
       "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
+      "name": "backend-radar",
+      "status": "modular",
+      "owner": "traditional-data",
+      "purpose": "Publish the nerf and buff radar of hs-data-api: validated, cached forecast of Standard cards and archetypes, or the demo fixture behind RADAR_FIXTURE.",
+      "paths": ["server/modules/radar"],
+      "publicEntrypoints": ["server/modules/radar/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [{ "method": "GET", "path": "/api/radar" }],
+      "contracts": ["server/modules/radar/contract.ts", "docs/specs/nerf-buff-radar.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": ["api.kolodahearthstone.com balance radar (/v1/constructed/balance-radar)"],
+      "tests": ["tests/radar.test.ts"],
+      "allowedDependencies": ["Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
+      "name": "frontend-radar",
+      "status": "modular",
+      "owner": "traditional-data",
+      "purpose": "Render the nerf and buff radar: summary, the two sections, class/kind/confidence filters, candidate cards with statistics and community posts.",
+      "paths": ["src/modules/radar"],
+      "publicEntrypoints": ["src/modules/radar/public.ts"],
+      "frontendRoutes": ["/standard/radar"],
+      "backendRoutes": [],
+      "contracts": ["src/modules/radar/model/types.ts", "docs/specs/nerf-buff-radar.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/radar.test.ts", "tests/next-radar-browser.test.mjs"],
+      "allowedDependencies": [],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
     }
   ],
   "legacyAreas": [

@@ -79,6 +79,7 @@ import {
 } from './standardMatchupRoutes.js';
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
+import { createRadarApi } from './modules/radar/public.js';
 import { ConstructedCardUpstreamError, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
@@ -7529,6 +7530,17 @@ app.use('/api', createPatchNotesApi({
   },
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`,
   onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
+}));
+
+// Пока hs-data-api не публикует радар, `RADAR_FIXTURE=1` включает демо-данные (docs/specs/nerf-buff-radar.md).
+app.use('/api', createRadarApi({
+  loadArchetypeNamer: async () => {
+    const translations = (await getStandardArchetypeTranslations()).map;
+    return name => ({ slug: constructedArchetypeSlug(name), label: archetypeLabel(name, translations) });
+  },
+  radarUrl: `${(process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '')}/v1/constructed/balance-radar?format=standard`,
+  fixture: process.env.RADAR_FIXTURE === '1', ttlMs: 15 * 60_000,
+  onError: error => console.error('[radar] read failed:', error instanceof Error ? error.message : error),
 }));
 
 async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {

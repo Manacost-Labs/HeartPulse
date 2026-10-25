@@ -455,6 +455,20 @@
       "entitlement": null
     },
     {
+      "id": "radar",
+      "pattern": "/standard/radar",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "radar",
+      "entitlement": null
+    },
+    {
       "id": "winrates",
       "pattern": "/classes",
       "kind": "static",
