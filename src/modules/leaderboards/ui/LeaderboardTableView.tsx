@@ -1,8 +1,13 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { preferredScrollBehavior } from '../../../shared/ui/scrollBehavior';
 import {
   LEADERBOARD_RATING_LABELS, boardTitle, formatLeaderboardTime, formatPlayers, formatRating, rankChange,
 } from '../model/leaderboardsView';
 import type { LeaderboardTable } from '../model/types';
+import { StreamerBadge } from './StreamerBadge';
 
 function Pagination({ table, onPage }: { table: LeaderboardTable; onPage: (page: number) => void }) {
   if (table.pages <= 1) return null;
@@ -16,16 +21,27 @@ function Pagination({ table, onPage }: { table: LeaderboardTable; onPage: (page:
   </nav>;
 }
 
-/** Страница таблицы: место (топ-3 выделены), ник, рейтинг (если он есть в режиме) и изменение места за сутки. */
-export function LeaderboardTableView({ table, busy, selectedPlayer, onPage, onPlayer }: {
+/**
+ * Страница таблицы: место (топ-3 выделены), ник со значком стримера, рейтинг
+ * (если он есть в режиме) и изменение места за сутки. Строка места, к
+ * которому перешли, подсвечена и прокручена в середину экрана.
+ */
+export function LeaderboardTableView({ table, busy, selectedPlayer, targetRank, onPage, onPlayer }: {
   table: LeaderboardTable;
   /** Идёт загрузка другой страницы: таблица остаётся на месте приглушённой. */
   busy: boolean;
   selectedPlayer: string | null;
+  /** Место, к которому перешли. */
+  targetRank: number | null;
   onPage: (page: number) => void;
   onPlayer: (name: string) => void;
 }) {
   const { board, rows, hasPrevious } = table;
+  const target = useRef<HTMLTableRowElement>(null);
+  const hasTarget = !busy && rows.some(row => row.rank === targetRank);
+  useEffect(() => {
+    if (hasTarget) target.current?.scrollIntoView({ block: 'center', behavior: preferredScrollBehavior() });
+  }, [hasTarget, targetRank]);
   const ratingLabel = board.rated ? LEADERBOARD_RATING_LABELS[board.mode] ?? 'Рейтинг' : null;
   return <div className="leaderboards-table data-surface" aria-busy={busy || undefined}>
     <table>
@@ -45,11 +61,16 @@ export function LeaderboardTableView({ table, busy, selectedPlayer, onPage, onPl
       <tbody>
         {rows.map(row => {
           const change = rankChange(row.rank, row.previousRank, hasPrevious);
-          return <tr key={`${row.rank}-${row.name}`} data-selected={row.name === selectedPlayer || undefined}>
+          const isTarget = row.rank === targetRank;
+          return <tr key={`${row.rank}-${row.name}`} ref={isTarget ? target : undefined}
+            data-selected={row.name === selectedPlayer || undefined} data-target={isTarget || undefined}>
             <td className="is-numeric leaderboards-rank">{row.rank <= 3
               ? <span className="leaderboards-medal">{row.rank}</span>
               : formatPlayers(row.rank)}</td>
-            <td><button type="button" className="leaderboards-player-link" onClick={() => onPlayer(row.name)}>{row.name}</button></td>
+            <td><div className="leaderboards-name">
+              <button type="button" className="leaderboards-player-link" onClick={() => onPlayer(row.name)}>{row.name}</button>
+              {row.streamer && <StreamerBadge streamer={row.streamer} />}
+            </div></td>
             {ratingLabel && <td className="is-numeric">{formatRating(board.mode, row.rating)}</td>}
             {hasPrevious && <td className={`is-numeric leaderboards-change leaderboards-change--${change?.kind ?? 'same'}`}>
               {change && <span title={change.text}><span aria-hidden="true">{change.label}</span><span className="sr-only">{change.text}</span></span>}

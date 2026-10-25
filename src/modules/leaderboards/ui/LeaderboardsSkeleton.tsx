@@ -3,10 +3,10 @@ import { LoadingBlock, LoadingSurface } from '../../../shared/ui/LoadingSurface'
 import '../../../shared/ui/LoadingSurface.css';
 import './Leaderboards.css';
 
-/** Плашки сводки той же высоты, что и загруженные. */
+/** Строка сводки той же высоты, что и загруженная. */
 export function LeaderboardSummarySkeleton() {
-  return <LoadingSurface label="Загружаем пороги таблицы" quiet layout="rows" blocksClassName="leaderboards-plaques">
-    {Array.from({ length: 3 }, (_, index) => <LoadingBlock key={index} className="leaderboards-skeleton__plaque" />)}
+  return <LoadingSurface label="Загружаем пороги таблицы" quiet layout="rows">
+    <LoadingBlock className="leaderboards-skeleton__summary" />
   </LoadingSurface>;
 }
 

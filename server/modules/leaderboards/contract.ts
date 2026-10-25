@@ -136,7 +136,7 @@ export function parseLeaderboardTable(payload: unknown, page: number, pageSize: 
     rows: list(raw.rows, 'rows').map(item => {
       const row = object(item, 'row');
       const previous = number(row.previous_rank);
-      return { rank: integer(row.rank, 'rank', 1), name: name(row.name, 'name'), rating: number(row.rating), previousRank: previous !== null && previous >= 1 ? previous : null };
+      return { rank: integer(row.rank, 'rank', 1), name: name(row.name, 'name'), rating: number(row.rating), previousRank: previous !== null && previous >= 1 ? previous : null, streamer: null };
     }),
   };
 }
@@ -192,7 +192,9 @@ export function parseLeaderboardPlayer(payload: unknown): LeaderboardPlayer {
       }),
     };
   });
-  return { region: region(player.region), name: name(player.name, 'player name'), sharedName: raw.shared_name === true, seasons };
+  const home = region(player.region);
+  // Регионы и стримера дописывает сервис: hs-data-api отвечает про один регион.
+  return { region: home, name: name(player.name, 'player name'), sharedName: raw.shared_name === true, seasons, regions: [home], streamer: null };
 }
 
 export function parsePlayerHits(payload: unknown): LeaderboardPlayerHit[] {

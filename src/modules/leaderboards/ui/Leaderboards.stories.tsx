@@ -14,7 +14,10 @@ const names = ['XQN', 'СтоякБезДела', 'Radiy', 'Explosion', 'Viconia
 
 const table: LeaderboardTable = {
   board, snapshot, query: null, total: 6543, page: 1, pageSize: 50, pages: 131, hasPrevious: true,
-  rows: names.map((name, index) => ({ rank: index + 1, name, rating: 20104 - index * 243, previousRank: index === 2 ? null : index === 0 ? 2 : index === 1 ? 1 : index + 3 })),
+  rows: names.map((name, index) => ({
+    rank: index + 1, name, rating: 20104 - index * 243, previousRank: index === 2 ? null : index === 0 ? 2 : index === 1 ? 1 : index + 3,
+    streamer: name === 'Viconia' ? { slug: 'viconia', name: 'Viconia' } : null,
+  })),
 };
 const stats: LeaderboardStats = {
   board, snapshot, topRating: 20104,
@@ -32,7 +35,7 @@ const standard: LeaderboardStats = {
   series: stats.series.map(point => ({ ...point, players: point.players * 2, top: null, at100: null, at1000: null, at5000: null })),
 };
 const player: LeaderboardPlayer = {
-  region: 'EU', name: 'XQN', sharedName: false,
+  region: 'EU', name: 'XQN', sharedName: false, regions: ['EU', 'US'], streamer: { slug: 'xqn', name: 'XQN' },
   seasons: [
     { mode: 'battlegrounds', season: 19, seasonStart: null, latest: true, final: false, rated: true, bestRank: 1, bestDay: '2026-10-25', lastRank: 1, lastRating: 20104, lastDay: '2026-10-25', inLatest: true,
       series: [5, 4, 4, 2, 1].map((rank, index) => ({ day: `2026-10-2${index + 1}`, rank, rating: 19700 + index * 100, players: 6100 + index * 110, final: false })) },
@@ -51,14 +54,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const RatedSummary: Story = { render: () => <div className="leaderboards"><LeaderboardSummary stats={stats} /></div> };
+export const RatedSummary: Story = { render: () => <div className="leaderboards"><LeaderboardSummary stats={stats} onRank={() => undefined} /></div> };
 
-export const UnratedSummary: Story = { render: () => <div className="leaderboards"><LeaderboardSummary stats={standard} /></div> };
+export const UnratedSummary: Story = { render: () => <div className="leaderboards"><LeaderboardSummary stats={standard} onRank={() => undefined} /></div> };
 
 const onPage = fn();
 
 export const Table: Story = {
-  render: () => <div className="leaderboards"><LeaderboardTableView table={table} busy={false} selectedPlayer="XQN"
+  render: () => <div className="leaderboards"><LeaderboardTableView table={table} busy={false} selectedPlayer="XQN" targetRank={5}
     onPage={onPage} onPlayer={() => undefined} /></div>,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -70,17 +73,19 @@ export const Table: Story = {
 
 export const SearchWithoutMatches: Story = {
   render: () => <div className="leaderboards"><LeaderboardTableView table={{ ...table, query: 'ничего', total: 0, pages: 1, rows: [] }}
-    busy={false} selectedPlayer={null} onPage={() => undefined} onPlayer={() => undefined} /></div>,
+    busy={false} selectedPlayer={null} targetRank={null} onPage={() => undefined} onPlayer={() => undefined} /></div>,
 };
+
+const actions = { onShow: fn(), onRegion: fn(), onClose: fn(), onRetry: fn(), onMe: fn() };
 
 export const PlayerCard: Story = {
   render: () => <div className="leaderboards"><LeaderboardPlayerCard name="XQN" region="EU" mode="battlegrounds"
-    state={{ key: 'x', status: 'ready', value: player }} onClose={() => undefined} onRetry={() => undefined} /></div>,
+    state={{ key: 'x', status: 'ready', value: player }} me={null} scrollOnOpen={false} actions={actions} /></div>,
 };
 
 export const PlayerCardLoading: Story = {
   render: () => <div className="leaderboards"><LeaderboardPlayerCard name="XQN" region="EU" mode="battlegrounds"
-    state={{ key: 'x', status: 'loading', value: null }} onClose={() => undefined} onRetry={() => undefined} /></div>,
+    state={{ key: 'x', status: 'loading', value: null }} me={null} scrollOnOpen={false} actions={actions} /></div>,
 };
 
 export const Loading: Story = { render: () => <div className="leaderboards"><LeaderboardSummarySkeleton /><LeaderboardTableSkeleton /></div> };

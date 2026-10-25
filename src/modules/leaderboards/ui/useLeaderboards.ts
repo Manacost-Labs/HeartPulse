@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchWithDeadline } from '../../../shared/http/fetchWithDeadline';
 import {
-  isLeaderboardSeasonCatalog, isLeaderboardStats, isLeaderboardTable, leaderboardApiQuery, leaderboardSearch,
+  isLeaderboardSeasonCatalog, isLeaderboardStats, isLeaderboardTable, leaderboardApiQuery, leaderboardSearch, pageOfRank,
   type LeaderboardSelection,
 } from '../model/leaderboardsView';
 import type { LeaderboardPlayer, LeaderboardSeasonCatalog, LeaderboardStats, LeaderboardTable } from '../model/types';
@@ -92,6 +92,14 @@ export function useLeaderboards(initial: LeaderboardsInitial) {
       if (change.mode !== undefined || change.region !== undefined) next.season = change.season ?? null;
       if (change.mode !== undefined || change.region !== undefined || change.season !== undefined || change.query !== undefined) next.page = change.page ?? 1;
       if (change.region !== undefined && change.region !== current.region) next.player = change.player ?? null;
+      // Переход к месту открывает его страницу без поиска; любой другой выбор страницы забывает место.
+      if (change.rank !== undefined && change.rank !== null) {
+        next.page = pageOfRank(change.rank);
+        next.query = '';
+      } else if (change.rank === undefined && (change.page !== undefined || next.page !== current.page || next.query !== current.query
+        || next.mode !== current.mode || next.region !== current.region || next.season !== current.season)) {
+        next.rank = null;
+      }
       return next;
     });
   }, []);

@@ -44,10 +44,17 @@ export type LeaderboardSelection = {
   query: string;
   /** Открытая карточка игрока (ник без номера BattleTag). */
   player: string | null;
+  /** Место, к которому перешли («к месту N», «к моему нику»): его строка подсвечена, страница — его. */
+  rank: number | null;
 };
 
+/** Строк на странице сайта; совпадает с `LEADERBOARD_PAGE_SIZE` сервера. */
+export const LEADERBOARD_PAGE_SIZE = 50;
+/** Больше мест hs-data-api не хранит: 2000 страниц Blizzard по 25 строк. */
+export const LEADERBOARD_MAX_RANK = 50_000;
+
 export const DEFAULT_LEADERBOARD_SELECTION: LeaderboardSelection = {
-  mode: 'standard', region: 'EU', season: null, page: 1, query: '', player: null,
+  mode: 'standard', region: 'EU', season: null, page: 1, query: '', player: null, rank: null,
 };
 
 const MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
@@ -69,14 +76,23 @@ export function parseLeaderboardSelection(search: URLSearchParams): LeaderboardS
   const page = search.get('page');
   const query = (search.get('q') ?? '').trim().slice(0, 32);
   const player = (search.get('player') ?? '').trim().slice(0, 64);
+  const rank = search.get('rank');
+  const target = rank && /^\d{1,5}$/.test(rank) && Number(rank) >= 1 && Number(rank) <= LEADERBOARD_MAX_RANK ? Number(rank) : null;
   return {
     mode: isLeaderboardMode(mode) ? mode : DEFAULT_LEADERBOARD_SELECTION.mode,
     region: isLeaderboardRegion(region) ? region : DEFAULT_LEADERBOARD_SELECTION.region,
     season: season && /^\d{1,6}$/.test(season) ? Number(season) : null,
-    page: page && /^\d{1,4}$/.test(page) && Number(page) >= 1 ? Math.min(Number(page), 1000) : 1,
+    // Место задаёт страницу и сильнее `page`: ссылка «к месту» не может разойтись со своей строкой.
+    page: target !== null && !query ? pageOfRank(target)
+      : page && /^\d{1,4}$/.test(page) && Number(page) >= 1 ? Math.min(Number(page), 1000) : 1,
     query,
     player: player || null,
+    rank: query ? null : target,
   };
+}
+
+export function pageOfRank(rank: number): number {
+  return Math.ceil(rank / LEADERBOARD_PAGE_SIZE);
 }
 
 /** Строка запроса страницы: только отличия от значений по умолчанию, чтобы ссылка оставалась короткой. */
@@ -85,7 +101,8 @@ export function leaderboardSearch(selection: LeaderboardSelection): string {
   if (selection.mode !== 'standard') params.set('mode', selection.mode);
   if (selection.region !== 'EU') params.set('region', selection.region);
   if (selection.season !== null) params.set('season', String(selection.season));
-  if (selection.page > 1) params.set('page', String(selection.page));
+  if (selection.rank !== null) params.set('rank', String(selection.rank));
+  else if (selection.page > 1) params.set('page', String(selection.page));
   if (selection.query) params.set('q', selection.query);
   if (selection.player) params.set('player', selection.player);
   const text = params.toString();
