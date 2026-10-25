@@ -6,7 +6,7 @@ export type RadarServiceDependencies = {
   fetchJson?: (url: string) => Promise<unknown>;
   radarUrl: string;
   /** Русские имена архетипов HSGuru и их замена в текстах модели; без них остаются английские имена. */
-  loadNaming?: () => Promise<Pick<RadarParseOptions, 'nameArchetype' | 'localize'>>;
+  loadNaming?: () => Promise<Pick<RadarParseOptions, 'nameArchetype' | 'localizeFor'>>;
   /** `true` — отдавать встроенную демо-фикстуру вместо hs-data-api. */
   fixture: boolean;
   ttlMs: number;
@@ -44,7 +44,7 @@ export function createRadarService(dependencies: RadarServiceDependencies) {
   let failure: { error: unknown; until: number } | null = null;
   let pending: Promise<RadarReport> | null = null;
 
-  const naming = async (): Promise<Pick<RadarParseOptions, 'nameArchetype' | 'localize'>> => {
+  const naming = async (): Promise<Pick<RadarParseOptions, 'nameArchetype' | 'localizeFor'>> => {
     try {
       return (await dependencies.loadNaming?.()) ?? {};
     } catch {

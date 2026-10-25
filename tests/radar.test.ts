@@ -126,16 +126,25 @@ test('the radar contract drops broken records and foreign links', () => {
 });
 
 test('the page gets Russian names and Russian posts only', () => {
-  const localize = createRadarLocalizer({
-    archetypes: { zoolock: 'Зоолок', shredslock: 'Чернокнижник на обрывках', "c'thun warlock": 'Чернокнижник на К\'Туне', aggro: 'Aggro' },
-    cards: [{ name: { en: 'Ritual of Summoning', ru: 'Ритуал призыва' } }, { name: { en: "C'Thun", ru: "К'Тун" } }, { name: { en: 'Shred', ru: 'Шред' } }],
-  });
+  const archetypes = { zoolock: 'Зоолок', shredslock: 'Чернокнижник на обрывках', "c'thun warlock": 'Чернокнижник на К\'Туне', aggro: 'Aggro' };
+  const cards = [
+    { card_id: 'BE_085', name: { en: 'Ritual of Summoning', ru: 'Ритуал призыва' } }, { card_id: 'OG_280', name: { en: "C'Thun", ru: "К'Тун" } },
+    { card_id: 'SHRED', name: { en: 'Shred', ru: 'Шред' } }, { card_id: 'CS2_028', name: { en: 'Blizzard', ru: 'Снежная буря' } },
+    { card_id: 'NOT_IN_RUN', name: { en: 'Charge', ru: 'Рывок' } },
+  ];
+  const localize = createRadarLocalizer({ archetypes, cards, cardIds: new Set(['BE_085', 'OG_280', 'SHRED', 'CS2_028']) });
   assert.equal(localize('Zoolock и Shredslock держат 63%, а C\u2019Thun Warlock 60%; ritual of summoning — ключ.'),
     'Зоолок и Чернокнижник на обрывках держат 63%, а Чернокнижник на К\'Туне 60%; Ритуал призыва — ключ.');
   assert.equal(localize('Ритуал призыва (Ritual of Summoning) и Зоолок (Zoolock) — пара.'), 'Ритуал призыва и Зоолок — пара.',
     'a Russian name followed by its English original is not repeated');
   assert.equal(localize('Aggro Shredder и Zoolocks не трогаются'), 'Aggro Shredder и Zoolocks не трогаются',
     'only whole names, and no translation that is still Latin');
+  // Регрессия: компания «Blizzard» стала картой мага «Снежная буря» по всему радару.
+  assert.equal(localize('Blizzard чаще всего повышает стоимость; I think Blizzard missed some text.'),
+    'Blizzard чаще всего повышает стоимость; I think Blizzard missed some text.', 'company and service names stay as they are');
+  assert.equal(localize('Charge даёт рывок'), 'Charge даёт рывок', 'a card the run does not name is never replaced');
+  assert.equal(localize('В Даймонд 4–Легенда и на Diamond 4-1 винрейт выше, на Legend ниже.'),
+    'В Алмаз 4–Легенда и на Алмаз 4-1 винрейт выше, на Легенда ниже.', 'ranks in Russian');
   const raw = upstream();
   raw.data.summary = 'Zoolock доминирует.';
   raw.data.history.patterns = [{ title: 'Нерф Zoolock', detail: 'Ritual of Summoning дорожает' }];
@@ -147,7 +156,10 @@ test('the page gets Russian names and Russian posts only', () => {
       titleRu: 'Ослабьте его', textRu: 'Полный перевод поста.' },
     { platform: 'x', url: 'https://x.com/a/status/3', author: 'c', score: 3, excerpt: 'Hi', translation: { text: 'Привет' } },
   ];
-  const report = parseRadarReport(raw, { localize });
+  let named: ReadonlySet<string> = new Set();
+  const report = parseRadarReport(raw, { localizeFor: cardIds => { named = cardIds; return localize; } });
+  assert.ok(named.has('BE_085') && named.has('END_033'), 'cards of candidates and of precedents are the ones replaced');
+  assert.equal(named.has('CS2_028'), false);
   assert.equal(report.summary, 'Зоолок доминирует.');
   assert.equal(report.nerfs[0].verdict, 'Ритуал призыва питает Зоолок.');
   assert.deepEqual(report.history?.patterns[0], { title: 'Нерф Зоолок', text: 'Ритуал призыва дорожает', count: null });
@@ -214,7 +226,7 @@ test('/api/radar serves the cached snapshot, waits between failed reads and mark
     const get = (path: string) => fetch(`http://127.0.0.1:${port}${path}`);
     const live = await get('/live/radar');
     assert.equal(live.status, 200);
-    assert.equal(live.headers.get('cache-control'), 'public, max-age=300, stale-while-revalidate=1800');
+    assert.equal(live.headers.get('cache-control'), 'public, max-age=60, stale-while-revalidate=120', 'a new run shows within minutes');
     assert.equal((await live.json()).demo, false);
     const demo = await get('/demo/radar');
     assert.equal(demo.headers.get('cache-control'), 'no-store', 'the demo is never cached at the edge');

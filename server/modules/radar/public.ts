@@ -25,12 +25,13 @@ export function createRadarApi({ baseUrl, fixture, archetypeSlug, loadArchetypeT
     load: createRadarService({
       radarUrl: `${baseUrl.replace(/\/+$/, '')}/v1/constructed/balance-radar?format=standard`,
       fixture,
-      ttlMs: 15 * 60_000,
+      // hs-data-api пересчитывает радар по расписанию; пять минут — самое долгое, сколько страница отстаёт от нового прогона.
+      ttlMs: 5 * 60_000,
       loadNaming: async () => {
         const [translations, cards] = await Promise.all([loadArchetypeTranslations(), loadCards?.().catch(() => []) ?? []]);
         return {
           nameArchetype: name => ({ slug: archetypeSlug(name), label: archetypeLabel(name, translations) }),
-          localize: createRadarLocalizer({ archetypes: translations, cards }),
+          localizeFor: cardIds => createRadarLocalizer({ archetypes: translations, cards, cardIds }),
         };
       },
       onError: error => console.error('[radar] read failed:', error instanceof Error ? error.message : error),

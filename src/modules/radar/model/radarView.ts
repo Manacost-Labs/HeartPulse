@@ -142,6 +142,17 @@ export function formatRadarTime(iso: string): string {
   return `${formatRadarDay(iso)}, ${pad(time.getUTCHours())}:${pad(time.getUTCMinutes())} МСК`;
 }
 
+/**
+ * Сдвиг популярности за сутки к основному периоду статистики, в п. п.:
+ * «+8,4 п. п. за сутки», если основной период длиннее суток.
+ */
+export function radarDayShift(stats: RadarCandidate['stats']): number | null {
+  const day = stats.trend.find(point => point.label === 'Сутки');
+  const main = stats.trend.find(point => point.label === stats.periodLabel);
+  if (!day || !main || day === main) return null;
+  return radarTrendDelta(day.popularity, main.popularity);
+}
+
 /** Изменение между соседними значениями, в процентных пунктах. */
 export function radarTrendDelta(current: number | null, previous: number | null): number | null {
   return current === null || previous === null ? null : Math.round((current - previous) * 10) / 10;

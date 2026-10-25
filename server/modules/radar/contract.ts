@@ -64,12 +64,25 @@ function localizeReport(report: RadarReport, localize: (value: string) => string
   };
 }
 
+/** Карты, которые прогон называет сам: кандидаты-карты и карты прецедентов. */
+function reportCardIds(report: RadarReport): Set<string> {
+  const ids = new Set<string>();
+  for (const candidate of [...report.nerfs, ...report.buffs]) {
+    if (candidate.kind === 'card') ids.add(candidate.entity.id);
+    for (const precedent of candidate.precedents) {
+      const id = precedent.cardHref?.match(/\/standard\/cards\/[a-z]+\/([^/]+)\//)?.[1];
+      if (id) ids.add(decodeURIComponent(id));
+    }
+  }
+  return ids;
+}
+
 export type RadarParseOptions = {
   demo?: boolean;
   /** Имя HSGuru → slug и русское имя архетипа сайта; без него архетип остаётся с исходным именем. */
   nameArchetype?: RadarArchetypeNamer;
-  /** Замена известных английских имён архетипов в текстах модели. */
-  localize?: (value: string) => string;
+  /** Замена известных английских имён в текстах модели по картам, которые называет прогон. */
+  localizeFor?: (cardIds: ReadonlySet<string>) => (value: string) => string;
 };
 
 /**
@@ -79,7 +92,7 @@ export type RadarParseOptions = {
  */
 export function parseRadarReport(
   value: unknown,
-  { demo = false, nameArchetype = keepArchetypeName, localize }: RadarParseOptions = {},
+  { demo = false, nameArchetype = keepArchetypeName, localizeFor }: RadarParseOptions = {},
 ): RadarReport {
   const envelope = record(value) ?? invalid('response must be an object');
   const row = record(envelope.data) ?? envelope;
@@ -107,5 +120,5 @@ export function parseRadarReport(
     history: parseHistory(row.history),
     demo,
   };
-  return localize ? localizeReport(report, localize) : report;
+  return localizeFor ? localizeReport(report, localizeFor(reportCardIds(report))) : report;
 }

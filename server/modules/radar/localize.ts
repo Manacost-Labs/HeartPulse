@@ -6,22 +6,40 @@
  * где русское имя само осталось латиницей, пропускаются. Модель часто
  * пишет «Ритуал призыва (Ritual of Summoning)»: после замены повтор в
  * скобках убирается.
+ *
+ * Карты заменяются только те, что прогон сам называет (`cardIds`: карты-
+ * кандидаты и карты прецедентов): иначе обычные слова совпадают с именами
+ * карт — компания «Blizzard» становилась картой мага «Снежная буря».
+ * Имена компаний и сервисов (`KEEP`) не заменяются никогда.
  */
 export type RadarNameSources = {
   archetypes: Readonly<Record<string, string>>;
   cards?: Iterable<Record<string, unknown>>;
+  /** Id карт, которые называет прогон; без него карты не заменяются вовсе. */
+  cardIds?: ReadonlySet<string>;
 };
+
+// Ранги и термины, которые модель пишет транслитом или по-английски.
+const TERMS: Array<[RegExp, string]> = [
+  [/(?<![\p{L}])(?:Даймонд|Diamond)(?![\p{L}])/gu, 'Алмаз'],
+  [/(?<![\p{L}])Legend(?![\p{L}])/gu, 'Легенда'],
+];
+const terms = (value: string) => TERMS.reduce((text, [pattern, label]) => text.replace(pattern, label), value);
+
+const KEEP = new Set(['blizzard', 'reddit', 'twitter', 'hsreplay', 'hsguru', 'hearthstone', 'hearthpwn', 'vicious syndicate', 'firestone']);
 
 const key = (name: string) => name.trim().replace(/\s+/g, ' ').replace(/’/g, "'").toLocaleLowerCase('en-US');
 
-function pairs({ archetypes, cards = [] }: RadarNameSources): Map<string, string> {
+function pairs({ archetypes, cards = [], cardIds = new Set() }: RadarNameSources): Map<string, string> {
   const labels = new Map<string, string>();
   const add = (english: unknown, russian: unknown) => {
     const name = typeof english === 'string' ? key(english) : '';
     const label = typeof russian === 'string' ? russian.trim() : '';
-    if (name.length >= 4 && /[a-z]/.test(name) && /[а-яё]/i.test(label)) labels.set(name, label);
+    if (name.length >= 4 && !KEEP.has(name) && /[a-z]/.test(name) && /[а-яё]/i.test(label)) labels.set(name, label);
   };
   for (const card of cards) {
+    const id = card.card_id ?? card.cardId ?? card.id;
+    if (typeof id !== 'string' || !cardIds.has(id)) continue;
     const name = card.name as { en?: unknown; ru?: unknown } | undefined;
     add(name?.en, name?.ru);
   }
@@ -32,12 +50,12 @@ function pairs({ archetypes, cards = [] }: RadarNameSources): Map<string, string
 
 export function createRadarLocalizer(sources: RadarNameSources): (value: string) => string {
   const labels = pairs(sources);
-  if (!labels.size) return value => value;
+  if (!labels.size) return terms;
   const names = [...labels.keys()].sort((a, b) => b.length - a.length)
     .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/'/g, "['’]").replace(/ /g, '\\s+'));
   const pattern = new RegExp(`(?<![\\p{L}\\d'’])(?:${names.join('|')})(?![\\p{L}\\d'’])`, 'giu');
   const russian = [...new Set(labels.values())].sort((a, b) => b.length - a.length)
     .map(label => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const repeated = new RegExp(`(${russian.join('|')})\\s*\\(\\s*\\1\\s*\\)`, 'gu');
-  return value => value.replace(pattern, match => labels.get(key(match)) ?? match).replace(repeated, '$1');
+  return value => terms(value.replace(pattern, match => labels.get(key(match)) ?? match).replace(repeated, '$1'));
 }

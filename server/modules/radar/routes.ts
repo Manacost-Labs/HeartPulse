@@ -6,7 +6,8 @@ export type RadarRouterDependencies = {
   load: () => Promise<RadarReport>;
 };
 
-const PUBLIC_CACHE = 'public, max-age=300, stale-while-revalidate=1800';
+// Короткий кеш: новый прогон должен появиться на странице за минуты, а не через полчаса.
+const PUBLIC_CACHE = 'public, max-age=60, stale-while-revalidate=120';
 
 /** Анонимный радар нерфов и баффов Стандарта: публичный прогноз, без данных зрителя. */
 export function createRadarRouter(dependencies: RadarRouterDependencies): Router {
