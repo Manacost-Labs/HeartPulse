@@ -109,6 +109,9 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
   }
 
   const results = new Map<string, { expiresAt: number; value: PlayerStats }>();
+  // Loads still computing per account; an invalidation marks them stale so a
+  // result read before it is answered once but never cached.
+  const computing = new Map<string, Set<{ stale: boolean }>>();
 
   return {
     /** Which tabs have data: version 2 game and run events per mode, counted without reading payloads. */
@@ -121,6 +124,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
 
     /** Drops the account's cached answers; the tracker ingestion calls it after storing new events. */
     invalidate(userId: string): void {
+      for (const run of computing.get(userId) ?? []) run.stale = true;
       for (const key of results.keys()) if (key.startsWith(`${userId}|`)) results.delete(key);
     },
 
@@ -132,7 +136,17 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
       const key = `${userId}|${query.mode}:${query.period}:${query.duos}:${query.mmr}:${globalAllowed}`;
       const hit = results.get(key);
       if (hit && hit.expiresAt > now()) return hit.value;
-      const value = await compute(userId, query, globalAllowed);
+      const run = { stale: false };
+      const runs = computing.get(userId) ?? new Set<{ stale: boolean }>();
+      computing.set(userId, runs.add(run));
+      let value: PlayerStats;
+      try {
+        value = await compute(userId, query, globalAllowed);
+      } finally {
+        runs.delete(run);
+        if (!runs.size) computing.delete(userId);
+      }
+      if (run.stale) return value;
       results.set(key, { expiresAt: now() + RESULT_TTL_MS, value });
       if (results.size > MAX_RESULT_ENTRIES) results.delete(results.keys().next().value as string);
       return value;

@@ -5,6 +5,7 @@ import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedControl';
 import {
   PERIOD_OPTIONS,
+  hasStats,
   useGameStats,
   type GameStatsState,
   type GlobalMmrFilter,
@@ -25,7 +26,7 @@ function ModeBody({ stats, loading, filtered, mmr, onMmrChange }: {
   onMmrChange: (value: GlobalMmrFilter) => void;
 }) {
   if (!stats) return loading ? <KpiGroup items={[]} loading skeletonCount={4} /> : null;
-  if (stats.games === 0) return <PlayerStatsEmpty filtered={filtered} />;
+  if (!hasStats(stats)) return <PlayerStatsEmpty filtered={filtered} />;
   if (stats.mode === 'battlegrounds') return <BattlegroundsStatsView stats={stats} mmr={mmr} onMmrChange={onMmrChange} />;
   if (stats.mode === 'arena') return <ArenaStatsView stats={stats} />;
   return <ConstructedStatsView stats={stats} />;

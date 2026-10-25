@@ -124,4 +124,9 @@ export type ArenaStats = {
 
 export type PlayerStats = BattlegroundsStats | ConstructedStats | ArenaStats;
 
+/** Whether an answer has anything to show; an Arena run may arrive before its matches. */
+export function hasStats(stats: PlayerStats): boolean {
+  return stats.mode === 'arena' ? stats.games > 0 || stats.summary.runs > 0 : stats.games > 0;
+}
+
 export type PlayerStatsQuery = { mode: PlayerStatsMode; period: StatsPeriod; duos: boolean; mmr: GlobalMmrFilter };

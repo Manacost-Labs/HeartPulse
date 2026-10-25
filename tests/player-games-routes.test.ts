@@ -158,4 +158,33 @@ assert.ok(disabledAddress && typeof disabledAddress === 'object');
 assert.equal((await fetch(`http://127.0.0.1:${disabledAddress.port}/api/account/game-stats/modes`)).status, 404);
 disabledServer.close();
 
+// An invalidation while a load is still computing: that answer is not cached.
+let reads = 0;
+let releaseNames: () => void = () => {};
+const racing = createPlayerStatsService({
+  loadEvents: () => {
+    reads += 1;
+    return [];
+  },
+  countEvents: () => ({}),
+  global: {},
+  resolveCardNames: () => new Promise(resolve => {
+    releaseNames = () => resolve({});
+  }),
+});
+const bgQuery = { mode: 'battlegrounds' as const, period: 'all' as const, duos: false, mmr: 'TOP_50_PERCENT' as const };
+const inFlight = racing.load('user-1', bgQuery, false);
+await new Promise(resolve => setImmediate(resolve));
+racing.invalidate('user-1');
+releaseNames();
+await inFlight;
+const again = racing.load('user-1', bgQuery, false);
+await new Promise(resolve => setImmediate(resolve));
+releaseNames();
+await again;
+assert.equal(reads, 2, 'the stale answer was not cached');
+const cached = racing.load('user-1', bgQuery, false);
+await cached;
+assert.equal(reads, 2, 'an answer computed without an invalidation is cached');
+
 console.log('player games routes: ok');

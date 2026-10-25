@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { fetchGameStatsModes, gameStatsFromPayload, gameStatsUrl } from '../src/modules/playerStats/api/gameStatsApi.js';
 import { comparison, formatDuration, formatSigned, pluralGames, rankLabel, winrate } from '../src/modules/playerStats/model/format.js';
 import { heroPickRate, visibleHeroes } from '../src/modules/playerStats/model/heroTable.js';
-import type { HeroStats } from '../src/modules/playerStats/model/stats.js';
+import { hasStats, type ArenaStats, type HeroStats } from '../src/modules/playerStats/model/stats.js';
 
 // Ranks follow the client's star levels.
 assert.equal(rankLabel({ starLevel: 1, stars: 0, legendRank: null }), 'Бронза 10');
@@ -22,6 +22,12 @@ assert.equal(pluralGames(3), '3 игры');
 assert.equal(pluralGames(11), '11 игр');
 assert.equal(winrate({ games: 3, wins: 2 }), 66.7);
 assert.equal(winrate({ games: 0, wins: 0 }), null);
+
+// An Arena run that arrived before its matches still has something to show.
+const arenaRuns = (games: number, runs: number) => ({ mode: 'arena', games, summary: { runs } }) as ArenaStats;
+assert.equal(hasStats(arenaRuns(0, 1)), true);
+assert.equal(hasStats(arenaRuns(0, 0)), false);
+assert.equal(hasStats(arenaRuns(3, 0)), true);
 
 // «В среднем»: a lower placement is better, a higher rate is better, no global value means no comparison.
 assert.deepEqual(comparison(3.8, 4.2, true)?.tone, 'better');

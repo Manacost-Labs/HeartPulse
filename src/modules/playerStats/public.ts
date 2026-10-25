@@ -10,6 +10,7 @@ export type {
   PlayerStatsQuery,
   StatsPeriod,
 } from './model/stats';
+export { hasStats } from './model/stats';
 export {
   CLASS_LABELS,
   MODE_LABELS,
