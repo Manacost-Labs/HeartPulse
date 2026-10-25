@@ -1,8 +1,9 @@
 import {
-  parseLeaderboardPlayer, parseLeaderboardStats, parseLeaderboardTable, parsePlayerHits, parseSeasonCatalog,
+  LEADERBOARD_REGIONS, parseLeaderboardPlayer, parseLeaderboardStats, parseLeaderboardTable, parsePlayerHits, parseSeasonCatalog,
   type LeaderboardMode, type LeaderboardPlayer, type LeaderboardPlayerHit, type LeaderboardRegion, type LeaderboardSeasonCatalog,
   type LeaderboardStats, type LeaderboardTable,
 } from './contract.js';
+import { createStreamerDirectory, type StreamerLookup } from './streamers.js';
 
 /** Строк на странице таблицы: столько показывает страница сайта. */
 export const LEADERBOARD_PAGE_SIZE = 50;
@@ -18,6 +19,8 @@ export type LeaderboardsServiceDependencies = {
   ttlMs?: number;
   maxEntries?: number;
   now?: () => number;
+  /** Каталог стримеров для значка у ника; по умолчанию — `/v1/hsguru/streamers` того же hs-data-api. */
+  streamers?: () => Promise<StreamerLookup>;
 };
 
 class NotFound extends Error {}
@@ -73,13 +76,38 @@ export function createLeaderboardsService(dependencies: LeaderboardsServiceDepen
     });
   };
 
+  const streamers = dependencies.streamers ?? createStreamerDirectory({
+    baseUrl: dependencies.baseUrl.replace(/\/+$/, ''), fetchJson, now,
+  });
+  const readPlayer = (region: LeaderboardRegion, name: string) => read('/player', { region, name }, parseLeaderboardPlayer);
+
   return {
     seasons: (): Promise<LeaderboardSeasonCatalog | null> => read('/seasons', {}, parseSeasonCatalog),
-    table: ({ mode, region, season, page, query }: TableQuery): Promise<LeaderboardTable | null> => read('', {
-      mode, region, season, q: query, limit: LEADERBOARD_PAGE_SIZE, offset: (page - 1) * LEADERBOARD_PAGE_SIZE,
-    }, payload => parseLeaderboardTable(payload, page, LEADERBOARD_PAGE_SIZE)),
+    // Значок стримера ставится поверх кеша таблицы: каталог обновляется отдельно и реже.
+    table: async ({ mode, region, season, page, query }: TableQuery): Promise<LeaderboardTable | null> => {
+      const [table, streamer] = await Promise.all([read('', {
+        mode, region, season, q: query, limit: LEADERBOARD_PAGE_SIZE, offset: (page - 1) * LEADERBOARD_PAGE_SIZE,
+      }, payload => parseLeaderboardTable(payload, page, LEADERBOARD_PAGE_SIZE)), streamers()]);
+      return table && { ...table, rows: table.rows.map(row => ({ ...row, streamer: streamer(row.name) })) };
+    },
     stats: ({ mode, region, season }: BoardQuery): Promise<LeaderboardStats | null> => read('/stats', { mode, region, season }, parseLeaderboardStats),
-    player: (region: LeaderboardRegion, name: string): Promise<LeaderboardPlayer | null> => read('/player', { region, name }, parseLeaderboardPlayer),
+    /**
+     * Игрок региона и регионы, где есть такой же ник. Соседние регионы читаются
+     * параллельно и необязательны: их сбой не мешает показать сам профиль.
+     */
+    player: async (region: LeaderboardRegion, name: string): Promise<LeaderboardPlayer | null> => {
+      const others = LEADERBOARD_REGIONS.filter(other => other !== region);
+      const [player, streamer, ...found] = await Promise.all([
+        readPlayer(region, name), streamers(),
+        ...others.map(other => readPlayer(other, name).then(value => Boolean(value), () => false)),
+      ]);
+      if (!player) return null;
+      return {
+        ...player,
+        regions: LEADERBOARD_REGIONS.filter(key => key === region || found[others.indexOf(key)]),
+        streamer: streamer(player.name),
+      };
+    },
     players: (query: string, region: LeaderboardRegion | null): Promise<LeaderboardPlayerHit[] | null> => read('/players', { q: query, region, limit: 8 }, parsePlayerHits),
   };
 }

@@ -22,7 +22,7 @@ async function pageState(page) {
 
 const firstNames = page => page.$$eval('.leaderboards-table tbody tr td:nth-child(2)', nodes => nodes.slice(0, 3).map(node => node.textContent));
 
-test('the leaderboards page renders the table on the server, switches modes, searches and opens a player', { timeout: 240000 }, async () => {
+test('the leaderboards page renders the table on the server, switches modes, jumps to places, searches and opens a player', { timeout: 240000 }, async () => {
   const pilot = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
   try {
@@ -59,7 +59,7 @@ test('the leaderboards page renders the table on the server, switches modes, sea
       assert.deepEqual(state.h1, ['Таблицы лидеров']);
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);
       assert.deepEqual(state.violations, [], `axe at ${width}px`);
-      const small = await page.$$eval('.leaderboards-chip, .leaderboards-select, .leaderboards-search', nodes => nodes
+      const small = await page.$$eval('.leaderboards-chip, .leaderboards-select, .leaderboards-search, .leaderboards-jump, .leaderboards-summary__jump', nodes => nodes
         .filter(node => node.getBoundingClientRect().height < 42).map(node => node.textContent));
       assert.deepEqual(small, [], `touch targets at ${width}px`);
       if (screenshots) await page.screenshot({ path: join(screenshots, `leaderboards-${width}.png`), fullPage: true });
@@ -72,8 +72,24 @@ test('the leaderboards page renders the table on the server, switches modes, sea
       ['Место', 'Игрок', 'Рейтинг', 'За сутки'], 'a rated mode shows its rating and the day change');
     assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+3) td:last-child [aria-hidden]', nodes => nodes.map(node => node.textContent)),
       ['▲ 1', '▼ 1', 'Новый']);
-    assert.match(await page.$eval('.leaderboards', node => node.textContent ?? ''), /Топ-1\u00a0000[\s\S]*Место[\s\S]*Распределение рейтинга/,
-      'thresholds above the table, charts below it');
+    assert.match(await page.$eval('.leaderboards', node => node.textContent ?? ''), /6\u00a0543 игрока[\s\S]*топ-1\u00a0000 18\u00a0104[\s\S]*Распределение рейтинга[\s\S]*Место/,
+      'one summary line and the rating histogram above the table');
+    assert.equal(await page.$$eval('.leaderboards-histogram__bars span', nodes => nodes.length), 8);
+    assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+5) .leaderboards-streamer', nodes => nodes.map(node => node.getAttribute('href'))),
+      ['/streamers/moquaitv/', '/streamers/ramses/'], 'catalog streamers get a badge linking their page');
+
+    await page.click('.leaderboards-summary__jump:first-of-type');
+    await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent === '100');
+    assert.equal(new URL(page.url()).searchParams.get('rank'), '100', 'a threshold jumps to its place');
+    await page.type('.leaderboards-jump input', '1234');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent === '1\u00a0234');
+    assert.match(new URL(page.url()).search, /rank=1234/, 'the place is in the URL');
+    // Прокрутка плавная: ждём, пока строка окажется на экране.
+    await page.waitForFunction(() => {
+      const box = document.querySelector('.leaderboards-table tr[data-target]')?.getBoundingClientRect();
+      return Boolean(box && box.top >= 0 && box.bottom <= innerHeight);
+    }, { timeout: 5000 });
 
     await page.click('.leaderboards-modes button:first-child');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'TrueBench');
@@ -83,20 +99,37 @@ test('the leaderboards page renders the table on the server, switches modes, sea
 
     await page.click('.leaderboards-modes button:nth-child(3)');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN');
-    await page.type('.leaderboards-search input', 'bob12');
+    assert.equal(new URL(page.url()).searchParams.get('rank'), null, 'another table forgets the place');
+    await page.type('.leaderboards-search input', 'bob651');
     await page.waitForFunction(() => document.querySelectorAll('.leaderboards-table tbody tr').length === 11);
-    assert.match(new URL(page.url()).search, /q=bob12/, 'the search is in the URL');
+    assert.match(new URL(page.url()).search, /q=bob651/, 'the search is in the URL');
     await page.focus('.leaderboards-search input');
-    for (let index = 0; index < 'bob12'.length; index += 1) await page.keyboard.press('Backspace');
+    for (let index = 0; index < 'bob651'.length; index += 1) await page.keyboard.press('Backspace');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN');
 
     await page.click('.leaderboards-table tbody tr:first-child .leaderboards-player-link');
-    await page.waitForSelector('.leaderboards-player__current');
-    assert.match(await page.$eval('.leaderboards-player', node => node.textContent ?? ''), /XQN[\s\S]*Поля сражений1 место/);
-    assert.match(await page.$eval('.leaderboards-player', node => node.textContent ?? ''), /Место по дням/);
-    assert.equal(await page.$$eval('.leaderboards-player__seasons tbody tr', nodes => nodes.length), 2, 'every stored season of the player');
+    await page.waitForSelector('.leaderboards-player__seasons li');
+    const card = await page.$eval('.leaderboards-player', node => node.textContent ?? '');
+    assert.match(card, /XQN[\s\S]*Лучшее место — 1[\s\S]*Сезон 19 по дням[\s\S]*1 место · 20\u00a0104/, 'best place and the day chart of the season');
+    assert.equal(await page.$$eval('.leaderboards-player__seasons li', nodes => nodes.length), 2, 'every stored season of the player');
+    assert.equal(await page.$$eval('.leaderboards-spark circle', nodes => nodes.length), 2);
     assert.match(new URL(page.url()).search, /player=XQN/);
-    if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-player-412.png'), fullPage: true });
+    const [cardBox, tableBox] = await Promise.all(['.leaderboards-player', '.leaderboards-table'].map(selector => page.$eval(selector, node => {
+      const box = node.getBoundingClientRect();
+      return { left: box.left, right: box.right };
+    })));
+    assert.ok(cardBox.left >= tableBox.right, 'on a laptop the card stands beside the table');
+    if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-player-1440.png') });
+
+    await page.click('.leaderboards-player__head button[aria-pressed]');
+    await page.waitForSelector('.leaderboards-player__head button[aria-pressed="true"]');
+    await page.click('.leaderboards-player__close');
+    await page.waitForFunction(() => !document.querySelector('.leaderboards-player'));
+    await page.click('.leaderboards-pages button:nth-child(4)');
+    await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td')?.textContent === '51');
+    await page.click('.leaderboards-me');
+    await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent?.trim() === '1');
+    assert.match(new URL(page.url()).search, /rank=1&player=XQN/, '«to my name» opens my place and card');
     await page.click('.leaderboards-player__close');
     await page.waitForFunction(() => !document.querySelector('.leaderboards-player'));
 

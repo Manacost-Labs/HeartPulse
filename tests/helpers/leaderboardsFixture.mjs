@@ -1,21 +1,25 @@
 // Ответы hs-data-api /v1/leaderboards* в его формате ({ data, meta }) для
 // браузерных тестов: Стандарт Европы (два дня, без рейтинга) и Поля сражений
 // Европы (рейтинг), сезоны и история одного игрока. Остальное — 404, как у
-// несобранной таблицы.
+// несобранной таблицы. На 4-м и 5-м местах Полей сражений — ники из
+// каталога стримеров (tests/fixtures/streamers-hsdata-20261025.json).
 
 const DAYS = ['2026-10-24', '2026-10-25'];
 const CAPTURED = '2026-10-25T16:10:02+00:00';
 const BOARDS = {
-  standard: { season: 156, start: '2026-10-01', rated: false, players: 16625, rows: 130 },
-  battlegrounds: { season: 19, start: null, rated: true, players: 6543, rows: 130 },
+  standard: { season: 156, start: '2026-10-01', rated: false, players: 16625 },
+  battlegrounds: { season: 19, start: null, rated: true, players: 6543 },
 };
+
+const STREAMER_ROWS = { 3: 'Moquai', 4: 'Ramses' };
 
 function rows(mode) {
   const board = BOARDS[mode];
-  return Array.from({ length: board.rows }, (_, index) => ({
+  return Array.from({ length: board.players }, (_, index) => ({
     rank: index + 1,
-    name: index === 0 ? (mode === 'standard' ? 'TrueBench' : 'XQN') : `${mode === 'standard' ? 'Legend' : 'Bob'}${index + 1}`,
-    rating: board.rated ? 20104 - index * 37 : null,
+    name: index === 0 ? (mode === 'standard' ? 'TrueBench' : 'XQN')
+      : (mode === 'battlegrounds' && STREAMER_ROWS[index]) || `${mode === 'standard' ? 'Legend' : 'Bob'}${index + 1}`,
+    rating: board.rated ? 20104 - Math.round(index * 1.8) : null,
     // Вчера первые два поменялись местами, третьего не было.
     previous_rank: index === 0 ? 2 : index === 1 ? 1 : index === 2 ? null : index + 1,
   }));
@@ -28,7 +32,7 @@ function board(mode) {
 
 function snapshot(mode) {
   const value = BOARDS[mode];
-  return { day: DAYS[1], captured_at: CAPTURED, total_size: value.players, stored_rows: value.rows, truncated: false, final: false, stale: false };
+  return { day: DAYS[1], captured_at: CAPTURED, total_size: value.players, stored_rows: value.players, truncated: false, final: false, stale: false };
 }
 
 function seasons() {
@@ -65,7 +69,7 @@ function stats(url) {
     histogram: rated ? Array.from({ length: 8 }, (_, index) => ({ from: 8000 + index * 500, to: 8500 + index * 500, players: 1800 - index * 200 })) : null,
     histogram_bucket: rated ? 500 : null,
     series: DAYS.map((day, index) => ({
-      day, captured_at: CAPTURED, total_size: BOARDS[mode].players - (1 - index) * 120, stored_rows: BOARDS[mode].rows, truncated: false, final: false,
+      day, captured_at: CAPTURED, total_size: BOARDS[mode].players - (1 - index) * 120, stored_rows: BOARDS[mode].players, truncated: false, final: false,
       rating_at_1: rated ? 20050 + index * 54 : null, rating_at_100: rated ? 12990 + index * 20 : null,
       rating_at_1000: rated ? 10100 + index * 20 : null, rating_at_5000: rated ? 8300 + index * 20 : null,
     })),

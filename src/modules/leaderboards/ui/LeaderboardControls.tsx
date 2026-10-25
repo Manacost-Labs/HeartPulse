@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
-import { Search } from 'lucide-react';
+import { CornerDownLeft, Search, UserRound } from 'lucide-react';
 import {
   LEADERBOARD_MODE_TABS, LEADERBOARD_REGION_LABELS, formatSeasonLabel,
   type LeaderboardSelection,
@@ -63,4 +63,33 @@ export function LeaderboardSearch({ query, onSelect }: {
     <input id={searchId} type="search" inputMode="search" autoComplete="off" spellCheck={false} maxLength={32}
       placeholder="Найти игрока" value={draft} onChange={event => setDraft(event.target.value)} />
   </label>;
+}
+
+/**
+ * «К месту N»: номер места открывает его страницу и подсвечивает строку.
+ * Поле не трогает выбор, пока номер не отправлен (Enter или стрелка).
+ */
+export function LeaderboardJump({ max, onJump }: { max: number; onJump: (rank: number) => void }) {
+  const jumpId = useId();
+  const [draft, setDraft] = useState('');
+  const rank = Number(draft);
+  const valid = /^\d{1,5}$/.test(draft) && rank >= 1 && rank <= max;
+  return <form className="leaderboards-jump" onSubmit={event => {
+    event.preventDefault();
+    if (!valid) return;
+    onJump(rank);
+    setDraft('');
+  }}>
+    <label className="sr-only" htmlFor={jumpId}>К месту</label>
+    <input id={jumpId} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" maxLength={5} placeholder="К месту"
+      value={draft} onChange={event => setDraft(event.target.value.replace(/\D/g, ''))} />
+    <button type="submit" className="leaderboards-jump__go" disabled={!valid} aria-label="Перейти к месту"><CornerDownLeft aria-hidden="true" /></button>
+  </form>;
+}
+
+/** «К моему нику» — только когда зритель отметил себя в карточке игрока. */
+export function LeaderboardMyNick({ name, onClick }: { name: string; onClick: () => void }) {
+  return <button type="button" className="leaderboards-chip leaderboards-me" onClick={onClick} title={`К месту игрока ${name}`}>
+    <UserRound aria-hidden="true" /><span>К моему нику</span>
+  </button>;
 }

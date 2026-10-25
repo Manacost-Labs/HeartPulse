@@ -49,12 +49,16 @@ export type LeaderboardSnapshot = {
   stale: boolean;
 };
 
+/** Стример из каталога HSGuru с тем же ником (сравнение без регистра и «_»): ссылка на его страницу. */
+export type LeaderboardStreamer = { slug: string; name: string };
+
 export type LeaderboardRow = {
   rank: number;
   name: string;
   rating: number | null;
   /** Место в предыдущем снимке; `null` — игрока там не было или снимка нет. */
   previousRank: number | null;
+  streamer: LeaderboardStreamer | null;
 };
 
 export type LeaderboardTable = {
@@ -105,6 +109,9 @@ export type LeaderboardPlayer = {
   /** Под этим ником в одной таблице несколько аккаунтов: Blizzard не показывает номер BattleTag. */
   sharedName: boolean;
   seasons: LeaderboardPlayerSeason[];
+  /** Регионы, где есть таблицы с этим ником (выбранный регион — всегда); другой регион может быть другим человеком. */
+  regions: LeaderboardRegion[];
+  streamer: LeaderboardStreamer | null;
 };
 
 export type LeaderboardPlayerHit = {

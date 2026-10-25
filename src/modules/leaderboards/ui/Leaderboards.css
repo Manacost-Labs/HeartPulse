@@ -1,6 +1,7 @@
 /* Таблицы лидеров (design.md). Компактная шапка, одна строка выбора без
-   рамки, плашки порогов, одна таблица. Один акцент (--lb-accent: выбранные
-   режим и регион, ссылки на игроков), золото — только у мест топ-3.
+   рамки, сводка одной строкой, одна таблица и карточка игрока сбоку. Один
+   акцент (--lb-accent: выбранные режим и регион, ссылки на игроков), золото —
+   только у мест топ-3 и строки, к которой перешли.
    Шкала текста: метка, мелкий, основной, заголовок. */
 
 .leaderboards-page {
@@ -150,30 +151,142 @@
   outline-offset: 2px;
 }
 
-/* Плашки порогов и поиск над таблицей. */
+/* Сводка, переходы и поиск над таблицей. */
 
-.leaderboards-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; min-width: 0; }
+.leaderboards-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem 1rem;
+  align-items: start;
+  min-width: 0;
+}
+
 .leaderboards-toolbar > .data-surface { min-width: 0; }
+.leaderboards-toolbar__note { grid-column: 1 / -1; }
 
-.leaderboards-summary { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; min-width: 0; }
+.leaderboards-tools { display: flex; gap: 0.5rem; align-items: center; justify-content: flex-end; min-width: 0; }
+.leaderboards-tools .leaderboards-search { flex: 0 1 280px; min-width: 12rem; }
 
-.leaderboards-plaques { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; }
+.leaderboards-summary { display: grid; gap: 0.35rem; min-width: 0; }
 
-.leaderboards-plaque {
+.leaderboards-summary__line {
   display: flex;
-  gap: 0.4rem;
-  align-items: baseline;
-  padding: 0.3rem 0.65rem;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: var(--lb-text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboards-summary__line strong { color: var(--arena-ink); font-weight: 700; }
+
+.leaderboards-summary__jump {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-decoration-color: rgba(84, 51, 22, 0.4);
+  text-underline-offset: 4px;
+}
+
+.leaderboards-summary__jump:hover { color: var(--lb-accent); text-decoration-color: currentColor; }
+
+/* Компактная гистограмма рейтинга: столбики на CSS, высота — доля от самого полного диапазона. */
+.leaderboards-histogram { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: end; margin: 0; }
+.leaderboards-histogram figcaption { padding-bottom: 1.1rem; }
+.leaderboards-histogram__plot { display: grid; flex: 0 1 26rem; gap: 2px; min-width: 0; }
+
+.leaderboards-histogram__bars {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 2.25rem;
+  border-bottom: var(--lb-line);
+}
+
+.leaderboards-histogram__bars span {
+  flex: 1 1 0;
+  height: calc(var(--lb-bar) * 100%);
+  border-radius: 2px 2px 0 0;
+  background: rgba(143, 83, 109, 0.6);
+}
+
+.leaderboards-histogram__ticks,
+.leaderboards-spark__ticks {
+  display: flex;
+  justify-content: space-between;
+  color: var(--arena-muted-ink);
+  font-size: var(--lb-text-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboards-jump {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   border: var(--lb-line);
   border-radius: 6px;
   background: var(--lb-fill);
-  font-size: var(--lb-text-small);
-  white-space: nowrap;
 }
 
-.leaderboards-plaque dt { color: var(--arena-muted-ink); }
-.leaderboards-plaque dd { margin: 0; color: var(--arena-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-.leaderboards-plaque small { margin-left: 0.35rem; color: var(--arena-muted-ink); font-size: inherit; font-weight: 400; }
+.leaderboards-jump input {
+  width: 6.5rem;
+  min-width: 0;
+  padding: 0 0 0 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.leaderboards-jump__go {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--arena-ink);
+  cursor: pointer;
+}
+
+.leaderboards-jump__go:disabled { color: var(--arena-muted-ink); cursor: default; opacity: 0.5; }
+.leaderboards-jump__go svg,
+.leaderboards-me svg { width: 16px; height: 16px; }
+.leaderboards-jump:focus-within { outline: 2px solid var(--lb-accent); outline-offset: 2px; }
+.leaderboards-me { display: inline-flex; gap: 0.4rem; align-items: center; }
+
+/* Таблица и карточка игрока: на широком экране карточка справа и не уезжает при прокрутке. */
+.leaderboards-body { display: grid; gap: 0.75rem; min-width: 0; }
+.leaderboards-body__main { display: grid; gap: 0.5rem; min-width: 0; }
+
+@media (min-width: 1100px) {
+  .leaderboards-body.has-player { grid-template-columns: minmax(0, 1fr) minmax(320px, 360px); align-items: start; }
+  .leaderboards-body.has-player .leaderboards-body__main { grid-row: 1; grid-column: 1; }
+
+  .leaderboards-body.has-player .leaderboards-player {
+    position: sticky;
+    top: 1rem;
+    grid-row: 1;
+    grid-column: 2;
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+  }
+}
 
 .leaderboards-charts {
   display: grid;
@@ -274,6 +387,38 @@
 .leaderboards-player-link:hover,
 .leaderboards-player-link[aria-pressed='true'] { background: none; color: var(--lb-accent); text-decoration-color: currentColor; }
 
+.leaderboards-table tr[data-target] td { background: rgba(217, 171, 73, 0.28); }
+
+.leaderboards-name { display: flex; gap: 0.25rem; align-items: center; min-width: 0; }
+.leaderboards-name .leaderboards-player-link { flex: 0 1 auto; min-width: 0; }
+
+.leaderboards-streamer {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--arena-muted-ink);
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.leaderboards-streamer svg { width: 16px; height: 16px; }
+.leaderboards-streamer:hover { color: var(--lb-accent); }
+.leaderboards-streamer:focus-visible { outline: 2px solid var(--lb-accent); outline-offset: 1px; }
+
+.leaderboards-streamer--labelled {
+  display: inline-flex;
+  gap: 0.3rem;
+  width: auto;
+  height: auto;
+  min-height: 32px;
+  font-size: var(--lb-text-small);
+  text-decoration: underline;
+  text-decoration-color: rgba(84, 51, 22, 0.3);
+  text-underline-offset: 3px;
+}
+
 .leaderboards-change { font-size: var(--lb-text-small); }
 .leaderboards-change--up { color: var(--positive, #2f7a3e); }
 .leaderboards-change--down { color: var(--negative, #a33a3a); }
@@ -299,40 +444,67 @@
 
 /* Карточка игрока. */
 
-.leaderboards-player { display: grid; gap: 0.75rem; padding: 0.85rem 1rem 1rem; }
+/* Отступ прокрутки — под липкую шапку телефона. */
+.leaderboards-player { display: grid; gap: 0.65rem; align-content: start; padding: 0.85rem 1rem 1rem; scroll-margin-top: 5rem; }
 
-.leaderboards-player__head { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
+.leaderboards-player__head { display: flex; gap: 0.5rem; align-items: flex-start; }
+.leaderboards-player__title { flex: 1 1 auto; min-width: 0; }
 .leaderboards-player__head h2 { overflow-wrap: anywhere; }
 .leaderboards-player__close { display: grid; place-items: center; width: 44px; padding: 0; }
 .leaderboards-player__close svg { width: 18px; height: 18px; }
 
-.leaderboards-player__current {
+.leaderboards-player__filters,
+.leaderboards-player__modes { display: flex; flex-wrap: wrap; gap: 0.4rem; min-width: 0; }
+.leaderboards-player__filters .leaderboards-regions .leaderboards-chip { flex: 1 1 auto; }
+.leaderboards-player__best { margin: 0; font-size: var(--lb-text-small); font-variant-numeric: tabular-nums; }
+
+.leaderboards-player__chart { display: grid; gap: 0.4rem; padding-top: 0.5rem; border-top: var(--lb-line); }
+.leaderboards-player__views { justify-self: start; }
+
+.leaderboards-spark { display: grid; gap: 0.25rem; margin: 0; }
+.leaderboards-spark__head { display: flex; flex-wrap: wrap; gap: 0.15rem 0.75rem; align-items: baseline; justify-content: space-between; }
+.leaderboards-spark__value { font-size: var(--lb-text-small); font-variant-numeric: tabular-nums; }
+.leaderboards-spark__plot { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+.leaderboards-spark__axis { stroke: var(--arena-paper-line); stroke-width: 1; }
+
+.leaderboards-spark__line {
+  fill: none;
+  stroke: var(--lb-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.leaderboards-spark__dot { fill: var(--lb-accent); }
+.leaderboards-spark__dot.is-selected { stroke: #f7e8bf; stroke-width: 2; }
+.leaderboards-spark__hit { fill: transparent; cursor: crosshair; }
+
+.leaderboards-player__seasons { display: grid; margin: 0; padding: 0; border-top: var(--lb-line); list-style: none; }
+.leaderboards-player__seasons li { border-bottom: var(--lb-line); }
+.leaderboards-player__seasons li[data-selected] { background: rgba(141, 23, 29, 0.08); }
+
+.leaderboards-player__season {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 42px;
+  padding: 0.25rem 0.35rem;
+  border: 0;
+  background: none;
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: var(--lb-text-small);
+  text-align: left;
+  cursor: pointer;
 }
 
-.leaderboards-player__current li {
-  display: grid;
-  gap: 0.1rem;
-  padding: 0.5rem 0.75rem;
-  border: var(--lb-line);
-  border-radius: 6px;
-  background: rgba(250, 235, 197, 0.55);
-}
-
-.leaderboards-player__current strong { font-family: var(--font-display); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
-
-.leaderboards-player__seasons { max-height: 280px; overflow: auto; border-top: var(--lb-line); }
-.leaderboards-player__seasons table { width: 100%; border-collapse: collapse; font-size: var(--lb-text-small); font-variant-numeric: tabular-nums; }
-.leaderboards-player__seasons th { position: sticky; top: 0; background: #ecd6a6; color: var(--arena-muted-ink); font-weight: 700; text-align: left; }
-.leaderboards-player__seasons th,
-.leaderboards-player__seasons td { padding: 0.35rem 0.5rem; border-bottom: var(--lb-line); white-space: nowrap; }
-.leaderboards-player__seasons .is-numeric { text-align: right; }
-.leaderboards-player__seasons tr[data-selected] td { background: rgba(141, 23, 29, 0.08); }
+.leaderboards-player__season:hover { color: var(--lb-accent); }
+.leaderboards-player__season:focus-visible { outline: 2px solid var(--lb-accent); outline-offset: -2px; }
+.leaderboards-player__season-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboards-player__season-place { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+.leaderboards-player__season-place small { color: var(--arena-muted-ink); font-size: inherit; font-weight: 400; }
 
 /* Сообщения и скелетон. */
 
@@ -351,11 +523,17 @@
 .leaderboards-source { padding: 0 0.25rem; }
 
 .leaderboards-table--skeleton { gap: 6px; min-height: 560px; }
-.leaderboards-skeleton__plaque { width: 8rem; height: 1.9rem; }
+.leaderboards-skeleton__summary { width: min(26rem, 100%); height: 1.5rem; margin-block: 0.6rem; }
 .leaderboards-skeleton__row { height: 2.75rem; }
 .leaderboards-skeleton__line { width: 50%; height: 1rem; }
-.leaderboards-skeleton__chart { height: 220px; }
+.leaderboards-skeleton__spark { height: 96px; }
 .leaderboards-player__skeleton { display: grid; gap: 0.75rem; }
+
+/* Уже ноутбука сводке и инструментам не хватает одной строки: инструменты встают под сводку. */
+@media (max-width: 1099px) {
+  .leaderboards-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .leaderboards-tools { justify-content: flex-start; }
+}
 
 @media (max-width: 720px) {
   .leaderboards-page .section-banner-modern::before { display: none; }
@@ -369,7 +547,12 @@
   .leaderboards-controls__filters { display: grid; grid-template-columns: minmax(0, 1fr); }
   .leaderboards-regions .leaderboards-chip { flex: 1 1 0; }
   .leaderboards-select { width: 100%; }
-  .leaderboards-search { flex: 1 1 100%; }
+  .leaderboards-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .leaderboards-tools { flex-wrap: wrap; justify-content: stretch; }
+  .leaderboards-jump { flex: 0 0 8.5rem; }
+  .leaderboards-jump input { width: 100%; }
+  .leaderboards-tools .leaderboards-search { flex: 1 1 10rem; min-width: 0; margin-left: 0; }
+  .leaderboards-histogram__plot { flex-basis: 100%; }
 
   .leaderboards-table__rank { width: 3.25rem; }
   .leaderboards-table__rating { width: 4.75rem; }
