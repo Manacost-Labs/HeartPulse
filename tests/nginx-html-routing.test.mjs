@@ -119,6 +119,7 @@ function firstMatchingRegexLocation(pathname) {
 function substituteRouteParameters(route) {
   const defaults = {
     guideSlug: 'guide-1',
+    streamerSlug: 'reqvam',
     archetypeId: '123',
     cardId: 'CATA_785',
     dbfId: '76521',
@@ -587,11 +588,11 @@ for (const route of inventory.routes) {
       `${route.id} filters and errors must retain their robots policy`);
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/patches', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/patches', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
-  if (['guides-archive', 'guides-archive-detail', 'constructed-archetype-detail', 'standard-meta-legacy-detail'].includes(route.id)) {
+  if (['guides-archive', 'guides-archive-detail', 'constructed-archetype-detail', 'standard-meta-legacy-detail', 'streamer-detail'].includes(route.id)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }

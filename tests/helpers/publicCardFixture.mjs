@@ -8,6 +8,12 @@ import { startCredentialBackend } from './credentialBackend.mjs';
 import { battlegroundTrinketsFixture, patchNotesFixture } from './patchNotesFixture.mjs';
 import { leaderboardsFixture } from './leaderboardsFixture.mjs';
 
+const streamers = JSON.parse(readFileSync(resolve('tests/fixtures/streamers-hsdata-20261025.json'), 'utf8'));
+const STREAMER_PATHS = {
+  '/v1/hsguru/streamers': streamers.streamers, '/v1/hsguru/streaming-now': streamers.streamingNow,
+  '/v1/hsguru/streamers/nohandsgamer': streamers.streamer, '/v1/hsguru/streamers/nohandsgamer/decks': streamers.streamerDecks,
+};
+
 export async function listenLocal(server) {
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   return `http://127.0.0.1:${server.address().port}`;
@@ -51,6 +57,13 @@ export async function publicCardFixture({ backendEnv } = {}) {
       const body = leaderboardsFixture(url);
       if (body) response.end(JSON.stringify(body));
       else response.writeHead(404).end('{"detail":"This leaderboard is not collected yet"}');
+    } else if (url.pathname in STREAMER_PATHS) {
+      const payload = STREAMER_PATHS[url.pathname];
+      const format = url.searchParams.get('format');
+      const rows = format && url.pathname.endsWith('/decks') ? payload.data.filter(row => row.format === format) : payload.data;
+      response.end(JSON.stringify({ ...payload, data: rows, meta: { ...payload.meta, count: rows.length } }));
+    } else if (url.pathname.startsWith('/v1/hsguru/streamers/')) {
+      response.writeHead(404).end('{"detail":"HSGuru has no decks of this streamer"}');
     } else if (url.pathname === '/api/patches') {
       response.end(JSON.stringify({ total: patchNotesFixture.length, patches: patchNotesFixture }));
     } else if (url.pathname.startsWith('/demo/view/')) {

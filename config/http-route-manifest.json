@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 93,
-    "routeRegistrations": 258,
+    "sourceFiles": 94,
+    "routeRegistrations": 260,
     "middlewareRegistrations": 135,
     "explicitGuardRouteRegistrations": 66,
     "unresolvedPaths": 0
@@ -2730,6 +2730,7 @@
       ],
       "receiver": "app",
       "handlers": [
+        "createStreamersApi(...)",
         "createLeaderboardsApi(...)"
       ],
       "guardSignals": [],
@@ -4674,6 +4675,30 @@
       ],
       "guardSignals": [],
       "source": "server/modules/readerPermissions/public.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/streamers",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/streamers/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/streamers/:slug",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/streamers/routes.ts",
       "sourceOrder": 1
     },
     {

@@ -59,6 +59,8 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/standard/meta/',
   '/standard/meta/[format]/[archetypeSlug]/',
   '/standard/vicious-gold/',
+  '/streamers/',
+  '/streamers/[streamerSlug]/',
   '/terms/',
   '/u/[nickname]/',
   '/tierlist/',

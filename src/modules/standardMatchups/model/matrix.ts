@@ -1,11 +1,18 @@
 import type { StandardMatchupsClassKey, StandardMatchupsData } from './types';
 
 /**
- * How far a pair's win rate can be trusted. The source publishes no game count
- * per pair, only each archetype's share of games; a pair's expected sample
- * grows with the product of both shares, so their geometric mean ranks it.
+ * How far a pair's win rate can be trusted: by its games when the payload has
+ * them, else (older payloads) by the geometric mean of both archetypes' shares,
+ * which grows with the pair's expected sample.
  */
 export type StandardMatchupConfidence = 'low' | 'medium' | 'high';
+
+/** Games of a pair from which it is medium or high; below medium the matrix mutes it. */
+export const CONFIDENCE_GAMES = { medium: 100, high: 500 } as const;
+
+export function gamesConfidence(games: number): StandardMatchupConfidence {
+  return games >= CONFIDENCE_GAMES.high ? 'high' : games >= CONFIDENCE_GAMES.medium ? 'medium' : 'low';
+}
 
 /** Geometric mean of the two shares, in percent, from which a pair is medium or high. */
 export const CONFIDENCE_SHARE = { medium: 2, high: 4 } as const;
@@ -34,15 +41,19 @@ export interface StandardMatrixPair {
   b: string;
   /** Fraction: 0.523 = 52.3%. */
   winRate: number;
-  /** `CONFIDENCE_RANK` of the pair. */
+  /** Games of the pair, or its `CONFIDENCE_RANK` when `counted` is false. */
   games: number;
 }
 
 export interface StandardMatrix {
   archetypes: StandardMatrixArchetype[];
   pairs: StandardMatrixPair[];
-  /** The source's minimum games for a published pair, read from its URL. */
+  /** The minimum games of a published pair: the slice's, else read from the source URL. */
   minSample: number | null;
+  /** True when `games` are real game counts; false for payloads without them. */
+  counted: boolean;
+  /** Pairs below this `games` value are muted and left out of best/worst. */
+  minGames: number;
 }
 
 function share(value: string | null | undefined): number | undefined {
@@ -77,13 +88,16 @@ export function standardMatrix(data: StandardMatchupsData, labelOf: (name: strin
     share: share(columns.get(row.archetype)?.popularity),
   }));
   const shareOf = new Map(archetypes.map(archetype => [archetype.id, archetype.share]));
+  const counted = data.rows.some(row => row.cells.some(cell => cell.games !== undefined));
   const pairs: StandardMatrixPair[] = [];
   for (const row of data.rows) {
     for (const cell of row.cells) {
       if (cell.winrate === null || cell.opponent === row.archetype || !shareOf.has(cell.opponent)) continue;
       pairs.push({ a: row.archetype, b: cell.opponent, winRate: cell.winrate / 100,
-        games: CONFIDENCE_RANK[pairConfidence(shareOf.get(row.archetype), shareOf.get(cell.opponent))] });
+        games: counted ? cell.games ?? 0
+          : CONFIDENCE_RANK[pairConfidence(shareOf.get(row.archetype), shareOf.get(cell.opponent))] });
     }
   }
-  return { archetypes, pairs, minSample: matchupMinSample(data.sourceUrl) };
+  return { archetypes, pairs, counted, minGames: counted ? CONFIDENCE_GAMES.medium : MATRIX_MIN_GAMES,
+    minSample: data.minGames ?? matchupMinSample(data.sourceUrl) };
 }

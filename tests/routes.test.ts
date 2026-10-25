@@ -27,6 +27,7 @@ const EXPECTED_ROUTE_PATHS = [
   ['cosmetics', '/cosmetics'],
   ['guides-archive', '/guides-archive'],
   ['contests', '/contests'],
+  ['streamers', '/streamers'],
   ['standard-matchups', '/standard/matchups'],
   ['standard-meta', '/standard/meta'],
   ['fun-decks', '/standard/fun-decks'],

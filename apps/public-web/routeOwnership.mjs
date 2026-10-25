@@ -12,9 +12,10 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pagesEnabled && /^\/cosmetics(?:\/[^/]+){0,2}\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/tier-list(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/(?:strategies|tier-builder)(?:\/.*)?$/.test(pathname)) return 'next';
-  if (pagesEnabled && /^\/(?:faq|privacy|terms|developers\/api|articles|guides-archive|heroes|library|contests|leaderboards|classes|tierlist|legendaries|standard\/(?:matchups|meta|fun-decks|vicious-gold|archetypes|patches|radar))\/?$/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/(?:faq|privacy|terms|developers\/api|articles|guides-archive|heroes|library|contests|streamers|leaderboards|classes|tierlist|legendaries|standard\/(?:matchups|meta|fun-decks|vicious-gold|archetypes|patches|radar))\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/standard\/(?:archetypes|meta)\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/guides-archive\/.+/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/streamers\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/heroes\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/library\/(?:minions|spells|anomalies|dark-gifts|quests|rewards|darkmoon-prizes|trinkets|timewarped|archive(?:\/(?:minions|spells|anomalies|quests|rewards|darkmoon-prizes|trinkets))?)\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/library\/(?:archive\/)?[^/]+\/[^/]+-[1-9][0-9]*\/?$/.test(pathname)) return 'next';

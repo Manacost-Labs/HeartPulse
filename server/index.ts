@@ -74,6 +74,8 @@ import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRo
 import {
   createStandardMatchupRouter,
   excludeOtherStandardMatchups,
+  standardMatchupSliceDependencies,
+  standardMatchupSliceKey,
   transformHsguruMatchups,
   type StandardMatchupFormat,
 } from './standardMatchupRoutes.js';
@@ -81,6 +83,7 @@ import { createConstructedCardDataService, createConstructedCardRouter } from '.
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
 import { createRadarApi } from './modules/radar/public.js';
 import { createLeaderboardsApi } from './modules/leaderboards/public.js';
+import { createStreamersApi } from './modules/streamers/public.js';
 import { ConstructedCardUpstreamError, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
@@ -7340,12 +7343,12 @@ app.use('/api', createClassMatchupRouter({
 app.use('/api', createStandardMatchupRouter({
   accessGuard: requireStandardAccess,
   memoryCache: standardMatchupsApiCache,
-  redisKey: format => redisDataKey('standard-matchups', format),
+  redisKey: slice => redisDataKey('standard-matchups', standardMatchupSliceKey(slice)),
   redisGet: redisGetCache,
   redisSet: redisSetCache,
-  fetchPayload: format => fetchDataset(STANDARD_MATCHUPS_DATASET_BY_FORMAT[format]),
   getTranslations: getStandardArchetypeTranslations,
-  transform: transformStandardMatchups,
+  ...standardMatchupSliceDependencies({ origin: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN,
+    fetchJson: fetchDataset, formatLabel: format => STANDARD_MATCHUPS_FORMAT_LABEL[format], translate: archetypeLabel }),
   memoryTtlMs: EXTERNAL_DATASET_CACHE_MS,
   redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
   cacheHeader: CACHE_1H,
@@ -7536,9 +7539,7 @@ app.use('/api', createRadarApi({
   archetypeSlug: constructedArchetypeSlug, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map,
   loadCards: async () => (await constructedCardDataService.loadPublicCards?.('wild'))?.cards ?? [],
 }));
-
-// Официальные таблицы лидеров Blizzard (docs/specs/official-leaderboards.md).
-app.use('/api', createLeaderboardsApi({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN }));
+app.use('/api', createStreamersApi({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map }), createLeaderboardsApi({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN }));
 
 async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {
   if (normalizeTierlistEarlyStatsMetadata(data).provisional !== true) return true;

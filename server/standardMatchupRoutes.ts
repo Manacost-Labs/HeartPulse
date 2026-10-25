@@ -1,32 +1,30 @@
 import { Router, type RequestHandler } from 'express';
 import { sendDatasetJsonCached } from './datasetCacheResponse.js';
 import { inferStandardMetaClass, type StandardMetaClassKey } from './standardMetaClasses.js';
+import {
+  parseMatchupNumber, parseStandardMatchupSlice, standardMatchupSliceKey,
+  type HsguruMatchupTransformOptions, type StandardMatchupFormat, type StandardMatchupSlice,
+} from './standardMatchupSlices.js';
 
-export type StandardMatchupFormat = 'standard' | 'wild';
+export * from './standardMatchupSlices.js';
+
 type CacheEntry = { data: any; etag: string; expiresAt: number };
 type RedisEntry = { data: any; etag: string };
 
 export type StandardMatchupRouterDependencies = {
   accessGuard: RequestHandler;
   memoryCache: Map<string, CacheEntry>;
-  redisKey: (format: StandardMatchupFormat) => string;
+  redisKey: (slice: StandardMatchupSlice) => string;
   redisGet: (key: string) => Promise<RedisEntry | null>;
   redisSet: (key: string, data: any, etag: string, ttlSeconds: number) => Promise<unknown> | unknown;
-  fetchPayload: (format: StandardMatchupFormat) => Promise<any>;
+  fetchPayload: (slice: StandardMatchupSlice) => Promise<any>;
   getTranslations: (now: number) => Promise<any>;
-  transform: (payload: any, format: StandardMatchupFormat, translations: any) => any;
+  transform: (payload: any, slice: StandardMatchupSlice, translations: any) => any;
   memoryTtlMs: number;
   redisTtlSeconds: number;
   cacheHeader?: string;
   now?: () => number;
   onError?: (scope: 'redis-read' | 'redis-write' | 'origin', error: unknown) => void;
-};
-
-export type HsguruMatchupTransformOptions = {
-  formatLabel: string;
-  sourceId: string;
-  translationSource: string;
-  translate: (archetype: string) => string;
 };
 
 type HsguruMatchupsTable = { headers?: unknown[]; rows?: unknown[] };
@@ -37,13 +35,6 @@ export type HsguruMatchupsPayload = {
   tables?: HsguruMatchupsTable[];
   data?: { fetched_at?: string | null; url?: string; tables?: HsguruMatchupsTable[] };
 } | null | undefined;
-
-function parseMatchupNumber(value: unknown): number | null {
-  const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
-  if (!raw || raw === '—' || raw === '-') return null;
-  const number = Number(raw);
-  return Number.isFinite(number) ? Math.round(number * 10) / 10 : null;
-}
 
 /**
  * HSGuru's matchup table. Its first body row is the popularity row: one value
@@ -150,9 +141,10 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
   const now = dependencies.now ?? Date.now;
 
   router.get('/standard/matchups', dependencies.accessGuard, async (request, response) => {
-    const format: StandardMatchupFormat = request.query.format === 'wild' ? 'wild' : 'standard';
+    const slice = parseStandardMatchupSlice(request.query as Record<string, unknown>);
+    const sliceKey = standardMatchupSliceKey(slice);
     const timestamp = now();
-    const cached = dependencies.memoryCache.get(format);
+    const cached = dependencies.memoryCache.get(sliceKey);
     if (cached && cached.expiresAt > timestamp) {
       return sendDatasetJsonCached(
         request,
@@ -164,12 +156,12 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
       );
     }
 
-    const key = `${dependencies.redisKey(format)}:without-other-v2`;
+    const key = `${dependencies.redisKey(slice)}:without-other-v3`;
     try {
       const redisCached = await dependencies.redisGet(key);
       if (redisCached) {
         const filteredData = excludeOtherStandardMatchups(redisCached.data);
-        dependencies.memoryCache.set(format, {
+        dependencies.memoryCache.set(sliceKey, {
           data: filteredData,
           etag: redisCached.etag,
           expiresAt: timestamp + dependencies.memoryTtlMs,
@@ -182,14 +174,15 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
 
     try {
       const [payload, translations] = await Promise.all([
-        dependencies.fetchPayload(format),
+        dependencies.fetchPayload(slice),
         dependencies.getTranslations(timestamp),
       ]);
-      const data = excludeOtherStandardMatchups(dependencies.transform(payload, format, translations));
+      const data = excludeOtherStandardMatchups(dependencies.transform(payload, slice, translations));
       const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : Number.NaN;
       const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : timestamp.toString(36);
-      const etag = `"standard-matchups-v7-${format}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
-      dependencies.memoryCache.set(format, {
+      const sliceToken = [slice.format, slice.rank, data.period ?? slice.period ?? 'default', slice.minGames].join('-');
+      const etag = `"standard-matchups-v8-${sliceToken}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
+      dependencies.memoryCache.set(sliceKey, {
         data,
         etag,
         expiresAt: timestamp + dependencies.memoryTtlMs,

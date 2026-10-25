@@ -12,7 +12,7 @@ import { navigate } from './navigation';
 export function StandardMatchupsPageClient() {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'standard');
-  const matchups = useStandardMatchups(access.user?.id, allowed);
+  const matchups = useStandardMatchups(access.user?.id, allowed, { syncUrl: true });
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
   useEffect(() => {
     const updatedAt = matchups.state.data?.updatedAt;
@@ -27,7 +27,8 @@ export function StandardMatchupsPageClient() {
     access={access} navigate={navigate} updatedAtLabel={updatedAtLabel} wide>
     {allowed
       ? <StandardMatchupsPage external={{ format: matchups.format, changeFormat: matchups.changeFormat,
-        data: matchups.state.data, loading: matchups.loading, error: matchups.error,
+        slice: matchups.slice, changeSlice: matchups.changeSlice,
+        data: matchups.state.data ?? matchups.shown, loading: matchups.loading, error: matchups.error,
         retry: matchups.retry }} />
       : <section className="standard-matchups space-y-5 sm:space-y-6">
         <header className="traditional-mode-banner">

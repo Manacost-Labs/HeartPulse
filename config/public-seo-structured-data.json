@@ -1209,6 +1209,33 @@
         "url": "https://hearthpulse.net/contests/"
       }
     ],
+    "/streamers": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Стримеры",
+            "item": "https://hearthpulse.net/streamers/"
+          }
+        ]
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/streamers/#page",
+        "name": "Стримеры Hearthstone и их колоды",
+        "description": "Колоды стримеров Hearthstone с кодами, классами и рангами Легенды, ссылки на Twitch и YouTube и кто сейчас в эфире.",
+        "url": "https://hearthpulse.net/streamers/",
+        "inLanguage": "ru"
+      }
+    ],
     "/battlegrounds/strategies": [
       {
         "@type": "BreadcrumbList",
