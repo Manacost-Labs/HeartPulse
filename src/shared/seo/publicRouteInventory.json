@@ -232,6 +232,39 @@
       "entitlement": null
     },
     {
+      "id": "streamers",
+      "pattern": "/streamers",
+      "kind": "static",
+      "owner": "community",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "streamers",
+      "entitlement": null
+    },
+    {
+      "id": "streamer-detail",
+      "pattern": "/streamers/:streamerSlug",
+      "kind": "detail",
+      "owner": "community",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "self",
+      "sitemap": false,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "streamers",
+      "entitlement": null,
+      "pathParameters": {
+        "streamerSlug": {
+          "pattern": "^[a-z0-9_]{1,40}$"
+        }
+      }
+    },
+    {
       "id": "public-profile",
       "pattern": "/id/:publicProfileId",
       "kind": "detail",

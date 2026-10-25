@@ -1,0 +1,452 @@
+/* «Стримеры». Разделы — шаблон раздела страницы (design.md); внутри только
+   линии --arena-paper-line, один акцент (--arena-red) на блок. */
+
+.streamers-page {
+  --streamers-line: 1px solid var(--arena-paper-line);
+  --streamers-small: 0.78rem;
+  --streamers-label: 0.6875rem;
+}
+
+.streamers-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.streamers-section {
+  margin-top: 1rem;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+}
+
+.streamers-section__heading {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1rem;
+  border-bottom: var(--streamers-line);
+}
+
+.streamers-section__eyebrow {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  color: var(--arena-red);
+  font-size: var(--streamers-label);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.streamers-section__eyebrow svg { width: 14px; height: 14px; }
+
+.streamers-section__heading h2 {
+  margin: 0;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+}
+
+.streamers-section__heading > p {
+  max-width: 740px;
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: var(--streamers-small);
+  line-height: 1.5;
+}
+
+.streamers-empty {
+  margin: 0;
+  padding: 1rem;
+  color: var(--arena-muted-ink);
+  font-size: var(--streamers-small);
+}
+
+.streamers-more {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1rem 1rem;
+  border-top: var(--streamers-line);
+}
+
+/* Фильтры. */
+
+.streamers-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+
+.streamers-chips { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
+
+.streamers-chip,
+.streamers-select select {
+  min-height: 42px;
+  padding: 0 0.8rem;
+  border: var(--streamers-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.6);
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: var(--streamers-small);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+
+.streamers-chip:hover,
+.streamers-select select:hover { border-color: rgba(84, 51, 22, 0.45); }
+.streamers-chip:disabled { cursor: progress; opacity: 0.7; }
+
+.streamers-chip[aria-pressed='true'] {
+  border-color: var(--arena-red);
+  background: var(--arena-red);
+  color: #fff4dc;
+}
+
+.streamers-chip:focus-visible,
+.streamers-select select:focus-visible,
+.streamers-copy:focus-visible,
+.streamers-link:focus-visible,
+.streamers-page a:focus-visible {
+  outline: 2px solid var(--arena-red);
+  outline-offset: 2px;
+}
+
+.streamers-select select { min-width: 12rem; padding-right: 2rem; }
+
+/* Сейчас в эфире. */
+
+.streamers-live {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.streamers-live__item {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem 1rem;
+  border-bottom: var(--streamers-line);
+}
+
+.streamers-live__thumb { display: block; overflow: hidden; border-radius: 4px; background: rgba(46, 22, 11, 0.85); }
+.streamers-live__thumb img,
+.streamers-live__thumb span { display: block; width: 160px; height: 90px; object-fit: cover; }
+
+.streamers-live__text { display: grid; gap: 0.15rem; min-width: 0; }
+.streamers-live__text p { margin: 0; }
+
+.streamers-live__name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.streamers-live__name a,
+.streamers-card__identity h3 a { color: var(--arena-ink); text-decoration: none; }
+.streamers-live__name a:hover,
+.streamers-card__identity h3 a:hover { color: var(--arena-red); text-decoration: underline; text-underline-offset: 3px; }
+
+.streamers-live__title {
+  overflow: hidden;
+  color: var(--arena-ink);
+  font-size: var(--streamers-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.streamers-live__facts { color: var(--arena-muted-ink); font-size: var(--streamers-label); font-variant-numeric: tabular-nums; }
+.streamers-live__deck { grid-column: 1 / -1; }
+
+/* Карточки стримеров. */
+
+.streamers-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.streamers-card {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border-bottom: var(--streamers-line);
+}
+
+.streamers-card__head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.streamers-card__identity { min-width: 0; }
+
+.streamers-card__identity h3 {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.streamers-card__identity p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0.15rem 0 0;
+  color: var(--arena-muted-ink);
+  font-size: var(--streamers-label);
+}
+
+.streamers-avatar {
+  display: block;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(46, 22, 11, 0.85);
+}
+
+.streamers-avatar--empty {
+  display: grid;
+  place-items: center;
+  color: #fff0c8;
+  font-family: var(--font-display);
+}
+
+.streamers-badge {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: var(--arena-red);
+  color: #fff4dc;
+  font-size: var(--streamers-label);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.streamers-badge svg { width: 12px; height: 12px; }
+
+.streamers-links { display: flex; gap: 0.15rem; margin: 0; padding: 0; list-style: none; }
+
+.streamers-link {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  color: var(--arena-muted-ink);
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+}
+
+.streamers-link:hover { background: rgba(255, 248, 225, 0.6); color: var(--arena-ink); }
+.streamers-link svg { width: 18px; height: 18px; }
+
+/* Колоды. */
+
+.streamers-decks { margin: 0.5rem 0 0; padding: 0; list-style: none; }
+.streamers-decks--full { margin: 0; }
+
+.streamers-deck {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 4.5rem 5.5rem 7.5rem 6rem auto;
+  gap: 0.65rem;
+  align-items: center;
+  min-height: 52px;
+  padding: 0.3rem 1rem;
+  border-top: var(--streamers-line);
+  color: var(--arena-ink);
+  font-size: var(--streamers-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.streamers-deck[data-compact] {
+  grid-template-columns: 28px minmax(0, 1fr) 4.5rem auto;
+  min-height: 46px;
+  padding: 0.2rem 0;
+}
+
+.streamers-decks:not(.streamers-decks--full) > .streamers-deck:first-child { border-top: 0; }
+.streamers-deck > img { width: 28px; height: 28px; }
+.streamers-deck__name { min-width: 0; }
+
+.streamers-deck__name strong {
+  display: block;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.streamers-deck__name small,
+.streamers-deck__record small,
+.streamers-deck__played {
+  color: var(--arena-muted-ink);
+  font-size: var(--streamers-label);
+}
+
+.streamers-deck__name small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.streamers-deck__rank { text-align: right; }
+.streamers-deck__watch a {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  min-height: 42px;
+  color: var(--arena-ink);
+  text-underline-offset: 3px;
+}
+
+.streamers-deck__watch svg { width: 15px; height: 15px; }
+.streamers-deck__live { color: var(--arena-red) !important; font-weight: 700; }
+
+.streamers-copy {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.5rem;
+  min-height: 42px;
+  padding: 0 0.6rem;
+  border: var(--streamers-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.6);
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: var(--streamers-label);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.streamers-copy:hover { border-color: rgba(84, 51, 22, 0.45); }
+.streamers-copy[data-state='copied'] { border-color: #2f7a3e; color: #2f7a3e; }
+.streamers-copy[data-state='failed'] { border-color: #a33a3a; color: #a33a3a; }
+.streamers-copy svg { width: 14px; height: 14px; }
+
+/* Страница стримера. */
+
+.streamers-breadcrumbs a {
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+  min-height: 42px;
+  color: var(--arena-muted-ink);
+  font-size: var(--streamers-small);
+  text-decoration: none;
+}
+
+.streamers-breadcrumbs svg { width: 15px; height: 15px; }
+
+.streamers-profile {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) minmax(0, 22rem);
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+}
+
+.streamers-profile h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  line-height: 1.15;
+}
+
+.streamers-profile__identity { display: grid; gap: 0.25rem; min-width: 0; }
+.streamers-profile__facts { margin: 0; color: var(--arena-muted-ink); font-size: var(--streamers-small); }
+
+.streamers-profile__live {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  min-width: 0;
+  padding-left: 1rem;
+  border-left: var(--streamers-line);
+  color: var(--arena-ink);
+  text-decoration: none;
+}
+
+.streamers-profile__live strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--streamers-small);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.streamers-profile__live small { color: var(--arena-muted-ink); font-size: var(--streamers-label); }
+.streamers-profile__live:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+
+.streamers-failure {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.streamers-failure > svg { flex: none; width: 22px; height: 22px; color: var(--arena-red); }
+.streamers-failure h2 { margin: 0; font-family: var(--font-display); font-size: 1.15rem; }
+.streamers-failure p { margin: 0.25rem 0 0.6rem; color: var(--arena-muted-ink); font-size: var(--streamers-small); }
+
+/* Скелетоны. */
+
+.streamers-skeleton__line { width: 60%; height: 0.9rem; }
+.streamers-skeleton__line--short { width: 6rem; }
+.streamers-skeleton__title { width: 14rem; height: 1.6rem; }
+.streamers-skeleton__avatar { width: 48px; height: 48px; border-radius: 50%; }
+.streamers-skeleton__row { grid-column: 1 / -1; width: 100%; height: 1.6rem; }
+
+@media (max-width: 1023px) {
+  .streamers-deck { grid-template-columns: 28px minmax(0, 1fr) 4rem auto; }
+  .streamers-deck:not([data-compact]) .streamers-deck__record,
+  .streamers-deck:not([data-compact]) .streamers-deck__played { display: none; }
+  .streamers-deck__watch { grid-column: 2 / 4; grid-row: 2; margin-top: -0.4rem; }
+  .streamers-deck__watch:empty { display: none; }
+  .streamers-deck .streamers-copy { grid-column: 4; grid-row: 1; }
+  .streamers-profile { grid-template-columns: 72px minmax(0, 1fr); }
+  .streamers-profile .streamers-avatar { width: 72px; height: 72px; }
+  .streamers-profile__live { grid-column: 1 / -1; padding: 0.75rem 0 0; border-top: var(--streamers-line); border-left: 0; }
+}
+
+@media (max-width: 559px) {
+  .streamers-live__item { grid-template-columns: 112px minmax(0, 1fr); padding: 0.65rem 0.75rem; }
+  .streamers-live__thumb img,
+  .streamers-live__thumb span { width: 112px; height: 63px; }
+  .streamers-card { padding: 0.75rem; }
+  .streamers-card__head { grid-template-columns: 44px minmax(0, 1fr); }
+  .streamers-card__head .streamers-avatar { width: 44px; height: 44px; }
+  .streamers-card__head .streamers-links { grid-column: 1 / -1; }
+  .streamers-deck { padding-inline: 0.75rem; gap: 0.5rem; }
+  .streamers-deck[data-compact] { padding-inline: 0; }
+  .streamers-copy { min-width: 4.5rem; }
+  .streamers-select,
+  .streamers-select select { width: 100%; }
+}

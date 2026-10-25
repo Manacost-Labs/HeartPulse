@@ -1,0 +1,912 @@
+{
+  "streamers": {
+    "data": [
+      {
+        "id": 86728139,
+        "slug": "moquaitv",
+        "display_name": "MoquaiTV",
+        "login": "moquaitv",
+        "twitch_url": "https://www.twitch.tv/moquaitv",
+        "youtube_url": null,
+        "x_url": null,
+        "links": [],
+        "avatar_url": null,
+        "description": null,
+        "followers": null,
+        "language": null,
+        "decks_total": 102,
+        "last_played_at": "2026-10-25T16:24:05+00:00",
+        "profile_state": "not_found",
+        "profile_checked_at": "2026-10-25T16:18:20.852033+00:00",
+        "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=86728139",
+        "live": {
+          "platform": "twitch",
+          "title": "[EU] Legend 🌟 | ☠️ WarlockStone - Let´s make Priest great again  ☠️ | only for 🍺 Beerdrinkers 🍺 and 👹 Hellraisers 👹",
+          "viewers": 14,
+          "mode": null,
+          "language": null,
+          "started_at": "2026-10-25T15:54:23.312736+00:00",
+          "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_moquaitv-384x216.jpg",
+          "stream_url": "https://www.twitch.tv/moquaitv",
+          "observed_at": "2026-10-25T16:24:11.312736+00:00"
+        },
+        "window": {
+          "decks": 102,
+          "best_rank": 609,
+          "last_played_at": "2026-10-25T16:24:05+00:00"
+        },
+        "recent_decks": [
+          {
+            "deck_id": 42692433,
+            "deck_code": "AAECAa0GAufYB/OJCAnwnwSFhgevyQes2Qf04Afo8Qfh+gf7iQj8iQgAAA==",
+            "archetype": "Thief Priest",
+            "player_class": "PRIEST",
+            "format": "standard",
+            "peak_rank": 6623,
+            "latest_rank": null,
+            "worst_rank": 8560,
+            "wins": 11,
+            "losses": 8,
+            "games": 19,
+            "winrate": 57.9,
+            "last_played_at": "2026-10-25T16:24:05+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42692433",
+            "on_current_stream": true,
+            "stream_url": "https://www.twitch.tv/moquaitv",
+            "vod": null
+          },
+          {
+            "deck_id": 42634939,
+            "deck_code": "AAECAQcGzskHm9QHstgHhesH3fEHj/cHDI7UBPyvB4++B6/BB6DFB8XXB5L3B5b3B5v3B+f5B4f8B6eSCAAA",
+            "archetype": "Harold Warrior",
+            "player_class": "WARRIOR",
+            "format": "standard",
+            "peak_rank": 3818,
+            "latest_rank": 7490,
+            "worst_rank": 7490,
+            "wins": 1,
+            "losses": 7,
+            "games": 8,
+            "winrate": 12.5,
+            "last_played_at": "2026-10-24T20:37:59+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42634939",
+            "on_current_stream": false,
+            "stream_url": null,
+            "vod": null
+          },
+          {
+            "deck_id": 42707633,
+            "deck_code": "AAECAf0GBuegBJvUB63ZB9vgB6D2B/OJCAyTvgfYvgfgvge21wfd1wew2Qex2Qe32QeN3AeB9gfp+Qf7iQgAAA==",
+            "archetype": "Harold C'Thun Warlock",
+            "player_class": "WARLOCK",
+            "format": "standard",
+            "peak_rank": 6887,
+            "latest_rank": 6887,
+            "worst_rank": 7929,
+            "wins": 4,
+            "losses": 3,
+            "games": 7,
+            "winrate": 57.1,
+            "last_played_at": "2026-10-24T19:59:02+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42707633",
+            "on_current_stream": false,
+            "stream_url": null,
+            "vod": null
+          }
+        ]
+      },
+      {
+        "id": 668548259,
+        "slug": "gamebraker123",
+        "display_name": "gamebraker123",
+        "login": "gamebraker123",
+        "twitch_url": "https://www.twitch.tv/gamebraker123",
+        "youtube_url": null,
+        "x_url": null,
+        "links": [
+          {
+            "kind": "other",
+            "url": "https://streamelements.com/gamebraker123/tip"
+          }
+        ],
+        "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/935b8eec-3840-4c16-a9c2-8500d0779d40-profile_image-300x300.png",
+        "description": "Czołowy gracz Hearthstone w Europie (top 100 legenda) w wolnym czasie oglądam Mamona, ćwiczę na siłce. Młody adept wędkarstwa. Jeśli chcesz poprawić swoje umiejętności zapraszam.",
+        "followers": 1224,
+        "language": null,
+        "decks_total": 4,
+        "last_played_at": "2026-10-25T16:22:52+00:00",
+        "profile_state": "ok",
+        "profile_checked_at": "2026-10-25T16:18:20.852033+00:00",
+        "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=668548259",
+        "live": {
+          "platform": "twitch",
+          "title": "(RANK 40) Wysoka legenda niskie IQ sr!",
+          "viewers": 33,
+          "mode": null,
+          "language": null,
+          "started_at": "2026-10-25T14:06:14.312736+00:00",
+          "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_gamebraker123-384x216.jpg",
+          "stream_url": "https://www.twitch.tv/gamebraker123",
+          "observed_at": "2026-10-25T16:24:11.312736+00:00"
+        },
+        "window": {
+          "decks": 4,
+          "best_rank": 40,
+          "last_played_at": "2026-10-25T16:22:52+00:00"
+        },
+        "recent_decks": [
+          {
+            "deck_id": 42669292,
+            "deck_code": "AAECAfHhBAKH9gTa1wcO1J4G1+UG2eUGl4IHupUH4J0Hn54H7awH4rEHk78Hm8UHtNoHhfwHpIEIAAA=",
+            "archetype": "BFU Handbuff DK",
+            "player_class": "DEATHKNIGHT",
+            "format": "standard",
+            "peak_rank": 40,
+            "latest_rank": 40,
+            "worst_rank": 73,
+            "wins": 11,
+            "losses": 3,
+            "games": 14,
+            "winrate": 78.6,
+            "last_played_at": "2026-10-25T16:22:52+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42669292",
+            "on_current_stream": true,
+            "stream_url": "https://www.twitch.tv/gamebraker123",
+            "vod": null
+          },
+          {
+            "deck_id": 42709303,
+            "deck_code": "AAECAa0GCPCfBMODB/WYB+ybB9edB7DJB4XrB9z7BwuFnwSFhgfFlAfgnQfksgeyxQevyQeT3wfV4Af04Afh+gcAAA==",
+            "archetype": "Egg Priest",
+            "player_class": "PRIEST",
+            "format": "standard",
+            "peak_rank": 41,
+            "latest_rank": 51,
+            "worst_rank": 51,
+            "wins": 1,
+            "losses": 4,
+            "games": 5,
+            "winrate": 20.0,
+            "last_played_at": "2026-10-25T15:32:50+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42709303",
+            "on_current_stream": true,
+            "stream_url": "https://www.twitch.tv/gamebraker123",
+            "vod": null
+          },
+          {
+            "deck_id": 42562744,
+            "deck_code": "AAECAea5AwiongbDgweKqgeSqgeTqgeD2gen9wfziQgL4fgF0J4G054G3v8GtpcHlb8Hy9UHt+EHqvoHvoEI+4kIAAA=",
+            "archetype": "Void C'Thun DH",
+            "player_class": "DEMONHUNTER",
+            "format": "standard",
+            "peak_rank": null,
+            "latest_rank": null,
+            "worst_rank": null,
+            "wins": 2,
+            "losses": 1,
+            "games": 3,
+            "winrate": 66.7,
+            "last_played_at": "2026-10-21T17:00:01+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42562744",
+            "on_current_stream": false,
+            "stream_url": null,
+            "vod": null
+          }
+        ]
+      },
+      {
+        "id": 123504106,
+        "slug": "ramses",
+        "display_name": "Ramses",
+        "login": "ramses",
+        "twitch_url": "https://www.twitch.tv/ramses",
+        "youtube_url": null,
+        "x_url": "https://x.com/Ramses__hs",
+        "links": [],
+        "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/de0fd0fa-c7dc-40b7-839a-1f06dab2520b-profile_image-300x300.png",
+        "description": "Hi, thank you so much for stopping by. My name is Phil and I am 35 years old. My stream is mainly focused on playing Hearthstone on a high competitive level. It's important to me to be able to share my knowledge and show you how painful this game can be",
+        "followers": 23597,
+        "language": null,
+        "decks_total": 75,
+        "last_played_at": "2026-10-25T16:22:31+00:00",
+        "profile_state": "ok",
+        "profile_checked_at": "2026-10-25T16:18:20.852033+00:00",
+        "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=123504106",
+        "live": {
+          "platform": "twitch",
+          "title": "Busted DK list - Nerf pls",
+          "viewers": 178,
+          "mode": null,
+          "language": null,
+          "started_at": "2026-10-25T05:12:18.312736+00:00",
+          "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_ramses-384x216.jpg",
+          "stream_url": "https://www.twitch.tv/ramses",
+          "observed_at": "2026-10-25T16:24:11.312736+00:00"
+        },
+        "window": {
+          "decks": 75,
+          "best_rank": 23,
+          "last_played_at": "2026-10-25T16:22:31+00:00"
+        },
+        "recent_decks": [
+          {
+            "deck_id": 42669292,
+            "deck_code": "AAECAfHhBAKH9gTa1wcO1J4G1+UG2eUGl4IHupUH4J0Hn54H7awH4rEHk78Hm8UHtNoHhfwHpIEIAAA=",
+            "archetype": "BFU Handbuff DK",
+            "player_class": "DEATHKNIGHT",
+            "format": "standard",
+            "peak_rank": 107,
+            "latest_rank": 132,
+            "worst_rank": 156,
+            "wins": 7,
+            "losses": 6,
+            "games": 13,
+            "winrate": 53.8,
+            "last_played_at": "2026-10-25T16:22:31+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42669292",
+            "on_current_stream": true,
+            "stream_url": "https://www.twitch.tv/ramses",
+            "vod": null
+          },
+          {
+            "deck_id": 42750458,
+            "deck_code": "AAECAfHhBAKH9gTa1wcO054G1+UG2eUGl4IHupUH4J0Hn54H4rEHk78Hm8UHtNoH+/sHhfwHpIEIAAA=",
+            "archetype": "BFU Handbuff DK",
+            "player_class": "DEATHKNIGHT",
+            "format": "standard",
+            "peak_rank": 142,
+            "latest_rank": 166,
+            "worst_rank": 201,
+            "wins": 7,
+            "losses": 3,
+            "games": 10,
+            "winrate": 70.0,
+            "last_played_at": "2026-10-25T11:13:18+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42750458",
+            "on_current_stream": true,
+            "stream_url": "https://www.twitch.tv/ramses",
+            "vod": null
+          },
+          {
+            "deck_id": 42666790,
+            "deck_code": "AAECAea5AwSKqgeSqgeTqgf4/AcNzZ4Gzp4G054G3v8GtpcH4rEHkrIHkr8Hlb8H5eQHk+gHpvgHqf0HAAA=",
+            "archetype": "Raza DH",
+            "player_class": "DEMONHUNTER",
+            "format": "standard",
+            "peak_rank": 59,
+            "latest_rank": 180,
+            "worst_rank": 285,
+            "wins": 3,
+            "losses": 5,
+            "games": 8,
+            "winrate": 37.5,
+            "last_played_at": "2026-10-25T10:32:50+00:00",
+            "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+            "hsguru_url": "https://www.hsguru.com/deck/42666790",
+            "on_current_stream": true,
+            "stream_url": "https://www.twitch.tv/ramses",
+            "vod": null
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "source_id": "hsguru_streamers",
+      "fetched_at": "2026-10-25T16:26:22.512647+00:00",
+      "stale": false,
+      "count": 226,
+      "limit": 3,
+      "offset": 0
+    }
+  },
+  "streamingNow": {
+    "data": [
+      {
+        "platform": "twitch",
+        "title": "High Legend Ladder - Best Decks Rotation !gx !deck",
+        "viewers": 817,
+        "mode": "standard",
+        "language": null,
+        "started_at": "2026-10-25T13:37:53.312736+00:00",
+        "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_reqvam-384x216.jpg",
+        "stream_url": "https://www.twitch.tv/reqvam",
+        "observed_at": "2026-10-25T16:24:11.312736+00:00",
+        "login": "reqvam",
+        "display_name": "reqvam",
+        "mode_source": "deck",
+        "streamer": {
+          "id": 48793025,
+          "slug": "reqvam",
+          "display_name": "reqvam",
+          "login": "reqvam",
+          "twitch_url": "https://www.twitch.tv/reqvam",
+          "youtube_url": "https://www.youtube.com/@reqvam",
+          "x_url": "https://x.com/reqvamhs",
+          "links": [
+            {
+              "kind": "discord",
+              "url": "https://discord.com/invite/UedvbNAaJ5"
+            }
+          ],
+          "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/a1d9044e-496e-402f-b7ba-86008ec86d37-profile_image-300x300.png",
+          "description": "3rd at the 2023 Hearthstone World Championship, 9th at the 2024 Hearthstone World Championship, Caster at the 2025 Hearthstone World Championship 🌞 Beacon of Positivity 🌞",
+          "followers": 25174,
+          "language": null,
+          "decks_total": 232,
+          "last_played_at": "2026-10-25T16:13:24+00:00",
+          "profile_state": "ok",
+          "profile_checked_at": "2026-10-25T16:18:20.852033+00:00",
+          "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=48793025",
+          "live": null
+        },
+        "current_deck": {
+          "deck_id": 42693318,
+          "deck_code": "AAECAea5AwaKqgeSqgeTqgfa1wfX6QfziQgM4fgF054G3v8GtpcH4rEHkr8Hlb8H+PwHqf0HvoEI6III+4kIAAA=",
+          "archetype": "C'Thun DH",
+          "player_class": "DEMONHUNTER",
+          "format": "standard",
+          "peak_rank": 40,
+          "latest_rank": 40,
+          "worst_rank": 49,
+          "wins": 2,
+          "losses": 0,
+          "games": 2,
+          "winrate": 100.0,
+          "last_played_at": "2026-10-25T16:13:24+00:00",
+          "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+          "hsguru_url": "https://www.hsguru.com/deck/42693318",
+          "on_current_stream": true,
+          "stream_url": "https://www.twitch.tv/reqvam",
+          "vod": null
+        }
+      },
+      {
+        "platform": "twitch",
+        "title": "ИГРАЮ НА ВАШИХ ДЕКАХ",
+        "viewers": 472,
+        "mode": "standard",
+        "language": "ru",
+        "started_at": "2026-10-25T13:35:55.312736+00:00",
+        "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_nik1tastar-384x216.jpg",
+        "stream_url": "https://www.twitch.tv/nik1tastar",
+        "observed_at": "2026-10-25T16:24:11.312736+00:00",
+        "login": "nik1tastar",
+        "display_name": "Nik1taStar",
+        "mode_source": "deck",
+        "streamer": {
+          "id": 168568972,
+          "slug": "nik1tastar",
+          "display_name": "Nik1taStar",
+          "login": "nik1tastar",
+          "twitch_url": "https://www.twitch.tv/nik1tastar",
+          "youtube_url": null,
+          "x_url": null,
+          "links": [],
+          "avatar_url": null,
+          "description": null,
+          "followers": null,
+          "language": "ru",
+          "decks_total": 172,
+          "last_played_at": "2026-10-25T16:20:26+00:00",
+          "profile_state": "not_found",
+          "profile_checked_at": "2026-10-25T16:18:20.852033+00:00",
+          "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=168568972",
+          "live": null
+        },
+        "current_deck": {
+          "deck_id": 42733161,
+          "deck_code": "AAECAZ8FCLSBB4KYB7iyB5bUB53dB4XrB5f6B4GKCAvunwSd1ATP/gbLqQfErge+sgeZ3Qfa6Afx8Aev9genkggAAQHtrAed3QcAAA==",
+          "archetype": "N'Zoth Paladin",
+          "player_class": "PALADIN",
+          "format": "standard",
+          "peak_rank": 386,
+          "latest_rank": 386,
+          "worst_rank": 386,
+          "wins": 0,
+          "losses": 1,
+          "games": 1,
+          "winrate": 0.0,
+          "last_played_at": "2026-10-25T16:20:26+00:00",
+          "first_seen_at": "2026-10-25T16:20:49.495003+00:00",
+          "hsguru_url": "https://www.hsguru.com/deck/42733161",
+          "on_current_stream": true,
+          "stream_url": "https://www.twitch.tv/nik1tastar",
+          "vod": null
+        }
+      },
+      {
+        "platform": "twitch",
+        "title": "Nueva Expansión de los Dioses Antiguos!",
+        "viewers": 275,
+        "mode": "standard",
+        "language": null,
+        "started_at": "2026-10-25T15:43:08.312736+00:00",
+        "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_feelink-384x216.jpg",
+        "stream_url": "https://www.twitch.tv/feelink",
+        "observed_at": "2026-10-25T16:24:11.312736+00:00",
+        "login": "feelink",
+        "display_name": "Feelink",
+        "mode_source": "deck",
+        "streamer": {
+          "id": 76903277,
+          "slug": "feelink",
+          "display_name": "Feelink",
+          "login": "feelink",
+          "twitch_url": "https://www.twitch.tv/feelink",
+          "youtube_url": null,
+          "x_url": "https://x.com/FeelinkHS",
+          "links": [
+            {
+              "kind": "instagram",
+              "url": "https://www.instagram.com/feelinkhs/"
+            }
+          ],
+          "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/809755d3-2c0a-491e-93a9-acd7b5e74162-profile_image-300x300.png",
+          "description": "Padre del Value",
+          "followers": 101836,
+          "language": null,
+          "decks_total": 37,
+          "last_played_at": "2026-10-25T16:12:10+00:00",
+          "profile_state": "ok",
+          "profile_checked_at": "2026-10-25T16:18:20.852033+00:00",
+          "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=76903277",
+          "live": null
+        },
+        "current_deck": {
+          "deck_id": 42556178,
+          "deck_code": "AAECAaoIBsODB9DbB4jdB9/lB6f3B/OJCAzt5gbgnQexsAfJwAfI5QfX6QfF8Afm/Qe3/gfA/wekgQj7iQgAAA==",
+          "archetype": "Zee C'Thun Shaman",
+          "player_class": "SHAMAN",
+          "format": "standard",
+          "peak_rank": null,
+          "latest_rank": null,
+          "worst_rank": null,
+          "wins": 0,
+          "losses": 1,
+          "games": 1,
+          "winrate": 0.0,
+          "last_played_at": "2026-10-25T16:12:10+00:00",
+          "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+          "hsguru_url": "https://www.hsguru.com/deck/42556178",
+          "on_current_stream": true,
+          "stream_url": "https://www.twitch.tv/feelink",
+          "vod": null
+        }
+      },
+      {
+        "platform": "twitch",
+        "title": "Busted DK list - Nerf pls",
+        "viewers": 178,
+        "mode": "standard",
+        "language": null,
+        "started_at": "2026-10-25T05:12:18.312736+00:00",
+        "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_ramses-384x216.jpg",
+        "stream_url": "https://www.twitch.tv/ramses",
+        "observed_at": "2026-10-25T16:24:11.312736+00:00",
+        "login": "ramses",
+        "display_name": "Ramses",
+        "mode_source": "deck",
+        "streamer": {
+          "id": 123504106,
+          "slug": "ramses",
+          "display_name": "Ramses",
+          "login": "ramses",
+          "twitch_url": "https://www.twitch.tv/ramses",
+          "youtube_url": null,
+          "x_url": "https://x.com/Ramses__hs",
+          "links": [],
+          "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/de0fd0fa-c7dc-40b7-839a-1f06dab2520b-profile_image-300x300.png",
+          "description": "Hi, thank you so much for stopping by. My name is Phil and I am 35 years old. My stream is mainly focused on playing Hearthstone on a high competitive level. It's important to me to be able to share my knowledge and show you how painful this game can be",
+          "followers": 23597,
+          "language": null,
+          "decks_total": 75,
+          "last_played_at": "2026-10-25T16:22:31+00:00",
+          "profile_state": "ok",
+          "profile_checked_at": "2026-10-25T16:18:20.852033+00:00",
+          "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=123504106",
+          "live": null
+        },
+        "current_deck": {
+          "deck_id": 42669292,
+          "deck_code": "AAECAfHhBAKH9gTa1wcO1J4G1+UG2eUGl4IHupUH4J0Hn54H7awH4rEHk78Hm8UHtNoHhfwHpIEIAAA=",
+          "archetype": "BFU Handbuff DK",
+          "player_class": "DEATHKNIGHT",
+          "format": "standard",
+          "peak_rank": 107,
+          "latest_rank": 132,
+          "worst_rank": 156,
+          "wins": 7,
+          "losses": 6,
+          "games": 13,
+          "winrate": 53.8,
+          "last_played_at": "2026-10-25T16:22:31+00:00",
+          "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+          "hsguru_url": "https://www.hsguru.com/deck/42669292",
+          "on_current_stream": true,
+          "stream_url": "https://www.twitch.tv/ramses",
+          "vod": null
+        }
+      }
+    ],
+    "meta": {
+      "source_id": "hsguru_streamers",
+      "fetched_at": "2026-10-25T16:26:22.512647+00:00",
+      "stale": false,
+      "count": 4,
+      "observed_at": "2026-10-25T16:24:11.312736+00:00"
+    }
+  },
+  "streamer": {
+    "data": {
+      "id": 188965645,
+      "slug": "nohandsgamer",
+      "display_name": "NoHandsGamer",
+      "login": "nohandsgamer",
+      "twitch_url": "https://www.twitch.tv/nohandsgamer",
+      "youtube_url": "https://www.youtube.com/c/NoHandsGamerVODs/featured",
+      "x_url": "https://x.com/Nohandsgamer",
+      "links": [
+        {
+          "kind": "youtube",
+          "url": "https://www.youtube.com/c/NohandsGamer"
+        }
+      ],
+      "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/e54e070e-b5cf-4b0d-bcb8-bc27e36674b8-profile_image-300x300.png",
+      "description": "Hey guys I'm a moderately disabled gamer that has difficulties using my hands for long periods of time. Because of that I play Hearthstone completely hands-free!I'm a American Hearthstone Grandmasters as well in addition to being the creator of many top meta decks.",
+      "followers": 74988,
+      "language": null,
+      "decks_total": 146,
+      "last_played_at": "2026-10-25T00:42:46+00:00",
+      "profile_state": "ok",
+      "profile_checked_at": "2026-10-25T16:21:23.823998+00:00",
+      "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=188965645",
+      "live": null,
+      "facets": [
+        {
+          "format": "standard",
+          "player_class": "DEATHKNIGHT",
+          "decks": 11,
+          "best_rank": 25,
+          "last_played_at": "2026-10-23T00:20:40+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "DEMONHUNTER",
+          "decks": 12,
+          "best_rank": 6,
+          "last_played_at": "2026-10-21T02:03:53+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "DRUID",
+          "decks": 6,
+          "best_rank": 22,
+          "last_played_at": "2026-09-30T22:16:36+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "HUNTER",
+          "decks": 1,
+          "best_rank": 88,
+          "last_played_at": "2026-08-19T02:18:20+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "MAGE",
+          "decks": 5,
+          "best_rank": 303,
+          "last_played_at": "2026-10-22T04:01:27+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "PALADIN",
+          "decks": 3,
+          "best_rank": 229,
+          "last_played_at": "2026-10-21T03:28:55+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "PRIEST",
+          "decks": 26,
+          "best_rank": 20,
+          "last_played_at": "2026-10-25T00:42:46+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "ROGUE",
+          "decks": 4,
+          "best_rank": 28,
+          "last_played_at": "2026-10-12T01:41:23+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "SHAMAN",
+          "decks": 8,
+          "best_rank": 2,
+          "last_played_at": "2026-10-07T00:15:41+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "WARLOCK",
+          "decks": 20,
+          "best_rank": 15,
+          "last_played_at": "2026-10-23T02:44:17+00:00"
+        },
+        {
+          "format": "standard",
+          "player_class": "WARRIOR",
+          "decks": 9,
+          "best_rank": 20,
+          "last_played_at": "2026-10-21T20:38:22+00:00"
+        },
+        {
+          "format": "wild",
+          "player_class": "DRUID",
+          "decks": 2,
+          "best_rank": null,
+          "last_played_at": "2026-10-15T21:21:17+00:00"
+        },
+        {
+          "format": "wild",
+          "player_class": "HUNTER",
+          "decks": 5,
+          "best_rank": null,
+          "last_played_at": "2026-10-17T01:09:24+00:00"
+        },
+        {
+          "format": "wild",
+          "player_class": "MAGE",
+          "decks": 6,
+          "best_rank": null,
+          "last_played_at": "2026-10-17T19:39:54+00:00"
+        },
+        {
+          "format": "wild",
+          "player_class": "PRIEST",
+          "decks": 12,
+          "best_rank": null,
+          "last_played_at": "2026-10-20T01:14:26+00:00"
+        },
+        {
+          "format": "wild",
+          "player_class": "SHAMAN",
+          "decks": 6,
+          "best_rank": null,
+          "last_played_at": "2026-10-19T22:35:00+00:00"
+        },
+        {
+          "format": "wild",
+          "player_class": "WARLOCK",
+          "decks": 4,
+          "best_rank": null,
+          "last_played_at": "2026-10-13T00:45:02+00:00"
+        },
+        {
+          "format": "wild",
+          "player_class": "WARRIOR",
+          "decks": 6,
+          "best_rank": null,
+          "last_played_at": "2026-10-19T01:05:18+00:00"
+        }
+      ],
+      "vods": [
+        {
+          "url": "https://www.twitch.tv/videos/2909721478",
+          "title": "Egg Priest going for #1 Legend !hsreplay",
+          "started_at": "2026-10-24T18:56:26+00:00",
+          "duration_seconds": 20930,
+          "views": 25,
+          "thumbnail_url": "https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/4d979a4b21b7be46217e_nohandsgamer_321989899098_1792868181//thumb/thumb0-640x360.jpg"
+        },
+        {
+          "url": "https://www.twitch.tv/videos/2908811316",
+          "title": "Egg Priest is a thing?! !celestial #ad",
+          "started_at": "2026-10-23T20:10:21+00:00",
+          "duration_seconds": 24930,
+          "views": 19063,
+          "thumbnail_url": "https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/7a19e373a3acb21fe325_nohandsgamer_321975742298_1792786217//thumb/thumb0-640x360.jpg"
+        },
+        {
+          "url": "https://www.twitch.tv/videos/2907914109",
+          "title": "Blood DK time to shine!",
+          "started_at": "2026-10-22T20:13:16+00:00",
+          "duration_seconds": 23750,
+          "views": 22638,
+          "thumbnail_url": "https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/7fb60bc17c19066f5a74_nohandsgamer_322078230747_1792699992//thumb/thumb0-640x360.jpg"
+        },
+        {
+          "url": "https://www.twitch.tv/videos/2907060095",
+          "title": "#1 Bait Deck stream. !bestdeck !worthcrafting",
+          "started_at": "2026-10-21T20:25:57+00:00",
+          "duration_seconds": 27660,
+          "views": 25597,
+          "thumbnail_url": "https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/2c2147e739451fa52a93_nohandsgamer_321949854042_1792614352//thumb/thumb0-640x360.jpg"
+        },
+        {
+          "url": "https://www.twitch.tv/videos/2906145932",
+          "title": "#1 Bait Deck stream. !bestdeck !worthcrafting",
+          "started_at": "2026-10-20T19:16:28+00:00",
+          "duration_seconds": 29600,
+          "views": 32050,
+          "thumbnail_url": "https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/b1ace46b84ef0af5249a_nohandsgamer_321891321177_1792523783//thumb/thumb0-640x360.jpg"
+        }
+      ],
+      "last_deck": {
+        "deck_id": 42709303,
+        "deck_code": "AAECAa0GCPCfBMODB/WYB+ybB9edB7DJB4XrB9z7BwuFnwSFhgfFlAfgnQfksgeyxQevyQeT3wfV4Af04Afh+gcAAA==",
+        "archetype": "Egg Priest",
+        "player_class": "PRIEST",
+        "format": "standard",
+        "peak_rank": 20,
+        "latest_rank": 24,
+        "worst_rank": 110,
+        "wins": 33,
+        "losses": 17,
+        "games": 50,
+        "winrate": 66.0,
+        "last_played_at": "2026-10-25T00:42:46+00:00",
+        "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+        "hsguru_url": "https://www.hsguru.com/deck/42709303",
+        "on_current_stream": false,
+        "stream_url": null,
+        "vod": {
+          "url": "https://www.twitch.tv/videos/2909721478?t=5h41m20s",
+          "title": "Egg Priest going for #1 Legend !hsreplay",
+          "started_at": "2026-10-24T18:56:26+00:00",
+          "offset_seconds": 20480
+        }
+      }
+    },
+    "meta": {
+      "source_id": "hsguru_streamers",
+      "fetched_at": "2026-10-25T16:26:22.512647+00:00",
+      "stale": false,
+      "count": 146
+    }
+  },
+  "streamerDecks": {
+    "data": [
+      {
+        "deck_id": 42709303,
+        "deck_code": "AAECAa0GCPCfBMODB/WYB+ybB9edB7DJB4XrB9z7BwuFnwSFhgfFlAfgnQfksgeyxQevyQeT3wfV4Af04Afh+gcAAA==",
+        "archetype": "Egg Priest",
+        "player_class": "PRIEST",
+        "format": "standard",
+        "peak_rank": 20,
+        "latest_rank": 24,
+        "worst_rank": 110,
+        "wins": 33,
+        "losses": 17,
+        "games": 50,
+        "winrate": 66.0,
+        "last_played_at": "2026-10-25T00:42:46+00:00",
+        "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+        "hsguru_url": "https://www.hsguru.com/deck/42709303",
+        "on_current_stream": false,
+        "stream_url": null,
+        "vod": {
+          "url": "https://www.twitch.tv/videos/2909721478?t=5h41m20s",
+          "title": "Egg Priest going for #1 Legend !hsreplay",
+          "started_at": "2026-10-24T18:56:26+00:00",
+          "offset_seconds": 20480
+        }
+      },
+      {
+        "deck_id": 42708982,
+        "deck_code": "AAECAa0GCPCfBMODB/WYB9edB9rXB6jfB4XrB9z7BwuFnwSFhgfFlAfgnQfksgeyxQevyQeT3wfV4Af04Afh+gcAAA==",
+        "archetype": "Egg Priest",
+        "player_class": "PRIEST",
+        "format": "standard",
+        "peak_rank": 75,
+        "latest_rank": 86,
+        "worst_rank": 86,
+        "wins": 1,
+        "losses": 2,
+        "games": 3,
+        "winrate": 33.3,
+        "last_played_at": "2026-10-23T22:11:01+00:00",
+        "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+        "hsguru_url": "https://www.hsguru.com/deck/42708982",
+        "on_current_stream": false,
+        "stream_url": null,
+        "vod": {
+          "url": "https://www.twitch.tv/videos/2908811316?t=1h55m40s",
+          "title": "Egg Priest is a thing?! !celestial #ad",
+          "started_at": "2026-10-23T20:10:21+00:00",
+          "offset_seconds": 6940
+        }
+      },
+      {
+        "deck_id": 42678105,
+        "deck_code": "AAECAa0GBvCfBMODB/WYB9edB9rXB9z7BwyFnwSFhgfFlAfgnQfksgeyxQevyQewyQeT3wfV4Af04Afh+gcAAA==",
+        "archetype": "Egg Priest",
+        "player_class": "PRIEST",
+        "format": "standard",
+        "peak_rank": 73,
+        "latest_rank": 73,
+        "worst_rank": 95,
+        "wins": 2,
+        "losses": 4,
+        "games": 6,
+        "winrate": 33.3,
+        "last_played_at": "2026-10-23T21:45:56+00:00",
+        "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+        "hsguru_url": "https://www.hsguru.com/deck/42678105",
+        "on_current_stream": false,
+        "stream_url": null,
+        "vod": {
+          "url": "https://www.twitch.tv/videos/2908811316?t=1h30m35s",
+          "title": "Egg Priest is a thing?! !celestial #ad",
+          "started_at": "2026-10-23T20:10:21+00:00",
+          "offset_seconds": 5435
+        }
+      },
+      {
+        "deck_id": 42563104,
+        "deck_code": "AAECAf0GBK3ZB9vgB6D2B/OJCA2PnwTnoASEmQfd1wew2Qex2Qe32QeN3AfX6QeB9gfp+Qf6iQj7iQgAAA==",
+        "archetype": "C'Thun Warlock",
+        "player_class": "WARLOCK",
+        "format": "standard",
+        "peak_rank": 55,
+        "latest_rank": 67,
+        "worst_rank": 130,
+        "wins": 16,
+        "losses": 14,
+        "games": 30,
+        "winrate": 53.3,
+        "last_played_at": "2026-10-23T02:44:17+00:00",
+        "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+        "hsguru_url": "https://www.hsguru.com/deck/42563104",
+        "on_current_stream": false,
+        "stream_url": null,
+        "vod": {
+          "url": "https://www.twitch.tv/videos/2907914109?t=6h26m1s",
+          "title": "Blood DK time to shine!",
+          "started_at": "2026-10-22T20:13:16+00:00",
+          "offset_seconds": 23161
+        }
+      }
+    ],
+    "streamer": {
+      "id": 188965645,
+      "slug": "nohandsgamer",
+      "display_name": "NoHandsGamer",
+      "login": "nohandsgamer",
+      "twitch_url": "https://www.twitch.tv/nohandsgamer",
+      "youtube_url": "https://www.youtube.com/c/NoHandsGamerVODs/featured",
+      "x_url": "https://x.com/Nohandsgamer",
+      "links": [
+        {
+          "kind": "youtube",
+          "url": "https://www.youtube.com/c/NohandsGamer"
+        }
+      ],
+      "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/e54e070e-b5cf-4b0d-bcb8-bc27e36674b8-profile_image-300x300.png",
+      "description": "Hey guys I'm a moderately disabled gamer that has difficulties using my hands for long periods of time. Because of that I play Hearthstone completely hands-free!I'm a American Hearthstone Grandmasters as well in addition to being the creator of many top meta decks.",
+      "followers": 74988,
+      "language": null,
+      "decks_total": 146,
+      "last_played_at": "2026-10-25T00:42:46+00:00",
+      "profile_state": "ok",
+      "profile_checked_at": "2026-10-25T16:21:23.823998+00:00",
+      "hsguru_url": "https://www.hsguru.com/streamer-decks?twitch_id=188965645",
+      "live": null
+    },
+    "meta": {
+      "source_id": "hsguru_streamers",
+      "fetched_at": "2026-10-25T16:26:22.512647+00:00",
+      "stale": false,
+      "count": 146,
+      "limit": 4,
+      "offset": 0
+    }
+  }
+}

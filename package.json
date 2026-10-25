@@ -57,6 +57,7 @@
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",
     "test:patch-notes": "tsx --test tests/patch-notes.test.ts",
     "test:radar": "tsx --test tests/radar.test.ts",
+    "test:streamers": "tsx --test tests/streamers.test.ts",
     "test:guides": "tsx tests/guides-sanitize.test.ts",
     "test:telegram-identity": "tsx tests/telegram-auth-intent.test.ts && tsx tests/telegram-identity-resolution.test.ts && tsx tests/telegram-identity-repository.test.ts",
     "test:application-auth": "tsx tests/application-auth-model.test.ts && tsx tests/application-auth-repository.test.ts && tsx tests/application-auth-profile.test.ts && tsx tests/application-auth-routes.test.ts",

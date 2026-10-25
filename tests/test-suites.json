@@ -384,6 +384,7 @@
         "tests/standard-meta-routes.test.ts",
         "tests/patch-notes.test.ts",
         "tests/radar.test.ts",
+        "tests/streamers.test.ts",
         "tests/battleground-tier-builder.test.ts",
         "tests/home-weekly-decks.test.ts",
         "tests/subscription-routes.test.ts",

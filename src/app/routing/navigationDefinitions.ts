@@ -15,6 +15,7 @@ import {
   ListChecks,
   ListTree,
   Radar,
+  Radio,
   Scroll,
   ScrollText,
   ShieldCheck,
@@ -62,6 +63,9 @@ export const NAVIGATION_ROUTES = [
   },
   {
     id: 'contests', label: 'Конкурсы', icon: Gift, path: '/contests', group: 'misc', entitlement: null,
+  },
+  {
+    id: 'streamers', label: 'Стримеры', icon: Radio, path: '/streamers', group: 'misc', entitlement: null,
   },
   {
     id: 'standard-matchups', label: 'Матчапы', icon: Swords, path: '/standard/matchups', group: 'standard', entitlement: 'standard',

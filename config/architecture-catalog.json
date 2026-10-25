@@ -1936,6 +1936,42 @@
       "tests": ["tests/radar.test.ts", "tests/next-radar-browser.test.mjs"],
       "allowedDependencies": [],
       "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
+      "name": "backend-streamers",
+      "status": "modular",
+      "owner": "community",
+      "purpose": "Publish the streamers of hs-data-api: who is live, the streamer catalog with Twitch/YouTube/X links and last decks, one streamer's decks; validated, keyed cache, Russian archetype names.",
+      "paths": ["server/modules/streamers"],
+      "publicEntrypoints": ["server/modules/streamers/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [{ "method": "GET", "path": "/api/streamers" }, { "method": "GET", "path": "/api/streamers/:slug" }],
+      "contracts": ["server/modules/streamers/types.ts", "docs/specs/streamers.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": ["api.kolodahearthstone.com streamers (/v1/hsguru/streamers, /v1/hsguru/streaming-now)"],
+      "tests": ["tests/streamers.test.ts"],
+      "allowedDependencies": ["Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
+      "name": "frontend-streamers",
+      "status": "modular",
+      "owner": "community",
+      "purpose": "Render the streamers pages: live streams, streamer cards with links and deck codes, one streamer's decks with format and class filters.",
+      "paths": ["src/modules/streamers"],
+      "publicEntrypoints": ["src/modules/streamers/public.ts"],
+      "frontendRoutes": ["/streamers", "/streamers/:streamerSlug"],
+      "backendRoutes": [],
+      "contracts": ["src/modules/streamers/model/types.ts", "docs/specs/streamers.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/streamers.test.ts"],
+      "allowedDependencies": [],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
     }
   ],
   "legacyAreas": [

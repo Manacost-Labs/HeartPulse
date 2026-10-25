@@ -943,6 +943,40 @@
         "docs/architecture/module-boundaries.md",
         "docs/specs/nerf-buff-radar.md"
       ]
+    },
+    {
+      "id": "client.streamers",
+      "runtime": "client",
+      "root": "src/modules/streamers",
+      "purpose": "Owns the public streamers pages: who is live, the streamer catalog with links and last decks, one streamer's decks with format and class filters.",
+      "owner": "community",
+      "publicEntry": "src/modules/streamers/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:streamers"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/streamers.md"
+      ]
+    },
+    {
+      "id": "server.streamers",
+      "runtime": "server",
+      "root": "server/modules/streamers",
+      "purpose": "Owns the anonymous streamers read from hs-data-api (/v1/hsguru/streamers*, /streaming-now), its validation, Russian archetype names and keyed cache.",
+      "owner": "community",
+      "publicEntry": "server/modules/streamers/public.ts",
+      "dependencies": [
+        "server.constructedArchetypes"
+      ],
+      "focusedTests": [
+        "npm run test:streamers"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/streamers.md"
+      ]
     }
   ],
   "migrationAreas": [

@@ -179,6 +179,13 @@
       "description": "Конкурсы для подписчиков Манакоста: участие, автоматическая проверка подписки и публикация ID победителей после завершения.",
       "sitemap": true
     },
+    "/streamers": {
+      "policyRouteId": "streamers",
+      "navigationRouteId": "streamers",
+      "title": "Стримеры Hearthstone и их колоды | HearthPulse",
+      "description": "Колоды стримеров Hearthstone с кодами, классами и рангами Легенды, ссылки на Twitch и YouTube и кто сейчас в эфире.",
+      "sitemap": true
+    },
     "/battlegrounds/strategies": {
       "policyRouteId": "bg-strategies",
       "navigationRouteId": "bg-strategies",
