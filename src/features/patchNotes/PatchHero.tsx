@@ -1,20 +1,34 @@
 import type { ReactNode } from 'react';
 import { preload } from 'react-dom';
-import { ArrowDown, ArrowUp, ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import {
-  patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHeroLead,
-  type PatchCardView, type PatchNotesDetail, type PatchView,
+  patchDigest, patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHeroLead,
+  type PatchCardView, type PatchDigestPart, type PatchNotesDetail, type PatchView,
 } from '../../modules/patchNotes/public';
 import { pluralRu } from '../../shared/text/pluralRu';
 import { cardArtSources, expansionBadge, heroPlate } from './patchArt';
+import { KIND_ICONS } from './patchKinds';
 
-/* The patch header: art, version, date, the patch's point in one line and one buff/nerf tally. */
+/* The patch header: art, version, date, title and "главное" — a line per section of what got worse, better or reworked. */
 
-const KIND_ROWS = [
-  { kind: 'buff', forms: ['усиление', 'усиления', 'усилений'], Icon: ArrowUp },
-  { kind: 'nerf', forms: ['ослабление', 'ослабления', 'ослаблений'], Icon: ArrowDown },
-  { kind: 'rework', forms: ['переработка', 'переработки', 'переработок'], Icon: RefreshCw },
-] as const;
+const KIND_FORMS = {
+  buff: ['усиление', 'усиления', 'усилений'],
+  nerf: ['ослабление', 'ослабления', 'ослаблений'],
+  rework: ['переработка', 'переработки', 'переработок'],
+} as const;
+
+/** One kind of a digest line: its mark, then the cards of a short section or the count of a long one. */
+function DigestPart({ part }: { part: PatchDigestPart }) {
+  const Icon = KIND_ICONS[part.kind];
+  const [one, few, many] = KIND_FORMS[part.kind];
+  const word = pluralRu(part.count, one, few, many);
+  return (
+    <span className="hp-patch-hero__digest-part" data-kind={part.kind}>
+      <Icon aria-hidden="true" />
+      {part.names ? <><span className="sr-only">{word}: </span>{part.names.join(', ')}</> : <><b>{part.count}</b> {word}</>}
+    </span>
+  );
+}
 
 const HERO_SIZES = '(min-width: 1480px) 1180px, 100vw';
 
@@ -39,7 +53,7 @@ export function PatchHero({ patch, view, date, highlights, versions }: {
   const art = featured ? cardArtSources(featured.url) : null;
   const expansion = patchExpansionCode(patch.version);
   const headline = patchHeadline(patch.title) ?? `Патч ${patch.version}`;
-  const kinds = KIND_ROWS.filter(({ kind }) => view.kinds[kind] > 0);
+  const digest = patchDigest(view);
   // The plate leads the paint; React hoists this into <head> during the server render.
   preload(plate.src, { as: 'image', imageSrcSet: plate.srcSet, imageSizes: HERO_SIZES, fetchPriority: 'high' });
   return (
@@ -60,14 +74,15 @@ export function PatchHero({ patch, view, date, highlights, versions }: {
           )}
         </div>
         <h2 className="hp-patch-hero__title">{headline}</h2>
-        {view.total > 0 && (
-          <p className="hp-patch-hero__counts">
-            {/* With one kind the total is that kind's number: shown once. */}
-            {kinds.length > 1 && <span data-kind="total"><b>{view.total}</b> {pluralRu(view.total, 'изменение', 'изменения', 'изменений')}</span>}
-            {kinds.map(({ kind, forms, Icon }) => (
-              <span key={kind} data-kind={kind}><Icon aria-hidden="true" /><b>{view.kinds[kind]}</b> {pluralRu(view.kinds[kind], forms[0], forms[1], forms[2])}</span>
+        {digest.length > 0 && (
+          <ul className="hp-patch-hero__digest" aria-label="Главное">
+            {digest.map(line => (
+              <li key={line.section}>
+                <b className="hp-patch-hero__digest-mode">{line.title}</b>
+                {line.parts.map(part => <DigestPart key={part.kind} part={part} />)}
+              </li>
             ))}
-          </p>
+          </ul>
         )}
         {(patch.officialUrl || patch.sourceUrl) && (
           <p className="hp-patch-hero__links">

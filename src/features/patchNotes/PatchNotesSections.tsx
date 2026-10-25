@@ -1,14 +1,15 @@
 import React, { type ReactNode } from 'react';
-import { ImageOff, Shapes } from 'lucide-react';
+import { ImageOff, Shapes, Star } from 'lucide-react';
 import {
-  patchKindBlocks, patchModePictureNote,
+  PATCH_SECTION_TITLES, patchKindBlocks, patchModePictureNote, type PatchView,
   type PatchCardView, type PatchGroupView, type PatchKind, type PatchKindCounts, type PatchNotesDetail, type PatchNotesMode, type PatchSectionId,
 } from '../../modules/patchNotes/public';
 import { EAGER_CARDS, PatchCard, type CardHandlers } from './PatchCard';
 import { GroupIcon } from './PatchMetaImpact';
-import { groupAnchor, sectionAnchor } from './PatchNotesNavigation';
+import { groupAnchor, sectionAnchor } from './patchAnchors';
 import { SECTION_ICONS, classIcon96 } from './patchArt';
 import { KIND_BLOCK_LABELS, KIND_ICONS } from './patchKinds';
+import { HIGHLIGHTS_ANCHOR } from './patchTocEntries';
 
 /*
  * The reading flow below the header: what matters first, then collapsible
@@ -17,20 +18,35 @@ import { KIND_BLOCK_LABELS, KIND_ICONS } from './patchKinds';
  * group names the kind once above a block of rows.
  */
 
-/** "Главное в патче": three or four compact tiles in one quiet panel, then the cards → archetypes flow (`children`). */
-export function Highlights({ cards, handlers, children }: { cards: PatchCardView[]; handlers: CardHandlers; children?: ReactNode }) {
-  const shown = cards.length >= 2 ? cards : [];
-  if (!shown.length && !children) return null;
+/**
+ * A block between the header and the sections ("Главное", archetypes): its
+ * head reads like a section summary — emblem, title, wood rule — without the
+ * disclosure, so every block of the page sits on one level.
+ */
+export function PatchBlock({ id, title, icon, aside, tourId, children }: {
+  id: string; title: string; icon: ReactNode; aside?: ReactNode; tourId?: string; children: ReactNode;
+}) {
   return (
-    <section className="hp-patch-highlights" aria-labelledby="hp-patch-highlights-title" data-tour-id="patch-highlights">
-      <h3 id="hp-patch-highlights-title" className="hp-patch-heading">Главное в патче</h3>
-      {shown.length > 0 && (
-        <ul className="hp-patch-highlights__list" data-count={shown.length}>
-          {shown.map(card => <li key={card.id}><PatchCard card={card} featured eager headingLevel="h4" {...handlers} /></li>)}
-        </ul>
-      )}
+    <section className="hp-patch-block" id={id} aria-labelledby={`${id}-title`} data-tour-id={tourId}>
+      <header className="hp-patch-block__head">
+        <span className="hp-patch-emblem" aria-hidden="true">{icon}</span>
+        <h3 id={`${id}-title`} className="hp-patch-section__title">{title}</h3>
+        {aside && <span className="hp-patch-block__aside">{aside}</span>}
+      </header>
       {children}
     </section>
+  );
+}
+
+/** "Главное в патче": three or four compact tiles in one quiet panel; fewer than two is no block. */
+export function Highlights({ cards, handlers }: { cards: PatchCardView[]; handlers: CardHandlers }) {
+  if (cards.length < 2) return null;
+  return (
+    <PatchBlock id={HIGHLIGHTS_ANCHOR} title="Главное в патче" icon={<Star />} tourId="patch-highlights">
+      <ul className="hp-patch-highlights__list" data-count={cards.length}>
+        {cards.map(card => <li key={card.id}><PatchCard card={card} featured eager headingLevel="h4" {...handlers} /></li>)}
+      </ul>
+    </PatchBlock>
   );
 }
 
@@ -110,7 +126,7 @@ function KindBlock({ kind, level, children }: { kind: PatchKind; level: 'h4' | '
   );
 }
 
-export function PatchSection({ section, groups, patch, notes, filtered, eagerFrom, handlers }: {
+function PatchSection({ section, groups, patch, notes, filtered, eagerFrom, handlers }: {
   section: { id: PatchSectionId; title: string; count: number; kinds: PatchKindCounts }; groups: PatchGroupView[];
   patch: PatchNotesDetail; notes: PatchNotesMode | null; filtered: boolean; eagerFrom: number; handlers: CardHandlers;
 }) {
@@ -148,5 +164,35 @@ export function PatchSection({ section, groups, patch, notes, filtered, eagerFro
         {!filtered && notes && <SectionNotes patch={patch} mode={notes} hasCards={groups.length > 0} />}
       </div>
     </details>
+  );
+}
+
+/**
+ * Every section in reading order, then the sections of modes that have only
+ * general changes. Rows load eagerly from `eagerFrom` on, counted across
+ * sections; filters leave out sections without a match and all notes.
+ */
+export function PatchSections({ view, groups, patch, filtered, notesHome, notesOnly, eagerFrom, handlers }: {
+  view: PatchView; groups: PatchGroupView[]; patch: PatchNotesDetail; filtered: boolean;
+  notesHome: ReadonlyMap<PatchNotesMode, string>; notesOnly: PatchNotesMode[]; eagerFrom: number; handlers: CardHandlers;
+}) {
+  let eager = eagerFrom;
+  return (
+    <>
+      {view.sections.map(section => {
+        const sectionGroups = groups.filter(group => group.section === section.id);
+        if (!sectionGroups.length && filtered) return null;
+        const from = eager;
+        eager += sectionGroups.reduce((sum, group) => sum + group.entries.length, 0);
+        return (
+          <PatchSection key={section.id} section={section} groups={sectionGroups} patch={patch} filtered={filtered}
+            notes={notesHome.get(section.mode) === section.id ? section.mode : null} eagerFrom={from} handlers={handlers} />
+        );
+      })}
+      {!filtered && notesOnly.map(mode => (
+        <PatchSection key={mode} section={{ id: mode, title: PATCH_SECTION_TITLES[mode], count: 0, kinds: { buff: 0, nerf: 0, rework: 0 } }}
+          groups={[]} patch={patch} notes={mode} filtered={false} eagerFrom={EAGER_CARDS} handlers={handlers} />
+      ))}
+    </>
   );
 }

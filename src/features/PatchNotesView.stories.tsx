@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import type { PatchNotesDetail, PatchNotesEntry, PatchNotesSummary } from '../modules/patchNotes/public';
 import { PatchNotesView } from './PatchNotesView';
+import { PatchNotesSkeleton } from './patchNotes/PatchNotesSkeleton';
 
 const trinket = (id: string, name: string, sourceName: string, subtitle: string, before: number, after: number): PatchNotesEntry => ({
   id, name, sourceName, mode: 'battlegrounds', cardId: id, cardClass: null, cardType: 'trinket', renderUrl: null, artwork: null, format: null, archetypes: [], history: [], subtitle, note: null,
@@ -54,11 +55,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const CardChanges: Story = {
-  parameters: { docs: { description: { story: 'Header with one tally, one sticky bar of modes, class/type, search and kind, and cards with only the render, the name and was → now. A short patch has no highlight cards: they would repeat the cards below.' } } },
+  parameters: { docs: { description: { story: 'Header with the patch digest (a line per section: nerfs, buffs, reworks), the sticky bar of search and kind, and rows with only the render, the name and was → now. A short patch has no highlight cards: they would repeat the cards below.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const listed = () => canvasElement.querySelectorAll('.hp-patch-section article');
     await expect(canvas.getByRole('heading', { level: 2, name: 'Балансные изменения Стандарта и Полей сражений' })).toBeVisible();
+    await expect(within(canvas.getByRole('list', { name: 'Главное' })).getAllByRole('listitem')).toHaveLength(2);
     // Six changes are read whole: "Главное" keeps only the cards → archetypes flow.
     await expect(canvasElement.querySelector('.hp-patch-highlights__list')).toBeNull();
     await expect(listed()).toHaveLength(6);
@@ -72,20 +74,18 @@ export const CardChanges: Story = {
 };
 
 export const CardDetailsAndFilters: Story = {
-  parameters: { docs: { description: { story: 'The type, English name, archetypes and history of a card wait behind its "…"; the class/type select filters to one group; the empty filter state offers a reset.' } } },
+  parameters: { docs: { description: { story: 'The type, English name, archetypes and history of a card wait behind its "…"; the empty filter state offers a reset.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const serpent = canvas.getByRole('article', { name: /Змей ветреных вершин/ });
     await expect(within(serpent).queryByRole('link', { name: /Воин на драконах/ })).not.toBeVisible();
     await userEvent.click(within(serpent).getByLabelText('Подробнее: Змей ветреных вершин'));
     await expect(within(serpent).getByRole('link', { name: /Воин на драконах/ })).toHaveAttribute('href', '/standard/archetypes/standard/std-dragon-warrior/');
-    await expect(canvas.getByText(/Вольный: данные сейчас недоступны/)).toBeInTheDocument();
+    await expect(canvas.getByText(/Вольный: снимка за этот день нет/)).toBeInTheDocument();
     const brew = canvas.getByRole('article', { name: /Пойло из Пиратской Бухты/ });
     await userEvent.click(within(brew).getByLabelText(/^Подробнее/));
     await expect(within(brew).getByRole('link', { name: '36.0.3' })).toHaveAttribute('href',
       '/standard/patches/?version=36.0.3#card-battlegrounds-малый-аксессуар-booty-bay-brew');
-    await userEvent.selectOptions(canvas.getByLabelText('Класс или тип карт'), 'Большой аксессуар · 1');
-    await expect(canvasElement.querySelectorAll('.hp-patch-section article')).toHaveLength(1);
     await userEvent.type(canvas.getByRole('searchbox'), 'нет такой карты');
     await expect(canvas.getByText('Под эти фильтры не попало ни одно изменение.')).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Сбросить фильтры' }));
@@ -94,7 +94,8 @@ export const CardDetailsAndFilters: Story = {
 };
 
 export const CollapsedSection: Story = {
-  parameters: { docs: { description: { story: 'Section banners fold; a mode link in the bar opens a folded section again.' } } },
+  parameters: { docs: { description: { story: 'On wide content a sticky table of contents stands beside the changes: "Главное", the archetypes, then each section and its classes or card types. Sections fold; a link opens a folded section again.' } } },
+  decorators: [Story => <div style={{ width: 1280 }}><Story /></div>],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const section = canvasElement.querySelector<HTMLDetailsElement>('#hp-patch-section-battlegrounds');
@@ -102,13 +103,15 @@ export const CollapsedSection: Story = {
     await waitFor(() => expect(canvas.getByText(/в статье только картинками/)).toBeVisible());
     await userEvent.click(canvas.getByRole('heading', { name: /^Поля сражений/ }));
     await expect(section?.open).toBe(false);
-    await userEvent.click(within(canvas.getByRole('navigation', { name: 'Разделы патча' })).getByRole('link', { name: /^Поля сражений/ }));
+    const toc = within(canvas.getByRole('navigation', { name: 'Оглавление патча' }));
+    await expect(toc.getByRole('link', { name: 'Малый аксессуар' })).toHaveAttribute('href', '#hp-patch-group-малый-аксессуар');
+    await userEvent.click(toc.getByRole('link', { name: 'Поля сражений' }));
     await expect(section?.open).toBe(true);
   },
 };
 
 export const PhoneVersionPicker: Story = {
-  parameters: { docs: { description: { story: 'On narrow content the header art becomes a top band and only the search and kind row sticks. Arrows go to the neighbouring patches, the select to any of them.' } } },
+  parameters: { docs: { description: { story: 'On narrow content the header art becomes a top band, the table of contents becomes the «Перейти к…» select and only that row with the kind toggles sticks. Arrows go to the neighbouring patches, the select to any of them.' } } },
   decorators: [Story => <div style={{ width: 380 }}><Story /></div>],
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
@@ -116,6 +119,17 @@ export const PhoneVersionPicker: Story = {
     await expect(within(switcher).getByRole('link', { name: /новый патч 37\.0\.0/ })).toHaveAttribute('href', '/standard/patches/');
     await userEvent.selectOptions(within(switcher).getByLabelText('Версия патча'), '36.4.2');
     await expect(args.onSelectVersion).toHaveBeenCalledWith('/standard/patches/?version=36.4.2');
+    await expect(canvas.getByLabelText('Перейти к разделу или классу')).toBeVisible();
+    await expect(canvas.getByRole('navigation', { name: 'Оглавление патча' })).not.toBeVisible();
+  },
+};
+
+export const Loading: Story = {
+  parameters: { docs: { description: { story: 'While the patch loads in the browser: the header plate with the page heading, the bar, a section head and rows, and the table of contents on wide content.' } } },
+  render: () => <PatchNotesSkeleton />,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('heading', { level: 1, name: 'Патчноуты Hearthstone' })).toBeVisible();
+    await expect(within(canvasElement).getByRole('status')).toHaveTextContent('Загружаем патчноуты');
   },
 };
 
@@ -193,7 +207,9 @@ export const MetaFlow: Story = {
   play: async ({ canvasElement }) => {
     const flow = canvasElement.querySelector<HTMLElement>('.hp-patch-flow');
     await expect(flow?.dataset.layout).toBe('list');
-    await expect(within(flow ?? canvasElement).getByText('Архетипы на момент выхода патча (данные за 30 сентября 2026 г.)')).toBeVisible();
+    const block = within(canvasElement.querySelector<HTMLElement>('#hp-patch-archetypes') ?? canvasElement);
+    await expect(block.getByRole('heading', { level: 3, name: 'Архетипы на момент выхода патча' })).toBeVisible();
+    await expect(block.getByText('данные за 30 сентября 2026 г.')).toBeVisible();
     await expect(flow?.querySelector('.ui-sankey-chart')).toBeNull();
     await expect([...(flow?.querySelectorAll('.hp-patch-flow__targets a') ?? [])].map(link => link.getAttribute('href')))
       .toContain('/standard/archetypes/standard/std-dragon-warrior/');

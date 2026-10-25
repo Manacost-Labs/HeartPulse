@@ -6,9 +6,8 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { patchNotesHref } from '@/src/modules/patchNotes/public';
 import { PatchNotesView } from '@/src/features/PatchNotesView';
 import { fetchWithDeadline } from '@/src/shared/http/fetchWithDeadline';
+import { PatchNotesSkeleton } from '@/src/features/patchNotes/PatchNotesSkeleton';
 import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
-import { LoadingSurface } from '@/src/shared/ui/LoadingSurface';
-import '@/src/shared/ui/LoadingSurface.css';
 import type { PublicPatchNotes } from '@/apps/public-web/lib/publicPatchNotes';
 import { usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
@@ -49,7 +48,8 @@ export function PatchNotesPageClient({ version, initial }: { version: string | n
 
   return <PublicPageShell activeTab="patch-notes" pathname="/standard/patches/" access={access} navigate={navigate} wide>
     <section className="space-y-5">
-      {!state.patch && <SectionBanner title="Патчноуты Hearthstone" subtitle="Что изменилось в картах Стандарта, Арены и Полей сражений: было → стало, усиления и ослабления" />}
+      {/* The skeleton carries the page heading itself, so only the missing and failed states show the route banner. */}
+      {!state.patch && state.error && <SectionBanner title="Патчноуты Hearthstone" subtitle="Что изменилось в картах Стандарта, Арены и Полей сражений: было → стало, усиления и ослабления" />}
       {state.patch
         ? <PatchNotesView patch={state.patch} archive={state.archive ?? []} onSelectVersion={navigate} />
         : state.error === 'missing'
@@ -64,7 +64,7 @@ export function PatchNotesPageClient({ version, initial }: { version: string | n
                 Повторить
               </button>
             </div>
-            : <LoadingSurface label="Загружаем патчноуты" layout="rows" count={4} />}
+            : <PatchNotesSkeleton />}
     </section>
   </PublicPageShell>;
 }

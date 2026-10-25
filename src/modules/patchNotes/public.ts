@@ -1,4 +1,7 @@
-export { PATCH_KIND_ORDER, filterPatchView, patchGroupOptions, patchHighlights, patchKindBlocks } from './model/patchSelection';
+export {
+  PATCH_KIND_ORDER, filterPatchView, patchDigest, patchGroupOptions, patchHighlights, patchKindBlocks,
+  type PatchDigestLine, type PatchDigestPart,
+} from './model/patchSelection';
 export {
   PATCH_SECTION_TITLES, archetypeHref, changeDirection, patchCardAnchor, patchCardImage, patchKind, patchNotesHref, sentenceCase,
   toPatchView, type PatchGroupIcon,
