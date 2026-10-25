@@ -161,11 +161,11 @@
   },
   {
    "name": "Ammunae Druid",
-   "label": "Ammunae Druid"
+   "label": "Аммунаэ Друид"
   },
   {
    "name": "Ammunae N'Zoth Druid",
-   "label": "Ammunae N'Zoth Druid"
+   "label": "Аммунаэ Н'зот Друид"
   },
   {
    "name": "Armor Warrior",
@@ -181,7 +181,7 @@
   },
   {
    "name": "AYAYA Harold Rogue",
-   "label": "Разбойник на возвещении (AYAYA)"
+   "label": "Айя Разбойник на возвещении"
   },
   {
    "name": "AYAYA Rogue",
@@ -193,7 +193,7 @@
   },
   {
    "name": "Beast Attack Druid",
-   "label": "Друид на атаке (Beast)"
+   "label": "Друид на зверях и атаке"
   },
   {
    "name": "Beast Druid",
@@ -237,11 +237,11 @@
   },
   {
    "name": "C'Thun Quest Priest",
-   "label": "Квест Жрец (C'Thun)"
+   "label": "К'тун Квест Жрец"
   },
   {
    "name": "C'Thun Rogue",
-   "label": "C'Thun Rogue"
+   "label": "К'тун Разбойник"
   },
   {
    "name": "C'Thun Shaman",
@@ -257,15 +257,15 @@
   },
   {
    "name": "Clone CtA Paladin",
-   "label": "Паладин через Призыв к оружию (Clone)"
+   "label": "Паладин на копиях с Призывом к оружию"
   },
   {
    "name": "Clone Mech Paladin",
-   "label": "Мех Паладин (Clone)"
+   "label": "Паладин на копиях и механизмах"
   },
   {
    "name": "Combo Rogue",
-   "label": "Combo Rogue"
+   "label": "Комбо Разбойник"
   },
   {
    "name": "Companion Hunter",
@@ -285,7 +285,7 @@
   },
   {
    "name": "Demon DH",
-   "label": "Demon DH"
+   "label": "Демонический Охотник на демонов"
   },
   {
    "name": "Demon Warlock",
@@ -301,11 +301,11 @@
   },
   {
    "name": "Dragon Pirate Warrior",
-   "label": "Пират Воин (Dragon)"
+   "label": "Воин на драконах и пиратах"
   },
   {
    "name": "Dragon Warlock",
-   "label": "Dragon Warlock"
+   "label": "Чернокнижник на драконах"
   },
   {
    "name": "Dragon Warrior",
@@ -373,7 +373,7 @@
   },
   {
    "name": "Harold Demon Warlock",
-   "label": "Демонолок (Harold)"
+   "label": "Чернокнижник на возвещении и демонах"
   },
   {
    "name": "Harold DH",
@@ -389,7 +389,7 @@
   },
   {
    "name": "Harold Piglock",
-   "label": "Чернокнижник с Расхождением (Harold)"
+   "label": "Чернокнижник на возвещении с Расхождением"
   },
   {
    "name": "Harold Rogue",
@@ -413,11 +413,11 @@
   },
   {
    "name": "Highlander Mage",
-   "label": "Highlander Mage"
+   "label": "Хайландер Маг"
   },
   {
    "name": "Highlander Warrior",
-   "label": "Highlander Warrior"
+   "label": "Хайландер Воин"
   },
   {
    "name": "HL Igneous Warrior",
@@ -425,23 +425,23 @@
   },
   {
    "name": "HL LC Quest Priest",
-   "label": "Квест Жрец (HL LC)"
+   "label": "Хайландер Квест Жрец (Затерянный город)"
   },
   {
    "name": "HL Questline Priest",
-   "label": "Квестлайн Жрец (HL)"
+   "label": "Хайландер Квестлайн Жрец"
   },
   {
    "name": "HL Thief Priest",
-   "label": "Жрец на воровстве (HL)"
+   "label": "Хайландер Жрец на воровстве"
   },
   {
    "name": "HL Thief Rogue",
-   "label": "HL Thief Rogue"
+   "label": "Хайландер Разбойник на воровстве"
   },
   {
    "name": "HL Velarok Rogue",
-   "label": "777 Миракл Разбойник (HL)"
+   "label": "Хайландер Веларок Разбойник"
   },
   {
    "name": "Holy Paladin",
@@ -449,11 +449,11 @@
   },
   {
    "name": "Hostage Mage",
-   "label": "Hostage Mage"
+   "label": "Заложник Маг"
   },
   {
    "name": "Hostage Rogue",
-   "label": "Hostage Rogue"
+   "label": "Заложник Разбойник"
   },
   {
    "name": "Igneous Odyn Warrior",
@@ -461,11 +461,11 @@
   },
   {
    "name": "Igneous Warrior",
-   "label": "Igneous Warrior"
+   "label": "Магмоед Воин"
   },
   {
    "name": "Imbue Hunter",
-   "label": "Imbue Hunter"
+   "label": "Охотник на силе героя"
   },
   {
    "name": "Imbue Mage",
@@ -485,11 +485,11 @@
   },
   {
    "name": "Impformant Warlock",
-   "label": "Impformant Warlock"
+   "label": "Бес-информатор Чернокнижник"
   },
   {
    "name": "Infinity Paladin",
-   "label": "Infinity Paladin"
+   "label": "Паладин с Бесконечностью"
   },
   {
    "name": "JtU Quest Mage",
@@ -501,7 +501,7 @@
   },
   {
    "name": "LC Quest Priest",
-   "label": "Квест Жрец (LC)"
+   "label": "Квест Жрец (Затерянный город)"
   },
   {
    "name": "Leyline Mage",
@@ -509,7 +509,7 @@
   },
   {
    "name": "Linecracker Druid",
-   "label": "Linecracker Druid"
+   "label": "Пробойник Друид"
   },
   {
    "name": "Lo'Gosh Warrior",
@@ -529,11 +529,11 @@
   },
   {
    "name": "Mecha'thun Druid",
-   "label": "Mecha'thun Druid"
+   "label": "Меха-К'тун Друид"
   },
   {
    "name": "Mecha'thun Priest",
-   "label": "Mecha'thun Priest"
+   "label": "Меха-К'тун Жрец"
   },
   {
    "name": "Merithra Druid",
@@ -557,7 +557,7 @@
   },
   {
    "name": "Miracle Seedlock",
-   "label": "Квестлайн Чернокнижник (Miracle)"
+   "label": "Миракл Квестлайн Чернокнижник"
   },
   {
    "name": "Miracle Warlock",
@@ -569,23 +569,23 @@
   },
   {
    "name": "N'Zoth Combo Rogue",
-   "label": "N'Zoth Combo Rogue"
+   "label": "Н'зот Комбо Разбойник"
   },
   {
    "name": "N'Zoth DH",
-   "label": "N'Zoth DH"
+   "label": "Н'зот Охотник на демонов"
   },
   {
    "name": "N'Zoth DK",
-   "label": "N'Zoth DK"
+   "label": "Н'зот Рыцарь смерти"
   },
   {
    "name": "N'Zoth Druid",
-   "label": "N'Zoth Druid"
+   "label": "Н'зот Друид"
   },
   {
    "name": "N'Zoth Hunter",
-   "label": "N'Zoth Hunter"
+   "label": "Н'зот Охотник"
   },
   {
    "name": "N'Zoth Mech Hunter",
@@ -593,11 +593,11 @@
   },
   {
    "name": "N'Zoth Paladin",
-   "label": "N'Zoth Paladin"
+   "label": "Н'зот Паладин"
   },
   {
    "name": "N'Zoth Priest",
-   "label": "N'Zoth Priest"
+   "label": "Н'зот Жрец"
   },
   {
    "name": "N'Zoth Rogue",
@@ -605,11 +605,11 @@
   },
   {
    "name": "N'Zoth Shaman",
-   "label": "N'Zoth Shaman"
+   "label": "Н'зот Шаман"
   },
   {
    "name": "N'Zoth Warrior",
-   "label": "N'Zoth Warrior"
+   "label": "Н'зот Воин"
   },
   {
    "name": "No Minion DH",
@@ -617,15 +617,15 @@
   },
   {
    "name": "Odyn Warrior",
-   "label": "Odyn Warrior"
+   "label": "Один Воин"
   },
   {
    "name": "Ohn'ahra Big Shaman",
-   "label": "Биг Шаман (Ohn'ahra)"
+   "label": "Он'ара Большой Шаман"
   },
   {
    "name": "Old Aggro Druid",
-   "label": "Old Aggro Druid"
+   "label": "Агро Друид (старый список)"
   },
   {
    "name": "Piglock",
@@ -637,7 +637,7 @@
   },
   {
    "name": "Pirate Rogue",
-   "label": "Pirate Rogue"
+   "label": "Разбойник на пиратах"
   },
   {
    "name": "Pirate Warrior",
@@ -645,7 +645,7 @@
   },
   {
    "name": "Plague DK",
-   "label": "Plague DK"
+   "label": "Рыцарь смерти на чуме"
   },
   {
    "name": "Pure Paladin",
@@ -681,7 +681,7 @@
   },
   {
    "name": "Questline Warrior",
-   "label": "Questline Warrior"
+   "label": "Квестлайн Воин"
   },
   {
    "name": "Rafaamlock",
@@ -693,7 +693,7 @@
   },
   {
    "name": "Rainbow Shaman",
-   "label": "Rainbow Shaman"
+   "label": "Радужный Шаман"
   },
   {
    "name": "Raza DH",
@@ -701,7 +701,7 @@
   },
   {
    "name": "Rush DH",
-   "label": "Rush DH"
+   "label": "Охотник на демонов на натиске"
   },
   {
    "name": "Secret Hunter",
@@ -725,11 +725,11 @@
   },
   {
    "name": "Sneaky Harold Rogue",
-   "label": "Разбойник на возвещении (Sneaky)"
+   "label": "Разбойник на скрытности и возвещении"
   },
   {
    "name": "Sneaky Rogue",
-   "label": "Sneaky Rogue"
+   "label": "Разбойник на скрытности"
   },
   {
    "name": "Soothsayer Priest",
@@ -741,39 +741,39 @@
   },
   {
    "name": "STD AYAYA Rogue",
-   "label": "Айя Разбойник (STD)"
+   "label": "Айя Разбойник (из Стандарта)"
   },
   {
    "name": "STD Burn Mage",
-   "label": "СПД Маг (STD)"
+   "label": "Маг на прямом уроне (из Стандарта)"
   },
   {
    "name": "STD Dragon Warrior",
-   "label": "Дракон Воин (STD)"
+   "label": "Воин на драконах (из Стандарта)"
   },
   {
    "name": "STD Leyline Mage",
-   "label": "Лейлайн Маг (STD)"
+   "label": "Маг на силовых линиях (из Стандарта)"
   },
   {
    "name": "STD Pirate Warrior",
-   "label": "Пират Воин (STD)"
+   "label": "Воин на пиратах (из Стандарта)"
   },
   {
    "name": "STD Quest Priest",
-   "label": "Квест Жрец (STD)"
+   "label": "Квест Жрец (из Стандарта)"
   },
   {
    "name": "STD Thief Priest",
-   "label": "Жрец на воровстве (STD)"
+   "label": "Жрец на воровстве (из Стандарта)"
   },
   {
    "name": "STD Unholy DK",
-   "label": "Анхоли Рыцарь Смерти (STD)"
+   "label": "Рыцарь смерти Нечестивости (из Стандарта)"
   },
   {
    "name": "STD Void Soul DH",
-   "label": "Охотник на демонов Бездны (STD)"
+   "label": "Охотник на демонов Бездны (из Стандарта)"
   },
   {
    "name": "Summoner Mage",
@@ -781,7 +781,7 @@
   },
   {
    "name": "Thal'ena DK",
-   "label": "Thal'ena DK"
+   "label": "Тал'ена Рыцарь смерти"
   },
   {
    "name": "Thief Priest",
@@ -789,11 +789,11 @@
   },
   {
    "name": "Thief Rogue",
-   "label": "Thief Rogue"
+   "label": "Разбойник на воровстве"
   },
   {
    "name": "Tog Druid",
-   "label": "Tog Druid"
+   "label": "Вихлепых Друид"
   },
   {
    "name": "Token DH",
@@ -833,11 +833,11 @@
   },
   {
    "name": "Well Rogue",
-   "label": "Well Rogue"
+   "label": "Разбойник на желаниях"
   },
   {
    "name": "XL Blood DK",
-   "label": "ДК Крови (XL)"
+   "label": "Ренатал Рыцарь смерти Крови"
   },
   {
    "name": "XL Deios Druid",
@@ -853,7 +853,7 @@
   },
   {
    "name": "XL Highlander Death Knight",
-   "label": "XL Highlander Death Knight"
+   "label": "Ренатал Хайландер Рыцарь смерти"
   },
   {
    "name": "XL Highlander Druid",
@@ -865,7 +865,7 @@
   },
   {
    "name": "XL Highlander Rogue",
-   "label": "Хайландер Разбойник (XL)"
+   "label": "Ренатал Хайландер Разбойник"
   },
   {
    "name": "XL Highlander Warlock",
@@ -873,11 +873,11 @@
   },
   {
    "name": "XL Highlander Warrior",
-   "label": "XL Highlander Warrior"
+   "label": "Ренатал Хайландер Воин"
   },
   {
    "name": "XL HL 'n' Roll Warrior",
-   "label": "XL HL 'n' Roll Warrior"
+   "label": "Ренатал Хайландер Рок-н-ролл Воин"
   },
   {
    "name": "XL HL Aura Paladin",
@@ -889,7 +889,7 @@
   },
   {
    "name": "XL HL Blood DK",
-   "label": "ДК Крови (XL HL)"
+   "label": "Ренатал Хайландер Рыцарь смерти Крови"
   },
   {
    "name": "XL HL Dragon Druid",
@@ -909,7 +909,7 @@
   },
   {
    "name": "XL HL Imbue Rogue",
-   "label": "Разбойник на силе героя (XL HL)"
+   "label": "Ренатал Хайландер Разбойник на силе героя"
   },
   {
    "name": "XL HL JtU Quest Mage",
@@ -969,7 +969,7 @@
   },
   {
    "name": "XL Igneous Warrior",
-   "label": "XL Igneous Warrior"
+   "label": "Ренатал Магмоед Воин"
   },
   {
    "name": "XL JtU Quest Mage",
@@ -985,11 +985,11 @@
   },
   {
    "name": "XL Questline Warrior",
-   "label": "XL Questline Warrior"
+   "label": "Ренатал Квестлайн Воин"
   },
   {
    "name": "XL Secret Mage",
-   "label": "Секрет Маг (XL)"
+   "label": "Ренатал Секрет Маг"
   },
   {
    "name": "XL Seedlock",
@@ -997,7 +997,7 @@
   },
   {
    "name": "XL Shadow Priest",
-   "label": "Жрец Тьмы (XL)"
+   "label": "Ренатал Жрец Тьмы"
   },
   {
    "name": "XL SoU Quest Shaman",
@@ -1005,31 +1005,31 @@
   },
   {
    "name": "XL Tick Tock Warlock",
-   "label": "Тик-Ток Чернокнижник (XL)"
+   "label": "Ренатал Тик-Так Чернокнижник"
   },
   {
    "name": "XL Velarok Rogue",
-   "label": "777 Миракл Разбойник (XL)"
+   "label": "Ренатал Веларок Разбойник"
   },
   {
    "name": "Y'Shaarj Paladin",
-   "label": "Y'Shaarj Paladin"
+   "label": "И'Шарадж Паладин"
   },
   {
    "name": "Yogg Paladin",
-   "label": "Yogg Paladin"
+   "label": "Йогг-Сарон Паладин"
   },
   {
    "name": "Yogg Shaman",
-   "label": "Yogg Shaman"
+   "label": "Йогг-Сарон Шаман"
   },
   {
    "name": "Yogg Warrior",
-   "label": "Yogg Warrior"
+   "label": "Йогг-Сарон Воин"
   },
   {
    "name": "Zee C'Thun Shaman",
-   "label": "К'тун Шаман (Zee)"
+   "label": "Граб'Зи К'тун Шаман"
   },
   {
    "name": "Zee Shaman",
@@ -1041,7 +1041,7 @@
   },
   {
    "name": "Zuramat Warlock",
-   "label": "Zuramat Warlock"
+   "label": "Зурамат Чернокнижник"
   }
  ]
 }

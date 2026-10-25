@@ -27,7 +27,7 @@ function InsightHeading({ icon, eyebrow, title, text }: { icon: React.ReactNode;
   </header>;
 }
 
-const RANKS_TEXT = 'Винрейт архетипа в каждом ранге за разные периоды HSGuru. Пустая клетка — в срезе меньше 100 игр.';
+const RANKS_TEXT = 'Винрейт архетипа в каждом ранге за разные периоды HSGuru, ниже — первым ходом и с монеткой в окне банов. Пустая клетка — в срезе меньше 100 игр.';
 
 function RankHeatmapSkeleton() {
   return <LoadingSurface label="Загружаем винрейт по рангам" quiet layout="rows" className="archetype-detail-skeleton">
@@ -42,8 +42,16 @@ function RankHeatmapSkeleton() {
   </LoadingSurface>;
 }
 
+/** The Bans window by coin as a second rank table; null while no rank has a coin sample. */
+function coinMatrix(matrix: RankMatrix | undefined): RankMatrix | null {
+  const split = matrix?.coins;
+  if (!matrix || !split?.cells.some(cell => cell.winrate !== null)) return null;
+  return { ranks: matrix.ranks, periods: split.columns, cells: split.cells, updatedAt: matrix.updatedAt };
+}
+
 export function RankHeatmapSection({ read }: { read: { loading: boolean; error: string; retry: () => void; data: { ranks: unknown } | null } }) {
   const matrix = read.data?.ranks as RankMatrix | undefined;
+  const coins = coinMatrix(matrix);
   return <ArchetypeDetailSection title="Винрейт по рангам" loading={read.loading || (!read.error && !matrix)} error={read.error} onRetry={read.retry}
     skeleton={<RankHeatmapSkeleton />}>
     <section className="archetype-insight archetype-ranks" aria-labelledby="archetype-ranks-title" data-tour-id="archetype-ranks">
@@ -52,7 +60,13 @@ export function RankHeatmapSection({ read }: { read: { loading: boolean; error: 
         <h2 id="archetype-ranks-title">Винрейт по рангам</h2>
         <p>{RANKS_TEXT}</p>
       </div></header>
-      <React.Suspense fallback={<LoadingBlock className="archetype-ranks__reserve" />}>{matrix ? <LazyHeatmap matrix={matrix} /> : null}</React.Suspense>
+      <React.Suspense fallback={<LoadingBlock className="archetype-ranks__reserve" />}>
+        {matrix ? <LazyHeatmap matrix={matrix} /> : null}
+        {matrix && coins ? <>
+          <h3 className="archetype-ranks__subtitle">Первым ходом и с монеткой · Баны</h3>
+          <LazyHeatmap matrix={coins} legend={false} caption="Винрейт архетипа в окне банов HSGuru: первым ходом и с монеткой, по рангам" />
+        </> : null}
+      </React.Suspense>
     </section>
   </ArchetypeDetailSection>;
 }

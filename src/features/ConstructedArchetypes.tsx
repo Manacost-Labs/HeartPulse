@@ -1,11 +1,12 @@
 import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
 import { archetypeClassBackdrop, archetypeHeroArt } from './archetypeDetailModel';
+import { buildsWindowNote } from './archetypeBuildsModel';
 import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
 import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
 import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection } from './ArchetypeInsightSlots';
 import { ArchetypeHistoryCharts } from './ArchetypeHistoryCharts';
 import { standardMetaPeriodLabel } from './standardMetaFilterModel';
-import type { StandardMetaPeriod } from '../../shared/standardMetaPeriods';
+import { isStandardMetaPeriod, type StandardMetaPeriod } from '../../shared/standardMetaPeriods';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
@@ -56,6 +57,7 @@ type ArchetypeBuild = {
   classKey: ArchetypeClass | null;
   sampleRank: string;
   samplePeriod: string;
+  sampleSource?: 'stats' | 'replays';
 };
 
 type ArchetypeItem = {
@@ -201,8 +203,16 @@ function formatDate(value: string | null, timeZone?: string): string {
 }
 
 /** «Баны», «Тёмная империя» or «Патч 36.6.3»: the HSGuru period the catalog's games come from. */
-function catalogPeriodLabel(catalog: ArchetypeCatalog | null): string {
-  return catalog?.period ? standardMetaPeriodLabel(catalog.period) : `Патч ${catalog?.patch || '—'}`;
+function catalogPeriodLabel(catalog: Pick<ArchetypeCatalog, 'period' | 'patch'> | null): string {
+  if (catalog?.period) return standardMetaPeriodLabel(catalog.period);
+  // The detail answer names its window only in `patch` (`black_empire_ban`, or `36.6.3` for a patch).
+  if (catalog?.patch && isStandardMetaPeriod(catalog.patch)) return standardMetaPeriodLabel(catalog.patch);
+  return `Патч ${catalog?.patch || '—'}`;
+}
+
+/** The page's HSGuru window: the detail answer names it only in `patch` (`black_empire_ban`). */
+function pagePeriod(detail: Pick<ArchetypeCatalog, 'period' | 'patch'>): string | null {
+  return detail.period ?? (isStandardMetaPeriod(detail.patch) ? detail.patch : null);
 }
 
 function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutral' {
@@ -471,6 +481,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
 
   const { item, history } = detail;
   const shownBuilds = item.builds.slice(0, visibleBuilds);
+  const buildsNote = buildsWindowNote(item.builds, pagePeriod(detail));
   const heroArt = archetypeHeroArt(item.slug, detail.analysis?.cardStats ?? []);
   const backdrop = archetypeClassBackdrop(item.classKey);
 
@@ -537,6 +548,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
             <div>
               <h2 id="archetype-builds-title">Сборки архетипа</h2>
               <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
+              {buildsNote ? <small className="archetype-builds__window">{buildsNote}</small> : null}
             </div>
             <span className="archetype-section-heading__count">{item.builds.length} сборок</span>
           </header>
@@ -544,6 +556,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
             builds={shownBuilds}
             format={item.format}
             archetype={item.archetype}
+            archetypeLabel={item.archetypeLabel}
             classKey={item.classKey}
           />
           {visibleBuilds < item.builds.length && (
@@ -615,7 +628,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         error={analysisRead.error} onRetry={analysisRead.retry} skeleton={<ArchetypeAnalysisLoading />}>
         <RecoverableSurfaceBoundary scope="constructed-archetype-analysis" title="Аналитика архетипа временно недоступна">
           <React.Suspense fallback={<ArchetypeAnalysisReserve />}>
-            <ConstructedArchetypeAnalysis analysis={detail.analysis} />
+            <ConstructedArchetypeAnalysis analysis={detail.analysis} format={item.format} slug={item.slug} />
           </React.Suspense>
         </RecoverableSurfaceBoundary>
       </ArchetypeDetailSection> : null}
@@ -627,7 +640,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         <BarChart3 size={24} aria-hidden="true" />
         <div>
           <h2>Как читать данные</h2>
-          <p>Статистика архетипа относится к текущему патчу и учитывает архетипы от {detail.minimumGames} игр. Сборки используют выборку HSGuru за последние 30 дней, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
+          <p>Статистика архетипа относится к периоду «{catalogPeriodLabel(detail)}» и учитывает архетипы от {detail.minimumGames} игр. У сборок своя выборка HSGuru, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
         </div>
       </section> : null}
     </Root>

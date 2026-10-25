@@ -79,3 +79,29 @@ test('the catalog cache keeps one snapshot per format and period', async () => {
   assert.equal((await cache.load('standard', 'black_empire_ban')).period, 'black_empire_ban');
   assert.deepEqual(reads, [undefined, 'black_empire_ban']);
 });
+
+test('an archetype without builds in the Bans window borrows the default window builds', async () => {
+  type Item = { archetype: string; builds: Array<{ deckCode: string; samplePeriod: string }>; deckCount: number };
+  const periods = ['black_empire_ban', 'black_empire'];
+  const build = { deckCode: 'AAE', samplePeriod: 'black_empire' };
+  const own = { deckCode: 'AAF', samplePeriod: 'black_empire_ban' };
+  const fallback = { ...catalog('black_empire', periods), items: [
+    { archetype: 'Zoolock', builds: [build], deckCount: 1 },
+    { archetype: 'Quest Priest', builds: [build], deckCount: 1 },
+  ] as Item[] };
+  const bans = { ...catalog('black_empire_ban', periods), items: [
+    { archetype: 'Zoolock', builds: [], deckCount: 0 },
+    { archetype: 'Quest Priest', builds: [own], deckCount: 1 },
+    { archetype: 'Mill Rogue', builds: [], deckCount: 0 },
+  ] as Item[] };
+  const load = async (_format: 'standard' | 'wild', period?: string) => (period ? bans : fallback);
+  const opened = await loadArchetypeCatalogForPeriod(load, 'standard');
+  assert.equal(opened.period, 'black_empire_ban');
+  assert.deepEqual(opened.items.map(item => [item.archetype, item.builds, item.deckCount]), [
+    ['Zoolock', [build], 1],
+    ['Quest Priest', [own], 1],
+    ['Mill Rogue', [], 0],
+  ]);
+  // The cached source catalog is not mutated.
+  assert.deepEqual(bans.items[0].builds, []);
+});

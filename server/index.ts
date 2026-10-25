@@ -108,7 +108,8 @@ import {
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
 import { loadArchetypeCatalogForPeriod, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
-import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
+import { createArchetypeHsguruStatsRouter } from './constructedArchetypeHsguruStats.js';
+import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, layerArchetypeTranslations, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
@@ -5539,19 +5540,10 @@ async function fetchConstructedCardJson(url: string, timeoutMs = 8_000): Promise
   return renderPayloadCardPlurals(payload, await originalCardTexts.within(3_000));
 }
 
+/** BlizzCore rows < built-in labels < manual rows (layerArchetypeTranslations); empty while the table is. */
 function loadAdminArchetypeTranslations(): Record<string, string> {
-  const rows = dbAll<{ name_en: string; name_ru: string }>(`
-    SELECT name_en, name_ru
-    FROM archetype_translations
-    ORDER BY CASE WHEN source = 'manual' THEN 0 ELSE 1 END, updated_at DESC
-  `);
-  const translations: Record<string, string> = {};
-  for (const row of rows) {
-    const nameEn = String(row.name_en || '').trim();
-    const nameRu = String(row.name_ru || '').trim();
-    if (nameEn && nameRu) translations[archetypeTranslationKey(nameEn)] = nameRu;
-  }
-  return translations;
+  const rows = dbAll<{ nameEn: string; nameRu: string; source: string }>('SELECT name_en AS nameEn, name_ru AS nameRu, source FROM archetype_translations ORDER BY updated_at ASC');
+  return rows.length ? layerArchetypeTranslations(rows) : {};
 }
 
 async function fetchBlizzcoreArchetypesPayload(): Promise<unknown> {
@@ -5642,7 +5634,7 @@ async function loadStandardArchetypeTranslations(): Promise<StandardArchetypeTra
     await ensureArchetypeTranslationsSeeded();
     const localTranslations = loadAdminArchetypeTranslations();
     if (Object.keys(localTranslations).length) {
-      return { map: { ...fallback, ...localTranslations }, source: 'admin-db' };
+      return { map: localTranslations, source: 'admin-db' };
     }
   } catch (err: any) {
     console.warn('[standard-matchups] admin archetype translations unavailable:', err?.message ?? err);
@@ -6005,6 +5997,8 @@ async function fetchConstructedArchetypeCatalog(
         classKey: normalizeStandardMetaClass(deck?.class) ?? inferStandardMetaClass(archetype),
         sampleRank: String(deck?.sample_rank ?? 'all'),
         samplePeriod: String(deck?.sample_period ?? 'past_30_days'),
+        // hs-data-api fills archetypes without own builds from replays or a wider window (decks_fallback).
+        sampleSource: deck?.sample_source === 'replays' ? 'replays' as const : 'stats' as const,
       }];
     }).sort((left: any, right: any) => (right.games ?? -1) - (left.games ?? -1));
     return [{
@@ -7506,7 +7500,7 @@ app.use('/api', createConstructedArchetypeRouter({
   loadCatalog: (format, period) => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format, period),
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
-  loadRanks: createArchetypeRankMatrixLoader((format, rank, period) => loadStandardMeta(format, rank, period, 'any_player', 100)),
+  loadRanks: createArchetypeRankMatrixLoader((format, rank, period, coin) => loadStandardMeta(format, rank, period, coin, 100)),
   loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
   setPrivateNoStore,
   onError: (scope, error) => console.error(
@@ -7515,6 +7509,7 @@ app.use('/api', createConstructedArchetypeRouter({
   ),
 }));
 
+app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: format => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
   loadBattlegroundCards: createBattlegroundCatalogLoader({

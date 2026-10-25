@@ -7,9 +7,11 @@ import '../vendor/varylo-ui/styles/index.css';
 import './ConstructedArchetypeAnalysis.css';
 import './ConstructedArchetypeCardStats.css';
 import './ConstructedArchetypeAnalysisPlaceholders.css';
+import './HsguruArchetypeStats.css';
 
 const MATCHUP_ROWS = 11;
 const PHASE_LABELS = ['Муллиган', 'Добор', 'Оставлена'];
+const SLICE_FIELDS = ['Период', 'Ранг', 'Очерёдность хода', 'Соперник'];
 const PLACEHOLDER_ROWS = Array.from({ length: CARD_STATS_FIRST_PAGE }, (_, index) => ({ id: String(index) }));
 /** The loaded table's columns without sort buttons: a placeholder holds no controls. */
 const PLACEHOLDER_COLUMNS: DataTableColumn<{ id: string }>[] = [
@@ -38,12 +40,20 @@ function AnalysisSource() {
 export function ArchetypeAnalysisSkeleton() {
   return <LoadingSurface label="Загружаем матчапы и муллиган" quiet layout="rows" className="archetype-detail-skeleton">
     <div className="constructed-analysis-stack" inert>
+      <div className="hsguru-slice">
+        <div className="hsguru-slice__filters">
+          {SLICE_FIELDS.map(label => <span key={label} className="hsguru-slice__field">
+            <span><Words>{label}</Words></span>
+            <LoadingBlock className="hsguru-slice__placeholder" />
+          </span>)}
+        </div>
+      </div>
       <div className="constructed-analysis-panel">
         <div className="constructed-analysis-heading">
           <div>
-            <span className="archetypes-eyebrow"><Swords aria-hidden="true" /><Words>HSGuru · Легенда</Words></span>
+            <span className="archetypes-eyebrow"><Swords aria-hidden="true" /><Words>HSGuru · Легенда · Баны</Words></span>
             <Title analysis>Матчапы против классов</Title>
-            <p><Words>Винрейт архетипа против каждого класса за последние 7 дней. Сначала показаны самые сложные соперники.</Words></p>
+            <p><Words>Винрейт архетипа против каждого класса. Сначала показаны самые сложные соперники.</Words></p>
           </div>
           <dl className="constructed-matchup-summary">
             {['Выгодных', 'Ровных', 'Сложных'].map(label => <div key={label}><dt><Words>{label}</Words></dt><dd><Value /></dd></div>)}

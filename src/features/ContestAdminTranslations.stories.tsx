@@ -18,7 +18,9 @@ const meta = {
       const item = path.includes('mechanic')
         ? { key: 'TAUNT', nameEn: 'Taunt', nameRu: 'Провокация', source: 'manual', cardCount: 48, updatedAt: null, kind: 'mechanic', example: null }
         : { id: 1, blizzcoreId: null, nameEn: 'Dragon Warrior', nameRu: parameters.longTranslation ? 'Длинный перевод архетипа с несколькими словами' : 'Дракон Воин', source: 'manual', createdAt: '', updatedAt: '', syncedAt: null, updatedBy: null };
-      return new Response(JSON.stringify(path.endsWith('/untranslated') ? { items: [], totalObserved: 1, translated: 1, missing: 0, coveragePercent: 100 } : { items: [item], total: 1, page: 1, pageSize: 40, pages: 1, stats: { total: 1, manual: 1, default: 0, blizzcore: 0, missing: 0, mechanics: 1, tags: 0, lastSyncedAt: null }, duplicates: parameters.duplicates ?? [] }), { headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(path.endsWith('/untranslated') ? (parameters.untranslated
+        ? { items: [{ nameEn: 'Tyrande Priest', ranks: ['Легенда'], autoLabel: 'Тиранда Жрец', autoComplete: true }], totalObserved: 2, translated: 1, missing: 1, coveragePercent: 50 }
+        : { items: [], totalObserved: 1, translated: 1, missing: 0, coveragePercent: 100 }) : { items: [item], total: 1, page: 1, pageSize: 40, pages: 1, stats: { total: 1, manual: 1, default: 0, blizzcore: 0, missing: 0, mechanics: 1, tags: 0, lastSyncedAt: null }, duplicates: parameters.duplicates ?? [] }), { headers: { 'Content-Type': 'application/json' } });
     };
     return () => { globalThis.fetch = original; };
   },
@@ -26,6 +28,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Archetypes: Story = {};
+/** An archetype without a translation: the queue shows the automatic label the site uses meanwhile. */
+export const AutoLabelQueue: Story = { parameters: { untranslated: true } };
 export const Mechanics: Story = { render: () => <ContestAdminMechanicTranslations onMessage={() => undefined} /> };
 
 export const LongNames: Story = {

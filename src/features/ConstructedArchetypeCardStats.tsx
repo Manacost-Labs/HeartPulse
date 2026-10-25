@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { ChevronDown, ExternalLink, Sparkles } from 'lucide-react';
 import { DataTable, type DataTableColumn } from '../vendor/varylo-ui/data-display/DataTable';
 import { csvDocument } from '../shared/ui/analytics/analyticsModel';
@@ -16,8 +16,8 @@ import {
   type HsguruCardStatSortKey,
 } from './archetypeDetailModel';
 import {
-  CARD_STATS_FIRST_PAGE, CardStatsList, CardStatsToolbar, CardTile, InfoTip, PHASES, PhaseValue, phaseOf,
-  type ConstructedCardStat,
+  CARD_STATS_FIRST_PAGE, CardStatsList, CardStatsToolbar, CardTile, InfoTip, PhaseValue, cardStatPhases, phaseOf,
+  type ConstructedCardStat, type Phase,
 } from './ConstructedArchetypeCardStatsCells';
 import { registerLightboxModule } from '../shared/ui/lightboxIntent';
 import '../vendor/varylo-ui/styles/index.css';
@@ -44,6 +44,7 @@ function cardRenderUrl(cardId: string): string {
 
 type CardStatsTableProps = {
   rows: ConstructedCardStat[];
+  phases: readonly Phase[];
   sort: HsguruCardStatSort;
   scales: Record<HsguruCardStatImpactKey, number>;
   rowKeys: Map<ConstructedCardStat, string>;
@@ -53,16 +54,18 @@ type CardStatsTableProps = {
   onPreviewEnd: () => void;
 };
 
-function CardStatsTable({ rows, sort, scales, rowKeys, onSort, onOpen, onPreview, onPreviewEnd }: CardStatsTableProps) {
-  const sortedPhase = phaseOf(sort.key);
+function CardStatsTable({ rows, phases, sort, scales, rowKeys, onSort, onOpen, onPreview, onPreviewEnd }: CardStatsTableProps) {
+  const sortedPhase = phaseOf(sort.key, phases);
+  // Four phases leave the card a narrower column than the older three.
+  const phaseWidth = phases.length > 3 ? '18%' : '22%';
   const columns = useMemo<DataTableColumn<ConstructedCardStat>[]>(() => [
     {
       key: 'card',
       header: 'Карта',
-      width: '34%',
+      width: phases.length > 3 ? '28%' : '34%',
       cell: row => {
         const name = <CardTile row={row} />;
-        const low = isLowCardSample(row[sortedPhase.count]);
+        const low = isLowCardSample(row[sortedPhase.count] ?? null);
         return (
           <span className="card-stat-row" data-low-sample={low || undefined}>
             {row.cardId ? (
@@ -83,14 +86,14 @@ function CardStatsTable({ rows, sort, scales, rowKeys, onSort, onOpen, onPreview
         );
       },
     },
-    ...PHASES.map(phase => ({
+    ...phases.map(phase => ({
       key: phase.impact,
       header: phase.label,
       sortable: true,
-      width: '22%',
+      width: phaseWidth,
       cell: (row: ConstructedCardStat) => <PhaseValue row={row} phase={phase} scale={scales[phase.impact]} />,
     })),
-  ], [onOpen, onPreview, onPreviewEnd, scales, sortedPhase]);
+  ], [onOpen, onPreview, onPreviewEnd, phaseWidth, phases, scales, sortedPhase]);
 
   return (
     <div className="constructed-card-stats__table">
@@ -126,7 +129,11 @@ async function downloadCsv(rows: readonly ConstructedCardStat[]) {
   exporter.downloadBlob(new Blob([csvDocument(header, body)], { type: 'text/csv;charset=utf-8' }), 'Муллиган и влияние карт.csv');
 }
 
-export function CardStatsPanel({ analysis }: { analysis: CardStatsSource | null }) {
+/**
+ * `scope` names the slice in the eyebrow («HSGuru · Легенда · Баны»); `empty`
+ * replaces the default message while a slice is still being collected.
+ */
+export function CardStatsPanel({ analysis, scope, empty }: { analysis: CardStatsSource | null; scope?: string; empty?: ReactNode }) {
   const [sort, setSort] = useState<HsguruCardStatSort>({ key: 'mulliganImpact', direction: 'desc' });
   const [showAll, setShowAll] = useState(false);
   const [csvError, setCsvError] = useState(false);
@@ -135,8 +142,9 @@ export function CardStatsPanel({ analysis }: { analysis: CardStatsSource | null 
   const cardStats = analysis?.cardStats;
   const rows = useMemo(() => sortHsguruCardStats(cardStats ?? [], sort), [cardStats, sort]);
   const rowKeys = useMemo(() => cardStatKeys(cardStats ?? []), [cardStats]);
-  const scales = useMemo(() => Object.fromEntries(PHASES.map(phase =>
-    [phase.impact, cardStatImpactScale(cardStats ?? [], phase.impact)])) as Record<HsguruCardStatImpactKey, number>, [cardStats]);
+  const phases = useMemo(() => cardStatPhases(cardStats ?? []), [cardStats]);
+  const scales = useMemo(() => Object.fromEntries(phases.map(phase =>
+    [phase.impact, cardStatImpactScale(cardStats ?? [], phase.impact)])) as Record<HsguruCardStatImpactKey, number>, [cardStats, phases]);
   const visibleRows = useMemo(() => showAll ? rows : rows.slice(0, CARD_STATS_FIRST_PAGE), [rows, showAll]);
   const selectedPreviewCard = selectedCard?.cardId
     ? { id: selectedCard.cardId, name: selectedCard.cardName, imageUrl: cardRenderUrl(selectedCard.cardId) }
@@ -156,7 +164,7 @@ export function CardStatsPanel({ analysis }: { analysis: CardStatsSource | null 
     <section className="constructed-analysis-panel constructed-card-stats" aria-labelledby="constructed-card-stats-title">
       <header className="constructed-analysis-heading">
         <div>
-          <span className="archetypes-eyebrow"><Sparkles aria-hidden="true" /> Статистика карт</span>
+          <span className="archetypes-eyebrow"><Sparkles aria-hidden="true" /> {scope ?? 'Статистика карт'}</span>
           <h2 id="constructed-card-stats-title">Муллиган и влияние карт</h2>
           <p>
             Влияние — разница с средним винрейтом архетипа: зелёное выше среднего, красное ниже. Под значением — размер выборки.
@@ -172,12 +180,12 @@ export function CardStatsPanel({ analysis }: { analysis: CardStatsSource | null 
 
       {visibleRows.length ? (
         <>
-          <CardStatsToolbar sort={sort} onSort={pickSort} onDirection={() => changeSort(sort.key)} onCsv={exportCsv} csvError={csvError} />
-          <CardStatsTable rows={visibleRows} sort={sort} scales={scales} rowKeys={rowKeys} onSort={changeSort}
+          <CardStatsToolbar phases={phases} sort={sort} onSort={pickSort} onDirection={() => changeSort(sort.key)} onCsv={exportCsv} csvError={csvError} />
+          <CardStatsTable rows={visibleRows} phases={phases} sort={sort} scales={scales} rowKeys={rowKeys} onSort={changeSort}
             onOpen={setSelectedCard} onPreview={showPreview} onPreviewEnd={hidePreview} />
-          <CardStatsList rows={visibleRows} sort={sort} scales={scales} rowKeys={rowKeys} onOpen={setSelectedCard} />
+          <CardStatsList rows={visibleRows} phases={phases} sort={sort} scales={scales} rowKeys={rowKeys} onOpen={setSelectedCard} />
         </>
-      ) : (
+      ) : empty ?? (
         <p className="constructed-analysis-empty">
           {hsguruAnalysisEmptyMessage(analysis?.state ?? null, 'cards')}
         </p>

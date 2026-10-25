@@ -19,6 +19,7 @@
 
 /* With its margins the reserve is the rank table's minimum height (ArchetypeRankHeatmap.css). */
 .archetype-ranks__reserve { height: 20.8rem; margin: 0.85rem; border-radius: 0; }
+.archetype-ranks__subtitle { margin: 0.5rem 0.85rem 0.35rem; color: var(--archetype-ink); font-family: var(--font-display); font-size: 1rem; }
 
 .archetype-insight-empty,
 .archetype-insight-note {

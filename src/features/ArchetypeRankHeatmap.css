@@ -9,6 +9,10 @@
   padding: 0.85rem;
 }
 
+/* A legend-less follow-up table (the coin split) takes its own height. */
+.archetype-rank-grid[data-compact] { min-height: 0; padding-top: 0; }
+.archetype-rank-grid[data-compact] table { min-width: 22rem; }
+
 /* Periods scroll inside the card when they do not fit; the rank column stays pinned. */
 .archetype-rank-grid__scroll {
   overflow-x: auto;

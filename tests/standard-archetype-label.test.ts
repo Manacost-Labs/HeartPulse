@@ -18,19 +18,25 @@ assert.equal(archetypeLabel('Piglock', translations), 'Чернокнижник 
 assert.equal(archetypeLabel('  Pirate Warrior ', translations), 'Пират Воин');
 
 // HSGuru's variants of a translated archetype keep the words that set them apart,
-// so two archetypes of one slice never share a label.
-assert.equal(archetypeLabel('Harold Piglock', translations), 'Чернокнижник с Расхождением (Harold)');
-assert.equal(archetypeLabel('Dragon Pirate Warrior', translations), 'Пират Воин (Dragon)');
-assert.equal(archetypeLabel('Sneaky Harold Rogue', translations), 'Разбойник на возвещении (Sneaky)');
+// so two archetypes of one slice never share a label: the automatic label names
+// every word in Russian when it can.
+assert.equal(archetypeLabel('Harold Piglock', translations), 'Чернокнижник на возвещении с Расхождением');
+assert.equal(archetypeLabel('Dragon Pirate Warrior', translations), 'Воин на драконах и пиратах');
+assert.equal(archetypeLabel('Sneaky Harold Rogue', translations), 'Разбойник на скрытности и возвещении');
+assert.equal(archetypeLabel('Harold Void DH', translations), 'Охотник на демонов Бездны на возвещении');
+// Otherwise the contained translation lends its label and the rest stays in brackets.
 assert.equal(archetypeLabel('XL Zee Shaman Deluxe', translations), 'Зи Шаман (XL Deluxe)');
-assert.equal(archetypeLabel('Harold Void DH', translations), 'Охотник на демонов Бездны (Harold)');
+assert.equal(archetypeLabel('Blorp Pirate Warrior', translations), 'Пират Воин (Blorp)');
 
-// The longest contained name wins, and a name without any keeps its English form.
+// The longest contained name wins; a name without any gets the automatic label,
+// and one the automatic label cannot read keeps its English form.
 assert.equal(
   archetypeLabel('Harold Pirate Warrior', { ...translations, 'harold pirate warrior': 'Пират Воин на возвещении' }),
   'Пират Воин на возвещении',
 );
-assert.equal(archetypeLabel('Quest Priest', translations), 'Quest Priest');
+assert.equal(archetypeLabel('Quest Priest', translations), 'Квест Жрец');
+assert.equal(archetypeLabel('Tyrande Priest', translations), 'Тиранда Жрец');
+assert.equal(archetypeLabel('Mystery Blob', translations), 'Mystery Blob');
 
 const labels = ['Piglock', 'Harold Piglock', 'Pirate Warrior', 'Dragon Pirate Warrior', 'Void DH', 'Harold Void DH']
   .map(name => archetypeLabel(name, translations));
@@ -50,7 +56,7 @@ assert.equal(new Set(labels).size, labels.length);
 }
 
 // Keys of any casing or spacing match, and the matcher reports what it covered.
-assert.equal(archetypeLabel('Harold   piglock', { ' PIGLOCK ': 'Чернокнижник с Расхождением' }), 'Чернокнижник с Расхождением (Harold)');
+assert.equal(archetypeLabel('  Harold   PIGLOCK ', { ' harold piglock ': 'Чернокнижник с Расхождением на возвещении' }), 'Чернокнижник с Расхождением на возвещении');
 assert.deepEqual(matchArchetypeTranslation('Dragon Pirate Warrior', translations), { key: 'pirate warrior', label: 'Пират Воин', qualifier: 'Dragon' });
 assert.equal(matchArchetypeTranslation('Quest Priest', translations), null);
 assert.equal(matchArchetypeTranslation('   ', translations), null);

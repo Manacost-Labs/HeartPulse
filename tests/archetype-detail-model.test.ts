@@ -15,6 +15,7 @@ import {
   sortMulliganRows,
   type MulliganSort,
 } from '../src/features/archetypeDetailModel.js';
+import { buildsWindowNote } from '../src/features/archetypeBuildsModel.js';
 
 assert.equal(normalizeClassKey('DEATH_KNIGHT'), 'deathknight');
 assert.equal(normalizeClassKey(' Demon Hunter '), 'demonhunter');
@@ -131,3 +132,15 @@ assert.equal(archetypeClassBackdrop(null), null);
 assert.equal(archetypeClassBackdrop('neutral'), null);
 
 console.log('archetype detail model tests passed');
+
+// Builds from another window or from replays get a quiet note.
+{
+  const build = (samplePeriod: string, sampleSource?: 'stats' | 'replays') => ({ samplePeriod, sampleSource });
+  assert.equal(buildsWindowNote([build('black_empire')], 'black_empire_ban'), 'Сборки за всё дополнение');
+  assert.equal(buildsWindowNote([build('past_30_days')], 'black_empire_ban'), 'Сборки за период «30 дней»');
+  assert.equal(buildsWindowNote([build('black_empire_ban')], 'black_empire_ban'), null);
+  assert.equal(buildsWindowNote([build('black_empire'), build('past_30_days')], 'black_empire_ban'), null);
+  assert.equal(buildsWindowNote([build('black_empire_ban', 'replays')], 'black_empire_ban'), 'Сборки собраны по реплеям');
+  assert.equal(buildsWindowNote([build('black_empire')], null), null);
+  assert.equal(buildsWindowNote([], 'black_empire_ban'), null);
+}

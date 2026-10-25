@@ -1,3 +1,4 @@
+import { autoArchetypeLabel } from './autoArchetypeLabel.js';
 import { ARCHETYPE_FALLBACK_LABELS } from './fallbackTranslations.js';
 
 /** Lookup key of an English archetype name: trimmed, single-spaced, lower-cased. */
@@ -56,15 +57,39 @@ export function matchArchetypeTranslation(
 }
 
 /**
- * The Russian label of an HSGuru archetype name: the exact translation, else
- * the longest contained translation with the uncovered words in brackets
- * ("Harold Piglock" → "Чернокнижник с Расхождением (Harold)"), else the
- * English name unchanged.
+ * The Russian label of an HSGuru archetype name: the exact translation; else
+ * the automatic label when it covers every word («Тиранда Жрец»); else the
+ * longest contained translation with the uncovered words in brackets
+ * ("Harold Piglock" → "Чернокнижник с Расхождением (Harold)"); else the
+ * automatic label with its unknown words; else the English name unchanged.
  */
 export function archetypeLabel(name: string, translations: Readonly<Record<string, string>>): string {
   const match = matchArchetypeTranslation(name, translations);
-  if (!match) return name;
-  return match.qualifier ? `${match.label} (${match.qualifier})` : match.label;
+  if (match && !match.qualifier) return match.label;
+  const auto = autoArchetypeLabel(name);
+  if (auto && !auto.unknown.length) return auto.label;
+  if (match) return `${match.label} (${match.qualifier})`;
+  return auto?.label ?? name;
+}
+
+export type ArchetypeTranslationRow = { nameEn: string; nameRu: string; source: string };
+
+/**
+ * The translation map of the site, lowest layer first: rows imported from
+ * BlizzCore, then the built-in labels (`fallbackTranslations.ts`, which fix
+ * BlizzCore's transliterations and survive its next sync), then the admin's
+ * manual rows, which always win. Names none of them covers get
+ * `autoArchetypeLabel` in `archetypeLabel`.
+ */
+export function layerArchetypeTranslations(rows: readonly ArchetypeTranslationRow[]): Record<string, string> {
+  const imported: Record<string, string> = {};
+  const manual: Record<string, string> = {};
+  for (const row of rows) {
+    const key = archetypeTranslationKey(String(row.nameEn ?? ''));
+    const label = String(row.nameRu ?? '').trim();
+    if (key && label) (row.source === 'manual' ? manual : imported)[key] = label;
+  }
+  return { ...imported, ...archetypeFallbackTranslations(), ...manual };
 }
 
 /**

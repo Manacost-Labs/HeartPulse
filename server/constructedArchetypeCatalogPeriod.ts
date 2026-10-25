@@ -20,10 +20,33 @@ export async function loadArchetypeCatalogForPeriod<C extends PeriodCatalog>(
   if (!period || period === fallback.period || !fallback.availablePeriods.includes(period)) return fallback;
   try {
     const catalog = await load(format, period);
-    return catalog.period === period ? catalog : fallback;
+    return catalog.period === period ? withDefaultWindowBuilds(catalog, fallback) : fallback;
   } catch {
     return fallback;
   }
+}
+
+type BuildItem = { archetype: string; builds: unknown[]; deckCount: number };
+
+/**
+ * HSGuru deck catalogs are collected per window, and a window can have no
+ * decks yet (the Bans window did until hs-data-api collected them). An
+ * archetype without builds there borrows the default window's builds; each
+ * build keeps its own `samplePeriod`, so the page names the sample.
+ */
+function withDefaultWindowBuilds<C>(catalog: C, fallback: C): C {
+  const items = (catalog as { items?: BuildItem[] }).items;
+  const defaults = (fallback as { items?: BuildItem[] }).items;
+  if (!Array.isArray(items) || !Array.isArray(defaults)) return catalog;
+  const byArchetype = new Map(defaults.map(item => [item.archetype, item]));
+  let borrowed = false;
+  const merged = items.map(item => {
+    const source = item.builds.length ? null : byArchetype.get(item.archetype);
+    if (!source?.builds.length) return item;
+    borrowed = true;
+    return { ...item, builds: source.builds, deckCount: source.deckCount };
+  });
+  return borrowed ? { ...catalog, items: merged } : catalog;
 }
 
 /**

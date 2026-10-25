@@ -72,6 +72,7 @@ const archetypeSource = [
   readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/ConstructedArchetypeAnalysis.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/ArchetypeInsightSlots.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../src/features/HsguruArchetypeStats.tsx', import.meta.url), 'utf8'),
 ].join('\n');
 for (const tourId of ['constructed-archetypes', 'constructed-archetype-detail']) {
   const tour = PAGE_TOURS.find(item => item.id === tourId);

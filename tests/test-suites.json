@@ -94,6 +94,9 @@
         "tests/archetype-insights-model.test.ts",
         "tests/constructed-archetype-catalog-cache.test.ts",
         "tests/constructed-archetype-catalog-period.test.ts",
+        "tests/archetype-hsguru-stats.test.ts",
+        "tests/hsguru-stats-model.test.ts",
+        "tests/auto-archetype-label.test.ts",
         "tests/standard-meta-slice-cache.test.ts",
         "tests/standard-meta-trends.test.ts",
         "tests/architecture-baseline.test.mjs",
@@ -473,6 +476,7 @@
       "id": "browser",
       "files": [
         "tests/archetype-radar-picker-browser.test.mjs",
+        "tests/hsguru-archetype-stats-browser.test.mjs",
         "tests/archetypes-detail-browser.test.mjs",
         "tests/arena-card-motion.browser.test.mjs",
         "tests/arena-tier-card-geometry.browser.test.mjs",
