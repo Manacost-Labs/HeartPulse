@@ -1,6 +1,7 @@
 import { archetypeLabel } from '../constructedArchetypes/public.js';
 import { createRadarRouter } from './routes.js';
 import { createRadarService } from './service.js';
+import { createRadarLocalizer } from './localize.js';
 
 export { createRadarRouter, type RadarRouterDependencies } from './routes.js';
 export { createRadarService, type RadarServiceDependencies } from './service.js';
@@ -14,18 +15,23 @@ export type RadarApiOptions = {
   archetypeSlug: (name: string) => string;
   /** Переводы имён архетипов, те же, что в мете. */
   loadArchetypeTranslations: () => Promise<Readonly<Record<string, string>>>;
+  /** Каталог карт с `name.en` и `name.ru`: английские имена карт в текстах модели заменяются русскими. */
+  loadCards?: () => Promise<Iterable<Record<string, unknown>>>;
 };
 
 /** `/api/radar` поверх одного проверенного снимка радара hs-data-api (или демо-прогона). */
-export function createRadarApi({ baseUrl, fixture, archetypeSlug, loadArchetypeTranslations }: RadarApiOptions) {
+export function createRadarApi({ baseUrl, fixture, archetypeSlug, loadArchetypeTranslations, loadCards }: RadarApiOptions) {
   return createRadarRouter({
     load: createRadarService({
       radarUrl: `${baseUrl.replace(/\/+$/, '')}/v1/constructed/balance-radar?format=standard`,
       fixture,
       ttlMs: 15 * 60_000,
-      loadArchetypeNamer: async () => {
-        const translations = await loadArchetypeTranslations();
-        return name => ({ slug: archetypeSlug(name), label: archetypeLabel(name, translations) });
+      loadNaming: async () => {
+        const [translations, cards] = await Promise.all([loadArchetypeTranslations(), loadCards?.().catch(() => []) ?? []]);
+        return {
+          nameArchetype: name => ({ slug: archetypeSlug(name), label: archetypeLabel(name, translations) }),
+          localize: createRadarLocalizer({ archetypes: translations, cards }),
+        };
       },
       onError: error => console.error('[radar] read failed:', error instanceof Error ? error.message : error),
     }).load,

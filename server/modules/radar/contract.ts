@@ -13,9 +13,9 @@
  */
 
 import { parseCandidate } from './candidate.js';
-import { count, date, invalid, list, patchVersion, record, text } from './parsing.js';
+import { date, invalid, patchVersion, record, text } from './parsing.js';
 import { parseHistory } from './precedents.js';
-import type { RadarArchetypeNamer, RadarCandidate, RadarReport, RadarSource } from './types.js';
+import type { RadarArchetypeNamer, RadarCandidate, RadarReport } from './types.js';
 
 export * from './types.js';
 export { RadarContractError } from './parsing.js';
@@ -36,46 +36,57 @@ function parseCandidates(value: unknown, label: string, nameArchetype: RadarArch
     .slice(0, MAX_CANDIDATES);
 }
 
-/**
- * Источники сводятся к поставщикам: hs-data-api перечисляет каждый срез
- * статистики отдельно (десяток срезов HSReplay), а странице нужен список
- * «откуда данные». Для соцсетей суммируется число собранных записей.
- */
-function parseSources(value: unknown): RadarSource[] {
-  const groups = new Map<string, RadarSource>();
-  for (const item of list(value)) {
-    const row = record(item);
-    const id = text(row?.id, 120);
-    if (!row || !id || (row.state !== undefined && row.state !== 'ok')) continue;
-    const platform = text(row.platform, 40) ?? id.split(/[:_]/)[0];
-    const group = platform === 'hsguru' ? { id: 'hsguru', label: 'HSGuru — архетипы и классы', social: false }
-      : platform === 'hsreplay' ? { id: 'hsreplay', label: 'HSReplay — карты', social: false }
-        : platform === 'reddit' ? { id: 'reddit', label: 'Reddit', social: true }
-          : platform === 'x' ? { id: 'x', label: 'X', social: true }
-            : null;
-    if (!group) continue;
-    const current = groups.get(group.id) ?? { id: group.id, label: group.label, items: null };
-    const items = count(row.items);
-    if (group.social && items !== null) current.items = (current.items ?? 0) + items;
-    groups.set(group.id, current);
-  }
-  return [...groups.values()];
-}
-
 const keepArchetypeName: RadarArchetypeNamer = name => ({ slug: name, label: name });
 
 /**
+ * Тексты модели пишут архетипы именами HSGuru («Zoolock»); на странице
+ * всё по-русски, поэтому известные имена заменяются переводами сайта.
+ */
+function localizeReport(report: RadarReport, localize: (value: string) => string): RadarReport {
+  const many = (values: string[]) => values.map(localize);
+  const one = (value: string | null) => (value === null ? null : localize(value));
+  const candidate = (item: RadarCandidate): RadarCandidate => ({
+    ...item,
+    headline: one(item.headline), verdict: localize(item.verdict), reasons: many(item.reasons), suggestedChange: one(item.suggestedChange),
+    social: { ...item.social, summary: one(item.social.summary) },
+    precedents: item.precedents.map(precedent => ({ ...precedent, summary: one(precedent.summary) })),
+  });
+  return {
+    ...report,
+    summary: localize(report.summary),
+    nerfs: report.nerfs.map(candidate),
+    buffs: report.buffs.map(candidate),
+    history: report.history && {
+      ...report.history,
+      summary: one(report.history.summary),
+      patterns: report.history.patterns.map(pattern => ({ ...pattern, title: localize(pattern.title), text: one(pattern.text) })),
+    },
+  };
+}
+
+export type RadarParseOptions = {
+  demo?: boolean;
+  /** Имя HSGuru → slug и русское имя архетипа сайта; без него архетип остаётся с исходным именем. */
+  nameArchetype?: RadarArchetypeNamer;
+  /** Замена известных английских имён архетипов в текстах модели. */
+  localize?: (value: string) => string;
+};
+
+/**
  * Проверяет ответ hs-data-api (конверт `{ data }` или сам результат) и
- * приводит его к модели страницы. `nameArchetype` превращает имя HSGuru в
- * slug и русское имя сайта; без него архетип остаётся с исходным именем.
+ * приводит его к модели страницы. Версии схемы hs-data-api только
+ * добавляют поля, поэтому принимается любая версия от 1.
  */
 export function parseRadarReport(
   value: unknown,
-  { demo = false, nameArchetype = keepArchetypeName }: { demo?: boolean; nameArchetype?: RadarArchetypeNamer } = {},
+  { demo = false, nameArchetype = keepArchetypeName, localize }: RadarParseOptions = {},
 ): RadarReport {
   const envelope = record(value) ?? invalid('response must be an object');
   const row = record(envelope.data) ?? envelope;
-  if (row.schemaVersion !== undefined && row.schemaVersion !== 1) invalid(`unsupported schemaVersion ${String(row.schemaVersion)}`);
+  const schemaVersion = row.schemaVersion;
+  if (schemaVersion !== undefined && !(Number.isInteger(schemaVersion) && (schemaVersion as number) >= 1)) {
+    invalid(`unsupported schemaVersion ${String(schemaVersion)}`);
+  }
   if (row.format !== undefined && row.format !== 'standard') invalid(`unexpected format ${String(row.format)}`);
   const generatedAt = date(row.generatedAt) ?? invalid('generatedAt must be a date');
   const summary = text(row.summary, 4000) ?? invalid('summary must be a string');
@@ -83,18 +94,18 @@ export function parseRadarReport(
   const window = record(row.socialWindow ?? row.window);
   const from = date(window?.from);
   const to = date(window?.to);
-  return {
+  const report: RadarReport = {
     schemaVersion: 1,
     generatedAt,
     model: text(row.model, 80) ?? 'неизвестна',
     format: 'standard',
     patch: version ? { version, href: `/standard/patches/?version=${encodeURIComponent(version)}` } : null,
     window: from && to ? { from, to } : null,
-    sources: parseSources(row.sources),
     summary,
     nerfs: parseCandidates(row.nerfs, 'nerfs', nameArchetype),
     buffs: parseCandidates(row.buffs, 'buffs', nameArchetype),
     history: parseHistory(row.history),
     demo,
   };
+  return localize ? localizeReport(report, localize) : report;
 }

@@ -3,11 +3,12 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { FlaskConical, History, Info, Radar, TrendingDown, TrendingUp } from 'lucide-react';
 import {
-  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, formatRadarCount, formatRadarDate, formatRadarDay, formatRadarTime,
-  radarClassOptions, type RadarFilters, type RadarReport, type RadarSectionId,
+  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, formatRadarCount, formatRadarDate, formatRadarTime,
+  radarClassOptions, radarLead, type RadarFilters, type RadarReport, type RadarSectionId,
 } from '../model/radarView';
 import { pluralRu } from '../../../shared/text/pluralRu';
 import { RadarCandidateCard } from './RadarCandidateCard';
+import { RadarMore } from './RadarMore';
 import './RadarView.css';
 
 const SECTION_IDS: RadarSectionId[] = ['nerfs', 'buffs'];
@@ -22,10 +23,7 @@ const CONFIDENCE_OPTIONS: Array<{ value: RadarFilters['minConfidence']; label: s
 export function RadarDisclaimer() {
   return <p className="radar-note" role="note">
     <Info aria-hidden="true" />
-    <span>
-      <b>Это прогноз, а не официальная информация.</b> Радар оценивает вероятность изменений по статистике и обсуждениям
-      в Reddit и X; решения о балансе принимает только Blizzard.
-    </span>
+    <span><b>Это прогноз, а не официальная информация.</b> Решения о балансе принимает только Blizzard.</span>
   </p>;
 }
 
@@ -42,7 +40,7 @@ function ButtonGroup<T extends string | number>({ label, options, value, onChang
 }
 
 function RadarSummary({ report }: { report: RadarReport }) {
-  const window = report.window && `обсуждения с ${formatRadarDay(report.window.from)} по ${formatRadarDay(report.window.to)}`;
+  const { lead, rest } = radarLead(report.summary);
   return <section className="radar-section radar-summary" aria-labelledby="radar-summary-title">
     <header className="radar-section__heading">
       <span className="radar-section__eyebrow"><Radar aria-hidden="true" /> Сводка радара</span>
@@ -50,22 +48,11 @@ function RadarSummary({ report }: { report: RadarReport }) {
       <p>
         Обновлено {formatRadarTime(report.generatedAt)}
         {report.patch && <> · <a href={report.patch.href}>патч {report.patch.version}</a></>}
-        {window && <> · {window}</>}
       </p>
     </header>
-    <div className="radar-section__body">
-      <div className="radar-summary__text">
-        {report.summary.split(/\n\s*\n|\n/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
-      </div>
-      {report.sources.length > 0 && <div className="radar-sources">
-        <h3 className="radar-sources__title">Источники и модель</h3>
-        <ul>
-          {report.sources.map((source, index) => <li key={`${index}:${source.id}`}>
-            {source.label}{source.items !== null && <span> · {formatRadarCount(source.items)}</span>}
-          </li>)}
-          <li>Анализ: <span lang="en">{report.model}</span></li>
-        </ul>
-      </div>}
+    <div className="radar-section__body radar-summary__text">
+      <p>{lead}</p>
+      {rest.length > 0 && <RadarMore>{rest.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</RadarMore>}
     </div>
   </section>;
 }
@@ -83,16 +70,18 @@ function RadarPatterns({ history }: { history: RadarReport['history'] }) {
       <h2 id="radar-patterns-title">Закономерности Blizzard</h2>
       <p>Как разработчики меняли баланс раньше: на это опирается прогноз{coverage && ` (разобрано ${coverage})`}.</p>
     </header>
-    {history.summary && <div className="radar-section__body radar-history__summary">
-      {history.summary.split(/\n\s*\n|\n/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
-    </div>}
-    {history.patterns.length > 0 && <ul className="radar-section__body radar-patterns">
-      {history.patterns.map((pattern, index) => <li key={`${index}:${pattern.title}`}>
-        <b>{pattern.title}</b>
-        {pattern.count !== null && <span className="radar-patterns__count">{formatRadarCount(pattern.count)} {pluralRu(pattern.count, 'случай', 'случая', 'случаев')}</span>}
-        {pattern.text && <p>{pattern.text}</p>}
-      </li>)}
-    </ul>}
+    <div className="radar-section__body radar-patterns">
+      {history.patterns.length > 0 && <ul>
+        {history.patterns.map((pattern, index) => <li key={`${index}:${pattern.title}`}>
+          {pattern.text
+            ? <RadarMore label={pattern.title} className="radar-patterns__item"><p>{pattern.text}</p></RadarMore>
+            : <p className="radar-patterns__title">{pattern.title}</p>}
+        </li>)}
+      </ul>}
+      {history.summary && <RadarMore label="Обзор истории патчей">
+        {history.summary.split(/\n\s*\n|\n/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+      </RadarMore>}
+    </div>
   </section>;
 }
 

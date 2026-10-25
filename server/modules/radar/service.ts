@@ -1,12 +1,12 @@
-import { parseRadarReport, type RadarArchetypeNamer, type RadarReport } from './contract.js';
+import { parseRadarReport, type RadarParseOptions, type RadarReport } from './contract.js';
 import { RADAR_FIXTURE } from './fixture.js';
 
 export type RadarServiceDependencies = {
   /** Читает JSON радара hs-data-api; ошибка транспорта или статуса — исключение. По умолчанию `fetchRadarJson`. */
   fetchJson?: (url: string) => Promise<unknown>;
   radarUrl: string;
-  /** Slug и русское имя архетипа HSGuru; без него архетип остаётся с английским именем. */
-  loadArchetypeNamer?: () => Promise<RadarArchetypeNamer>;
+  /** Русские имена архетипов HSGuru и их замена в текстах модели; без них остаются английские имена. */
+  loadNaming?: () => Promise<Pick<RadarParseOptions, 'nameArchetype' | 'localize'>>;
   /** `true` — отдавать встроенную демо-фикстуру вместо hs-data-api. */
   fixture: boolean;
   ttlMs: number;
@@ -44,18 +44,18 @@ export function createRadarService(dependencies: RadarServiceDependencies) {
   let failure: { error: unknown; until: number } | null = null;
   let pending: Promise<RadarReport> | null = null;
 
-  const namer = async (): Promise<RadarArchetypeNamer | undefined> => {
+  const naming = async (): Promise<Pick<RadarParseOptions, 'nameArchetype' | 'localize'>> => {
     try {
-      return await dependencies.loadArchetypeNamer?.();
+      return (await dependencies.loadNaming?.()) ?? {};
     } catch {
-      return undefined;
+      return {};
     }
   };
   const read = async (demo: boolean) => {
-    const [payload, nameArchetype] = await Promise.all([
-      demo ? RADAR_FIXTURE : (dependencies.fetchJson ?? fetchRadarJson)(dependencies.radarUrl), namer(),
+    const [payload, names] = await Promise.all([
+      demo ? RADAR_FIXTURE : (dependencies.fetchJson ?? fetchRadarJson)(dependencies.radarUrl), naming(),
     ]);
-    return parseRadarReport(payload, { demo, ...(nameArchetype ? { nameArchetype } : {}) });
+    return parseRadarReport(payload, { demo, ...names });
   };
   const start = () => {
     pending ??= read(dependencies.fixture).then(value => {

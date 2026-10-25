@@ -24,10 +24,11 @@ const ritual: RadarCandidate = {
     summary: 'Популярный тред «Nerf Ritual of Summoning» набрал 352 очка и 253 комментария.',
     posts: [
       { source: 'reddit', kind: 'post', url: 'https://reddit.com/r/hearthstone/comments/1xdju41/nerf_ritual_of_summoning/', author: 'Sea_Particular_244',
-        score: 352, comments: 253, title: 'Nerf Ritual of Summoning.', text: 'They are not insta-nerfing Rituals because they\'re part of the new expansion.',
+        score: 352, comments: 253, title: 'Нерфните Ритуал призыва.', text: 'Ритуалы не ослабляют сразу только потому, что они из нового дополнения. Это нелепое правило.',
         community: 'r/hearthstone', publishedAt: '2026-10-23T17:06:53.000Z', official: false },
+      // Без перевода пост показывает только «Открыть обсуждение».
       { source: 'x', kind: 'tweet', url: 'https://x.com/hearthstone', author: 'PlayHearthstone', score: 120, comments: null, title: null,
-        text: 'We are watching the meta closely.', community: null, publishedAt: '2026-10-24T09:00:00.000Z', official: true },
+        text: null, community: null, publishedAt: '2026-10-24T09:00:00.000Z', official: true },
     ],
   },
   precedents: [{
@@ -60,12 +61,6 @@ const report: RadarReport = {
   schemaVersion: 1, generatedAt: '2026-10-25T10:12:15.000Z', model: 'claude-sonnet-5-5', format: 'standard',
   patch: { version: '37.0.0', href: '/standard/patches/?version=37.0.0' },
   window: { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T10:10:48.000Z' },
-  sources: [
-    { id: 'hsguru', label: 'HSGuru — архетипы и классы', items: null },
-    { id: 'hsreplay', label: 'HSReplay — карты', items: null },
-    { id: 'reddit', label: 'Reddit', items: 640 },
-    { id: 'x', label: 'X', items: 122 },
-  ],
   summary: 'Главная проблема текущего баланса — Чернокнижник: сообщество массово требует нерфа ритуалов, а друид после выхода дополнения провалился.',
   nerfs: [ritual, zoolock], buffs: [druid], history: null, demo: false,
 };

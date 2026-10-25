@@ -67,7 +67,16 @@ test('the radar renders the demo forecast on the server, switches sections and f
 
     assert.deepEqual((await names(page)).slice(0, 3), ['Ритуал призыва', 'Ритуал К\'Туна', 'Крестный отец Казакус'], 'nerfs first, by confidence');
     assert.equal(await page.$eval('.radar-candidate [role="meter"]', node => node.getAttribute('aria-valuenow')), '70');
-    assert.match(await page.$eval('.radar-confidence__change', node => node.textContent ?? ''), /−5 с прошлого раза/);
+    assert.equal(await page.$eval('.radar-confidence__change', node => node.textContent), '−5', 'change since the last run');
+    assert.deepEqual(await page.evaluate(() => [document.querySelectorAll('[lang="en"]').length, document.querySelectorAll('.radar-sources').length]),
+      [0, 0], 'no English captions and no sources block');
+    const first = '#radar-panel .radar-candidate:first-child';
+    assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), false, 'details wait behind «Подробнее»');
+    await page.click(`${first} .radar-candidate__more > summary`);
+    assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), true);
+    assert.deepEqual(await page.$eval(`${first} .radar-post`, node => [node.getAttribute('target'), node.querySelector('.radar-post__text'),
+      node.querySelector('.radar-post__open')?.textContent]), ['_blank', null, 'Открыть обсуждение'],
+    'an untranslated post shows no English text, only a link to the discussion');
     assert.equal(await page.$eval('.radar-candidate__identity', node => node.getAttribute('href')), '/standard/cards/standard/BE_085/');
     assert.equal(await page.$eval('.radar-candidate[data-kind="archetype"] .radar-candidate__identity', node => node.getAttribute('href')),
       '/standard/archetypes/standard/c-thun-dh/', 'HSGuru archetype names become site slugs');

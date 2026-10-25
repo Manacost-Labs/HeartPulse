@@ -7536,6 +7536,7 @@ app.use('/api', createPatchNotesApi({
 app.use('/api', createRadarApi({
   baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN, fixture: process.env.RADAR_FIXTURE === '1',
   archetypeSlug: constructedArchetypeSlug, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map,
+  loadCards: async () => (await constructedCardDataService.loadPublicCards?.('wild'))?.cards ?? [],
 }));
 
 async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {
