@@ -13,39 +13,48 @@ import {
 
 // RADAR_FIXTURE — ответ hs-data-api в его формате ({ data, meta }).
 const upstream = () => JSON.parse(JSON.stringify(RADAR_FIXTURE)) as { data: Record<string, any> };
-const namer = (name: string) => ({ slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: name === 'Zoolock' ? 'Зоолок' : name });
+const namer = (name: string) => ({ slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: name === 'Zee Shaman' ? 'Зи Шаман' : name });
 
 test('the radar contract maps the hs-data-api result to the page model', () => {
-  const report = parseRadarReport(upstream(), { nameArchetype: namer });
+  const raw = upstream();
+  raw.data.patch = { version: '37.0.0.254477', title: '37.0 Patch Notes', url: 'https://example.test/' };
+  const report = parseRadarReport(raw, { nameArchetype: namer });
   // Типы страницы повторяют контракт сервера: присваивание в обе стороны ломает `npm run lint` при расхождении.
   const forPage: PageRadarReport = report;
   const fromPage: RadarReport = forPage;
   assert.equal(fromPage.demo, false);
-  assert.equal(report.generatedAt, '2026-10-25T10:12:15.000Z', 'dates leave as ISO');
+  assert.equal(report.generatedAt, '2026-10-25T10:51:02.000Z', 'dates leave as ISO');
   assert.deepEqual(report.patch, { version: '37.0.0', href: '/standard/patches/?version=37.0.0' });
-  assert.equal(report.history, null, 'runs before the patch history have no history section');
-  assert.deepEqual(report.window, { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T10:10:48.000Z' });
+  assert.equal(parseRadarReport(upstream()).patch, null, 'a run without a patch has no patch link');
+  assert.deepEqual(report.window, { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T10:49:22.000Z' });
   assert.deepEqual(report.sources.map(source => source.id), ['hsguru', 'hsreplay', 'reddit', 'x'], 'one source per provider');
-  assert.deepEqual(report.nerfs.map(candidate => candidate.confidence), [75, 62, 58, 55, 52, 38]);
+  assert.deepEqual(report.nerfs.map(candidate => candidate.confidence), [70, 56, 46, 44, 40, 33]);
   const [ritual] = report.nerfs;
   assert.deepEqual(ritual.entity, {
     id: 'BE_085', dbfId: 129793, name: 'Ритуал призыва', nameEn: 'Ritual of Summoning', classKey: 'warlock', href: '/standard/cards/standard/BE_085/',
   });
-  assert.equal(ritual.previousConfidence, 68);
+  assert.equal(ritual.previousConfidence, 75);
   assert.equal(ritual.stats.rankLabel, 'Легенда');
   assert.deepEqual(ritual.stats.trend.map(point => point.label), ['Сутки', '3 дня', 'Неделя', '2 недели', 'С патча']);
   assert.equal(ritual.stats.trend[0].winrate, 56.47, 'card periods read deck winrate');
   assert.deepEqual([ritual.social.sentiment, ritual.social.stance, ritual.social.mentions, ritual.social.reddit], ['negative', 'wants_nerf', 7, 6]);
-  assert.deepEqual(ritual.precedents, [{
-    id: '36.4.2:JAIL_202', patch: '36.4.2', date: '2026-09-04T00:48:51.000Z', name: 'Паучок', classKey: 'druid', direction: 'nerf',
-    changes: ['Здоровье: 3 → 2'], summary: null, setAgeDays: null, before: null, after: null, similarity: [], cited: true,
-    cardHref: '/standard/cards/wild/JAIL_202/', patchHref: '/standard/patches/?version=36.4.2',
-  }]);
-  const zoolock = report.nerfs.find(candidate => candidate.kind === 'archetype');
-  assert.deepEqual(zoolock?.entity, { id: 'zoolock', dbfId: null, name: 'Зоолок', nameEn: 'Zoolock', classKey: 'warlock', href: '/standard/archetypes/standard/zoolock/' });
-  assert.deepEqual(zoolock?.stats.trend.map(point => point.label), ['Сутки', '3 дня', 'Неделя', 'Дополнение', 'Баны']);
+  assert.deepEqual(ritual.precedents[0], {
+    id: 'precedent:36.2.2.249896:JAIL_802', patch: '36.2.2', date: '2026-08-18T00:00:00.000Z', name: 'Бандюган из Галаджио',
+    classKey: 'shaman', direction: 'nerf', changes: ['Стоимость: 1 → 2', 'Атака: 1 → 2'], summary: 'Стоимость 1 → 2, атака 1 → 2',
+    setAgeDays: 76, before: { archetype: 'Зи Шаман', winrate: 53.8, popularity: 12.51 },
+    after: { archetype: 'Зи Шаман', winrate: 53.78, popularity: 7.79 }, similarity: ['похожий винрейт', 'похожая популярность'],
+    cited: true, cardHref: '/standard/cards/wild/JAIL_802/', patchHref: '/standard/patches/?version=36.2.2',
+  });
+  const archetype = report.nerfs.find(candidate => candidate.kind === 'archetype');
+  assert.deepEqual(archetype?.entity, {
+    id: 'c-thun-dh', dbfId: null, name: 'C\'Thun DH', nameEn: null, classKey: 'demonhunter', href: '/standard/archetypes/standard/c-thun-dh/',
+  });
+  assert.deepEqual(archetype?.stats.trend.map(point => point.label), ['Сутки', '3 дня', 'Неделя', 'Патч 36.6.3', 'Дополнение', 'Баны']);
   const druid = report.buffs.find(candidate => candidate.kind === 'class');
   assert.deepEqual([druid?.entity.classKey, druid?.entity.href, druid?.stats.trend], ['druid', null, []]);
+  assert.deepEqual([report.history?.balancePatches, report.history?.patterns.length, report.history?.from],
+    [52, 8, '2023-12-08T00:00:00.000Z']);
+  assert.equal(parseRadarReport({ ...raw, data: { ...raw.data, history: null } }).history, null, 'runs without history have no section');
 });
 
 test('the radar contract reads precedents and Blizzard patterns leniently', () => {
@@ -64,7 +73,7 @@ test('the radar contract reads precedents and Blizzard patterns leniently', () =
       changes: [{ field: 'cost', before: 2, after: 3 }, { field: 'durability', before: 3, after: 2 }],
       textBefore: 'Наносит 3 ед. урона.', textAfter: 'Наносит 2 ед. урона.',
       similarity: ['same_class', 'similar_winrate', 'cited', 'unknown_code', 'своя причина'],
-      preStats: { archetype: 'Zoolock', winrate: 58.4, popularity: 12 }, postStats: { archetype: null, winrate: 52.1, popularity: null } },
+      preStats: { archetype: 'Zee Shaman', winrate: 58.4, popularity: 12 }, postStats: { archetype: null, winrate: 52.1, popularity: null } },
     { id: 'p2', patch: '36.4.2', name: 'Карта Б', cardId: '../evil', direction: 'teleport', citedByModel: true },
     { id: 'p3', patch: 'latest', name: 'Без версии' },
     { id: 'p2', patch: '36.4.2', name: 'Повтор' },
@@ -83,7 +92,7 @@ test('the radar contract reads precedents and Blizzard patterns leniently', () =
   assert.deepEqual([other.patch, other.setAgeDays, other.changes, other.similarity, other.before, other.after], [
     '36.2.2', 12, ['Стоимость: 2 → 3', 'Прочность: 3 → 2', 'Текст: «Наносит 3 ед. урона.» → «Наносит 2 ед. урона.»'],
     ['тот же класс', 'похожий винрейт', 'своя причина'],
-    { archetype: 'Зоолок', winrate: 58.4, popularity: 12 }, { archetype: null, winrate: 52.1, popularity: null },
+    { archetype: 'Зи Шаман', winrate: 58.4, popularity: 12 }, { archetype: null, winrate: 52.1, popularity: null },
   ]);
 });
 
@@ -109,6 +118,7 @@ test('the radar contract drops broken records and foreign links', () => {
   ];
   const report = parseRadarReport(raw);
   assert.equal(report.nerfs.length, 6, 'a nameless record, an unknown kind and a duplicate ref are dropped');
+  assert.equal(report.nerfs[0].id, 'card:BE_085');
   assert.equal(report.nerfs[0].confidence, 100, 'confidence is clamped to 0..100');
   assert.equal(report.nerfs[0].entity.classKey, 'demonhunter');
   assert.match(report.nerfs[0].firstSeenAt ?? '', /^2026-10-25T\d\d:00:00\.000Z$/, 'a lenient date leaves as ISO');
@@ -177,7 +187,7 @@ test('/api/radar serves the cached snapshot, waits between failed reads and mark
     assert.equal(demo.headers.get('cache-control'), 'no-store', 'the demo is never cached at the edge');
     const demoBody = await demo.json();
     assert.equal(demoBody.demo, true);
-    assert.ok(demoBody.nerfs.some((candidate: { entity: { name: string } }) => candidate.entity.name === 'Зоолок'), 'archetypes get site names');
+    assert.ok(demoBody.nerfs.some((candidate: { entity: { id: string } }) => candidate.entity.id === 'c-thun-dh'), 'archetypes get site slugs');
     const failed = await get('/down/radar');
     assert.equal(failed.status, 502);
     assert.deepEqual(await failed.json(), { error: 'Радар временно недоступен' });
@@ -191,17 +201,20 @@ test('the radar view model filters candidates and formats dates without Intl clo
   assert.equal(isRadarReport(report), true);
   assert.equal(isRadarReport({ error: 'Радар временно недоступен' }), false);
   assert.equal(filterRadarCandidates(report.nerfs, DEFAULT_RADAR_FILTERS).length, 6);
-  assert.deepEqual(filterRadarCandidates(report.nerfs, { classKey: 'warlock', kind: 'archetype', minConfidence: 50 })
-    .map(candidate => candidate.entity.id), ['zoolock']);
+  assert.deepEqual(filterRadarCandidates(report.nerfs, { classKey: 'demonhunter', kind: 'archetype', minConfidence: 0 })
+    .map(candidate => candidate.entity.id), ['c-thun-dh']);
+  assert.deepEqual(filterRadarCandidates(report.nerfs, { classKey: 'warlock', kind: 'card', minConfidence: 50 })
+    .map(candidate => candidate.entity.id), ['BE_085', 'BE_726']);
   assert.deepEqual(filterRadarCandidates(report.buffs, { classKey: 'all', kind: 'class', minConfidence: 0 })
     .map(candidate => candidate.entity.classKey), ['druid', 'mage']);
   assert.deepEqual(filterRadarCandidates(report.buffs, { classKey: 'all', kind: 'all', minConfidence: 75 }), []);
-  assert.deepEqual(radarClassOptions(report), ['warrior', 'druid', 'mage', 'rogue', 'warlock', 'neutral'],
+  assert.deepEqual(radarClassOptions(report), ['warrior', 'druid', 'mage', 'demonhunter', 'rogue', 'warlock', 'neutral'],
     'classes of both sections, in Russian order, neutral last');
   assert.deepEqual([75, 74, 50, 49].map(radarConfidenceLevel), ['high', 'medium', 'medium', 'low']);
   assert.equal(radarEntityImage(report.nerfs[0]), '/api/card-image/BE_085/thumb.webp');
   assert.equal(radarEntityImage(report.buffs.find(candidate => candidate.kind === 'class')!), '/class_icon/ui/druid-64.webp');
   assert.equal(formatRadarTime('2026-10-25T10:12:15.000Z'), '25 октября, 13:12 МСК');
+  assert.equal(report.nerfs[0].precedents[0].before?.archetype, 'Зи Шаман', 'precedent archetypes get site labels');
   assert.equal(formatRadarDay('2026-12-31T22:30:00.000Z'), '1 января', 'Moscow is UTC+3');
   assert.equal(formatRadarCount(64641), '64 641');
   assert.equal(radarTrendDelta(58.9, 58.2), 0.7);

@@ -83,7 +83,9 @@ function RadarPatterns({ history }: { history: RadarReport['history'] }) {
       <h2 id="radar-patterns-title">Закономерности Blizzard</h2>
       <p>Как разработчики меняли баланс раньше: на это опирается прогноз{coverage && ` (разобрано ${coverage})`}.</p>
     </header>
-    {history.summary && <p className="radar-section__body radar-history__summary">{history.summary}</p>}
+    {history.summary && <div className="radar-section__body radar-history__summary">
+      {history.summary.split(/\n\s*\n|\n/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+    </div>}
     {history.patterns.length > 0 && <ul className="radar-section__body radar-patterns">
       {history.patterns.map((pattern, index) => <li key={`${index}:${pattern.title}`}>
         <b>{pattern.title}</b>

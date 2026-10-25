@@ -53,7 +53,7 @@
   gap: 0.35rem;
   align-items: center;
   color: var(--arena-red);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -491,7 +491,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 
 .radar-facts dt {
   color: var(--arena-muted-ink);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -522,7 +522,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 .radar-trend thead th {
   border-top: 0;
   color: var(--arena-muted-ink);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -716,7 +716,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 
 .radar-precedent__direction {
   color: var(--arena-muted-ink);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -735,6 +735,8 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 .radar-precedent__stats { color: var(--arena-muted-ink); }
 
 .radar-history__summary {
+  display: grid;
+  gap: 0.6rem;
   max-width: 78ch;
   margin: 0;
   padding-bottom: 0;
@@ -742,6 +744,8 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   font-size: 0.9rem;
   line-height: 1.6;
 }
+
+.radar-history__summary p { margin: 0; }
 
 .radar-patterns li {
   color: var(--arena-ink);

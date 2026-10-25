@@ -1910,7 +1910,7 @@
       "publicEntrypoints": ["server/modules/radar/public.ts"],
       "frontendRoutes": [],
       "backendRoutes": [{ "method": "GET", "path": "/api/radar" }],
-      "contracts": ["server/modules/radar/contract.ts", "docs/specs/nerf-buff-radar.md"],
+      "contracts": ["server/modules/radar/contract.ts", "server/modules/radar/types.ts", "docs/specs/nerf-buff-radar.md"],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],

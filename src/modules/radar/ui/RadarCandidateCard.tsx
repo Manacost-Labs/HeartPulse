@@ -136,8 +136,10 @@ function RadarPrecedents({ precedents }: { precedents: RadarPrecedent[] }) {
               {precedent.cited && <> · учтено в прогнозе</>}
             </span>
           </div>
-          {precedent.changes.length > 0 && <p className="radar-precedent__changes">{precedent.changes.join('; ')}</p>}
-          {precedent.summary && <p>{precedent.summary}</p>}
+          {/* Описание hs-data-api уже пересказывает правки; построчный список — запасной вариант без него. */}
+          {(precedent.summary || precedent.changes.length > 0) && <p className="radar-precedent__changes">
+            {precedent.summary ?? precedent.changes.join('; ')}
+          </p>}
           {(before || after) && <p className="radar-precedent__stats">
             {before && <>Неделя до правки: {before}</>}{before && after && '. '}{after && <>Неделя после: {after}</>}
           </p>}

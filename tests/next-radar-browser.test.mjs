@@ -65,19 +65,20 @@ test('the radar renders the demo forecast on the server, switches sections and f
       if (screenshots) await page.screenshot({ path: join(screenshots, `radar-${width}.png`), fullPage: true });
     }
 
-    assert.deepEqual((await names(page)).slice(0, 3), ['Ритуал призыва', 'Ритуал К\'Туна', 'К\'Тун, Око Империи'], 'nerfs first, by confidence');
-    assert.equal(await page.$eval('.radar-candidate [role="meter"]', node => node.getAttribute('aria-valuenow')), '75');
-    assert.match(await page.$eval('.radar-confidence__change', node => node.textContent ?? ''), /\+7 с прошлого раза/);
+    assert.deepEqual((await names(page)).slice(0, 3), ['Ритуал призыва', 'Ритуал К\'Туна', 'Крестный отец Казакус'], 'nerfs first, by confidence');
+    assert.equal(await page.$eval('.radar-candidate [role="meter"]', node => node.getAttribute('aria-valuenow')), '70');
+    assert.match(await page.$eval('.radar-confidence__change', node => node.textContent ?? ''), /−5 с прошлого раза/);
     assert.equal(await page.$eval('.radar-candidate__identity', node => node.getAttribute('href')), '/standard/cards/standard/BE_085/');
     assert.equal(await page.$eval('.radar-candidate[data-kind="archetype"] .radar-candidate__identity', node => node.getAttribute('href')),
-      '/standard/archetypes/standard/zoolock/', 'HSGuru archetype names become site slugs');
+      '/standard/archetypes/standard/c-thun-dh/', 'HSGuru archetype names become site slugs');
     assert.equal(await page.$eval('.radar-post', node => node.getAttribute('rel')), 'noopener noreferrer nofollow ugc');
     assert.deepEqual(await page.$eval('.radar-candidate .radar-precedent', node => [
       node.dataset.direction, node.querySelector('.radar-precedent__changes')?.textContent,
       [...node.querySelectorAll('a')].map(link => link.getAttribute('href'))]),
-    ['nerf', 'Здоровье: 3 → 2', ['/standard/cards/wild/JAIL_202/', '/standard/patches/?version=36.4.2']],
+    ['nerf', 'Стоимость 1 → 2, атака 1 → 2', ['/standard/cards/wild/JAIL_802/', '/standard/patches/?version=36.2.2']],
     'the first candidate shows the past Blizzard change it rests on');
-    assert.equal(await page.$('#radar-patterns-title'), null, 'no patterns section without history');
+    assert.match(await page.$eval('#radar-patterns-title', node => node.closest('section')?.textContent ?? ''),
+      /разобрано 52 балансных патча[\s\S]*Нерфы приходят к сильным и популярным колодам/, 'Blizzard patterns from the run history');
 
     await page.click('#radar-tab-buffs');
     await page.waitForFunction(() => document.querySelector('#radar-tab-buffs')?.getAttribute('aria-selected') === 'true');

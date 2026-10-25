@@ -47,7 +47,8 @@ HSGuru, обсуждения Reddit и X и вывод модели Claude. Эт
 
 ## Контракт ответа
 
-Источник правды — `server/modules/radar/contract.ts`; страница получает
+Источник правды — `server/modules/radar/contract.ts` (типы в `types.ts`,
+разбор в `parsing.ts`, `candidate.ts`, `social.ts`, `precedents.ts`); страница получает
 уже проверенные данные и повторяет типы в
 `src/modules/radar/model/types.ts`. `tests/radar.test.ts` присваивает один
 тип другому, поэтому расхождение ломает `npm run lint`. Браузер перед
