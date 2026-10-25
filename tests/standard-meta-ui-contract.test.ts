@@ -6,7 +6,7 @@ import {
   resolveStandardMetaDefaultPeriod,
   standardMetaPeriodLabel,
 } from '../src/features/standardMetaFilterModel.js';
-import type { StandardMetaPeriod } from '../shared/standardMetaPeriods.js';
+import { latestStandardMetaBanPeriod, type StandardMetaPeriod } from '../shared/standardMetaPeriods.js';
 
 const metaSource = readFileSync(
   new URL('../src/features/StandardMeta.tsx', import.meta.url),
@@ -63,6 +63,30 @@ assert.equal(
   ),
   'black_empire',
 );
+// The current expansion's Bans window opens the page whenever the source offers it.
+assert.equal(
+  resolveStandardMetaDefaultPeriod(
+    ['past_day', 'patch_36.6.3', 'black_empire', 'black_empire_ban'],
+    'black_empire',
+    'patch_36.6.3',
+  ),
+  'black_empire_ban',
+);
+// A previous expansion's Bans window is stale once a new expansion starts.
+assert.equal(
+  resolveStandardMetaDefaultPeriod(
+    ['past_day', 'patch_37.0.0', 'next_expansion', 'black_empire_ban'] as StandardMetaPeriod[],
+    'next_expansion' as StandardMetaPeriod,
+    'patch_37.0.0',
+  ),
+  'next_expansion',
+);
+// Without a known expansion window the last listed Bans window wins; without one, the patch.
+assert.equal(latestStandardMetaBanPeriod(['past_day', 'black_empire_ban'], null), 'black_empire_ban');
+assert.equal(resolveStandardMetaDefaultPeriod(['past_day', 'patch_36.6.3'], null, 'patch_36.6.3'), 'patch_36.6.3');
+assert.equal(latestStandardMetaBanPeriod(['past_day', 'unknown_ban'], null), null);
+// The selector shows the default before the first answer sets it, so the label never flips.
+assert.match(metaSource, /const selectedPeriod = period\s*\?\? resolveStandardMetaDefaultPeriod\(/);
 
 // The page opens on Diamond–Legend; a server-rendered teaser also fixes the
 // period it was read for, otherwise the page resolves the current one itself.

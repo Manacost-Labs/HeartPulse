@@ -4,6 +4,8 @@ import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
 import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
 import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection } from './ArchetypeInsightSlots';
 import { ArchetypeHistoryCharts } from './ArchetypeHistoryCharts';
+import { standardMetaPeriodLabel } from './standardMetaFilterModel';
+import type { StandardMetaPeriod } from '../../shared/standardMetaPeriods';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
@@ -78,6 +80,8 @@ export type ArchetypeCatalog = {
   format: ArchetypeFormat;
   formatLabel: string;
   patch: string;
+  /** HSGuru period of the catalog; null from a source (or a cached page) that does not name it. */
+  period?: StandardMetaPeriod | null;
   minimumGames: number;
   updatedAt: string | null;
   coverage: Record<string, unknown>;
@@ -194,6 +198,11 @@ function formatDate(value: string | null, timeZone?: string): string {
     minute: '2-digit',
     timeZone,
   }).format(new Date(value));
+}
+
+/** «Баны», «Тёмная империя» or «Патч 36.6.3»: the HSGuru period the catalog's games come from. */
+function catalogPeriodLabel(catalog: ArchetypeCatalog | null): string {
+  return catalog?.period ? standardMetaPeriodLabel(catalog.period) : `Патч ${catalog?.patch || '—'}`;
 }
 
 function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutral' {
@@ -344,7 +353,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
         <div>
           <span className="archetypes-eyebrow"><BookOpenText size={14} /> Каталог</span>
           <strong>{catalog?.formatLabel ?? (format === 'standard' ? 'Стандарт' : 'Вольный')}</strong>
-          <small>Патч {catalog?.patch || '—'} · минимум {catalog?.minimumGames ?? 50} игр · обновлено {formatDate(catalog?.updatedAt ?? null, timeZone)}</small>
+          <small>{catalogPeriodLabel(catalog)} · минимум {catalog?.minimumGames ?? 50} игр · обновлено {formatDate(catalog?.updatedAt ?? null, timeZone)}</small>
         </div>
         <label className="archetypes-search" data-tour-id="archetypes-search">
           <Search size={18} aria-hidden="true" />

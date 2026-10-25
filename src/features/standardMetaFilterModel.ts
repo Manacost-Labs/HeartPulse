@@ -1,4 +1,5 @@
 import type { StandardMetaCoin, StandardMetaPeriod } from '../../shared/standardMetaContract';
+import { latestStandardMetaBanPeriod } from '../../shared/standardMetaPeriods';
 
 export function orderStandardMetaPeriods(
   availablePeriods: StandardMetaPeriod[],
@@ -19,12 +20,13 @@ export function orderStandardMetaPeriods(
   ];
 }
 
+/** The period the page opens on: the current Bans window, else the current expansion window, else the patch. */
 export function resolveStandardMetaDefaultPeriod(
   availablePeriods: StandardMetaPeriod[],
   currentPeriod: StandardMetaPeriod | null,
   currentPatchPeriod: StandardMetaPeriod | null,
 ): StandardMetaPeriod | null {
-  return [currentPeriod, currentPatchPeriod]
+  return [latestStandardMetaBanPeriod(availablePeriods, currentPeriod), currentPeriod, currentPatchPeriod]
     .find((period): period is StandardMetaPeriod => Boolean(period && availablePeriods.includes(period)))
     ?? null;
 }

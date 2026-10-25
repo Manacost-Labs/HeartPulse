@@ -117,6 +117,10 @@ assert.equal(publicArchetypeCatalog(catalogRaw, 'standard'), null, 'a catalog of
 assert.equal(publicArchetypeCatalog({ ...catalogRaw, items: [{ ...catalogRaw.items[0], games: -1 }] }, 'wild'), null);
 assert.equal(publicArchetypeCatalog({ ...catalogRaw, items: [{ ...catalogRaw.items[0], slug: '../x' }] }, 'wild'), null);
 assert.equal(publicArchetypeCatalog(null, 'wild'), null);
+// The catalog heading names its HSGuru period; a value that is not one is dropped, not rendered.
+assert.equal(catalog?.period, null);
+assert.equal(publicArchetypeCatalog({ ...catalogRaw, period: 'black_empire_ban' }, 'wild')?.period, 'black_empire_ban');
+assert.equal(publicArchetypeCatalog({ ...catalogRaw, period: '<script>' }, 'wild')?.period, null);
 
 // Cosmetics: the server builds the very URL the grid requests.
 assert.equal(cosmeticsCatalogSeedRequest('heroes', '').url, '/api/cosmetics/heroes');

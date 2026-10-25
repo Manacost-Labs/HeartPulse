@@ -27,6 +27,22 @@ export function isStandardMetaPeriod(value: unknown): value is StandardMetaPerio
     && (SERVED_PERIODS.has(value) || Object.hasOwn(PERIOD_ALIASES, value) || PATCH_PERIOD.test(value));
 }
 
+/**
+ * The Bans window (`<expansion>_ban`) that opens the meta and the archetype
+ * catalog by default, or null when the source offers none. It belongs to the
+ * current expansion window: once a new expansion starts, the previous one's
+ * Bans window is no longer the freshest data. Without a known current window
+ * the last Bans window listed wins.
+ */
+export function latestStandardMetaBanPeriod(
+  availablePeriods: readonly string[],
+  currentPeriod: string | null,
+): StandardMetaPeriod | null {
+  const banPeriods = availablePeriods.filter(period => period.endsWith('_ban') && isStandardMetaPeriod(period));
+  const latest = currentPeriod ? banPeriods.find(period => period === `${currentPeriod}_ban`) : banPeriods.at(-1);
+  return (latest ?? null) as StandardMetaPeriod | null;
+}
+
 /** The period a request should load: retired windows map to their successor, unknown values to null. */
 export function resolveStandardMetaRequestPeriod(value: string): StandardMetaPeriod | null {
   if (Object.hasOwn(PERIOD_ALIASES, value)) return PERIOD_ALIASES[value as StandardMetaRetiredPeriod];

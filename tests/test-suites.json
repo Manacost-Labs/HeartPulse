@@ -93,6 +93,7 @@
         "tests/archetype-comparison-model.test.ts",
         "tests/archetype-insights-model.test.ts",
         "tests/constructed-archetype-catalog-cache.test.ts",
+        "tests/constructed-archetype-catalog-period.test.ts",
         "tests/standard-meta-slice-cache.test.ts",
         "tests/standard-meta-trends.test.ts",
         "tests/architecture-baseline.test.mjs",

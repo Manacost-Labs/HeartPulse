@@ -5,6 +5,15 @@ inject the normalized catalog reader and its existing freshness TTL. This
 module owns bounded stale reads, concurrent refresh coalescing, refresh retry
 cooldowns, source deadlines and generation-safe invalidation.
 
+Entries are keyed by format and HSGuru period.
+`loadArchetypeCatalogForPeriod` (`server/constructedArchetypeCatalogPeriod.ts`,
+beside the routes, since it reads the shared period contract) picks the
+catalog the archetype pages open on: the requested period, else the current
+Bans window when the source lists it in `criteria.available_periods`, else the
+source default
+([periods spec](../../../docs/specs/standard-meta-periods.md)). Other readers
+(public API, deck statistics, patch notes) keep the source default.
+
 The legacy source normalization remains in `server/index.ts`. The route owns
 authorization and public projections; neither viewer state nor session data
 enters this cache. History and analysis caches are unchanged.
@@ -13,8 +22,8 @@ The request that first reads an expired but usable snapshot starts one refresh
 in the background. There is no scheduled job or persistent snapshot storage.
 See [the operating contract](../../../docs/runbooks/constructed-archetypes-performance.md).
 
-Verification: `node --import=tsx --test tests/constructed-archetype-catalog-cache.test.ts`
-and `node --import=tsx tests/constructed-archetype-routes.test.ts`.
+Verification: `node --import=tsx --test tests/constructed-archetype-catalog-cache.test.ts
+tests/constructed-archetype-catalog-period.test.ts` and `node --import=tsx tests/constructed-archetype-routes.test.ts`.
 
 `createMetaSliceCache` applies the same policy to the Standard meta slices
 (`/api/standard-meta`, its teaser and the public meta API), keyed by format,

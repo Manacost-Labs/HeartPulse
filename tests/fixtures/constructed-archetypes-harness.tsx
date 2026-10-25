@@ -64,7 +64,8 @@ const buildlessItem = {
 const catalog = {
   format: 'wild',
   formatLabel: 'Вольный',
-  patch: '36.0.3',
+  patch: 'black_empire_ban',
+  period: 'black_empire_ban',
   minimumGames: 50,
   updatedAt: '2026-07-24T12:38:57.727Z',
   coverage: {},

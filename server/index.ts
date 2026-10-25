@@ -106,6 +106,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
+import { loadArchetypeCatalogForPeriod, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
 import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
@@ -5967,10 +5968,12 @@ const constructedArchetypeCatalogCache = createArchetypeCatalogCache({
   read: fetchConstructedArchetypeCatalog, ttlMs: EXTERNAL_DATASET_CACHE_MS,
   onRefreshError: (format, error) => console.warn(`[constructed-archetypes] ${format} refresh failed:`, error instanceof Error ? error.message : 'Unknown error'),
 });
-const loadConstructedArchetypeCatalog = constructedArchetypeCatalogCache.load;
+// The source's default window; the archetype pages open on the Bans window through loadArchetypeCatalogForPeriod.
+const loadConstructedArchetypeCatalog = (format: ConstructedArchetypeFormat) => constructedArchetypeCatalogCache.load(format);
 
 async function fetchConstructedArchetypeCatalog(
   format: ConstructedArchetypeFormat,
+  period?: string,
 ): Promise<ConstructedArchetypeCatalog> {
   const query = new URLSearchParams({
     format,
@@ -5979,6 +5982,7 @@ async function fetchConstructedArchetypeCatalog(
     order: 'desc',
     limit: '500',
   });
+  if (period) query.set('period', period);
   const [payload, translations] = await Promise.all([
     fetchDataset(`v1/hsguru/archetypes?${query}`, 20_000),
     getStandardArchetypeTranslations(),
@@ -6026,6 +6030,7 @@ async function fetchConstructedArchetypeCatalog(
     format,
     formatLabel: STANDARD_META_FORMAT_LABEL[format],
     patch: String(criteria.period ?? '').replace(/^patch_/, ''),
+    ...readArchetypeCatalogPeriods(criteria),
     minimumGames: parseCount(criteria.minimum_games) ?? 50,
     updatedAt: String(payload?.meta?.fetched_at ?? '') || null,
     coverage: payload?.coverage && typeof payload.coverage === 'object' ? payload.coverage : {},
@@ -7497,7 +7502,7 @@ app.use('/api', createStandardMetaRouter({
 }));
 app.use('/api', createConstructedArchetypeRouter({
   accessGuard: requireStandardAccess,
-  loadCatalog: loadConstructedArchetypeCatalog,
+  loadCatalog: (format, period) => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format, period),
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
   loadRanks: createArchetypeRankMatrixLoader((format, rank, period) => loadStandardMeta(format, rank, period, 'any_player', 100)),
