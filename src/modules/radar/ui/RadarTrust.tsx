@@ -21,8 +21,10 @@ export function RadarTrust({ backtest }: { backtest: RadarBacktest | null }) {
       <span className="radar-section__eyebrow"><Target aria-hidden="true" /> Проверка прогноза</span>
       <h2 id="radar-trust-title">Насколько радар точен</h2>
       <p>
-        Радар прогнали на {formatRadarCount(backtest.patches)} {pluralRu(backtest.patches, 'прошлом патче', 'прошлых патчах', 'прошлых патчах')} по
-        статистике за неделю до выхода: сколько настоящих правок он назвал среди первых кандидатов.
+        {backtest.text ?? <>
+          Радар прогнали на {formatRadarCount(backtest.patches)} {pluralRu(backtest.patches, 'прошлом патче', 'прошлых патчах', 'прошлых патчах')} по
+          статистике за неделю до выхода: сколько настоящих правок он назвал среди первых кандидатов.
+        </>}
       </p>
     </header>
     <div className="radar-section__body">
@@ -45,7 +47,11 @@ export function RadarTrust({ backtest }: { backtest: RadarBacktest | null }) {
           })}
         </tbody>
       </table>
-      <p className="radar-trust__note">Проверяется только статистическая часть: вывод модели и обсуждения сообщества в ней не участвуют.</p>
+      <p className="radar-trust__note">
+        {backtest.basis === 'model'
+          ? backtest.caveat ?? 'Модель могла видеть часть этих патчноутов при обучении, поэтому её цифры — оценка сверху.'
+          : 'Проверяется только статистическая часть: вывод модели и обсуждения сообщества в ней не участвуют.'}
+      </p>
     </div>
   </section>;
 }

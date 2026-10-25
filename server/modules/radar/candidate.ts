@@ -21,7 +21,12 @@ export function parseCandidate(value: unknown, nameArchetype: RadarArchetypeName
     const kind = row.kind;
     const sourceId = required(row.id, 120);
     const sourceName = required(row.name, 120);
-    const archetype = kind === 'archetype' ? nameArchetype(sourceId) : null;
+    const named = kind === 'archetype' ? nameArchetype(sourceId) : null;
+    // Перевод сайта, если он русский; иначе имя hs-data-api, которое с схемы 2 тоже русское.
+    const cyrillic = /[а-яё]/i;
+    const archetype = named && {
+      ...named, label: cyrillic.test(named.label) || !cyrillic.test(sourceName) ? named.label : sourceName,
+    };
     const id = archetype?.slug ?? sourceId;
     const previous = finite(record(row.dates)?.previousConfidence);
     const reasons = new Set(list(row.reasons).map(reason => text(reason, 400)).filter((reason): reason is string => reason !== null));

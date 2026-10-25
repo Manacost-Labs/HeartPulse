@@ -130,7 +130,8 @@ export function parseRadarReport(
     history: parseHistory(row.history),
     timing: parseTiming(row.timing),
     changes: parseChanges(row.changesSincePrevious, nameArchetype),
-    backtest: parseBacktest(backtest),
+    // Блок точности самого прогона новее отдельного ответа `/backtest`.
+    backtest: parseBacktest(row.accuracy) ?? parseBacktest(backtest),
     demo,
   };
   return localizeFor ? localizeReport(report, localizeFor(reportCardIds(report))) : report;

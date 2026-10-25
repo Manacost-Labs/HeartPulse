@@ -88,6 +88,7 @@ const report: RadarReport = {
     patches: 8,
     nerf: [{ top: 3, hits: 7, actual: 22, predicted: 24, precision: 29, recall: 32 }, { top: 5, hits: 11, actual: 22, predicted: 40, precision: 28, recall: 50 }],
     buff: [{ top: 3, hits: 0, actual: 11, predicted: 24, precision: 0, recall: 0 }, { top: 5, hits: 0, actual: 11, predicted: 40, precision: 0, recall: 0 }],
+    basis: 'statistical', text: null, caveat: null,
   },
 };
 

@@ -63,6 +63,10 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
   assert.deepEqual(archetype?.entity, {
     id: 'zoolock', dbfId: null, name: 'Zoolock', nameEn: null, classKey: 'warlock', href: '/standard/archetypes/standard/zoolock/',
   });
+  const russianRun = upstream();
+  russianRun.data.nerfs.find((item: { kind: string }) => item.kind === 'archetype').name = 'Зоолок';
+  assert.equal(parseRadarReport(russianRun, { nameArchetype: namer }).nerfs.find(item => item.kind === 'archetype')?.entity.name, 'Зоолок',
+    'the Russian name from hs-data-api is used when the site has no translation');
   assert.deepEqual(archetype?.stats.trend.map(point => point.label), ['Сутки', 'Неделя', 'Дополнение', 'Баны']);
   const druid = report.buffs.find(candidate => candidate.kind === 'class');
   assert.deepEqual([druid?.entity.classKey, druid?.entity.href, druid?.stats.trend], ['druid', null, []]);
@@ -78,7 +82,17 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
       { top: 3, hits: 0, actual: 11, predicted: 24, precision: 0, recall: 0 }, { top: 5, hits: 0, actual: 11, predicted: 40, precision: 0, recall: 0 },
       { top: 10, hits: 2, actual: 11, predicted: 80, precision: 3, recall: 18 },
     ],
+    basis: 'statistical', text: null, caveat: null,
   });
+  const accuracy = parseRadarReport({ data: { ...raw.data, accuracy: {
+    basis: 'model', text: 'Радар проверен на 8 прошлых балансных патчах.', caveat: 'Оценка сверху.',
+    statistical: { patches: 8, 'nerf@5': { precision: 0.28, recall: 0.5, hits: 11, predicted: 40, actual: 22 } },
+    model: { patches: 6, 'nerf@5': { precision: 0.4, recall: 0.6, hits: 9, predicted: 30, actual: 15 }, 'buff@10': { hits: 1, actual: 0 } },
+  } } }, { backtest: RADAR_BACKTEST_FIXTURE }).backtest;
+  assert.deepEqual(accuracy, {
+    patches: 6, nerf: [{ top: 5, hits: 9, actual: 15, predicted: 30, precision: 40, recall: 60 }], buff: [],
+    basis: 'model', text: 'Радар проверен на 8 прошлых балансных патчах.', caveat: 'Оценка сверху.',
+  }, 'the run\'s own accuracy block wins over /backtest and names its basis');
   assert.equal(parseRadarReport({ ...raw, data: { ...raw.data, history: null } }).history, null, 'runs without history have no section');
 });
 

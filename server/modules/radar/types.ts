@@ -171,7 +171,16 @@ export type RadarTiming = { within7: number | null; within14: number | null; day
 export type RadarBacktestSide = { top: number; hits: number; actual: number; predicted: number; precision: number | null; recall: number | null };
 
 /** Проверка радара на прошлых патчах (статистическая часть, неделя до патча). */
-export type RadarBacktest = { patches: number; nerf: RadarBacktestSide[]; buff: RadarBacktestSide[] };
+export type RadarBacktest = {
+  patches: number;
+  nerf: RadarBacktestSide[];
+  buff: RadarBacktestSide[];
+  /** Чьи это цифры: прогноз модели или только статистическая часть. */
+  basis: 'model' | 'statistical';
+  /** Готовая фраза hs-data-api о проверке и оговорка к ней. */
+  text: string | null;
+  caveat: string | null;
+};
 
 export type RadarReport = {
   schemaVersion: 1;
