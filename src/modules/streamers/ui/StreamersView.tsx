@@ -1,6 +1,5 @@
 'use client';
 
-import { Users } from 'lucide-react';
 import { STREAMER_FORMAT_LABELS, formatCount, plural } from '../model/streamersView';
 import type { StreamerFilters as Filters, StreamersPage } from '../model/types';
 import { LiveStreams } from './LiveStreams';
@@ -29,9 +28,8 @@ export function StreamersView({ page, live, loading, loadingMore, onFilters, onM
     <LiveStreams streams={live} />
     <section className="streamers-section" aria-labelledby="streamers-catalog-title" aria-busy={loading || undefined}>
       <header className="streamers-section__heading">
-        <span className="streamers-section__eyebrow"><Users aria-hidden="true" /> За 30 дней</span>
         <h2 id="streamers-catalog-title">Стримеры и их колоды</h2>
-        <p>{total} {plural(page.total, 'стример', 'стримера', 'стримеров')} с колодами на HSGuru: ссылки на каналы и последние колоды с кодом.</p>
+        <p>{total} {plural(page.total, 'стример', 'стримера', 'стримеров')} с колодами на HSGuru за 30 дней.</p>
         <StreamerFilters filters={page.filters} formats={FORMAT_OPTIONS} classes={STREAMER_CLASS_OPTIONS} onChange={onFilters} />
       </header>
       {loading

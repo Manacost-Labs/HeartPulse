@@ -32,18 +32,16 @@
   border-bottom: var(--streamers-line);
 }
 
-.streamers-section__eyebrow {
-  display: inline-flex;
-  gap: 0.35rem;
+.streamers-section__heading--row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   align-items: center;
-  color: var(--arena-red);
-  font-size: var(--streamers-label);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  padding-block: 0.75rem;
 }
 
-.streamers-section__eyebrow svg { width: 14px; height: 14px; }
+.streamers-section--live .streamers-section__heading { border-bottom: 0; }
+.streamers-live__all { margin-left: auto; }
 
 .streamers-section__heading h2 {
   margin: 0;
@@ -125,31 +123,39 @@
 
 .streamers-live {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr));
+  grid-auto-columns: 12rem;
+  grid-auto-flow: column;
+  gap: 1rem;
   margin: 0;
-  padding: 0;
+  padding: 0 1rem 1rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
   list-style: none;
 }
 
-.streamers-live__item {
-  display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  gap: 0.25rem 0.75rem;
-  align-items: start;
-  padding: 0.75rem 1rem;
-  border-bottom: var(--streamers-line);
+.streamers-live__item { display: grid; gap: 0.2rem; align-content: start; min-width: 0; scroll-snap-align: start; }
+.streamers-live__item p { margin: 0; }
+
+.streamers-live__thumb {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.3rem;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(46, 22, 11, 0.85);
+  aspect-ratio: 16 / 9;
 }
 
-.streamers-live__thumb { display: block; grid-row: span 2; overflow: hidden; border-radius: 4px; background: rgba(46, 22, 11, 0.85); }
 .streamers-live__thumb img,
-.streamers-live__thumb span { display: block; width: 160px; height: 90px; object-fit: cover; }
-
-.streamers-live__text { display: grid; gap: 0.15rem; min-width: 0; }
-.streamers-live__text p { margin: 0; }
+.streamers-live__thumb span { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 .streamers-live__name {
+  overflow: hidden;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .streamers-live__name a,
@@ -157,37 +163,41 @@
 .streamers-live__name a:hover,
 .streamers-card__identity h3 a:hover { color: var(--arena-red); text-decoration: underline; text-underline-offset: 3px; }
 
-.streamers-live__title {
-  overflow: hidden;
+.streamers-live__facts { color: var(--arena-muted-ink); font-size: var(--streamers-label); font-variant-numeric: tabular-nums; }
+
+.streamers-live__deck {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  min-width: 0;
   color: var(--arena-ink);
   font-size: var(--streamers-small);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.streamers-live__facts { color: var(--arena-muted-ink); font-size: var(--streamers-label); font-variant-numeric: tabular-nums; }
-.streamers-live__deck { grid-column: 2; margin: 0; }
+.streamers-live__deck img { flex: none; width: 18px; height: 18px; }
+.streamers-live__deck span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .streamers-deck__meta { display: contents; }
 
 /* Карточки стримеров. */
 
 .streamers-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  column-gap: 2rem;
   margin: 0;
-  padding: 0;
+  padding: 0 1rem;
   list-style: none;
 }
 
 .streamers-card {
   min-width: 0;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 0;
   border-bottom: var(--streamers-line);
 }
 
 .streamers-card__head {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: center;
 }
@@ -206,7 +216,7 @@
 .streamers-card__identity p {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0 0.5rem;
   align-items: center;
   margin: 0.15rem 0 0;
   color: var(--arena-muted-ink);
@@ -228,6 +238,18 @@
   font-family: var(--font-display);
 }
 
+.streamers-card__live {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  color: var(--arena-red);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.streamers-card__live::before { width: 6px; height: 6px; border-radius: 50%; background: currentcolor; content: ''; }
+.streamers-card__live:hover { text-decoration: underline; text-underline-offset: 3px; }
+
 .streamers-badge {
   display: inline-flex;
   gap: 0.25rem;
@@ -243,7 +265,7 @@
 
 .streamers-badge svg { width: 12px; height: 12px; }
 
-.streamers-links { display: flex; gap: 0.15rem; margin: 0; padding: 0; list-style: none; }
+.streamers-links { display: flex; gap: 0; margin: 0; padding: 0; list-style: none; }
 
 .streamers-link {
   display: grid;
@@ -277,10 +299,14 @@
 }
 
 .streamers-deck[data-compact] {
-  grid-template-columns: 28px minmax(0, 1fr) 4.5rem auto;
-  min-height: 46px;
-  padding: 0.2rem 0;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0;
 }
+
+.streamers-deck[data-compact] > img { width: 24px; height: 24px; }
+.streamers-deck[data-compact] .streamers-deck__rank { color: var(--arena-muted-ink); font-size: var(--streamers-label); }
 
 .streamers-decks:not(.streamers-decks--full) > .streamers-deck:first-child { border-top: 0; }
 .streamers-deck > img { width: 28px; height: 28px; }
@@ -323,28 +349,47 @@
 .streamers-deck__watch svg { width: 15px; height: 15px; }
 .streamers-deck__live { color: var(--arena-red) !important; font-weight: 700; }
 
+/* Код колоды: тихая иконка, «Скопировано» всплывает над ней. */
+
+.streamers-copy-wrap { position: relative; display: inline-flex; justify-self: end; }
+
 .streamers-copy {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: center;
-  justify-content: center;
-  min-width: 5.25rem;
-  min-height: 42px;
-  padding: 0 0.6rem;
-  border: var(--streamers-line);
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
   border-radius: 6px;
-  background: rgba(250, 235, 197, 0.6);
-  color: var(--arena-ink);
-  font: inherit;
-  font-size: var(--streamers-label);
-  font-weight: 700;
+  background: transparent;
+  color: var(--arena-muted-ink);
   cursor: pointer;
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
 }
 
-.streamers-copy:hover { border-color: rgba(84, 51, 22, 0.45); }
-.streamers-copy[data-state='copied'] { border-color: #2f7a3e; color: #2f7a3e; }
-.streamers-copy[data-state='failed'] { border-color: #a33a3a; color: #a33a3a; }
-.streamers-copy svg { width: 14px; height: 14px; }
+.streamers-copy:hover { background: rgba(255, 248, 225, 0.6); color: var(--arena-ink); }
+.streamers-copy[data-state='copied'] { color: #2f7a3e; }
+.streamers-copy[data-state='failed'] { color: #a33a3a; }
+.streamers-copy svg { width: 17px; height: 17px; }
+
+.streamers-copy__status {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: calc(100% - 0.2rem);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(250, 235, 197, 0.96);
+  color: #2f7a3e;
+  font-size: var(--streamers-label);
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(46, 22, 11, 0.25);
+  pointer-events: none;
+}
+
+.streamers-copy[data-state='failed'] + .streamers-copy__status { color: #a33a3a; }
+.streamers-copy__status:empty { padding: 0; box-shadow: none; }
 
 /* Страница стримера. */
 
@@ -422,7 +467,7 @@
 .streamers-skeleton__line { width: 60%; height: 0.9rem; }
 .streamers-skeleton__line--short { width: 6rem; }
 .streamers-skeleton__title { width: 14rem; height: 1.6rem; }
-.streamers-skeleton__avatar { width: 48px; height: 48px; border-radius: 50%; }
+.streamers-skeleton__avatar { width: 44px; height: 44px; border-radius: 50%; }
 .streamers-skeleton__row { grid-column: 1 / -1; width: 100%; height: 1.6rem; }
 
 @media (max-width: 1023px) {
@@ -437,25 +482,20 @@
     margin-top: -0.35rem;
   }
   .streamers-deck__watch a { min-height: 32px; }
-  .streamers-deck .streamers-copy { grid-column: 4; grid-row: 1; }
+  .streamers-deck .streamers-copy-wrap { grid-column: 4; grid-row: 1; }
   .streamers-profile { grid-template-columns: 72px minmax(0, 1fr); }
   .streamers-profile .streamers-avatar { width: 72px; height: 72px; }
   .streamers-profile__live { grid-column: 1 / -1; padding: 0.75rem 0 0; border-top: var(--streamers-line); border-left: 0; }
 }
 
 @media (max-width: 559px) {
-  .streamers-live__item { grid-template-columns: 112px minmax(0, 1fr); padding: 0.65rem 0.75rem; }
-  .streamers-live__thumb { grid-row: auto; }
-  .streamers-live__deck { grid-column: 1 / -1; }
-  .streamers-live__thumb img,
-  .streamers-live__thumb span { width: 112px; height: 63px; }
-  .streamers-card { padding: 0.75rem; }
-  .streamers-card__head { grid-template-columns: 44px minmax(0, 1fr); }
-  .streamers-card__head .streamers-avatar { width: 44px; height: 44px; }
-  .streamers-card__head .streamers-links { grid-column: 1 / -1; }
+  .streamers-section__heading,
+  .streamers-cards { padding-inline: 0.75rem; }
+  .streamers-live { grid-auto-columns: 9.25rem; gap: 0.75rem; padding-inline: 0.75rem; scroll-padding-inline: 0.75rem; }
+  .streamers-live__all { margin-left: 0; }
+  .streamers-copy { width: 44px; height: 44px; }
   .streamers-deck { padding-inline: 0.75rem; gap: 0.5rem; }
   .streamers-deck[data-compact] { padding-inline: 0; }
-  .streamers-copy { min-width: 4.5rem; }
   .streamers-select,
   .streamers-select select { width: 100%; }
 }

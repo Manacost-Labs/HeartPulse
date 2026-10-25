@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ChevronLeft, Layers, Radio } from 'lucide-react';
+import { ChevronLeft, Radio } from 'lucide-react';
 import { formatCount, formatFollowers, formatLiveSince, formatViewers, plural, streamModeLabel, streamerFacetOptions } from '../model/streamersView';
 import type { StreamerFilters as Filters, StreamerPage } from '../model/types';
 import { StreamerAvatar } from './StreamerCard';
@@ -49,7 +49,6 @@ export function StreamerView({ page, loading, loadingMore, onFilters, onMore }: 
     <StreamerHeader page={page} />
     <section className="streamers-section" aria-labelledby="streamer-decks-title" aria-busy={loading || undefined}>
       <header className="streamers-section__heading">
-        <span className="streamers-section__eyebrow"><Layers aria-hidden="true" /> HSGuru</span>
         <h2 id="streamer-decks-title">Колоды</h2>
         <p>Новые игры сверху. Ранг — лучший ранг Легенды с колодой, «Запись» открывает трансляцию в момент игры.</p>
         <StreamerFilters filters={page.filters} formats={options.formats} classes={classes} onChange={onFilters} />

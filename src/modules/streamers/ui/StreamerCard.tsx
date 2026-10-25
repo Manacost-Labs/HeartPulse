@@ -11,24 +11,26 @@ export function StreamerAvatar({ streamer, size }: { streamer: Pick<StreamerSumm
     </span>;
 }
 
-/** Карточка стримера: имя ведёт на его страницу, ниже три последние колоды. */
+const CARD_LINKS = new Set(['twitch', 'youtube']);
+
+/** Карточка стримера: имя ведёт на его страницу, ссылки Twitch и YouTube, ниже три последние колоды. */
 export function StreamerCard({ streamer }: { streamer: StreamerSummary }) {
   const followers = formatFollowers(streamer.followers);
   const lastDay = streamer.lastPlayedAt ? formatPlayedDay(streamer.lastPlayedAt) : null;
   const decks = distinctRecentDecks(streamer.recentDecks);
   return <li className="streamers-card">
     <div className="streamers-card__head">
-      <StreamerAvatar streamer={streamer} size={48} />
+      <StreamerAvatar streamer={streamer} size={44} />
       <div className="streamers-card__identity">
         <h3><a href={`/streamers/${streamer.slug}/`}>{streamer.name}</a></h3>
         <p>
           {streamer.live
-            ? <a className="streamers-badge" href={streamer.live.streamUrl} target="_blank" rel="noopener noreferrer nofollow">В эфире</a>
+            ? <a className="streamers-card__live" href={streamer.live.streamUrl} target="_blank" rel="noopener noreferrer nofollow">в эфире</a>
             : null}
-          {[followers, lastDay ? `играл ${lastDay}` : null].filter(Boolean).join(' · ')}
+          <span>{[followers, lastDay ? `играл ${lastDay}` : null].filter(Boolean).join(' · ')}</span>
         </p>
       </div>
-      <StreamerLinks links={streamer.links} name={streamer.name} />
+      <StreamerLinks links={streamer.links.filter(link => CARD_LINKS.has(link.kind))} name={streamer.name} />
     </div>
     {decks.length ? <ul className="streamers-decks" aria-label={`Последние колоды ${streamer.name}`}>
       {decks.map(deck => <StreamerDeckRow key={`${deck.deckId}-${deck.format}`} deck={deck} compact />)}
