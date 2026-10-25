@@ -13,10 +13,14 @@ hs-data-api (pipeline `hsguru_mulligan`, его `docs/HSGURU_MULLIGAN.md`).
 
 | Параметр | Значения | По умолчанию |
 | --- | --- | --- |
-| `period` | `current`, `black_empire_ban`, `black_empire`, `past_day` … `past_30_days`, `patch_<версия>` | `current` |
-| `rank` | `all`, `diamond_4to1`, `diamond_to_legend`, `legend`, `top_5k`, `top_legend` | `legend` |
+| `period` | см. ниже | `current` |
+| `rank` | `all`, `diamond_4to1`, `diamond_to_legend`, `legend`, … | `legend` |
 | `coin` | `any_player`, `going_first`, `on_coin` | `any_player` |
 | `opponent` | `any`, `DEATHKNIGHT` … `WARRIOR` | `any` |
+
+Периоды: `current` (текущее окно источника), `black_empire_ban`,
+`black_empire`, `past_day` … `past_30_days`, `patch_<версия>`. Ранги ещё
+`top_5k` и `top_legend`.
 
 Без параметров сервер открывает лучший собранный срез карт: окно банов,
 затем окно дополнения, неделя и другие скользящие окна; внутри — Легенда,
@@ -66,5 +70,5 @@ hs-data-api (pipeline `hsguru_mulligan`, его `docs/HSGURU_MULLIGAN.md`).
 ## Сборки в окне банов
 
 Каталог колод hs-data-api собирается по окнам. Пока у архетипа нет сборок в
-окне банов, страница берёт сборки окна по умолчанию (дополнения); описание
-раздела «Сборки архетипа» называет период выборки сборок.
+окне банов, страница берёт сборки окна по умолчанию (дополнения); блок «Как
+читать данные» называет период выборки сборок.

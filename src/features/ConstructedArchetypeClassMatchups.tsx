@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { ExternalLink, Swords } from 'lucide-react';
-import { classIconUrl, useNeutralClassIcon } from './classIcons';
+// Not a hook despite its name: it swaps a failed class icon for the neutral one.
+import { classIconUrl, useNeutralClassIcon as showNeutralClassIcon } from './classIcons';
 import { hsguruMatchupTone } from './archetypeDetailModel';
 
 const CLASS_LABELS: Record<string, string> = {
@@ -19,13 +20,17 @@ const CLASS_LABELS: Record<string, string> = {
 
 export type ClassMatchupRow = { classKey: string; winrate: number; games: number; share: number | null };
 
+const PERCENT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
+const COUNT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const DATE = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
 function formatPercent(value: number | null): string {
-  return value === null || !Number.isFinite(value) ? '—' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
+  return value === null || !Number.isFinite(value) ? '—' : `${PERCENT.format(value)}%`;
 }
 
 function formatDate(value: string | null): string {
   if (!value || !Number.isFinite(Date.parse(value))) return 'срез ещё не готов';
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+  return DATE.format(new Date(value));
 }
 
 /**
@@ -65,10 +70,10 @@ export function ClassMatchupsPanel({ rows, scope, updatedAt, sourceUrl, empty }:
           {sorted.map(row => (
             <li key={row.classKey} data-tone={hsguruMatchupTone(row.winrate)}>
               <img src={classIconUrl(row.classKey)} alt="" width="46" height="46" loading="lazy"
-                onError={event => useNeutralClassIcon(event.currentTarget)} />
+                onError={event => showNeutralClassIcon(event.currentTarget)} />
               <span className="constructed-matchup-ledger__identity">
                 <strong>{CLASS_LABELS[row.classKey]}</strong>
-                <small>{Math.round(row.games).toLocaleString('ru-RU')} игр{row.share === null ? '' : ` · ${formatPercent(row.share)} выборки`}</small>
+                <small>{COUNT.format(row.games)} игр{row.share === null ? '' : ` · ${formatPercent(row.share)} выборки`}</small>
               </span>
               <span className="constructed-matchup-ledger__meter" aria-hidden="true">
                 <i />

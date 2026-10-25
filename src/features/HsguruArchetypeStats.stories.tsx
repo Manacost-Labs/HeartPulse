@@ -29,8 +29,11 @@ const meta = {
       const url = new URL(String(input), window.location.origin);
       if (!url.pathname.startsWith('/api/constructed-archetype-stats/')) return original(input, init);
       if (parameters.hold) return new Promise<Response>(() => {});
-      // Only the default slice is collected: any named one is still being collected.
-      const body = parameters.nothingCollected || url.search ? collecting(url.searchParams) : snapshot;
+      // Only the snapshot's Legend · Bans slice is collected: any other one is still being collected.
+      const query = url.searchParams;
+      const isSnapshot = !url.search || (query.get('rank') === 'legend' && query.get('period') === 'black_empire_ban'
+        && query.get('coin') === 'any_player' && query.get('opponent') === 'any');
+      const body = parameters.nothingCollected || !isSnapshot ? collecting(query) : snapshot;
       return new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
     };
     return () => { window.fetch = original; };
@@ -41,9 +44,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Collected: Story = {
-  play: async ({ canvas }) => {
+  play: async ({ canvas, canvasElement }) => {
     await expect(await canvas.findByText(/49\s117 игр/)).toBeInTheDocument();
-    await expect(canvas.getByRole('columnheader', { name: 'Не пришла' })).toBeInTheDocument();
+    const phases = [...canvasElement.querySelectorAll('.constructed-card-stats__table th')].map(cell => cell.textContent?.trim());
+    await expect(phases).toContain('Не пришла');
     await expect(canvas.getByText('HSGuru · Легенда · Баны')).toBeInTheDocument();
     // Class matchups of this slice are not collected yet: the week's Legend slice fills them, named as such.
     await expect(canvas.getByText('HSGuru · Легенда · Неделя')).toBeInTheDocument();

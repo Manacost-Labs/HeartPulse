@@ -29,9 +29,11 @@ type LegacyAnalysis = {
   classMatchups: ClassMatchupRow[];
 };
 
+const DATE = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const COUNT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+
 function formatDate(value: string | null): string {
-  if (!value || !Number.isFinite(Date.parse(value))) return '';
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+  return value && Number.isFinite(Date.parse(value)) ? DATE.format(new Date(value)) : '';
 }
 
 function SliceFilters({ slice, stats, page, busy, onChange }: {
@@ -55,7 +57,7 @@ function SliceFilters({ slice, stats, page, busy, onChange }: {
       </div>
       {page ? (
         <p className="hsguru-slice__summary">
-          HSGuru · {page.games === null ? 'выборка неизвестна' : `${Math.round(page.games).toLocaleString('ru-RU')} игр`}
+          HSGuru · {page.games === null ? 'выборка неизвестна' : `${COUNT.format(page.games)} игр`}
           {updated ? ` · обновлено ${updated}` : ''}
         </p>
       ) : null}
@@ -110,9 +112,11 @@ export function HsguruArchetypeStats({ format, slug, legacy }: {
   const shown = answered ?? (read.loading ? last : null);
   const shownSlice = shown?.slice ?? slice;
   const mulligan = shown?.mulligan ?? null;
-  const legacyCards = shown && !mulligan && legacy?.cardStats.length ? legacy : null;
+  // An unreachable source keeps the older analysis on screen, beside its error.
+  const settled = Boolean(shown) || Boolean(read.error && !read.loading);
+  const legacyCards = settled && !mulligan && legacy?.cardStats.length ? legacy : null;
   const matchups = shown?.classMatchups?.rows.length ? shown.classMatchups : null;
-  const legacyMatchups = shown && !matchups && legacy?.classMatchups.length ? legacy : null;
+  const legacyMatchups = settled && !matchups && legacy?.classMatchups.length ? legacy : null;
   const scope = (page: unknown, fallback: unknown, label: string) => (page || !fallback ? `HSGuru · ${label}` : LEGACY_SCOPE);
   const empty = (text: string) => <p className="constructed-analysis-empty">{text}</p>;
   const waiting = !shown && read.loading;
@@ -122,7 +126,10 @@ export function HsguruArchetypeStats({ format, slug, legacy }: {
       <SliceFilters slice={slice} stats={stats} page={mulligan} busy={read.loading} onChange={setPicked} />
       {read.error && !read.loading ? (
         <div className="hsguru-collecting" role="alert">
-          <div><strong>{read.error}</strong></div>
+          <div>
+            <strong>Подробная статистика HSGuru временно недоступна</strong>
+            {legacy ? <p>Показан прошлый срез «Легенда · Неделя».</p> : null}
+          </div>
           <button type="button" className="hsguru-collecting__retry" onClick={read.retry}>Повторить</button>
         </div>
       ) : answered && !mulligan ? (

@@ -228,6 +228,10 @@ export function installConstructedArchetypeFixtures(): () => void {
         }
       : url.includes('section=ranks')
       ? { ranks }
+      // The HSGuru slice section: no slice collected yet, so the page keeps the older analysis.
+      : url.includes('/api/constructed-archetype-stats/')
+      ? { slice: { rank: 'legend', period: 'black_empire_ban', coin: 'any_player', opponentClass: 'any' },
+        mulligan: null, classMatchups: null, slices: [], coverage: { collected: 200, planned: 8289 } }
       : url.includes('/api/deck/resolve')
       ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
       : url.includes('/wild/yogg-warrior')

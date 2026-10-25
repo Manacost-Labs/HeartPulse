@@ -208,11 +208,11 @@ function catalogPeriodLabel(catalog: Pick<ArchetypeCatalog, 'period' | 'patch'> 
   return `Патч ${catalog?.patch || '—'}`;
 }
 
-/** Builds are sorted by sample; the sample's window can differ from the page's (the Bans window borrows them). */
+/** The builds' sample window can differ from the page's: the Bans window borrows the expansion's builds. */
 function buildsSampleText(builds: readonly ArchetypeBuild[]): string {
   const periods = [...new Set(builds.map(build => build.samplePeriod).filter(Boolean))];
-  const window = periods.length === 1 && isStandardMetaPeriod(periods[0]) ? ` за период «${standardMetaPeriodLabel(periods[0])}»` : '';
-  return `Сборки отсортированы по размеру выборки HSGuru${window}.`;
+  const window = periods.length === 1 && isStandardMetaPeriod(periods[0]) ? ` (период «${standardMetaPeriodLabel(periods[0])}»)` : '';
+  return `У сборок своя выборка HSGuru${window}, поэтому их показатели могут отличаться от общей статистики архетипа.`;
 }
 
 function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutral' {
@@ -546,7 +546,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           <header className="archetype-section-heading">
             <div>
               <h2 id="archetype-builds-title">Сборки архетипа</h2>
-              <p>{buildsSampleText(item.builds)} Код можно скопировать и сразу импортировать в Hearthstone.</p>
+              <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
             </div>
             <span className="archetype-section-heading__count">{item.builds.length} сборок</span>
           </header>
@@ -637,7 +637,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         <BarChart3 size={24} aria-hidden="true" />
         <div>
           <h2>Как читать данные</h2>
-          <p>Статистика архетипа относится к периоду «{catalogPeriodLabel(detail)}» и учитывает архетипы от {detail.minimumGames} игр. У сборок своя выборка HSGuru, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
+          <p>Статистика архетипа относится к периоду «{catalogPeriodLabel(detail)}» и учитывает архетипы от {detail.minimumGames} игр. {buildsSampleText(item.builds)}</p>
         </div>
       </section> : null}
     </Root>
