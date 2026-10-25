@@ -143,6 +143,8 @@ test('the page gets Russian names and Russian posts only', () => {
   assert.equal(localize('Blizzard чаще всего повышает стоимость; I think Blizzard missed some text.'),
     'Blizzard чаще всего повышает стоимость; I think Blizzard missed some text.', 'company and service names stay as they are');
   assert.equal(localize('Charge даёт рывок'), 'Charge даёт рывок', 'a card the run does not name is never replaced');
+  assert.equal(localize('В Даймонд 4–Легенда и на Diamond 4-1 винрейт выше, на Legend ниже.'),
+    'В Алмаз 4–Легенда и на Алмаз 4-1 винрейт выше, на Легенда ниже.', 'ranks in Russian');
   const raw = upstream();
   raw.data.summary = 'Zoolock доминирует.';
   raw.data.history.patterns = [{ title: 'Нерф Zoolock', detail: 'Ritual of Summoning дорожает' }];

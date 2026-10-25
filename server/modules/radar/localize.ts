@@ -19,6 +19,13 @@ export type RadarNameSources = {
   cardIds?: ReadonlySet<string>;
 };
 
+// Ранги и термины, которые модель пишет транслитом или по-английски.
+const TERMS: Array<[RegExp, string]> = [
+  [/(?<![\p{L}])(?:Даймонд|Diamond)(?![\p{L}])/gu, 'Алмаз'],
+  [/(?<![\p{L}])Legend(?![\p{L}])/gu, 'Легенда'],
+];
+const terms = (value: string) => TERMS.reduce((text, [pattern, label]) => text.replace(pattern, label), value);
+
 const KEEP = new Set(['blizzard', 'reddit', 'twitter', 'hsreplay', 'hsguru', 'hearthstone', 'hearthpwn', 'vicious syndicate', 'firestone']);
 
 const key = (name: string) => name.trim().replace(/\s+/g, ' ').replace(/’/g, "'").toLocaleLowerCase('en-US');
@@ -43,12 +50,12 @@ function pairs({ archetypes, cards = [], cardIds = new Set() }: RadarNameSources
 
 export function createRadarLocalizer(sources: RadarNameSources): (value: string) => string {
   const labels = pairs(sources);
-  if (!labels.size) return value => value;
+  if (!labels.size) return terms;
   const names = [...labels.keys()].sort((a, b) => b.length - a.length)
     .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/'/g, "['’]").replace(/ /g, '\\s+'));
   const pattern = new RegExp(`(?<![\\p{L}\\d'’])(?:${names.join('|')})(?![\\p{L}\\d'’])`, 'giu');
   const russian = [...new Set(labels.values())].sort((a, b) => b.length - a.length)
     .map(label => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const repeated = new RegExp(`(${russian.join('|')})\\s*\\(\\s*\\1\\s*\\)`, 'gu');
-  return value => value.replace(pattern, match => labels.get(key(match)) ?? match).replace(repeated, '$1');
+  return value => terms(value.replace(pattern, match => labels.get(key(match)) ?? match).replace(repeated, '$1'));
 }

@@ -404,27 +404,14 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   color: var(--arena-muted-ink);
 }
 
-.radar-candidate__reasons {
-  display: grid;
-  gap: 0.2rem;
-  max-width: 82ch;
-  margin: 0;
-  padding-left: 1.1rem;
-  color: var(--arena-ink);
-  font-size: 0.86rem;
-  line-height: 1.5;
-}
-
-.radar-candidate__reasons li::marker { color: var(--arena-muted-ink); }
-
 /* Блоки под «Подробнее»: заголовок, затем одно содержимое. */
+
+.radar-candidate__more .radar-more__body { gap: 1rem; }
 
 .radar-block {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.45rem;
   min-width: 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--arena-paper-line);
 }
 
 .radar-block__title {
@@ -435,7 +422,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   margin: 0;
   color: var(--arena-ink);
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.98rem;
 }
 
 .radar-block__title span {
@@ -444,14 +431,28 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   font-size: 0.75rem;
 }
 
-.radar-facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 8rem));
+/* Цифры чипами. */
+
+.radar-facts { display: grid; gap: 0.3rem; }
+
+.radar-facts dl {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0;
 }
 
-.radar-facts dt {
+.radar-fact {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 8.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.55);
+}
+
+.radar-fact dt {
   color: var(--arena-muted-ink);
   font-size: 0.6875rem;
   font-weight: 800;
@@ -459,17 +460,93 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   text-transform: uppercase;
 }
 
-.radar-facts dd {
-  margin: 0.1rem 0 0;
+.radar-fact dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.45rem;
+  align-items: baseline;
+  margin: 0;
   color: var(--arena-ink);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
+.radar-fact dd span { font-size: 0.75rem; font-weight: 700; }
+.radar-fact dd span[data-tone='up'] { color: var(--radar-nerf); }
+.radar-fact dd span[data-tone='down'] { color: var(--radar-buff); }
+.radar-facts__scope { margin: 0; color: var(--arena-muted-ink); font-size: 0.72rem; }
+
+/* Причины: маркер-галочка, текст переносится ровно. */
+
+.radar-reasons {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 78ch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.radar-reasons li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: start;
+  color: var(--arena-ink);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.radar-reasons svg { width: 15px; height: 15px; margin-top: 0.15rem; color: var(--radar-even); }
+
+/* Прошлые правки Blizzard: одна строка на случай. */
+
+.radar-precedents {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.radar-precedent {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(9rem, 14rem) minmax(7rem, 9rem) minmax(0, 1fr);
+  gap: 0.2rem 0.75rem;
+  align-items: baseline;
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--arena-paper-line);
+  color: var(--arena-ink);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.radar-precedent:first-child { border-top: 0; padding-top: 0; }
+
+.radar-precedent__direction {
+  color: var(--arena-muted-ink);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.radar-precedent[data-direction='nerf'] .radar-precedent__direction { color: var(--radar-weak); }
+.radar-precedent[data-direction='buff'] .radar-precedent__direction { color: var(--radar-buff); }
+.radar-precedent__card { display: grid; font-weight: 700; }
+.radar-precedent__card span,
+.radar-precedent__patch span { color: var(--arena-muted-ink); font-size: 0.72rem; font-weight: 400; }
+.radar-precedent__patch { display: grid; color: var(--arena-ink); text-decoration: none; }
+.radar-precedent a { color: var(--arena-ink); text-decoration-color: var(--arena-paper-line); text-underline-offset: 2px; }
+.radar-precedent a:hover { color: var(--arena-red); }
+.radar-precedent__change { font-variant-numeric: tabular-nums; }
+
+/* Периоды: узкая таблица. */
+
 .radar-trend {
   width: 100%;
-  max-width: 34rem;
+  max-width: 30rem;
   border-collapse: collapse;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
@@ -477,7 +554,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 
 .radar-trend th,
 .radar-trend td {
-  padding: 0.3rem 0;
+  padding: 0.28rem 0.5rem 0.28rem 0;
   border-top: 1px solid var(--arena-paper-line);
   text-align: right;
 }
@@ -486,44 +563,33 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   border-top: 0;
   color: var(--arena-muted-ink);
   font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .radar-trend th:first-child { text-align: left; }
-.radar-trend tbody th { color: var(--arena-muted-ink); font-weight: 600; }
+.radar-trend tbody th { color: var(--arena-muted-ink); font-weight: 600; white-space: nowrap; }
 .radar-trend td { color: var(--arena-ink); }
-.radar-trend abbr { text-decoration: none; cursor: help; }
-
-.radar-trend .radar-trend__delta {
-  width: 4rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
+.radar-trend .radar-trend__delta { font-size: 0.75rem; font-weight: 700; }
 .radar-trend__delta[data-tone='up'] { color: var(--radar-buff); }
 .radar-trend__delta[data-tone='down'] { color: var(--radar-weak); }
 .radar-trend__delta[data-tone='flat'] { color: var(--arena-muted-ink); }
 
-.radar-social__mood {
-  margin: 0;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
+.radar-social__mood { font-size: 0.78rem; font-weight: 700; }
 .radar-social__mood[data-tone='negative'] { color: var(--radar-weak); }
 .radar-social__mood[data-tone='positive'] { color: var(--radar-buff); }
 .radar-social__mood[data-tone='mixed'] { color: var(--radar-even); }
 .radar-social__mood[data-tone='neutral'] { color: var(--arena-muted-ink); }
 
 .radar-social__text {
-  max-width: 82ch;
+  max-width: 78ch;
   margin: 0;
   color: var(--arena-ink);
   font-size: 0.86rem;
   line-height: 1.55;
 }
+
+.radar-candidate__full > summary { color: var(--arena-muted-ink); }
 
 /* Пост: вся карточка — ссылка на оригинал в новой вкладке. */
 
@@ -608,51 +674,6 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 .radar-post__open svg { width: 13px; height: 13px; }
 .radar-post:hover .radar-post__open { text-decoration: underline; text-underline-offset: 3px; }
 
-/* Прошлые правки Blizzard. */
-
-.radar-precedents ul {
-  display: grid;
-  gap: 0.6rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.radar-precedent {
-  display: grid;
-  gap: 0.15rem;
-  color: var(--arena-ink);
-  font-size: 0.84rem;
-  line-height: 1.5;
-}
-
-.radar-precedent p { margin: 0; }
-
-.radar-precedent__head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.1rem 0.5rem;
-  align-items: baseline;
-}
-
-.radar-precedent__head > a,
-.radar-precedent__head > b { font-weight: 800; }
-.radar-precedent a { color: var(--arena-ink); text-decoration-color: var(--arena-paper-line); text-underline-offset: 2px; }
-.radar-precedent a:hover { color: var(--arena-red); }
-
-.radar-precedent__direction {
-  color: var(--arena-muted-ink);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.radar-precedent[data-direction='nerf'] .radar-precedent__direction { color: var(--radar-weak); }
-.radar-precedent[data-direction='buff'] .radar-precedent__direction { color: var(--radar-buff); }
-.radar-precedent__meta,
-.radar-precedent__stats { color: var(--arena-muted-ink); font-size: 0.78rem; }
-
 /* Закономерности Blizzard: заголовки, пояснения под «Подробнее». */
 
 .radar-patterns ul {
@@ -708,7 +729,10 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   .radar-filters { display: grid; gap: 0.6rem; }
   .radar-filter { display: grid; grid-template-columns: 7rem minmax(0, 1fr); }
   .radar-select { width: 100%; }
-  .radar-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .radar-precedent { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .radar-precedent__patch,
+  .radar-precedent__change { grid-column: 2; }
+  .radar-fact { flex: 1 1 8rem; min-width: 0; }
 }
 
 @media (max-width: 440px) {

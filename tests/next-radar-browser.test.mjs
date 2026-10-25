@@ -70,10 +70,23 @@ test('the radar renders the demo forecast on the server, switches sections and f
     assert.equal(await page.$eval('.radar-confidence__change', node => node.textContent), '−5', 'change since the last run');
     assert.deepEqual(await page.evaluate(() => [document.querySelectorAll('[lang="en"]').length, document.querySelectorAll('.radar-sources').length]),
       [0, 0], 'no English captions and no sources block');
+    assert.equal(await page.evaluate(() => document.body.textContent?.includes('Снежная буря')), false, 'Blizzard stays Blizzard');
     const first = '#radar-panel .radar-candidate:first-child';
     assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), false, 'details wait behind «Подробнее»');
     await page.click(`${first} .radar-candidate__more > summary`);
     assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), true);
+    const opened = await page.$eval(first, node => ({
+      verdictSentences: (node.querySelector('.radar-candidate__verdict')?.textContent ?? '').split(/[.!?…](?:\s|$)/).filter(Boolean).length,
+      facts: [...node.querySelectorAll('.radar-fact dt')].map(term => term.textContent),
+      reasons: node.querySelectorAll('.radar-reasons li svg').length,
+      deltaHeader: node.querySelector('.radar-trend thead th:nth-child(3)')?.textContent,
+      full: node.querySelector('.radar-candidate__full > summary')?.textContent,
+    }));
+    assert.ok(opened.verdictSentences <= 2, 'a short verdict on top');
+    assert.deepEqual(opened.facts, ['Винрейт', 'Популярность', 'Сыграна'], 'numbers as chips');
+    assert.ok(opened.reasons > 0 && opened.reasons <= 4, 'at most four marked reasons');
+    assert.equal(opened.deltaHeader, 'к прошлому периоду');
+    assert.equal(opened.full, 'Полный разбор', 'the rest of the verdict waits behind its own toggle');
     assert.deepEqual(await page.$eval(`${first} .radar-post`, node => [node.getAttribute('target'), node.querySelector('.radar-post__text'),
       node.querySelector('.radar-post__open')?.textContent]), ['_blank', null, 'Открыть обсуждение'],
     'an untranslated post shows no English text, only a link to the discussion');
@@ -82,7 +95,7 @@ test('the radar renders the demo forecast on the server, switches sections and f
       '/standard/archetypes/standard/c-thun-dh/', 'HSGuru archetype names become site slugs');
     assert.equal(await page.$eval('.radar-post', node => node.getAttribute('rel')), 'noopener noreferrer nofollow ugc');
     assert.deepEqual(await page.$eval('.radar-candidate .radar-precedent', node => [
-      node.dataset.direction, node.querySelector('.radar-precedent__changes')?.textContent,
+      node.dataset.direction, node.querySelector('.radar-precedent__change')?.textContent,
       [...node.querySelectorAll('a')].map(link => link.getAttribute('href'))]),
     ['nerf', 'Стоимость 1 → 2, атака 1 → 2', ['/standard/cards/wild/JAIL_802/', '/standard/patches/?version=36.2.2']],
     'the first candidate shows the past Blizzard change it rests on');
