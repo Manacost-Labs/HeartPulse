@@ -527,7 +527,8 @@
       "externalServices": [],
       "tests": [
         "tests/constructed-card-ui-status.test.ts",
-        "tests/constructed-card-catalog-readers.test.ts"
+        "tests/constructed-card-catalog-readers.test.ts",
+        "tests/card-choices.test.ts"
       ],
       "allowedDependencies": [
         "server/shared",

@@ -1,6 +1,10 @@
 {
-  "reason": "Пункт «Таблицы лидеров» в меню «Разное» и запись публичного маршрута /leaderboards попадают в общий чанк навигации; на /standard/meta/ запаса после «Стримеров» и срезов матчапов не хватило на 151 B.",
+  "reason": "Пункт «Таблицы лидеров» в меню «Разное» и запись публичного маршрута /leaderboards попадают в общий чанк навигации; после «Стримеров», срезов матчапов и «Раскопки» запаса не хватило на 38–151 B.",
   "routes": {
-    "/standard/meta/": { "jsGzipBytes": 512 }
+    "/standard/meta/": { "jsGzipBytes": 512 },
+    "/cosmetics/": { "jsGzipBytes": 512 },
+    "/standard/cards/": { "jsGzipBytes": 512 },
+    "/standard/cards/standard/": { "jsGzipBytes": 512 },
+    "/standard/deck-builder/": { "jsGzipBytes": 512 }
   }
 }

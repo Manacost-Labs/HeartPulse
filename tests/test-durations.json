@@ -415,6 +415,7 @@
     "tests/soft-paywall-ui-contract.test.ts": 0.2,
     "tests/sqlite-connection.test.ts": 0.5,
     "tests/standard-matchup-routes.test.ts": 0.4,
+    "tests/card-choices.test.ts": 0.3,
     "tests/standard-matchups-client.test.ts": 0.2,
     "tests/standard-matchups-controls-ui.test.ts": 0.2,
     "tests/standard-matchups-slice.test.ts": 0.2,

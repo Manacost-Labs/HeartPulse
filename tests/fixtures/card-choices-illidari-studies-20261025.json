@@ -1,0 +1,158 @@
+{
+ "data": {
+  "source": "hsreplay",
+  "card": {
+   "card_id": "CORE_YOP_001",
+   "dbf_id": 97377,
+   "name": "Illidari Studies",
+   "name_ru": "Иллидариведение",
+   "kind": "discover",
+   "card_class": "DEMONHUNTER",
+   "set": "CORE",
+   "formats": [
+    "standard",
+    "wild"
+   ],
+   "text": "Discover an Outcast card. Your next one costs (1) less."
+  },
+  "format": "standard",
+  "rank": "legend",
+  "stats": {
+   "state": "ok",
+   "tracked": true,
+   "checked_at": "2026-10-25T17:58:35.679523+00:00",
+   "changed_at": "2026-10-25T17:58:35.679523+00:00",
+   "as_of": "2026-10-25T17:50:27Z",
+   "stale": false,
+   "source_url": "https://hsreplay.net/cards/97377/",
+   "options_total": 9,
+   "unidentified_rows": 1
+  },
+  "options": [
+   {
+    "dbf_id": 118503,
+    "card_id": "DINO_136",
+    "name": "Horn of Feasting",
+    "name_ru": "Рог пиршества",
+    "card_class": "DEMONHUNTER",
+    "cost": 4,
+    "type": "SPELL",
+    "rarity": "COMMON",
+    "popularity": 44.98,
+    "win_rate": 45.26,
+    "in_pool": true,
+    "low_sample": false,
+    "undervalued": false
+   },
+   {
+    "dbf_id": 69684,
+    "card_id": "CORE_BT_491",
+    "name": "Spectral Sight",
+    "name_ru": "Призрачное зрение",
+    "card_class": "DEMONHUNTER",
+    "cost": 2,
+    "type": "SPELL",
+    "rarity": "COMMON",
+    "popularity": 42.63,
+    "win_rate": 47.34,
+    "in_pool": true,
+    "low_sample": false,
+    "undervalued": false
+   },
+   {
+    "dbf_id": 122995,
+    "card_id": "CATA_533",
+    "name": "Flash Flood",
+    "name_ru": "Стремительные волны",
+    "card_class": "DEMONHUNTER",
+    "cost": 5,
+    "type": "SPELL",
+    "rarity": "RARE",
+    "popularity": 41.22,
+    "win_rate": 43.44,
+    "in_pool": true,
+    "low_sample": false,
+    "undervalued": false
+   },
+   {
+    "dbf_id": 127159,
+    "card_id": "JAIL_892",
+    "name": "Cosmic Manifestations",
+    "name_ru": "Космические воплощения",
+    "card_class": "DEMONHUNTER",
+    "cost": 2,
+    "type": "SPELL",
+    "rarity": "EPIC",
+    "popularity": 31.73,
+    "win_rate": 50.17,
+    "in_pool": true,
+    "low_sample": false,
+    "undervalued": true
+   }
+  ],
+  "pool": {
+   "kind": "discover",
+   "resolved": true,
+   "reason": null,
+   "class_dependent": false,
+   "total": 9,
+   "cards": [
+    {
+     "dbf_id": 69683,
+     "card_id": "CORE_BT_480",
+     "name": "Crimson Sigil Runner",
+     "name_ru": "Гонец Кровавой Печати",
+     "card_class": "DEMONHUNTER",
+     "cost": 1,
+     "type": "MINION",
+     "rarity": "COMMON",
+     "has_stats": true,
+     "popularity": 38.25,
+     "win_rate": 49.44
+    },
+    {
+     "dbf_id": 127159,
+     "card_id": "JAIL_892",
+     "name": "Cosmic Manifestations",
+     "name_ru": "Космические воплощения",
+     "card_class": "DEMONHUNTER",
+     "cost": 2,
+     "type": "SPELL",
+     "rarity": "EPIC",
+     "has_stats": true,
+     "popularity": 31.73,
+     "win_rate": 50.17
+    },
+    {
+     "dbf_id": 69684,
+     "card_id": "CORE_BT_491",
+     "name": "Spectral Sight",
+     "name_ru": "Призрачное зрение",
+     "card_class": "DEMONHUNTER",
+     "cost": 2,
+     "type": "SPELL",
+     "rarity": "COMMON",
+     "has_stats": true,
+     "popularity": 42.63,
+     "win_rate": 47.34
+    }
+   ],
+   "tiers": []
+  },
+  "available": [
+   {
+    "format": "standard",
+    "rank": "bronze_gold"
+   },
+   {
+    "format": "standard",
+    "rank": "legend"
+   }
+  ],
+  "premium_session": {
+   "state": "ok",
+   "checked_at": "2026-10-25T17:58:32.005488+00:00",
+   "detail": null
+  }
+ }
+}
