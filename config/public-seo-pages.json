@@ -172,6 +172,13 @@
       "description": "Архив старых гайдов, мета-отчетов и материалов Koloda Hearthstone в удобном формате для чтения.",
       "sitemap": true
     },
+    "/leaderboards": {
+      "policyRouteId": "leaderboards",
+      "navigationRouteId": "leaderboards",
+      "title": "Таблицы лидеров Hearthstone {year}: официальный рейтинг Blizzard | HearthPulse",
+      "description": "Официальные таблицы лидеров Hearthstone по регионам Европа, Америка и Азия: Стандарт, Вольный, Поля сражений, Арена и Твист. Места, рейтинг, пороги топ-100/1000/5000 и история игрока по дням.",
+      "sitemap": true
+    },
     "/contests": {
       "policyRouteId": "contests",
       "navigationRouteId": "contests",

@@ -25,6 +25,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/classes/',
   '/connect/',
   '/contests/',
+  '/leaderboards/',
   '/cosmetics/',
   '/cosmetics/[kind]/',
   '/cosmetics/[kind]/[cardId]/',

@@ -218,6 +218,20 @@
       }
     },
     {
+      "id": "leaderboards",
+      "pattern": "/leaderboards",
+      "kind": "static",
+      "owner": "community",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "leaderboards",
+      "entitlement": null
+    },
+    {
       "id": "contests",
       "pattern": "/contests",
       "kind": "static",

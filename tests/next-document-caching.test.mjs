@@ -20,7 +20,7 @@ test('anonymous public route families may be restored from the back/forward cach
   // The edge (deploy/nginx/hearthpulse-shadow-app.conf) matches this exact value.
   assert.deepEqual(PUBLIC_DOCUMENT_RESPONSE_HEADERS, { 'Cache-Control': 'private, no-cache',
     'X-HearthPulse-Edge-Cache': 'anonymous' });
-  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/articles/', '/contests/', '/gallery/',
+  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/articles/', '/contests/', '/leaderboards/', '/gallery/',
     '/standard/meta/', '/standard/meta/standard/aggro-paladin/', '/standard/matchups/', '/standard/archetypes/',
     '/standard/archetypes/standard/aggro-paladin/', '/standard/cards/', '/standard/cards/standard/',
     '/standard/cards/standard/blizzard:12345/', '/standard/fun-decks/', '/standard/vicious-gold/',
@@ -55,7 +55,7 @@ test('the home page is public, its login query is the account page', () => {
 // rejects any cookie read, header forwarding of cookies or the admin check.
 const root = resolve(import.meta.dirname, '..');
 const app = join(root, 'apps/public-web/app');
-const FAMILY_DIRECTORIES = ['articles', 'classes', 'contests', 'gallery', 'legendaries', 'tierlist',
+const FAMILY_DIRECTORIES = ['articles', 'classes', 'contests', 'gallery', 'leaderboards', 'legendaries', 'tierlist',
   'battlegrounds/strategies', 'battlegrounds/tier-builder', 'battlegrounds/tier-list', 'cosmetics',
   'guides-archive', 'heroes', 'library', 'standard/archetypes', 'standard/cards', 'standard/fun-decks',
   'standard/matchups', 'standard/meta', 'standard/vicious-gold'];

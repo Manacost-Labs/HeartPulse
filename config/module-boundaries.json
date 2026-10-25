@@ -943,6 +943,38 @@
         "docs/architecture/module-boundaries.md",
         "docs/specs/nerf-buff-radar.md"
       ]
+    },
+    {
+      "id": "client.leaderboards",
+      "runtime": "client",
+      "root": "src/modules/leaderboards",
+      "purpose": "Owns the public official leaderboards view: selection, search, thresholds, charts, table and player card.",
+      "owner": "community",
+      "publicEntry": "src/modules/leaderboards/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:leaderboards"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/official-leaderboards.md"
+      ]
+    },
+    {
+      "id": "server.leaderboards",
+      "runtime": "server",
+      "root": "server/modules/leaderboards",
+      "purpose": "Owns the anonymous official leaderboards read from hs-data-api, its validation and short cache.",
+      "owner": "community",
+      "publicEntry": "server/modules/leaderboards/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:leaderboards"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/official-leaderboards.md"
+      ]
     }
   ],
   "migrationAreas": [

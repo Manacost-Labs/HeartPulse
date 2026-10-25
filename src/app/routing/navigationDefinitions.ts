@@ -14,6 +14,7 @@ import {
   List,
   ListChecks,
   ListTree,
+  Medal,
   Radar,
   Scroll,
   ScrollText,
@@ -51,6 +52,9 @@ export const NAVIGATION_ROUTES = [
   },
   { id: 'privacy', label: 'Конфиденциальность', icon: CircleHelp, path: '/privacy', group: 'footer', entitlement: null },
   { id: 'terms', label: 'Условия использования', icon: CircleHelp, path: '/terms', group: 'footer', entitlement: null },
+  {
+    id: 'leaderboards', label: 'Таблицы лидеров', icon: Medal, path: '/leaderboards', group: 'misc', entitlement: null,
+  },
   {
     id: 'gallery', label: 'Галерея', icon: ImageIcon, path: '/gallery', group: 'misc', entitlement: null,
   },

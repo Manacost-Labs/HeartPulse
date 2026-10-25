@@ -1156,6 +1156,33 @@
         "url": "https://hearthpulse.net/guides-archive/"
       }
     ],
+    "/leaderboards": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Таблицы лидеров",
+            "item": "https://hearthpulse.net/leaderboards/"
+          }
+        ]
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/leaderboards/#page",
+        "name": "Таблицы лидеров Hearthstone",
+        "description": "Официальные таблицы лидеров Blizzard по режимам и регионам: места, рейтинг, пороги топа и история игроков по дням.",
+        "url": "https://hearthpulse.net/leaderboards/",
+        "inLanguage": "ru"
+      }
+    ],
     "/contests": [
       {
         "@type": "BreadcrumbList",
