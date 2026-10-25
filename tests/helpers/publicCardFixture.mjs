@@ -7,6 +7,12 @@ import { readFileSync } from 'node:fs';
 import { startCredentialBackend } from './credentialBackend.mjs';
 import { battlegroundTrinketsFixture, patchNotesFixture } from './patchNotesFixture.mjs';
 
+const streamers = JSON.parse(readFileSync(resolve('tests/fixtures/streamers-hsdata-20261025.json'), 'utf8'));
+const STREAMER_PATHS = {
+  '/v1/hsguru/streamers': streamers.streamers, '/v1/hsguru/streaming-now': streamers.streamingNow,
+  '/v1/hsguru/streamers/nohandsgamer': streamers.streamer, '/v1/hsguru/streamers/nohandsgamer/decks': streamers.streamerDecks,
+};
+
 export async function listenLocal(server) {
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   return `http://127.0.0.1:${server.address().port}`;
@@ -46,6 +52,13 @@ export async function publicCardFixture({ backendEnv } = {}) {
     } else if (url.pathname === '/v1/constructed/balance-radar') {
       // Пустой, но настоящий радар: страница индексируется, как при живом hs-data-api.
       response.end(JSON.stringify({ data: { schemaVersion: 1, format: 'standard', generatedAt: '2026-10-25T00:00:00Z', summary: 'Изменений не ждём.', nerfs: [], buffs: [] } }));
+    } else if (url.pathname in STREAMER_PATHS) {
+      const payload = STREAMER_PATHS[url.pathname];
+      const format = url.searchParams.get('format');
+      const rows = format && url.pathname.endsWith('/decks') ? payload.data.filter(row => row.format === format) : payload.data;
+      response.end(JSON.stringify({ ...payload, data: rows, meta: { ...payload.meta, count: rows.length } }));
+    } else if (url.pathname.startsWith('/v1/hsguru/streamers/')) {
+      response.writeHead(404).end('{"detail":"HSGuru has no decks of this streamer"}');
     } else if (url.pathname === '/api/patches') {
       response.end(JSON.stringify({ total: patchNotesFixture.length, patches: patchNotesFixture }));
     } else if (url.pathname.startsWith('/demo/view/')) {

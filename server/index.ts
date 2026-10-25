@@ -82,6 +82,7 @@ import {
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
 import { createRadarApi } from './modules/radar/public.js';
+import { createStreamersApi } from './modules/streamers/public.js';
 import { ConstructedCardUpstreamError, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
@@ -7537,6 +7538,7 @@ app.use('/api', createRadarApi({
   archetypeSlug: constructedArchetypeSlug, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map,
   loadCards: async () => (await constructedCardDataService.loadPublicCards?.('wild'))?.cards ?? [],
 }));
+app.use('/api', createStreamersApi({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map }));
 
 async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {
   if (normalizeTierlistEarlyStatsMetadata(data).provisional !== true) return true;
