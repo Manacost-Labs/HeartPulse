@@ -5,7 +5,10 @@ import '../shared/ui/LoadingSurface.css';
 import './StandardMatchups.css';
 import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { MatchupsOverviewSkeleton, MatchupsSkeleton } from './MatchupsSkeleton';
-import type { StandardMatchupsData, StandardMatchupsFormat } from '../modules/standardMatchups/public';
+import type {
+  StandardMatchupsData, StandardMatchupsFormat, StandardMatchupsSlice,
+} from '../modules/standardMatchups/public';
+import { StandardMatchupsFilters } from './StandardMatchupsFilters';
 import { StandardMatchupsLeaders } from './StandardMatchupsLeaders';
 import { ViewSwitch } from '../components/transitions/ViewSwitch';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
@@ -103,6 +106,9 @@ function isOtherStandardArchetype(name: string): boolean {
 export type StandardMatchupsExternal = {
   format: StandardMatchupsFormat;
   changeFormat: (format: StandardMatchupsFormat) => void;
+  /** The HSGuru slice and its setter; without them the page shows only the format. */
+  slice?: StandardMatchupsSlice;
+  changeSlice?: (patch: Partial<StandardMatchupsSlice>) => void;
   data: StandardMatchupsData | null;
   loading: boolean;
   error: boolean;
@@ -239,6 +245,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
         <dl className="traditional-mode-banner__summary" aria-label="Сводка матчапов">
           <div><dt>Архетипов</dt><dd>{rows.length || '—'}</dd></div>
           <div><dt>Рейтинг</dt><dd>{data.rankLabel || 'Легенда'}</dd></div>
+          {data.totalGames ? <div><dt>Игр в выборке</dt><dd>{data.totalGames.toLocaleString('ru-RU')}</dd></div> : null}
         </dl>
       </header>
 
@@ -284,11 +291,15 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
             </button>
           </nav>
         </div>
+        {external?.slice && external.changeSlice && (
+          <StandardMatchupsFilters slice={external.slice} period={data.period ?? null}
+            available={data.available} onChange={external.changeSlice} />
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-5">
         <section
-          className="standard-matchups__ledger rounded-2xl p-4 sm:p-5"
+          className="standard-matchups__ledger data-surface rounded-2xl p-4 sm:p-5"
           aria-busy={loading && rows.length > 0}
           style={{
             background: 'linear-gradient(135deg,#f4e8cc,#e4c98f)',

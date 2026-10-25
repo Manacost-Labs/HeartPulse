@@ -1,20 +1,84 @@
 import { Router, type RequestHandler } from 'express';
 import { sendDatasetJsonCached } from './datasetCacheResponse.js';
-import { inferStandardMetaClass, type StandardMetaClassKey } from './standardMetaClasses.js';
+import { inferStandardMetaClass, normalizeStandardMetaClass, type StandardMetaClassKey } from './standardMetaClasses.js';
 
 export type StandardMatchupFormat = 'standard' | 'wild';
 type CacheEntry = { data: any; etag: string; expiresAt: number };
 type RedisEntry = { data: any; etag: string };
 
+/** HSGuru /matchups ranks, most played first in its own menu order. */
+export const STANDARD_MATCHUP_RANKS = [
+  'all', 'top_legend', 'top_5k', 'legend', 'diamond_to_legend', 'diamond_4to1', 'bronze_plat',
+] as const;
+export type StandardMatchupRank = typeof STANDARD_MATCHUP_RANKS[number];
+export const STANDARD_MATCHUP_RANK_LABEL: Record<StandardMatchupRank, string> = {
+  all: 'Все ранги',
+  top_legend: 'Топ-1000',
+  top_5k: 'Топ-5000',
+  legend: 'Легенда',
+  diamond_to_legend: 'Алмаз — Легенда',
+  diamond_4to1: 'Алмаз 4–1',
+  bronze_plat: 'Бронза — Платина',
+};
+/** HSGuru's «Min Matchup Games» menu: minimum games of one pair. */
+export const STANDARD_MATCHUP_MIN_GAMES = [1, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000] as const;
+export const STANDARD_MATCHUP_DEFAULTS = { rank: 'legend', minGames: 25 } as const;
+/** The matrix keeps the most played archetypes; the rest are a long tail of rare lists. */
+export const STANDARD_MATCHUP_ARCHETYPE_LIMIT = 60;
+const PERIOD_PATTERN = /^[a-z0-9_.]{1,64}$/;
+
+/** One HSGuru matchup slice; `period: null` is the source's default, the Bans window. */
+export type StandardMatchupSlice = {
+  format: StandardMatchupFormat;
+  rank: StandardMatchupRank;
+  period: string | null;
+  minGames: number;
+};
+
+function first(value: unknown): string {
+  return String(Array.isArray(value) ? value[0] ?? '' : value ?? '').trim();
+}
+
+/** The slice of a request; unknown values fall back to the defaults, never reach the source. */
+export function parseStandardMatchupSlice(query: Record<string, unknown>): StandardMatchupSlice {
+  const rank = first(query.rank);
+  const period = first(query.period);
+  const minGames = Number(first(query.min_games));
+  return {
+    format: first(query.format) === 'wild' ? 'wild' : 'standard',
+    rank: (STANDARD_MATCHUP_RANKS as readonly string[]).includes(rank)
+      ? rank as StandardMatchupRank : STANDARD_MATCHUP_DEFAULTS.rank,
+    period: PERIOD_PATTERN.test(period) ? period : null,
+    minGames: (STANDARD_MATCHUP_MIN_GAMES as readonly number[]).includes(minGames)
+      ? minGames : STANDARD_MATCHUP_DEFAULTS.minGames,
+  };
+}
+
+export function standardMatchupSliceKey(slice: StandardMatchupSlice): string {
+  return [slice.format, slice.rank, slice.period ?? 'default', slice.minGames].join('|');
+}
+
+/** hs-data-api path of a slice (`/v1/hsguru/matchups`). */
+export function standardMatchupSlicePath(slice: StandardMatchupSlice): string {
+  const query = new URLSearchParams({
+    format: slice.format,
+    rank: slice.rank,
+    min_games: String(slice.minGames),
+    limit: String(STANDARD_MATCHUP_ARCHETYPE_LIMIT),
+  });
+  if (slice.period) query.set('period', slice.period);
+  return `v1/hsguru/matchups?${query}`;
+}
+
 export type StandardMatchupRouterDependencies = {
   accessGuard: RequestHandler;
   memoryCache: Map<string, CacheEntry>;
-  redisKey: (format: StandardMatchupFormat) => string;
+  redisKey: (slice: StandardMatchupSlice) => string;
   redisGet: (key: string) => Promise<RedisEntry | null>;
   redisSet: (key: string, data: any, etag: string, ttlSeconds: number) => Promise<unknown> | unknown;
-  fetchPayload: (format: StandardMatchupFormat) => Promise<any>;
+  fetchPayload: (slice: StandardMatchupSlice) => Promise<any>;
   getTranslations: (now: number) => Promise<any>;
-  transform: (payload: any, format: StandardMatchupFormat, translations: any) => any;
+  transform: (payload: any, slice: StandardMatchupSlice, translations: any) => any;
   memoryTtlMs: number;
   redisTtlSeconds: number;
   cacheHeader?: string;
@@ -108,6 +172,103 @@ export function transformHsguruMatchups(
   };
 }
 
+type ApiArchetype = { archetype?: unknown; class?: unknown; games?: unknown; winrate?: unknown; popularity_pct?: unknown };
+type ApiMatchup = { archetype?: unknown; opponent?: unknown; winrate?: unknown; games?: unknown };
+/** hs-data-api `/v1/hsguru/matchups`; every field is untrusted. */
+export type HsguruMatchupSlicePayload = {
+  data?: {
+    period?: unknown; checked_at?: unknown; source_url?: unknown; total_games?: unknown;
+    archetypes?: ApiArchetype[]; matchups?: ApiMatchup[];
+  };
+  meta?: { available?: { periods?: unknown; current_period?: unknown; default_period?: unknown } };
+} | null | undefined;
+
+function finite(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function count(value: unknown): number {
+  const number = finite(value);
+  return number !== null && number >= 0 ? Math.round(number) : 0;
+}
+
+function periods(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).filter(period => PERIOD_PATTERN.test(period)) : [];
+}
+
+/**
+ * One slice of the unified HSGuru matchups API as the page's matrix: archetypes
+ * by games (rows and columns in the same order) and every pair with its win
+ * rate and games. A pair without games, or below the slice's minimum, is null.
+ */
+export function transformHsguruMatchupSlice(
+  payload: HsguruMatchupSlicePayload,
+  slice: StandardMatchupSlice,
+  options: HsguruMatchupTransformOptions,
+) {
+  const data = payload?.data ?? {};
+  const archetypes = (Array.isArray(data.archetypes) ? data.archetypes : [])
+    .map(item => ({
+      name: String(item?.archetype ?? '').trim(),
+      classKey: normalizeStandardMetaClass(item?.class) ?? inferStandardMetaClass(item?.archetype),
+      games: count(item?.games),
+      winrate: parseMatchupNumber(item?.winrate),
+      popularity: finite(item?.popularity_pct),
+    }))
+    .filter(item => item.name);
+  const pairs = new Map<string, { winrate: number | null; games: number }>();
+  for (const cell of Array.isArray(data.matchups) ? data.matchups : []) {
+    const games = count(cell?.games);
+    if (!games) continue;
+    pairs.set(`${String(cell?.archetype ?? '')}\u0000${String(cell?.opponent ?? '')}`,
+      { winrate: parseMatchupNumber(cell?.winrate), games });
+  }
+  const labels = new Map(archetypes.map(item => [item.name, options.translate(item.name)]));
+  const available = payload?.meta?.available ?? {};
+  const period = typeof data.period === 'string' && PERIOD_PATTERN.test(data.period) ? data.period : slice.period;
+  const updatedAt = typeof data.checked_at === 'string' && Number.isFinite(Date.parse(data.checked_at))
+    ? data.checked_at : null;
+  return {
+    format: slice.format,
+    formatLabel: options.formatLabel,
+    rank: slice.rank,
+    rankLabel: STANDARD_MATCHUP_RANK_LABEL[slice.rank],
+    period,
+    minGames: slice.minGames,
+    totalGames: count(data.total_games),
+    source: 'hsguru',
+    sourceId: options.sourceId,
+    sourceUrl: typeof data.source_url === 'string' ? data.source_url : '',
+    translationSource: options.translationSource,
+    updatedAt,
+    available: {
+      ranks: [...STANDARD_MATCHUP_RANKS],
+      periods: periods(available.periods),
+      currentPeriod: typeof available.current_period === 'string' ? available.current_period : null,
+      defaultPeriod: typeof available.default_period === 'string' ? available.default_period : null,
+      minGames: [...STANDARD_MATCHUP_MIN_GAMES],
+    },
+    columns: archetypes.map(item => ({
+      name: item.name,
+      label: labels.get(item.name),
+      classKey: item.classKey,
+      popularity: item.popularity === null ? null : `${item.popularity.toFixed(1)}%`,
+      games: item.games,
+    })),
+    rows: archetypes.map(row => ({
+      archetype: row.name,
+      archetypeLabel: labels.get(row.name),
+      classKey: row.classKey,
+      winrate: row.winrate,
+      games: row.games,
+      cells: archetypes.map(column => {
+        const pair = pairs.get(`${row.name}\u0000${column.name}`);
+        return { opponent: column.name, winrate: pair?.winrate ?? null, games: pair?.games ?? 0 };
+      }),
+    })),
+  };
+}
+
 function isOtherArchetype(value: unknown): boolean {
   return /^other(?:\s|$)/i.test(String(value ?? '').trim());
 }
@@ -150,9 +311,10 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
   const now = dependencies.now ?? Date.now;
 
   router.get('/standard/matchups', dependencies.accessGuard, async (request, response) => {
-    const format: StandardMatchupFormat = request.query.format === 'wild' ? 'wild' : 'standard';
+    const slice = parseStandardMatchupSlice(request.query as Record<string, unknown>);
+    const sliceKey = standardMatchupSliceKey(slice);
     const timestamp = now();
-    const cached = dependencies.memoryCache.get(format);
+    const cached = dependencies.memoryCache.get(sliceKey);
     if (cached && cached.expiresAt > timestamp) {
       return sendDatasetJsonCached(
         request,
@@ -164,12 +326,12 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
       );
     }
 
-    const key = `${dependencies.redisKey(format)}:without-other-v2`;
+    const key = `${dependencies.redisKey(slice)}:without-other-v3`;
     try {
       const redisCached = await dependencies.redisGet(key);
       if (redisCached) {
         const filteredData = excludeOtherStandardMatchups(redisCached.data);
-        dependencies.memoryCache.set(format, {
+        dependencies.memoryCache.set(sliceKey, {
           data: filteredData,
           etag: redisCached.etag,
           expiresAt: timestamp + dependencies.memoryTtlMs,
@@ -182,14 +344,15 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
 
     try {
       const [payload, translations] = await Promise.all([
-        dependencies.fetchPayload(format),
+        dependencies.fetchPayload(slice),
         dependencies.getTranslations(timestamp),
       ]);
-      const data = excludeOtherStandardMatchups(dependencies.transform(payload, format, translations));
+      const data = excludeOtherStandardMatchups(dependencies.transform(payload, slice, translations));
       const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : Number.NaN;
       const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : timestamp.toString(36);
-      const etag = `"standard-matchups-v7-${format}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
-      dependencies.memoryCache.set(format, {
+      const sliceToken = [slice.format, slice.rank, data.period ?? slice.period ?? 'default', slice.minGames].join('-');
+      const etag = `"standard-matchups-v8-${sliceToken}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
+      dependencies.memoryCache.set(sliceKey, {
         data,
         etag,
         expiresAt: timestamp + dependencies.memoryTtlMs,

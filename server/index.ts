@@ -74,7 +74,10 @@ import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRo
 import {
   createStandardMatchupRouter,
   excludeOtherStandardMatchups,
+  standardMatchupSliceKey,
+  standardMatchupSlicePath,
   transformHsguruMatchups,
+  transformHsguruMatchupSlice,
   type StandardMatchupFormat,
 } from './standardMatchupRoutes.js';
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
@@ -4222,6 +4225,7 @@ async function fetchArenaDecksData(limit = ARENA_DECKS_MAX_LIMIT) {
 
 const DATASET_API_ORIGIN = 'https://api.kolodahearthstone.com';
 const DATASET_API_BASE = `${DATASET_API_ORIGIN}/datasets`;
+const HS_DATA_API_ORIGIN = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
 const hsDataParserControlClient = createHsDataParserControlClient({
   baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN,
   apiKey: process.env.HS_DATA_API_ADMIN_KEY || '',
@@ -7339,12 +7343,14 @@ app.use('/api', createClassMatchupRouter({
 app.use('/api', createStandardMatchupRouter({
   accessGuard: requireStandardAccess,
   memoryCache: standardMatchupsApiCache,
-  redisKey: format => redisDataKey('standard-matchups', format),
+  redisKey: slice => redisDataKey('standard-matchups', standardMatchupSliceKey(slice)),
   redisGet: redisGetCache,
   redisSet: redisSetCache,
-  fetchPayload: format => fetchDataset(STANDARD_MATCHUPS_DATASET_BY_FORMAT[format]),
+  fetchPayload: slice => fetchDataset(`${HS_DATA_API_ORIGIN}/${standardMatchupSlicePath(slice)}`, 20_000),
   getTranslations: getStandardArchetypeTranslations,
-  transform: transformStandardMatchups,
+  transform: (payload, slice, translations) => transformHsguruMatchupSlice(payload, slice, {
+    formatLabel: STANDARD_MATCHUPS_FORMAT_LABEL[slice.format], sourceId: 'hsguru_matchups',
+    translationSource: translations.source, translate: name => archetypeLabel(name, translations.map) }),
   memoryTtlMs: EXTERNAL_DATASET_CACHE_MS,
   redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
   cacheHeader: CACHE_1H,

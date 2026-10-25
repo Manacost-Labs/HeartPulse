@@ -1,0 +1,59 @@
+.standard-matchups-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(9.5rem, auto));
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.standard-matchups-filters__field {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.standard-matchups-filters__field > span {
+  color: #78552f;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.standard-matchups-filters__field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.45rem 2rem 0.45rem 0.7rem;
+  border: 1px solid rgba(91, 50, 25, 0.42);
+  border-radius: 2px;
+  color: #4f321f;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236d1117' stroke-width='2'/%3E%3C/svg%3E") right 0.7rem center / 12px 8px no-repeat,
+    rgba(255, 249, 230, 0.86);
+  box-shadow: inset 0 1px 3px rgba(68, 34, 13, 0.12);
+  font-size: 0.86rem;
+  font-weight: 800;
+  appearance: none;
+}
+
+.standard-matchups-filters__field select:hover:not(:disabled) {
+  border-color: #6d1117;
+}
+
+.standard-matchups-filters__field select:focus-visible {
+  outline: 2px solid #9b641d;
+  outline-offset: 1px;
+}
+
+.standard-matchups-filters__field select:disabled {
+  opacity: 0.7;
+}
+
+@media (max-width: 720px) {
+  .standard-matchups-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .standard-matchups-filters__field:last-child {
+    grid-column: 1 / -1;
+  }
+}
