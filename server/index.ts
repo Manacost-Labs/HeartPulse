@@ -79,6 +79,7 @@ import {
 } from './standardMatchupRoutes.js';
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
+import { createRadarApi } from './modules/radar/public.js';
 import { ConstructedCardUpstreamError, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
@@ -7529,6 +7530,12 @@ app.use('/api', createPatchNotesApi({
   },
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`,
   onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
+}));
+
+// Радар нерфов и баффов (docs/specs/nerf-buff-radar.md); `RADAR_FIXTURE=1` — демо-прогон.
+app.use('/api', createRadarApi({
+  baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN, fixture: process.env.RADAR_FIXTURE === '1',
+  archetypeSlug: constructedArchetypeSlug, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map,
 }));
 
 async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {

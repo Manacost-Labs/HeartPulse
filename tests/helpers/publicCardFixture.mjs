@@ -43,6 +43,9 @@ export async function publicCardFixture({ backendEnv } = {}) {
       response.end(JSON.stringify({ data: [], meta: { count: 0, offset: 0, limit: 200 } }));
     } else if (url.pathname === '/api/v1/trinkets') {
       response.end(JSON.stringify({ data: battlegroundTrinketsFixture, pagination: { page: 1, has_next: false } }));
+    } else if (url.pathname === '/v1/constructed/balance-radar') {
+      // Пустой, но настоящий радар: страница индексируется, как при живом hs-data-api.
+      response.end(JSON.stringify({ data: { schemaVersion: 1, format: 'standard', generatedAt: '2026-10-25T00:00:00Z', summary: 'Изменений не ждём.', nerfs: [], buffs: [] } }));
     } else if (url.pathname === '/api/patches') {
       response.end(JSON.stringify({ total: patchNotesFixture.length, patches: patchNotesFixture }));
     } else if (url.pathname.startsWith('/demo/view/')) {

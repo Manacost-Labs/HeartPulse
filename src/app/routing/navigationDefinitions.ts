@@ -14,6 +14,7 @@ import {
   List,
   ListChecks,
   ListTree,
+  Radar,
   Scroll,
   ScrollText,
   ShieldCheck,
@@ -82,6 +83,9 @@ export const NAVIGATION_ROUTES = [
   },
   {
     id: 'patch-notes', label: 'Патчноуты', icon: ScrollText, path: '/standard/patches', group: 'standard', entitlement: null,
+  },
+  {
+    id: 'radar', label: 'Радар', icon: Radar, path: '/standard/radar', group: 'standard', entitlement: null,
   },
   {
     id: 'winrates', label: 'Классы', icon: Trophy, path: '/classes', group: 'arena', entitlement: 'arena',

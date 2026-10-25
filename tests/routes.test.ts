@@ -33,6 +33,7 @@ const EXPECTED_ROUTE_PATHS = [
   ['standard-vicious-gold', '/standard/vicious-gold'],
   ['standard-cards', '/standard/cards'],
   ['patch-notes', '/standard/patches'],
+  ['radar', '/standard/radar'],
   ['winrates', '/classes'],
   ['tierlist', '/tierlist'],
   ['legendaries', '/legendaries'],

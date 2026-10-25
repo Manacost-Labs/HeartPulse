@@ -38,7 +38,7 @@ export const PUBLIC_DOCUMENT_SOURCES = [
   '/:section(articles|classes|contests|gallery|legendaries|tierlist)/',
   '/battlegrounds/:tool(strategies|tier-builder|tier-list)/',
   '/:family(cosmetics|guides-archive|heroes|library)/:path*/',
-  '/standard/:section(archetypes|cards|fun-decks|matchups|meta|patches|vicious-gold)/:path*/',
+  '/standard/:section(archetypes|cards|fun-decks|matchups|meta|patches|radar|vicious-gold)/:path*/',
 ];
 
 /** `headers()` entries of `next.config.mjs`. */
