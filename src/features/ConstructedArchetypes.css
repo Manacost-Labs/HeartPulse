@@ -729,6 +729,7 @@
 }
 
 .archetype-section-heading p { max-width: 740px; margin: 0.35rem 0 0; color: var(--archetype-muted); font-size: 0.73rem; line-height: 1.5; }
+.archetype-builds__window { display: block; margin-top: 0.25rem; color: var(--archetype-muted); font-size: 0.6875rem; font-style: italic; }
 .archetype-section-heading__count {
   flex: 0 0 auto;
   padding: 0.45rem 0.65rem;

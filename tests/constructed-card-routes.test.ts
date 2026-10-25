@@ -254,11 +254,13 @@ const decodedDecks = constructedDecksContainingCard([{
 assert.equal(decodedDecks.length, 1, 'a card must be matched through its decoded deckstring DBF id');
 assert.equal(decodedDecks[0].id, '754');
 assert.equal(decodedDecks[0].archetype, 'Face Hunter');
-// Card pages label decks with the shared archetypeLabel; without the admin map
-// the built-in labels still name the Wild warlocks.
-assert.equal(archetypeLabel('XL Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Чётный Чернокнижник (XL)');
-assert.equal(archetypeLabel('Pain Warlock', archetypeFallbackTranslations()), 'Пейнлок');
-assert.equal(archetypeLabel('Renathal Big Warlock', archetypeFallbackTranslations()), 'Ренатал Биг Чернокнижник');
+// Card pages label decks with the shared archetypeLabel; a variant no
+// translation covers exactly gets the automatic label, an unknown word keeps
+// the contained translation with that word in brackets.
+assert.equal(archetypeLabel('XL Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Ренатал Четный Чернокнижник');
+assert.equal(archetypeLabel('Blorp Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Чётный Чернокнижник (Blorp)');
+assert.equal(archetypeLabel('Pain Warlock', archetypeFallbackTranslations()), 'Чернокнижник на самоуроне');
+assert.equal(archetypeLabel('Renathal Big Warlock', archetypeFallbackTranslations()), 'Ренатал Большой Чернокнижник');
 assert.equal(constructedDecksContainingCard([{ ...decodedDecks[0], deck_code: decodedDecks[0].deckCode, format: 'Wild' }], { dbf: 119705 }, 'standard').length, 0);
 
 const detailWithPatches = enrichConstructedCardPatches({

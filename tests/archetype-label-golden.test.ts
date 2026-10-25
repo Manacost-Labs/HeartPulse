@@ -9,8 +9,10 @@ import {
 import { ARCHETYPE_FALLBACK_LABELS } from '../server/modules/constructedArchetypes/fallbackTranslations.js';
 
 // Snapshot of hearthpulse.net on 2026-10-21: every Standard and Wild archetype
-// of the public catalog teaser with the label production served, and the exact
-// admin translations those labels came from.
+// of the public catalog teaser and the exact admin translations of that day.
+// Labels are production's, except names no translation covered exactly: since
+// 2026-10-25 those get the automatic Russian label (autoArchetypeLabel)
+// instead of the English name or an English word in brackets.
 const golden = JSON.parse(readFileSync(new URL('./fixtures/archetype-labels-golden-20261021.json', import.meta.url), 'utf8')) as {
   translations: Record<string, string>;
   cases: Array<{ name: string; label: string }>;
@@ -30,9 +32,11 @@ const byName = new Map(labelled.map(item => [item.archetype, item.archetypeLabel
 assert.equal(byName.get('Void DH'), 'Охотник на демонов Бездны');
 assert.equal(byName.get('Void Soul DH'), 'Охотник на демонов Бездны (Void Soul DH)');
 assert.equal(byName.get('Piglock'), 'Чернокнижник с Расхождением');
-assert.equal(byName.get('Harold Piglock'), 'Чернокнижник с Расхождением (Harold)');
+assert.equal(byName.get('Harold Piglock'), 'Чернокнижник на возвещении с Расхождением');
 assert.equal(byName.get('Pirate Warrior'), 'Пират Воин');
-assert.equal(byName.get('Dragon Pirate Warrior'), 'Пират Воин (Dragon)');
+assert.equal(byName.get('Dragon Pirate Warrior'), 'Воин на драконах и пиратах');
+assert.equal(byName.get('Zee C\'Thun Shaman'), 'Граб\'Зи К\'тун Шаман');
+assert.equal(byName.get('N\'Zoth Priest'), 'Н\'зот Жрец');
 assert.equal(byName.get('Summoner Mage'), 'Манашторм Маг');
 assert.equal(byName.get('Manastorm Mage'), 'Манашторм Маг (Manastorm Mage)');
 
@@ -59,6 +63,9 @@ const aliasGroups = new Set([
   'Harold Egglock|Herald Egg Warlock',
   'Rafaam Warlock|Rafaamlock',
   'Unholy DK|Unholy DeathKnight',
+  'Mug Shaman|Zee Shaman',
+  'Discard Warlock|discolock',
+  'Pain Warlock|Painlock',
 ]);
 const fallbackRows = Object.entries(ARCHETYPE_FALLBACK_LABELS).map(([nameEn, nameRu]) => ({ nameEn, nameRu }));
 for (const group of findDuplicateArchetypeLabels(fallbackRows)) {

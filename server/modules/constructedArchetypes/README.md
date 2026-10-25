@@ -56,12 +56,17 @@ the same matcher for callers that need the matched key (admin coverage).
 translation data itself gives two archetypes one name: all but the
 shortest-named archetype add the English name in brackets.
 
-Translations are the admin table `archetype_translations` layered over
-`archetypeFallbackTranslations()` (`fallbackTranslations.ts`, the only built-in
-dictionary; the client renders the server's labels). The admin list reports
+Translations are layered by `layerArchetypeTranslations`: BlizzCore rows of
+`archetype_translations`, then the built-in dictionary (`fallbackTranslations.ts`,
+which fixes BlizzCore's transliterations and survives its sync), then the
+admin's manual rows. A name none of them covers exactly gets
+`autoArchetypeLabel` («<карта или механика> <класс>», terms in
+`archetypeTerms.ts`); the client renders the server's labels
+([contract](../../../docs/specs/archetype-labels.md)). The admin list reports
 `findDuplicateArchetypeLabels` and refuses a manual Russian name that another
-archetype already has. Verification: `npx tsx tests/standard-archetype-label.test.ts`
-and `npx tsx tests/archetype-label-golden.test.ts`.
+archetype already has. Verification: `npx tsx tests/standard-archetype-label.test.ts`,
+`npx tsx tests/archetype-label-golden.test.ts` and
+`node --import=tsx --test tests/auto-archetype-label.test.ts`.
 
 `createHsguruStatsReader` (`hsguruStats.ts`) reads one archetype's HSGuru
 mulligan, class matchups, stored slices and pipeline coverage from

@@ -16,6 +16,7 @@ export type ConstructedArchetypeBuild = {
   classKey: StandardMetaClassKey | null;
   sampleRank: string;
   samplePeriod: string;
+  /** `replays`: built from replays, not HSGuru deck stats. */ sampleSource?: 'stats' | 'replays';
 };
 
 export type ConstructedArchetypeItem = {

@@ -4,6 +4,7 @@ export {
   archetypeLabel,
   archetypeTranslationKey,
   disambiguateArchetypeLabels,
+  layerArchetypeTranslations,
   findDuplicateArchetypeLabels,
   matchArchetypeTranslation,
 } from './archetypeLabel.js';
@@ -19,3 +20,5 @@ export type {
   ArchetypeHsguruStats, HsguruCardRow, HsguruClassMatchupRow, HsguruCoverage, HsguruSliceEntry, HsguruStatPage, HsguruStatSlice,
 } from './hsguruStats.js';
 export { createArchetypeHsguruStatsHandler } from './hsguruStatsHandler.js';
+export type { ArchetypeTranslationRow } from './archetypeLabel.js';
+export { autoArchetypeLabel, autoLabelFields } from './autoArchetypeLabel.js';

@@ -136,9 +136,14 @@ try {
       nameEn: 'New Priest',
       ranks: ['Алмаз 4-1', 'Легенда'],
       deckCode: 'AAECAa0GCJbUBM/GBc/2BdiBBqmVBsekBq+oBtfSBgvLoAS7xAX7+AWi6QXt9wX7gAbGnAbCtgaAuAamnQavqAYAAA==',
+      // The label the site shows meanwhile; «New» has no term, so it is incomplete.
+      autoLabel: 'New Жрец',
+      autoComplete: false,
     }, {
       nameEn: 'New Rogue',
       ranks: ['Легенда'],
+      autoLabel: 'New Разбойник',
+      autoComplete: false,
     }],
     totalObserved: 4,
     translated: 2,

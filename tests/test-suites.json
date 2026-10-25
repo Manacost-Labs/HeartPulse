@@ -96,6 +96,7 @@
         "tests/constructed-archetype-catalog-period.test.ts",
         "tests/archetype-hsguru-stats.test.ts",
         "tests/hsguru-stats-model.test.ts",
+        "tests/auto-archetype-label.test.ts",
         "tests/standard-meta-slice-cache.test.ts",
         "tests/standard-meta-trends.test.ts",
         "tests/architecture-baseline.test.mjs",

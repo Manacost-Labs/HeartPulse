@@ -89,7 +89,7 @@ function DeckBuildCard({
   build,
   index,
   format,
-  archetype,
+  archetype, archetypeLabel = archetype,
   classKey,
   onPendingChange,
 }: {
@@ -97,7 +97,7 @@ function DeckBuildCard({
   build: ArchetypeBuild;
   index: number;
   format: ArchetypeFormat;
-  archetype: string;
+  archetype: string; archetypeLabel?: string;
   classKey: string | null;
   onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
@@ -162,7 +162,7 @@ function DeckBuildCard({
         </dl>
       </header>
 
-      <DeckRenderPreview deckCode={build.deckCode} deckName={`${archetype} — сборка ${index + 1}`} onRenderStateChange={setRenderState}>
+      <DeckRenderPreview deckCode={build.deckCode} deckName={`${archetypeLabel} — сборка ${index + 1}`} onRenderStateChange={setRenderState}>
         {deck ? (
           <DeckListView
             cards={deck.cards}
@@ -210,11 +210,14 @@ export default function ConstructedArchetypeDeckGallery({
   builds,
   format,
   archetype,
+  archetypeLabel,
   classKey,
 }: {
   builds: ArchetypeBuild[];
   format: ArchetypeFormat;
+  /** HSGuru's name resolves the decks; the Russian label titles their images. */
   archetype: string;
+  archetypeLabel?: string;
   classKey: string | null;
 }) {
   const [pendingDecks, setDeckPending] = usePendingDecks();
@@ -232,6 +235,7 @@ export default function ConstructedArchetypeDeckGallery({
             index={index}
             format={format}
             archetype={archetype}
+            archetypeLabel={archetypeLabel}
             classKey={classKey}
             onPendingChange={setDeckPending}
           />

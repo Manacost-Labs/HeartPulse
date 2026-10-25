@@ -1,7 +1,7 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
-import { matchArchetypeTranslation } from './modules/constructedArchetypes/public.js';
+import { autoLabelFields, matchArchetypeTranslation } from './modules/constructedArchetypes/public.js';
 import { duplicateLabelError, insertManualTranslation, listDuplicateLabels, loadTranslationMap, russianLabelOwner } from './adminArchetypeTranslationStore.js';
 
 const DEFAULT_PAGE_SIZE = 40;
@@ -40,7 +40,7 @@ export type ObservedArchetype = {
     | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
 };
 
-export type UntranslatedArchetype = { nameEn: string; ranks: string[]; deckCode?: string };
+export type UntranslatedArchetype = { nameEn: string; ranks: string[]; deckCode?: string; autoLabel?: string; autoComplete?: boolean };
 
 export type ArchetypeTranslationCoverage = {
   items: UntranslatedArchetype[];
@@ -215,6 +215,7 @@ export function analyzeArchetypeTranslationCoverage(
       nameEn: item.nameEn,
       ranks: [...item.ranks].sort((left, right) => left.localeCompare(right, 'ru')),
       ...(item.deckCode ? { deckCode: item.deckCode } : {}),
+      ...autoLabelFields(item.nameEn),
     }))
     .sort((left, right) => left.nameEn.localeCompare(right.nameEn, 'en'));
   const totalObserved = grouped.size;

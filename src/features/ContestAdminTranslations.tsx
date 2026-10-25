@@ -30,7 +30,8 @@ type TranslationResponse = {
 
 type TranslationDraft = { nameEn: string; nameRu: string };
 type TranslationCoverage = {
-  items: Array<{ nameEn: string; ranks: string[]; deckCode?: string }>;
+  /** `autoLabel`: the automatic Russian label the site shows until a manual translation exists. */
+  items: Array<{ nameEn: string; ranks: string[]; deckCode?: string; autoLabel?: string; autoComplete?: boolean }>;
   totalObserved: number;
   translated: number;
   missing: number;
@@ -143,7 +144,7 @@ type TranslationWorkspaceViewProps = {
   onCancelEdit: () => void;
   onSync: () => void;
   onRetryCoverage: () => void;
-  onTranslateMissing: (nameEn: string) => void;
+  onTranslateMissing: (nameEn: string, autoLabel?: string) => void;
   onCopyDeckCode: (nameEn: string, deckCode: string) => void;
   copiedDeckName: string;
   onPageChange: (page: number) => void;
@@ -187,7 +188,7 @@ function TranslationWorkspaceView({
         statusTone={syncing || coverageLoading ? 'working' : coverage.missing ? 'attention' : 'ready'}
         metrics={[
           { label: 'Покрытие', value: coverageLoading && !coverageLoaded ? '…' : `${coverage.coveragePercent}%`, detail: `${coverage.translated} из ${coverage.totalObserved}` },
-          { label: 'В очереди', value: coverageLoading && !coverageLoaded ? '…' : coverage.missing, detail: coverage.missing ? 'видны на английском' : 'очередь пуста' },
+          { label: 'В очереди', value: coverageLoading && !coverageLoaded ? '…' : coverage.missing, detail: coverage.missing ? 'на сайте с автопереводом' : 'очередь пуста' },
           { label: 'В справочнике', value: data.stats.total, detail: `${data.stats.manual} ручных` },
           { label: 'Синхронизация', value: data.stats.lastSyncedAt ? new Date(data.stats.lastSyncedAt).toLocaleDateString('ru-RU') : 'не было', detail: 'api.blizzcore.ru' },
         ]}
@@ -280,7 +281,7 @@ function TranslationWorkspaceView({
               <li key={item.nameEn}>
                 <div>
                   <strong>{item.nameEn}</strong>
-                  <span>{item.ranks.join(' · ')}</span>
+                  <span>{item.autoLabel ? `На сайте: «${item.autoLabel}» · авто${item.autoComplete ? '' : ', не всё переведено'} · ` : ''}{item.ranks.join(' · ')}</span>
                 </div>
                 <div className="admin-untranslated-actions">
                   {item.deckCode && (
@@ -294,7 +295,7 @@ function TranslationWorkspaceView({
                       <span aria-live="polite">{copiedDeckName === item.nameEn ? 'Скопировано' : 'Код колоды'}</span>
                     </button>
                   )}
-                  <button type="button" className="contest-primary-button" onClick={() => onTranslateMissing(item.nameEn)}>
+                  <button type="button" className="contest-primary-button" onClick={() => onTranslateMissing(item.nameEn, item.autoLabel)}>
                     Перевести
                   </button>
                 </div>
@@ -518,9 +519,9 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       onRetryCoverage={() => void loadCoverage()}
       onCopyDeckCode={(nameEn, deckCode) => void copyDeckCode(nameEn, deckCode)}
       copiedDeckName={copiedDeckName}
-      onTranslateMissing={nameEn => {
+      onTranslateMissing={(nameEn, autoLabel) => {
         setEditing(null);
-        setDraft({ nameEn, nameRu: '' });
+        setDraft({ nameEn, nameRu: autoLabel ?? '' });
         window.requestAnimationFrame(() => russianInputRef.current?.focus());
       }}
       onPageChange={setPage}
