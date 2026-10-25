@@ -1,7 +1,7 @@
 import type { RadarCandidate, RadarClassKey, RadarKind, RadarReport, RadarSentiment, RadarStance } from './types';
 
 export type {
-  RadarCandidate, RadarClassKey, RadarHistory, RadarKind, RadarPattern, RadarPost, RadarPrecedent, RadarReport, RadarSource, RadarTrendPoint,
+  RadarCandidate, RadarClassKey, RadarHistory, RadarKind, RadarPattern, RadarPost, RadarPrecedent, RadarReport, RadarTrendPoint,
 } from './types';
 
 export type RadarSectionId = 'nerfs' | 'buffs';
@@ -84,8 +84,21 @@ export function radarClassIcon(classKey: RadarClassKey): string {
 export function isRadarReport(value: unknown): value is RadarReport {
   const report = value as RadarReport | null;
   return Boolean(report) && typeof report?.generatedAt === 'string' && typeof report.summary === 'string'
-    && Array.isArray(report.nerfs) && Array.isArray(report.buffs) && Array.isArray(report.sources)
+    && Array.isArray(report.nerfs) && Array.isArray(report.buffs)
     && typeof report.demo === 'boolean';
+}
+
+/**
+ * Длинный вывод модели делится на короткое начало (первые предложения) и
+ * остаток абзацами, который страница прячет под «Подробнее».
+ */
+export function radarLead(text: string, sentences = 2): { lead: string; rest: string[] } {
+  const paragraphs = text.split(/\n\s*\n|\n/).map(paragraph => paragraph.trim()).filter(Boolean);
+  const first = (paragraphs[0] ?? '').split(/(?<=[.!?…])\s+(?=[«"(]?[А-ЯЁA-Z0-9])/);
+  return {
+    lead: first.slice(0, sentences).join(' '),
+    rest: [first.slice(sentences).join(' '), ...paragraphs.slice(1)].filter(Boolean),
+  };
 }
 
 const percentFormat = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

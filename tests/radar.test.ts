@@ -5,6 +5,7 @@ import { parseRadarReport, radarPeriodLabel, type RadarReport } from '../server/
 import { RADAR_FIXTURE } from '../server/modules/radar/fixture.js';
 import { createRadarRouter } from '../server/modules/radar/routes.js';
 import { createRadarService } from '../server/modules/radar/service.js';
+import { createRadarLocalizer } from '../server/modules/radar/localize.js';
 import type { RadarReport as PageRadarReport } from '../src/modules/radar/model/types.js';
 import {
   DEFAULT_RADAR_FILTERS, filterRadarCandidates, formatRadarCount, formatRadarDay, formatRadarDelta, formatRadarTime, isRadarReport,
@@ -27,7 +28,6 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
   assert.deepEqual(report.patch, { version: '37.0.0', href: '/standard/patches/?version=37.0.0' });
   assert.equal(parseRadarReport(upstream()).patch, null, 'a run without a patch has no patch link');
   assert.deepEqual(report.window, { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T10:49:22.000Z' });
-  assert.deepEqual(report.sources.map(source => source.id), ['hsguru', 'hsreplay', 'reddit', 'x'], 'one source per provider');
   assert.deepEqual(report.nerfs.map(candidate => candidate.confidence), [70, 56, 46, 44, 40, 33]);
   const [ritual] = report.nerfs;
   assert.deepEqual(ritual.entity, {
@@ -125,16 +125,49 @@ test('the radar contract drops broken records and foreign links', () => {
   assert.deepEqual(report.nerfs[0].social.posts.map(post => post.author), ['e', 'f'], 'only https links on the platform\'s own hosts, once');
 });
 
+test('the page gets Russian names and Russian posts only', () => {
+  const localize = createRadarLocalizer({
+    archetypes: { zoolock: 'Зоолок', shredslock: 'Чернокнижник на обрывках', "c'thun warlock": 'Чернокнижник на К\'Туне', aggro: 'Aggro' },
+    cards: [{ name: { en: 'Ritual of Summoning', ru: 'Ритуал призыва' } }, { name: { en: "C'Thun", ru: "К'Тун" } }, { name: { en: 'Shred', ru: 'Шред' } }],
+  });
+  assert.equal(localize('Zoolock и Shredslock держат 63%, а C\u2019Thun Warlock 60%; ritual of summoning — ключ.'),
+    'Зоолок и Чернокнижник на обрывках держат 63%, а Чернокнижник на К\'Туне 60%; Ритуал призыва — ключ.');
+  assert.equal(localize('Ритуал призыва (Ritual of Summoning) и Зоолок (Zoolock) — пара.'), 'Ритуал призыва и Зоолок — пара.',
+    'a Russian name followed by its English original is not repeated');
+  assert.equal(localize('Aggro Shredder и Zoolocks не трогаются'), 'Aggro Shredder и Zoolocks не трогаются',
+    'only whole names, and no translation that is still Latin');
+  const raw = upstream();
+  raw.data.summary = 'Zoolock доминирует.';
+  raw.data.history.patterns = [{ title: 'Нерф Zoolock', detail: 'Ritual of Summoning дорожает' }];
+  const [first] = raw.data.nerfs;
+  first.verdict = 'Ritual of Summoning питает Zoolock.';
+  first.social.topPosts = [
+    { platform: 'reddit', url: 'https://reddit.com/r/hearthstone/comments/1', author: 'a', score: 5, title: 'Nerf it', excerpt: 'English only' },
+    { platform: 'reddit', url: 'https://reddit.com/r/hearthstone/comments/2', author: 'b', score: 4, title: 'Nerf it', excerpt: 'English',
+      titleRu: 'Ослабьте его', textRu: 'Полный перевод поста.' },
+    { platform: 'x', url: 'https://x.com/a/status/3', author: 'c', score: 3, excerpt: 'Hi', translation: { text: 'Привет' } },
+  ];
+  const report = parseRadarReport(raw, { localize });
+  assert.equal(report.summary, 'Зоолок доминирует.');
+  assert.equal(report.nerfs[0].verdict, 'Ритуал призыва питает Зоолок.');
+  assert.deepEqual(report.history?.patterns[0], { title: 'Нерф Зоолок', text: 'Ритуал призыва дорожает', count: null });
+  assert.deepEqual(report.nerfs[0].social.posts.map(post => [post.title, post.text]),
+    [[null, null], ['Ослабьте его', 'Полный перевод поста.'], [null, 'Привет']], 'no English text reaches the page');
+});
+
 test('the radar contract rejects a response without its frame', () => {
   const frame = (patch: Record<string, unknown>) => ({ data: { ...upstream().data, ...patch } });
   assert.throws(() => parseRadarReport(null), /response must be an object/);
   assert.throws(() => parseRadarReport(frame({ generatedAt: 'вчера' })), /generatedAt/);
   assert.throws(() => parseRadarReport(frame({ summary: '  ' })), /summary/);
   assert.throws(() => parseRadarReport(frame({ buffs: null })), /buffs must be an array/);
-  assert.throws(() => parseRadarReport(frame({ schemaVersion: 2 })), /schemaVersion/);
+  assert.throws(() => parseRadarReport(frame({ schemaVersion: 0 })), /schemaVersion/);
+  assert.throws(() => parseRadarReport(frame({ schemaVersion: '2' })), /schemaVersion/);
   assert.throws(() => parseRadarReport(frame({ format: 'wild' })), /format/);
   const minimal = parseRadarReport({ generatedAt: '2026-10-25T00:00:00Z', summary: 'Тихо.', nerfs: [], buffs: [] });
-  assert.deepEqual([minimal.model, minimal.patch, minimal.window, minimal.sources], ['неизвестна', null, null, []]);
+  assert.deepEqual([minimal.model, minimal.patch, minimal.window], ['неизвестна', null, null]);
+  assert.equal(parseRadarReport(frame({ schemaVersion: 2, keyNumbers: ['новое поле'] })).nerfs.length, 6,
+    'later schema versions only add fields and keep working');
   assert.deepEqual(['patch_36.6.3', 'black_empire_ban', 'black_empire', 'past_30_days'].map(radarPeriodLabel),
     ['Патч 36.6.3', 'Баны', 'Дополнение', '30 дней']);
 });
@@ -169,7 +202,7 @@ test('/api/radar serves the cached snapshot, waits between failed reads and mark
 
   const demoService = createRadarService({
     fetchJson: async () => { throw new Error('unused'); }, radarUrl: 'x', fixture: true, ttlMs: 1,
-    loadArchetypeNamer: async () => namer,
+    loadNaming: async () => ({ nameArchetype: namer }),
   });
   const app = express()
     .use('/live', createRadarRouter({ load: service.load }))

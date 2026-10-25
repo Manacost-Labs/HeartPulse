@@ -43,12 +43,16 @@ export function parsePost(value: unknown): RadarPost | null {
   const source = row?.platform ?? row?.source;
   if (!row || (source !== 'reddit' && source !== 'x')) return null;
   const url = postUrl(row.url, source);
-  const postText = text(row.excerpt, 600) ?? text(row.text, 600);
-  if (!url || !postText) return null;
+  if (!url) return null;
   const kind = row.kind === 'comment' || row.kind === 'tweet' ? row.kind : 'post';
+  // Оригинальный текст (обычно английский) на страницу не попадает: только перевод hs-data-api.
+  const translation = record(row.translation);
   return {
     source, kind, url, author: text(row.author, 80) ?? 'аноним', score: Math.round(finite(row.score) ?? 0),
-    comments: count(row.comments), title: text(row.title, 300), text: postText, community: text(row.community, 80),
+    comments: count(row.comments),
+    title: text(row.titleRu ?? translation?.title, 300),
+    text: text(row.textRu ?? row.excerptRu ?? translation?.text ?? translation?.excerpt, 1200),
+    community: text(row.community, 80),
     publishedAt: date(row.createdAt ?? row.publishedAt), official: row.official === true,
   };
 }

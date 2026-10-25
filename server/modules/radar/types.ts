@@ -41,8 +41,9 @@ export type RadarPost = {
   author: string;
   score: number;
   comments: number | null;
+  /** Перевод на русский от hs-data-api; без перевода оба `null`, и страница даёт только ссылку на обсуждение. */
   title: string | null;
-  text: string;
+  text: string | null;
   community: string | null;
   publishedAt: string | null;
   /** Пост официального аккаунта Blizzard или разработчика. */
@@ -127,8 +128,6 @@ export type RadarCandidate = {
   firstSeenAt: string | null;
 };
 
-export type RadarSource = { id: string; label: string; items: number | null };
-
 export type RadarReport = {
   schemaVersion: 1;
   generatedAt: string;
@@ -138,7 +137,6 @@ export type RadarReport = {
   patch: { version: string; href: string } | null;
   /** Окно сбора обсуждений. */
   window: { from: string; to: string } | null;
-  sources: RadarSource[];
   summary: string;
   nerfs: RadarCandidate[];
   buffs: RadarCandidate[];
