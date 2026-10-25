@@ -580,7 +580,9 @@ function StandardMetaContent({
       .map(id => ({ id, label: standardMetaPeriodLabel(id) })),
     [data.availablePeriods, data.currentPeriod, data.currentPatchPeriod],
   );
-  const selectedPeriod = period ?? data.currentPeriod ?? data.currentPatchPeriod ?? data.period;
+  const selectedPeriod = period
+    ?? resolveStandardMetaDefaultPeriod(data.availablePeriods, data.currentPeriod, data.currentPatchPeriod)
+    ?? data.period;
 
   useIdleMetaViews(summaryReady);
 

@@ -17,6 +17,8 @@ const deckStatistics: PublicDeckStatisticsSource = {
       format,
       formatLabel: format === 'wild' ? 'Вольный' : 'Стандарт',
       patch: '36.0.3',
+      period: 'patch_36.0.3',
+      availablePeriods: ['patch_36.0.3'],
       minimumGames: 50,
       updatedAt: '2026-07-30T10:05:00.000Z',
       coverage: { privateCoverage: true },

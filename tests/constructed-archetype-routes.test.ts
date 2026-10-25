@@ -37,6 +37,8 @@ const catalog: ConstructedArchetypeCatalog = {
   format: 'wild',
   formatLabel: 'Вольный',
   patch: '36.0.3',
+  period: 'patch_36.0.3',
+  availablePeriods: ['patch_36.0.3'],
   minimumGames: 50,
   updatedAt: '2026-07-24T12:38:57.727Z',
   coverage: { wild: { archetypes: 265, withDecks: 129 } },
@@ -79,6 +81,7 @@ let mediaAvailable = true;
 let historyReads = 0, analysisReads = 0, mediaReads = 0;
 let historyFails = false, analysisFails = false;
 let catalogTime = 0, catalogReads = 0;
+const catalogPeriods: Array<string | null> = [];
 let refresh: Promise<ConstructedArchetypeCatalog> | null = null;
 const catalogCache = createArchetypeCatalogCache({
   ttlMs: 100, staleMs: 100, retryMs: 100, now: () => catalogTime,
@@ -93,7 +96,11 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
     response.set('Cache-Control', 'no-store');
     response.vary('Cookie');
   },
-  loadCatalog: catalogCache.load,
+  loadCatalog: (format, period) => {
+    // Period keys of the cache are covered by constructed-archetype-catalog-period.test.ts.
+    catalogPeriods.push(period ?? null);
+    return catalogCache.load(format);
+  },
   loadHistory: async () => { historyReads++; if (historyFails) throw new Error('History unavailable'); return [{
     recordedAt: '2026-07-24T12:38:57.727Z',
     games: 31_959,
@@ -169,6 +176,15 @@ try {
   assert.equal(teaserListingBody.items.length, 1);
   assert.deepEqual(teaserListingBody.items[0].builds, []);
   assert.equal(JSON.stringify(teaserListingBody).includes('AAEBAa0GValidDeckCode'), false);
+
+  // The period is optional: absent opens the default catalog, an unknown one is refused before any read.
+  assert.equal(catalogPeriods.at(-1), null);
+  assert.equal((await fetch(`${origin}/teaser?format=wild&period=nope`)).status, 400);
+  assert.equal((await fetch(`${origin}?format=wild&period=nope`, { headers })).status, 400);
+  assert.equal((await fetch(`${origin}/teaser?format=wild&period=black_empire_ban`)).status, 200);
+  assert.equal(catalogPeriods.at(-1), 'black_empire_ban');
+  assert.equal((await fetch(`${origin}/teaser?format=wild&period=violet_hold`)).status, 200);
+  assert.equal(catalogPeriods.at(-1), 'black_empire', 'a retired window opens its successor');
 
   const teaserDetail = await fetch(`${origin}/teaser/wild/thief-priest`);
   assert.equal(teaserDetail.status, 200, 'The detail hero teaser is public');

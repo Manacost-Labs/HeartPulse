@@ -2,6 +2,7 @@ import { createArchetypeDetailHandler, type ArchetypeRankMatrix } from './module
 import { createHash } from 'node:crypto';
 import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
+import { resolveStandardMetaRequestPeriod } from '../shared/standardMetaPeriods.js';
 import { withCatalogCardMedia, loadCatalogCardMedia, type CatalogCardMedia } from './modules/constructedCards/public.js';
 
 export type ConstructedArchetypeFormat = 'standard' | 'wild';
@@ -87,6 +88,10 @@ export type ConstructedArchetypeCatalog = {
   format: ConstructedArchetypeFormat;
   formatLabel: string;
   patch: string;
+  /** HSGuru period of the catalog (`black_empire_ban`, `black_empire`, `patch_36.6.3`), null when the source omits it. */
+  period: string | null;
+  /** Periods the source can build the catalog for; the Bans window among them opens the pages. */
+  availablePeriods: string[];
   minimumGames: number;
   updatedAt: string | null;
   coverage: Record<string, unknown>;
@@ -96,7 +101,8 @@ export type ConstructedArchetypeCatalog = {
 export type ConstructedArchetypeRouterDependencies = {
   accessGuard: RequestHandler;
   setPrivateNoStore: (response: import('express').Response) => void;
-  loadCatalog: (format: ConstructedArchetypeFormat) => Promise<ConstructedArchetypeCatalog>;
+  /** Without a period: the catalog the archetype pages open on (docs/specs/standard-meta-periods.md). */
+  loadCatalog: (format: ConstructedArchetypeFormat, period?: string | null) => Promise<ConstructedArchetypeCatalog>;
   loadHistory: (
     format: ConstructedArchetypeFormat,
     archetype: string,
@@ -123,6 +129,12 @@ export function constructedArchetypeSlug(value: string): string {
 function readFormat(value: unknown): ConstructedArchetypeFormat | null {
   const format = String(value ?? 'standard') as ConstructedArchetypeFormat;
   return FORMATS.has(format) ? format : null;
+}
+
+/** An absent period is the default one; an unknown one is `undefined` (rejected). */
+function readPeriod(value: unknown): string | null | undefined {
+  if (value === undefined || value === '') return null;
+  return typeof value === 'string' ? resolveStandardMetaRequestPeriod(value) ?? undefined : undefined;
 }
 
 function readSearch(value: unknown): string {
@@ -152,8 +164,10 @@ export function createConstructedArchetypeRouter(
   router.get('/constructed-archetypes/teaser', async (request, response) => {
     const format = readFormat(request.query.format);
     if (!format) return response.status(400).json({ error: 'Неизвестный формат' });
+    const period = readPeriod(request.query.period);
+    if (period === undefined) return response.status(400).json({ error: 'Неизвестный период' });
     try {
-      const catalog = await dependencies.loadCatalog(format);
+      const catalog = await dependencies.loadCatalog(format, period);
       const query = readSearch(request.query.q).toLocaleLowerCase('ru-RU');
       const items = query
         ? catalog.items.filter(item => (
@@ -212,8 +226,10 @@ export function createConstructedArchetypeRouter(
   router.get('/constructed-archetypes', async (request, response) => {
     const format = readFormat(request.query.format);
     if (!format) return response.status(400).json({ error: 'Неизвестный формат' });
+    const period = readPeriod(request.query.period);
+    if (period === undefined) return response.status(400).json({ error: 'Неизвестный период' });
     try {
-      const catalog = await dependencies.loadCatalog(format);
+      const catalog = await dependencies.loadCatalog(format, period);
       const query = readSearch(request.query.q).toLocaleLowerCase('ru-RU');
       const items = query
         ? catalog.items.filter(item => (

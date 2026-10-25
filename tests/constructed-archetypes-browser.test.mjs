@@ -544,6 +544,8 @@ try {
   await page.waitForSelector('.archetype-row__pending');
   assert.equal(await page.$$eval('.archetype-row', rows => rows.length), 4);
   assert.equal(await page.$eval('.archetypes-ledger__header span', label => label.textContent), '4 архетипов');
+  // The heading names the catalog's HSGuru period by its menu label, not by its identifier.
+  assert.match(await page.$eval('.archetypes-tools small', note => note.textContent), /^Баны · минимум 50 игр · /);
   assert.equal(
     await page.$eval('.archetype-row__pending', note => note.closest('.archetype-row').querySelector('h2').textContent),
     'Йогг-Воин',

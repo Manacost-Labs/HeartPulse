@@ -1,4 +1,5 @@
 import type { ArchetypeCatalog } from '@/src/features/ConstructedArchetypes';
+import { isStandardMetaPeriod } from '@/shared/standardMetaPeriods';
 
 type RecordValue = Record<string, unknown>;
 type CatalogItem = ArchetypeCatalog['items'][number];
@@ -62,6 +63,7 @@ export function publicArchetypeCatalog(raw: unknown, format: ArchetypeCatalog['f
     if (payload.format !== format || !Array.isArray(payload.items) || payload.items.length > MAX_ITEMS) return null;
     return {
       format, formatLabel: text(payload.formatLabel, 80), patch: text(payload.patch ?? '', 40),
+      period: isStandardMetaPeriod(payload.period) ? payload.period : null,
       minimumGames: count(payload.minimumGames),
       updatedAt: payload.updatedAt === null || payload.updatedAt === undefined ? null : text(payload.updatedAt, 64),
       coverage: {},
