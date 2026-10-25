@@ -13,8 +13,6 @@ export class LeaderboardContractError extends Error {}
 type Json = Record<string, unknown>;
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
-// Никнейм Blizzard без номера BattleTag; управляющие символы не показываем.
-const CONTROL = /[\u0000-\u001f\u007f]/g;
 
 function fail(what: string): never {
   throw new LeaderboardContractError(`leaderboards: ${what}`);
@@ -54,8 +52,10 @@ function timestamp(value: unknown, what: string): string {
   return new Date(time).toISOString();
 }
 
+/** Никнейм Blizzard без номера BattleTag; управляющие символы не показываем. */
 function name(value: unknown, what: string): string {
-  const text = typeof value === 'string' ? value.replace(CONTROL, '').trim().slice(0, 64) : '';
+  const visible = typeof value === 'string' ? [...value].filter(char => char.charCodeAt(0) > 31 && char.charCodeAt(0) !== 127).join('') : '';
+  const text = visible.trim().slice(0, 64);
   if (!text) fail(`${what} is empty`);
   return text;
 }
