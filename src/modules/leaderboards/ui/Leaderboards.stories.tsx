@@ -4,7 +4,7 @@ import type { LeaderboardBoard, LeaderboardPlayer, LeaderboardSnapshot, Leaderbo
 import { LeaderboardPlayerCard } from './LeaderboardPlayerCard';
 import { LeaderboardSummary } from './LeaderboardSummary';
 import { LeaderboardTableView } from './LeaderboardTableView';
-import { LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardsUnavailable } from './LeaderboardsSkeleton';
+import { LeaderboardCollecting, LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardsUnavailable } from './LeaderboardsSkeleton';
 import './Leaderboards.css';
 
 // Числа взяты с живого прогона hs-data-api 25.10.2026 (Поля сражений, Европа, сезон 19).
@@ -89,6 +89,13 @@ export const PlayerCardLoading: Story = {
 };
 
 export const Loading: Story = { render: () => <div className="leaderboards"><LeaderboardSummarySkeleton /><LeaderboardTableSkeleton /></div> };
+
+export const UnratedTable: Story = {
+  render: () => <div className="leaderboards"><LeaderboardTableView table={{ ...table, board: { ...board, mode: 'standard', season: 156, rated: false },
+    rows: table.rows.map(row => ({ ...row, rating: null })) }} busy={false} selectedPlayer={null} targetRank={null} onPage={() => undefined} onPlayer={() => undefined} /></div>,
+};
+
+export const Collecting: Story = { render: () => <div className="leaderboards"><LeaderboardCollecting mode="arena" region="EU" /></div> };
 
 export const NotCollected: Story = { render: () => <div className="leaderboards"><LeaderboardMissing /></div> };
 

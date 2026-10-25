@@ -125,7 +125,9 @@
 }
 
 .leaderboards-chip--mode:hover:not(:disabled) { color: var(--arena-ink); }
-.leaderboards-chip--mode[aria-pressed='true'] { box-shadow: inset 0 -3px 0 var(--lb-accent); color: var(--lb-accent); }
+/* Активная вкладка держит черту и под курсором: правило ховера выше сильнее простого [aria-pressed]. */
+.leaderboards-chip--mode[aria-pressed='true'],
+.leaderboards-chip--mode[aria-pressed='true']:hover:not(:disabled) { box-shadow: inset 0 -3px 0 var(--lb-accent); color: var(--lb-accent); }
 
 .leaderboards-select { max-width: 100%; padding: 0 2rem 0 0.75rem; cursor: pointer; }
 
@@ -295,7 +297,8 @@
   min-width: 0;
 }
 
-/* Таблица: ровные колонки фиксированной раскладки, без прокрутки вбок. */
+/* Таблица — список строк: ровные колонки фиксированной раскладки, строки 46px
+   с чередованием фона вместо линий, без прокрутки вбок. */
 
 .leaderboards-table { display: grid; gap: 0.5rem; min-width: 0; }
 .leaderboards-table[aria-busy='true'] { opacity: 0.55; transition: opacity var(--motion-fast) var(--motion-ease); }
@@ -314,7 +317,7 @@
 
 .leaderboards-table__rank { width: 4.5rem; }
 .leaderboards-table__rating { width: 7rem; }
-.leaderboards-table__change { width: 6rem; }
+.leaderboards-table__change { width: 5.5rem; }
 
 .leaderboards-table th {
   height: 2.25rem;
@@ -329,9 +332,8 @@
 }
 
 .leaderboards-table td {
-  height: 2.75rem;
+  height: 2.875rem;
   padding: 0 0.75rem;
-  border-bottom: var(--lb-line);
   color: var(--arena-ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -339,13 +341,16 @@
 }
 
 .leaderboards-table .is-numeric { text-align: right; }
-.leaderboards-table tbody tr:last-child td { border-bottom: 0; }
-.leaderboards-table tbody tr:hover td { background: rgba(250, 235, 197, 0.7); }
-.leaderboards-table tr[data-selected] td { background: rgba(141, 23, 29, 0.08); }
+.leaderboards-table tbody tr:nth-child(even) td { background: rgba(229, 199, 144, 0.22); }
+.leaderboards-table tbody td { transition: background-color var(--motion-fast) var(--motion-ease); }
+.leaderboards-table tbody tr:hover td { background: rgba(255, 248, 225, 0.75); }
+.leaderboards-table tbody tr[data-selected] td { background: rgba(141, 23, 29, 0.08); }
 
 .leaderboards-rank { color: var(--arena-muted-ink); }
+/* Топ-10 — тонкий акцент: номер места чернилами и жирнее, без заливки строки. */
+.leaderboards-table tr[data-top] .leaderboards-rank { color: var(--arena-ink); font-weight: 800; }
 
-/* Топ-3 — золотой кружок с местом; одна золотая деталь вместо трёх цветов. */
+/* Топ-3 — медальные кружки: золото, серебро, бронза. */
 .leaderboards-medal {
   display: inline-grid;
   place-items: center;
@@ -353,11 +358,18 @@
   height: 1.75rem;
   border-radius: 50%;
   background: var(--arena-gold);
+  box-shadow: inset 0 0 0 1px rgba(84, 51, 22, 0.28), inset 0 1px 0 rgba(255, 248, 225, 0.6);
   color: var(--arena-ink);
   font-weight: 800;
 }
 
-.leaderboards-table tbody tr:has(.leaderboards-medal) .leaderboards-player-link { font-weight: 700; }
+.leaderboards-medal[data-place='2'] { background: #d4cfc3; }
+.leaderboards-medal[data-place='3'] { background: #d29a63; }
+
+.leaderboards-table tbody tr[data-top] .leaderboards-player-link { font-weight: 700; }
+
+/* Справа — рейтинг режима крупным числом. */
+.leaderboards-table td.leaderboards-rating { font-size: 1.0625rem; font-weight: 800; letter-spacing: -0.01em; }
 
 /* Ник — ссылка-кнопка на всю ячейку; длинный обрезается многоточием. */
 .leaderboards-player-link {
@@ -376,18 +388,20 @@
   text-underline-offset: 3px;
 }
 
+/* В строке ник без подчёркивания: ссылкой он становится по наведению. */
 .leaderboards-table .leaderboards-player-link {
   display: block;
   overflow: hidden;
-  min-height: 2.75rem;
+  min-height: 2.875rem;
+  text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .leaderboards-player-link:hover,
-.leaderboards-player-link[aria-pressed='true'] { background: none; color: var(--lb-accent); text-decoration-color: currentColor; }
+.leaderboards-player-link[aria-pressed='true'] { background: none; color: var(--lb-accent); text-decoration: underline; text-decoration-color: currentColor; }
 
-.leaderboards-table tr[data-target] td { background: rgba(217, 171, 73, 0.28); }
+.leaderboards-table tbody tr[data-target] td { background: rgba(217, 171, 73, 0.28); }
 
 .leaderboards-name { display: flex; gap: 0.25rem; align-items: center; min-width: 0; }
 .leaderboards-name .leaderboards-player-link { flex: 0 1 auto; min-width: 0; }
@@ -419,11 +433,24 @@
   text-underline-offset: 3px;
 }
 
-.leaderboards-change { font-size: var(--lb-text-small); }
-.leaderboards-change--up { color: var(--positive, #2f7a3e); }
-.leaderboards-change--down { color: var(--negative, #a33a3a); }
+/* Изменение места за сутки — мини-бейдж: ↑ зелёный, ↓ красный, «новый» нейтральный. */
+.leaderboards-change {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 1.375rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-size: var(--lb-text-small);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.leaderboards-change--up { background: rgba(47, 122, 62, 0.12); color: var(--positive, #2f7a3e); }
+.leaderboards-change--down { background: rgba(163, 58, 58, 0.12); color: var(--negative, #a33a3a); }
 .leaderboards-change--same { color: var(--arena-muted-ink); }
-.leaderboards-change--new { color: var(--arena-muted-ink); font-style: italic; }
+.leaderboards-change--new { background: rgba(217, 171, 73, 0.24); color: var(--arena-ink); font-size: var(--lb-text-label); letter-spacing: 0.02em; }
 
 .leaderboards-table td.leaderboards-empty { height: auto; padding: 1.25rem 0.75rem; color: var(--arena-muted-ink); white-space: normal; }
 
@@ -524,7 +551,7 @@
 
 .leaderboards-table--skeleton { gap: 6px; min-height: 560px; }
 .leaderboards-skeleton__summary { width: min(26rem, 100%); height: 1.5rem; margin-block: 0.6rem; }
-.leaderboards-skeleton__row { height: 2.75rem; }
+.leaderboards-skeleton__row { height: 2.875rem; }
 .leaderboards-skeleton__line { width: 50%; height: 1rem; }
 .leaderboards-skeleton__spark { height: 96px; }
 .leaderboards-player__skeleton { display: grid; gap: 0.75rem; }
@@ -555,8 +582,8 @@
   .leaderboards-histogram__plot { flex-basis: 100%; }
 
   .leaderboards-table__rank { width: 3.25rem; }
-  .leaderboards-table__rating { width: 4.75rem; }
-  .leaderboards-table__change { width: 5rem; }
+  .leaderboards-table__rating { width: 5.25rem; }
+  .leaderboards-table__change { width: 4.25rem; }
   .leaderboards-table :is(th, td) { padding: 0 0.5rem; }
   .leaderboards-table th { letter-spacing: 0; }
   .leaderboards-pages { width: 100%; justify-content: space-between; }

@@ -200,9 +200,10 @@ test('the page model keeps the selection in the URL and formats without Intl clo
   assert.equal(formatRating('standard', null), '—');
   assert.deepEqual([8000, 8500, 12000, 7.5].map(formatRatingTick), ['8к', '8,5к', '12к', '7,5']);
 
-  assert.equal(rankChange(5, 8, true)?.label, '▲ 3');
+  assert.equal(rankChange(5, 8, true)?.label, '↑3');
+  assert.equal(rankChange(1500, 3, true)?.label, '↓1\u00a0497', 'big drops are grouped like places');
   assert.equal(rankChange(9, 4, true)?.kind, 'down');
-  assert.equal(rankChange(3, null, true)?.label, 'Новый');
+  assert.equal(rankChange(3, null, true)?.label, 'новый');
   assert.equal(rankChange(3, null, false), null, 'without a previous snapshot there is nothing to compare');
   assert.equal(playersDelta(parseLeaderboardStats(upstreamStats())), 143);
   assert.deepEqual(leaderboardSeasons(parseSeasonCatalog(upstreamSeasons()), 'standard', 'EU').map(season => season.id), [156, 155]);

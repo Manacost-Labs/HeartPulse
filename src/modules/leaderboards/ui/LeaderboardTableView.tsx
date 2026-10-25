@@ -22,9 +22,10 @@ function Pagination({ table, onPage }: { table: LeaderboardTable; onPage: (page:
 }
 
 /**
- * Страница таблицы: место (топ-3 выделены), ник со значком стримера, рейтинг
- * (если он есть в режиме) и изменение места за сутки. Строка места, к
- * которому перешли, подсвечена и прокручена в середину экрана.
+ * Страница таблицы списком строк: место (топ-3 — медали, топ-10 — жирный номер),
+ * ник со значком стримера, изменение места за сутки мини-бейджем и справа
+ * рейтинг крупным числом (если он есть в режиме). Строка места, к которому
+ * перешли, подсвечена и прокручена в середину экрана.
  */
 export function LeaderboardTableView({ table, busy, selectedPlayer, targetRank, onPage, onPlayer }: {
   table: LeaderboardTable;
@@ -49,32 +50,34 @@ export function LeaderboardTableView({ table, busy, selectedPlayer, targetRank, 
       <colgroup>
         <col className="leaderboards-table__rank" />
         <col />
-        {ratingLabel && <col className="leaderboards-table__rating" />}
         {hasPrevious && <col className="leaderboards-table__change" />}
+        {ratingLabel && <col className="leaderboards-table__rating" />}
       </colgroup>
       <thead><tr>
         <th scope="col" className="is-numeric">Место</th>
         <th scope="col">Игрок</th>
-        {ratingLabel && <th scope="col" className="is-numeric">{ratingLabel}</th>}
         {hasPrevious && <th scope="col" className="is-numeric">За сутки</th>}
+        {ratingLabel && <th scope="col" className="is-numeric">{ratingLabel}</th>}
       </tr></thead>
       <tbody>
         {rows.map(row => {
           const change = rankChange(row.rank, row.previousRank, hasPrevious);
           const isTarget = row.rank === targetRank;
           return <tr key={`${row.rank}-${row.name}`} ref={isTarget ? target : undefined}
-            data-selected={row.name === selectedPlayer || undefined} data-target={isTarget || undefined}>
+            data-selected={row.name === selectedPlayer || undefined} data-target={isTarget || undefined} data-top={row.rank <= 10 || undefined}>
             <td className="is-numeric leaderboards-rank">{row.rank <= 3
-              ? <span className="leaderboards-medal">{row.rank}</span>
+              ? <span className="leaderboards-medal" data-place={row.rank}>{row.rank}</span>
               : formatPlayers(row.rank)}</td>
             <td><div className="leaderboards-name">
               <button type="button" className="leaderboards-player-link" onClick={() => onPlayer(row.name)}>{row.name}</button>
               {row.streamer && <StreamerBadge streamer={row.streamer} />}
             </div></td>
-            {ratingLabel && <td className="is-numeric">{formatRating(board.mode, row.rating)}</td>}
-            {hasPrevious && <td className={`is-numeric leaderboards-change leaderboards-change--${change?.kind ?? 'same'}`}>
-              {change && <span title={change.text}><span aria-hidden="true">{change.label}</span><span className="sr-only">{change.text}</span></span>}
+            {hasPrevious && <td className="is-numeric">
+              {change && <span className={`leaderboards-change leaderboards-change--${change.kind}`} title={change.text}>
+                <span aria-hidden="true">{change.label}</span><span className="sr-only">{change.text}</span>
+              </span>}
             </td>}
+            {ratingLabel && <td className="is-numeric leaderboards-rating">{formatRating(board.mode, row.rating)}</td>}
           </tr>;
         })}
         {!rows.length && <tr><td colSpan={2 + Number(Boolean(ratingLabel)) + Number(hasPrevious)} className="leaderboards-empty">

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchWithDeadline } from '../../../shared/http/fetchWithDeadline';
 import {
-  isLeaderboardSeasonCatalog, isLeaderboardStats, isLeaderboardTable, leaderboardApiQuery, leaderboardSearch, pageOfRank,
+  isLeaderboardSeasonCatalog, isLeaderboardStats, isLeaderboardTable, leaderboardApiQuery, leaderboardSearch, leaderboardSeasons, pageOfRank,
   type LeaderboardSelection,
 } from '../model/leaderboardsView';
 import type { LeaderboardPlayer, LeaderboardSeasonCatalog, LeaderboardStats, LeaderboardTable } from '../model/types';
@@ -75,8 +75,10 @@ export function useLeaderboards(initial: LeaderboardsInitial) {
   const initialStatsKey = leaderboardApiQuery(initial.selection, false);
 
   const catalog = useLoadable('seasons', '/api/leaderboards/seasons', isLeaderboardSeasonCatalog, ready('seasons', initial.catalog), attempt);
-  const table = useLoadable(tableKey, `/api/leaderboards/table?${tableKey}`, isLeaderboardTable, ready(initialTableKey, initial.table), attempt);
-  const stats = useLoadable(statsKey, `/api/leaderboards/stats?${statsKey}`, isLeaderboardStats, ready(initialStatsKey, initial.stats), attempt);
+  // У режима в регионе нет ни одного сохранённого сезона: таблицу ещё собирают, запрос заведомо получил бы 404.
+  const collecting = catalog.value !== null && !leaderboardSeasons(catalog.value, selection.mode, selection.region).length;
+  const table = useLoadable(collecting ? null : tableKey, `/api/leaderboards/table?${tableKey}`, isLeaderboardTable, ready(initialTableKey, initial.table), attempt);
+  const stats = useLoadable(collecting ? null : statsKey, `/api/leaderboards/stats?${statsKey}`, isLeaderboardStats, ready(initialStatsKey, initial.stats), attempt);
   const playerKey = selection.player ? new URLSearchParams({ region: selection.region, name: selection.player }).toString() : null;
   const player = useLoadable(playerKey, `/api/leaderboards/player?${playerKey ?? ''}`, isPlayer, { key: '', status: 'loading', value: null }, attempt);
 
@@ -104,5 +106,5 @@ export function useLeaderboards(initial: LeaderboardsInitial) {
     });
   }, []);
 
-  return { selection, select, catalog, table, stats, player, retry: () => setAttempt(value => value + 1) };
+  return { selection, select, catalog, collecting, table, stats, player, retry: () => setAttempt(value => value + 1) };
 }

@@ -7,7 +7,7 @@ import { LeaderboardPlayerCard, type PlayerCardActions } from './LeaderboardPlay
 import { LeaderboardCharts, LeaderboardSummary } from './LeaderboardSummary';
 import { LeaderboardTableView } from './LeaderboardTableView';
 import {
-  LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardsUnavailable,
+  LeaderboardCollecting, LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardsUnavailable,
 } from './LeaderboardsSkeleton';
 import { useLeaderboards, type LeaderboardsInitial } from './useLeaderboards';
 import { useJumpToMyNick, useMyNick } from './useMyNick';
@@ -20,7 +20,7 @@ import './Leaderboards.css';
  * прежняя остаётся на месте приглушённой; скелетон — только без данных.
  */
 export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) {
-  const { selection, select, catalog, table, stats, player, retry } = useLeaderboards(initial);
+  const { selection, select, catalog, collecting, table, stats, player, retry } = useLeaderboards(initial);
   const seasons = leaderboardSeasons(catalog.value, selection.mode, selection.region);
   const failed = table.status === 'error' && !table.value;
   const [me, setMe] = useMyNick();
@@ -38,7 +38,7 @@ export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) 
 
   return <div className="leaderboards">
     <LeaderboardControls selection={selection} seasons={seasons} onSelect={select} />
-    {failed
+    {collecting ? <LeaderboardCollecting mode={selection.mode} region={selection.region} /> : failed
       ? <LeaderboardsUnavailable onRetry={retry} />
       : table.status === 'missing'
         ? <LeaderboardMissing />

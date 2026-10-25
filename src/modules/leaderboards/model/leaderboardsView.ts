@@ -176,15 +176,15 @@ export function formatRatingTick(value: number): string {
 
 export type RankChange = { kind: 'up' | 'down' | 'same' | 'new'; label: string; text: string };
 
-/** Изменение места за сутки: «▲ 3» — поднялся на три места. `null` — сравнивать не с чем (первый снимок). */
+/** Изменение места за сутки: «↑3» — поднялся на три места. `null` — сравнивать не с чем (первый снимок). */
 export function rankChange(rank: number, previousRank: number | null, hasPrevious: boolean): RankChange | null {
   if (!hasPrevious) return null;
-  if (previousRank === null) return { kind: 'new', label: 'Новый', text: 'Не было в таблице в прошлом снимке' };
+  if (previousRank === null) return { kind: 'new', label: 'новый', text: 'Не было в таблице в прошлом снимке' };
   const delta = previousRank - rank;
   if (delta === 0) return { kind: 'same', label: '—', text: 'Место не изменилось' };
   return delta > 0
-    ? { kind: 'up', label: `▲ ${delta}`, text: `Поднялся на ${delta}` }
-    : { kind: 'down', label: `▼ ${-delta}`, text: `Опустился на ${-delta}` };
+    ? { kind: 'up', label: `↑${formatPlayers(delta)}`, text: `Поднялся на ${delta}` }
+    : { kind: 'down', label: `↓${formatPlayers(-delta)}`, text: `Опустился на ${-delta}` };
 }
 
 /** Изменение числа игроков между двумя последними снимками сезона. */
