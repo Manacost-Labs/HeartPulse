@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 export { constructedCardPath, constructedCardRoute } from './model/cardRoute';
 export type { CardFormat, CardRoute } from './model/cardRoute';
 export { ConstructedCardIdentity } from './ui/ConstructedCardIdentity';
@@ -19,3 +20,7 @@ export { useCatalogIntentWarm } from './useCatalogIntentWarm';
 export { ConstructedCardsBanner } from './ui/ConstructedCardsBanner';
 export { constructedFacetValues } from './model/filterFacets';
 export { ConstructedCardTile } from './ui/ConstructedCardTile';
+/** Loaded on demand: only card pages with a choice mechanic render it, so catalog pages stay lean. */
+export const CardChoicesSection = lazy(() => import('./ui/CardChoicesSection'));
+export { cardChoiceKindOf } from './model/cardChoices';
+export type { CardChoiceKind, CardChoicesData } from './model/cardChoices';

@@ -1,0 +1,9 @@
+{
+  "reason": "Блок «Что берут из Раскопки» на странице карты: ленивый компонент статистики выбора HSReplay (варианты с артом, «берут» и винрейт, переключатель ранга, полный пул, сокровища Добычи) и его стили. Маршруты, которые подключают модуль карт, учитывают его отложенный чанк.",
+  "routes": {
+    "/standard/cards/standard/": { "jsGzipBytes": 3800, "cssGzipBytes": 1100 },
+    "/standard/cards/": { "jsGzipBytes": 3800, "cssGzipBytes": 1100 },
+    "/cosmetics/": { "jsGzipBytes": 800 },
+    "/standard/deck-builder/": { "jsGzipBytes": 900 }
+  }
+}

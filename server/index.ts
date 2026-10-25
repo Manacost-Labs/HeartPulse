@@ -83,7 +83,7 @@ import { createConstructedCardDataService, createConstructedCardRouter } from '.
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
 import { createRadarApi } from './modules/radar/public.js';
 import { createStreamersApi } from './modules/streamers/public.js';
-import { ConstructedCardUpstreamError, type ConstructedCardDeck } from './modules/constructedCards/public.js';
+import { ConstructedCardUpstreamError, createCardChoicesRouter, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
   extractConstructedCardFrontendAssets,
@@ -7512,6 +7512,7 @@ app.use('/api', createConstructedArchetypeRouter({
   ),
 }));
 
+app.use('/api', createCardChoicesRouter({ request: path => fetch(`${process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }));
 app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: format => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
