@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 94,
-    "routeRegistrations": 256,
+    "sourceFiles": 95,
+    "routeRegistrations": 261,
     "middlewareRegistrations": 136,
     "explicitGuardRouteRegistrations": 66,
     "unresolvedPaths": 0
@@ -2743,7 +2743,8 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createStreamersApi(...)"
+        "createStreamersApi(...)",
+        "createLeaderboardsApi(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -4126,6 +4127,66 @@
       "guardSignals": [],
       "source": "server/modules/identity/routes.ts",
       "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/leaderboards/seasons",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/leaderboards/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/leaderboards/table",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/leaderboards/routes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/leaderboards/stats",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/leaderboards/routes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/leaderboards/player",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/leaderboards/routes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/leaderboards/players",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/leaderboards/routes.ts",
+      "sourceOrder": 4
     },
     {
       "kind": "route",

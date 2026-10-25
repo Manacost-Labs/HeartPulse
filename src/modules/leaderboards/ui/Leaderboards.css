@@ -1,0 +1,288 @@
+/* Таблицы лидеров. Один акцент (--lb-accent: выбранные режим и регион,
+   ссылки на игроков), одна шкала текста, рамка раздела страницы и пергамент
+   (design.md). Широкие строки прокручиваются у себя, а не всей страницей. */
+
+.leaderboards {
+  --lb-accent: var(--arena-red);
+  --lb-line: 1px solid var(--arena-paper-line);
+  --lb-text: 0.9rem;
+  --lb-text-small: 0.8rem;
+  --lb-text-label: 0.6875rem;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.leaderboards-label {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: var(--lb-text-label);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.leaderboards-muted { margin: 0; color: var(--arena-muted-ink); font-size: var(--lb-text-small); line-height: 1.45; }
+
+.leaderboards-controls,
+.leaderboards-summary,
+.leaderboards-player,
+.leaderboards-message {
+  min-width: 0;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+}
+
+.leaderboards-controls { display: grid; gap: 0.75rem; padding: 0.85rem 1rem; }
+
+.leaderboards-modes {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+
+.leaderboards-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+}
+
+.leaderboards-regions { display: flex; gap: 0.4rem; }
+
+.leaderboards-field { display: grid; gap: 0.25rem; min-width: 0; }
+.leaderboards-field--search { flex: 1 1 220px; }
+
+.leaderboards-chip,
+.leaderboards-select,
+.leaderboards-search {
+  min-height: 44px;
+  border: var(--lb-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.6);
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: var(--lb-text-small);
+}
+
+.leaderboards-chip {
+  flex: none;
+  padding: 0 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+
+.leaderboards-chip:hover:not(:disabled) { border-color: rgba(84, 51, 22, 0.45); }
+.leaderboards-chip:disabled { cursor: default; opacity: 0.45; }
+
+.leaderboards-chip[aria-pressed='true'] {
+  border-color: var(--lb-accent);
+  background: var(--lb-accent);
+  color: #fff4dc;
+}
+
+.leaderboards-chip--mode { font-family: var(--font-display); font-size: 0.95rem; }
+
+.leaderboards-select { max-width: 100%; padding: 0 2rem 0 0.75rem; cursor: pointer; }
+
+.leaderboards-search { display: flex; gap: 0.4rem; align-items: center; padding: 0 0.75rem; }
+.leaderboards-search svg { flex: none; width: 16px; height: 16px; color: var(--arena-muted-ink); }
+
+.leaderboards-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.leaderboards-search:focus-within,
+.leaderboards-chip:focus-visible,
+.leaderboards-select:focus-visible,
+.leaderboards-player-link:focus-visible {
+  outline: 2px solid var(--lb-accent);
+  outline-offset: 2px;
+}
+
+/* Сводка. */
+
+.leaderboards-summary { display: grid; gap: 0.75rem; padding: 0.85rem 1rem 1rem; }
+
+.leaderboards-summary__head { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; align-items: baseline; justify-content: space-between; }
+
+.leaderboards-summary h2,
+.leaderboards-player h2,
+.leaderboards-message h2 {
+  margin: 0;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+}
+
+.leaderboards-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.leaderboards-tile {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  border: var(--lb-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.55);
+}
+
+.leaderboards-tile dd { display: grid; gap: 0.1rem; margin: 0; }
+
+.leaderboards-tile__value {
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.leaderboards-tile__note { color: var(--arena-muted-ink); font-size: var(--lb-text-small); }
+
+.leaderboards-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* Таблица. */
+
+.leaderboards-table { display: grid; gap: 0.5rem; min-width: 0; }
+.leaderboards-table[aria-busy='true'] { opacity: 0.55; transition: opacity var(--motion-fast) var(--motion-ease); }
+.leaderboards-table table { width: 100%; font-variant-numeric: tabular-nums; }
+.leaderboards-table td,
+.leaderboards-table th { white-space: nowrap; }
+.leaderboards-table tr[data-selected] td { background: rgba(141, 23, 29, 0.1); }
+
+.leaderboards-rank { width: 4.5rem; font-weight: 700; }
+
+/* Ник — ссылка-кнопка; в таблице она перебивает общий вид кнопок .analytics-table. */
+.leaderboards-player-link,
+.leaderboards-table .analytics-table .leaderboards-player-link {
+  display: inline;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--arena-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(84, 51, 22, 0.3);
+  text-underline-offset: 3px;
+}
+
+.leaderboards-player-link:hover,
+.leaderboards-table .analytics-table .leaderboards-player-link:hover,
+.leaderboards-player-link[aria-pressed='true'] { background: none; color: var(--lb-accent); text-decoration-color: currentColor; }
+
+.leaderboards-change { width: 5.5rem; font-size: var(--lb-text-small); }
+.leaderboards-change--up { color: var(--positive, #2f7a3e); }
+.leaderboards-change--down { color: var(--negative, #a33a3a); }
+.leaderboards-change--same { color: var(--arena-muted-ink); }
+.leaderboards-change--new { color: var(--arena-muted-ink); font-style: italic; }
+
+.leaderboards-empty { padding: 1.25rem 0.75rem; color: var(--arena-muted-ink); white-space: normal; }
+
+.leaderboards-table__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--arena-muted-ink);
+  font-size: var(--lb-text-small);
+}
+
+.leaderboards-pages { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.leaderboards-pages__status { padding: 0 0.25rem; font-variant-numeric: tabular-nums; }
+
+/* Карточка игрока. */
+
+.leaderboards-player { display: grid; gap: 0.75rem; padding: 0.85rem 1rem 1rem; }
+
+.leaderboards-player__head { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
+.leaderboards-player__head h2 { overflow-wrap: anywhere; }
+.leaderboards-player__close { display: grid; place-items: center; width: 44px; padding: 0; }
+.leaderboards-player__close svg { width: 18px; height: 18px; }
+
+.leaderboards-player__current {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.leaderboards-player__current li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  border: var(--lb-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.55);
+}
+
+.leaderboards-player__current strong { font-family: var(--font-display); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+
+.leaderboards-player__seasons { max-height: 280px; overflow: auto; border-top: var(--lb-line); }
+.leaderboards-player__seasons table { width: 100%; border-collapse: collapse; font-size: var(--lb-text-small); font-variant-numeric: tabular-nums; }
+.leaderboards-player__seasons th { position: sticky; top: 0; background: #ecd6a6; color: var(--arena-muted-ink); font-weight: 700; text-align: left; }
+.leaderboards-player__seasons th,
+.leaderboards-player__seasons td { padding: 0.35rem 0.5rem; border-bottom: var(--lb-line); white-space: nowrap; }
+.leaderboards-player__seasons .is-numeric { text-align: right; }
+.leaderboards-player__seasons tr[data-selected] td { background: rgba(141, 23, 29, 0.08); }
+
+/* Сообщения и скелетон. */
+
+.leaderboards-message { display: flex; gap: 0.75rem; align-items: flex-start; padding: 1rem; }
+.leaderboards-message > svg { flex: none; width: 22px; height: 22px; color: var(--lb-accent); }
+.leaderboards-message p { margin: 0.3rem 0 0.75rem; color: var(--arena-muted-ink); font-size: var(--lb-text-small); }
+
+.leaderboards-source { padding: 0 0.25rem; }
+
+.leaderboards-summary--skeleton { min-height: 170px; }
+.leaderboards-table--skeleton { gap: 6px; min-height: 560px; }
+.leaderboards-skeleton__title { width: 14rem; height: 1.5rem; }
+.leaderboards-skeleton__label { width: 60%; height: 0.75rem; }
+.leaderboards-skeleton__value { width: 45%; height: 1.5rem; }
+.leaderboards-skeleton__bar { height: 2.5rem; }
+.leaderboards-skeleton__row { height: 2.25rem; }
+.leaderboards-skeleton__line { width: 50%; height: 1rem; }
+.leaderboards-skeleton__chart { height: 220px; }
+.leaderboards-player__skeleton { display: grid; gap: 0.75rem; }
+
+@media (max-width: 640px) {
+  .leaderboards-controls,
+  .leaderboards-summary,
+  .leaderboards-player { padding: 0.75rem; }
+
+  .leaderboards-controls__row { display: grid; grid-template-columns: 1fr; }
+  .leaderboards-regions .leaderboards-chip { flex: 1 1 0; }
+  .leaderboards-select { width: 100%; }
+  .leaderboards-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leaderboards-tile__value { font-size: 1.15rem; }
+  .leaderboards-pages { width: 100%; justify-content: space-between; }
+}

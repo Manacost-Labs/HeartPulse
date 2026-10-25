@@ -1940,6 +1940,30 @@
       "forbiddenImports": ["server/**", "other frontend module internals"]
     },
     {
+      "name": "backend-leaderboards",
+      "status": "modular",
+      "owner": "community",
+      "purpose": "Publish the official Blizzard leaderboards of hs-data-api: validated, briefly cached seasons, table pages with name search, thresholds and player histories.",
+      "paths": ["server/modules/leaderboards"],
+      "publicEntrypoints": ["server/modules/leaderboards/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        { "method": "GET", "path": "/api/leaderboards/seasons" },
+        { "method": "GET", "path": "/api/leaderboards/table" },
+        { "method": "GET", "path": "/api/leaderboards/stats" },
+        { "method": "GET", "path": "/api/leaderboards/player" },
+        { "method": "GET", "path": "/api/leaderboards/players" }
+      ],
+      "contracts": ["server/modules/leaderboards/contract.ts", "server/modules/leaderboards/types.ts", "docs/specs/official-leaderboards.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": ["api.kolodahearthstone.com official leaderboards (/v1/leaderboards)"],
+      "tests": ["tests/leaderboards.test.ts"],
+      "allowedDependencies": ["Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
       "name": "backend-streamers",
       "status": "modular",
       "owner": "community",
@@ -1956,6 +1980,24 @@
       "tests": ["tests/streamers.test.ts"],
       "allowedDependencies": ["Express at the routes boundary"],
       "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
+      "name": "frontend-leaderboards",
+      "status": "modular",
+      "owner": "community",
+      "purpose": "Render the official leaderboards: mode, region and season selection, name search, thresholds and charts, the table and the player card.",
+      "paths": ["src/modules/leaderboards"],
+      "publicEntrypoints": ["src/modules/leaderboards/public.ts"],
+      "frontendRoutes": ["/leaderboards"],
+      "backendRoutes": [],
+      "contracts": ["src/modules/leaderboards/model/types.ts", "docs/specs/official-leaderboards.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/leaderboards.test.ts", "tests/next-leaderboards-browser.test.mjs"],
+      "allowedDependencies": [],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
     },
     {
       "name": "frontend-streamers",

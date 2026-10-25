@@ -22,6 +22,7 @@ const EXPECTED_ROUTE_PATHS = [
   ['developer-api', '/developers/api'],
   ['privacy', '/privacy'],
   ['terms', '/terms'],
+  ['leaderboards', '/leaderboards'],
   ['gallery', '/gallery'],
   ['cosmetics', '/cosmetics'],
   ['guides-archive', '/guides-archive'],

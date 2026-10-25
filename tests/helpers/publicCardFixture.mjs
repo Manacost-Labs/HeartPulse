@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { startCredentialBackend } from './credentialBackend.mjs';
 import { battlegroundTrinketsFixture, patchNotesFixture } from './patchNotesFixture.mjs';
+import { leaderboardsFixture } from './leaderboardsFixture.mjs';
 
 const streamers = JSON.parse(readFileSync(resolve('tests/fixtures/streamers-hsdata-20261025.json'), 'utf8'));
 const STREAMER_PATHS = {
@@ -52,6 +53,10 @@ export async function publicCardFixture({ backendEnv } = {}) {
     } else if (url.pathname === '/v1/constructed/balance-radar') {
       // Пустой, но настоящий радар: страница индексируется, как при живом hs-data-api.
       response.end(JSON.stringify({ data: { schemaVersion: 1, format: 'standard', generatedAt: '2026-10-25T00:00:00Z', summary: 'Изменений не ждём.', nerfs: [], buffs: [] } }));
+    } else if (url.pathname.startsWith('/v1/leaderboards')) {
+      const body = leaderboardsFixture(url);
+      if (body) response.end(JSON.stringify(body));
+      else response.writeHead(404).end('{"detail":"This leaderboard is not collected yet"}');
     } else if (url.pathname in STREAMER_PATHS) {
       const payload = STREAMER_PATHS[url.pathname];
       const format = url.searchParams.get('format');
