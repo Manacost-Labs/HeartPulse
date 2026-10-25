@@ -2,7 +2,7 @@
 
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import {
-  StreamersSkeleton, StreamersUnavailable, StreamersView, isStreamersPage, type StreamersPage,
+  DEFAULT_STREAMERS_FILTERS, StreamersSkeleton, StreamersUnavailable, StreamersView, isStreamersPage, type StreamersPage,
 } from '@/src/modules/streamers/public';
 import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
 import { usePublicAccess } from './usePublicAccess';
@@ -17,7 +17,7 @@ const shown = (page: StreamersPage) => page.streamers.length;
 /** «Стримеры»: сервер кладёт в HTML то, что успел прочитать, остальное и фильтры грузит браузер. */
 export function StreamersPageClient({ initial }: { initial: StreamersPage | null }) {
   const access = usePublicAccess();
-  const data = useStreamersData({ path: '/api/streamers', initial, isPage: isStreamersPage, merge, shown });
+  const data = useStreamersData({ path: '/api/streamers', defaults: DEFAULT_STREAMERS_FILTERS, initial, isPage: isStreamersPage, merge, shown });
   return <PublicPageShell activeTab="streamers" pathname="/streamers/" access={access} navigate={navigate} wide>
     <section className="streamers-page space-y-4">
       <SectionBanner title="Стримеры"

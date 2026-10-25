@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import type { LiveStream, StreamerDeck, StreamerPage, StreamersPage, StreamerSummary } from '../model/types';
 import { StreamersSkeleton, StreamersUnavailable } from './StreamersSkeleton';
 import { StreamersView } from './StreamersView';
@@ -19,8 +19,11 @@ const nohands: StreamerSummary = {
     { kind: 'twitch', url: 'https://www.twitch.tv/nohandsgamer' },
     { kind: 'youtube', url: 'https://www.youtube.com/c/NoHandsGamerVODs' }, { kind: 'x', url: 'https://x.com/Nohandsgamer' },
   ],
-  live: null, decksTotal: 146, lastPlayedAt: '2026-10-25T00:37:46.000Z',
-  recentDecks: [deck({}), deck({ deckId: 42563104, archetype: 'Blood DK', archetypeLabel: 'Рыцарь смерти крови', classKey: 'deathknight', peakRank: 25 })],
+  live: null, decksTotal: 146, lastPlayedAt: '2026-10-25T00:37:46.000Z', language: null, bestRank: 2,
+  ladder: { rank: 105, region: 'US', mode: 'standard', current: true, seasonStart: null },
+  recentDecks: [deck({}), deck({ deckId: 42563104, archetype: 'Blood DK', archetypeLabel: 'Рыцарь смерти крови', classKey: 'deathknight', peakRank: 25 }),
+    deck({ deckId: 42563105, archetype: 'Shopper DH', archetypeLabel: 'Охотник на демонов-покупатель', classKey: 'demonhunter', peakRank: 6 }),
+    deck({ deckId: 42563106, archetype: 'Egg Priest', classKey: 'priest', peakRank: 40 })],
 };
 
 const moquaiLive = { title: '[EU] Legend | WarlockStone', viewers: 14, mode: 'standard', startedAt: '2026-10-25T15:54:23.000Z', streamUrl: 'https://www.twitch.tv/moquaitv', thumbnailUrl: null };
@@ -29,7 +32,7 @@ const moquai: StreamerSummary = {
   slug: 'moquaitv', name: 'MoquaiTV', avatarUrl: null, followers: null,
   links: [{ kind: 'twitch', url: 'https://www.twitch.tv/moquaitv' }],
   live: moquaiLive,
-  decksTotal: 102, lastPlayedAt: '2026-10-25T16:24:05.000Z',
+  decksTotal: 102, lastPlayedAt: '2026-10-25T16:24:05.000Z', language: null, bestRank: 6623, ladder: null,
   recentDecks: [deck({ deckId: 42692433, archetype: 'Thief Priest', archetypeLabel: 'Жрец-вор', peakRank: 6623, onStream: true, vodUrl: null })],
 };
 
@@ -40,10 +43,19 @@ const live: LiveStream[] = [
     deck: null },
 ];
 
-const page: StreamersPage = { live, streamers: [moquai, nohands], total: 226, offset: 0, filters: { format: null, classKey: null } };
+const filters: StreamersPage['filters'] = { format: null, classKey: null, language: null, live: false, query: null, sort: 'active' };
+const page: StreamersPage = { live, streamers: [moquai, nohands], total: 226, offset: 0, filters };
 
 const streamerPage: StreamerPage = {
-  streamer: { ...nohands, description: null, facets: [
+  week: {
+    decks: 9, wins: 41, losses: 30,
+    archetypes: [
+      { archetype: 'Egg Priest', archetypeLabel: 'Жрец на яйцах', classKey: 'priest', format: 'standard', decks: 4, wins: 22, losses: 14 },
+      { archetype: 'Blood DK', archetypeLabel: 'Рыцарь смерти крови', classKey: 'deathknight', format: 'standard', decks: 3, wins: 12, losses: 11 },
+      { archetype: 'Big Spell Mage', archetypeLabel: 'Маг больших заклинаний', classKey: 'mage', format: 'wild', decks: 2, wins: 7, losses: 5 },
+    ],
+  },
+  streamer: { ...nohands, ladder: { rank: 105, region: 'US', mode: 'standard', current: false, seasonStart: '2026-09-01' }, description: null, facets: [
     { format: 'standard', classKey: 'priest', decks: 31 }, { format: 'standard', classKey: 'deathknight', decks: 11 }, { format: 'wild', classKey: 'mage', decks: 4 },
   ] },
   decks: [deck({}), deck({ deckId: 42563104, archetype: 'Blood DK', archetypeLabel: 'Рыцарь смерти крови', classKey: 'deathknight', peakRank: null, wins: 1, losses: 3, vodUrl: null })],
@@ -64,16 +76,29 @@ export const Catalog: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('heading', { name: 'Сейчас в эфире' })).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Вольный' }));
-    await expect(args.onFilters).toHaveBeenCalledWith({ format: 'wild', classKey: null });
-    await userEvent.click(canvas.getByRole('button', { name: 'На русском' }));
-    await expect(canvas.queryByText('MoquaiTV', { selector: '.streamers-live__name *' })).toBeNull();
+    await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Формат' }), 'wild');
+    await expect(args.onFilters).toHaveBeenCalledWith({ ...filters, format: 'wild' });
+    await userEvent.click(canvas.getByRole('button', { name: 'В эфире' }));
+    await expect(args.onFilters).toHaveBeenCalledWith({ ...filters, live: true });
+    await userEvent.type(canvas.getByRole('searchbox', { name: 'Поиск по нику' }), 'reqvam');
+    await waitFor(() => expect(args.onFilters).toHaveBeenCalledWith({ ...filters, query: 'reqvam' }));
+    await expect(canvas.getByText('место #105 · US')).toBeVisible();
   },
 };
 
 export const Filtering: Story = { args: { loading: true } };
 
-export const NothingFound: Story = { args: { page: { ...page, streamers: [], total: 0 }, live: [] } };
+export const NothingFound: Story = { args: { page: { ...page, streamers: [], total: 0, filters: { ...filters, query: 'nobody' } }, live: [] } };
+
+/** Только русские: эфиры без языка скрыты. */
+export const RussianOnly: Story = {
+  args: { page: { ...page, filters: { ...filters, language: 'ru' } } },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByText('MoquaiTV', { selector: '.streamers-live__name *' })).toBeNull();
+  },
+};
+
+export const Phone: Story = { parameters: { viewport: { defaultViewport: 'mobile1' } } };
 
 export const Streamer: Story = { render: () => <StreamerView page={streamerPage} loading={false} loadingMore={false} onFilters={fn()} onMore={fn()} /> };
 

@@ -59,11 +59,17 @@
 }
 
 .streamers-empty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
   margin: 0;
   padding: 1rem;
   color: var(--arena-muted-ink);
   font-size: var(--streamers-small);
 }
+
+.streamers-empty p { margin: 0; }
 
 .streamers-more {
   display: flex;
@@ -119,6 +125,58 @@
 
 .streamers-select select { min-width: 12rem; padding-right: 2rem; }
 
+/* Фильтры каталога одной строкой; на телефоне — сеткой в две колонки. */
+
+.streamers-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+
+.streamers-toolbar .streamers-select select { min-width: 0; }
+.streamers-toolbar__format select { width: 9.5rem; }
+.streamers-toolbar__class select { width: 11.5rem; }
+.streamers-toolbar__sort select { width: 10.5rem; }
+
+.streamers-search {
+  position: relative;
+  display: flex;
+  flex: 1 1 11rem;
+  align-items: center;
+  max-width: 16rem;
+}
+
+.streamers-search svg {
+  position: absolute;
+  left: 0.7rem;
+  width: 15px;
+  height: 15px;
+  color: var(--arena-muted-ink);
+  pointer-events: none;
+}
+
+.streamers-search input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 0.8rem 0 2.1rem;
+  border: var(--streamers-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.6);
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: var(--streamers-small);
+}
+
+.streamers-search input::placeholder { color: var(--arena-muted-ink); opacity: 1; }
+.streamers-search input:hover { border-color: rgba(84, 51, 22, 0.45); }
+
+.streamers-search input:focus-visible {
+  outline: 2px solid var(--arena-red);
+  outline-offset: 2px;
+}
+
 /* Сейчас в эфире. */
 
 .streamers-live {
@@ -149,6 +207,10 @@
 
 .streamers-live__thumb img,
 .streamers-live__thumb span { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* Эфир без превью: аватар канала по центру тёмной плашки. */
+.streamers-live__thumb .streamers-live__avatar { display: grid; place-items: center; }
+.streamers-live__avatar img { width: 56px; height: 56px; border-radius: 50%; }
 
 .streamers-live__name {
   overflow: hidden;
@@ -238,6 +300,21 @@
   font-family: var(--font-display);
 }
 
+/* Любимые классы, место в таблице лидеров и лучший ранг одной тихой строкой. */
+.streamers-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  margin: 0.45rem 0 0 calc(44px + 0.75rem);
+  color: var(--arena-muted-ink);
+  font-size: var(--streamers-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.streamers-card__classes { display: inline-flex; gap: 0.2rem; }
+.streamers-card__classes img { display: block; width: 20px; height: 20px; }
+
 .streamers-card__live {
   display: inline-flex;
   gap: 0.3rem;
@@ -287,7 +364,7 @@
 
 .streamers-deck {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 4.5rem 5.5rem 7.5rem 6rem auto;
+  grid-template-columns: 28px minmax(0, 1fr) 4.5rem 5.5rem 7.5rem 7.5rem auto;
   gap: 0.65rem;
   align-items: center;
   min-height: 52px;
@@ -347,6 +424,40 @@
 }
 
 .streamers-deck__watch svg { width: 15px; height: 15px; }
+.streamers-deck__watch small { color: var(--arena-muted-ink); font-size: var(--streamers-label); }
+
+/* За 7 дней. */
+
+.streamers-week__total {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: var(--streamers-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.streamers-week {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  column-gap: 2rem;
+  margin: 0;
+  padding: 0 1rem 0.5rem;
+  list-style: none;
+}
+
+.streamers-week__item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 52px;
+  border-top: var(--streamers-line);
+  color: var(--arena-ink);
+  font-size: var(--streamers-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.streamers-week__item img { width: 28px; height: 28px; }
+.streamers-week__record small { color: var(--arena-muted-ink); font-size: var(--streamers-label); }
 .streamers-deck__live { color: var(--arena-red) !important; font-weight: 700; }
 
 /* Код колоды: тихая иконка, «Скопировано» всплывает над ней. */
@@ -432,14 +543,27 @@
 
 .streamers-profile__live {
   display: grid;
-  gap: 0.25rem;
-  justify-items: start;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
   min-width: 0;
   padding-left: 1rem;
   border-left: var(--streamers-line);
   color: var(--arena-ink);
   text-decoration: none;
 }
+
+.streamers-profile__thumb {
+  display: block;
+  width: 160px;
+  height: 90px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: rgba(46, 22, 11, 0.85);
+}
+
+.streamers-profile__live-text { display: grid; gap: 0.25rem; justify-items: start; min-width: 0; }
+.streamers-profile__live:not(:has(img)) { grid-template-columns: minmax(0, 1fr); }
 
 .streamers-profile__live strong {
   display: -webkit-box;
@@ -469,6 +593,7 @@
 .streamers-skeleton__title { width: 14rem; height: 1.6rem; }
 .streamers-skeleton__avatar { width: 44px; height: 44px; border-radius: 50%; }
 .streamers-skeleton__row { grid-column: 1 / -1; width: 100%; height: 1.6rem; }
+.streamers-skeleton__toolbar { width: min(100%, 52rem); height: 42px; margin-top: 0.4rem; }
 
 @media (max-width: 1023px) {
   .streamers-deck { grid-template-columns: 28px minmax(0, 1fr) 4rem auto; }
@@ -498,4 +623,13 @@
   .streamers-deck[data-compact] { padding-inline: 0; }
   .streamers-select,
   .streamers-select select { width: 100%; }
+  .streamers-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .streamers-toolbar__language,
+  .streamers-search { grid-column: 1 / -1; max-width: none; }
+  .streamers-search { order: 1; }
+  .streamers-toolbar__language .streamers-chip { flex: 1; }
+  .streamers-toolbar .streamers-select select { width: 100%; }
+  .streamers-card__stats { margin-left: 0; }
+  .streamers-week { padding-inline: 0.75rem; }
+  .streamers-profile__thumb { width: 112px; height: 63px; }
 }

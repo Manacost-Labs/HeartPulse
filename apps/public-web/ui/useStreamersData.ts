@@ -1,18 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_STREAMER_FILTERS, streamerFilterQuery, type StreamerFilters } from '@/src/modules/streamers/public';
+import { streamerFilterQuery, type StreamerFilters } from '@/src/modules/streamers/public';
 import { fetchWithDeadline } from '@/src/shared/http/fetchWithDeadline';
 
-type Page = { total: number; offset: number; filters: StreamerFilters };
+type Page<F> = { total: number; offset: number; filters: F };
 
 /**
  * Страница `/api/streamers…` с фильтрами и «Показать ещё». Первый ответ
  * приходит из HTML; без него, при смене фильтра и при повторе браузер
  * читает сам. `merge` дописывает следующую порцию к уже показанной.
  */
-export function useStreamersData<T extends Page>({ path, initial, isPage, merge, shown }: {
+export function useStreamersData<F extends StreamerFilters, T extends Page<F>>({ path, defaults, initial, isPage, merge, shown }: {
   path: string;
+  /** Фильтры, пока первого ответа нет. */
+  defaults: F;
   initial: T | null;
   isPage: (value: unknown) => value is T;
   /** Показанная страница с дописанной следующей порцией. */
@@ -21,7 +23,7 @@ export function useStreamersData<T extends Page>({ path, initial, isPage, merge,
   shown: (page: T) => number;
 }) {
   const [page, setPage] = useState(initial);
-  const [filters, setFilters] = useState<StreamerFilters>(initial?.filters ?? DEFAULT_STREAMER_FILTERS);
+  const [filters, setFilters] = useState<F>(initial?.filters ?? defaults);
   const [loading, setLoading] = useState(!initial);
   const [loadingMore, setLoadingMore] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -67,7 +69,8 @@ export function useStreamersData<T extends Page>({ path, initial, isPage, merge,
 
   return {
     page, filters, loading, loadingMore, failed,
-    setFilters: (next: StreamerFilters) => setFilters(next),
+    // Загрузка видна в том же кадре, что и нажатый фильтр: старые строки не выдают себя за новый срез.
+    setFilters: (next: F) => { setLoading(true); setFilters(next); },
     more,
     retry: () => { setFailed(false); setAttempt(value => value + 1); },
   };

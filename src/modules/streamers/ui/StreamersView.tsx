@@ -1,14 +1,12 @@
 'use client';
 
-import { STREAMER_FORMAT_LABELS, formatCount, plural } from '../model/streamersView';
-import type { StreamerFilters as Filters, StreamersPage } from '../model/types';
+import { DEFAULT_STREAMERS_FILTERS, formatCount, plural } from '../model/streamersView';
+import type { StreamersFilters as Filters, StreamersPage } from '../model/types';
 import { LiveStreams } from './LiveStreams';
-import { STREAMER_CLASS_OPTIONS, StreamerCard } from './StreamerCard';
-import { StreamerFilters } from './StreamerFilters';
+import { StreamerCard } from './StreamerCard';
+import { StreamersToolbar } from './StreamersToolbar';
 import { StreamerCardsSkeleton } from './StreamersSkeleton';
 import './Streamers.css';
-
-const FORMAT_OPTIONS = (['standard', 'wild'] as const).map(value => ({ value, label: STREAMER_FORMAT_LABELS[value] }));
 
 export type StreamersViewProps = {
   page: StreamersPage;
@@ -21,22 +19,32 @@ export type StreamersViewProps = {
   onMore: () => void;
 };
 
+function isFiltered(filters: Filters): boolean {
+  return Boolean(filters.format || filters.classKey || filters.language || filters.live || filters.query);
+}
+
 /** «Стримеры»: кто в эфире и каталог стримеров HSGuru, игравших за месяц. */
 export function StreamersView({ page, live, loading, loadingMore, onFilters, onMore }: StreamersViewProps) {
   const total = formatCount(page.total) ?? '0';
+  const { filters } = page;
   return <>
-    <LiveStreams streams={live} />
+    <LiveStreams streams={live} russianOnly={filters.language === 'ru'} />
     <section className="streamers-section" aria-labelledby="streamers-catalog-title" aria-busy={loading || undefined}>
       <header className="streamers-section__heading">
         <h2 id="streamers-catalog-title">Стримеры и их колоды</h2>
         <p>{total} {plural(page.total, 'стример', 'стримера', 'стримеров')} с колодами на HSGuru за 30 дней.</p>
-        <StreamerFilters filters={page.filters} formats={FORMAT_OPTIONS} classes={STREAMER_CLASS_OPTIONS} onChange={onFilters} />
+        <StreamersToolbar filters={filters} onChange={onFilters} />
       </header>
       {loading
         ? <StreamerCardsSkeleton />
         : page.streamers.length
           ? <ul className="streamers-cards">{page.streamers.map(streamer => <StreamerCard key={streamer.slug} streamer={streamer} />)}</ul>
-          : <p className="streamers-empty">С такими колодами за месяц никто не играл.</p>}
+          : <div className="streamers-empty">
+            <p>{filters.query ? `Стримеров с ником «${filters.query}» не нашли.` : 'С такими фильтрами за месяц никто не играл.'}</p>
+            {isFiltered(filters)
+              ? <button type="button" className="streamers-chip" onClick={() => onFilters({ ...DEFAULT_STREAMERS_FILTERS, sort: filters.sort })}>Сбросить фильтры</button>
+              : null}
+          </div>}
       {!loading && page.streamers.length < page.total ? <div className="streamers-more">
         <button type="button" className="streamers-chip" onClick={onMore} disabled={loadingMore}>
           {loadingMore ? 'Загружаем…' : 'Показать ещё'}

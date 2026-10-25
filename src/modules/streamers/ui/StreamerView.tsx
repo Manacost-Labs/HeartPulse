@@ -2,13 +2,16 @@
 
 import { useMemo } from 'react';
 import { ChevronLeft, Radio } from 'lucide-react';
-import { formatCount, formatFollowers, formatLiveSince, formatViewers, plural, streamModeLabel, streamerFacetOptions } from '../model/streamersView';
+import {
+  formatCount, formatFollowers, formatLiveSince, formatViewers, ladderLabel, plural, streamModeLabel, streamerFacetOptions,
+} from '../model/streamersView';
 import type { StreamerFilters as Filters, StreamerPage } from '../model/types';
 import { StreamerAvatar } from './StreamerCard';
 import { StreamerDeckRow } from './StreamerDeckRow';
 import { StreamerFilters } from './StreamerFilters';
 import { StreamerLinks } from './StreamerLinks';
 import { StreamerDecksSkeleton } from './StreamersSkeleton';
+import { StreamerWeek } from './StreamerWeek';
 import './Streamers.css';
 
 export type StreamerViewProps = {
@@ -22,18 +25,26 @@ export type StreamerViewProps = {
 function StreamerHeader({ page }: { page: StreamerPage }) {
   const { streamer } = page;
   const live = streamer.live;
+  const ladder = ladderLabel(streamer.ladder);
   const facts = [formatFollowers(streamer.followers), `${formatCount(streamer.decksTotal)} ${plural(streamer.decksTotal, 'колода', 'колоды', 'колод')} на HSGuru`];
   return <header className="streamers-profile">
     <StreamerAvatar streamer={streamer} size={88} />
     <div className="streamers-profile__identity">
       <h1>{streamer.name}</h1>
-      <p className="streamers-profile__facts">{facts.filter(Boolean).join(' · ')}</p>
+      <p className="streamers-profile__facts">
+        {facts.filter(Boolean).join(' · ')}
+        {ladder ? <> · <span title={ladder.title}>таблица лидеров {ladder.text}</span></> : null}
+      </p>
       <StreamerLinks links={streamer.links} name={streamer.name} />
     </div>
-    {live ? <a className="streamers-profile__live" href={live.streamUrl} target="_blank" rel="noopener noreferrer nofollow">
-      <span className="streamers-badge"><Radio aria-hidden="true" /> В эфире</span>
-      {live.title ? <strong>{live.title}</strong> : null}
-      <small>{[formatViewers(live.viewers), streamModeLabel(live.mode), formatLiveSince(live.startedAt)].filter(Boolean).join(' · ')}</small>
+    {live ? <a className="streamers-profile__live" href={live.streamUrl} target="_blank" rel="noopener noreferrer nofollow"
+      aria-label={`Смотреть ${streamer.name} на Twitch`}>
+      {live.thumbnailUrl ? <img className="streamers-profile__thumb" src={live.thumbnailUrl} alt="" width="160" height="90" decoding="async" /> : null}
+      <span className="streamers-profile__live-text">
+        <span className="streamers-badge"><Radio aria-hidden="true" /> В эфире</span>
+        {live.title ? <strong>{live.title}</strong> : null}
+        <small>{[formatViewers(live.viewers), streamModeLabel(live.mode), formatLiveSince(live.startedAt)].filter(Boolean).join(' · ')}</small>
+      </span>
     </a> : null}
   </header>;
 }
@@ -47,6 +58,7 @@ export function StreamerView({ page, loading, loadingMore, onFilters, onMore }: 
       <a href="/streamers/"><ChevronLeft aria-hidden="true" /> Стримеры</a>
     </nav>
     <StreamerHeader page={page} />
+    {page.week ? <StreamerWeek week={page.week} /> : null}
     <section className="streamers-section" aria-labelledby="streamer-decks-title" aria-busy={loading || undefined}>
       <header className="streamers-section__heading">
         <h2 id="streamer-decks-title">Колоды</h2>

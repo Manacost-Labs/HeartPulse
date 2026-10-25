@@ -43,6 +43,7 @@ export function StreamersSkeleton() {
       <div className="streamers-section__heading">
         <LoadingBlock className="streamers-skeleton__title" />
         <LoadingBlock className="streamers-skeleton__line streamers-skeleton__line--short" />
+        <LoadingBlock className="streamers-skeleton__toolbar" />
       </div>
       <StreamerCardsSkeleton count={4} />
     </div>

@@ -1,0 +1,239 @@
+{
+ "playersNoHandsGamer": {
+  "data": [
+   {
+    "region": "AP",
+    "name": "NoHandsGamer",
+    "current": []
+   },
+   {
+    "region": "EU",
+    "name": "NoHandsGamer",
+    "current": []
+   },
+   {
+    "region": "US",
+    "name": "NoHandsGamer",
+    "current": []
+   }
+  ],
+  "meta": {
+   "source_id": "blizzard_leaderboards",
+   "stale": false,
+   "count": 3,
+   "limit": 10
+  }
+ },
+ "playersRamses": {
+  "data": [
+   {
+    "region": "EU",
+    "name": "Ramses",
+    "current": []
+   },
+   {
+    "region": "US",
+    "name": "Ramses",
+    "current": []
+   }
+  ],
+  "meta": {
+   "source_id": "blizzard_leaderboards",
+   "stale": false,
+   "count": 2,
+   "limit": 10
+  }
+ },
+ "playerUS": {
+  "data": {
+   "player": {
+    "region": "US",
+    "name": "NoHandsGamer"
+   },
+   "shared_name": false,
+   "seasons": [
+    {
+     "mode": "standard",
+     "season_id": 155,
+     "season_start": "2026-09-01",
+     "is_latest": false,
+     "final": true,
+     "rated": false,
+     "best_rank": 105,
+     "best_day": "2026-10-25",
+     "last_rank": 105,
+     "last_rating": null,
+     "last_day": "2026-10-25",
+     "in_latest_snapshot": true,
+     "days": 1,
+     "series": [
+      {
+       "day": "2026-10-25",
+       "rank": 105,
+       "rating": null,
+       "total_size": 12761,
+       "final": true
+      }
+     ]
+    },
+    {
+     "mode": "standard",
+     "season_id": 154,
+     "season_start": "2026-08-01",
+     "is_latest": false,
+     "final": true,
+     "rated": false,
+     "best_rank": 64,
+     "best_day": "2026-10-25",
+     "last_rank": 64,
+     "last_rating": null,
+     "last_day": "2026-10-25",
+     "in_latest_snapshot": true,
+     "days": 1,
+     "series": [
+      {
+       "day": "2026-10-25",
+       "rank": 64,
+       "rating": null,
+       "total_size": 14766,
+       "final": true
+      }
+     ]
+    }
+   ]
+  },
+  "meta": {
+   "source_id": "blizzard_leaderboards",
+   "stale": false,
+   "count": 3
+  }
+ },
+ "playerEU": {
+  "data": {
+   "player": {
+    "region": "EU",
+    "name": "NoHandsGamer"
+   },
+   "shared_name": false,
+   "seasons": [
+    {
+     "mode": "standard",
+     "season_id": 155,
+     "season_start": "2026-09-01",
+     "is_latest": false,
+     "final": true,
+     "rated": false,
+     "best_rank": 209,
+     "best_day": "2026-10-25",
+     "last_rank": 209,
+     "last_rating": null,
+     "last_day": "2026-10-25",
+     "in_latest_snapshot": true,
+     "days": 1,
+     "series": [
+      {
+       "day": "2026-10-25",
+       "rank": 209,
+       "rating": null,
+       "total_size": 23663,
+       "final": true
+      }
+     ]
+    },
+    {
+     "mode": "standard",
+     "season_id": 154,
+     "season_start": "2026-08-01",
+     "is_latest": false,
+     "final": true,
+     "rated": false,
+     "best_rank": 31,
+     "best_day": "2026-10-25",
+     "last_rank": 31,
+     "last_rating": null,
+     "last_day": "2026-10-25",
+     "in_latest_snapshot": true,
+     "days": 1,
+     "series": [
+      {
+       "day": "2026-10-25",
+       "rank": 31,
+       "rating": null,
+       "total_size": 26190,
+       "final": true
+      }
+     ]
+    }
+   ]
+  },
+  "meta": {
+   "source_id": "blizzard_leaderboards",
+   "stale": false,
+   "count": 3
+  }
+ },
+ "playerAP": {
+  "data": {
+   "player": {
+    "region": "AP",
+    "name": "NoHandsGamer"
+   },
+   "shared_name": false,
+   "seasons": [
+    {
+     "mode": "standard",
+     "season_id": 155,
+     "season_start": "2026-09-01",
+     "is_latest": false,
+     "final": true,
+     "rated": false,
+     "best_rank": 66,
+     "best_day": "2026-10-25",
+     "last_rank": 66,
+     "last_rating": null,
+     "last_day": "2026-10-25",
+     "in_latest_snapshot": true,
+     "days": 1,
+     "series": [
+      {
+       "day": "2026-10-25",
+       "rank": 66,
+       "rating": null,
+       "total_size": 11969,
+       "final": true
+      }
+     ]
+    },
+    {
+     "mode": "standard",
+     "season_id": 154,
+     "season_start": "2026-08-01",
+     "is_latest": false,
+     "final": true,
+     "rated": false,
+     "best_rank": 358,
+     "best_day": "2026-10-25",
+     "last_rank": 358,
+     "last_rating": null,
+     "last_day": "2026-10-25",
+     "in_latest_snapshot": true,
+     "days": 1,
+     "series": [
+      {
+       "day": "2026-10-25",
+       "rank": 358,
+       "rating": null,
+       "total_size": 13689,
+       "final": true
+      }
+     ]
+    }
+   ]
+  },
+  "meta": {
+   "source_id": "blizzard_leaderboards",
+   "stale": false,
+   "count": 3
+  }
+ }
+}

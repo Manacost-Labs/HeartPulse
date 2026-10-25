@@ -50,6 +50,10 @@ export function safeUrl(value: unknown, hosts: readonly string[]): string | null
   }
 }
 
+function language(value: unknown): string | null {
+  return typeof value === 'string' && /^[a-z]{2}$/.test(value) ? value : null;
+}
+
 export function streamerFormat(value: unknown): StreamerFormat | null {
   return FORMATS.find(format => format === value) ?? null;
 }
@@ -115,8 +119,9 @@ export function parseSummary(value: unknown, nameArchetype: ArchetypeNamer): Str
   if (!slug || !name) return null;
   return {
     slug, name, avatarUrl: safeUrl(streamer.avatar_url, IMAGE_HOSTS), followers: count(streamer.followers),
+    language: language(streamer.language),
     links: links(streamer), live: parseLive(streamer.live), decksTotal: count(streamer.decks_total) ?? 0,
-    lastPlayedAt: isoDate(streamer.last_played_at),
+    lastPlayedAt: isoDate(streamer.last_played_at), bestRank: count(record(streamer.window).best_rank) || null, ladder: null,
     recentDecks: (Array.isArray(streamer.recent_decks) ? streamer.recent_decks : [])
       .map(deck => parseDeck(deck, nameArchetype)).filter((deck): deck is StreamerDeck => deck !== null),
   };
@@ -146,7 +151,7 @@ export function parseLiveStream(value: unknown, nameArchetype: ArchetypeNamer): 
   const known = record(stream.streamer);
   return {
     login, name, slug: streamerSlug(known.slug), avatarUrl: safeUrl(known.avatar_url, IMAGE_HOSTS),
-    language: typeof stream.language === 'string' && /^[a-z]{2}$/.test(stream.language) ? stream.language : null,
+    language: language(stream.language),
     live, deck: parseDeck(stream.current_deck, nameArchetype),
   };
 }

@@ -1,4 +1,6 @@
-import type { LiveStream, StreamerDeck, StreamerFacet, StreamerFilters, StreamerFormat, StreamerPage, StreamersPage } from './types';
+import type {
+  LiveStream, StreamerDeck, StreamerFacet, StreamerFilters, StreamerFormat, StreamerLadder, StreamerPage, StreamersFilters, StreamersPage,
+} from './types';
 
 export const STREAMER_CLASS_LABELS: Readonly<Record<string, string>> = {
   deathknight: 'Рыцарь смерти', demonhunter: 'Охотник на демонов', druid: 'Друид', hunter: 'Охотник', mage: 'Маг',
@@ -15,6 +17,7 @@ const MODE_LABELS: Readonly<Record<string, string>> = {
 };
 
 export const DEFAULT_STREAMER_FILTERS: StreamerFilters = { format: null, classKey: null };
+export const DEFAULT_STREAMERS_FILTERS: StreamersFilters = { ...DEFAULT_STREAMER_FILTERS, language: null, live: false, query: null, sort: 'active' };
 /** Эфиров на экране до «Показать все». */
 export const LIVE_PREVIEW_COUNT = 8;
 
@@ -89,6 +92,54 @@ export function distinctRecentDecks(decks: StreamerDeck[], limit = 3): StreamerD
   }).slice(0, limit);
 }
 
+/** Два-три класса, которыми стример играет чаще всего среди последних колод. */
+export function favoriteClasses(decks: Pick<StreamerDeck, 'classKey'>[], limit = 3): string[] {
+  const counts = new Map<string, number>();
+  for (const deck of decks) if (deck.classKey) counts.set(deck.classKey, (counts.get(deck.classKey) ?? 0) + 1);
+  // Map хранит порядок первой встречи: при равенстве выше класс более свежей колоды.
+  return [...counts].sort((left, right) => right[1] - left[1]).slice(0, limit).map(([classKey]) => classKey);
+}
+
+/** Лучший ранг в карточке, если его ещё не видно в строках колод (одно число — один раз). */
+export function cardBestRank(bestRank: number | null, shown: Pick<StreamerDeck, 'peakRank'>[]): string | null {
+  return bestRank && !shown.some(deck => deck.peakRank === bestRank) ? `#${NUMBER.format(bestRank)}` : null;
+}
+
+const MONTH = new Intl.DateTimeFormat('ru-RU', { month: 'long', timeZone: 'UTC' });
+
+/** «#457 · EU» и подсказка: текущий сезон или итог прошлого («сентябрь»). */
+export function ladderLabel(ladder: StreamerLadder | null): { text: string; title: string } | null {
+  if (!ladder) return null;
+  const mode = ladder.mode === 'wild' ? 'Вольный' : 'Стандарт';
+  const text = `#${NUMBER.format(ladder.rank)} · ${ladder.region}`;
+  if (ladder.current) return { text, title: `Место сейчас в таблице лидеров Blizzard, ${mode}, ${ladder.region}` };
+  const month = ladder.seasonStart ? MONTH.format(new Date(`${ladder.seasonStart}T00:00:00Z`)) : null;
+  return {
+    text: month ? `${text} · ${month}` : text,
+    title: `Итоговое место в таблице лидеров Blizzard${month ? ` за ${month}` : ''}, ${mode}, ${ladder.region}`,
+  };
+}
+
+/** «5:41:20» из ссылки на запись `?t=5h41m20s`. */
+export function vodTimecode(url: string): string | null {
+  let raw: string | null;
+  try {
+    raw = new URL(url).searchParams.get('t');
+  } catch {
+    return null;
+  }
+  const match = raw ? /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(raw) : null;
+  if (!match || !raw) return null;
+  const [hours, minutes, seconds] = match.slice(1).map(part => Number(part ?? 0));
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return hours ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+}
+
+/** Поиск по нику: только символы, которые принимает `/api/streamers?q=`, не длиннее 40. */
+export function streamerSearchQuery(text: string): string | null {
+  return text.replace(/[^\p{L}\p{N} _.-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 40).trim() || null;
+}
+
 /** Русские эфиры, если зритель попросил только их. */
 export function visibleLiveStreams(streams: LiveStream[], russianOnly: boolean): LiveStream[] {
   return russianOnly ? streams.filter(stream => stream.language === 'ru') : streams;
@@ -115,11 +166,15 @@ export function streamerFacetOptions(facets: StreamerFacet[], filters: StreamerF
   return { formats: formatOptions, classes: classOptions };
 }
 
-/** Строка запроса фильтров для `/api/streamers*`. */
-export function streamerFilterQuery(filters: StreamerFilters, offset = 0): string {
+/** Строка запроса фильтров для `/api/streamers*`; значения по умолчанию не пишутся. */
+export function streamerFilterQuery(filters: StreamerFilters & Partial<StreamersFilters>, offset = 0): string {
   const query = new URLSearchParams();
   if (filters.format) query.set('format', filters.format);
   if (filters.classKey) query.set('class', filters.classKey);
+  if (filters.language) query.set('lang', filters.language);
+  if (filters.live) query.set('live', '1');
+  if (filters.query) query.set('q', filters.query);
+  if (filters.sort && filters.sort !== 'active') query.set('sort', filters.sort);
   if (offset) query.set('offset', String(offset));
   const text = query.toString();
   return text ? `?${text}` : '';
