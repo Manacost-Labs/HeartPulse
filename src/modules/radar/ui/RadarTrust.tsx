@@ -1,4 +1,3 @@
-import { History, Target } from 'lucide-react';
 import { pluralRu } from '../../../shared/text/pluralRu';
 import { formatRadarCount, formatRadarDate, type RadarBacktest, type RadarReport } from '../model/radarView';
 import { RadarMore } from './RadarMore';
@@ -15,10 +14,8 @@ const SIDES = [
  */
 export function RadarTrust({ backtest }: { backtest: RadarBacktest | null }) {
   if (!backtest) return null;
-  const tops = [...new Set([...backtest.nerf, ...backtest.buff].map(cell => cell.top))].sort((a, b) => a - b);
   return <section className="radar-section" aria-labelledby="radar-trust-title">
     <header className="radar-section__heading">
-      <span className="radar-section__eyebrow"><Target aria-hidden="true" /> Проверка прогноза</span>
       <h2 id="radar-trust-title">Насколько радар точен</h2>
       <p>
         {backtest.text ?? <>
@@ -28,25 +25,16 @@ export function RadarTrust({ backtest }: { backtest: RadarBacktest | null }) {
       </p>
     </header>
     <div className="radar-section__body">
-      <table className="radar-trust">
-        <caption className="sr-only">Попадания радара в настоящие правки прошлых патчей</caption>
-        <thead><tr><th scope="col">Правки</th>{tops.map(top => <th key={top} scope="col">в первых {top}</th>)}</tr></thead>
-        <tbody>
-          {SIDES.map(side => {
-            const cells = backtest[side.key];
-            if (!cells.length) return null;
-            return <tr key={side.key}>
-              <th scope="row">{side.title}</th>
-              {tops.map(top => {
-                const cell = cells.find(item => item.top === top);
-                return <td key={top}>
-                  {cell ? <b>{cell.hits} из {cell.actual}</b> : '—'}
-                </td>;
-              })}
-            </tr>;
-          })}
-        </tbody>
-      </table>
+      <ul className="radar-trust">
+        {SIDES.map(side => {
+          const cells = backtest[side.key];
+          if (!cells.length) return null;
+          return <li key={side.key}>
+            <span className="radar-label">{side.title}</span>
+            <span>{cells.map(cell => `в первых ${cell.top}: ${cell.hits} из ${cell.actual}`).join(' · ')}</span>
+          </li>;
+        })}
+      </ul>
       <p className="radar-trust__note">
         {backtest.basis === 'model'
           ? backtest.caveat ?? 'Модель могла видеть часть этих патчноутов при обучении, поэтому её цифры — оценка сверху.'
@@ -66,7 +54,6 @@ export function RadarPatterns({ history }: { history: RadarReport['history'] }) 
   ].filter(Boolean).join(' ');
   return <section className="radar-section" aria-labelledby="radar-patterns-title">
     <header className="radar-section__heading">
-      <span className="radar-section__eyebrow"><History aria-hidden="true" /> История патчей</span>
       <h2 id="radar-patterns-title">Закономерности Blizzard</h2>
       <p>Как разработчики меняли баланс раньше: на это опирается прогноз{coverage && ` (разобрано ${coverage})`}.</p>
     </header>

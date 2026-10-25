@@ -46,12 +46,17 @@ export function parsePost(value: unknown): RadarPost | null {
   if (!url) return null;
   const kind = row.kind === 'comment' || row.kind === 'tweet' ? row.kind : 'post';
   // Оригинальный текст (обычно английский) на страницу не попадает: только перевод hs-data-api.
+  // Коды колод (длинные base64-строки) в карточке поста нечитаемы и рвут вёрстку.
   const translation = record(row.translation);
+  const clean = (value: string | null) => {
+    const result = value?.replace(/\bAA[A-Za-z0-9+/]{20,}={0,2}/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    return result || null;
+  };
   return {
     source, kind, url, author: text(row.author, 80) ?? 'аноним', score: Math.round(finite(row.score) ?? 0),
     comments: count(row.comments),
-    title: text(row.titleRu ?? translation?.title, 300),
-    text: text(row.textRu ?? row.excerptRu ?? translation?.text ?? translation?.excerpt, 1200),
+    title: clean(text(row.titleRu ?? translation?.title, 300)),
+    text: clean(text(row.textRu ?? row.excerptRu ?? translation?.text ?? translation?.excerpt, 1200)),
     community: text(row.community, 80),
     publishedAt: date(row.createdAt ?? row.publishedAt), official: row.official === true,
   };

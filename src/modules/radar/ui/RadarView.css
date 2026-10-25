@@ -1,14 +1,40 @@
-/* Радар нерфов и баффов. Рамка и заголовок раздела — шаблон раздела
-   страницы (design.md); красный — ослабление, зелёный таблицы меты
-   (#326233) — усиление. Карточка кандидата короткая: подробности
-   раскрываются под «Подробнее». */
+/* Радар нерфов и баффов. Спокойная подача: одна типографическая шкала
+   (--radar-text*), один акцентный цвет (--radar-accent: уверенность,
+   выбранные фильтры, ссылки-переключатели), подписи одного стиля
+   (.radar-label), приглушённые пояснения (.radar-muted) и единые отступы
+   (--radar-gap). Рамка раздела — шаблон раздела страницы (design.md). */
 
 .radar-page {
-  --radar-nerf: var(--arena-red);
-  --radar-buff: #326233;
-  --radar-even: #8b611b;
-  --radar-weak: #8c2730;
+  --radar-accent: var(--arena-red);
+  --radar-track: rgba(84, 51, 22, 0.14);
+  --radar-text: 0.9rem;
+  --radar-text-small: 0.78rem;
+  --radar-text-label: 0.6875rem;
+  --radar-text-title: 1.15rem;
+  --radar-gap: 0.75rem;
+  --radar-line: 1px solid var(--arena-paper-line);
 }
+
+.radar-label {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: var(--radar-text-label);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.radar-muted { color: var(--arena-muted-ink); font-size: var(--radar-text-small); }
+
+.radar-meter {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--radar-track);
+}
+
+.radar-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--radar-accent); }
 
 .radar-note {
   display: flex;
@@ -16,18 +42,14 @@
   align-items: center;
   margin: 0;
   color: var(--arena-muted-ink);
-  font-size: 0.8rem;
+  font-size: var(--radar-text-small);
   line-height: 1.45;
 }
 
 .radar-note b { color: var(--arena-ink); }
+.radar-note svg { flex: none; width: 15px; height: 15px; color: var(--arena-muted-ink); }
 
-.radar-note svg {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  color: var(--arena-red);
-}
+/* Раздел страницы. */
 
 .radar-section {
   margin-top: 1rem;
@@ -39,157 +61,145 @@
 }
 
 .radar-section__heading {
-  padding: 1rem;
-  border-bottom: 1px solid var(--arena-paper-line);
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: var(--radar-line);
 }
-
-.radar-section__eyebrow {
-  display: inline-flex;
-  gap: 0.35rem;
-  align-items: center;
-  color: var(--arena-red);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.radar-section__eyebrow svg { width: 14px; height: 14px; }
 
 .radar-section__heading h2 {
-  margin: 0.2rem 0 0;
+  margin: 0;
   color: var(--arena-ink);
   font-family: var(--font-display);
-  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
 }
 
 .radar-section__heading p {
   max-width: 740px;
-  margin: 0.35rem 0 0;
+  margin: 0.3rem 0 0;
   color: var(--arena-muted-ink);
-  font-size: 0.78rem;
+  font-size: var(--radar-text-small);
   line-height: 1.5;
 }
 
 .radar-section__heading p a { color: inherit; text-underline-offset: 2px; }
 .radar-section__body { padding: 1rem; }
 
-.radar-summary__text {
-  display: grid;
-  gap: 0.6rem;
-  max-width: 78ch;
-  color: var(--arena-ink);
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.radar-summary__text p { margin: 0; }
-
-.radar-summary__timing { color: var(--arena-muted-ink); font-size: 0.86rem; }
-.radar-summary__timing b { color: var(--arena-ink); font-variant-numeric: tabular-nums; }
-
-/* «С прошлого прогона»: группы без рамок, только линия между ними. */
-
-.radar-changes {
-  padding: 0.75rem 1rem 1rem;
-  border-top: 1px solid var(--arena-paper-line);
-}
-
-.radar-changes__title {
-  margin: 0 0 0.5rem;
-  color: var(--arena-ink);
-  font-family: var(--font-display);
-  font-size: 1rem;
-}
-
-.radar-changes__title span { color: var(--arena-muted-ink); font-family: var(--font-body); font-size: 0.75rem; }
-
-.radar-changes__groups {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.5rem 1.25rem;
-}
-
-.radar-changes__group h4 {
-  margin: 0 0 0.25rem;
-  color: var(--arena-muted-ink);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.radar-changes__group ul {
-  display: grid;
-  gap: 0.2rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.radar-changes__group li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: 0.5rem;
-  font-size: 0.84rem;
-  line-height: 1.35;
-}
-
-.radar-changes__name { overflow: hidden; color: var(--arena-ink); text-overflow: ellipsis; white-space: nowrap; }
-.radar-changes__meta { grid-column: 1; color: var(--arena-muted-ink); font-size: 0.72rem; }
-
-.radar-changes__value {
-  grid-row: 1 / span 2;
-  grid-column: 2;
-  align-self: center;
-  color: var(--arena-ink);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.radar-changes__value[data-tone='up'] { color: var(--radar-nerf); }
-.radar-changes__value[data-tone='down'] { color: var(--arena-muted-ink); }
-
-/* «Подробнее»: одна текстовая кнопка со стрелкой по всей странице. */
+/* «Подробнее» и другие переключатели — один вид по всей странице. */
 
 .radar-more > summary {
   display: inline-flex;
   gap: 0.3rem;
   align-items: center;
   min-height: 42px;
-  color: var(--arena-red);
-  font-size: 0.82rem;
+  color: var(--radar-accent);
+  font-size: var(--radar-text-small);
   font-weight: 700;
   list-style: none;
   cursor: pointer;
 }
 
 .radar-more > summary::-webkit-details-marker { display: none; }
-.radar-more > summary svg { width: 16px; height: 16px; transition: transform var(--motion-fast) var(--motion-ease); }
+.radar-more > summary svg { width: 15px; height: 15px; transition: transform var(--motion-fast) var(--motion-ease); }
 .radar-more[open] > summary svg { transform: rotate(180deg); }
 .radar-more > summary:hover span { text-decoration: underline; text-underline-offset: 3px; }
-
-.radar-more > summary:focus-visible {
-  border-radius: 4px;
-  outline: 2px solid var(--arena-red);
-  outline-offset: 2px;
-}
+.radar-more > summary:focus-visible { border-radius: 4px; outline: 2px solid var(--radar-accent); outline-offset: 2px; }
 
 .radar-more__body {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--radar-gap);
+  max-width: 78ch;
   padding-bottom: 0.25rem;
+  color: var(--arena-ink);
+  font-size: var(--radar-text);
+  line-height: 1.55;
 }
 
 .radar-more__body p { margin: 0; }
+
+/* Верх: вывод и главные кандидаты. */
+
+.radar-summary__body { display: grid; gap: var(--radar-gap); }
+
+.radar-summary__lead {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--arena-ink);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.radar-top { display: grid; gap: 0.35rem; }
+
+.radar-top ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.radar-top button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.15rem 0.75rem;
+  width: 100%;
+  min-height: 42px;
+  padding: 0.6rem 0.75rem;
+  border: var(--radar-line);
+  border-radius: 6px;
+  background: rgba(250, 235, 197, 0.55);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-ease);
+}
+
+.radar-top button:hover { border-color: rgba(84, 51, 22, 0.45); }
+.radar-top button:focus-visible { outline: 2px solid var(--radar-accent); outline-offset: 2px; }
+.radar-top__name { overflow: hidden; color: var(--arena-ink); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+
+.radar-top__value {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: var(--radar-text-title);
+  font-variant-numeric: tabular-nums;
+}
+
+.radar-top .radar-meter { grid-column: 1 / -1; margin-top: 0.3rem; }
+.radar-summary__more { display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
+.radar-summary__more > .radar-more[open] { flex-basis: 100%; }
+
+.radar-changes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--radar-gap) 1.25rem;
+}
+
+.radar-changes ul { display: grid; gap: 0.25rem; margin: 0.3rem 0 0; padding: 0; list-style: none; }
+
+.radar-changes li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.5rem;
+  font-size: var(--radar-text-small);
+  line-height: 1.35;
+}
+
+.radar-changes li > span:first-child { overflow: hidden; color: var(--arena-ink); text-overflow: ellipsis; white-space: nowrap; }
+.radar-changes li .radar-muted { grid-column: 1; font-size: var(--radar-text-label); }
+.radar-changes li b { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-variant-numeric: tabular-nums; }
 
 /* Переключатель разделов и фильтры. */
 
 .radar-board__bar {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--radar-gap);
   padding: 1rem;
-  border-bottom: 1px solid var(--arena-paper-line);
+  border-bottom: var(--radar-line);
 }
 
 .radar-tabs {
@@ -197,7 +207,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.25rem;
   padding: 0.25rem;
-  border: 1px solid var(--arena-paper-line);
+  border: var(--radar-line);
   border-radius: 8px;
   background: rgba(84, 51, 22, 0.06);
 }
@@ -214,12 +224,10 @@
   background: transparent;
   color: var(--arena-muted-ink);
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
-
-.radar-tab svg { width: 18px; height: 18px; }
 
 .radar-tab[aria-selected='true'] {
   background: var(--arena-parchment-light);
@@ -227,15 +235,12 @@
   color: var(--arena-ink);
 }
 
-.radar-tab[aria-selected='true'][data-direction='nerfs'] svg { color: var(--radar-nerf); }
-.radar-tab[aria-selected='true'][data-direction='buffs'] svg { color: var(--radar-buff); }
-
 .radar-tab:focus-visible,
 .radar-chip:focus-visible,
 .radar-select:focus-visible,
 .radar-candidate__identity:focus-visible,
 .radar-post:focus-visible {
-  outline: 2px solid var(--arena-red);
+  outline: 2px solid var(--radar-accent);
   outline-offset: 2px;
 }
 
@@ -245,7 +250,7 @@
   border-radius: 999px;
   background: rgba(84, 51, 22, 0.12);
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: var(--radar-text-label);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.5rem;
@@ -267,28 +272,24 @@
 
 .radar-filter__label {
   color: var(--arena-muted-ink);
-  font-size: 0.7rem;
+  font-size: var(--radar-text-label);
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.radar-chips {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
+.radar-chips { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
 
 .radar-chip,
 .radar-select {
   min-height: 42px;
   padding: 0 0.8rem;
-  border: 1px solid var(--arena-paper-line);
+  border: var(--radar-line);
   border-radius: 6px;
   background: rgba(250, 235, 197, 0.6);
   color: var(--arena-ink);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--radar-text-small);
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
 }
@@ -297,42 +298,38 @@
 .radar-select:hover { border-color: rgba(84, 51, 22, 0.45); }
 
 .radar-chip[aria-pressed='true'] {
-  border-color: var(--arena-red);
-  background: var(--arena-red);
+  border-color: var(--radar-accent);
+  background: var(--radar-accent);
   color: #fff4dc;
 }
 
 .radar-select { padding-right: 2rem; }
 
+/* Список кандидатов. */
+
 .radar-board__panel { padding: 0 1rem; }
 
-.radar-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
+.radar-list { margin: 0; padding: 0; list-style: none; }
 .radar-list > li + li,
-.radar-list > .radar-candidate + .radar-candidate { border-top: 1px solid var(--arena-paper-line); }
-
-/* Кандидат: шапка, «почему», возможное изменение, «Подробнее». */
+.radar-list > .radar-candidate + .radar-candidate { border-top: var(--radar-line); }
 
 .radar-candidate {
   display: grid;
-  gap: 0.4rem;
-  padding: 1rem 0 0.5rem;
+  gap: 0.35rem;
+  padding: 1rem 0 0.4rem;
+  scroll-margin-top: 5rem;
 }
 
 .radar-candidate__head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(10rem, 13rem);
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 12rem);
   gap: 1rem;
   align-items: center;
 }
 
 .radar-candidate__identity {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.7rem;
   align-items: center;
   min-width: 0;
   border-radius: 6px;
@@ -340,438 +337,111 @@
   text-decoration: none;
 }
 
-a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
-.radar-candidate__identity:focus-visible { outline: 2px solid var(--arena-red); outline-offset: 2px; }
+a.radar-candidate__identity:hover h3 { color: var(--radar-accent); }
 .radar-candidate__art { flex: none; }
-
-.radar-candidate__art[data-kind='card'] {
-  width: 56px;
-  height: auto;
-  aspect-ratio: 360 / 497;
-}
+.radar-candidate__art[data-kind='card'] { width: 48px; height: auto; aspect-ratio: 360 / 497; }
 
 .radar-candidate__art[data-kind='archetype'],
 .radar-candidate__art[data-kind='class'] {
-  width: 40px;
-  height: 40px;
-  margin-inline: 8px;
+  width: 36px;
+  height: 36px;
+  margin-inline: 6px;
   border-radius: 50%;
 }
 
-.radar-candidate__names {
-  display: grid;
-  gap: 0.15rem;
-  min-width: 0;
-}
+.radar-candidate__names { display: grid; gap: 0.1rem; min-width: 0; }
 
 .radar-candidate__names h3 {
   margin: 0;
   color: var(--arena-ink);
   font-family: var(--font-display);
-  font-size: clamp(1.1rem, 2vw, 1.3rem);
-  line-height: 1.15;
+  font-size: var(--radar-text-title);
+  line-height: 1.2;
   overflow-wrap: anywhere;
   transition: color var(--motion-fast) var(--motion-ease);
 }
 
-.radar-candidate__meta {
-  color: var(--arena-muted-ink);
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
-.radar-candidate__meta img {
-  display: inline-block;
-  margin-right: 0.3rem;
-  vertical-align: -3px;
-}
+.radar-candidate__names .radar-muted img { display: inline-block; margin-right: 0.3rem; vertical-align: -2px; }
 
 .radar-confidence { display: grid; gap: 0.3rem; }
-
-.radar-confidence__head {
-  display: flex;
-  gap: 0.4rem;
-  align-items: baseline;
-}
+.radar-confidence__head { display: flex; gap: 0.45rem; align-items: baseline; justify-content: space-between; }
 
 .radar-confidence__value {
   color: var(--arena-ink);
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: var(--radar-text-title);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
-.radar-confidence__value small {
-  margin-left: 0.1rem;
-  color: var(--arena-muted-ink);
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-}
+.radar-confidence[data-level='low'] .radar-meter > span { opacity: 0.55; }
 
-.radar-confidence__change {
-  color: var(--arena-muted-ink);
-  font-size: 0.72rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.radar-confidence__change[data-tone='new'] {
-  color: var(--arena-red);
-  font-weight: 700;
-}
-
-.radar-confidence__label {
-  margin-left: auto;
-  color: var(--arena-muted-ink);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.radar-confidence__track {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(84, 51, 22, 0.14);
-}
-
-.radar-confidence__fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--radar-nerf);
-}
-
-.radar-confidence__track[data-direction='buffs'] .radar-confidence__fill { background: var(--radar-buff); }
-.radar-confidence[data-level='low'] .radar-confidence__fill { opacity: 0.55; }
-
-.radar-candidate__why,
-.radar-candidate__verdict {
+.radar-candidate__why {
   max-width: 82ch;
   margin: 0;
   color: var(--arena-ink);
-  font-size: 0.92rem;
-  line-height: 1.55;
+  font-size: var(--radar-text);
+  line-height: 1.5;
 }
 
 .radar-candidate__change {
   display: flex;
-  gap: 0.45rem;
-  align-items: flex-start;
-  max-width: 82ch;
-  margin: 0;
-  color: var(--arena-ink);
-  font-size: 0.86rem;
-  line-height: 1.5;
-}
-
-.radar-candidate__change svg {
-  flex: none;
-  width: 15px;
-  height: 15px;
-  margin-top: 0.2rem;
-  color: var(--arena-muted-ink);
-}
-
-/* Вероятная правка: значки «было → станет» для стоимости и характеристик. */
-
-.radar-stat-change { white-space: nowrap; }
-
-.radar-stat {
-  display: inline-grid;
-  min-width: 1.45rem;
-  height: 1.45rem;
-  place-items: center;
-  margin-inline: 0.1rem;
-  border-radius: 50%;
-  background: #2f5b9b;
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.radar-stat-change[data-field='attack'] .radar-stat { background: #b0802a; }
-.radar-stat-change[data-field='health'] .radar-stat { background: #9c2b2b; }
-.radar-stat-change[data-field='durability'] .radar-stat,
-.radar-stat-change[data-field='armor'] .radar-stat { background: #5d6a73; }
-.radar-stat--after { box-shadow: 0 0 0 2px var(--arena-gold-light); }
-.radar-candidate__chance { color: var(--arena-muted-ink); }
-
-/* Блоки под «Подробнее»: заголовок, затем одно содержимое. */
-
-.radar-candidate__more .radar-more__body { gap: 1rem; }
-
-.radar-block {
-  display: grid;
-  gap: 0.45rem;
-  min-width: 0;
-}
-
-.radar-block__title {
-  display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 0.6rem;
+  gap: 0.1rem 0.6rem;
   align-items: baseline;
   margin: 0;
   color: var(--arena-ink);
-  font-family: var(--font-display);
-  font-size: 0.98rem;
+  font-size: var(--radar-text);
+  line-height: 1.5;
 }
 
-.radar-block__title span {
-  color: var(--arena-muted-ink);
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-}
+.radar-candidate__more .radar-more__body { gap: 1rem; max-width: none; }
 
-/* Цифры чипами. */
+/* Подробности: одинаковые секции «подпись + содержимое». */
 
-.radar-facts { display: grid; gap: 0.3rem; }
+.radar-part { display: grid; gap: 0.4rem; min-width: 0; }
+.radar-part > p { margin: 0; }
 
-.radar-facts dl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-}
+.radar-chips-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; }
 
 .radar-fact {
   display: grid;
   gap: 0.1rem;
-  min-width: 8.5rem;
+  min-width: 8rem;
   padding: 0.45rem 0.7rem;
-  border: 1px solid var(--arena-paper-line);
+  border: var(--radar-line);
   border-radius: 6px;
   background: rgba(250, 235, 197, 0.55);
 }
 
-.radar-fact dt {
-  color: var(--arena-muted-ink);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
+.radar-fact dt { color: var(--arena-muted-ink); font-size: var(--radar-text-label); font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+.radar-fact dd { margin: 0; color: var(--arena-ink); font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.radar-fact dd .radar-muted { font-weight: 600; }
 
-.radar-fact dd {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.1rem 0.45rem;
-  align-items: baseline;
-  margin: 0;
-  color: var(--arena-ink);
-  font-size: 1.05rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.radar-fact dd span { font-size: 0.75rem; font-weight: 700; }
-.radar-fact dd span[data-tone='up'] { color: var(--radar-nerf); }
-.radar-fact dd span[data-tone='down'] { color: var(--radar-buff); }
-.radar-facts__scope { margin: 0; color: var(--arena-muted-ink); font-size: 0.72rem; }
-
-/* Причины: маркер-галочка, текст переносится ровно. */
-
-.radar-reasons {
+.radar-list-plain {
   display: grid;
   gap: 0.3rem;
-  max-width: 78ch;
+  max-width: 82ch;
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.radar-reasons li {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 0.45rem;
-  align-items: start;
+  padding: 0 0 0 1rem;
   color: var(--arena-ink);
-  font-size: 0.86rem;
-  line-height: 1.45;
+  font-size: var(--radar-text);
+  line-height: 1.5;
   text-wrap: pretty;
 }
 
-.radar-reasons svg { width: 15px; height: 15px; margin-top: 0.15rem; color: var(--radar-even); }
+.radar-list-plain li::marker { color: var(--arena-muted-ink); }
+.radar-list-plain a,
+.radar-more__body a { color: var(--arena-ink); text-decoration-color: var(--arena-paper-line); text-underline-offset: 2px; }
+.radar-list-plain a:hover,
+.radar-more__body a:hover { color: var(--radar-accent); }
+.radar-list-plain .radar-muted a { color: inherit; }
 
-/* Прошлые правки Blizzard: одна строка на случай. */
-
-.radar-precedents {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.radar-precedent {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(9rem, 14rem) minmax(7rem, 9rem) minmax(0, 1fr);
-  gap: 0.2rem 0.75rem;
-  align-items: baseline;
-  padding: 0.45rem 0;
-  border-top: 1px solid var(--arena-paper-line);
-  color: var(--arena-ink);
-  font-size: 0.84rem;
-  line-height: 1.4;
-}
-
-.radar-precedent:first-child { border-top: 0; padding-top: 0; }
-
-.radar-precedent__direction {
-  color: var(--arena-muted-ink);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.radar-precedent[data-direction='nerf'] .radar-precedent__direction { color: var(--radar-weak); }
-.radar-precedent[data-direction='buff'] .radar-precedent__direction { color: var(--radar-buff); }
-.radar-precedent__card { display: grid; font-weight: 700; }
-.radar-precedent__card span,
-.radar-precedent__patch span { color: var(--arena-muted-ink); font-size: 0.72rem; font-weight: 400; }
-.radar-precedent__patch { display: grid; color: var(--arena-ink); text-decoration: none; }
-.radar-precedent a { color: var(--arena-ink); text-decoration-color: var(--arena-paper-line); text-underline-offset: 2px; }
-.radar-precedent a:hover { color: var(--arena-red); }
-.radar-precedent__change { font-variant-numeric: tabular-nums; }
-
-/* Периоды: узкая таблица. */
-
-.radar-trend {
-  width: 100%;
-  max-width: 30rem;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.radar-trend th,
-.radar-trend td {
-  padding: 0.28rem 0.5rem 0.28rem 0;
-  border-top: 1px solid var(--arena-paper-line);
-  text-align: right;
-}
-
-.radar-trend thead th {
-  border-top: 0;
-  color: var(--arena-muted-ink);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.radar-trend th:first-child { text-align: left; }
-.radar-trend tbody th { color: var(--arena-muted-ink); font-weight: 600; white-space: nowrap; }
-.radar-trend td { color: var(--arena-ink); }
-.radar-trend .radar-trend__delta { font-size: 0.75rem; font-weight: 700; }
-.radar-trend__delta[data-tone='up'] { color: var(--radar-buff); }
-.radar-trend__delta[data-tone='down'] { color: var(--radar-weak); }
-.radar-trend__delta[data-tone='flat'] { color: var(--arena-muted-ink); }
-
-.radar-social__mood { font-size: 0.78rem; font-weight: 700; }
-.radar-social__mood[data-tone='negative'] { color: var(--radar-weak); }
-.radar-social__mood[data-tone='positive'] { color: var(--radar-buff); }
-.radar-social__mood[data-tone='mixed'] { color: var(--radar-even); }
-.radar-social__mood[data-tone='neutral'] { color: var(--arena-muted-ink); }
-
-.radar-social__text {
-  max-width: 78ch;
-  margin: 0;
-  color: var(--arena-ink);
-  font-size: 0.86rem;
-  line-height: 1.55;
-}
-
-.radar-candidate__full > summary { color: var(--arena-muted-ink); }
-
-/* «Почему в радаре»: цифры, история, варианты правки, уверенность по прогонам. */
-
-.radar-why__line {
-  max-width: 82ch;
-  margin: 0;
-  color: var(--arena-ink);
-  font-size: 0.86rem;
-  line-height: 1.55;
-}
-
-.radar-variants {
-  display: grid;
-  gap: 0.3rem;
-  max-width: 34rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.84rem;
-}
-
-.radar-variants li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 6rem 2.5rem;
-  gap: 0.6rem;
-  align-items: center;
-}
-
-.radar-variants__bar {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(84, 51, 22, 0.14);
-}
-
-.radar-variants__bar span { display: block; height: 100%; border-radius: inherit; background: var(--arena-muted-ink); }
-.radar-variants b { text-align: right; font-variant-numeric: tabular-nums; }
-
-.radar-why__history {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.6rem;
-  align-items: center;
-  margin: 0;
-  color: var(--arena-muted-ink);
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.radar-sparkline path { fill: none; stroke: var(--arena-red); stroke-width: 1.6; stroke-linejoin: round; }
-.radar-sparkline circle { fill: var(--arena-red); }
-
-/* «Насколько радар точен»: одна таблица попаданий. */
-
-.radar-trust {
-  width: 100%;
-  max-width: 40rem;
-  border-collapse: collapse;
-  font-size: 0.86rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.radar-trust th,
-.radar-trust td {
-  padding: 0.45rem 0.5rem 0.45rem 0;
-  border-top: 1px solid var(--arena-paper-line);
-  text-align: left;
-}
-
-.radar-trust thead th {
-  border-top: 0;
-  color: var(--arena-muted-ink);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.radar-trust td b { color: var(--arena-ink); }
-.radar-trust__note { max-width: 78ch; margin: 0.6rem 0 0; color: var(--arena-muted-ink); font-size: 0.78rem; line-height: 1.5; }
-
-/* Пост: вся карточка — ссылка на оригинал в новой вкладке. */
+/* Пост: карточка-ссылка на оригинал в новой вкладке. */
 
 .radar-posts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
   gap: 0.5rem;
   margin: 0;
   padding: 0;
@@ -784,7 +454,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   gap: 0.35rem;
   height: 100%;
   padding: 0.7rem 0.8rem;
-  border: 1px solid var(--arena-paper-line);
+  border: var(--radar-line);
   border-radius: 6px;
   background: rgba(250, 235, 197, 0.55);
   color: inherit;
@@ -793,101 +463,85 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 }
 
 .radar-post:hover { border-color: rgba(84, 51, 22, 0.45); }
-.radar-post:focus-visible { outline: 2px solid var(--arena-red); outline-offset: 2px; }
-
-.radar-post__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 0.55rem;
-  align-items: center;
-  color: var(--arena-muted-ink);
-  font-size: 0.72rem;
-}
-
-.radar-post__source {
-  color: var(--arena-ink);
-  font-weight: 800;
-}
-
-.radar-post__official { color: var(--arena-red); font-weight: 800; }
-.radar-post__author { overflow: hidden; max-width: 12rem; text-overflow: ellipsis; white-space: nowrap; }
-
-.radar-post__score {
-  display: inline-flex;
-  gap: 0.15rem;
-  align-items: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.radar-post__score svg { width: 12px; height: 12px; }
-
-.radar-post__title {
-  color: var(--arena-ink);
-  font-size: 0.86rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
+.radar-post__meta { overflow-wrap: anywhere; }
+.radar-post__meta b { color: var(--arena-ink); }
+.radar-post__title { color: var(--arena-ink); font-size: var(--radar-text); font-weight: 700; line-height: 1.4; }
 
 .radar-post__text {
   display: -webkit-box;
   overflow: hidden;
   color: var(--arena-ink);
-  font-size: 0.84rem;
+  font-size: var(--radar-text-small);
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 4;
 }
 
-.radar-post__open {
-  display: inline-flex;
-  gap: 0.25rem;
-  align-items: center;
-  color: var(--arena-red);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.radar-post__open svg { width: 13px; height: 13px; }
+.radar-post__open { color: var(--radar-accent); font-size: var(--radar-text-small); font-weight: 700; }
 .radar-post:hover .radar-post__open { text-decoration: underline; text-underline-offset: 3px; }
 
-/* Закономерности Blizzard: заголовки, пояснения под «Подробнее». */
+.radar-candidate__full > summary { color: var(--arena-muted-ink); }
 
-.radar-patterns ul {
+.radar-periods { display: grid; gap: 0.3rem; }
+.radar-periods ul { display: grid; margin: 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+
+.radar-periods li {
   display: grid;
-  margin: 0 0 0.5rem;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: 7rem minmax(0, 15rem) minmax(0, 1fr);
+  gap: 0.15rem 0.75rem;
+  padding: 0.25rem 0;
+  border-top: var(--radar-line);
+  font-size: var(--radar-text-small);
 }
 
-.radar-patterns li + li { border-top: 1px solid var(--arena-paper-line); }
-.radar-patterns__title { margin: 0; padding: 0.6rem 0; color: var(--arena-ink); font-size: 0.9rem; font-weight: 700; }
-.radar-patterns__item > summary { width: 100%; justify-content: space-between; color: var(--arena-ink); font-size: 0.9rem; }
-.radar-patterns__item .radar-more__body { color: var(--arena-muted-ink); font-size: 0.86rem; line-height: 1.55; }
-.radar-patterns .radar-more__body p,
-.radar-summary__text .radar-more__body p { max-width: 78ch; }
+/* Точность и закономерности. */
+
+.radar-trust { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+
+.radar-trust li {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.15rem 0.75rem;
+  align-items: baseline;
+  color: var(--arena-ink);
+  font-size: var(--radar-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.radar-trust__note { max-width: 78ch; margin: 0.6rem 0 0; color: var(--arena-muted-ink); font-size: var(--radar-text-small); line-height: 1.5; }
+
+.radar-patterns ul { display: grid; margin: 0 0 0.5rem; padding: 0; list-style: none; }
+.radar-patterns li + li { border-top: var(--radar-line); }
+.radar-patterns__title { margin: 0; padding: 0.6rem 0; color: var(--arena-ink); font-size: var(--radar-text); }
+
+.radar-patterns__item > summary {
+  justify-content: space-between;
+  width: 100%;
+  color: var(--arena-ink);
+  font-size: var(--radar-text);
+  font-weight: 600;
+}
+
+.radar-patterns__item .radar-more__body { color: var(--arena-muted-ink); }
+
+/* Пустые состояния и ошибка. */
 
 .radar-empty {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--radar-gap);
   justify-items: start;
   padding: 1.5rem 0;
   color: var(--arena-muted-ink);
-  font-size: 0.9rem;
+  font-size: var(--radar-text);
 }
 
 .radar-empty p { margin: 0; }
-
-.radar-failure {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  padding: 1rem;
-  color: var(--arena-ink);
-}
-
-.radar-failure > svg { flex: none; width: 22px; height: 22px; color: var(--arena-red); }
+.radar-failure { display: flex; gap: var(--radar-gap); align-items: flex-start; padding: 1rem; color: var(--arena-ink); }
+.radar-failure > svg { flex: none; width: 22px; height: 22px; color: var(--radar-accent); }
 .radar-failure h2 { margin: 0; font-family: var(--font-display); font-size: 1.3rem; }
-.radar-failure p { margin: 0.35rem 0 0.75rem; color: var(--arena-muted-ink); font-size: 0.85rem; }
+.radar-failure p { margin: 0.35rem 0 0.75rem; color: var(--arena-muted-ink); font-size: var(--radar-text-small); }
 
 /* Скелетон повторяет рамки загруженного радара. */
 
@@ -896,24 +550,23 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 .radar-skeleton__title { display: block; width: 14rem; max-width: 70%; height: 1.8rem; margin-top: 0.4rem; }
 .radar-skeleton__paragraph { display: block; width: 100%; height: 3rem; }
 .radar-skeleton__bar { display: block; width: 100%; height: 52px; }
-.radar-skeleton__art { display: block; width: 56px; height: 77px; }
+.radar-skeleton__art { display: block; width: 48px; height: 66px; }
 .radar-skeleton__meter { display: block; width: 100%; height: 2rem; }
 
+/* Телефон: всё в одну колонку, ничего не прокручивается вбок. */
+
 @media (max-width: 767px) {
-  .radar-candidate__head { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+  .radar-candidate__head { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
   .radar-tab { gap: 0.35rem; padding-inline: 0.4rem; font-size: 0.95rem; white-space: nowrap; }
   .radar-filters { display: grid; gap: 0.6rem; }
   .radar-filter { display: grid; grid-template-columns: 7rem minmax(0, 1fr); }
   .radar-select { width: 100%; }
-  .radar-precedent { grid-template-columns: 4.5rem minmax(0, 1fr); }
-  .radar-precedent__patch,
-  .radar-precedent__change { grid-column: 2; }
-  .radar-fact { flex: 1 1 8rem; min-width: 0; }
-  .radar-variants li { grid-template-columns: minmax(0, 1fr) 4rem 2.5rem; }
-}
-
-@media (max-width: 440px) {
-  .radar-tab > svg { display: none; }
+  .radar-top ol,
+  .radar-changes { grid-template-columns: minmax(0, 1fr); }
+  .radar-chips-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .radar-fact { min-width: 0; padding-inline: 0.55rem; }
+  .radar-periods li,
+  .radar-trust li { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 380px) {
@@ -926,6 +579,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   .radar-chip,
   .radar-select,
   .radar-post,
+  .radar-top button,
   .radar-more > summary svg,
   .radar-candidate__names h3 { transition: none; }
 }

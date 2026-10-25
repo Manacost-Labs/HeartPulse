@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useId, useMemo, useState } from 'react';
-import { FlaskConical, Info, TrendingDown, TrendingUp } from 'lucide-react';
+import { FlaskConical, Info } from 'lucide-react';
 import {
-  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, radarClassOptions,
-  type RadarFilters, type RadarReport, type RadarSectionId,
+  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, radarCandidateAnchor, radarClassOptions,
+  type RadarCandidate, type RadarFilters, type RadarReport, type RadarSectionId,
 } from '../model/radarView';
 import { RadarCandidateCard } from './RadarCandidateCard';
 import { RadarSummary } from './RadarSummary';
@@ -65,19 +65,34 @@ export function RadarView({ report }: { report: RadarReport }) {
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${next}`);
   };
   const update = (patch: Partial<RadarFilters>) => setFilters(current => ({ ...current, ...patch }));
+  const [focus, setFocus] = useState<string | null>(null);
+  // Кандидат из «Главных»: его раздел, без фильтров, карточка раскрыта и прокручена в центр.
+  const pick = (next: RadarSectionId, candidate: RadarCandidate) => {
+    choose(next);
+    setFilters(DEFAULT_RADAR_FILTERS);
+    setFocus(radarCandidateAnchor(next, candidate));
+  };
+  useEffect(() => {
+    if (!focus) return;
+    const card = document.getElementById(focus);
+    const details = card?.querySelector('details');
+    if (details) details.open = true;
+    card?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    card?.querySelector<HTMLElement>('summary')?.focus({ preventScroll: true });
+    setFocus(null);
+  }, [focus]);
 
   return <>
     {report.demo && <p className="radar-note radar-note--demo" role="status">
       <FlaskConical aria-hidden="true" />
       <span><b>Демонстрационные данные.</b> Сбор радара ещё запускается: карты и архетипы настоящие, а цифры и посты — пример.</span>
     </p>}
-    <RadarSummary report={report} />
+    <RadarSummary report={report} onPick={pick} />
     <section className="radar-section radar-board" aria-labelledby="radar-board-title">
       <h2 id="radar-board-title" className="sr-only">Кандидаты на изменения</h2>
       <div className="radar-board__bar">
         <div className="radar-tabs" role="tablist" aria-label="Раздел радара">
           {SECTION_IDS.map(id => {
-            const Icon = id === 'nerfs' ? TrendingDown : TrendingUp;
             return <button key={id} id={`radar-tab-${id}`} type="button" role="tab" className="radar-tab" data-direction={id}
               aria-selected={section === id} aria-controls="radar-panel" tabIndex={section === id ? 0 : -1}
               onClick={() => choose(id)}
@@ -89,7 +104,6 @@ export function RadarView({ report }: { report: RadarReport }) {
                 choose(next);
                 document.getElementById(`radar-tab-${next}`)?.focus();
               }}>
-              <Icon aria-hidden="true" />
               <span>{RADAR_SECTIONS[id].title}</span>
               <span className="radar-tab__count">{report[id].length}</span>
             </button>;
