@@ -24,6 +24,7 @@ export function createRadarApi({ baseUrl, fixture, archetypeSlug, loadArchetypeT
   return createRadarRouter({
     load: createRadarService({
       radarUrl: `${baseUrl.replace(/\/+$/, '')}/v1/constructed/balance-radar?format=standard`,
+      backtestUrl: `${baseUrl.replace(/\/+$/, '')}/v1/constructed/balance-radar/backtest`,
       fixture,
       // hs-data-api пересчитывает радар по расписанию; пять минут — самое долгое, сколько страница отстаёт от нового прогона.
       ttlMs: 5 * 60_000,

@@ -65,13 +65,25 @@ test('the radar renders the demo forecast on the server, switches sections and f
       if (screenshots) await page.screenshot({ path: join(screenshots, `radar-${width}.png`), fullPage: true });
     }
 
-    assert.deepEqual((await names(page)).slice(0, 3), ['Ритуал призыва', 'Ритуал К\'Туна', 'Крестный отец Казакус'], 'nerfs first, by confidence');
-    assert.equal(await page.$eval('.radar-candidate [role="meter"]', node => node.getAttribute('aria-valuenow')), '70');
-    assert.equal(await page.$eval('.radar-confidence__change', node => node.textContent), '−5', 'change since the last run');
+    assert.equal((await names(page)).length, 17, 'every nerf candidate of the run');
+    assert.equal((await names(page))[0], 'Ритуал призыва', 'nerfs by confidence');
+    assert.equal(await page.$eval('.radar-candidate [role="meter"]', node => node.getAttribute('aria-valuenow')), '62');
+    assert.equal(await page.$eval('.radar-confidence__change', node => node.textContent), '−8', 'change since the last run');
+    assert.equal(await page.$('.radar-summary__timing'), null, 'the lead already names the patch odds, no repeat');
+    assert.equal(await page.$eval('#radar-panel > .radar-list > li:nth-child(2) .radar-candidate__change', node => [
+      node.querySelector('.radar-stat'), node.textContent?.includes('Ритуал призыва')].join()), ',true',
+    'an archetype names the card its change is about, without stat badges');
+    assert.deepEqual(await page.$$eval('.radar-changes__group h4', nodes => nodes.map(node => node.textContent)), ['Новые', 'Выросли', 'Упали'],
+      'changes since the previous run, empty groups hidden');
+    assert.deepEqual(await page.$eval('#radar-panel > .radar-list > li:first-child .radar-candidate__change', node => [
+      node.querySelector('.radar-stat-change')?.dataset.field, [...node.querySelectorAll('.radar-stat')].map(stat => stat.textContent),
+      node.querySelector('.radar-candidate__chance')?.textContent]), ['cost', ['2', '3'], ' · вероятность 55%'], 'was → will be on the card');
+    assert.match(await page.$eval('#radar-trust-title', node => node.closest('section')?.textContent ?? ''),
+      /8 прошлых патчах[\s\S]*Нерфы[\s\S]*11 из 22/, 'radar accuracy from the backtest');
     assert.deepEqual(await page.evaluate(() => [document.querySelectorAll('[lang="en"]').length, document.querySelectorAll('.radar-sources').length]),
       [0, 0], 'no English captions and no sources block');
     assert.equal(await page.evaluate(() => document.body.textContent?.includes('Снежная буря')), false, 'Blizzard stays Blizzard');
-    const first = '#radar-panel .radar-candidate:first-child';
+    const first = '#radar-panel > .radar-list > li:first-child .radar-candidate';
     assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), false, 'details wait behind «Подробнее»');
     await page.click(`${first} .radar-candidate__more > summary`);
     assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), true);
@@ -87,17 +99,20 @@ test('the radar renders the demo forecast on the server, switches sections and f
     assert.ok(opened.reasons > 0 && opened.reasons <= 4, 'at most four marked reasons');
     assert.equal(opened.deltaHeader, 'к прошлому периоду');
     assert.equal(opened.full, 'Полный разбор', 'the rest of the verdict waits behind its own toggle');
+    assert.deepEqual(await page.$eval(`${first} .radar-why__history`, node => [node.querySelectorAll('circle').length, node.textContent]),
+      [3, 'Уверенность по прогонам: 75 → 70 → 62'], 'confidence across runs');
+    assert.deepEqual(await page.$$eval(`${first} .radar-variants li b`, nodes => nodes.map(node => node.textContent)), ['55%', '20%', '10%']);
     assert.deepEqual(await page.$eval(`${first} .radar-post`, node => [node.getAttribute('target'), node.querySelector('.radar-post__text'),
       node.querySelector('.radar-post__open')?.textContent]), ['_blank', null, 'Открыть обсуждение'],
     'an untranslated post shows no English text, only a link to the discussion');
     assert.equal(await page.$eval('.radar-candidate__identity', node => node.getAttribute('href')), '/standard/cards/standard/BE_085/');
     assert.equal(await page.$eval('.radar-candidate[data-kind="archetype"] .radar-candidate__identity', node => node.getAttribute('href')),
-      '/standard/archetypes/standard/c-thun-dh/', 'HSGuru archetype names become site slugs');
+      '/standard/archetypes/standard/zoolock/', 'HSGuru archetype names become site slugs');
     assert.equal(await page.$eval('.radar-post', node => node.getAttribute('rel')), 'noopener noreferrer nofollow ugc');
     assert.deepEqual(await page.$eval('.radar-candidate .radar-precedent', node => [
       node.dataset.direction, node.querySelector('.radar-precedent__change')?.textContent,
       [...node.querySelectorAll('a')].map(link => link.getAttribute('href'))]),
-    ['nerf', 'Стоимость 1 → 2, атака 1 → 2', ['/standard/cards/wild/JAIL_802/', '/standard/patches/?version=36.2.2']],
+    ['nerf', 'Атака: 6 → 5', ['/standard/cards/wild/END_033/', '/standard/patches/?version=35.2.2']],
     'the first candidate shows the past Blizzard change it rests on');
     assert.match(await page.$eval('#radar-patterns-title', node => node.closest('section')?.textContent ?? ''),
       /разобрано 52 балансных патча[\s\S]*Нерфы приходят к сильным и популярным колодам/, 'Blizzard patterns from the run history');
@@ -105,18 +120,22 @@ test('the radar renders the demo forecast on the server, switches sections and f
     await page.click('#radar-tab-buffs');
     await page.waitForFunction(() => document.querySelector('#radar-tab-buffs')?.getAttribute('aria-selected') === 'true');
     assert.equal(new URL(page.url()).hash, '#buffs');
-    assert.deepEqual(await names(page), ['Друид', 'Оживитель железа', 'Маг', 'Агент Н\'Зота']);
+    assert.deepEqual((await names(page)).slice(0, 2), ['Друид', 'Оживитель железа']);
     assert.equal(await page.$eval('.radar-candidate[data-kind="class"] .radar-candidate__identity', node => node.tagName), 'DIV',
       'a class has no page to link');
 
+    const buffs = (await names(page)).length;
     await page.select('.radar-select', 'mage');
-    await page.waitForFunction(() => document.querySelectorAll('#radar-panel .radar-candidate').length === 1);
+    await page.waitForFunction(total => {
+      const shown = document.querySelectorAll('#radar-panel .radar-candidate').length;
+      return shown > 0 && shown < total;
+    }, {}, buffs);
     await page.select('.radar-select', 'all');
     await page.click('.radar-chips[aria-label="Уверенность"] button:last-child');
     await page.waitForSelector('.radar-empty');
     assert.match(await page.$eval('.radar-empty', node => node.textContent ?? ''), /Под выбранные фильтры кандидатов нет\./);
     await page.click('.radar-empty button');
-    await page.waitForFunction(() => document.querySelectorAll('#radar-panel .radar-candidate').length === 4);
+    await page.waitForFunction(total => document.querySelectorAll('#radar-panel .radar-candidate').length === total, {}, buffs);
     await page.focus('#radar-tab-buffs');
     await page.keyboard.press('Home');
     await page.waitForFunction(() => document.activeElement?.id === 'radar-tab-nerfs'

@@ -1,10 +1,12 @@
 import { parseRadarReport, type RadarParseOptions, type RadarReport } from './contract.js';
-import { RADAR_FIXTURE } from './fixture.js';
+import { RADAR_BACKTEST_FIXTURE, RADAR_FIXTURE } from './fixture.js';
 
 export type RadarServiceDependencies = {
   /** Читает JSON радара hs-data-api; ошибка транспорта или статуса — исключение. По умолчанию `fetchRadarJson`. */
   fetchJson?: (url: string) => Promise<unknown>;
   radarUrl: string;
+  /** Бэктест радара; не прочитался — страница без блока точности, радар всё равно отдаётся. */
+  backtestUrl?: string;
   /** Русские имена архетипов HSGuru и их замена в текстах модели; без них остаются английские имена. */
   loadNaming?: () => Promise<Pick<RadarParseOptions, 'nameArchetype' | 'localizeFor'>>;
   /** `true` — отдавать встроенную демо-фикстуру вместо hs-data-api. */
@@ -52,10 +54,13 @@ export function createRadarService(dependencies: RadarServiceDependencies) {
     }
   };
   const read = async (demo: boolean) => {
-    const [payload, names] = await Promise.all([
-      demo ? RADAR_FIXTURE : (dependencies.fetchJson ?? fetchRadarJson)(dependencies.radarUrl), naming(),
+    const fetchJson = dependencies.fetchJson ?? fetchRadarJson;
+    const backtestUrl = dependencies.backtestUrl;
+    const [payload, names, backtest] = await Promise.all([
+      demo ? RADAR_FIXTURE : fetchJson(dependencies.radarUrl), naming(),
+      demo ? RADAR_BACKTEST_FIXTURE : backtestUrl ? fetchJson(backtestUrl).catch(() => null) : null,
     ]);
-    return parseRadarReport(payload, { demo, ...names });
+    return parseRadarReport(payload, { demo, backtest, ...names });
   };
   const start = () => {
     pending ??= read(dependencies.fixture).then(value => {

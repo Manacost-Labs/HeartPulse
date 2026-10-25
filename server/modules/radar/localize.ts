@@ -28,6 +28,12 @@ const terms = (value: string) => TERMS.reduce((text, [pattern, label]) => text.r
 
 const KEEP = new Set(['blizzard', 'reddit', 'twitter', 'hsreplay', 'hsguru', 'hearthstone', 'hearthpwn', 'vicious syndicate', 'firestone']);
 
+// Классы модель тоже пишет по-английски: «нерфы нескольких карт Warlock».
+const CLASS_NAMES: Record<string, string> = {
+  'death knight': 'Рыцарь смерти', 'demon hunter': 'Охотник на демонов', druid: 'Друид', hunter: 'Охотник', mage: 'Маг',
+  paladin: 'Паладин', priest: 'Жрец', rogue: 'Разбойник', shaman: 'Шаман', warlock: 'Чернокнижник', warrior: 'Воин',
+};
+
 const key = (name: string) => name.trim().replace(/\s+/g, ' ').replace(/’/g, "'").toLocaleLowerCase('en-US');
 
 function pairs({ archetypes, cards = [], cardIds = new Set() }: RadarNameSources): Map<string, string> {
@@ -43,6 +49,7 @@ function pairs({ archetypes, cards = [], cardIds = new Set() }: RadarNameSources
     const name = card.name as { en?: unknown; ru?: unknown } | undefined;
     add(name?.en, name?.ru);
   }
+  for (const [name, label] of Object.entries(CLASS_NAMES)) add(name, label);
   // Архетипы последними: «C'Thun» карты не должен перебить имя колоды.
   for (const [name, label] of Object.entries(archetypes)) add(name, label);
   return labels;

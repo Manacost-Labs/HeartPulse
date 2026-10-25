@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import express from 'express';
 import { parseRadarReport, radarPeriodLabel, type RadarReport } from '../server/modules/radar/contract.js';
-import { RADAR_FIXTURE } from '../server/modules/radar/fixture.js';
+import { RADAR_BACKTEST_FIXTURE, RADAR_FIXTURE } from '../server/modules/radar/fixture.js';
 import { createRadarRouter } from '../server/modules/radar/routes.js';
 import { createRadarService } from '../server/modules/radar/service.js';
 import { createRadarLocalizer } from '../server/modules/radar/localize.js';
@@ -14,7 +14,10 @@ import {
 
 // RADAR_FIXTURE — ответ hs-data-api в его формате ({ data, meta }).
 const upstream = () => JSON.parse(JSON.stringify(RADAR_FIXTURE)) as { data: Record<string, any> };
-const namer = (name: string) => ({ slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: name === 'Zee Shaman' ? 'Зи Шаман' : name });
+// Настоящий прогон схемы 2: 17 кандидатов на нерф, 15 на бафф.
+const NERFS = 17;
+const LABELS: Record<string, string> = { 'Zee Shaman': 'Зи Шаман', 'Dragon Warrior': 'Воин на драконах' };
+const namer = (name: string) => ({ slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: LABELS[name] ?? name });
 
 test('the radar contract maps the hs-data-api result to the page model', () => {
   const raw = upstream();
@@ -24,36 +27,58 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
   const forPage: PageRadarReport = report;
   const fromPage: RadarReport = forPage;
   assert.equal(fromPage.demo, false);
-  assert.equal(report.generatedAt, '2026-10-25T10:51:02.000Z', 'dates leave as ISO');
+  assert.equal(report.generatedAt, '2026-10-25T12:41:05.000Z', 'dates leave as ISO');
   assert.deepEqual(report.patch, { version: '37.0.0', href: '/standard/patches/?version=37.0.0' });
   assert.equal(parseRadarReport(upstream()).patch, null, 'a run without a patch has no patch link');
-  assert.deepEqual(report.window, { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T10:49:22.000Z' });
-  assert.deepEqual(report.nerfs.map(candidate => candidate.confidence), [70, 56, 46, 44, 40, 33]);
+  assert.deepEqual(report.window, { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T12:38:13.000Z' });
+  assert.deepEqual([report.nerfs.length, report.buffs.length], [NERFS, 15]);
+  assert.deepEqual(report.nerfs.slice(0, 4).map(candidate => candidate.confidence), [62, 50, 42, 42], 'by confidence');
   const [ritual] = report.nerfs;
   assert.deepEqual(ritual.entity, {
     id: 'BE_085', dbfId: 129793, name: 'Ритуал призыва', nameEn: 'Ritual of Summoning', classKey: 'warlock', href: '/standard/cards/standard/BE_085/',
   });
-  assert.equal(ritual.previousConfidence, 75);
+  assert.equal(ritual.previousConfidence, 70);
   assert.equal(ritual.stats.rankLabel, 'Легенда');
   assert.deepEqual(ritual.stats.trend.map(point => point.label), ['Сутки', '3 дня', 'Неделя', '2 недели', 'С патча']);
   assert.equal(ritual.stats.trend[0].winrate, 56.47, 'card periods read deck winrate');
   assert.deepEqual([ritual.social.sentiment, ritual.social.stance, ritual.social.mentions, ritual.social.reddit], ['negative', 'wants_nerf', 7, 6]);
   assert.deepEqual(ritual.precedents[0], {
-    id: 'precedent:36.2.2.249896:JAIL_802', patch: '36.2.2', date: '2026-08-18T00:00:00.000Z', name: 'Бандюган из Галаджио',
-    classKey: 'shaman', direction: 'nerf', changes: ['Стоимость: 1 → 2', 'Атака: 1 → 2'], summary: 'Стоимость 1 → 2, атака 1 → 2',
-    setAgeDays: 76, before: { archetype: 'Зи Шаман', winrate: 53.8, popularity: 12.51 },
-    after: { archetype: 'Зи Шаман', winrate: 53.78, popularity: 7.79 }, similarity: ['похожий винрейт', 'похожая популярность'],
-    cited: true, cardHref: '/standard/cards/wild/JAIL_802/', patchHref: '/standard/patches/?version=36.2.2',
+    id: 'precedent:35.2.2.241135:END_033', patch: '35.2.2', date: '2026-04-29T00:00:00.000Z', name: 'Прозорливый дракозмей',
+    classKey: 'neutral', direction: 'nerf', changes: ['Атака: 6 → 5'], summary: null, setAgeDays: 211,
+    before: { archetype: 'Воин на драконах', winrate: 56.22, popularity: 11.22 }, after: { archetype: 'Воин на драконах', winrate: 55.03, popularity: 8.37 },
+    similarity: ['похожий винрейт', 'похожая популярность'], cited: true,
+    cardHref: '/standard/cards/wild/END_033/', patchHref: '/standard/patches/?version=35.2.2',
   });
+  assert.deepEqual(ritual.forecast.predictedChanges.map(change => [change.field, change.before, change.after, change.probability]),
+    [['cost', 2, 3, 55], ['health', 5, 4, 20], ['text', null, null, 10]], 'variants from the most probable');
+  assert.deepEqual([ritual.forecast.calibration, ritual.forecast.trend, ritual.forecast.confidenceHistory.map(point => point.confidence)],
+    [{ rate: 22, hits: 2, samples: 9 }, { status: 'down', delta: -8 }, [75, 70, 62]]);
+  assert.equal(ritual.forecast.keyNumbers.length, 4);
+  assert.deepEqual(report.timing && [report.timing.within7, report.timing.within14, report.timing.daysSinceLastPatch], [50, 90, 13]);
+  assert.deepEqual(report.changes && [report.changes.added.length, report.changes.added[0], report.changes.fallen[0]], [5,
+    { side: 'nerfs', kind: 'archetype', name: 'Zoolock', confidence: 50, delta: null },
+    { side: 'buffs', kind: 'class', name: 'Друид', confidence: 28, delta: -20 }], 'five per group, archetypes through the namer');
+  assert.equal(parseRadarReport(raw).backtest, null, 'no backtest answer, no accuracy block');
   const archetype = report.nerfs.find(candidate => candidate.kind === 'archetype');
   assert.deepEqual(archetype?.entity, {
-    id: 'c-thun-dh', dbfId: null, name: 'C\'Thun DH', nameEn: null, classKey: 'demonhunter', href: '/standard/archetypes/standard/c-thun-dh/',
+    id: 'zoolock', dbfId: null, name: 'Zoolock', nameEn: null, classKey: 'warlock', href: '/standard/archetypes/standard/zoolock/',
   });
-  assert.deepEqual(archetype?.stats.trend.map(point => point.label), ['Сутки', '3 дня', 'Неделя', 'Патч 36.6.3', 'Дополнение', 'Баны']);
+  assert.deepEqual(archetype?.stats.trend.map(point => point.label), ['Сутки', 'Неделя', 'Дополнение', 'Баны']);
   const druid = report.buffs.find(candidate => candidate.kind === 'class');
   assert.deepEqual([druid?.entity.classKey, druid?.entity.href, druid?.stats.trend], ['druid', null, []]);
   assert.deepEqual([report.history?.balancePatches, report.history?.patterns.length, report.history?.from],
     [52, 8, '2023-12-08T00:00:00.000Z']);
+  assert.deepEqual(parseRadarReport(raw, { backtest: RADAR_BACKTEST_FIXTURE }).backtest, {
+    patches: 8,
+    nerf: [
+      { top: 3, hits: 7, actual: 22, predicted: 24, precision: 29, recall: 32 }, { top: 5, hits: 11, actual: 22, predicted: 40, precision: 28, recall: 50 },
+      { top: 10, hits: 13, actual: 22, predicted: 80, precision: 16, recall: 59 },
+    ],
+    buff: [
+      { top: 3, hits: 0, actual: 11, predicted: 24, precision: 0, recall: 0 }, { top: 5, hits: 0, actual: 11, predicted: 40, precision: 0, recall: 0 },
+      { top: 10, hits: 2, actual: 11, predicted: 80, precision: 3, recall: 18 },
+    ],
+  });
   assert.equal(parseRadarReport({ ...raw, data: { ...raw.data, history: null } }).history, null, 'runs without history have no section');
 });
 
@@ -117,7 +142,7 @@ test('the radar contract drops broken records and foreign links', () => {
     { platform: 'reddit', url: 'https://old.reddit.com/r/hearthstone/comments/1', author: 'f', score: 3, excerpt: 'Повтор' },
   ];
   const report = parseRadarReport(raw);
-  assert.equal(report.nerfs.length, 6, 'a nameless record, an unknown kind and a duplicate ref are dropped');
+  assert.equal(report.nerfs.length, NERFS, 'a nameless record, an unknown kind and a duplicate ref are dropped');
   assert.equal(report.nerfs[0].id, 'card:BE_085');
   assert.equal(report.nerfs[0].confidence, 100, 'confidence is clamped to 0..100');
   assert.equal(report.nerfs[0].entity.classKey, 'demonhunter');
@@ -178,7 +203,7 @@ test('the radar contract rejects a response without its frame', () => {
   assert.throws(() => parseRadarReport(frame({ format: 'wild' })), /format/);
   const minimal = parseRadarReport({ generatedAt: '2026-10-25T00:00:00Z', summary: 'Тихо.', nerfs: [], buffs: [] });
   assert.deepEqual([minimal.model, minimal.patch, minimal.window], ['неизвестна', null, null]);
-  assert.equal(parseRadarReport(frame({ schemaVersion: 2, keyNumbers: ['новое поле'] })).nerfs.length, 6,
+  assert.equal(parseRadarReport(frame({ schemaVersion: 3, keyNumbers: ['новое поле'] })).nerfs.length, NERFS,
     'later schema versions only add fields and keep working');
   assert.deepEqual(['patch_36.6.3', 'black_empire_ban', 'black_empire', 'past_30_days'].map(radarPeriodLabel),
     ['Патч 36.6.3', 'Баны', 'Дополнение', '30 дней']);
@@ -202,14 +227,14 @@ test('/api/radar serves the cached snapshot, waits between failed reads and mark
   assert.equal(reads, 1, 'before the first snapshot a failure is remembered for retryMs');
   assert.equal(logged, 1, 'one log line per failed read, not per request');
   clock = 600; down = false;
-  assert.equal((await service.load()).nerfs.length, 6);
+  assert.equal((await service.load()).nerfs.length, NERFS);
   await service.load();
   assert.equal(reads, 2, 'a fresh snapshot is not read again');
   clock = 2000; payload = { broken: true };
-  assert.equal((await service.load()).nerfs.length, 6, 'an expired snapshot is served while it refreshes');
+  assert.equal((await service.load()).nerfs.length, NERFS, 'an expired snapshot is served while it refreshes');
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(reads, 3);
-  assert.equal((await service.load()).nerfs.length, 6, 'an invalid answer keeps the last good snapshot');
+  assert.equal((await service.load()).nerfs.length, NERFS, 'an invalid answer keeps the last good snapshot');
   assert.equal(reads, 3, 'a failed refresh waits for the retry delay');
 
   const demoService = createRadarService({
@@ -233,6 +258,7 @@ test('/api/radar serves the cached snapshot, waits between failed reads and mark
     const demoBody = await demo.json();
     assert.equal(demoBody.demo, true);
     assert.ok(demoBody.nerfs.some((candidate: { entity: { id: string } }) => candidate.entity.id === 'c-thun-dh'), 'archetypes get site slugs');
+    assert.equal(demoBody.backtest.patches, 8, 'the demo carries its backtest');
     const failed = await get('/down/radar');
     assert.equal(failed.status, 502);
     assert.deepEqual(await failed.json(), { error: 'Радар временно недоступен' });
@@ -245,21 +271,23 @@ test('the radar view model filters candidates and formats dates without Intl clo
   const report = parseRadarReport(upstream(), { demo: true, nameArchetype: namer });
   assert.equal(isRadarReport(report), true);
   assert.equal(isRadarReport({ error: 'Радар временно недоступен' }), false);
-  assert.equal(filterRadarCandidates(report.nerfs, DEFAULT_RADAR_FILTERS).length, 6);
+  assert.equal(filterRadarCandidates(report.nerfs, DEFAULT_RADAR_FILTERS).length, NERFS);
   assert.deepEqual(filterRadarCandidates(report.nerfs, { classKey: 'demonhunter', kind: 'archetype', minConfidence: 0 })
     .map(candidate => candidate.entity.id), ['c-thun-dh']);
   assert.deepEqual(filterRadarCandidates(report.nerfs, { classKey: 'warlock', kind: 'card', minConfidence: 50 })
-    .map(candidate => candidate.entity.id), ['BE_085', 'BE_726']);
+    .map(candidate => candidate.entity.id), ['BE_085']);
+  assert.deepEqual(filterRadarCandidates(report.nerfs, { classKey: 'warlock', kind: 'card', minConfidence: 0 })
+    .slice(0, 2).map(candidate => candidate.entity.id), ['BE_085', 'BE_726']);
   assert.deepEqual(filterRadarCandidates(report.buffs, { classKey: 'all', kind: 'class', minConfidence: 0 })
     .map(candidate => candidate.entity.classKey), ['druid', 'mage']);
   assert.deepEqual(filterRadarCandidates(report.buffs, { classKey: 'all', kind: 'all', minConfidence: 75 }), []);
-  assert.deepEqual(radarClassOptions(report), ['warrior', 'druid', 'mage', 'demonhunter', 'rogue', 'warlock', 'neutral'],
+  assert.deepEqual(radarClassOptions(report), ['warrior', 'druid', 'priest', 'mage', 'demonhunter', 'rogue', 'deathknight', 'warlock', 'shaman', 'neutral'],
     'classes of both sections, in Russian order, neutral last');
   assert.deepEqual([75, 74, 50, 49].map(radarConfidenceLevel), ['high', 'medium', 'medium', 'low']);
   assert.equal(radarEntityImage(report.nerfs[0]), '/api/card-image/BE_085/thumb.webp');
   assert.equal(radarEntityImage(report.buffs.find(candidate => candidate.kind === 'class')!), '/class_icon/ui/druid-64.webp');
   assert.equal(formatRadarTime('2026-10-25T10:12:15.000Z'), '25 октября, 13:12 МСК');
-  assert.equal(report.nerfs[0].precedents[0].before?.archetype, 'Зи Шаман', 'precedent archetypes get site labels');
+  assert.equal(report.nerfs[0].precedents[0].before?.archetype, 'Воин на драконах', 'precedent archetypes get site labels');
   assert.equal(formatRadarDay('2026-12-31T22:30:00.000Z'), '1 января', 'Moscow is UTC+3');
   assert.equal(formatRadarCount(64641), '64 641');
   assert.equal(radarTrendDelta(58.9, 58.2), 0.7);

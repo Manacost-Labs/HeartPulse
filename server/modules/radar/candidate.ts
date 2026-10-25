@@ -1,5 +1,6 @@
 /** Один кандидат на нерф или бафф: сущность, вывод модели, статистика, обсуждения, прецеденты. */
 import { Skip, classKey, count, date, finite, list, record, required, text } from './parsing.js';
+import { parseForecast } from './forecast.js';
 import { parsePrecedents } from './precedents.js';
 import { parseSocial, parseStats } from './social.js';
 import type { RadarArchetypeNamer, RadarCandidate, RadarKind } from './types.js';
@@ -45,6 +46,7 @@ export function parseCandidate(value: unknown, nameArchetype: RadarArchetypeName
       social: parseSocial(row.social),
       precedents: parsePrecedents(row.precedents, nameArchetype),
       firstSeenAt: date(record(row.dates)?.firstFlaggedAt ?? row.firstSeenAt),
+      forecast: parseForecast(row),
     };
   } catch (error) {
     if (error instanceof Skip) return null;
