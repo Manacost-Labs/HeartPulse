@@ -30,13 +30,22 @@ export function StreamerDecksSkeleton({ count = 8 }: { count?: number }) {
 /** Эфиры и каталог в тех же рамках, что и загруженная страница. */
 export function StreamersSkeleton() {
   return <LoadingSurface label="Загружаем стримеров" quiet layout="rows" blocksClassName="streamers-skeleton">
-    {['Сейчас в эфире', 'Стримеры и их колоды'].map(title => <div key={title} className="streamers-section">
+    <div className="streamers-section streamers-section--live">
+      <div className="streamers-section__heading streamers-section__heading--row"><LoadingBlock className="streamers-skeleton__title" /></div>
+      <ul className="streamers-live">
+        {Array.from({ length: 4 }, (_, index) => <li key={index} className="streamers-live__item">
+          <LoadingBlock className="streamers-live__thumb" />
+          <LoadingBlock className="streamers-skeleton__line" />
+        </li>)}
+      </ul>
+    </div>
+    <div className="streamers-section">
       <div className="streamers-section__heading">
-        <LoadingBlock className="streamers-skeleton__line streamers-skeleton__line--short" />
         <LoadingBlock className="streamers-skeleton__title" />
+        <LoadingBlock className="streamers-skeleton__line streamers-skeleton__line--short" />
       </div>
-      <StreamerCardsSkeleton count={title === 'Сейчас в эфире' ? 2 : 4} />
-    </div>)}
+      <StreamerCardsSkeleton count={4} />
+    </div>
   </LoadingSurface>;
 }
 

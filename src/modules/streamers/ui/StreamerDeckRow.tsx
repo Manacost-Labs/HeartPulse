@@ -5,10 +5,23 @@ import {
 import type { StreamerDeck } from '../model/types';
 import { CopyDeckCode } from './CopyDeckCode';
 
+/** Русское имя архетипа; в полной строке ниже формат и имя HSGuru, в карточке они в подсказке. */
+function DeckName({ deck, compact }: { deck: StreamerDeck; compact: boolean }) {
+  const format = STREAMER_FORMAT_LABELS[deck.format];
+  if (compact) return <span className="streamers-deck__name"><strong title={`${format} · ${deck.archetype}`}>{deck.archetypeLabel}</strong></span>;
+  return <span className="streamers-deck__name">
+    <strong title={deck.archetypeLabel}>{deck.archetypeLabel}</strong>
+    <small>
+      {format}
+      {deck.archetypeLabel !== deck.archetype ? <> · <span lang="en">{deck.archetype}</span></> : null}
+    </small>
+  </span>;
+}
+
 /**
  * Колода стримера одной строкой: класс, русское имя архетипа (имя HSGuru
  * мелко), формат, пик Легенды, счёт, когда сыграна, запись и код.
- * `compact` — в карточке стримера: без счёта и записи.
+ * `compact` — в карточке стримера: класс, архетип, пик и код, без счёта и записи.
  */
 export function StreamerDeckRow({ deck, compact = false, streamUrl }: { deck: StreamerDeck; compact?: boolean; streamUrl?: string | null }) {
   const rank = deckRankLabel(deck);
@@ -16,13 +29,7 @@ export function StreamerDeckRow({ deck, compact = false, streamUrl }: { deck: St
   const className = deck.classKey ? STREAMER_CLASS_LABELS[deck.classKey] : null;
   return <li className="streamers-deck" data-compact={compact ? '' : undefined}>
     <img src={streamerClassIcon(deck.classKey)} alt={className ?? ''} width="28" height="28" loading="lazy" decoding="async" />
-    <span className="streamers-deck__name">
-      <strong title={deck.archetypeLabel}>{deck.archetypeLabel}</strong>
-      <small>
-        {STREAMER_FORMAT_LABELS[deck.format]}
-        {deck.archetypeLabel !== deck.archetype ? <> · <span lang="en">{deck.archetype}</span></> : null}
-      </small>
-    </span>
+    <DeckName deck={deck} compact={compact} />
     <span className="streamers-deck__rank" title={rank ? 'Лучший ранг Легенды' : undefined}>{rank ?? '—'}</span>
     {compact ? null : <span className="streamers-deck__meta">
       <span className="streamers-deck__record">
