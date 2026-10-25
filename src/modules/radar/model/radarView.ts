@@ -67,6 +67,31 @@ export function radarClassOptions(report: Pick<RadarReport, 'nerfs' | 'buffs'>):
     : RADAR_CLASS_LABELS[a].localeCompare(RADAR_CLASS_LABELS[b], 'ru')));
 }
 
+/** Три главных кандидата обоих разделов по уверенности — для верха страницы. */
+export function radarTopCandidates(report: Pick<RadarReport, 'nerfs' | 'buffs'>, limit = 3): Array<{ section: RadarSectionId; candidate: RadarCandidate }> {
+  return [
+    ...report.nerfs.map(candidate => ({ section: 'nerfs' as const, candidate })),
+    ...report.buffs.map(candidate => ({ section: 'buffs' as const, candidate })),
+  ].sort((a, b) => b.candidate.confidence - a.candidate.confidence).slice(0, limit);
+}
+
+/** Якорь карточки кандидата: по нему верх страницы открывает и прокручивает к ней. */
+export function radarCandidateAnchor(section: RadarSectionId, candidate: RadarCandidate): string {
+  return `radar-${section}-${candidate.id.replace(/[^A-Za-z0-9_-]+/g, '-')}`;
+}
+
+/**
+ * Строка «почему» без повтора имени: модель часто начинает её с названия
+ * («Зоолок: 63% винрейта…», «Ритуал призыва — главный…»), а оно уже в
+ * заголовке карточки.
+ */
+export function radarWhyLine(candidate: RadarCandidate): string {
+  const line = candidate.headline ?? radarLead(candidate.verdict, 1).lead;
+  const name = candidate.entity.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const trimmed = line.replace(new RegExp(`^${name}\\s*(?::|—|–|-)\\s*`, 'iu'), '');
+  return trimmed ? trimmed[0].toLocaleUpperCase('ru-RU') + trimmed.slice(1) : line;
+}
+
 /** Миниатюра карты для карты, иконка класса для архетипа и класса. */
 export function radarEntityImage(candidate: RadarCandidate): string {
   if (candidate.kind === 'card') return `/api/card-image/${encodeURIComponent(candidate.entity.id)}/thumb.webp`;

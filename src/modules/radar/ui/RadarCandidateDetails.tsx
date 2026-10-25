@@ -1,193 +1,146 @@
-import { ArrowUp, Check, ExternalLink, MessageSquare } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { pluralRu } from '../../../shared/text/pluralRu';
 import {
-  RADAR_CLASS_LABELS, RADAR_SENTIMENT_LABELS, RADAR_STANCE_LABELS, formatRadarCount, formatRadarDate, formatRadarDay, formatRadarDelta,
-  formatRadarPercent, radarDayShift, radarLead, radarTrendDelta, type RadarCandidate, type RadarForecast, type RadarPost, type RadarPrecedent,
+  RADAR_SENTIMENT_LABELS, RADAR_STANCE_LABELS, formatRadarCount, formatRadarDay, formatRadarDelta, formatRadarPercent, radarDayShift,
+  radarLead, radarTrendDelta, type RadarCandidate, type RadarPost, type RadarPrecedent,
 } from '../model/radarView';
 import { RadarMore } from './RadarMore';
 
 const SOURCE_LABELS: Record<RadarPost['source'], string> = { reddit: 'Reddit', x: 'X' };
-const DIRECTION_LABELS: Record<RadarPrecedent['direction'], string> = { nerf: 'Нерф', buff: 'Бафф', rework: 'Переработка', neutral: 'Правка' };
-const MAX_REASONS = 4;
+const DIRECTION_LABELS: Record<RadarPrecedent['direction'], string> = { nerf: 'нерф', buff: 'бафф', rework: 'переработка', neutral: 'правка' };
+const LIMIT = 3;
 
-/** Главные цифры чипами: винрейт, популярность со сдвигом за сутки, сколько раз сыграна. */
-function RadarFacts({ stats, kind }: { stats: RadarCandidate['stats']; kind: RadarCandidate['kind'] }) {
+/** Одна секция подробностей: подпись одного стиля и содержимое. Пустую секцию не показываем. */
+function Part({ title, children }: { title: string; children: ReactNode }) {
+  return <section className="radar-part"><h4 className="radar-label">{title}</h4>{children}</section>;
+}
+
+function Facts({ stats, kind }: { stats: RadarCandidate['stats']; kind: RadarCandidate['kind'] }) {
   const shift = radarDayShift(stats);
   const facts = [
     { term: 'Винрейт', value: formatRadarPercent(stats.winrate), note: null },
-    {
-      term: 'Популярность', value: formatRadarPercent(stats.popularity),
-      note: shift !== null && shift !== 0 ? `${formatRadarDelta(shift)} п. п. за сутки` : null,
-    },
+    { term: 'Популярность', value: formatRadarPercent(stats.popularity), note: shift ? `${formatRadarDelta(shift)} за сутки` : null },
     { term: kind === 'card' ? 'Сыграна' : 'Игр', value: formatRadarCount(stats.games), note: null },
   ].filter(fact => fact.value !== '—');
   if (!facts.length) return null;
-  return <div className="radar-facts">
-    <dl>
+  return <Part title="Цифры">
+    <dl className="radar-chips-row">
       {facts.map(fact => <div key={fact.term} className="radar-fact">
         <dt>{fact.term}</dt>
-        <dd>{fact.value}{fact.note && <span data-tone={fact.note.startsWith('+') ? 'up' : 'down'}>{fact.note}</span>}</dd>
+        <dd>{fact.value}{fact.note && <span className="radar-muted"> {fact.note}</span>}</dd>
       </div>)}
     </dl>
-    <p className="radar-facts__scope">{[stats.rankLabel, stats.periodLabel].filter(Boolean).join(' · ')}</p>
-  </div>;
+    <p className="radar-muted">{[stats.rankLabel, stats.periodLabel].filter(Boolean).join(' · ')}</p>
+  </Part>;
 }
 
-/** Мини-график уверенности по прогонам: линия и точки, последняя — текущий прогон. */
-function ConfidenceSparkline({ points }: { points: RadarForecast['confidenceHistory'] }) {
-  const width = 120; const height = 28; const pad = 3;
-  const x = (index: number) => pad + (index * (width - pad * 2)) / Math.max(1, points.length - 1);
-  const y = (value: number) => height - pad - (value / 100) * (height - pad * 2);
-  const path = points.map((point, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${y(point.confidence).toFixed(1)}`).join(' ');
-  return <svg className="radar-sparkline" viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true">
-    <path d={path} />
-    {points.map((point, index) => <circle key={point.at} cx={x(index)} cy={y(point.confidence)} r={index === points.length - 1 ? 2.6 : 1.8} />)}
-  </svg>;
+function Why({ candidate }: { candidate: RadarCandidate }) {
+  const history = candidate.forecast.confidenceHistory;
+  // Прошлую уверенность показывает «Полный разбор», поэтому та же строка из списка модели убирается.
+  const facts = (candidate.forecast.keyNumbers.length ? candidate.forecast.keyNumbers : candidate.reasons)
+    .filter(fact => !(history.length > 1 && /^предыдущий прогон/i.test(fact))).slice(0, LIMIT);
+  if (!facts.length) return null;
+  return <Part title="Почему">
+    <ul className="radar-list-plain">{facts.map((fact, index) => <li key={`${index}:${fact}`}>{fact}</li>)}</ul>
+  </Part>;
 }
 
-/**
- * «Почему в радаре»: до четырёх ключевых цифр или причин с маркерами, затем
- * калибровка по истории (если цифры её не назвали), эффект на мету, все
- * варианты правки и уверенность по прогонам.
- */
-function RadarWhy({ candidate }: { candidate: RadarCandidate }) {
-  const { forecast } = candidate;
-  const history = forecast.confidenceHistory;
-  // Прошлую уверенность показывает график по прогонам, поэтому та же цифра из списка модели убирается.
-  const facts = (forecast.keyNumbers.length ? forecast.keyNumbers : candidate.reasons)
-    .filter(fact => !(history.length > 1 && /^предыдущий прогон/i.test(fact))).slice(0, MAX_REASONS);
-  const calibration = forecast.calibration;
-  const calibrationNamed = calibration !== null && facts.some(fact => fact.includes(`${calibration.hits} из ${calibration.samples}`));
-  if (!facts.length && !calibration && !forecast.metaImpact && forecast.predictedChanges.length < 2 && history.length < 2) return null;
-  return <div className="radar-block">
-    <h4 className="radar-block__title">Почему в радаре</h4>
-    {facts.length > 0 && <ul className="radar-reasons">
-      {facts.map((fact, index) => <li key={`${index}:${fact}`}><Check aria-hidden="true" /><span>{fact}</span></li>)}
-    </ul>}
-    {calibration && !calibrationNamed && <p className="radar-why__line">
-      <b>В истории:</b> Blizzard меняла {calibration.hits} из {formatRadarCount(calibration.samples)} похожих ({calibration.rate}%).
-    </p>}
-    {forecast.metaImpact && <p className="radar-why__line"><b>Что изменится в мете:</b> {forecast.metaImpact}</p>}
-    {forecast.predictedChanges.length > 1 && <ul className="radar-variants" aria-label="Варианты правки">
-      {forecast.predictedChanges.map((variant, index) => <li key={`${index}:${variant.change}`}>
-        <span>{variant.change}</span>
-        {variant.probability !== null && <><span className="radar-variants__bar" aria-hidden="true">
-          <span style={{ inlineSize: `${variant.probability}%` }} />
-        </span><b>{variant.probability}%</b></>}
-      </li>)}
-    </ul>}
-    {history.length > 1 && <p className="radar-why__history">
-      <ConfidenceSparkline points={history} />
-      <span>Уверенность по прогонам: {history.map(point => point.confidence).join(' → ')}</span>
-    </p>}
-  </div>;
-}
-
-/** «Как Blizzard поступали раньше»: одна строка на случай — правка, карта, патч, что изменили. */
-function RadarPrecedents({ precedents }: { precedents: RadarPrecedent[] }) {
+/** «Как раньше»: одна строка на прошлую правку — карта, патч, что изменили. */
+function Before({ precedents }: { precedents: RadarPrecedent[] }) {
   if (!precedents.length) return null;
-  return <div className="radar-block">
-    <h4 className="radar-block__title">Как Blizzard поступали раньше</h4>
-    <ul className="radar-precedents">
-      {precedents.map(precedent => <li key={precedent.id} className="radar-precedent" data-direction={precedent.direction}>
-        <span className="radar-precedent__direction">{DIRECTION_LABELS[precedent.direction]}</span>
-        <span className="radar-precedent__card">
-          {precedent.cardHref ? <a href={precedent.cardHref}>{precedent.name}</a> : precedent.name}
-          <span>{RADAR_CLASS_LABELS[precedent.classKey]}</span>
-        </span>
-        <a className="radar-precedent__patch" href={precedent.patchHref}>
-          Патч {precedent.patch}{precedent.date && <span>{formatRadarDate(precedent.date)}</span>}
-        </a>
+  return <Part title="Как раньше">
+    <ul className="radar-list-plain">
+      {precedents.slice(0, LIMIT).map(precedent => <li key={precedent.id}>
+        {precedent.cardHref ? <a href={precedent.cardHref}>{precedent.name}</a> : <b>{precedent.name}</b>}
+        <span className="radar-muted"> · {DIRECTION_LABELS[precedent.direction]} в <a href={precedent.patchHref}>патче {precedent.patch}</a></span>
         {/* Описание hs-data-api уже пересказывает правку; построчный список — запасной вариант без него. */}
-        <span className="radar-precedent__change">{precedent.summary ?? precedent.changes.join('; ')}</span>
+        {(precedent.summary || precedent.changes.length > 0) && <> — {precedent.summary ?? precedent.changes.join('; ')}</>}
       </li>)}
     </ul>
-  </div>;
-}
-
-/** Периоды узкой таблицей: винрейт, его изменение к прошлому периоду и популярность. */
-function RadarPeriods({ stats }: { stats: RadarCandidate['stats'] }) {
-  if (stats.trend.length < 2) return null;
-  return <div className="radar-block">
-    <h4 className="radar-block__title">По периодам <span>{stats.rankLabel}</span></h4>
-    <table className="radar-trend">
-      <caption className="sr-only">Винрейт и популярность по периодам, ранг: {stats.rankLabel}</caption>
-      <thead><tr>
-        <th scope="col">Период</th><th scope="col">Винрейт</th><th scope="col">к прошлому периоду</th><th scope="col">Популярность</th>
-      </tr></thead>
-      <tbody>
-        {stats.trend.map((point, index) => {
-          const delta = index ? radarTrendDelta(point.winrate, stats.trend[index - 1].winrate) : null;
-          return <tr key={`${index}:${point.period}`}>
-            <th scope="row">{point.label}</th>
-            <td>{formatRadarPercent(point.winrate)}</td>
-            <td className="radar-trend__delta" data-tone={delta === null || delta === 0 ? 'flat' : delta > 0 ? 'up' : 'down'}>
-              {delta === null ? '' : `${formatRadarDelta(delta)} п. п.`}
-            </td>
-            <td>{formatRadarPercent(point.popularity)}</td>
-          </tr>;
-        })}
-      </tbody>
-    </table>
-  </div>;
+  </Part>;
 }
 
 /**
  * Пост — одна ссылка на оригинал в новой вкладке. Текст только русский
  * (перевод hs-data-api); без перевода карточка ведёт в обсуждение.
  */
-function RadarPostItem({ post }: { post: RadarPost }) {
+function Post({ post }: { post: RadarPost }) {
   const translated = Boolean(post.title || post.text);
   return <a className="radar-post" href={post.url} target="_blank" rel="noopener noreferrer nofollow ugc">
-    <span className="radar-post__meta">
-      <span className="radar-post__source" data-source={post.source}>{SOURCE_LABELS[post.source]}</span>
-      {post.official && <span className="radar-post__official">официально</span>}
-      <span className="radar-post__author">{post.author}</span>
-      {post.publishedAt && <time dateTime={post.publishedAt}>{formatRadarDay(post.publishedAt)}</time>}
-      <span className="radar-post__score" aria-label={`Рейтинг ${formatRadarCount(post.score)}`}>
-        <ArrowUp aria-hidden="true" />{formatRadarCount(post.score)}
-      </span>
-      {post.comments !== null && post.comments > 0 && <span className="radar-post__score" aria-label={`Комментариев: ${formatRadarCount(post.comments)}`}>
-        <MessageSquare aria-hidden="true" />{formatRadarCount(post.comments)}
-      </span>}
+    <span className="radar-post__meta radar-muted">
+      <b>{SOURCE_LABELS[post.source]}</b>{post.official && ' · официально'} · {post.author}
+      {post.publishedAt && <> · <time dateTime={post.publishedAt}>{formatRadarDay(post.publishedAt)}</time></>}
+      {' · '}{formatRadarCount(post.score)} {post.source === 'reddit' ? 'очков' : 'отметок'}
     </span>
     {post.title && <span className="radar-post__title">{post.title}</span>}
-    {post.text && <span className="radar-post__text">{post.text}</span>}
-    <span className="radar-post__open">{translated ? 'Читать оригинал' : 'Открыть обсуждение'}<ExternalLink aria-hidden="true" /></span>
+    {/* В карточке абзацы идут подряд: пустые строки полного текста только растягивают её. */}
+    {post.text && <span className="radar-post__text">{post.text.replace(/\n{2,}/g, '\n')}</span>}
+    <span className="radar-post__open">{translated ? 'Читать оригинал' : 'Открыть обсуждение'} ↗</span>
   </a>;
 }
 
-function RadarSocial({ social }: { social: RadarCandidate['social'] }) {
+function Community({ social }: { social: RadarCandidate['social'] }) {
   const sentiment = RADAR_SENTIMENT_LABELS[social.sentiment];
   const stance = RADAR_STANCE_LABELS[social.stance];
-  if (!social.mentions && !social.summary && !social.posts.length) return null;
-  return <div className="radar-block">
-    <h4 className="radar-block__title">
-      Что говорят в сообществе
-      {sentiment && <span className="radar-social__mood" data-tone={social.sentiment}>{sentiment}{stance && `, ${stance}`}</span>}
-    </h4>
-    {social.summary && <p className="radar-social__text">{radarLead(social.summary, 2).lead}</p>}
+  if (!sentiment && !social.posts.length) return null;
+  return <Part title="Сообщество">
+    {sentiment && <p className="radar-muted">
+      {sentiment}{stance && `, ${stance}`} · {formatRadarCount(social.mentions)} {pluralRu(social.mentions, 'упоминание', 'упоминания', 'упоминаний')}
+    </p>}
     {social.posts.length > 0 && <ul className="radar-posts">
-      {social.posts.map(post => <li key={post.url}><RadarPostItem post={post} /></li>)}
+      {social.posts.slice(0, LIMIT).map(post => <li key={post.url}><Post post={post} /></li>)}
     </ul>}
+  </Part>;
+}
+
+/** Периоды строками, без таблицы: на телефоне ничего не прокручивается вбок. */
+function Periods({ stats }: { stats: RadarCandidate['stats'] }) {
+  if (stats.trend.length < 2) return null;
+  return <div className="radar-periods">
+    <p className="radar-label">По периодам · {stats.rankLabel}</p>
+    <ul>
+      {stats.trend.map((point, index) => {
+        const delta = index ? radarTrendDelta(point.winrate, stats.trend[index - 1].winrate) : null;
+        return <li key={`${index}:${point.period}`}>
+          <span>{point.label}</span>
+          <span>винрейт {formatRadarPercent(point.winrate)}{delta !== null && <span className="radar-muted"> ({formatRadarDelta(delta)} к прошлому)</span>}</span>
+          <span className="radar-muted">популярность {formatRadarPercent(point.popularity)}</span>
+        </li>;
+      })}
+    </ul>
   </div>;
 }
 
+/** Всё остальное: полный вывод, эффект на мету, варианты правки, калибровка, уверенность по прогонам, периоды, пересказ обсуждений. */
+function Full({ candidate }: { candidate: RadarCandidate }) {
+  const { forecast } = candidate;
+  const history = forecast.confidenceHistory;
+  return <RadarMore label="Полный разбор" className="radar-candidate__full">
+    {candidate.verdict.split(/\n\s*\n|\n/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+    {forecast.metaImpact && <p><b>Что изменится в мете.</b> {forecast.metaImpact}</p>}
+    {forecast.predictedChanges.length > 1 && <p>
+      <b>Варианты правки.</b> {forecast.predictedChanges.map(variant => `${variant.change}${variant.probability !== null ? ` — ${variant.probability}%` : ''}`).join('; ')}.
+    </p>}
+    {forecast.calibration && <p>
+      <b>В истории.</b> Blizzard меняла {forecast.calibration.hits} из {formatRadarCount(forecast.calibration.samples)} похожих ({forecast.calibration.rate}%).
+    </p>}
+    {history.length > 1 && <p><b>Уверенность по прогонам.</b> {history.map(point => point.confidence).join(' → ')}</p>}
+    {candidate.social.summary && <p><b>Что пишут.</b> {radarLead(candidate.social.summary, 3).lead}</p>}
+    <Periods stats={candidate.stats} />
+  </RadarMore>;
+}
+
 /**
- * Раскрытый кандидат: короткий вывод и цифры чипами сверху, затем причины,
- * прошлые правки, периоды и обсуждения. Полный текст вывода модели — под
- * «Полный разбор», чтобы наверху не было стены текста.
+ * Раскрытый кандидат: четыре одинаково устроенные секции — «Цифры»,
+ * «Почему» (до трёх пунктов), «Как раньше» (прецеденты строкой),
+ * «Сообщество» (до трёх постов) — и «Полный разбор» для остального.
  */
 export function RadarDetails({ candidate }: { candidate: RadarCandidate }) {
-  const { lead, rest } = radarLead(candidate.verdict, 2);
   return <>
-    <p className="radar-candidate__verdict">{lead}</p>
-    <RadarFacts stats={candidate.stats} kind={candidate.kind} />
-    <RadarWhy candidate={candidate} />
-    <RadarPrecedents precedents={candidate.precedents} />
-    <RadarPeriods stats={candidate.stats} />
-    <RadarSocial social={candidate.social} />
-    {rest.length > 0 && <RadarMore label="Полный разбор" className="radar-candidate__full">
-      {rest.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
-    </RadarMore>}
+    <Facts stats={candidate.stats} kind={candidate.kind} />
+    <Why candidate={candidate} />
+    <Before precedents={candidate.precedents} />
+    <Community social={candidate.social} />
+    <Full candidate={candidate} />
   </>;
 }

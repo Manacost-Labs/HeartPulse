@@ -68,52 +68,50 @@ test('the radar renders the demo forecast on the server, switches sections and f
     assert.equal((await names(page)).length, 17, 'every nerf candidate of the run');
     assert.equal((await names(page))[0], 'Ритуал призыва', 'nerfs by confidence');
     assert.equal(await page.$eval('.radar-candidate [role="meter"]', node => node.getAttribute('aria-valuenow')), '62');
-    assert.equal(await page.$eval('.radar-confidence__change', node => node.textContent), '−8', 'change since the last run');
-    assert.equal(await page.$('.radar-summary__timing'), null, 'the lead already names the patch odds, no repeat');
-    assert.equal(await page.$eval('#radar-panel > .radar-list > li:nth-child(2) .radar-candidate__change', node => [
-      node.querySelector('.radar-stat'), node.textContent?.includes('Ритуал призыва')].join()), ',true',
-    'an archetype names the card its change is about, without stat badges');
-    assert.deepEqual(await page.$$eval('.radar-changes__group h4', nodes => nodes.map(node => node.textContent)), ['Новые', 'Выросли', 'Упали'],
-      'changes since the previous run, empty groups hidden');
-    assert.deepEqual(await page.$eval('#radar-panel > .radar-list > li:first-child .radar-candidate__change', node => [
-      node.querySelector('.radar-stat-change')?.dataset.field, [...node.querySelectorAll('.radar-stat')].map(stat => stat.textContent),
-      node.querySelector('.radar-candidate__chance')?.textContent]), ['cost', ['2', '3'], ' · вероятность 55%'], 'was → will be on the card');
+    assert.equal(await page.$eval('.radar-candidate .radar-confidence__head .radar-muted', node => node.textContent), 'средняя · −8',
+      'level and change since the last run, muted');
+    assert.deepEqual(await page.$$eval('.radar-top .radar-top__name', nodes => nodes.map(node => node.textContent)),
+      ['Ритуал призыва', 'Зоолок', 'Ритуал К\'Туна'], 'three top candidates on top');
+    assert.equal(await page.$eval('.radar-summary', node => [...node.querySelectorAll('.radar-more > summary')].map(item => item.textContent).join('|')),
+      'Подробнее|С прошлого прогона', 'the rest of the summary waits behind two toggles');
+    assert.match(await page.$eval('#radar-panel > .radar-list > li:first-child .radar-candidate__change', node => node.textContent ?? ''),
+      /^Вероятная правкаСтоимость 2 → 3 · 55%$/, 'one likely-change line');
+    assert.equal(await page.$('.radar-candidate__head svg, .radar-candidate__why svg, .radar-candidate__change svg, .radar-stat'), null, 'no icons or badges in the cards');
     assert.match(await page.$eval('#radar-trust-title', node => node.closest('section')?.textContent ?? ''),
-      /8 прошлых патчах[\s\S]*Нерфы[\s\S]*11 из 22/, 'radar accuracy from the backtest');
+      /8 прошлых патчах[\s\S]*Нерфы[\s\S]*в первых 5: 11 из 22/, 'radar accuracy from the backtest');
     assert.deepEqual(await page.evaluate(() => [document.querySelectorAll('[lang="en"]').length, document.querySelectorAll('.radar-sources').length]),
       [0, 0], 'no English captions and no sources block');
     assert.equal(await page.evaluate(() => document.body.textContent?.includes('Снежная буря')), false, 'Blizzard stays Blizzard');
     const first = '#radar-panel > .radar-list > li:first-child .radar-candidate';
-    assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), false, 'details wait behind «Подробнее»');
+    assert.equal(await page.$eval(`${first} .radar-part`, node => node.checkVisibility()), false, 'details wait behind «Подробнее»');
     await page.click(`${first} .radar-candidate__more > summary`);
-    assert.equal(await page.$eval(`${first} .radar-candidate__verdict`, node => node.checkVisibility()), true);
     const opened = await page.$eval(first, node => ({
-      verdictSentences: (node.querySelector('.radar-candidate__verdict')?.textContent ?? '').split(/[.!?…](?:\s|$)/).filter(Boolean).length,
+      parts: [...node.querySelectorAll('.radar-part > h4')].map(title => title.textContent),
       facts: [...node.querySelectorAll('.radar-fact dt')].map(term => term.textContent),
-      reasons: node.querySelectorAll('.radar-reasons li svg').length,
-      deltaHeader: node.querySelector('.radar-trend thead th:nth-child(3)')?.textContent,
+      why: node.querySelectorAll('.radar-part:nth-of-type(2) li').length,
+      before: [...node.querySelectorAll('.radar-part:nth-of-type(3) li')].map(item => item.textContent),
+      posts: node.querySelectorAll('.radar-post').length,
       full: node.querySelector('.radar-candidate__full > summary')?.textContent,
+      tables: node.querySelectorAll('table').length,
     }));
-    assert.ok(opened.verdictSentences <= 2, 'a short verdict on top');
+    assert.deepEqual(opened.parts, ['Цифры', 'Почему', 'Как раньше', 'Сообщество'], 'four sections of one structure');
     assert.deepEqual(opened.facts, ['Винрейт', 'Популярность', 'Сыграна'], 'numbers as chips');
-    assert.ok(opened.reasons > 0 && opened.reasons <= 4, 'at most four marked reasons');
-    assert.equal(opened.deltaHeader, 'к прошлому периоду');
-    assert.equal(opened.full, 'Полный разбор', 'the rest of the verdict waits behind its own toggle');
-    assert.deepEqual(await page.$eval(`${first} .radar-why__history`, node => [node.querySelectorAll('circle').length, node.textContent]),
-      [3, 'Уверенность по прогонам: 75 → 70 → 62'], 'confidence across runs');
-    assert.deepEqual(await page.$$eval(`${first} .radar-variants li b`, nodes => nodes.map(node => node.textContent)), ['55%', '20%', '10%']);
+    assert.ok(opened.why > 0 && opened.why <= 3, 'at most three reasons');
+    assert.equal(opened.before[0], 'Прозорливый дракозмей · нерф в патче 35.2.2 — Атака: 6 → 5', 'a precedent in one line');
+    assert.ok(opened.posts > 0 && opened.posts <= 3, 'at most three posts');
+    assert.deepEqual([opened.full, opened.tables], ['Полный разбор', 0], 'everything else behind one toggle, no tables');
+    await page.click(`${first} .radar-candidate__full > summary`);
+    assert.match(await page.$eval(`${first} .radar-candidate__full`, node => node.textContent ?? ''),
+      /Варианты правки\.[\s\S]*55%[\s\S]*Уверенность по прогонам\. 75 → 70 → 62[\s\S]*По периодам/, 'the full breakdown');
     assert.deepEqual(await page.$eval(`${first} .radar-post`, node => [node.getAttribute('target'), node.querySelector('.radar-post__text'),
-      node.querySelector('.radar-post__open')?.textContent]), ['_blank', null, 'Открыть обсуждение'],
+      node.querySelector('.radar-post__open')?.textContent]), ['_blank', null, 'Открыть обсуждение ↗'],
     'an untranslated post shows no English text, only a link to the discussion');
     assert.equal(await page.$eval('.radar-candidate__identity', node => node.getAttribute('href')), '/standard/cards/standard/BE_085/');
     assert.equal(await page.$eval('.radar-candidate[data-kind="archetype"] .radar-candidate__identity', node => node.getAttribute('href')),
       '/standard/archetypes/standard/zoolock/', 'HSGuru archetype names become site slugs');
     assert.equal(await page.$eval('.radar-post', node => node.getAttribute('rel')), 'noopener noreferrer nofollow ugc');
-    assert.deepEqual(await page.$eval('.radar-candidate .radar-precedent', node => [
-      node.dataset.direction, node.querySelector('.radar-precedent__change')?.textContent,
-      [...node.querySelectorAll('a')].map(link => link.getAttribute('href'))]),
-    ['nerf', 'Атака: 6 → 5', ['/standard/cards/wild/END_033/', '/standard/patches/?version=35.2.2']],
-    'the first candidate shows the past Blizzard change it rests on');
+    await page.click('.radar-top li:nth-child(2) button');
+    await page.waitForFunction(() => document.querySelector('#radar-nerfs-archetype-standard-Zoolock details')?.open === true);
     assert.match(await page.$eval('#radar-patterns-title', node => node.closest('section')?.textContent ?? ''),
       /разобрано 52 балансных патча[\s\S]*Нерфы приходят к сильным и популярным колодам/, 'Blizzard patterns from the run history');
 

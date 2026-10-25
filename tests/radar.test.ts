@@ -9,7 +9,7 @@ import { createRadarLocalizer } from '../server/modules/radar/localize.js';
 import type { RadarReport as PageRadarReport } from '../src/modules/radar/model/types.js';
 import {
   DEFAULT_RADAR_FILTERS, filterRadarCandidates, formatRadarCount, formatRadarDay, formatRadarDelta, formatRadarTime, isRadarReport,
-  radarClassOptions, radarConfidenceLevel, radarEntityImage, radarTrendDelta,
+  radarClassOptions, radarConfidenceLevel, radarEntityImage, radarTopCandidates, radarTrendDelta, radarWhyLine,
 } from '../src/modules/radar/model/radarView.js';
 
 // RADAR_FIXTURE — ответ hs-data-api в его формате ({ data, meta }).
@@ -194,6 +194,8 @@ test('the page gets Russian names and Russian posts only', () => {
     { platform: 'reddit', url: 'https://reddit.com/r/hearthstone/comments/2', author: 'b', score: 4, title: 'Nerf it', excerpt: 'English',
       titleRu: 'Ослабьте его', textRu: 'Полный перевод поста.' },
     { platform: 'x', url: 'https://x.com/a/status/3', author: 'c', score: 3, excerpt: 'Hi', translation: { text: 'Привет' } },
+    { platform: 'reddit', url: 'https://reddit.com/r/hearthstone/comments/4', author: 'd', score: 2,
+      textRu: 'Моя колода:\n\nAAECAa35AwLb4Aft+QcO0J4G15cHhJkHoq0HpK0HqK0H\n\nУдачи!' },
   ];
   let named: ReadonlySet<string> = new Set();
   const report = parseRadarReport(raw, { localizeFor: cardIds => { named = cardIds; return localize; } });
@@ -203,7 +205,8 @@ test('the page gets Russian names and Russian posts only', () => {
   assert.equal(report.nerfs[0].verdict, 'Ритуал призыва питает Зоолок.');
   assert.deepEqual(report.history?.patterns[0], { title: 'Нерф Зоолок', text: 'Ритуал призыва дорожает', count: null });
   assert.deepEqual(report.nerfs[0].social.posts.map(post => [post.title, post.text]),
-    [[null, null], ['Ослабьте его', 'Полный перевод поста.'], [null, 'Привет']], 'no English text reaches the page');
+    [[null, null], ['Ослабьте его', 'Полный перевод поста.'], [null, 'Привет'], [null, 'Моя колода:\n\nУдачи!']],
+    'no English text reaches the page, and deck codes are cut out of posts');
 });
 
 test('the radar contract rejects a response without its frame', () => {
@@ -304,6 +307,13 @@ test('the radar view model filters candidates and formats dates without Intl clo
   assert.equal(report.nerfs[0].precedents[0].before?.archetype, 'Воин на драконах', 'precedent archetypes get site labels');
   assert.equal(formatRadarDay('2026-12-31T22:30:00.000Z'), '1 января', 'Moscow is UTC+3');
   assert.equal(formatRadarCount(64641), '64 641');
+  assert.deepEqual(radarTopCandidates(report).map(({ section, candidate }) => [section, candidate.confidence]),
+    [['nerfs', 62], ['nerfs', 50], ['nerfs', 42]], 'three top candidates of both sections');
+  const [ritual] = report.nerfs;
+  assert.equal(radarWhyLine({ ...ritual, headline: 'Ритуал призыва — главная карта Чернокнижника' }), 'Главная карта Чернокнижника',
+    'the why line does not repeat the name');
+  assert.equal(radarWhyLine({ ...ritual, headline: 'Ритуал призыва: 21% колод' }), '21% колод');
+  assert.equal(radarWhyLine({ ...ritual, headline: 'Самая частая карта' }), 'Самая частая карта');
   assert.equal(radarTrendDelta(58.9, 58.2), 0.7);
   assert.equal(radarTrendDelta(null, 58.2), null);
   assert.deepEqual([0.7, -1.25, 0].map(formatRadarDelta), ['+0,7', '−1,3', '±0']);
