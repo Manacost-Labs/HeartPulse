@@ -1,4 +1,6 @@
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, Hourglass } from 'lucide-react';
+import { LEADERBOARD_MODE_LABELS, LEADERBOARD_REGION_LABELS } from '../model/leaderboardsView';
+import type { LeaderboardMode, LeaderboardRegion } from '../model/types';
 import { LoadingBlock, LoadingSurface } from '../../../shared/ui/LoadingSurface';
 import '../../../shared/ui/LoadingSurface.css';
 import './Leaderboards.css';
@@ -34,6 +36,17 @@ export function LeaderboardMissing() {
     <div>
       <h2>Эта таблица ещё не собрана</h2>
       <p>Прошлые сезоны дочитываются постепенно. Выберите другой сезон или загляните позже.</p>
+    </div>
+  </div>;
+}
+
+/** У режима в этом регионе ещё нет ни одного сохранённого сезона: таблицу только начали собирать. */
+export function LeaderboardCollecting({ mode, region }: { mode: LeaderboardMode; region: LeaderboardRegion }) {
+  return <div className="leaderboards-message" role="status">
+    <Hourglass aria-hidden="true" />
+    <div>
+      <h2>Данные собираются</h2>
+      <p>Таблица «{LEADERBOARD_MODE_LABELS[mode]}» ({LEADERBOARD_REGION_LABELS[region]}) появится здесь после первого снимка Blizzard. Загляните позже.</p>
     </div>
   </div>;
 }

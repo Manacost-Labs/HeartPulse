@@ -69,9 +69,11 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     await page.setViewport({ width: 1440, height: 900 });
     assert.deepEqual(await firstNames(page), ['XQN', 'Bob2', 'Bob3']);
     assert.deepEqual(await page.$$eval('.leaderboards-table thead th', nodes => nodes.map(node => node.textContent)),
-      ['Место', 'Игрок', 'Рейтинг', 'За сутки'], 'a rated mode shows its rating and the day change');
-    assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+3) td:last-child [aria-hidden]', nodes => nodes.map(node => node.textContent)),
-      ['▲ 1', '▼ 1', 'Новый']);
+      ['Место', 'Игрок', 'За сутки', 'Рейтинг'], 'a rated mode shows the day change and its rating on the right');
+    assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+3) .leaderboards-change [aria-hidden]', nodes => nodes.map(node => node.textContent)),
+      ['↑1', '↓1', 'новый']);
+    assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+3) .leaderboards-medal', nodes => nodes.map(node => node.dataset.place)),
+      ['1', '2', '3'], 'the top three get medals');
     assert.match(await page.$eval('.leaderboards', node => node.textContent ?? ''), /6\u00a0543 игрока[\s\S]*топ-1\u00a0000 18\u00a0104[\s\S]*Распределение рейтинга[\s\S]*Место/,
       'one summary line and the rating histogram above the table');
     assert.equal(await page.$$eval('.leaderboards-histogram__bars span', nodes => nodes.length), 8);
@@ -96,6 +98,11 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     assert.equal(new URL(page.url()).search, '', 'the default selection keeps the URL clean');
     assert.deepEqual(await page.$$eval('.leaderboards-table thead th', nodes => nodes.map(node => node.textContent)),
       ['Место', 'Игрок', 'За сутки'], 'Standard has no rating column');
+
+    await page.click('.leaderboards-modes button:nth-child(5)');
+    await page.waitForFunction(() => document.querySelector('.leaderboards-message h2')?.textContent === 'Данные собираются');
+    assert.equal(await page.$('.leaderboards-table'), null, 'a mode without seasons shows no stale table');
+    if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-collecting-1440.png') });
 
     await page.click('.leaderboards-modes button:nth-child(3)');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN');
