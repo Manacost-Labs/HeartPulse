@@ -108,6 +108,7 @@ import {
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
 import { loadArchetypeCatalogForPeriod, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
+import { createArchetypeHsguruStatsRouter } from './constructedArchetypeHsguruStats.js';
 import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 import {
   cacheSuccessfulRecommendation,
@@ -7506,7 +7507,7 @@ app.use('/api', createConstructedArchetypeRouter({
   loadCatalog: (format, period) => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format, period),
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
-  loadRanks: createArchetypeRankMatrixLoader((format, rank, period) => loadStandardMeta(format, rank, period, 'any_player', 100)),
+  loadRanks: createArchetypeRankMatrixLoader((format, rank, period, coin) => loadStandardMeta(format, rank, period, coin, 100)),
   loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
   setPrivateNoStore,
   onError: (scope, error) => console.error(
@@ -7515,6 +7516,10 @@ app.use('/api', createConstructedArchetypeRouter({
   ),
 }));
 
+app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData,
+  request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId),
+  loadCatalog: format => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
+  onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
   loadBattlegroundCards: createBattlegroundCatalogLoader({

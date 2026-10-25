@@ -1,0 +1,253 @@
+{
+ "rank": "legend",
+ "period": "past_week",
+ "state": "ok",
+ "updatedAt": "2026-10-25T02:57:06.110792+00:00",
+ "matchupsUpdatedAt": "2026-10-25T02:57:06.110792+00:00",
+ "cardStatsUpdatedAt": "2026-10-25T02:57:09.977350+00:00",
+ "sourceUrls": {
+  "matchups": "https://www.hsguru.com/archetype/Zoolock?format=2&rank=legend&period=past_week",
+  "cards": "https://www.hsguru.com/card-stats?archetype=Zoolock&format=2&rank=legend&period=past_week&min_mull_count=0&min_drawn_count=0&show_counts=yes"
+ },
+ "classMatchups": [
+  {
+   "classKey": "deathknight",
+   "classLabel": "Death Knight",
+   "winrate": 58.2,
+   "games": 6337,
+   "share": 14.1
+  },
+  {
+   "classKey": "demonhunter",
+   "classLabel": "Demon Hunter",
+   "winrate": 56.7,
+   "games": 7491,
+   "share": 16.6
+  },
+  {
+   "classKey": "druid",
+   "classLabel": "Druid",
+   "winrate": 77.4,
+   "games": 605,
+   "share": 1.3
+  },
+  {
+   "classKey": "hunter",
+   "classLabel": "Hunter",
+   "winrate": 72.1,
+   "games": 351,
+   "share": 0.8
+  },
+  {
+   "classKey": "mage",
+   "classLabel": "Mage",
+   "winrate": 73,
+   "games": 1290,
+   "share": 2.9
+  },
+  {
+   "classKey": "paladin",
+   "classLabel": "Paladin",
+   "winrate": 66.6,
+   "games": 1145,
+   "share": 2.5
+  },
+  {
+   "classKey": "priest",
+   "classLabel": "Priest",
+   "winrate": 49.6,
+   "games": 4457,
+   "share": 9.9
+  },
+  {
+   "classKey": "rogue",
+   "classLabel": "Rogue",
+   "winrate": 78.8,
+   "games": 3484,
+   "share": 7.7
+  },
+  {
+   "classKey": "shaman",
+   "classLabel": "Shaman",
+   "winrate": 53.8,
+   "games": 4048,
+   "share": 9
+  },
+  {
+   "classKey": "warlock",
+   "classLabel": "Warlock",
+   "winrate": 56.5,
+   "games": 13891,
+   "share": 30.8
+  },
+  {
+   "classKey": "warrior",
+   "classLabel": "Warrior",
+   "winrate": 58.1,
+   "games": 1949,
+   "share": 4.3
+  }
+ ],
+ "cardStats": [
+  {
+   "cardId": "BE_726",
+   "dbfId": 130281,
+   "cardName": "Ритуал К'Туна",
+   "cost": 1,
+   "mulliganImpact": 4.8,
+   "mulliganCount": 16815,
+   "drawnImpact": -2.2,
+   "drawnCount": 43991,
+   "keptImpact": 4.9,
+   "keptCount": 10711,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "RARE"
+  },
+  {
+   "cardId": "BE_085",
+   "dbfId": 129793,
+   "cardName": "Ритуал призыва",
+   "cost": 2,
+   "mulliganImpact": 6.2,
+   "mulliganCount": 16681,
+   "drawnImpact": -2.4,
+   "drawnCount": 43621,
+   "keptImpact": 5.9,
+   "keptCount": 10632,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "COMMON"
+  },
+  {
+   "cardId": "CATA_210",
+   "dbfId": 123126,
+   "cardName": "Сумеречное яйцо",
+   "cost": 1,
+   "mulliganImpact": -2.6,
+   "mulliganCount": 13549,
+   "drawnImpact": -5.7,
+   "drawnCount": 40359,
+   "keptImpact": -3.2,
+   "keptCount": 7800,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "COMMON"
+  },
+  {
+   "cardId": "TIME_025",
+   "dbfId": 120482,
+   "cardName": "Сумеречный хрономот",
+   "cost": 2,
+   "mulliganImpact": -2.1,
+   "mulliganCount": 13307,
+   "drawnImpact": -4.2,
+   "drawnCount": 41379,
+   "keptImpact": -2.6,
+   "keptCount": 7622,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "COMMON"
+  },
+  {
+   "cardId": "BE_729",
+   "dbfId": 130283,
+   "cardName": "Зевоголовый сектант",
+   "cost": 3,
+   "mulliganImpact": -4.5,
+   "mulliganCount": 9308,
+   "drawnImpact": -5.6,
+   "drawnCount": 38697,
+   "keptImpact": -4.4,
+   "keptCount": 3755,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "RARE"
+  },
+  {
+   "cardId": "SCH_713",
+   "dbfId": 60043,
+   "cardName": "Неофитка культа",
+   "cost": 2,
+   "mulliganImpact": -6,
+   "mulliganCount": 8249,
+   "drawnImpact": -6.3,
+   "drawnCount": 36689,
+   "keptImpact": -8.2,
+   "keptCount": 2957,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "RARE"
+  },
+  {
+   "cardId": "TLC_451",
+   "dbfId": 117892,
+   "cardName": "Проклятые катакомбы",
+   "cost": 0,
+   "mulliganImpact": -2.8,
+   "mulliganCount": 7981,
+   "drawnImpact": -4.9,
+   "drawnCount": 35271,
+   "keptImpact": -4.4,
+   "keptCount": 2738,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "EPIC"
+  },
+  {
+   "cardId": "CAP_405",
+   "dbfId": 127067,
+   "cardName": "Крестный отец Казакус",
+   "cost": 3,
+   "mulliganImpact": 4.2,
+   "mulliganCount": 7527,
+   "drawnImpact": -0.9,
+   "drawnCount": 23048,
+   "keptImpact": 4.3,
+   "keptCount": 4292,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "LEGENDARY"
+  },
+  {
+   "cardId": "BE_207",
+   "dbfId": 131236,
+   "cardName": "Нестабильный прототип",
+   "cost": 1,
+   "mulliganImpact": -4.3,
+   "mulliganCount": 7526,
+   "drawnImpact": -6.7,
+   "drawnCount": 25120,
+   "keptImpact": -5.2,
+   "keptCount": 4095,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "RARE"
+  },
+  {
+   "cardId": "TIME_026",
+   "dbfId": 120484,
+   "cardName": "Энтропическая последовательность",
+   "cost": 1,
+   "mulliganImpact": -2.4,
+   "mulliganCount": 7216,
+   "drawnImpact": -3.6,
+   "drawnCount": 37963,
+   "keptImpact": -2.7,
+   "keptCount": 1858,
+   "tile": null,
+   "artwork": null,
+   "fullArtwork": null,
+   "rarity": "RARE"
+  }
+ ]
+}

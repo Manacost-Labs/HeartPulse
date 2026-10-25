@@ -157,5 +157,7 @@ export type RankMatrix = {
   ranks: { id: string; label: string }[];
   periods: { id: string; label: string }[];
   cells: { rank: string; period: string; winrate: number | null; games: number | null }[];
+  /** The ranks in the Bans window by coin (`cells[].period` is the coin); absent from older answers. */
+  coins?: { period: string; columns: { id: string; label: string }[]; cells: RankMatrix['cells'] };
   updatedAt: string | null;
 };

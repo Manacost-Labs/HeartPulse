@@ -145,12 +145,14 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
 };
 
 let rankReads = 0;
-dependencies.loadRanks = createArchetypeRankMatrixLoader(async (_format, rank, period) => {
+dependencies.loadRanks = createArchetypeRankMatrixLoader(async (_format, rank, period, coin) => {
   rankReads++;
   if (rank === 'top_legend' && period === 'past_day') throw new Error('slice unavailable');
   return {
     updatedAt: `2026-10-2${period === 'past_week' ? '1' : '0'}T08:00:00.000Z`,
-    items: rank === 'legend' && period === 'past_3_days' ? [] : [{ archetype: 'Thief Priest', winrate: 55.5, games: 1_234 }],
+    items: rank === 'legend' && period === 'past_3_days' ? [] : [{
+      archetype: 'Thief Priest', winrate: coin === 'on_coin' ? 51.2 : coin === 'going_first' ? 58.4 : 55.5, games: 1_234,
+    }],
   };
 });
 
@@ -238,15 +240,21 @@ try {
   }
   assert.equal((await fetch(`${origin}/wild/missing?section=analysis`, { headers })).status, 404);
 
-  // Winrate by rank and period: 5 ranks × 6 periods; a failed or missing slice leaves one empty cell.
+  // Winrate by rank and period: 5 ranks × 7 periods and the Bans window by coin; a failed or missing slice leaves one empty cell.
   assert.equal((await fetch(`${origin}/wild/thief-priest?section=ranks`)).status, 403);
   const ranks = await fetch(`${origin}/wild/thief-priest?section=ranks`, { headers });
   assert.equal(ranks.status, 200);
   const ranksBody = await ranks.json() as any;
   assert.deepEqual(ranksBody.ranks.ranks.map((rank: any) => rank.label), ['Алмаз 1–4', 'Алмаз — Легенда', 'Легенда', 'Топ-5000', 'Топ-1000']);
-  assert.equal(ranksBody.ranks.periods.at(-1).label, 'Тёмная империя');
-  assert.equal(ranksBody.ranks.cells.length, 30);
-  assert.equal(rankReads, 30);
+  assert.deepEqual(ranksBody.ranks.periods.slice(-2).map((period: any) => period.label), ['Тёмная империя', 'Баны']);
+  assert.equal(ranksBody.ranks.cells.length, 35);
+  assert.equal(rankReads, 45);
+  assert.equal(ranksBody.ranks.coins.period, 'black_empire_ban');
+  assert.deepEqual(ranksBody.ranks.coins.columns.map((column: any) => column.label), ['Первым ходом', 'С монеткой']);
+  assert.deepEqual(ranksBody.ranks.coins.cells.filter((cell: any) => cell.rank === 'legend'), [
+    { rank: 'legend', period: 'going_first', winrate: 58.4, games: 1_234 },
+    { rank: 'legend', period: 'on_coin', winrate: 51.2, games: 1_234 },
+  ]);
   assert.deepEqual(ranksBody.ranks.cells.find((cell: any) => cell.rank === 'diamond' && cell.period === 'past_week'),
     { rank: 'diamond', period: 'past_week', winrate: 55.5, games: 1_234 });
   assert.equal(ranksBody.ranks.cells.find((cell: any) => cell.rank === 'top_legend' && cell.period === 'past_day').winrate, null);

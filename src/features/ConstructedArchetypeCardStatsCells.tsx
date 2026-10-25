@@ -26,6 +26,9 @@ export type ConstructedCardStat = {
   mulliganCount: number;
   drawnImpact: number | null;
   drawnCount: number | null;
+  /** Only the full HSGuru slice has Not Drawn. */
+  notDrawnImpact?: number | null;
+  notDrawnCount?: number | null;
   keptImpact: number | null;
   keptCount: number | null;
 };
@@ -38,34 +41,39 @@ export type Phase = {
   description: string;
 };
 
-/** Impact and sample of one phase share a cell; each phase keeps its own definition tooltip. */
-export const PHASES: readonly Phase[] = [
-  {
-    impact: 'mulliganImpact', count: 'mulliganCount', label: 'Муллиган', sample: 'муллиганов',
-    description: 'Разница между винрейтом матчей, где карта была в муллигане, и общим винрейтом колоды. Включает оставленные и заменённые карты. Ниже — сколько раз карта попадала на муллиган.',
-  },
-  {
-    impact: 'drawnImpact', count: 'drawnCount', label: 'Добор', sample: 'доборов',
-    description: 'Разница между винрейтом матчей, где карта была добрана, и общим винрейтом колоды. Ниже — сколько раз карту добрали.',
-  },
-  {
-    impact: 'keptImpact', count: 'keptCount', label: 'Оставлена', sample: 'оставлений',
-    description: 'Разница между винрейтом матчей, где карту оставили в муллигане, и общим винрейтом колоды. Ниже — сколько раз карту оставили.',
-  },
-];
+const MULLIGAN_PHASE: Phase = {
+  impact: 'mulliganImpact', count: 'mulliganCount', label: 'Муллиган', sample: 'муллиганов',
+  description: 'Разница между винрейтом матчей, где карта была в муллигане, и общим винрейтом колоды. Включает оставленные и заменённые карты. Ниже — сколько раз карта попадала на муллиган.',
+};
+const DRAWN_PHASE: Phase = {
+  impact: 'drawnImpact', count: 'drawnCount', label: 'Добор', sample: 'доборов',
+  description: 'Разница между винрейтом матчей, где карта была добрана, и общим винрейтом колоды. Ниже — сколько раз карту добрали.',
+};
+const NOT_DRAWN_PHASE: Phase = {
+  impact: 'notDrawnImpact', count: 'notDrawnCount', label: 'Не пришла', sample: 'партий',
+  description: 'Разница между винрейтом матчей, где карта так и не пришла в руку, и общим винрейтом колоды. Ниже — сколько было таких партий.',
+};
+const KEPT_PHASE: Phase = {
+  impact: 'keptImpact', count: 'keptCount', label: 'Оставлена', sample: 'оставлений',
+  description: 'Разница между винрейтом матчей, где карту оставили в муллигане, и общим винрейтом колоды. Ниже — сколько раз карту оставили.',
+};
 
-const SORT_OPTIONS: ReadonlyArray<{ key: HsguruCardStatSortKey; label: string }> = PHASES.flatMap(phase => [
-  { key: phase.impact, label: `${phase.label}: влияние` },
-  { key: phase.count, label: `${phase.label}: выборка` },
-]);
+/** Impact and sample of one phase share a cell; each phase keeps its own definition tooltip. */
+export const PHASES: readonly Phase[] = [MULLIGAN_PHASE, DRAWN_PHASE, KEPT_PHASE];
+const FULL_PHASES: readonly Phase[] = [MULLIGAN_PHASE, DRAWN_PHASE, NOT_DRAWN_PHASE, KEPT_PHASE];
+
+/** HSGuru's four phases when the rows carry Not Drawn, otherwise the three of the older slice. */
+export function cardStatPhases(rows: readonly ConstructedCardStat[]): readonly Phase[] {
+  return rows.some(row => row.notDrawnCount !== undefined && row.notDrawnCount !== null) ? FULL_PHASES : PHASES;
+}
 
 const LOW_SAMPLE_HINT = `Мало данных: выборка меньше ${LOW_CARD_SAMPLE}, влияние неустойчиво`;
 
 /** The table's first page; «show all» reveals the rest. */
 export const CARD_STATS_FIRST_PAGE = 15;
 
-export function phaseOf(key: HsguruCardStatSortKey): Phase {
-  return PHASES.find(phase => phase.impact === key || phase.count === key) ?? PHASES[0];
+export function phaseOf(key: HsguruCardStatSortKey, phases: readonly Phase[] = PHASES): Phase {
+  return phases.find(phase => phase.impact === key || phase.count === key) ?? phases[0];
 }
 
 function formatImpact(value: number | null): string {
@@ -119,8 +127,8 @@ export function CardTile({ row }: { row: TileCard }) {
 }
 
 export function PhaseValue({ row, phase, scale }: { row: ConstructedCardStat; phase: Phase; scale: number }) {
-  const impact = row[phase.impact];
-  const count = row[phase.count];
+  const impact = row[phase.impact] ?? null;
+  const count = row[phase.count] ?? null;
   const share = impact === null || !Number.isFinite(impact) ? 0 : Math.min(1, Math.abs(impact) / scale);
   return (
     <span className="card-stat-phase" data-impact={hsguruImpactTone(impact)} data-low-sample={isLowCardSample(count) || undefined}>
@@ -140,14 +148,15 @@ export function PhaseValue({ row, phase, scale }: { row: ConstructedCardStat; ph
   );
 }
 
-function CardStatsListItem({ row, sortedPhase, scales, onOpen }: {
+function CardStatsListItem({ row, phases, sortedPhase, scales, onOpen }: {
   row: ConstructedCardStat;
+  phases: readonly Phase[];
   sortedPhase: Phase;
   scales: Record<HsguruCardStatImpactKey, number>;
   onOpen: (row: ConstructedCardStat) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const low = isLowCardSample(row[sortedPhase.count]);
+  const low = isLowCardSample(row[sortedPhase.count] ?? null);
   const tile = <CardTile row={row} />;
   return (
     <li data-low-sample={low || undefined}>
@@ -164,7 +173,7 @@ function CardStatsListItem({ row, sortedPhase, scales, onOpen }: {
       </div>
       {open ? (
         <dl>
-          {PHASES.map(phase => (
+          {phases.map(phase => (
             <div key={phase.impact}>
               <dt>{phase.label}</dt>
               <dd><PhaseValue row={row} phase={phase} scale={scales[phase.impact]} /></dd>
@@ -176,23 +185,25 @@ function CardStatsListItem({ row, sortedPhase, scales, onOpen }: {
   );
 }
 
-export function CardStatsList({ rows, sort, scales, rowKeys, onOpen }: {
+export function CardStatsList({ rows, phases, sort, scales, rowKeys, onOpen }: {
   rows: ConstructedCardStat[];
+  phases: readonly Phase[];
   sort: HsguruCardStatSort;
   scales: Record<HsguruCardStatImpactKey, number>;
   rowKeys: Map<ConstructedCardStat, string>;
   onOpen: (row: ConstructedCardStat) => void;
 }) {
-  const sortedPhase = phaseOf(sort.key);
+  const sortedPhase = phaseOf(sort.key, phases);
   return (
     <ol className="constructed-card-stats__list">
-      {rows.map(row => <CardStatsListItem key={rowKeys.get(row)} row={row} sortedPhase={sortedPhase} scales={scales} onOpen={onOpen} />)}
+      {rows.map(row => <CardStatsListItem key={rowKeys.get(row)} row={row} phases={phases} sortedPhase={sortedPhase} scales={scales} onOpen={onOpen} />)}
     </ol>
   );
 }
 
 /** The toolbar is shared by the desktop table and the phone list, so every metric stays sortable at any width. */
-export function CardStatsToolbar({ sort, onSort, onDirection, onCsv, csvError }: {
+export function CardStatsToolbar({ phases, sort, onSort, onDirection, onCsv, csvError }: {
+  phases: readonly Phase[];
   sort: HsguruCardStatSort;
   onSort: (key: HsguruCardStatSortKey) => void;
   onDirection: () => void;
@@ -205,7 +216,10 @@ export function CardStatsToolbar({ sort, onSort, onDirection, onCsv, csvError }:
       <label className="constructed-card-stats__sort">
         <span>Сортировка</span>
         <select value={sort.key} onChange={event => onSort(event.target.value as HsguruCardStatSortKey)}>
-          {SORT_OPTIONS.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}
+          {phases.flatMap(phase => [
+            <option key={phase.impact} value={phase.impact}>{`${phase.label}: влияние`}</option>,
+            <option key={phase.count} value={phase.count}>{`${phase.label}: выборка`}</option>,
+          ])}
         </select>
       </label>
       <button type="button" className="constructed-card-stats__direction" onClick={onDirection}
@@ -213,7 +227,7 @@ export function CardStatsToolbar({ sort, onSort, onDirection, onCsv, csvError }:
         {descending ? <ArrowDown aria-hidden="true" /> : <ArrowUp aria-hidden="true" />}
       </button>
       <span className="constructed-card-stats__legend">
-        {PHASES.map(phase => <span key={phase.impact}>{phase.label}<InfoTip label={phase.label} description={phase.description} /></span>)}
+        {phases.map(phase => <span key={phase.impact}>{phase.label}<InfoTip label={phase.label} description={phase.description} /></span>)}
       </span>
       <button type="button" className="constructed-card-stats__csv" onClick={onCsv} aria-label="Скачать таблицу муллигана: CSV">CSV</button>
       {csvError ? <p className="analytics-chart__error" role="alert">Не удалось скачать таблицу. Попробуйте ещё раз.</p> : null}

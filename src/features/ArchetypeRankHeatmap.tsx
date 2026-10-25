@@ -8,6 +8,7 @@ const COUNT = (value: number) => Math.round(value).toLocaleString('ru-RU');
 /** Six period names do not fit a phone row: there the header shows these, the full name stays for screen readers. */
 const SHORT_PERIODS: Record<string, string> = {
   past_day: '1 д', past_3_days: '3 д', past_week: '7 д', past_2_weeks: '14 д', past_30_days: '30 д', black_empire: 'Доп.',
+  black_empire_ban: 'Баны',
 };
 const NAV: Record<string, [number, number]> = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] };
 
@@ -23,7 +24,9 @@ function verdict(cell: ReturnType<typeof rankHeatCell>) {
  * a narrow screen, and a hover/focus card with the sample and its 95% interval placed beside
  * the cell, never over it. Arrow keys move between cells.
  */
-export function RankHeatmap({ matrix }: { matrix: RankMatrix }) {
+export function RankHeatmap({ matrix, caption = 'Винрейт архетипа по рангам и периодам HSGuru, с числом игр', legend = true }: {
+  matrix: RankMatrix; caption?: string; legend?: boolean;
+}) {
   const cells = useMemo(() => {
     const byKey = new Map(matrix.cells.map(cell => [`${cell.rank}|${cell.period}`, cell]));
     return matrix.ranks.map(rank => matrix.periods.map(period => {
@@ -66,10 +69,10 @@ export function RankHeatmap({ matrix }: { matrix: RankMatrix }) {
   };
   const shown = active ? { cell: cells[active.row][active.column], rank: matrix.ranks[active.row].label, period: matrix.periods[active.column].label } : null;
 
-  return <div ref={wrap} className="archetype-rank-grid">
+  return <div ref={wrap} className="archetype-rank-grid" data-compact={legend ? undefined : true}>
     <div className="archetype-rank-grid__scroll" onScroll={() => setActive(null)}>
       <table>
-        <caption className="sr-only">Винрейт архетипа по рангам и периодам HSGuru, с числом игр</caption>
+        <caption className="sr-only">{caption}</caption>
         <thead><tr>
           <th scope="col" className="archetype-rank-grid__corner">Ранг</th>
           {matrix.periods.map(period => <th key={period.id} scope="col">
@@ -99,10 +102,10 @@ export function RankHeatmap({ matrix }: { matrix: RankMatrix }) {
       {shown.cell.low !== null && shown.cell.high !== null && <span>95% интервал: {PERCENT(Number(shown.cell.low.toFixed(1)))}–{PERCENT(Number(shown.cell.high.toFixed(1)))}</span>}
       <em>{verdict(shown.cell)}</em>
     </div>}
-    <div className="archetype-rank-grid__legend" aria-hidden="true">
+    {legend && <div className="archetype-rank-grid__legend" aria-hidden="true">
       <span className="archetype-rank-grid__scale" style={{ background: `linear-gradient(90deg, ${RANK_HEAT_LEGEND.map(stop => stop.fill).join(', ')})` }} />
       <span className="archetype-rank-grid__ticks">{RANK_HEAT_LEGEND.map(stop => <span key={stop.winrate}>{stop.winrate === 40 ? '≤40%' : stop.winrate === 60 ? '≥60%' : `${stop.winrate}%`}</span>)}</span>
       <p>Красный — ниже 50%, зелёный — выше. Бледная клетка — мало игр: разница с 50% может быть погрешностью.</p>
-    </div>
+    </div>}
   </div>;
 }

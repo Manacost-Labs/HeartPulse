@@ -47,6 +47,8 @@ export type HsguruCardStatSortKey =
   | 'mulliganCount'
   | 'drawnImpact'
   | 'drawnCount'
+  | 'notDrawnImpact'
+  | 'notDrawnCount'
   | 'keptImpact'
   | 'keptCount';
 
@@ -110,6 +112,8 @@ const CSV_COLUMNS: Array<[HsguruCardStatSortKey, string]> = [
   ['mulliganCount', 'Количество муллиганов'],
   ['drawnImpact', 'Влияние при доборе'],
   ['drawnCount', 'Количество доборов'],
+  ['notDrawnImpact', 'Влияние, когда карта не пришла'],
+  ['notDrawnCount', 'Количество партий без карты'],
   ['keptImpact', 'Влияние при оставлении'],
   ['keptCount', 'Количество оставлений'],
 ];
@@ -121,9 +125,12 @@ function signedPercent(value: number | null): string {
 
 /** The export keeps one column per metric, although the table pairs impact and sample in one cell. */
 export function cardStatsCsvRows(rows: readonly SortableHsguruCardStat[]): { header: string[]; rows: string[][] } {
+  // Not Drawn exists only in the full HSGuru slice; older data keeps its three phases.
+  const notDrawn = rows.some(row => row.notDrawnCount !== undefined && row.notDrawnCount !== null);
+  const columns = CSV_COLUMNS.filter(([key]) => notDrawn || !key.startsWith('notDrawn'));
   return {
-    header: ['Карта', ...CSV_COLUMNS.map(([, label]) => label)],
-    rows: rows.map(row => [row.cardName, ...CSV_COLUMNS.map(([key]) => {
+    header: ['Карта', ...columns.map(([, label]) => label)],
+    rows: rows.map(row => [row.cardName, ...columns.map(([key]) => {
       const value = sortableNumber(row[key]);
       if (key.endsWith('Impact')) return signedPercent(value);
       return value === null ? '—' : String(Math.round(value));

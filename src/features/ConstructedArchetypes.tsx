@@ -5,7 +5,7 @@ import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
 import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection } from './ArchetypeInsightSlots';
 import { ArchetypeHistoryCharts } from './ArchetypeHistoryCharts';
 import { standardMetaPeriodLabel } from './standardMetaFilterModel';
-import type { StandardMetaPeriod } from '../../shared/standardMetaPeriods';
+import { isStandardMetaPeriod, type StandardMetaPeriod } from '../../shared/standardMetaPeriods';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
@@ -201,8 +201,18 @@ function formatDate(value: string | null, timeZone?: string): string {
 }
 
 /** «Баны», «Тёмная империя» or «Патч 36.6.3»: the HSGuru period the catalog's games come from. */
-function catalogPeriodLabel(catalog: ArchetypeCatalog | null): string {
-  return catalog?.period ? standardMetaPeriodLabel(catalog.period) : `Патч ${catalog?.patch || '—'}`;
+function catalogPeriodLabel(catalog: Pick<ArchetypeCatalog, 'period' | 'patch'> | null): string {
+  if (catalog?.period) return standardMetaPeriodLabel(catalog.period);
+  // The detail answer names its window only in `patch` (`black_empire_ban`, or `36.6.3` for a patch).
+  if (catalog?.patch && isStandardMetaPeriod(catalog.patch)) return standardMetaPeriodLabel(catalog.patch);
+  return `Патч ${catalog?.patch || '—'}`;
+}
+
+/** Builds are sorted by sample; the sample's window can differ from the page's (the Bans window borrows them). */
+function buildsSampleText(builds: readonly ArchetypeBuild[]): string {
+  const periods = [...new Set(builds.map(build => build.samplePeriod).filter(Boolean))];
+  const window = periods.length === 1 && isStandardMetaPeriod(periods[0]) ? ` за период «${standardMetaPeriodLabel(periods[0])}»` : '';
+  return `Сборки отсортированы по размеру выборки HSGuru${window}.`;
 }
 
 function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutral' {
@@ -536,7 +546,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           <header className="archetype-section-heading">
             <div>
               <h2 id="archetype-builds-title">Сборки архетипа</h2>
-              <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
+              <p>{buildsSampleText(item.builds)} Код можно скопировать и сразу импортировать в Hearthstone.</p>
             </div>
             <span className="archetype-section-heading__count">{item.builds.length} сборок</span>
           </header>
@@ -615,7 +625,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         error={analysisRead.error} onRetry={analysisRead.retry} skeleton={<ArchetypeAnalysisLoading />}>
         <RecoverableSurfaceBoundary scope="constructed-archetype-analysis" title="Аналитика архетипа временно недоступна">
           <React.Suspense fallback={<ArchetypeAnalysisReserve />}>
-            <ConstructedArchetypeAnalysis analysis={detail.analysis} />
+            <ConstructedArchetypeAnalysis analysis={detail.analysis} format={item.format} slug={item.slug} />
           </React.Suspense>
         </RecoverableSurfaceBoundary>
       </ArchetypeDetailSection> : null}
@@ -627,7 +637,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         <BarChart3 size={24} aria-hidden="true" />
         <div>
           <h2>Как читать данные</h2>
-          <p>Статистика архетипа относится к текущему патчу и учитывает архетипы от {detail.minimumGames} игр. Сборки используют выборку HSGuru за последние 30 дней, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
+          <p>Статистика архетипа относится к периоду «{catalogPeriodLabel(detail)}» и учитывает архетипы от {detail.minimumGames} игр. У сборок своя выборка HSGuru, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
         </div>
       </section> : null}
     </Root>
