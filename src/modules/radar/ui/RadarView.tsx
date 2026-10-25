@@ -129,7 +129,6 @@ export function RadarView({ report }: { report: RadarReport }) {
       <span><b>Демонстрационные данные.</b> Сбор радара ещё запускается: карты и архетипы настоящие, а цифры и посты — пример.</span>
     </p>}
     <RadarSummary report={report} />
-    <RadarPatterns history={report.history} />
     <section className="radar-section radar-board" aria-labelledby="radar-board-title">
       <h2 id="radar-board-title" className="sr-only">Кандидаты на изменения</h2>
       <div className="radar-board__bar">
@@ -182,5 +181,6 @@ export function RadarView({ report }: { report: RadarReport }) {
           </div>}
       </div>
     </section>
+    <RadarPatterns history={report.history} />
   </>;
 }
