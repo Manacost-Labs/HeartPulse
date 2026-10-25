@@ -52,13 +52,15 @@ test('a failed or mismatched period read falls back to the source default', asyn
   assert.equal(await loadArchetypeCatalogForPeriod(ignoring.load, 'standard'), fallback);
 });
 
-test('the catalog criteria name its period and the periods the source can build', () => {
-  assert.deepEqual(readArchetypeCatalogPeriods({ period: 'black_empire' }),
+test('criteria name the catalog period and meta the periods the source can build', () => {
+  // hs-data-api before the Bans catalog: no list, only its own window.
+  assert.deepEqual(readArchetypeCatalogPeriods({ period: 'black_empire' }, { fetched_at: null }),
     { period: 'black_empire', availablePeriods: ['black_empire'] });
-  assert.deepEqual(readArchetypeCatalogPeriods({
-    period: 'black_empire_ban', available_periods: ['black_empire_ban', 'black_empire', 'not a period', 7],
-  }), { period: 'black_empire_ban', availablePeriods: ['black_empire_ban', 'black_empire'] });
-  assert.deepEqual(readArchetypeCatalogPeriods({}), { period: null, availablePeriods: [] });
+  assert.deepEqual(readArchetypeCatalogPeriods(
+    { period: 'black_empire_ban' },
+    { available_periods: ['black_empire', 'black_empire_ban', 'not a period', 7], current_period: 'black_empire' },
+  ), { period: 'black_empire_ban', availablePeriods: ['black_empire', 'black_empire_ban'] });
+  assert.deepEqual(readArchetypeCatalogPeriods({}, undefined), { period: null, availablePeriods: [] });
 });
 
 test('the catalog cache keeps one snapshot per format and period', async () => {

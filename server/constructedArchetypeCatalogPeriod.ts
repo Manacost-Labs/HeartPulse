@@ -27,13 +27,19 @@ export async function loadArchetypeCatalogForPeriod<C extends PeriodCatalog>(
 }
 
 /**
- * The period fields of a source catalog's `criteria`. A source without
- * `available_periods` serves only its own window.
+ * The period fields of a source catalog: `criteria.period` is the window it was
+ * built for, `meta.available_periods` the windows the source can build. A
+ * source without the list (hs-data-api before the Bans catalog) serves only
+ * its own window.
  */
-export function readArchetypeCatalogPeriods(criteria: Record<string, unknown>): Pick<PeriodCatalog, 'period' | 'availablePeriods'> {
+export function readArchetypeCatalogPeriods(
+  criteria: Record<string, unknown>,
+  meta: unknown,
+): Pick<PeriodCatalog, 'period' | 'availablePeriods'> {
   const period = isStandardMetaPeriod(criteria.period) ? criteria.period : null;
-  const availablePeriods = Array.isArray(criteria.available_periods)
-    ? criteria.available_periods.filter(isStandardMetaPeriod)
+  const listed = meta && typeof meta === 'object' ? (meta as Record<string, unknown>).available_periods : undefined;
+  const availablePeriods = Array.isArray(listed)
+    ? listed.filter(isStandardMetaPeriod)
     : period ? [period] : [];
   return { period, availablePeriods };
 }

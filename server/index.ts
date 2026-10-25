@@ -6030,7 +6030,7 @@ async function fetchConstructedArchetypeCatalog(
     format,
     formatLabel: STANDARD_META_FORMAT_LABEL[format],
     patch: String(criteria.period ?? '').replace(/^patch_/, ''),
-    ...readArchetypeCatalogPeriods(criteria),
+    ...readArchetypeCatalogPeriods(criteria, payload?.meta),
     minimumGames: parseCount(criteria.minimum_games) ?? 50,
     updatedAt: String(payload?.meta?.fetched_at ?? '') || null,
     coverage: payload?.coverage && typeof payload.coverage === 'object' ? payload.coverage : {},

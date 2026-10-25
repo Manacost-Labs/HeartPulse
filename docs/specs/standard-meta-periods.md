@@ -36,15 +36,15 @@
 
 `/standard/archetypes/` открывается по тому же правилу. Источник —
 `/v1/hsguru/archetypes` в hs-data-api: Express читает каталог без периода
-(окно источника по умолчанию), а если `criteria.available_periods` содержит
-окно банов текущего дополнения (`criteria.period` + `_ban`), читает
-`period=<окно банов>` и отдаёт его. `/api/constructed-archetypes` и его тизер
-принимают `period` (неизвестный — HTTP 400). Источнику передаётся только
-период из `available_periods`; ошибка или ответ за другой период дают каталог
-по умолчанию. Без `available_periods` (так источник отвечает на 2026-10-25,
-`period` он пока не принимает) каталог остаётся в окне источника, сейчас
-`black_empire`. В заголовке каталога — подпись периода из этой таблицы.
-Код: `server/constructedArchetypeCatalogPeriod.ts`.
+(окно источника по умолчанию, `criteria.period`), а если
+`meta.available_periods` содержит окно банов этого окна (`<criteria.period>_ban`),
+читает `period=<окно банов>` и отдаёт его. `/api/constructed-archetypes` и его
+тизер принимают `period` (неизвестный — HTTP 400). Источнику передаётся только
+период из `meta.available_periods`; ошибка (неизвестный период — HTTP 422) или
+ответ за другой период дают каталог по умолчанию. Источник без
+`meta.available_periods` (hs-data-api до каталога банов) оставляет каталог в
+своём окне, `black_empire`. В заголовке каталога — подпись периода из этой
+таблицы. Код: `server/constructedArchetypeCatalogPeriod.ts`.
 
 ## Очерёдность хода
 
