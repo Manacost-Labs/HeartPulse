@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { streamerClassKey, streamerFormat, streamerSlug } from './parsing.js';
 import { StreamerNotFoundError, type createStreamersService } from './service.js';
-import type { StreamerFilters } from './types.js';
+import type { StreamerFilters, StreamersFilters } from './types.js';
 
 export type StreamersRouterDependencies = Pick<ReturnType<typeof createStreamersService>, 'loadList' | 'loadStreamer'>;
 
@@ -15,6 +15,21 @@ function filters(request: Request): StreamerFilters | null {
   if (parsedFormat === null && format) return null;
   if (parsedClass === null && classKey) return null;
   return { format: parsedFormat, classKey: parsedClass };
+}
+
+// Ник Twitch или HSGuru: буквы, цифры, пробел, `_`, `-` и `.`.
+const QUERY = /^[\p{L}\p{N} _.-]{1,40}$/u;
+
+/** Фильтры каталога: формат и класс, язык, «в эфире», поиск по нику и сортировка. */
+function catalogFilters(request: Request): StreamersFilters | null {
+  const base = filters(request);
+  const { lang, live, q, sort } = request.query;
+  if (!base || (lang !== undefined && lang !== '' && lang !== 'ru')) return null;
+  if (live !== undefined && live !== '' && live !== '1') return null;
+  if (sort !== undefined && sort !== '' && sort !== 'active' && sort !== 'rank') return null;
+  const query = typeof q === 'string' ? q.trim().replace(/\s+/g, ' ') : q === undefined ? '' : null;
+  if (query === null || (query && !QUERY.test(query))) return null;
+  return { ...base, language: lang === 'ru' ? 'ru' : null, live: live === '1', query: query || null, sort: sort === 'rank' ? 'rank' : 'active' };
 }
 
 function offset(request: Request): number | null {
@@ -34,7 +49,7 @@ export function createStreamersRouter(dependencies: StreamersRouterDependencies)
   const router = Router();
 
   router.get('/streamers', async (request, response) => {
-    const parsed = filters(request);
+    const parsed = catalogFilters(request);
     const at = offset(request);
     if (!parsed || at === null) {
       response.status(400).json({ error: 'Неверный фильтр' });

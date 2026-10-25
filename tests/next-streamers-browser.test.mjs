@@ -68,6 +68,13 @@ test('the streamers pages render live streams, streamer cards and one streamer w
       }
     }
 
+    await page.goto(`${pilot.origin}/streamers/`, { waitUntil: 'networkidle2' });
+    const [search] = await Promise.all([
+      page.waitForResponse(response => /\/api\/streamers\?.*live=1.*q=reqvam/.test(response.url())),
+      page.click('.streamers-toolbar__live').then(() => page.type('.streamers-search input', 'reqvam')),
+    ]);
+    assert.equal(search.status(), 200, 'the live filter and the nickname search reach the API');
+
     await page.goto(`${pilot.origin}/streamers/${slug}/`, { waitUntil: 'networkidle2' });
     const before = await page.$$eval('.streamers-decks--full .streamers-deck', nodes => nodes.length);
     const [wild] = await page.$$('xpath/.//button[contains(., "Вольный")]');

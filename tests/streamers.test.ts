@@ -3,14 +3,16 @@ import { readFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 import express from 'express';
-import { parseLiveStream, parseProfile, parseSummary, safeUrl } from '../server/modules/streamers/parsing.js';
+import { currentPlace, lastSeasonPlace, ladderName, parseLadderPlayer } from '../server/modules/streamers/ladder.js';
+import { parseDeck, parseLiveStream, parseProfile, parseSummary, safeUrl } from '../server/modules/streamers/parsing.js';
 import { createStreamersRouter } from '../server/modules/streamers/routes.js';
 import { StreamerNotFoundError, createStreamersService } from '../server/modules/streamers/service.js';
-import type { StreamerPage, StreamersPage } from '../server/modules/streamers/types.js';
+import type { StreamerDeck, StreamerPage, StreamersFilters, StreamersPage } from '../server/modules/streamers/types.js';
+import { streamerWeek } from '../server/modules/streamers/week.js';
 import type { StreamerPage as ClientStreamerPage, StreamersPage as ClientStreamersPage } from '../src/modules/streamers/model/types.js';
 import {
-  deckRecord, deckRankLabel, distinctRecentDecks, formatFollowers, formatLiveSince, isStreamerPage, isStreamersPage, plural,
-  streamerFacetOptions, streamerFilterQuery, streamModeLabel, visibleLiveStreams,
+  cardBestRank, deckRecord, deckRankLabel, distinctRecentDecks, favoriteClasses, formatFollowers, formatLiveSince, isStreamerPage, isStreamersPage,
+  ladderLabel, plural, streamerFacetOptions, streamerFilterQuery, streamerSearchQuery, streamModeLabel, visibleLiveStreams, vodTimecode,
 } from '../src/modules/streamers/model/streamersView.js';
 
 // Ответы hs-data-api 25.10.2026 (живой прогон сбора HSGuru), урезанные до нескольких строк.
@@ -18,6 +20,9 @@ const FIXTURE = JSON.parse(readFileSync(new URL('./fixtures/streamers-hsdata-202
 const LABELS: Record<string, string> = { 'Thief Priest': 'Жрец-вор', 'Egg Priest': 'Яичный жрец' };
 const namer = (name: string) => LABELS[name] ?? name;
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+// Ответы /v1/leaderboards 25.10.2026: текущий сезон ещё не собран, у всех `current: []`.
+const LADDER = JSON.parse(readFileSync(new URL('./fixtures/streamers-leaderboards-20261025.json', import.meta.url), 'utf8')) as Record<string, { data: any }>;
+const ALL: StreamersFilters = { format: null, classKey: null, language: null, live: false, query: null, sort: 'active' };
 
 test('a streamer of the catalog keeps links, live stream and decks with Russian names', () => {
   const raw = copy(FIXTURE.streamers.data[0]);
@@ -34,6 +39,8 @@ test('a streamer of the catalog keeps links, live stream and decks with Russian 
   );
   assert.equal(deck.peakRank, 6623);
   assert.equal(deck.latestRank, null, 'a rank missing on HSGuru stays empty');
+  assert.equal(summary.bestRank, 609, 'the best rank of the 30-day window');
+  assert.equal(summary.ladder, null, 'the leaderboard place is filled by the service');
 });
 
 test('the streamer profile carries YouTube and X, facets and VOD links of past broadcasts', () => {
@@ -84,6 +91,9 @@ function upstream(overrides: Partial<Record<string, unknown>> = {}) {
     if (path === '/v1/hsguru/streaming-now') return FIXTURE.streamingNow;
     if (path === '/v1/hsguru/streamers/nohandsgamer') return FIXTURE.streamer;
     if (path === '/v1/hsguru/streamers/nohandsgamer/decks') return FIXTURE.streamerDecks;
+    const query = new URL(url).searchParams;
+    if (path === '/v1/leaderboards/players') return LADDER[`players${query.get('q')}`] ?? { data: [] };
+    if (path === '/v1/leaderboards/player' && LADDER[`player${query.get('region')}`]) return LADDER[`player${query.get('region')}`];
     throw new StreamerNotFoundError('missing');
   };
   return { calls, fetchJson };
@@ -93,24 +103,36 @@ test('the service reads the catalog with live streams once and caches each slice
   const { calls, fetchJson } = upstream();
   let time = 0;
   const service = createStreamersService({ baseUrl: 'https://hs.test/', fetchJson, loadNamer: async () => namer, now: () => time });
-  const page = await service.loadList({ format: 'wild', classKey: 'mage' });
+  const wildMage = { ...ALL, format: 'wild' as const, classKey: 'mage' };
+  const page = await service.loadList(wildMage);
   assert.equal(page.streamers.length, 3);
   assert.equal(page.live.length, 4);
   assert.equal(page.total, FIXTURE.streamers.meta.count);
-  assert.deepEqual(calls, [
-    '/v1/hsguru/streamers?days=30&limit=24&offset=0&decks=8&format=wild&player_class=MAGE',
+  assert.deepEqual(calls.filter(call => call.startsWith('/v1/hsguru')), [
+    '/v1/hsguru/streamers?days=30&limit=24&offset=0&decks=8&sort=active&format=wild&player_class=MAGE',
     '/v1/hsguru/streaming-now?limit=60',
   ]);
-  await service.loadList({ format: 'wild', classKey: 'mage' });
-  assert.equal(calls.length, 2, 'a fresh slice is served from the cache');
-  const next = await service.loadList({ format: null, classKey: null }, 24);
+  assert.deepEqual(calls.filter(call => call.startsWith('/v1/leaderboards')).sort(), [
+    '/v1/leaderboards/players?q=MoquaiTV&limit=10', '/v1/leaderboards/players?q=Ramses&limit=10',
+  ], 'only BattleTag-like names are looked up on the leaderboards');
+  const read = calls.length;
+  await service.loadList(wildMage);
+  assert.equal(calls.length, read, 'a fresh slice is served from the cache');
+  const next = await service.loadList(ALL, 24);
   assert.deepEqual(next.live, [], 'the next portion does not read live streams again');
   time = 61_000;
-  assert.equal(await service.loadList({ format: 'wild', classKey: 'mage' }), page, 'an expired slice is served at once');
+  assert.equal(await service.loadList(wildMage), page, 'an expired slice is served at once');
   assert.equal(calls.filter(call => call.includes('format=wild')).length, 2, 'while one background read refreshes it');
+  await service.loadList({ ...ALL, language: 'ru', live: true, query: 'Jostik', sort: 'rank' });
+  assert.ok(calls.includes('/v1/hsguru/streamers?days=30&limit=24&offset=0&decks=8&sort=rank&language=ru&live=true&q=Jostik'));
   const streamer = await service.loadStreamer('nohandsgamer', { format: null, classKey: null });
   assert.equal(streamer.decks.length, FIXTURE.streamerDecks.data.length);
   assert.equal(streamer.streamer.name, 'NoHandsGamer');
+  assert.ok(calls.includes('/v1/hsguru/streamers/nohandsgamer/decks?days=7&limit=200'), 'the week is read with the first portion');
+  assert.equal(streamer.week?.decks, FIXTURE.streamerDecks.data.length);
+  assert.deepEqual(streamer.streamer.ladder, { rank: 66, region: 'AP', mode: 'standard', current: false, seasonStart: '2026-09-01' },
+    'without a current board the page shows the best final place of the last stored season');
+  assert.equal((await service.loadStreamer('nohandsgamer', { format: null, classKey: null }, 30)).week, null, 'the next portion has no week');
   await assert.rejects(service.loadStreamer('nobody', { format: null, classKey: null }), StreamerNotFoundError);
 });
 
@@ -135,6 +157,10 @@ test('the router validates filters and maps upstream outcomes to statuses', asyn
     assert.ok(isStreamersPage(body));
     assert.equal((await fetch(`${base}/streamers?format=battlegrounds`)).status, 400);
     assert.equal((await fetch(`${base}/streamers?offset=-1`)).status, 400);
+    assert.equal((await fetch(`${base}/streamers?lang=ru&live=1&sort=rank&q=${encodeURIComponent('Jostik HS')}`)).status, 200);
+    for (const bad of ['lang=en', 'live=yes', 'sort=followers', `q=${encodeURIComponent('<script>')}`, `q=${'a'.repeat(41)}`]) {
+      assert.equal((await fetch(`${base}/streamers?${bad}`)).status, 400, bad);
+    }
     const one = await fetch(`${base}/streamers/NoHandsGamer?class=priest`);
     assert.equal(one.status, 200);
     assert.ok(isStreamerPage(await one.json()));
@@ -152,7 +178,7 @@ test('page types mirror the server contract', async () => {
   const { fetchJson } = upstream();
   const service = createStreamersService({ baseUrl: 'https://hs.test', fetchJson });
   // Присваивание в обе стороны ломает `npm run lint` при расхождении типов.
-  const list: ClientStreamersPage = await service.loadList({ format: null, classKey: null });
+  const list: ClientStreamersPage = await service.loadList(ALL);
   const back: StreamersPage = list;
   const page: ClientStreamerPage = await service.loadStreamer('nohandsgamer', { format: null, classKey: null });
   const pageBack: StreamerPage = page;
@@ -190,4 +216,54 @@ test('the page model formats counts, ranks and facets in Russian', () => {
   const streams = [{ language: 'ru' }, { language: null }] as Parameters<typeof visibleLiveStreams>[0];
   assert.equal(visibleLiveStreams(streams, true).length, 1);
   assert.equal(visibleLiveStreams(streams, false).length, 2);
+});
+
+test('leaderboard places match the exact name: current board first, else the last stored season', () => {
+  assert.equal(ladderName('NoHandsGamer'), 'NoHandsGamer');
+  assert.equal(ladderName('TheoHS_'), null, 'BattleTags have no underscores');
+  assert.equal(ladderName('ab'), null);
+  const nohands = parseLadderPlayer(LADDER.playersNoHandsGamer, 'nohandsgamer');
+  assert.deepEqual(nohands.regions.sort(), ['AP', 'EU', 'US']);
+  assert.equal(currentPlace(nohands, 'standard'), null, 'the current season is not collected yet');
+  assert.deepEqual(parseLadderPlayer(LADDER.playersNoHandsGamer, 'NoHands'), { regions: [], current: [] }, 'a prefix is not a match');
+  // Форма строки `current` — из примера OpenAPI /v1/leaderboards/players.
+  const live = copy(LADDER.playersRamses);
+  live.data[0].current = [{ mode: 'standard', season_id: 156, rank: 457, rating: null }, { mode: 'wild', season_id: 156, rank: 12, rating: null }];
+  live.data[1].current = [{ mode: 'standard', season_id: 156, rank: 900, rating: null }];
+  assert.deepEqual(currentPlace(parseLadderPlayer(live, 'Ramses'), 'standard'), { rank: 457, region: 'EU', mode: 'standard', current: true, seasonStart: null });
+  assert.equal(currentPlace(parseLadderPlayer(live, 'Ramses'), 'wild')?.rank, 12);
+  assert.deepEqual(lastSeasonPlace(LADDER.playerUS, 'standard', 'US'), { rank: 105, region: 'US', mode: 'standard', current: false, seasonStart: '2026-09-01', seasonId: 155 });
+  assert.equal(lastSeasonPlace(LADDER.playerUS, 'wild', 'US'), null);
+});
+
+test('the week groups decks by archetype, most played first', () => {
+  const decks = FIXTURE.streamerDecks.data.map((row: unknown) => parseDeck(row, namer)).filter(Boolean) as StreamerDeck[];
+  const week = streamerWeek(decks);
+  assert.equal(week.decks, 6);
+  assert.deepEqual({ wins: week.wins, losses: week.losses }, { wins: 76, losses: 45 });
+  assert.deepEqual(week.archetypes.map(item => [item.archetype, item.decks, item.wins, item.losses]), [
+    ['Egg Priest', 3, 36, 23], ["C'Thun Warlock", 1, 16, 14], ["C'Thun Priest", 1, 16, 5], ["C'Thun Shaman", 1, 8, 3],
+  ]);
+  assert.equal(week.archetypes[0].archetypeLabel, 'Яичный жрец');
+  assert.deepEqual(streamerWeek([]), { decks: 0, wins: 0, losses: 0, archetypes: [] });
+});
+
+test('the card model: favourite classes, best rank once, leaderboard label, VOD time and search text', () => {
+  const decks = ['priest', 'mage', 'priest', null, 'warrior', 'mage', 'rogue'].map(classKey => ({ classKey }));
+  assert.deepEqual(favoriteClasses(decks), ['priest', 'mage', 'warrior']);
+  assert.deepEqual(favoriteClasses([]), []);
+  assert.equal(cardBestRank(12, [{ peakRank: 40 }]), '#12');
+  assert.equal(cardBestRank(12, [{ peakRank: 12 }]), null, 'the same number is not shown twice');
+  assert.equal(cardBestRank(null, []), null);
+  assert.deepEqual(ladderLabel({ rank: 457, region: 'EU', mode: 'standard', current: true, seasonStart: null }),
+    { text: '#457 · EU', title: 'Место сейчас в таблице лидеров Blizzard, Стандарт, EU' });
+  assert.equal(ladderLabel({ rank: 1105, region: 'US', mode: 'wild', current: false, seasonStart: '2026-09-01' })?.text.replace(/\s/g, ' '), '#1 105 · US · сентябрь');
+  assert.equal(ladderLabel(null), null);
+  assert.equal(vodTimecode('https://www.twitch.tv/videos/2909721478?t=5h41m20s'), '5:41:20');
+  assert.equal(vodTimecode('https://www.twitch.tv/videos/1?t=7m5s'), '7:05');
+  assert.equal(vodTimecode('https://www.twitch.tv/videos/1'), null);
+  assert.equal(streamerSearchQuery('  Jostik_HS <b> '), 'Jostik_HS b');
+  assert.equal(streamerSearchQuery('<>'), null);
+  assert.equal(streamerFilterQuery({ ...ALL, language: 'ru', live: true, query: 'reqvam', sort: 'rank' }), '?lang=ru&live=1&q=reqvam&sort=rank');
+  assert.equal(streamerFilterQuery(ALL), '');
 });

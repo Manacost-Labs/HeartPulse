@@ -1,8 +1,10 @@
 import { createMetaSliceCache } from '../constructedArchetypes/public.js';
+import { createLadderLookup, ladderMode } from './ladder.js';
 import {
   metaCount, parseLiveStream, parseProfile, parseRows, parseSummary, parseDeck, type ArchetypeNamer,
 } from './parsing.js';
-import type { StreamerFilters, StreamerPage, StreamersPage } from './types.js';
+import type { StreamerFilters, StreamerPage, StreamersFilters, StreamersPage, StreamerWeek } from './types.js';
+import { streamerWeek } from './week.js';
 
 export const STREAMERS_PAGE_SIZE = 24;
 export const STREAMER_DECKS_PAGE_SIZE = 30;
@@ -10,6 +12,12 @@ export const STREAMER_DECKS_PAGE_SIZE = 30;
 const ACTIVE_DAYS = 30;
 const LIVE_LIMIT = 60;
 const MAX_OFFSET = 5_000;
+const WEEK_DAYS = 7;
+const WEEK_DECKS = 200;
+/** Поиски по нику живут в своём кеше и сбрасываются, когда их набирается столько. */
+const MAX_SEARCH_SLICES = 200;
+/** Сколько срез ждёт мест в таблицах лидеров; остальные дойдут к следующему срезу. */
+const LADDER_BUDGET_MS = 700;
 
 export class StreamerNotFoundError extends Error {}
 
@@ -67,37 +75,73 @@ export function createStreamersService(dependencies: StreamersServiceDependencie
     now: dependencies.now, onRefreshError: dependencies.onError,
   });
   const lists = cache<StreamersPage>();
+  const searches = cache<StreamersPage>();
   const pages = cache<StreamerPage>();
+  const ladders = createLadderLookup({ base, fetchJson, now: dependencies.now, onError: dependencies.onError });
 
-  async function readList(filters: StreamerFilters, offset: number): Promise<StreamersPage> {
+  async function readList(filters: StreamersFilters, offset: number): Promise<StreamersPage> {
     const query = filterQuery(filters, new URLSearchParams({
-      days: String(ACTIVE_DAYS), limit: String(STREAMERS_PAGE_SIZE), offset: String(offset), decks: '8',
+      days: String(ACTIVE_DAYS), limit: String(STREAMERS_PAGE_SIZE), offset: String(offset), decks: '8', sort: filters.sort,
     }));
+    if (filters.language) query.set('language', filters.language);
+    if (filters.live) query.set('live', 'true');
+    if (filters.query) query.set('q', filters.query);
     const [name, list, live] = await Promise.all([
       namer(),
       fetchJson(`${base}/v1/hsguru/streamers?${query}`),
       offset === 0 ? fetchJson(`${base}/v1/hsguru/streaming-now?limit=${LIVE_LIMIT}`) : null,
     ]);
+    const streamers = parseRows(list, row => parseSummary(row, name));
+    const places = await ladders.current(streamers.map(streamer => streamer.name), ladderMode(filters.format), LADDER_BUDGET_MS);
     return {
       live: live ? parseRows(live, row => parseLiveStream(row, name)) : [],
-      streamers: parseRows(list, row => parseSummary(row, name)),
+      streamers: streamers.map(streamer => ({ ...streamer, ladder: places.get(streamer.name.toLowerCase()) ?? null })),
       total: metaCount(list), offset, filters,
     };
+  }
+
+  /** Неделя не обязательна странице: без неё стример всё равно открывается. */
+  async function readWeek(path: string): Promise<unknown> {
+    try {
+      return await fetchJson(`${path}/decks?days=${WEEK_DAYS}&limit=${WEEK_DECKS}`);
+    } catch (error) {
+      dependencies.onError?.(`${path}|week`, error);
+      return null;
+    }
   }
 
   async function readStreamer(slug: string, filters: StreamerFilters, offset: number): Promise<StreamerPage> {
     const query = filterQuery(filters, new URLSearchParams({ limit: String(STREAMER_DECKS_PAGE_SIZE), offset: String(offset) }));
     const path = `${base}/v1/hsguru/streamers/${encodeURIComponent(slug)}`;
-    const [name, profile, decks] = await Promise.all([namer(), fetchJson(path), fetchJson(`${path}/decks?${query}`)]);
+    const [name, profile, decks, week] = await Promise.all([
+      namer(), fetchJson(path), fetchJson(`${path}/decks?${query}`), offset === 0 ? readWeek(path) : null,
+    ]);
     const streamer = parseProfile((profile as { data?: unknown } | null)?.data, name);
     if (!streamer) throw new Error('streamers: invalid streamer response');
-    return { streamer, decks: parseRows(decks, row => parseDeck(row, name)), total: metaCount(decks), offset, filters };
+    const ladder = await ladders.profile(streamer.name, ladderMode(filters.format), LADDER_BUDGET_MS);
+    return {
+      streamer: { ...streamer, ladder },
+      week: week ? weekOf(week, name) : null,
+      decks: parseRows(decks, row => parseDeck(row, name)), total: metaCount(decks), offset, filters,
+    };
+  }
+
+  function weekOf(payload: unknown, name: ArchetypeNamer): StreamerWeek | null {
+    try {
+      return streamerWeek(parseRows(payload, row => parseDeck(row, name)));
+    } catch {
+      return null;
+    }
   }
 
   return {
-    loadList(filters: StreamerFilters, offset = 0): Promise<StreamersPage> {
+    loadList(filters: StreamersFilters, offset = 0): Promise<StreamersPage> {
       const at = Math.min(Math.max(0, offset), MAX_OFFSET);
-      return lists.load(`${filters.format ?? '*'}|${filters.classKey ?? '*'}|${at}`, () => readList(filters, at));
+      const key = [filters.format ?? '*', filters.classKey ?? '*', filters.language ?? '*', filters.live ? 'live' : '*', filters.sort, at].join('|');
+      if (!filters.query) return lists.load(key, () => readList(filters, at));
+      // Поиск — свободный текст: его срезы не копятся без предела.
+      if (searches.stats().entries >= MAX_SEARCH_SLICES) searches.clear();
+      return searches.load(`${key}|${filters.query.toLowerCase()}`, () => readList(filters, at));
     },
     loadStreamer(slug: string, filters: StreamerFilters, offset = 0): Promise<StreamerPage> {
       const at = Math.min(Math.max(0, offset), MAX_OFFSET);

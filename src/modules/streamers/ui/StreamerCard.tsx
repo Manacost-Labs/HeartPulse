@@ -1,4 +1,6 @@
-import { STREAMER_CLASS_LABELS, distinctRecentDecks, formatFollowers, formatPlayedDay } from '../model/streamersView';
+import {
+  STREAMER_CLASS_LABELS, cardBestRank, distinctRecentDecks, favoriteClasses, formatFollowers, formatPlayedDay, ladderLabel, streamerClassIcon,
+} from '../model/streamersView';
 import type { StreamerSummary } from '../model/types';
 import { StreamerDeckRow } from './StreamerDeckRow';
 import { StreamerLinks } from './StreamerLinks';
@@ -12,6 +14,23 @@ export function StreamerAvatar({ streamer, size }: { streamer: Pick<StreamerSumm
 }
 
 const CARD_LINKS = new Set(['twitch', 'youtube']);
+
+/** Строка под шапкой: любимые классы, место в таблице Blizzard и лучший ранг, если его нет в строках колод. */
+function StreamerStats({ streamer, shown }: { streamer: StreamerSummary; shown: StreamerSummary['recentDecks'] }) {
+  const classes = favoriteClasses(streamer.recentDecks);
+  const ladder = ladderLabel(streamer.ladder);
+  const best = cardBestRank(streamer.bestRank, shown);
+  if (!classes.length && !ladder && !best) return null;
+  return <p className="streamers-card__stats">
+    {classes.length ? <span className="streamers-card__classes" role="img"
+      aria-label={`Чаще играет: ${classes.map(classKey => STREAMER_CLASS_LABELS[classKey] ?? classKey).join(', ')}`}>
+      {classes.map(classKey => <img key={classKey} src={streamerClassIcon(classKey)} alt="" width="20" height="20" loading="lazy" decoding="async"
+        title={STREAMER_CLASS_LABELS[classKey]} />)}
+    </span> : null}
+    {ladder ? <span title={ladder.title}>место {ladder.text}</span> : null}
+    {best ? <span title="Лучший ранг Легенды за 30 дней">лучший {best}</span> : null}
+  </p>;
+}
 
 /** Карточка стримера: имя ведёт на его страницу, ссылки Twitch и YouTube, ниже три последние колоды. */
 export function StreamerCard({ streamer }: { streamer: StreamerSummary }) {
@@ -32,10 +51,9 @@ export function StreamerCard({ streamer }: { streamer: StreamerSummary }) {
       </div>
       <StreamerLinks links={streamer.links.filter(link => CARD_LINKS.has(link.kind))} name={streamer.name} />
     </div>
+    <StreamerStats streamer={streamer} shown={decks} />
     {decks.length ? <ul className="streamers-decks" aria-label={`Последние колоды ${streamer.name}`}>
       {decks.map(deck => <StreamerDeckRow key={`${deck.deckId}-${deck.format}`} deck={deck} compact />)}
     </ul> : null}
   </li>;
 }
-
-export const STREAMER_CLASS_OPTIONS = Object.entries(STREAMER_CLASS_LABELS).map(([value, label]) => ({ value, label }));
