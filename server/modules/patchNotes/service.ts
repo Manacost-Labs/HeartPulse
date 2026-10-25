@@ -1,6 +1,9 @@
 import { shortPatchVersion, type PatchNotesDetail, type PatchNotesFormat, type PatchNotesSummary } from './contract.js';
 import { createArtworkLookup, createDbfLookup, enrichEntry, withArtwork, withHistory, type PatchEntryContext } from './enrichment.js';
-import { buildPatchMetaIndex, type PatchArchetypeCatalog } from './metaImpact.js';
+import { buildPatchMetaIndex, type PatchMetaIndex } from './metaImpact.js';
+import {
+  createPatchArchetypeRecorder, moscowDay, patchDay, previousDay, type PatchArchetypeCatalog, type PatchArchetypeSnapshotStorage,
+} from './archetypeSnapshots.js';
 import { cleanArticleText, parsePatchArticle, type PatchCardResolver } from './parser.js';
 import { createBattlegroundNameResolver, type BattlegroundCatalogCard } from './battlegroundCatalog.js';
 
@@ -19,8 +22,10 @@ export type PatchNotesServiceDependencies = {
   loadStandardCardIds?: () => Promise<Iterable<string>>;
   /** Collectible card catalog records (`card_id`, `images.art`); without them entries have no full art. */
   loadCardArtwork?: () => Promise<Iterable<Record<string, unknown>>>;
-  /** Today's archetype catalog of a format, with deck codes of its builds. */
+  /** Today's archetype catalog of a format, with deck codes of its builds; each read is kept as the day's snapshot. */
   loadArchetypeCatalog?: (format: PatchNotesFormat) => Promise<PatchArchetypeCatalog>;
+  /** Daily and pinned archetype snapshots; without them no patch lists archetypes. */
+  archetypeSnapshots?: PatchArchetypeSnapshotStorage;
   ttlMs: number;
   now?: () => number;
 };
@@ -116,9 +121,12 @@ function compareVersions(left: unknown, right: unknown): number {
   return 0;
 }
 
+/** Meta impact of one patch: its pinned snapshot of the day before, or none. */
+export type PatchMetaLookup = (patch: { version: string; publishedAt: string | null }) => PatchMetaIndex | null;
+
 /** Parses every stored article once per refresh; the newest build of a version wins. */
 export function buildPatchNotesSnapshot(
-  rows: Row[], resolve: PatchCardResolver, updatedAt: string, context: PatchEntryContext = {},
+  rows: Row[], resolve: PatchCardResolver, updatedAt: string, context: PatchEntryContext = {}, metaFor: PatchMetaLookup = () => null,
 ): PatchNotesSnapshot {
   const newest = new Map<string, Row>();
   for (const row of dropForeignArticleBuilds(rows)) {
@@ -132,6 +140,7 @@ export function buildPatchNotesSnapshot(
     const parsed = content
       ? parsePatchArticle(content, sections(row.sections), resolve)
       : { entries: [], missingBefore: 0, pictureSections: [], generalChanges: [] };
+    const meta = metaFor({ version, publishedAt: publishedAt(row) });
     return {
       version,
       build: text(row.version) ?? version,
@@ -142,11 +151,11 @@ export function buildPatchNotesSnapshot(
       changeCount: parsed.entries.length,
       // The stored summary runs on into the first heading; its first paragraph is the lead.
       summary: text(cleanArticleText(String(row.summary ?? '').split('\n').find(line => line.trim()) ?? '')),
-      entries: parsed.entries.map(entry => enrichEntry(entry, context)),
+      entries: parsed.entries.map(entry => enrichEntry(entry, { ...context, meta })),
       missingBefore: parsed.missingBefore,
       pictureSections: parsed.pictureSections,
       generalChanges: parsed.generalChanges,
-      meta: context.meta?.meta ?? null,
+      meta: meta?.meta ?? null,
     };
   });
   // Undated patches sort last; NaN would make the comparator inconsistent.
@@ -182,23 +191,28 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     }, () => undefined);
   };
 
+  const store = dependencies.archetypeSnapshots;
+  const recordArchetypes = createPatchArchetypeRecorder({ ...dependencies, now });
+  /** Pins the day before a patch once that patch is out, then reads only what is pinned. */
+  const metaFor: PatchMetaLookup = ({ version, publishedAt: date }) => {
+    if (!store) return null;
+    const day = patchDay(date);
+    if (day && day <= moscowDay(now())) store.pin(version, previousDay(day));
+    return buildPatchMetaIndex(store.pinned(version));
+  };
+
   const refresh = async () => {
-    const formats: PatchNotesFormat[] = ['standard', 'wild'];
-    const [payload, cards, battlegrounds, standard, catalogs] = await Promise.all([
+    const [payload, cards, battlegrounds, standard] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
       dependencies.loadCardNames().catch(() => ({})),
       (dependencies.loadBattlegroundCards?.() ?? Promise.resolve([])).catch(() => []),
       (dependencies.loadStandardCardIds?.() ?? Promise.resolve([])).catch(() => []),
-      Promise.allSettled(formats.map(format => dependencies.loadArchetypeCatalog?.(format) ?? Promise.reject(new Error('none')))),
+      recordArchetypes(),
     ]);
-    const meta = dependencies.loadArchetypeCatalog ? buildPatchMetaIndex(
-      catalogs.flatMap(result => (result.status === 'fulfilled' ? [result.value] : [])),
-      formats.filter((_format, index) => catalogs[index].status === 'rejected'),
-    ) : null;
     const rows = (payload as { patches?: unknown })?.patches;
     if (!Array.isArray(rows)) throw new Error('Patch archive payload has no patches');
     const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString(),
-      { standard: new Set(standard), meta, dbfs: createDbfLookup(cards), artwork });
+      { standard: new Set(standard), dbfs: createDbfLookup(cards), artwork }, metaFor);
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     // Started only now: read alongside the archive it still slowed the first answer down.
     loadArtwork();

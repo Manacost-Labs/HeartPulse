@@ -629,6 +629,7 @@
 .hp-patch-flow__targets img { width: 1.25rem; height: 1.25rem; object-fit: contain; }
 .hp-patch-flow__targets small { color: var(--arena-muted-ink); font-variant-numeric: tabular-nums; }
 .hp-patch-flow__note { margin: 0; color: var(--arena-muted-ink); font-size: 0.75rem; }
+.hp-patch-flow__as-of { margin: -0.25rem 0 0; color: var(--arena-muted-ink); font-size: 0.82rem; }
 
 /* A phone cannot fit a dozen labels a side: the same links read as a list there. */
 @container (max-width: 640px) {

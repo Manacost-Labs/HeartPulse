@@ -2,7 +2,7 @@ import { Award, Crown, Gem, Gift, Layers, ScrollText, Shapes, Sparkles, Swords }
 import type { PatchCardView, PatchGroupIcon } from '../../modules/patchNotes/public';
 import { classIconUrl } from '../classIcons';
 
-/* What the patch means for today's meta on one card, and the icon of a class or card-type group. */
+/* What the patch meant for the meta of its day on one card, and the icon of a class or card-type group. */
 
 /** The rest of a card's archetypes is a count; the card page lists every deck. */
 const CHIPS_PER_CARD = 4;
@@ -20,14 +20,14 @@ export function GroupIcon({ icon }: { icon: PatchGroupIcon }) {
   return <span className="hp-patch-type-icon"><Icon aria-hidden="true" /></span>;
 }
 
-/** Archetypes of today's meta that play this card; how many of their builds do is in the link title. */
+/** Archetypes of the day before the patch that played this card; how many of their builds did is in the link title. */
 export function ArchetypeChips({ card }: { card: PatchCardView }) {
   if (!card.archetypes.length) return null;
   const shown = card.archetypes.slice(0, CHIPS_PER_CARD);
   const more = card.archetypes.length - shown.length;
   return (
     <div className="hp-patch-card__meta-use">
-      <span>В архетипах текущей меты</span>
+      <span>В архетипах на момент выхода патча</span>
       <ul>
         {shown.map(use => (
           <li key={`${use.format}:${use.slug}`}>

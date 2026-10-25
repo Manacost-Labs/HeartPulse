@@ -7528,6 +7528,8 @@ app.use('/api', createPatchNotesApi({
     const catalog = await loadConstructedArchetypeCatalog(format);
     return { format, period: catalog.patch || null, updatedAt: catalog.updatedAt, items: catalog.items };
   },
+  // Archetypes of the day before each patch live under DATA_DIR; the hourly job keeps each day on record.
+  archetypeSnapshotsDirectory: DATA_DIR, recordArchetypesHourly: BACKGROUND_JOBS_ENABLED,
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`,
   onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
 }));

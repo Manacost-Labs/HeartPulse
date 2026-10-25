@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import express from 'express';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parsePatchArticle, splitStatedCard, statedChanges } from '../server/modules/patchNotes/parser.js';
 import {
   buildPatchNotesSnapshot, createCardNameResolver, createPatchCardResolver, createPatchNotesService, dropForeignArticleBuilds,
 } from '../server/modules/patchNotes/service.js';
 import { encode } from '@firestone-hs/deckstrings';
 import { buildPatchMetaIndex } from '../server/modules/patchNotes/metaImpact.js';
+import { PatchArchetypeSnapshotStore, patchDay, previousDay, snapshotFromCatalog } from '../server/modules/patchNotes/archetypeSnapshots.js';
 import { createArtworkLookup, createDbfLookup, withHistory } from '../server/modules/patchNotes/enrichment.js';
 import {
   createBattlegroundCatalogLoader, createBattlegroundNameResolver, loadBattlegroundCatalog, type BattlegroundCatalogCard,
@@ -235,28 +239,112 @@ test('a slow art catalog never holds the patch snapshot back; its art joins once
   assert.equal(serpent(await service.load())?.artwork?.width, 1600, 'the same snapshot gains the art without a refetch');
 });
 
-test('meta impact: archetypes whose builds play any print of a changed card, missing formats reported', () => {
-  const deck = (dbfs: number[]) => encode({ cards: dbfs.map(dbf => [dbf, 2]), heroes: [7], format: 2 });
-  const meta = buildPatchMetaIndex([{
-    format: 'standard', period: 'black_empire', updatedAt: '2026-10-21T10:00:00Z', items: [
-      { slug: 'dragon-warrior', archetypeLabel: 'Воин на драконах', classKey: 'warrior', popularity: 4.2,
-        builds: [{ deckCode: deck([100, 1]) }, { deckCode: deck([200, 1]) }, { deckCode: 'broken' }] },
-      { slug: 'control-warrior', archetypeLabel: 'Контроль Воин', classKey: 'warrior', popularity: 9,
-        builds: [{ deckCode: deck([1]) }, { deckCode: deck([2]) }] },
-      { slug: 'zoolock', archetypeLabel: 'Зоолок', classKey: 'warlock', popularity: 1.3, builds: [{ deckCode: deck([3]) }] },
-    ],
-  }], ['wild']);
-  const dbfs = createDbfLookup({
-    TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 100 },
-    CORE_TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 200 },
-    OTHER: { name: 'Змей ветреных вершин', playerClass: 'MAGE', dbf: 300 },
-  });
-  const snapshot = buildPatchNotesSnapshot(rows, resolver, 'x', { meta, dbfs });
-  const serpent = snapshot.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.cardId === 'TLC_600');
-  assert.deepEqual(serpent?.archetypes.map(use => [use.slug, use.decks, use.totalDecks]), [['dragon-warrior', 2, 3]],
-    'both prints count; a broken deck code is skipped, not fatal');
-  assert.deepEqual(snapshot.patches[1].meta, { period: 'black_empire', updatedAt: '2026-10-21T10:00:00Z', formats: ['standard'], missing: ['wild'] });
-  assert.equal(snapshot.patches.find(patch => patch.version === '36.6.3')?.entries.find(entry => entry.mode === 'battlegrounds')?.archetypes.length, 0);
+const deck = (dbfs: number[]) => encode({ cards: dbfs.map(dbf => [dbf, 2]), heroes: [7], format: 2 });
+const standardCatalog = (updatedAt: string, slug = 'dragon-warrior') => ({
+  format: 'standard' as const, period: 'black_empire', updatedAt, items: [
+    { slug, archetypeLabel: 'Воин на драконах', classKey: 'warrior', popularity: 4.2, winrate: 52.1, games: 900,
+      builds: [{ deckCode: deck([100, 1]) }, { deckCode: deck([200, 1]) }, { deckCode: 'broken' }] },
+    { slug: 'control-warrior', archetypeLabel: 'Контроль Воин', classKey: 'warrior', popularity: 9,
+      builds: [{ deckCode: deck([1]) }, { deckCode: deck([2]) }] },
+    { slug: 'zoolock', archetypeLabel: 'Зоолок', classKey: 'warlock', popularity: 1.3, builds: [{ deckCode: deck([3]) }] },
+  ],
+});
+const serpentDbfs = createDbfLookup({
+  TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 100 },
+  CORE_TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 200 },
+  OTHER: { name: 'Змей ветреных вершин', playerClass: 'MAGE', dbf: 300 },
+});
+
+test('meta impact: archetypes of a pinned snapshot whose builds play any print of a changed card', () => {
+  const snapshot = snapshotFromCatalog(standardCatalog('2026-09-30T20:00:00Z'), 0);
+  assert.equal(snapshot.day, '2026-09-30');
+  assert.deepEqual(snapshot.items[0].builds.map(build => [...build].sort((a, b) => a - b)), [[1, 100], [1, 200]],
+    'deck codes are decoded once; a broken one is skipped');
+  const meta = buildPatchMetaIndex([snapshot]);
+  const parsed = buildPatchNotesSnapshot(rows, resolver, 'x', { dbfs: serpentDbfs }, ({ version }) => (version === '36.6.3' ? meta : null));
+  const patch = parsed.patches.find(item => item.version === '36.6.3');
+  const serpent = patch?.entries.find(entry => entry.cardId === 'TLC_600');
+  assert.deepEqual(serpent?.archetypes.map(use => [use.slug, use.decks, use.totalDecks]), [['dragon-warrior', 2, 2]], 'both prints count');
+  assert.deepEqual(patch?.meta, { day: '2026-09-30', period: 'black_empire', updatedAt: '2026-09-30T20:00:00.000Z', formats: ['standard'], missing: ['wild'] });
+  assert.equal(patch?.entries.find(entry => entry.mode === 'battlegrounds')?.archetypes.length, 0);
+  assert.equal(parsed.patches.find(item => item.version === '35.6.2')?.meta, null, 'a patch without a snapshot has no meta');
+  assert.equal(buildPatchMetaIndex([]), null);
+});
+
+test('a patch day is its Moscow date; a timestamp without an offset is Moscow time', () => {
+  assert.equal(patchDay('2026-10-01T15:55:00Z'), '2026-10-01');
+  assert.equal(patchDay('2026-09-03T22:30:00Z'), '2026-09-04', '01:30 in Moscow is the next day');
+  assert.equal(patchDay('2026-09-04T00:48:51'), '2026-09-04');
+  assert.equal(patchDay(null), null);
+  assert.equal(previousDay('2026-10-01'), '2026-09-30');
+  assert.equal(previousDay('2026-03-01'), '2026-02-28');
+});
+
+test('the snapshot store pins the day before a patch once and keeps it while later days are recorded', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'patch-archetypes-'));
+  let now = Date.parse('2026-09-30T21:30:00Z');
+  const store = new PatchArchetypeSnapshotStore({ stateDirectory: directory, now: () => now, retentionDays: 30 });
+  try {
+    store.record(snapshotFromCatalog(standardCatalog('2026-09-30T10:00:00Z', 'morning'), now));
+    store.record(snapshotFromCatalog(standardCatalog('2026-09-30T20:00:00Z', 'evening'), now));
+    store.record(snapshotFromCatalog(standardCatalog('2026-09-30T08:00:00Z', 'stale'), now));
+    store.pin('36.6.3', '2026-09-29');
+    assert.deepEqual(store.pinned('36.6.3'), [], 'no snapshot of that day, nothing pinned');
+    store.pin('36.6.3', '2026-09-30');
+    assert.deepEqual(store.pinned('36.6.3').map(item => [item.day, item.items[0].slug]), [['2026-09-30', 'evening']],
+      'the latest read of the day wins; an older copy never replaces it');
+    now = Date.parse('2026-10-01T12:00:00Z');
+    store.record(snapshotFromCatalog(standardCatalog('2026-10-01T11:00:00Z', 'after-patch'), now));
+    store.pin('36.6.3', '2026-10-01');
+    assert.deepEqual(store.pinned('36.6.3').map(item => item.items[0].slug), ['evening'], 'a pinned format never changes');
+    now = Date.parse('2026-12-01T12:00:00Z');
+    store.record(snapshotFromCatalog(standardCatalog('2026-12-01T11:00:00Z', 'december'), now));
+    store.pin('37.0.0', '2026-10-01');
+    assert.deepEqual(store.pinned('37.0.0'), [], 'daily snapshots past the retention are gone');
+    assert.deepEqual(store.pinned('36.6.3').map(item => item.items[0].slug), ['evening'], 'pins outlive the retention');
+  } finally {
+    store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('the service records today, pins the day before each released patch and shows no archetypes without that day', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'patch-archetypes-'));
+  const store = new PatchArchetypeSnapshotStore({ stateDirectory: directory });
+  try {
+    store.record(snapshotFromCatalog(standardCatalog('2026-09-30T20:00:00Z'), 0));
+    const loaded: string[] = [];
+    const service = createPatchNotesService({
+      fetchJson: async () => ({ patches: rows }), patchesUrl: 'x', ttlMs: 60_000, now: () => Date.parse('2026-10-21T09:00:00Z'),
+      loadCardNames: async () => ({
+        TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 100 },
+        CORE_TLC_600: { name: 'Змей ветреных вершин', playerClass: 'WARRIOR', dbf: 200 },
+      }),
+      loadArchetypeCatalog: async format => {
+        loaded.push(format);
+        if (format === 'wild') throw new Error('down');
+        return standardCatalog('2026-10-21T08:00:00Z', 'today');
+      },
+      archetypeSnapshots: store,
+    });
+    const snapshot = await service.load();
+    assert.deepEqual(loaded.sort(), ['standard', 'wild']);
+    const released = snapshot.patches.find(patch => patch.version === '36.6.3');
+    assert.equal(released?.meta?.day, '2026-09-30');
+    assert.deepEqual(released?.entries.find(entry => entry.cardId === 'TLC_600')?.archetypes.map(use => use.slug), ['dragon-warrior'],
+      'the archetypes of the day before, not today\'s');
+    const old = snapshot.patches.find(patch => patch.version === '35.6.2');
+    assert.equal(old?.meta, null, 'an old patch without a snapshot of its day before gets none, not today\'s');
+    assert.equal(old?.entries.every(entry => entry.archetypes.length === 0), true);
+    assert.deepEqual(store.pinned('37.0.0'), [], 'the day before 37.0.0 was never recorded');
+    const today = new PatchArchetypeSnapshotStore({ stateDirectory: directory });
+    today.pin('future', '2026-10-21');
+    assert.deepEqual(today.pinned('future').map(item => item.items[0].slug), ['today'], 'today\'s read is on record for a future patch');
+    today.close();
+  } finally {
+    store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('history links a card to earlier patches that changed it, newest first', () => {
