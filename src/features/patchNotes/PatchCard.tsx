@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowRight, Coins, Ellipsis, ImageOff, Shield } from 'lucide-react';
-import { patchDiffHunks, patchHasWideArtwork, type PatchCardView, type PatchChangeView, type PatchKind, type PatchNotesMode } from '../../modules/patchNotes/public';
+import { patchDiffHunks, type PatchCardView, type PatchChangeView, type PatchKind, type PatchNotesMode } from '../../modules/patchNotes/public';
 import { wordDiff } from '../../vendor/varylo-ui/gaming/patch';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
 import { CardHistory, CopyLinkButton } from './PatchCardExtras';
 import { ArchetypeChips } from './PatchMetaImpact';
-import { cardArtSources } from './patchArt';
 import { KIND_ICONS, KIND_LABELS } from './patchKinds';
 
 /*
@@ -190,35 +189,23 @@ function CardDetails({ card, anchored }: { card: PatchCardView; anchored: boolea
   );
 }
 
-/** A highlight with wide wiki art stands on it; without art the larger render carries the card alone. */
-function FeaturedPlate({ url }: { url: string }) {
-  const art = cardArtSources(url);
-  return (
-    <span className="hp-patch-card__plate" aria-hidden="true">
-      <img src={art.src} srcSet={art.srcSet} sizes="(min-width: 960px) 25vw, 100vw" alt="" width={512} height={288} decoding="async" />
-    </span>
-  );
-}
-
 /**
  * `anchored` cards (the ones in sections) carry the `#card-…` id; highlights
- * repeat a card without it. `featured` is a highlight without details;
- * `withArt` puts its wide wiki art on top.
+ * repeat a card without it. `featured` is a highlight without details.
+ * `showKind: false` is for a row under a heading that already names its kind.
  */
-export function PatchCard({ card, eager, headingLevel = 'h5', anchored = false, featured = false, withArt = false, ...handlers }: CardHandlers & {
-  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h4' | 'h5'; anchored?: boolean; featured?: boolean; withArt?: boolean;
+export function PatchCard({ card, eager, headingLevel = 'h5', anchored = false, featured = false, showKind = true, ...handlers }: CardHandlers & {
+  card: PatchCardView; eager: boolean; headingLevel?: 'h3' | 'h4' | 'h5' | 'h6'; anchored?: boolean; featured?: boolean; showKind?: boolean;
 }) {
   const Heading = headingLevel;
   const headingId = `hp-patch-${headingLevel}-${card.id}`;
-  const plate = featured && withArt && patchHasWideArtwork(card) ? card.artwork.url : null;
   return (
     <article className="hp-patch-card" id={anchored ? card.anchor : undefined} data-kind={card.kind}
-      data-featured={featured || undefined} data-plate={plate ? '' : undefined} aria-labelledby={headingId}>
-      {plate && <FeaturedPlate url={plate} />}
+      data-featured={featured || undefined} aria-labelledby={headingId}>
       <CardArt card={card} eager={eager} {...handlers} />
       <div className="hp-patch-card__body">
         <div className="hp-patch-card__title">
-          <KindMark kind={card.kind} />
+          {showKind ? <KindMark kind={card.kind} /> : null}
           <Heading id={headingId} className="hp-patch-card__name">{card.name}</Heading>
         </div>
         <ul className="hp-patch-card__changes">

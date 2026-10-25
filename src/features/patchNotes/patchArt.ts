@@ -21,7 +21,7 @@ function modePlate(name: string, focus = '50% 40%'): PatchPlate {
   };
 }
 
-export const SECTION_PLATES: Record<PatchSectionId, PatchPlate> = {
+const SECTION_PLATES: Record<PatchSectionId, PatchPlate> = {
   standard: modePlate('standard', '62% 18%'),
   wild: modePlate('wild'),
   constructed: modePlate('constructed'),

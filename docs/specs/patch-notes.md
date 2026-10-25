@@ -190,24 +190,31 @@ the viewer's zone after it.
   игре: баланс…" → "Баланс…"; "Патч 36.4.2" when nothing else is left), one
   line of counts with Russian plural forms (changes, ↑ buffs, ↓ nerfs,
   ↻ reworks; the total is left out when only one kind is present, because it
-  would repeat that number), and quiet links to the article and the official
+  would repeat that number; the numbers are one cream colour and only the
+  marks carry the kind colour), and quiet links to the article and the official
   notes. On content under 480 px "Все патчи" keeps only its icon.
-- Each number is said once: the header counts kinds, the section links count
-  their section. Section summaries are banners with the mode plate and
-  emblem and the title only. Groups are a line of type: the 96 px class icon
-  (or card-type glyph) and the name; a section of one group of the section's
-  own name has none.
+- Reading hierarchy: patch (the header) → mode section → class or card type
+  → card. The header is the page's only art plate: a section summary is the
+  mode emblem and the title in display type on a thin wood rule, with a
+  disclosure chevron. Each number is said once: the header counts kinds, the
+  section links count their section. Groups are a line of type: the 96 px
+  class icon (or card-type glyph) and the name; a section of one group of
+  the section's own name has none.
+- Inside a group rows read nerfs, then buffs, then reworks, in the article's
+  order within each kind (`patchKindBlocks`). A group of at least six rows
+  with more than one kind is split into blocks, each named once by a small
+  label ("↓ Ослабления", "↑ Усиления", "↻ Переработки"); rows under such a
+  label drop their own mark. Shorter or single-kind groups are only
+  reordered and keep the mark on each row.
 - "Главное в патче" picks up to four changes with a picture from sections
   longer than three cards of a patch longer than eight changes (a shorter
   section or patch is read whole below, so it is not repeated): Standard
   first, then the largest number moves; a stated buff or nerf outranks a
   rework and one section fills at most half the list while others have
-  candidates. Highlights are centred tiles without details — the render
-  above the name and the change — all in one row on content at least
-  760 px wide, two a row narrower; when every highlight has wiki art at
-  least 1000 px wide, the art runs across the top and the render is laid
-  over its lower edge, otherwise no highlight has art, so they read as one
-  kind of card.
+  candidates. Highlights share one paper panel split by hairlines, not a
+  grid of boxed cards: each tile is the render beside the name and the
+  change, without details. They stack on narrow content, run two a row from
+  700 px and all in one row from 1080 px.
 - Sections are Стандарт, Вольный, Стандарт и Вольный (cards of unknown
   format), Арена, Поля сражений and Другие режимы, each a `<details>` open by
   default. Constructed entries carry `format`: `standard` when today's
@@ -218,14 +225,16 @@ the viewer's zone after it.
 - Filters: search over Russian and English names and change text, the kind
   (buffs, nerfs, reworks), and class or card type. Filtering hides the
   highlights and section notes.
-- A change row shows only the render, the name with a ↑↓↻ mark (a small
-  square badge, the only place the row's kind is shown) and the change.
-  Rows sit on the parchment without a box, a hairline above each, in one,
-  two (content from 700 px) or three (from 1080 px) columns; only
-  highlights are boxed cards. A group of one or two cards spans only its
-  columns, so small classes share a row; larger groups take the full width.
+- A change row shows only the render, the name with a ↑↓↻ mark (a coloured
+  glyph without a fill; with the kind labels of long groups it is the page's
+  one colour signal) and the change. Rows sit on the parchment without a
+  box, a hairline above each, in one, two (content from 700 px) or three
+  (from 1080 px) columns; only the highlights panel is boxed. A group of
+  one or two cards spans only its columns, so small classes share a row;
+  larger groups take the full width.
   Groups share the section's columns (CSS subgrid), so rows line up. The
-  row's "…" (a `<details>` in its corner) holds the
+  row's "…" (a `<details>` in its corner; on devices with hover it stays
+  faded until the row is pointed at or focused) holds the
   type and the article's English name, the archetypes of today's meta, the
   earlier patches that changed it, "Карта и колоды с ней" for Constructed
   cards of a known format (`/standard/cards/<format>/<id>/`, which lists decks
@@ -241,13 +250,21 @@ the viewer's zone after it.
   the game's mana crystal, attack and health icons, a tavern tier as its tier
   shield; a Battlegrounds cost is gold and armor has no game icon on the
   site, so both use an interface glyph. The old value is a smaller, faded,
-  grey gem (a value without an icon is struck through), the new one plain;
+  grey gem (a value without an icon is struck through), the new one plain
+  ink, not coloured by direction;
   the label and the direction stay for assistive technology. A rule-text
   change is one sentence: changed words separated only by spaces form one
   phrase (`patchDiffHunks`), shown as the whole old phrase muted and struck
-  out, then the whole new phrase bold with a highlighter stroke
+  out in muted ink, then the whole new phrase bold ink with a soft gold
+  highlighter stroke
   ("было:"/"стало:" for assistive technology), never alternating single
   words; its label is shown only when it is not "Текст".
 - A patch without line-by-line changes says so in a panel that points to the
-  header links. Picture-only article sections are one quiet line with the
-  article link; "Общие изменения" is a short list.
+  header links. Picture-only article headings of a mode are one quiet line
+  with the article link (`patchPictureNote`): "Изменения брони героев,
+  существ, аксессуаров — в статье только картинками". Repeated headings are
+  named once, and in a mode with listed cards the mode's own parent heading
+  ("Изменения Hearthstone", "Изменения Полей сражений") is left out, because
+  the parser reports it only for having no text of its own. A mode without
+  cards gets a section only for its "Общие изменения" (a short list); a mode
+  with nothing but pictures is a line of the source note at the end.

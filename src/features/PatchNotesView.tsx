@@ -3,7 +3,7 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ScrollText, SearchX } from 'lucide-react';
 import {
-  PATCH_SECTION_TITLES, filterPatchView, patchHighlights, patchMetaFlow, toPatchView,
+  PATCH_SECTION_TITLES, filterPatchView, patchHighlights, patchMetaFlow, patchModePictureNote, toPatchView,
   type PatchFilter, type PatchNotesDetail, type PatchNotesMode, type PatchNotesSummary, type PatchView,
 } from '../modules/patchNotes/public';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
@@ -13,7 +13,7 @@ import { EAGER_CARDS, previewSource, type CardHandlers } from './patchNotes/Patc
 import { PatchHero } from './patchNotes/PatchHero';
 import { PatchMetaFlow } from './patchNotes/PatchMetaFlow';
 import { PatchBar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
-import { Highlights, PatchSection } from './patchNotes/PatchNotesSections';
+import { Highlights, PatchSection, PictureNote } from './patchNotes/PatchNotesSections';
 import { registerLightboxModule } from '../shared/ui/lightboxIntent';
 import './PatchNotesView.css';
 import './patchNotes/PatchNotesShowcase.css';
@@ -57,6 +57,22 @@ function useCardTarget(version: string) {
   }, [version]);
 }
 
+/**
+ * Notes of a mode go under its first section. A mode without cards gets a section only for its general
+ * changes; one with nothing but pictures is a line of the source note, not a banner over a single sentence.
+ */
+function notesPlacement(patch: PatchNotesDetail, view: PatchView) {
+  const notesHome = new Map<PatchNotesMode, string>();
+  for (const section of view.sections) if (!notesHome.has(section.mode)) notesHome.set(section.mode, section.id);
+  const cardless = MODES.filter(mode => !notesHome.has(mode));
+  const withGeneral = new Set(patch.generalChanges.map(item => item.mode));
+  const notesOnly = cardless.filter(mode => withGeneral.has(mode));
+  const picturesOnly = cardless.filter(mode => !withGeneral.has(mode))
+    .map(mode => ({ mode, note: patchModePictureNote(patch.pictureSections, mode, false) }))
+    .filter((item): item is { mode: PatchNotesMode; note: string } => item.note !== null);
+  return { notesHome, notesOnly, picturesOnly };
+}
+
 function defaultSelectVersion(href: string) {
   window.location.assign(href);
 }
@@ -94,11 +110,7 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
   useCardTarget(patch.version);
   const flow = useMemo(() => patchMetaFlow(view), [view]);
   const filtered = filter.kind !== 'all' || filter.group !== 'all' || deferredQuery.trim() !== '';
-  // Notes of a mode go under its first section; a mode with notes but no cards gets a section of its own.
-  const notesHome = new Map<PatchNotesMode, string>();
-  for (const section of view.sections) if (!notesHome.has(section.mode)) notesHome.set(section.mode, section.id);
-  const notesOnly = MODES.filter(mode => !notesHome.has(mode)
-    && (patch.generalChanges.some(item => item.mode === mode) || patch.pictureSections.some(item => item.mode === mode)));
+  const { notesHome, notesOnly, picturesOnly } = notesPlacement(patch, view);
   let eager = highlights.length && !filtered ? EAGER_CARDS : 0;
 
   const formatPatchDate = (value: string | null) => formatDate(value, timeZone);
@@ -131,7 +143,7 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
         <PatchSection key={mode} section={{ id: mode, title: PATCH_SECTION_TITLES[mode], count: 0, kinds: { buff: 0, nerf: 0, rework: 0 } }}
           groups={[]} patch={patch} notes={mode} filtered={false} eagerFrom={EAGER_CARDS} handlers={handlers} />
       ))}
-      <SourceFooter patch={patch} view={view} />
+      <SourceFooter patch={patch} view={view} pictures={filtered ? [] : picturesOnly} />
       {preview && <CardPreviewTooltip preview={preview} />}
       {opened && (
         <React.Suspense fallback={null}>
@@ -165,11 +177,14 @@ function PatchEmptyState({ total, matched, onReset }: { total: number; matched: 
   );
 }
 
-function SourceFooter({ patch, view }: { patch: PatchNotesDetail; view: PatchView }) {
+function SourceFooter({ patch, view, pictures }: {
+  patch: PatchNotesDetail; view: PatchView; pictures: { mode: PatchNotesMode; note: string }[];
+}) {
   const cards = view.groups.flatMap(group => group.entries);
   const unmatched = cards.filter(card => !card.cardId).length;
   return (
     <footer className="hp-patch-notes__source">
+      {pictures.map(item => <PictureNote key={item.mode} patch={patch} note={item.note} />)}
       <p>
         Источник — статья{' '}
         {patch.sourceUrl ? <a href={patch.sourceUrl} target="_blank" rel="noreferrer">hs-manacost.ru</a> : 'hs-manacost.ru'}.

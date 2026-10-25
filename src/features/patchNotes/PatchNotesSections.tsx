@@ -1,32 +1,32 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { ImageOff, Shapes } from 'lucide-react';
 import {
-  patchHasWideArtwork, sentenceCase,
-  type PatchCardView, type PatchGroupView, type PatchKindCounts, type PatchNotesDetail, type PatchNotesMode, type PatchSectionId,
+  patchKindBlocks, patchModePictureNote,
+  type PatchCardView, type PatchGroupView, type PatchKind, type PatchKindCounts, type PatchNotesDetail, type PatchNotesMode, type PatchSectionId,
 } from '../../modules/patchNotes/public';
 import { EAGER_CARDS, PatchCard, type CardHandlers } from './PatchCard';
 import { GroupIcon } from './PatchMetaImpact';
 import { groupAnchor, sectionAnchor } from './PatchNotesNavigation';
-import { SECTION_ICONS, SECTION_PLATES, classIcon96 } from './patchArt';
+import { SECTION_ICONS, classIcon96 } from './patchArt';
+import { KIND_BLOCK_LABELS, KIND_ICONS } from './patchKinds';
 
 /*
  * The reading flow below the header: what matters first, then collapsible
- * sections of change rows. Counts live in the header and the bar only; each
- * row carries its own kind mark, so banners and groups repeat no number.
+ * sections of change rows — patch → mode → class or type → card. Counts live
+ * in the header and the bar only; a row carries its kind mark unless its
+ * group names the kind once above a block of rows.
  */
 
-/** "Главное в патче": three or four large cards, then the cards → archetypes flow (`children`). */
+/** "Главное в патче": three or four compact tiles in one quiet panel, then the cards → archetypes flow (`children`). */
 export function Highlights({ cards, handlers, children }: { cards: PatchCardView[]; handlers: CardHandlers; children?: ReactNode }) {
   const shown = cards.length >= 2 ? cards : [];
-  // Art for all or none: one plate among plain cards reads as a different kind of card.
-  const withArt = shown.length > 0 && shown.every(patchHasWideArtwork);
   if (!shown.length && !children) return null;
   return (
     <section className="hp-patch-highlights" aria-labelledby="hp-patch-highlights-title" data-tour-id="patch-highlights">
       <h3 id="hp-patch-highlights-title" className="hp-patch-heading">Главное в патче</h3>
       {shown.length > 0 && (
         <ul className="hp-patch-highlights__list" data-count={shown.length}>
-          {shown.map(card => <li key={card.id}><PatchCard card={card} featured withArt={withArt} eager headingLevel="h4" {...handlers} /></li>)}
+          {shown.map(card => <li key={card.id}><PatchCard card={card} featured eager headingLevel="h4" {...handlers} /></li>)}
         </ul>
       )}
       {children}
@@ -34,10 +34,23 @@ export function Highlights({ cards, handlers, children }: { cards: PatchCardView
   );
 }
 
-function SectionNotes({ patch, mode }: { patch: PatchNotesDetail; mode: PatchNotesMode }) {
+/** Headings the article shows only as pictures, named once in one quiet line with the article link. */
+export function PictureNote({ patch, note }: { patch: PatchNotesDetail; note: string }) {
+  return (
+    <p className="hp-patch-pictures" role="note">
+      <ImageOff aria-hidden="true" />
+      <span>
+        {note} — в статье только картинками.
+        {patch.sourceUrl && <> <a href={patch.sourceUrl} target="_blank" rel="noreferrer">Открыть статью</a></>}
+      </span>
+    </p>
+  );
+}
+
+function SectionNotes({ patch, mode, hasCards }: { patch: PatchNotesDetail; mode: PatchNotesMode; hasCards: boolean }) {
   const general = patch.generalChanges.filter(item => item.mode === mode).flatMap(item => item.lines);
-  const pictures = patch.pictureSections.filter(item => item.mode === mode).map(item => sentenceCase(item.title));
-  if (!general.length && !pictures.length) return null;
+  const note = patchModePictureNote(patch.pictureSections, mode, hasCards);
+  if (!general.length && !note) return null;
   return (
     <div className="hp-patch-section-notes">
       {general.length > 0 && (
@@ -46,15 +59,7 @@ function SectionNotes({ patch, mode }: { patch: PatchNotesDetail; mode: PatchNot
           <ul>{general.map(line => <li key={line}>{line}</li>)}</ul>
         </div>
       )}
-      {pictures.length > 0 && (
-        <p className="hp-patch-pictures" role="note">
-          <ImageOff aria-hidden="true" />
-          <span>
-            {pictures.join(', ')} — в статье только картинками.
-            {patch.sourceUrl && <> <a href={patch.sourceUrl} target="_blank" rel="noreferrer">Открыть статью</a></>}
-          </span>
-        </p>
-      )}
+      {note && <PictureNote patch={patch} note={note} />}
     </div>
   );
 }
@@ -83,16 +88,25 @@ function GroupHeading({ group }: { group: PatchGroupView }) {
   );
 }
 
-function SectionBanner({ section }: { section: { id: PatchSectionId; title: string; count: number; kinds: PatchKindCounts } }) {
-  const plate = SECTION_PLATES[section.id];
+/** A section opens with a line of type on a thin wood rule, not a second art plate under the header. */
+function SectionBanner({ section }: { section: { id: PatchSectionId; title: string } }) {
   return (
     <summary>
-      <img className="hp-patch-section__plate" src={plate.src} srcSet={plate.srcSet} sizes="(min-width: 960px) 900px, 100vw"
-        width={plate.width} height={plate.height} style={{ objectPosition: plate.focus }} alt="" loading="lazy" decoding="async" />
       <ModeEmblem section={section} />
       <h3 className="hp-patch-section__title">{section.title}</h3>
-      {section.count === 0 && <span className="hp-patch-section__hint">Общие изменения режима</span>}
     </summary>
+  );
+}
+
+/** A long mixed group names each kind once above its rows; the rows then drop their own mark. */
+function KindBlock({ kind, level, children }: { kind: PatchKind; level: 'h4' | 'h5'; children: ReactNode }) {
+  const Icon = KIND_ICONS[kind];
+  const Heading = level;
+  return (
+    <>
+      <Heading className="hp-patch-kind-block" data-kind={kind}><Icon aria-hidden="true" />{KIND_BLOCK_LABELS[kind]}</Heading>
+      {children}
+    </>
   );
 }
 
@@ -101,24 +115,37 @@ export function PatchSection({ section, groups, patch, notes, filtered, eagerFro
   patch: PatchNotesDetail; notes: PatchNotesMode | null; filtered: boolean; eagerFrom: number; handlers: CardHandlers;
 }) {
   let rendered = eagerFrom;
+  // Under a kind label a row is one heading level deeper and drops its own mark.
+  const rows = (entries: PatchCardView[], under: 'h4' | 'h5' | null) => (
+    <ul className="hp-patch-group__list">
+      {entries.map(card => (
+        <li key={card.id}>
+          <PatchCard card={card} anchored eager={rendered++ < EAGER_CARDS} headingLevel={under === 'h5' ? 'h6' : 'h5'} showKind={!under} {...handlers} />
+        </li>
+      ))}
+    </ul>
+  );
   return (
     <details className="hp-patch-section" id={sectionAnchor(section.id)} data-section={section.id} open>
       <SectionBanner section={section} />
       <div className="hp-patch-section__body">
-        {groups.map(group => (
-          // A group of one or two cards takes only its columns, so small classes share a row.
-          <div key={group.id} className="hp-patch-group" id={groupAnchor(group.id)}
-            data-size={group.entries.length > 2 ? 'many' : group.entries.length}>
-            {/* A section of one group would only repeat its banner. */}
-            {groups.length > 1 || group.title !== section.title ? <GroupHeading group={group} /> : null}
-            <ul className="hp-patch-group__list">
-              {group.entries.map(card => (
-                <li key={card.id}><PatchCard card={card} anchored eager={rendered++ < EAGER_CARDS} {...handlers} /></li>
-              ))}
-            </ul>
-          </div>
-        ))}
-        {!filtered && notes && <SectionNotes patch={patch} mode={notes} />}
+        {groups.map(group => {
+          const blocks = patchKindBlocks(group.entries);
+          const titled = groups.length > 1 || group.title !== section.title;
+          const level = titled ? 'h5' : 'h4';
+          return (
+            // A group of one or two cards takes only its columns, so small classes share a row.
+            <div key={group.id} className="hp-patch-group" id={groupAnchor(group.id)}
+              data-size={group.entries.length > 2 ? 'many' : group.entries.length}>
+              {/* A section of one group would only repeat its banner. */}
+              {titled ? <GroupHeading group={group} /> : null}
+              {blocks.map(block => (block.kind
+                ? <KindBlock key={block.kind} kind={block.kind} level={level}>{rows(block.entries, level)}</KindBlock>
+                : <React.Fragment key="all">{rows(block.entries, null)}</React.Fragment>))}
+            </div>
+          );
+        })}
+        {!filtered && notes && <SectionNotes patch={patch} mode={notes} hasCards={groups.length > 0} />}
       </div>
     </details>
   );

@@ -1,4 +1,4 @@
-import type { PatchCardView, PatchFilter, PatchGroupView, PatchSectionId, PatchView } from './patchEntries';
+import type { PatchCardView, PatchFilter, PatchGroupView, PatchKind, PatchSectionId, PatchView } from './patchEntries';
 
 /* Which cards the page shows: filter results, filter options and the "what matters" pick. */
 
@@ -62,4 +62,21 @@ export function patchHighlights(view: PatchView, limit = 4): PatchCardView[] {
     if (!picked.includes(card)) picked.push(card);
   }
   return picked;
+}
+
+/** Reading order of the kinds inside a group: what got worse first, then what got better, then the rest. */
+export const PATCH_KIND_ORDER: readonly PatchKind[] = ['nerf', 'buff', 'rework'];
+/** A group this long reads better split by kind; a shorter one is only reordered. */
+const KIND_BLOCK_MIN = 6;
+
+/**
+ * The rows of one group in kind order (the article's order inside each kind).
+ * A group of at least six rows with more than one kind is split into one block
+ * per kind, each named once; otherwise it is a single block with `kind: null`.
+ */
+export function patchKindBlocks(entries: readonly PatchCardView[]): { kind: PatchKind | null; entries: PatchCardView[] }[] {
+  const blocks = PATCH_KIND_ORDER.map(kind => ({ kind, entries: entries.filter(entry => entry.kind === kind) }))
+    .filter(block => block.entries.length > 0);
+  if (entries.length < KIND_BLOCK_MIN || blocks.length < 2) return [{ kind: null, entries: blocks.flatMap(block => block.entries) }];
+  return blocks;
 }
