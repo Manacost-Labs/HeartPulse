@@ -3,7 +3,7 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ScrollText, SearchX } from 'lucide-react';
 import {
-  PATCH_SECTION_TITLES, filterPatchView, patchHighlights, patchMetaFlow, patchModePictureNote, toPatchView,
+  filterPatchView, patchHighlights, patchMetaFlow, patchModePictureNote, toPatchView,
   type PatchFilter, type PatchNotesDetail, type PatchNotesMode, type PatchNotesSummary, type PatchView,
 } from '../modules/patchNotes/public';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
@@ -13,7 +13,9 @@ import { EAGER_CARDS, previewSource, type CardHandlers } from './patchNotes/Patc
 import { PatchHero } from './patchNotes/PatchHero';
 import { PatchMetaFlow } from './patchNotes/PatchMetaFlow';
 import { PatchBar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
-import { Highlights, PatchSection, PictureNote } from './patchNotes/PatchNotesSections';
+import { Highlights, PatchSections, PictureNote } from './patchNotes/PatchNotesSections';
+import { PatchToc } from './patchNotes/PatchToc';
+import { patchPageNavigation } from './patchNotes/patchTocEntries';
 import { registerLightboxModule } from '../shared/ui/lightboxIntent';
 import './PatchNotesView.css';
 import './patchNotes/PatchNotesShowcase.css';
@@ -73,6 +75,25 @@ function notesPlacement(patch: PatchNotesDetail, view: PatchView) {
   return { notesHome, notesOnly, picturesOnly };
 }
 
+/** Hover or focus shows the current card beside its render; a tap or click opens it in a sheet. */
+function useCardPreview() {
+  const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
+  const [opened, setOpened] = useState<CardPreviewSheetCard | null>(null);
+  const handlers = useMemo<CardHandlers>(() => ({
+    onPreview: (card, target) => {
+      // Touch taps open the sheet; a hover card would cover it.
+      if (!card.cardId || window.matchMedia?.('(hover: none)').matches) return;
+      setPreview({ id: card.cardId, name: `${card.name} — текущая версия`, imageUrl: previewSource(card) || null, rect: target.getBoundingClientRect() });
+    },
+    onPreviewEnd: () => setPreview(null),
+    onOpen: card => {
+      if (card.cardId) setOpened({ id: card.cardId, name: card.name, imageUrl: previewSource(card) || fallbackCardRender(card.cardId) });
+    },
+  }), []);
+
+  return { handlers, preview, opened, close: useCallback(() => setOpened(null), []) };
+}
+
 function defaultSelectVersion(href: string) {
   window.location.assign(href);
 }
@@ -92,26 +113,17 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
   const [filter, setFilter] = useState<PatchFilter>(INITIAL_FILTER);
   const deferredQuery = useDeferredValue(filter.query);
   const groups = useMemo(() => filterPatchView(view, { ...filter, query: deferredQuery }), [view, filter, deferredQuery]);
-  const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
-  const [opened, setOpened] = useState<CardPreviewSheetCard | null>(null);
   const change = useCallback((next: Partial<PatchFilter>) => setFilter(current => ({ ...current, ...next })), []);
-  const handlers = useMemo<CardHandlers>(() => ({
-    onPreview: (card, target) => {
-      // Touch taps open the sheet; a hover card would cover it.
-      if (!card.cardId || window.matchMedia?.('(hover: none)').matches) return;
-      setPreview({ id: card.cardId, name: `${card.name} — текущая версия`, imageUrl: previewSource(card) || null, rect: target.getBoundingClientRect() });
-    },
-    onPreviewEnd: () => setPreview(null),
-    onOpen: card => {
-      if (card.cardId) setOpened({ id: card.cardId, name: card.name, imageUrl: previewSource(card) || fallbackCardRender(card.cardId) });
-    },
-  }), []);
-
+  const { handlers, preview, opened, close } = useCardPreview();
   useCardTarget(patch.version);
   const flow = useMemo(() => patchMetaFlow(view), [view]);
   const filtered = filter.kind !== 'all' || filter.group !== 'all' || deferredQuery.trim() !== '';
+  const meta = patch.meta !== null && flow.links.length >= 2 ? patch.meta : null;
   const { notesHome, notesOnly, picturesOnly } = notesPlacement(patch, view);
-  let eager = highlights.length && !filtered ? EAGER_CARDS : 0;
+  const { showHighlights, archetypes, toc } = patchPageNavigation({
+    filtered, highlights: highlights.length >= 2, archetypes: meta,
+    sections: view.sections, groups, notesOnly,
+  });
 
   const formatPatchDate = (value: string | null) => formatDate(value, timeZone);
 
@@ -121,33 +133,23 @@ export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelect
         versions={archive.length > 1
           ? <VersionSwitcher patches={archive} current={patch.version} onSelect={onSelectVersion} formatDate={formatPatchDate} />
           : null} />
-      {/* One or two changes are read at a glance; a search and filters would outweigh them. */}
-      {view.total > 2 && <PatchBar view={view} filter={filter} onChange={change} />}
-      {!filtered && (
-        <Highlights cards={highlights} handlers={handlers}>
-          {patch.meta !== null && flow.links.length >= 2 ? <PatchMetaFlow flow={flow} meta={patch.meta} /> : null}
-        </Highlights>
-      )}
-      <PatchEmptyState total={view.total} matched={groups.length} onReset={() => setFilter(INITIAL_FILTER)} />
-      {view.sections.map(section => {
-        const sectionGroups = groups.filter(group => group.section === section.id);
-        if (!sectionGroups.length && filtered) return null;
-        const from = eager;
-        eager += sectionGroups.reduce((sum, group) => sum + group.entries.length, 0);
-        return (
-          <PatchSection key={section.id} section={section} groups={sectionGroups} patch={patch} filtered={filtered}
-            notes={notesHome.get(section.mode) === section.id ? section.mode : null} eagerFrom={from} handlers={handlers} />
-        );
-      })}
-      {!filtered && notesOnly.map(mode => (
-        <PatchSection key={mode} section={{ id: mode, title: PATCH_SECTION_TITLES[mode], count: 0, kinds: { buff: 0, nerf: 0, rework: 0 } }}
-          groups={[]} patch={patch} notes={mode} filtered={false} eagerFrom={EAGER_CARDS} handlers={handlers} />
-      ))}
-      <SourceFooter patch={patch} view={view} pictures={filtered ? [] : picturesOnly} />
+      <div className="hp-patch-layout" data-toc={toc ? '' : undefined}>
+        <div className="hp-patch-main">
+          {/* One or two changes are read at a glance; a search and filters would outweigh them. */}
+          {view.total > 2 && <PatchBar view={view} filter={filter} onChange={change} toc={toc} />}
+          {showHighlights && <Highlights cards={highlights} handlers={handlers} />}
+          {archetypes && <PatchMetaFlow flow={flow} meta={archetypes} />}
+          <PatchEmptyState total={view.total} matched={groups.length} onReset={() => setFilter(INITIAL_FILTER)} />
+          <PatchSections view={view} groups={groups} patch={patch} filtered={filtered} notesHome={notesHome} notesOnly={notesOnly}
+            eagerFrom={showHighlights ? EAGER_CARDS : 0} handlers={handlers} />
+          <SourceFooter patch={patch} view={view} pictures={filtered ? [] : picturesOnly} />
+        </div>
+        {toc && <PatchToc entries={toc} />}
+      </div>
       {preview && <CardPreviewTooltip preview={preview} />}
       {opened && (
         <React.Suspense fallback={null}>
-          <CardPreviewSheet card={opened} onClose={() => setOpened(null)} />
+          <CardPreviewSheet card={opened} onClose={close} />
         </React.Suspense>
       )}
     </div>

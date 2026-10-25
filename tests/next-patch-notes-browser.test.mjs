@@ -60,9 +60,12 @@ test('patch notes render the stored article as compact change cards, and the hom
       // Inside a group nerfs come first, then buffs, then reworks.
       ['Паучок', 'nerf'], ['Змей ветреных вершин', 'rework'], ['Молот Сумерек', 'nerf'], ['Пагубные благовония', 'buff'],
     ]);
-    const modes = await page.$$eval('.hp-patch-bar__modes a', links => links.map(link => link.getAttribute('href')));
-    assert.deepEqual(modes, await page.$$eval('.hp-patch-section', sections => sections.map(section => `#${section.id}`)),
-      'the one bar links every section');
+    const toc = await page.$$eval('.hp-patch-toc > ol > li > a', links => links.map(link => link.getAttribute('href')));
+    assert.deepEqual(toc.filter(href => href.startsWith('#hp-patch-section-')),
+      await page.$$eval('.hp-patch-section', sections => sections.map(section => `#${section.id}`)),
+      'the table of contents links every section');
+    assert.equal(await page.$eval('.hp-patch-jump select', node => node.checkVisibility()), true, 'a phone jumps through the select');
+    assert.equal(await page.$eval('.hp-patch-toc', node => node.checkVisibility()), false, 'and has no table of contents');
     assert.equal(await page.$$eval('.hp-patch-section .hp-change[data-stat="gold"] .hp-stat', nodes => nodes.length) > 0, true,
       'Battlegrounds costs are gold, not mana');
     assert.equal(await page.$eval('.hp-patch-drawer .hp-patch-archive [aria-current="page"] b', node => node.textContent), '36.6.3',

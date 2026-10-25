@@ -137,22 +137,33 @@ One way to do each thing:
   the archive timeline in a modal side drawer (a native `<dialog>`). The
   drawer is rendered with the page, so the links to every patch are in the
   server HTML.
-- One bar under the header, a framed toolbar whose controls share one
-  height, carries the section links (when the patch has
-  more than one section), the class/card-type select (grouped by section),
-  the search and the kind filter (Все / ↑ / ↓ / ↻; the header counts each
-  kind with the same marks, so the toggles repeat no number and carry their
-  names as labels). On content at
-  least 760 px wide the whole bar sticks under the site header; narrower,
-  only the search and kind row sticks and the rest scrolls away. The layout
-  uses container queries because the site rail takes part of the viewport.
+- Below the header the changes column and, on page content at least
+  1000 px wide, a sticky table of contents ("В этом патче") beside it:
+  "Главное в патче", "Архетипы" (when shown), each section and, for a
+  section of more than one group, its classes or card types after the
+  filters. The entry under the reading line is marked
+  (`aria-current="location"`, IntersectionObserver). Narrower, the same
+  entries are one «Перейти к…» select in the filters bar (an optgroup per
+  section); choosing one jumps there and opens a folded section. CSS shows
+  one of the two, and neither appears for a patch with two entries or
+  fewer.
+- The filters bar, a framed toolbar whose controls share one height,
+  carries the search and the kind filter (Все / ↑ / ↓ / ↻; the header
+  digest uses the same marks, so the toggles carry their names as labels).
+  The changes column is a container of its own: when it is at least 760 px
+  wide the whole bar sticks under the site header; narrower, only the jump
+  select and kind row sticks and the search scrolls away. The layout uses
+  container queries because the site rail takes part of the viewport.
 - Every card in a section has the id `card-<entry id>`; its "…" holds a
   copy-link button. `:target` marks the linked card, and a patch loaded in
   the browser scrolls to it. Cards, groups and sections keep
   `scroll-margin-top` below the sticky bar.
 - Sections fade in when opened, without motion under
-  `prefers-reduced-motion`. The empty filter state offers a reset; the
-  loading state is the shared skeleton.
+  `prefers-reduced-motion`. The empty filter state offers a reset. While a
+  patch loads in the browser the page shows `PatchNotesSkeleton`: the
+  header plate with the page `h1`, the bar, a section head, change rows in
+  the page's columns and the table of contents on wide content, built from
+  the shared `LoadingSurface` blocks.
 
 ## API
 
@@ -183,10 +194,14 @@ paths are, the least recently served dropped first. After a deploy
 origin to fill the cache. Dates render in Europe/Moscow before hydration and in
 the viewer's zone after it.
 
-- Reading order: the header, the bar, "Главное в патче" (highlight cards,
-  then the cards → archetypes block), the sections and a one-paragraph source
-  note. A patch of one or two changes has no bar: there is nothing to
-  filter. The Sankey draws its flows without the kit's dash animation,
+- Reading order: the header, the bar, "Главное в патче", the archetypes
+  block, the sections and a one-paragraph source note. "Главное" and the
+  archetypes block open like a section summary — an emblem (a star, a
+  network glyph), the title in display type, a thin wood rule — without the
+  disclosure; the archetypes block names its day on the right ("данные за
+  30 сентября 2026 г."), under the title on phones. A patch of one or two
+  changes has no bar: there is nothing to filter. The Sankey draws its
+  flows without the kit's dash animation,
   which Chrome leaves unpainted on this chart's wide flows.
 - The page heading (`h1` "Патчноуты Hearthstone") sits in the patch header
   instead of the tall route banner, which only the missing, failed and
@@ -202,19 +217,21 @@ the viewer's zone after it.
   империи»); majors the archive has no patch of are not mapped — with the
   set glyph of the card library in a small seal, the article title without
   its version prefix as the `h2` (`patchHeadline`: "Обновление 36.4.2 уже в
-  игре: баланс…" → "Баланс…"; "Патч 36.4.2" when nothing else is left), one
-  line of counts with Russian plural forms (changes, ↑ buffs, ↓ nerfs,
-  ↻ reworks; the total is left out when only one kind is present, because it
-  would repeat that number; the numbers are one cream colour and only the
-  marks carry the kind colour), and quiet links to the article and the official
+  игре: баланс…" → "Баланс…"; "Патч 36.4.2" when nothing else is left), and the
+  "главное" (`patchDigest`): a line per section, at most three, with the
+  section name in gold and its nerfs, buffs and reworks in that order, each
+  after its ↓ ↑ ↻ mark — the card names for a section of up to four
+  changes, else the count with its Russian plural ("20 ослаблений"). The
+  article's own lead is not used: it is too often "Обновление уже доступно
+  для загрузки на ПК!". Then quiet links to the article and the official
   notes. On content under 480 px "Все патчи" keeps only its icon.
 - Reading hierarchy: patch (the header) → mode section → class or card type
   → card. The header is the page's only art plate: a section summary is the
   mode emblem and the title in display type on a thin wood rule, with a
-  disclosure chevron. Each number is said once: the header counts kinds, the
-  section links count their section. Groups are a line of type: the 96 px
-  class icon (or card-type glyph) and the name; a section of one group of
-  the section's own name has none.
+  disclosure chevron. Each number is said once: the header digest counts
+  the kinds of a long section; nothing else counts them. Groups are a line
+  of type: the 96 px class icon (or card-type glyph) and the name; a
+  section of one group of the section's own name has none.
 - Inside a group rows read nerfs, then buffs, then reworks, in the article's
   order within each kind (`patchKindBlocks`). A group of at least six rows
   with more than one kind is split into blocks, each named once by a small

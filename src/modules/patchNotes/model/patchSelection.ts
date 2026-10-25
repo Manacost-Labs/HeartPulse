@@ -80,3 +80,30 @@ export function patchKindBlocks(entries: readonly PatchCardView[]): { kind: Patc
   if (entries.length < KIND_BLOCK_MIN || blocks.length < 2) return [{ kind: null, entries: blocks.flatMap(block => block.entries) }];
   return blocks;
 }
+
+/** One kind in a section's line of the patch digest: the card names of a short section, else only the count. */
+export type PatchDigestPart = { kind: PatchKind; count: number; names: string[] | null };
+export type PatchDigestLine = { section: PatchSectionId; title: string; parts: PatchDigestPart[] };
+
+/** A section this short is named card by card in the digest; a longer one is counted by kind. */
+const DIGEST_NAMED = 4;
+/** The digest is the header's "главное": one line a section, at most three. */
+const DIGEST_LINES = 3;
+
+/**
+ * The patch at a glance for its header: a line per section with nerfs,
+ * buffs and reworks in that order. The article's own lead is too often
+ * "Обновление уже доступно…" to say what changed, so the lines come from
+ * the parsed changes.
+ */
+export function patchDigest(view: PatchView): PatchDigestLine[] {
+  return view.sections.slice(0, DIGEST_LINES).map(section => {
+    const entries = view.groups.filter(group => group.section === section.id).flatMap(group => group.entries);
+    const named = entries.length <= DIGEST_NAMED;
+    const parts = PATCH_KIND_ORDER.flatMap(kind => {
+      const ofKind = entries.filter(entry => entry.kind === kind);
+      return ofKind.length ? [{ kind, count: ofKind.length, names: named ? ofKind.map(entry => entry.name) : null }] : [];
+    });
+    return { section: section.id, title: section.title, parts };
+  });
+}

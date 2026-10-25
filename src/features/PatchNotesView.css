@@ -1,6 +1,7 @@
 /*
- * Patch notes: one column on one vertical rhythm — the header, one sticky
- * bar, what matters, then the sections. Large type carries the point, small
+ * Patch notes on one vertical rhythm — the header, then the changes column
+ * (sticky filters bar, what matters, the archetypes, the sections) beside a
+ * sticky table of contents on wide content. Large type carries the point, small
  * muted type the details; borders and fills only where they separate things.
  */
 
@@ -20,7 +21,7 @@
   /* Just under the site's sticky search bar (49 px) on wide screens, its mobile header otherwise. */
   --patch-sticky-top: 3.1rem;
   /* The layout follows the content column, not the viewport: the site rail takes its own width. */
-  container-type: inline-size;
+  container: hp-patch / inline-size;
   display: grid;
   gap: var(--patch-step);
   min-width: 0;
@@ -37,22 +38,77 @@
   text-underline-offset: 2px;
 }
 
-.hp-patch-heading {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 400;
-  line-height: 1.2;
+/* ── Layout: the changes and, on wide content, a sticky table of contents ── */
+
+.hp-patch-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--patch-step) 2rem;
+  min-width: 0;
 }
 
-/* ── The one bar: modes, class/type, search and kind ────────────────────── */
+/* The changes column is its own container: rows and the bar follow its width, not the page's. */
+.hp-patch-main {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--patch-step);
+  align-content: start;
+  min-width: 0;
+}
+
+.hp-patch-toc { display: none; }
+
+/* Named: the jump select sits in the changes column, which is a container of its own. */
+@container hp-patch (min-width: 1000px) {
+  .hp-patch-layout[data-toc] { grid-template-columns: minmax(0, 1fr) 13rem; }
+  .hp-patch-layout[data-toc] .hp-patch-jump { display: none; }
+
+  .hp-patch-toc {
+    position: sticky;
+    top: calc(var(--patch-sticky-top) + 0.75rem);
+    display: block;
+    align-self: start;
+    max-height: calc(100vh - var(--patch-sticky-top) - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+.hp-patch-toc__title {
+  margin: 0 0 0.5rem;
+  color: var(--arena-muted-ink);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hp-patch-toc ol { display: grid; gap: 0.1rem; margin: 0; padding: 0; list-style: none; }
+.hp-patch-toc ol ol { margin: 0.1rem 0 0.35rem 0.75rem; padding-left: 0.6rem; border-left: 1px solid var(--patch-line); }
+
+.hp-patch .hp-patch-toc a {
+  display: block;
+  padding: 0.25rem 0;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.hp-patch .hp-patch-toc ol ol a { padding: 0.2rem 0; color: var(--arena-muted-ink); font-family: var(--font-body); font-size: 0.84rem; }
+.hp-patch .hp-patch-toc a:hover { color: var(--arena-red); }
+.hp-patch .hp-patch-toc a[aria-current='location'] { color: var(--arena-red); font-weight: 700; }
+.hp-patch .hp-patch-toc a:focus-visible { outline: 2px solid #8d171d; outline-offset: 2px; }
+
+/* ── The filters bar: search, the narrow jump and the kind toggles ────────── */
 
 .hp-patch-bar {
   position: sticky;
   top: var(--patch-sticky-top);
   z-index: 5;
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
   padding: 0.45rem;
@@ -61,46 +117,20 @@
   background: var(--patch-toolbar);
 }
 
-.hp-patch-bar__nav,
-.hp-patch-bar__filters {
+.hp-patch-bar__sticky {
   display: flex;
-  flex: 1 1 auto;
+  flex: none;
   gap: 0.5rem;
   align-items: center;
   min-width: 0;
 }
 
-.hp-patch-bar__filters { flex: 1 1 26rem; }
-/* A one-section patch without a class select leaves the bar to the search. */
-.hp-patch-bar__nav:empty { display: none; }
+.hp-patch-jump { display: flex; flex: 1 1 auto; min-width: 0; }
 
-.hp-patch-bar__modes {
-  display: flex;
-  gap: 0.25rem;
+.hp-patch-jump select {
+  width: 100%;
   min-width: 0;
-}
-
-.hp-patch .hp-patch-bar__modes a {
-  display: inline-flex;
-  flex: none;
-  gap: 0.35rem;
-  align-items: center;
-  min-height: var(--patch-control);
-  padding: 0 0.7rem;
-  border-radius: 999px;
-  color: var(--arena-ink);
-  font-size: 0.88rem;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.hp-patch .hp-patch-bar__modes a:hover { background: rgba(84, 51, 22, 0.08); color: #7b151b; }
-.hp-patch-bar__modes a span { color: var(--arena-muted-ink); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
-
-.hp-patch-bar select {
-  min-width: 0;
-  max-width: 14rem;
+  max-width: 16rem;
   min-height: var(--patch-control);
   padding: 0 0.5rem;
   border: 1px solid var(--patch-line);
@@ -109,7 +139,7 @@
   color: inherit;
   font: inherit;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .hp-patch-search {
@@ -181,31 +211,16 @@
 .hp-patch-reset { min-height: var(--patch-control); border: 1px solid var(--patch-line); background: #fffaf0; }
 
 /*
- * Narrow content: only the search and kind row sticks; the modes and the
- * class/type select scroll away. `display: contents` lets that row stick
- * against the page column instead of this bar.
+ * Narrow content: the search scrolls away and only the jump and kind row
+ * sticks. `display: contents` lets that row stick against the changes column
+ * instead of this bar.
  */
 @container (max-width: 760px) {
-  .hp-patch-bar {
-    display: contents;
-  }
+  .hp-patch-bar { display: contents; }
 
-  .hp-patch-bar__nav {
-    flex-wrap: wrap;
-    margin-bottom: calc(var(--patch-step-sm) - var(--patch-step));
-  }
+  .hp-patch-search { margin-bottom: calc(var(--patch-step-sm) - var(--patch-step)); }
 
-  .hp-patch-bar__modes {
-    flex: 1 1 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    margin-inline: -0.7rem;
-  }
-
-  .hp-patch-bar__group { flex: 1 1 100%; }
-  .hp-patch-bar__group select { width: 100%; max-width: none; }
-
-  .hp-patch-bar__filters {
+  .hp-patch-bar__sticky {
     position: sticky;
     top: var(--patch-sticky-top);
     z-index: 5;
@@ -215,16 +230,25 @@
     background: var(--patch-toolbar);
   }
 
-  .hp-patch-kinds button { padding: 0 0.6rem; }
-  .hp-patch-search { flex-basis: 7rem; }
+  .hp-patch-jump select { max-width: none; }
+  .hp-patch-kinds button { padding: 0 0.55rem; }
+  .hp-patch-kinds button[data-kind] { min-width: 2.6rem; }
 }
 
-/* ── Главное в патче ────────────────────────────────────────────────────── */
+/* ── Blocks before the sections: "Главное" and the archetypes ────────────── */
 
-.hp-patch-highlights {
+.hp-patch-block {
   display: grid;
   gap: var(--patch-step-sm);
   min-width: 0;
+}
+
+.hp-patch-block__aside { margin-left: auto; color: var(--arena-muted-ink); font-size: 0.82rem; text-align: right; }
+
+@container (max-width: 640px) {
+  .hp-patch-block__head { flex-wrap: wrap; row-gap: 0; }
+  .hp-patch-block__head > h3 { flex: 1 1 0; min-width: 0; }
+  .hp-patch-block__aside { flex-basis: 100%; margin: 0 0 0 2.6rem; text-align: left; }
 }
 
 .hp-patch-highlights__list,
@@ -319,13 +343,13 @@
 .hp-patch-card {
   position: relative;
   display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  gap: 0 0.9rem;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 0 0.8rem;
   align-content: start;
   min-width: 0;
   height: 100%;
   box-sizing: border-box;
-  padding: 0.75rem 0;
+  padding: 0.6rem 0;
   border-top: 1px solid var(--patch-line);
 }
 
@@ -374,10 +398,10 @@
 
 .hp-patch-card__body {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.35rem;
   align-content: start;
   min-width: 0;
-  padding-top: 0.15rem;
+  padding-top: 0.1rem;
 }
 
 .hp-patch-card__title {
@@ -635,6 +659,7 @@
 /* Clears the site header and the sticky bar when a link jumps to a card, group or section. */
 .hp-patch-card,
 .hp-patch-group,
+.hp-patch-block,
 .hp-patch-section { scroll-margin-top: calc(var(--patch-sticky-top) + 4.5rem); }
 
 /* ── Empty states, notes and source ─────────────────────────────────────── */
@@ -734,6 +759,39 @@
 }
 
 @container (max-width: 640px) {
-  .hp-patch-card { grid-template-columns: 3.25rem minmax(0, 1fr); gap: 0 0.8rem; }
-  .hp-patch-heading { font-size: 1.25rem; }
+  .hp-patch-card { grid-template-columns: 2.75rem minmax(0, 1fr); gap: 0 0.75rem; }
+}
+
+/* ── Loading: the page's own geometry (PatchNotesSkeleton) ──────────────── */
+
+.hp-patch-skeleton__hero { display: grid; gap: 0.7rem; width: min(100%, 36rem); }
+.hp-patch-skeleton__hero .loading-block { background: rgba(255, 240, 200, 0.14); }
+.hp-patch-skeleton__switcher { inline-size: 18rem; max-inline-size: 100%; block-size: 2.25rem; border-radius: 999px; }
+.hp-patch-skeleton__title { block-size: 2.4rem; }
+.hp-patch-skeleton__digest { inline-size: 80%; block-size: 1rem; }
+.hp-patch-skeleton__main { gap: var(--patch-step-sm); }
+.hp-patch-skeleton__bar { block-size: calc(var(--patch-control) + 0.9rem + 2px); border-radius: 8px; }
+.hp-patch-skeleton__head { inline-size: 14rem; block-size: 2.75rem; margin-top: var(--patch-step-sm); }
+
+.hp-patch-skeleton__rows {
+  display: grid;
+  grid-template-columns: repeat(var(--patch-cols, 1), minmax(0, 1fr));
+  gap: var(--patch-step-sm) 2rem;
+}
+
+@container (min-width: 700px) {
+  .hp-patch-skeleton__rows { --patch-cols: 2; }
+}
+
+@container (min-width: 1080px) {
+  .hp-patch-skeleton__rows { --patch-cols: 3; }
+}
+
+.hp-patch-skeleton__row { block-size: 5.25rem; }
+.hp-patch-skeleton__toc { gap: 0.55rem; }
+.hp-patch-skeleton__toc-line { block-size: 1rem; }
+.hp-patch-skeleton__toc-line:nth-child(n + 3) { inline-size: 75%; margin-left: 0.75rem; }
+
+@container hp-patch (min-width: 1000px) {
+  .hp-patch-skeleton__toc { display: grid; }
 }

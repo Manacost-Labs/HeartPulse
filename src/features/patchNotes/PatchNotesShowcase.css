@@ -129,23 +129,25 @@
   text-shadow: 0 3px 14px rgba(21, 5, 2, 0.7);
 }
 
-.hp-patch-hero__counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1.1rem;
-  align-items: baseline;
+.hp-patch-hero__digest {
+  display: grid;
+  gap: 0.3rem;
   margin: 0;
+  padding: 0;
   color: var(--patch-cream-muted);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  list-style: none;
 }
 
-.hp-patch-hero__counts > span { display: inline-flex; gap: 0.3rem; align-items: baseline; }
-.hp-patch-hero__counts b { color: var(--patch-cream); font-family: var(--font-display); font-size: 1.45rem; font-weight: 400; line-height: 1; }
-.hp-patch-hero__counts svg { width: 0.95rem; height: 0.95rem; align-self: center; }
-/* The kind is told by its mark alone; the numbers stay one cream colour. */
-.hp-patch-hero__counts [data-kind='buff'] svg { color: var(--patch-buff-light); }
-.hp-patch-hero__counts [data-kind='nerf'] svg { color: var(--patch-nerf-light); }
-.hp-patch-hero__counts [data-kind='rework'] svg { color: var(--patch-rework-light); }
+.hp-patch-hero__digest li { display: flex; flex-wrap: wrap; gap: 0.15rem 0.9rem; align-items: baseline; }
+.hp-patch-hero__digest-mode { min-width: 7.5rem; color: var(--patch-gold); font-family: var(--font-display); font-size: 0.95rem; font-weight: 400; }
+.hp-patch-hero__digest-part { display: inline-flex; gap: 0.3rem; align-items: baseline; color: var(--patch-cream); }
+.hp-patch-hero__digest-part b { font-family: var(--font-display); font-size: 1.05rem; font-weight: 400; }
+.hp-patch-hero__digest-part svg { flex: none; width: 0.9rem; height: 0.9rem; align-self: center; stroke-width: 2.5; }
+.hp-patch-hero__digest-part[data-kind='buff'] svg { color: var(--patch-buff-light); }
+.hp-patch-hero__digest-part[data-kind='nerf'] svg { color: var(--patch-nerf-light); }
+.hp-patch-hero__digest-part[data-kind='rework'] svg { color: var(--patch-rework-light); }
 
 .hp-patch-hero__links { display: flex; flex-wrap: wrap; gap: 0.2rem 1.1rem; margin: 0; font-size: 0.8rem; }
 .hp-patch .hp-patch-hero__links a { display: inline-flex; gap: 0.25rem; align-items: center; min-height: 28px; color: var(--patch-cream-muted); }
@@ -224,8 +226,8 @@
     background: linear-gradient(180deg, rgba(34, 12, 6, 0.1) 0%, rgba(34, 12, 6, 0.72) 6rem, rgba(30, 10, 5, 0.97) 13rem);
   }
 
-  .hp-patch-hero__counts { gap: 0.25rem 0.85rem; }
-  .hp-patch-hero__counts b { font-size: 1.25rem; }
+  .hp-patch-hero__digest li { gap: 0.1rem 0.75rem; }
+  .hp-patch-hero__digest-mode { flex-basis: 100%; min-width: 0; }
 }
 
 /* A phone fits the arrows and the select on one line only when "Все патчи" keeps just its icon. */
@@ -244,8 +246,9 @@
 
 /* ── Section heading and class headers ──────────────────────────────────── */
 
-/* A section opens with its emblem and title on a thin wood rule: the header stays the page's only plate. */
-.hp-patch-section > summary {
+/* A section, "Главное" and the archetypes open with an emblem and a title on a thin wood rule. */
+.hp-patch-section > summary,
+.hp-patch-block__head {
   position: relative;
   display: flex;
   gap: 0.6rem;
@@ -260,6 +263,7 @@
 }
 
 .hp-patch-section > summary::-webkit-details-marker { display: none; }
+.hp-patch-block__head { padding-right: 0; cursor: auto; }
 
 .hp-patch-section > summary::after {
   position: absolute;
@@ -279,6 +283,7 @@
 .hp-patch-section > summary:hover::after { border-color: var(--arena-red); }
 .hp-patch-section > summary:focus-visible { outline: 3px solid #8d171d; outline-offset: 3px; }
 .hp-patch-section > summary .hp-patch-emblem img { width: 2rem; height: 2rem; }
+.hp-patch-block__head .hp-patch-emblem > svg { width: 2rem; height: 2rem; padding: 0.42rem; }
 
 .hp-patch-section__title {
   margin: 0;
@@ -569,7 +574,6 @@
   --ui-bg: #fbf0d2;
   display: grid;
   gap: 0.5rem;
-  margin-top: var(--patch-step-sm);
 }
 
 /*
@@ -579,7 +583,7 @@
  */
 .hp-patch-flow .ui-sankey-chart__link { stroke-dasharray: none; animation: none; }
 
-.hp-patch-flow h4 { margin: 0; font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; }
+.hp-patch-flow__lead { margin: 0; color: var(--arena-ink); font-size: 0.88rem; font-weight: 700; }
 /* The list: one row per card, its archetypes beside it on wide content and below it on phones. */
 .hp-patch-flow__list { display: none; margin: 0; padding: 0; list-style: none; }
 .hp-patch-flow[data-layout='list'] .hp-patch-flow__list { display: grid; }
@@ -629,7 +633,6 @@
 .hp-patch-flow__targets img { width: 1.25rem; height: 1.25rem; object-fit: contain; }
 .hp-patch-flow__targets small { color: var(--arena-muted-ink); font-variant-numeric: tabular-nums; }
 .hp-patch-flow__note { margin: 0; color: var(--arena-muted-ink); font-size: 0.75rem; }
-.hp-patch-flow__as-of { margin: -0.25rem 0 0; color: var(--arena-muted-ink); font-size: 0.82rem; }
 
 /* A phone cannot fit a dozen labels a side: the same links read as a list there. */
 @container (max-width: 640px) {

@@ -598,3 +598,25 @@ test('picture-only headings become one sentence without the mode parent heading 
     'Изменения темных даров; Стоимость аксессуаров');
   assert.equal(patchPictureNote([], { hasCards: false }), null);
 });
+
+test('the header digest names the cards of a short section and counts the kinds of a long one', async () => {
+  const { patchDigest } = await import('../src/modules/patchNotes/public');
+  const card = (id: string, kind: 'buff' | 'nerf' | 'rework', section: 'standard' | 'battlegrounds') => ({ id, name: id, kind, section });
+  const view = {
+    sections: [
+      { id: 'standard' as const, mode: 'constructed' as const, title: 'Стандарт', count: 3, kinds: { buff: 1, nerf: 1, rework: 1 } },
+      { id: 'battlegrounds' as const, mode: 'battlegrounds' as const, title: 'Поля сражений', count: 5, kinds: { buff: 3, nerf: 2, rework: 0 } },
+    ],
+    groups: [
+      { id: 'druid', section: 'standard', entries: [card('Сейсмопод', 'rework', 'standard'), card('Паучок', 'nerf', 'standard')] },
+      { id: 'warlock', section: 'standard', entries: [card('Агамагган', 'buff', 'standard')] },
+      { id: 'minions', section: 'battlegrounds', entries: ['a', 'b', 'c', 'd', 'e'].map((id, index) => card(id, index < 2 ? 'nerf' : 'buff', 'battlegrounds')) },
+    ],
+  } as unknown as Parameters<typeof patchDigest>[0];
+  assert.deepEqual(patchDigest(view), [
+    { section: 'standard', title: 'Стандарт', parts: [
+      { kind: 'nerf', count: 1, names: ['Паучок'] }, { kind: 'buff', count: 1, names: ['Агамагган'] }, { kind: 'rework', count: 1, names: ['Сейсмопод'] },
+    ] },
+    { section: 'battlegrounds', title: 'Поля сражений', parts: [{ kind: 'nerf', count: 2, names: null }, { kind: 'buff', count: 3, names: null }] },
+  ]);
+});
