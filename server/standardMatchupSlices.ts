@@ -75,7 +75,7 @@ export type HsguruMatchupTransformOptions = {
 
 
 export function parseMatchupNumber(value: unknown): number | null {
-  const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
+  const raw = String(value ?? '').replaceAll('%', '').replaceAll(',', '.').trim();
   if (!raw || raw === '—' || raw === '-') return null;
   const number = Number(raw);
   return Number.isFinite(number) ? Math.round(number * 10) / 10 : null;
