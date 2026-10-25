@@ -12,7 +12,9 @@
  * приводятся к ISO, текст ограничен по длине.
  */
 
+import { parseBacktest } from './backtest.js';
 import { parseCandidate } from './candidate.js';
+import { parseChanges, parseTiming } from './forecast.js';
 import { date, invalid, patchVersion, record, text } from './parsing.js';
 import { parseHistory } from './precedents.js';
 import type { RadarArchetypeNamer, RadarCandidate, RadarReport } from './types.js';
@@ -50,6 +52,11 @@ function localizeReport(report: RadarReport, localize: (value: string) => string
     headline: one(item.headline), verdict: localize(item.verdict), reasons: many(item.reasons), suggestedChange: one(item.suggestedChange),
     social: { ...item.social, summary: one(item.social.summary) },
     precedents: item.precedents.map(precedent => ({ ...precedent, summary: one(precedent.summary) })),
+    forecast: {
+      ...item.forecast,
+      keyNumbers: many(item.forecast.keyNumbers), metaImpact: one(item.forecast.metaImpact),
+      predictedChanges: item.forecast.predictedChanges.map(change => ({ ...change, change: localize(change.change) })),
+    },
   });
   return {
     ...report,
@@ -61,6 +68,7 @@ function localizeReport(report: RadarReport, localize: (value: string) => string
       summary: one(report.history.summary),
       patterns: report.history.patterns.map(pattern => ({ ...pattern, title: localize(pattern.title), text: one(pattern.text) })),
     },
+    timing: report.timing && { ...report.timing, outlook: one(report.timing.outlook) },
   };
 }
 
@@ -83,6 +91,8 @@ export type RadarParseOptions = {
   nameArchetype?: RadarArchetypeNamer;
   /** Замена известных английских имён в текстах модели по картам, которые называет прогон. */
   localizeFor?: (cardIds: ReadonlySet<string>) => (value: string) => string;
+  /** Ответ `/balance-radar/backtest`; без него блока точности нет. */
+  backtest?: unknown;
 };
 
 /**
@@ -92,7 +102,7 @@ export type RadarParseOptions = {
  */
 export function parseRadarReport(
   value: unknown,
-  { demo = false, nameArchetype = keepArchetypeName, localizeFor }: RadarParseOptions = {},
+  { demo = false, nameArchetype = keepArchetypeName, localizeFor, backtest }: RadarParseOptions = {},
 ): RadarReport {
   const envelope = record(value) ?? invalid('response must be an object');
   const row = record(envelope.data) ?? envelope;
@@ -118,6 +128,10 @@ export function parseRadarReport(
     nerfs: parseCandidates(row.nerfs, 'nerfs', nameArchetype),
     buffs: parseCandidates(row.buffs, 'buffs', nameArchetype),
     history: parseHistory(row.history),
+    timing: parseTiming(row.timing),
+    changes: parseChanges(row.changesSincePrevious, nameArchetype),
+    // Блок точности самого прогона новее отдельного ответа `/backtest`.
+    backtest: parseBacktest(row.accuracy) ?? parseBacktest(backtest),
     demo,
   };
   return localizeFor ? localizeReport(report, localizeFor(reportCardIds(report))) : report;

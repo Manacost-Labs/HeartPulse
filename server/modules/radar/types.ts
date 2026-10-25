@@ -126,6 +126,60 @@ export type RadarCandidate = {
   /** Похожие прошлые случаи: сначала те, на которые опиралась модель. */
   precedents: RadarPrecedent[];
   firstSeenAt: string | null;
+  /** Схема 2 hs-data-api: у прогонов до неё — пустые списки и `null`. */
+  forecast: RadarForecast;
+};
+
+/** Варианты правки «было → станет»; `before`/`after` — числа для стоимости и характеристик. */
+export type RadarPredictedChange = {
+  change: string;
+  field: 'cost' | 'attack' | 'health' | 'durability' | 'armor' | 'text' | 'other';
+  before: number | null;
+  after: number | null;
+  /** Вероятность варианта, если правка будет, 0–100. */
+  probability: number | null;
+};
+
+export type RadarForecast = {
+  /** Цифры, на которых основан вывод. */
+  keyNumbers: string[];
+  /** От самого вероятного варианта. */
+  predictedChanges: RadarPredictedChange[];
+  metaImpact: string | null;
+  /** Как часто Blizzard меняла сущности с такими же цифрами. */
+  calibration: { rate: number; hits: number; samples: number } | null;
+  trend: { status: 'new' | 'up' | 'down' | 'stable'; delta: number | null } | null;
+  /** Уверенность по прогонам, от старых к новым, включая текущий. */
+  confidenceHistory: Array<{ at: string; confidence: number }>;
+};
+
+export type RadarChangeItem = { side: 'nerfs' | 'buffs'; kind: RadarKind; name: string; confidence: number | null; delta: number | null };
+
+/** Что изменилось с прошлого прогона. */
+export type RadarChanges = {
+  previousAt: string | null;
+  added: RadarChangeItem[];
+  removed: RadarChangeItem[];
+  risen: RadarChangeItem[];
+  fallen: RadarChangeItem[];
+};
+
+/** Когда вероятен следующий балансный патч: проценты 0–100. */
+export type RadarTiming = { within7: number | null; within14: number | null; daysSinceLastPatch: number | null; outlook: string | null };
+
+/** Попадания одной стороны бэктеста: сколько правок радар назвал заранее в своих первых N. */
+export type RadarBacktestSide = { top: number; hits: number; actual: number; predicted: number; precision: number | null; recall: number | null };
+
+/** Проверка радара на прошлых патчах (статистическая часть, неделя до патча). */
+export type RadarBacktest = {
+  patches: number;
+  nerf: RadarBacktestSide[];
+  buff: RadarBacktestSide[];
+  /** Чьи это цифры: прогноз модели или только статистическая часть. */
+  basis: 'model' | 'statistical';
+  /** Готовая фраза hs-data-api о проверке и оговорка к ней. */
+  text: string | null;
+  caveat: string | null;
 };
 
 export type RadarReport = {
@@ -142,6 +196,9 @@ export type RadarReport = {
   buffs: RadarCandidate[];
   /** История патчей и закономерности Blizzard; `null` у прогонов без истории. */
   history: RadarHistory | null;
+  timing: RadarTiming | null;
+  changes: RadarChanges | null;
+  backtest: RadarBacktest | null;
   /**
    * Ставит только сервер сайта: `true`, когда вместо hs-data-api отдана
    * встроенная демонстрационная фикстура (флаг `RADAR_FIXTURE=1`).

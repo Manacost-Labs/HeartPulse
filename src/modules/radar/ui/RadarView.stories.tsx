@@ -38,6 +38,20 @@ const ritual: RadarCandidate = {
     cardHref: '/standard/cards/wild/JAIL_202/', patchHref: '/standard/patches/?version=36.4.2',
   }],
   firstSeenAt: '2026-10-25T10:12:15.000Z',
+  forecast: {
+    keyNumbers: ['Легенда, неделя: 55,9% при 18,8% популярности', 'Алмаз 4–1: 59,4% при 21,2%'],
+    predictedChanges: [
+      { change: 'Стоимость 2 → 3', field: 'cost', before: 2, after: 3, probability: 55 },
+      { change: 'Призываемые 3/5 → 3/4', field: 'health', before: 5, after: 4, probability: 20 },
+    ],
+    metaImpact: 'Чернокнижник потеряет ранний темп, выиграют быстрые колоды и Воин.',
+    calibration: { rate: 22, hits: 2, samples: 9 },
+    trend: { status: 'down', delta: -8 },
+    confidenceHistory: [
+      { at: '2026-10-25T10:12:15.000Z', confidence: 75 }, { at: '2026-10-25T10:51:02.000Z', confidence: 70 },
+      { at: '2026-10-25T12:41:05.000Z', confidence: 62 },
+    ],
+  },
 };
 const zoolock: RadarCandidate = {
   ...ritual, id: 'archetype:standard:Zoolock', kind: 'archetype', confidence: 42, previousConfidence: null, suggestedChange: null, headline: null,
@@ -46,6 +60,7 @@ const zoolock: RadarCandidate = {
   stats: { source: 'hsguru', rankLabel: 'Все ранги', periodLabel: 'Баны', winrate: 63, popularity: 11.1, games: 48_210, trend: [] },
   social: { mentions: 0, reddit: 0, x: 0, sentiment: 'no_data', stance: 'no_data', summary: null, posts: [] },
   precedents: [],
+  forecast: { keyNumbers: [], predictedChanges: [], metaImpact: null, calibration: null, trend: { status: 'new', delta: null }, confidenceHistory: [] },
 };
 const druid: RadarCandidate = {
   ...ritual, id: 'class:standard:DRUID', kind: 'class', confidence: 48, previousConfidence: null,
@@ -63,6 +78,18 @@ const report: RadarReport = {
   window: { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T10:10:48.000Z' },
   summary: 'Главная проблема текущего баланса — Чернокнижник: сообщество массово требует нерфа ритуалов, а друид после выхода дополнения провалился.',
   nerfs: [ritual, zoolock], buffs: [druid], history: null, demo: false,
+  timing: { within7: 50, within14: 90, daysSinceLastPatch: 13, outlook: 'Патч вероятен в ближайшие 7–14 дней.' },
+  changes: {
+    previousAt: '2026-10-25T10:51:02.000Z',
+    added: [{ side: 'nerfs', kind: 'archetype', name: 'Зоолок', confidence: 42, delta: null }],
+    removed: [], risen: [], fallen: [{ side: 'nerfs', kind: 'card', name: 'Ритуал призыва', confidence: 62, delta: -8 }],
+  },
+  backtest: {
+    patches: 8,
+    nerf: [{ top: 3, hits: 7, actual: 22, predicted: 24, precision: 29, recall: 32 }, { top: 5, hits: 11, actual: 22, predicted: 40, precision: 28, recall: 50 }],
+    buff: [{ top: 3, hits: 0, actual: 11, predicted: 24, precision: 0, recall: 0 }, { top: 5, hits: 0, actual: 11, predicted: 40, precision: 0, recall: 0 }],
+    basis: 'statistical', text: null, caveat: null,
+  },
 };
 
 const meta = {

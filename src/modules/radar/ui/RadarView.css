@@ -85,6 +85,71 @@
 
 .radar-summary__text p { margin: 0; }
 
+.radar-summary__timing { color: var(--arena-muted-ink); font-size: 0.86rem; }
+.radar-summary__timing b { color: var(--arena-ink); font-variant-numeric: tabular-nums; }
+
+/* «С прошлого прогона»: группы без рамок, только линия между ними. */
+
+.radar-changes {
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--arena-paper-line);
+}
+
+.radar-changes__title {
+  margin: 0 0 0.5rem;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.radar-changes__title span { color: var(--arena-muted-ink); font-family: var(--font-body); font-size: 0.75rem; }
+
+.radar-changes__groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.5rem 1.25rem;
+}
+
+.radar-changes__group h4 {
+  margin: 0 0 0.25rem;
+  color: var(--arena-muted-ink);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.radar-changes__group ul {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.radar-changes__group li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.radar-changes__name { overflow: hidden; color: var(--arena-ink); text-overflow: ellipsis; white-space: nowrap; }
+.radar-changes__meta { grid-column: 1; color: var(--arena-muted-ink); font-size: 0.72rem; }
+
+.radar-changes__value {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  color: var(--arena-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.radar-changes__value[data-tone='up'] { color: var(--radar-nerf); }
+.radar-changes__value[data-tone='down'] { color: var(--arena-muted-ink); }
+
 /* «Подробнее»: одна текстовая кнопка со стрелкой по всей странице. */
 
 .radar-more > summary {
@@ -350,6 +415,11 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   font-variant-numeric: tabular-nums;
 }
 
+.radar-confidence__change[data-tone='new'] {
+  color: var(--arena-red);
+  font-weight: 700;
+}
+
 .radar-confidence__label {
   margin-left: auto;
   color: var(--arena-muted-ink);
@@ -403,6 +473,32 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   margin-top: 0.2rem;
   color: var(--arena-muted-ink);
 }
+
+/* Вероятная правка: значки «было → станет» для стоимости и характеристик. */
+
+.radar-stat-change { white-space: nowrap; }
+
+.radar-stat {
+  display: inline-grid;
+  min-width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  margin-inline: 0.1rem;
+  border-radius: 50%;
+  background: #2f5b9b;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.radar-stat-change[data-field='attack'] .radar-stat { background: #b0802a; }
+.radar-stat-change[data-field='health'] .radar-stat { background: #9c2b2b; }
+.radar-stat-change[data-field='durability'] .radar-stat,
+.radar-stat-change[data-field='armor'] .radar-stat { background: #5d6a73; }
+.radar-stat--after { box-shadow: 0 0 0 2px var(--arena-gold-light); }
+.radar-candidate__chance { color: var(--arena-muted-ink); }
 
 /* Блоки под «Подробнее»: заголовок, затем одно содержимое. */
 
@@ -591,6 +687,86 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 
 .radar-candidate__full > summary { color: var(--arena-muted-ink); }
 
+/* «Почему в радаре»: цифры, история, варианты правки, уверенность по прогонам. */
+
+.radar-why__line {
+  max-width: 82ch;
+  margin: 0;
+  color: var(--arena-ink);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.radar-variants {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 34rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.84rem;
+}
+
+.radar-variants li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6rem 2.5rem;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.radar-variants__bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(84, 51, 22, 0.14);
+}
+
+.radar-variants__bar span { display: block; height: 100%; border-radius: inherit; background: var(--arena-muted-ink); }
+.radar-variants b { text-align: right; font-variant-numeric: tabular-nums; }
+
+.radar-why__history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.6rem;
+  align-items: center;
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.radar-sparkline path { fill: none; stroke: var(--arena-red); stroke-width: 1.6; stroke-linejoin: round; }
+.radar-sparkline circle { fill: var(--arena-red); }
+
+/* «Насколько радар точен»: одна таблица попаданий. */
+
+.radar-trust {
+  width: 100%;
+  max-width: 40rem;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.radar-trust th,
+.radar-trust td {
+  padding: 0.45rem 0.5rem 0.45rem 0;
+  border-top: 1px solid var(--arena-paper-line);
+  text-align: left;
+}
+
+.radar-trust thead th {
+  border-top: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.radar-trust td b { color: var(--arena-ink); }
+.radar-trust__note { max-width: 78ch; margin: 0.6rem 0 0; color: var(--arena-muted-ink); font-size: 0.78rem; line-height: 1.5; }
+
 /* Пост: вся карточка — ссылка на оригинал в новой вкладке. */
 
 .radar-posts {
@@ -733,6 +909,7 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
   .radar-precedent__patch,
   .radar-precedent__change { grid-column: 2; }
   .radar-fact { flex: 1 1 8rem; min-width: 0; }
+  .radar-variants li { grid-template-columns: minmax(0, 1fr) 4rem 2.5rem; }
 }
 
 @media (max-width: 440px) {

@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useId, useMemo, useState } from 'react';
-import { FlaskConical, History, Info, Radar, TrendingDown, TrendingUp } from 'lucide-react';
+import { FlaskConical, Info, TrendingDown, TrendingUp } from 'lucide-react';
 import {
-  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, formatRadarCount, formatRadarDate, formatRadarTime,
-  radarClassOptions, radarLead, type RadarFilters, type RadarReport, type RadarSectionId,
+  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, radarClassOptions,
+  type RadarFilters, type RadarReport, type RadarSectionId,
 } from '../model/radarView';
-import { pluralRu } from '../../../shared/text/pluralRu';
 import { RadarCandidateCard } from './RadarCandidateCard';
-import { RadarMore } from './RadarMore';
+import { RadarSummary } from './RadarSummary';
+import { RadarPatterns, RadarTrust } from './RadarTrust';
 import './RadarView.css';
 
 const SECTION_IDS: RadarSectionId[] = ['nerfs', 'buffs'];
@@ -37,52 +37,6 @@ function ButtonGroup<T extends string | number>({ label, options, value, onChang
         aria-pressed={option.value === value} onClick={() => onChange(option.value)}>{option.label}</button>)}
     </div>
   </div>;
-}
-
-function RadarSummary({ report }: { report: RadarReport }) {
-  const { lead, rest } = radarLead(report.summary);
-  return <section className="radar-section radar-summary" aria-labelledby="radar-summary-title">
-    <header className="radar-section__heading">
-      <span className="radar-section__eyebrow"><Radar aria-hidden="true" /> Сводка радара</span>
-      <h2 id="radar-summary-title">Общий вывод</h2>
-      <p>
-        Обновлено {formatRadarTime(report.generatedAt)}
-        {report.patch && <> · <a href={report.patch.href}>патч {report.patch.version}</a></>}
-      </p>
-    </header>
-    <div className="radar-section__body radar-summary__text">
-      <p>{lead}</p>
-      {rest.length > 0 && <RadarMore>{rest.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</RadarMore>}
-    </div>
-  </section>;
-}
-
-/** Закономерности решений Blizzard из истории патчей; без данных раздела нет. */
-function RadarPatterns({ history }: { history: RadarReport['history'] }) {
-  if (!history) return null;
-  const coverage = [
-    history.balancePatches !== null && `${formatRadarCount(history.balancePatches)} ${pluralRu(history.balancePatches, 'балансный патч', 'балансных патча', 'балансных патчей')}`,
-    history.from && history.to && `с ${formatRadarDate(history.from)} по ${formatRadarDate(history.to)}`,
-  ].filter(Boolean).join(' ');
-  return <section className="radar-section" aria-labelledby="radar-patterns-title">
-    <header className="radar-section__heading">
-      <span className="radar-section__eyebrow"><History aria-hidden="true" /> История патчей</span>
-      <h2 id="radar-patterns-title">Закономерности Blizzard</h2>
-      <p>Как разработчики меняли баланс раньше: на это опирается прогноз{coverage && ` (разобрано ${coverage})`}.</p>
-    </header>
-    <div className="radar-section__body radar-patterns">
-      {history.patterns.length > 0 && <ul>
-        {history.patterns.map((pattern, index) => <li key={`${index}:${pattern.title}`}>
-          {pattern.text
-            ? <RadarMore label={pattern.title} className="radar-patterns__item"><p>{pattern.text}</p></RadarMore>
-            : <p className="radar-patterns__title">{pattern.title}</p>}
-        </li>)}
-      </ul>}
-      {history.summary && <RadarMore label="Обзор истории патчей">
-        {history.summary.split(/\n\s*\n|\n/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
-      </RadarMore>}
-    </div>
-  </section>;
 }
 
 /**
@@ -170,6 +124,7 @@ export function RadarView({ report }: { report: RadarReport }) {
           </div>}
       </div>
     </section>
+    <RadarTrust backtest={report.backtest} />
     <RadarPatterns history={report.history} />
   </>;
 }

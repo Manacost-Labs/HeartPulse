@@ -1,7 +1,8 @@
 import type { RadarCandidate, RadarClassKey, RadarKind, RadarReport, RadarSentiment, RadarStance } from './types';
 
 export type {
-  RadarCandidate, RadarClassKey, RadarHistory, RadarKind, RadarPattern, RadarPost, RadarPrecedent, RadarReport, RadarTrendPoint,
+  RadarBacktest, RadarCandidate, RadarChangeItem, RadarChanges, RadarClassKey, RadarForecast, RadarHistory, RadarKind, RadarPattern,
+  RadarPost, RadarPrecedent, RadarPredictedChange, RadarReport, RadarTrendPoint,
 } from './types';
 
 export type RadarSectionId = 'nerfs' | 'buffs';

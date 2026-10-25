@@ -1,7 +1,7 @@
 import { ArrowUp, Check, ExternalLink, MessageSquare } from 'lucide-react';
 import {
   RADAR_CLASS_LABELS, RADAR_SENTIMENT_LABELS, RADAR_STANCE_LABELS, formatRadarCount, formatRadarDate, formatRadarDay, formatRadarDelta,
-  formatRadarPercent, radarDayShift, radarLead, radarTrendDelta, type RadarCandidate, type RadarPost, type RadarPrecedent,
+  formatRadarPercent, radarDayShift, radarLead, radarTrendDelta, type RadarCandidate, type RadarForecast, type RadarPost, type RadarPrecedent,
 } from '../model/radarView';
 import { RadarMore } from './RadarMore';
 
@@ -32,13 +32,53 @@ function RadarFacts({ stats, kind }: { stats: RadarCandidate['stats']; kind: Rad
   </div>;
 }
 
-function RadarReasons({ reasons }: { reasons: string[] }) {
-  if (!reasons.length) return null;
+/** Мини-график уверенности по прогонам: линия и точки, последняя — текущий прогон. */
+function ConfidenceSparkline({ points }: { points: RadarForecast['confidenceHistory'] }) {
+  const width = 120; const height = 28; const pad = 3;
+  const x = (index: number) => pad + (index * (width - pad * 2)) / Math.max(1, points.length - 1);
+  const y = (value: number) => height - pad - (value / 100) * (height - pad * 2);
+  const path = points.map((point, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${y(point.confidence).toFixed(1)}`).join(' ');
+  return <svg className="radar-sparkline" viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true">
+    <path d={path} />
+    {points.map((point, index) => <circle key={point.at} cx={x(index)} cy={y(point.confidence)} r={index === points.length - 1 ? 2.6 : 1.8} />)}
+  </svg>;
+}
+
+/**
+ * «Почему в радаре»: до четырёх ключевых цифр или причин с маркерами, затем
+ * калибровка по истории (если цифры её не назвали), эффект на мету, все
+ * варианты правки и уверенность по прогонам.
+ */
+function RadarWhy({ candidate }: { candidate: RadarCandidate }) {
+  const { forecast } = candidate;
+  const history = forecast.confidenceHistory;
+  // Прошлую уверенность показывает график по прогонам, поэтому та же цифра из списка модели убирается.
+  const facts = (forecast.keyNumbers.length ? forecast.keyNumbers : candidate.reasons)
+    .filter(fact => !(history.length > 1 && /^предыдущий прогон/i.test(fact))).slice(0, MAX_REASONS);
+  const calibration = forecast.calibration;
+  const calibrationNamed = calibration !== null && facts.some(fact => fact.includes(`${calibration.hits} из ${calibration.samples}`));
+  if (!facts.length && !calibration && !forecast.metaImpact && forecast.predictedChanges.length < 2 && history.length < 2) return null;
   return <div className="radar-block">
     <h4 className="radar-block__title">Почему в радаре</h4>
-    <ul className="radar-reasons">
-      {reasons.slice(0, MAX_REASONS).map((reason, index) => <li key={`${index}:${reason}`}><Check aria-hidden="true" /><span>{reason}</span></li>)}
-    </ul>
+    {facts.length > 0 && <ul className="radar-reasons">
+      {facts.map((fact, index) => <li key={`${index}:${fact}`}><Check aria-hidden="true" /><span>{fact}</span></li>)}
+    </ul>}
+    {calibration && !calibrationNamed && <p className="radar-why__line">
+      <b>В истории:</b> Blizzard меняла {calibration.hits} из {formatRadarCount(calibration.samples)} похожих ({calibration.rate}%).
+    </p>}
+    {forecast.metaImpact && <p className="radar-why__line"><b>Что изменится в мете:</b> {forecast.metaImpact}</p>}
+    {forecast.predictedChanges.length > 1 && <ul className="radar-variants" aria-label="Варианты правки">
+      {forecast.predictedChanges.map((variant, index) => <li key={`${index}:${variant.change}`}>
+        <span>{variant.change}</span>
+        {variant.probability !== null && <><span className="radar-variants__bar" aria-hidden="true">
+          <span style={{ inlineSize: `${variant.probability}%` }} />
+        </span><b>{variant.probability}%</b></>}
+      </li>)}
+    </ul>}
+    {history.length > 1 && <p className="radar-why__history">
+      <ConfidenceSparkline points={history} />
+      <span>Уверенность по прогонам: {history.map(point => point.confidence).join(' → ')}</span>
+    </p>}
   </div>;
 }
 
@@ -142,7 +182,7 @@ export function RadarDetails({ candidate }: { candidate: RadarCandidate }) {
   return <>
     <p className="radar-candidate__verdict">{lead}</p>
     <RadarFacts stats={candidate.stats} kind={candidate.kind} />
-    <RadarReasons reasons={candidate.reasons} />
+    <RadarWhy candidate={candidate} />
     <RadarPrecedents precedents={candidate.precedents} />
     <RadarPeriods stats={candidate.stats} />
     <RadarSocial social={candidate.social} />
