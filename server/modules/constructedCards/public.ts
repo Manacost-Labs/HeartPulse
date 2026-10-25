@@ -57,4 +57,6 @@ export type { PublicConstructedCardSeoData } from './publicCardProjection.js';
 export { createConstructedCardReader } from './publicCardReader.js';
 export { createPublicCardRouter } from './publicCardRoutes.js';
 export { withCatalogCardMedia, loadCatalogCardMedia } from './catalogCardMedia.js';
+export { createCardChoicesRouter, projectCardChoices } from './cardChoices.js';
+export type { CardChoicesPayload } from './cardChoices.js';
 export type { CatalogCardMedia } from './catalogCardMedia.js';

@@ -1,7 +1,7 @@
 import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSwitch';
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
-import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState, CardChoicesSection, cardChoiceKindOf } from '../modules/constructedCards/public';
 import { cardPatchEntries } from './cardPatchChanges';
 import { CardPatchTimeline } from './CardPatchTimeline';
 import React, { useEffect, useRef, useState } from 'react';
@@ -587,6 +587,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
   const externalLinks = Array.isArray(wiki.external_links) ? wiki.external_links : [];
   const decks = Array.isArray(card.decks) ? card.decks : [];
+  const choiceKind = cardChoiceKindOf(card.mechanics);
   const openMedia = (url: string) => {
     const index = mediaItems.findIndex(item => item.url === url);
     if (index >= 0) setLightboxIndex(index);
@@ -687,6 +688,8 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           onOpenChange={setHistoryOpen}
         />
       )}
+
+      {choiceKind && <React.Suspense fallback={null}><CardChoicesSection key={`card-choices:${format}:${card.card_id}`} format={format} cardId={card.card_id} kind={choiceKind} /></React.Suspense>}
 
       <section className="constructed-card-detail__lower-grid">
         <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(item => <span key={item.key}>{item.label}</span>) : <p>Механики не указаны.</p>}</div></div>
