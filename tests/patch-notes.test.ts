@@ -487,3 +487,26 @@ test('a word diff reads as whole old and new phrases, not alternating words', as
     'наносит 5 ед. урона.{+ Вы получаете 5 ед. брони.+}');
   assert.equal(render('a b', 'a b'), 'a b');
 });
+
+test('a group reads nerfs, buffs, then reworks, and only a long mixed group is split by kind', async () => {
+  const { patchKindBlocks } = await import('../src/modules/patchNotes/public');
+  const row = (id: string, kind: 'buff' | 'nerf' | 'rework') => ({ id, kind }) as Parameters<typeof patchKindBlocks>[0][number];
+  const shape = (blocks: ReturnType<typeof patchKindBlocks>) => blocks.map(block => [block.kind, block.entries.map(entry => entry.id).join('')]);
+  assert.deepEqual(shape(patchKindBlocks([row('a', 'rework'), row('b', 'buff'), row('c', 'nerf')])), [[null, 'cba']],
+    'a short group is one block, reordered');
+  assert.deepEqual(shape(patchKindBlocks(['a', 'b', 'c', 'd', 'e', 'f'].map(id => row(id, 'buff')))), [[null, 'abcdef']],
+    'one kind needs no kind heading');
+  assert.deepEqual(shape(patchKindBlocks([row('a', 'buff'), row('b', 'rework'), row('c', 'nerf'), row('d', 'buff'), row('e', 'nerf'), row('f', 'buff')])),
+    [['nerf', 'ce'], ['buff', 'adf'], ['rework', 'b']], 'the article order is kept inside each kind');
+});
+
+test('picture-only headings become one sentence without the mode parent heading or repeats', async () => {
+  const { patchPictureNote } = await import('../src/modules/patchNotes/public');
+  const titles = ['Изменения Полей сражений', 'Изменения брони героев', 'Изменения существ', 'Изменения Аксессуаров', 'Изменения Аксессуаров'];
+  assert.equal(patchPictureNote(titles, { hasCards: true }), 'Изменения брони героев, существ, аксессуаров');
+  assert.equal(patchPictureNote(['Изменения Hearthstone'], { hasCards: true }), null, 'the mode parent heading of listed changes says nothing');
+  assert.equal(patchPictureNote(['Изменения Арены'], { hasCards: false }), 'Изменения Арены', 'a mode without listed changes keeps it');
+  assert.equal(patchPictureNote(['ИЗМЕНЕНИЯ ТЕМНЫХ ДАРОВ', 'Стоимость аксессуаров'], { hasCards: true }),
+    'Изменения темных даров; Стоимость аксессуаров');
+  assert.equal(patchPictureNote([], { hasCards: false }), null);
+});

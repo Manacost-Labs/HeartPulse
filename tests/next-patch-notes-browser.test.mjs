@@ -57,7 +57,8 @@ test('patch notes render the stored article as compact change cards, and the hom
     assert.deepEqual(await page.$$eval('.hp-patch-section .hp-patch-card', cards => cards.map(card => [
       card.querySelector('.hp-patch-card__name')?.textContent, card.dataset.kind])), [
       // The fixture blocks HearthstoneJSON, so Constructed cards stay unmatched; trinkets resolve through the catalog.
-      ['Змей ветреных вершин', 'rework'], ['Паучок', 'nerf'], ['Пагубные благовония', 'buff'], ['Молот Сумерек', 'nerf'],
+      // Inside a group nerfs come first, then buffs, then reworks.
+      ['Паучок', 'nerf'], ['Змей ветреных вершин', 'rework'], ['Молот Сумерек', 'nerf'], ['Пагубные благовония', 'buff'],
     ]);
     const modes = await page.$$eval('.hp-patch-bar__modes a', links => links.map(link => link.getAttribute('href')));
     assert.deepEqual(modes, await page.$$eval('.hp-patch-section', sections => sections.map(section => `#${section.id}`)),

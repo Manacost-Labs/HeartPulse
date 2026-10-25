@@ -1,7 +1,7 @@
 /*
  * Patch notes showcase: the art-led parts of the page — the patch plate,
- * section banners, class headers, featured highlights, stat gems, the
- * archive drawer and the Sankey. Game art is never recoloured; gradients sit over it.
+ * section headings, class headers, highlights, stat gems, the archive drawer
+ * and the Sankey. The header is the page's only art plate. Game art is never recoloured; gradients sit over it.
  */
 
 .hp-patch {
@@ -142,9 +142,10 @@
 .hp-patch-hero__counts > span { display: inline-flex; gap: 0.3rem; align-items: baseline; }
 .hp-patch-hero__counts b { color: var(--patch-cream); font-family: var(--font-display); font-size: 1.45rem; font-weight: 400; line-height: 1; }
 .hp-patch-hero__counts svg { width: 0.95rem; height: 0.95rem; align-self: center; }
-.hp-patch-hero__counts [data-kind='buff'] :is(b, svg) { color: var(--patch-buff-light); }
-.hp-patch-hero__counts [data-kind='nerf'] :is(b, svg) { color: var(--patch-nerf-light); }
-.hp-patch-hero__counts [data-kind='rework'] :is(b, svg) { color: var(--patch-rework-light); }
+/* The kind is told by its mark alone; the numbers stay one cream colour. */
+.hp-patch-hero__counts [data-kind='buff'] svg { color: var(--patch-buff-light); }
+.hp-patch-hero__counts [data-kind='nerf'] svg { color: var(--patch-nerf-light); }
+.hp-patch-hero__counts [data-kind='rework'] svg { color: var(--patch-rework-light); }
 
 .hp-patch-hero__links { display: flex; flex-wrap: wrap; gap: 0.2rem 1.1rem; margin: 0; font-size: 0.8rem; }
 .hp-patch .hp-patch-hero__links a { display: inline-flex; gap: 0.25rem; align-items: center; min-height: 28px; color: var(--patch-cream-muted); }
@@ -241,69 +242,57 @@
   }
 }
 
-/* ── Section banner and class headers ───────────────────────────────────── */
+/* ── Section heading and class headers ──────────────────────────────────── */
 
+/* A section opens with its emblem and title on a thin wood rule: the header stays the page's only plate. */
 .hp-patch-section > summary {
   position: relative;
   display: flex;
-  gap: 0.75rem;
+  gap: 0.6rem;
   align-items: center;
-  overflow: hidden;
-  min-height: 3.25rem;
-  padding: 0.45rem 2.75rem 0.45rem 0.85rem;
-  border-radius: 6px;
-  background: var(--patch-night);
-  color: var(--patch-cream);
+  min-height: 2.75rem;
+  padding: 0 2.25rem 0.4rem 0;
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, #5f371d 0%, rgba(95, 55, 29, 0.55) 55%, rgba(95, 55, 29, 0.12) 100%) 1;
+  color: var(--arena-ink);
   list-style: none;
   cursor: pointer;
-  isolation: isolate;
 }
 
 .hp-patch-section > summary::-webkit-details-marker { display: none; }
-.hp-patch-section__plate { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-
-.hp-patch-section > summary::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(30, 9, 4, 0.94) 0%, rgba(30, 9, 4, 0.72) 45%, rgba(30, 9, 4, 0.25) 100%);
-  content: '';
-}
 
 .hp-patch-section > summary::after {
   position: absolute;
   top: 50%;
-  right: 1.1rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  margin-top: -0.4rem;
-  border-right: 2px solid var(--patch-gold);
-  border-bottom: 2px solid var(--patch-gold);
+  right: 0.6rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.45rem;
+  border-right: 2px solid var(--arena-muted-ink);
+  border-bottom: 2px solid var(--arena-muted-ink);
   content: '';
   transform: rotate(45deg);
   transition: transform var(--motion-fast) var(--motion-ease);
 }
 
 .hp-patch-section:not([open]) > summary::after { transform: rotate(-45deg); }
+.hp-patch-section > summary:hover::after { border-color: var(--arena-red); }
 .hp-patch-section > summary:focus-visible { outline: 3px solid #8d171d; outline-offset: 3px; }
-.hp-patch-section > summary .hp-patch-emblem img { width: 2.1rem; height: 2.1rem; }
-
-@container (max-width: 640px) {
-  .hp-patch-section > summary { gap: 0.55rem; padding-inline: 0.65rem 2.4rem; }
-  .hp-patch-section__title { font-size: 1.15rem; }
-  .hp-patch-section > summary .hp-patch-emblem img { width: 1.85rem; height: 1.85rem; }
-}
+.hp-patch-section > summary .hp-patch-emblem img { width: 2rem; height: 2rem; }
 
 .hp-patch-section__title {
   margin: 0;
+  color: var(--arena-ink);
   font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   font-weight: 400;
   line-height: 1.15;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
-.hp-patch-section__hint { margin-left: auto; color: var(--patch-cream-muted); font-size: 0.85rem; }
+@container (max-width: 640px) {
+  .hp-patch-section__title { font-size: 1.3rem; }
+  .hp-patch-section > summary .hp-patch-emblem img { width: 1.75rem; height: 1.75rem; }
+}
 
 /* Mode emblem: the format shield, Arena portal or tavern shield; side modes get a neutral glyph. */
 .hp-patch-emblem { display: inline-flex; flex: none; align-items: center; }
@@ -311,13 +300,12 @@
 .hp-patch-emblem[data-count='2'] img + img { margin-left: -0.8rem; }
 
 .hp-patch-emblem > svg {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2rem;
+  height: 2rem;
   padding: 0.4rem;
-  border: 1px solid var(--patch-glass-line);
   border-radius: 50%;
-  background: var(--patch-glass);
-  color: var(--patch-gold);
+  background: rgba(84, 51, 22, 0.1);
+  color: #6f1a20;
 }
 
 /* A group heading is a line of type; the hairline of its first row closes it. */
@@ -332,7 +320,7 @@
 .hp-patch-group__icon { flex: none; width: 1.75rem; height: 1.75rem; object-fit: contain; }
 .hp-patch-group__title .hp-patch-type-icon { width: 1.75rem; height: 1.75rem; }
 .hp-patch-group__title .hp-patch-type-icon svg { width: 1rem; height: 1rem; }
-.hp-patch-group__name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; }
+.hp-patch-group__name { font-family: var(--font-display); font-size: 1.2rem; font-weight: 400; }
 
 .hp-patch-class-icon { width: 1.35rem; height: 1.35rem; flex: none; object-fit: contain; }
 
@@ -349,62 +337,25 @@
 
 .hp-patch-type-icon svg { width: 0.85rem; height: 0.85rem; }
 
-/* ── Featured highlights: a larger render; wide art on top with the render laid over its edge ── */
+/* ── Highlights: compact tiles in one quiet panel ───────────────────────── */
 
 /*
- * Highlights are the page's only boxed cards: one paper tile each, the render
- * above the name and the change, centred, no colour edge and no shadow.
+ * "Главное в патче" is one paper panel split by hairlines, not a grid of
+ * boxed cards: each tile is the render beside the name and the change.
  */
 .hp-patch-card[data-featured] {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
-  gap: 0.75rem;
-  justify-items: center;
-  overflow: hidden;
-  padding: 1rem 0.85rem;
-  border: 1px solid var(--patch-line);
-  border-radius: 6px;
-  background: var(--patch-paper);
-  text-align: center;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  gap: 0 0.8rem;
+  padding: 0.85rem 1rem;
+  border-top: 0;
 }
 
-.hp-patch-card[data-featured] > .hp-patch-card__art { width: 6.25rem; }
-.hp-patch-card[data-featured] .hp-patch-card__body { justify-items: center; width: 100%; }
-/* The mark runs inline before the first word, so a name on two lines stays centred with it. */
-.hp-patch-card[data-featured] .hp-patch-card__title { display: block; padding-right: 0; }
-.hp-patch-card[data-featured] .hp-patch-kind { display: inline-grid; margin-right: 0.4rem; vertical-align: -0.1rem; }
-.hp-patch-card[data-featured] .hp-patch-card__name { display: inline; font-size: 1.15rem; }
-.hp-patch-card[data-featured] .hp-patch-card__changes { justify-content: center; }
-.hp-patch-card[data-plate] { grid-template-rows: auto auto 1fr; padding-top: 0; }
+.hp-patch-card[data-featured] .hp-patch-card__title { padding-right: 0; }
+.hp-patch-card[data-featured] .hp-patch-card__name { font-size: 1.08rem; }
 
 @container (max-width: 640px) {
-  .hp-patch-card[data-featured] { gap: 0.6rem; padding: 0.75rem 0.6rem; }
-  .hp-patch-card[data-featured] > .hp-patch-card__art { width: 4.75rem; }
-  .hp-patch-card[data-featured] .hp-patch-card__name { font-size: 0.95rem; overflow-wrap: anywhere; }
+  .hp-patch-card[data-featured] { grid-template-columns: 3.25rem minmax(0, 1fr); padding: 0.7rem 0.75rem; }
 }
-
-.hp-patch-card__plate {
-  position: relative;
-  display: block;
-  grid-column: 1 / -1;
-  height: 8rem;
-  margin: 0 -0.85rem;
-  overflow: hidden;
-  background: var(--patch-night);
-}
-
-.hp-patch-card__plate img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
-
-.hp-patch-card__plate::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(0deg, rgba(255, 251, 238, 0.98) 0%, rgba(255, 251, 238, 0) 55%);
-  content: '';
-}
-
-.hp-patch-card[data-plate] > .hp-patch-card__art { position: relative; z-index: 1; margin-top: -4.5rem; }
-.hp-patch-card[data-plate] > .hp-patch-card__art img { filter: drop-shadow(0 6px 10px rgba(30, 10, 4, 0.45)); }
-.hp-patch-card[data-plate] .hp-patch-card__body { align-self: start; }
 
 /* ── Stat gems ──────────────────────────────────────────────────────────── */
 
@@ -619,10 +570,6 @@
   display: grid;
   gap: 0.5rem;
   margin-top: var(--patch-step-sm);
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--patch-line);
-  border-radius: 6px;
-  background: var(--patch-paper);
 }
 
 /*

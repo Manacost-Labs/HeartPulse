@@ -1,5 +1,5 @@
-import type { PatchCardView, PatchView } from './patchEntries';
-import type { PatchNotesSummary } from './types';
+import { sentenceCase, type PatchCardView, type PatchView } from './patchEntries';
+import type { PatchNotesMode, PatchNotesPictureSection, PatchNotesSummary } from './types';
 
 /* What the page shows around the changes: the expansion cycle, the hero's lead and the archive timeline. */
 
@@ -182,4 +182,39 @@ export function patchDiffHunks(tokens: readonly PatchDiffToken[]): PatchDiffToke
   flush();
   if (gap) out.push({ text: gap, op: 'same' });
   return out;
+}
+
+const CHANGES_PREFIX = /^изменени[яей]\s+/iu;
+/** A heading naming a whole mode ("Изменения Полей сражений") is the parent of the mode's own change headings. */
+const MODE_HEADING = /^изменени[яей]\s+(hearthstone|арены|пол(ей|я) сражений|стандарта|вольного)\.?$/iu;
+
+/**
+ * One sentence for the article headings a mode shows only as pictures:
+ * "Изменения брони героев, существ, аксессуаров". Repeated headings are named
+ * once. With `hasCards` a heading that names the mode itself is dropped: the
+ * parser reports such a parent heading because its own text is empty, while
+ * the mode's changes are listed on the page. `null` when nothing is left.
+ */
+export function patchPictureNote(titles: readonly string[], { hasCards }: { hasCards: boolean }): string | null {
+  const seen = new Set<string>();
+  const prefixed: string[] = [];
+  const other: string[] = [];
+  for (const raw of titles) {
+    const title = sentenceCase(raw.trim());
+    if (!title || (hasCards && MODE_HEADING.test(title))) continue;
+    const key = title.toLocaleLowerCase('ru-RU');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!CHANGES_PREFIX.test(title)) other.push(title);
+    // A mode name keeps its capital ("Полей сражений"); a common noun reads lower case after the shared prefix.
+    else prefixed.push(MODE_HEADING.test(title) ? title.replace(CHANGES_PREFIX, '')
+      : title.replace(CHANGES_PREFIX, '').replace(/^\p{Lu}(?!\p{Lu})/u, letter => letter.toLocaleLowerCase('ru-RU')));
+  }
+  const parts = [...(prefixed.length ? [`Изменения ${prefixed.join(', ')}`] : []), ...other];
+  return parts.length ? parts.join('; ') : null;
+}
+
+/** `patchPictureNote` of one mode's picture-only headings. */
+export function patchModePictureNote(sections: readonly PatchNotesPictureSection[], mode: PatchNotesMode, hasCards: boolean): string | null {
+  return patchPictureNote(sections.filter(item => item.mode === mode).map(item => item.title), { hasCards });
 }

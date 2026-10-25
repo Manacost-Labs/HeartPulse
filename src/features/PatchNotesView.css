@@ -6,11 +6,8 @@
 
 .hp-patch {
   --patch-buff: #2f6e39;
-  --patch-buff-soft: rgba(47, 110, 57, 0.13);
   --patch-nerf: #93202a;
-  --patch-nerf-soft: rgba(147, 32, 42, 0.11);
   --patch-rework: #7a582e;
-  --patch-rework-soft: rgba(122, 88, 46, 0.12);
   --patch-paper: rgba(255, 251, 238, 0.86);
   --patch-line: rgba(122, 88, 46, 0.22);
   /* The sticky toolbar is opaque, so rows never show through it. */
@@ -239,12 +236,31 @@
   list-style: none;
 }
 
-/* Highlights are tiles: two a row on phones, all of them in one row on wide content. */
-.hp-patch-highlights__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/*
+ * Highlights share one paper panel: stacked rows on phones, two a row on
+ * medium content and all of them in one row on wide content, split by hairlines.
+ */
+.hp-patch-highlights__list {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--patch-line);
+  border-radius: 6px;
+  background: var(--patch-paper);
+}
 
-@container (min-width: 760px) {
+.hp-patch-highlights__list > li + li { border-top: 1px solid var(--patch-line); }
+
+@container (min-width: 700px) {
+  .hp-patch-highlights__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hp-patch-highlights__list > li + li { border-top: 0; }
+  .hp-patch-highlights__list > li:nth-child(even) { border-left: 1px solid var(--patch-line); }
+  .hp-patch-highlights__list > li:nth-child(n + 3) { border-top: 1px solid var(--patch-line); }
+}
+
+@container (min-width: 1080px) {
   .hp-patch-highlights__list[data-count='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .hp-patch-highlights__list[data-count='4'] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .hp-patch-highlights__list:is([data-count='3'], [data-count='4']) > li + li { border-top: 0; border-left: 1px solid var(--patch-line); }
 }
 
 .hp-patch-highlights__list > li,
@@ -383,21 +399,40 @@
   overflow-wrap: break-word;
 }
 
+/* The page's one colour signal: the kind glyph (and the kind heading of a long group). */
 .hp-patch-kind {
   display: inline-grid;
   flex: none;
   place-items: center;
   align-self: flex-start;
-  width: 1.25rem;
+  width: 1rem;
   height: 1.25rem;
-  border-radius: 4px;
-  background: var(--patch-rework-soft);
   color: var(--patch-rework);
 }
 
-.hp-patch-kind svg { width: 0.8rem; height: 0.8rem; stroke-width: 2.5; }
-.hp-patch-kind[data-kind='buff'] { background: var(--patch-buff-soft); color: var(--patch-buff); }
-.hp-patch-kind[data-kind='nerf'] { background: var(--patch-nerf-soft); color: var(--patch-nerf); }
+.hp-patch-kind svg { width: 0.9rem; height: 0.9rem; stroke-width: 2.5; }
+.hp-patch-kind[data-kind='buff'] { color: var(--patch-buff); }
+.hp-patch-kind[data-kind='nerf'] { color: var(--patch-nerf); }
+
+/* A long mixed group names each kind once: a small label line above its rows. */
+.hp-patch-kind-block {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 0.35rem;
+  align-items: center;
+  margin: var(--patch-step-sm) 0 0;
+  color: var(--arena-muted-ink);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hp-patch-kind-block svg { width: 0.9rem; height: 0.9rem; stroke-width: 2.5; color: var(--patch-rework); }
+.hp-patch-kind-block[data-kind='buff'] svg { color: var(--patch-buff); }
+.hp-patch-kind-block[data-kind='nerf'] svg { color: var(--patch-nerf); }
+.hp-patch-group__title + .hp-patch-kind-block { margin-top: 0; }
 
 .hp-patch-card__changes {
   display: flex;
@@ -426,9 +461,8 @@
 
 .hp-change__values s { color: var(--arena-muted-ink); text-decoration-thickness: 1.5px; }
 .hp-change__arrow { color: var(--arena-muted-ink); font-size: 0.85rem; }
+/* The new value is plain ink: the kind glyph already says better or worse. */
 .hp-change__values b { min-width: 1ch; font-size: 1.05rem; font-weight: 800; }
-.hp-change[data-direction='buff'] .hp-change__values b { color: var(--patch-buff); }
-.hp-change[data-direction='nerf'] .hp-change__values b { color: var(--patch-nerf); }
 .hp-change__unknown { color: var(--arena-muted-ink); cursor: help; }
 
 .hp-change--text {
@@ -446,16 +480,16 @@
 
 .hp-change__text small { color: var(--arena-muted-ink); font-size: 0.78rem; font-style: italic; }
 
-/* Removed words fade under a strike; added words carry a highlighter stroke, not a chip. */
+/* «было → стало» in one sentence: the old phrase fades under a strike, the new one is bold ink on a soft gold stroke. */
 .hp-change__text del {
   color: var(--arena-muted-ink);
-  text-decoration-color: rgba(147, 32, 42, 0.7);
-  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(115, 94, 73, 0.75);
+  text-decoration-thickness: 1px;
 }
 
 .hp-change__text ins {
-  background: linear-gradient(transparent 60%, rgba(47, 110, 57, 0.2) 60%);
-  color: #1f5229;
+  background: linear-gradient(transparent 62%, rgba(217, 171, 73, 0.3) 62%);
+  color: var(--arena-ink);
   font-weight: 700;
   text-decoration: none;
 }
@@ -487,6 +521,13 @@
 }
 
 .hp-patch-card__more > summary::-webkit-details-marker { display: none; }
+
+/* The "…" stays quiet until its row is pointed at or focused. */
+@media (hover: hover) {
+  .hp-patch-card__more > summary { opacity: 0.45; transition: opacity var(--motion-fast) var(--motion-ease); }
+  .hp-patch-card:is(:hover, :focus-within) .hp-patch-card__more > summary,
+  .hp-patch-card__more[open] > summary { opacity: 1; }
+}
 .hp-patch-card__more > summary svg { width: 1.1rem; height: 1.1rem; }
 .hp-patch-card__more > summary:hover,
 .hp-patch-card__more[open] > summary { background: rgba(84, 51, 22, 0.1); color: #7b151b; }

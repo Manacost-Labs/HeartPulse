@@ -134,7 +134,7 @@ const standardCard = (id: string, name: string, cardClass: string, before: numbe
 });
 
 export const ConstructedLead: Story = {
-  parameters: { docs: { description: { story: 'A Standard-led patch: the most changed class leads the header art; four highlights, all with wide wiki art, stand on it two by two; costs read as mana gems.' } } },
+  parameters: { docs: { description: { story: 'A Standard-led patch: the most changed class leads the header art; four highlights share one quiet panel (render beside the name and the change); costs read as mana gems.' } } },
   args: { patch: { ...patch, version: '35.4.2', entries: [
     standardCard('A1', 'Первая карта', 'DEMONHUNTER', 3, 2), standardCard('A2', 'Вторая карта', 'DEMONHUNTER', 5, 4),
     standardCard('A3', 'Третья карта', 'MAGE', 2, 3), standardCard('A4', 'Четвёртая карта', 'DEMONHUNTER', 4, 3),
@@ -146,8 +146,30 @@ export const ConstructedLead: Story = {
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('.hp-patch-hero__plate')?.getAttribute('src')).toBe('/archetype-art/classes/demonhunter-1920.webp');
     await expect(within(canvasElement).getByText('Катаклизм')).toBeVisible();
-    await expect(canvasElement.querySelectorAll('.hp-patch-highlights__list [data-plate]')).toHaveLength(4);
+    await expect(canvasElement.querySelectorAll('.hp-patch-highlights__list .hp-patch-card[data-featured]')).toHaveLength(4);
     await expect(canvasElement.querySelectorAll('.hp-change[data-stat="mana"] .hp-stat').length).toBeGreaterThan(0);
+  },
+};
+
+const costUp = (id: string, name: string): PatchNotesEntry => ({
+  ...standardCard(id, name, 'DEMONHUNTER', 4, 5), changes: [{ label: 'Стоимость', before: 4, after: 5, better: 'lower' }],
+});
+
+export const LongGroupByKind: Story = {
+  parameters: { docs: { description: { story: 'A group of six or more rows with mixed kinds reads nerfs, buffs, then reworks, each kind named once above its rows; the rows drop their own mark. A mode shown only as pictures in the article is one line of the source note, not a section.' } } },
+  args: { patch: { ...patch, version: '35.4.2', entries: [
+    standardCard('B1', 'Первая карта', 'DEMONHUNTER', 3, 2), costUp('B2', 'Вторая карта'),
+    standardCard('B3', 'Третья карта', 'DEMONHUNTER', 2, 1), costUp('B4', 'Четвёртая карта'),
+    standardCard('B5', 'Пятая карта', 'DEMONHUNTER', 6, 5),
+    { ...standardCard('B6', 'Шестая карта', 'DEMONHUNTER', 1, 1), changes: [{ label: 'Текст', before: 'Наносит 2 ед. урона.', after: 'Наносит 3 ед. урона.' }] },
+  ], pictureSections: [{ mode: 'arena', title: 'Изменения Арены' }], generalChanges: [] } },
+  play: async ({ canvasElement }) => {
+    const group = canvasElement.querySelector<HTMLElement>('.hp-patch-section .hp-patch-group');
+    await expect([...(group?.querySelectorAll('.hp-patch-kind-block') ?? [])].map(node => node.textContent))
+      .toEqual(['Ослабления', 'Усиления', 'Переработки']);
+    await expect(group?.querySelectorAll('.hp-patch-card .hp-patch-kind')).toHaveLength(0);
+    await expect(canvasElement.querySelector('.hp-patch-section[data-section="arena"]')).toBeNull();
+    await expect(within(canvasElement).getByText(/Изменения Арены — в статье только картинками/)).toBeVisible();
   },
 };
 
