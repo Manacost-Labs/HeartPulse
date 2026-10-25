@@ -68,16 +68,30 @@ answers `502`.
 
 ## Meta impact and history
 
-- `meta` describes where meta impact comes from: the site's archetype
-  catalogs (`v1/hsguru/archetypes`, the same cache as the archetype pages)
-  of today's period for Standard and Wild. A format whose catalog failed is
-  listed in `meta.missing` and the page says so; `meta` is `null` when no
-  catalog is wired.
-- `archetypes` of a Constructed entry lists today's archetypes whose listed
-  builds contain any print of the card (original and reprint dbf ids from
-  HearthstoneJSON `ruRU`): `decks` of `totalDecks` builds, sorted by that
-  share, then by popularity, at most eight. It is today's meta, also for old
-  patches, and the page labels it "Играют сейчас".
+- Archetypes belong to the day before the patch, never to today.
+  Express keeps a snapshot of the site's archetype catalogs
+  (`v1/hsguru/archetypes`, the same cache as the archetype pages) for
+  Standard and Wild per Moscow day of their data (the source's
+  `fetched_at`): slug, Russian name, class, popularity, win rate, games and
+  every listed build as decoded dbf ids
+  (`server/modules/patchNotes/archetypeSnapshots.ts`, SQLite in
+  `<SERVER_DATA_DIR>/patch-archetype-snapshots-v1/snapshots.sqlite`). Every
+  patch refresh and an hourly server job (`BACKGROUND_JOBS_ENABLED`) record
+  the day; a later read of a day replaces an earlier one, an older copy
+  never does. Daily rows are kept 45 days.
+- A patch's day D is the Moscow date of its publication (a timestamp
+  without an offset is Moscow time). Once D has come, the snapshots of D−1
+  are pinned to the patch version and never change; a format of D−1
+  recorded later joins the pin. Pins are never pruned. A patch without a
+  D−1 snapshot (every patch before snapshots began) has `meta: null` and
+  no archetypes at all; today's catalog is never shown in their place.
+- `meta` names the pinned day (`day`, `YYYY-MM-DD`), its HSGuru `period`,
+  `updatedAt` (when the source fetched it), the formats it has and the
+  `missing` ones, which the page names.
+- `archetypes` of a Constructed entry lists the pinned archetypes whose
+  listed builds contain any print of the card (original and reprint dbf ids
+  from HearthstoneJSON `ruRU`): `decks` of `totalDecks` builds, sorted by
+  that share, then by popularity, at most eight.
 - "Изменённые карты → затронутые архетипы" closes "Главное в патче": a
   Sankey diagram (Valyro Pro `SankeyChart`, vendored in
   `src/vendor/valyro-ui`) from changed Constructed cards, coloured by buff,
@@ -90,11 +104,12 @@ answers `502`.
   taller column). With fewer than three cards, and below 640 px of content,
   the same links are a list: one row per card (its kind mark and name),
   then its archetypes with their class icon and number of builds. It is
-  shown only with at least two links; a format whose catalog failed is named
-  in its note.
-- A card's archetypes ("В архетипах текущей меты", at most four and a count
-  of the rest; builds with the card in the link title) wait behind the
-  card's "…" with the rest of its details.
+  shown only with at least two links. Under its title it says «Архетипы на
+  момент выхода патча (данные за 30 сентября 2026 г.)»; a format without a
+  snapshot of that day is named in its note.
+- A card's archetypes ("В архетипах на момент выхода патча", at most four
+  and a count of the rest; builds with the card in the link title) wait
+  behind the card's "…" with the rest of its details.
 - `history` lists earlier patches of the archive that changed the same card
   (same card id, else the same name and subtitle in the mode), newest first,
   at most six; the page links each to `?version=…#card-<entry id>` from the
@@ -235,8 +250,8 @@ the viewer's zone after it.
   Groups share the section's columns (CSS subgrid), so rows line up. The
   row's "…" (a `<details>` in its corner; on devices with hover it stays
   faded until the row is pointed at or focused) holds the
-  type and the article's English name, the archetypes of today's meta, the
-  earlier patches that changed it, "Карта и колоды с ней" for Constructed
+  type and the article's English name, the archetypes of the day before
+  the patch, the earlier patches that changed it, "Карта и колоды с ней" for Constructed
   cards of a known format (`/standard/cards/<format>/<id>/`, which lists decks
   with the card) and the copy-link button.
 - The picture sits in a fixed card-shaped box: the Constructed render

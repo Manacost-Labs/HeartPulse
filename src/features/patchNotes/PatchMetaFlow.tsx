@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { PatchFlowLink, PatchFlowNode, PatchNotesMeta } from '../../modules/patchNotes/public';
+import { patchSnapshotDayLabel, type PatchFlowLink, type PatchFlowNode, type PatchNotesMeta } from '../../modules/patchNotes/public';
 import { SankeyChart, type SankeyNode } from '../../vendor/valyro-ui/charts/SankeyChart';
 import '../../vendor/valyro-ui/styles/index.css';
 import '../../shared/ui/varyloParchment.css';
@@ -7,7 +7,7 @@ import { classIconUrl } from '../classIcons';
 import { classAccent } from './patchArt';
 import { KIND_ICONS, KIND_LABELS } from './patchKinds';
 
-/* Where the patch lands in today's meta: changed cards flowing into the archetypes that play them. */
+/* Where the patch landed in the meta of its day: changed cards flowing into the archetypes that played them. */
 
 // The page's kind colours; a lighter rework brown washes out into the parchment at flow opacity.
 const KIND_COLORS = { buff: '#2f6e39', nerf: '#93202a', rework: '#7a582e' } as const;
@@ -50,18 +50,20 @@ function open(href: string) {
  * for fewer than three cards the same links as a list, because twelve labels
  * a side do not fit a phone. The page shows it only with at least two links.
  */
-export function PatchMetaFlow({ flow, meta }: { flow: { nodes: PatchFlowNode[]; links: PatchFlowLink[] }; meta: PatchNotesMeta | null }) {
+export function PatchMetaFlow({ flow, meta }: { flow: { nodes: PatchFlowNode[]; links: PatchFlowLink[] }; meta: PatchNotesMeta }) {
   const nodes = useMemo<SankeyNode[]>(() => flow.nodes.map(node => ({ id: node.id, label: node.label, color: nodeColor(node) })), [flow]);
   const byId = new Map(flow.nodes.map(node => [node.id, node]));
   const cards = flow.nodes.filter(node => node.kind === 'card');
   const rows = Math.max(cards.length, flow.nodes.length - cards.length);
   const chart = cards.length >= MIN_CHART_CARDS;
+  const day = patchSnapshotDayLabel(meta.day);
   return (
     <div className="hp-patch-flow hp-varylo-parchment" data-tour-id="patch-flow" data-layout={chart ? 'chart' : 'list'}>
       <h4>Изменённые карты → затронутые архетипы</h4>
+      <p className="hp-patch-flow__as-of">Архетипы на момент выхода патча{day ? ` (данные за ${day})` : ''}</p>
       {chart && <div className="hp-patch-flow__chart">
         <SankeyChart nodes={nodes} links={flow.links} height={Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, rows * ROW_HEIGHT))} nodePadding={8}
-          labels={LABELS} locale="ru-RU" ariaLabel="Изменённые карты и архетипы текущей меты, которые их играют"
+          labels={LABELS} locale="ru-RU" ariaLabel="Изменённые карты и архетипы на момент выхода патча, которые их играли"
           onNodeClick={node => { const target = byId.get(node.id); if (target) open(target.href); }} />
       </div>}
       <ul className="hp-patch-flow__list">
@@ -88,8 +90,8 @@ export function PatchMetaFlow({ flow, meta }: { flow: { nodes: PatchFlowNode[]; 
         })}
       </ul>
       <p className="hp-patch-flow__note">
-        Сколько сборок архетипа играют карту; {flow.nodes.length - cards.length} самых популярных архетипов текущей меты HSGuru.
-        {meta?.missing.length ? ` ${meta.missing.map(format => FORMAT_LABELS[format]).join(' и ')}: данные сейчас недоступны.` : ''}
+        Сколько сборок архетипа играли карту; {flow.nodes.length - cards.length} самых популярных архетипов меты HSGuru того дня.
+        {meta.missing.length ? ` ${meta.missing.map(format => FORMAT_LABELS[format]).join(' и ')}: снимка за этот день нет.` : ''}
       </p>
     </div>
   );

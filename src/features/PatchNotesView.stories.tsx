@@ -36,7 +36,7 @@ const patch: PatchNotesDetail = {
     { mode: 'battlegrounds', title: 'ИЗМЕНЕНИЯ СУЩЕСТВ' }, { mode: 'battlegrounds', title: 'ИЗМЕНЕНИЯ ЗАКЛИНАНИЙ ТАВЕРНЫ' },
   ],
   generalChanges: [{ mode: 'battlegrounds', lines: ['Аберрации больше не встречаются в каждом матче.'] }],
-  meta: { period: 'black_empire', updatedAt: '2026-10-21T10:00:02Z', formats: ['standard'], missing: ['wild'] },
+  meta: { day: '2026-09-30', period: 'black_empire', updatedAt: '2026-09-30T20:00:02Z', formats: ['standard'], missing: ['wild'] },
 };
 const archive: PatchNotesSummary[] = [
   { version: '37.0.0', build: '37.0.0.254477', title: 'Обновление 37.0', publishedAt: '2026-10-12T16:55:00+00:00', sourceUrl: null, officialUrl: null, changeCount: 1 },
@@ -189,10 +189,11 @@ export const ExpansionArchive: Story = {
 };
 
 export const MetaFlow: Story = {
-  parameters: { docs: { description: { story: 'Fewer than three changed cards in today\'s meta read as a list: each card, then the archetypes that play it with their class icon and the number of builds.' } } },
+  parameters: { docs: { description: { story: 'Fewer than three changed cards in the meta of the day before the patch read as a list: each card, then the archetypes that play it with their class icon and the number of builds.' } } },
   play: async ({ canvasElement }) => {
     const flow = canvasElement.querySelector<HTMLElement>('.hp-patch-flow');
     await expect(flow?.dataset.layout).toBe('list');
+    await expect(within(flow ?? canvasElement).getByText('Архетипы на момент выхода патча (данные за 30 сентября 2026 г.)')).toBeVisible();
     await expect(flow?.querySelector('.ui-sankey-chart')).toBeNull();
     await expect([...(flow?.querySelectorAll('.hp-patch-flow__targets a') ?? [])].map(link => link.getAttribute('href')))
       .toContain('/standard/archetypes/standard/std-dragon-warrior/');

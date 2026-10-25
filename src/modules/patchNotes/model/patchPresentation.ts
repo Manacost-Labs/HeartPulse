@@ -184,6 +184,14 @@ export function patchDiffHunks(tokens: readonly PatchDiffToken[]): PatchDiffToke
   return out;
 }
 
+const snapshotDays = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+/** "11 октября 2026 г." for a snapshot day (`YYYY-MM-DD`, already a Moscow date); `null` for anything else. */
+export function patchSnapshotDayLabel(day: string): string | null {
+  const ms = /^\d{4}-\d{2}-\d{2}$/.test(day) ? Date.parse(`${day}T00:00:00Z`) : Number.NaN;
+  return Number.isFinite(ms) ? snapshotDays.format(new Date(ms)) : null;
+}
+
 const CHANGES_PREFIX = /^изменени[яей]\s+/iu;
 /** A heading naming a whole mode ("Изменения Полей сражений") is the parent of the mode's own change headings. */
 const MODE_HEADING = /^изменени[яей]\s+(hearthstone|арены|пол(ей|я) сражений|стандарта|вольного)\.?$/iu;

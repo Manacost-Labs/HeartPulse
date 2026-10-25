@@ -1,19 +1,5 @@
-import { decode } from '@firestone-hs/deckstrings';
 import type { PatchNotesArchetypeUse, PatchNotesFormat, PatchNotesMeta } from './contract.js';
-
-/** The site's archetype catalog of one format, reduced to what the patch page reads. */
-export type PatchArchetypeCatalog = {
-  format: PatchNotesFormat;
-  period?: string | null;
-  updatedAt?: string | null;
-  items: {
-    slug: string;
-    archetypeLabel: string;
-    classKey?: string | null;
-    popularity?: number | null;
-    builds: { deckCode: string }[];
-  }[];
-};
+import type { PatchArchetypeSnapshot } from './archetypeSnapshots.js';
 
 type Archetype = Omit<PatchNotesArchetypeUse, 'decks'>;
 
@@ -26,32 +12,27 @@ export type PatchMetaIndex = {
 
 /** Chips per card; the rest is said by the archetype count. */
 const ARCHETYPES_PER_CARD = 8;
+const FORMATS: PatchNotesFormat[] = ['standard', 'wild'];
 
 /**
- * Which current archetypes play each card: every build's deck code is
- * decoded once, so a card is "played" by an archetype when at least one of
- * its listed builds contains it. A format whose catalog failed is reported in
- * `meta.missing` instead of being shown as empty.
+ * Which archetypes of a patch's pinned snapshots play each card: a card is
+ * "played" by an archetype when at least one of its listed builds contains
+ * it. A format without a snapshot of that day is reported in `meta.missing`;
+ * `null` when the patch has no snapshot at all, so the page shows no archetypes.
  */
-export function buildPatchMetaIndex(catalogs: PatchArchetypeCatalog[], missing: PatchNotesFormat[]): PatchMetaIndex {
+export function buildPatchMetaIndex(snapshots: readonly PatchArchetypeSnapshot[]): PatchMetaIndex | null {
+  if (!snapshots.length) return null;
   const buildsByDbf = new Map<number, Map<string, Set<number>>>();
   const archetypes = new Map<string, Archetype>();
-  for (const catalog of catalogs) {
-    for (const item of catalog.items) {
-      const key = `${catalog.format}:${item.slug}`;
-      const codes = item.builds.map(build => build.deckCode).filter(Boolean);
+  for (const snapshot of snapshots) {
+    for (const item of snapshot.items) {
+      const key = `${snapshot.format}:${item.slug}`;
       archetypes.set(key, {
-        format: catalog.format, slug: item.slug, name: item.archetypeLabel, classKey: item.classKey ?? null,
-        popularity: item.popularity ?? null, totalDecks: codes.length,
+        format: snapshot.format, slug: item.slug, name: item.name, classKey: item.classKey,
+        popularity: item.popularity, totalDecks: item.builds.length,
       });
-      codes.forEach((code, build) => {
-        let cards: [number, number][];
-        try {
-          cards = decode(code).cards;
-        } catch {
-          return;
-        }
-        for (const [dbf] of cards) {
+      item.builds.forEach((cards, build) => {
+        for (const dbf of cards) {
           const byArchetype = buildsByDbf.get(dbf) ?? new Map<string, Set<number>>();
           const builds = byArchetype.get(key) ?? new Set<number>();
           builds.add(build);
@@ -61,13 +42,15 @@ export function buildPatchMetaIndex(catalogs: PatchArchetypeCatalog[], missing: 
       });
     }
   }
-  const first = catalogs[0];
+  const first = snapshots[0];
+  const formats = snapshots.map(snapshot => snapshot.format);
   return {
     meta: {
-      period: first?.period ?? null,
-      updatedAt: first?.updatedAt ?? null,
-      formats: catalogs.map(catalog => catalog.format),
-      missing,
+      day: first.day,
+      period: first.period,
+      updatedAt: first.recordedAt,
+      formats,
+      missing: FORMATS.filter(format => !formats.includes(format)),
     },
     buildsByDbf,
     archetypes,

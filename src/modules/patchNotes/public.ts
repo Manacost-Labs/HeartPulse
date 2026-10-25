@@ -7,7 +7,7 @@ export {
 } from './model/patchEntries';
 export {
   patchArchiveByExpansion, patchDiffHunks, patchExpansionCode, patchFeaturedArtwork, patchHeadline, patchHasWideArtwork, patchHeroLead, patchMetaFlow,
-  patchModePictureNote, patchPictureNote,
+  patchModePictureNote, patchPictureNote, patchSnapshotDayLabel,
   type PatchArchiveGroup, type PatchDiffToken, type PatchFlowLink, type PatchFlowNode, type PatchHeroLead,
 } from './model/patchPresentation';
 export { normalizePatchVersion } from './model/types';

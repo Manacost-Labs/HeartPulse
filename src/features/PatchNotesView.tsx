@@ -189,7 +189,7 @@ function SourceFooter({ patch, view, pictures }: {
         Источник — статья{' '}
         {patch.sourceUrl ? <a href={patch.sourceUrl} target="_blank" rel="noreferrer">hs-manacost.ru</a> : 'hs-manacost.ru'}.
         {' '}Усиление и ослабление — только по числам; текст и уровень таверны — «Переработка». Картинки — текущие версии карт,
-        формат и архетипы — сегодняшние.
+        формат — сегодняшний{patch.meta ? ', архетипы — на день до выхода патча' : ''}.
       </p>
       {patch.missingBefore > 0 && <p>У {patch.missingBefore} изм. в статье нет прежнего значения — показано только новое.</p>}
       {unmatched > 0 && <p>Без картинки {unmatched} из {cards.length}: их названия не нашлись в каталоге карт.</p>}

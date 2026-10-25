@@ -42,7 +42,7 @@ export type PatchNotesEntry = {
    * Standard catalog lists it, else `wild`; `null` when unknown.
    */
   format: PatchNotesFormat | null;
-  /** Current archetypes whose listed builds play the card (Constructed only). */
+  /** Archetypes of the day before the patch whose listed builds play the card (Constructed only). */
   archetypes: PatchNotesArchetypeUse[];
   /** Earlier patches of the archive that changed the same card, newest first. */
   history: PatchNotesHistoryItem[];
@@ -70,7 +70,7 @@ export type PatchNotesFormat = 'standard' | 'wild';
 /** A card illustration with its original size; dimensions are `null` when the catalog does not state them. */
 export type PatchNotesArtwork = { url: string; width: number | null; height: number | null };
 
-/** One archetype of today's meta that plays a changed card: `decks` of its `totalDecks` listed builds. */
+/** One archetype of the patch's snapshot that plays a changed card: `decks` of its `totalDecks` listed builds. */
 export type PatchNotesArchetypeUse = {
   format: PatchNotesFormat;
   slug: string;
@@ -84,10 +84,13 @@ export type PatchNotesArchetypeUse = {
 export type PatchNotesHistoryItem = { version: string; entryId: string; publishedAt: string | null };
 
 /**
- * Where meta impact comes from: the site's archetype catalogs of today's
- * period. `missing` lists formats whose catalog could not be read.
+ * Where meta impact comes from: the site's archetype catalogs as they were on
+ * the Moscow day before the patch (`day`), pinned when the patch came out.
+ * `missing` lists formats without a snapshot of that day.
  */
 export type PatchNotesMeta = {
+  /** `YYYY-MM-DD`, the day of the data. */
+  day: string;
   period: string | null;
   updatedAt: string | null;
   formats: PatchNotesFormat[];
@@ -107,7 +110,7 @@ export type PatchNotesDetail = PatchNotesSummary & {
   missingBefore: number;
   pictureSections: PatchNotesPictureSection[];
   generalChanges: PatchNotesGeneralChanges[];
-  /** `null` when no archetype catalog is wired; otherwise what was read and what is missing. */
+  /** `null` when no snapshot of the day before the patch was kept: the patch then lists no archetypes. */
   meta: PatchNotesMeta | null;
 };
 
