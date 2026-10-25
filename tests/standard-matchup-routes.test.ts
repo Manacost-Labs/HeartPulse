@@ -4,6 +4,7 @@ import {
   createStandardMatchupRouter,
   excludeOtherStandardMatchups,
   parseStandardMatchupSlice,
+  standardMatchupSliceDependencies,
   standardMatchupSliceKey,
   standardMatchupSlicePath,
   transformHsguruMatchups,
@@ -121,6 +122,19 @@ assert.deepEqual(hsguru.rows.map(row => [row.archetype, row.classKey, row.winrat
 ]);
 assert.equal(hsguru.rows[1].archetypeLabel, 'Рыцарь смерти на возвещении');
 assert.equal(hsguru.sourceUrl, 'https://www.hsguru.com/matchups?min_matchup_sample=25&rank=legend');
+
+// The composition root names only its origin, fetcher and labels.
+const fetchedUrls: string[] = [];
+const sliceSource = standardMatchupSliceDependencies({
+  origin: 'https://api.example.test/', formatLabel: format => format.toUpperCase(),
+  fetchJson: async url => { fetchedUrls.push(url); return { data: { archetypes: [{ archetype: 'Tempo Rogue', games: 5 }] } }; },
+  translate: (name, map) => map?.[name] ?? name,
+});
+const sourced = sliceSource.transform(await sliceSource.fetchPayload(parseStandardMatchupSlice({ format: 'wild' })),
+  parseStandardMatchupSlice({ format: 'wild' }), { source: 'db', map: { 'Tempo Rogue': 'Темп-разбойник' } });
+assert.deepEqual(fetchedUrls, ['https://api.example.test/v1/hsguru/matchups?format=wild&rank=legend&min_games=25&limit=60']);
+assert.equal(sourced.formatLabel, 'WILD');
+assert.equal(sourced.rows[0].archetypeLabel, 'Темп-разбойник');
 
 let now = 1_000;
 let redisMode: 'miss' | 'hit' | 'error' = 'miss';

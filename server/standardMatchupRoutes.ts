@@ -269,6 +269,28 @@ export function transformHsguruMatchupSlice(
   };
 }
 
+/**
+ * The router's source and transform for the unified hs-data-api matchups, so
+ * the composition root only names its origin, fetcher and labels.
+ */
+export function standardMatchupSliceDependencies(options: {
+  origin: string;
+  fetchJson: (url: string, timeoutMs?: number) => Promise<unknown>;
+  formatLabel: (format: StandardMatchupFormat) => string;
+  translate: (archetype: string, map: Record<string, string>) => string;
+}): Pick<StandardMatchupRouterDependencies, 'fetchPayload' | 'transform'> {
+  const origin = options.origin.replace(/\/+$/, '');
+  return {
+    fetchPayload: slice => options.fetchJson(`${origin}/${standardMatchupSlicePath(slice)}`, 20_000),
+    transform: (payload, slice, translations) => transformHsguruMatchupSlice(payload, slice, {
+      formatLabel: options.formatLabel(slice.format),
+      sourceId: 'hsguru_matchups',
+      translationSource: String(translations?.source ?? ''),
+      translate: name => options.translate(name, translations?.map ?? {}),
+    }),
+  };
+}
+
 function isOtherArchetype(value: unknown): boolean {
   return /^other(?:\s|$)/i.test(String(value ?? '').trim());
 }
