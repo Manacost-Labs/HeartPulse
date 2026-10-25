@@ -189,14 +189,13 @@ export const RADAR_FIXTURE: unknown = {
             "direction": "nerf",
             "changes": [
               {
-                "label": "Здоровье",
+                "field": "health",
                 "before": 3,
                 "after": 2
               }
             ],
             "similarity": [
-              "дешёвое существо-призыв, усиливаемое баффами",
-              "нерф через здоровье, а не стоимость"
+              "cited"
             ],
             "citedByModel": true
           }
@@ -528,17 +527,11 @@ export const RADAR_FIXTURE: unknown = {
             "nameEn": null,
             "class": "MAGE",
             "direction": "nerf",
-            "changes": [
-              {
-                "label": "Текст",
-                "before": "раскопайте 7 карт",
-                "after": "раскопайте 8 карт"
-              }
-            ],
-            "similarity": [
-              "ослабление через условие, а не через характеристики"
-            ],
-            "citedByModel": false
+            "changes": [],
+            "similarity": [],
+            "citedByModel": false,
+            "textBefore": "Задача: раскопайте 7 карт. Награда: «Камень истока».",
+            "textAfter": "Задача: раскопайте 8 карт. Награда: «Камень истока»."
           }
         ]
       },
@@ -1154,13 +1147,13 @@ export const RADAR_FIXTURE: unknown = {
             "direction": "buff",
             "changes": [
               {
-                "label": "Атака",
+                "field": "attack",
                 "before": 8,
                 "after": 9
               }
             ],
             "similarity": [
-              "малоиграемая дорогая карта получила +1 к характеристике"
+              "cited"
             ],
             "citedByModel": true
           }
@@ -1701,7 +1694,8 @@ export const RADAR_FIXTURE: unknown = {
       "posts": 362,
       "comments": 400,
       "postsSentToModel": 120
-    }
+    },
+    "history": null
   },
   "meta": {
     "source_id": "balance_radar",

@@ -32,7 +32,7 @@ const ritual: RadarCandidate = {
   },
   precedents: [{
     id: '36.4.2:JAIL_202', patch: '36.4.2', date: '2026-09-04T00:48:51.000Z', name: 'Паучок', classKey: 'druid', direction: 'nerf',
-    changes: ['Здоровье: 3 → 2'], summary: null, before: null, after: null,
+    changes: ['Здоровье: 3 → 2'], summary: null, setAgeDays: null, before: null, after: null,
     similarity: ['дешёвое существо-призыв, усиливаемое баффами'], cited: true,
     cardHref: '/standard/cards/wild/JAIL_202/', patchHref: '/standard/patches/?version=36.4.2',
   }],
@@ -67,7 +67,7 @@ const report: RadarReport = {
     { id: 'x', label: 'X', items: 122 },
   ],
   summary: 'Главная проблема текущего баланса — Чернокнижник: сообщество массово требует нерфа ритуалов, а друид после выхода дополнения провалился.',
-  nerfs: [ritual, zoolock], buffs: [druid], patterns: [], demo: false,
+  nerfs: [ritual, zoolock], buffs: [druid], history: null, demo: false,
 };
 
 const meta = {
@@ -103,12 +103,16 @@ export const FiltersMatchNothing: Story = {
   },
 };
 
-// Закономерности приходят из истории патчей hs-data-api; формулировки здесь — пример вёрстки.
-export const WithPatterns: Story = {
-  args: { report: { ...report, patterns: [
-    { title: 'Новые карты дополнения редко меняют в первые две недели', text: null, count: null },
-    { title: 'Ослабление чаще идёт через стоимость ключевой карты', text: 'Архетип целиком почти не трогают: меняют одну-две карты, на которых он держится.', count: 14 },
-  ] } },
+// История патчей приходит из hs-data-api; формулировки и числа здесь — пример вёрстки.
+export const WithHistory: Story = {
+  args: { report: { ...report, history: {
+    summary: 'Пример сводки: Blizzard чаще ослабляет одну ключевую карту колоды, чем весь архетип.',
+    balancePatches: 24, from: '2024-03-19T00:00:00.000Z', to: '2026-10-12T00:00:00.000Z',
+    patterns: [
+      { title: 'Новые карты набора редко меняют в первые две недели', text: null, count: null },
+      { title: 'Ослабление чаще идёт через стоимость ключевой карты', text: 'Архетип целиком почти не трогают: меняют одну-две карты, на которых он держится.', count: 14 },
+    ],
+  } } },
 };
 
 export const EmptySection: Story = { args: { report: { ...report, buffs: [] } } };

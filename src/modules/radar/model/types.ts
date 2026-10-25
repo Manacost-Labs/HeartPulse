@@ -65,7 +65,8 @@ export type RadarSocial = {
   posts: RadarPost[];
 };
 
-export type RadarPrecedentStats = { winrate: number | null; popularity: number | null };
+/** Неделя до или после правки (HSReplay, Легенда); `archetype` — колода, в которой играли карту. */
+export type RadarPrecedentStats = { archetype: string | null; winrate: number | null; popularity: number | null };
 
 /** Прошлая правка Blizzard, похожая на кандидата (история патчей hs-data-api). */
 export type RadarPrecedent = {
@@ -76,9 +77,11 @@ export type RadarPrecedent = {
   name: string;
   classKey: RadarClassKey;
   direction: 'nerf' | 'buff' | 'rework' | 'neutral';
-  /** Изменения строками: «Атака: 8 → 9». */
+  /** Изменения строками: «Атака: 8 → 9», «Текст: «…» → «…»». */
   changes: string[];
   summary: string | null;
+  /** Сколько дней набору карты было на момент правки. */
+  setAgeDays: number | null;
   /** Числа карты до и после правки; `null` — их нет. */
   before: RadarPrecedentStats | null;
   after: RadarPrecedentStats | null;
@@ -92,6 +95,16 @@ export type RadarPrecedent = {
 
 /** Закономерность решений Blizzard по истории патчей. */
 export type RadarPattern = { title: string; text: string | null; count: number | null };
+
+/** История патчей Blizzard, на которую опирается прогноз. */
+export type RadarHistory = {
+  summary: string | null;
+  /** Сколько балансных патчей разобрано и за какой период. */
+  balancePatches: number | null;
+  from: string | null;
+  to: string | null;
+  patterns: RadarPattern[];
+};
 
 export type RadarCandidate = {
   id: string;
@@ -135,8 +148,8 @@ export type RadarReport = {
   summary: string;
   nerfs: RadarCandidate[];
   buffs: RadarCandidate[];
-  /** Закономерности Blizzard; пусто, пока hs-data-api их не считает. */
-  patterns: RadarPattern[];
+  /** История патчей и закономерности Blizzard; `null` у прогонов без истории. */
+  history: RadarHistory | null;
   /**
    * Ставит только сервер сайта: `true`, когда вместо hs-data-api отдана
    * встроенная демонстрационная фикстура (флаг `RADAR_FIXTURE=1`).

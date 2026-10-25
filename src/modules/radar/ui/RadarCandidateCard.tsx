@@ -1,7 +1,8 @@
 import { ArrowUp, ChartNoAxesColumn, History, MessageSquare, MessagesSquare, Wrench } from 'lucide-react';
+import { pluralRu } from '../../../shared/text/pluralRu';
 import {
   RADAR_CLASS_LABELS, RADAR_CONFIDENCE_LEVELS, RADAR_KIND_LABELS, RADAR_SENTIMENT_LABELS, RADAR_STANCE_LABELS, formatRadarCount,
-  formatRadarDay, formatRadarDelta, formatRadarPercent, radarClassIcon, radarConfidenceLevel, radarEntityImage, radarTrendDelta,
+  formatRadarDate, formatRadarDay, formatRadarDelta, formatRadarPercent, radarClassIcon, radarConfidenceLevel, radarEntityImage, radarTrendDelta,
   type RadarCandidate, type RadarPost, type RadarPrecedent, type RadarSectionId,
 } from '../model/radarView';
 
@@ -111,8 +112,9 @@ const DIRECTION_LABELS: Record<RadarPrecedent['direction'], string> = { nerf: '�
 
 function precedentStats(stats: RadarPrecedent['before']): string | null {
   if (!stats) return null;
-  return [stats.winrate !== null && `винрейт ${formatRadarPercent(stats.winrate)}`,
+  const numbers = [stats.winrate !== null && `винрейт ${formatRadarPercent(stats.winrate)}`,
     stats.popularity !== null && `популярность ${formatRadarPercent(stats.popularity)}`].filter(Boolean).join(', ');
+  return stats.archetype ? `${numbers} (${stats.archetype})` : numbers;
 }
 
 /** «Как Blizzard поступали раньше»: похожие прошлые правки, сначала те, на которые опирался прогноз. */
@@ -129,14 +131,15 @@ function RadarPrecedents({ precedents }: { precedents: RadarPrecedent[] }) {
             {precedent.cardHref ? <a href={precedent.cardHref}>{precedent.name}</a> : <b>{precedent.name}</b>}
             <span className="radar-precedent__meta">
               {RADAR_CLASS_LABELS[precedent.classKey]} · <a href={precedent.patchHref}>патч {precedent.patch}</a>
-              {precedent.date && <> · {formatRadarDay(precedent.date)}</>}
+              {precedent.date && <> · {formatRadarDate(precedent.date)}</>}
+              {precedent.setAgeDays !== null && <> · через {formatRadarCount(precedent.setAgeDays)} {pluralRu(precedent.setAgeDays, 'день', 'дня', 'дней')} после выхода набора</>}
               {precedent.cited && <> · учтено в прогнозе</>}
             </span>
           </div>
           {precedent.changes.length > 0 && <p className="radar-precedent__changes">{precedent.changes.join('; ')}</p>}
           {precedent.summary && <p>{precedent.summary}</p>}
           {(before || after) && <p className="radar-precedent__stats">
-            {before && <>До правки: {before}</>}{before && after && '. '}{after && <>После: {after}</>}
+            {before && <>Неделя до правки: {before}</>}{before && after && '. '}{after && <>Неделя после: {after}</>}
           </p>}
           {precedent.similarity.length > 0 && <p className="radar-precedent__why">Похоже: {precedent.similarity.join('; ')}</p>}
         </li>;

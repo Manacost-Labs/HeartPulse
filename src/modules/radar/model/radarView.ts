@@ -1,6 +1,8 @@
 import type { RadarCandidate, RadarClassKey, RadarKind, RadarReport, RadarSentiment, RadarStance } from './types';
 
-export type { RadarCandidate, RadarClassKey, RadarKind, RadarPattern, RadarPost, RadarPrecedent, RadarReport, RadarSource, RadarTrendPoint } from './types';
+export type {
+  RadarCandidate, RadarClassKey, RadarHistory, RadarKind, RadarPattern, RadarPost, RadarPrecedent, RadarReport, RadarSource, RadarTrendPoint,
+} from './types';
 
 export type RadarSectionId = 'nerfs' | 'buffs';
 
@@ -112,6 +114,12 @@ function moscow(iso: string): Date | null {
 export function formatRadarDay(iso: string | null): string | null {
   const day = iso ? moscow(iso) : null;
   return day ? `${day.getUTCDate()} ${MONTHS[day.getUTCMonth()]}` : null;
+}
+
+/** Дата с годом: прошлые патчи бывают и прошлогодними. */
+export function formatRadarDate(iso: string | null): string | null {
+  const day = iso ? moscow(iso) : null;
+  return day ? `${formatRadarDay(iso)} ${day.getUTCFullYear()}` : null;
 }
 
 export function formatRadarTime(iso: string): string {

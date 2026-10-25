@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { FlaskConical, History, Info, Radar, TrendingDown, TrendingUp } from 'lucide-react';
 import {
-  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, formatRadarCount, formatRadarDay, formatRadarTime,
+  DEFAULT_RADAR_FILTERS, RADAR_CLASS_LABELS, RADAR_SECTIONS, filterRadarCandidates, formatRadarCount, formatRadarDate, formatRadarDay, formatRadarTime,
   radarClassOptions, type RadarFilters, type RadarReport, type RadarSectionId,
 } from '../model/radarView';
 import { pluralRu } from '../../../shared/text/pluralRu';
@@ -71,21 +71,26 @@ function RadarSummary({ report }: { report: RadarReport }) {
 }
 
 /** Закономерности решений Blizzard из истории патчей; без данных раздела нет. */
-function RadarPatterns({ patterns }: { patterns: RadarReport['patterns'] }) {
-  if (!patterns.length) return null;
+function RadarPatterns({ history }: { history: RadarReport['history'] }) {
+  if (!history) return null;
+  const coverage = [
+    history.balancePatches !== null && `${formatRadarCount(history.balancePatches)} ${pluralRu(history.balancePatches, 'балансный патч', 'балансных патча', 'балансных патчей')}`,
+    history.from && history.to && `с ${formatRadarDate(history.from)} по ${formatRadarDate(history.to)}`,
+  ].filter(Boolean).join(' ');
   return <section className="radar-section" aria-labelledby="radar-patterns-title">
     <header className="radar-section__heading">
       <span className="radar-section__eyebrow"><History aria-hidden="true" /> История патчей</span>
       <h2 id="radar-patterns-title">Закономерности Blizzard</h2>
-      <p>Как разработчики обычно меняли баланс в прошлых патчах: на это опирается прогноз.</p>
+      <p>Как разработчики меняли баланс раньше: на это опирается прогноз{coverage && ` (разобрано ${coverage})`}.</p>
     </header>
-    <ul className="radar-section__body radar-patterns">
-      {patterns.map((pattern, index) => <li key={`${index}:${pattern.title}`}>
+    {history.summary && <p className="radar-section__body radar-history__summary">{history.summary}</p>}
+    {history.patterns.length > 0 && <ul className="radar-section__body radar-patterns">
+      {history.patterns.map((pattern, index) => <li key={`${index}:${pattern.title}`}>
         <b>{pattern.title}</b>
         {pattern.count !== null && <span className="radar-patterns__count">{formatRadarCount(pattern.count)} {pluralRu(pattern.count, 'случай', 'случая', 'случаев')}</span>}
         {pattern.text && <p>{pattern.text}</p>}
       </li>)}
-    </ul>
+    </ul>}
   </section>;
 }
 
@@ -122,7 +127,7 @@ export function RadarView({ report }: { report: RadarReport }) {
       <span><b>Демонстрационные данные.</b> Сбор радара ещё запускается: карты и архетипы настоящие, а цифры и посты — пример.</span>
     </p>}
     <RadarSummary report={report} />
-    <RadarPatterns patterns={report.patterns} />
+    <RadarPatterns history={report.history} />
     <section className="radar-section radar-board" aria-labelledby="radar-board-title">
       <h2 id="radar-board-title" className="sr-only">Кандидаты на изменения</h2>
       <div className="radar-board__bar">

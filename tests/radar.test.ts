@@ -23,7 +23,7 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
   assert.equal(fromPage.demo, false);
   assert.equal(report.generatedAt, '2026-10-25T10:12:15.000Z', 'dates leave as ISO');
   assert.deepEqual(report.patch, { version: '37.0.0', href: '/standard/patches/?version=37.0.0' });
-  assert.deepEqual(report.patterns, [], 'no history yet, no patterns section');
+  assert.equal(report.history, null, 'runs before the patch history have no history section');
   assert.deepEqual(report.window, { from: '2026-10-18T00:00:00.000Z', to: '2026-10-25T10:10:48.000Z' });
   assert.deepEqual(report.sources.map(source => source.id), ['hsguru', 'hsreplay', 'reddit', 'x'], 'one source per provider');
   assert.deepEqual(report.nerfs.map(candidate => candidate.confidence), [75, 62, 58, 55, 52, 38]);
@@ -38,8 +38,7 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
   assert.deepEqual([ritual.social.sentiment, ritual.social.stance, ritual.social.mentions, ritual.social.reddit], ['negative', 'wants_nerf', 7, 6]);
   assert.deepEqual(ritual.precedents, [{
     id: '36.4.2:JAIL_202', patch: '36.4.2', date: '2026-09-04T00:48:51.000Z', name: 'Паучок', classKey: 'druid', direction: 'nerf',
-    changes: ['Здоровье: 3 → 2'], summary: null, before: null, after: null,
-    similarity: ['дешёвое существо-призыв, усиливаемое баффами', 'нерф через здоровье, а не стоимость'], cited: true,
+    changes: ['Здоровье: 3 → 2'], summary: null, setAgeDays: null, before: null, after: null, similarity: [], cited: true,
     cardHref: '/standard/cards/wild/JAIL_202/', patchHref: '/standard/patches/?version=36.4.2',
   }]);
   const zoolock = report.nerfs.find(candidate => candidate.kind === 'archetype');
@@ -51,28 +50,41 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
 
 test('the radar contract reads precedents and Blizzard patterns leniently', () => {
   const raw = upstream();
-  raw.data.history = { patterns: [
-    'Новые карты дополнения редко меняют в первые две недели',
-    { title: 'Нерф через стоимость', summary: 'Чаще всего дорожает ключевая карта колоды.', cases: 14 },
-    { summary: 'без заголовка' },
-  ] };
+  raw.data.history = {
+    generatedAt: '2026-10-25T00:00:00Z', coverage: { from: '2024-03-19', to: '2026-10-12', statsFrom: '2025-01-01' },
+    balancePatches: 24, summary: 'Обзор истории патчей.', historyUrl: 'x', patternsUrl: 'y',
+    patterns: [
+      'Новые карты дополнения редко меняют в первые две недели',
+      { title: 'Нерф через стоимость', detail: 'Чаще всего дорожает ключевая карта колоды.' },
+      { detail: 'без заголовка' },
+    ],
+  };
   raw.data.nerfs[0].precedents = [
-    { id: 'p1', patch: '36.2.2.250000', name: 'Карта А', class: 'MAGE', direction: 'nerf', citedByModel: false,
-      changes: [{ field: 'Стоимость', old: 2, new: 3 }, 'Текст изменён'], preStats: { deckWinrate: 58.4, deckPopularity: 12 }, postStats: { winrate: 52.1 } },
+    { id: 'p1', patch: '36.2.2.250000', name: 'Карта А', class: 'MAGE', direction: 'nerf', citedByModel: false, setAgeDays: 12,
+      changes: [{ field: 'cost', before: 2, after: 3 }, { field: 'durability', before: 3, after: 2 }],
+      textBefore: 'Наносит 3 ед. урона.', textAfter: 'Наносит 2 ед. урона.',
+      similarity: ['same_class', 'similar_winrate', 'cited', 'unknown_code', 'своя причина'],
+      preStats: { archetype: 'Zoolock', winrate: 58.4, popularity: 12 }, postStats: { archetype: null, winrate: 52.1, popularity: null } },
     { id: 'p2', patch: '36.4.2', name: 'Карта Б', cardId: '../evil', direction: 'teleport', citedByModel: true },
     { id: 'p3', patch: 'latest', name: 'Без версии' },
     { id: 'p2', patch: '36.4.2', name: 'Повтор' },
   ];
-  const report = parseRadarReport(raw);
-  assert.deepEqual(report.patterns, [
-    { title: 'Новые карты дополнения редко меняют в первые две недели', text: null, count: null },
-    { title: 'Нерф через стоимость', text: 'Чаще всего дорожает ключевая карта колоды.', count: 14 },
-  ]);
+  const report = parseRadarReport(raw, { nameArchetype: namer });
+  assert.deepEqual(report.history, {
+    summary: 'Обзор истории патчей.', balancePatches: 24, from: '2024-03-19T00:00:00.000Z', to: '2026-10-12T00:00:00.000Z',
+    patterns: [
+      { title: 'Новые карты дополнения редко меняют в первые две недели', text: null, count: null },
+      { title: 'Нерф через стоимость', text: 'Чаще всего дорожает ключевая карта колоды.', count: null },
+    ],
+  });
   const [cited, other] = report.nerfs[0].precedents;
   assert.equal(report.nerfs[0].precedents.length, 2, 'a precedent without a version and a repeated id are dropped');
   assert.deepEqual([cited.id, cited.direction, cited.cardHref], ['p2', 'neutral', null], 'cited first; a strange card id gets no link');
-  assert.deepEqual([other.patch, other.changes, other.before, other.after],
-    ['36.2.2', ['Стоимость: 2 → 3', 'Текст изменён'], { winrate: 58.4, popularity: 12 }, { winrate: 52.1, popularity: null }]);
+  assert.deepEqual([other.patch, other.setAgeDays, other.changes, other.similarity, other.before, other.after], [
+    '36.2.2', 12, ['Стоимость: 2 → 3', 'Прочность: 3 → 2', 'Текст: «Наносит 3 ед. урона.» → «Наносит 2 ед. урона.»'],
+    ['тот же класс', 'похожий винрейт', 'своя причина'],
+    { archetype: 'Зоолок', winrate: 58.4, popularity: 12 }, { archetype: null, winrate: 52.1, popularity: null },
+  ]);
 });
 
 test('the radar contract drops broken records and foreign links', () => {

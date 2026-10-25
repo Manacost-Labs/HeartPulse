@@ -63,7 +63,7 @@ HSGuru, обсуждения Reddit и X и вывод модели Claude. Эт
 | `window` | `socialWindow.from/to` | окно сбора обсуждений |
 | `sources[]` | `sources[]` со `state: ok`, сведённые к HSGuru, HSReplay, Reddit и X | у соцсетей — сумма собранных записей |
 | `nerfs[]`, `buffs[]` | те же | обязательны (массивы); до 30, по убыванию `confidence` |
-| `patterns[]` | `history.patterns[]` (или `rules[]`): строка или `{ title, summary, cases }` | до 8; пусто — секции нет |
+| `history` | `history`: `summary`, `balancePatches`, `coverage.from/to`, `patterns[]` (`{ title, detail }`) | `null` у прогонов без истории — секции нет; до 8 закономерностей |
 | `demo` | — | ставит только Express |
 <!-- markdownlint-enable MD013 -->
 
@@ -75,17 +75,22 @@ HSGuru, обсуждения Reddit и X и вывод модели Claude. Эт
 `suggestedChange`, `stats` (источник, ранг и период по-русски, винрейт,
 популярность, игры или розыгрыши, `trend[]` — периоды основного ранга),
 `social` (упоминания всего, в Reddit и X, `sentiment`, `stance`, `summary`,
-`posts[]` из `topPosts` в порядке hs-data-api), `precedents[]` (похожие
-прошлые правки Blizzard: патч, карта, направление, изменения строками
-«Стоимость: 2 → 3», числа до и после из `preStats`/`postStats`, чем
-похоже; сначала те, на которые опиралась модель, до четырёх; ссылки — на
-карту в каталоге Вольного и на патч в архиве сайта), `firstSeenAt`
-(`dates.firstFlaggedAt`).
+`posts[]` из `topPosts` в порядке hs-data-api), `precedents[]`,
+`firstSeenAt` (`dates.firstFlaggedAt`).
 
-Форма `precedents[].changes`, `preStats` и `history` в hs-data-api ещё
-не закреплена, поэтому разбор принимает и строки, и объекты
-`{ label | field, before | old, after | new }`; прецедент без версии патча
-выпадает.
+Прецедент — похожая прошлая правка Blizzard (до трёх, сначала те, на
+которые опиралась модель): патч без номера сборки, дата, карта, класс,
+направление (`nerf`, `buff`, `rework`, `neutral`), изменения строками
+(`changes[].field` — `cost`, `attack`, `health`, `durability`, `armor` —
+становится «Стоимость: 2 → 3», `textBefore`/`textAfter` — «Текст: «…» →
+«…»»), сколько дней было набору, неделя до и после правки из
+`preStats`/`postStats` (винрейт, популярность, архетип с русским именем),
+чем случай похож (`similarity` — коды переводятся, `cited` отдельно,
+незнакомые коды отбрасываются). Ссылки ведут на карту в каталоге Вольного
+и на патч в архиве сайта; внешнюю ссылку `url` страница не показывает.
+Отдельные эндпоинты hs-data-api `…/balance-radar/history` и
+`…/balance-radar/patterns` страница пока не читает: закономерности берутся
+из `history` самого прогона.
 
 Проверка строга к каркасу и мягка к записям: кандидат без имени, `id`,
 вердикта или с неизвестным `kind` выпадает, повтор `ref` отбрасывается,

@@ -734,6 +734,15 @@ a.radar-candidate__identity:hover h3 { color: var(--arena-red); }
 .radar-precedent__changes { font-variant-numeric: tabular-nums; }
 .radar-precedent__stats { color: var(--arena-muted-ink); }
 
+.radar-history__summary {
+  max-width: 78ch;
+  margin: 0;
+  padding-bottom: 0;
+  color: var(--arena-ink);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .radar-patterns li {
   color: var(--arena-ink);
   font-size: 0.88rem;
