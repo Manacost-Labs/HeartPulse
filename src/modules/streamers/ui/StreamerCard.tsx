@@ -1,4 +1,4 @@
-import { STREAMER_CLASS_LABELS, formatFollowers, formatPlayedDay } from '../model/streamersView';
+import { STREAMER_CLASS_LABELS, distinctRecentDecks, formatFollowers, formatPlayedDay } from '../model/streamersView';
 import type { StreamerSummary } from '../model/types';
 import { StreamerDeckRow } from './StreamerDeckRow';
 import { StreamerLinks } from './StreamerLinks';
@@ -15,6 +15,7 @@ export function StreamerAvatar({ streamer, size }: { streamer: Pick<StreamerSumm
 export function StreamerCard({ streamer }: { streamer: StreamerSummary }) {
   const followers = formatFollowers(streamer.followers);
   const lastDay = streamer.lastPlayedAt ? formatPlayedDay(streamer.lastPlayedAt) : null;
+  const decks = distinctRecentDecks(streamer.recentDecks);
   return <li className="streamers-card">
     <div className="streamers-card__head">
       <StreamerAvatar streamer={streamer} size={48} />
@@ -29,8 +30,8 @@ export function StreamerCard({ streamer }: { streamer: StreamerSummary }) {
       </div>
       <StreamerLinks links={streamer.links} name={streamer.name} />
     </div>
-    {streamer.recentDecks.length ? <ul className="streamers-decks" aria-label={`Последние колоды ${streamer.name}`}>
-      {streamer.recentDecks.map(deck => <StreamerDeckRow key={`${deck.deckId}-${deck.format}`} deck={deck} compact />)}
+    {decks.length ? <ul className="streamers-decks" aria-label={`Последние колоды ${streamer.name}`}>
+      {decks.map(deck => <StreamerDeckRow key={`${deck.deckId}-${deck.format}`} deck={deck} compact />)}
     </ul> : null}
   </li>;
 }

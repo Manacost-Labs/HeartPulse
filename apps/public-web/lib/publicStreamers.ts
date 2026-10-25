@@ -11,7 +11,12 @@ export type PublicStreamers = {
   unavailable: boolean;
 };
 
-export type PublicStreamer = PublicStreamers & { page: StreamerPage | null; missing: boolean };
+export type PublicStreamer = {
+  page: StreamerPage | null;
+  /** У HSGuru нет такого стримера (404). */
+  missing: boolean;
+  unavailable: boolean;
+};
 
 async function readStatus(path: string): Promise<{ value: unknown; status: number }> {
   let status = 0;

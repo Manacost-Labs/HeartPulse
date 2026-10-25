@@ -1969,7 +1969,7 @@
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/streamers.test.ts"],
+      "tests": ["tests/streamers.test.ts", "tests/next-streamers-browser.test.mjs"],
       "allowedDependencies": [],
       "forbiddenImports": ["server/**", "other frontend module internals"]
     }

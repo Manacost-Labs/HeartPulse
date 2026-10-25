@@ -873,6 +873,46 @@
           "started_at": "2026-10-22T20:13:16+00:00",
           "offset_seconds": 23161
         }
+      },
+      {
+        "deck_id": 42527923,
+        "deck_code": "AAEBAa0GBITpB9fpB6D2B/OJCA3o8QeM9ges+Afp+Qfh+gfj+gfk+gfc+wfR/Qf6iQj7iQj8iQinkggAAA==",
+        "archetype": "C'Thun Priest",
+        "player_class": "PRIEST",
+        "format": "wild",
+        "peak_rank": null,
+        "latest_rank": null,
+        "worst_rank": null,
+        "wins": 16,
+        "losses": 5,
+        "games": 21,
+        "winrate": 76.2,
+        "last_played_at": "2026-10-20T01:14:26+00:00",
+        "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+        "hsguru_url": "https://www.hsguru.com/deck/42527923",
+        "on_current_stream": false,
+        "stream_url": null,
+        "vod": null
+      },
+      {
+        "deck_id": 42547106,
+        "deck_code": "AAEBAaoIBITpB6/2B8L/B/OJCA3X6Qfx8Af79QeT9ge3/gee/we//wfz/wf1/weAgQjegQidggj7iQgAAA==",
+        "archetype": "C'Thun Shaman",
+        "player_class": "SHAMAN",
+        "format": "wild",
+        "peak_rank": null,
+        "latest_rank": null,
+        "worst_rank": null,
+        "wins": 8,
+        "losses": 3,
+        "games": 11,
+        "winrate": 72.7,
+        "last_played_at": "2026-10-19T22:35:00+00:00",
+        "first_seen_at": "2026-10-25T16:18:19.745750+00:00",
+        "hsguru_url": "https://www.hsguru.com/deck/42547106",
+        "on_current_stream": false,
+        "stream_url": null,
+        "vod": null
       }
     ],
     "streamer": {

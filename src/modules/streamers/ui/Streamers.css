@@ -134,13 +134,13 @@
 .streamers-live__item {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr);
-  gap: 0.75rem;
+  gap: 0.25rem 0.75rem;
   align-items: start;
   padding: 0.75rem 1rem;
   border-bottom: var(--streamers-line);
 }
 
-.streamers-live__thumb { display: block; overflow: hidden; border-radius: 4px; background: rgba(46, 22, 11, 0.85); }
+.streamers-live__thumb { display: block; grid-row: span 2; overflow: hidden; border-radius: 4px; background: rgba(46, 22, 11, 0.85); }
 .streamers-live__thumb img,
 .streamers-live__thumb span { display: block; width: 160px; height: 90px; object-fit: cover; }
 
@@ -166,7 +166,8 @@
 }
 
 .streamers-live__facts { color: var(--arena-muted-ink); font-size: var(--streamers-label); font-variant-numeric: tabular-nums; }
-.streamers-live__deck { grid-column: 1 / -1; }
+.streamers-live__deck { grid-column: 2; margin: 0; }
+.streamers-deck__meta { display: contents; }
 
 /* Карточки стримеров. */
 
@@ -327,7 +328,7 @@
   gap: 0.3rem;
   align-items: center;
   justify-content: center;
-  min-width: 6.5rem;
+  min-width: 5.25rem;
   min-height: 42px;
   padding: 0 0.6rem;
   border: var(--streamers-line);
@@ -426,10 +427,16 @@
 
 @media (max-width: 1023px) {
   .streamers-deck { grid-template-columns: 28px minmax(0, 1fr) 4rem auto; }
-  .streamers-deck:not([data-compact]) .streamers-deck__record,
-  .streamers-deck:not([data-compact]) .streamers-deck__played { display: none; }
-  .streamers-deck__watch { grid-column: 2 / 4; grid-row: 2; margin-top: -0.4rem; }
-  .streamers-deck__watch:empty { display: none; }
+  .streamers-deck__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.75rem;
+    align-items: center;
+    grid-column: 2 / -1;
+    grid-row: 2;
+    margin-top: -0.35rem;
+  }
+  .streamers-deck__watch a { min-height: 32px; }
   .streamers-deck .streamers-copy { grid-column: 4; grid-row: 1; }
   .streamers-profile { grid-template-columns: 72px minmax(0, 1fr); }
   .streamers-profile .streamers-avatar { width: 72px; height: 72px; }
@@ -438,6 +445,8 @@
 
 @media (max-width: 559px) {
   .streamers-live__item { grid-template-columns: 112px minmax(0, 1fr); padding: 0.65rem 0.75rem; }
+  .streamers-live__thumb { grid-row: auto; }
+  .streamers-live__deck { grid-column: 1 / -1; }
   .streamers-live__thumb img,
   .streamers-live__thumb span { width: 112px; height: 63px; }
   .streamers-card { padding: 0.75rem; }

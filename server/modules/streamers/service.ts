@@ -71,7 +71,7 @@ export function createStreamersService(dependencies: StreamersServiceDependencie
 
   async function readList(filters: StreamerFilters, offset: number): Promise<StreamersPage> {
     const query = filterQuery(filters, new URLSearchParams({
-      days: String(ACTIVE_DAYS), limit: String(STREAMERS_PAGE_SIZE), offset: String(offset), decks: '3',
+      days: String(ACTIVE_DAYS), limit: String(STREAMERS_PAGE_SIZE), offset: String(offset), decks: '8',
     }));
     const [name, list, live] = await Promise.all([
       namer(),

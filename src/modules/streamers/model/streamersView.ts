@@ -78,6 +78,17 @@ export function deckRecord(deck: Pick<StreamerDeck, 'wins' | 'losses'>): { text:
   return { text: `${wins}–${losses}`, winrate: games ? Math.round((100 * wins) / games) : null };
 }
 
+/** Карточка стримера: разные архетипы, а не три сборки одного. */
+export function distinctRecentDecks(decks: StreamerDeck[], limit = 3): StreamerDeck[] {
+  const seen = new Set<string>();
+  return decks.filter(deck => {
+    const key = `${deck.format}|${deck.archetype}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, limit);
+}
+
 /** Русские эфиры, если зритель попросил только их. */
 export function visibleLiveStreams(streams: LiveStream[], russianOnly: boolean): LiveStream[] {
   return russianOnly ? streams.filter(stream => stream.language === 'ru') : streams;

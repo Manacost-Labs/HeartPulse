@@ -24,7 +24,7 @@ export function StreamerDeckRow({ deck, compact = false, streamUrl }: { deck: St
       </small>
     </span>
     <span className="streamers-deck__rank" title={rank ? 'Лучший ранг Легенды' : undefined}>{rank ?? '—'}</span>
-    {compact ? null : <>
+    {compact ? null : <span className="streamers-deck__meta">
       <span className="streamers-deck__record">
         {record ? <>{record.text}{record.winrate !== null ? <small> · {record.winrate}%</small> : null}</> : '—'}
       </span>
@@ -36,7 +36,7 @@ export function StreamerDeckRow({ deck, compact = false, streamUrl }: { deck: St
             ? <a href={deck.vodUrl} target="_blank" rel="noopener noreferrer nofollow"><CirclePlay aria-hidden="true" /> Запись</a>
             : null}
       </span>
-    </>}
+    </span>}
     <CopyDeckCode code={deck.code} label={deck.archetypeLabel} />
   </li>;
 }

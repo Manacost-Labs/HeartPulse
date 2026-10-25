@@ -523,6 +523,7 @@
         "tests/next-bg-builders-browser.test.mjs",
         "tests/next-patch-notes-browser.test.mjs",
         "tests/next-radar-browser.test.mjs",
+        "tests/next-streamers-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",
         "tests/next-instant-access-browser.test.mjs",

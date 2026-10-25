@@ -9,7 +9,7 @@ import { StreamerNotFoundError, createStreamersService } from '../server/modules
 import type { StreamerPage, StreamersPage } from '../server/modules/streamers/types.js';
 import type { StreamerPage as ClientStreamerPage, StreamersPage as ClientStreamersPage } from '../src/modules/streamers/model/types.js';
 import {
-  deckRecord, deckRankLabel, formatFollowers, formatLiveSince, isStreamerPage, isStreamersPage, plural,
+  deckRecord, deckRankLabel, distinctRecentDecks, formatFollowers, formatLiveSince, isStreamerPage, isStreamersPage, plural,
   streamerFacetOptions, streamerFilterQuery, streamModeLabel, visibleLiveStreams,
 } from '../src/modules/streamers/model/streamersView.js';
 
@@ -98,7 +98,7 @@ test('the service reads the catalog with live streams once and caches each slice
   assert.equal(page.live.length, 4);
   assert.equal(page.total, FIXTURE.streamers.meta.count);
   assert.deepEqual(calls, [
-    '/v1/hsguru/streamers?days=30&limit=24&offset=0&decks=3&format=wild&player_class=MAGE',
+    '/v1/hsguru/streamers?days=30&limit=24&offset=0&decks=8&format=wild&player_class=MAGE',
     '/v1/hsguru/streaming-now?limit=60',
   ]);
   await service.loadList({ format: 'wild', classKey: 'mage' });
@@ -109,7 +109,7 @@ test('the service reads the catalog with live streams once and caches each slice
   assert.equal(await service.loadList({ format: 'wild', classKey: 'mage' }), page, 'an expired slice is served at once');
   assert.equal(calls.filter(call => call.includes('format=wild')).length, 2, 'while one background read refreshes it');
   const streamer = await service.loadStreamer('nohandsgamer', { format: null, classKey: null });
-  assert.equal(streamer.decks.length, 4);
+  assert.equal(streamer.decks.length, FIXTURE.streamerDecks.data.length);
   assert.equal(streamer.streamer.name, 'NoHandsGamer');
   await assert.rejects(service.loadStreamer('nobody', { format: null, classKey: null }), StreamerNotFoundError);
 });
@@ -184,6 +184,9 @@ test('the page model formats counts, ranks and facets in Russian', () => {
   assert.deepEqual(all.classes.map(option => [option.label, option.decks]), [['Жрец', 5], ['Маг', 3]]);
   const wild = streamerFacetOptions(facets, { format: 'wild', classKey: null });
   assert.deepEqual(wild.classes.map(option => option.value), ['mage'], 'classes follow the chosen format');
+  const decks = [{ format: 'standard', archetype: 'Egg Priest' }, { format: 'standard', archetype: 'Egg Priest' }, { format: 'wild', archetype: 'Egg Priest' },
+    { format: 'standard', archetype: 'Zoolock' }, { format: 'standard', archetype: 'Raza DH' }] as Parameters<typeof distinctRecentDecks>[0];
+  assert.deepEqual(distinctRecentDecks(decks).map(deck => `${deck.format}:${deck.archetype}`), ['standard:Egg Priest', 'wild:Egg Priest', 'standard:Zoolock']);
   const streams = [{ language: 'ru' }, { language: null }] as Parameters<typeof visibleLiveStreams>[0];
   assert.equal(visibleLiveStreams(streams, true).length, 1);
   assert.equal(visibleLiveStreams(streams, false).length, 2);
