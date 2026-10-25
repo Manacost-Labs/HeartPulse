@@ -141,7 +141,7 @@ function ChoicesSkeleton() {
 }
 
 /**
- * "What players pick from Discover" («Что берут из Раскопки») on a card page:
+ * "What players pick from Discover" («Что берут из Открытия») on a card page:
  * HSReplay's options with their pick rate and winrate, a Legend / Bronze–Gold
  * switch, the full pool under «Все варианты», and Excavate («Добыча») treasures
  * by tier. Renders nothing for a card the
