@@ -1,7 +1,7 @@
 'use client';
 
 import { leaderboardSeasons } from '../model/leaderboardsView';
-import { LeaderboardControls } from './LeaderboardControls';
+import { LeaderboardControls, LeaderboardSearch } from './LeaderboardControls';
 import { LeaderboardPlayerCard } from './LeaderboardPlayerCard';
 import { LeaderboardCharts, LeaderboardSummary } from './LeaderboardSummary';
 import { LeaderboardTableView } from './LeaderboardTableView';
@@ -12,8 +12,8 @@ import { useLeaderboards, type LeaderboardsInitial } from './useLeaderboards';
 import './Leaderboards.css';
 
 /**
- * Страница таблиц лидеров: выбор режима, региона, сезона и поиск, сводка с
- * порогами, карточка игрока и сама таблица. Пока грузится новая таблица,
+ * Страница таблиц лидеров: строка выбора режима, региона и сезона, плашки
+ * порогов с поиском, карточка игрока и сама таблица. Пока грузится новая таблица,
  * прежняя остаётся на месте приглушённой; скелетон — только без данных.
  */
 export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) {
@@ -28,9 +28,12 @@ export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) 
       : table.status === 'missing'
         ? <LeaderboardMissing />
         : <>
-          {stats.value && stats.status !== 'missing'
-            ? <div className="data-surface" aria-busy={stats.status === 'loading' || undefined}><LeaderboardSummary stats={stats.value} /></div>
-            : stats.status === 'loading' ? <LeaderboardSummarySkeleton /> : null}
+          <div className="leaderboards-toolbar">
+            {stats.value && stats.status !== 'missing'
+              ? <div className="data-surface" aria-busy={stats.status === 'loading' || undefined}><LeaderboardSummary stats={stats.value} /></div>
+              : stats.status === 'loading' ? <LeaderboardSummarySkeleton /> : <span />}
+            <LeaderboardSearch query={selection.query} onSelect={select} />
+          </div>
           {selection.player && <LeaderboardPlayerCard name={selection.player} region={selection.region} mode={selection.mode}
             state={player} onClose={() => select({ player: null })} onRetry={retry} />}
           {table.value

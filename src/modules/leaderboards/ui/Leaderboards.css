@@ -1,16 +1,28 @@
-/* Таблицы лидеров. Один акцент (--lb-accent: выбранные режим и регион,
-   ссылки на игроков), одна шкала текста, рамка раздела страницы и пергамент
-   (design.md). Широкие строки прокручиваются у себя, а не всей страницей. */
+/* Таблицы лидеров (design.md). Компактная шапка, одна строка выбора без
+   рамки, плашки порогов, одна таблица. Один акцент (--lb-accent: выбранные
+   режим и регион, ссылки на игроков), золото — только у мест топ-3.
+   Шкала текста: метка, мелкий, основной, заголовок. */
+
+.leaderboards-page {
+  --site-page-hero-min-height: 0;
+  --site-page-hero-mobile-min-height: 0;
+  --site-page-hero-padding-block: clamp(0.85rem, 1.6vw, 1.25rem);
+  --site-page-hero-title-size: clamp(1.75rem, 3vw, 2.4rem);
+  --site-page-hero-mobile-title-size: 1.6rem;
+}
 
 .leaderboards {
   --lb-accent: var(--arena-red);
   --lb-line: 1px solid var(--arena-paper-line);
-  --lb-text: 0.9rem;
-  --lb-text-small: 0.8rem;
+  --lb-fill: rgba(250, 235, 197, 0.6);
+  --lb-text: 0.9375rem;
+  --lb-text-small: 0.8125rem;
   --lb-text-label: 0.6875rem;
+  --lb-text-title: 1.25rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
   min-width: 0;
+  font-size: var(--lb-text);
 }
 
 .leaderboards-label {
@@ -24,8 +36,6 @@
 
 .leaderboards-muted { margin: 0; color: var(--arena-muted-ink); font-size: var(--lb-text-small); line-height: 1.45; }
 
-.leaderboards-controls,
-.leaderboards-summary,
 .leaderboards-player,
 .leaderboards-message {
   min-width: 0;
@@ -36,27 +46,35 @@
     var(--arena-parchment-texture) center / cover;
 }
 
-.leaderboards-controls { display: grid; gap: 0.75rem; padding: 0.85rem 1rem; }
+/* Строка выбора: вкладки режимов слева, регион и сезон справа. */
+
+.leaderboards-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-width: 0;
+  border-bottom: var(--lb-line);
+}
 
 .leaderboards-modes {
   display: flex;
-  gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
-  scrollbar-width: thin;
-  padding-bottom: 2px;
+  scrollbar-width: none;
 }
 
-.leaderboards-controls__row {
+.leaderboards-controls__filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding-bottom: 0.5rem; }
+
+.leaderboards-regions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1rem;
-  align-items: flex-end;
+  padding: 2px;
+  border: var(--lb-line);
+  border-radius: 8px;
+  background: var(--lb-fill);
 }
-
-.leaderboards-regions { display: flex; gap: 0.4rem; }
-
-.leaderboards-field { display: grid; gap: 0.25rem; min-width: 0; }
-.leaderboards-field--search { flex: 1 1 220px; }
 
 .leaderboards-chip,
 .leaderboards-select,
@@ -64,7 +82,7 @@
   min-height: 44px;
   border: var(--lb-line);
   border-radius: 6px;
-  background: rgba(250, 235, 197, 0.6);
+  background: var(--lb-fill);
   color: var(--arena-ink);
   font: inherit;
   font-size: var(--lb-text-small);
@@ -75,7 +93,7 @@
   padding: 0 0.85rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
 
 .leaderboards-chip:hover:not(:disabled) { border-color: rgba(84, 51, 22, 0.45); }
@@ -87,11 +105,30 @@
   color: #fff4dc;
 }
 
-.leaderboards-chip--mode { font-family: var(--font-display); font-size: 0.95rem; }
+/* Регион — сегменты внутри одной дорожки. */
+.leaderboards-regions .leaderboards-chip { min-height: 42px; border-color: transparent; background: none; }
+.leaderboards-regions .leaderboards-chip[aria-pressed='true'] { background: var(--lb-accent); }
+
+/* Режим — вкладки с чертой снизу, без плашек. */
+.leaderboards-chip--mode,
+.leaderboards-chip--mode:hover:not(:disabled),
+.leaderboards-chip--mode[aria-pressed='true'] {
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 -3px 0 transparent;
+  color: var(--arena-muted-ink);
+  font-family: var(--font-display);
+  font-size: var(--lb-text);
+}
+
+.leaderboards-chip--mode:hover:not(:disabled) { color: var(--arena-ink); }
+.leaderboards-chip--mode[aria-pressed='true'] { box-shadow: inset 0 -3px 0 var(--lb-accent); color: var(--lb-accent); }
 
 .leaderboards-select { max-width: 100%; padding: 0 2rem 0 0.75rem; cursor: pointer; }
 
-.leaderboards-search { display: flex; gap: 0.4rem; align-items: center; padding: 0 0.75rem; }
+.leaderboards-search { display: flex; flex: 0 1 280px; margin-left: auto; gap: 0.4rem; align-items: center; min-width: 0; padding: 0 0.75rem; }
 .leaderboards-search svg { flex: none; width: 16px; height: 16px; color: var(--arena-muted-ink); }
 
 .leaderboards-search input {
@@ -113,49 +150,30 @@
   outline-offset: 2px;
 }
 
-/* Сводка. */
+/* Плашки порогов и поиск над таблицей. */
 
-.leaderboards-summary { display: grid; gap: 0.75rem; padding: 0.85rem 1rem 1rem; }
+.leaderboards-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; min-width: 0; }
+.leaderboards-toolbar > .data-surface { min-width: 0; }
 
-.leaderboards-summary__head { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; align-items: baseline; justify-content: space-between; }
+.leaderboards-summary { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; min-width: 0; }
 
-.leaderboards-summary h2,
-.leaderboards-player h2,
-.leaderboards-message h2 {
-  margin: 0;
-  color: var(--arena-ink);
-  font-family: var(--font-display);
-  font-size: clamp(1.15rem, 2vw, 1.4rem);
-}
+.leaderboards-plaques { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; }
 
-.leaderboards-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.leaderboards-tile {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 0;
-  padding: 0.6rem 0.75rem;
+.leaderboards-plaque {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.3rem 0.65rem;
   border: var(--lb-line);
   border-radius: 6px;
-  background: rgba(250, 235, 197, 0.55);
+  background: var(--lb-fill);
+  font-size: var(--lb-text-small);
+  white-space: nowrap;
 }
 
-.leaderboards-tile dd { display: grid; gap: 0.1rem; margin: 0; }
-
-.leaderboards-tile__value {
-  color: var(--arena-ink);
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-
-.leaderboards-tile__note { color: var(--arena-muted-ink); font-size: var(--lb-text-small); }
+.leaderboards-plaque dt { color: var(--arena-muted-ink); }
+.leaderboards-plaque dd { margin: 0; color: var(--arena-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.leaderboards-plaque small { margin-left: 0.35rem; color: var(--arena-muted-ink); font-size: inherit; font-weight: 400; }
 
 .leaderboards-charts {
   display: grid;
@@ -164,22 +182,74 @@
   min-width: 0;
 }
 
-/* Таблица. */
+/* Таблица: ровные колонки фиксированной раскладки, без прокрутки вбок. */
 
 .leaderboards-table { display: grid; gap: 0.5rem; min-width: 0; }
 .leaderboards-table[aria-busy='true'] { opacity: 0.55; transition: opacity var(--motion-fast) var(--motion-ease); }
-.leaderboards-table table { width: 100%; font-variant-numeric: tabular-nums; }
-.leaderboards-table td,
-.leaderboards-table th { white-space: nowrap; }
-.leaderboards-table tr[data-selected] td { background: rgba(141, 23, 29, 0.1); }
 
-.leaderboards-rank { width: 4.5rem; font-weight: 700; }
+.leaderboards-table table {
+  width: 100%;
+  table-layout: fixed;
+  border: var(--lb-line);
+  border-radius: 6px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  background: rgba(250, 235, 197, 0.55);
+  font-variant-numeric: tabular-nums;
+}
 
-/* Ник — ссылка-кнопка; в таблице она перебивает общий вид кнопок .analytics-table. */
-.leaderboards-player-link,
-.leaderboards-table .analytics-table .leaderboards-player-link {
+.leaderboards-table__rank { width: 4.5rem; }
+.leaderboards-table__rating { width: 7rem; }
+.leaderboards-table__change { width: 6rem; }
+
+.leaderboards-table th {
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border-bottom: var(--lb-line);
+  color: var(--arena-muted-ink);
+  font-size: var(--lb-text-label);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.leaderboards-table td {
+  height: 2.75rem;
+  padding: 0 0.75rem;
+  border-bottom: var(--lb-line);
+  color: var(--arena-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboards-table .is-numeric { text-align: right; }
+.leaderboards-table tbody tr:last-child td { border-bottom: 0; }
+.leaderboards-table tbody tr:hover td { background: rgba(250, 235, 197, 0.7); }
+.leaderboards-table tr[data-selected] td { background: rgba(141, 23, 29, 0.08); }
+
+.leaderboards-rank { color: var(--arena-muted-ink); }
+
+/* Топ-3 — золотой кружок с местом; одна золотая деталь вместо трёх цветов. */
+.leaderboards-medal {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--arena-gold);
+  color: var(--arena-ink);
+  font-weight: 800;
+}
+
+.leaderboards-table tbody tr:has(.leaderboards-medal) .leaderboards-player-link { font-weight: 700; }
+
+/* Ник — ссылка-кнопка на всю ячейку; длинный обрезается многоточием. */
+.leaderboards-player-link {
   display: inline;
-  min-height: 32px;
+  max-width: 100%;
   padding: 0;
   border: 0;
   background: none;
@@ -193,17 +263,24 @@
   text-underline-offset: 3px;
 }
 
+.leaderboards-table .leaderboards-player-link {
+  display: block;
+  overflow: hidden;
+  min-height: 2.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .leaderboards-player-link:hover,
-.leaderboards-table .analytics-table .leaderboards-player-link:hover,
 .leaderboards-player-link[aria-pressed='true'] { background: none; color: var(--lb-accent); text-decoration-color: currentColor; }
 
-.leaderboards-change { width: 5.5rem; font-size: var(--lb-text-small); }
+.leaderboards-change { font-size: var(--lb-text-small); }
 .leaderboards-change--up { color: var(--positive, #2f7a3e); }
 .leaderboards-change--down { color: var(--negative, #a33a3a); }
 .leaderboards-change--same { color: var(--arena-muted-ink); }
 .leaderboards-change--new { color: var(--arena-muted-ink); font-style: italic; }
 
-.leaderboards-empty { padding: 1.25rem 0.75rem; color: var(--arena-muted-ink); white-space: normal; }
+.leaderboards-table td.leaderboards-empty { height: auto; padding: 1.25rem 0.75rem; color: var(--arena-muted-ink); white-space: normal; }
 
 .leaderboards-table__footer {
   display: flex;
@@ -215,8 +292,10 @@
   font-size: var(--lb-text-small);
 }
 
-.leaderboards-pages { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
-.leaderboards-pages__status { padding: 0 0.25rem; font-variant-numeric: tabular-nums; }
+.leaderboards-pages { display: flex; gap: 0.4rem; align-items: center; margin-left: auto; }
+.leaderboards-pages .leaderboards-chip { display: grid; place-items: center; width: 44px; padding: 0; }
+.leaderboards-pages svg { width: 18px; height: 18px; }
+.leaderboards-pages__status { min-width: 6rem; padding: 0 0.25rem; text-align: center; font-variant-numeric: tabular-nums; }
 
 /* Карточка игрока. */
 
@@ -257,32 +336,45 @@
 
 /* Сообщения и скелетон. */
 
+.leaderboards-player h2,
+.leaderboards-message h2 {
+  margin: 0;
+  color: var(--arena-ink);
+  font-family: var(--font-display);
+  font-size: var(--lb-text-title);
+}
+
 .leaderboards-message { display: flex; gap: 0.75rem; align-items: flex-start; padding: 1rem; }
 .leaderboards-message > svg { flex: none; width: 22px; height: 22px; color: var(--lb-accent); }
 .leaderboards-message p { margin: 0.3rem 0 0.75rem; color: var(--arena-muted-ink); font-size: var(--lb-text-small); }
 
 .leaderboards-source { padding: 0 0.25rem; }
 
-.leaderboards-summary--skeleton { min-height: 170px; }
 .leaderboards-table--skeleton { gap: 6px; min-height: 560px; }
-.leaderboards-skeleton__title { width: 14rem; height: 1.5rem; }
-.leaderboards-skeleton__label { width: 60%; height: 0.75rem; }
-.leaderboards-skeleton__value { width: 45%; height: 1.5rem; }
-.leaderboards-skeleton__bar { height: 2.5rem; }
-.leaderboards-skeleton__row { height: 2.25rem; }
+.leaderboards-skeleton__plaque { width: 8rem; height: 1.9rem; }
+.leaderboards-skeleton__row { height: 2.75rem; }
 .leaderboards-skeleton__line { width: 50%; height: 1rem; }
 .leaderboards-skeleton__chart { height: 220px; }
 .leaderboards-player__skeleton { display: grid; gap: 0.75rem; }
 
+@media (max-width: 720px) {
+  .leaderboards-page .section-banner-modern::before { display: none; }
+  .leaderboards-page .section-banner-modern { background: #3a030d; }
+}
+
 @media (max-width: 640px) {
-  .leaderboards-controls,
-  .leaderboards-summary,
   .leaderboards-player { padding: 0.75rem; }
 
-  .leaderboards-controls__row { display: grid; grid-template-columns: 1fr; }
+  .leaderboards-controls { display: grid; gap: 0.5rem; }
+  .leaderboards-controls__filters { display: grid; grid-template-columns: minmax(0, 1fr); }
   .leaderboards-regions .leaderboards-chip { flex: 1 1 0; }
   .leaderboards-select { width: 100%; }
-  .leaderboards-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .leaderboards-tile__value { font-size: 1.15rem; }
+  .leaderboards-search { flex: 1 1 100%; }
+
+  .leaderboards-table__rank { width: 3.25rem; }
+  .leaderboards-table__rating { width: 4.75rem; }
+  .leaderboards-table__change { width: 5rem; }
+  .leaderboards-table :is(th, td) { padding: 0 0.5rem; }
+  .leaderboards-table th { letter-spacing: 0; }
   .leaderboards-pages { width: 100%; justify-content: space-between; }
 }

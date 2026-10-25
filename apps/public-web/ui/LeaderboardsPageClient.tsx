@@ -12,7 +12,7 @@ export function LeaderboardsPageClient({ initial }: { initial: LeaderboardsIniti
   return <PublicPageShell activeTab="leaderboards" pathname="/leaderboards/" access={access} navigate={navigate} wide>
     <section className="leaderboards-page space-y-4">
       <SectionBanner title="Таблицы лидеров"
-        subtitle="Официальные рейтинги Blizzard: Стандарт, Вольный, Поля сражений, Арена и Твист в Европе, Америке и Азии — места, рейтинг и история по дням" />
+        subtitle="Официальные рейтинги Blizzard по режимам и регионам: места, рейтинг и история игроков" />
       <LeaderboardsView initial={initial} />
     </section>
   </PublicPageShell>;

@@ -1,5 +1,5 @@
 /**
- * "What players pick" of a card with a choice (Discover — «Раскопка» in the Russian client,
+ * "What players pick" of a card with a choice (Discover — «Открытие» on the site,
  * Adapt, Dredge — «Улов», Choose One — «Выберите эффект», Excavate — «Добыча»), as `/api/card-choices/:format/:cardId`
  * answers it (the Express projection of hs-data-api `/v1/hsreplay/card-choices`).
  */
@@ -69,14 +69,14 @@ export function cardChoiceKindOf(mechanics: readonly unknown[] | null | undefine
   return MECHANIC_KINDS.find(([mechanic]) => own.has(mechanic))?.[1] ?? null;
 }
 
-/** Section titles use the Russian client's keywords: Discover is «Раскопка», Excavate is «Добыча». */
+/** Section titles: Discover is «Открытие» (the site's term), Excavate is «Добыча» (the Russian client's). */
 export function cardChoiceTitle(kind: CardChoiceKind): string {
   switch (kind) {
     case 'adapt': return 'Что берут из Адаптации';
     case 'dredge': return 'Что берут из Улова';
     case 'choose_one': return 'Варианты «Выберите эффект»';
     case 'excavate': return 'Сокровища Добычи';
-    default: return 'Что берут из Раскопки';
+    default: return 'Что берут из Открытия';
   }
 }
 

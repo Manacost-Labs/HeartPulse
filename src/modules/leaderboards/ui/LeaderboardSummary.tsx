@@ -3,16 +3,16 @@ import { ColumnChart } from '../../../shared/ui/analytics/ColumnChart';
 import { LineChart } from '../../../shared/ui/analytics/LineChart';
 import type { ChartPoint } from '../../../shared/ui/analytics/analyticsModel';
 import {
-  LEADERBOARD_MODE_LABELS, LEADERBOARD_RATING_LABELS, formatLeaderboardDay, formatLeaderboardTime, formatPlayers, formatRating,
+  LEADERBOARD_RATING_LABELS, formatLeaderboardDay, formatPlayers, formatRating,
   formatRatingTick, playersDelta,
 } from '../model/leaderboardsView';
 import type { LeaderboardStats } from '../model/types';
 import '../../../shared/ui/analytics/Analytics.css';
 
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
-  return <div className="leaderboards-tile">
-    <dt className="leaderboards-label">{label}</dt>
-    <dd><span className="leaderboards-tile__value">{value}</span>{note && <span className="leaderboards-tile__note">{note}</span>}</dd>
+function Plaque({ label, value, note }: { label: string; value: string; note?: string }) {
+  return <div className="leaderboards-plaque">
+    <dt>{label}</dt>
+    <dd>{value}{note && <small>{note}</small>}</dd>
   </div>;
 }
 
@@ -21,39 +21,23 @@ function dayTick(day: string): string {
 }
 
 /**
- * Сводка выбранной таблицы над ней: сколько в ней игроков, рейтинг первого
- * места и пороги топ-100/1000/5000 (только у режимов с рейтингом).
+ * Сводка над таблицей небольшими плашками: сколько в ней игроков, рейтинг
+ * первого места и пороги топ-100/1000/5000 (только у режимов с рейтингом).
  */
 export function LeaderboardSummary({ stats }: { stats: LeaderboardStats }) {
-  const { board, snapshot, series } = stats;
+  const { board, snapshot } = stats;
   const delta = playersDelta(stats);
-  const unit = LEADERBOARD_RATING_LABELS[board.mode] ?? 'Рейтинг';
 
-  return <section className="leaderboards-summary" aria-labelledby="leaderboards-summary-title">
-    <div className="leaderboards-summary__head">
-      <h2 id="leaderboards-summary-title">Пороги и статистика</h2>
-      <p className="leaderboards-muted">
-        Снимок {formatLeaderboardTime(snapshot.capturedAt)}
-        {snapshot.stale && ' · данные давно не обновлялись'}
-        {board.final && ' · сезон завершён'}
-      </p>
-    </div>
-    <dl className="leaderboards-tiles">
-      <Tile label="Игроков в таблице" value={formatPlayers(snapshot.players)}
-        note={delta === null ? undefined : `${delta >= 0 ? '+' : ''}${formatPlayers(delta)} за день`} />
-      {board.rated && <Tile label={`${unit}: 1-е место`} value={formatRating(board.mode, stats.topRating)} />}
-      {board.rated && stats.thresholds.map(threshold => <Tile key={threshold.rank} label={`Порог топ-${formatPlayers(threshold.rank)}`}
-        value={threshold.reached ? formatRating(board.mode, threshold.rating) : '—'}
-        note={threshold.reached ? undefined : 'в таблице меньше игроков'} />)}
-      {!board.rated && <Tile label="Дней в истории сезона" value={formatPlayers(series.length)} />}
+  return <div className="leaderboards-summary">
+    <dl className="leaderboards-plaques" aria-label="Пороги таблицы">
+      <Plaque label="Игроков" value={formatPlayers(snapshot.players)}
+        note={delta === null || delta === 0 ? undefined : `${delta > 0 ? '+' : ''}${formatPlayers(delta)} за день`} />
+      {board.rated && <Plaque label="1-е место" value={formatRating(board.mode, stats.topRating)} />}
+      {board.rated && stats.thresholds.filter(threshold => threshold.reached).map(threshold => <Plaque key={threshold.rank}
+        label={`Топ-${formatPlayers(threshold.rank)}`} value={formatRating(board.mode, threshold.rating)} />)}
     </dl>
-    {!board.rated && <p className="leaderboards-muted leaderboards-summary__note">
-      В режиме «{LEADERBOARD_MODE_LABELS[board.mode]}» Blizzard показывает только места в Легенде, без рейтинга.
-    </p>}
-    {snapshot.truncated && <p className="leaderboards-muted leaderboards-summary__note">
-      Таблица очень большая: сохранены первые {formatPlayers(snapshot.stored)} мест из {formatPlayers(snapshot.players)}.
-    </p>}
-  </section>;
+    {snapshot.truncated && <p className="leaderboards-muted">Сохранены первые {formatPlayers(snapshot.stored)} мест</p>}
+  </div>;
 }
 
 /** Графики под таблицей: игроки и порог топа по дням, распределение рейтинга. */
@@ -76,13 +60,11 @@ export function LeaderboardCharts({ stats }: { stats: LeaderboardStats }) {
   })), [stats.histogram, board.mode]);
 
   if (series.length < 2 && !columns.length) return null;
-  return <section className="leaderboards-summary" aria-label="Графики таблицы">
-    <div className="leaderboards-charts">
+  return <section className="leaderboards-charts" aria-label="Графики таблицы">
       {players.length > 1 && <LineChart title="Игроков в таблице по дням" unit="count" color="#8d171d" points={players} xLabel="День" />}
       {board.rated && thresholds.length > 1 && <LineChart title={`Порог топ-${formatPlayers(thresholdRank)} по дням`}
         subtitle={unit} unit={ratingUnit} color="#8f536d" points={thresholds} xLabel="День" />}
       {board.rated && columns.length > 0 && <ColumnChart title="Распределение рейтинга"
         subtitle={`Сколько игроков в таблице в каждом диапазоне: ${unit.toLowerCase()}`} unit="count" color="#8f536d" rows={columns} xLabel={unit} />}
-    </div>
   </section>;
 }

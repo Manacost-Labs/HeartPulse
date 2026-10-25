@@ -38,7 +38,7 @@ test('the leaderboards page renders the table on the server, switches modes, sea
     const html = await document.text();
     assert.match(html, /<h1[^>]*>Таблицы лидеров<\/h1>/);
     assert.match(html, /TrueBench/, 'the first page of the table is in the server HTML');
-    assert.match(html, /Порог|Игроков в таблице/, 'the summary is in the server HTML');
+    assert.match(html, /Игроков/, 'the summary is in the server HTML');
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/leaderboards\/"/);
     assert.match(html, /<title>Таблицы лидеров Hearthstone \d{4}: официальный рейтинг Blizzard \| HearthPulse<\/title>/);
     assert.match(html, /href="\/leaderboards\/"/, 'the menu links the page');
@@ -72,7 +72,7 @@ test('the leaderboards page renders the table on the server, switches modes, sea
       ['Место', 'Игрок', 'Рейтинг', 'За сутки'], 'a rated mode shows its rating and the day change');
     assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+3) td:last-child [aria-hidden]', nodes => nodes.map(node => node.textContent)),
       ['▲ 1', '▼ 1', 'Новый']);
-    assert.match(await page.$eval('.leaderboards', node => node.textContent ?? ''), /Порог топ-1\u00a0000[\s\S]*Место[\s\S]*Распределение рейтинга/,
+    assert.match(await page.$eval('.leaderboards', node => node.textContent ?? ''), /Топ-1\u00a0000[\s\S]*Место[\s\S]*Распределение рейтинга/,
       'thresholds above the table, charts below it');
 
     await page.click('.leaderboards-modes button:first-child');

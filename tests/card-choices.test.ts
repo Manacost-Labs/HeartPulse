@@ -93,7 +93,7 @@ assert.equal(cardChoiceKindOf(['BATTLECRY', 'EXCAVATE']), 'excavate');
 assert.equal(cardChoiceKindOf(['CHOOSE_ONE']), 'choose_one');
 assert.equal(cardChoiceKindOf(['TAUNT']), null);
 assert.equal(cardChoiceKindOf(undefined), null);
-assert.equal(cardChoiceTitle('discover'), 'Что берут из Раскопки', 'Discover is «Раскопка» in the Russian client');
+assert.equal(cardChoiceTitle('discover'), 'Что берут из Открытия', 'Discover is «Открытие» on the site');
 assert.equal(cardChoiceTitle('excavate'), 'Сокровища Добычи');
 assert.equal(formatChoicePercent(47.2), '47,2%');
 assert.equal(formatChoicePercent(null), '—');

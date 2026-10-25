@@ -3,23 +3,16 @@ import { LoadingBlock, LoadingSurface } from '../../../shared/ui/LoadingSurface'
 import '../../../shared/ui/LoadingSurface.css';
 import './Leaderboards.css';
 
-/** Плитки сводки в тех же рамках, что и загруженная сводка. */
+/** Плашки сводки той же высоты, что и загруженные. */
 export function LeaderboardSummarySkeleton() {
-  return <LoadingSurface label="Загружаем пороги таблицы" quiet layout="rows" blocksClassName="leaderboards-summary leaderboards-summary--skeleton">
-    <div className="leaderboards-summary__head"><LoadingBlock className="leaderboards-skeleton__title" /></div>
-    <div className="leaderboards-tiles">
-      {Array.from({ length: 4 }, (_, index) => <div key={index} className="leaderboards-tile">
-        <LoadingBlock className="leaderboards-skeleton__label" />
-        <LoadingBlock className="leaderboards-skeleton__value" />
-      </div>)}
-    </div>
+  return <LoadingSurface label="Загружаем пороги таблицы" quiet layout="rows" blocksClassName="leaderboards-plaques">
+    {Array.from({ length: 3 }, (_, index) => <LoadingBlock key={index} className="leaderboards-skeleton__plaque" />)}
   </LoadingSurface>;
 }
 
 /** Строки таблицы: высота одной страницы, чтобы приход данных не сдвигал страницу. */
 export function LeaderboardTableSkeleton() {
   return <LoadingSurface label="Загружаем таблицу лидеров" quiet layout="rows" blocksClassName="leaderboards-table leaderboards-table--skeleton">
-    <LoadingBlock className="leaderboards-skeleton__bar" />
     {Array.from({ length: 12 }, (_, index) => <LoadingBlock key={index} className="leaderboards-skeleton__row" />)}
   </LoadingSurface>;
 }
