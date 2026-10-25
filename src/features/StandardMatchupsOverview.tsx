@@ -59,7 +59,8 @@ export default function StandardMatchupsOverview({ data, labelOf, selected, onSe
   const query = useDeferredValue(search.trim().toLocaleLowerCase('ru-RU'));
   const archetypes = useMemo(() => standardMatchupArchetypes(data, labelOf), [data, labelOf]);
   const overview = useMemo(() => standardMatchupOverview(data, selected, labelOf), [data, selected, labelOf]);
-  const minSample = matchupMinSample(data.sourceUrl);
+  const minSample = data.minGames ?? matchupMinSample(data.sourceUrl);
+  const counted = data.rows.some(row => row.cells.some(cell => cell.games !== undefined));
   const popular = useMemo(() => [...archetypes].sort((a, b) => (b.share ?? 0) - (a.share ?? 0)).slice(0, POPULAR_CHIPS), [archetypes]);
   const options = useMemo<SelectOptionGroup[]>(() => {
     const groups = new Map<string, SelectOptionGroup>();
@@ -138,8 +139,10 @@ export default function StandardMatchupsOverview({ data, labelOf, selected, onSe
             </button>
           )}
           <p className="standard-matchups-overview__note">
-            Полоса отсчитана от 50%. HSGuru не публикует число игр по паре{minSample ? ` и показывает пары от ${minSample} игр` : ''}:
-            надёжность оценена по долям игр обоих архетипов, пары с малой выборкой бледнее.
+            {counted
+              ? `Полоса отсчитана от 50%. Показаны пары от ${minSample ?? 1} игр; пары, где меньше 100 игр, бледнее.`
+              : <>Полоса отсчитана от 50%. HSGuru не публикует число игр по паре{minSample ? ` и показывает пары от ${minSample} игр` : ''}:
+                надёжность оценена по долям игр обоих архетипов, пары с малой выборкой бледнее.</>}
           </p>
         </section>
       </PortalContainerContext.Provider>
@@ -155,7 +158,8 @@ function OpponentRow({ opponent, format }: { opponent: StandardMatchupOpponent; 
       <ClassIcon classKey={opponent.classKey} size={30} />
       <span className="standard-matchups-overview__name">
         {href ? <a href={href}>{opponent.label}</a> : opponent.label}
-        <small>доля {percent(opponent.share)} · {CONFIDENCE_TEXT[opponent.confidence]}</small>
+        <small>доля {percent(opponent.share)} · {opponent.games === undefined
+          ? CONFIDENCE_TEXT[opponent.confidence] : `${opponent.games.toLocaleString('ru-RU')} игр`}</small>
       </span>
       <MatchupBar value={opponent.vs} />
       <strong className="standard-matchups-overview__rate" data-side={matchupSide(opponent.vs)}>{percent(opponent.vs)}</strong>

@@ -3,13 +3,15 @@ import '../vendor/varylo-ui/styles/index.css';
 import { MatchupMatrix, type MatchupMatrixLabels } from '../vendor/varylo-ui/gaming/MatchupMatrix';
 import { PortalContainerContext } from '../vendor/varylo-ui/primitives/Portal';
 import {
-  confidenceOfRank, MATRIX_MIN_GAMES, standardMatrix, type StandardMatchupsData,
+  confidenceOfRank, gamesConfidence, standardMatrix, type StandardMatchupsData,
 } from '../modules/standardMatchups/public';
+import { standardMetaPeriodLabel } from './standardMetaFilterModel';
+import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
 import './StandardMatchupMatrix.css';
 
 const CONFIDENCE_LABEL = { low: 'точность низкая', medium: 'точность средняя', high: 'надёжно' };
 
-function matrixLabels(minSample: number | null): Partial<MatchupMatrixLabels> {
+function matrixLabels(minSample: number | null, counted: boolean): Partial<MatchupMatrixLabels> {
   const sample = minSample ? `от ${minSample} игр` : '';
   return {
     title: 'Ваш архетип',
@@ -21,12 +23,14 @@ function matrixLabels(minSample: number | null): Partial<MatchupMatrixLabels> {
     listTitle: archetype => `${archetype} против соперников`,
     cell: (archetype, opponent, rate, games) => `${archetype} против ${opponent}: ${rate}, ${games}`,
     noData: (archetype, opponent) => `${archetype} против ${opponent}: ${minSample
-      ? `меньше ${minSample} игр, источник не публикует винрейт` : 'нет данных'}`,
+      ? `меньше ${minSample} игр${counted ? '' : ', источник не публикует винрейт'}` : 'нет данных'}`,
     mirror: archetype => `${archetype} в зеркале: 50% по определению`,
     overallCell: (archetype, rate) => `${archetype} против меты: ${rate}`,
     versus: (archetype, opponent) => `${archetype} — ${opponent}`,
-    // `games` carries the confidence rank (see model/matrix.ts), formatted by the component.
-    games: rank => [sample, CONFIDENCE_LABEL[confidenceOfRank(Number(rank))]].filter(Boolean).join(' · '),
+    // `games` is the pair's games, or its confidence rank in payloads without them (see model/matrix.ts).
+    games: value => counted
+      ? `${value} игр · ${CONFIDENCE_LABEL[gamesConfidence(Number(value.replace(/\D/g, '')))]}`
+      : [sample, CONFIDENCE_LABEL[confidenceOfRank(Number(value))]].filter(Boolean).join(' · '),
     lowSample: 'редкая пара',
     favoured: 'Выгодно',
     unfavoured: 'Невыгодно',
@@ -60,16 +64,19 @@ export default function StandardMatchupMatrix({ data, labelOf, selected, onSelec
     share: archetype.share,
     image: archetype.classKey ? `/class_icon/ui/${archetype.classKey}-64.webp` : undefined,
   })), [matrix.archetypes]);
-  const labels = useMemo(() => matrixLabels(matrix.minSample), [matrix.minSample]);
+  const labels = useMemo(() => matrixLabels(matrix.minSample, matrix.counted), [matrix.minSample, matrix.counted]);
+  const periodLabel = data.period ? standardMetaPeriodLabel(data.period as StandardMetaPeriod) : '';
   // Picker options open inside this scope, so they read the parchment tokens.
   const [layer, setLayer] = useState<HTMLDivElement | null>(null);
 
   return <div className="standard-matchup-matrix">
     <PortalContainerContext.Provider value={layer}>
       <MatchupMatrix champions={champions} matchups={matrix.pairs} selected={selected}
-        onSelectedChange={onSelectedChange} minGames={MATRIX_MIN_GAMES} headingLevel={3} locale="ru-RU"
+        onSelectedChange={onSelectedChange} minGames={matrix.minGames} headingLevel={3} locale="ru-RU"
         labels={labels}
-        subtitle={`${data.formatLabel} · ${data.rankLabel}. Пустые клетки — мало игр, приглушены пары редких архетипов.`} />
+        subtitle={[data.formatLabel, data.rankLabel, periodLabel].filter(Boolean).join(' · ') + (matrix.counted
+          ? `. Пустые клетки — меньше ${matrix.minSample ?? 1} игр, приглушены пары, где меньше 100 игр.`
+          : '. Пустые клетки — мало игр, приглушены пары редких архетипов.')} />
     </PortalContainerContext.Provider>
     <div ref={setLayer} className="standard-matchup-matrix__layer" />
   </div>;

@@ -3,10 +3,61 @@ import express, { type RequestHandler } from 'express';
 import {
   createStandardMatchupRouter,
   excludeOtherStandardMatchups,
+  parseStandardMatchupSlice,
+  standardMatchupSliceDependencies,
+  standardMatchupSliceKey,
+  standardMatchupSlicePath,
   transformHsguruMatchups,
-  type StandardMatchupFormat,
+  transformHsguruMatchupSlice,
   type StandardMatchupRouterDependencies,
+  type StandardMatchupSlice,
 } from '../server/standardMatchupRoutes.js';
+
+// A request names a slice; unknown values fall back to the defaults and never reach the source.
+assert.deepEqual(parseStandardMatchupSlice({}), { format: 'standard', rank: 'legend', period: null, minGames: 25 });
+assert.deepEqual(parseStandardMatchupSlice({
+  format: 'wild', rank: 'top_legend', period: 'black_empire_ban', min_games: '100',
+}), { format: 'wild', rank: 'top_legend', period: 'black_empire_ban', minGames: 100 });
+assert.deepEqual(parseStandardMatchupSlice({
+  format: 'twist', rank: 'top_100', period: '../admin', min_games: '7',
+}), { format: 'standard', rank: 'legend', period: null, minGames: 25 });
+assert.equal(standardMatchupSlicePath(parseStandardMatchupSlice({ rank: 'all', period: 'past_day', min_games: '1' })),
+  'v1/hsguru/matchups?format=standard&rank=all&min_games=1&limit=60&period=past_day');
+assert.equal(standardMatchupSlicePath(parseStandardMatchupSlice({})),
+  'v1/hsguru/matchups?format=standard&rank=legend&min_games=25&limit=60', 'no period asks the source default (Bans)');
+
+// The unified API: archetypes by games, pairs with games; a pair below the minimum is null.
+const slice = transformHsguruMatchupSlice({
+  data: {
+    period: 'black_empire_ban', checked_at: '2026-10-25T16:31:28Z', total_games: 1430,
+    source_url: 'https://www.hsguru.com/matchups?format=2&rank=legend&period=black_empire_ban',
+    archetypes: [
+      { archetype: 'Aggro Warlock', class: 'WARLOCK', games: 1000, winrate: 56.5, popularity_pct: 69.93 },
+      { archetype: "C'Thun DH", class: 'DEMONHUNTER', games: 400, winrate: 51.2, popularity_pct: 27.97 },
+    ],
+    matchups: [
+      { archetype: 'Aggro Warlock', opponent: 'Aggro Warlock', winrate: 50, games: 300 },
+      { archetype: 'Aggro Warlock', opponent: "C'Thun DH", winrate: 54.2, games: 120 },
+      { archetype: "C'Thun DH", opponent: 'Aggro Warlock', winrate: 45.8, games: 120 },
+    ],
+  },
+  meta: { available: { periods: ['past_day', 'black_empire', 'black_empire_ban', 'bad period'],
+    current_period: 'black_empire', default_period: 'black_empire_ban' } },
+}, parseStandardMatchupSlice({ min_games: '100' }), { formatLabel: 'Стандарт', sourceId: 'hsguru_matchups',
+  translationSource: 'test', translate: name => (name === 'Aggro Warlock' ? 'Агро-чернокнижник' : name) });
+assert.equal(slice.rank, 'legend');
+assert.equal(slice.rankLabel, 'Легенда');
+assert.equal(slice.period, 'black_empire_ban');
+assert.equal(slice.minGames, 100);
+assert.equal(slice.totalGames, 1430);
+assert.deepEqual(slice.available.periods, ['past_day', 'black_empire', 'black_empire_ban']);
+assert.deepEqual(slice.columns.map(column => [column.name, column.classKey, column.popularity, column.games]), [
+  ['Aggro Warlock', 'warlock', '69.9%', 1000], ["C'Thun DH", 'demonhunter', '28.0%', 400],
+]);
+assert.equal(slice.rows[0].archetypeLabel, 'Агро-чернокнижник');
+assert.deepEqual(slice.rows.map(row => row.cells.map(cell => [cell.winrate, cell.games])), [
+  [[50, 300], [54.2, 120]], [[45.8, 120], [null, 0]],
+]);
 
 const filteredFixture = excludeOtherStandardMatchups({
   columns: [
@@ -72,10 +123,23 @@ assert.deepEqual(hsguru.rows.map(row => [row.archetype, row.classKey, row.winrat
 assert.equal(hsguru.rows[1].archetypeLabel, 'Рыцарь смерти на возвещении');
 assert.equal(hsguru.sourceUrl, 'https://www.hsguru.com/matchups?min_matchup_sample=25&rank=legend');
 
+// The composition root names only its origin, fetcher and labels.
+const fetchedUrls: string[] = [];
+const sliceSource = standardMatchupSliceDependencies({
+  origin: 'https://api.example.test/', formatLabel: format => format.toUpperCase(),
+  fetchJson: async url => { fetchedUrls.push(url); return { data: { archetypes: [{ archetype: 'Tempo Rogue', games: 5 }] } }; },
+  translate: (name, map) => map?.[name] ?? name,
+});
+const sourced = sliceSource.transform(await sliceSource.fetchPayload(parseStandardMatchupSlice({ format: 'wild' })),
+  parseStandardMatchupSlice({ format: 'wild' }), { source: 'db', map: { 'Tempo Rogue': 'Темп-разбойник' } });
+assert.deepEqual(fetchedUrls, ['https://api.example.test/v1/hsguru/matchups?format=wild&rank=legend&min_games=25&limit=60']);
+assert.equal(sourced.formatLabel, 'WILD');
+assert.equal(sourced.rows[0].archetypeLabel, 'Темп-разбойник');
+
 let now = 1_000;
 let redisMode: 'miss' | 'hit' | 'error' = 'miss';
 let originFails = false;
-const fetchFormats: StandardMatchupFormat[] = [];
+const fetchFormats: string[] = [];
 const translationTimes: number[] = [];
 const redisWrites: any[] = [];
 const errors: Array<{ scope: string; error: unknown }> = [];
@@ -90,7 +154,7 @@ const accessGuard: RequestHandler = (request, response, next) => {
 const dependencies: StandardMatchupRouterDependencies = {
   accessGuard,
   memoryCache,
-  redisKey: format => `standard:${format}`,
+  redisKey: slice => `standard:${standardMatchupSliceKey(slice)}`,
   redisGet: async key => {
     if (redisMode === 'error') throw new Error('redis secret');
     if (redisMode === 'hit') {
@@ -103,20 +167,20 @@ const dependencies: StandardMatchupRouterDependencies = {
     return null;
   },
   redisSet: async (key, data, etag, ttl) => { redisWrites.push({ key, data, etag, ttl }); },
-  fetchPayload: async format => {
-    fetchFormats.push(format);
+  fetchPayload: async (slice: StandardMatchupSlice) => {
+    fetchFormats.push(standardMatchupSliceKey(slice));
     if (originFails) throw new Error('origin secret');
-    return { format };
+    return { format: slice.format };
   },
   getTranslations: async timestamp => {
     translationTimes.push(timestamp);
     return { source: 'translations' };
   },
-  transform: (payload, format) => ({
+  transform: (payload, slice) => ({
     rows: [{ id: `${payload.format}-row` }],
     columns: ['left', 'right'],
     translationSource: 'local',
-    updatedAt: format === 'wild' ? '2026-07-12T12:00:00.000Z' : null,
+    updatedAt: slice.format === 'wild' ? '2026-07-12T12:00:00.000Z' : null,
   }),
   memoryTtlMs: 100,
   redisTtlSeconds: 600,
@@ -157,7 +221,7 @@ try {
   assert.equal(denied.status, 403);
   assert.deepEqual(fetchFormats, []);
 
-  memoryCache.set('standard', {
+  memoryCache.set('standard|legend|default|25', {
     data: { rows: [{ id: 'memory' }], columns: [], translationSource: 'memory' },
     etag: '"memory-standard"',
     expiresAt: 1_100,
@@ -180,19 +244,27 @@ try {
   assert.equal(redis.headers.get('x-data-cache'), 'redis');
   assert.equal(redis.headers.get('etag'), '"redis-wild"');
   assert.equal((await redis.json() as any).rows[0].id, 'wild');
-  assert.equal(memoryCache.get('wild')?.expiresAt, 1_100);
+  assert.equal(memoryCache.get('wild|legend|default|25')?.expiresAt, 1_100);
 
   memoryCache.clear();
   redisMode = 'error';
   const fromOrigin = await get('/standard/matchups?format=wild', { 'X-Test-Access': 'allowed' });
   assert.equal(fromOrigin.status, 200);
   assert.equal(fromOrigin.headers.get('x-data-cache'), 'origin');
-  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v7-wild-/);
+  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v8-wild-legend-default-25-/);
   assert.equal((await fromOrigin.json() as any).rows[0].id, 'wild-row');
   await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(fetchFormats, ['wild']);
+  assert.deepEqual(fetchFormats, ['wild|legend|default|25']);
   assert.deepEqual(translationTimes, [1_000]);
-  assert.equal(redisWrites[0].key, 'standard:wild:without-other-v2');
+  assert.equal(redisWrites[0].key, 'standard:wild|legend|default|25:without-other-v3');
+
+  // Each slice has its own cache entry and origin request.
+  const ranked = await get('/standard/matchups?format=wild&rank=all&period=past_day&min_games=100',
+    { 'X-Test-Access': 'allowed' });
+  assert.equal(ranked.headers.get('x-data-cache'), 'origin');
+  assert.match(ranked.headers.get('etag') || '', /^"standard-matchups-v8-wild-all-past_day-100-/);
+  assert.equal(fetchFormats.at(-1), 'wild|all|past_day|100');
+  assert.ok(memoryCache.has('wild|all|past_day|100'));
   assert.equal(redisWrites[0].ttl, 600);
   assert.equal(errors[0].scope, 'redis-read');
 

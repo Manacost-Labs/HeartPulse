@@ -381,6 +381,7 @@
         "tests/standard-matchups-client.test.ts",
         "tests/standard-matchups-matrix.test.ts",
         "tests/standard-matchups-overview.test.ts",
+        "tests/standard-matchups-slice.test.ts",
         "tests/standard-meta-routes.test.ts",
         "tests/patch-notes.test.ts",
         "tests/radar.test.ts",

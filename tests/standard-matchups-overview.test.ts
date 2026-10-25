@@ -56,4 +56,13 @@ const tied = standardMatchupOverview({ ...data, rows: [{ ...data.rows[0], cells:
 assert.equal(tied?.worst, null, 'a worst pair as good as the best is not shown as the worst');
 assert.equal(standardMatchupOverview(data, 'Unknown', labelOf), null);
 
+// With the games of each pair, confidence follows them instead of the shares.
+const counted = standardMatchupOverview({ ...data, rows: [{ ...data.rows[0], cells: [
+  { opponent: "C'Thun DH", winrate: 61, games: 60 }, { opponent: 'Void DH', winrate: 41, games: 700 },
+  { opponent: 'Mill Paladin', winrate: 30, games: 150 }] }] }, 'Quest Priest', labelOf);
+assert.deepEqual(counted?.opponents.map(opponent => [opponent.id, opponent.games, opponent.confidence]), [
+  ["C'Thun DH", 60, 'low'], ['Void DH', 700, 'high'], ['Mill Paladin', 150, 'medium'],
+]);
+assert.equal(counted?.best?.id, 'Void DH', 'a pair under 100 games is not the headline best while trusted ones exist');
+
 console.log('standard matchup overview model passed');

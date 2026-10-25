@@ -74,6 +74,8 @@ import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRo
 import {
   createStandardMatchupRouter,
   excludeOtherStandardMatchups,
+  standardMatchupSliceDependencies,
+  standardMatchupSliceKey,
   transformHsguruMatchups,
   type StandardMatchupFormat,
 } from './standardMatchupRoutes.js';
@@ -7339,12 +7341,12 @@ app.use('/api', createClassMatchupRouter({
 app.use('/api', createStandardMatchupRouter({
   accessGuard: requireStandardAccess,
   memoryCache: standardMatchupsApiCache,
-  redisKey: format => redisDataKey('standard-matchups', format),
+  redisKey: slice => redisDataKey('standard-matchups', standardMatchupSliceKey(slice)),
   redisGet: redisGetCache,
   redisSet: redisSetCache,
-  fetchPayload: format => fetchDataset(STANDARD_MATCHUPS_DATASET_BY_FORMAT[format]),
   getTranslations: getStandardArchetypeTranslations,
-  transform: transformStandardMatchups,
+  ...standardMatchupSliceDependencies({ origin: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN,
+    fetchJson: fetchDataset, formatLabel: format => STANDARD_MATCHUPS_FORMAT_LABEL[format], translate: archetypeLabel }),
   memoryTtlMs: EXTERNAL_DATASET_CACHE_MS,
   redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
   cacheHeader: CACHE_1H,

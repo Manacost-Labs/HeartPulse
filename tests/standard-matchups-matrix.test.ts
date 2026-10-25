@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  CONFIDENCE_RANK, MATRIX_MIN_GAMES, confidenceOfRank, pairConfidence, standardMatrix,
+  CONFIDENCE_GAMES, CONFIDENCE_RANK, MATRIX_MIN_GAMES, confidenceOfRank, gamesConfidence, pairConfidence, standardMatrix,
 } from '../src/modules/standardMatchups/model/matrix';
 import type { StandardMatchupsData } from '../src/modules/standardMatchups/model/types';
 
@@ -48,5 +48,20 @@ assert.equal(pairConfidence(undefined, 9), 'low', 'an archetype without populari
 assert.ok(CONFIDENCE_RANK.low < MATRIX_MIN_GAMES && CONFIDENCE_RANK.medium >= MATRIX_MIN_GAMES,
   'only low-confidence pairs fall under the matrix sample threshold');
 assert.equal(standardMatrix({ ...data, sourceUrl: 'not a url' }, name => name).minSample, null);
+
+assert.equal(matrix.counted, false, 'payloads without games rank pairs by shares');
+
+// Unified slices carry the games of every pair: the matrix shows them and mutes pairs under 100 games.
+const counted = standardMatrix({ ...data, minGames: 10, rows: data.rows.map(row => ({ ...row,
+  cells: row.cells.map(cell => ({ ...cell, games: cell.winrate === null ? 0 : cell.opponent === 'Mill Paladin' ? 40 : 800 })) })) },
+name => name);
+assert.equal(counted.counted, true);
+assert.equal(counted.minSample, 10, 'the slice minimum wins over the source URL');
+assert.equal(counted.minGames, CONFIDENCE_GAMES.medium);
+assert.deepEqual(counted.pairs.map(pair => [pair.a, pair.b, pair.games]), [
+  ['Quest Priest', 'Harold DK', 800], ['Quest Priest', 'Mill Paladin', 40],
+  ['Harold DK', 'Quest Priest', 800], ['Mill Paladin', 'Quest Priest', 800],
+]);
+assert.deepEqual([gamesConfidence(99), gamesConfidence(100), gamesConfidence(500)], ['low', 'medium', 'high']);
 
 console.log('standard matchup matrix adapter passed');

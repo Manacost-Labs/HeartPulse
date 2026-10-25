@@ -1,4 +1,4 @@
-import type { StandardMatchupsData, StandardMatchupsFormat } from './types';
+import { STANDARD_MATCHUPS_RANKS, type StandardMatchupsData, type StandardMatchupsFormat } from './types';
 
 export type StandardMatchupsState = {
   status: 'ready' | 'empty' | 'stale' | 'error' | 'denied';
@@ -14,10 +14,19 @@ const CLASS_KEYS = new Set(['deathknight', 'demonhunter', 'druid', 'hunter', 'ma
 // Optional: responses cached before the field existed still parse.
 const classKey = (value: unknown) => value === undefined || value === null
   || (typeof value === 'string' && CLASS_KEYS.has(value));
+const RANKS = new Set<string>(STANDARD_MATCHUPS_RANKS);
+const games = (value: unknown) => value === undefined
+  || (typeof value === 'number' && Number.isInteger(value) && value >= 0);
+const strings = (value: unknown) => Array.isArray(value) && value.every(item => typeof item === 'string');
+const available = (value: unknown) => value === undefined || (object(value)
+  && strings(value.ranks) && strings(value.periods)
+  && Array.isArray(value.minGames) && value.minGames.every(item => typeof item === 'number'));
 
 /** Check the protected matrix before caching or rendering it for a subscriber. */
 export function parseStandardMatchups(value: unknown, expected: StandardMatchupsFormat): StandardMatchupsData | null {
-  if (!object(value) || value.format !== expected || value.rank !== 'legend'
+  if (!object(value) || value.format !== expected || typeof value.rank !== 'string' || !RANKS.has(value.rank)
+    || (value.period !== undefined && value.period !== null && typeof value.period !== 'string')
+    || !games(value.minGames) || !available(value.available)
     || value.source !== 'hsguru' || typeof value.formatLabel !== 'string'
     || typeof value.rankLabel !== 'string' || !Array.isArray(value.columns)
     || !Array.isArray(value.rows)
@@ -26,14 +35,14 @@ export function parseStandardMatchups(value: unknown, expected: StandardMatchups
   for (const column of value.columns) {
     if (!object(column) || typeof column.name !== 'string' || !column.name
       || (column.popularity !== null && typeof column.popularity !== 'string')
-      || !classKey(column.classKey)) return null;
+      || !classKey(column.classKey) || !games(column.games)) return null;
   }
   for (const row of value.rows) {
     if (!object(row) || typeof row.archetype !== 'string' || !row.archetype
-      || !rate(row.winrate) || !Array.isArray(row.cells) || !classKey(row.classKey)) return null;
+      || !rate(row.winrate) || !Array.isArray(row.cells) || !classKey(row.classKey) || !games(row.games)) return null;
     for (const cell of row.cells) {
       if (!object(cell) || typeof cell.opponent !== 'string' || !cell.opponent
-        || !rate(cell.winrate)) return null;
+        || !rate(cell.winrate) || !games(cell.games)) return null;
     }
   }
   return value as unknown as StandardMatchupsData;

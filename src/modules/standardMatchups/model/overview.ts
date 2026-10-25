@@ -1,4 +1,4 @@
-import { pairConfidence, type StandardMatchupConfidence } from './matrix';
+import { gamesConfidence, pairConfidence, type StandardMatchupConfidence } from './matrix';
 import type { StandardMatchupsClassKey, StandardMatchupsData } from './types';
 
 /** Favoured from 52%, unfavoured below 48%; between them a pair is even. */
@@ -20,6 +20,8 @@ export interface StandardMatchupArchetype {
 export interface StandardMatchupOpponent extends StandardMatchupArchetype {
   /** Win rate of the picked archetype against this opponent, percent. */
   vs: number;
+  /** Games of the pair; undefined in payloads without them. */
+  games?: number;
   confidence: StandardMatchupConfidence;
   group: StandardMatchupGroup;
 }
@@ -126,7 +128,8 @@ export function standardMatchupOverview(
     opponents.push({
       ...base,
       vs: cell.winrate,
-      confidence: pairConfidence(archetype.share, base.share),
+      games: cell.games,
+      confidence: cell.games === undefined ? pairConfidence(archetype.share, base.share) : gamesConfidence(cell.games),
       group: matchupGroup(cell.winrate),
     });
   }
