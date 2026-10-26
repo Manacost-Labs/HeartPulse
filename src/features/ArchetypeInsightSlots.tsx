@@ -1,5 +1,5 @@
 import React from 'react';
-import { GitCompareArrows, Grid3x3, Radar } from 'lucide-react';
+import { ChevronDown, GitCompareArrows, Grid3x3, Radar } from 'lucide-react';
 import { ArchetypeDetailSection, useArchetypeCatalog } from '../modules/constructedArchetypes/public';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { Title, Words } from './archetypeSkeletonText';
@@ -73,18 +73,41 @@ export function RankHeatmapSection({ read }: { read: { loading: boolean; error: 
 
 type Build = { deckCode: string; games: number | null; winrate: number | null };
 
+/** While the insights chunk arrives: the picker strip and the head-to-head table it opens with. */
+function BuildComparisonReserve() {
+  return <LoadingSurface label="Загружаем сравнение сборок" quiet layout="rows" className="archetype-build-comparison-slot__reserve">
+    <LoadingBlock className="archetype-build-comparison-slot__picker" />
+    <LoadingBlock className="archetype-build-comparison-slot__table" />
+  </LoadingSurface>;
+}
+
+/**
+ * Collapsed until a reader opens it: the picker's deck renders and the two card lists are
+ * requested only then. The button is a disclosure (aria-expanded) for the region below it.
+ */
 export function BuildComparisonSection({ builds, format, archetype }: { builds: readonly Build[]; format: string; archetype: string }) {
+  const [open, setOpen] = React.useState(false);
+  // Once opened it stays mounted, so closing and reopening keeps the picked pair.
+  const [opened, setOpened] = React.useState(false);
   if (builds.length < 2) return null;
-  return <section className="archetype-insight archetype-compare" aria-labelledby="archetype-compare-title" data-tour-id="archetype-compare">
-    <header className="archetype-section-heading"><div>
-      <span className="archetypes-eyebrow"><GitCompareArrows size={15} /> Сборки</span>
-      <h2 id="archetype-compare-title">Сравнение сборок</h2>
-      <p>Отметьте сборки A и Б: винрейт с погрешностью, надёжность выборки, кривая маны и карты, которыми они отличаются.</p>
-    </div></header>
-    <div className="archetype-build-comparison-slot">
-      <React.Suspense fallback={<LoadingBlock className="archetype-build-comparison-slot__reserve" />}>
+  return <section className="archetype-insight archetype-compare" aria-labelledby="archetype-compare-title" data-tour-id="archetype-compare"
+    data-open={open || undefined}>
+    <header className="archetype-section-heading">
+      <div>
+        <span className="archetypes-eyebrow"><GitCompareArrows size={15} aria-hidden="true" /> Сборки</span>
+        <h2 id="archetype-compare-title">Сравнение сборок</h2>
+        <p>Выберите две из {builds.length} сборок: винрейт с погрешностью, надёжность выборки, кривая маны и карты, которыми они отличаются.</p>
+      </div>
+      <button type="button" className="archetype-compare__toggle" aria-expanded={open} aria-controls="archetype-compare-content"
+        onClick={() => { setOpened(true); setOpen(value => !value); }}>
+        {open ? 'Свернуть' : 'Сравнить сборки'}
+        <ChevronDown size={17} aria-hidden="true" />
+      </button>
+    </header>
+    <div id="archetype-compare-content" className="archetype-build-comparison-slot" hidden={!open}>
+      {opened ? <React.Suspense fallback={<BuildComparisonReserve />}>
         <LazyComparison builds={builds} format={format} archetype={archetype} />
-      </React.Suspense>
+      </React.Suspense> : null}
     </div>
   </section>;
 }

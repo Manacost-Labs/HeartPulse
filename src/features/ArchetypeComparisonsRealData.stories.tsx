@@ -43,15 +43,37 @@ export const Gallery: Story = {
   render: () => <section className="archetype-builds"><ConstructedArchetypeDeckGallery builds={item.builds.slice(0, 6)} format="wild" archetype={item.archetype} classKey="shaman" /></section>,
 };
 
+/** As the page opens it: the heading and one button; nothing of the comparison is requested yet. */
+export const BuildsCollapsed: Story = {
+  render: () => <BuildComparisonSection builds={item.builds} format="wild" archetype={item.archetype} />,
+  play: async ({ canvas, canvasElement }) => {
+    const toggle = canvas.getByRole('button', { name: 'Сравнить сборки' });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(canvasElement.querySelector('#archetype-compare-content')).not.toBeVisible();
+    await expect(canvasElement.querySelector('.build-picker')).toBeNull();
+  },
+};
+
+const openComparison = async (canvas: { getByRole: (role: string, options: { name: string }) => HTMLElement }) => {
+  await userEvent.click(canvas.getByRole('button', { name: 'Сравнить сборки' }));
+};
+
 /** #1 (4 050 games, 61.5%) against #2 (2 263, 63.5%): the gap is inside both intervals. */
 export const Builds: Story = {
   render: () => <BuildComparisonSection builds={item.builds} format="wild" archetype={item.archetype} />,
+  play: async ({ canvas }) => {
+    await openComparison(canvas);
+    await expect(canvas.getByRole('button', { name: 'Свернуть' })).toHaveAttribute('aria-expanded', 'true');
+    await waitFor(() => expect(canvas.getByRole('img', { name: /^Кривая маны/ })).toBeVisible());
+    await expect(canvas.getByRole('img', { name: /^95% интервал винрейта: #1 60,0–63,0%, #2 61,5–65,5%$/ })).toBeVisible();
+  },
 };
 
-/** Picking: Б moves to #3, then A takes #3 and the sides swap. */
+/** Picking: Б moves to #3, then A takes #3 and the sides swap; the swap button trades them back. */
 export const BuildsPicking: Story = {
   render: () => <BuildComparisonSection builds={item.builds} format="wild" archetype={item.archetype} />,
   play: async ({ canvas }) => {
+    await openComparison(canvas);
     await expect(await canvas.findByText('В пределах погрешности')).toBeVisible();
     await expect(canvas.getByText('#1 надёжнее · ×1,8')).toBeVisible();
     await waitFor(() => expect(canvas.getByRole('img', { name: /^Кривая маны/ })).toBeVisible());
@@ -60,6 +82,30 @@ export const BuildsPicking: Story = {
     await expect(await canvas.findByRole('heading', { name: /Только в #3/ })).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Сборка #3 слева (A)' }));
     await expect(canvas.getByRole('button', { name: 'Сборка #1 справа (Б)' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(canvas.getByRole('button', { name: 'Поменять A и Б местами' }));
+    await expect(canvas.getByRole('button', { name: 'Сборка #1 слева (A)' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas.getByRole('button', { name: 'Сборка #3 справа (Б)' })).toHaveAttribute('aria-pressed', 'true');
+    // Closing keeps the pair: reopening shows the same two builds.
+    await userEvent.click(canvas.getByRole('button', { name: 'Свернуть' }));
+    await openComparison(canvas);
+    await expect(canvas.getByRole('button', { name: 'Сборка #3 справа (Б)' })).toHaveAttribute('aria-pressed', 'true');
+  },
+};
+
+/** A list the server does not answer: the head-to-head table stays, the curve area offers a retry. */
+export const BuildsListFailed: Story = {
+  render: () => <BuildComparisonSection builds={item.builds} format="wild" archetype="Story Failing Lists" />,
+  beforeEach: () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => new URL(String(input), window.location.origin).pathname === '/api/deck/resolve'
+      ? new Response('{"error":"Не удалось разобрать колоду"}', { status: 503, headers: { 'Content-Type': 'application/json' } })
+      : original(input, init)) as typeof fetch;
+    return () => { globalThis.fetch = original; };
+  },
+  play: async ({ canvas }) => {
+    await openComparison(canvas);
+    await expect(await canvas.findByRole('alert')).toHaveTextContent('Не удалось загрузить составы сборок.');
+    await expect(canvas.getByRole('button', { name: 'Повторить' })).toBeVisible();
   },
 };
 

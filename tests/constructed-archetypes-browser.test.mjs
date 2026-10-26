@@ -126,7 +126,13 @@ try {
   assert.match(await page.$eval('.archetype-radar__summary', node => node.textContent), /^Воровской Жрец /);
   assert.match(await page.$eval('.profile-h2h', node => node.textContent), /Матчапы HSGuru сейчас недоступны/,
     'without a signed-in account the matchup table is not requested');
+  // The build comparison starts collapsed: nothing of it is rendered or requested until it is opened.
   await page.$eval('.archetype-compare', section => section.scrollIntoView());
+  assert.equal(await page.$eval('.archetype-compare__toggle', button => button.getAttribute('aria-expanded')), 'false');
+  assert.equal(await page.$('.archetype-build-comparison'), null, 'the closed comparison renders no picker');
+  await page.focus('.archetype-compare__toggle');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.$eval('.archetype-compare__toggle', button => button.getAttribute('aria-expanded')), 'true');
   await page.waitForSelector('.archetype-build-comparison .build-head-to-head');
   await page.waitForSelector('.archetype-build-comparison .build-curve');
   assert.equal(await page.$$eval('.build-picker > li', cards => cards.length), 14, 'every build is a picker card');
@@ -137,6 +143,11 @@ try {
   assert.equal(await page.evaluate(() =>
     document.querySelector('.archetype-builds').compareDocumentPosition(document.querySelector('.archetype-history')) & Node.DOCUMENT_POSITION_FOLLOWING
   ), 4, 'the independently loaded builds precede optional history');
+  assert.deepEqual(await page.$$eval(
+    '.archetype-builds, .archetype-compare, .constructed-analysis-stack, .archetype-ranks, .archetype-radar-section, .archetype-history, .archetype-methodology',
+    nodes => nodes.map(node => node.className.split(' ').find(name => /^(archetype-(builds|compare|ranks|radar-section|history|methodology)|constructed-analysis-stack)$/.test(name))),
+  ), ['archetype-builds', 'archetype-compare', 'constructed-analysis-stack', 'archetype-ranks', 'archetype-radar-section', 'archetype-history', 'archetype-methodology'],
+  'rank winrates follow the mulligan and the history comes second to last');
   assert.equal(await page.$('.archetype-main-build'), null, 'there is no separate main build block');
   assert.equal(await page.$eval('.archetype-builds .archetype-deck-card__number', node => node.textContent), '#1',
     'the gallery starts with the largest-sample build');

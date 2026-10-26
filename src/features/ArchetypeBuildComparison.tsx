@@ -1,96 +1,43 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { MetricComparison, type ComparisonMetric } from '../vendor/valyro-ui/charts/MetricComparison';
-import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
-import { publicResourceImageUrl } from '../publicResourceUrl';
-import { cachedDeckRender, requestDeckRender } from './deckrender/deckRenderClient';
+import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { CardTile } from './ConstructedArchetypeCardStatsCells';
 import { MANA_CURVE_LABELS } from './archetypeInsightsModel';
 import {
-  averageCost, deckDifference, deckManaCurve, sampleVerdict, winrateVerdict, type ComparedDeckCard,
+  averageCost, deckDifference, deckManaCurve, intervalAxis, sampleVerdict, winrateVerdict, type ComparedDeckCard,
 } from './archetypeComparisonModel';
+import { useBuildCards } from './archetypeBuildDecks';
+import { BuildPicker, count, percent, type Build, type Side } from './ArchetypeBuildPicker';
 import '../vendor/varylo-ui/styles/index.css';
 import './archetypeVaryloTheme.css';
 import './ConstructedArchetypeCardStats.css';
 import './ArchetypeComparisons.css';
 
-type Build = { deckCode: string; games: number | null; winrate: number | null };
-type Side = 'left' | 'right';
-
 const number = (value: number, digits = 0) => value.toLocaleString('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: digits });
-const percent = (value: number | null) => value === null || !Number.isFinite(value) ? '—' : `${number(value, 1)}%`;
-const count = (value: number | null) => value === null || !Number.isFinite(value) ? '—' : number(Math.round(value));
-/** The gallery renders each build under this name, so the picker reuses its cached render. */
-const renderName = (archetype: string, index: number) => `${archetype} — сборка ${index + 1}`;
 
-function useResolvedCards(build: Build | undefined, format: string, archetype: string) {
-  const [deck, setDeck] = useState<{ code: string; cards: ComparedDeckCard[] } | null>(null);
-  useEffect(() => {
-    if (!build) return undefined;
-    const controller = new AbortController();
-    const query = new URLSearchParams({ code: build.deckCode, format, archetype });
-    fetchWithDeadline(`/api/deck/resolve?${query}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal })
-      .then(response => response.ok ? response.json() : Promise.reject(new Error(String(response.status))))
-      .then((payload: { cards?: ComparedDeckCard[] }) => setDeck({ code: build.deckCode, cards: payload.cards ?? [] }))
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [build, format, archetype]);
-  return deck?.code === build?.deckCode ? deck.cards : null;
-}
+type Interval = { range: [number, number]; winrate: number | null; name: string };
 
-/** The build's parchment render, requested once the picker card scrolls near the viewport. */
-function useDeckThumbnail(deckCode: string, deckName: string) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [url, setUrl] = useState(() => cachedDeckRender(deckCode, deckName)?.previewImageUrl ?? '');
-  useEffect(() => {
-    const target = ref.current;
-    if (url || !target) return undefined;
-    let active = true;
-    const load = () => requestDeckRender(deckCode, deckName).then(asset => { if (active) setUrl(asset.previewImageUrl); }).catch(() => undefined);
-    if (typeof IntersectionObserver === 'undefined') { void load(); return () => { active = false; }; }
-    const observer = new IntersectionObserver(entries => {
-      if (!entries.some(entry => entry.isIntersecting)) return;
-      observer.disconnect();
-      void load();
-    }, { rootMargin: '200px' });
-    observer.observe(target);
-    return () => { active = false; observer.disconnect(); };
-  }, [deckCode, deckName, url]);
-  return { ref, src: url ? publicResourceImageUrl(url, { width: 240 }) : '' };
-}
-
-function BuildPickCard({ build, index, archetype, side, onPick }: {
-  build: Build; index: number; archetype: string; side: Side | null; onPick: (side: Side) => void;
-}) {
-  const thumbnail = useDeckThumbnail(build.deckCode, renderName(archetype, index));
-  const label = `Сборка #${index + 1}`;
-  return <li className="build-pick" data-side={side ?? undefined}>
-    <button type="button" className="build-pick__body" aria-label={`${label}: сравнить справа`} aria-pressed={side === 'right'}
-      disabled={side === 'left'} onClick={() => onPick('right')}>
-      <span ref={thumbnail.ref} className="build-pick__thumb">
-        {thumbnail.src ? <img src={thumbnail.src} alt="" width="120" height="90" loading="lazy" decoding="async" /> : null}
-      </span>
-      <span className="build-pick__number">#{index + 1}</span>
-      <span className="build-pick__stats"><b>{percent(build.winrate)}</b><small>{count(build.games)} игр</small></span>
-    </button>
-    <span className="build-pick__sides" role="group" aria-label={`${label}: сторона сравнения`}>
-      <button type="button" data-side="left" aria-pressed={side === 'left'} aria-label={`${label} слева (A)`} onClick={() => onPick('left')}>A</button>
-      <button type="button" data-side="right" aria-pressed={side === 'right'} aria-label={`${label} справа (Б)`} onClick={() => onPick('right')}>Б</button>
-    </span>
-  </li>;
-}
-
-/** Both 95% intervals on one axis: overlapping bars mean the gap is within the noise. */
-function IntervalChart({ left, right, leftLabel, rightLabel }: { left: [number, number]; right: [number, number]; leftLabel: string; rightLabel: string }) {
-  const low = Math.floor(Math.min(left[0], right[0]) - 1);
-  const high = Math.ceil(Math.max(left[1], right[1]) + 1);
-  const x = (value: number) => `${((value - low) / (high - low)) * 100}%`;
-  const bar = (interval: [number, number], side: Side, y: number) => <g data-side={side}>
-    <line x1={x(interval[0])} x2={x(interval[1])} y1={y} y2={y} className="interval-chart__range" />
-    <circle cx={x((interval[0] + interval[1]) / 2)} cy={y} r={3.5} className="interval-chart__point" />
+/**
+ * Both 95% intervals on one axis with whole-percent gridlines: overlapping bars mean the gap is
+ * within the noise. The point is the build's own winrate, which a Wilson interval does not centre.
+ */
+function IntervalChart({ left, right }: { left: Interval; right: Interval }) {
+  const axis = intervalAxis(left.range, right.range);
+  const share = (value: number) => ((value - axis.low) / (axis.high - axis.low)) * 100;
+  const x = (value: number) => `${share(value)}%`;
+  const bar = ({ range, winrate }: Interval, side: Side, y: number) => <g data-side={side}>
+    <line x1={x(range[0])} x2={x(range[1])} y1={y} y2={y} className="interval-chart__range" />
+    <circle cx={x(winrate ?? (range[0] + range[1]) / 2)} cy={y} r={4.5} className="interval-chart__point" />
   </g>;
-  return <span className="interval-chart" title={`95% интервал: ${leftLabel} ${number(left[0], 1)}–${number(left[1], 1)}%, ${rightLabel} ${number(right[0], 1)}–${number(right[1], 1)}%`}>
-    <svg width="100%" height={22} aria-hidden="true">{bar(left, 'left', 6)}{bar(right, 'right', 16)}</svg>
-    <span className="interval-chart__axis" aria-hidden="true"><span>{low}%</span><span>{high}%</span></span>
+  const text = ({ name, range }: Interval) => `${name} ${number(range[0], 1)}–${number(range[1], 1)}%`;
+  return <span className="interval-chart" role="img" aria-label={`95% интервал винрейта: ${text(left)}, ${text(right)}`}>
+    <svg width="100%" height={30} aria-hidden="true">
+      {axis.ticks.map(tick => <line key={tick} x1={x(tick)} x2={x(tick)} y1={0} y2={30} className="interval-chart__tick" />)}
+      {bar(left, 'left', 9)}{bar(right, 'right', 21)}
+    </svg>
+    <span className="interval-chart__axis" aria-hidden="true">
+      {axis.ticks.map(tick => <span key={tick} style={{ insetInlineStart: x(tick) }}>{tick}%</span>)}
+    </span>
   </span>;
 }
 
@@ -105,7 +52,8 @@ function headToHead(left: Build, right: Build, leftCards: ComparedDeckCard[] | n
     value: left.winrate ?? 0,
     previous: right.winrate ?? 0,
     format: value => percent(value),
-    chart: verdict ? <IntervalChart left={verdict.left} right={verdict.right} leftLabel={names[0]} rightLabel={names[1]} /> : undefined,
+    chart: verdict ? <IntervalChart left={{ range: verdict.left, winrate: left.winrate, name: names[0] }}
+      right={{ range: verdict.right, winrate: right.winrate, name: names[1] }} /> : undefined,
     badge: verdict?.leader
       ? { label: `${name(verdict.leader)} выше на ${number(Math.abs(verdict.gap), 1)} п.п.`, color: 'green', direction: verdict.leader === 'left' ? 'up' : 'down',
         title: 'Интервалы не пересекаются: разница больше погрешности выборки' }
@@ -177,22 +125,33 @@ function CardDifference({ left, right, names }: { left: ComparedDeckCard[]; righ
   </div>;
 }
 
+/** While both lists resolve: the curve and the three difference columns, or the failure with a retry. */
+function DetailsPending({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
+  if (failed) return <div className="build-details-failed" role="alert">
+    <p>Не удалось загрузить составы сборок.</p>
+    <button type="button" className="build-details-failed__retry" onClick={onRetry}>Повторить</button>
+  </div>;
+  return <LoadingSurface label="Загружаем составы сборок" quiet layout="rows" className="build-details-loading">
+    <LoadingBlock className="build-details-loading__curve" />
+    <span className="build-details-loading__diff"><LoadingBlock /><LoadingBlock /><LoadingBlock /></span>
+  </LoadingSurface>;
+}
+
 /** Two builds of the archetype: picked as cards, compared head to head, by mana curve and by cards. */
 export function BuildComparison({ builds, format, archetype }: { builds: readonly Build[]; format: string; archetype: string }) {
   const [sides, setSides] = useState<[number, number]>([0, 1]);
   const [left, right] = sides;
-  const leftCards = useResolvedCards(builds[left], format, archetype);
-  const rightCards = useResolvedCards(builds[right], format, archetype);
+  const leftRead = useBuildCards(builds[left]?.deckCode, format, archetype);
+  const rightRead = useBuildCards(builds[right]?.deckCode, format, archetype);
+  const leftCards = leftRead.cards;
+  const rightCards = rightRead.cards;
   const names: [string, string] = [`#${left + 1}`, `#${right + 1}`];
   const pick = (index: number, side: Side) => setSides(([a, b]) => side === 'left'
     ? (index === b ? [b, a] : [index, b])
     : (index === a ? [b, a] : [a, index]));
   if (!builds[left] || !builds[right]) return null;
   return <div className="archetype-build-comparison hp-varylo">
-    <ol className="build-picker" aria-label="Выберите сборки: A — слева, Б — справа">
-      {builds.map((build, index) => <BuildPickCard key={build.deckCode} build={build} index={index} archetype={archetype}
-        side={index === left ? 'left' : index === right ? 'right' : null} onPick={side => pick(index, side)} />)}
-    </ol>
+    <BuildPicker builds={builds} archetype={archetype} sides={sides} onPick={pick} onSwap={() => setSides(([a, b]) => [b, a])} />
     <MetricComparison
       className="build-head-to-head"
       metrics={headToHead(builds[left], builds[right], leftCards, rightCards, names)}
@@ -206,6 +165,6 @@ export function BuildComparison({ builds, format, archetype }: { builds: readonl
     {leftCards && rightCards ? <>
       <ManaCurveOverlay left={deckManaCurve(leftCards)} right={deckManaCurve(rightCards)} names={names} />
       <CardDifference left={leftCards} right={rightCards} names={names} />
-    </> : <p className="archetype-insight-note build-comparison__pending">Кривая маны и отличия по картам появятся, когда загрузятся составы обеих сборок.</p>}
+    </> : <DetailsPending failed={leftRead.failed || rightRead.failed} onRetry={() => { if (leftRead.failed) leftRead.retry(); if (rightRead.failed) rightRead.retry(); }} />}
   </div>;
 }

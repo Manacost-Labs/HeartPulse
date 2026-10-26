@@ -605,6 +605,19 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
 
       {fullAccess && !core.loading ? <BuildComparisonSection builds={item.builds} format={item.format} archetype={item.archetype} /> : null}
 
+      {fullAccess && !core.loading ? <ArchetypeDetailSection title="Матчапы и муллиган" loading={analysisRead.loading}
+        error={analysisRead.error} onRetry={analysisRead.retry} skeleton={<ArchetypeAnalysisLoading />}>
+        <RecoverableSurfaceBoundary scope="constructed-archetype-analysis" title="Аналитика архетипа временно недоступна">
+          <React.Suspense fallback={<ArchetypeAnalysisReserve />}>
+            <ConstructedArchetypeAnalysis analysis={detail.analysis} format={item.format} slug={item.slug} />
+          </React.Suspense>
+        </RecoverableSurfaceBoundary>
+      </ArchetypeDetailSection> : null}
+
+      {fullAccess && !core.loading ? <RankHeatmapSection read={ranksRead} /> : null}
+
+      {fullAccess && !core.loading ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)} /> : null}
+
       {fullAccess && !core.loading ? (
         <ArchetypeDetailSection title="История архетипа" loading={historyRead.loading} error={historyRead.error} onRetry={historyRead.retry}
           skeleton={<ArchetypeHistorySkeleton />}>
@@ -621,20 +634,6 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
         </ArchetypeDetailSection>
       ) : null}
-
-      {fullAccess && !core.loading ? <RankHeatmapSection read={ranksRead} /> : null}
-
-      {fullAccess && !core.loading ? <ArchetypeDetailSection title="Матчапы и муллиган" loading={analysisRead.loading}
-        error={analysisRead.error} onRetry={analysisRead.retry} skeleton={<ArchetypeAnalysisLoading />}>
-        <RecoverableSurfaceBoundary scope="constructed-archetype-analysis" title="Аналитика архетипа временно недоступна">
-          <React.Suspense fallback={<ArchetypeAnalysisReserve />}>
-            <ConstructedArchetypeAnalysis analysis={detail.analysis} format={item.format} slug={item.slug} />
-          </React.Suspense>
-        </RecoverableSurfaceBoundary>
-      </ArchetypeDetailSection> : null}
-
-
-      {fullAccess && !core.loading ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)} /> : null}
 
       {!core.loading ? <section className="archetype-methodology">
         <BarChart3 size={24} aria-hidden="true" />

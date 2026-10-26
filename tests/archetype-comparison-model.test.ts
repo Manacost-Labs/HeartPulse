@@ -3,6 +3,7 @@ import {
   averageCost,
   deckDifference,
   formatProfileValue,
+  intervalAxis,
   matchupBetween,
   profileComparison,
   profileSummary,
@@ -34,6 +35,11 @@ assert.equal(Number(close.gap.toFixed(1)), -2);
 const apart = winrateVerdict({ winrate: 56.3, games: 4_000 }, { winrate: 61.5, games: 4_050 });
 assert.equal(apart?.leader, 'right');
 assert.equal(winrateVerdict({ winrate: null, games: 10 }, { winrate: 50, games: 10 }), null);
+
+// The axis of the interval chart: whole-percent ends one point outside both intervals, readable ticks.
+assert.deepEqual(intervalAxis(close.left, close.right), { low: 58, high: 67, ticks: [58, 60, 62, 64, 66] });
+assert.deepEqual(intervalAxis([62.7, 63.5], [63.4, 64.4]).ticks, [61, 62, 63, 64, 65, 66], 'Zoolock #1 and #2: a five-point span keeps every point');
+assert.deepEqual(intervalAxis([30, 45], [60, 80]).ticks, [30, 40, 50, 60, 70, 80], 'a wide span falls back to ten-point steps');
 
 assert.deepEqual(sampleVerdict(4_050, 2_263)?.leader, 'left');
 assert.equal(sampleVerdict(1_000, 1_100)?.leader, null);
