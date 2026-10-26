@@ -386,15 +386,15 @@
 
 .guide-archive-reader {
   width: 100%;
-  max-width: min(100%, 1120px);
+  max-width: min(100%, 80ch);
   margin: 0 auto;
   border: 1px solid rgba(185, 139, 60, 0.3);
   border-radius: 20px;
   background: rgba(255, 252, 244, 0.96);
   color: #2c241c;
-  font-size: clamp(1.02rem, 1.55vw, 1.16rem);
-  line-height: 1.68;
-  padding: clamp(1.25rem, 4vw, 2.4rem);
+  font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  line-height: 1.75;
+  padding: clamp(1rem, 3vw, 2.5rem);
   box-shadow: 0 20px 46px rgba(61, 42, 30, 0.12);
   overflow: hidden;
 }
@@ -415,7 +415,7 @@
 }
 
 .guide-archive-reader p {
-  max-width: 920px;
+  max-width: 100%;
   margin: 0 auto 1.05rem;
 }
 
@@ -433,7 +433,7 @@
 .guide-archive-reader h3,
 .guide-archive-reader h4 {
   clear: both;
-  max-width: 920px;
+  max-width: 100%;
   margin: 2rem auto 0.85rem;
   color: #2f1b10;
   font-family: var(--font-display);
@@ -442,16 +442,16 @@
 }
 
 .guide-archive-reader h2 {
-  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
 }
 
 .guide-archive-reader h3 {
-  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  font-size: clamp(1.3rem, 2.5vw, 1.65rem);
 }
 
 .guide-archive-reader ul,
 .guide-archive-reader ol {
-  max-width: 920px;
+  max-width: 100%;
   padding-left: 1.45rem;
   margin: 0 auto 1.25rem;
 }
@@ -484,7 +484,7 @@
 }
 
 .guide-archive-reader p:empty,
-.guide-archive-reader a:empty,
+.guide-archive-reader a:not([id]):empty,
 .guide-archive-reader figure:empty {
   display: none;
 }
@@ -497,13 +497,12 @@
   width: auto;
   max-width: min(100%, 820px);
   height: auto;
-  max-height: 760px;
-  margin: 0 auto;
+  margin: 1.25rem auto;
   object-fit: contain;
   border-radius: 14px;
 }
 
-.guide-archive-reader a {
+.guide-archive-reader a[href] {
   color: #9b5d16;
   font-weight: 800;
   text-decoration-thickness: 0.08em;
@@ -568,4 +567,36 @@
   .guide-archive-pagination {
     flex-direction: column;
   }
+}
+
+/* The legacy CMS used images for bullets and buttons; article text stays in normal flow. */
+.guide-archive-reader [id] { scroll-margin-top: 6rem; }
+.guide-archive-reader a[id] { display: block; }
+.guide-archive-reader ul { list-style: disc; }
+.guide-archive-reader ol { list-style: decimal; }
+.guide-archive-reader li > p { margin-bottom: 0.45rem; }
+.guide-archive-reader > :first-child { margin-top: 0; }
+.guide-archive-reader > :last-child { margin-bottom: 0; }
+.guide-archive-reader img.guide-inline-image {
+  display: inline-block;
+  max-width: 2em;
+  max-height: 2em;
+  margin: 0 0.25em;
+  border-radius: 0;
+  vertical-align: middle;
+}
+.guide-archive-reader .guide-deck-code {
+  display: block;
+  padding: 0.75rem 1rem;
+  font-size: 0.85em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.guide-archive-reader a:not([href]) { color: inherit; font-weight: inherit; }
+.guide-archive-reader a[href]:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.guide-archive-reader figcaption { padding: 0.5rem; font-size: 0.875em; text-align: center; }
+@media (max-width: 480px) {
+  .guide-archive-grid { grid-template-columns: minmax(0, 1fr); }
+  .guide-archive-reader { padding-inline: 0.875rem; }
 }

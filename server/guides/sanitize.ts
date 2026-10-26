@@ -1,25 +1,30 @@
-const OLD_GUIDE_ALLOWED_TAGS = new Set([
+import sanitizeHtml from 'sanitize-html';
+
+const ALLOWED_TAGS = [
   'a', 'b', 'blockquote', 'br', 'code', 'div', 'em', 'figcaption', 'figure', 'h2', 'h3', 'h4', 'hr',
   'i', 'img', 'li', 'ol', 'p', 'pre', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'u', 'ul',
-]);
+];
+const NON_TEXT_TAGS = ['script', 'style', 'iframe', 'object', 'embed', 'form', 'button', 'select', 'textarea', 'canvas', 'svg', 'video', 'audio'];
 
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function sectionId(value: string): string {
+  return value && /^[\w-]{1,100}$/.test(value) ? `guide-section-${value}` : '';
 }
 
-function escapeAttribute(value: unknown): string {
-  return escapeHtml(value).replace(/`/g, '&#96;');
+function isDecoration(src: string): boolean {
+  const path = new URL(src).pathname.toLowerCase().replace(/%20/g, ' ');
+  return path.includes('/separations/') || path.includes('subpage-body-bg')
+    || /\/design\/user\/(?:bolt[\w ()-]*|fire|ashes_bulletpoint)\.png$/.test(path);
 }
 
-function htmlAttribute(attrs: string, name: string): string {
-  const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i');
-  const match = attrs.match(pattern);
-  return String(match?.[2] ?? match?.[3] ?? match?.[4] ?? '').trim();
+// Remove only empty wrappers, preserving named anchors, images and single-letter text.
+function removeEmptyWrappers(html: string): string {
+  let previous: string;
+  do {
+    previous = html;
+    html = html.replace(/<(p|div|span|em|i|b|strong|a)>(?:\s|&nbsp;|<br\s*\/?>)*<\/\1>/gi, '');
+    html = html.replace(/<a(?:\s+(?:href|target|rel)="[^"]*")*>\s*<\/a>/gi, '');
+  } while (html !== previous);
+  return html.replace(/(?:<br\s*\/?>\s*){3,}/gi, '<br><br>').trim();
 }
 
 export interface OldGuideSanitizer {
@@ -29,96 +34,73 @@ export interface OldGuideSanitizer {
 }
 
 export function createOldGuideSanitizer(publicUrl: string): OldGuideSanitizer {
-  const normalizedPublicUrl = String(publicUrl || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
-
-  function normalizeAssetUrl(rawValue: unknown): string {
-    const raw = String(rawValue ?? '').trim();
+  const base = String(publicUrl || 'https://old.kolodahearthstone.ru').replace(/\/$/, '') + '/';
+  function normalizeAssetUrl(value: unknown): string {
+    const raw = String(value ?? '').trim();
     if (!raw) return '';
-    if (raw.startsWith('//')) return `https:${raw}`;
     try {
-      const url = new URL(raw);
-      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
-    } catch {
-      const path = raw.startsWith('/') ? raw : `/${raw}`;
-      return `${normalizedPublicUrl}${path}`;
-    }
-  }
-
-  function normalizeLink(rawValue: unknown): string {
-    const raw = String(rawValue ?? '').trim();
-    if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('tel:')) return raw;
-    if (/^javascript:/i.test(raw)) return '#';
-    if (raw.startsWith('//')) return `https:${raw}`;
-    try {
-      const url = new URL(raw);
-      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '#';
-    } catch {
-      const path = raw.startsWith('/') ? raw : `/${raw}`;
-      return `${normalizedPublicUrl}${path}`;
-    }
-  }
-
-  function sanitizeGuideHtml(rawHtml: unknown): string {
-    let html = String(rawHtml ?? '');
-    if (!html.trim()) return '';
-
-    html = html
-      .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/<\s*(script|style|iframe|object|embed|form|input|button|select|textarea|canvas|svg|video|audio)\b[\s\S]*?<\/\s*\1\s*>/gi, '')
-      .replace(/<\s*(script|style|iframe|object|embed|form|input|button|select|textarea|canvas|svg|video|audio)\b[^>]*\/?>/gi, '')
-      .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-      .replace(/\s(style|class|id|width|height|align|valign|border|cellpadding|cellspacing)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-
-    html = html.replace(/<img\b([^>]*)>/gi, (_full, attrs) => {
-      const src = normalizeAssetUrl(htmlAttribute(attrs, 'src') || htmlAttribute(attrs, 'data-src'));
-      if (!src) return '';
-      const normalizedSrc = src.toLowerCase();
-      if (normalizedSrc.includes('/separations/') || normalizedSrc.includes('subpage-body-bg')) return '';
-      const alt = htmlAttribute(attrs, 'alt');
-      return `<figure><img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}" loading="lazy" decoding="async"></figure>`;
-    });
-
-    html = html.replace(/<a\b([^>]*)>/gi, (_full, attrs) => {
-      const href = normalizeLink(htmlAttribute(attrs, 'href'));
-      if (!href || href === '#') return '<a>';
-      return `<a href="${escapeAttribute(href)}" target="_blank" rel="noopener noreferrer">`;
-    });
-
-    html = html.replace(/<\/?([a-z0-9-]+)([^>]*)>/gi, (full, rawTag, attrs) => {
-      const tag = String(rawTag).toLowerCase();
-      if (!OLD_GUIDE_ALLOWED_TAGS.has(tag)) return '';
-      if (full.startsWith('</')) return `</${tag}>`;
-      if (tag === 'a') return full;
-      if (tag === 'img') {
-        const src = normalizeAssetUrl(htmlAttribute(attrs, 'src'));
-        if (!src) return '';
-        return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(htmlAttribute(attrs, 'alt'))}" loading="lazy" decoding="async">`;
+      const url = new URL(raw, base);
+      if (['kolodahearthstone.ru', 'www.kolodahearthstone.ru'].includes(url.hostname) && url.pathname.startsWith('/design/')) {
+        return new URL(url.pathname + url.search, base).href;
       }
-      if (tag === 'br' || tag === 'hr') return `<${tag}>`;
-      return `<${tag}>`;
-    });
-
-    return html
-      .replace(/<p>\s*<a href="#[^"]*"[^>]*>\s*(?:наверх|к оглавлению)\s*<\/a>\s*<\/p>/gi, '')
-      .replace(/<a href="#[^"]*"[^>]*>\s*(?:наверх|к оглавлению)\s*<\/a>/gi, '')
-      .replace(/^(?:\s*<\/(?:li|ul|ol)>)+/gi, '')
-      .replace(/<p>\s*<\/p>/gi, '')
-      .replace(/<a>\s*<\/a>/gi, '')
-      .replace(/<strong>\s*<\/strong>/gi, '')
-      .replace(/<span>\s*<\/span>/gi, '')
-      .replace(/<p>(?:\s|&nbsp;|<strong>|<\/strong>|<span>|<\/span>|<i>|<\/i>)*<\/p>/gi, '')
-      .replace(/<p>\s*<\/p>/gi, '')
-      .replace(/<p>\s*<\/p>/gi, '')
-      .replace(/<p>\s*(<figure>[\s\S]*?<\/figure>)\s*<\/p>/gi, '$1')
-      .replace(/<p>\s*<a([^>]*)>\s*(<figure>[\s\S]*?<\/figure>)\s*<\/a>\s*<\/p>/gi, '<a$1>$2</a>')
-      .replace(/<p>\s*([А-ЯA-Z])\s*<\/p>/g, '')
-      .replace(/(?:<br>\s*){3,}/gi, '<br><br>')
-      .trim();
+      return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch { return ''; }
   }
-
+  function normalizeLink(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || /^(?:#|mailto:|tel:)/i.test(raw)) return raw;
+    return normalizeAssetUrl(raw) || '#';
+  }
   return {
-    normalizeAssetUrl,
-    normalizeLink,
-    sanitizeHtml: sanitizeGuideHtml,
+    normalizeAssetUrl, normalizeLink,
+    sanitizeHtml: value => sanitizeGuideHtml(String(value ?? ''), normalizeAssetUrl, normalizeLink),
   };
+}
+
+function sanitizeGuideHtml(html: string, assetUrl: OldGuideSanitizer['normalizeAssetUrl'], link: OldGuideSanitizer['normalizeLink']): string {
+  return removeEmptyWrappers(sanitizeHtml(html, {
+    allowedTags: ALLOWED_TAGS,
+    allowedAttributes: {
+      '*': ['id'], a: ['href', 'target', 'rel'], img: ['src', 'alt', 'loading', 'decoding'],
+      td: ['colspan', 'rowspan'], th: ['colspan', 'rowspan', 'scope'],
+    },
+    allowedClasses: { code: ['guide-deck-code'], img: ['guide-inline-image'] },
+    allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+    allowedSchemesByTag: { img: ['http', 'https'] },
+    nonTextTags: NON_TEXT_TAGS,
+    parseStyleAttributes: false,
+    transformTags: {
+      h1: 'h2',
+      '*': (tagName, attribs) => {
+        const id = sectionId(attribs.id || (tagName === 'a' ? attribs.name : '') || '');
+        const { id: _id, name: _name, ...rest } = attribs;
+        return { tagName, attribs: { ...rest, ...(id ? { id } : {}) } };
+      },
+      img: (_tag, attrs) => {
+        const code = attrs['data-clipboard-text']?.trim();
+        if (code && /^[A-Za-z0-9+/=]{20,2048}$/.test(code)) {
+          return { tagName: 'code', attribs: { class: 'guide-deck-code' }, text: code };
+        }
+        const src = assetUrl(attrs.src || attrs['data-src']);
+        if (!src || isDecoration(src)) return { tagName: 'span', attribs: {} };
+        const width = Number(attrs.width || attrs.style?.match(/(?:^|;)\s*width:\s*(\d+)px/i)?.[1]);
+        return { tagName: 'img', attribs: {
+          src, alt: attrs.alt?.trim() || 'Иллюстрация к гайду', loading: 'lazy', decoding: 'async',
+          ...(width > 0 && width <= 64 ? { class: 'guide-inline-image' } : {}),
+        } };
+      },
+      a: (_tag, attrs) => {
+        const href = link(attrs.href);
+        const id = attrs.id || attrs.name;
+        const attribs: Record<string, string> = id ? { id } : {};
+        if (href.startsWith('#')) {
+          const target = sectionId(href.slice(1));
+          if (target) attribs.href = `#${target}`;
+        } else if (href) {
+          Object.assign(attribs, { href, target: '_blank', rel: 'noopener noreferrer' });
+        }
+        return { tagName: 'a', attribs };
+      },
+    },
+  }));
 }

@@ -178,7 +178,9 @@ export function createGuidesArchiveRouter(dependencies: GuidesArchiveRouterDepen
 
       if (!row) return response.status(404).json({ error: 'Гайд не найден' });
 
-      const htmlSource = row.body_html || row.free_html || row.short_html || '';
+      // The legacy CMS split the introduction and paid continuation into separate fields.
+      const htmlSource = [row.free_html, row.body_html].filter(value => String(value ?? '').trim()).join('\n')
+        || row.short_html || '';
       return response.json({
         ...rowToListItem(row),
         keywords: row.keywords || null,

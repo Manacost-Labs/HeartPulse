@@ -31,7 +31,7 @@ database.exec(`
   INSERT INTO guides VALUES (
     1, 'arena-100-percent', '/guides/arena-100-percent', 100, NULL,
     'Арена 100% побед', 'Подробное описание', 'арена,100%', '/images/arena.png',
-    'Арена', 'arena', 'Гайды', 'guides', '', '',
+    'Арена', 'arena', 'Гайды', 'guides', 'Краткий анонс', '<p>Начало статьи</p>',
     '<script>bad()</script><p onclick="bad()">Безопасный текст</p><a href="javascript:bad()">опасно</a>',
     'Запасной текст', 7
   );
@@ -123,7 +123,18 @@ try {
   assert.equal(detail.body.replyCount, 7);
   assert.equal(detail.body.sourceUrl, 'https://legacy.example.test/guides/arena-100-percent');
   assert.match(detail.body.contentHtml, /<p>Безопасный текст<\/p>/);
+  assert.ok(detail.body.contentHtml.indexOf('Начало статьи') >= 0);
+  assert.ok(detail.body.contentHtml.indexOf('Начало статьи') < detail.body.contentHtml.indexOf('Безопасный текст'));
+  assert.doesNotMatch(detail.body.contentHtml, /Краткий анонс/);
   assert.doesNotMatch(detail.body.contentHtml, /script|onclick|javascript:/i);
+  assert.equal((await request('/guides-archive/arena-100-percent')).response.status, 401);
+
+  database.prepare('UPDATE guides SET body_html = ? WHERE id = 1').run('');
+  const introOnly = await request('/guides-archive/1', { headers });
+  assert.match(introOnly.body.contentHtml, /Начало статьи/);
+  database.prepare('UPDATE guides SET free_html = ? WHERE id = 1').run('');
+  const summaryOnly = await request('/guides-archive/1', { headers });
+  assert.match(summaryOnly.body.contentHtml, /Краткий анонс/);
 
   const textDetail = await request('/guides-archive/2', { headers });
   assert.equal(textDetail.response.status, 200);
