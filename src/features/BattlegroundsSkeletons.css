@@ -69,7 +69,17 @@
   block-size: 1.375rem;
 }
 
-.bg-tier-skeleton__trinket { block-size: 5rem; }
+.bg-tier-skeleton__badge {
+  inline-size: 46px;
+  block-size: 52px;
+}
+
+.bg-tier-skeleton__art {
+  inline-size: 72px;
+  aspect-ratio: 160 / 216;
+}
+
+.bg-tier-skeleton__trinket { block-size: 86px; }
 
 .bg-library-skeleton { display: block; }
 .bg-library-skeleton__tile { pointer-events: none; }

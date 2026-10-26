@@ -24,7 +24,16 @@ import {
   type BattlegroundHeroSortKey,
   type BattlegroundHeroTierEntry,
   type BattlegroundHeroTierSection,
+  BATTLEGROUND_TIER_LISTS,
+  battlegroundStrategyMetaLine,
+  battlegroundTierCardStats,
+  battlegroundTierListMetaLine,
+  TierListChoice,
+  TierListChoices,
+  TierListToolbar,
+  type BattlegroundTierListKey,
 } from '../modules/battlegrounds/public';
+import { TierBadge } from '../modules/arenaTierList/public';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import { publicResourceUrl } from '../publicResourceUrl';
@@ -49,7 +58,6 @@ import {
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
 import { battlegroundFullCardImage, preferredBattlegroundGoldenBuddyImage } from '../modules/battlegrounds/public';
 import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
-import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
 import { BattlegroundHeroStatistics } from './BattlegroundHeroStatistics';
 import { CardPatchTimeline } from './CardPatchTimeline';
@@ -62,6 +70,7 @@ import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
+import './BattlegroundTierList.css';
 import { useViewEntrance } from '../components/transitions/useViewEntrance';
 import {
   ArrowDown,
@@ -92,7 +101,6 @@ function formatDate(iso: string | null): string {
   return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-type BattlegroundTierListKey = 'minions' | 'strategies' | 'spells' | 'trinkets';
 type BattlegroundStrategySource = 'hsreplay' | 'firestone';
 type BattlegroundTrinketSize = 'ALL' | 'SMALL' | 'LARGE';
 type BattlegroundTierCache = Record<string, any>;
@@ -119,20 +127,13 @@ type BattlegroundLightboxItem = {
   detailHref?: string;
 };
 
-const BG_TIER_LISTS: Array<{ id: BattlegroundTierListKey; label: string; shortLabel: string; description: string }> = [
-  { id: 'minions', label: 'Тир-лист существ', shortLabel: 'Существа', description: 'Рейтинг существ по влиянию на бой и статистике HSReplay.' },
-  { id: 'strategies', label: 'Тир-лист стратегий', shortLabel: 'Стратегии', description: 'Готовые архетипы и ключевые карты композиций из Firestone.' },
-  { id: 'spells', label: 'Тир-лист заклинаний', shortLabel: 'Заклинания', description: 'Заклинания таверны по среднему месту и силе в партиях.' },
-  { id: 'trinkets', label: 'Тир-лист аксессуаров', shortLabel: 'Аксессуары', description: 'Большие и малые аксессуары, разложенные по актуальным тирам.' },
-];
-
 function bgNormalizeDeepLinkValue(value: unknown): string {
   return String(value || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
 function bgTierListKeyFromValue(value: unknown): BattlegroundTierListKey {
   const raw = String(value || '').toLowerCase();
-  return BG_TIER_LISTS.some(item => item.id === raw) ? raw as BattlegroundTierListKey : 'minions';
+  return BATTLEGROUND_TIER_LISTS.some(item => item.id === raw) ? raw as BattlegroundTierListKey : 'minions';
 }
 
 function bgVisibleLimitKey(list: BattlegroundTierListKey, tier: string): string {
@@ -625,9 +626,6 @@ function bgTavernIcon(tavern: string): string {
   return `${BG_TAVERN_ICON_BASE}/tier${encodeURIComponent(tavern)}.png`;
 }
 
-const BG_FILTER_ACTIVE_CLASS = 'bg-filter-chip bg-filter-chip--active';
-const BG_FILTER_IDLE_CLASS = 'bg-filter-chip';
-
 function bgItemRaces(item: any): string[] {
   if (Array.isArray(item?.races) && item.races.length) {
     return item.races.map((race: any) => String(race || 'NONE'));
@@ -786,38 +784,6 @@ function bgHeroBuddySoundGroups(...sources: any[]): BattlegroundHeroSoundGroup[]
     });
   });
   return Array.from(groups, ([heading, clips]) => ({ heading, clips }));
-}
-
-function bgStatChips(item: any, list: BattlegroundTierListKey): Array<{ label: string; value: string }> {
-  if (list === 'minions') {
-    return [
-      item?.tavernTier ? { label: 'Таверна', value: String(item.tavernTier) } : null,
-      item?.impact !== undefined ? { label: 'Impact', value: bgFormatDecimal(item.impact) } : null,
-      item?.combatWinrate ? { label: 'Винрейт боёв', value: String(item.combatWinrate) } : null,
-      item?.popularity ? { label: 'Популярность', value: String(item.popularity) } : null,
-    ].filter(Boolean) as Array<{ label: string; value: string }>;
-  }
-  if (list === 'spells') {
-    return [
-      item?.tavernTier ? { label: 'Таверна', value: String(item.tavernTier) } : null,
-      item?.avgPlacement ? { label: 'Среднее место', value: bgFormatDecimal(item.avgPlacement) } : null,
-      item?.impact !== undefined ? { label: 'Impact', value: bgFormatDecimal(item.impact) } : null,
-      item?.totalPlayed || item?.games ? { label: 'Сыграно', value: bgFormatCount(item.totalPlayed || item.games) } : null,
-    ].filter(Boolean) as Array<{ label: string; value: string }>;
-  }
-  if (list === 'trinkets') {
-    return [
-      item?.typeLabel ? { label: 'Тип', value: String(item.typeLabel).replace(' аксессуар', '') } : null,
-      item?.avgPlacement ? { label: 'Среднее место', value: bgFormatDecimal(item.avgPlacement) } : null,
-      item?.pickRate ? { label: 'Пикрейт', value: String(item.pickRate) } : null,
-      item?.firstPlace ? { label: 'Топ-1', value: String(item.firstPlace) } : null,
-    ].filter(Boolean) as Array<{ label: string; value: string }>;
-  }
-  return [
-    item?.archetype ? { label: 'Архетип', value: String(item.archetype) } : null,
-    item?.avgPlacement ? { label: 'Среднее место', value: bgFormatDecimal(item.avgPlacement) } : null,
-    item?.games ? { label: 'Игр', value: bgFormatCount(item.games) } : null,
-  ].filter(Boolean) as Array<{ label: string; value: string }>;
 }
 
 function bgMetricLine(item: any, list: BattlegroundTierListKey): string {
@@ -2118,8 +2084,6 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
   trinketView?: TrinketView;
 }) {
   const title = bgItemTitle(item);
-  const metric = bgMetricLine(item, list);
-  const chips = bgStatChips(item, list);
   if (list === 'strategies') {
     const previewEntries = bgStrategyPreviewEntries(item, tier);
     const previewGroups = previewEntries.reduce<Array<{ key: string; label: string; entries: BattlegroundStrategyPreviewEntry[] }>>((groups, entry) => {
@@ -2131,47 +2095,23 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
       groups.push({ key: entry.groupKey, label: entry.groupLabel, entries: [entry] });
       return groups;
     }, []);
+    const meta = battlegroundStrategyMetaLine(item);
     return (
       <article
         data-bg-strategy-highlight={highlighted ? 'true' : undefined}
         data-bg-strategy-key={item?.key || undefined}
         data-tour-id={tourId}
-        className={`bg-tier-strategy-card rounded-lg border p-3 shadow-sm transition-all duration-300 hover:shadow-[0_8px_24px_rgba(61,42,30,0.16)] ${
-          highlighted
-            ? 'bg-tier-strategy-card--highlighted'
-            : ''
-        }`}
+        className="bg-tierlist-strategy"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h4 className="font-hs text-[15px] leading-tight text-[#3d2a1e]">{title}</h4>
-            {metric && <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#74552f]">{metric}</p>}
-          </div>
-          {item?.difficulty && (
-            <span className="rounded-md border border-[#c4a46a]/50 bg-[#f4e4bc] px-2 py-1 text-xs font-bold text-[#5a3000]">
-              {item.difficulty}
-            </span>
-          )}
-        </div>
+        <h4>{title}</h4>
+        {meta && <p className="bg-tierlist-strategy__meta">{meta}</p>}
         {previewGroups.map((group) => (
-          <div key={group.key} className="mt-3">
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#8b6c42]">{group.label}</p>
-            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-8">
+          <div key={group.key} className="bg-tierlist-strategy__group">
+            <p>{group.label}</p>
+            <div className="bg-tierlist-strategy__cards">
               {group.entries.map((entry) => (
-                <button
-                  key={entry.lightbox.key}
-                  type="button"
-                  onClick={() => onOpen(entry.lightbox)}
-                  className="group rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fff7e6]"
-                  title={entry.lightbox.title}
-                >
-                  <img
-                    src={entry.thumb}
-                    alt={entry.lightbox.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="aspect-[3/4] w-full rounded-md object-cover shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-transform duration-200 group-hover:-translate-y-0.5"
-                  />
+                <button key={entry.lightbox.key} type="button" onClick={() => onOpen(entry.lightbox)} title={entry.lightbox.title}>
+                  <img src={entry.thumb} alt={entry.lightbox.title} width={96} height={128} loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>
@@ -2187,8 +2127,6 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
     const metrics = trinketMetricView(item);
     const description = bgDetailCardTooltipText(item?.ruText || item?.localizedText || item?.text || item?.description)
       || 'Описание доступно на изображении аксессуара.';
-    const pickRateValue = Math.max(0, Math.min(100, Number.parseFloat(String(item?.pickRate ?? '').replace(',', '.')) || 0));
-    const placementValue = Number.parseFloat(String(item?.avgPlacement ?? '').replace(',', '.'));
     return (
       <BattlegroundTrinketTierRow
         title={title}
@@ -2197,10 +2135,6 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
         cost={Number.isFinite(Number(item?.cost)) ? Number(item.cost) : null}
         pickRate={metrics.pickRate}
         averagePlacement={metrics.averagePlacement}
-        pickRateValue={pickRateValue}
-        placementQuality={Number.isFinite(placementValue)
-          ? Math.max(0, Math.min(100, ((9 - placementValue) / 8) * 100))
-          : 0}
         placementBars={trinketPlacementBars(item?.placementDistribution)}
         fullArt={trinketFullArtUrl(item)}
         cardImage={trinketCardImageUrl(item) || optimizedBattlegroundThumbnailUrl(bgImageForItem(item, list), 384) || image}
@@ -2212,38 +2146,22 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
     );
   }
 
+  const { primary, secondary } = battlegroundTierCardStats(item, list);
   return (
     <button
       type="button"
       data-tour-id={tourId}
       onClick={() => lightboxItem && onOpen(lightboxItem)}
-      className="bg-tier-entry-card group flex min-h-[132px] gap-3 rounded-lg border border-[#c4a46a]/50 bg-[#fff8ea]/95 p-3 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#fffaf0] hover:shadow-[0_8px_20px_rgba(61,42,30,0.18)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
+      className="bg-tierlist-card"
     >
-      {image && (
-        <img
-          src={image}
-          alt={title}
-          width={160}
-          height={216}
-          loading="lazy"
-          decoding="async"
-          className="h-[108px] w-[80px] flex-shrink-0 rounded-md object-cover shadow-[0_2px_8px_rgba(0,0,0,0.28)] transition-transform duration-200 group-hover:scale-[1.02]"
-        />
-      )}
-      <div className="min-w-0 py-1">
-        <h4 className="font-hs text-[15px] leading-tight text-[#2f2118]">{title}</h4>
-        {chips.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {chips.map(chip => (
-              <span key={`${chip.label}-${chip.value}`} className="rounded-md border border-[#d7b66a]/55 bg-[#fff3d8] px-2 py-1 text-xs font-semibold leading-none text-[#553819]">
-                <span className="text-[#8b6c42]">{chip.label}: </span>{chip.value}
-              </span>
-            ))}
-          </div>
-        ) : metric ? (
-          <p className="mt-1.5 text-xs leading-snug text-[#5d4225]">{metric}</p>
-        ) : null}
-      </div>
+      {image && <img src={image} alt={title} width={160} height={216} loading="lazy" decoding="async" />}
+      <span className="bg-tierlist-card__body">
+        <strong className="bg-tierlist-card__name">{title}</strong>
+        {primary && <span className="bg-tierlist-card__primary"><b>{primary.value}</b> {primary.label}</span>}
+        {secondary.length > 0 && <span className="bg-tierlist-card__secondary">
+          {secondary.map(entry => <span key={entry.label}>{entry.label} <b>{entry.value}</b></span>)}
+        </span>}
+      </span>
     </button>
   );
 }
@@ -2271,7 +2189,7 @@ function BattlegroundTierList() {
   const [visibleLimits, setVisibleLimits] = useState<Record<string, number>>({});
   const dataCacheRef = useRef<BattlegroundTierCache>({});
   const tierListRequestKeyRef = useRef('');
-  const activeMeta = BG_TIER_LISTS.find(item => item.id === activeList)!;
+  const activeMeta = BATTLEGROUND_TIER_LISTS.find(item => item.id === activeList)!;
   useEffect(() => {
     const syncFromUrl = () => {
       const next = bgTierListUrlState();
@@ -2352,8 +2270,9 @@ function BattlegroundTierList() {
         if (size) sizeSet.add(size);
       });
     });
+    // Until a slice arrives both sizes are offered, so the row does not jump in.
     return {
-      sizes: ['ALL', ...(['SMALL', 'LARGE'].filter(size => sizeSet.has(size)))],
+      sizes: ['ALL', ...(['SMALL', 'LARGE'].filter(size => !sizeSet.size || sizeSet.has(size)))],
     };
   }, [tiers]);
   const displayedTiers = useMemo(() => {
@@ -2436,301 +2355,198 @@ function BattlegroundTierList() {
     return () => window.clearTimeout(timer);
   }, [displayedTiers, hasStrategyHighlight, loading]);
 
+  const selectList = (list: BattlegroundTierListKey) => {
+    setData(null);
+    setLoading(true);
+    setLightboxIndex(-1);
+    setLightboxItems([]);
+    setActiveList(list);
+    setMinionRaceFilter('ALL');
+    setMinionTavernFilter('ALL');
+    setTrinketSizeFilter(list === 'trinkets' ? 'LARGE' : 'ALL');
+    setVisibleLimits({});
+    if (list !== 'strategies') {
+      setHighlightStrategyKey('');
+      setHighlightStrategyTitle('');
+    }
+    const params = new URLSearchParams(window.location.search);
+    params.set('list', list);
+    if (list !== 'strategies') params.delete('source');
+    if (list === 'trinkets') {
+      params.set('size', 'LARGE');
+      params.set('mmr', trinketMmr);
+      params.set('timeRange', trinketTimeRange);
+      params.set('view', trinketView);
+    } else {
+      params.delete('size');
+      params.delete('mmr');
+      params.delete('timeRange');
+      params.delete('view');
+    }
+    window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
+  const ready = !loading && !error;
+  const meta = activeData?.count !== undefined
+    ? battlegroundTierListMetaLine({ shown: displayedCount, total: Number(activeData.count), source: activeData.source, fetchedAt: activeData.fetchedAt })
+    : '';
+  const mmrLabel = TRINKET_MMR_OPTIONS.find(option => option.id === trinketMmr)?.label || '';
+  const periodLabel = TRINKET_TIME_RANGE_OPTIONS.find(option => option.id === trinketTimeRange)?.label || '';
+  // Race and tavern choices come from the loaded minions; the other lists'
+  // filters do not depend on the data and stay put while a slice reloads.
+  let primaryFilters: React.ReactNode;
+  let secondaryFilters: { summary: string; content: React.ReactNode } | undefined;
+  if (activeList === 'minions' && ready) {
+    primaryFilters = (
+      <TierListChoices label="Тип существа" scroll>
+        {minionFilterOptions.races.map(race => (
+          <TierListChoice key={race} active={minionRaceFilter === race} onClick={() => setMinionRaceFilter(race)} label={BG_RACE_NAMES[race] || race}>
+            {race !== 'ALL' && BG_RACE_ICON[race] ? <img src={BG_RACE_ICON[race]} alt="" width={30} height={30} loading="lazy" /> : race === 'ALL' ? 'Все' : race}
+          </TierListChoice>
+        ))}
+      </TierListChoices>
+    );
+    secondaryFilters = {
+      summary: minionTavernFilter === 'ALL' ? 'Таверна: все' : `Таверна: ${minionTavernFilter}`,
+      content: (
+        <TierListChoices label="Таверна" legend>
+          {minionFilterOptions.taverns.map(tavern => (
+            <TierListChoice key={tavern} active={minionTavernFilter === tavern} onClick={() => setMinionTavernFilter(tavern)}
+              label={tavern === 'ALL' ? 'Все уровни таверны' : `Уровень таверны ${tavern}`}>
+              {tavern === 'ALL' ? 'Все' : <img src={bgTavernIcon(tavern)} alt="" width={30} height={30} loading="lazy" />}
+            </TierListChoice>
+          ))}
+        </TierListChoices>
+      ),
+    };
+  } else if (activeList === 'strategies') {
+    primaryFilters = (
+      <TierListChoices label="Источник стратегий">
+        {(['firestone', 'hsreplay'] as const).map(source => (
+          <TierListChoice key={source} active={strategySource === source} onClick={() => {
+            setStrategySource(source);
+            const params = new URLSearchParams(window.location.search);
+            params.set('source', source);
+            window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}`);
+          }}>
+            {source === 'firestone' ? 'Firestone' : 'HSReplay'}
+          </TierListChoice>
+        ))}
+      </TierListChoices>
+    );
+  } else if (activeList === 'trinkets') {
+    primaryFilters = (
+      <>
+        {trinketFilterOptions.sizes.length > 1 && <TierListChoices label="Размер аксессуара">
+          {trinketFilterOptions.sizes.map(rawSize => {
+            const size = rawSize as BattlegroundTrinketSize;
+            return (
+              <TierListChoice key={size} active={trinketSizeFilter === size} onClick={() => { setTrinketSizeFilter(size); updateTrinketUrlState({ size }); }}>
+                {size === 'ALL' ? 'Все' : size === 'SMALL' ? 'Малые' : 'Большие'}
+              </TierListChoice>
+            );
+          })}
+        </TierListChoices>}
+        <TierListChoices label="Вид списка">
+          <TierListChoice active={trinketView === 'table'} label="Таблица" onClick={() => { setTrinketView('table'); updateTrinketUrlState({ view: 'table' }); }}>
+            <List aria-hidden="true" />
+          </TierListChoice>
+          <TierListChoice active={trinketView === 'gallery'} label="Галерея" onClick={() => { setTrinketView('gallery'); updateTrinketUrlState({ view: 'gallery' }); }}>
+            <LayoutGrid aria-hidden="true" />
+          </TierListChoice>
+        </TierListChoices>
+      </>
+    );
+    secondaryFilters = {
+      summary: `${mmrLabel} · ${periodLabel}`,
+      content: (
+        <>
+          <TierListChoices label="Рейтинг игроков" legend>
+            {TRINKET_MMR_OPTIONS.map(option => (
+              <TierListChoice key={option.id} active={trinketMmr === option.id}
+                onClick={() => { setTrinketMmr(option.id); setVisibleLimits({}); updateTrinketUrlState({ mmr: option.id }); }}>
+                {option.label}
+              </TierListChoice>
+            ))}
+          </TierListChoices>
+          <TierListChoices label="Период" legend>
+            {TRINKET_TIME_RANGE_OPTIONS.map(option => (
+              <TierListChoice key={option.id} active={trinketTimeRange === option.id}
+                onClick={() => { setTrinketTimeRange(option.id); setVisibleLimits({}); updateTrinketUrlState({ timeRange: option.id }); }}>
+                {option.label}
+              </TierListChoice>
+            ))}
+          </TierListChoices>
+        </>
+      ),
+    };
+  }
+
   return (
-    <div className="bg-tier-list-page space-y-5">
+    <div className="bg-tier-list-page">
       <BattlegroundsTierListSearchIntro />
 
-      <div
-        className="bg-tier-nav-grid grid grid-cols-2 gap-2 lg:grid-cols-4"
-        data-tour-id="bg-tier-list-switcher"
-      >
-        {BG_TIER_LISTS.map(item => {
-          const active = item.id === activeList;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              data-tour-id={item.id === 'strategies' ? 'bg-tier-list-strategy' : undefined}
-              onClick={() => {
-                setData(null);
-                setLoading(true);
-                setLightboxIndex(-1);
-                setLightboxItems([]);
-                setActiveList(item.id);
-                setMinionRaceFilter('ALL');
-                setMinionTavernFilter('ALL');
-                setTrinketSizeFilter(item.id === 'trinkets' ? 'LARGE' : 'ALL');
-                setVisibleLimits({});
-                if (item.id !== 'strategies') {
-                  setHighlightStrategyKey('');
-                  setHighlightStrategyTitle('');
-                }
-                const params = new URLSearchParams(window.location.search);
-                params.set('list', item.id);
-                if (item.id !== 'strategies') params.delete('source');
-                if (item.id === 'trinkets') {
-                  params.set('size', 'LARGE');
-                  params.set('mmr', trinketMmr);
-                  params.set('timeRange', trinketTimeRange);
-                  params.set('view', trinketView);
-                } else {
-                  params.delete('size');
-                  params.delete('mmr');
-                  params.delete('timeRange');
-                  params.delete('view');
-                }
-                window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
-              }}
-              className="bg-tier-nav-card rounded-lg border px-3 py-3 text-left transition-all"
-              aria-pressed={active}
-            >
-              <span className="font-hs text-sm">{item.shortLabel}</span>
-              <span className="mt-1 block text-[11px] leading-snug opacity-80">{item.description}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <section key={`bg-tier-list-${activeList}`} className="bg-tier-index-panel rounded-lg border p-3 sm:p-4">
-        <div className="flex flex-col gap-3 border-b border-[#bfdbfe]/70 pb-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="bg-tier-panel-heading">
-            <h3 className="bg-tier-panel-title font-hs text-2xl">{activeMeta.label}</h3>
-            <p className="bg-tier-panel-meta text-xs">
-              {activeData?.source ? `Источник: ${activeData.source}` : 'Источник: BG Manacost'}
-              {activeData?.fetchedAt ? ` · обновлено ${formatDate(activeData.fetchedAt)}` : ''}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {activeList === 'strategies' && (
-              <div className="bg-tier-source-switch flex items-center gap-1 rounded-lg border p-1">
-                {(['firestone', 'hsreplay'] as const).map(source => (
-                  <button
-                    key={source}
-                    type="button"
-                    onClick={() => setStrategySource(source)}
-                    className={`rounded-md border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${strategySource === source ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
-                  >
-                    {source === 'firestone' ? 'Firestone' : 'HSReplay'}
-                  </button>
-                ))}
-              </div>
-            )}
-            {activeData?.count !== undefined && (
-              <div className="bg-tier-panel-count font-hs text-sm">
-                Всего: {displayedCount.toLocaleString('ru-RU')}
-                {displayedCount !== Number(activeData.count) ? ` / ${Number(activeData.count).toLocaleString('ru-RU')}` : ''}
-              </div>
-            )}
-          </div>
-        </div>
+      <section key={`bg-tier-list-${activeList}`} className="bg-tierlist" aria-labelledby="bg-tierlist-title">
+        <h2 id="bg-tierlist-title" className="sr-only">{activeMeta.title}</h2>
+        <TierListToolbar list={activeList} onList={selectList} meta={meta} primary={primaryFilters} secondary={secondaryFilters} />
 
         {loading && <BattlegroundTierListSkeleton list={activeList} />}
-        {error && !loading && <div className="my-4"><BattlegroundLoadError message={error} onRetry={() => setAttempt(value => value + 1)} /></div>}
-        {!loading && !error && (
-          <div className="mt-4 space-y-5">
-            {activeList === 'minions' && (
-              <div
-                className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm"
-                data-tour-id="bg-tier-list-filters"
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="min-w-0">
-                    <h4 className="font-hs text-lg text-[#1e293b]">Фильтры существ</h4>
-                    <p className="text-xs text-[#475569]">Тип существа и уровень таверны применяются без перезагрузки списка.</p>
-                  </div>
-                  <div className="grid gap-3 xl:grid-cols-[1fr_auto]">
-                    <div>
-                      <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Тип существа</p>
-	                      <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
-                      {minionFilterOptions.races.map(race => (
-                        <button
-                          key={race}
-                          type="button"
-                          onClick={() => setMinionRaceFilter(race)}
-	                          className={`flex h-12 min-w-12 items-center justify-center rounded-md border px-2 transition-colors ${minionRaceFilter === race ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
-                          title={BG_RACE_NAMES[race] || race}
-                        >
-                          {BG_RACE_ICON[race] ? (
-                            <img src={BG_RACE_ICON[race]} alt={BG_RACE_NAMES[race] || race} className="h-8 w-8 object-contain" loading="lazy" />
-                          ) : (
-                            <span className="text-xs font-bold">{race}</span>
-                          )}
-                        </button>
-                      ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Уровень таверны</p>
-	                      <div className="bg-tier-filter-well flex flex-wrap gap-1.5 rounded-lg border p-1.5">
-                      {minionFilterOptions.taverns.map(tavern => (
-                        <button
-                          key={tavern}
-                          type="button"
-                          onClick={() => setMinionTavernFilter(tavern)}
-	                          className={`flex h-12 min-w-12 items-center justify-center rounded-md border px-2 text-xs font-bold transition-colors ${minionTavernFilter === tavern ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
-                          title={tavern === 'ALL' ? 'Все уровни таверны' : `Уровень таверны ${tavern}`}
-                        >
-                          {tavern === 'ALL' ? 'Все' : (
-                            <img src={bgTavernIcon(tavern)} alt={`Уровень таверны ${tavern}`} className="h-8 w-8 object-contain" loading="lazy" />
-                          )}
-                        </button>
-                      ))}
-                      </div>
-                    </div>
-                  </div>
+        {error && !loading && <div className="bg-tierlist__error"><BattlegroundLoadError message={error} onRetry={() => setAttempt(value => value + 1)} /></div>}
+        {ready && BG_TIER_ORDER.map(tier => {
+          const items = Array.isArray(displayedTiers[tier]) ? displayedTiers[tier] : [];
+          if (!items.length) return null;
+          const visibleKey = bgVisibleLimitKey(activeList, tier);
+          const visibleLimit = visibleLimits[visibleKey] ?? BG_TIER_INITIAL_VISIBLE[activeList];
+          const visibleItems = tierItemsForDisplay(items, activeList, visibleLimit);
+          const hiddenCount = Math.max(0, items.length - visibleItems.length);
+          return (
+            <section key={`${activeList}-${tier}`} className="bg-tierlist__tier" data-tier={tier} aria-labelledby={`bg-tierlist-tier-${tier}`}>
+              <h3 id={`bg-tierlist-tier-${tier}`} className="bg-tierlist__tier-head">
+                <TierBadge tier={tier} />
+                <span className="bg-tierlist__tier-count">{items.length.toLocaleString('ru-RU')}</span>
+              </h3>
+              {activeList === 'trinkets' && trinketView === 'table' && (
+                <div className="bg-trinket-tier-table-head" aria-hidden="true">
+                  <span>Аксессуар</span>
+                  <span>Выбор</span>
+                  <span>Среднее место</span>
+                  <span>Места 1–8</span>
                 </div>
+              )}
+              <div className={activeList === 'trinkets'
+                ? trinketView === 'gallery' ? 'bg-trinket-tier-gallery' : 'bg-trinket-tier-table'
+                : `bg-tierlist__grid bg-tierlist__grid--${activeList}`}>
+                {visibleItems.map((item: any, idx: number) => (
+                  <React.Fragment key={`${activeList}-${tier}-${item.id || item.key || item.name || 'item'}-${idx}`}>
+                    <MemoBattlegroundTierCard
+                      item={item}
+                      list={activeList}
+                      tier={tier}
+                      index={idx}
+                      highlighted={activeList === 'strategies' && bgStrategyMatchesDeepLink(item, highlightStrategyKey, highlightStrategyTitle)}
+                      onOpen={openLightbox}
+                      trinketView={trinketView}
+                      tourId={tier === firstResultTier && idx === 0 ? 'bg-tier-list-results' : undefined}
+                    />
+                  </React.Fragment>
+                ))}
               </div>
-            )}
-            {activeList === 'trinkets' && trinketFilterOptions.sizes.length > 1 && (
-              <div
-                className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm"
-                data-tour-id="bg-tier-list-filters"
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="min-w-0">
-                    <h4 className="font-hs text-lg text-[#1e293b]">Фильтры аксессуаров</h4>
-                    <p className="text-xs text-[#475569]">
-                      Размер применяется локально, а MMR и период загружают соответствующий срез HSReplay.
-                    </p>
-                  </div>
-                  <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto_auto]">
-                    <fieldset className="min-w-0">
-                      <legend className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">MMR игроков</legend>
-                      <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
-                        {TRINKET_MMR_OPTIONS.map(option => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => {
-                              setTrinketMmr(option.id);
-                              setVisibleLimits({});
-                              updateTrinketUrlState({ mmr: option.id });
-                            }}
-                            aria-pressed={trinketMmr === option.id}
-                            className={`flex h-12 items-center justify-center rounded-md border px-3 text-sm font-bold transition-colors ${trinketMmr === option.id ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <fieldset>
-                      <legend className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Период</legend>
-                      <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
-                        {TRINKET_TIME_RANGE_OPTIONS.map(option => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => {
-                              setTrinketTimeRange(option.id);
-                              setVisibleLimits({});
-                              updateTrinketUrlState({ timeRange: option.id });
-                            }}
-                            aria-pressed={trinketTimeRange === option.id}
-                            className={`flex h-12 items-center justify-center rounded-md border px-3 text-sm font-bold transition-colors ${trinketTimeRange === option.id ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <fieldset>
-                    <legend className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Размер аксессуара</legend>
-	                    <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
-                      {trinketFilterOptions.sizes.map(rawSize => {
-                        const size = rawSize as BattlegroundTrinketSize;
-                        const label = size === 'ALL' ? 'Все' : size === 'SMALL' ? 'Малые' : 'Большие';
-                        return (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() => {
-                            setTrinketSizeFilter(size);
-                            updateTrinketUrlState({ size });
-                          }}
-                          aria-pressed={trinketSizeFilter === size}
-	                          className={`flex h-12 items-center justify-center rounded-md border px-4 text-sm font-bold transition-colors ${trinketSizeFilter === size ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
-                          title={label}
-                        >
-                          {label}
-                        </button>
-                        );
-                      })}
-                    </div>
-                    </fieldset>
-                    <BattlegroundTrinketViewToggle value={trinketView} onChange={(view) => { setTrinketView(view); updateTrinketUrlState({ view }); }} />
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-[#6b4c2a]">
-                    «Мин. игр» — нижняя граница размера выборки, восстановленная из округлённого распределения мест HSReplay.
-                  </p>
-                </div>
-              </div>
-            )}
-            {BG_TIER_ORDER.map(tier => {
-              const items = Array.isArray(displayedTiers[tier]) ? displayedTiers[tier] : [];
-              if (!items.length) return null;
-              const visibleKey = bgVisibleLimitKey(activeList, tier);
-              const visibleLimit = visibleLimits[visibleKey] ?? BG_TIER_INITIAL_VISIBLE[activeList];
-              const visibleItems = tierItemsForDisplay(items, activeList, visibleLimit);
-              const hiddenCount = Math.max(0, items.length - visibleItems.length);
-              return (
-                <section key={`${activeList}-${tier}`} className="bg-tier-rank-panel rounded-lg border p-3">
-                  <div className="mb-3 flex items-center gap-3">
-                    <span className={`inline-flex h-11 w-11 items-center justify-center rounded-full border-2 text-lg font-hs shadow ${BG_TIER_BADGES[tier] || BG_TIER_BADGES.C}`}>{tier}</span>
-                    <div>
-                      <h4 className="font-hs text-lg text-[#3d2a1e]">Тир {tier}</h4>
-                      <p className="text-xs text-[#8b6c42]">{items.length} позиций</p>
-                    </div>
-                  </div>
-                  {activeList === 'trinkets' && trinketView === 'table' && (
-                    <div className="bg-trinket-tier-table-head" aria-hidden="true">
-                      <span>Аксессуар</span>
-                      <span>Частота выбора</span>
-                      <span>Средняя позиция</span>
-                      <span>Распределение мест</span>
-                    </div>
-                  )}
-                  <div className={activeList === 'trinkets'
-                    ? trinketView === 'gallery' ? 'bg-trinket-tier-gallery' : 'bg-trinket-tier-table'
-                    : activeList === 'strategies'
-                    ? 'grid gap-3 lg:grid-cols-2'
-                    : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'}>
-                    {visibleItems.map((item: any, idx: number) => (
-                      <React.Fragment key={`${activeList}-${tier}-${item.id || item.key || item.name || 'item'}-${idx}`}>
-                        <MemoBattlegroundTierCard
-                          item={item}
-                          list={activeList}
-                          tier={tier}
-                          index={idx}
-                          highlighted={activeList === 'strategies' && bgStrategyMatchesDeepLink(item, highlightStrategyKey, highlightStrategyTitle)}
-                          onOpen={openLightbox}
-                          trinketView={trinketView}
-                          tourId={tier === firstResultTier && idx === 0 ? 'bg-tier-list-results' : undefined}
-                        />
-                      </React.Fragment>
-                    ))}
-                  </div>
-                  {hiddenCount > 0 && (
-                    <div className="mt-3 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setVisibleLimits(current => ({
-                            ...current,
-                            [visibleKey]: Math.min(items.length, visibleLimit + BG_TIER_VISIBLE_STEP[activeList]),
-                          }));
-                        }}
-                        className="rounded-lg border border-[#d7b66a]/70 bg-[#fff3c4] px-4 py-2 text-sm font-black text-[#5a3a16] shadow-sm transition-colors hover:bg-[#ffe7a3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
-                      >
-                        Показать еще {Math.min(hiddenCount, BG_TIER_VISIBLE_STEP[activeList]).toLocaleString('ru-RU')}
-                      </button>
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-          </div>
-        )}
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  className="bg-tierlist__more"
+                  onClick={() => {
+                    setVisibleLimits(current => ({
+                      ...current,
+                      [visibleKey]: Math.min(items.length, visibleLimit + BG_TIER_VISIBLE_STEP[activeList]),
+                    }));
+                  }}
+                >
+                  Показать ещё {Math.min(hiddenCount, BG_TIER_VISIBLE_STEP[activeList]).toLocaleString('ru-RU')}
+                </button>
+              )}
+            </section>
+          );
+        })}
       </section>
       {currentLightboxItem && createPortal(
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="bg-lightbox-title">

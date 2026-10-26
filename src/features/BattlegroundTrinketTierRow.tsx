@@ -18,8 +18,6 @@ export type TrinketTierRowProps = {
   cost: number | null;
   pickRate: string;
   averagePlacement: string;
-  pickRateValue: number;
-  placementQuality: number;
   placementBars: TrinketTierRowPlacementBar[];
   fullArt: string;
   cardImage: string;
@@ -51,8 +49,6 @@ export function BattlegroundTrinketTierRow({
   cost,
   pickRate,
   averagePlacement,
-  pickRateValue,
-  placementQuality,
   placementBars,
   fullArt,
   cardImage,
@@ -135,17 +131,6 @@ export function BattlegroundTrinketTierRow({
         onBlur={() => setTooltip(null)}
         className="bg-trinket-tier-row"
       >
-        {fullArt && (
-          <img
-            src={fullArt}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            fetchPriority="low"
-            onError={(event) => { event.currentTarget.hidden = true; }}
-            className="bg-trinket-tier-row__backdrop"
-          />
-        )}
         <span className="bg-trinket-tier-row__identity">
           <span className="bg-trinket-medallion" aria-hidden="true">
             {fullArt && (
@@ -191,13 +176,11 @@ export function BattlegroundTrinketTierRow({
 
         <span className="bg-trinket-tier-row__metric">
           <strong>{pickRate}</strong>
-          <span aria-hidden="true"><i style={{ width: `${pickRateValue}%` }} /></span>
-          <small>Частота выбора</small>
+          <small>Выбор</small>
         </span>
         <span className="bg-trinket-tier-row__metric bg-trinket-tier-row__metric--placement">
           <strong>{averagePlacement}</strong>
-          <span aria-hidden="true"><i style={{ width: `${placementQuality}%` }} /></span>
-          <small>Средняя позиция</small>
+          <small>Среднее место</small>
         </span>
         <span className="bg-trinket-distribution" aria-label={`Распределение мест: ${placementBars.map(bar => `${bar.place} — ${bar.rate.toFixed(1)}%`).join(', ')}`}>
           <span className="bg-trinket-distribution__bars" aria-hidden="true">
@@ -210,7 +193,6 @@ export function BattlegroundTrinketTierRow({
             ))}
           </span>
           <span className="bg-trinket-distribution__axis" aria-hidden="true"><small>1</small><small>4</small><small>8</small></span>
-          <small className="bg-trinket-distribution__label">Распределение мест</small>
         </span>
       </button>
       {tooltipPreview}

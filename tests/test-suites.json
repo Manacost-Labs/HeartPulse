@@ -234,6 +234,7 @@
         "tests/standard-archetype-label.test.ts",
         "tests/archetype-label-golden.test.ts",
         "tests/standard-meta-table-model.test.ts",
+        "tests/battleground-tier-list-model.test.ts",
         "tests/standard-meta-classes.test.ts",
         "tests/standard-meta-profile-access.test.ts",
         "tests/standard-meta-recommendation-cache.test.ts",

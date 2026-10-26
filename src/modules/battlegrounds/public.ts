@@ -41,3 +41,9 @@ export {
 } from './model/tierBuilder';
 export type { TierBuilderCard, TierBuilderFilters, TierBuilderPlacement, TierBuilderSourcePayloads } from './model/tierBuilder';
 export { createBuilderHistory } from './model/builderWorkbench';
+
+export { TierListChoice, TierListChoices, TierListToolbar } from './ui/TierListToolbar';
+export {
+  BATTLEGROUND_TIER_LISTS, battlegroundStrategyMetaLine, battlegroundTierCardStats, battlegroundTierListMetaLine,
+} from './model/tierList';
+export type { BattlegroundTierListKey, BattlegroundTierStat } from './model/tierList';

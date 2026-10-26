@@ -1,0 +1,410 @@
+/* BG tier list: one timber-framed section (toolbar + tiers). Tiers are
+ * separated by the paper line, not by nested boxes; the site TierBadge marks
+ * each tier. Dusty violet is reserved for selection, focus and hover. */
+.arena-app-battlegrounds .bg-tier-list-page > .bg-tierlist {
+  margin-top: 1rem;
+  padding: clamp(0.75rem, 2vw, 1rem);
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 13 / 8px / 0 stretch;
+  background: var(--arena-parchment-panel, #fff3d4);
+  box-shadow: 0 5px 12px rgba(59, 28, 12, 0.14);
+  color: var(--bg-ink, #30251c);
+}
+
+.bg-tierlist__error { margin-top: 1rem; }
+
+.bg-tierlist__tier {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--arena-paper-line);
+}
+
+.bg-tierlist__tier > :not(.bg-tierlist__tier-head) { grid-column: 2; min-width: 0; }
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-tierlist__tier-head {
+  position: sticky;
+  top: 1rem;
+  grid-row: 1 / span 3;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  color: var(--bg-muted, #735e49) !important;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+.bg-tierlist__tier-count { font-variant-numeric: tabular-nums; }
+
+.bg-tierlist__grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+
+.bg-tierlist__grid--strategies {
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+}
+
+.bg-tierlist__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.5rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--bg-violet-dark, #3d2335);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bg-tierlist__more:hover { background: rgba(143, 83, 109, 0.1); }
+
+/* Minion and spell cards: art, name, the ranking metric, then supporting numbers. */
+.bg-tierlist-card,
+.bg-tierlist-strategy {
+  min-width: 0;
+  border: 1px solid rgba(99, 56, 29, 0.18);
+  border-radius: 0.5rem;
+  background: rgba(255, 249, 232, 0.6);
+  color: var(--bg-ink, #30251c);
+}
+
+.bg-tierlist-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+}
+
+.bg-tierlist-card:hover,
+.bg-tierlist-strategy:hover {
+  border-color: rgba(143, 83, 109, 0.5);
+  background: rgba(255, 249, 232, 0.92);
+}
+
+.bg-tierlist-card > img {
+  width: 72px;
+  height: auto;
+  aspect-ratio: 160 / 216;
+  object-fit: contain;
+}
+
+.bg-tierlist-card__body {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.bg-tierlist-card__name {
+  overflow-wrap: anywhere;
+  font-family: var(--font-hs, Georgia, serif);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.bg-tierlist-card__primary,
+.bg-tierlist-card__secondary {
+  color: var(--bg-muted, #735e49);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-tierlist-card__primary > b {
+  color: var(--bg-ink, #30251c);
+  font-size: 1.0625rem;
+}
+
+.bg-tierlist-card__secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+}
+
+.bg-tierlist-card__secondary b {
+  color: var(--bg-ink, #30251c);
+  font-weight: 700;
+}
+
+/* Strategy: title, one meta line, the key and extra cards as thumbnails. */
+.bg-tierlist-strategy { padding: 0.75rem; }
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-tierlist-strategy > h4 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-hs, Georgia, serif);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-tierlist-strategy__meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-tierlist-strategy__group > p {
+  margin: 0.625rem 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.bg-tierlist-strategy__cards {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+.bg-tierlist-strategy__cards > button {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.bg-tierlist-strategy__cards img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  border-radius: 0.375rem;
+  object-fit: cover;
+}
+
+.bg-tierlist-strategy[data-bg-strategy-highlight='true'] {
+  border-color: var(--bg-violet, #8f536d);
+  box-shadow: 0 0 0 2px rgba(143, 83, 109, 0.32);
+}
+
+.bg-tierlist :is(.bg-tierlist-card, .bg-tierlist-strategy__cards > button, .bg-tierlist__more, .bg-trinket-tier-row):focus-visible {
+  outline: 2px solid var(--bg-violet, #8f536d);
+  outline-offset: 2px;
+}
+
+/* Trinket table: a parchment ledger with one header per tier and no
+ * per-cell captions while the header is visible. */
+.bg-trinket-tier-table,
+.bg-trinket-tier-row-shell { min-width: 0; }
+
+.bg-trinket-tier-table { display: grid; }
+
+.bg-trinket-tier-table-head,
+.bg-trinket-tier-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.5rem 7.5rem 11.5rem;
+  align-items: center;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-trinket-tier-table-head {
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+  color: var(--bg-muted, #735e49);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.bg-trinket-tier-table-head > span:not(:first-child) { text-align: center; }
+
+.bg-trinket-tier-row-shell {
+  content-visibility: auto;
+  contain: layout style;
+  contain-intrinsic-size: auto 88px;
+  border-bottom: 1px solid var(--arena-paper-line);
+}
+
+.bg-trinket-tier-row {
+  width: 100%;
+  min-height: 86px;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--bg-ink, #30251c);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.bg-trinket-tier-row:hover { background: rgba(143, 83, 109, 0.07); }
+
+.bg-trinket-tier-row__identity {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.bg-trinket-medallion {
+  position: relative;
+  display: block;
+  width: 76px;
+  height: 76px;
+  isolation: isolate;
+}
+
+.bg-trinket-medallion__art {
+  position: absolute;
+  z-index: -1;
+  top: 25%;
+  left: 22%;
+  width: 58%;
+  height: 58%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 38%;
+  background: #2d1b27;
+}
+
+.bg-trinket-medallion__frame {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bg-trinket-medallion__cost {
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  left: 50%;
+  min-width: 20px;
+  color: #fffdf5;
+  font-family: var(--font-hs, Georgia, serif);
+  font-size: 0.875rem;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 1px rgba(24, 10, 3, 0.95), 0 0 3px rgba(24, 10, 3, 0.92), 0 0 1px #000;
+  transform: translateX(-50%);
+}
+
+.bg-trinket-tier-row__copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding-right: 0.75rem;
+}
+
+.bg-trinket-tier-row__title-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.5rem;
+}
+
+.bg-trinket-tier-row__title-line > strong {
+  font-family: var(--font-hs, Georgia, serif);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.bg-trinket-tier-row__title-line > small,
+.bg-trinket-tier-row__description {
+  color: var(--bg-muted, #735e49);
+  font-size: 0.8125rem;
+}
+
+.bg-trinket-tier-row__description {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.bg-trinket-tier-row__metric,
+.bg-trinket-distribution {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.bg-trinket-tier-row__metric > strong {
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-trinket-tier-row__metric > small { display: none; }
+
+.bg-trinket-distribution__bars {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(5px, 1fr));
+  align-items: end;
+  gap: 3px;
+  width: min(100%, 152px);
+  height: 40px;
+  border-bottom: 1px solid var(--arena-paper-line);
+}
+
+.bg-trinket-distribution__bars > i {
+  height: var(--bg-trinket-bar-height);
+  border-radius: 2px 2px 0 0;
+  background: var(--bg-violet, #8f536d);
+}
+
+.bg-trinket-distribution__axis {
+  display: flex;
+  justify-content: space-between;
+  width: min(100%, 152px);
+  color: var(--bg-muted, #735e49);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 899px) {
+  .bg-tierlist__tier { display: block; }
+  .arena-app-battlegrounds .bg-tier-list-page .bg-tierlist__tier-head {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .bg-trinket-tier-table-head { display: none !important; }
+  .bg-trinket-tier-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 0.375rem;
+    padding: 0.5rem 0;
+  }
+  .bg-trinket-tier-row__identity { grid-column: 1 / -1; grid-template-columns: 64px minmax(0, 1fr); }
+  .bg-trinket-medallion { width: 64px; height: 64px; }
+  .bg-trinket-tier-row__metric > small {
+    display: block;
+    color: var(--bg-muted, #735e49);
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .arena-app-battlegrounds .bg-tier-list-page > .bg-tierlist { padding: 0.75rem; }
+  .bg-tierlist-card { grid-template-columns: 60px minmax(0, 1fr); gap: 0.625rem; padding: 0.375rem 0.625rem 0.375rem 0.375rem; }
+  .bg-tierlist-card > img { width: 60px; }
+  .bg-tierlist-strategy__cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-tierlist-card, .bg-trinket-tier-row { transition: none; }
+}
