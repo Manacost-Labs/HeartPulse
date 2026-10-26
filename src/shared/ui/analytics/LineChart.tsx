@@ -12,15 +12,19 @@ type LineChartProps = {
   bandLabel?: string;
   /** Name of the points' `reference` values; without it they are not drawn. */
   referenceLabel?: string;
+  /** Plot height in px (default 240): compact secondary charts with a few points need less. */
+  height?: number;
 };
 
 const HEIGHT = 240;
 const TOP = 26;
-const BOTTOM = HEIGHT - 34;
+/** Room under the plot for the date ticks. */
+const AXIS_ROOM = 34;
 const GAP = 14;
 
 /** Shared line chart: one line, area and optional interval band per period segment, a hover card and a keyboard scrubber. */
-export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d', domain, invert = false, xLabel = '', tourId, segmentLabel, bandLabel, referenceLabel }: LineChartProps) {
+export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d', domain, invert = false, xLabel = '', tourId, segmentLabel, bandLabel, referenceLabel, height = HEIGHT }: LineChartProps) {
+  const bottom = height - AXIS_ROOM;
   const { ref, width } = usePlotWidth();
   const id = useId();
   const gradientId = `${id.replace(/:/g, '')}-area`;
@@ -39,11 +43,11 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
   const left = Math.max(unit === 'count' ? 64 : 48, ...axisLabels.map(label => label.length * 7 + 12));
   const right = width - 16;
   const x = (position: number) => left + position * (right - left);
-  const y = (value: number) => TOP + (invert ? (value - low) / (high - low) : 1 - (value - low) / (high - low)) * (BOTTOM - TOP);
+  const y = (value: number) => TOP + (invert ? (value - low) / (high - low) : 1 - (value - low) / (high - low)) * (bottom - TOP);
   const runs = lineRuns(data);
   const referenceRuns = referenceLabel ? lineRuns(data.map(point => ({ ...point, y: Number.isFinite(point.reference) ? point.reference as number : null }))) : [];
   const line = (run: typeof data) => run.map((point, index) => `${index ? 'L' : 'M'}${x(point.position).toFixed(1)},${y(point.y as number).toFixed(1)}`).join(' ');
-  const area = (run: typeof data) => `${line(run)} L${x(run[run.length - 1].position).toFixed(1)},${BOTTOM} L${x(run[0].position).toFixed(1)},${BOTTOM} Z`;
+  const area = (run: typeof data) => `${line(run)} L${x(run[run.length - 1].position).toFixed(1)},${bottom} L${x(run[0].position).toFixed(1)},${bottom} Z`;
   const band = (run: typeof data) => {
     const bounded = run.filter(point => Number.isFinite(point.low) && Number.isFinite(point.high));
     if (bounded.length < 2) return '';
@@ -78,7 +82,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
     const pointX = x(active.position);
     const pointY = y(active.y as number);
     const cardLeft = pointX + GAP + element.offsetWidth > width ? pointX - GAP - element.offsetWidth : pointX + GAP;
-    const cardTop = Math.max(0, Math.min(pointY - element.offsetHeight / 2, BOTTOM - element.offsetHeight));
+    const cardTop = Math.max(0, Math.min(pointY - element.offsetHeight / 2, bottom - element.offsetHeight));
     element.style.transform = `translate(${Math.round(Math.max(0, cardLeft))}px, ${Math.round(cardTop)}px)`;
   });
   const exportable = observed.length > 0;
@@ -86,7 +90,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
   return <ChartFrame title={title} subtitle={subtitle} tourId={tourId} exportable={exportable}>
     <div ref={ref} className="analytics-chart__plot" style={{ ['--analytics-series' as string]: color }}>
       {!exportable ? <p className="analytics-chart__empty">Для графика пока нет данных.</p> : <>
-        <svg data-chart viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label={`${title}${unit === '%' ? ', проценты' : ''}`}
+        <svg data-chart viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title}${unit === '%' ? ', проценты' : ''}`}
           onPointerMove={selectFromPointer} onPointerDown={selectFromPointer} onPointerLeave={() => setHovering(false)}>
           <defs>
             <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
@@ -97,7 +101,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
           {axisValues.map((value, index) => {
             return <g key={value}><line className="analytics-chart__grid" x1={left} x2={right} y1={y(value)} y2={y(value)} /><text className="analytics-chart__axis" x={left - 8} y={y(value) + 4} textAnchor="end">{axisLabels[index]}</text></g>;
           })}
-          <line className="analytics-chart__baseline" x1={left} x2={right} y1={BOTTOM} y2={BOTTOM} />
+          <line className="analytics-chart__baseline" x1={left} x2={right} y1={bottom} y2={bottom} />
           {runs.map((run, index) => <g key={index}>
             {band(run) && <path className="analytics-chart__band" d={band(run)} fill={color} />}
             {run.length > 1 && !band(run) && <path d={area(run)} fill={`url(#${gradientId})`} />}
@@ -105,7 +109,7 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
           </g>)}
           {referenceRuns.map((run, index) => run.length > 1 && <path key={index} className="analytics-chart__reference" d={line(run)} />)}
           {boundaryLabels.map(boundary => <g key={boundary.index} className="analytics-chart__boundary">
-            {boundary.line && <line x1={boundary.at} x2={boundary.at} y1={TOP - 14} y2={BOTTOM} />}
+            {boundary.line && <line x1={boundary.at} x2={boundary.at} y1={TOP - 14} y2={bottom} />}
             {boundary.shown && <text x={boundary.anchorEnd ? boundary.at - 4 : boundary.at + 4} y={TOP - 6} textAnchor={boundary.anchorEnd ? 'end' : 'start'}>{boundary.label}</text>}
           </g>)}
           {data.map((point, index) => point.y !== null && (data.length <= 24 || runs.some(run => run.length === 1 && run[0] === point))
@@ -115,10 +119,10 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
             <circle cx={x(latest.position)} cy={y(latest.y)} r="4.5" fill={color} stroke="#fbf3de" strokeWidth="2" />
           </g>}
           {active && active.y !== null && (selection !== null || hovering) && <>
-            <line className="analytics-chart__guide" x1={x(active.position)} x2={x(active.position)} y1={TOP} y2={BOTTOM} />
+            <line className="analytics-chart__guide" x1={x(active.position)} x2={x(active.position)} y1={TOP} y2={bottom} />
             <circle cx={x(active.position)} cy={y(active.y)} r="5" fill="#fbf3de" stroke={color} strokeWidth="2.5" />
           </>}
-          {tickIndexes.map((index, tick) => <text key={index} className="analytics-chart__axis" x={x(data[index].position)} y={HEIGHT - 10} textAnchor={tick === 0 ? 'start' : tick === tickIndexes.length - 1 ? 'end' : 'middle'}>{tickText(data[index])}</text>)}
+          {tickIndexes.map((index, tick) => <text key={index} className="analytics-chart__axis" x={x(data[index].position)} y={height - 10} textAnchor={tick === 0 ? 'start' : tick === tickIndexes.length - 1 ? 'end' : 'middle'}>{tickText(data[index])}</text>)}
         </svg>
         {showCard && <div ref={card} className="analytics-chart__tooltip" aria-hidden="true">
           <span>{active.label ?? `${xLabel}${active.x}`}</span>

@@ -60,6 +60,9 @@ export function LeaderboardSummary({ stats, onRank }: { stats: LeaderboardStats;
   </div>;
 }
 
+/** Графики под таблицей второстепенны: ниже стандартных 240px. */
+const CHART_HEIGHT = 160;
+
 /** Графики под таблицей: игроки и порог топа по дням (распределение рейтинга — в сводке). */
 export function LeaderboardCharts({ stats }: { stats: LeaderboardStats }) {
   const { board, series } = stats;
@@ -76,8 +79,9 @@ export function LeaderboardCharts({ stats }: { stats: LeaderboardStats }) {
 
   if (series.length < 2) return null;
   return <section className="leaderboards-charts" aria-label="Графики таблицы">
-      <LineChart title="Игроков в таблице по дням" unit="count" color="#8d171d" points={players} xLabel="День" />
-      {board.rated && <LineChart title={`Порог топ-${formatPlayers(thresholdRank)} по дням`}
-        subtitle={unit} unit={ratingUnit} color="#8f536d" points={thresholds} xLabel="День" />}
+      <LineChart title="Игроков в таблице по дням" unit="count" color="#8d171d" points={players} xLabel="День" height={CHART_HEIGHT} />
+      {/* «топ-1000» без разделителя: в заголовочном шрифте неразрывный пробел выглядит двойным. */}
+      {board.rated && <LineChart title={`Порог топ-${thresholdRank} по дням`}
+        subtitle={unit} unit={ratingUnit} color="#8f536d" points={thresholds} xLabel="День" height={CHART_HEIGHT} />}
   </section>;
 }

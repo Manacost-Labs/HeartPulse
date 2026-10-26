@@ -380,6 +380,10 @@
   min-width: 0;
 }
 
+/* Заголовки графиков — в шкале страницы (заголовок карточки игрока), а не крупные заголовки разделов. */
+.leaderboards-charts .analytics-chart__header { margin-bottom: 0.5rem; }
+.leaderboards-charts .analytics-chart__header h3 { font-size: var(--lb-text-title); }
+
 /* Таблица — список строк: ровные колонки фиксированной раскладки, строки 46px
    с чередованием фона вместо линий, без прокрутки вбок. */
 
