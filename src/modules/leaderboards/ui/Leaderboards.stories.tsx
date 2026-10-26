@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import type { LeaderboardBoard, LeaderboardPlayer, LeaderboardSnapshot, LeaderboardStats, LeaderboardTable } from '../model/types';
+import { LeaderboardControls, LeaderboardJump, LeaderboardSearch } from './LeaderboardControls';
 import { LeaderboardPlayerCard } from './LeaderboardPlayerCard';
 import { LeaderboardSummary } from './LeaderboardSummary';
 import { LeaderboardTableView } from './LeaderboardTableView';
@@ -59,6 +60,25 @@ export const RatedSummary: Story = { render: () => <div className="leaderboards"
 export const UnratedSummary: Story = { render: () => <div className="leaderboards"><LeaderboardSummary stats={standard} onRank={() => undefined} /></div> };
 
 const onPage = fn();
+const onSelect = fn();
+
+/** Раздел целиком, как на странице: панель выбора, сводка и таблица в одной рамке. */
+export const Board: Story = {
+  render: () => <div className="leaderboards" data-mode="battlegrounds"><section className="leaderboards-board" aria-label="Таблица лидеров">
+    <LeaderboardControls selection={{ mode: 'battlegrounds', region: 'EU', season: null, page: 1, query: '', player: null, rank: null }}
+      seasons={[{ id: 19, start: null, latest: true, final: false, players: 6543 }, { id: 18, start: null, latest: false, final: true, players: 7100 }]} onSelect={onSelect}>
+      <LeaderboardJump max={6543} onJump={() => undefined} />
+      <LeaderboardSearch query="" onSelect={onSelect} />
+    </LeaderboardControls>
+    <LeaderboardSummary stats={stats} onRank={() => undefined} />
+    <LeaderboardTableView table={table} busy={false} selectedPlayer={null} targetRank={null} onPage={() => undefined} onPlayer={() => undefined} />
+  </section></div>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Твист' }));
+    await expect(onSelect).toHaveBeenCalledWith({ mode: 'twist' });
+  },
+};
 
 export const Table: Story = {
   render: () => <div className="leaderboards"><LeaderboardTableView table={table} busy={false} selectedPlayer="XQN" targetRank={5}

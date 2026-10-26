@@ -280,9 +280,10 @@ test('the summary line, the rating histogram and the player profile model', () =
     ['1 игрок', '3 игрока', '11 игроков', '22 игрока', '25 игроков', '111 игроков', '6\u00a0543 игрока']);
   const stats = parseLeaderboardStats(upstreamStats());
   const line = summaryLine(stats);
+  assert.equal(line.players, formatPlayers(stats.snapshot.players));
   assert.equal(line.delta, '+143 за день');
   assert.deepEqual(line.thresholds.map(item => [item.label, item.rating]),
-    [['топ-100', '13\u00a0010'], ['топ-1\u00a0000', '10\u00a0120'], ['топ-5\u00a0000', '8\u00a0320']]);
+    [['Топ-100', '13\u00a0010'], ['Топ-1\u00a0000', '10\u00a0120'], ['Топ-5\u00a0000', '8\u00a0320']]);
   const cut = summaryLine({ ...stats, snapshot: { ...stats.snapshot, stored: 2000, truncated: true } });
   assert.deepEqual(cut.thresholds.map(item => item.rank), [100, 1000], 'no jump past the stored places');
   const bars = histogramBars(stats);
