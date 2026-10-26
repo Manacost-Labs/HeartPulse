@@ -11,6 +11,7 @@ import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
+import { openStory, startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const teaser = {
   slug: 'arena-100-percent', title: 'Арена 100% побед', description: 'Подробное описание',
@@ -105,5 +106,43 @@ test('Next guide detail renders an anonymous teaser, canonicalizes old IDs and r
     if (gateway) await closeLocal(gateway);
     if (child.exitCode === null) { const exited = once(child, 'exit'); child.kill('SIGTERM'); await exited; }
     await closeLocal(legacy);
+  }
+});
+
+test('archive reader keeps legacy section anchors visible and readable at desktop and mobile widths', async () => {
+  const storybook = await startStorybookStatic();
+  const browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    headless: true, args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    for (const width of [1440, 390, 320]) {
+      await page.setViewport({ width, height: 844 });
+      await openStory(page, storybook.storyUrl('guides-measured-loading-geometry--reading-layout'));
+      await page.waitForSelector('.guide-archive-reader a[href="#guide-section-mulligan"]');
+      await page.click('.guide-archive-reader a[href="#guide-section-mulligan"]');
+      const reading = await page.evaluate(() => {
+        const reader = document.querySelector('.guide-archive-reader');
+        const anchor = document.getElementById('guide-section-mulligan');
+        const paragraphs = [...reader.querySelectorAll('p')].filter(node => node.textContent.includes('оставляйте'));
+        const gaps = paragraphs.slice(1).map((node, i) => node.getBoundingClientRect().top - paragraphs[i].getBoundingClientRect().bottom);
+        return {
+          overflow: document.documentElement.scrollWidth > innerWidth,
+          anchorVisible: getComputedStyle(anchor).display !== 'none' && anchor.getClientRects().length > 0,
+          anchorTop: anchor.getBoundingClientRect().top,
+          textSize: parseFloat(getComputedStyle(reader).fontSize), gaps,
+        };
+      });
+      assert.equal(reading.overflow, false, `overflow at ${width}px`);
+      assert.equal(reading.anchorVisible, true, 'legacy empty anchors must remain scroll targets');
+      assert.ok(reading.anchorTop >= 0 && reading.anchorTop < 844, 'TOC click reaches its section');
+      assert.ok(reading.textSize >= 16, 'body text remains readable');
+      assert.ok(reading.gaps.every(gap => gap >= 0 && gap <= 24), 'no decorative-image gaps between mulligan paragraphs');
+    }
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser.close();
+    await storybook.close();
   }
 });
