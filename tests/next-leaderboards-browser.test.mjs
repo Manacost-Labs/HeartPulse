@@ -22,6 +22,23 @@ async function pageState(page) {
 
 const firstNames = page => page.$$eval('.leaderboards-table tbody tr td:nth-child(2)', nodes => nodes.slice(0, 3).map(node => node.textContent));
 
+/** Ждёт условие, а по таймауту падает с тем, что видно на странице: CI не сохраняет снимков. */
+async function waitOrExplain(page, predicate, label) {
+  try {
+    await page.waitForFunction(predicate);
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      url: location.search,
+      pressed: [...document.querySelectorAll('.leaderboards-modes [aria-pressed="true"]')].map(node => node.textContent),
+      first: document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent ?? null,
+      message: document.querySelector('.leaderboards-message h2, [role="alert"]')?.textContent ?? null,
+      busy: document.querySelector('.leaderboards-table')?.getAttribute('aria-busy') ?? null,
+      scrollY,
+    }));
+    throw new Error(`${label}: ${error.message}; page: ${JSON.stringify(state)}`);
+  }
+}
+
 test('the leaderboards page renders the table on the server, switches modes, jumps to places, searches and opens a player', { timeout: 240000 }, async () => {
   const pilot = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
@@ -108,7 +125,8 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-collecting-1440.png') });
 
     await page.click('.leaderboards-modes button:nth-child(3)');
-    await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN');
+    await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN',
+      'Battlegrounds after a collecting mode');
     assert.equal(new URL(page.url()).searchParams.get('rank'), null, 'another table forgets the place');
     await page.type('.leaderboards-search input', 'bob651');
     await page.waitForFunction(() => document.querySelectorAll('.leaderboards-table tbody tr').length === 11);
