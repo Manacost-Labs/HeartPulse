@@ -262,12 +262,15 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 
 ### BG Tier List
 
-- Top list switcher uses walnut/burgundy idle cards, cream labels and a violet/gold selected state. Cold white or blue navigation cards are not part of the BG palette.
-- Tier navigation cards and the active tier ledger use the canonical timber border asset. The active accent is `#4A2F66`; use it selectively for selected controls, focus/highlight states and title plaques, never as a page-wide background.
-- `public/wallpaper/main-page-header.svg` is the locally stored Hearthstone Wiki heading ornament (source: `https://hearthstone.wiki.gg/images/b/b2/Main_page_header.svg`) and may be used as a mask behind short headings. Preserve generous inner padding and never place body copy inside it.
-- The tier index is a dark wood/aubergine ledger. Rank groups and individual entries use deeper honey parchment, while nested filters use dark wells with violet/gold chips; avoid the former white/blue dashboard controls.
+- One timber-framed section under the banner holds the whole tool: a segmented list switcher (Существа / Стратегии / Заклинания / Аксессуары) with a one-line status (count, source, refresh time), then a single filter row. Secondary filters (tavern tier for minions, player rating and period for trinkets) sit behind one toggle whose label summarises their current values. Components: `TierListToolbar`, `TierListChoices`, `TierListChoice` in `src/modules/battlegrounds/ui/TierListToolbar.tsx`.
+- Dusty violet (`--bg-violet-dark` fill, `--bg-violet` focus and highlight) marks only the selected state; idle controls and cards stay parchment. No cold white or blue surfaces.
+- Tiers are separated by `--arena-paper-line`, not boxes, and are marked with the site `TierBadge`; the badge and the tier's count sit in a sticky left column on wide screens and above the entries on phones.
+- Minion and spell cards show the art, the name, the ranking metric (influence for minions, average place for spells) and at most two supporting numbers. No chips, no English labels, no tavern number (the art shows it).
+- Strategy cards keep the title, one meta line (archetype · average place · games · difficulty) and the key/extra card thumbnails.
+- The trinket table is a parchment ledger: one header per tier, no per-cell captions while the header is visible, numbers plus the 1–8 placement chart. Phones get compact captions under each number.
+- On phones the switcher becomes 2 × 2, the race filter scrolls inside its own row, and the page never scrolls horizontally.
 - Every rank entry has an explicit themed hook; styling must not depend on `:last-child`, visible limits or whether a “show more” control is present.
-- Tier card click/lightbox behavior and URL state are protected.
+- Tier card click/lightbox behavior and URL state (`list`, `source`, `size`, `mmr`, `timeRange`, `view`, `strategy`, `q`) are protected.
 - Raw card images remain large enough to recognize and are not filtered.
 
 ### Builders

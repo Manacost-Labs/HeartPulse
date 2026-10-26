@@ -131,7 +131,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.reload({ waitUntil: 'networkidle2' });
     assert.ok(await page.$('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]'));
-    assert.match(await page.$eval('main', node => node.textContent), /Всего: 0/);
+    assert.equal(await page.$eval('.bg-tierlist-toolbar__meta', node => node.textContent), '0');
     failedSubscriptionResponsesRemaining = 1;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(failedSubscriptionResponsesRemaining, 0);

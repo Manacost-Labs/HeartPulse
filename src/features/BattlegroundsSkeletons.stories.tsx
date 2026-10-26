@@ -51,12 +51,12 @@ export const HeroList: Story = {
 };
 
 export const TierListMinions: Story = {
-  render: () => <section className="bg-tier-index-panel rounded-lg border p-3 sm:p-4"><BattlegroundTierListSkeleton list="minions" /></section>,
+  render: () => <section className="bg-tierlist"><BattlegroundTierListSkeleton list="minions" /></section>,
   play: async ({ canvas }) => { await expect(canvas.getByRole('status')).toHaveTextContent('Загружаем тир-лист'); },
 };
 
 export const TierListStrategies: Story = {
-  render: () => <section className="bg-tier-index-panel rounded-lg border p-3 sm:p-4"><BattlegroundTierListSkeleton list="strategies" /></section>,
+  render: () => <section className="bg-tierlist"><BattlegroundTierListSkeleton list="strategies" /></section>,
 };
 
 const retry = fn();
