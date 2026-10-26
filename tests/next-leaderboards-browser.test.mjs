@@ -22,6 +22,23 @@ async function pageState(page) {
 
 const firstNames = page => page.$$eval('.leaderboards-table tbody tr td:nth-child(2)', nodes => nodes.slice(0, 3).map(node => node.textContent));
 
+/** Ждёт условие, а по таймауту падает с тем, что видно на странице: CI не сохраняет снимков. */
+async function waitOrExplain(page, predicate, label) {
+  try {
+    await page.waitForFunction(predicate);
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      url: location.search,
+      pressed: [...document.querySelectorAll('.leaderboards-modes [aria-pressed="true"]')].map(node => node.textContent),
+      first: document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent ?? null,
+      message: document.querySelector('.leaderboards-message h2, [role="alert"]')?.textContent ?? null,
+      busy: document.querySelector('.leaderboards-table')?.getAttribute('aria-busy') ?? null,
+      scrollY,
+    }));
+    throw new Error(`${label}: ${error.message}; page: ${JSON.stringify(state)}`);
+  }
+}
+
 test('the leaderboards page renders the table on the server, switches modes, jumps to places, searches and opens a player', { timeout: 240000 }, async () => {
   const pilot = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
@@ -74,8 +91,8 @@ test('the leaderboards page renders the table on the server, switches modes, jum
       ['↑1', '↓1', 'новый']);
     assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+3) .leaderboards-medal', nodes => nodes.map(node => node.dataset.place)),
       ['1', '2', '3'], 'the top three get medals');
-    assert.match(await page.$eval('.leaderboards', node => node.textContent ?? ''), /6\u00a0543 игрока[\s\S]*топ-1\u00a0000 18\u00a0104[\s\S]*Распределение рейтинга[\s\S]*Место/,
-      'one summary line and the rating histogram above the table');
+    assert.match(await page.$eval('.leaderboards', node => node.textContent ?? ''), /Игроков6\u00a0543[\s\S]*Топ-1\u00a0000[\s\S]*18\u00a0104[\s\S]*Распределение рейтинга[\s\S]*Место/,
+      'summary tiles and the rating histogram above the table');
     assert.equal(await page.$$eval('.leaderboards-histogram__bars span', nodes => nodes.length), 8);
     assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+5) .leaderboards-streamer', nodes => nodes.map(node => node.getAttribute('href'))),
       ['/streamers/moquaitv/', '/streamers/ramses/'], 'catalog streamers get a badge linking their page');
@@ -92,6 +109,9 @@ test('the leaderboards page renders the table on the server, switches modes, jum
       const box = document.querySelector('.leaderboards-table tr[data-target]')?.getBoundingClientRect();
       return Boolean(box && box.top >= 0 && box.bottom <= innerHeight);
     }, { timeout: 5000 });
+    assert.equal(await page.evaluate(() => Math.round(document.querySelector('.leaderboards-controls').getBoundingClientRect().top
+      - document.querySelector('.global-utility-header').getBoundingClientRect().bottom)), 0,
+      'deep in the table the mode, region and search bar stays on screen right under the site search');
 
     await page.click('.leaderboards-modes button:first-child');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'TrueBench');
@@ -105,7 +125,8 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-collecting-1440.png') });
 
     await page.click('.leaderboards-modes button:nth-child(3)');
-    await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN');
+    await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN',
+      'Battlegrounds after a collecting mode');
     assert.equal(new URL(page.url()).searchParams.get('rank'), null, 'another table forgets the place');
     await page.type('.leaderboards-search input', 'bob651');
     await page.waitForFunction(() => document.querySelectorAll('.leaderboards-table tbody tr').length === 11);
@@ -114,7 +135,8 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     for (let index = 0; index < 'bob651'.length; index += 1) await page.keyboard.press('Backspace');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN');
 
-    await page.click('.leaderboards-table tbody tr:first-child .leaderboards-player-link');
+    // Историю открывает вся строка, не только ник: нажимаем по рейтингу.
+    await page.click('.leaderboards-table tbody tr:first-child td:last-child');
     await page.waitForSelector('.leaderboards-player__seasons li');
     const card = await page.$eval('.leaderboards-player', node => node.textContent ?? '');
     assert.match(card, /XQN[\s\S]*Лучшее место — 1[\s\S]*Сезон 19 по дням[\s\S]*1 место · 20\u00a0104/, 'best place and the day chart of the season');
@@ -137,6 +159,11 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     await page.click('.leaderboards-me');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent?.trim() === '1');
     assert.match(new URL(page.url()).search, /rank=1&player=XQN/, '«to my name» opens my place and card');
+    // Плавная прокрутка к месту проносит карточку под липкой панелью: жмём, когда кнопка уже сверху.
+    await page.waitForFunction(() => {
+      const box = document.querySelector('.leaderboards-player__close')?.getBoundingClientRect();
+      return Boolean(box && document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest('.leaderboards-player__close'));
+    }, { timeout: 5000 });
     await page.click('.leaderboards-player__close');
     await page.waitForFunction(() => !document.querySelector('.leaderboards-player'));
 

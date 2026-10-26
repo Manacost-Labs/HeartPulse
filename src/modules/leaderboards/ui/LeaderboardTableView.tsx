@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChartLine, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { preferredScrollBehavior } from '../../../shared/ui/scrollBehavior';
 import {
   LEADERBOARD_RATING_LABELS, boardTitle, formatLeaderboardTime, formatPlayers, formatRating, rankChange,
@@ -22,10 +22,12 @@ function Pagination({ table, onPage }: { table: LeaderboardTable; onPage: (page:
 }
 
 /**
- * Страница таблицы списком строк: место (топ-3 — медали, топ-10 — жирный номер),
- * ник со значком стримера, изменение места за сутки мини-бейджем и справа
- * рейтинг крупным числом (если он есть в режиме). Строка места, к которому
- * перешли, подсвечена и прокручена в середину экрана.
+ * Страница таблицы списком строк: место (топ-3 — медали и своя строка, топ-10 —
+ * жирный номер), ник со значком стримера, изменение места за сутки бейджем и
+ * справа рейтинг крупным числом (если он есть в режиме). Вся строка открывает
+ * историю игрока: кнопка ника растянута на строку, значок стримера остаётся
+ * отдельной ссылкой поверх. Строка места, к которому перешли, подсвечена и
+ * прокручена в середину экрана.
  */
 export function LeaderboardTableView({ table, busy, selectedPlayer, targetRank, onPage, onPlayer }: {
   table: LeaderboardTable;
@@ -46,7 +48,7 @@ export function LeaderboardTableView({ table, busy, selectedPlayer, targetRank, 
   const ratingLabel = board.rated ? LEADERBOARD_RATING_LABELS[board.mode] ?? 'Рейтинг' : null;
   return <div className="leaderboards-table data-surface" aria-busy={busy || undefined}>
     <table>
-      <caption className="sr-only">{boardTitle(table)}. Нажмите на ник, чтобы открыть историю игрока.</caption>
+      <caption className="sr-only">{boardTitle(table)}. Нажмите на строку игрока, чтобы открыть историю его места.</caption>
       <colgroup>
         <col className="leaderboards-table__rank" />
         <col />
@@ -64,13 +66,16 @@ export function LeaderboardTableView({ table, busy, selectedPlayer, targetRank, 
           const change = rankChange(row.rank, row.previousRank, hasPrevious);
           const isTarget = row.rank === targetRank;
           return <tr key={`${row.rank}-${row.name}`} ref={isTarget ? target : undefined}
-            data-selected={row.name === selectedPlayer || undefined} data-target={isTarget || undefined} data-top={row.rank <= 10 || undefined}>
+            data-selected={row.name === selectedPlayer || undefined} data-target={isTarget || undefined} data-top={row.rank <= 10 || undefined}
+            data-place={row.rank <= 3 ? row.rank : undefined}>
             <td className="is-numeric leaderboards-rank">{row.rank <= 3
               ? <span className="leaderboards-medal" data-place={row.rank}>{row.rank}</span>
               : formatPlayers(row.rank)}</td>
             <td><div className="leaderboards-name">
-              <button type="button" className="leaderboards-player-link" onClick={() => onPlayer(row.name)}>{row.name}</button>
+              <button type="button" className="leaderboards-player-link" aria-pressed={row.name === selectedPlayer}
+                onClick={() => onPlayer(row.name)}>{row.name}</button>
               {row.streamer && <StreamerBadge streamer={row.streamer} />}
+              <ChartLine className="leaderboards-name__hint" aria-hidden="true" />
             </div></td>
             {hasPrevious && <td className="is-numeric">
               {change && <span className={`leaderboards-change leaderboards-change--${change.kind}`} title={change.text}>

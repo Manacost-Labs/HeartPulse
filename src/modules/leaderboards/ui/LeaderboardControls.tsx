@@ -1,42 +1,74 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
-import { CornerDownLeft, Search, UserRound } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  Castle, CornerDownLeft, Infinity as InfinityIcon, Layers, Search, Shuffle, Swords, Ticket, UserRound, UsersRound, type LucideIcon,
+} from 'lucide-react';
 import {
   LEADERBOARD_MODE_TABS, LEADERBOARD_REGION_LABELS, formatSeasonLabel,
   type LeaderboardSelection,
 } from '../model/leaderboardsView';
-import { LEADERBOARD_MODES, LEADERBOARD_REGIONS, type LeaderboardSeason } from '../model/types';
+import { LEADERBOARD_MODES, LEADERBOARD_REGIONS, type LeaderboardMode, type LeaderboardSeason } from '../model/types';
 
 /** Поиск уходит на сервер после паузы в наборе, а не на каждую букву. */
 const SEARCH_DELAY_MS = 350;
 
-/** Одна строка выбора: вкладки режимов, регион и сезон. */
-export function LeaderboardControls({ selection, seasons, onSelect }: {
+/** Значки режимов — те же lucide-эмблемы, что у разделов в меню сайта (замок Полей сражений, билет Арены). */
+const MODE_ICONS: Record<LeaderboardMode, LucideIcon> = {
+  standard: Layers,
+  wild: InfinityIcon,
+  battlegrounds: Castle,
+  battlegroundsduo: UsersRound,
+  arena: Ticket,
+  undergroundarena: Swords,
+  twist: Shuffle,
+};
+
+/**
+ * Панель выбора над таблицей: вкладки режимов, под ними регион и сезон
+ * слева и инструменты (`children`: к месту, к моему нику, поиск) справа.
+ * Панель липкая, чтобы режим и поиск были под рукой в глубине таблицы.
+ */
+export function LeaderboardControls({ selection, seasons, onSelect, children }: {
   selection: LeaderboardSelection;
   /** Сохранённые сезоны выбранного режима и региона, новые первыми. */
   seasons: LeaderboardSeason[];
   onSelect: (change: Partial<LeaderboardSelection>) => void;
+  children?: ReactNode;
 }) {
   const seasonId = useId();
+  const modes = useRef<HTMLDivElement>(null);
   const seasonValue = selection.season ?? seasons[0]?.id ?? '';
+  // На телефоне вкладки прокручиваются: выбранная (в том числе из ссылки) не должна прятаться за краем.
+  useEffect(() => {
+    const strip = modes.current;
+    const active = strip?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!strip || !active || strip.scrollWidth <= strip.clientWidth) return;
+    strip.scrollLeft = active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2;
+  }, [selection.mode]);
   return <div className="leaderboards-controls">
-    <div className="leaderboards-modes" role="group" aria-label="Режим">
-      {LEADERBOARD_MODES.map(mode => <button key={mode} type="button" className="leaderboards-chip leaderboards-chip--mode"
-        aria-pressed={selection.mode === mode} onClick={() => onSelect({ mode })}>{LEADERBOARD_MODE_TABS[mode]}</button>)}
+    <div ref={modes} className="leaderboards-modes" role="group" aria-label="Режим">
+      {LEADERBOARD_MODES.map(mode => {
+        const Icon = MODE_ICONS[mode];
+        return <button key={mode} type="button" className="leaderboards-chip leaderboards-chip--mode"
+          aria-pressed={selection.mode === mode} onClick={() => onSelect({ mode })}><Icon aria-hidden="true" />{LEADERBOARD_MODE_TABS[mode]}</button>;
+      })}
     </div>
-    <div className="leaderboards-controls__filters">
-      <div className="leaderboards-regions" role="group" aria-label="Регион">
-        {LEADERBOARD_REGIONS.map(region => <button key={region} type="button" className="leaderboards-chip"
-          aria-pressed={selection.region === region} onClick={() => onSelect({ region })}>{LEADERBOARD_REGION_LABELS[region]}</button>)}
+    <div className="leaderboards-controls__row">
+      <div className="leaderboards-controls__filters">
+        <div className="leaderboards-regions" role="group" aria-label="Регион">
+          {LEADERBOARD_REGIONS.map(region => <button key={region} type="button" className="leaderboards-chip"
+            aria-pressed={selection.region === region} onClick={() => onSelect({ region })}>{LEADERBOARD_REGION_LABELS[region]}</button>)}
+        </div>
+        <label className="sr-only" htmlFor={seasonId}>Сезон</label>
+        <select id={seasonId} className="leaderboards-select" value={seasonValue} disabled={!seasons.length}
+          onChange={event => onSelect({ season: Number(event.target.value) === seasons[0]?.id ? null : Number(event.target.value) })}>
+          {seasons.length
+            ? seasons.map(season => <option key={season.id} value={season.id}>{formatSeasonLabel(season)}</option>)
+            : <option value="">Нет сохранённых сезонов</option>}
+        </select>
       </div>
-      <label className="sr-only" htmlFor={seasonId}>Сезон</label>
-      <select id={seasonId} className="leaderboards-select" value={seasonValue} disabled={!seasons.length}
-        onChange={event => onSelect({ season: Number(event.target.value) === seasons[0]?.id ? null : Number(event.target.value) })}>
-        {seasons.length
-          ? seasons.map(season => <option key={season.id} value={season.id}>{formatSeasonLabel(season)}</option>)
-          : <option value="">Нет сохранённых сезонов</option>}
-      </select>
+      {children && <div className="leaderboards-tools">{children}</div>}
     </div>
   </div>;
 }

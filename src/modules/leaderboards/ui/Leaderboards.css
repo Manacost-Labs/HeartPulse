@@ -1,6 +1,7 @@
-/* Таблицы лидеров (design.md). Компактная шапка, одна строка выбора без
-   рамки, сводка одной строкой, одна таблица и карточка игрока сбоку. Один
-   акцент (--lb-accent: выбранные режим и регион, ссылки на игроков), золото —
+/* Таблицы лидеров (design.md). Один раздел в деревянной рамке: липкая панель
+   выбора, сводка плитками, таблица и карточка игрока сбоку. Один акцент на
+   режим (--lb-accent: красный, у Полей сражений — пыльно-фиолетовый) для
+   выбранных режима и региона и ссылок на игроков; золото, серебро и бронза —
    только у мест топ-3 и строки, к которой перешли.
    Шкала текста: метка, мелкий, основной, заголовок. */
 
@@ -20,11 +21,41 @@
   --lb-text-small: 0.8125rem;
   --lb-text-label: 0.6875rem;
   --lb-text-title: 1.25rem;
+  /* Высота липкой панели на широком экране: две строки по 48px и отступы. Карточка игрока липнет под ней. */
+  --lb-controls-height: 8rem;
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
   min-width: 0;
   font-size: var(--lb-text);
 }
+
+/* Пыльно-фиолетовый — акцент Полей сражений по всему сайту (design.md), темнее --bg-violet ради контраста текста. */
+.leaderboards:is([data-mode='battlegrounds'], [data-mode='battlegroundsduo']) { --lb-accent: #6f3d55; }
+
+/* Под липкими шапками сайта: строкой поиска на ноутбуке (GlobalUtilityHeader.css) и верхней
+   полосой меню уже ноутбука. */
+@media (min-width: 1024px) {
+  .leaderboards { --lb-sticky-top: 49px; }
+}
+
+@media (max-width: 1023px) {
+  .leaderboards { --lb-sticky-top: 70px; }
+}
+
+/* Раздел верхнего уровня — рамка main-page-rail-border, как у разделов страниц архетипов. */
+.leaderboards-board {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0 1rem 1rem;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+}
+
+.leaderboards-board__note { margin-top: -0.25rem; }
 
 .leaderboards-label {
   margin: 0;
@@ -47,27 +78,54 @@
     var(--arena-parchment-texture) center / cover;
 }
 
-/* Строка выбора: вкладки режимов слева, регион и сезон справа. */
+/* Панель выбора: вкладки режимов, под ними регион и сезон слева, инструменты справа.
+   Липкая: фон — та же бумага, что у раздела, иначе строки таблицы просвечивают. */
 
 .leaderboards-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  align-items: flex-end;
-  justify-content: space-between;
+  position: sticky;
+  top: var(--lb-sticky-top);
+  z-index: 3;
+  display: grid;
+  gap: 0.75rem;
   min-width: 0;
+  margin: 0 -1rem;
+  padding: 0.25rem 1rem 0.75rem;
   border-bottom: var(--lb-line);
+  background:
+    linear-gradient(rgba(247, 232, 191, 0.97), rgba(240, 222, 178, 0.97)),
+    var(--arena-parchment-texture) center / cover;
 }
 
 .leaderboards-modes {
   display: flex;
+  gap: 0.25rem;
   min-width: 0;
   max-width: 100%;
+  margin: 0 -1rem;
+  padding: 0 1rem;
   overflow-x: auto;
+  border-bottom: var(--lb-line);
   scrollbar-width: none;
 }
 
-.leaderboards-controls__filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding-bottom: 0.5rem; }
+/* Края полосы тают: видно, что вкладок больше, чем помещается. На телефоне полоса липкая сама по себе,
+   и через маску просвечивали бы строки таблицы — там прокрутку показывает обрезанная вкладка. */
+@media (min-width: 641px) {
+  .leaderboards-modes { mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 1.5rem), transparent); }
+}
+
+.leaderboards-modes::-webkit-scrollbar { display: none; }
+
+.leaderboards-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.leaderboards-controls__filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; min-width: 0; }
 
 .leaderboards-regions {
   display: flex;
@@ -110,11 +168,15 @@
 .leaderboards-regions .leaderboards-chip { min-height: 42px; border-color: transparent; background: none; }
 .leaderboards-regions .leaderboards-chip[aria-pressed='true'] { background: var(--lb-accent); }
 
-/* Режим — вкладки с чертой снизу, без плашек. */
+/* Режим — вкладки с эмблемой и чертой снизу, без плашек. */
 .leaderboards-chip--mode,
 .leaderboards-chip--mode:hover:not(:disabled),
 .leaderboards-chip--mode[aria-pressed='true'] {
-  padding: 0 0.75rem;
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 0.7rem;
   border: 0;
   border-radius: 0;
   background: none;
@@ -124,14 +186,16 @@
   font-size: var(--lb-text);
 }
 
+.leaderboards-chip--mode svg { flex: none; width: 18px; height: 18px; opacity: 0.75; }
 .leaderboards-chip--mode:hover:not(:disabled) { color: var(--arena-ink); }
 /* Активная вкладка держит черту и под курсором: правило ховера выше сильнее простого [aria-pressed]. */
 .leaderboards-chip--mode[aria-pressed='true'],
 .leaderboards-chip--mode[aria-pressed='true']:hover:not(:disabled) { box-shadow: inset 0 -3px 0 var(--lb-accent); color: var(--lb-accent); }
+.leaderboards-chip--mode[aria-pressed='true'] svg { opacity: 1; }
 
 .leaderboards-select { max-width: 100%; padding: 0 2rem 0 0.75rem; cursor: pointer; }
 
-.leaderboards-search { display: flex; flex: 0 1 280px; margin-left: auto; gap: 0.4rem; align-items: center; min-width: 0; padding: 0 0.75rem; }
+.leaderboards-search { display: flex; flex: 0 1 280px; gap: 0.4rem; align-items: center; min-width: 0; padding: 0 0.75rem; }
 .leaderboards-search svg { flex: none; width: 16px; height: 16px; color: var(--arena-muted-ink); }
 
 .leaderboards-search input {
@@ -153,66 +217,85 @@
   outline-offset: 2px;
 }
 
-/* Сводка, переходы и поиск над таблицей. */
+/* Инструменты в панели: к месту, к моему нику, поиск. */
+.leaderboards-tools { display: flex; flex: 1 1 auto; gap: 0.5rem; align-items: center; justify-content: flex-end; min-width: 0; }
+.leaderboards-tools .leaderboards-search { flex: 0 1 280px; min-width: 12rem; }
 
-.leaderboards-toolbar {
+/* Сводка: плитки «Игроков» и порогов топа, справа — гистограмма рейтинга. */
+
+.leaderboards-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.5rem 1rem;
-  align-items: start;
+  gap: 0.75rem 1.5rem;
+  align-items: end;
   min-width: 0;
 }
 
-.leaderboards-toolbar > .data-surface { min-width: 0; }
-.leaderboards-toolbar__note { grid-column: 1 / -1; }
+.leaderboards-summary.has-histogram { grid-template-columns: minmax(0, auto) minmax(14rem, 1fr); }
+.leaderboards-summary__note { grid-column: 1 / -1; }
 
-.leaderboards-tools { display: flex; gap: 0.5rem; align-items: center; justify-content: flex-end; min-width: 0; }
-.leaderboards-tools .leaderboards-search { flex: 0 1 280px; min-width: 12rem; }
-
-.leaderboards-summary { display: grid; gap: 0.35rem; min-width: 0; }
-
-.leaderboards-summary__line {
+.leaderboards-kpis {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 1rem;
-  align-items: center;
-  min-height: 44px;
+  gap: 0.5rem;
+  min-width: 0;
   margin: 0;
-  color: var(--arena-muted-ink);
-  font-size: var(--lb-text-small);
-  font-variant-numeric: tabular-nums;
 }
 
-.leaderboards-summary__line strong { color: var(--arena-ink); font-weight: 700; }
+.leaderboards-kpi {
+  display: grid;
+  gap: 0.15rem;
+  align-content: start;
+  min-width: 7.5rem;
+  padding: 0.55rem 0.85rem 0.5rem;
+  border: var(--lb-line);
+  border-radius: 8px;
+  background: rgba(255, 248, 225, 0.45);
+}
 
+.leaderboards-kpi dd { display: flex; flex-wrap: wrap; gap: 0 0.5rem; align-items: baseline; min-width: 0; margin: 0; font-variant-numeric: tabular-nums; }
+
+.leaderboards-kpi strong {
+  color: var(--arena-ink);
+  font-size: 1.3125rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.leaderboards-kpi small { color: var(--arena-muted-ink); font-size: var(--lb-text-small); }
+.leaderboards-kpi--jumps dd { gap: 0 1rem; }
+.leaderboards-kpi--jumps .leaderboards-summary__jump { color: var(--arena-ink); font-weight: 700; }
+
+/* Порог — переход к своему месту: вся плитка под пальцем, стрелка подсказывает переход. */
 .leaderboards-summary__jump {
   display: inline-flex;
-  gap: 0.3rem;
+  gap: 0.35rem;
   align-items: center;
   min-height: 42px;
+  margin: -0.35rem 0 -0.3rem;
   padding: 0;
   border: 0;
   background: none;
-  color: inherit;
+  color: var(--arena-muted-ink);
   font: inherit;
+  font-size: var(--lb-text-small);
   cursor: pointer;
-  text-decoration: underline dotted;
-  text-decoration-color: rgba(84, 51, 22, 0.4);
-  text-underline-offset: 4px;
 }
 
-.leaderboards-summary__jump:hover { color: var(--lb-accent); text-decoration-color: currentColor; }
+.leaderboards-summary__jump svg { flex: none; width: 16px; height: 16px; transition: transform var(--motion-fast) var(--motion-ease); }
+.leaderboards-summary__jump:hover,
+.leaderboards-summary__jump:hover strong { color: var(--lb-accent); }
+.leaderboards-summary__jump:hover svg { transform: translate(1px, 1px); }
+.leaderboards-summary__jump:focus-visible { outline: 2px solid var(--lb-accent); outline-offset: 2px; }
 
-/* Компактная гистограмма рейтинга: столбики на CSS, высота — доля от самого полного диапазона. */
-.leaderboards-histogram { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: end; margin: 0; }
-.leaderboards-histogram figcaption { padding-bottom: 1.1rem; }
-.leaderboards-histogram__plot { display: grid; flex: 0 1 26rem; gap: 2px; min-width: 0; }
+/* Гистограмма рейтинга: столбики на CSS, высота — доля от самого полного диапазона. */
+.leaderboards-histogram { display: grid; gap: 0.3rem; min-width: 0; margin: 0; }
 
 .leaderboards-histogram__bars {
   display: flex;
   gap: 2px;
   align-items: flex-end;
-  height: 2.25rem;
+  height: 3.25rem;
   border-bottom: var(--lb-line);
 }
 
@@ -220,7 +303,7 @@
   flex: 1 1 0;
   height: calc(var(--lb-bar) * 100%);
   border-radius: 2px 2px 0 0;
-  background: rgba(143, 83, 109, 0.6);
+  background: color-mix(in srgb, var(--lb-accent) 55%, transparent);
 }
 
 .leaderboards-histogram__ticks,
@@ -282,10 +365,10 @@
 
   .leaderboards-body.has-player .leaderboards-player {
     position: sticky;
-    top: 1rem;
+    top: calc(var(--lb-sticky-top) + var(--lb-controls-height) + 1rem);
     grid-row: 1;
     grid-column: 2;
-    max-height: calc(100dvh - 2rem);
+    max-height: calc(100dvh - var(--lb-sticky-top) - var(--lb-controls-height) - 2rem);
     overflow: auto;
   }
 }
@@ -296,6 +379,10 @@
   gap: 0.75rem;
   min-width: 0;
 }
+
+/* Заголовки графиков — в шкале страницы (заголовок карточки игрока), а не крупные заголовки разделов. */
+.leaderboards-charts .analytics-chart__header { margin-bottom: 0.5rem; }
+.leaderboards-charts .analytics-chart__header h3 { font-size: var(--lb-text-title); }
 
 /* Таблица — список строк: ровные колонки фиксированной раскладки, строки 46px
    с чередованием фона вместо линий, без прокрутки вбок. */
@@ -321,6 +408,7 @@
 
 .leaderboards-table th {
   height: 2.25rem;
+  white-space: nowrap;
   padding: 0 0.75rem;
   border-bottom: var(--lb-line);
   color: var(--arena-muted-ink);
@@ -343,19 +431,30 @@
 .leaderboards-table .is-numeric { text-align: right; }
 .leaderboards-table tbody tr:nth-child(even) td { background: rgba(229, 199, 144, 0.22); }
 .leaderboards-table tbody td { transition: background-color var(--motion-fast) var(--motion-ease); }
-.leaderboards-table tbody tr:hover td { background: rgba(255, 248, 225, 0.75); }
+/* Вся строка открывает историю игрока: кнопка ника растянута на строку (см. .leaderboards-player-link ниже). */
+.leaderboards-table tbody tr { position: relative; }
+.leaderboards-table tbody tr:hover td { background: rgba(255, 248, 225, 0.75); cursor: pointer; }
 .leaderboards-table tbody tr[data-selected] td { background: rgba(141, 23, 29, 0.08); }
 
 .leaderboards-rank { color: var(--arena-muted-ink); }
 /* Топ-10 — тонкий акцент: номер места чернилами и жирнее, без заливки строки. */
 .leaderboards-table tr[data-top] .leaderboards-rank { color: var(--arena-ink); font-weight: 800; }
 
-/* Топ-3 — медальные кружки: золото, серебро, бронза. */
+/* Топ-3 — своя строка: медальный кружок и тонкая полоса металла слева, подложка того же оттенка. */
+.leaderboards-table tbody tr[data-place] td { height: 3.25rem; }
+.leaderboards-table tbody tr[data-place='1'] td { background: rgba(217, 171, 73, 0.2); }
+.leaderboards-table tbody tr[data-place='2'] td { background: rgba(164, 158, 146, 0.18); }
+.leaderboards-table tbody tr[data-place='3'] td { background: rgba(185, 120, 70, 0.16); }
+.leaderboards-table tbody tr[data-place='1'] td:first-child { box-shadow: inset 4px 0 0 var(--arena-gold); }
+.leaderboards-table tbody tr[data-place='2'] td:first-child { box-shadow: inset 4px 0 0 #b9b2a3; }
+.leaderboards-table tbody tr[data-place='3'] td:first-child { box-shadow: inset 4px 0 0 #c08350; }
+.leaderboards-table tbody tr[data-place] .leaderboards-player-link { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 400; }
+
 .leaderboards-medal {
   display: inline-grid;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
   background: var(--arena-gold);
   box-shadow: inset 0 0 0 1px rgba(84, 51, 22, 0.28), inset 0 1px 0 rgba(255, 248, 225, 0.6);
@@ -371,7 +470,7 @@
 /* Справа — рейтинг режима крупным числом. */
 .leaderboards-table td.leaderboards-rating { font-size: 1.0625rem; font-weight: 800; letter-spacing: -0.01em; }
 
-/* Ник — ссылка-кнопка на всю ячейку; длинный обрезается многоточием. */
+/* Ник — кнопка; длинный обрезается многоточием. */
 .leaderboards-player-link {
   display: inline;
   max-width: 100%;
@@ -388,7 +487,7 @@
   text-underline-offset: 3px;
 }
 
-/* В строке ник без подчёркивания: ссылкой он становится по наведению. */
+/* В строке ник без подчёркивания, а его ::after накрывает всю строку — нажатие в любом месте открывает историю. */
 .leaderboards-table .leaderboards-player-link {
   display: block;
   overflow: hidden;
@@ -398,15 +497,35 @@
   white-space: nowrap;
 }
 
+.leaderboards-table .leaderboards-player-link::after { position: absolute; inset: 0; content: ''; }
+.leaderboards-table .leaderboards-player-link:focus-visible { outline: 0; }
+.leaderboards-table .leaderboards-player-link:focus-visible::after { outline: 2px solid var(--lb-accent); outline-offset: -2px; }
+.leaderboards-table tbody tr:hover .leaderboards-player-link { color: var(--lb-accent); }
+
+/* Значок истории у ника: появляется под курсором, на фокусе и у открытого игрока. */
+.leaderboards-name__hint {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--lb-accent);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.leaderboards-table tbody tr:is(:hover, :focus-within, [data-selected]) .leaderboards-name__hint { opacity: 1; }
+
 .leaderboards-player-link:hover,
 .leaderboards-player-link[aria-pressed='true'] { background: none; color: var(--lb-accent); text-decoration: underline; text-decoration-color: currentColor; }
 
-.leaderboards-table tbody tr[data-target] td { background: rgba(217, 171, 73, 0.28); }
+.leaderboards-table tbody tr[data-target] td { background: rgba(217, 171, 73, 0.32); }
 
 .leaderboards-name { display: flex; gap: 0.25rem; align-items: center; min-width: 0; }
 .leaderboards-name .leaderboards-player-link { flex: 0 1 auto; min-width: 0; }
 
 .leaderboards-streamer {
+  position: relative;
+  z-index: 1;
   display: inline-grid;
   flex: none;
   place-items: center;
@@ -433,24 +552,26 @@
   text-underline-offset: 3px;
 }
 
-/* Изменение места за сутки — мини-бейдж: ↑ зелёный, ↓ красный, «новый» нейтральный. */
+/* Изменение места за сутки — бейдж: ↑ зелёный, ↓ красный, «новый» нейтральный. Цвет текста темнее
+   заливки, чтобы цифра читалась и на чередующихся строках. */
 .leaderboards-change {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.25rem;
-  height: 1.375rem;
-  padding: 0 0.4rem;
+  min-width: 2.75rem;
+  height: 1.5rem;
+  padding: 0 0.45rem;
+  border: 1px solid transparent;
   border-radius: 999px;
   font-size: var(--lb-text-small);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
 }
 
-.leaderboards-change--up { background: rgba(47, 122, 62, 0.12); color: var(--positive, #2f7a3e); }
-.leaderboards-change--down { background: rgba(163, 58, 58, 0.12); color: var(--negative, #a33a3a); }
+.leaderboards-change--up { border-color: rgba(38, 104, 52, 0.28); background: rgba(47, 122, 62, 0.16); color: #22602f; }
+.leaderboards-change--down { border-color: rgba(140, 40, 40, 0.28); background: rgba(163, 58, 58, 0.14); color: #8a2a2a; }
 .leaderboards-change--same { color: var(--arena-muted-ink); }
-.leaderboards-change--new { background: rgba(217, 171, 73, 0.24); color: var(--arena-ink); font-size: var(--lb-text-label); letter-spacing: 0.02em; }
+.leaderboards-change--new { padding: 0 0.35rem; background: rgba(217, 171, 73, 0.24); color: var(--arena-ink); font-size: var(--lb-text-label); letter-spacing: 0.02em; }
 
 .leaderboards-table td.leaderboards-empty { height: auto; padding: 1.25rem 0.75rem; color: var(--arena-muted-ink); white-space: normal; }
 
@@ -533,7 +654,9 @@
 .leaderboards-player__season-place { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
 .leaderboards-player__season-place small { color: var(--arena-muted-ink); font-size: inherit; font-weight: 400; }
 
-/* Сообщения и скелетон. */
+/* Сообщения и скелетон. Внутри раздела у сообщения нет второй рамки. */
+
+.leaderboards-board .leaderboards-message { border: var(--lb-line); border-radius: 8px; border-image: none; background: rgba(255, 248, 225, 0.45); }
 
 .leaderboards-player h2,
 .leaderboards-message h2 {
@@ -550,16 +673,16 @@
 .leaderboards-source { padding: 0 0.25rem; }
 
 .leaderboards-table--skeleton { gap: 6px; min-height: 560px; }
-.leaderboards-skeleton__summary { width: min(26rem, 100%); height: 1.5rem; margin-block: 0.6rem; }
+.leaderboards-skeleton__summary { width: min(34rem, 100%); height: 4.25rem; }
 .leaderboards-skeleton__row { height: 2.875rem; }
 .leaderboards-skeleton__line { width: 50%; height: 1rem; }
 .leaderboards-skeleton__spark { height: 96px; }
 .leaderboards-player__skeleton { display: grid; gap: 0.75rem; }
 
-/* Уже ноутбука сводке и инструментам не хватает одной строки: инструменты встают под сводку. */
+/* Уже ноутбука инструментам не хватает строки рядом с регионом и сезоном: они встают под них. */
 @media (max-width: 1099px) {
-  .leaderboards-toolbar { grid-template-columns: minmax(0, 1fr); }
   .leaderboards-tools { justify-content: flex-start; }
+  .leaderboards-summary.has-histogram { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 720px) {
@@ -567,24 +690,49 @@
   .leaderboards-page .section-banner-modern { background: #3a030d; }
 }
 
+/* Телефон: рамка тоньше, липкой остаётся только строка режимов — вся панель заняла бы полэкрана. */
 @media (max-width: 640px) {
+  .leaderboards-board { padding: 0 0.75rem 0.75rem; border-width: 6px; }
   .leaderboards-player { padding: 0.75rem; }
 
-  .leaderboards-controls { display: grid; gap: 0.5rem; }
-  .leaderboards-controls__filters { display: grid; grid-template-columns: minmax(0, 1fr); }
+  /* Панель растворяется в разделе: липкой может быть только прямая строка раздела, иначе она отлипнет вместе с панелью. */
+  .leaderboards-controls { display: contents; }
+  .leaderboards-modes {
+    position: sticky;
+    top: var(--lb-sticky-top);
+    z-index: 3;
+    margin: 0 -0.75rem;
+    padding: 0 0.75rem;
+    background:
+      linear-gradient(rgba(247, 232, 191, 0.97), rgba(240, 222, 178, 0.97)),
+      var(--arena-parchment-texture) center / cover;
+  }
+  .leaderboards-chip--mode,
+  .leaderboards-chip--mode:hover:not(:disabled),
+  .leaderboards-chip--mode[aria-pressed='true'] { padding: 0 0.6rem; }
+  .leaderboards-controls__row,
+  .leaderboards-controls__filters { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
   .leaderboards-regions .leaderboards-chip { flex: 1 1 0; }
   .leaderboards-select { width: 100%; }
-  .leaderboards-toolbar { grid-template-columns: minmax(0, 1fr); }
-  .leaderboards-tools { flex-wrap: wrap; justify-content: stretch; }
+  .leaderboards-tools { flex-wrap: nowrap; }
   .leaderboards-jump { flex: 0 0 8.5rem; }
   .leaderboards-jump input { width: 100%; }
-  .leaderboards-tools .leaderboards-search { flex: 1 1 10rem; min-width: 0; margin-left: 0; }
-  .leaderboards-histogram__plot { flex-basis: 100%; }
+  .leaderboards-tools .leaderboards-search { flex: 1 1 10rem; min-width: 0; }
+
+  /* Игроки — во всю ширину, пороги — тремя плитками в ряд. */
+  .leaderboards-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .leaderboards-kpi { min-width: 0; padding: 0.4rem 0.6rem 0.35rem; }
+  .leaderboards-kpi:first-child,
+  .leaderboards-kpi--jumps { grid-column: 1 / -1; }
+  .leaderboards-kpi strong { font-size: 1.125rem; }
+  .leaderboards-histogram__bars { height: 2.5rem; }
 
   .leaderboards-table__rank { width: 3.25rem; }
   .leaderboards-table__rating { width: 5.25rem; }
-  .leaderboards-table__change { width: 4.25rem; }
+  .leaderboards-table__change { width: 4.75rem; }
   .leaderboards-table :is(th, td) { padding: 0 0.5rem; }
   .leaderboards-table th { letter-spacing: 0; }
+  .leaderboards-change { min-width: 2.5rem; }
+  .leaderboards-name__hint { display: none; }
   .leaderboards-pages { width: 100%; justify-content: space-between; }
 }

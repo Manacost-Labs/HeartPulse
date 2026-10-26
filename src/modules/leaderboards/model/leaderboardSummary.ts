@@ -13,6 +13,7 @@ export function playersLabel(value: number): string {
 export type SummaryThreshold = { rank: number; label: string; rating: string | null };
 
 export type LeaderboardSummaryLine = {
+  /** Число игроков в таблице, с разделением разрядов: подпись «Игроков» рисует плитка. */
   players: string;
   /** «+143 за день»; `null` — снимок один или число не изменилось. */
   delta: string | null;
@@ -21,19 +22,19 @@ export type LeaderboardSummaryLine = {
 };
 
 /**
- * Сводка над таблицей одной строкой: игроки и пороги топа (они же — переходы
- * к месту). Рейтинг первого места не повторяется: он в первой строке таблицы.
+ * Сводка над таблицей одной полосой плиток: игроки и пороги топа (они же —
+ * переходы к месту). Рейтинг первого места не повторяется: он в первой строке таблицы.
  */
 export function summaryLine(stats: LeaderboardStats): LeaderboardSummaryLine {
   const { board, snapshot } = stats;
   const delta = playersDelta(stats);
   return {
-    players: playersLabel(snapshot.players),
+    players: formatPlayers(snapshot.players),
     delta: delta === null || delta === 0 ? null : `${delta > 0 ? '+' : '−'}${formatPlayers(Math.abs(delta))} за день`,
     // Сохранено меньше мест, чем порог (обрезанная таблица), — к такому месту не перейти.
     thresholds: stats.thresholds.filter(item => item.reached && item.rank <= snapshot.stored).map(item => ({
       rank: item.rank,
-      label: `топ-${formatPlayers(item.rank)}`,
+      label: `Топ-${formatPlayers(item.rank)}`,
       rating: board.rated && item.rating !== null ? formatRating(board.mode, item.rating) : null,
     })),
   };
