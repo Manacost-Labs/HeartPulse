@@ -10,7 +10,7 @@ export const LEADERBOARD_MODE_LABELS: Record<LeaderboardMode, string> = {
   battlegrounds: 'Поля сражений',
   battlegroundsduo: 'Поля сражений: дуо',
   arena: 'Арена',
-  undergroundarena: 'Подземная арена',
+  undergroundarena: 'Подпольная арена',
   twist: 'Твист',
 };
 
@@ -21,13 +21,13 @@ export const LEADERBOARD_MODE_TABS: Record<LeaderboardMode, string> = {
   battlegrounds: 'Поля сражений',
   battlegroundsduo: 'Дуо',
   arena: 'Арена',
-  undergroundarena: 'Подземная арена',
+  undergroundarena: 'Подпольная арена',
   twist: 'Твист',
 };
 
 export const LEADERBOARD_REGION_LABELS: Record<LeaderboardRegion, string> = { EU: 'Европа', US: 'Америка', AP: 'Азия' };
 
-/** Что Blizzard пишет в колонке рейтинга: MMR Полей сражений, среднее число побед Арены, очки Подземной арены. */
+/** Что Blizzard пишет в колонке рейтинга: MMR Полей сражений, среднее число побед Арены, очки Подпольной арены. */
 export const LEADERBOARD_RATING_LABELS: Partial<Record<LeaderboardMode, string>> = {
   battlegrounds: 'Рейтинг',
   battlegroundsduo: 'Рейтинг',
