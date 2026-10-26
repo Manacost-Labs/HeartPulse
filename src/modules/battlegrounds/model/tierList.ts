@@ -30,7 +30,7 @@ type TierStatItem = {
 
 function metricNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
-  const parsed = Number.parseFloat(String(value).replace(',', '.').replace('%', ''));
+  const parsed = Number.parseFloat(String(value).replace(/%/g, '').replace(/,/, '.'));
   return Number.isFinite(parsed) ? parsed : null;
 }
 

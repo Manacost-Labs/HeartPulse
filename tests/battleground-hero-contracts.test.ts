@@ -101,6 +101,12 @@ const TIER_BUILDER_RUNTIME_NAMES = [
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ANALYTICS_CONTRACT_NAMES = ['HeroCompositionAnalytics', 'HeroOverview', 'HeroPowerAnalytics', 'HeroTavernAnalytics'];
 const MINION_STATS_TYPE_NAMES = ['BattlegroundMinionBoard', 'BattlegroundMinionStats', 'BattlegroundMinionStatsTotals'];
+// The tier-list page's control bar and its presentation model.
+const TIER_LIST_TYPE_NAMES = ['BattlegroundTierListKey', 'BattlegroundTierStat'];
+const TIER_LIST_RUNTIME_NAMES = [
+  'BATTLEGROUND_TIER_LISTS', 'battlegroundStrategyMetaLine', 'battlegroundTierCardStats', 'battlegroundTierListMetaLine',
+  'TierListChoice', 'TierListChoices', 'TierListToolbar',
+];
 
 function parsedSource(relativePath: string, scriptKind: ts.ScriptKind): ts.SourceFile {
   const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
@@ -120,9 +126,9 @@ for (const statement of publicEntry.statements) {
   const destination = statement.isTypeOnly ? publicTypeNames : publicRuntimeNames;
   destination.push(...statement.exportClause.elements.map(element => element.name.text));
 }
-assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData', 'HeroAnalyticsCard', ...TIER_BUILDER_TYPE_NAMES, ...MINION_STATS_TYPE_NAMES].sort(),
+assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData', 'HeroAnalyticsCard', ...TIER_BUILDER_TYPE_NAMES, ...MINION_STATS_TYPE_NAMES, ...TIER_LIST_TYPE_NAMES].sort(),
   'the Battlegrounds public entry exposes the hero catalog and tier-data contracts');
-assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData', ...TIER_BUILDER_RUNTIME_NAMES].sort(),
+assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES, ...ANALYTICS_CONTRACT_NAMES, 'LibraryControls', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData', ...TIER_BUILDER_RUNTIME_NAMES, ...TIER_LIST_RUNTIME_NAMES].sort(),
   'the Battlegrounds public entry exposes the image policy, legacy bridge, tier resource and library controls');
 
 const heroCatalogModel = parsedSource(
@@ -191,8 +197,8 @@ function assertConsumerImports(
 
 // The hero statistics panels own the minion type icons now; the page itself no longer reads them.
 const MINION_ICON_NAMES = ['battlegroundMinionIconByRussianName', 'battlegroundMinionIconBySlug'];
-assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'],
-  [...RUNTIME_CONTRACT_NAMES.filter(name => !MINION_ICON_NAMES.includes(name)), ...ANALYTICS_CONTRACT_NAMES]);
+assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData', 'BattlegroundTierListKey'],
+  [...RUNTIME_CONTRACT_NAMES.filter(name => !MINION_ICON_NAMES.includes(name)), ...ANALYTICS_CONTRACT_NAMES, ...TIER_LIST_RUNTIME_NAMES]);
 assertConsumerImports('../src/features/BgLibrary.tsx', ['BattlegroundMinionStats'], ['LibraryControls', 'battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData']);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
