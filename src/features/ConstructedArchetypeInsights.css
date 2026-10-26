@@ -34,8 +34,38 @@
   border: 1px solid rgba(92, 54, 24, 0.22);
   background: rgba(255, 248, 225, 0.6);
 }
-/* Picker, head to head and the curve-and-cards reserve of ArchetypeComparisons.css at 1440 px. */
-.archetype-build-comparison-slot__reserve { height: 58rem; border-radius: 0; }
+.archetype-build-comparison-slot[hidden] { display: none; }
+
+/* Build comparison: collapsed to its heading and one button until a reader opens it. */
+.archetype-compare:not([data-open]) .archetype-section-heading { border-bottom: 0; }
+.archetype-compare .archetype-section-heading { align-items: center; }
+
+/* Scoped twice: `.archetypes-page button` resets the font of every page button. */
+.archetype-compare .archetype-compare__toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 0.95rem;
+  border: 1px solid rgba(111, 26, 32, 0.6);
+  color: #fff0c4;
+  background: #8d171d;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.archetype-compare__toggle:hover { background: #a01d24; }
+.archetype-compare__toggle:focus-visible { outline: 3px solid #8d171d; outline-offset: 2px; }
+.archetype-compare__toggle svg { transition: transform var(--motion-fast) var(--motion-ease); }
+.archetype-compare__toggle[aria-expanded='true'] svg { transform: rotate(180deg); }
+
+/* While the insights chunk arrives: the picker strip and the head-to-head table. */
+.archetype-build-comparison-slot__reserve { display: grid; gap: 0.9rem; }
+.archetype-build-comparison-slot__picker { height: 12.5rem; border-radius: 0; }
+.archetype-build-comparison-slot__table { height: 9rem; border-radius: 0; }
 
 .archetype-radar { padding: 0.85rem; }
 /* Radar beside the table at desktop width, stacked below 1100 px (ArchetypeComparisons.css). */
@@ -46,7 +76,10 @@
 }
 
 @media (max-width: 820px) {
-  .archetype-build-comparison-slot__reserve { height: 90rem; }
+  .archetype-build-comparison-slot__picker { height: 13rem; }
+  .archetype-build-comparison-slot__table { height: 14rem; }
+  .archetype-compare .archetype-section-heading { align-items: stretch; }
+  .archetype-compare__toggle { min-height: 44px; }
   .archetype-insight { border-width: 5px; }
   .archetype-build-comparison-slot { margin: 0.55rem; padding: 0.55rem; }
   .archetype-radar { padding: 0.55rem; }
@@ -56,3 +89,7 @@
    old width must not widen the page. */
 .archetype-insight,
 .archetype-build-comparison-slot { overflow-x: clip; }
+
+@media (prefers-reduced-motion: reduce) {
+  .archetype-compare__toggle svg { transition: none; }
+}

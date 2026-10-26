@@ -70,6 +70,19 @@ export function winrateVerdict(left: Sample, right: Sample) {
   };
 }
 
+/**
+ * A shared percent axis for two intervals: whole-percent ends one point outside both, and
+ * gridline ticks every 1, 2, 5 or 10 points, so that at most seven of them are labelled.
+ */
+export function intervalAxis(left: readonly [number, number], right: readonly [number, number]) {
+  const low = Math.floor(Math.min(left[0], right[0]) - 1);
+  const high = Math.ceil(Math.max(left[1], right[1]) + 1);
+  const step = [1, 2, 5, 10].find(candidate => (high - low) / candidate <= 6) ?? 20;
+  const ticks: number[] = [];
+  for (let tick = Math.ceil(low / step) * step; tick <= high; tick += step) ticks.push(tick);
+  return { low, high, ticks };
+}
+
 /** The side with clearly more games (a quarter more at least): its numbers are the more reliable ones. */
 export function sampleVerdict(left: number | null, right: number | null) {
   if (!left || !right) return null;
