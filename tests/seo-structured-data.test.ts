@@ -24,7 +24,7 @@ test('dataset pages describe the rolling 30-day window ending today', async () =
   const dataset = byType((await seoStructuredDataGraph('/classes/', NOW))!['@graph'], 'Dataset')!;
   assert.equal(dataset.temporalCoverage, '2026-08-31/2026-09-30');
   assert.equal(dataset.dateModified, '2026-09-30');
-  assert.equal(dataset.license, 'https://creativecommons.org/licenses/by/4.0/');
+  assert.equal(dataset.license, 'https://hearthpulse.net/terms/', 'the license is the site terms, not an invented one');
   assert.equal(dataset.inLanguage, 'ru');
 });
 
@@ -84,6 +84,19 @@ test('every graph node carries the fields of its schema type and links canonical
       if (type === 'Dataset') assert.equal(typeof node.creator, 'object', `${path} Dataset creator`);
     }
     assertCanonicalReferences(graph, path);
+  }
+});
+
+test('lists describe what the page shows: true counts, distinct targets', async () => {
+  for (const path of Object.keys(registry.pages)) {
+    for (const node of (await seoStructuredDataGraph(path, NOW))!['@graph']) {
+      if (node['@type'] !== 'ItemList' && node['@type'] !== 'BreadcrumbList') continue;
+      const items = node.itemListElement as Array<Record<string, unknown>>;
+      if (node.numberOfItems !== undefined) assert.equal(node.numberOfItems, items.length, `${path} numberOfItems`);
+      assert.deepEqual(items.map(item => item.position), items.map((_, index) => index + 1), `${path} positions`);
+      const targets = items.map(item => item.item ?? item.url).filter(Boolean);
+      assert.equal(new Set(targets).size, targets.length, `${path} ${node['@type']} repeats a URL`);
+    }
   }
 });
 

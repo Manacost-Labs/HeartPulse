@@ -59,7 +59,8 @@ export async function seoStructuredDataGraph(pathname: string, now = new Date())
       node.breadcrumb = { '@id': breadcrumb['@id'] };
     }
     if (type === 'Dataset') {
-      if (!node.license) node.license = 'https://creativecommons.org/licenses/by/4.0/';
+      // The site terms are the only reuse grant the owner has published.
+      if (!node.license) node.license = `${SITE_ORIGIN}/terms/`;
       node.temporalCoverage = `${isoDay(new Date(now.getTime() - 30 * DAY_MS))}/${isoDay(now)}`;
       node.dateModified = isoDay(now);
     }

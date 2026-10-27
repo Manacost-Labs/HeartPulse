@@ -63,6 +63,8 @@ const sitemapWildCardIds = Array.from(
 const sitemapMinionIds = Array.from({ length: 500 }, (_value, index) => 10_000 + index);
 const sitemapSpellIds = Array.from({ length: 50 }, (_value, index) => 20_000 + index);
 const sitemapHeroIds = Array.from({ length: 80 }, (_value, index) => 30_000 + index);
+const sitemapCosmeticIds = Array.from({ length: 500 }, (_value, index) => `HERO_${index + 1}`);
+const sitemapGuideSlugs = Array.from({ length: 500 }, (_value, index) => `guide-${index + 1}`);
 
 sitemapCardIds[0] = 'blizzard:12345';
 sitemapWildCardIds[0] = 'blizzard:67890';
@@ -202,6 +204,8 @@ const server = http.createServer((req, res) => {
       `${origin}/sitemaps/battleground-minions.xml`,
       `${origin}/sitemaps/battleground-spells.xml`,
       `${origin}/sitemaps/battleground-heroes.xml`,
+      `${origin}/sitemaps/cosmetics.xml`,
+      `${origin}/sitemaps/guides-archive.xml`,
     ]));
     return;
   }
@@ -251,6 +255,8 @@ const server = http.createServer((req, res) => {
       `${origin}/library/spells/monitor-spell-${dbfId}/`
     )),
     '/sitemaps/battleground-heroes.xml': sitemapHeroIds.map(dbfId => `${origin}/heroes/${dbfId}/`),
+    '/sitemaps/cosmetics.xml': sitemapCosmeticIds.map(cardId => `${origin}/cosmetics/heroes/${cardId}/`),
+    '/sitemaps/guides-archive.xml': sitemapGuideSlugs.map(slug => `${origin}/guides-archive/${slug}/`),
   };
   if (additionalSitemaps[requestUrl.pathname]) {
     res.writeHead(200, {
@@ -304,6 +310,13 @@ const server = http.createServer((req, res) => {
     res.end(cardHtml(origin, dbfId, { canonical }));
     return;
   }
+  const editorialMatch = requestUrl.pathname.match(/^\/(?:cosmetics\/heroes|guides-archive)\/([A-Za-z0-9_-]+)\/$/);
+  if (editorialMatch) {
+    const canonical = `${origin}${requestUrl.pathname}`;
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`<!doctype html><html><head><meta name="robots" content="index, follow"><link rel="canonical" href="${canonical}"></head><body><main><h1>${editorialMatch[1]}</h1></main></body></html>`);
+    return;
+  }
   const heroMatch = requestUrl.pathname.match(/^\/heroes\/(\d+)\/$/);
   if (heroMatch) {
     const dbfId = heroMatch[1];
@@ -355,9 +368,11 @@ try {
     battlegroundMinions: 500,
     battlegroundSpells: 50,
     battlegroundHeroes: 80,
+    cosmetics: 500,
+    guidesArchive: 500,
   });
   assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
-  assert.equal(seoCheck.sampledDetails, 15);
+  assert.equal(seoCheck.sampledDetails, 21);
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200]);
 

@@ -77,6 +77,26 @@ const ENTITY_SITEMAP_SEGMENTS = [
     identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
     identityFragment: 'hero',
   },
+  // Editorial detail pages: a sample must be an indexable canonical page, but
+  // these pages carry no card-style JSON-LD identifier (identityFragment null).
+  {
+    key: 'cosmetics',
+    path: '/sitemaps/cosmetics.xml',
+    label: 'cosmetics sitemap',
+    minimumUrls: 500,
+    pathPattern: /^\/cosmetics\/(?:heroes|coins|pets)\/[A-Za-z0-9_-]{1,100}\/$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: null,
+  },
+  {
+    key: 'guidesArchive',
+    path: '/sitemaps/guides-archive.xml',
+    label: 'guides archive sitemap',
+    minimumUrls: 500,
+    pathPattern: /^\/guides-archive\/[A-Za-z0-9][A-Za-z0-9._~-]{0,159}\/$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: null,
+  },
 ];
 
 function ensure(condition, message) {
@@ -464,6 +484,7 @@ function assertIndexableEntityHtml(html, response, canonical, identity, identity
   const robots = htmlAttributeValues(html, 'meta', 'name', 'robots');
   ensure(robots.length === 1 && /(?:^|,)\s*index\b/i.test(robots[0]) && !/noindex/i.test(robots[0]),
     `${label} ${identity}: index robots metadata is missing`);
+  if (identityFragment === null) return;
   const scripts = [...html.matchAll(/<script\b(?=[^>]*\btype=["']application\/ld\+json["'])(?=[^>]*\bdata-server-entity-jsonld\b)[^>]*>([\s\S]*?)<\/script>/gi)];
   ensure(scripts.length > 0, `${label} ${identity}: entity JSON-LD is missing`);
   let identityFound = false;

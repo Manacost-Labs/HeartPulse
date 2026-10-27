@@ -23,6 +23,19 @@ export function canonicalSitemapOrigin(value: string | undefined): string {
   }
 }
 
+// The card catalog re-stamps `?v=<export time>` on every image daily. It is a
+// cache-buster, not page content, so it must not move every card's lastmod.
+function unversionedImage(value: string | null): string | null {
+  if (!value) return value;
+  try {
+    const url = new URL(value);
+    url.searchParams.delete('v');
+    return url.href;
+  } catch {
+    return value;
+  }
+}
+
 export function projectConstructedCardSitemapCatalog(
   cards: unknown[],
   format: 'standard' | 'wild',
@@ -52,7 +65,9 @@ export function projectConstructedCardSitemapCatalog(
     const card = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as JsonRecord : {};
     if (card.catalogPending === true) return [];
     const projection = projectPublicConstructedCardSeoData(card, origin);
-    const semanticHash = createHash('sha256').update(JSON.stringify(projection)).digest('hex');
+    const semanticHash = createHash('sha256')
+      .update(JSON.stringify({ ...projection, image: unversionedImage(projection.image) }))
+      .digest('hex');
     return [{
       key: projection.id,
       location: `${origin}/standard/cards/${format}/${encodeURIComponent(projection.id)}/`,

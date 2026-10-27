@@ -7363,7 +7363,11 @@ const staticSitemapArtifact = loadStaticSitemapArtifact(staticSitemapCandidates,
 });
 if (staticSitemapArtifact) {
   app.use(createEntitySitemapRouter({
-    ...createEntitySitemapRuntimeOptions(constructedCardDataService.loadCards, process.env),
+    ...createEntitySitemapRuntimeOptions(constructedCardDataService.loadCards, process.env, {
+      // Called per refresh, after start-up has created the service below.
+      loadCosmeticsCatalog: (kind, query) => cosmeticsDataService.loadCatalog(kind, query),
+      getGuidesDatabase: oldGuidesDatabase,
+    }),
     staticUrls: staticSitemapArtifact.urls,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
     stateDirectory: DATA_DIR,

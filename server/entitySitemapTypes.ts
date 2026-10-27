@@ -3,7 +3,9 @@ export type SitemapSegment =
   | 'wild-cards'
   | 'battleground-minions'
   | 'battleground-spells'
-  | 'battleground-heroes';
+  | 'battleground-heroes'
+  | 'cosmetics'
+  | 'guides-archive';
 
 export type SitemapSemanticEntry = {
   key: string;

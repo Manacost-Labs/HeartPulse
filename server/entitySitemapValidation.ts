@@ -11,6 +11,15 @@ const SCHEMA_VERSION = 1;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 const KEY_PATTERN = /^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/;
 const LASTMOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+// Editorial segments key by URL slug rather than a card ID; both stay URL-safe.
+const COSMETICS_KEY_PATTERN = /^(?:heroes|coins|pets)\/[A-Za-z0-9_-]{1,100}$/;
+const GUIDE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~-]{0,159}$/;
+
+function keyIsValid(key: string, segment: SitemapSegment): boolean {
+  if (segment === 'cosmetics') return COSMETICS_KEY_PATTERN.test(key);
+  if (segment === 'guides-archive') return GUIDE_KEY_PATTERN.test(key);
+  return KEY_PATTERN.test(key);
+}
 
 export class SitemapCandidateRejectedError extends Error {
   constructor(message: string) {
@@ -39,6 +48,8 @@ function entryPathIsValid(pathname: string, key: string, segment: SitemapSegment
     return pathname === `/standard/cards/wild/${encodeURIComponent(key)}/`;
   }
   if (segment === 'battleground-heroes') return pathname === `/heroes/${key}/`;
+  if (segment === 'cosmetics') return pathname === `/cosmetics/${key}/`;
+  if (segment === 'guides-archive') return pathname === `/guides-archive/${key}/`;
   const libraryKind = segment === 'battleground-minions' ? 'minions' : 'spells';
   return pathname.startsWith(`/library/${libraryKind}/`)
     && pathname.endsWith(`-${key}/`)
@@ -82,7 +93,7 @@ export function normalizeSitemapCandidate(
     semanticHash: String(entry?.semanticHash ?? ''),
   }));
   for (const entry of normalized) {
-    if (!KEY_PATTERN.test(entry.key)) throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid entity key');
+    if (!keyIsValid(entry.key, segment)) throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid entity key');
     if (!entryLocationIsValid(entry.location, origin, entry.key, segment)) {
       throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid canonical location');
     }
@@ -121,7 +132,7 @@ export function validateSitemapDocument(
     const location = typeof raw.location === 'string' ? raw.location : '';
     const semanticHash = typeof raw.semanticHash === 'string' ? raw.semanticHash : '';
     const lastmod = raw.lastmod;
-    if (!KEY_PATTERN.test(key) || !entryLocationIsValid(location, origin, key, segment)
+    if (!keyIsValid(key, segment) || !entryLocationIsValid(location, origin, key, segment)
       || !HASH_PATTERN.test(semanticHash)) return null;
     if (lastmod !== undefined && (typeof lastmod !== 'string' || !LASTMOD_PATTERN.test(lastmod)
       || !Number.isFinite(Date.parse(`${lastmod}T00:00:00.000Z`)))) return null;

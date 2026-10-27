@@ -53,12 +53,8 @@ function useArticleLink(article: Article, authUser?: AuthUser | null, subscripti
   const readLabel = opening ? 'Открываю…'
     : authUser && isVipArticle && hasArticleAccess ? 'Читать VIP →'
       : authUser && isVipArticle && subscriptionLoading ? 'Проверяем →' : 'Читать →';
-  const openArticle = async () => {
-    if (!article.url || article.url === '#') return;
-    if (!isVipArticle) {
-      window.open(article.url, '_blank', 'noopener,noreferrer');
-      return;
-    }
+  const href = publicArticleHref(article.url);
+  const openVipArticle = async () => {
     if (!authUser) { openPage('/?login'); return; }
     if (subscriptionLoading) return;
     if (!hasArticleAccess) {
@@ -77,7 +73,16 @@ function useArticleLink(article: Article, authUser?: AuthUser | null, subscripti
       window.alert(err instanceof Error ? err.message : 'Не удалось открыть разблокированную статью.');
     } finally { setOpening(false); }
   };
-  return { openArticle, readLabel };
+  return { href, isVipArticle, openVipArticle, readLabel };
+}
+
+function publicArticleHref(value?: string): string | null {
+  try {
+    const url = new URL(String(value ?? '').trim());
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
 }
 
 export function ArticleCard({
@@ -100,45 +105,58 @@ export function ArticleCard({
   const [imgErr, setImgErr] = useState(false);
   const isFeatured = idx === 0;
   const cover = responsiveArticleCover(article.image);
-  const { openArticle, readLabel } = useArticleLink(article, authUser, subscriptionStatus, subscriptionLoading);
+  const { href, isVipArticle, openVipArticle, readLabel } = useArticleLink(article, authUser, subscriptionStatus, subscriptionLoading);
+  const label = `Читать статью: ${article.title}`;
+  const targetClassName = 'flex flex-col flex-grow w-full text-left bg-transparent border-0 p-0';
 
   // The first cover is the phone LCP: it loads eagerly at high priority, and
   // its card does not enter, because Chrome records LCP only once an
   // animation on the image or an ancestor ends.
+  const content = (
+    <>
+      <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
+        {!imgErr ? (
+          <picture className="contents">
+            {cover.avifSrcSet && <source type="image/avif" srcSet={cover.avifSrcSet} sizes={ARTICLE_CARD_COVER_SIZES} />}
+            <img src={cover.src} srcSet={cover.srcSet} sizes={cover.srcSet && ARTICLE_CARD_COVER_SIZES}
+              width={1176} height={597} alt={article.title}
+              loading={isFeatured ? 'eager' : 'lazy'} fetchPriority={isFeatured ? 'high' : undefined}
+              decoding={isFeatured ? undefined : 'async'}
+              onError={() => setImgErr(true)} className="w-full h-full object-contain" />
+          </picture>
+        ) : (
+          <div className="article-image-fallback w-full h-full flex items-center justify-center">
+            <BookOpen size={36} aria-hidden="true" />
+          </div>
+        )}
+        {article.tag && (
+          <span className="article-tag absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-bold">
+            {article.tag}
+          </span>
+        )}
+      </div>
+      <div className="article-body-modern p-4 flex flex-col flex-grow gap-3">
+        <h3 className="font-hs text-base leading-snug">{article.title}</h3>
+        <div className="article-meta-modern flex items-center justify-between mt-auto pt-2">
+          <span className="text-xs">{formatArticleDate(article.date)}</span>
+          <span className="article-read-link text-xs font-bold">{readLabel}</span>
+        </div>
+      </div>
+    </>
+  );
+
+  // A real link lets crawlers and readers follow every card. A VIP article
+  // still opens through the access flow; its href is the public (locked) page.
   return (
     <article className={`article-card-modern rounded-2xl overflow-hidden flex flex-col ${isFeatured ? 'article-card-featured' : 'anim-scale-in'}`}>
-      <button type="button" onClick={() => void openArticle()}
-        aria-label={`Читать статью: ${article.title}`}
-        className="flex flex-col flex-grow w-full text-left bg-transparent border-0 p-0 cursor-pointer">
-        <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
-          {!imgErr ? (
-            <picture className="contents">
-              {cover.avifSrcSet && <source type="image/avif" srcSet={cover.avifSrcSet} sizes={ARTICLE_CARD_COVER_SIZES} />}
-              <img src={cover.src} srcSet={cover.srcSet} sizes={cover.srcSet && ARTICLE_CARD_COVER_SIZES}
-                width={1176} height={597} alt={article.title}
-                loading={isFeatured ? 'eager' : 'lazy'} fetchPriority={isFeatured ? 'high' : undefined}
-                decoding={isFeatured ? undefined : 'async'}
-                onError={() => setImgErr(true)} className="w-full h-full object-contain" />
-            </picture>
-          ) : (
-            <div className="article-image-fallback w-full h-full flex items-center justify-center">
-              <BookOpen size={36} aria-hidden="true" />
-            </div>
-          )}
-          {article.tag && (
-            <span className="article-tag absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-bold">
-              {article.tag}
-            </span>
-          )}
-        </div>
-        <div className="article-body-modern p-4 flex flex-col flex-grow gap-3">
-          <h3 className="font-hs text-base leading-snug">{article.title}</h3>
-          <div className="article-meta-modern flex items-center justify-between mt-auto pt-2">
-            <span className="text-xs">{formatArticleDate(article.date)}</span>
-            <span className="article-read-link text-xs font-bold">{readLabel}</span>
-          </div>
-        </div>
-      </button>
+      {href ? (
+        <a href={href} target="_blank" rel="noopener" aria-label={label} className={targetClassName}
+          onClick={isVipArticle ? event => { event.preventDefault(); void openVipArticle(); } : undefined}>
+          {content}
+        </a>
+      ) : (
+        <div className={targetClassName}>{content}</div>
+      )}
       <div className="article-vote-row flex items-center gap-2 px-4 pt-1">
         <button type="button" className={`article-vote-button ${article.userVote === 'like' ? 'is-active' : ''}`}
           disabled={voting} onClick={() => onVote(article, 'like')} aria-label="Поставить лайк статье">

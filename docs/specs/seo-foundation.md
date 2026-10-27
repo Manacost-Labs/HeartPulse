@@ -44,6 +44,19 @@ This slice must not open private API responses to indexing or shared caches.
   The `/standard/meta` title deliberately leads with «HSGuru» for that query.
 - Every URL in JSON-LD, sitemaps and internal links is the canonical
   trailing-slash form; a slash-less page URL costs a `301`.
+- An entity sitemap `lastmod` moves only when the page content changes. Cache
+  busters (card image `?v=`) and upstream sync stamps (cosmetics `updatedAt`)
+  stay out of the semantic hash. `static.xml` has no `lastmod`: its pages are
+  data-driven and no source dates their content honestly.
+- Every indexable detail route has a sitemap segment: cards, BG cards and
+  heroes, plus `cosmetics.xml` and `guides-archive.xml`, whose listings do not
+  link the detail pages in server HTML.
+- JSON-LD describes what the page shows. `numberOfItems` equals the listed
+  items or is omitted, one list never repeats a URL, and a breadcrumb has no
+  section crumb without its own page. A Dataset's `license` is the site terms
+  (`/terms/`), the only reuse grant the owner has published.
+- Article cards are real `<a href target="_blank">` links. A VIP article keeps
+  its access flow on click; its `href` is the public, locked page.
 - Meta descriptions go through `fitMetaDescription` (`src/shared/seo/metaDescription.ts`):
   at most 160 characters, cut at a word boundary.
 - Generated tokens (`…t3`, `…t8_t`) have no card page; galleries show them
