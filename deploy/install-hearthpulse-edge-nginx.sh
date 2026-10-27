@@ -10,6 +10,8 @@
 # The edge topology and SSH identities come from the same root-only file as the
 # static sync (/etc/hs-arena/edge-static-sync.conf). An install stops at the
 # first edge that fails; that edge has already restored its previous files.
+# A vhost without a `sites-enabled` link is enabled; an install that leaves a
+# second server for one of the managed names (a hand-made vhost) is refused.
 # docs/runbooks/hearthpulse-edge-caching.md
 set -euo pipefail
 
@@ -42,6 +44,7 @@ files=(
   "deploy/nginx/arena-edge-cache-path.conf|/etc/nginx/conf.d/34-arena-edge-cache-path.conf"
   "deploy/nginx/hearthpulse-shadow-app.conf|/etc/nginx/sites-available/hearthpulse-shadow-app.conf"
   "deploy/nginx/hearthpulse-shadow-cdn.conf|/etc/nginx/sites-available/hearthpulse-shadow-cdn.conf"
+  "deploy/nginx/hearthpulse-legacy-hs-arena.conf|/etc/nginx/sites-available/hearthpulse-legacy-hs-arena.conf"
 )
 for entry in "${files[@]}"; do
   source_file="$release/${entry%%|*}"
@@ -62,18 +65,42 @@ backup="/root/hearthpulse-nginx-backup/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$backup"
 nginx -T > "$backup/nginx-T.txt" 2>&1 || true
 installed=()
+linked=()
 for entry in "$@"; do
   name="${entry%%|*}"
   target="${entry#*|}"
   if [[ -e "$target" ]]; then cp -a "$target" "$backup/$(basename "$target")"; fi
   install -m 0644 -o root -g root "$stage/$name" "$target"
   installed+=("$target")
+  [[ "$target" == /etc/nginx/sites-available/* ]] || continue
+  link="/etc/nginx/sites-enabled/$(basename "$target")"
+  enabled=0
+  for existing in /etc/nginx/sites-enabled/*; do
+    [[ "$(readlink -f "$existing")" == "$(readlink -f "$target")" ]] && enabled=1
+  done
+  if [[ "$enabled" == 0 && -d /etc/nginx/sites-enabled && ! -e "$link" && ! -L "$link" ]]; then
+    ln -s "$target" "$link"
+    linked+=("$link")
+  fi
 done
-if nginx -t; then
+# nginx only warns about a second server for a name and keeps the first one,
+# so a leftover hand-made vhost would silently win over the managed one.
+mapfile -t names < <(sed -n 's/^[[:space:]]*server_name[[:space:]]\{1,\}\([^;]*\);.*/\1/p' "$stage"/* | tr ' ' '\n' | sed '/^$/d' | sort -u)
+tested=0
+if output="$(nginx -t 2>&1)"; then tested=1; fi
+printf '%s\n' "$output" >&2
+for name in "${names[@]}"; do
+  if grep -qF "conflicting server name \"$name\"" <<< "$output"; then
+    echo "another server also declares $name; disable it before installing" >&2
+    tested=0
+  fi
+done
+if [[ "$tested" == 1 ]]; then
   systemctl reload nginx
   echo "installed; backup $backup"
   exit 0
 fi
+for link in "${linked[@]}"; do rm -f "$link"; done
 for target in "${installed[@]}"; do
   if [[ -e "$backup/$(basename "$target")" ]]; then
     cp -a "$backup/$(basename "$target")" "$target"
@@ -118,6 +145,9 @@ for edge_spec in "${ARENA_STATIC_EDGE_SPECS[@]}"; do
     # The canonical server must come from the managed vhost, not a stale copy.
     ssh "${ssh_options[@]}" "$edge" \
       "sudo nginx -T 2>/dev/null | grep -E '^# configuration file .*(hearthpulse|sites-enabled)' || true"
+    # Every server for a managed name, with its file: exactly one per name.
+    ssh "${ssh_options[@]}" "$edge" \
+      "sudo nginx -T 2>/dev/null | awk '/^# configuration file /{file=\$4} /^[[:space:]]*server_name .*(hearthpulse[.]net|hs-arena[.]ru)/{print file \" \" \$0}' || true"
     continue
   fi
 

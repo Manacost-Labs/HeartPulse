@@ -1,0 +1,18 @@
+[Unit]
+Description=Copy the renewed hs-arena.ru certificate from Moscow to the other edges
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/var/www/koloda/data/www/hs-arena.ru/current/deploy/sync-hs-arena-ru-cert.sh
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena.ru/current/deploy/sync-hs-arena-ru-cert.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

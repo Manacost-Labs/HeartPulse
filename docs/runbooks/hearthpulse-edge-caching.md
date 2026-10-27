@@ -160,10 +160,13 @@ No deploy step installs edge nginx files: the deployer only verifies the
 origin's. `deploy/install-hearthpulse-edge-nginx.sh` does it from the origin as
 root, through the static-sync topology `/etc/hs-arena/edge-static-sync.conf`
 (its `ARENA_STATIC_EDGE_SPECS` entries and root-only SSH identities). It
-handles `34-arena-edge-cache-path.conf`, `hearthpulse-shadow-app.conf` and
-`hearthpulse-shadow-cdn.conf`. Per edge it saves `nginx -T` and the replaced
+handles `34-arena-edge-cache-path.conf`, `hearthpulse-shadow-app.conf`,
+`hearthpulse-shadow-cdn.conf` and `hearthpulse-legacy-hs-arena.conf`
+([Retired hs-arena.ru](#retired-hs-arenaru)); a vhost with no
+`sites-enabled` link to it is enabled. Per edge it saves `nginx -T` and the replaced
 files under `/root/hearthpulse-nginx-backup/<UTC stamp>/`, installs, runs
-`nginx -t` and reloads; a failed test restores that edge and stops before the
+`nginx -t` and reloads; a failed test, or a warning that another server also
+declares one of the managed names, restores that edge and stops before the
 next one. Name the edges explicitly (Limburg is quarantined):
 
 ```bash
@@ -224,6 +227,138 @@ The second `/tierlist/` must be `HIT` with `cache-control: private, no-cache`
 and no `x-hearthpulse-edge-cache`. Then run
 `bash $REL/deploy/monitor-hearthpulse-shadow.sh` and the production smoke
 suite.
+
+## Retired hs-arena.ru
+
+`hs-arena.ru` and `www.hs-arena.ru` resolve only to Moscow. Until this change
+both edges answered them with a hand-made vhost that is not in the repository:
+port 80 sent `301 https://$host$request_uri`, port 443 proxied to the deckview
+API on the origin (`api.blizzcore.ru`), so the retired site returned `200` with
+deckview JSON (audit finding В-7). It is not the default server; that one is
+`job.hs-manacost.ru`. `deploy/nginx/hearthpulse-legacy-hs-arena.conf` replaces
+it: one `301` to `https://hearthpulse.net$request_uri` on 80 and 443, the
+ACME path on 80 still served from `/var/www/letsencrypt`.
+
+Evidence of 2026-10-27, from the origin:
+
+- No deckview consumer uses this name. The edge forwards it to the origin's
+  deckview server (the probes of this check appeared in
+  `/var/log/nginx/deckview-api-domain.access.log`); from 2026-10-13 to
+  2026-10-27 that log shows only `GET /` from `curl`, the SEO audit and Uptime
+  Kuma, and no `/render`, `/translate` or `/archetype` call through the edge.
+  Kuma monitors 1 and 10 (`https://hs-arena.ru/`) accept `200-399` and follow
+  up to 10 redirects: they stay green but then measure `hearthpulse.net`.
+- Certificate: both edges present the same Let's Encrypt certificate for
+  `hs-arena.ru, www.hs-arena.ru` (ECDSA, serial `0550C3BE…021E`, valid until
+  2027-01-05). The origin has no lineage for it, and the zone is in another
+  Cloudflare account (NS `suzanne`/`bjorn`) than the origin's DNS-01 tokens,
+  so it can only renew on an edge with HTTP-01. Checked read-only on the edges
+  by the lead the same day: Moscow holds the certbot lineage
+  `/etc/letsencrypt/live/hs-arena.ru/` and its hand-made vhost uses it;
+  Novosibirsk has no lineage and serves a copy,
+  `/etc/nginx/ssl/hs-arena.ru/letsencrypt-{fullchain,privkey}.pem`, which
+  nothing refreshed. `/etc/nginx/ssl/hs-arena.ru/fullchain.pem`, the name the
+  versioned vhost loads, existed on neither edge.
+
+### Prerequisites, as root on each edge
+
+```bash
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+# Which file holds the hand-made server.
+nginx -T 2>/dev/null | awk '/^# configuration file /{f=$4} /server_name .*hs-arena[.]ru/{print f, $0}'
+```
+
+Moscow (`194.67.92.242`), the lineage:
+
+```bash
+install -d -o root -g root -m 0755 /etc/nginx/ssl/hs-arena.ru
+ln -s /etc/letsencrypt/live/hs-arena.ru/fullchain.pem /etc/nginx/ssl/hs-arena.ru/fullchain.pem
+ln -s /etc/letsencrypt/live/hs-arena.ru/privkey.pem /etc/nginx/ssl/hs-arena.ru/privkey.pem
+grep -E '^(authenticator|installer|webroot_path)' /etc/letsencrypt/renewal/hs-arena.ru.conf
+ls /etc/letsencrypt/renewal-hooks/deploy/
+```
+
+Renewal must keep working and must reload nginx. The `webroot` authenticator
+with `/var/www/letsencrypt` and the `nginx` authenticator both still pass the
+challenge (the redirect is a `location`); any other webroot path: stop and
+change the vhost first. Without `installer = nginx` and without a deploy hook
+that reloads nginx, add one:
+`printf '#!/bin/sh\nnginx -t && systemctl reload nginx\n' > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx && chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-nginx`.
+
+Novosibirsk (`186.246.28.244`), the copy; relative links, so a refreshed copy
+is picked up under the same names:
+
+```bash
+ln -s letsencrypt-fullchain.pem /etc/nginx/ssl/hs-arena.ru/fullchain.pem
+ln -s letsencrypt-privkey.pem /etc/nginx/ssl/hs-arena.ru/privkey.pem
+openssl x509 -noout -serial -enddate -in /etc/nginx/ssl/hs-arena.ru/fullchain.pem   # serial 0550C3BE…021E
+```
+
+The copy is refreshed from the origin by `deploy/sync-hs-arena-ru-cert.sh`
+(below); it must be running before 2027-01-05, when the current copy expires.
+
+- Disable the hand-made server without reloading:
+  `mkdir -p /root/hs-arena-manual-$STAMP && mv /etc/nginx/sites-enabled/<its link> /root/hs-arena-manual-$STAMP/`.
+  If that file also declares other names, stop and remove only its
+  `hs-arena.ru` server blocks instead. If it stays enabled, the installer
+  refuses with `another server also declares hs-arena.ru` and restores the
+  edge.
+
+### Novosibirsk copy
+
+`deploy/sync-hs-arena-ru-cert.sh` runs as root on the origin, daily through
+`hs-arena-ru-cert-sync.timer`, with the static-sync topology and identities.
+It compares the Novosibirsk `letsencrypt-fullchain.pem` with the Moscow
+lineage and, when they differ, streams the lineage over SSH (the key is
+never written on the origin). Novosibirsk installs it only when it is
+unexpired and matches its key, keeps the replaced pair under
+`/root/hs-arena-cert-backup/<stamp>/`, runs `nginx -t` and reloads, and
+restores the pair if the test fails. A missing or expired Moscow certificate
+fails the unit. Install once on the origin, after the release that ships it:
+
+```bash
+REL=/var/www/koloda/data/www/hs-arena.ru/current
+sudo install -m 0644 -o root -g root "$REL/deploy/systemd/hs-arena-ru-cert-sync.service" "$REL/deploy/systemd/hs-arena-ru-cert-sync.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start hs-arena-ru-cert-sync.service && sudo journalctl -u hs-arena-ru-cert-sync.service -n 5 --no-pager   # "186.246.28.244: current"
+sudo systemctl enable --now hs-arena-ru-cert-sync.timer
+```
+
+After every Moscow renewal (about 30 days before expiry) the next run prints
+`copying the certificate` and both edges then present the same serial.
+Remove: `systemctl disable --now hs-arena-ru-cert-sync.timer` and delete the
+two units.
+
+### Install and verify
+
+From the origin, as in step 3: `--check` must show only the new file as drift
+(any other diff is someone's manual change: reconcile it first), then
+`--install 194.67.92.242`, verify, then `--install 186.246.28.244`.
+
+```bash
+for ip in 194.67.92.242 186.246.28.244; do for h in hs-arena.ru www.hs-arena.ru; do
+  curl -s -o /dev/null -w "$ip $h http  %{http_code} %{redirect_url}\n" --resolve $h:80:$ip "http://$h/render?x=1"
+  curl -s -o /dev/null -w "$ip $h https %{http_code} %{redirect_url} tls=%{ssl_verify_result}\n" --resolve $h:443:$ip "https://$h/render?x=1"
+done; done
+```
+
+Every line must be `301 https://hearthpulse.net/render?x=1`, `tls=0` on
+HTTPS. Then on Moscow `certbot renew --dry-run --cert-name hs-arena.ru` must
+succeed, `--check` must print one file per managed `server_name`, and the
+step 3 checks and `deploy/monitor-hearthpulse-shadow.sh` must still pass.
+
+### Rollback, as root on the edge
+
+```bash
+B=/root/hearthpulse-nginx-backup/<stamp printed by the install>
+rm -f /etc/nginx/sites-enabled/hearthpulse-legacy-hs-arena.conf /etc/nginx/sites-available/hearthpulse-legacy-hs-arena.conf
+mv /root/hs-arena-manual-<STAMP>/<its link> /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+The other three files in `$B` are needed only if `--check` showed drift in
+them before the install (copy each back to its path). The certificate link or
+copy under `/etc/nginx/ssl/hs-arena.ru/` can stay.
 
 ## Rollback
 
