@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import dns from 'node:dns';
+import http from 'node:http';
 import {
   RemoteAdminImageError,
   fetchRemoteAdminImage,
@@ -39,7 +41,10 @@ for (const value of [
 }
 
 // A resolver may also answer with the hex spelling of a mapped loopback or private address.
-for (const address of ['::ffff:7f00:1', '::ffff:a00:5', '64:ff9b::a9fe:a9fe']) {
+for (const address of [
+  '::ffff:7f00:1', '::ffff:a00:5', '64:ff9b::a9fe:a9fe',
+  '198.51.100.7', '203.0.113.9', '192.88.99.1', '2001:10::1', '2001:20::1', '2001:2::1',
+]) {
   await assert.rejects(
     fetchRemoteAdminImage('https://rebound.example.test/image.png', { maxBytes: 1024, fetchImpl, resolveHost: async () => [address] }),
     (error: unknown) => error instanceof RemoteAdminImageError && error.status === 400,
@@ -98,5 +103,79 @@ await assert.rejects(
   }),
   (error: unknown) => error instanceof RemoteAdminImageError && error.status === 413,
 );
+
+// A redirect is checked like the first hop: a public page cannot hand the importer an internal one.
+for (const location of ['http://10.0.0.1/image.png', 'http://127.0.0.1:3001/image.png', 'http://[::ffff:7f00:1]/']) {
+  fetched = [];
+  await assert.rejects(
+    fetchRemoteAdminImage('https://images.example.test/moved.png', {
+      maxBytes: 1024,
+      resolveHost: publicResolver,
+      fetchImpl: async input => {
+        fetched.push(String(input));
+        return new Response(null, { status: 302, headers: { Location: location } });
+      },
+    }),
+    (error: unknown) => error instanceof RemoteAdminImageError && error.status === 400,
+    location,
+  );
+  assert.deepEqual(fetched, ['https://images.example.test/moved.png'], `${location} must not be requested`);
+}
+
+// A source that stops sending is reported in Russian, not as a raw TimeoutError.
+// AbortSignal.timeout does not keep the event loop alive; a running server does, this interval stands in.
+const keepAlive = setInterval(() => {}, 1_000);
+await assert.rejects(
+  fetchRemoteAdminImage('https://images.example.test/slow.png', {
+    maxBytes: 1024,
+    timeoutMs: 50,
+    resolveHost: publicResolver,
+    fetchImpl: async (_input, init) => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1]));
+        init?.signal?.addEventListener('abort', () => controller.error(init.signal?.reason));
+      },
+    }), { headers: { 'Content-Type': 'image/png' } }),
+  }),
+  (error: unknown) => error instanceof RemoteAdminImageError && error.status === 504 && /не ответил вовремя/.test(error.message),
+);
+await assert.rejects(
+  fetchRemoteAdminImage('https://slow-dns.example.test/image.png', {
+    maxBytes: 1024,
+    timeoutMs: 50,
+    fetchImpl,
+    resolveHost: () => new Promise(() => {}),
+  }),
+  (error: unknown) => error instanceof RemoteAdminImageError && error.status === 504,
+);
+clearInterval(keepAlive);
+
+// DNS rebinding: the pre-check sees a public answer, the connection asks again and gets loopback.
+// The socket may only use an address that was checked, so the local server must never be reached.
+let hits = 0;
+const target = http.createServer((_request, response) => {
+  hits += 1;
+  response.writeHead(200, { 'Content-Type': 'image/png' });
+  response.end(png);
+});
+await new Promise<void>(resolve => target.listen(0, '127.0.0.1', resolve));
+const port = (target.address() as { port: number }).port;
+const originalLookup = dns.lookup;
+(dns as { lookup: unknown }).lookup = (hostname: string, options: unknown, callback: unknown) => {
+  const done = (typeof options === 'function' ? options : callback) as (...args: unknown[]) => void;
+  const all = typeof options === 'object' && options !== null && (options as { all?: boolean }).all;
+  if (hostname !== 'rebind.example.test') return (originalLookup as (...args: unknown[]) => void)(hostname, options, callback);
+  return all ? done(null, [{ address: '127.0.0.1', family: 4 }]) : done(null, '127.0.0.1', 4);
+};
+try {
+  await assert.rejects(
+    fetchRemoteAdminImage(`http://rebind.example.test:${port}/image.png`, { maxBytes: 1024, resolveHost: publicResolver }),
+    (error: unknown) => error instanceof RemoteAdminImageError && error.status === 400,
+  );
+  assert.equal(hits, 0, 'the connection must not reach a rebound address');
+} finally {
+  (dns as { lookup: unknown }).lookup = originalLookup;
+  await new Promise<void>(resolve => target.close(() => resolve()));
+}
 
 console.log('admin remote image safety tests passed');
