@@ -568,7 +568,13 @@
         "tests/skeleton-route-geometry-browser.test.mjs",
         "tests/archetype-vicious-skeleton-geometry-browser.test.mjs",
         "tests/bg-hero-card-preview-browser.test.mjs",
-        "tests/public-loader-deadline-browser.test.mjs"
+        "tests/public-loader-deadline-browser.test.mjs",
+        "tests/user-flow-card-search-browser.test.mjs",
+        "tests/user-flow-deck-builder-browser.test.mjs",
+        "tests/user-flow-leaderboards-browser.test.mjs",
+        "tests/user-flow-meta-deck-browser.test.mjs",
+        "tests/user-flow-mobile-navigation-browser.test.mjs",
+        "tests/user-flow-paywall-sign-in-browser.test.mjs"
       ]
     },
     {

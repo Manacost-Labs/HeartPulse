@@ -163,7 +163,7 @@ export default function PaywallGate({
               ? 'Доступ откроется через Boosty уровня «Алмаз» или выше.'
               : 'Доступ откроется через Boosty уровня Любитель Арены и выше или через участие в VIP Telegram-канале.'}
           </p>
-          <SubscriptionPurchaseButtons />
+          <SubscriptionPurchaseButtons variant={variant} />
           <div className="arena-paywall__actions" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {authUser ? (
               <button type="button" onClick={() => { void onRefreshSubscription(); }} disabled={subscriptionLoading}

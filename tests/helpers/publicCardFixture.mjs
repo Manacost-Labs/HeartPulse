@@ -22,7 +22,12 @@ export async function closeLocal(server) {
   server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
 }
 
-export async function publicCardFixture({ backendEnv } = {}) {
+/**
+ * `externalRoutes` adds hs-data-api answers by path: `(url) => body`, or `null`
+ * for a 404. They are served by the external fixture, so the real backend
+ * still parses, caches and guards them.
+ */
+export async function publicCardFixture({ backendEnv, externalRoutes = {} } = {}) {
   let unavailable = false;
   const cards = Array.from({ length: 3000 }, (_, i) => ({
     card_id: i === 0 ? 'blizzard:12345' : `CARD_QA_${String(i + 1).padStart(4, '0')}`,
@@ -39,6 +44,16 @@ export async function publicCardFixture({ backendEnv } = {}) {
       response.end(readFileSync(resolve('public/arena-logo-icon.webp'))); return;
     }
     response.setHeader('Content-Type', 'application/json');
+    if (Object.hasOwn(externalRoutes, url.pathname)) {
+      try {
+        const body = externalRoutes[url.pathname](url);
+        if (body === null) response.writeHead(404).end('{"detail":"Not found"}');
+        else response.end(JSON.stringify(body));
+      } catch (error) {
+        response.writeHead(500).end(JSON.stringify({ detail: `Fixture route failed: ${error.message}` }));
+      }
+      return;
+    }
     if (url.pathname === '/api/v1/constructed-cards') {
       if (unavailable) { response.writeHead(503).end('{"error":"Fixture outage"}'); return; }
       const page = Number(url.searchParams.get('page') || 1);
