@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import puppeteer from 'puppeteer';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { waitForFocus } from './helpers/browserUserView.mjs';
 
 // The support pages and the guest tier list need no data; every `/api/` call
 // (the shell's session check) answers "signed out", uncacheable as in
@@ -43,6 +44,7 @@ const drawerState = page => page.evaluate(() => {
     backdrop: Boolean(backdrop) && getComputedStyle(backdrop).display !== 'none',
     expanded: document.querySelector('.arena-mobile-nav-toggle')?.getAttribute('aria-expanded'),
     locked: document.body.style.position,
+    settled: Boolean(menu) && menu.getAnimations().length === 0,
   };
 });
 
@@ -71,9 +73,11 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     // and its links are plain anchors to canonical URLs.
     const plain = await phonePage(browser, { javaScript: false });
     await plain.page.goto(`${gateway.origin}/privacy/`, { waitUntil: 'networkidle2' });
-    assert.deepEqual(await drawerState(plain.page), { open: false, shown: false, backdrop: false, expanded: 'false', locked: '' });
+    assert.deepEqual(await drawerState(plain.page), { open: false, shown: false, backdrop: false, expanded: 'false', locked: '', settled: true });
     await plain.page.click('.arena-mobile-nav-toggle');
     await waitForDrawer(plain.page, { open: true, shown: true, backdrop: true });
+    // The drawer slides in on a transition: click once it has stopped moving.
+    await waitForDrawer(plain.page, { settled: true });
     await plain.page.click('#arena-mobile-menu a[href="/tierlist/"]');
     await plain.page.waitForFunction(() => location.pathname === '/tierlist/', { timeout: 10_000 });
 
@@ -107,7 +111,7 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await page.waitForFunction(() => getComputedStyle(document.querySelector('#arena-mobile-menu')).opacity === '1');
     assert.deepEqual(await sampleAfter('close'), { open: false, display: 'grid', fading: true }, 'the drawer lifts out before it goes');
     await waitForDrawer(page, { shown: false, backdrop: false, expanded: 'false', locked: '' });
-    assert.equal(await page.evaluate(() => document.activeElement?.classList.contains('arena-mobile-nav-toggle')), true);
+    await waitForFocus(page, 'button', 'Открыть меню');
 
     // The drawer keeps its own scroll between openings, and a horizontal swipe
     // towards its edge closes it (a vertical move stays a native scroll).

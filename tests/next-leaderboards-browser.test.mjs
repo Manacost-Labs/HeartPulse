@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
+import { findByRole, role } from './helpers/browserUserView.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 // LEADERBOARDS_SCREENSHOT_DIR=<папка> сохраняет снимки страницы на 1440 и 412 px.
@@ -20,6 +21,8 @@ async function pageState(page) {
   }));
 }
 
+/** Кнопка режима таблицы по её названию. */
+const mode = name => `${role('region', 'Таблица лидеров')} ${role('button', name)}`;
 const firstNames = page => page.$$eval('.leaderboards-table tbody tr td:nth-child(2)', nodes => nodes.slice(0, 3).map(node => node.textContent));
 
 /** Ждёт условие, а по таймауту падает с тем, что видно на странице: CI не сохраняет снимков. */
@@ -100,7 +103,7 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     await page.click('.leaderboards-summary__jump:first-of-type');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent === '100');
     assert.equal(new URL(page.url()).searchParams.get('rank'), '100', 'a threshold jumps to its place');
-    await page.type('.leaderboards-jump input', '1234');
+    await page.type(role('textbox', 'К месту'), '1234');
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent === '1\u00a0234');
     assert.match(new URL(page.url()).search, /rank=1234/, 'the place is in the URL');
@@ -113,22 +116,22 @@ test('the leaderboards page renders the table on the server, switches modes, jum
       - document.querySelector('.global-utility-header').getBoundingClientRect().bottom)), 0,
       'deep in the table the mode, region and search bar stays on screen right under the site search');
 
-    await page.click('.leaderboards-modes button:first-child');
+    await page.click(mode('Стандарт'));
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'TrueBench');
     assert.equal(new URL(page.url()).search, '', 'the default selection keeps the URL clean');
     assert.deepEqual(await page.$$eval('.leaderboards-table thead th', nodes => nodes.map(node => node.textContent)),
       ['Место', 'Игрок', 'За сутки'], 'Standard has no rating column');
 
-    await page.click('.leaderboards-modes button:nth-child(5)');
-    await page.waitForFunction(() => document.querySelector('.leaderboards-message h2')?.textContent === 'Данные собираются');
+    await page.click(mode('Арена'));
+    await findByRole(page, 'heading', 'Данные собираются');
     assert.equal(await page.$('.leaderboards-table'), null, 'a mode without seasons shows no stale table');
     if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-collecting-1440.png') });
 
-    await page.click('.leaderboards-modes button:nth-child(3)');
+    await page.click(mode('Поля сражений'));
     await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN',
       'Battlegrounds after a collecting mode');
     assert.equal(new URL(page.url()).searchParams.get('rank'), null, 'another table forgets the place');
-    await page.type('.leaderboards-search input', 'bob651');
+    await page.type(role('searchbox', 'Игрок'), 'bob651');
     await page.waitForFunction(() => document.querySelectorAll('.leaderboards-table tbody tr').length === 11);
     assert.match(new URL(page.url()).search, /q=bob651/, 'the search is in the URL');
     await page.focus('.leaderboards-search input');

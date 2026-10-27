@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
+import { clickByRole, findByRole, role, waitForPressed } from './helpers/browserUserView.mjs';
 
 test('Next deck builder checks full administrator access and preserves the editable draft', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true });
@@ -38,7 +39,7 @@ test('Next deck builder checks full administrator access and preserves the edita
       await page.setViewport({ width, height: 900 });
       const response = await page.goto(`${runtime.origin}/deck-builder/`, { waitUntil: 'domcontentloaded' });
       assert.equal(response.status(), 200);
-      await page.waitForSelector('.deck-builder__landing-hero', { timeout: 15000 });
+      await findByRole(page, 'heading', 'Соберите колоду');
       const state = await page.evaluate(() => ({
         heading: document.querySelector('h1')?.textContent?.trim(),
         overflow: document.documentElement.scrollWidth > innerWidth,
@@ -49,7 +50,8 @@ test('Next deck builder checks full administrator access and preserves the edita
       assert.equal(state.mainCount, 1);
     }
 
-    await page.click('.deck-builder__format-picker button:last-child');
+    await clickByRole(page, 'button', 'Вольный');
+    await waitForPressed(page, 'Вольный');
     await page.click('button[aria-label^="Маг: создать колоду"]');
     await page.waitForSelector('#deck-builder-workspace-title');
     await page.waitForFunction(() => {
@@ -71,8 +73,8 @@ test('Next deck builder checks full administrator access and preserves the edita
       } else void request.continue();
     });
     await demotedPage.goto(`${runtime.origin}/deck-builder/`, { waitUntil: 'domcontentloaded' });
-    await demotedPage.waitForSelector('.deck-builder-access-card');
-    assert.equal(await demotedPage.$('.deck-builder__landing-hero'), null);
+    await findByRole(demotedPage, 'heading', 'Конструктор колоды недоступен');
+    assert.equal(await demotedPage.$(role('heading', 'Соберите колоду')), null, 'a demoted viewer never sees the builder');
     await demotedPage.close();
 
     runtime.backend.database.prepare("UPDATE users SET blocked_at = ? WHERE id = ?")

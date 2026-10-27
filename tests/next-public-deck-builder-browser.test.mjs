@@ -7,6 +7,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { decode } from '@firestone-hs/deckstrings';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
+import { clickByRole, findByRole, role, waitForPressed } from './helpers/browserUserView.mjs';
 
 const cards = [
   { card_id: 'CS2_029', dbf: 315, class: 'MAGE', name: { ru: 'Огненный шар' }, mana_cost: 4, rarity: 'COMMON' },
@@ -161,25 +162,24 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     await page.waitForFunction(() => !document.querySelector('.hp-builder-pagination')
       && document.querySelector('button[aria-label^="Добавить: Речной кроколиск"]'));
     await page.select('.hp-builder-context label:first-child select', 'WARRIOR');
-    await page.waitForSelector('.hp-builder-reset');
-    await page.click('.hp-builder-reset button:last-child');
+    await clickByRole(page, 'button', 'Оставить колоду');
     assert.equal(await page.$eval('.hp-builder-context label:first-child select', node => node.value), 'MAGE');
-    await page.click('.hp-builder-save');
-    await page.waitForSelector('.hp-builder-feedback.is-error');
+    await clickByRole(page, 'button', 'Сохранить картинку');
+    await page.waitForSelector(`${role('complementary', 'Ваша колода')} [role="alert"]`, { visible: true });
     assert.equal(readdirSync(downloads).length, 0);
     renderFails = false;
-    await page.click('.hp-builder-save');
-    await page.waitForFunction(() => document.querySelector('.hp-builder-feedback')?.textContent.includes('сохранена'));
+    await clickByRole(page, 'button', 'Сохранить картинку');
+    await page.waitForSelector(`${role('complementary', 'Ваша колода')} [role="status"] ::-p-text(сохранена)`, { visible: true });
     for (let i = 0; i < 40 && !readdirSync(downloads).some(file => file.endsWith('.png')); i++) await delay(50);
     assert.deepEqual(readFileSync(join(downloads, 'Моя колода.png')), image);
     const decoded = decode(renders.at(-1).deckCode);
     assert.deepEqual(decoded.heroes, [637]);
     assert.equal(decoded.format, 2);
     assert.deepEqual(decoded.cards, [[315, 2], [129851, 1]]);
-    await page.click('.hp-builder-secondary-actions button:first-child');
+    await clickByRole(page, 'button', 'Код колоды');
     await page.setViewport({ width: 320, height: 720 });
-    assert.equal(await page.$eval('.hp-builder-code-dialog', node => node.checkVisibility()), true,
-      'open code stays visible when desktop collection becomes the phone panel');
+    await findByRole(page, 'dialog', 'Код колоды', 2_000)
+      .catch(() => assert.fail('open code stays visible when desktop collection becomes the phone panel'));
     await page.keyboard.press('Escape');
     await page.setViewport({ width: 1440, height: 900 });
     await page.keyboard.down('Control');
@@ -194,11 +194,12 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
       await page.setViewport({ width, height: 900 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `overflow at ${width}`);
       if (width < 768) {
-        await page.click('.hp-builder-mobile-switch button:last-child');
-        assert.equal(await page.$eval('.hp-builder-deck', node => node.checkVisibility()), true);
+        await page.click(`${role('group', 'Панель конструктора')} ::-p-text(Колода ·)`);
+        await findByRole(page, 'complementary', 'Ваша колода');
         await page.click('button[aria-label="Убрать: Огненный шар"]');
-        await page.click('.hp-builder-mobile-switch button:first-child');
-        assert.equal(await page.$eval('.hp-builder-gallery', node => getComputedStyle(node).display), 'block');
+        await page.click(`${role('group', 'Панель конструктора')} ${role('button', 'Карты')}`);
+        await waitForPressed(page, 'Карты');
+        await findByRole(page, 'region', 'Карты');
       }
     }
     await page.evaluate(axe);
@@ -435,10 +436,12 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
     });
     await page.click('button[aria-label="Добавить: Зиллиакс Делюкс 3000"]');
     await page.setViewport({ width: 390, height: 844 });
-    await page.click('.hp-builder-mobile-switch button:last-child');
+    await page.click(`${role('group', 'Панель конструктора')} ::-p-text(Колода ·)`);
     await page.click('button[aria-label="Настроить: Зиллиакс Делюкс 3000"]');
     await page.waitForSelector('button[aria-label="Модуль: Модуль 0"]');
-    assert.equal(await page.$eval('.hp-builder', node => node.dataset.panel), 'deck');
+    // The open configuration hides the page from the accessibility tree, so the switch is read by its ARIA state.
+    assert.match(await page.$eval('[role="group"][aria-label="Панель конструктора"] [aria-pressed="true"]', button => button.textContent),
+      /^Колода · /, 'the phone stays on the deck panel');
     await page.click('button[aria-label="Модуль: Модуль 0"]');
     await page.click('button[aria-label="Модуль: Модуль 7"]');
     assert.equal(await page.$eval('button[aria-label="Модуль: Модуль 2"]', button => button.disabled), true);
@@ -455,8 +458,8 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
     await page.click('.hp-builder-configuration-heading button');
     await page.click('.hp-builder-mobile-switch button:last-child');
     assert.equal(await page.$eval('[aria-label="Карт в колоде: 3 из 30"]', node => node.textContent), '3/30');
-    await page.click('.hp-builder-save');
-    await page.waitForFunction(() => document.querySelector('.hp-builder-feedback')?.textContent.includes('сохранена'));
+    await clickByRole(page, 'button', 'Сохранить картинку');
+    await page.waitForSelector(`${role('complementary', 'Ваша колода')} [role="status"] ::-p-text(сохранена)`, { visible: true });
     const decoded = decode(renders.at(-1).deckCode);
     assert.deepEqual(decoded.cards, [[315, 1], [90749, 1], [102983, 1]]);
     assert.deepEqual(decoded.sideboards, [

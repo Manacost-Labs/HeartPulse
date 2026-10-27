@@ -5,6 +5,10 @@ import test from 'node:test';
 import puppeteer from 'puppeteer';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { role } from './helpers/browserUserView.mjs';
+
+const WILD = role('button', 'Вольный Карты всех дополнений');
+const STANDARD = role('button', 'Стандарт Карты текущей ротации');
 
 const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(candidate => candidate && existsSync(candidate));
 const CLASSES = ['deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'];
@@ -110,12 +114,12 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(dataReads, [], 'subscribers reuse the anonymous server summary without a protected catalog read');
     await page.evaluate(() => scrollTo(0, 0));
-    await page.click('.archetypes-format-switch button:nth-child(2)');
+    await page.click(WILD);
     await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
-    await page.click('.archetypes-format-switch button:first-child');
+    await page.click(STANDARD);
     await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
     assert.equal(dataReads.length, 1, 'returning to a fresh format reuses its public snapshot');
-    await page.type('input[placeholder="Найти архетип..."]', 'Архетип 2');
+    await page.type(role('searchbox', 'Найти архетип'), 'Архетип 2');
     await page.waitForFunction(() => document.querySelectorAll('.archetype-row').length > 0 && document.querySelectorAll('.archetype-row').length < 90);
     assert.equal(dataReads.length, 1, 'local search does not read the server');
     delayNextCatalog = true;
@@ -138,13 +142,13 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     await recovery.waitForSelector('.archetype-row');
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(recoveryReads.length, 2, 'one failed read and one explicit retry');
-    await recovery.type('input[placeholder="Найти архетип..."]', 'Архетип 2');
+    await recovery.type(role('searchbox', 'Найти архетип'), 'Архетип 2');
     await recovery.waitForFunction(() => document.querySelectorAll('.archetype-row').length > 0 && document.querySelectorAll('.archetype-row').length < 90);
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(recoveryReads.length, 2, 'search after retry must not restart a settled catalog read');
-    await recovery.click('.archetypes-format-switch button:nth-child(2)');
+    await recovery.click(WILD);
     await recovery.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
-    await recovery.click('.archetypes-format-switch button:first-child');
+    await recovery.click(STANDARD);
     await recovery.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(recoveryReads.length, 3, 'retry must not invalidate other fresh format snapshots');
