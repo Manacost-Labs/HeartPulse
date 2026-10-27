@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   buildArchetypeDeckCode,
+  fetchHsGuruArchetypeName,
   resolveArchetypeDeckIdentity,
 } from '../server/archetypeDeckIdentity.js';
 
@@ -63,5 +64,26 @@ const fallbackIdentity = await resolveArchetypeDeckIdentity({
 assert.equal(fallbackIdentity.canonicalNameEn, 'HSReplay Elemental Mage');
 assert.equal(fallbackIdentity.identitySource, 'hsreplay');
 assert.equal(fallbackIdentity.identityConfidence, 0);
+
+// The HSGuru lookup cache is bounded: the oldest code is evicted and asked again.
+const originalFetch = globalThis.fetch;
+let hsGuruRequests = 0;
+globalThis.fetch = (async () => {
+  hsGuruRequests += 1;
+  return new Response(JSON.stringify({ archetype: 'Cached Mage' }), { status: 200 });
+}) as typeof fetch;
+try {
+  assert.equal(await fetchHsGuruArchetypeName('cache-code-0'), 'Cached Mage');
+  assert.equal(await fetchHsGuruArchetypeName('cache-code-0'), 'Cached Mage');
+  assert.equal(hsGuruRequests, 1);
+  for (let index = 1; index <= 2_000; index += 1) await fetchHsGuruArchetypeName(`cache-code-${index}`);
+  assert.equal(hsGuruRequests, 2_001);
+  await fetchHsGuruArchetypeName('cache-code-2000');
+  assert.equal(hsGuruRequests, 2_001);
+  await fetchHsGuruArchetypeName('cache-code-0');
+  assert.equal(hsGuruRequests, 2_002);
+} finally {
+  globalThis.fetch = originalFetch;
+}
 
 console.log('archetype deck identity tests passed');

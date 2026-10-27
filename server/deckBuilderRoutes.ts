@@ -2,6 +2,7 @@ import { Router, type RequestHandler, type Response } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
 import {
+  decodeDeckDefinition,
   indexCardsByDbf,
   indexCardsRuByDbf,
   matchArchetypeByDeckCode,
@@ -92,10 +93,20 @@ function readFormat(value: unknown): DeckBuilderFormat {
   return String(value ?? '').toLowerCase() === 'wild' ? 'wild' : 'standard';
 }
 
-function readDeckCode(value: unknown): string {
+/** Real deck codes, sideboards included, stay well under this length. */
+const MAX_DECK_CODE_LENGTH = 600;
+
+/** The deck code of a code or a deck link: '' when absent, null when it cannot be one. */
+function readDeckCode(value: unknown): string | null {
   const raw = String(value ?? '').trim();
   const fromUrl = raw.match(/[?&]code=([^&]+)/i);
-  return decodeURIComponent((fromUrl?.[1] || raw).replace(/ /g, '+')).trim();
+  let code: string;
+  try {
+    code = decodeURIComponent((fromUrl?.[1] || raw).replace(/ /g, '+')).trim();
+  } catch {
+    return null;
+  }
+  return code.length <= MAX_DECK_CODE_LENGTH ? code : null;
 }
 
 function readArchetype(value: unknown): string {
@@ -165,7 +176,11 @@ export function createDeckBuilderRouter(dependencies: DeckBuilderRouterDependenc
       ?? request.query?.deckCode
       ?? request.query?.code,
     );
-    if (!deckCode) return response.status(400).json({ error: 'Нужен код колоды' });
+    if (deckCode === '') return response.status(400).json({ error: 'Нужен код колоды' });
+    // Only decodable codes reach the catalogs and the per-code HSGuru cache.
+    if (deckCode === null || !decodeDeckDefinition(deckCode)) {
+      return response.status(400).json({ error: 'Некорректный код колоды' });
+    }
     const preferredFormat = readFormat(request.body?.format ?? request.query?.format);
     const preferredArchetypeName = readArchetype(
       request.body?.archetype
@@ -189,11 +204,16 @@ export function createDeckBuilderRouter(dependencies: DeckBuilderRouterDependenc
   };
 
   // Public embed endpoint — instant card list for any page on the site.
-  router.get('/deck/resolve', (request, response) => void handleResolve(request, response, false));
-  router.post('/deck/resolve', (request, response) => void handleResolve(request, response, false));
+  // An escaped rejection would be unhandled and stop the process; hand it to Express.
+  router.get('/deck/resolve', (request, response, next) => {
+    handleResolve(request, response, false).catch(next);
+  });
+  router.post('/deck/resolve', (request, response, next) => {
+    handleResolve(request, response, false).catch(next);
+  });
 
-  router.post('/admin/deck-builder/resolve', dependencies.adminGuard, (request, response) => {
-    void handleResolve(request, response, true);
+  router.post('/admin/deck-builder/resolve', dependencies.adminGuard, (request, response, next) => {
+    handleResolve(request, response, true).catch(next);
   });
 
   router.post('/admin/deck-builder/hydrate', dependencies.adminGuard, async (request, response) => {

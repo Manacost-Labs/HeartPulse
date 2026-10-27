@@ -46,6 +46,17 @@ const HERO_DBF_BY_CLASS: Record<string, number> = {
 };
 
 const identityLookupCache = new Map<string, { expiresAt: number; name: string | null }>();
+/** The public resolve endpoint lets anyone add codes, so the cache is bounded. */
+const IDENTITY_LOOKUP_CACHE_LIMIT = 2_000;
+
+function rememberIdentityLookup(deckCode: string, entry: { expiresAt: number; name: string | null }): void {
+  identityLookupCache.delete(deckCode);
+  if (identityLookupCache.size >= IDENTITY_LOOKUP_CACHE_LIMIT) {
+    const oldest = identityLookupCache.keys().next().value;
+    if (oldest !== undefined) identityLookupCache.delete(oldest);
+  }
+  identityLookupCache.set(deckCode, entry);
+}
 
 export function loadArchetypeDeckCandidates(
   database: DatabaseSync,
@@ -123,10 +134,10 @@ export async function fetchHsGuruArchetypeName(deckCode: string): Promise<string
     if (!response.ok) return null;
     const payload = await response.json() as { archetype?: string; name?: string };
     const name = String(payload?.archetype || payload?.name || '').trim() || null;
-    identityLookupCache.set(deckCode, { expiresAt: now + 30 * 60_000, name });
+    rememberIdentityLookup(deckCode, { expiresAt: now + 30 * 60_000, name });
     return name;
   } catch {
-    identityLookupCache.set(deckCode, { expiresAt: now + 2 * 60_000, name: null });
+    rememberIdentityLookup(deckCode, { expiresAt: now + 2 * 60_000, name: null });
     return null;
   }
 }
