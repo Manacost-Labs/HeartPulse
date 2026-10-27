@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  buildTierBuilderCards, createTierBuilderHistory, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount,
-  readTierBuilderDraft, tierBuilderCardImage, tierBuilderDraft, unresolvedTierBuilderDraft, withTierBuilderSource,
+  buildTierBuilderCards, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, tierBuilderCardImage, withTierBuilderSource,
 } from '../src/modules/battlegrounds/model/tierBuilder';
+import {
+  createTierBuilderHistory, placedTierBuilderCount, readTierBuilderDraft, tierBuilderDraft, unresolvedTierBuilderDraft,
+} from '../src/modules/battlegrounds/model/tierBuilderDraft';
 
 const proxied = (url: string) => `/api/public-resource/${encodeURIComponent(url)}`;
 const cards = buildTierBuilderCards({

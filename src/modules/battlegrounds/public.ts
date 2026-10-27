@@ -35,11 +35,15 @@ export { HeroCompositionAnalytics, HeroOverview, HeroPowerAnalytics, HeroTavernA
 export type { HeroAnalyticsCard } from './ui/HeroAnalytics';
 
 export {
-  buildTierBuilderCards, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount, plainCardText,
-  readTierBuilderDraft, TIER_BUILDER_RACE_NAMES, TIER_BUILDER_SOURCES, TIER_BUILDER_TIERS, tierBuilderCardImage,
-  createTierBuilderHistory, tierBuilderCardMeta, tierBuilderDraft, unresolvedTierBuilderDraft, withTierBuilderSource,
+  buildTierBuilderCards, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, plainCardText,
+  TIER_BUILDER_RACE_NAMES, TIER_BUILDER_SOURCES, TIER_BUILDER_TIERS, tierBuilderCardImage,
+  tierBuilderCardMeta, withTierBuilderSource,
 } from './model/tierBuilder';
-export type { TierBuilderCard, TierBuilderFilters, TierBuilderPlacement, TierBuilderSourcePayloads } from './model/tierBuilder';
+export type { TierBuilderCard, TierBuilderFilters, TierBuilderSourcePayloads } from './model/tierBuilder';
+export {
+  createTierBuilderHistory, placedTierBuilderCount, readTierBuilderDraft, tierBuilderDraft, unresolvedTierBuilderDraft,
+} from './model/tierBuilderDraft';
+export type { TierBuilderPlacement } from './model/tierBuilderDraft';
 export { createBuilderHistory } from './model/builderWorkbench';
 
 export { TierListChoice, TierListChoices, TierListToolbar } from './ui/TierListToolbar';
