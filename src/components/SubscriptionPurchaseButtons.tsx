@@ -3,7 +3,7 @@ const SUBSCRIPTION_OPTIONS = [
     href: 'https://boosty.to/kolodahearthstone',
     icon: '/ad/boosty-96.webp',
     title: 'Оформить на Boosty',
-    text: 'Уровень Любитель Арены и выше',
+    text: null,
     background: 'linear-gradient(135deg, rgba(255,247,237,0.96), rgba(239,246,255,0.94))',
     border: '#f97316',
     glow: 'rgba(249,115,22,0.18)',
@@ -19,7 +19,14 @@ const SUBSCRIPTION_OPTIONS = [
   },
 ] as const;
 
-export default function SubscriptionPurchaseButtons() {
+// The cheapest Boosty tier that opens the gated section: Arena pages open from
+// «Любитель Арены», traditional-mode pages only from «Алмаз».
+const BOOSTY_TIER = {
+  default: 'Уровень Любитель Арены и выше',
+  standard: 'Уровень «Алмаз» и выше',
+} as const;
+
+export default function SubscriptionPurchaseButtons({ variant = 'default' }: { variant?: keyof typeof BOOSTY_TIER }) {
   return (
     <div className="arena-paywall__purchase-options" style={{
       display: 'grid',
@@ -67,7 +74,7 @@ export default function SubscriptionPurchaseButtons() {
               {item.title}
             </strong>
             <span style={{ display: 'block', color: '#52647a', fontSize: '12px', marginTop: '4px', lineHeight: 1.35 }}>
-              {item.text}
+              {item.text ?? BOOSTY_TIER[variant]}
             </span>
           </span>
           <span aria-hidden="true" style={{
