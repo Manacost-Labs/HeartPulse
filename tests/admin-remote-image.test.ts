@@ -47,7 +47,16 @@ for (const address of ['::ffff:7f00:1', '::ffff:a00:5', '64:ff9b::a9fe:a9fe']) {
   );
 }
 
-for (const address of ['2606:4700:4700::1111', '::ffff:5db8:d822']) {
+// 192.0.0.0/24 and 192.0.2.0/24 are reserved, the rest of 192.0.0.0/16 is public (i0.wp.com is 192.0.77.2).
+for (const address of ['192.0.0.8', '192.0.2.10']) {
+  await assert.rejects(
+    fetchRemoteAdminImage('https://reserved.example.test/image.png', { maxBytes: 1024, fetchImpl, resolveHost: async () => [address] }),
+    (error: unknown) => error instanceof RemoteAdminImageError && error.status === 400,
+    address,
+  );
+}
+
+for (const address of ['2606:4700:4700::1111', '::ffff:5db8:d822', '192.0.77.2']) {
   fetched = [];
   await fetchRemoteAdminImage('https://images.example.test/image.png', { maxBytes: 1024, fetchImpl, resolveHost: async () => [address] });
   assert.equal(fetched.length, 1, `${address} is a public address`);
