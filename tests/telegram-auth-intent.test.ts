@@ -253,37 +253,12 @@ assert.throws(
   );
 }
 
+// The production cookies, the legacy intent issued next to OIDC, link-code
+// entropy and session binding are exercised on the real server by
+// tests/auth-session-cookies-integration.test.mjs. What follows needs a live
+// Telegram exchange or a webhook flood that the integration fixture does not
+// drive, so the source still guards it.
 const serverSource = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
-assert.match(
-  serverSource,
-  /const legacyEnabled = telegramLegacyWidgetEnabled\(\);[\s\S]{0,500}if \(legacyEnabled\) \{[\s\S]{0,300}issueTelegramSignInIntent/,
-  'OIDC+bot config must still issue the legacy POST/widget intent contract',
-);
-assert.match(
-  serverSource,
-  /legacyIntentExpiresAt = intent\.expiresAt/,
-  'legacy clients need the server expiry to refresh a stale widget intent',
-);
-assert.match(
-  serverSource,
-  /randomBytes\(18\)\.toString\('base64url'\)/,
-  'new bot link secrets must contain at least 128 bits of entropy',
-);
-assert.match(
-  serverSource,
-  /__Host-manacost_tg_oidc/,
-  'production OIDC state must use a host-bound cookie prefix',
-);
-assert.match(
-  serverSource,
-  /__Host-manacost_tg_intent/,
-  'production legacy intents must resist sibling-domain cookie tossing',
-);
-assert.match(
-  serverSource,
-  /linkSessionHash: activeSession\.session\.tokenHash/,
-  'explicit OIDC linking must bind state to the initiating auth session',
-);
 assert.match(
   serverSource,
   /telegramOidcLinkUserId\(oidcState, activeSession/,
@@ -321,11 +296,6 @@ assert.match(
   serverSource,
   /consumeTelegramAuthIntentAndClaimIdentities\(database,/,
   'legacy completion must atomically consume its nonce with identity claims',
-);
-assert.match(
-  serverSource,
-  /issueTelegramLinkToken\(db\(\), \{[\s\S]{0,200}sessionTokenHash: activeSession\.session\.tokenHash/,
-  'bot link codes must bind to the exact issuing browser session',
 );
 assert.match(
   serverSource,
