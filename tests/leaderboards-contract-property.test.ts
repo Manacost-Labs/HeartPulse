@@ -158,6 +158,26 @@ test('a malformed table is refused instead of shown', () => {
   }
 });
 
+test('a value wrapped in a list is not taken for the date it spells', () => {
+  const wrapped = parseLeaderboardTable(tablePayload([], {
+    board: { ...BOARD, season_start: ['2026-10-01'] },
+    snapshot: { ...SNAPSHOT, stale: true },
+    days: [['2026-10-24']],
+  }), 1, 50);
+
+  assert.equal(wrapped.board.seasonStart, null);
+  assert.equal(wrapped.snapshot.stale, true);
+  assert.equal(wrapped.hasPrevious, false);
+  assert.throws(() => parseLeaderboardTable(tablePayload([], { snapshot: { ...SNAPSHOT, day: ['2026-10-25'] } }), 1, 50),
+    LeaderboardContractError);
+  assert.throws(() => parseLeaderboardTable(tablePayload([], { snapshot: { ...SNAPSHOT, captured_at: ['2026-10-25T16:10:02Z'] } }), 1, 50),
+    LeaderboardContractError);
+});
+
+test('a nickname longer than the table allows is cut to 64 characters', () => {
+  assert.equal(rowNamed('A'.repeat(70)), 'A'.repeat(64));
+});
+
 test('the season catalog keeps known modes in site order with their flags', () => {
   const catalog = parseSeasonCatalog({ data: { modes: [
     { mode: 'battlegrounds', rated: true, regions: { US: { seasons: [
@@ -166,6 +186,7 @@ test('the season catalog keeps known modes in site order with their flags', () =
       { season_id: 20, has_data: 'yes' },
     ] } } },
     { mode: 'duels', regions: { EU: { seasons: [{ season_id: 1, has_data: true }] } } },
+    { mode: 'mercenaries', regions: 'not collected' },
     { mode: 'standard', rated: 'yes', regions: { EU: { seasons: [{ season_id: 156, has_data: true, season_start: '2026-10-01' }] } } },
   ] } });
 

@@ -130,6 +130,18 @@ test('a deck code with impossible card entries shows only the real cards', () =>
   ]);
 });
 
+test('a hand-edited deck code with card id 0 or zero copies shows only the real cards', () => {
+  // The game's encoder refuses these entries; this code was assembled byte by byte.
+  const edited = 'AAECAf0EBgClqgemqgenqgeoqgepqgcAAqqqBwCrqgcDAA==';
+
+  assert.deepEqual(decode(edited).cards, [[0, 1], [120_101, 1], [120_102, 1], [120_103, 1], [120_104, 1], [120_105, 1],
+    [120_106, 0], [120_107, 3]]);
+  assert.deepEqual(decodeDeckCardCounts(edited), [
+    { dbfId: 120_101, count: 1 }, { dbfId: 120_102, count: 1 }, { dbfId: 120_103, count: 1 }, { dbfId: 120_104, count: 1 },
+    { dbfId: 120_105, count: 1 }, { dbfId: 120_107, count: 3 },
+  ]);
+});
+
 test('the deck list shows each catalog card with its name, cost, rarity and art', () => {
   const code = encode({
     format: 2,

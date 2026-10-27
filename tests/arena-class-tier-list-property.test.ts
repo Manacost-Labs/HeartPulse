@@ -34,6 +34,18 @@ test('the class tier list goes from the best win rate to the worst', () => {
   }));
 });
 
+test('the Firestone class tier list also goes from the best win rate to the worst', () => {
+  const rows = fc.array(fc.tuple(SOURCE_CLASS, fc.integer({ min: 0, max: 1_000 })), { maxLength: 12 });
+  assertProperty(fc.property(rows, sourceRows => {
+    const tiers = normalizeFirestoneArenaClassRows(
+      sourceRows.map(([playerClass, wins]) => ({ playerClass, totalGames: 1_000, totalsWins: wins })), CLASS_INFO,
+    );
+
+    assert.equal(tiers.length, sourceRows.length);
+    tiers.slice(1).forEach((tier, index) => assert.ok(tiers[index].winrate >= tier.winrate));
+  }));
+});
+
 test('classes with the same win rate keep the order the source lists them in', () => {
   const classes = fc.shuffledSubarray(['Mage', 'Warrior', 'Death Knight', 'Priest'], { minLength: 2 });
   assertProperty(fc.property(classes, PUBLISHED_WINRATE, (order, winrate) => {
@@ -86,7 +98,7 @@ test('a blank win rate is no win rate, not 0%', () => {
 });
 
 test('a class without a published win rate or games is left off the tier list', () => {
-  const missingWinrate = fc.constantFrom(undefined, null, '', ' ', '%', 'n/a', Number.NaN, Number.POSITIVE_INFINITY, {}, []);
+  const missingWinrate = fc.constantFrom(undefined, null, '', ' ', '%', 'n/a', Number.NaN, Number.POSITIVE_INFINITY, {}, [], [54.8], true);
   const missingGames = fc.constantFrom(0, -5, '', 'many', Number.NaN, null);
   assertProperty(fc.property(missingWinrate, missingGames, PUBLISHED_WINRATE, (winrate, games, realWinrate) => {
     const tiers = normalizeHsReplayArenaClassRows([
