@@ -26,8 +26,8 @@ for (const address of ['57.129.183.118', '2001:41d0:801:2000::8de2']) {
 assert.doesNotMatch(originRealIp, /^\s*real_ip_header\b/m,
   'the Arena trust list must not override the shared validated CF-Connecting-IP header');
 
-assert.match(cache, /max_size=18g/,
-  'the shared cache must leave capacity headroom on the 40 GB Limburg edge');
+assert.match(cache, /max_size=4g/,
+  'the shared cache must leave capacity headroom on the 48 GB Novosibirsk edge');
 assert.match(cache, /inactive=7d/,
   'inactive cache entries must age out before filling the smallest edge');
 
