@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { decode } from '@firestone-hs/deckstrings';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
@@ -34,7 +34,7 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     const guest = await fetch(`${runtime.origin}/standard/deck-builder/`);
     assert.equal(guest.status, 200);
     assert.match(await guest.text(), /Конструктор колод/);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const cdp = await page.createCDPSession();
@@ -137,7 +137,17 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     await page.waitForSelector('.hp-builder-pagination button:last-child');
     await page.focus('.hp-builder-pagination button:last-child');
     for (const pageNumber of ['2', '3']) {
-      await page.keyboard.press('Enter');
+      // Right after the press the counter already shows the new page while the
+      // grid is not yet busy: wait for that page's answer, or the next press
+      // lands while it loads and is ignored.
+      await Promise.all([
+        page.waitForResponse(response => {
+          const url = new URL(response.url());
+          return url.pathname === '/api/constructed-cards' && url.searchParams.get('query') === 'paged'
+            && url.searchParams.get('page') === pageNumber;
+        }),
+        page.keyboard.press('Enter'),
+      ]);
       await page.waitForFunction(number => document.querySelector('.hp-builder-pagination span')?.textContent === `${number} / 3`
         && document.querySelector('.hp-builder-card-grid')?.getAttribute('aria-busy') === 'false', {}, pageNumber);
       assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Далее', `focus after page ${pageNumber}`);
@@ -268,7 +278,7 @@ test('runes gate Death Knight cards and tourists expose only the permitted guest
   const runtime = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     const page = await browser.newPage();
     const queries = [];
@@ -342,7 +352,7 @@ test('Zilliax modules and ETC band are encoded as sideboards, enforce restrictio
   const runtime = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     const page = await browser.newPage();
     const errors = [];

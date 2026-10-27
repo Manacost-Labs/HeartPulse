@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test, { after, before } from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { openStory, startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [
@@ -23,7 +23,7 @@ let browser;
 
 before(async () => {
   storybook = await startStorybookStatic();
-  browser = await puppeteer.launch({
+  browser = await launchBrowser({
     executablePath: chromiumPath,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -120,9 +120,12 @@ for (const [name, viewport] of [
 
 /**
  * The opacity of the hero media lightbox on every frame after Escape, until it
- * has been gone a while. A busy runner renders few, late frames: the CPU is
- * slowed down for the close, as on CI, where a close timed from the key press
- * unmounted the lightbox while it was still a fifth visible.
+ * has been gone a while, and the CSS transition that fades it out. A busy
+ * runner renders few, late frames: the CPU is slowed down for the close, as on
+ * CI, where a close timed from the key press unmounted the lightbox while it
+ * was still a fifth visible. The frames can then skip the whole 200 ms fade,
+ * so the fade is read from the transition itself: when it started on the
+ * document timeline, how long it runs, and when the lightbox left the page.
  */
 async function heroLightboxClose({ reducedMotion }) {
   const page = await browser.newPage();
@@ -136,31 +139,53 @@ async function heroLightboxClose({ reducedMotion }) {
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.bg-hero-media-lightbox')).opacity === '1');
   const cdp = await page.createCDPSession();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
-  const opacities = await page.evaluate(() => new Promise(resolve => {
+  const { opacities, fade } = await page.evaluate(() => new Promise(resolve => {
+    const lightbox = document.querySelector('.bg-hero-media-lightbox');
     const samples = [];
     let goneFor = 0;
+    let transition = null;
+    const fade = { start: null, duration: null, to: null, removedAt: null };
+    // Read while the transition runs: removing the lightbox cancels it.
+    const readFade = () => {
+      transition ??= lightbox.getAnimations().find(animation => animation.transitionProperty === 'opacity') ?? null;
+      if (!transition || fade.start !== null || transition.startTime === null) return;
+      fade.start = transition.startTime;
+      fade.duration = transition.effect.getComputedTiming().duration;
+      fade.to = Number(transition.effect.getKeyframes().at(-1)?.opacity);
+    };
+    const removal = new MutationObserver(() => {
+      if (lightbox.isConnected) return;
+      fade.removedAt = performance.now();
+      readFade();
+      removal.disconnect();
+    });
+    removal.observe(document.body, { childList: true, subtree: true });
+    lightbox.addEventListener('transitionstart', readFade);
     const sample = () => {
-      const lightbox = document.querySelector('.bg-hero-media-lightbox');
-      samples.push(lightbox ? Number(getComputedStyle(lightbox).opacity) : null);
-      goneFor = lightbox ? 0 : goneFor + 1;
+      const current = document.querySelector('.bg-hero-media-lightbox');
+      if (current) readFade();
+      samples.push(current ? Number(getComputedStyle(current).opacity) : null);
+      goneFor = current ? 0 : goneFor + 1;
       if (goneFor < 5 && samples.length < 300) requestAnimationFrame(sample);
-      else resolve(samples);
+      else resolve({ opacities: samples, fade });
     };
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     requestAnimationFrame(sample);
   }));
   const bodyLocked = await page.evaluate(() => document.body.style.position);
   await page.close();
-  return { opacities, bodyLocked };
+  return { opacities, fade, bodyLocked };
 }
 
 test('the hero media lightbox fades out before it unmounts', async () => {
-  const { opacities, bodyLocked } = await heroLightboxClose({ reducedMotion: false });
-  const fading = opacities.filter(opacity => opacity !== null && opacity > 0.02 && opacity < 0.98);
-  assert.ok(fading.length >= 1, `the lightbox must fade out instead of vanishing: ${opacities.join(', ')}`);
+  const { opacities, fade, bodyLocked } = await heroLightboxClose({ reducedMotion: false });
+  const detail = `frames ${opacities.join(', ')}; transition ${JSON.stringify(fade)}`;
+  assert.ok(fade.start !== null && fade.duration >= 150 && fade.to === 0,
+    `the lightbox must fade out over a visible transition instead of vanishing: ${detail}`);
+  assert.ok(fade.removedAt !== null && fade.removedAt >= fade.start + fade.duration,
+    `the lightbox unmounts only once its fade has run to the end: ${detail}`);
   const shown = opacities.filter(opacity => opacity !== null);
   assert.ok(shown.every((opacity, index) => index === 0 || opacity <= shown[index - 1] + 0.001), `the fade must only fall: ${shown.join(', ')}`);
-  assert.ok(shown.at(-1) < 0.05, `the lightbox unmounts once faded out: ${shown.join(', ')}`);
   assert.equal(bodyLocked, '', 'the page scroll lock is released');
 });
 

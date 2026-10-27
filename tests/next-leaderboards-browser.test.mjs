@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
@@ -61,7 +61,7 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     assert.match(html, /href="\/leaderboards\/"/, 'the menu links the page');
     assert.doesNotMatch(html, /noindex/, 'the page is indexable');
 
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -155,7 +155,7 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     await page.click('.leaderboards-player__close');
     await page.waitForFunction(() => !document.querySelector('.leaderboards-player'));
     await page.click('.leaderboards-pages button:nth-child(4)');
-    await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td')?.textContent === '51');
+    await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td')?.textContent === '51', 'the second page');
     await page.click('.leaderboards-me');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent?.trim() === '1');
     assert.match(new URL(page.url()).search, /rank=1&player=XQN/, '«to my name» opens my place and card');
@@ -168,7 +168,8 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     await page.waitForFunction(() => !document.querySelector('.leaderboards-player'));
 
     await page.click('.leaderboards-pages button:nth-child(4)');
-    await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td')?.textContent === '51');
+    await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td')?.textContent === '51',
+      'the second page again after «to my name»');
     assert.match(new URL(page.url()).search, /page=2/);
     assert.deepEqual(errors, []);
   } finally {
