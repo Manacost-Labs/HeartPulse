@@ -5,7 +5,7 @@
 // Usage:
 //   npm run qa:ci                                   builds, starts the Next.js runtime and runs this suite
 //   npm run qa:e2e -- --url=http://127.0.0.1:3000   against an already running site
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './lib/browser-launch.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -815,7 +815,7 @@ const browserLaunchOptions = {
 };
 
 console.log(`[browser-qa] Chromium executable: ${CHROMIUM_PATH}`);
-const browser = await puppeteer.launch(browserLaunchOptions);
+const browser = await launchBrowser(browserLaunchOptions);
 
 async function createQaPage() {
   const page = await browser.newPage();

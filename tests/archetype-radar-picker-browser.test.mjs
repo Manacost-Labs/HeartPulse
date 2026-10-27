@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { openStory, startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [
@@ -57,7 +57,7 @@ function listGeometry() {
 
 let browser;
 try {
-  browser = await puppeteer.launch({
+  browser = await launchBrowser({
     executablePath: chromiumPath,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],

@@ -75,10 +75,11 @@ inactive version. Activation still occurs only after the complete file-count,
 byte-size, entry-document, and Nginx checks pass.
 
 The shared regional cache is bounded by the versioned
-`arena-edge-cache-path.conf`: `max_size=18g`, `inactive=7d`, and `min_free=8g`.
-The absolute reserve is required because Limburg has the smallest root volume.
-The same file declares the separate 1 GB `hearthpulse_documents` zone for
-anonymous HearthPulse documents
+`arena-edge-cache-path.conf`: `max_size=4g`, `inactive=7d`, and `min_free=8g`.
+The edges share their 58 GB (Moscow) and 48 GB (Novosibirsk) disks with other
+sites, so the absolute reserve guards the filesystem rather than the zone size.
+The same file declares the separate 1 GB `hearthpulse_documents` zone, also
+with `min_free=8g`, for anonymous HearthPulse documents
 ([edge caching](../runbooks/hearthpulse-edge-caching.md)).
 Frontend activation retains the active release and two additional successfully
 activated rollback trees. An incomplete prepared tree without its matching
