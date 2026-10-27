@@ -5,6 +5,7 @@ import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js'
 import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
 import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
+import { hsDataApiOrigin } from './hsDataApiOrigin.js';
 export type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -20,7 +21,6 @@ export type BattlegroundHeroSeoRouterDependencies = {
 
 const CATALOG_URL = 'http://127.0.0.1:3108/api/bg/heroes';
 const DUOS_CATALOG_URL = `${CATALOG_URL}?mode=duos`;
-const HERO_LIBRARY_URL = 'https://api.kolodahearthstone.com/api/v1/heroes';
 const CANONICAL_ORIGIN = 'https://hearthpulse.net';
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const NOINDEX_ROBOTS = 'noindex, nofollow';
@@ -390,7 +390,7 @@ export function createBattlegroundHeroSeoRouter(
       hero = duoHeroes.find(candidate => String(candidate.dbfId) === dbfId);
       if (hero) {
         try {
-          const libraryUrl = new URL(HERO_LIBRARY_URL);
+          const libraryUrl = new URL(`${hsDataApiOrigin()}/api/v1/heroes`);
           libraryUrl.searchParams.set('dbf', dbfId);
           const libraryResponse = await withDeadline(fetchImpl(libraryUrl, {
             signal: controller.signal,

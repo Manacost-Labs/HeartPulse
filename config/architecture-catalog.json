@@ -362,7 +362,7 @@
       "name": "backend-arena",
       "status": "transitional",
       "owner": "arena-data",
-      "purpose": "Own the extracted Arena class-statistics normalization while legacy Arena routes remain outside the module.",
+      "purpose": "Own the extracted Arena class-statistics normalization and the deadline-bounded hs-data-api dataset read while legacy Arena routes remain outside the module.",
       "paths": [
         "server/modules/arena"
       ],
@@ -370,14 +370,16 @@
       "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": [
-        "server/modules/arena/classStatisticsNormalizer.ts"
+        "server/modules/arena/classStatisticsNormalizer.ts",
+        "server/modules/arena/hsReplayArenaDataset.ts"
       ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
       "tests": [
-        "tests/arena-class-statistics-normalizer.test.ts"
+        "tests/arena-class-statistics-normalizer.test.ts",
+        "tests/hs-replay-arena-dataset-timeout.test.ts"
       ],
       "allowedDependencies": [
         "server/shared"

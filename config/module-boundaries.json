@@ -309,7 +309,7 @@
       "id": "server.arena",
       "runtime": "server",
       "root": "server/modules/arena",
-      "purpose": "Owns normalization of Arena class-statistics datasets for public consumption.",
+      "purpose": "Owns the deadline-bounded hs-data-api read and normalization of Arena class-statistics datasets for public consumption.",
       "owner": "web-platform",
       "publicEntry": "server/modules/arena/public.ts",
       "dependencies": [],
