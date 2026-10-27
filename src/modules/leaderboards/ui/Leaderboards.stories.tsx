@@ -5,7 +5,9 @@ import { LeaderboardControls, LeaderboardJump, LeaderboardSearch } from './Leade
 import { LeaderboardPlayerCard } from './LeaderboardPlayerCard';
 import { LeaderboardSummary } from './LeaderboardSummary';
 import { LeaderboardTableView } from './LeaderboardTableView';
-import { LeaderboardCollecting, LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardsUnavailable } from './LeaderboardsSkeleton';
+import {
+  LeaderboardCollecting, LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardUnknownSeason, LeaderboardsUnavailable,
+} from './LeaderboardsSkeleton';
 import './Leaderboards.css';
 
 // Числа взяты с живого прогона hs-data-api 25.10.2026 (Поля сражений, Европа, сезон 19).
@@ -108,7 +110,9 @@ export const PlayerCardLoading: Story = {
     state={{ key: 'x', status: 'loading', value: null }} me={null} scrollOnOpen={false} actions={actions} /></div>,
 };
 
-export const Loading: Story = { render: () => <div className="leaderboards"><LeaderboardSummarySkeleton /><LeaderboardTableSkeleton /></div> };
+export const Loading: Story = { render: () => <div className="leaderboards"><LeaderboardSummarySkeleton rated={false} /><LeaderboardTableSkeleton /></div> };
+
+export const LoadingRated: Story = { render: () => <div className="leaderboards"><LeaderboardSummarySkeleton rated /><LeaderboardTableSkeleton /></div> };
 
 export const UnratedTable: Story = {
   render: () => <div className="leaderboards"><LeaderboardTableView table={{ ...table, board: { ...board, mode: 'standard', season: 156, rated: false },
@@ -118,5 +122,9 @@ export const UnratedTable: Story = {
 export const Collecting: Story = { render: () => <div className="leaderboards"><LeaderboardCollecting mode="arena" region="EU" /></div> };
 
 export const NotCollected: Story = { render: () => <div className="leaderboards"><LeaderboardMissing /></div> };
+
+export const UnknownSeason: Story = {
+  render: () => <div className="leaderboards"><LeaderboardUnknownSeason season={999999} href="/leaderboards/" onCurrent={() => undefined} /></div>,
+};
 
 export const Unavailable: Story = { render: () => <div className="leaderboards"><LeaderboardsUnavailable onRetry={() => undefined} /></div> };

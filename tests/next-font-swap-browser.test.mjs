@@ -18,7 +18,7 @@ test('public pages keep their layout when the web fonts arrive late', { timeout:
     browser = await puppeteer.launch({ executablePath: chromiumPath,
       headless: true, args: ['--no-sandbox'] });
     for (const viewport of [{ width: 390, height: 844, isMobile: true }, { width: 1440, height: 900 }]) {
-      for (const path of ['/terms/', '/privacy/', '/battlegrounds/tier-list/']) {
+      for (const path of ['/terms/', '/privacy/', '/battlegrounds/tier-list/', '/leaderboards/?mode=battlegrounds']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {

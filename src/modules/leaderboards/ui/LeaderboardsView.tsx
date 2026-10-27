@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { LEADERBOARD_MAX_RANK, leaderboardSeasons } from '../model/leaderboardsView';
+import { LEADERBOARD_MAX_RANK, leaderboardSearch } from '../model/leaderboardsView';
 import { LeaderboardControls, LeaderboardJump, LeaderboardMyNick, LeaderboardSearch } from './LeaderboardControls';
 import { LeaderboardPlayerCard, type PlayerCardActions } from './LeaderboardPlayerCard';
 import { LeaderboardCharts, LeaderboardSummary } from './LeaderboardSummary';
 import { LeaderboardTableView } from './LeaderboardTableView';
 import {
-  LeaderboardCollecting, LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardsUnavailable,
+  LeaderboardCollecting, LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardUnknownSeason, LeaderboardsUnavailable,
 } from './LeaderboardsSkeleton';
 import { useLeaderboards, type LeaderboardsInitial } from './useLeaderboards';
 import { useJumpToMyNick, useMyNick } from './useMyNick';
@@ -20,10 +20,10 @@ import './Leaderboards.css';
  * таблица, прежняя остаётся на месте приглушённой; скелетон — только без данных.
  */
 export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) {
-  const { selection, select, catalog, collecting, table, stats, player, retry } = useLeaderboards(initial);
-  const seasons = leaderboardSeasons(catalog.value, selection.mode, selection.region);
+  const { selection, select, catalog, seasons, collecting, unknownSeason, table, stats, player, retry } = useLeaderboards(initial);
   const failed = table.status === 'error' && !table.value;
-  const showsTable = !collecting && !failed && table.status !== 'missing';
+  const showsTable = !collecting && !unknownSeason && !failed && table.status !== 'missing';
+  const rated = catalog.value?.modes.find(entry => entry.mode === selection.mode)?.rated ?? false;
   const [me, setMe] = useMyNick();
   // Игрок из ссылки при загрузке: его карточку не прокручиваем, пока зритель сам не откроет другую.
   const [landedPlayer, setLandedPlayer] = useState(initial.selection.player);
@@ -46,7 +46,10 @@ export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) 
           <LeaderboardSearch query={selection.query} onSelect={select} />
         </>}
       </LeaderboardControls>
-      {collecting ? <LeaderboardCollecting mode={selection.mode} region={selection.region} /> : failed
+      {collecting ? <LeaderboardCollecting mode={selection.mode} region={selection.region} /> : unknownSeason
+        ? <LeaderboardUnknownSeason season={selection.season} href={`/leaderboards/${leaderboardSearch({ ...selection, season: null, page: 1, rank: null })}`}
+          onCurrent={() => select({ season: null })} />
+        : failed
         ? <LeaderboardsUnavailable onRetry={retry} />
         : table.status === 'missing'
           ? <LeaderboardMissing />
@@ -56,7 +59,7 @@ export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) 
               ? <div className="data-surface" aria-busy={stats.status === 'loading' || undefined}>
                 <LeaderboardSummary stats={stats.value} onRank={rank => select({ rank })} />
               </div>
-              : stats.status === 'loading' ? <LeaderboardSummarySkeleton /> : null}
+              : stats.status === 'loading' ? <LeaderboardSummarySkeleton rated={rated} /> : null}
             <div className={selection.player ? 'leaderboards-body has-player' : 'leaderboards-body'}>
               {selection.player && <LeaderboardPlayerCard name={selection.player} region={selection.region} mode={selection.mode}
                 state={player} me={me} scrollOnOpen={selection.player !== landedPlayer} actions={actions} />}

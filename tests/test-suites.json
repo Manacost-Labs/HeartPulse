@@ -531,6 +531,7 @@
         "tests/next-patch-notes-browser.test.mjs",
         "tests/next-radar-browser.test.mjs",
         "tests/next-leaderboards-browser.test.mjs",
+        "tests/next-leaderboards-states-browser.test.mjs",
         "tests/next-streamers-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",
