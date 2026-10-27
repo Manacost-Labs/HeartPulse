@@ -92,6 +92,9 @@ function createSession(root: HTMLElement, storageKey: string) {
   let status: HTMLElement | undefined;
   let exportStatus: HTMLElement | undefined;
   let disposed = false;
+  // The board drawn before the saved draft is read is a placeholder: saving it
+  // would replace the draft with an empty board while the library still loads.
+  let restored = false;
   function persist() {
     if (pending === undefined) return;
     try {
@@ -105,13 +108,14 @@ function createSession(root: HTMLElement, storageKey: string) {
     signal: controller.signal,
     setBoardCount: workspace.setCount,
     readDraft(): unknown {
+      restored = true;
       try {
         const saved = JSON.parse(root.ownerDocument.defaultView?.localStorage.getItem(storageKey) || 'null');
         return saved?.version === 1 ? saved.draft : null;
       } catch { return null; }
     },
     commit(value: unknown) {
-      if (disposed) return;
+      if (disposed || !restored) return;
       history.commit(value);
       pending = value;
       if (undoButton) undoButton.disabled = !history.canUndo();

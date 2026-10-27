@@ -47,6 +47,8 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
     const cdp = await page.createCDPSession();
     await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
     const apiRequests = []; const legacyScripts = []; const pageErrors = [];
+    // While set, Battlegrounds data reads wait, as on a slow network before the library loads.
+    let libraryHold = null;
     page.on('pageerror', error => pageErrors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') pageErrors.push(message.text()); });
     await page.setRequestInterception(true);
@@ -62,6 +64,8 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         void json(200, { hasAccess: true, entitlements: { battlegrounds: true } });
       } else if (isMenuBackgroundRead(url.pathname)) {
         void json(200, MENU_PATCH_ARCHIVE);
+      } else if (libraryHold && url.pathname.startsWith('/api/bg')) {
+        void libraryHold.then(() => request.continue());
       } else if (url.pathname.startsWith('/api/')) {
         apiRequests.push(url.pathname);
         if (url.pathname === '/api/card-art' || url.pathname.startsWith('/api/public-resource/')) {
@@ -151,6 +155,22 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
           await delay(100);
         }
         assert.equal(exported, true, 'imported strategy exports a PNG');
+
+        // A board control used before the library loads must not overwrite the saved draft.
+        const placed = await page.$$eval('#strategy-board .placed-card', cards => cards.length);
+        await page.waitForFunction(() => document.querySelector('.builder-draft-status')?.textContent
+          .includes('сохранён'));
+        let release;
+        libraryHold = new Promise(resolve => { release = resolve; });
+        await page.setViewport({ width: 1440, height: 900 });
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('#builder-toggle-grid');
+        await page.click('#builder-toggle-grid');
+        await delay(400);
+        libraryHold = null;
+        release();
+        await page.waitForFunction(count => document.querySelectorAll('#strategy-board .placed-card').length === count,
+          { timeout: 15_000 }, placed);
       }
       if (path.includes('tier-builder')) {
         const poolTile = '.ui-tier-list__row[data-pool] [data-tier-item]';
