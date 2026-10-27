@@ -93,20 +93,16 @@ function readFormat(value: unknown): DeckBuilderFormat {
   return String(value ?? '').toLowerCase() === 'wild' ? 'wild' : 'standard';
 }
 
-/** Real deck codes, sideboards included, stay well under this length. */
-const MAX_DECK_CODE_LENGTH = 600;
-
-/** The deck code of a code or a deck link: '' when absent, null when it cannot be one. */
+/** The code of a code or deck link: '' when absent, null when it cannot be one (real codes are far below 600). */
 function readDeckCode(value: unknown): string | null {
   const raw = String(value ?? '').trim();
   const fromUrl = raw.match(/[?&]code=([^&]+)/i);
-  let code: string;
   try {
-    code = decodeURIComponent((fromUrl?.[1] || raw).replace(/ /g, '+')).trim();
+    const code = decodeURIComponent((fromUrl?.[1] || raw).replace(/ /g, '+')).trim();
+    return code.length <= 600 ? code : null;
   } catch {
     return null;
   }
-  return code.length <= MAX_DECK_CODE_LENGTH ? code : null;
 }
 
 function readArchetype(value: unknown): string {
@@ -203,18 +199,14 @@ export function createDeckBuilderRouter(dependencies: DeckBuilderRouterDependenc
     }
   };
 
-  // Public embed endpoint — instant card list for any page on the site.
   // An escaped rejection would be unhandled and stop the process; hand it to Express.
-  router.get('/deck/resolve', (request, response, next) => {
-    handleResolve(request, response, false).catch(next);
-  });
-  router.post('/deck/resolve', (request, response, next) => {
-    handleResolve(request, response, false).catch(next);
-  });
-
-  router.post('/admin/deck-builder/resolve', dependencies.adminGuard, (request, response, next) => {
-    handleResolve(request, response, true).catch(next);
-  });
+  const resolveRoute = (privateResponse: boolean): RequestHandler => (request, response, next) => {
+    handleResolve(request, response, privateResponse).catch(next);
+  };
+  // Public embed endpoint — instant card list for any page on the site.
+  router.get('/deck/resolve', resolveRoute(false));
+  router.post('/deck/resolve', resolveRoute(false));
+  router.post('/admin/deck-builder/resolve', dependencies.adminGuard, resolveRoute(true));
 
   router.post('/admin/deck-builder/hydrate', dependencies.adminGuard, async (request, response) => {
     dependencies.setPrivateNoStore(response);

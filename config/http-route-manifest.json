@@ -1932,7 +1932,7 @@
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "<inline-handler>",
+      "handler": "resolveRoute(...)",
       "guardSignals": [],
       "source": "server/deckBuilderRoutes.ts",
       "sourceOrder": 0
@@ -1944,7 +1944,7 @@
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "<inline-handler>",
+      "handler": "resolveRoute(...)",
       "guardSignals": [],
       "source": "server/deckBuilderRoutes.ts",
       "sourceOrder": 1
@@ -1958,7 +1958,7 @@
       "middleware": [
         "dependencies.adminGuard"
       ],
-      "handler": "<inline-handler>",
+      "handler": "resolveRoute(...)",
       "guardSignals": [
         "dependencies.adminGuard"
       ],
