@@ -1,0 +1,1 @@
+Конфигурация edge HearthPulse больше не зависит от старого ручного vhost hs-arena.ru: адреса origin (`upstream hs_arena_origin`) объявлены в управляемом `34-arena-edge-cache-path.conf`. Без этого отключение hs-arena.ru ломало проверку nginx на обоих edge, и редирект hs-arena.ru → hearthpulse.net нельзя было включить.

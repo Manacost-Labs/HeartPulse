@@ -58,3 +58,18 @@ assert.match(monitor, /api\/subscription\/status/,
   'a private route must remain unavailable through the CDN hostname');
 
 console.log('edge CDN operational contracts passed');
+
+// Every managed edge file that proxies to the origin must find the upstream in
+// the managed files themselves: until 2026-10-27 it lived only in the hand-made
+// hs-arena.ru vhost, and retiring that vhost failed `nginx -t` on both edges.
+const managedEdgeFiles = [
+  'deploy/nginx/arena-edge-cache-path.conf',
+  'deploy/nginx/arena-edge-static-cache.conf',
+  'deploy/nginx/hearthpulse-shadow-app.conf',
+  'deploy/nginx/hearthpulse-shadow-cdn.conf',
+  'deploy/nginx/hearthpulse-legacy-hs-arena.conf',
+].map(file => readFileSync(file, 'utf8'));
+const upstreamDeclarations = managedEdgeFiles.join('\n').match(/^upstream hs_arena_origin \{/gm) ?? [];
+assert.equal(upstreamDeclarations.length, 1, 'the managed edge files must declare upstream hs_arena_origin exactly once');
+assert.match(cache, /^upstream hs_arena_origin \{[^}]*server 127\.0\.0\.1:18443 [^}]*server 127\.0\.0\.1:18444 [^}]*server 127\.0\.0\.1:18445 [^}]*\}/m,
+  'the origin upstream must use the three edge SSH tunnels');
