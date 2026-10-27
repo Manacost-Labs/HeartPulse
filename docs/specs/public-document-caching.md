@@ -67,11 +67,17 @@ viewer's account or paid data to another.
   (`X-Middleware-Prefetch`, `X-Nextjs-Data`, `Next-Hmr-Refresh`,
   `Content-Security-Policy`), so a guest cannot store a different body under
   a document's key.
-- A copy is served for 60 seconds. After that the origin is asked again
-  before anything is served, and the expired copy is never used, not even
-  while the origin fails, so a removed page or marker stops being served
-  within the minute. A copy without a visit for an hour is dropped.
-- The key joins the RSC request headers with `|` before the URI; a request
+- A copy is fresh for 60 seconds; the ISR pages whose HTML holds no server
+  data (`revalidate = 300`, except the post-deploy data pages
+  `/standard/meta/` and `/articles/`) for 300 seconds. An expired copy is
+  answered at once while one background request refreshes it. The key carries a
+  ten-minute epoch of the edge clock, so no copy is answered more than ten
+  minutes after it was stored: a removed page, a lost marker or an origin
+  failure is hidden for at most that long, and the first request of each
+  epoch sees the origin's own answer. A copy without a visit for ten minutes
+  is dropped.
+- The key joins the epoch and the RSC request headers with `|` before the
+  URI; a request
   whose `RSC` or `Next-Router-Prefetch` is not empty or `1`, or whose other
   key headers contain `|`, bypasses the copy, so no two requests share an
   entry.

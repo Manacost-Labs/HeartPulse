@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer as createHttpServer, request } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { gunzipSync } from 'node:zlib';
 
@@ -76,13 +76,13 @@ assert.match(application,
   'www must normalize to the apex in one hop');
 
 const canonicalApplicationLocation = application.match(
-  /location \/ \{\n\s+proxy_pass https:\/\/hs_arena_origin;[\s\S]*?\n\s+\}/,
+  /location \/ \{\n\s+proxy_pass https:\/\/hs_arena_origin;[\s\S]*?\n    \}/,
 )?.[0];
 assert.ok(canonicalApplicationLocation, 'the canonical proxy location must exist');
 assert.match(canonicalApplicationLocation, /proxy_cache\s+hearthpulse_documents;/,
   'anonymous documents use their own short-lived zone, never the image and asset cache');
 assert.match(canonicalApplicationLocation,
-  /proxy_cache_key\s+"hearthpulse-document:\$http_rsc\|\$http_next_router_prefetch\|\$http_next_router_segment_prefetch\|\$http_next_router_state_tree\|\$http_next_url\|\$request_uri";/,
+  /proxy_cache_key\s+"hearthpulse-document:\$hearthpulse_document_epoch\|\$http_rsc\|\$http_next_router_prefetch\|\$http_next_router_segment_prefetch\|\$http_next_router_state_tree\|\$http_next_url\|\$request_uri";/,
   'every request header the documents vary on must be part of the key, the free-form URI last');
 assert.match(canonicalApplicationLocation,
   /proxy_cache_bypass\s+\$hearthpulse_document_private_request\s+\$hearthpulse_document_unkeyable_request;/,
@@ -90,12 +90,64 @@ assert.match(canonicalApplicationLocation,
 assert.match(canonicalApplicationLocation,
   /proxy_no_cache\s+\$hearthpulse_document_private_request\s+\$hearthpulse_document_unkeyable_request\s+\$hearthpulse_document_not_shared;/,
   'only an anonymous, marked response may fill the shared copy');
-assert.match(canonicalApplicationLocation, /proxy_cache_use_stale\s+off;/,
-  'an expired document is never served, not even while the origin fails');
-assert.doesNotMatch(canonicalApplicationLocation.replace(/#.*$/gm, ''),
-  /proxy_cache_use_stale\s+(?!off;)|updating|proxy_cache_background_update|proxy_cache_lock/,
-  'a document copy must not be served past its minute');
-assert.match(canonicalApplicationLocation, /proxy_cache_valid\s+200\s+60s;/);
+const documentDirectives = canonicalApplicationLocation.replace(/#.*$/gm, '');
+assert.match(documentDirectives, /proxy_cache_use_stale\s+updating;/,
+  'an expired document is answered at once while it is refreshed');
+assert.doesNotMatch(documentDirectives, /proxy_cache_use_stale[^;]*\b(?:error|timeout|invalid_header|http_\d{3})\b/,
+  'an origin failure is never hidden behind a stored document');
+assert.match(documentDirectives, /proxy_cache_background_update\s+on;/);
+assert.doesNotMatch(documentDirectives, /proxy_cache_lock/,
+  'never-stored cookieless requests must not queue behind each other');
+assert.match(documentDirectives, /proxy_cache_valid\s+200\s+60s;/);
+assert.equal(documentDirectives.match(/proxy_cache_valid\s/g).length, 2, 'one minute, or five for the listed ISR pages');
+
+// A background update keeps answering an expired copy while every refresh
+// fails; only the key's ten-minute epoch bounds how long a copy is served.
+const epochMap = edgeCacheDeclarations.match(/map \$time_iso8601 \$hearthpulse_document_epoch \{\s+"~([^"]+)" \$1\$2;\s+default "";\s+\}/);
+assert.ok(epochMap, 'the document key must carry a time epoch');
+const epochOf = time => {
+  const match = new RegExp(epochMap[1]).exec(time);
+  return match && `${match[1]}${match[2]}`;
+};
+assert.equal(epochOf('2026-10-27T13:40:00+00:00'), '2026-10-27T13:4+00:00');
+assert.equal(epochOf('2026-10-27T13:40:00+00:00'), epochOf('2026-10-27T13:49:59+00:00'));
+assert.notEqual(epochOf('2026-10-27T13:49:59+00:00'), epochOf('2026-10-27T13:50:00+00:00'));
+assert.notEqual(epochOf('2026-10-27T13:40:00+00:00'), epochOf('2026-10-28T13:40:00+00:00'));
+assert.notEqual(epochOf('2026-10-26T02:40:00+03:00'), epochOf('2026-10-26T02:40:00+02:00'),
+  'a repeated daylight-saving hour is a different epoch');
+
+// The ISR location raises the copy to Next's own `revalidate = 300` only for
+// pages whose HTML holds no server data. The data pages are regenerated after
+// each deploy because their build copy is empty; they keep the minute.
+const isrLocation = canonicalApplicationLocation.match(/\n        location ~ (\^\/[^ ]+\$) \{([\s\S]*?)\n        \}/);
+assert.ok(isrLocation, 'the ISR pages must have their own nested document location');
+assert.equal(isrLocation[2].trim().split('\n').map(line => line.trim()).join('\n'),
+  'proxy_pass https://hs_arena_origin;\nproxy_cache_valid 200 300s;',
+  'the ISR location must inherit everything else from the document location');
+{
+  const appRoot = 'apps/public-web/app';
+  const pages = [];
+  const walk = directory => {
+    for (const name of readdirSync(directory)) {
+      const path = join(directory, name);
+      if (statSync(path).isDirectory()) walk(path);
+      else if (name === 'page.tsx') pages.push(path);
+    }
+  };
+  walk(appRoot);
+  const urlOf = page => `/${relative(appRoot, page).replace(/\/?page\.tsx$/, '')}/`.replace(/^\/\/$/, '/');
+  const dataPages = [...readFileSync(`${appRoot}/health/next/revalidate/route.ts`, 'utf8')
+    .match(/const DATA_PAGES = \[([^\]]*)\]/)[1].matchAll(/'([^']+)'/g)].map(([, path]) => `${path}/`);
+  assert.ok(dataPages.length >= 2, 'the post-deploy data pages must be readable');
+  const isrPages = pages.filter(page => /^export const revalidate = 300;$/m.test(readFileSync(page, 'utf8'))
+    && !/^export const dynamic\b/m.test(readFileSync(page, 'utf8'))).map(urlOf);
+  const expected = isrPages.filter(url => !dataPages.includes(url) && !url.includes('[')).sort();
+  const isr = new RegExp(isrLocation[1]);
+  assert.deepEqual(pages.map(urlOf).filter(url => isr.test(url)).sort(), expected,
+    'the five-minute pages must be exactly the ISR pages without server data');
+  assert.ok(expected.includes('/tierlist/') && !expected.includes('/standard/meta/') && !expected.includes('/articles/'));
+  assert.equal(isr.test('/heroes/123/'), false, 'a dynamic page below an ISR index keeps the minute');
+}
 assert.doesNotMatch(canonicalApplicationLocation, /proxy_ignore_headers[^;]*Set-Cookie/,
   'a response that sets a cookie must never be stored');
 assert.match(canonicalApplicationLocation, /proxy_hide_header\s+X-HearthPulse-Edge-Cache;/,
@@ -103,7 +155,8 @@ assert.match(canonicalApplicationLocation, /proxy_hide_header\s+X-HearthPulse-Ed
 assert.doesNotMatch(canonicalApplicationLocation, /add_header\s+Cache-Control/,
   'the canonical edge must preserve the application Cache-Control policy');
 assert.match(edgeCacheDeclarations,
-  /keys_zone=hearthpulse_documents:20m max_size=1g inactive=1h use_temp_path=off;/);
+  /keys_zone=hearthpulse_documents:20m max_size=1g inactive=10m use_temp_path=off;/,
+  'a copy of an ended epoch is never read again, so it must not wait an hour in the zone');
 assert.match(edgeCacheDeclarations, /map "\$http_cookie\$http_authorization" \$hearthpulse_document_private_request \{\s+"" 0;\s+default 1;/);
 const apiLocation = application.match(/location \/api\/ \{([\s\S]*?)\n    \}/)?.[1];
 assert.ok(apiLocation, 'Express responses must stay outside the document cache');
@@ -329,6 +382,10 @@ async function verifyEdgeDocumentCache() {
       response.writeHead(502, { 'Content-Type': 'text/plain' }).end('down');
       return;
     }
+    if (url.pathname === '/slow-unmarked/') {
+      setTimeout(() => response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end('login'), 300);
+      return;
+    }
     const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'private, no-cache', Vary: VARY,
       'X-HearthPulse-Edge-Cache': 'anonymous' };
     if (url.pathname === '/unmarked/' || later.get(url.pathname) === 'unmarked') delete headers['X-HearthPulse-Edge-Cache'];
@@ -351,9 +408,14 @@ async function verifyEdgeDocumentCache() {
   const port = await freePort();
   const config = join(root, 'nginx.conf');
   const location = canonicalApplicationLocation
-    .replace('https://hs_arena_origin', `http://127.0.0.1:${upstream.address().port}`)
-    .replace('proxy_cache_valid 200 60s;', 'proxy_cache_valid 200 1s;');
-  const declarations = edgeCacheDeclarations.replaceAll('/var/cache/nginx/', `${root}/`);
+    .replaceAll('https://hs_arena_origin', `http://127.0.0.1:${upstream.address().port}`)
+    .replace('proxy_cache_valid 200 60s;', 'proxy_cache_valid 200 1s;')
+    .replace('proxy_cache_valid 200 300s;', 'proxy_cache_valid 200 30s;');
+  // The test picks the epoch with a request header instead of the clock; the
+  // shipped clock map still runs, under another name, behind `/_epoch`.
+  const declarations = `${edgeCacheDeclarations.replaceAll('/var/cache/nginx/', `${root}/`)
+    .replace('$hearthpulse_document_epoch {', '$shipped_document_epoch {')}
+  map $http_x_test_epoch $hearthpulse_document_epoch { default $http_x_test_epoch; }`;
   // The canonical server's own upstream headers, including the Next-internal ones it blanks.
   const serverHeaders = application.slice(canonicalServerStart, application.indexOf('location = /_proxy_health', canonicalServerStart))
     .split('\n').filter(line => /^\s+proxy_set_header\s/.test(line) && !/\sHost\s/.test(line)).join('\n');
@@ -370,6 +432,7 @@ ${declarations}
     listen 127.0.0.1:${port};
     proxy_http_version 1.1;
 ${serverHeaders}
+    location = /_epoch { add_header X-Epoch $shipped_document_epoch always; return 204; }
     ${location}
   }
 }
@@ -438,23 +501,63 @@ ${serverHeaders}
     assert.equal((await get('/collision/?_rsc=&x=|1')).body, html.body, 'the HTML entry is untouched');
     assert.equal((await get('/collision/', { RSC: 'yes' })).headers['x-proxy-cache'], 'BYPASS');
 
+    const isr = await get('/classes/');
+    assert.equal((await get('/classes/')).body, isr.body, 'an ISR page is stored as well');
+
+    const epoch = (await get('/_epoch')).headers['x-epoch'];
+    assert.match(epoch, /^\d{4}-\d\d-\d\dT\d\d:\d[-+]\d\d:\d\d$/, 'nginx evaluates the shipped epoch map');
+    const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString();
+    assert.equal(epoch.slice(0, 13), localNow.slice(0, 13), 'the epoch follows the local clock');
+
+    // Identical never-stored cookieless requests (`/?login`) do not queue.
+    const started = Date.now();
+    await Promise.all([1, 2, 3, 4].map(() => get('/slow-unmarked/')));
+    assert.equal(hits.get('/slow-unmarked/'), 4);
+    assert.ok(Date.now() - started < 450, `never-stored requests queued for ${Date.now() - started} ms`);
+
     // nginx compares whole seconds: a 1 s entry is expired only after the next one.
     const expire = async () => new Promise(resolve => setTimeout(resolve, 2100));
+    const settle = async () => new Promise(resolve => setTimeout(resolve, 200));
     for (const path of ['/refresh/', '/unpublished/', '/unmarked-later/', '/failing/']) await get(path);
     later.set('/unpublished/', 'gone');
     later.set('/unmarked-later/', 'unmarked');
     later.set('/failing/', 'failing');
     await expire();
+    const classes = await get('/classes/');
+    assert.equal(classes.headers['x-proxy-cache'], 'HIT', 'an ISR page keeps its copy past the minute');
+    assert.equal(classes.body, isr.body);
+    assert.equal(classes.headers['x-hearthpulse-edge-cache'], undefined, 'the ISR location hides the marker as well');
+    assert.equal(classes.headers['x-content-type-options'], 'nosniff', 'the ISR location keeps the security headers');
+    assert.equal(classes.headers['cache-control'], 'private, no-cache');
+
+    const stale = await get('/refresh/');
+    assert.equal(stale.headers['x-proxy-cache'], 'STALE', 'an expired copy is answered at once');
+    assert.match(stale.body, /#1$/);
+    await settle();
     const refreshed = await get('/refresh/');
-    assert.equal(refreshed.headers['x-proxy-cache'], 'EXPIRED');
-    assert.match(refreshed.body, /#2$/, 'an expired copy is replaced before it is served');
-    const unpublished = await get('/unpublished/');
-    assert.equal(unpublished.status, 404, 'a removed page is never served from an expired copy');
-    assert.match((await get('/unmarked-later/')).body, /#2$/, 'a page that lost its marker is fetched again');
-    assert.match((await get('/unmarked-later/')).body, /#3$/, 'and is not stored any more');
-    const failing = await get('/failing/');
-    assert.equal(failing.status, 502, 'an origin failure is never answered with an expired document');
-    assert.equal(failing.headers['x-proxy-cache'], 'EXPIRED');
+    assert.equal(refreshed.headers['x-proxy-cache'], 'HIT');
+    assert.match(refreshed.body, /#2$/, 'the background request replaced the copy');
+
+    // Within its epoch a copy outlives a failed refresh: nginx cannot tell why
+    // the refresh failed. The next epoch is a new key and sees the origin.
+    for (const path of ['/unpublished/', '/unmarked-later/', '/failing/']) {
+      const first = await get(path);
+      assert.equal(first.status, 200, `${path} is answered from its expired copy within the epoch`);
+      assert.match(first.body, /#1$/);
+      await settle();
+      assert.match((await get(path)).body, /#1$/, `${path} keeps its copy while every refresh fails`);
+      await settle();
+    }
+    const nextEpoch = { 'X-Test-Epoch': 'next' };
+    const unpublished = await get('/unpublished/', nextEpoch);
+    assert.equal(unpublished.status, 404, 'a removed page is never served after its epoch');
+    assert.equal(unpublished.headers['x-proxy-cache'], 'MISS');
+    const unmarked = await get('/unmarked-later/', nextEpoch);
+    assert.equal(unmarked.headers['x-proxy-cache'], 'MISS', 'a page that lost its marker is fetched again');
+    assert.equal((await get('/unmarked-later/', nextEpoch)).headers['x-proxy-cache'], 'MISS', 'and is not stored any more');
+    const failing = await get('/failing/', nextEpoch);
+    assert.equal(failing.status, 502, 'an origin failure is never answered with a document of an earlier epoch');
+    assert.equal(failing.headers['x-proxy-cache'], 'MISS');
   } finally {
     processState.kill('SIGTERM');
     await new Promise(resolve => processState.once('exit', resolve));

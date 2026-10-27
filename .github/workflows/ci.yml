@@ -436,7 +436,7 @@ jobs:
         shell: bash
         run: |
           artifact="$RUNNER_TEMP/hs-arena-release-$GITHUB_SHA"
-          sudo /usr/local/sbin/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=0a74ef26f2ad9280e530e14b85e4a270586dba764f8a56b2f777317e8d6a0121 "$artifact" "$GITHUB_SHA"
+          sudo /usr/local/sbin/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 --allow-nginx-contract-hash=627f6faf9fdce4437d33fc46d0e9d2038511c698f1cf669a843f44d0afdb2d57 "$artifact" "$GITHUB_SHA"
 
       - name: Regenerate prerendered data pages
         if: steps.deployment.outcome == 'success'
