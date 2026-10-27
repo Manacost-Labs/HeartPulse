@@ -159,7 +159,8 @@
   color: #fff0c8;
 }
 
-.bg-tier-builder__button:disabled {
+.bg-tier-builder__button:disabled,
+.bg-tier-builder__button[aria-disabled="true"] {
   cursor: default;
   opacity: 0.5;
 }

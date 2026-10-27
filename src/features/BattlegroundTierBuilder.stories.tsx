@@ -41,19 +41,23 @@ export const EmptyBoard: Story = {
   parameters: { docs: { description: { story: 'Pool filters beside the VaryloUI tier list; cards move by mouse, long press or Space and arrows.' } } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText('В пуле 25 карт по текущим фильтрам. Всего распределено 0.')).toBeVisible();
+    await expect(await canvas.findByText('В пуле 25 карт по текущим фильтрам. В тирах: 0.')).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Существа' }));
-    await expect(canvas.getByText('В пуле 24 карт по текущим фильтрам. Всего распределено 0.')).toBeVisible();
+    await expect(canvas.getByText('В пуле 24 карты по текущим фильтрам. В тирах: 0.')).toBeVisible();
   },
 };
 export const SavedDraft: Story = {
   beforeEach: useDraft({ S: ['BG_QA_0', 'BG_QA_3'], A: ['hero-рено-джексон'], C: ['TR_QA'] }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText('4 карт распределено')).toBeVisible();
+    await expect(await canvas.findByText('4 карты в тирах')).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Все в пул' }));
-    await expect(canvas.getByText('0 карт распределено')).toBeVisible();
+    await expect(canvas.getByText('0 карт в тирах')).toBeVisible();
+    // The emptied board keeps focus on the control that emptied it.
+    await expect(canvas.getByRole('button', { name: 'Все в пул' })).toHaveFocus();
     await userEvent.click(canvas.getByRole('button', { name: 'Отменить' }));
-    await expect(canvas.getByText('4 карт распределено')).toBeVisible();
+    await expect(canvas.getByText('4 карты в тирах')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Отменить' }));
+    await expect(canvas.getByRole('button', { name: 'Отменить' })).toHaveFocus();
   },
 };

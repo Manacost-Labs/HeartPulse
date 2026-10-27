@@ -180,6 +180,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         for (let step = 0; step < 5; step += 1) await page.keyboard.press('ArrowUp');
         await page.keyboard.press('Space');
         await page.waitForSelector('.ui-tier-list__row:first-child [data-tier-item]');
+        assert.equal(await page.$eval('#tier-builder-counter', node => node.textContent), '1 карта в тирах');
         const beforeExport = readdirSync(downloads).length;
         await page.click('#tier-builder-download-all-png');
         let exported = false;
@@ -189,6 +190,12 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
           await delay(100);
         }
         assert.equal(exported, true, 'tier board exports a PNG');
+
+        // Emptying the board from the keyboard keeps focus on the control.
+        await page.focus('#tier-builder-unassigned');
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(() => document.querySelector('#tier-builder-counter')?.textContent === '0 карт в тирах');
+        assert.equal(await page.evaluate(() => document.activeElement?.id), 'tier-builder-unassigned');
       }
     }
     assert.deepEqual(pageErrors, []);

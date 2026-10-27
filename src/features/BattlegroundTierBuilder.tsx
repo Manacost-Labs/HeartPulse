@@ -11,7 +11,7 @@ import { TierList, type TierItem } from '../vendor/varylo-ui/gaming/TierList';
 import { GameImage } from '../vendor/varylo-ui/gaming/picture';
 import { exportTierBuilderImage, type TierBuilderBackground } from './battlegroundTierBuilderExport';
 import { useTierBuilderDraft, useTierBuilderPool, type ClassicRuntime } from './battlegroundTierBuilderDraft';
-import { TierBuilderFilterPanel, TierBuilderToolbar } from './BattlegroundTierBuilderControls';
+import { cardsWord, TierBuilderFilterPanel, TierBuilderToolbar } from './BattlegroundTierBuilderControls';
 import '../vendor/varylo-ui/styles/index.css';
 import '../shared/ui/varyloParchment.css';
 import './BattlegroundTierBuilder.css';
@@ -33,7 +33,7 @@ const LABELS = {
   dropped: (item: string, position: string) => `${item} положена. ${position}.`,
   cancelled: (item: string, position: string) => `Перенос отменён. ${item} снова в ${position}.`,
   copyText: 'Копировать текстом', copied: 'Скопировано', copyFailed: 'Не удалось скопировать', download: 'Скачать JSON',
-  count: (count: number) => `${count} карт`,
+  count: (count: number) => `${count} ${cardsWord(count)}`,
 };
 
 /**
@@ -98,7 +98,7 @@ export function BattlegroundTierBuilder({ runtime }: { runtime: ClassicRuntime }
           {cards
             ? <TierList items={items} tiers={TIERS} value={placement} onValueChange={setPlacement}
               mode="edit" editable={false} size="lg" exportName="tier-list" title="Ваш тир-лист" headingLevel={2}
-              caption={<span id="tier-builder-counter" data-tour-id="bg-tier-builder-board">{assigned} карт распределено</span>} labels={LABELS} renderItem={renderItem} />
+              caption={<span id="tier-builder-counter" data-tour-id="bg-tier-builder-board">{assigned} {cardsWord(assigned)} в тирах</span>} labels={LABELS} renderItem={renderItem} />
             : <div className="bg-tier-builder__placeholder" aria-hidden="true" />}
         </div>
         {pool.length > poolLimit && (
