@@ -466,6 +466,8 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     warning: string | null;
   }>({ dataStatus: 'fresh', partial: false, warning: null });
   const [reloadToken, setReloadToken] = useState(0);
+  // Another card remounts this page (keyed by card), so a background refresh
+  // of the same card keeps the variant and the lightbox the reader opened.
   const [variant, setVariant] = useState('normal');
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -534,8 +536,6 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           partial: payload.partial === true,
           warning: typeof payload.warning === 'string' ? payload.warning : null,
         });
-        setVariant('normal');
-        setLightboxIndex(-1);
       } catch (loadError) {
         if (!cancelled) setError(constructedCardRequestError(
           'detail',
