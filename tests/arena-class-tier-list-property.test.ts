@@ -58,6 +58,47 @@ test('every class on the tier list keeps its name, win rate and sample size', ()
   }));
 });
 
+test('a percentage written with a % sign is shown as written', () => {
+  const percent = fc.integer({ min: 1, max: 1_000 }).map(tenths => tenths / 10);
+  assertProperty(fc.property(percent, percent, (winrate, pickRate) => {
+    const [tier] = normalizeHsReplayArenaClassRows(
+      [{ class: 'Mage', win_rate: `${winrate}%`, num_drafts: 100, pick_rate: `${pickRate}%`, pct_7_plus: `${pickRate} %` }],
+      CLASS_IDS, CLASS_INFO,
+    );
+
+    assert.equal(tier.winrate, winrate);
+    assert.equal(tier.pickRate, pickRate);
+    assert.equal(tier.sevenPlusWinsRate, pickRate);
+  }));
+});
+
+test('a low share written in percent is not inflated a hundredfold', () => {
+  const [tier] = normalizeHsReplayArenaClassRows(
+    [{ class: 'Priest', win_rate: '0.9%', num_drafts: 100, pick_rate: '0.5%', pct_7_plus: '1%' }], CLASS_IDS, CLASS_INFO,
+  );
+
+  assert.deepEqual([tier.winrate, tier.pickRate, tier.sevenPlusWinsRate], [0.9, 0.5, 1]);
+});
+
+test('a blank win rate is no win rate, not 0%', () => {
+  assert.deepEqual(normalizeHsReplayArenaClassRows([hsReplayRow('Mage', ''), hsReplayRow('Priest', 51.2)], CLASS_IDS, CLASS_INFO)
+    .map(tier => [tier.id, tier.winrate]), [['priest', 51.2]]);
+});
+
+test('a class without a published win rate or games is left off the tier list', () => {
+  const missingWinrate = fc.constantFrom(undefined, null, '', ' ', '%', 'n/a', Number.NaN, Number.POSITIVE_INFINITY, {}, []);
+  const missingGames = fc.constantFrom(0, -5, '', 'many', Number.NaN, null);
+  assertProperty(fc.property(missingWinrate, missingGames, PUBLISHED_WINRATE, (winrate, games, realWinrate) => {
+    const tiers = normalizeHsReplayArenaClassRows([
+      hsReplayRow('Mage', winrate),
+      hsReplayRow('Warrior', realWinrate, games),
+      hsReplayRow('Priest', realWinrate),
+    ], CLASS_IDS, CLASS_INFO);
+
+    assert.deepEqual(tiers.map(tier => tier.id), ['priest']);
+  }));
+});
+
 test('HSReplay rows read their class, counts and shares from every published spelling', () => {
   const tiers = normalizeHsReplayArenaClassRows([
     null,
