@@ -288,7 +288,8 @@
     "valibot": "1.4.2",
     "@google/design.md": {
       "zod": "4.6.7"
-    }
+    },
+    "katex": "0.18.2"
   },
   "description": "Russian Hearthstone Arena and Battlegrounds analytics platform"
 }
