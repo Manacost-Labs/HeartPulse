@@ -259,10 +259,12 @@ import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.j
 import { createPublicApiCardSources, registerPublicApi } from './app/registerPublicApi.js';
 import { normalizeBoostyRenewal, startSubscriptionRefreshJob, writeSubscriptionCacheRow } from './modules/subscription/public.js';
 import {
+  fetchHsReplayArenaDataset,
   firestoneArenaMatchupsDataset,
   normalizeFirestoneArenaClassRows,
   normalizeHsReplayArenaClassRows,
 } from './modules/arena/public.js';
+import { DEFAULT_HS_DATA_API_ORIGIN, HS_DATA_API_TIMEOUT_MS, hsDataApiOrigin } from './hsDataApiOrigin.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createAccountSignInsRouter, createSqliteLinkedProviderReader } from './modules/accountSignIns/public.js';
@@ -3884,7 +3886,7 @@ function withClassPositions(data: any) {
   };
 }
 
-const HSREPLAY_ARENA_DATASET_URL = 'https://api.kolodahearthstone.com/datasets/hsreplay_arena';
+const fetchHsReplayArena = () => fetchHsReplayArenaDataset({ url: `${hsDataApiOrigin()}/datasets/hsreplay_arena`, timeoutMs: HS_DATA_API_TIMEOUT_MS });
 const CLASS_MATCHUPS_CACHE_MS = 30 * 60 * 1000;
 const CLASS_WINRATES_CACHE_MS = 5 * 60 * 1000;
 const KOLODA_ARENA_DECKS_URL = 'https://kolodahs.ru/arena/winning';
@@ -3931,16 +3933,9 @@ function parseWinrate(value: unknown): number | null {
 }
 
 async function fetchClassWinratesData() {
-  const upstream = await fetch(HSREPLAY_ARENA_DATASET_URL, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
-  });
-  if (!upstream.ok) throw new Error(`Upstream HTTP ${upstream.status}`);
-
-  const payload = await upstream.json() as any;
-  const structured = payload?.data?.structured ?? payload?.structured ?? {};
-  const rawClasses = Array.isArray(structured?.classes) ? structured.classes : [];
+  const dataset = await fetchHsReplayArena();
   const classes = normalizeHsReplayArenaClassRows(
-    rawClasses,
+    dataset.classes,
     HSREPLAY_CLASS_ID,
     HSREPLAY_CLASS_INFO,
   );
@@ -3949,7 +3944,7 @@ async function fetchClassWinratesData() {
 
   return {
     classes,
-    updatedAt: payload?.fetched_at ?? payload?.data?.updatedAt ?? payload?.data?.updated_at ?? null,
+    updatedAt: dataset.classesUpdatedAt,
     source: 'api.kolodahearthstone.com',
   };
 }
@@ -3957,7 +3952,7 @@ async function fetchClassWinratesData() {
 async function fetchFirestoneClassWinratesData() {
   const upstream = await fetch(
     'https://static.zerotoheroes.com/api/arena/stats/classes/arena/last-patch/overview.gz.json',
-    { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' } },
+    { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' }, signal: AbortSignal.timeout(12_000) },
   );
   if (!upstream.ok) throw new Error(`Upstream HTTP ${upstream.status}`);
   const raw = await upstream.json() as any;
@@ -3994,15 +3989,8 @@ async function fetchFreshestClassWinratesData() {
 }
 
 async function fetchClassMatchupsData() {
-  const upstream = await fetch(HSREPLAY_ARENA_DATASET_URL, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
-  });
-  if (!upstream.ok) throw new Error(`Upstream HTTP ${upstream.status}`);
-
-  const payload = await upstream.json() as any;
-  const structured = payload?.data?.structured ?? payload?.structured ?? {};
-  const rawMatchups = Array.isArray(structured?.matchups) ? structured.matchups : [];
-  const matchups = rawMatchups
+  const dataset = await fetchHsReplayArena();
+  const matchups = dataset.matchups
     .map((row: any) => {
       const classAId = normalizeHsReplayClassId(row.class_a ?? row.classA);
       const classBId = normalizeHsReplayClassId(row.class_b ?? row.classB);
@@ -4018,10 +4006,9 @@ async function fetchClassMatchupsData() {
     })
     .filter(Boolean);
 
-  const updatedAt = payload?.fetched_at ?? payload?.data?.fetched_at ?? null;
   return {
     matchups,
-    updatedAt,
+    updatedAt: dataset.matchupsUpdatedAt,
     source: 'api.kolodahearthstone.com',
   };
 }
@@ -4183,10 +4170,10 @@ async function fetchArenaDecksData(limit = ARENA_DECKS_MAX_LIMIT) {
   };
 }
 
-const DATASET_API_ORIGIN = 'https://api.kolodahearthstone.com';
+const DATASET_API_ORIGIN = DEFAULT_HS_DATA_API_ORIGIN;
 const DATASET_API_BASE = `${DATASET_API_ORIGIN}/datasets`;
 const hsDataParserControlClient = createHsDataParserControlClient({
-  baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN,
+  baseUrl: hsDataApiOrigin(),
   apiKey: process.env.HS_DATA_API_ADMIN_KEY || '',
   timeoutMs: Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 15_000),
 });
@@ -7306,7 +7293,7 @@ app.use('/api', createStandardMatchupRouter({
   redisGet: redisGetCache,
   redisSet: redisSetCache,
   getTranslations: getStandardArchetypeTranslations,
-  ...standardMatchupSliceDependencies({ origin: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN,
+  ...standardMatchupSliceDependencies({ origin: hsDataApiOrigin(),
     fetchJson: fetchDataset, formatLabel: format => STANDARD_MATCHUPS_FORMAT_LABEL[format], translate: archetypeLabel }),
   memoryTtlMs: EXTERNAL_DATASET_CACHE_MS,
   redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
@@ -7476,7 +7463,7 @@ app.use('/api', createConstructedArchetypeRouter({
   ),
 }));
 
-app.use('/api', createCardChoicesRouter({ request: path => fetch(`${process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }));
+app.use('/api', createCardChoicesRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }));
 app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: format => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
@@ -7499,11 +7486,11 @@ app.use('/api', createPatchNotesApi({
 
 // Радар нерфов и баффов (docs/specs/nerf-buff-radar.md); `RADAR_FIXTURE=1` — демо-прогон.
 app.use('/api', createRadarApi({
-  baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN, fixture: process.env.RADAR_FIXTURE === '1',
+  baseUrl: hsDataApiOrigin(), fixture: process.env.RADAR_FIXTURE === '1',
   archetypeSlug: constructedArchetypeSlug, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map,
   loadCards: async () => (await constructedCardDataService.loadPublicCards?.('wild'))?.cards ?? [],
 }));
-app.use('/api', createStreamersApi({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN, loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map }), createLeaderboardsApi({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN }));
+app.use('/api', createStreamersApi({ baseUrl: hsDataApiOrigin(), loadArchetypeTranslations: async () => (await getStandardArchetypeTranslations()).map }), createLeaderboardsApi({ baseUrl: hsDataApiOrigin() }));
 
 async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {
   if (normalizeTierlistEarlyStatsMetadata(data).provisional !== true) return true;
@@ -8059,7 +8046,7 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
 
 app.use('/api', createBattlegroundMinionStatsRouter({
   requireAccess: requireBattlegroundsAccess,
-  read: createBattlegroundMinionStatsSource({ baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN }).read,
+  read: createBattlegroundMinionStatsSource({ baseUrl: hsDataApiOrigin() }).read,
   onError: error => console.error('[bg minion stats] upstream failed:', (error as Error)?.message ?? error),
 }));
 app.use('/api', createBattlegroundProxyRouter({
@@ -8071,7 +8058,7 @@ app.use('/api', createBattlegroundProxyRouter({
 }));
 
 const upstreamDataHealth = createUpstreamDataHealthMonitor({
-  url: `${(process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '')}/v1/system/health`,
+  url: `${hsDataApiOrigin()}/v1/system/health`,
   timeoutMs: Number(process.env.HS_DATA_API_HEALTH_TIMEOUT_MS || 5_000),
   refreshIntervalMs: Number(process.env.HS_DATA_API_HEALTH_REFRESH_MS || 5 * 60_000),
 });
@@ -9282,7 +9269,7 @@ app.use('/api', createAdminArchetypesRouter({
      * class, url }` dictionary. Keeping it out of the browser avoids both
      * Cloudflare failures and leaking HSReplay session details.
      */
-    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const base = hsDataApiOrigin();
     const response = await fetch(`${base}/api/hsreplay/archetypes?hl=en`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
       signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
@@ -9292,7 +9279,7 @@ app.use('/api', createAdminArchetypesRouter({
     return Array.isArray(payload?.archetypes) ? payload.archetypes : [];
   },
   loadStandardSnapshots: async () => {
-    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const base = hsDataApiOrigin();
     const response = await fetch(
       `${base}/api/db/archetypes?game_type=RANKED_STANDARD&rank_range=LEGEND&limit=500`,
       {
@@ -9310,7 +9297,7 @@ app.use('/api', createAdminArchetypesRouter({
      * per-archetype endpoints. HSGuru is our existing Wild meta source and
      * supplies the aggregate metrics shown in the admin catalogue.
      */
-    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const base = hsDataApiOrigin();
     const response = await fetch(
       `${base}/v1/hsguru/meta?format=wild&rank=all&period=past_day&min_games=100`,
       {
@@ -9323,7 +9310,7 @@ app.use('/api', createAdminArchetypesRouter({
     return Array.isArray(payload?.data?.items) ? payload.data.items : [];
   },
   loadWildDecks: async (archetype) => {
-    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const base = hsDataApiOrigin();
     const query = new URLSearchParams({ archetype, format_name: 'wild', rank: 'all' });
     const response = await fetch(`${base}/v1/constructed/hsguru-deck?${query}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
@@ -9334,7 +9321,7 @@ app.use('/api', createAdminArchetypesRouter({
     return Array.isArray(payload?.data) ? payload.data : [];
   },
   loadDetail: async (archetypeId) => {
-    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const base = hsDataApiOrigin();
     const response = await fetch(
       `${base}/api/db/archetypes/${encodeURIComponent(String(archetypeId))}?game_type=RANKED_STANDARD&rank_range=LEGEND`,
       {
@@ -9450,7 +9437,7 @@ app.use('/api', createAdminStandardOperationsRouter({
 }));
 
 async function loadFunDecksDataset(): Promise<unknown> {
-  const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+  const base = hsDataApiOrigin();
   const response = await fetch(`${base}/datasets/hsguru_fun_decks`, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
     signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),

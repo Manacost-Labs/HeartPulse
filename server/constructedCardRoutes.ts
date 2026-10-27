@@ -581,12 +581,12 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       const firstPayload = await dependencies.fetchJson(firstUrl.toString());
       const total = totalFromPayload(firstPayload);
       const offsets = Array.from({ length: Math.max(0, Math.ceil(total / 200) - 1) }, (_, index) => (index + 1) * 200);
-      const payloads = await Promise.all(offsets.map(async offset => {
+      const payloads = await mapWithConcurrency(offsets, catalogPageConcurrency, async offset => {
         const url = new URL(dependencies.constructedDecksUrl!);
         url.searchParams.set('limit', '200');
         url.searchParams.set('offset', String(offset));
         return dependencies.fetchJson(url.toString());
-      }));
+      });
       const identities = new Set<string>();
       const value = [firstPayload, ...payloads].flatMap((payload, pageIndex) => {
         const offset = pageIndex * 200;
@@ -759,7 +759,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       .map((item: JsonRecord) => String(item?.card_id ?? item?.id ?? '').trim())
       .filter((relatedId: string) => relatedId && !catalogIds.has(relatedId.toUpperCase())))]
       .slice(0, 64);
-    const relatedDetails = (await Promise.all(missingRelatedIds.map(async relatedId => {
+    const relatedDetails = (await mapWithConcurrency(missingRelatedIds, catalogPageConcurrency, async relatedId => {
       try {
         const relatedPayload = await dependencies.fetchJson(
           `${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards/${encodeURIComponent(relatedId)}`,
@@ -768,7 +768,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       } catch {
         return null;
       }
-    }))).filter((card): card is JsonRecord => Boolean(card));
+    })).filter((card): card is JsonRecord => Boolean(card));
     const relatedCatalog = [...collection.cards, ...relatedDetails];
     const enriched = enrichConstructedCardPatches(
       enrichConstructedRelatedCards(enrichConstructedCardPools(detail, collection.cards), relatedCatalog),
