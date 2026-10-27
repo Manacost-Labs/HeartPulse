@@ -12,10 +12,13 @@ function record(value: unknown): JsonRecord {
 }
 
 function percentage(value: unknown): number | null {
-  const raw = typeof value === 'string' ? value.replace('%', '').trim() : value;
-  const parsed = Number(raw);
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  const written = String(value);
+  const raw = written.replace('%', '').trim();
+  const parsed = raw ? Number(raw) : Number.NaN;
   if (!Number.isFinite(parsed)) return null;
-  const percent = parsed > 0 && parsed <= 1 ? parsed * 100 : parsed;
+  // A share in (0, 1] is a fraction; a value written with "%" is already a percentage.
+  const percent = parsed > 0 && parsed <= 1 && !written.includes('%') ? parsed * 100 : parsed;
   return Math.round(percent * 100) / 100;
 }
 
