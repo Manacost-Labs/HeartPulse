@@ -231,6 +231,16 @@ npm run test:property
 По умолчанию используется воспроизводимый seed `20260724`. Для повторения
 другого найденного случая задайте `FAST_CHECK_SEED`.
 
+Остальные property-based тесты (`tests/*-property.test.ts`: коды колод,
+тир-лист классов Арены, контракт лидербордов, canonical URL, нормализатор
+парсера) идут в обычном `unit`-наборе с seed из `tests/helpers/propertyRuns.ts`.
+
+## Stryker
+
+Мутационное тестирование чистых модулей запускается вручную или еженедельным
+workflow, не в обязательном CI: `npm run test:mutation`. Охват, запуск и
+разбор выживших мутантов — `docs/runbooks/mutation-testing.md`.
+
 ## Knip
 
 Обязательный dependency-контур:
