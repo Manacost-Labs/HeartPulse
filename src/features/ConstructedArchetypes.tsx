@@ -35,6 +35,7 @@ import {
   RecoverableSurfaceBoundary,
 } from './recovery/RecoverableSurface';
 import { LoadingSurface } from '../shared/ui/LoadingSurface';
+import { pluralRu } from '../shared/text/pluralRu';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
 import { useListTransition } from '../components/transitions/useListTransition';
@@ -347,7 +348,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
               <button
                 key={item.id}
                 type="button"
-                aria-label={`${item.label}: ${count} архетипов`}
+                aria-label={`${item.label}: ${count} ${pluralRu(count, 'архетип', 'архетипа', 'архетипов')}`}
                 aria-pressed={classFilter === item.id}
                 title={item.label}
                 onClick={() => selectClass(item.id)}
@@ -397,7 +398,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
       {(!loading || catalog) && !error && items.length > 0 && (
         <section className={`archetypes-ledger data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label={`Архетипы: ${catalog?.formatLabel}`} aria-busy={loading}>
           <header className="archetypes-ledger__header" data-tour-id="archetypes-results">
-            <span>{items.length} архетипов</span>
+            <span>{items.length} {pluralRu(items.length, 'архетип', 'архетипа', 'архетипов')}</span>
             <span>Нажмите на строку, чтобы открыть подробную страницу</span>
           </header>
           <div className="archetypes-list" ref={listRef}>
@@ -419,6 +420,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
                 </dl>
                 <a
                   className="archetype-row__open"
+                  aria-label={`Открыть страницу архетипа: ${item.archetypeLabel}`}
                   href={canonicalPagePath(`/standard/archetypes/${item.format}/${item.slug}`)}
                   onClick={event => {
                     event.preventDefault();
@@ -550,7 +552,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
               <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
               {buildsNote ? <small className="archetype-builds__window">{buildsNote}</small> : null}
             </div>
-            <span className="archetype-section-heading__count">{item.builds.length} сборок</span>
+            <span className="archetype-section-heading__count">{item.builds.length} {pluralRu(item.builds.length, 'сборка', 'сборки', 'сборок')}</span>
           </header>
           <ConstructedArchetypeDeckGallery
             builds={shownBuilds}
