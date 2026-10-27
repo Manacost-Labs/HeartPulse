@@ -8,7 +8,7 @@
 .arena-app-deck-builder .support-prompt { position: static; width: fit-content; margin: auto; }
 .hp-builder button, .hp-builder input, .hp-builder select, .hp-builder textarea { font-family: var(--font-body, Arial, sans-serif); line-height: 1.4; }
 .hp-builder button { cursor: pointer; }
-.hp-builder button:disabled { cursor: default; opacity: .5; }
+.hp-builder button:disabled, .hp-builder-pagination button[aria-disabled="true"] { cursor: default; opacity: .5; }
 .hp-builder :is(button, input, select, a, summary, textarea):focus-visible { outline: 3px solid #a14819; outline-offset: 3px; }
 .hp-builder > .section-banner-modern { min-height: 128px; --site-page-hero-padding-block: 16px; grid-template-columns: 1fr; margin-bottom: 16px; }
 .hp-builder > .section-banner-modern h1 { font-size: clamp(26px, 3vw, 40px); }
