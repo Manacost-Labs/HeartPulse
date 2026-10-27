@@ -21,6 +21,7 @@ const readData = (filename: string) => {
   return JSON.parse(readFileSync(filePath, 'utf8'));
 };
 
+const audit: Array<{ actor: string; action: string; entityId: string; details?: Record<string, unknown> }> = [];
 const app = express();
 app.use(express.json({ limit: '4mb' }));
 app.use('/api', createGalleryRouter({
@@ -49,6 +50,7 @@ app.use('/api', createGalleryRouter({
   setPrivateNoStore: response => response.set('Cache-Control', 'no-store'),
   now: () => new Date('2026-07-12T12:00:00.000Z'),
   createId: () => 'gal_test_item',
+  recordAudit: (actor, action, entityId, details) => { audit.push({ actor: actor.id, action, entityId, details }); },
 }));
 
 const server = app.listen(0, '127.0.0.1');
@@ -130,6 +132,10 @@ try {
   assert.deepEqual(await deleted.json(), { success: true });
   assert.equal(existsSync(join(uploadDir, 'gal_test_item.png')), false);
   assert.equal((readData('gallery.json') as any).items.length, 0);
+  assert.deepEqual(audit, [
+    { actor: 'admin', action: 'gallery.created', entityId: 'gal_test_item', details: { title: 'Контрольный арт' } },
+    { actor: 'admin', action: 'gallery.deleted', entityId: 'gal_test_item', details: { title: 'Контрольный арт' } },
+  ]);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   rmSync(root, { recursive: true, force: true });

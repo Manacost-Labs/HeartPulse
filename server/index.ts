@@ -7743,6 +7743,7 @@ app.use('/api', createGalleryRouter({
   adminGuard: adminIdGuard,
   adminAuth,
   setPrivateNoStore,
+  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'gallery', entityId, details),
 }));
 
 const cosmeticsDataService = createCosmeticsDataService({
@@ -8829,6 +8830,7 @@ app.use('/api', createAdminContestMutationRouter({
   deleteContest: contestId => { dbRun('DELETE FROM contests WHERE id = ?', contestId); },
   serializeContest: (row, includeRawWinners) => contestFromRow(row, undefined, { includeRawWinners }),
   setPrivateNoStore,
+  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'contest', entityId, details),
 }));
 
 app.use('/api', createAdminUserReadRouter({
@@ -9244,6 +9246,7 @@ app.use('/api', createAdminArticleRouter({
   deleteArticleVotes: articleId => { dbRun('DELETE FROM article_votes WHERE article_id = ?', articleId); },
   normalizeMode: (value, article) => normalizeArticleModeInput(value, article),
   setPrivateNoStore,
+  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'article', entityId, details),
   onVoteCleanupError: (error, articleId) => console.warn(
     `[admin-articles] vote cleanup failed article=${articleId}:`,
     error instanceof Error ? error.message : error,

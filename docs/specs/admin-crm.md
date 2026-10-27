@@ -201,6 +201,11 @@ Activity merges registrations, admin audit entries (read-only `*.read` and
 entries return the raw action and details; the client labels them with the same
 wording as the client card.
 
+Content changes are audited too, so a removed article, art or contest still
+shows who removed it: `article.created|updated|deleted`,
+`gallery.created|deleted`, `contest.saved|winners-published|deleted`. Each
+entry keeps the title in `details`, and the feed label quotes it.
+
 The previous dashboard (content counts and nine shortcut buttons) is removed,
 and the dashboard no longer loads articles, gallery, referrals, Boosty,
 Telegram and mailing data on open.

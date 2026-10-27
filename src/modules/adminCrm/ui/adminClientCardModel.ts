@@ -58,12 +58,29 @@ const ACTION_LABELS: Record<string, string> = {
   'standard-cache.reset': 'сброшен кеш данных Стандарта',
 };
 
+// Content entries are often deleted by the time the feed is read, so the label carries the saved title.
+const CONTENT_ACTION_LABELS: Record<string, string> = {
+  'article.created': 'добавлена статья',
+  'article.updated': 'изменена статья',
+  'article.deleted': 'удалена статья',
+  'gallery.created': 'добавлен арт в галерею',
+  'gallery.deleted': 'удалён арт из галереи',
+  'contest.saved': 'сохранён конкурс',
+  'contest.winners-published': 'опубликованы победители конкурса',
+  'contest.deleted': 'удалён конкурс',
+};
+
 export function auditActionLabel(action: string, details: Record<string, unknown>): string {
   if (action === 'user.updated') return describeUserUpdate(details);
   if (action === 'user.note.added') return 'добавлена заметка';
   if (action === 'user.note.deleted') return 'удалена заметка';
   const known = ACTION_LABELS[action];
   if (known) return known;
+  const content = CONTENT_ACTION_LABELS[action];
+  if (content) {
+    const title = String(details.title ?? '').trim();
+    return title ? `${content} «${title}»` : content;
+  }
   if (action.startsWith('parser-control.')) return 'изменены настройки парсеров';
   if (action === 'user.tags.updated') {
     const tags = Array.isArray(details.to) ? details.to.map(String) : [];

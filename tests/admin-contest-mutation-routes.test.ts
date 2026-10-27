@@ -10,6 +10,7 @@ let storageFailure: 'upsert' | 'winners' | 'delete' | 'lookup' | null = null;
 let savedContest: AdminContestWrite | null = null;
 let published: { contestId: string; winners: string[]; timestamp: string } | null = null;
 let deletedId = '';
+const audit: Array<[string, string, string]> = [];
 const approvedIds = ['user-1', 'user-2'];
 
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api', createAdminContestMutationRouter({
   setPrivateNoStore: response => { response.set('Cache-Control', 'private, no-store'); },
   now: () => new Date('2026-07-13T01:15:00.000Z'),
   createId: () => 'contest-created',
+  recordAudit: (actor, action, entityId) => { audit.push([actor.id, action, entityId]); },
 }));
 
 const server = app.listen(0, '127.0.0.1');
@@ -171,6 +173,15 @@ try {
   const failedLookup = await request('/contest-1', 'DELETE');
   assert.equal(failedLookup.status, 500);
   assert.deepEqual(await failedLookup.json(), { error: 'Не удалось удалить конкурс' });
+  storageFailure = null;
+
+  // Only changes that were stored are audited, each with its admin.
+  assert.deepEqual(audit, [
+    ['admin-1', 'contest.saved', 'contest-created'],
+    ['admin-1', 'contest.saved', 'contest-1'],
+    ['admin-1', 'contest.winners-published', 'contest-1'],
+    ['admin-1', 'contest.deleted', 'contest-1'],
+  ]);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }

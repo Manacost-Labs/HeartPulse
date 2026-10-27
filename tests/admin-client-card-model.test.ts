@@ -26,6 +26,9 @@ assert.equal(auditActionLabel('user.updated', { manualAccess: { to: { enabled: f
 assert.equal(auditActionLabel('user.updated', {}), 'изменён профиль');
 assert.equal(auditActionLabel('user.tags.updated', { from: [], to: ['vip', 'стример'] }), 'теги: vip, стример');
 assert.equal(auditActionLabel('user.tags.updated', { from: ['vip'], to: [] }), 'теги очищены');
+assert.equal(auditActionLabel('article.deleted', { title: 'Гайд по Арене', url: '/articles/arena' }), 'удалена статья «Гайд по Арене»');
+assert.equal(auditActionLabel('gallery.deleted', { title: ' ' }), 'удалён арт из галереи');
+assert.equal(auditActionLabel('contest.winners-published', { winners: ['user-1'] }), 'опубликованы победители конкурса');
 assert.equal(auditActionLabel('custom.action', {}), 'custom.action');
 
 const now = Date.parse('2026-09-29T12:00:00.000Z');

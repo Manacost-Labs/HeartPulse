@@ -40,8 +40,9 @@ export type GalleryRouterDependencies = {
   sendJsonCached: (request: Request, response: Response, data: any, etag: string, cacheHeader: string) => unknown;
   publicCacheHeader: string;
   adminGuard: RequestHandler;
-  adminAuth: (request: Request) => unknown | null;
+  adminAuth: (request: Request) => { id: string } | null;
   setPrivateNoStore: (response: Response) => void;
+  recordAudit?: (actor: { id: string }, action: string, entityId: string, details?: Record<string, unknown>) => void;
   now?: () => Date;
   createId?: () => string;
 };
@@ -157,7 +158,8 @@ export function createGalleryRouter(dependencies: GalleryRouterDependencies): Ro
     return response.json(publicData());
   });
   router.post('/admin/gallery', dependencies.adminGuard, async (request, response) => {
-    if (!dependencies.adminAuth(request)) return response.status(401).json({ error: 'Требуется вход' });
+    const actor = dependencies.adminAuth(request);
+    if (!actor) return response.status(401).json({ error: 'Требуется вход' });
     const title = normalizeText(request.body?.title, 160);
     const match = String(request.body?.dataUrl || '').match(/^data:image\/[a-z0-9.+-]+;base64,([a-z0-9+/=\s]+)$/i);
     if (!title) return response.status(400).json({ error: 'Название обязательно' });
@@ -187,6 +189,7 @@ export function createGalleryRouter(dependencies: GalleryRouterDependencies): Ro
       const timestamp = now().toISOString(); const records = loadRecords();
       const item: GalleryItemRecord = { id, title, description: normalizeText(request.body?.description, 900), tag: normalizeText(request.body?.tag, 80), source: normalizeText(request.body?.source, 180), width, height, bytes: source.length, format, originalFile, previewFile, thumbFile, createdAt: timestamp, updatedAt: timestamp };
       records.items.unshift(item); records.updatedAt = timestamp; saveRecords(records);
+      dependencies.recordAudit?.(actor, 'gallery.created', id, { title });
       return response.json({ success: true, item: publicGalleryItem(item) });
     } catch (error: any) {
       console.warn('[gallery] upload failed:', error?.message || error);
@@ -194,12 +197,14 @@ export function createGalleryRouter(dependencies: GalleryRouterDependencies): Ro
     }
   });
   router.delete('/admin/gallery/:id', dependencies.adminGuard, (request, response) => {
-    if (!dependencies.adminAuth(request)) return response.status(401).json({ error: 'Требуется вход' });
+    const actor = dependencies.adminAuth(request);
+    if (!actor) return response.status(401).json({ error: 'Требуется вход' });
     const id = normalizeText(request.params.id, 120);
     if (!id) return response.status(400).json({ error: 'id обязателен' });
     const records = loadRecords(); const item = records.items.find(entry => entry.id === id);
     if (!item) return response.status(404).json({ error: 'Арт не найден' });
     removeFiles(item); records.items = records.items.filter(entry => entry.id !== id); records.updatedAt = now().toISOString(); saveRecords(records);
+    dependencies.recordAudit?.(actor, 'gallery.deleted', id, { title: item.title });
     return response.json({ success: true });
   });
   return router;

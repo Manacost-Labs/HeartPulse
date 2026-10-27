@@ -24,9 +24,11 @@ export type AdminArticlesDocument = {
   [key: string]: unknown;
 };
 
+type AdminActor = { id: string };
+
 export type AdminArticleRouterDependencies = {
   adminGuard: RequestHandler;
-  adminAuth: (request: Request) => unknown | null;
+  adminAuth: (request: Request) => AdminActor | null;
   loadArticles: () => unknown;
   saveArticles: (document: AdminArticlesDocument) => void;
   invalidateArticles: () => void;
@@ -36,6 +38,7 @@ export type AdminArticleRouterDependencies = {
   now?: () => Date;
   createId?: () => string;
   onVoteCleanupError?: (error: unknown, articleId: string) => void;
+  recordAudit?: (actor: AdminActor, action: string, entityId: string, details?: Record<string, unknown>) => void;
 };
 
 class AdminArticleValidationError extends Error {}
@@ -127,7 +130,8 @@ export function createAdminArticleRouter(dependencies: AdminArticleRouterDepende
   };
 
   router.post('/admin-articles', dependencies.adminGuard, (request, response) => {
-    if (!authorize(request, response)) return response.status(401).json({ error: 'Требуется вход' });
+    const actor = authorize(request, response);
+    if (!actor) return response.status(401).json({ error: 'Требуется вход' });
     const timestamp = now();
     let article: NormalizedAdminArticle;
     try {
@@ -143,6 +147,7 @@ export function createAdminArticleRouter(dependencies: AdminArticleRouterDepende
       document.updatedAt = timestamp.toISOString();
       dependencies.saveArticles(document);
       dependencies.invalidateArticles();
+      dependencies.recordAudit?.(actor, 'article.created', created.id, { title: created.title, mode: created.mode });
       return response.json({ success: true, article: created });
     } catch {
       return response.status(500).json({ error: 'Не удалось сохранить статью' });
@@ -150,7 +155,8 @@ export function createAdminArticleRouter(dependencies: AdminArticleRouterDepende
   });
 
   router.patch('/admin-articles', dependencies.adminGuard, (request, response) => {
-    if (!authorize(request, response)) return response.status(401).json({ error: 'Требуется вход' });
+    const actor = authorize(request, response);
+    if (!actor) return response.status(401).json({ error: 'Требуется вход' });
     const id = normalizeText(request.body?.id ?? request.query?.id, 160);
     if (!id) return response.status(400).json({ error: 'id обязателен' });
     try {
@@ -176,6 +182,7 @@ export function createAdminArticleRouter(dependencies: AdminArticleRouterDepende
       document.updatedAt = timestamp.toISOString();
       dependencies.saveArticles(document);
       dependencies.invalidateArticles();
+      dependencies.recordAudit?.(actor, 'article.updated', id, { title: updated.title, mode: updated.mode });
       return response.json({ success: true, article: updated });
     } catch {
       return response.status(500).json({ error: 'Не удалось обновить статью' });
@@ -183,19 +190,20 @@ export function createAdminArticleRouter(dependencies: AdminArticleRouterDepende
   });
 
   router.delete('/admin-articles', dependencies.adminGuard, (request, response) => {
-    if (!authorize(request, response)) return response.status(401).json({ error: 'Требуется вход' });
+    const actor = authorize(request, response);
+    if (!actor) return response.status(401).json({ error: 'Требуется вход' });
     const id = normalizeText(request.body?.id ?? request.query?.id, 160);
     if (!id) return response.status(400).json({ error: 'id обязателен' });
     try {
       const document = normalizeDocument(dependencies.loadArticles());
+      const removed = document.articles.find(item => String(item.id) === id);
+      if (!removed) return response.status(404).json({ error: 'Статья не найдена' });
       const nextArticles = document.articles.filter(item => String(item.id) !== id);
-      if (nextArticles.length === document.articles.length) {
-        return response.status(404).json({ error: 'Статья не найдена' });
-      }
       document.articles = nextArticles;
       document.updatedAt = now().toISOString();
       dependencies.saveArticles(document);
       dependencies.invalidateArticles();
+      dependencies.recordAudit?.(actor, 'article.deleted', id, { title: String(removed.title ?? ''), url: String(removed.url ?? '') });
       try {
         dependencies.deleteArticleVotes(id);
       } catch (error) {

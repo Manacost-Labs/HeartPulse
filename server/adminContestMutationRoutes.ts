@@ -27,6 +27,7 @@ export type AdminContestMutationDependencies = {
   deleteContest: (contestId: string) => void;
   serializeContest: (row: unknown, includeRawWinners?: boolean) => unknown;
   setPrivateNoStore: (response: Response) => void;
+  recordAudit?: (actor: { id: string }, action: string, entityId: string, details?: Record<string, unknown>) => void;
   now?: () => Date;
   createId?: () => string;
 };
@@ -106,6 +107,7 @@ export function createAdminContestMutationRouter(dependencies: AdminContestMutat
     try {
       const contest = parseContest(request.body, dependencies, admin.id, now().toISOString());
       const row = dependencies.upsertContest(contest);
+      dependencies.recordAudit?.(admin, 'contest.saved', contest.id, { title: contest.title, status: contest.status });
       return response.json({ success: true, contest: dependencies.serializeContest(row) });
     } catch (error) {
       if (error instanceof ContestMutationValidationError) return response.status(400).json({ error: error.message });
@@ -129,6 +131,7 @@ export function createAdminContestMutationRouter(dependencies: AdminContestMutat
         return response.status(400).json({ error: `Победители должны быть ID участников этого конкурса: ${invalid.join(', ')}` });
       }
       const row = dependencies.publishWinners(contestId, winners, now().toISOString());
+      dependencies.recordAudit?.(admin, 'contest.winners-published', contestId, { winners });
       return response.json({ success: true, contest: dependencies.serializeContest(row, true) });
     } catch (error) {
       if (error instanceof ContestMutationValidationError) return response.status(400).json({ error: error.message });
@@ -141,8 +144,10 @@ export function createAdminContestMutationRouter(dependencies: AdminContestMutat
     if (!admin) return response.status(403).json({ error: 'Недостаточно прав' });
     try {
       const contestId = requireContestId(request.params.contestId);
-      if (!dependencies.getContest(contestId)) return response.status(404).json({ error: 'Конкурс не найден' });
+      const contest = dependencies.getContest(contestId) as { title?: unknown } | null;
+      if (!contest) return response.status(404).json({ error: 'Конкурс не найден' });
       dependencies.deleteContest(contestId);
+      dependencies.recordAudit?.(admin, 'contest.deleted', contestId, { title: String(contest.title ?? '') });
       return response.json({ success: true, deletedId: contestId });
     } catch (error) {
       if (error instanceof ContestMutationValidationError) return response.status(400).json({ error: error.message });

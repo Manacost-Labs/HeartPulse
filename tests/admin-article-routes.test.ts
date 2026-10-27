@@ -31,6 +31,7 @@ let invalidations = 0;
 let voteCleanupFailure = false;
 const deletedVoteIds: string[] = [];
 const voteCleanupErrors: Array<{ articleId: string; error: unknown }> = [];
+const audit: Array<{ actor: string; action: string; entityId: string; details?: Record<string, unknown> }> = [];
 
 const guard: RequestHandler = (request, response, next) => {
   if (request.headers['x-admin-guard'] !== 'allowed') return response.status(403).json({ error: 'forbidden' });
@@ -64,6 +65,7 @@ app.use('/api', createAdminArticleRouter({
   now: () => new Date('2026-07-12T18:30:00.000Z'),
   createId: () => 'created-id',
   onVoteCleanupError: (error, articleId) => { voteCleanupErrors.push({ articleId, error }); },
+  recordAudit: (actor, action, entityId, details) => { audit.push({ actor: actor.id, action, entityId, details }); },
 }));
 
 const server = app.listen(0, '127.0.0.1');
@@ -176,6 +178,13 @@ try {
   assert.equal(voteCleanupErrors[0].articleId, 'created-id');
   assert.equal(invalidations, 3);
   voteCleanupFailure = false;
+  // Every saved change names its admin; rejected and failed requests leave no entry.
+  assert.deepEqual(audit.map(entry => [entry.actor, entry.action, entry.entityId]), [
+    ['admin', 'article.created', 'created-id'],
+    ['admin', 'article.updated', 'existing'],
+    ['admin', 'article.deleted', 'created-id'],
+  ]);
+  assert.deepEqual(audit[2].details, { title: 'Н'.repeat(180), url: 'https://example.com/article' });
 
   loadFailure = true;
   const failedLoad = await mutate('POST', { article: { title: 'Ошибка загрузки' } });
@@ -191,6 +200,7 @@ try {
   assert.equal(failedDelete.status, 500);
   assert.deepEqual(await failedDelete.json(), { error: 'Не удалось удалить статью' });
   assert.deepEqual(deletedVoteIds, ['created-id']);
+  assert.equal(audit.length, 3);
   saveFailure = false;
 
   const directory = mkdtempSync(join(tmpdir(), 'hs-arena-articles-'));
