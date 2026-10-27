@@ -4,7 +4,6 @@
  * sources the classic builder read; the draft stays in the browser under the
  * classic key, so a saved board survives the move to the VaryloUI tier list.
  */
-import { restoreTierPlacements } from './builderWorkbench';
 
 export type TierBuilderSource = 'MINION' | 'SPELL' | 'ACCESSORY' | 'HERO';
 
@@ -202,21 +201,4 @@ export function tierBuilderCardMeta(card: TierBuilderCard): string {
   if (card.source === 'SPELL') return `Таверна ${card.techLevel || '?'} · Мана ${card.manaCost}`;
   if (card.source === 'ACCESSORY') return card.accessorySize === 'LARGE' ? 'Большой аксессуар' : 'Малый аксессуар';
   return `Таверна ${card.techLevel || '?'} · ${TIER_BUILDER_RACE_NAMES[card.races[0] ?? 'NONE'] ?? 'Нейтральные'}`;
-}
-
-export type TierBuilderPlacement = Record<string, string[]>;
-
-/** A saved draft read back against the current pool; unknown and repeated ids are dropped. */
-export function readTierBuilderDraft(cardIds: string[], draft: unknown): TierBuilderPlacement {
-  const restored = restoreTierPlacements(cardIds, draft);
-  return Object.fromEntries(TIER_BUILDER_TIERS.map(tier => [tier.id, restored[tier.id] ?? []]));
-}
-
-/** The classic draft shape, POOL included, so an older page bundle still reads it. */
-export function tierBuilderDraft(cardIds: string[], placement: TierBuilderPlacement): Record<string, string[]> {
-  return restoreTierPlacements(cardIds, placement);
-}
-
-export function placedTierBuilderCount(placement: TierBuilderPlacement): number {
-  return TIER_BUILDER_TIERS.reduce((sum, tier) => sum + (placement[tier.id]?.length ?? 0), 0);
 }

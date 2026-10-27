@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  buildTierBuilderCards, createBuilderHistory, readTierBuilderDraft, tierBuilderDraft,
+  buildTierBuilderCards, createTierBuilderHistory, readTierBuilderDraft, tierBuilderDraft, unresolvedTierBuilderDraft,
   type TierBuilderCard, type TierBuilderPlacement,
 } from '../modules/battlegrounds/public';
 import { publicResourceUrl } from '../publicResourceUrl';
@@ -38,9 +38,14 @@ function optionalJson(path: string): Promise<{ cards?: unknown }> {
     .catch(() => ({ cards: [] }));
 }
 
-/** The pool from the classic runtime plus the restored browser draft; `failed` when the runtime rejects. */
+/**
+ * The pool from the classic runtime plus the restored browser draft and its ids
+ * this pool does not know (`unresolved`); `failed` when the runtime rejects.
+ */
 export function useTierBuilderPool(runtime: ClassicRuntime) {
-  const [pool, setPool] = useState<{ cards: TierBuilderCard[]; draft: TierBuilderPlacement } | null>(null);
+  const [pool, setPool] = useState<{
+    cards: TierBuilderCard[]; draft: TierBuilderPlacement; unresolved: TierBuilderPlacement;
+  } | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let active = true;
@@ -53,7 +58,9 @@ export function useTierBuilderPool(runtime: ClassicRuntime) {
     ]).then(([library, spells, englishNames, heroTiers, accessories]) => {
       if (!active) return;
       const cards = buildTierBuilderCards({ library, spells, englishNames, heroTiers, accessories }, publicResourceUrl);
-      setPool({ cards, draft: readTierBuilderDraft(cards.map(card => card.id), readSavedDraft()) });
+      const ids = cards.map(card => card.id);
+      const saved = readSavedDraft();
+      setPool({ cards, draft: readTierBuilderDraft(ids, saved), unresolved: unresolvedTierBuilderDraft(ids, saved) });
     }, error => {
       console.error(error);
       if (active) setFailed(true);
@@ -63,17 +70,21 @@ export function useTierBuilderPool(runtime: ClassicRuntime) {
   return { pool, failed };
 }
 
-/** Every placement is a draft: kept for undo at once, written to the browser a moment later, on unmount and on page hide. */
-export function useTierBuilderDraft(ids: string[] | null, placement: TierBuilderPlacement) {
-  const [history] = useState(createBuilderHistory);
+/**
+ * Every placement is a draft: kept for undo at once, written to the browser a
+ * moment later, on unmount and on page hide. `carried` ids are written back
+ * unchanged.
+ */
+export function useTierBuilderDraft(ids: string[] | null, placement: TierBuilderPlacement, carried: TierBuilderPlacement) {
+  const history = useMemo(() => ids ? createTierBuilderHistory(ids) : null, [ids]);
   const pending = useRef<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [status, setStatus] = useState('');
   useEffect(() => {
-    if (!ids) return undefined;
+    if (!ids || !history) return undefined;
     history.commit(placement);
     setCanUndo(history.canUndo());
-    const snapshot = JSON.stringify({ version: 1, draft: tierBuilderDraft(ids, placement) });
+    const snapshot = JSON.stringify({ version: 1, draft: tierBuilderDraft(ids, placement, carried) });
     if (readStorage(DRAFT_KEY) === snapshot) {
       // An undo inside the save delay returns to the stored draft: nothing is left to write.
       if (pending.current) setStatus('Черновик сохранён в этом браузере');
@@ -89,7 +100,7 @@ export function useTierBuilderDraft(ids: string[] | null, placement: TierBuilder
         : 'Браузер не разрешает сохранить черновик. Экспортируйте результат перед выходом.');
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [history, ids, placement]);
+  }, [carried, history, ids, placement]);
   // A reload or a closed tab inside the 250 ms window must not lose the last move.
   useEffect(() => {
     const flush = () => {
@@ -102,7 +113,8 @@ export function useTierBuilderDraft(ids: string[] | null, placement: TierBuilder
       flush();
     };
   }, []);
-  const undo = (): unknown => {
+  const undo = (): TierBuilderPlacement | null => {
+    if (!history) return null;
     const previous = history.undo();
     setCanUndo(history.canUndo());
     return previous;
