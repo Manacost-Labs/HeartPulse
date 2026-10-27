@@ -4,6 +4,7 @@ import {
 } from '../modules/battlegrounds/public';
 import { TIER_BUILDER_BACKGROUNDS, type TierBuilderBackground } from './battlegroundTierBuilderExport';
 import { readStorage, writeStorage } from './battlegroundTierBuilderDraft';
+import { pluralRu } from '../shared/text/pluralRu';
 
 const BACKGROUND_KEY = 'hero-tier-builder-background-mode-v1';
 const RACE_ORDER = ['ALL', 'NONE', 'ABERRATION', 'BEAST', 'DEMON', 'DRAGON', 'ELEMENTAL', 'MECHANICAL', 'MURLOC', 'NAGA', 'PIRATE', 'QUILBOAR', 'UNDEAD'];
@@ -70,14 +71,19 @@ export function TierBuilderFilterPanel({ filters, onChange, onClear, assigned, p
       </details>
       <div className="bg-tier-builder__actions" data-tour-id="bg-tier-builder-reset">
         <button id="tier-builder-reset" type="button" className="bg-tier-builder__button" onClick={() => onChange(DEFAULT_TIER_BUILDER_FILTERS)}>Сбросить</button>
-        <button id="tier-builder-unassigned" type="button" className="bg-tier-builder__button" disabled={!assigned} onClick={onClear}>Все в пул</button>
+        {/* aria-disabled keeps keyboard focus on the button once the board is empty. */}
+        <button id="tier-builder-unassigned" type="button" className="bg-tier-builder__button" aria-disabled={!assigned}
+          onClick={() => { if (assigned) onClear(); }}>Все в пул</button>
       </div>
       <p id="tier-builder-summary" className="bg-tier-builder__summary" data-tour-id="bg-tier-builder-library" aria-live="polite">
-        {loaded ? `В пуле ${poolCount} карт по текущим фильтрам. Всего распределено ${assigned}.` : 'Загружаю библиотеку...'}
+        {loaded ? `В пуле ${poolCount} ${cardsWord(poolCount)} по текущим фильтрам. В тирах: ${assigned}.` : 'Загружаю библиотеку...'}
       </p>
     </aside>
   );
 }
+
+/** «карта», «карты» or «карт» for a count. */
+export const cardsWord = (count: number) => pluralRu(count, 'карта', 'карты', 'карт');
 
 export function TierBuilderToolbar({ assigned, exporting, onExport, canUndo, onUndo, draftStatus, exportStatus }: {
   assigned: number; exporting: 'png' | 'webp' | null; onExport: (fileType: 'png' | 'webp', background: TierBuilderBackground) => void;
@@ -101,7 +107,8 @@ export function TierBuilderToolbar({ assigned, exporting, onExport, canUndo, onU
           {option.url ? '' : '∅'}
         </button>)}
       </div>
-      <button type="button" className="bg-tier-builder__button builder-undo" disabled={!canUndo} onClick={onUndo}>Отменить</button>
+      <button type="button" className="bg-tier-builder__button builder-undo" aria-disabled={!canUndo}
+        onClick={() => { if (canUndo) onUndo(); }}>Отменить</button>
       <p className="builder-draft-status" role="status">{draftStatus}</p>
       <p className="builder-export-status" role="status" hidden={!exportStatus}>{exportStatus}</p>
     </div>
