@@ -89,6 +89,21 @@ node scripts/test-suite-runner.mjs --suite browser
 Скрипты `test:*` в `package.json` остаются для составных проверок и тех, на
 которые ссылаются CI, конфигурация и документация.
 
+## Пользовательские сценарии в браузере
+
+Ключевые пути пользователя проверяют `tests/user-flow-*-browser.test.mjs`.
+Стенд — `startPublicCardPilot` из `tests/helpers/publicCardPilot.mjs`:
+настоящие Next, Express и SQLite, вместо hs-data-api — локальная фикстура.
+Её ответы дополняет `externalRoutes`, например
+`tests/helpers/browserMetaFixture.mjs`. Браузер из `launchUserBrowser()`
+не резолвит ни один хост, кроме loopback, поэтому страница не уходит
+ни в интернет, ни на прод.
+
+Элементы ищите по роли и доступному имени, проверяйте адрес, фокус,
+буфер обмена и состояние `aria-*`. Классы, `style` и внутреннее состояние
+не проверяйте. Помощники для этого — в `tests/helpers/browserUserView.mjs`.
+Ждите событие, а не время: `waitForSelector` и `waitForFunction`.
+
 ## Pull request
 
 - Делайте одну законченную тему на PR.
