@@ -11,7 +11,9 @@ slots, annotations and PNG/WebP exports remain available.
 - A card can move to any tier with a native control, including on touch devices
   and with a keyboard. Strategy cards fit all five columns without overlap.
 - Local drafts survive reloads and navigation. Undo recovers an accidental edit
-  or clear. Invalid or obsolete cards in drafts are ignored.
+  or clear. Invalid or obsolete cards in drafts are ignored. The strategy
+  editor saves nothing until it has read the stored draft, so board controls
+  used while the library loads cannot overwrite it.
 - On mobile, Library and Board buttons switch the visible panel and show the
   number of placed cards, without scrolling past the entire catalog. The board
   appears before quick slots and community slots. Switching brings the selected
