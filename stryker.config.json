@@ -1,0 +1,65 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "tap",
+  "tap": {
+    "testFiles": [
+      "tests/constructed-deck-code.test.ts",
+      "tests/deck-card-data.test.ts",
+      "tests/deck-code-property.test.ts",
+      "tests/arena-class-statistics-normalizer.test.ts",
+      "tests/arena-class-tier-list-property.test.ts",
+      "tests/leaderboards.test.ts",
+      "tests/leaderboards-contract-property.test.ts",
+      "tests/player-stats-client.test.ts",
+      "tests/player-stats-format.test.ts",
+      "tests/public-url-policy.test.ts",
+      "tests/public-url-canonical-property.test.ts"
+    ],
+    "nodeArgs": [
+      "--import",
+      "tsx",
+      "--test",
+      "--test-reporter=tap",
+      "--experimental-test-isolation=none"
+    ]
+  },
+  "mutate": [
+    "src/features/constructedDeckCode.ts",
+    "server/deckCardData.ts",
+    "server/modules/arena/classStatisticsNormalizer.ts",
+    "server/modules/leaderboards/contract.ts",
+    "src/modules/playerStats/model/format.ts",
+    "src/shared/seo/publicUrlPolicy.ts:73-168"
+  ],
+  "coverageAnalysis": "perTest",
+  "concurrency": 4,
+  "timeoutMS": 20000,
+  "ignorePatterns": [
+    "apps/public-web/.next",
+    "dist",
+    "build",
+    "storybook-static",
+    "server/data",
+    ".codegraph",
+    "asset-archive",
+    "screenshot",
+    "reports"
+  ],
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html",
+    "json"
+  ],
+  "htmlReporter": {
+    "fileName": "reports/mutation/mutation.html"
+  },
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "thresholds": {
+    "high": 90,
+    "low": 75,
+    "break": null
+  }
+}

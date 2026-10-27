@@ -21,3 +21,7 @@ apps/public-web/tsconfig.tsbuildinfo
 
 # Written by the Next bundle gate, uploaded by CI
 /tmp/next-bundle-measurements.json
+
+# Mutation testing (npm run test:mutation): sandbox and reports
+.stryker-tmp/
+reports/mutation/
