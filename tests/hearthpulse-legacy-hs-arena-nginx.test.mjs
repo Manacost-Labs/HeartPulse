@@ -37,11 +37,13 @@ async function freePort() {
   return port;
 }
 
-function fetchOnce(secure, port, host, path) {
-  const request = secure ? httpsRequest : httpRequest;
+// `ca` is the test's own certificate, so HTTPS requests still verify the chain
+// and the requested name.
+function fetchOnce(ca, port, host, path) {
+  const request = ca ? httpsRequest : httpRequest;
   return new Promise((resolve, reject) => {
     const pending = request({ host: '127.0.0.1', port, path, headers: { Host: host },
-      ...(secure ? { servername: host, rejectUnauthorized: false } : {}) }, response => {
+      ...(ca ? { servername: host, ca } : {}) }, response => {
       const chunks = [];
       response.on('data', chunk => chunks.push(chunk));
       response.on('end', () => resolve({ status: response.statusCode, headers: response.headers,
@@ -73,8 +75,10 @@ test('a temporary nginx answers the retired names with one redirect and keeps th
   const certificate = join(root, 'fullchain.pem');
   const key = join(root, 'privkey.pem');
   const generated = spawnSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
-    '-subj', '/CN=hs-arena.ru', '-keyout', key, '-out', certificate], { encoding: 'utf8' });
+    '-subj', '/CN=hs-arena.ru', '-addext', 'subjectAltName=DNS:hs-arena.ru,DNS:www.hs-arena.ru',
+    '-keyout', key, '-out', certificate], { encoding: 'utf8' });
   assert.equal(generated.status, 0, generated.stderr);
+  const ca = readFileSync(certificate);
   mkdirSync(join(root, 'acme/.well-known/acme-challenge'), { recursive: true });
   writeFileSync(join(root, 'acme/.well-known/acme-challenge/token'), 'token.key-authorization');
   const local = vhost
@@ -99,19 +103,19 @@ ${local}
   const nginx = spawn(binary, ['-p', root, '-c', config, '-g', 'daemon off; master_process off;']);
   try {
     for (const host of ['hs-arena.ru', 'www.hs-arena.ru']) {
-      for (const [secure, port] of [[false, plainPort], [true, tlsPort]]) {
-        const response = await fetchStarted(secure, port, host, '/render?deck=AAE&lang=ru');
-        assert.equal(response.status, 301, `${host} ${secure ? 'https' : 'http'}`);
+      for (const [trusted, port] of [[null, plainPort], [ca, tlsPort]]) {
+        const response = await fetchStarted(trusted, port, host, '/render?deck=AAE&lang=ru');
+        assert.equal(response.status, 301, `${host} ${trusted ? 'https' : 'http'}`);
         assert.equal(response.headers.location, 'https://hearthpulse.net/render?deck=AAE&lang=ru');
         assert.doesNotMatch(response.body, /deckview/);
       }
     }
-    const tls = await fetchStarted(true, tlsPort, 'hs-arena.ru', '/');
+    const tls = await fetchStarted(ca, tlsPort, 'hs-arena.ru', '/');
     assert.equal(tls.headers['x-robots-tag'], 'noindex, follow');
-    const challenge = await fetchStarted(false, plainPort, 'hs-arena.ru', '/.well-known/acme-challenge/token');
+    const challenge = await fetchStarted(null, plainPort, 'hs-arena.ru', '/.well-known/acme-challenge/token');
     assert.equal(challenge.status, 200, 'HTTP-01 renewal must keep working');
     assert.equal(challenge.body, 'token.key-authorization');
-    assert.equal((await fetchStarted(false, plainPort, 'hs-arena.ru', '/.well-known/acme-challenge/missing')).status, 404);
+    assert.equal((await fetchStarted(null, plainPort, 'hs-arena.ru', '/.well-known/acme-challenge/missing')).status, 404);
   } finally {
     nginx.kill('SIGTERM');
     await new Promise(resolve => nginx.once('exit', resolve));

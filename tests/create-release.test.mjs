@@ -55,6 +55,9 @@ const operationalFiles = [
   'deploy/deploy-hearthpulse-cert.sh',
   'deploy/systemd/hearthpulse-shadow-monitor.service',
   'deploy/systemd/hearthpulse-shadow-monitor.timer',
+  'deploy/sync-hs-arena-ru-cert.sh',
+  'deploy/systemd/hs-arena-ru-cert-sync.service',
+  'deploy/systemd/hs-arena-ru-cert-sync.timer',
 ];
 
 try {

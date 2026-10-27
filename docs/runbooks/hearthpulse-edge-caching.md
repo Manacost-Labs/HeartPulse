@@ -249,42 +249,85 @@ Evidence of 2026-10-27, from the origin:
   Kuma monitors 1 and 10 (`https://hs-arena.ru/`) accept `200-399` and follow
   up to 10 redirects: they stay green but then measure `hearthpulse.net`.
 - Certificate: both edges present the same Let's Encrypt certificate for
-  `hs-arena.ru, www.hs-arena.ru` (serial `0550C3BE…021E`, valid until
+  `hs-arena.ru, www.hs-arena.ru` (ECDSA, serial `0550C3BE…021E`, valid until
   2027-01-05). The origin has no lineage for it, and the zone is in another
   Cloudflare account (NS `suzanne`/`bjorn`) than the origin's DNS-01 tokens,
-  so it was issued on an edge with HTTP-01 and copied to the other. Its path
-  on the edges and the renewal setup were not visible from the origin.
+  so it can only renew on an edge with HTTP-01. Checked read-only on the edges
+  by the lead the same day: Moscow holds the certbot lineage
+  `/etc/letsencrypt/live/hs-arena.ru/` and its hand-made vhost uses it;
+  Novosibirsk has no lineage and serves a copy,
+  `/etc/nginx/ssl/hs-arena.ru/letsencrypt-{fullchain,privkey}.pem`, which
+  nothing refreshed. `/etc/nginx/ssl/hs-arena.ru/fullchain.pem`, the name the
+  versioned vhost loads, existed on neither edge.
 
 ### Prerequisites, as root on each edge
 
 ```bash
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
-# 1. Which file holds the hand-made server, and its certificate.
+# Which file holds the hand-made server.
 nginx -T 2>/dev/null | awk '/^# configuration file /{f=$4} /server_name .*hs-arena[.]ru/{print f, $0}'
-nginx -T 2>/dev/null | awk '/server_name .*hs-arena[.]ru/{s=1} s && /ssl_certificate|acme|root /{print} /^}/{s=0}'
-# 2. How it renews (Moscow; expect the lineage hs-arena.ru).
-certbot certificates -d hs-arena.ru
-grep -E '^(authenticator|installer|webroot_path)|^hs-arena|^www' /etc/letsencrypt/renewal/hs-arena.ru.conf
 ```
 
-- Make the certificate available as `/etc/nginx/ssl/hs-arena.ru/fullchain.pem`
-  and `privkey.pem`. Where the lineage exists and that directory does not,
-  link it so renewals apply:
-  `ln -sn /etc/letsencrypt/live/hs-arena.ru /etc/nginx/ssl/hs-arena.ru`.
-  Elsewhere copy the files that the hand-made server names (`install -d -m
-  0755`, then `install -m 0644` the chain and `install -m 0600` the key).
-- Renewal: the `webroot` authenticator with `/var/www/letsencrypt` and the
-  `nginx` authenticator both keep working (the redirect is a `location`). Any
-  other webroot path: stop and change the vhost first. The certificate on the
-  edge without the lineage is a copy; it expires on 2027-01-05 unless the
-  renewal copies it (find the hook with
-  `grep -rl hs-arena /etc/letsencrypt/renewal-hooks /etc/cron* /usr/local/sbin`).
+Moscow (`194.67.92.242`), the lineage:
+
+```bash
+install -d -o root -g root -m 0755 /etc/nginx/ssl/hs-arena.ru
+ln -s /etc/letsencrypt/live/hs-arena.ru/fullchain.pem /etc/nginx/ssl/hs-arena.ru/fullchain.pem
+ln -s /etc/letsencrypt/live/hs-arena.ru/privkey.pem /etc/nginx/ssl/hs-arena.ru/privkey.pem
+grep -E '^(authenticator|installer|webroot_path)' /etc/letsencrypt/renewal/hs-arena.ru.conf
+ls /etc/letsencrypt/renewal-hooks/deploy/
+```
+
+Renewal must keep working and must reload nginx. The `webroot` authenticator
+with `/var/www/letsencrypt` and the `nginx` authenticator both still pass the
+challenge (the redirect is a `location`); any other webroot path: stop and
+change the vhost first. Without `installer = nginx` and without a deploy hook
+that reloads nginx, add one:
+`printf '#!/bin/sh\nnginx -t && systemctl reload nginx\n' > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx && chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-nginx`.
+
+Novosibirsk (`186.246.28.244`), the copy; relative links, so a refreshed copy
+is picked up under the same names:
+
+```bash
+ln -s letsencrypt-fullchain.pem /etc/nginx/ssl/hs-arena.ru/fullchain.pem
+ln -s letsencrypt-privkey.pem /etc/nginx/ssl/hs-arena.ru/privkey.pem
+openssl x509 -noout -serial -enddate -in /etc/nginx/ssl/hs-arena.ru/fullchain.pem   # serial 0550C3BE…021E
+```
+
+The copy is refreshed from the origin by `deploy/sync-hs-arena-ru-cert.sh`
+(below); it must be running before 2027-01-05, when the current copy expires.
+
 - Disable the hand-made server without reloading:
   `mkdir -p /root/hs-arena-manual-$STAMP && mv /etc/nginx/sites-enabled/<its link> /root/hs-arena-manual-$STAMP/`.
   If that file also declares other names, stop and remove only its
   `hs-arena.ru` server blocks instead. If it stays enabled, the installer
   refuses with `another server also declares hs-arena.ru` and restores the
   edge.
+
+### Novosibirsk copy
+
+`deploy/sync-hs-arena-ru-cert.sh` runs as root on the origin, daily through
+`hs-arena-ru-cert-sync.timer`, with the static-sync topology and identities.
+It compares the Novosibirsk `letsencrypt-fullchain.pem` with the Moscow
+lineage and, when they differ, streams the lineage over SSH (the key is
+never written on the origin). Novosibirsk installs it only when it is
+unexpired and matches its key, keeps the replaced pair under
+`/root/hs-arena-cert-backup/<stamp>/`, runs `nginx -t` and reloads, and
+restores the pair if the test fails. A missing or expired Moscow certificate
+fails the unit. Install once on the origin, after the release that ships it:
+
+```bash
+REL=/var/www/koloda/data/www/hs-arena.ru/current
+sudo install -m 0644 -o root -g root "$REL/deploy/systemd/hs-arena-ru-cert-sync.service" "$REL/deploy/systemd/hs-arena-ru-cert-sync.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start hs-arena-ru-cert-sync.service && sudo journalctl -u hs-arena-ru-cert-sync.service -n 5 --no-pager   # "186.246.28.244: current"
+sudo systemctl enable --now hs-arena-ru-cert-sync.timer
+```
+
+After every Moscow renewal (about 30 days before expiry) the next run prints
+`copying the certificate` and both edges then present the same serial.
+Remove: `systemctl disable --now hs-arena-ru-cert-sync.timer` and delete the
+two units.
 
 ### Install and verify
 
