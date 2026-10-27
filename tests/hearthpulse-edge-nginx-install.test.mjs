@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync,
+  symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -11,6 +12,7 @@ const FILES = [
   ['deploy/nginx/arena-edge-cache-path.conf', 'etc/nginx/conf.d/34-arena-edge-cache-path.conf'],
   ['deploy/nginx/hearthpulse-shadow-app.conf', 'etc/nginx/sites-available/hearthpulse-shadow-app.conf'],
   ['deploy/nginx/hearthpulse-shadow-cdn.conf', 'etc/nginx/sites-available/hearthpulse-shadow-cdn.conf'],
+  ['deploy/nginx/hearthpulse-legacy-hs-arena.conf', 'etc/nginx/sites-available/hearthpulse-legacy-hs-arena.conf'],
 ];
 
 function executable(path, body) {
@@ -44,6 +46,9 @@ exec /usr/bin/install "\${args[@]}"
 `);
   executable(join(bin, 'nginx'), `#!/usr/bin/env bash
 if [[ "$1" == -T ]]; then echo "# configuration file $FAKE_EDGE/etc/nginx/sites-enabled/hearthpulse-shadow-app.conf:"; exit 0; fi
+if [[ -e "$FAKE_EDGE/nginx-t-conflict" ]]; then
+  echo 'nginx: [warn] conflicting server name "hs-arena.ru" on 0.0.0.0:443, ignored' >&2
+fi
 [[ ! -e "$FAKE_EDGE/nginx-t-fails" ]]
 `);
   executable(join(bin, 'systemctl'), `#!/usr/bin/env bash
@@ -53,12 +58,14 @@ echo "$*" >> "$FAKE_EDGE/systemctl.log"
   for (const edge of ['moscow', 'novosibirsk']) {
     for (const [source, target] of FILES) cpSync(join(root, source), join(edges, edge, target));
     mkdirSync(join(edges, edge, 'root'), { recursive: true });
+    mkdirSync(join(edges, edge, 'etc/nginx/sites-enabled'), { recursive: true });
   }
   const run = (mode, ...edgeNames) => spawnSync('bash', [script, mode, ...edgeNames], { encoding: 'utf8', env: { ...process.env,
     PATH: `${bin}:${process.env.PATH}`, ARENA_STATIC_SYNC_CONFIG: config, HEARTHPULSE_EDGE_NGINX_RELEASE: release,
     FAKE_EDGES: edges } });
   const edgeFile = (edge, index) => join(edges, edge, FILES[index][1]);
-  return { base, release, edges, run, edgeFile };
+  const enabled = (edge, name) => join(edges, edge, 'etc/nginx/sites-enabled', name);
+  return { base, release, edges, run, edgeFile, enabled };
 }
 
 test('the edge nginx files are listed in the release contract', () => {
@@ -139,6 +146,40 @@ test('a failed nginx -t restores that edge, reloads nothing and stops before the
     assert.equal(existsSync(edgeFile('moscow', 2)), false, 'a file that did not exist is removed again');
     assert.equal(existsSync(join(edges, 'moscow', 'systemctl.log')), false, 'nothing is reloaded');
     assert.equal(readFileSync(edgeFile('novosibirsk', 1), 'utf8'), 'stale vhost\n', 'the next edge is untouched');
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test('--install enables a vhost once and keeps an existing link under another name', () => {
+  const { base, run, edgeFile, enabled } = fixture();
+  try {
+    rmSync(edgeFile('moscow', 3));
+    symlinkSync(edgeFile('moscow', 1), enabled('moscow', 'hearthpulse.net'));
+    const result = run('--install', 'moscow');
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(readlinkSync(enabled('moscow', 'hearthpulse-legacy-hs-arena.conf')), edgeFile('moscow', 3));
+    assert.equal(existsSync(enabled('moscow', 'hearthpulse-shadow-app.conf')), false,
+      'an enabled vhost must not gain a second link');
+    assert.ok(lstatSync(enabled('moscow', 'hearthpulse.net')).isSymbolicLink());
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test('a second server for a managed name restores that edge and reloads nothing', () => {
+  const { base, edges, run, edgeFile, enabled } = fixture();
+  try {
+    rmSync(edgeFile('moscow', 3));
+    writeFileSync(join(edges, 'moscow', 'nginx-t-conflict'), '');
+    const result = run('--install');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /another server also declares hs-arena\.ru; disable it before installing/);
+    assert.match(result.stderr, /Install failed on root@moscow; later edges were not changed/);
+    assert.equal(existsSync(edgeFile('moscow', 3)), false, 'the new vhost is removed again');
+    assert.deepEqual(readdirSync(join(edges, 'moscow', 'etc/nginx/sites-enabled')), [], 'every link it added is removed');
+    assert.equal(existsSync(join(edges, 'moscow', 'systemctl.log')), false, 'nothing is reloaded');
+    assert.equal(existsSync(join(edges, 'novosibirsk', 'systemctl.log')), false, 'the next edge is untouched');
   } finally {
     rmSync(base, { recursive: true, force: true });
   }

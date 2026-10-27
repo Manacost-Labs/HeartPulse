@@ -44,6 +44,13 @@ current contract is the indexable HearthPulse canonical host and public CDN.
    `include /etc/nginx/snippets/arena-html-routing.conf;`. Do not keep the old
    catch-all beside the new include.
 
+Every public edge proxy also installs `hearthpulse-legacy-hs-arena.conf` as
+`/etc/nginx/sites-available/hearthpulse-legacy-hs-arena.conf` (enabled): the
+retired `hs-arena.ru` and `www.hs-arena.ru` answer one `301` to
+`https://hearthpulse.net$request_uri` on 80 and 443 and keep the HTTP-01 path.
+`deploy/install-hearthpulse-edge-nginx.sh` installs it; prerequisites in
+`docs/runbooks/hearthpulse-edge-caching.md#retired-hs-arenaru`.
+
 Every public edge proxy must install `arena-card-local-maps.conf` as
 `/etc/nginx/conf.d/31-arena-card-local-maps.conf` and
 `arena-edge-client-region-map.conf` as
