@@ -53,7 +53,7 @@ new HTML but cannot deliver its build would otherwise render a blank page.
 | `/_next/static/`, `/assets/`, `/fonts/`, `/wallpaper/`, `/uploads/`, icons | `immutable`, 30 d to 1 y | `hs_arena_cache`, as long as the origin allows |
 | `/api/article-cover`, `/api/public-resource/` | `public, max-age=86400, stale-while-revalidate=604800` | `hs_arena_cache`, as long as the origin allows |
 | Card images on `cdn.hearthpulse.net` | `immutable`, 30 d | local mirror, then `hs_arena_cache` |
-| Anonymous public documents and their RSC payloads | `private, no-cache`, restorable by Back | `hearthpulse_documents`: 60 s; an expired copy is never served, not even while the origin fails; dropped after 1 h without a visit |
+| Anonymous public documents and their RSC payloads | `private, no-cache`, restorable by Back | `hearthpulse_documents`: 60 s, ISR pages without server data 300 s; an expired copy is answered while it refreshes in the background; never served more than 10 min after it was stored; dropped after 10 min without a visit |
 | `/?login`, admin, account, profile documents | `no-store` | never |
 | Other `/api/` responses | Express's header (`/api/auth/me`: `no-store`) | never |
 | `/runtime-config.js` | `no-store` | never |
@@ -66,27 +66,54 @@ it carries `X-HearthPulse-Edge-Cache: anonymous` (set by
 modules read no cookies), its type is HTML or an RSC payload and its `Vary`
 names exactly the RSC headers that are part of the cache key. The edge blanks
 Next-internal request headers outside the key (`X-Middleware-Prefetch` makes
-Next answer a marked `{}`), and takes no cache lock, so never-stored requests
-such as `/?login` are not queued. A request with a cookie neither reads nor fills the
+Next answer a marked `{}`), and takes no cache lock: nginx re-checks a lock
+only every 500 ms, so identical never-stored requests such as `/?login` or the
+RSC prefetches of unmarked routes would queue one after another, while a
+waiter saves nothing (the origin answers in milliseconds, the tunnel trip is
+paid either way). A request with a cookie neither reads nor fills the
 copy, so a signed-in or paying visitor always receives the origin's own
 rendering and no viewer data can enter the shared copy. The marker never
 reaches the browser. Prerendered pages (`/faq/`) send `s-maxage=31536000`;
 the edge ignores `Cache-Control` for documents and never trusts that value.
 
-The key joins the RSC request headers with `|` and puts the URI last. A
+The key joins a ten-minute epoch of the edge clock and the RSC request
+headers with `|` and puts the URI last. A
 request whose `RSC` or `Next-Router-Prefetch` is not empty or `1`, or whose
 other key headers contain `|`, bypasses the copy, so two different requests
 can never share an entry.
 
-There is no stale copy at all (`proxy_cache_use_stale off`): nginx cannot
-bound its age, so during a long origin failure, or after a page answers
-`404` or lost its marker, it would be served for days. A removed page or
-marker therefore stops being served within 60 s, and an origin outage shows
-its error after at most 60 s, as before this cache. Immutable assets and
+An expired copy is answered at once while one background request refreshes
+it (`proxy_cache_use_stale updating`, `proxy_cache_background_update on`;
+never `error` or `timeout`). Before 2026-10-27 there was no stale copy at all,
+and a regional edge paid 0.6-1.4 s on every miss and once 5.7 s on an expired
+copy while the origin answered in 1-22 ms. nginx keeps answering the expired
+copy for as long as every refresh fails (a `502`, a `404` of a removed page,
+a lost marker) and cannot bound its age itself (checked with nginx 1.30); the
+epoch in the key bounds it: no copy is answered more than ten minutes after it
+was stored, and the first request of every epoch, a miss, sees the origin's
+own answer. A removed page or marker therefore stops being served within
+10 min, and an origin outage shows its error after at most 10 min. The ISR
+pages whose HTML holds no server data (`revalidate = 300` without
+`/standard/meta/` and `/articles/`, whose build copy is empty until
+`/health/next/revalidate/` runs after a deploy) stay fresh for 300 s, the
+others for 60 s. Immutable assets and
 public media keep serving stale copies on origin errors. Content-hashed Next assets of
 earlier releases stay on the origin for 35 days, so a document cached just
-before a deploy still loads; its next RSC request reaches the new build,
-which Next answers with a full navigation.
+before a deploy still loads. An RSC payload of the earlier build may still be
+answered from its copy until it expires (60 s, 300 s on the ISR pages, at
+most the epoch); Next answers such a build mismatch with a full navigation.
+
+Side effects of the background refresh:
+
+- On an HTTP/1.1 keep-alive connection nginx starts the next request only
+  after the refresh finished, so `curl` loops and bots on HTTP/1.1 still see
+  one origin trip after a `STALE` answer. Browsers use HTTP/2 and do not.
+- The eight ISR pages render the runtime switches of the moment Next renders
+  them: the build copy has them off for up to 5 min after a deploy, and a
+  switch flip (`cardImageCdn` and the other root-managed switches, which Next
+  itself picks up within 30 s) reaches these documents only after Next's
+  `revalidate` plus the edge's 300 s, about 10 min. For an immediate effect
+  purge the document cache on both edges (Rollback below).
 
 ## Install
 
@@ -204,7 +231,7 @@ suite.
   copies, `nginx -t`, reload, then
   `find /var/cache/nginx/hearthpulse-documents -type f -delete`.
 - Unpublish or emergency content fix: the same `find … -delete` on **both**
-  edges, so the page disappears at once instead of within 60 s. It is safe while nginx runs; the next visit refills the
+  edges, so the page disappears at once instead of within 10 min. It is safe while nginx runs; the next visit refills the
   copy.
 - Origin: restore the two `.pre-edge-cache-*` files, `nginx -t`, reload. The
   deployer then reports drift against this release until the application is
@@ -212,7 +239,7 @@ suite.
   [the deployer contract](production-deployer-contract.md)).
 - Application: the normal release rollback, then the `find … -delete` on
   both edges (required). Without the marker no edge stores a new document,
-  and stored entries stop being served within 60 s; the purge removes them
+  and stored entries stop being served within 10 min; the purge removes them
   at once.
 
 ## Not changed, follow-ups
