@@ -54,6 +54,11 @@ slots, annotations and PNG/WebP exports remain available.
   `restoreTierPlacements`, saved 250 ms after a change and on unmount, with the
   same undo history and status texts. The export background choice keeps
   `hero-tier-builder-background-mode-v1`.
+- Saved tier ids the current pool does not know stay in the stored draft, in
+  their tiers, while other cards change: a trinket or spell source that failed
+  or fell back for one visit hides its cards only until it recovers.
+  «Все в пул» lets go of them too. Undo history entries are the draft read back
+  against the pool, so undo after «Все в пул» returns to the earlier board.
 - Export: «Скачать всё PNG/WebP» draws the same 2400 px image of every
   non-empty tier; VaryloUI adds copy as text and JSON download.
 

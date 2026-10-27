@@ -37,7 +37,7 @@ export type { HeroAnalyticsCard } from './ui/HeroAnalytics';
 export {
   buildTierBuilderCards, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount, plainCardText,
   readTierBuilderDraft, TIER_BUILDER_RACE_NAMES, TIER_BUILDER_SOURCES, TIER_BUILDER_TIERS, tierBuilderCardImage,
-  tierBuilderCardMeta, tierBuilderDraft, withTierBuilderSource,
+  createTierBuilderHistory, tierBuilderCardMeta, tierBuilderDraft, unresolvedTierBuilderDraft, withTierBuilderSource,
 } from './model/tierBuilder';
 export type { TierBuilderCard, TierBuilderFilters, TierBuilderPlacement, TierBuilderSourcePayloads } from './model/tierBuilder';
 export { createBuilderHistory } from './model/builderWorkbench';

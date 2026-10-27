@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  buildTierBuilderCards, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount,
-  readTierBuilderDraft, tierBuilderCardImage, tierBuilderDraft, withTierBuilderSource,
+  buildTierBuilderCards, createTierBuilderHistory, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount,
+  readTierBuilderDraft, tierBuilderCardImage, tierBuilderDraft, unresolvedTierBuilderDraft, withTierBuilderSource,
 } from '../src/modules/battlegrounds/model/tierBuilder';
 
 const proxied = (url: string) => `/api/public-resource/${encodeURIComponent(url)}`;
@@ -52,4 +52,34 @@ test('drafts keep the classic shape and drop cards that left the pool', () => {
   assert.deepEqual(Object.keys(saved), ['POOL', 'S', 'A', 'B', 'C', 'D']);
   assert.deepEqual(saved.POOL, ['BG_2', 'spell-7', 'TR_1', 'hero-рено-джексон']);
   assert.deepEqual(readTierBuilderDraft(ids, saved), placement);
+});
+
+test('undo after «Все в пул» walks back to the board before it', () => {
+  const ids = cards.map(card => card.id);
+  const history = createTierBuilderHistory(ids);
+  const board = readTierBuilderDraft(ids, { S: ['BG_1'], A: ['TR_1'] });
+  history.commit(board);
+  history.commit({});
+  history.commit({ S: ['BG_2'] });
+  const cleared = history.undo();
+  assert.deepEqual(cleared, { S: [], A: [], B: [], C: [], D: [] });
+  // The page commits every restored placement; it must not become a new step.
+  assert.equal(history.commit(cleared!), false);
+  assert.deepEqual(history.undo(), board);
+  assert.equal(history.commit(board), false);
+  assert.equal(history.canUndo(), false);
+});
+
+test('a draft read while a source is down keeps the cards that source hid', () => {
+  const saved = { S: ['BG_1', 'TR_LIVE', 'spell-9'], A: ['TR_LIVE', 7], C: ['BG_2'] };
+  // Trinkets and spells failed: the pool knows only the minions.
+  const outage = ['BG_1', 'BG_2'];
+  const carried = unresolvedTierBuilderDraft(outage, saved);
+  assert.deepEqual(carried, { S: ['TR_LIVE', 'spell-9'] });
+  const placement = readTierBuilderDraft(outage, saved);
+  const written = tierBuilderDraft(outage, { ...placement, A: ['BG_2'], C: [] }, carried);
+  assert.deepEqual(written, { POOL: [], S: ['BG_1', 'TR_LIVE', 'spell-9'], A: ['BG_2'], B: [], C: [], D: [] });
+  // Once the sources recover the hidden cards are back in their tier.
+  assert.deepEqual(readTierBuilderDraft([...outage, 'TR_LIVE', 'spell-9'], written).S, ['BG_1', 'TR_LIVE', 'spell-9']);
+  assert.deepEqual(unresolvedTierBuilderDraft(cards.map(card => card.id), null), {});
 });

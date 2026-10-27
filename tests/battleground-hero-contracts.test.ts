@@ -94,9 +94,9 @@ const RUNTIME_CONTRACT_NAMES = [
 // The tier builder's pool, filter and draft contracts (VaryloUI tier list) are a public surface of their own.
 const TIER_BUILDER_TYPE_NAMES = ['TierBuilderCard', 'TierBuilderFilters', 'TierBuilderPlacement', 'TierBuilderSourcePayloads'];
 const TIER_BUILDER_RUNTIME_NAMES = [
-  'buildTierBuilderCards', 'createBuilderHistory', 'DEFAULT_TIER_BUILDER_FILTERS', 'matchesTierBuilderFilters',
+  'buildTierBuilderCards', 'createBuilderHistory', 'createTierBuilderHistory', 'DEFAULT_TIER_BUILDER_FILTERS', 'matchesTierBuilderFilters',
   'placedTierBuilderCount', 'plainCardText', 'readTierBuilderDraft', 'TIER_BUILDER_RACE_NAMES', 'TIER_BUILDER_SOURCES',
-  'TIER_BUILDER_TIERS', 'tierBuilderCardImage', 'tierBuilderCardMeta', 'tierBuilderDraft', 'withTierBuilderSource',
+  'TIER_BUILDER_TIERS', 'tierBuilderCardImage', 'tierBuilderCardMeta', 'tierBuilderDraft', 'unresolvedTierBuilderDraft', 'withTierBuilderSource',
 ];
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ANALYTICS_CONTRACT_NAMES = ['HeroCompositionAnalytics', 'HeroOverview', 'HeroPowerAnalytics', 'HeroTavernAnalytics'];

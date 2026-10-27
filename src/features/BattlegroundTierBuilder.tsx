@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   battlegroundHeroRosterBridgeV1, DEFAULT_TIER_BUILDER_FILTERS, matchesTierBuilderFilters, placedTierBuilderCount,
-  readTierBuilderDraft, TIER_BUILDER_TIERS, tierBuilderCardImage, tierBuilderCardMeta,
+  TIER_BUILDER_TIERS, tierBuilderCardImage, tierBuilderCardMeta,
   type TierBuilderCard, type TierBuilderFilters, type TierBuilderPlacement,
 } from '../modules/battlegrounds/public';
 import { publicResourceUrl } from '../publicResourceUrl';
@@ -44,6 +44,8 @@ const LABELS = {
 export function BattlegroundTierBuilder({ runtime }: { runtime: ClassicRuntime }) {
   const { pool: loaded, failed } = useTierBuilderPool(runtime);
   const [edited, setPlacement] = useState<TierBuilderPlacement | null>(null);
+  // «Все в пул» also lets go of saved cards the current pool cannot show.
+  const [carriedCleared, setCarriedCleared] = useState(false);
   const [filters, setFilters] = useState<TierBuilderFilters>(DEFAULT_TIER_BUILDER_FILTERS);
   const [poolLimit, setPoolLimit] = useState(POOL_PAGE);
   const [exportStatus, setExportStatus] = useState('');
@@ -51,7 +53,7 @@ export function BattlegroundTierBuilder({ runtime }: { runtime: ClassicRuntime }
   const cards = loaded?.cards ?? null;
   const placement = edited ?? loaded?.draft ?? EMPTY_PLACEMENT;
   const ids = useMemo(() => cards?.map(card => card.id) ?? null, [cards]);
-  const draft = useTierBuilderDraft(ids, placement);
+  const draft = useTierBuilderDraft(ids, placement, carriedCleared ? EMPTY_PLACEMENT : loaded?.unresolved ?? EMPTY_PLACEMENT);
   const byId = useMemo(() => new Map((cards ?? []).map(card => [card.id, card])), [cards]);
   const placed = useMemo(() => new Set(Object.values(placement).flat()), [placement]);
   const pool = useMemo(() => (cards ?? []).filter(card => !placed.has(card.id) && matchesTierBuilderFilters(card, filters)), [cards, placed, filters]);
@@ -87,11 +89,11 @@ export function BattlegroundTierBuilder({ runtime }: { runtime: ClassicRuntime }
   return (
     <div className="bg-tier-builder hp-varylo-parchment" aria-busy={!cards}>
       <TierBuilderFilterPanel filters={filters} onChange={next => { setFilters(next); setPoolLimit(POOL_PAGE); }}
-        onClear={() => setPlacement(EMPTY_PLACEMENT)} assigned={assigned} poolCount={pool.length} loaded={!!cards} />
+        onClear={() => { setPlacement(EMPTY_PLACEMENT); setCarriedCleared(true); }} assigned={assigned} poolCount={pool.length} loaded={!!cards} />
       <section className="bg-tier-builder__board" aria-label="Рабочая область">
         <TierBuilderToolbar assigned={assigned} exporting={exporting} onExport={(type, background) => void runExport(type, background)}
           canUndo={draft.canUndo} draftStatus={draft.status} exportStatus={exportStatus}
-          onUndo={() => { const previous = draft.undo(); if (previous !== null && ids) setPlacement(readTierBuilderDraft(ids, previous)); }} />
+          onUndo={() => { const previous = draft.undo(); if (previous) setPlacement(previous); }} />
         <div className="bg-tier-builder__list">
           {cards
             ? <TierList items={items} tiers={TIERS} value={placement} onValueChange={setPlacement}
