@@ -62,6 +62,7 @@
       "files": [
         "tests/admin-arena-synergy-service.test.ts",
         "tests/admin-remote-image.test.ts",
+        "tests/admin-audit-log.test.ts",
         "tests/admin-console-navigation.test.tsx",
         "tests/admin-workspace-state.test.ts",
         "tests/admin-resource-store.test.ts",

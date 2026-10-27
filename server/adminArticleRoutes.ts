@@ -203,12 +203,12 @@ export function createAdminArticleRouter(dependencies: AdminArticleRouterDepende
       document.updatedAt = now().toISOString();
       dependencies.saveArticles(document);
       dependencies.invalidateArticles();
-      dependencies.recordAudit?.(actor, 'article.deleted', id, { title: String(removed.title ?? ''), url: String(removed.url ?? '') });
       try {
         dependencies.deleteArticleVotes(id);
       } catch (error) {
         dependencies.onVoteCleanupError?.(error, id);
       }
+      dependencies.recordAudit?.(actor, 'article.deleted', id, { title: String(removed.title ?? ''), url: String(removed.url ?? '') });
       return response.json({ success: true });
     } catch {
       return response.status(500).json({ error: 'Не удалось удалить статью' });

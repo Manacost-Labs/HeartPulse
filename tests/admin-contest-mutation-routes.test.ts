@@ -11,6 +11,7 @@ let savedContest: AdminContestWrite | null = null;
 let published: { contestId: string; winners: string[]; timestamp: string } | null = null;
 let deletedId = '';
 const audit: Array<[string, string, string]> = [];
+const auditDetails: Array<Record<string, unknown> | undefined> = [];
 const approvedIds = ['user-1', 'user-2'];
 
 const app = express();
@@ -35,7 +36,7 @@ app.use('/api', createAdminContestMutationRouter({
   },
   getContest: contestId => {
     if (storageFailure === 'lookup') throw new Error('/private/ecosystem.sqlite');
-    return contestExists && contestId === 'contest-1' ? { id: contestId } : null;
+    return contestExists && contestId === 'contest-1' ? { id: contestId, title: 'Летний конкурс' } : null;
   },
   approvedWinnerIds: () => approvedIds,
   publishWinners: (contestId, winners, timestamp) => {
@@ -52,7 +53,7 @@ app.use('/api', createAdminContestMutationRouter({
   setPrivateNoStore: response => { response.set('Cache-Control', 'private, no-store'); },
   now: () => new Date('2026-07-13T01:15:00.000Z'),
   createId: () => 'contest-created',
-  recordAudit: (actor, action, entityId) => { audit.push([actor.id, action, entityId]); },
+  recordAudit: (actor, action, entityId, details) => { audit.push([actor.id, action, entityId]); auditDetails.push(details); },
 }));
 
 const server = app.listen(0, '127.0.0.1');
@@ -182,6 +183,8 @@ try {
     ['admin-1', 'contest.winners-published', 'contest-1'],
     ['admin-1', 'contest.deleted', 'contest-1'],
   ]);
+  assert.deepEqual(auditDetails[2], { title: 'Летний конкурс', winners: ['user-1', 'user-2'] });
+  assert.deepEqual(auditDetails[3], { title: 'Летний конкурс' });
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }

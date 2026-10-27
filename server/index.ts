@@ -254,6 +254,7 @@ import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
 import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { fetchRemoteAdminImage } from './adminRemoteImage.js';
+import { createAdminAuditLog } from './adminAuditLog.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createPublicApiCardSources, registerPublicApi } from './app/registerPublicApi.js';
 import { normalizeBoostyRenewal, startSubscriptionRefreshJob, writeSubscriptionCacheRow } from './modules/subscription/public.js';
@@ -3137,53 +3138,11 @@ function adminAuth(req: import('express').Request): AdminUser | null {
   return user && isAdminUser(user) ? user : null;
 }
 
-function recordAdminAuditByActorId(actorUserId: string, action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) {
-  dbRun(`
-    INSERT INTO admin_audit_log (actor_user_id, action, entity_type, entity_id, details_json, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `, actorUserId, action, entityType, entityId, JSON.stringify(details), new Date().toISOString());
-}
+const adminAuditLog = createAdminAuditLog({ run: dbRun, all: dbAll });
+const recordAdminAuditByActorId = adminAuditLog.record;
 
 function recordAdminAudit(actor: AdminUser, action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) {
   recordAdminAuditByActorId(actor.id, action, entityType, entityId, details);
-}
-
-function listParserControlAudit(limit: number) {
-  const safeLimit = Math.max(1, Math.min(100, Math.trunc(limit) || 30));
-  const rows = dbAll<{
-    id: number;
-    actor_user_id: string;
-    actor_name: string | null;
-    action: string;
-    entity_id: string;
-    details_json: string;
-    created_at: string;
-  }>(`
-    SELECT
-      audit.id,
-      audit.actor_user_id,
-      users.name AS actor_name,
-      audit.action,
-      audit.entity_id,
-      audit.details_json,
-      audit.created_at
-    FROM admin_audit_log AS audit
-    LEFT JOIN users ON users.id = audit.actor_user_id
-    WHERE audit.entity_type = 'parser-control'
-    ORDER BY audit.created_at DESC, audit.id DESC
-    LIMIT ?
-  `, safeLimit);
-  return rows.map(row => ({
-    id: String(row.id),
-    actor: {
-      id: String(row.actor_user_id || ''),
-      name: String(row.actor_name || '').trim(),
-    },
-    action: String(row.action || ''),
-    entityId: String(row.entity_id || ''),
-    details: safeJsonObject(row.details_json),
-    createdAt: String(row.created_at || ''),
-  }));
 }
 
 function cookieMutationCsrfAllowed(req: import('express').Request): boolean {
@@ -7743,7 +7702,7 @@ app.use('/api', createGalleryRouter({
   adminGuard: adminIdGuard,
   adminAuth,
   setPrivateNoStore,
-  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'gallery', entityId, details),
+  recordAudit: adminAuditLog.contentRecorder('gallery'),
 }));
 
 const cosmeticsDataService = createCosmeticsDataService({
@@ -8830,7 +8789,7 @@ app.use('/api', createAdminContestMutationRouter({
   deleteContest: contestId => { dbRun('DELETE FROM contests WHERE id = ?', contestId); },
   serializeContest: (row, includeRawWinners) => contestFromRow(row, undefined, { includeRawWinners }),
   setPrivateNoStore,
-  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'contest', entityId, details),
+  recordAudit: adminAuditLog.contentRecorder('contest'),
 }));
 
 app.use('/api', createAdminUserReadRouter({
@@ -9246,7 +9205,7 @@ app.use('/api', createAdminArticleRouter({
   deleteArticleVotes: articleId => { dbRun('DELETE FROM article_votes WHERE article_id = ?', articleId); },
   normalizeMode: (value, article) => normalizeArticleModeInput(value, article),
   setPrivateNoStore,
-  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'article', entityId, details),
+  recordAudit: adminAuditLog.contentRecorder('article'),
   onVoteCleanupError: (error, articleId) => console.warn(
     `[admin-articles] vote cleanup failed article=${articleId}:`,
     error instanceof Error ? error.message : error,
@@ -9583,7 +9542,7 @@ app.use('/api', createAdminParserControlRouter({
     entityId,
     details,
   ),
-  listAudit: listParserControlAudit,
+  listAudit: adminAuditLog.listParserControl,
 }));
 
 app.use('/api', createAdminImageGenerationRouter({
