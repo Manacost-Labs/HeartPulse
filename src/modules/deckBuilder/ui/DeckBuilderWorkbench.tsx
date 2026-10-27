@@ -126,8 +126,18 @@ function GalleryGrid({ editor }: { editor: Editor }) {
   </div>;
 }
 
+/** Stays mounted and focusable while a page loads, so keyboard focus survives paging. */
+function Pagination({ editor }: { editor: Editor }) {
+  const { page } = editor.filters;
+  const go = (next: number) => { if (!editor.loading && next >= 1 && next <= editor.catalog.totalPages) editor.filter('page', next); };
+  return <nav className="hp-builder-pagination" aria-label="Страницы карт">
+    <button type="button" aria-disabled={editor.loading || page <= 1} onClick={() => go(page - 1)}>Назад</button>
+    <span>{page} / {editor.catalog.totalPages}</span>
+    <button type="button" aria-disabled={editor.loading || page >= editor.catalog.totalPages} onClick={() => go(page + 1)}>Далее</button>
+  </nav>;
+}
+
 function CardGallery({ editor }: { editor: Editor }) {
-  const { filters } = editor;
   if (editor.configurationCard) return <section className="hp-builder-gallery" aria-label="Коллекция карт" />;
   // One status for the collection: the heading counter, outside the grid
   // that is busy while its existing cards refresh.
@@ -139,11 +149,7 @@ function CardGallery({ editor }: { editor: Editor }) {
       : editor.loading && !editor.catalog.cards.length ? <DeckBuilderCardsSkeleton />
       : editor.catalog.cards.length ? <GalleryGrid editor={editor} />
       : <div className="hp-builder-message"><h3>Карты не найдены</h3><p>Измените поиск или фильтры.</p></div>}
-    {!editor.loading && !editor.error && editor.catalog.totalPages > 1 ? <nav className="hp-builder-pagination" aria-label="Страницы карт">
-      <button type="button" disabled={filters.page <= 1} onClick={() => editor.filter('page', filters.page - 1)}>Назад</button>
-      <span>{filters.page} / {editor.catalog.totalPages}</span>
-      <button type="button" disabled={filters.page >= editor.catalog.totalPages} onClick={() => editor.filter('page', filters.page + 1)}>Далее</button>
-    </nav> : null}
+    {!editor.error && editor.catalog.totalPages > 1 ? <Pagination editor={editor} /> : null}
   </section>;
 }
 

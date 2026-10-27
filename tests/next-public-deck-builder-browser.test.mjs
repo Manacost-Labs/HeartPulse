@@ -17,6 +17,15 @@ const cards = [
 const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1WQAAAAASUVORK5CYII=', 'base64');
 const axe = readFileSync(import.meta.resolve('axe-core').replace('file://', ''), 'utf8');
 
+/** Clears the card search the way a keyboard user does. */
+async function replaceSearch(page) {
+  await page.focus('input[aria-label="Поиск карт"]');
+  await page.keyboard.down('Control');
+  await page.keyboard.press('A');
+  await page.keyboard.up('Control');
+  await page.keyboard.press('Backspace');
+}
+
 test('guest builder keeps selection across filters and mobile panels, confirms reset and downloads Deckview images', async context => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true });
   const downloads = mkdtempSync(join(tmpdir(), 'public-deck-builder-'));
@@ -45,16 +54,17 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
       if (url.pathname === '/api/constructed-cards') {
         queries.push(Object.fromEntries(url.searchParams));
         const query = url.searchParams.get('query') ?? '';
-        if (query === 'slow') await delay(600);
+        if (query === 'slow' || query === 'paged') await delay(query === 'slow' ? 600 : 300);
         const result = largePool ? [...Array.from({ length: 20 }, (_, index) => ({ ...cards[0],
           card_id: `CARD_${index}`, dbf: 300 + index, name: { ru: `Карта ${index}` } })),
           { ...cards[2], card_id: 'REV_018', dbf: 79767, rarity: 'LEGENDARY', name: { ru: 'Принц Ренатал' } }]
           : query === 'slow' ? [{ ...cards[0], name: { ru: 'Устаревший ответ' } }]
+          : query === 'paged' ? cards
           : cards.filter(card => card.name.ru.toLowerCase().includes(query.toLowerCase()));
         await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ cards: result,
           facets: { sets: ['CORE'], types: ['MINION', 'SPELL'], mechanics: ['TAUNT'], minionTypes: ['BEAST'], spellSchools: ['FIRE'] },
           mechanicTranslations: { TAUNT: 'Провокация' },
-          pagination: { total: result.length, totalPages: 1 } }) }).catch(() => {});
+          pagination: query === 'paged' ? { total: 60, totalPages: 3 } : { total: result.length, totalPages: 1 } }) }).catch(() => {});
       } else if (url.pathname === '/api/deck/render') {
         renders.push(JSON.parse(request.postData()));
         await request.respond({ status: 200, contentType: 'application/json',
@@ -121,6 +131,25 @@ test('guest builder keeps selection across filters and mobile panels, confirms r
     await delay(700);
     assert.equal(await page.$('button[aria-label*="Устаревший ответ"]'), null);
     assert.equal(await page.$$('.hp-builder-row').then(rows => rows.length), 2);
+    // Paging from the keyboard keeps focus on the button, also on the last page.
+    await replaceSearch(page);
+    await page.type('input[aria-label="Поиск карт"]', 'paged');
+    await page.waitForSelector('.hp-builder-pagination button:last-child');
+    await page.focus('.hp-builder-pagination button:last-child');
+    for (const pageNumber of ['2', '3']) {
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(number => document.querySelector('.hp-builder-pagination span')?.textContent === `${number} / 3`
+        && document.querySelector('.hp-builder-card-grid')?.getAttribute('aria-busy') === 'false', {}, pageNumber);
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Далее', `focus after page ${pageNumber}`);
+    }
+    assert.equal(await page.$eval('.hp-builder-pagination button:last-child', node => node.getAttribute('aria-disabled')), 'true');
+    await page.keyboard.press('Enter');
+    await delay(400);
+    assert.equal(await page.$eval('.hp-builder-pagination span', node => node.textContent), '3 / 3');
+    await replaceSearch(page);
+    await page.type('input[aria-label="Поиск карт"]', 'кроколиск');
+    await page.waitForFunction(() => !document.querySelector('.hp-builder-pagination')
+      && document.querySelector('button[aria-label^="Добавить: Речной кроколиск"]'));
     await page.select('.hp-builder-context label:first-child select', 'WARRIOR');
     await page.waitForSelector('.hp-builder-reset');
     await page.click('.hp-builder-reset button:last-child');
