@@ -40,22 +40,11 @@ assert.equal(decodeSignedStateCookie(signed.split('.')[0], secret), null, 'unsig
 assert.equal(decodeSignedStateCookie(`x.${'a'.repeat(9_000)}`, secret), null, 'oversized cookie must be rejected');
 assert.throws(() => encodeSignedStateCookie(state, ''), /secret is required/);
 
+// Session cookie names, the cookie that authenticates and CSRF detection are
+// exercised on the real server by tests/auth-session-cookies-integration.test.mjs.
+// A malformed OIDC cookie decodes to null today, so nothing there can prove the
+// callback keeps it inside its error boundary; the source still guards that.
 const serverSource = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
-assert.match(
-  serverSource,
-  /AUTH_COOKIE_NAME = APP_URL\.startsWith\('https:\/\/'\)[\s\S]{0,100}__Host-manacost_auth_token/,
-  'production sessions must use a sibling-resistant __Host- cookie name',
-);
-assert.match(
-  serverSource,
-  /cookieName: AUTH_COOKIE_NAME/,
-  'authentication must read only the environment-selected primary session cookie',
-);
-assert.match(
-  serverSource,
-  /authCookiePresent:\s*cookieValues\([\s\S]{0,160}AUTH_COOKIE_NAME,[\s\S]{0,40}\.length > 0/,
-  'CSRF detection must inspect all duplicate auth cookies, matching authentication semantics',
-);
 assert.match(
   serverSource,
   /try \{\s*const oidcState = telegramOidcFlow\.take/,

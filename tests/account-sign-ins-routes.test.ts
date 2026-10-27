@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import {
@@ -8,11 +7,9 @@ import {
   linkedSignInProviders,
 } from '../server/modules/accountSignIns/public.js';
 
-const compositionRoot = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
-assert.match(compositionRoot, /from '\.\/modules\/accountSignIns\/public\.js';/,
-  'the composition root enters the module through public.ts');
-assert.match(compositionRoot, /readStoredProviders:\s*createSqliteLinkedProviderReader\(db\)/,
-  'persistence is delegated to the module repository');
+// The composition root's wiring is exercised on the real server by
+// tests/auth-session-cookies-integration.test.mjs; entering through public.ts
+// is enforced by scripts/check-module-boundaries.mjs.
 
 // Storage spellings collapse to public names; unknown ones never reach the browser.
 assert.deepEqual(

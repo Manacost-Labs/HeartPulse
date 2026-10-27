@@ -16,12 +16,13 @@ import {
   SESSION_ACTIVITY_INTERVAL_MS,
 } from '../server/modules/accountSessions/public.js';
 
+// Entering through public.ts is enforced by scripts/check-module-boundaries.mjs;
+// activity recording on authenticated requests by
+// tests/account-sessions-integration.test.mjs. The router's own CSRF hook sits
+// behind the site-wide CSRF middleware, so no request can tell it apart.
 const compositionRoot = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
-assert.match(compositionRoot, /from '\.\/modules\/accountSessions\/public\.js';/, 'the composition root enters through public.ts');
 assert.match(compositionRoot, /sessions: accountSessionStore, csrfAllowed: cookieMutationCsrfAllowed/,
   'revocations use the site CSRF rule');
-assert.match(compositionRoot, /recordSessionActivity\(accountSessionStore, req, activeSession\.session\)/,
-  'every authenticated request may record activity');
 
 // The user agent is reduced to browser and system; the full string is never kept.
 const CHROME_WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
