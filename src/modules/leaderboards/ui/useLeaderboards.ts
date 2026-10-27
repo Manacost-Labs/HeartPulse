@@ -30,10 +30,16 @@ function ready<T>(key: string, value: T | null): Loadable<T> {
 /** Загружает `url` для ключа `key`, сохраняя прежнее значение до ответа; 404 — `missing`. */
 function useLoadable<T>(key: string | null, url: string, accept: (value: unknown) => value is T, initial: Loadable<T>, attempt: number) {
   const [state, setState] = useState(initial);
-  // Ключ и статус последнего состояния: эффект пропускает уже загруженный ключ, а ошибку повторяет по `attempt`.
-  const settled = useRef(initial.status === 'ready' ? initial.key : '');
+  // Последний полученный ответ целиком: возврат к его ключу (A → B, пока B грузится, → A) показывает его снова
+  // без запроса, а не оставляет загрузку B; ошибку эффект повторяет по `attempt`.
+  const settled = useRef<Loadable<T> | null>(initial.status === 'ready' ? initial : null);
   useEffect(() => {
-    if (key === null || settled.current === key) return undefined;
+    if (key === null) return undefined;
+    const last = settled.current;
+    if (last?.key === key) {
+      setState(last);
+      return undefined;
+    }
     const controller = new AbortController();
     setState(previous => ({ key, status: 'loading', value: previous.value }));
     void fetchWithDeadline(url, { signal: controller.signal, headers: { Accept: 'application/json' } })
@@ -46,8 +52,9 @@ function useLoadable<T>(key: string | null, url: string, accept: (value: unknown
       })
       .then(result => {
         if (controller.signal.aborted) return;
-        settled.current = key;
-        setState(result === 'missing' ? { key, status: 'missing', value: null } : { key, status: 'ready', value: result });
+        const next: Loadable<T> = result === 'missing' ? { key, status: 'missing', value: null } : { key, status: 'ready', value: result };
+        settled.current = next;
+        setState(next);
       })
       .catch(() => {
         if (!controller.signal.aborted) setState(previous => ({ key, status: 'error', value: previous.value }));
@@ -75,10 +82,14 @@ export function useLeaderboards(initial: LeaderboardsInitial) {
   const initialStatsKey = leaderboardApiQuery(initial.selection, false);
 
   const catalog = useLoadable('seasons', '/api/leaderboards/seasons', isLeaderboardSeasonCatalog, ready('seasons', initial.catalog), attempt);
+  const seasons = leaderboardSeasons(catalog.value, selection.mode, selection.region);
   // У режима в регионе нет ни одного сохранённого сезона: таблицу ещё собирают, запрос заведомо получил бы 404.
-  const collecting = catalog.value !== null && !leaderboardSeasons(catalog.value, selection.mode, selection.region).length;
-  const table = useLoadable(collecting ? null : tableKey, `/api/leaderboards/table?${tableKey}`, isLeaderboardTable, ready(initialTableKey, initial.table), attempt);
-  const stats = useLoadable(collecting ? null : statsKey, `/api/leaderboards/stats?${statsKey}`, isLeaderboardStats, ready(initialStatsKey, initial.stats), attempt);
+  const collecting = catalog.value !== null && !seasons.length;
+  // Сезона из ссылки нет среди сохранённых (опечатка, ?season=999999): API ответил бы 404 или 400, и «Повторить» не помог бы.
+  const unknownSeason = !collecting && catalog.value !== null && selection.season !== null && !seasons.some(season => season.id === selection.season);
+  const idle = collecting || unknownSeason;
+  const table = useLoadable(idle ? null : tableKey, `/api/leaderboards/table?${tableKey}`, isLeaderboardTable, ready(initialTableKey, initial.table), attempt);
+  const stats = useLoadable(idle ? null : statsKey, `/api/leaderboards/stats?${statsKey}`, isLeaderboardStats, ready(initialStatsKey, initial.stats), attempt);
   const playerKey = selection.player ? new URLSearchParams({ region: selection.region, name: selection.player }).toString() : null;
   const player = useLoadable(playerKey, `/api/leaderboards/player?${playerKey ?? ''}`, isPlayer, { key: '', status: 'loading', value: null }, attempt);
 
@@ -106,5 +117,5 @@ export function useLeaderboards(initial: LeaderboardsInitial) {
     });
   }, []);
 
-  return { selection, select, catalog, collecting, table, stats, player, retry: () => setAttempt(value => value + 1) };
+  return { selection, select, catalog, seasons, collecting, unknownSeason, table, stats, player, retry: () => setAttempt(value => value + 1) };
 }
