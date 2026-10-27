@@ -13,6 +13,7 @@ import {
   projectConstructedCardSitemapCatalog,
   projectStandardCardSitemapCatalog,
 } from './entitySitemapProjections.js';
+import { projectCosmeticsSitemapCatalog, projectGuideArchiveSitemapCatalog } from './entitySitemapEditorial.js';
 import {
   loadStaticSitemapArtifact,
   renderSitemapIndex,
@@ -42,6 +43,8 @@ export type EntitySitemapRouterDependencies = {
   loadBattlegroundMinions?: () => Promise<unknown[]>;
   loadBattlegroundSpells?: () => Promise<unknown[]>;
   loadBattlegroundHeroes?: () => Promise<unknown[]>;
+  loadCosmetics?: () => Promise<unknown[]>;
+  loadGuidesArchive?: () => Promise<unknown[]>;
   staticUrls: string[];
   stateDirectory: string;
   canonicalOrigin?: string;
@@ -52,6 +55,8 @@ export type EntitySitemapRouterDependencies = {
   minimumBattlegroundMinionCount?: number;
   minimumBattlegroundSpellCount?: number;
   minimumBattlegroundHeroCount?: number;
+  minimumCosmeticsCount?: number;
+  minimumGuideCount?: number;
   staticLastModifiedMs?: number;
   retryAfterSeconds?: number;
   now?: () => number;
@@ -64,6 +69,8 @@ const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/battleground-minions.xml',
   '/sitemaps/battleground-spells.xml',
   '/sitemaps/battleground-heroes.xml',
+  '/sitemaps/cosmetics.xml',
+  '/sitemaps/guides-archive.xml',
 ];
 
 export {
@@ -175,6 +182,14 @@ function dynamicSitemapDefinitions(
     load: dependencies.loadBattlegroundHeroes,
     project: projectBattlegroundHeroSitemapCatalog,
     minimumEntryCount: dependencies.minimumBattlegroundHeroCount ?? 80,
+  });
+  if (dependencies.loadCosmetics) definitions.push({
+    segment: 'cosmetics', pathname: '/sitemaps/cosmetics.xml', load: dependencies.loadCosmetics,
+    project: projectCosmeticsSitemapCatalog, minimumEntryCount: dependencies.minimumCosmeticsCount ?? 500,
+  });
+  if (dependencies.loadGuidesArchive) definitions.push({
+    segment: 'guides-archive', pathname: '/sitemaps/guides-archive.xml', load: dependencies.loadGuidesArchive,
+    project: projectGuideArchiveSitemapCatalog, minimumEntryCount: dependencies.minimumGuideCount ?? 500,
   });
   return definitions;
 }

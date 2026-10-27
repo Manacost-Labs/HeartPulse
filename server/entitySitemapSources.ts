@@ -1,4 +1,10 @@
 import type { BattlegroundLibraryKind } from './battlegroundLibrarySeoRoutes.js';
+import {
+  loadCosmeticsSitemapRows,
+  loadGuideArchiveSitemapRows,
+  type CosmeticsCatalogLoader,
+  type GuideSitemapDatabase,
+} from './entitySitemapEditorial.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -108,12 +114,24 @@ export function createEntitySitemapLoaders(loadConstructedCards: ConstructedCard
   };
 }
 
+type EditorialSitemapSources = {
+  loadCosmeticsCatalog: CosmeticsCatalogLoader;
+  getGuidesDatabase: () => GuideSitemapDatabase;
+};
+
 export function createEntitySitemapRuntimeOptions(
   loadConstructedCards: ConstructedCardLoader,
   environment: Record<string, string | undefined>,
+  editorial?: EditorialSitemapSources,
 ) {
   return {
     ...createEntitySitemapLoaders(loadConstructedCards),
+    ...(editorial ? {
+      loadCosmetics: () => loadCosmeticsSitemapRows(editorial.loadCosmeticsCatalog),
+      loadGuidesArchive: async () => loadGuideArchiveSitemapRows(editorial.getGuidesDatabase()),
+      minimumCosmeticsCount: minimumFromEnvironment(environment.SITEMAP_COSMETICS_MIN, 500),
+      minimumGuideCount: minimumFromEnvironment(environment.SITEMAP_GUIDES_MIN, 500),
+    } : {}),
     minimumStandardCardCount: minimumFromEnvironment(environment.SITEMAP_STANDARD_MIN_CARDS, 500),
     minimumWildCardCount: minimumFromEnvironment(environment.SITEMAP_WILD_MIN_CARDS, 500),
     minimumBattlegroundMinionCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_MINIONS, 500),

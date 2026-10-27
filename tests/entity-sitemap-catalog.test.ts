@@ -190,6 +190,15 @@ const publicChange = projectStandardCardSitemapCatalog([{
 assert.notEqual(publicChange[0]?.semanticHash, projected[0]?.semanticHash,
   'a public SSR projection change must change the semantic hash');
 
+const versionedImage = (path: string) => projectStandardCardSitemapCatalog([{
+  ...publicCard,
+  images: { card: `https://api.kolodahearthstone.com/uploads/constructed-related/${path}` },
+}], 'https://arena.hs-manacost.ru')[0]?.semanticHash;
+assert.equal(versionedImage('CARD_1.png?v=2026-10-26 12:30:50'), versionedImage('CARD_1.png?v=2026-10-27 12:30:50'),
+  'the daily image cache-buster must not move lastmod of every card');
+assert.notEqual(versionedImage('CARD_1.png?v=1'), versionedImage('CARD_1_NEW.png?v=1'),
+  'a different card image must still change the semantic hash');
+
 const urlset = renderSitemapUrlset([
   { location: 'https://arena.hs-manacost.ru/example/?a=1&b=2' },
   { location: 'https://arena.hs-manacost.ru/changed/', lastmod: '2026-07-21' },

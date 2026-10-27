@@ -568,12 +568,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Стандарт",
-            "item": "https://hearthpulse.net/standard/matchups/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Матчапы",
             "item": "https://hearthpulse.net/standard/matchups/"
           }
@@ -636,12 +630,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Традиционный режим",
-            "item": "https://hearthpulse.net/standard/fun-decks/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Фан-колоды",
             "item": "https://hearthpulse.net/standard/fun-decks/"
           }
@@ -751,12 +739,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Традиционный режим",
-            "item": "https://hearthpulse.net/standard/patches/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Патчноуты",
             "item": "https://hearthpulse.net/standard/patches/"
           }
@@ -784,12 +766,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Традиционный режим",
-            "item": "https://hearthpulse.net/standard/radar/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Радар нерфов и баффов",
             "item": "https://hearthpulse.net/standard/radar/"
           }
@@ -863,49 +839,41 @@
         "@id": "https://hearthpulse.net/tierlist/#tierlist",
         "name": "Тир-лист карт Арены Hearthstone",
         "description": "Оценки карт для режима Арена Hearthstone по всем классам от S до F.",
-        "numberOfItems": 500,
         "itemListElement": [
           {
             "@type": "ListItem",
             "position": 1,
-            "name": "Тир S — Отлично (авто-пик)",
-            "url": "https://hearthpulse.net/tierlist/"
+            "name": "Тир S — Отлично (авто-пик)"
           },
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Тир A — Хорошо",
-            "url": "https://hearthpulse.net/tierlist/"
+            "name": "Тир A — Хорошо"
           },
           {
             "@type": "ListItem",
             "position": 3,
-            "name": "Тир B — Выше среднего",
-            "url": "https://hearthpulse.net/tierlist/"
+            "name": "Тир B — Выше среднего"
           },
           {
             "@type": "ListItem",
             "position": 4,
-            "name": "Тир C — Средне",
-            "url": "https://hearthpulse.net/tierlist/"
+            "name": "Тир C — Средне"
           },
           {
             "@type": "ListItem",
             "position": 5,
-            "name": "Тир D — Ниже среднего",
-            "url": "https://hearthpulse.net/tierlist/"
+            "name": "Тир D — Ниже среднего"
           },
           {
             "@type": "ListItem",
             "position": 6,
-            "name": "Тир E — Плохо",
-            "url": "https://hearthpulse.net/tierlist/"
+            "name": "Тир E — Плохо"
           },
           {
             "@type": "ListItem",
             "position": 7,
-            "name": "Тир F — Ужасно",
-            "url": "https://hearthpulse.net/tierlist/"
+            "name": "Тир F — Ужасно"
           }
         ]
       },
@@ -949,73 +917,61 @@
         "@id": "https://hearthpulse.net/legendaries/#legendaries",
         "name": "Легендарные группы для Арены Hearthstone",
         "description": "Наборы карт для выбора первой легендарки на Арене Hearthstone с винрейтом каждой группы.",
-        "numberOfItems": 30,
         "itemListElement": [
           {
             "@type": "ListItem",
             "position": 1,
-            "name": "Группы легендарных карт — Рыцарь смерти",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Рыцарь смерти"
           },
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Группы легендарных карт — Паладин",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Паладин"
           },
           {
             "@type": "ListItem",
             "position": 3,
-            "name": "Группы легендарных карт — Шаман",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Шаман"
           },
           {
             "@type": "ListItem",
             "position": 4,
-            "name": "Группы легендарных карт — Охотник",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Охотник"
           },
           {
             "@type": "ListItem",
             "position": 5,
-            "name": "Группы легендарных карт — Маг",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Маг"
           },
           {
             "@type": "ListItem",
             "position": 6,
-            "name": "Группы легендарных карт — Разбойник",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Разбойник"
           },
           {
             "@type": "ListItem",
             "position": 7,
-            "name": "Группы легендарных карт — Чернокнижник",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Чернокнижник"
           },
           {
             "@type": "ListItem",
             "position": 8,
-            "name": "Группы легендарных карт — Друид",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Друид"
           },
           {
             "@type": "ListItem",
             "position": 9,
-            "name": "Группы легендарных карт — Воин",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Воин"
           },
           {
             "@type": "ListItem",
             "position": 10,
-            "name": "Группы легендарных карт — Жрец",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Жрец"
           },
           {
             "@type": "ListItem",
             "position": 11,
-            "name": "Группы легендарных карт — Охотник на демонов",
-            "url": "https://hearthpulse.net/legendaries/"
+            "name": "Группы легендарных карт — Охотник на демонов"
           }
         ]
       }
@@ -1249,12 +1205,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Поля Сражений",
-            "item": "https://hearthpulse.net/battlegrounds/strategies/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Конструктор стратегий",
             "item": "https://hearthpulse.net/battlegrounds/strategies/"
           }
@@ -1289,12 +1239,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Поля Сражений",
-            "item": "https://hearthpulse.net/heroes/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Герои",
             "item": "https://hearthpulse.net/heroes/"
           }
@@ -1322,12 +1266,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Поля Сражений",
-            "item": "https://hearthpulse.net/library/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Библиотека",
             "item": "https://hearthpulse.net/library/"
           }
@@ -1405,12 +1343,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Поля Сражений",
-            "item": "https://hearthpulse.net/battlegrounds/tier-list/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Тир-лист",
             "item": "https://hearthpulse.net/battlegrounds/tier-list/"
           }
@@ -1434,26 +1366,22 @@
           {
             "@type": "ListItem",
             "position": 1,
-            "name": "Тир-лист существ БГ",
-            "url": "https://hearthpulse.net/battlegrounds/tier-list/"
+            "name": "Тир-лист существ БГ"
           },
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Тир-лист стратегий БГ",
-            "url": "https://hearthpulse.net/battlegrounds/tier-list/"
+            "name": "Тир-лист стратегий БГ"
           },
           {
             "@type": "ListItem",
             "position": 3,
-            "name": "Тир-лист заклинаний БГ",
-            "url": "https://hearthpulse.net/battlegrounds/tier-list/"
+            "name": "Тир-лист заклинаний БГ"
           },
           {
             "@type": "ListItem",
             "position": 4,
-            "name": "Тир-лист аксессуаров БГ",
-            "url": "https://hearthpulse.net/battlegrounds/tier-list/"
+            "name": "Тир-лист аксессуаров БГ"
           }
         ]
       }
@@ -1471,12 +1399,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Поля Сражений",
-            "item": "https://hearthpulse.net/battlegrounds/tier-builder/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": "Конструктор тир-листов",
             "item": "https://hearthpulse.net/battlegrounds/tier-builder/"
           }
