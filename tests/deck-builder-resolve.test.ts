@@ -176,6 +176,24 @@ try {
   });
   assert.equal(administrator.status, 400);
   assert.equal(administrator.headers.get('cache-control'), 'private, no-store');
+
+  // A malformed percent escape used to throw outside the handler's try and
+  // take the whole process down through an unhandled rejection.
+  const malformedEscape = await fetch(`${baseUrl}/deck/resolve?code=%25E0`);
+  assert.equal(malformedEscape.status, 400);
+  const malformedLink = await fetch(`${baseUrl}/deck/resolve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deckCode: 'https://hsreplay.net/decks/?code=%E0%A4%A' }),
+  });
+  assert.equal(malformedLink.status, 400);
+  // Strings that are not deck codes are rejected before any catalog,
+  // database or HSGuru lookup (getDatabase above throws if reached).
+  for (const code of ['not a deck code', 'A'.repeat(5_000)]) {
+    const rejected = await fetch(`${baseUrl}/deck/resolve?code=${encodeURIComponent(code)}`);
+    assert.equal(rejected.status, 400);
+    assert.deepEqual(await rejected.json(), { error: 'Некорректный код колоды' });
+  }
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
