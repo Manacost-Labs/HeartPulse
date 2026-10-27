@@ -155,7 +155,7 @@ assert.match(canonicalApplicationLocation, /proxy_hide_header\s+X-HearthPulse-Ed
 assert.doesNotMatch(canonicalApplicationLocation, /add_header\s+Cache-Control/,
   'the canonical edge must preserve the application Cache-Control policy');
 assert.match(edgeCacheDeclarations,
-  /keys_zone=hearthpulse_documents:20m max_size=1g inactive=10m use_temp_path=off;/,
+  /keys_zone=hearthpulse_documents:20m max_size=1g inactive=10m use_temp_path=off min_free=8g;/,
   'a copy of an ended epoch is never read again, so it must not wait an hour in the zone');
 assert.match(edgeCacheDeclarations, /map "\$http_cookie\$http_authorization" \$hearthpulse_document_private_request \{\s+"" 0;\s+default 1;/);
 const apiLocation = application.match(/location \/api\/ \{([\s\S]*?)\n    \}/)?.[1];

@@ -61,7 +61,7 @@ const cdnCardImageSource = readFileSync(
   'utf8',
 );
 
-assert.match(edgeCachePathSource, /max_size=18g/,
+assert.match(edgeCachePathSource, /max_size=4g/,
   'the smallest edge must keep cache capacity below its root filesystem size');
 assert.match(edgeCachePathSource, /inactive=7d/,
   'inactive entries must expire within the regional cache budget');
