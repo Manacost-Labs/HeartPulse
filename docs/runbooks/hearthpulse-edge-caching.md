@@ -303,6 +303,12 @@ The copy is refreshed from the origin by `deploy/sync-hs-arena-ru-cert.sh`
   `hs-arena.ru` server blocks instead. If it stays enabled, the installer
   refuses with `another server also declares hs-arena.ru` and restores the
   edge.
+- The hand-made file also declares `upstream hs_arena_origin`, which every
+  HearthPulse vhost uses. `34-arena-edge-cache-path.conf` now declares it, so
+  disable the hand-made file and install in one sitting: while the file is
+  enabled the new `34-…` is a duplicate upstream (`nginx -t` fails and the
+  installer restores the edge), and once it is disabled, an edge still on the
+  old `34-…` has no upstream at all. Never reload in between.
 
 ### Novosibirsk copy
 
