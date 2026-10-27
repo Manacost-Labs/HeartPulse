@@ -297,7 +297,7 @@ try {
   assert.equal(unsafeImage.status, 200);
   const unsafeImageHtml = await unsafeImage.text();
   assert.doesNotMatch(unsafeImageHtml, /javascript:/i);
-  assert.match(unsafeImageHtml, /https:\/\/hearthpulse\.net\/assets\/og-preview\.png/,
+  assert.match(unsafeImageHtml, /https:\/\/hearthpulse\.net\/assets\/og\/hearthpulse-standard\.png\?v=\d{8}/,
     'unsafe image schemes must use the public fallback');
 
   const missing = await fetch(`${origin}/standard/cards/standard/UNKNOWN_1/`);

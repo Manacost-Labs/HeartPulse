@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import '@/src/route-parchment.css';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { loadPublicStreamer } from '@/apps/public-web/lib/publicStreamers';
 import { StreamerPageClient } from '@/apps/public-web/ui/StreamerPageClient';
 
@@ -30,7 +31,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title, description, alternates: { canonical }, robots: policy.robots,
     openGraph: { type: 'profile', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
-      images: avatar ? [avatar] : ['/assets/og-preview.png'] },
+      images: avatar ? [avatar]
+        : [{ url: shareImagePath(), alt: `HearthPulse — ${name}`, width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }] },
   };
 }
 

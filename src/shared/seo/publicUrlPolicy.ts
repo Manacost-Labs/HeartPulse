@@ -53,7 +53,8 @@ export type DocumentPageMeta = {
 };
 
 const DEFAULT_ORIGIN = 'https://hearthpulse.net';
-const DEFAULT_OG_IMAGE_URL = `${DEFAULT_ORIGIN}/assets/og-preview.png`;
+// Equals shareImageUrl() (asserted in tests); client shared code may not import the root `shared/`.
+const DEFAULT_OG_IMAGE_URL = `${DEFAULT_ORIGIN}/assets/og/hearthpulse-default.png?v=20261027`;
 let inventoryPromise: Promise<PublicRouteInventory> | null = null;
 let documentMetaRevision = 0;
 

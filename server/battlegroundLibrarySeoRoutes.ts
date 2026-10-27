@@ -1,6 +1,7 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
+import { shareImageUrl } from '../shared/shareImages.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryIdentityReader, createBattlegroundLibraryAuxiliaryPublicRouter,
   createBattlegroundLibraryPublicRouter, readBattlegroundLibraryIdentity, withBattlegroundLibraryDeadline as withDeadline } from './modules/battlegroundLibrary/public.js';
@@ -109,7 +110,7 @@ function safeOptionalImageUrl(value: string | null, origin: string): string | nu
 }
 
 function safePrimaryImageUrl(value: string | null, origin: string): string {
-  return safeOptionalImageUrl(value, origin) ?? `${origin}/assets/og-preview.png`;
+  return safeOptionalImageUrl(value, origin) ?? shareImageUrl('battlegrounds', origin);
 }
 
 function finiteNumber(value: unknown): number | null {
@@ -533,7 +534,7 @@ export function createBattlegroundLibrarySeoRouter(
   router.use(createBattlegroundLibraryAuxiliaryPublicRouter({
     fetchImpl, retryAfterSeconds, onError: dependencies.onError, cardText: renderTextPlurals,
     apiBaseUrl: dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1',
-    publicImageUrl: value => sameOriginPublicResourceUrl(value, origin) ?? `${origin}/assets/og-preview.png`,
+    publicImageUrl: value => sameOriginPublicResourceUrl(value, origin) ?? shareImageUrl('battlegrounds', origin),
   }));
   const handlerFor = (kind: BattlegroundLibraryKind): RequestHandler => async (request, response) => {
     const detail = parseDetailParameter(request.params.slugAndDbfId);

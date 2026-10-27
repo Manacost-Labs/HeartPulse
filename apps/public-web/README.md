@@ -303,6 +303,11 @@ is a separate administrator workspace and retains its permission gate.
   (`src/shared/seo/robots.ts`) for a page that is always indexable: both
   carry the preview directives (`max-image-preview:large` and friends) that
   a bare `{ index: true }` drops.
+- Share images (`og:image`, `twitter:image`) are the committed 1200×630
+  section previews of `shared/shareImages.ts`: `seoRegistryMetadata()` picks
+  one by the path's section, other helpers name their section. After
+  changing `scripts/share-images/`, run `npm run render:share-images` and bump
+  `SHARE_IMAGE_VERSION`, since Telegram and VK cache a preview by its URL.
 - JSON-LD of listing and hub pages lives in
   `config/public-seo-structured-data.json`; the page renders it with
   `<SeoStructuredData path="/route" />` (`src/seo/structuredData.ts` adds

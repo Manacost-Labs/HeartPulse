@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { publicBattlegroundLibraryCard } from '../apps/public-web/lib/publicBattlegroundLibraryCardData';
+import { shareImageUrl } from '../shared/shareImages';
 import { battlegroundLibraryDetailApiPath } from '../apps/public-web/lib/battlegroundLibraryDetailKinds';
 
 const payload = {
@@ -21,7 +22,7 @@ assert.throws(() => publicBattlegroundLibraryCard({ ...payload, canonicalPath: '
 const unsafe = publicBattlegroundLibraryCard({ ...payload, card: {
   ...payload.card, images: { card: 'javascript:alert(1)' },
 } }, 'minions', '98582');
-assert.equal(unsafe.image, 'https://hearthpulse.net/assets/og-preview.png');
+assert.equal(unsafe.image, shareImageUrl('battlegrounds'));
 
 const archived = publicBattlegroundLibraryCard({ ...payload,
   canonicalPath: '/library/archive/minions/старый-механизм-98583/',

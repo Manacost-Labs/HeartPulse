@@ -2,6 +2,7 @@ import { isIndexableConstructedCard, projectPublicConstructedCardSeoData as proj
 export { isIndexableConstructedCard, type PublicConstructedCardSeoData } from './modules/constructedCards/public.js';
 import { Router, type RequestHandler, type Response } from 'express';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
+import { shareImageUrl } from '../shared/shareImages.js';
 import type {
   ConstructedCardCollection,
   ConstructedCardDetailResult,
@@ -16,7 +17,8 @@ import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js'
 
 type JsonRecord = Record<string, unknown>;
 export function projectPublicConstructedCardSeoData(card: JsonRecord, origin?: string): PublicConstructedCardSeoData {
-  return projectPublicCard(card, origin, sameOriginPublicResourceUrl);
+  return projectPublicCard(card, origin,
+    (value, cardOrigin) => sameOriginPublicResourceUrl(value, cardOrigin, shareImageUrl('standard', cardOrigin)));
 }
 
 export type ConstructedCardSeoRouterDependencies = {
@@ -84,7 +86,7 @@ function canonicalOrigin(value: string | undefined): string {
 }
 
 function safeImageUrl(value: string | null, origin: string): string {
-  const fallback = `${origin}/assets/og-preview.png`;
+  const fallback = shareImageUrl('standard', origin);
   return sameOriginPublicResourceUrl(value, origin, fallback) ?? fallback;
 }
 

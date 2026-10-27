@@ -1,4 +1,5 @@
 import { sameOriginPublicResourceUrl } from '@/shared/publicResourceUrl';
+import { shareImageUrl } from '@/shared/shareImages';
 import { battlegroundLibraryDetailKind, type BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
 
 export type PublicBattlegroundLibraryCard = {
@@ -34,7 +35,7 @@ export function publicBattlegroundLibraryCard(value: unknown, kindPath: string, 
   }
   const images = card.images && typeof card.images === 'object' ? card.images as Record<string, unknown> : {};
   const image = sameOriginPublicResourceUrl(images.card ?? images.framed, 'https://hearthpulse.net')
-    ?? 'https://hearthpulse.net/assets/og-preview.png';
+    ?? shareImageUrl('battlegrounds');
   if (card.textRu !== null && typeof card.textRu !== 'string') throw new Error('Invalid public Battleground card text');
   return {
     dbfId: card.dbfId as number, kind: config.kind, name: card.nameRu,

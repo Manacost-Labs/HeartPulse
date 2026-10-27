@@ -1,6 +1,7 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
+import { shareImageUrl } from '../shared/shareImages.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
 import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
@@ -68,7 +69,7 @@ function normalizeCanonicalOrigin(value: string | undefined): string {
 }
 
 function safeImageUrl(value: string | null, origin: string): string {
-  const fallback = `${origin}/assets/og-preview.png`;
+  const fallback = shareImageUrl('battlegrounds', origin);
   return sameOriginPublicResourceUrl(value, origin, fallback) ?? fallback;
 }
 

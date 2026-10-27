@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { seoPageForExactPath } from '@/src/seo/registry';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { searchParamsQuery } from './searchParams';
 
 const headings: Record<string, string> = {
@@ -64,8 +65,8 @@ export async function battlegroundLibraryMetadata(path: string, searchParams: Li
     robots: policy.robots,
     openGraph: { type: 'website', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title: listing.seo.title, description: listing.seo.description,
-      images: [{ url: '/assets/og-preview.png', alt: listing.heading, width: 1200, height: 630 }] },
+      images: [{ url: shareImagePath('battlegrounds'), alt: listing.heading, width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }] },
     twitter: { card: 'summary_large_image', title: listing.seo.title, description: listing.seo.description,
-      images: ['/assets/og-preview.png'] },
+      images: [shareImagePath('battlegrounds')] },
   };
 }

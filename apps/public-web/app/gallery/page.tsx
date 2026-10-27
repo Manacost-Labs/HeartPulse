@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { loadPublicGallery } from '@/apps/public-web/lib/publicGallery';
 import { GalleryPageClient } from '@/apps/public-web/ui/GalleryPageClient';
 import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
+import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 const seo = seoPageForExactPath('/gallery');
@@ -18,11 +19,11 @@ export const metadata: Metadata = {
     type: 'website', url: 'https://hearthpulse.net/gallery/',
     siteName: 'HearthPulse', locale: 'ru_RU',
     title: seo.title, description: seo.description,
-    images: [{ url: '/assets/og-preview.png', alt: 'HearthPulse — статистика и тир-листы Hearthstone', width: 1200, height: 630 }],
+    images: [{ url: shareImagePath(), alt: 'HearthPulse — статистика и тир-листы Hearthstone', width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }],
   },
   twitter: {
     card: 'summary_large_image', title: seo.title,
-    description: seo.description, images: ['/assets/og-preview.png'],
+    description: seo.description, images: [shareImagePath()],
   },
 };
 

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import '@/src/route-parchment.css';
 import '@/src/shared/ui/LoadingSurface.css';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { loadPublicGuideTeaser } from '@/apps/public-web/lib/publicGuideTeaser';
 import { GuideArchiveDetailPageClient } from '@/apps/public-web/ui/GuideArchiveDetailPageClient';
 
@@ -27,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title, description, alternates: { canonical },
     robots: policy.robots,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
-      images: teaser.image ? [teaser.image] : ['/assets/og-preview.png'] },
+      images: teaser.image ? [teaser.image]
+        : [{ url: shareImagePath('articles'), alt: teaser.title, width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }] },
   };
 }
 
