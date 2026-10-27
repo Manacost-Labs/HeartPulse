@@ -194,6 +194,31 @@ try {
     assert.equal(rejected.status, 400);
     assert.deepEqual(await rejected.json(), { error: 'Некорректный код колоды' });
   }
+  // qs and JSON can hand over objects whose own `toString` is not a function;
+  // String() on them used to throw and answer 500.
+  const objectCode = await fetch(`${baseUrl}/deck/resolve?code[toString]=x`);
+  assert.equal(objectCode.status, 400);
+  for (const body of [{ deckCode: { toString: 1 } }, { code: [{ toString: 1 }] }]) {
+    const rejected = await fetch(`${baseUrl}/deck/resolve`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    assert.equal(rejected.status, 400, JSON.stringify(body));
+  }
+  // Object format and archetype hints are ignored; outside lookups fail fast here.
+  const localFetch = globalThis.fetch;
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => String(input).startsWith(baseUrl)
+    ? localFetch(input, init) : Promise.reject(new Error('offline'))) as typeof fetch;
+  try {
+    const hinted = await fetch(`${baseUrl}/deck/resolve`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deckCode: userCode, format: { toString: 1 }, archetype: { toString: 1 } }),
+    });
+    // The fixture database throws, so the public answer is the generic 503 without internal detail.
+    assert.equal(hinted.status, 503);
+    assert.deepEqual(await hinted.json(), { error: 'Не удалось разобрать колоду' });
+  } finally {
+    globalThis.fetch = localFetch;
+  }
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }

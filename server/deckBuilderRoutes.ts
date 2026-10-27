@@ -89,13 +89,22 @@ function mergeCardIndexes(
   return merged;
 }
 
+/** A query or JSON field as text: the first of repeated values; null for objects (qs nests `a[b]=`). */
+function fieldText(value: unknown): string | null {
+  const first = Array.isArray(value) ? value[0] : value;
+  if (typeof first === 'string') return first;
+  if (typeof first === 'number' && Number.isFinite(first)) return String(first);
+  return first == null ? '' : null;
+}
+
 function readFormat(value: unknown): DeckBuilderFormat {
-  return String(value ?? '').toLowerCase() === 'wild' ? 'wild' : 'standard';
+  return (fieldText(value) ?? '').toLowerCase() === 'wild' ? 'wild' : 'standard';
 }
 
 /** The code of a code or deck link: '' when absent, null when it cannot be one (real codes are far below 600). */
 function readDeckCode(value: unknown): string | null {
-  const raw = String(value ?? '').trim();
+  const raw = fieldText(value)?.trim();
+  if (raw === undefined) return null;
   const fromUrl = raw.match(/[?&]code=([^&]+)/i);
   try {
     const code = decodeURIComponent((fromUrl?.[1] || raw).replace(/ /g, '+')).trim();
@@ -106,7 +115,7 @@ function readDeckCode(value: unknown): string | null {
 }
 
 function readArchetype(value: unknown): string {
-  return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
+  return (fieldText(value) ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
 }
 
 async function resolveDeckPayload(
@@ -163,38 +172,25 @@ export function createDeckBuilderRouter(dependencies: DeckBuilderRouterDependenc
 
   const handleResolve = async (request: any, response: Response, privateResponse: boolean) => {
     if (privateResponse) dependencies.setPrivateNoStore(response);
-    else {
-      response.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
-    }
-    const deckCode = readDeckCode(
-      request.body?.deckCode
-      ?? request.body?.code
-      ?? request.query?.deckCode
-      ?? request.query?.code,
-    );
+    else response.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    const { body, query } = request;
+    const deckCode = readDeckCode(body?.deckCode ?? body?.code ?? query?.deckCode ?? query?.code);
     if (deckCode === '') return response.status(400).json({ error: 'Нужен код колоды' });
     // Only decodable codes reach the catalogs and the per-code HSGuru cache.
     if (deckCode === null || !decodeDeckDefinition(deckCode)) {
       return response.status(400).json({ error: 'Некорректный код колоды' });
     }
-    const preferredFormat = readFormat(request.body?.format ?? request.query?.format);
-    const preferredArchetypeName = readArchetype(
-      request.body?.archetype
-      ?? request.query?.archetype,
-    );
+    const preferredFormat = readFormat(body?.format ?? query?.format);
+    const preferredArchetypeName = readArchetype(body?.archetype ?? query?.archetype);
     try {
-      const resolved = await resolveDeckPayload(
-        dependencies,
-        deckCode,
-        preferredFormat,
-        preferredArchetypeName,
-      );
+      const resolved = await resolveDeckPayload(dependencies, deckCode, preferredFormat, preferredArchetypeName);
       return response.json({ ok: true, ...resolved });
     } catch (error: any) {
       const status = Number(error?.status) || 503;
       return response.status(status).json({
         error: status === 400 ? 'Некорректный код колоды' : 'Не удалось разобрать колоду',
-        detail: error instanceof Error ? error.message : String(error),
+        // Internal causes (catalog, database, upstream) stay out of public responses.
+        ...(privateResponse ? { detail: error instanceof Error ? error.message : String(error) } : {}),
       });
     }
   };
