@@ -241,16 +241,23 @@ export async function fetchRemoteAdminImage(value: unknown, options: RemoteImage
       throw new RemoteAdminImageError(502, 'Не удалось скачать изображение по ссылке');
     }
 
+    // A hop that is not read must release its socket now, not when the hop's timeout fires.
+    const discard = () => { void response.body?.cancel().catch(() => {}); };
     if ([301, 302, 303, 307, 308].includes(response.status)) {
+      discard();
       if (redirectCount === maxRedirects) throw new RemoteAdminImageError(400, 'Слишком много перенаправлений');
       const location = response.headers.get('location');
       if (!location) throw new RemoteAdminImageError(400, 'Источник вернул некорректное перенаправление');
       url = parseRemoteImageUrl(new URL(location, url).href);
       continue;
     }
-    if (!response.ok) throw new RemoteAdminImageError(400, `Источник изображения вернул HTTP ${response.status}`);
+    if (!response.ok) {
+      discard();
+      throw new RemoteAdminImageError(400, `Источник изображения вернул HTTP ${response.status}`);
+    }
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
     if (!contentType.startsWith('image/')) {
+      discard();
       throw new RemoteAdminImageError(415, 'Ссылка ведёт не на изображение');
     }
     return readLimitedImage(response, options.maxBytes, signal);

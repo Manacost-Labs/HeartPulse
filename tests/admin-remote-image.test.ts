@@ -122,6 +122,20 @@ for (const location of ['http://10.0.0.1/image.png', 'http://127.0.0.1:3001/imag
   assert.deepEqual(fetched, ['https://images.example.test/moved.png'], `${location} must not be requested`);
 }
 
+// Bodies the importer does not read are cancelled at once, so their sockets close without waiting for the timeout.
+for (const [status, type] of [[302, 'text/html'], [404, 'text/html'], [200, 'text/html']] as const) {
+  let cancelled = false;
+  await assert.rejects(fetchRemoteAdminImage('https://images.example.test/unread', {
+    maxBytes: 1024,
+    maxRedirects: 0,
+    resolveHost: publicResolver,
+    fetchImpl: async () => new Response(new ReadableStream({ cancel() { cancelled = true; } }), {
+      status, headers: { 'Content-Type': type, Location: 'https://images.example.test/next' },
+    }),
+  }));
+  assert.equal(cancelled, true, `HTTP ${status} ${type} body must be cancelled`);
+}
+
 // A source that stops sending is reported in Russian, not as a raw TimeoutError.
 // AbortSignal.timeout does not keep the event loop alive; a running server does, this interval stands in.
 const keepAlive = setInterval(() => {}, 1_000);
