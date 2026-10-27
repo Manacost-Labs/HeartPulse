@@ -52,6 +52,7 @@
     "budget:next": "node --test tests/next-bundle-budgets.test.mjs",
     "budget:next:baseline": "node scripts/next-bundle-budgets.mjs baseline",
     "optimize:ui-assets": "node scripts/optimize-ui-assets.mjs",
+    "render:share-images": "node scripts/render-share-images.mjs",
     "sync:constructed-filter-assets": "node scripts/sync-constructed-filter-assets.mjs",
     "sync:constructed-card-images": "node build/server/constructedCardImagePrewarmer.js",
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",

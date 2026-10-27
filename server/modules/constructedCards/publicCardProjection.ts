@@ -147,7 +147,8 @@ export function isIndexableConstructedCard(card: JsonRecord): boolean {
 export function projectPublicConstructedCardSeoData(
   card: JsonRecord,
   originValue: string | undefined,
-  resolveImage: (value: string | null, origin: string, fallback: string) => string | null,
+  // The caller owns the fallback share image: this module may not import the repository-level `shared/`.
+  resolveImage: (value: string | null, origin: string) => string | null,
 ): PublicConstructedCardSeoData {
   const name = record(card.name);
   const cardText = record(card.text);
@@ -171,7 +172,7 @@ export function projectPublicConstructedCardSeoData(
     durability: finiteNumber(card.durability),
     armor: finiteNumber(card.armor),
     artist: text(card.artist, 180),
-    image: resolveImage(text(images.card, 1_000), canonicalOrigin(originValue), `${canonicalOrigin(originValue)}/assets/og-preview.png`),
+    image: resolveImage(text(images.card, 1_000), canonicalOrigin(originValue)),
   };
 }
 

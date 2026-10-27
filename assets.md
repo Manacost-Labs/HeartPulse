@@ -445,7 +445,8 @@ body:has(.hs-lightbox-backdrop) {
 - `assets/mana-64.webp` — <https://arena.hs-manacost.ru/assets/mana-64.webp>
 - `assets/mana.png` — <https://arena.hs-manacost.ru/assets/mana.png>
 - `assets/manacost-avatar.jpeg` — <https://arena.hs-manacost.ru/assets/manacost-avatar.jpeg>
-- `assets/og-preview.png` — <https://arena.hs-manacost.ru/assets/og-preview.png>
+- `assets/og-preview.png` — <https://arena.hs-manacost.ru/assets/og-preview.png> (копия `assets/og/hearthpulse-default.png` для старых ссылок)
+- `assets/og/hearthpulse-<раздел>.png` — превью ссылок 1200×630 (`default`, `standard`, `battlegrounds`, `arena`, `leaderboards`, `articles`); рендерит `npm run render:share-images`, URL и разделы — `shared/shareImages.ts`
 - `assets/rare.png` — <https://arena.hs-manacost.ru/assets/rare.png>
 
 ### Промо и навигационные изображения (12)

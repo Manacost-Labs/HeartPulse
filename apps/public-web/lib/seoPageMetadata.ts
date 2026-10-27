@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { seoPageForExactPath } from '@/src/seo/registry';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath, shareImageSectionForPath } from '@/shared/shareImages';
 import { type PageSearchParams, searchParamsQuery } from './searchParams';
 
 const SITE_URL = 'https://hearthpulse.net';
-const SHARE_IMAGE = '/assets/og-preview.png';
 
 function registeredPage(path: string, shareImageAlt: string) {
   const seo = seoPageForExactPath(path);
@@ -16,7 +16,8 @@ function registeredPage(path: string, shareImageAlt: string) {
 /**
  * Metadata of a page registered in `config/public-seo-pages.json`: registry
  * title and description, with canonical and robots decided by the public URL
- * policy for `query` (filtered or paginated URLs become noindex). Pages the
+ * policy for `query` (filtered or paginated URLs become noindex) and the share
+ * image of the path's section (`shared/shareImages.ts`). Pages the
  * registry keeps out of the sitemap get no canonical or share tags.
  */
 export async function seoRegistryMetadata(path: string, shareImageAlt: string, query = ''): Promise<Metadata> {
@@ -25,16 +26,17 @@ export async function seoRegistryMetadata(path: string, shareImageAlt: string, q
   const metadata: Metadata = { title: seo.title, description: seo.description, robots: policy.robots };
   if (!seo.sitemap) return metadata;
   const pageUrl = `${SITE_URL}${seo.pathname === '/' ? '/' : `${seo.pathname}/`}`;
+  const shareImage = shareImagePath(shareImageSectionForPath(seo.pathname));
   return {
     ...metadata,
     alternates: { canonical: policy.canonicalUrl ?? pageUrl },
     openGraph: {
       type: 'website', url: pageUrl, siteName: 'HearthPulse', locale: 'ru_RU',
       title: seo.title, description: seo.description,
-      images: [{ url: SHARE_IMAGE, alt: shareImageAlt, width: 1200, height: 630 }],
+      images: [{ url: shareImage, alt: shareImageAlt, width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }],
     },
     twitter: {
-      card: 'summary_large_image', title: seo.title, description: seo.description, images: [SHARE_IMAGE],
+      card: 'summary_large_image', title: seo.title, description: seo.description, images: [shareImage],
     },
   };
 }

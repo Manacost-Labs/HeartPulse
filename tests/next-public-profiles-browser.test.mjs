@@ -85,7 +85,7 @@ test('a player sets a nickname and shares a public profile that shows only publi
     assert.match(html, /name="robots" content="noindex, follow"/);
     assert.match(html, /rel="canonical" href="https:\/\/hearthpulse\.net\/id\/7\/"/);
     assert.match(html, /property="og:title" content="Arena_Master — профиль игрока \| HearthPulse"/);
-    assert.match(html, /property="og:image" content="[^"]*\/assets\/og-preview\.png"/);
+    assert.match(html, /property="og:image" content="[^"]*\/assets\/og\/hearthpulse-default\.png\?v=\d{8}"/);
     for (const secret of PRIVATE_VALUES) assert.equal(html.includes(secret), false, `profile HTML leaked ${secret}`);
 
     const visitorContext = await browser.createBrowserContext();

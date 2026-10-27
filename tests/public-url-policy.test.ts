@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { applyDocumentPageMeta, resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
+import { shareImageUrl } from '../shared/shareImages';
 import { tabFromPath } from '../src/app/routing/navigationRoutes';
 
 const ORIGIN = 'https://hearthpulse.net';
@@ -202,10 +203,10 @@ try {
     'indexable SPA navigation must not turn off unrelated structured data globally');
   assert.equal(
     nodes.get('meta[property="og:image"]')?.content,
-    `${ORIGIN}/assets/og-preview.png`,
+    shareImageUrl('default', ORIGIN),
     'unsafe client image protocols must fall back to the public preview image',
   );
-  assert.equal(nodes.get('meta[name="twitter:image"]')?.content, `${ORIGIN}/assets/og-preview.png`);
+  assert.equal(nodes.get('meta[name="twitter:image"]')?.content, shareImageUrl('default', ORIGIN));
 
   (globalThis.window as any).location.pathname = '/articlesevil';
   await applyDocumentPageMeta({

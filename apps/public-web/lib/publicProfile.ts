@@ -2,10 +2,11 @@ import 'server-only';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import type { PublicProfile } from '@/src/modules/identity/public';
+import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { fetchPublicExpress } from './expressApi';
 
 const SITE_URL = 'https://hearthpulse.net';
-const SHARE_IMAGE = '/assets/og-preview.png';
+const SHARE_IMAGE = shareImagePath();
 const numericId = /^[1-9][0-9]{0,9}$/;
 
 function validNumericId(value: unknown): value is string {
@@ -64,7 +65,7 @@ export function publicProfileMetadata(profile: PublicProfile): Metadata {
     openGraph: {
       type: 'profile', url, title, description, siteName: 'HearthPulse', locale: 'ru_RU',
       ...(profile.nickname ? { username: profile.nickname } : {}),
-      images: [{ url: SHARE_IMAGE, alt: 'HearthPulse — статистика Hearthstone', width: 1200, height: 630 }],
+      images: [{ url: SHARE_IMAGE, alt: 'HearthPulse — статистика Hearthstone', width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }],
     },
     twitter: { card: 'summary_large_image', title, description, images: [SHARE_IMAGE] },
   };

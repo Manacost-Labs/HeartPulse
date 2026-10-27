@@ -224,7 +224,7 @@ try {
   assert.equal(unsafeImage.status, 200);
   const unsafeImageHtml = await unsafeImage.text();
   assert.doesNotMatch(unsafeImageHtml, /javascript:|data:image/i);
-  assert.match(unsafeImageHtml, /https:\/\/hearthpulse\.net\/assets\/og-preview\.png/,
+  assert.match(unsafeImageHtml, /https:\/\/hearthpulse\.net\/assets\/og\/hearthpulse-battlegrounds\.png\?v=\d{8}/,
     'unsafe hero and hero-power image schemes must use the public fallback');
   assertNoPrivateData(unsafeImageHtml, 'unsafe-image hero');
 
@@ -235,7 +235,7 @@ try {
   assert.match(duoHeroHtml, /Выгодный обмен/);
   assert.match(duoHeroHtml, /Передает незолотое существо\./);
   assert.doesNotMatch(duoHeroHtml, /https:\/\/cdn\.example\.test/);
-  assert.match(duoHeroHtml, /https:\/\/hearthpulse\.net\/assets\/og-preview\.png/);
+  assert.match(duoHeroHtml, /https:\/\/hearthpulse\.net\/assets\/og\/hearthpulse-battlegrounds\.png\?v=\d{8}/);
   assertNoPrivateData(duoHeroHtml, 'duo hero');
 
   const missing = await fetch(`${origin}/heroes/999999/`);

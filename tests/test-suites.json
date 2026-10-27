@@ -115,6 +115,7 @@
         "tests/arena-synergy-refresh-manager.test.ts",
         "tests/article-access.test.ts",
         "tests/article-image-src.test.ts",
+        "tests/share-images.test.ts",
         "tests/article-cover-markup.test.tsx",
         "tests/auth-sessions.test.ts",
         "tests/background-jobs.test.ts",

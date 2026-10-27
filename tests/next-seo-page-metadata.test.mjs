@@ -68,9 +68,16 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
     assert.match(legendaries, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/legendaries\/"\/>/);
     assert.match(legendaries, /<meta property="og:image:alt" content="HearthPulse — легендарки Арены"\/>/);
     assert.match(legendaries, /<meta name="twitter:card" content="summary_large_image"\/>/);
+    // Arena pages share the Arena preview; the version query makes messengers refetch a re-render.
+    const arenaImage = 'https:\\/\\/hearthpulse\\.net\\/assets\\/og\\/hearthpulse-arena\\.png\\?v=\\d{8}';
+    assert.match(legendaries, new RegExp(`<meta property="og:image" content="${arenaImage}"/>`));
+    assert.match(legendaries, /<meta property="og:image:width" content="1200"\/>/);
+    assert.match(legendaries, /<meta property="og:image:height" content="630"\/>/);
+    assert.match(legendaries, new RegExp(`<meta name="twitter:image" content="${arenaImage}"/>`));
 
     const home = await head(runtime.nextOrigin, '/');
     assert.match(home, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/"\/>/);
+    assert.match(home, /<meta property="og:image" content="https:\/\/hearthpulse\.net\/assets\/og\/hearthpulse-default\.png\?v=\d{8}"\/>/);
 
     for (const path of ['/faq/', '/developers/api/', '/gallery/', '/standard/cards/standard/',
       '/standard/cards/standard/CARD_QA_0002/', '/library/', '/cosmetics/']) {

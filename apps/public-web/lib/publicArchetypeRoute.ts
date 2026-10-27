@@ -2,6 +2,7 @@ import 'server-only';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { loadPublicArchetypeTeaser } from './publicArchetypeTeaser';
 
 export type ArchetypeRouteParams = Promise<{ format: string; archetypeSlug: string }>;
@@ -27,6 +28,6 @@ export async function archetypeDetailMetadata(params: ArchetypeRouteParams, fami
     title, description, alternates: { canonical },
     robots: policy.robots,
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
-      images: [{ url: '/assets/og-preview.png', alt: 'HearthPulse — архетип Hearthstone', width: 1200, height: 630 }] },
+      images: [{ url: shareImagePath('standard'), alt: 'HearthPulse — архетип Hearthstone', width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }] },
   };
 }
