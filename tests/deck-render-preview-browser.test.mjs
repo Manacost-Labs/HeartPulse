@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [
@@ -17,7 +17,7 @@ if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for d
 const storybook = await startStorybookStatic();
 let browser;
 try {
-  browser = await puppeteer.launch({
+  browser = await launchBrowser({
     executablePath: chromiumPath,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],

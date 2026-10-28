@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { qaSessionCookie } from '../scripts/qa/mockApi.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
 
@@ -63,7 +63,7 @@ test('Vicious Gold shows its summary before the deck builds arrive', async () =>
   const runtime = await startQaNextRuntime();
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const runtimeErrors = [];

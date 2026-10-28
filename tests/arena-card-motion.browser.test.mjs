@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'].find(candidate => candidate && existsSync(candidate));
@@ -61,7 +61,7 @@ async function assertStableGeometryAndChart(page, width) {
 
 let browser;
 try {
-  browser = await puppeteer.launch({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  browser = await launchBrowser({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const page = await browser.newPage();
   const runtimeErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));

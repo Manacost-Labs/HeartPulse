@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { qaSessionCookie } from '../scripts/qa/mockApi.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
@@ -51,7 +51,7 @@ test('route error pages keep their recovery copy and report the error once', asy
   let browser;
   try {
     next = await startNextServer({ legacyOrigin: express.origin });
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const pageErrors = [];
@@ -114,7 +114,7 @@ test('route error pages keep their recovery copy and report the error once', asy
   }
 });
 
-const launchBrowser = () => puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+const launchChromium = () => launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
   headless: true, args: ['--no-sandbox'] });
 
 async function openPage(browser, origin, cookie) {
@@ -165,7 +165,7 @@ test('a page stays usable when the optional support prompt cannot load', async (
   const runtime = await startQaNextRuntime();
   let browser;
   try {
-    browser = await launchBrowser();
+    browser = await launchChromium();
     const chunk = await chunkHolding(browser, runtime.origin, '/articles/', 'manacost_support_prompt_closed_at');
     for (const [path, heading] of [['/articles/', 'Статьи'], ['/classes/', 'Классы']]) {
       const { page, state } = await openWithoutChunk(browser, runtime.origin, path, chunk);
@@ -186,7 +186,7 @@ test('a missing page chunk offers a reload, and the reload recovers the page', a
   const runtime = await startQaNextRuntime();
   let browser;
   try {
-    browser = await launchBrowser();
+    browser = await launchChromium();
     const admin = qaSessionCookie({ admin: true });
     const chunk = await chunkHolding(browser, runtime.origin, '/deck-builder/', 'Соберите колоду', admin);
     const { page, state } = await openWithoutChunk(browser, runtime.origin, '/deck-builder/', chunk, admin);

@@ -6,7 +6,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
@@ -97,7 +97,7 @@ test('Next archetype details isolate access and load builds before independent o
     assert.ok(ready, `Next did not start: ${output}`);
     gateway = createPublicWebGateway({ legacyOrigin, nextOrigin, enabled: true, pagesEnabled: true });
     const origin = await listenLocal(gateway);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = []; const failed = []; const protectedCalls = [];

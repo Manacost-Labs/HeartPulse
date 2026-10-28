@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import http from 'node:http';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { role } from './helpers/browserUserView.mjs';
@@ -65,7 +65,7 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: chromiumPath,
+    browser = await launchBrowser({ executablePath: chromiumPath,
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const dataReads = [];

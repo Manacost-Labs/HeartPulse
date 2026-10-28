@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 const CDN = 'https://cdn.hearthpulse.net';
@@ -52,7 +52,7 @@ test('server HTML and the hydrated page share the runtime switches for card imag
   const directory = mkdtempSync(join(tmpdir(), 'hs-runtime-config-'));
   const enabledFile = join(directory, 'runtime-config.js');
   writeFileSync(enabledFile, readFileSync('public/runtime-config.js', 'utf8'));
-  const browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+  const browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
     headless: true, args: ['--no-sandbox'] });
   try {
     const withCdn = await startPublicCardPilot({ pagesEnabled: true, runtimeClientConfigFile: enabledFile });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 // Archetype detail sections and the Vicious Gold report: each placeholder is
@@ -29,7 +29,7 @@ test('archetype and Vicious Gold placeholders fit their loaded views at public w
   let browser;
   try {
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium'].find(path => path && existsSync(path));
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     async function open(storyId, readySelector) {
       // One repeat under the same conditions: a story chunk can fail to load once on a busy host.

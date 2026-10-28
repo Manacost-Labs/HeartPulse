@@ -82,13 +82,13 @@ test('CSV quotes multiline values and neutralizes spreadsheet formulas', () => {
 test('browser charts remain accessible on mobile and export independent files', {
   skip: !process.env.STORYBOOK_QA_URL, timeout: 120_000,
 }, async () => {
-  const { default: puppeteer } = await import('puppeteer');
+  const { launchBrowser } = await import('../scripts/lib/browser-launch.mjs');
   const { mkdtemp, readFile, readdir, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
   const { createRequire } = await import('node:module');
   const downloads = await mkdtemp(join(tmpdir(), 'hearthpulse-charts-'));
-  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
     const client = await page.createCDPSession();

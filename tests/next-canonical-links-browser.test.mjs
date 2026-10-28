@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { qaSessionCookie } from '../scripts/qa/mockApi.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
@@ -107,7 +107,7 @@ test('pages link to canonical trailing-slash URLs, so a card link is fetched whe
   let recorder;
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, defaultViewport: null, args: ['--no-sandbox', '--window-size=1440,900'] });
     const page = await browser.newPage();
     const pageErrors = [];

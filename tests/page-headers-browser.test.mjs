@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const selector = '.traditional-mode-banner, .constructed-cards__header, .section-banner-modern';
@@ -9,7 +9,7 @@ test('traditional and Arena headers share geometry without clipping or reduced-m
   const storybook = await startStorybookStatic();
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));

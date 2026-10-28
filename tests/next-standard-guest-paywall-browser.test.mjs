@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 import { findByRole, mainText } from './helpers/browserUserView.mjs';
 
@@ -10,7 +10,7 @@ test('Next traditional-mode pages ask guests for the Diamond tier', async () => 
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     for (const path of ['/standard/matchups/', '/standard/vicious-gold/']) {
       const page = await browser.newPage();

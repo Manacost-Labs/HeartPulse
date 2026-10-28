@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { qaCardImage } from '../scripts/qa/fixtures.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
 
@@ -176,7 +176,7 @@ test('subscriber builders support bounded catalogs, tier selection, drafts, undo
   const directory = await mkdtemp(join(tmpdir(), 'bg-builders-export-'));
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });

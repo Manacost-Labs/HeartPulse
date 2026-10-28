@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch, isMenuRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
@@ -37,7 +37,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
       await delay(50);
     }
     assert.equal(ready, true, `Next did not start: ${output}`);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setRequestInterception(true);

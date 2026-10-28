@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 test('Next preserves administrator API access and anonymous archetype summaries without a subscription', async () => {
@@ -14,7 +14,7 @@ test('Next preserves administrator API access and anonymous archetype summaries 
     assert.equal(subscription.entitlements?.standard, false);
     assert.equal(subscription.entitlements?.arena, false);
 
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const context = await browser.createBrowserContext();
     const [name, value] = runtime.cookie.split('=');

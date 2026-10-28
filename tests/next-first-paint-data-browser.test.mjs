@@ -4,7 +4,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import http from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 
@@ -125,7 +125,7 @@ test('public previews render on the server and hydrate without a guest data requ
     for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C']) assert.match(funHtml, new RegExp(code));
     assert.doesNotMatch(funHtml, /PAID_DECK_/, 'only the free preview of the selection reaches the HTML');
 
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     for (const [path, ready] of [['/standard/meta/', '.standard-meta-card'], ['/standard/archetypes/', '.archetype-row'],
       ['/standard/fun-decks/', '.fun-deck-card']]) {

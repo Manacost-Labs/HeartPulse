@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { openStory, startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [
@@ -19,7 +19,7 @@ const story = name => storybook.storyUrl(`archetype-detail-hsguru-slice-stats--$
 
 let browser;
 try {
-  browser = await puppeteer.launch({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  browser = await launchBrowser({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const page = await browser.newPage();
   const runtimeErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 // The public shell offers the delayed Boosty support prompt to desktop readers
@@ -9,7 +9,7 @@ test('Next.js public pages offer the delayed support prompt after scrolling', as
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
@@ -32,7 +32,7 @@ test('help center searches answers, filters topics and opens direct question lin
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];

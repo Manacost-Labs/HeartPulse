@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 
@@ -10,7 +10,7 @@ const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8')
 
 test('compact library supports tribe selection, empty-result reset and hidden advanced selections', async () => {
   const runtime = await startStorybookStatic();
-  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
     const errors = []; const failed = [];
@@ -88,7 +88,7 @@ test('compact library supports tribe selection, empty-result reset and hidden ad
 
 test('library bounds its first batch and loads golden artwork only for an intended card', async () => {
   const runtime = await startStorybookStatic();
-  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });

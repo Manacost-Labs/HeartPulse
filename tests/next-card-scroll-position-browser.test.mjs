@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 // Next.js renders the card before the browser loads its full detail. A reader
@@ -9,7 +9,7 @@ test('a card page keeps the reader scroll position when its full detail arrives'
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 600 });

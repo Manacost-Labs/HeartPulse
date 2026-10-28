@@ -1,6 +1,6 @@
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 const [out, prefix, url] = process.argv.slice(2);
-const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 for (const [w, h] of [[1440, 900], [412, 915]]) {
   await page.setViewport({ width: w, height: h, isMobile: w < 600, hasTouch: w < 600 });

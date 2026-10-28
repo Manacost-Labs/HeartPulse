@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
@@ -42,7 +42,7 @@ test('Next device connection keeps the code private and uses the existing authen
     assert.match(html, /name="robots" content="noindex, nofollow"/);
     assert.doesNotMatch(html, /rel="canonical"|ABCD-2345|connect@example\.test/);
 
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setCacheEnabled(false);

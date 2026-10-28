@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
 
 // The page search field of each Standard section that shares the field styles.
@@ -15,7 +15,7 @@ test('search fields keep their shape during pointer typing and retain a Tab indi
   const runtime = await startQaNextRuntime();
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     for (const width of [390, 1440]) {
       await page.setViewport({ width, height: 900 });

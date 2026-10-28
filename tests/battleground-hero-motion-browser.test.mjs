@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const axe = readFileSync(new URL(import.meta.resolve('axe-core')), 'utf8');
@@ -14,7 +14,7 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
   let browser;
   try {
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(path => path && existsSync(path));
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4'] });
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -145,7 +145,7 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
 
 test('hero ledger keeps SVG tier ranks, sorting and readable cells on desktop and mobile', async () => {
   const runtime = await startStorybookStatic();
-  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
     const errors = [];
@@ -181,7 +181,7 @@ test('hero ledger keeps SVG tier ranks, sorting and readable cells on desktop an
 
 test('hero filters preserve Top 1% errors and discard late responses after a fast switch', async () => {
   const runtime = await startStorybookStatic();
-  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
     const consoleErrors = [];

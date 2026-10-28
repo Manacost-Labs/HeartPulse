@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { waitForFocus } from './helpers/browserUserView.mjs';
@@ -66,7 +66,7 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox', '--disable-features=BackForwardCache'] });
 
     // Before (here: without) JavaScript the toggle opens the drawer natively,

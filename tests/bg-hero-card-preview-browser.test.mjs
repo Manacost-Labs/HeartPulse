@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { openStory, startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const chromiumPath = [
@@ -17,7 +17,7 @@ if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for t
 // React had cleared `currentTarget` and the whole hero page fell into its
 // error screen. Pointer enter, leave and enter in one task reproduce that.
 const storybook = await startStorybookStatic();
-const browser = await puppeteer.launch({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox'] });
+const browser = await launchBrowser({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox'] });
 try {
   const page = await browser.newPage();
   const errors = [];

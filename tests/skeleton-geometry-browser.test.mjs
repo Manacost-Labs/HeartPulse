@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { openStory, startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 test('loading cards and class rows fit their loaded counterparts at public page widths', async () => {
@@ -9,7 +9,7 @@ test('loading cards and class rows fit their loaded counterparts at public page 
   let browser;
   try {
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium'].find(path => path && existsSync(path));
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     async function geometry(storyId, selector) {
       await openStory(page, storybook.storyUrl(storyId));
