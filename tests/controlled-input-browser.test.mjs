@@ -2,12 +2,8 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
 
-// puppeteer stays only for executablePath(); Chrome itself starts through launchBrowser.
-// oxlint-disable-next-line no-restricted-imports
-import puppeteer from 'puppeteer';
-
 import { replaceControlledInputValue } from '../scripts/controlled-input.mjs';
-import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
+import { downloadedBrowserPath, launchBrowser } from '../scripts/lib/browser-launch.mjs';
 
 test('replaces non-empty controlled inputs through real keyboard events', async () => {
   let executablePath = [
@@ -17,7 +13,7 @@ test('replaces non-empty controlled inputs through real keyboard events', async 
     '/usr/bin/google-chrome-stable',
   ].find(candidate => candidate && existsSync(candidate));
   if (!executablePath) {
-    const downloadedBrowser = await puppeteer.executablePath();
+    const downloadedBrowser = downloadedBrowserPath();
     if (existsSync(downloadedBrowser)) executablePath = downloadedBrowser;
   }
   assert.ok(executablePath, 'Puppeteer or the host must provide an executable browser');

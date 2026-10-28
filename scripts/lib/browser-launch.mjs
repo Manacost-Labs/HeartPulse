@@ -19,3 +19,8 @@ export async function launchBrowser(options = {}) {
     return puppeteer.launch(launchOptions);
   }
 }
+
+/** Path of the Chrome that Puppeteer downloaded, for tests that look for a browser before launching one. */
+export function downloadedBrowserPath() {
+  return puppeteer.executablePath();
+}
