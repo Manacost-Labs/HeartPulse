@@ -93,9 +93,9 @@ a check that never reports).
 
 1. Ruleset for `main` ([`.github/rulesets/main-merge-queue.json`](../../.github/rulesets/main-merge-queue.json)):
    PR required (0 approvals, squash), `CI required` must pass, merge queue
-   (squash, `ALLGREEN`: up to 5 queued PRs are tested in parallel as
-   cumulative groups on top of `main` and merged together, 75 minutes for
-   checks), linear history, no force push, no deletion and **no bypass
+   (squash, `ALLGREEN`: up to 2 cumulative groups are built in parallel on
+   top of `main`, up to 5 PRs are merged together, 75 minutes for checks),
+   linear history, no force push, no deletion and **no bypass
    actors**: an admin token cannot push to `main` either, so the queue is the
    only writer.
 
@@ -103,6 +103,12 @@ a check that never reports).
    gh api -X POST repos/Manacost-Labs/HeartPulse/rulesets \
      --input .github/rulesets/main-merge-queue.json
    ```
+
+   `max_entries_to_build` is 2, not 5 (2026-10-28, #253): the organization is
+   on the Free plan with 20 concurrent GitHub-hosted jobs shared by all
+   repositories, and one `ci.yml` run is 19 jobs. Five groups building at once
+   left jobs waiting 3.1 min p50 / 9.5 min p90 for a runner. After changing the
+   live ruleset, keep this file in sync (`PUT …/rulesets/<id>`).
 
    `strict_required_status_checks_policy` is `false` on purpose: the queue
    already tests against the newest `main`, so PRs never need an up-to-date
