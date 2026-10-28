@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 const require = createRequire(import.meta.url);
@@ -123,7 +123,7 @@ async function assertMobileDeck(page, width, size) {
 
 let browser;
 try {
-  browser = await puppeteer.launch({
+  browser = await launchBrowser({
     executablePath: chromiumPath,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
@@ -40,7 +40,7 @@ test('every Next document carries the site head tags, analytics and field focus 
     const port = new URL(next.origin).port;
     // Chromium resolves the production host to the local Next server, so the
     // canonical-host branch runs without touching production or its analytics.
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox', '--host-resolver-rules=MAP hearthpulse.net 127.0.0.1'] });
     const open = async origin => {
       const page = await browser.newPage();

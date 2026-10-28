@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(candidate => candidate && existsSync(candidate));
@@ -19,7 +19,7 @@ function silentWav() {
 }
 
 async function withPage(runtime, viewport, fn) {
-  const browser = await puppeteer.launch({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
     await page.setViewport(viewport);

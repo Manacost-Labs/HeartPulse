@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
@@ -48,7 +48,7 @@ test('gated pages keep the gate height while the access check runs', async () =>
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
     for (const viewport of viewports) {
@@ -97,7 +97,7 @@ test('a remembered subscriber gets the preloaded paid view as soon as access is 
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     for (const [path, root] of [['/battlegrounds/tier-list/', '.bg-tier-list-page'], ['/library/', '.bg-library-page']]) {
       const page = await browser.newPage();

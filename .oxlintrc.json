@@ -15,5 +15,20 @@
     "unicorn/prefer-string-starts-ends-with": "warn",
     "unicorn/no-useless-spread": "warn",
     "unicorn/no-invalid-fetch-options": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["tests/**"],
+      "rules": {
+        "no-restricted-imports": ["error", { "paths": [
+          { "name": "puppeteer", "message": "Browser tests start Chrome with launchBrowser() from scripts/lib/browser-launch.mjs (60 s start timeout, one retry on a WS endpoint timeout); a direct puppeteer.launch has neither and flakes on CI." },
+          { "name": "puppeteer-core", "message": "Browser tests start Chrome with launchBrowser() from scripts/lib/browser-launch.mjs (60 s start timeout, one retry on a WS endpoint timeout); a direct puppeteer.launch has neither and flakes on CI." }
+        ] }]
+      }
+    },
+    {
+      "files": ["tests/next-radar-browser.test.mjs"],
+      "rules": { "no-restricted-imports": "off" }
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 // Two tiers of the gallery mix spells, minions, locations, dragon-framed
@@ -14,7 +14,7 @@ test('tier-list cards share one box per row and glow by rarity at phone and desk
   let browser;
   try {
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium'].find(path => path && existsSync(path));
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const runtimeErrors = [];
     page.on('pageerror', error => runtimeErrors.push(error.message));

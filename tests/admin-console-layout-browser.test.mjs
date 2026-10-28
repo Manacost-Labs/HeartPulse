@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
 import { createQaApiHandler, qaSessionCookie } from '../scripts/qa/mockApi.mjs';
 
@@ -44,7 +44,7 @@ test('admin sections open without moving their content, sticky panels follow the
   const runtime = await startQaNextRuntime();
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await adminPage(browser, runtime.origin);
     await page.goto(`${runtime.origin}/admin/?section=dashboard`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('#admin-section-title');

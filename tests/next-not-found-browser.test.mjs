@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 test('unknown Next HTML uses the public 404 shell without changing card-specific 404s', async () => {
@@ -19,7 +19,7 @@ test('unknown Next HTML uses the public 404 shell without changing card-specific
     assert.equal(missingCard.status, 404);
     assert.match(await missingCard.text(), /Карта не найдена/);
 
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const failures = [];

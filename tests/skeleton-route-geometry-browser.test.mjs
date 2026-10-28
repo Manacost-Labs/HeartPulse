@@ -36,7 +36,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { SKELETON_ROUTES } from './helpers/skeletonRouteFixtures.mjs';
@@ -336,7 +336,7 @@ test('real routes: skeletons match the loaded layout and the swap does not shift
     gateway = createPublicWebGateway({ legacyOrigin, nextOrigin: next.nextOrigin, enabled: true, pagesEnabled: true, galleryEnabled: true, timeoutMs: 60_000 });
     const origin = await listenLocal(gateway);
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium'].find(path => path && existsSync(path));
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     for (const route of selectedRoutes) {
       for (const viewport of VIEWPORTS) {
         await t.test(`${route.id} at ${viewport.width}x${viewport.height}`, async subtest => {

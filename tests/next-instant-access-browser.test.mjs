@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { after, describe, test } from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
@@ -168,7 +168,7 @@ function sharedRuntime() {
     const express = http.createServer((request, response) => response.writeHead(401).end());
     const next = await startNextServer({ legacyOrigin: await listenLocal(express) });
     const gateway = await startGateway(next.origin);
-    const browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    const browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     // Scenarios run side by side in one browser, and a page that loses focus
     // to another closes focus-bound UI (the search panel): every page keeps

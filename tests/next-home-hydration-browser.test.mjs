@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import http from 'node:http';
 import express from 'express';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 import { listenLocal, closeLocal } from './helpers/publicCardFixture.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
@@ -35,7 +35,7 @@ test('the Next.js home keeps its server-rendered articles while their chunk load
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
@@ -105,7 +105,7 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
     gateway = createPublicWebGateway({ legacyOrigin: backendOrigin, nextOrigin: next.origin,
       enabled: true, pagesEnabled: true, galleryEnabled: true });
     const origin = await listenLocal(gateway);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];

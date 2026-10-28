@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
@@ -128,7 +128,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
@@ -241,7 +241,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
     gateway = await startGateway(next.origin, { rscDelayMs: 900 });
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
@@ -307,7 +307,7 @@ test('hover prepares a complete dynamic page before click, including its route c
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
     gateway = await startGateway(next.origin, { rscDelayMs: 450 });
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });

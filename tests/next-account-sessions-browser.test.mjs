@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 // Two browsers of one subscriber on the real backend: A1 ends A2's session
@@ -51,7 +51,7 @@ test('ending another browser\'s session makes it a guest at its next check, with
     { name: 'hp_viewer', value: viewerTag(token), domain: host, path: '/' });
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
 
     // A2 has seen the paid statistics, so it remembers the subscriber for its session.

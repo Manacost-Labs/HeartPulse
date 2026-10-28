@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
@@ -164,7 +164,7 @@ test('Back restores public pages from the back/forward cache and never shows a s
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
 
     // A guest goes from one public page to another and back.
@@ -293,7 +293,7 @@ test('a restored page shows an account only with its confirmed subscription', as
   let next; let browser; const gateways = [];
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const scenario = async run => {
       const gateway = await startGateway(next.origin);
@@ -390,7 +390,7 @@ test('a page restored after an account switch or offline never shows the previou
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     for (const offline of [false, true]) {
       gateway.sessions.add('reader');
@@ -445,7 +445,7 @@ test('client routes revalidate shared access after revocation and account change
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
     gateway = await startGateway(next.origin);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
     const { page, pageErrors } = await openReader(browser, gateway.origin, 'reader');
     await page.evaluate(() => { window.__sharedMenu = document.querySelector('.arena-sidebar'); });
     await page.click('.arena-sidebar a[href="/classes/"]');

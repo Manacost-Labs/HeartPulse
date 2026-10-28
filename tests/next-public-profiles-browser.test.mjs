@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
@@ -16,7 +16,7 @@ test('a player sets a nickname and shares a public profile that shows only publi
   let browser;
   try {
     runtime.backend.database.prepare("UPDATE users SET public_numeric_id = 7, contact_telegram = 'qa-contact-telegram' WHERE id = 'card-reader'").run();
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const owner = await browser.newPage();
     await owner.evaluateOnNewDocument(() => {

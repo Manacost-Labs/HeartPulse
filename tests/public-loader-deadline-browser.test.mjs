@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startStorybookStatic } from './helpers/storybookStatic.mjs';
 
 // REQUEST_DEADLINE_MS in src/shared/http/fetchWithDeadline.ts.
@@ -24,7 +24,7 @@ test('public loaders end a stalled request in the error state with a retry', asy
   let browser;
   try {
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium'].find(path => path && existsSync(path));
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));

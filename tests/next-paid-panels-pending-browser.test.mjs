@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { after, describe, test } from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
@@ -72,7 +72,7 @@ test('constructed card statistics stay in their loading state, never locked, for
   const runtime = await cardPilot();
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
       for (const [path, settled] of [
@@ -105,7 +105,7 @@ test('card statistics never lock when the subscription answer fails', { timeout:
   const runtime = await cardPilot();
   let browser;
   try {
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
@@ -161,7 +161,7 @@ test('a restored card page hides its paid statistics until access is confirmed a
   let browser;
   try {
     const origin = await listenLocal(server);
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
     for (const mode of ['late', 'error']) {
       const context = await browser.createBrowserContext();
@@ -241,7 +241,7 @@ test('archetype detail keeps its paid sections loading, without preview or paywa
     next = await startNextServer({ legacyOrigin });
     gateway = createPublicWebGateway({ legacyOrigin, nextOrigin: next.origin, enabled: true, pagesEnabled: true });
     const origin = await listenLocal(gateway);
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
     await page.setCookie({ name: 'member', value: '1', url: origin });

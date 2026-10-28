@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 
 const root = mkdtempSync(join(tmpdir(), 'reader-identity-continuation-'));
 const interaction = 'A'.repeat(24);
@@ -81,7 +81,7 @@ let browser;
 try {
   const port = await listen();
   const origin = `http://127.0.0.1:${port}`;
-  browser = await puppeteer.launch(browserLaunchOptions);
+  browser = await launchBrowser(browserLaunchOptions);
   const page = await browser.newPage();
 
   await page.goto(`${origin}/?login#reader_interaction=${interaction}`, { waitUntil: 'networkidle0' });

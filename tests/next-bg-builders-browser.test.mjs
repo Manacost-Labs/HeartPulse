@@ -8,7 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
@@ -41,7 +41,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
       await delay(50);
     }
     assert.equal(ready, true, `Next did not start: ${output}`);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const cdp = await page.createCDPSession();

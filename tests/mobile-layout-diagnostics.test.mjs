@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { inspectHorizontalLayoutFault } from '../scripts/mobile-layout-diagnostics.mjs';
 
 const chromiumPath = [
@@ -12,7 +12,7 @@ const chromiumPath = [
 
 assert.ok(chromiumPath, 'Chromium/Chrome executable is required for layout diagnostic tests');
 
-const browser = await puppeteer.launch({
+const browser = await launchBrowser({
   headless: 'new',
   executablePath: chromiumPath,
   timeout: 60_000,

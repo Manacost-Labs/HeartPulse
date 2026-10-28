@@ -6,7 +6,7 @@ import http from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { isAbortedRoutePrefetch, isMenuRoutePrefetch, isRoutePrefetchConsoleMessage } from './helpers/abortedRoutePrefetch.mjs';
 import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
@@ -115,7 +115,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
     assert.match(filteredHtml, /class="cosmetics-card cosmetics-hero-card"/);
     assert.match(filteredHtml, /<img[^>]*loading="eager"[^>]*fetchPriority="high"/i);
     assert.doesNotMatch(filteredHtml, /cosmetics-skeleton/);
-    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     const listings = [
       ['/cosmetics/', 'Скины героев', 'Контрольный герой'],
