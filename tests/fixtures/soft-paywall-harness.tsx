@@ -98,13 +98,13 @@ const detail = {
   analysis: null,
 };
 
-// Six decks; the second and fifth are priests. The interval, the reasons (`why`, `tags`) and the Russian archetype name are what the API sends.
+// Six decks; the second and fifth are priests, the second with a fractional interval and the fifth with a fourth reason ("Концепт") a card does not show by default. The interval, the reasons (`why`, `tags`) and the Russian archetype name are what the API sends.
 const FUN_DECK_FIXTURE = [
   { className: 'Mage', why: ['Концепт', 'Мем'], tags: ['meme', 'concept'], interval: [30, 66], games: 20 },
-  { className: 'Priest', why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], tags: ['highlander'], interval: [46, 62], games: 30 },
+  { className: 'Priest', why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], tags: ['highlander'], interval: [46.5, 61.4], games: 30 },
   { className: 'Druid', why: ['Сыр'], tags: ['cheese'], interval: [44, 56], games: 250 },
   { className: 'Warlock', why: ['Мало общего с метой'], tags: [], interval: [20, 82], games: 50 },
-  { className: 'Priest', why: ['Хайлендер', 'XL-колода', 'Концепт'], tags: ['highlander', 'xl', 'concept'], interval: [40, 64], games: 60 },
+  { className: 'Priest', why: ['Пакет: Рено', 'Хайлендер', 'XL-колода', 'Концепт'], tags: ['highlander', 'xl', 'concept'], interval: [40, 64], games: 60 },
   { className: 'Shaman', why: ['XL-колода'], tags: ['xl'], interval: [38, 68], games: 70 },
 ];
 const funDecks = {

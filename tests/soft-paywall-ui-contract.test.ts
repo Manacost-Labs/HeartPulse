@@ -20,6 +20,7 @@ import {
   type FunDecksView,
 } from '../src/features/funDecksPreview';
 import { readFunDecksQuery, writeFunDecksQuery } from '../src/features/funDecksQuery';
+import { FunDeckMetrics } from '../src/features/FunDeckFacts';
 import { assertProperty } from './helpers/propertyRuns';
 import { buttons, elements, headings, importWithoutStyles, labelled, links, roles, visibleText } from './helpers/renderedMarkup';
 
@@ -165,6 +166,15 @@ test('the win rate interval and the few-games note appear only when the data sup
   assert.equal(funDeckInterval({ winRateCiLow: 70, winRateCiHigh: 60 }), null);
   assert.equal(funDeckInterval({ winRateCiLow: 50, winRateCiHigh: null }), null);
   assert.deepEqual([99, 100, 120, null].map(games => funDeckHasFewGames({ games })), [true, false, false, false]);
+});
+
+test('the card prints the interval in whole percent, rounded to the nearest', () => {
+  const metrics = (low: number, high: number) => visibleText(renderToStaticMarkup(React.createElement(FunDeckMetrics,
+    { deck: funDeck('Карточка', { winRate: 54, winRateCiLow: low, winRateCiHigh: high, games: 47 }), tourAnchor: false })));
+  assert.match(metrics(46.5, 61.4), /Винрейт 54% \(47–61%\) Игры 47 мало игр/, '46,5 rounds up and 61,4 down: neither floor nor ceiling');
+  assert.match(metrics(40.4, 66.5), /54% \(40–67%\)/);
+  assert.doesNotMatch(visibleText(renderToStaticMarkup(React.createElement(FunDeckMetrics,
+    { deck: funDeck('Старый ответ', { winRate: 54, games: 300 }), tourAnchor: false }))), /\(|мало игр/, 'without an interval and with enough games the card has neither note');
 });
 
 test('class and tag filters work together with format and search, and a sort still applies', () => {

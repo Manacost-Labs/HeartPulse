@@ -18,6 +18,13 @@ if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for s
 // The story renders a page on fixture data; its query string picks the page and the access level.
 const storybook = await startStorybookStatic();
 const fixture = query => `${storybook.storyUrl('browser-test-fixtures-soft-paywall--fixture')}&${query}`;
+// Chrome aborts a load with net::ERR_NETWORK_CHANGED whenever the host's network interfaces change; openStory opens such a canvas again.
+let page;
+const open = async url => {
+  await openStory(page, url);
+  await page.waitForNetworkIdle({ idleTime: 500, timeout: 3000 }).catch(() => {});
+};
+const go = query => open(fixture(query));
 
 let browser;
 try {
@@ -26,7 +33,7 @@ try {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
-  const page = await browser.newPage();
+  page = await browser.newPage();
   const runtimeErrors = [];
   const consoleErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
@@ -35,7 +42,7 @@ try {
   });
 
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-  await page.goto(fixture('page=meta'), { waitUntil: 'networkidle0' });
+  await go('page=meta');
   try {
     await page.waitForSelector('.arena-inline-paywall--meta', { timeout: 60_000 });
   } catch (error) {
@@ -61,7 +68,7 @@ try {
 
   for (const width of [390, 320]) {
     await page.setViewport({ width, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
-    await page.reload({ waitUntil: 'networkidle0' });
+    await open(page.url());
     await page.waitForSelector('.arena-inline-paywall--meta');
     const layout = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -75,7 +82,7 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-meta-mobile.png`, fullPage: true });
 
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-  await page.goto(fixture('page=fun-decks'), { waitUntil: 'networkidle0' });
+  await go('page=fun-decks');
   await page.waitForSelector('.arena-inline-paywall--meta');
   await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
   assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
@@ -133,9 +140,8 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-desktop.png`, fullPage: true });
 
   // Why a deck is fun, how far its win rate can be trusted, and the filters and the sort kept in the address.
-  // Storybook opens the canvas again when Chrome aborts it with a host network change; the fixed fixture data answers at once.
   const openFun = async query => {
-    await openStory(page, fixture(query.replace(/^id=[^&]*&viewMode=story&?/, '')));
+    await open(fixture(query.replace(/^id=[^&]*&viewMode=story&?/, '')));
     await page.waitForSelector('.fun-decks-tools');
   };
   const funTitles = () => page.$$eval('.fun-deck-card h2', nodes => nodes.map(node => node.textContent));
@@ -187,10 +193,10 @@ try {
   assert.deepEqual(cards.map(card => card.title), ['Фановая колода 6', 'Фановая колода 5', 'Фановая колода 4', 'Фановая колода 3', 'Фановая колода 2', 'Фановая колода 1']);
   assert.deepEqual(cards[4], {
     title: 'Фановая колода 2', why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], closest: 'Ближе всего к: Мета 2 · сходство 20%',
-    winRate: '49% (46–62%)', games: '30 мало игр',
-  }, 'a card shows three Russian reasons, the nearest archetype, the interval and the few-games note');
+    winRate: '49% (47–61%)', games: '30 мало игр',
+  }, 'a card shows three Russian reasons, the nearest archetype, the interval rounded to whole percent (46,5–61,4 is 47–61) and the few-games note');
   assert.deepEqual([cards[3].why, cards[3].winRate, cards[3].games], [['Сыр'], '50% (44–56%)', '250'], 'a deck with enough games has no note');
-  assert.deepEqual(cards[1].why, ['Хайлендер', 'XL-колода', 'Концепт'], 'a fourth reason (a score bonus) is never shown');
+  assert.deepEqual(cards[1].why, ['Пакет: Рено', 'Хайлендер', 'XL-колода'], 'a card shows three reasons: the fourth ("Концепт") is left out');
   const pageText = await page.$eval('#storybook-root', root => root.innerText);
   assert.doesNotMatch(pageText, /_shape|_package|pkg:|standard_balance|title_mismatch|meta_core|low_meta/, 'no internal code is shown');
   assert.deepEqual(await page.$$eval('.fun-decks-tools__sort option', options => options.map(option => option.textContent)),
@@ -223,6 +229,12 @@ try {
   const afterReset = new URL(page.url()).searchParams;
   assert.deepEqual([afterReset.get('class'), afterReset.get('tag'), afterReset.get('sort')], [null, null, 'reliable'], 'the sort is not a filter and stays');
   assert.equal(await page.$('.fun-decks-tools__result button'), null, 'with no filter there is nothing to reset');
+
+  // A tag the reader filters by is on the card even where it would not be among the first three reasons.
+  await (await filterButton('.fun-decks-tools__tags', 'Концепт')).click();
+  await waitForTitles(['Фановая колода 5', 'Фановая колода 1']);
+  assert.deepEqual((await funCards()).map(card => card.why), [['Концепт', 'Пакет: Рено', 'Хайлендер'], ['Концепт', 'Мем']],
+    'the filtered tag comes first, and the deck that showed three other reasons gives up its last');
 
   // A guest's filters narrow the three decks the guest is shown; the second priest deck of the selection stays behind the subscription.
   await openFun('page=fun-decks&class=priest&sort=reliable');
@@ -262,7 +274,7 @@ try {
 
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await page.setViewport({ width: 1920, height: 1000, deviceScaleFactor: 1 });
-  await page.goto(fixture('page=fun-decks&access=full'), { waitUntil: 'networkidle0' });
+  await go('page=fun-decks&access=full');
   await page.waitForSelector('.fun-decks-grid .fun-deck-card:nth-child(6)');
   const wideFunDecks = await page.evaluate(() => ({
     cardCount: document.querySelectorAll('.fun-deck-card').length,
@@ -293,7 +305,7 @@ try {
   assert.ok(wideFunDecks.cardHeight <= 900, `compact full fun deck was ${wideFunDecks.cardHeight}px tall`);
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-wide.png`, fullPage: true });
 
-  await page.goto(fixture('page=fun-decks&access=full&render=ready'), { waitUntil: 'networkidle0' });
+  await go('page=fun-decks&access=full&render=ready');
   await page.waitForSelector('.fun-deck-card .deck-render-preview[data-render-state="ready"]');
   assert.equal(
     await page.$$eval('.fun-deck-card__copy', buttons => buttons.filter(button => {
@@ -319,7 +331,7 @@ try {
   );
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-rendered.png`, fullPage: true });
 
-  await page.reload({ waitUntil: 'networkidle0' });
+  await open(page.url());
   await page.waitForSelector('.fun-deck-card .deck-render-preview[data-render-state="ready"]');
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', {
@@ -340,7 +352,7 @@ try {
   );
 
   await page.setViewport({ width: 1024, height: 900, deviceScaleFactor: 1 });
-  await page.goto(fixture('page=fun-decks&access=full'), { waitUntil: 'networkidle0' });
+  await go('page=fun-decks&access=full');
   assert.equal(
     await page.$eval('.fun-decks-grid', grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length),
     2,
@@ -350,7 +362,7 @@ try {
 
   for (const width of [390, 320]) {
     await page.setViewport({ width, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
-    await page.goto(fixture('page=fun-decks'), { waitUntil: 'networkidle0' });
+    await go('page=fun-decks');
     await page.waitForSelector('.arena-inline-paywall--meta');
     await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
     const layout = await page.evaluate(() => ({
@@ -367,7 +379,7 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-mobile.png`, fullPage: true });
 
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-  await page.goto(fixture('page=archetype'), { waitUntil: 'networkidle0' });
+  await go('page=archetype');
   await page.waitForSelector('.arena-inline-paywall--archetype');
   assert.equal(await page.$eval('#storybook-root h1', node => node.textContent), 'Охотник на демонов Бездны');
   assert.equal(await page.$$eval('.archetype-deck-card', nodes => nodes.length), 0);
@@ -389,7 +401,7 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-archetype-desktop.png`, fullPage: true });
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
-  await page.reload({ waitUntil: 'networkidle0' });
+  await open(page.url());
   await page.waitForSelector('.arena-inline-paywall--archetype');
   const detailLayout = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -401,7 +413,7 @@ try {
   assert.equal(detailLayout.metricCount, 6);
   await page.screenshot({ path: `${screenshotPrefix}-archetype-mobile.png`, fullPage: true });
 
-  await page.goto(fixture('page=catalog'), { waitUntil: 'networkidle0' });
+  await go('page=catalog');
   await page.waitForSelector('.archetype-row');
   assert.equal(await page.$$eval('.archetype-row', nodes => nodes.length), 4);
   assert.equal(await page.$$eval('.arena-inline-paywall', nodes => nodes.length), 0);
