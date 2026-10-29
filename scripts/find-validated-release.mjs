@@ -9,9 +9,11 @@
  * to this workflow file in this repository, ran for the `merge_group` event,
  * tested that SHA and its tree, its `CI required` job finished with `success`,
  * and it still holds the unexpired `hs-arena-release-<sha>` artifact. The run
- * as a whole need not be completed: non-blocking jobs (the browser quarantine)
- * may still be running when `CI required` has passed. The artifact is uploaded
- * by the build job, which `CI required` depends on, so it already exists then.
+ * as a whole need not be completed: only `CI required` is awaited, so any
+ * non-blocking job of the merge-queue run (none today) and the delay before
+ * GitHub marks the run completed do not hold the deployment. The artifact is
+ * uploaded by the build job, which `CI required` depends on, so it already
+ * exists then.
  * Any doubt, including an API failure, yields no run and the push validates in
  * full.
  *
@@ -121,7 +123,8 @@ async function listRunJobs({ api, repository, runId, token }) {
     );
     const batch = body.jobs ?? [];
     jobs.push(...batch);
-    if (batch.length === 0 || jobs.length >= (body.total_count ?? 0)) return jobs;
+    if (batch.length < JOBS_PAGE_SIZE) return jobs;
+    if (typeof body.total_count === 'number' && jobs.length >= body.total_count) return jobs;
   }
   throw new Error(`run ${runId} has more than ${JOBS_MAX_PAGES * JOBS_PAGE_SIZE} jobs`);
 }

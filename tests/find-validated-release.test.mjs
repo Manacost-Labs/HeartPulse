@@ -160,7 +160,7 @@ test('an unfinished merge-queue run with a passed CI required and its release is
   const run = queueRun(100, { status: 'in_progress', conclusion: null });
   fakeGitHub({
     runs: [run],
-    jobs: { 100: [jobsPage([requiredJob('completed', 'success'), { name: 'Browser quarantine (non-blocking)', status: 'in_progress', conclusion: null }])] },
+    jobs: { 100: [jobsPage([requiredJob('completed', 'success'), { name: 'Some non-blocking job', status: 'in_progress', conclusion: null }])] },
     artifacts: { 100: [releaseArtifact] },
   });
   const { clock, find } = lookup();
@@ -291,6 +291,22 @@ test('CI required is found on a later page of a long job list', async () => {
   });
   const { find } = lookup();
   assert.equal((await find()).runId, 150);
+  assert.equal(calls.filter(call => call.includes('/jobs')).length, 2);
+});
+
+test('without total_count a full page is followed by the next one, a short page ends the list', async () => {
+  const filler = Array.from({ length: 100 }, (_, index) => ({ name: `Browser suite (shard ${index})`, status: 'completed', conclusion: 'success' }));
+  const calls = fakeGitHub({
+    runs: [queueRun(151, { status: 'in_progress', conclusion: null })],
+    jobs: {
+      '151?page=1': [{ jobs: filler }],
+      '151?page=2': [{ jobs: [requiredJob('completed', 'success')] }],
+      '151?page=3': [new Error('must not be requested')],
+    },
+    artifacts: { 151: [releaseArtifact] },
+  });
+  const { find } = lookup();
+  assert.equal((await find()).runId, 151);
   assert.equal(calls.filter(call => call.includes('/jobs')).length, 2);
 });
 
