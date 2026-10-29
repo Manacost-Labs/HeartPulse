@@ -33,7 +33,8 @@ Local production build, 4× CPU slowdown, 150 ms round trip, 4 000 seeded users
 `src/features`; `src/modules/adminWorkspace` keeps the domain-neutral parts
 (the data cache and the shared look of section content).
 
-- Grouped sidebar: Рабочий стол, Люди и деньги, Контент, Рост, Система. It
+- Grouped sidebar: Рабочий стол, Аудитория, Контент, Продвижение, Система.
+  Mailing belongs to Продвижение; provider accounts belong to Аудитория. It
   folds into a 56 px icon rail; the choice is remembered in `localStorage`
   (`hp-admin-sidebar-collapsed`, read in `try`/`catch`).
 - Below 960 px of shell width the sidebar is a modal drawer (focus trap,
@@ -48,6 +49,16 @@ Local production build, 4× CPU slowdown, 150 ms round trip, 4 000 seeded users
   success toasts leave after 6 s.
 - Touch screens get 44 px sidebar rows and controls.
 - Contest-only administrators see only «Конкурсы», as before.
+
+The 2026-10-29 [control-center redesign](admin-control-center.md) scopes a
+dark navigation palette and amber active rows to the Valyro sidebar; content
+and dialogs keep a warm light palette. The original `/hearthpulse-logo.webp`
+appears in the sidebar, collapsed rail and mobile top bar without a background
+tile. The overview heading is «Центр
+управления». The 248 px sidebar and 56 px header geometry stay unchanged.
+Menu groups have readable labels and separators, 40 px desktop rows
+(44 px on touch screens), icon surfaces and a bordered amber active row.
+The collapsed rail retains Valyro tooltips and keyboard focus indicators.
 
 Section URLs (`?section=<id>`, the legacy `?section=list` and `?contest`)
 are unchanged and parsed in `adminConsole/adminNavigation.ts`.

@@ -31,17 +31,17 @@ export type AdminNavigationItem = {
 /** Every admin section in menu order; the group order is the order of first appearance. */
 export const ADMIN_NAV_ITEMS: ReadonlyArray<AdminNavigationItem> = [
   { id: 'dashboard', label: 'Обзор', caption: 'Что требует внимания, показатели и события', group: 'Рабочий стол', icon: LayoutDashboard },
-  { id: 'users', label: 'Пользователи', caption: 'Поиск людей, доступ, заметки и история', group: 'Люди и деньги', icon: Users, keywords: ['люди', 'юзеры', 'crm'] },
-  { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', group: 'Люди и деньги', icon: Mail, keywords: ['email', 'почта', 'newsletter'] },
-  { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', group: 'Люди и деньги', icon: CircleDollarSign, keywords: ['бусти', 'буст', 'подписка'] },
-  { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', group: 'Люди и деньги', icon: MessageCircle, keywords: ['телеграм', 'тг', 'vip'] },
+  { id: 'users', label: 'Пользователи', caption: 'Поиск людей, доступ, заметки и история', group: 'Аудитория', icon: Users, keywords: ['люди', 'юзеры', 'crm'] },
+  { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', group: 'Аудитория', icon: CircleDollarSign, keywords: ['бусти', 'буст', 'подписка'] },
+  { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', group: 'Аудитория', icon: MessageCircle, keywords: ['телеграм', 'тг', 'vip'] },
   { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', group: 'Контент', icon: Newspaper },
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', group: 'Контент', icon: ImageIcon },
   { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', group: 'Контент', icon: Languages },
   { id: 'mechanics', label: 'Механики и теги', caption: 'Русские переводы, примеры карт и контроль покрытия', group: 'Контент', icon: Tags },
   { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', group: 'Контент', icon: Sparkles, keywords: ['фан', 'колоды'] },
-  { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', group: 'Рост', icon: Trophy },
-  { id: 'referrals', label: 'Реферальная ссылка', caption: 'Кампании: переходы, регистрации и доступ', group: 'Рост', icon: Link2 },
+  { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', group: 'Продвижение', icon: Mail, keywords: ['email', 'почта', 'newsletter'] },
+  { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', group: 'Продвижение', icon: Trophy },
+  { id: 'referrals', label: 'Реферальная ссылка', caption: 'Кампании: переходы, регистрации и доступ', group: 'Продвижение', icon: Link2 },
   { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', group: 'Система', icon: Database, keywords: ['парсер', 'hsreplay', 'кэш'] },
   { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', group: 'Система', icon: ShieldCheck, keywords: ['апи', 'api', 'токен'] },
 ];

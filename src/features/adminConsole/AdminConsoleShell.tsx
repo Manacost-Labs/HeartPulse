@@ -105,7 +105,7 @@ function ConsoleSidebar({ shell, navigation, activeSection, accessLabel, onNavig
       }}
       header={(
         <div className="admin-console-brand">
-          <span className="admin-console-brand__mark" aria-hidden="true" />
+          <img className="admin-console-brand__mark" src="/hearthpulse-logo.webp" width={44} height={50} alt="HearthPulse" />
           {!shell.sidebarCollapsed && <span className="admin-console-brand__name"><strong>HearthPulse</strong><small>{accessLabel}</small></span>}
           {shell.mobile && (
             <IconButton
@@ -219,7 +219,7 @@ export function AdminConsoleShell({
           aria-labelledby="admin-section-title"
         >
           <header className="admin-console-page-head">
-            <h1 id="admin-section-title">{active?.label ?? 'Админка'}</h1>
+            <h1 id="admin-section-title">{activeSection === 'dashboard' ? 'Центр управления' : active?.label ?? 'Админка'}</h1>
             {active && <p>{active.caption}</p>}
           </header>
           {children}
