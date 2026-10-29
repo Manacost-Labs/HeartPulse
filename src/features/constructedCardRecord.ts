@@ -107,12 +107,24 @@ export function mechanicLabel(value: string, translations?: Record<string, strin
   return translateConstructedMechanic(value, translations);
 }
 
+/**
+ * Digits are grouped here, not by the locale: ICU's ru-RU separator is a narrow
+ * no-break space (U+202F) in some engines, and the display font has no glyph
+ * for it, so «2 697» fell apart. A no-break space also keeps the number whole
+ * at a line end.
+ */
+function groupThousands(formatted: string): string {
+  return formatted.replace(/\d+/, digits => digits.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0'));
+}
+
 export function percent(value: number | null | undefined): string {
-  return value === null || value === undefined ? 'Нет данных' : `${value.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
+  return value === null || value === undefined
+    ? 'Нет данных'
+    : `${groupThousands(value.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2, useGrouping: false }))}%`;
 }
 
 export function number(value: number | null | undefined): string {
-  return value === null || value === undefined ? 'Нет данных' : value.toLocaleString('ru-RU');
+  return value === null || value === undefined ? 'Нет данных' : groupThousands(value.toLocaleString('ru-RU', { useGrouping: false }));
 }
 
 export function cardPath(format: CardFormat, card: CardRecord): string {

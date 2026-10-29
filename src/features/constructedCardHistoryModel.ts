@@ -1,3 +1,5 @@
+import { CONSTRUCTED_CARD_METRICS, constructedCardMetricCaption } from './constructedCardMetrics';
+
 export type ConstructedCardHistoryPoint = {
   recordedAt: string;
   deckPopularity: number | null;
@@ -22,14 +24,12 @@ export const CONSTRUCTED_CARD_HISTORY_METRICS: ReadonlyArray<{
   id: ConstructedCardHistoryMetric;
   label: string;
   shortLabel: string;
-  /** Fits a quarter of a phone-wide switch. */
-  phoneLabel?: string;
   unit: 'percent' | 'count';
 }> = [
-  { id: 'deckPopularity', label: 'Использование в колодах', shortLabel: 'Использование', phoneLabel: 'Доля колод', unit: 'percent' },
-  { id: 'deckWinrate', label: 'Победы колод с картой', shortLabel: 'Винрейт колод', unit: 'percent' },
-  { id: 'timesPlayed', label: 'Сыграно партий', shortLabel: 'Партии', unit: 'count' },
-  { id: 'winrateWhenPlayed', label: 'Винрейт при розыгрыше', shortLabel: 'При розыгрыше', phoneLabel: 'Розыгрыш', unit: 'percent' },
+  { id: 'deckPopularity', label: CONSTRUCTED_CARD_METRICS.deckPopularity.label, shortLabel: constructedCardMetricCaption('deckPopularity'), unit: 'percent' },
+  { id: 'deckWinrate', label: CONSTRUCTED_CARD_METRICS.deckWinrate.label, shortLabel: constructedCardMetricCaption('deckWinrate'), unit: 'percent' },
+  { id: 'timesPlayed', label: CONSTRUCTED_CARD_METRICS.timesPlayed.label, shortLabel: constructedCardMetricCaption('timesPlayed'), unit: 'count' },
+  { id: 'winrateWhenPlayed', label: CONSTRUCTED_CARD_METRICS.winrateWhenPlayed.label, shortLabel: constructedCardMetricCaption('winrateWhenPlayed'), unit: 'percent' },
 ];
 
 /** Average of comparable cards at one snapshot, served with the card history. */

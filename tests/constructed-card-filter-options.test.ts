@@ -65,10 +65,10 @@ assert.ok(mechanics.every(option => option.icon === undefined),
 
 const entitledStatisticSorts = statisticSortOptions(true);
 assert.deepEqual(entitledStatisticSorts.map(option => option.label), [
-  'В % колод',
-  'Победы колод',
-  'Сыграно партий',
-]);
+  'Популярность',
+  'Винрейт колод',
+  'Партий',
+], 'the sort menu must use the card page metric names, in their short form where a phone trigger is narrow');
 assert.ok(entitledStatisticSorts.every(option => option.disabled === false));
 assert.doesNotMatch(entitledStatisticSorts.map(option => option.label).join(' '), /🔒|Алмаз/,
   'subscribers must not see lock or plan decoration on available sort options');

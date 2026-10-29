@@ -1,5 +1,6 @@
 import { constructedFacetValues } from '../modules/constructedCards/public';
 import { CONSTRUCTED_SET_LABELS, constructedSetLabel } from './constructedCardLabels';
+import { constructedCardMetricCaption } from './constructedCardMetrics';
 
 export type ConstructedCardFilterOption = {
   value: string;
@@ -10,9 +11,9 @@ export type ConstructedCardFilterOption = {
 };
 
 const STATISTIC_SORT_DEFINITIONS = [
-  { value: 'popularity', label: 'В % колод' },
-  { value: 'winrate', label: 'Победы колод' },
-  { value: 'games', label: 'Сыграно партий' },
+  { value: 'popularity', label: constructedCardMetricCaption('deckPopularity') },
+  { value: 'winrate', label: constructedCardMetricCaption('deckWinrate') },
+  { value: 'games', label: constructedCardMetricCaption('timesPlayed') },
 ] as const;
 
 export const CONSTRUCTED_CLASS_LABELS: Record<string, string> = {

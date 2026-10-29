@@ -1,4 +1,5 @@
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
+import { PendingStatsRows } from './ConstructedCardStatistics';
 import '../shared/ui/LoadingSurface.css';
 import './StandardCards.styles';
 import './CardDetailSkeleton.css';
@@ -30,13 +31,19 @@ export function CardDetailSkeleton() {
         <div className="constructed-card-detail__copy card-detail-skeleton__copy"><LoadingBlock /><LoadingBlock /><LoadingBlock /></div>
       </div>
       <div className="constructed-card-detail__statistics">
-        <div><LoadingBlock className="card-detail-skeleton__stats-title" /><LoadingBlock className="card-detail-skeleton__stats-period" /></div>
-        <div className="constructed-card-detail__statistics-controls">
-          <LoadingBlock className="card-detail-skeleton__format" />
-          <LoadingBlock className="card-detail-skeleton__select" />
-          <LoadingBlock className="card-detail-skeleton__select" />
+        <div className="constructed-card-detail__statistics-head">
+          <LoadingBlock className="card-detail-skeleton__stats-title" />
+          <span className="constructed-card-detail__statistics-meta">
+            <LoadingBlock className="card-detail-skeleton__stats-line" /><LoadingBlock className="card-detail-skeleton__stats-line" />
+          </span>
         </div>
-        <LoadingBlock className="card-detail-skeleton__stats" />
+        <div className="constructed-card-detail__statistics-controls">
+          <div className="constructed-card-detail__statistics-field"><span>Формат</span><LoadingBlock className="card-detail-skeleton__control" /></div>
+          <div className="constructed-cards__filter"><span>Ранг</span><LoadingBlock className="card-detail-skeleton__control" /></div>
+          <div className="constructed-cards__filter"><span>Период</span><LoadingBlock className="card-detail-skeleton__control" /></div>
+        </div>
+        {/* The labels and explanations are fixed text: only the values wait. */}
+        <div className="card-detail-skeleton__stats"><PendingStatsRows /></div>
       </div>
     </div>
   </LoadingSurface>;

@@ -240,6 +240,83 @@ async function chooseConstructedCardFilter(page, tourId, optionLabel) {
   ), { timeout: 5_000 }, rootSelector, optionLabel);
 }
 
+const CARD_STATISTICS_LABELS = [
+  'Популярность', 'Винрейт колод с картой', 'Винрейт, если сыграна', 'Винрейт, если взята', 'Оставляют в муллигане',
+  'Винрейт из стартовой руки', 'Обычно разыгрывают на ходу', 'Копий в колоде', 'Партий в выборке',
+];
+
+// Geometry and text of the card page's statistics block, read the way a visitor meets it.
+async function inspectCardStatistics(page) {
+  return page.evaluate(() => {
+    const block = document.querySelector('.constructed-card-detail__statistics');
+    const bounds = block.getBoundingClientRect();
+    const rect = element => element.getBoundingClientRect();
+    const rows = [...block.querySelectorAll('.constructed-cards__stats > div')];
+    const value = block.querySelector('.constructed-cards__stat-value');
+    const controls = [block.querySelector('.constructed-card-detail__statistics-format'),
+      ...block.querySelectorAll('.constructed-cards__filter-trigger')];
+    return {
+      blockWidth: Math.round(bounds.width),
+      blockOverflow: block.scrollWidth - block.clientWidth,
+      pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      pokingOut: [...block.querySelectorAll('*')].filter(element => rect(element).width > 0 && rect(element).right > bounds.right + 1).length,
+      controlHeights: controls.map(element => Math.round(rect(element).height * 10) / 10),
+      controlWidths: controls.map(element => Math.round(rect(element).width)),
+      controlTops: controls.map(element => Math.round(rect(element).top)),
+      labels: rows.map(row => row.querySelector('dt')?.textContent?.trim()),
+      hints: rows.map(row => row.querySelector('.constructed-cards__stat-hint')?.textContent?.trim() ?? ''),
+      lastValue: rows.at(-1)?.querySelector('.constructed-cards__stat-value')?.textContent ?? '',
+      valueFont: value ? getComputedStyle(value).fontFamily : '',
+      valueNumerals: value ? getComputedStyle(value).fontVariantNumeric : '',
+      narrowSpaces: (block.textContent ?? '').includes(' '),
+    };
+  });
+}
+
+function cardStatisticsProblems(state, device) {
+  const problems = [];
+  if (state.blockOverflow > 0 || state.pageOverflow > 0 || state.pokingOut > 0) {
+    problems.push(`overflow (block ${state.blockOverflow}, page ${state.pageOverflow}, ${state.pokingOut} elements past the right edge)`);
+  }
+  if (state.controlHeights.length !== 3) problems.push(`expected the format switch and two selects, found ${state.controlHeights.length}`);
+  if (device === 'mobile') {
+    const [first, ...rest] = state.controlWidths;
+    if (rest.some(width => Math.abs(width - first) > 1) || first < state.blockWidth - 60
+      || state.controlTops.some((top, index) => index > 0 && top <= state.controlTops[index - 1])) {
+      problems.push(`controls are not stacked at full width (${JSON.stringify({ widths: state.controlWidths, tops: state.controlTops })})`);
+    }
+  } else if (device === 'desktop' && (Math.max(...state.controlHeights) - Math.min(...state.controlHeights) > 0.5
+    || Math.max(...state.controlTops) - Math.min(...state.controlTops) > 1)) {
+    problems.push(`switch and selects differ in height or row (${JSON.stringify({ heights: state.controlHeights, tops: state.controlTops })})`);
+  }
+  if (state.labels.join('|') !== CARD_STATISTICS_LABELS.join('|')) problems.push(`metric names changed (${state.labels.join('|')})`);
+  if (state.hints.length !== 9 || state.hints.some(hint => hint === '') || new Set(state.hints).size !== 9) problems.push('a metric lacks its own printed explanation');
+  if (state.lastValue !== '12 400' || state.narrowSpaces) problems.push(`sample size is not set with a no-break space (${JSON.stringify(state.lastValue)})`);
+  if (!state.valueFont.includes('Inter') || !state.valueNumerals.includes('tabular-nums')) {
+    problems.push(`values are not set in the body face with tabular numerals (${state.valueFont}; ${state.valueNumerals})`);
+  }
+  return problems;
+}
+
+async function chooseCardStatisticsOption(page, fieldLabel) {
+  const root = '.constructed-card-detail__statistics-controls';
+  const index = await page.$$eval(`${root} .constructed-cards__filter`, (fields, label) => fields
+    .findIndex(field => field.querySelector(':scope > span')?.textContent?.trim() === label), fieldLabel);
+  if (index < 0) throw new Error(`Card statistics field is missing: ${fieldLabel}`);
+  await (await page.$$(`${root} .constructed-cards__filter-trigger`))[index].click();
+  await page.waitForSelector(`${root} [role="listbox"]`, { visible: true, timeout: 5_000 });
+  const chosen = await page.$$eval(`${root} [role="option"]`, options => {
+    const option = options.find(element => element.getAttribute('aria-selected') !== 'true' && element.getAttribute('aria-disabled') !== 'true');
+    const label = option?.textContent?.replace(/\s+/g, ' ').trim() ?? null;
+    if (option instanceof HTMLElement) option.click();
+    return label;
+  });
+  if (!chosen) throw new Error(`No other option in ${fieldLabel}`);
+  await page.waitForFunction((position, label) => document.querySelectorAll('.constructed-card-detail__statistics-controls .constructed-cards__filter-value')[position]
+    ?.textContent?.replace(/\s+/g, ' ').trim() === label, { timeout: 5_000 }, index, chosen);
+  return chosen;
+}
+
 // Catalog rows skip layout away from the viewport (content-visibility), so each
 // row's open control is measured while that row is on screen.
 async function smallestArchetypeOpenTarget(page) {
@@ -3600,14 +3677,14 @@ for (const [device, viewport] of [
       expectedSteps: 5,
       mobile: device === 'mobile',
     });
-    await chooseConstructedCardFilter(page, 'cards-sort', 'Победы колод');
+    await chooseConstructedCardFilter(page, 'cards-sort', 'Винрейт колод');
     await page.waitForFunction(() => [...document.querySelectorAll('.constructed-cards__gallery-stat small')]
-      .every(element => element.textContent?.trim() === 'Победы колод'));
+      .every(element => element.textContent?.trim() === 'Винрейт колод'));
     const winrateSortState = await page.evaluate(() => ({
       labels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].map(element => element.textContent?.trim()),
       values: [...document.querySelectorAll('.constructed-cards__gallery-stat strong')].map(element => element.textContent?.trim()),
     }));
-    if (winrateSortState.labels.length !== 8 || winrateSortState.labels.some(label => label !== 'Победы колод')
+    if (winrateSortState.labels.length !== 8 || winrateSortState.labels.some(label => label !== 'Винрейт колод')
       || winrateSortState.values.some(value => value === '100%')) {
       failures.push(`constructed cards sorting [${device}]: card metric did not follow deck-winrate sorting (${JSON.stringify(winrateSortState)})`);
     }
@@ -3623,8 +3700,8 @@ for (const [device, viewport] of [
     await page.evaluate(() => window.history.back());
     await page.waitForFunction(() => window.location.pathname.replace(/(.)\/$/, '$1') === '/standard/cards');
     await page.waitForSelector('.constructed-cards__gallery-card');
-    await chooseConstructedCardFilter(page, 'cards-sort', 'Победы колод');
-    await page.waitForFunction(() => document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() === 'Победы колод');
+    await chooseConstructedCardFilter(page, 'cards-sort', 'Винрейт колод');
+    await page.waitForFunction(() => document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() === 'Винрейт колод');
     if (device === 'desktop') {
       await page.hover('.constructed-cards__gallery-card');
       await page.waitForSelector('.constructed-cards__tooltip');
@@ -3635,7 +3712,8 @@ for (const [device, viewport] of [
         borderImage: getComputedStyle(document.querySelector('.constructed-cards__tooltip')).borderImageSource,
         velvetBackground: getComputedStyle(document.querySelector('.constructed-cards__tooltip-header')).backgroundImage,
       }));
-      if (tooltipState.rows !== 6 || !tooltipState.text.includes('В % колод') || tooltipState.display === 'none'
+      if (tooltipState.rows !== 6 || !tooltipState.text.includes('Популярность') || !tooltipState.text.includes('Партий в выборке')
+        || tooltipState.text.includes('В % колод') || tooltipState.display === 'none'
         || !tooltipState.borderImage.includes('main-page-rail-border') || !tooltipState.velvetBackground.includes('arena-rail-red')) {
         failures.push(`constructed cards tooltip [${device}]: Legend hover statistics regressed (${JSON.stringify(tooltipState)})`);
       }
@@ -3666,7 +3744,7 @@ for (const [device, viewport] of [
     if (constructedTableState.rows !== 8 || constructedTableState.columns !== 9 || constructedTableState.documentOverflow
       || constructedTableState.catalogTiles !== 8 || constructedTableState.deckRenderer !== 'undefined' || constructedTableState.englishSubtitles !== 0
       || constructedTableState.readableNames !== 8
-      || constructedTableState.activeSort !== 'Победы колод'
+      || constructedTableState.activeSort !== 'Винрейт колод'
       || (device === 'desktop' && constructedTableState.maximumRowHeight > 62)
       || (device === 'mobile' && (constructedTableState.internallyScrollable || constructedTableState.mobileRows !== 'grid'))) {
       failures.push(`constructed cards table [${device}]: structure or containment regressed (${JSON.stringify(constructedTableState)})`);
@@ -4187,6 +4265,96 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
     failures.push(`/standard/cards [mobile guest]: ${error.message}`);
   } finally {
     await page.close();
+  }
+}
+
+// The card page's statistics block: no overflow at any width, controls stacked on a phone and level on a
+// desktop, plain metric names with printed explanations, digits in the body face, and a visible focus ring.
+for (const [device, viewport] of [
+  ['desktop', { width: 1440, height: 900, deviceScaleFactor: 1 }],
+  ['laptop', { width: 1280, height: 800, deviceScaleFactor: 1 }],
+  ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+]) {
+  const page = await createQaPage();
+  await page.setViewport(viewport);
+  await mockApplicationApi(page, { authenticated: true });
+  const label = `constructed card statistics [${device}]`;
+  const runtimeErrors = collectRuntimeErrors(page);
+  try {
+    await page.goto(`${BASE}/standard/cards/standard/CARD_QA_1`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    const loadedRows = '.constructed-card-detail__statistics .constructed-cards__stats:not([aria-busy]) > div';
+    await page.waitForSelector(loadedRows, { timeout: 20_000 });
+    const verify = async step => {
+      for (const problem of cardStatisticsProblems(await inspectCardStatistics(page), device)) failures.push(`${label} ${step}: ${problem}`);
+    };
+    await verify('opened');
+    await page.click('.constructed-card-detail__statistics-format button:nth-child(2)');
+    await page.waitForFunction(() => document.querySelector('.constructed-card-detail__statistics-format button:nth-child(2)')?.getAttribute('aria-pressed') === 'true');
+    await page.waitForSelector(loadedRows, { timeout: 20_000 });
+    await verify('after Standard → Wild');
+    await chooseCardStatisticsOption(page, 'Ранг');
+    await page.waitForSelector(loadedRows, { timeout: 20_000 });
+    await verify('after the rank change');
+    await chooseCardStatisticsOption(page, 'Период');
+    await page.waitForSelector(loadedRows, { timeout: 20_000 });
+    await verify('after the period change');
+    if (device === 'desktop') {
+      // Keyboard reaches the switch and draws a ring on it. The period select hands focus back to its trigger on
+      // the next frame; moving focus before that would be undone.
+      await page.waitForFunction(() => document.activeElement?.matches('.constructed-card-detail__statistics-controls .constructed-cards__filter-trigger'), { timeout: 5_000 });
+      await page.focus('.constructed-card-detail__statistics-format button:first-child');
+      await page.keyboard.press('Tab');
+      const focus = await page.evaluate(() => {
+        const active = document.activeElement;
+        const style = active ? getComputedStyle(active) : null;
+        return { inSwitch: Boolean(active?.closest('.constructed-card-detail__statistics-format')), visible: active?.matches(':focus-visible') ?? false,
+          outline: style?.outlineStyle, outlineWidth: style?.outlineWidth, ring: style?.boxShadow ?? 'none' };
+      });
+      if (!focus.inSwitch || !focus.visible || focus.outline === 'none' || parseFloat(focus.outlineWidth) < 2 || focus.ring === 'none') {
+        failures.push(`${label}: the format switch shows no keyboard focus ring (${JSON.stringify(focus)})`);
+      }
+      await page.screenshot({ path: `${OUT}/constructed-card-statistics-focus-${device}.png`, fullPage: false });
+    }
+    await page.evaluate(() => document.querySelector('.constructed-card-detail__statistics')?.scrollIntoView({ block: 'center' }));
+    await page.screenshot({ path: `${OUT}/constructed-card-statistics-${device}.png`, fullPage: false });
+    await auditAccessibility(page, label, '.constructed-card-detail__statistics');
+    if (runtimeErrors.length) failures.push(`${label}: ${runtimeErrors.join('; ')}`);
+    console.log(`✓ ${label}: fit, level controls, names, digits, focus + axe`);
+  } catch (error) {
+    failures.push(`${label}: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+  // The same slice without access: the locked preview stays inside the block as well.
+  const guest = await createQaPage();
+  await guest.setViewport(viewport);
+  await mockApplicationApi(guest, { authenticated: false });
+  try {
+    await guest.goto(`${BASE}/standard/cards/standard/CARD_QA_1`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await guest.waitForSelector('.constructed-card-detail__statistics-gate .constructed-cards__stats-lock', { visible: true, timeout: 20_000 });
+    const locked = await guest.evaluate(() => {
+      const block = document.querySelector('.constructed-card-detail__statistics');
+      const preview = block.querySelector('.constructed-card-detail__statistics-blur');
+      const notice = block.querySelector('.constructed-cards__stats-lock').getBoundingClientRect();
+      const frame = block.getBoundingClientRect();
+      return {
+        blockOverflow: block.scrollWidth - block.clientWidth,
+        pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        hiddenFromReaders: preview.getAttribute('aria-hidden') === 'true' && preview.hasAttribute('inert'),
+        noticeInside: notice.left >= frame.left && notice.right <= frame.right,
+        previewHeight: Math.round(preview.getBoundingClientRect().height),
+      };
+    });
+    if (locked.blockOverflow > 0 || locked.pageOverflow > 0 || !locked.hiddenFromReaders || !locked.noticeInside
+      || (device === 'mobile' && locked.previewHeight > 330)) {
+      failures.push(`${label} without access: the locked preview regressed (${JSON.stringify(locked)})`);
+    }
+    await guest.evaluate(() => document.querySelector('.constructed-card-detail__statistics')?.scrollIntoView({ block: 'center' }));
+    await guest.screenshot({ path: `${OUT}/constructed-card-statistics-locked-${device}.png`, fullPage: false });
+  } catch (error) {
+    failures.push(`${label} without access: ${error.message}`);
+  } finally {
+    await guest.close();
   }
 }
 

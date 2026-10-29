@@ -86,7 +86,7 @@ export const LongHistory: Story = {
 export const WinrateWithComparison: Story = {
   play: async ({ canvasElement }) => {
     const canvas = await open(canvasElement);
-    await userEvent.click(await canvas.findByRole('radio', { name: 'При розыгрыше' }));
+    await userEvent.click(await canvas.findByRole('radio', { name: 'Если сыграна' }));
     await userEvent.click(canvas.getByRole('radio', { name: 'Класс' }));
     await expect(canvas.getByText('Среднее класса «Жрец»')).toBeVisible();
     await expect(canvasElement.querySelector('.analytics-chart__reference')).not.toBeNull();
@@ -147,6 +147,6 @@ export const Interaction: Story = {
     await expect(range).toHaveAttribute('aria-checked', 'true');
     await userEvent.click(metric);
     await expect(metric).toHaveAttribute('aria-checked', 'true');
-    await expect(canvas.getByRole('heading', { name: 'Победы колод с картой' })).toBeVisible();
+    await expect(canvas.getByRole('heading', { name: 'Винрейт колод с картой' })).toBeVisible();
   },
 };
