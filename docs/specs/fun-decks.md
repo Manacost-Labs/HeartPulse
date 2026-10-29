@@ -30,19 +30,27 @@ or out-of-range bounds become `null`), and `/api/fun-decks` adds
 translations (without it the English name stays). A dataset from before
 concept-v7 has none of these fields and renders as it did.
 
-`src/features/funDecksPreview.ts` holds the pure rules:
+The reasons are computed on the server (`server/funDeckWhy.ts`, called by
+`normalizeFunDeckRow`), so the dictionary stays out of the page's bundle:
+`/api/fun-decks` rows carry `why`, every Russian reason in order of interest
+(package `Пакет: <название>`, `Хайлендер`, `XL-колода`, `Концепт`, `Мем`,
+`Сыр`, `Редкий архетип`, `Далеко от меты`, `Мало общего с метой`), and `tags`,
+the filter tags the deck carries, found in every reason code it has. The API's
+internal codes (score arithmetic, rejection reasons) and any unknown code
+produce nothing. A response without `why` and `tags` shows no reasons and has
+no tag matches.
 
-- **Reasons.** `funDeckWhy()` shows up to three Russian tags in the order
-  package (`Пакет: <название>`), `Хайлендер`, `XL-колода`, `Концепт`, `Мем`,
-  `Сыр`, `Редкий архетип`, `Далеко от меты`, `Мало общего с метой`. A tag the
-  reader filters by comes first. The API's internal codes (score arithmetic,
-  rejection reasons) and any unknown code are never shown. The line
-  "Ближе всего к: <архетип> · сходство N%" follows.
-- **Win rate.** "54% (47–61%)" when the interval is present; the note
+`src/features/funDecksPreview.ts` holds the pure rules of the page:
+
+- **Reasons.** `funDeckWhy()` shows the first three of `why`; a tag the reader
+  filters by comes first. The line "Ближе всего к: <архетип> · сходство N%"
+  follows.
+- **Win rate.** "54% (47–61%)" (the bounds rounded to whole percent) when the
+  interval is present; the note
   "мало игр" when `games < 100`.
 - **Filters and sorts.** A class (icons, any of the selected) and a type
-  (Хайлендер, XL, Мем, Сыр, Концепт; any of the selected, matched against every
-  reason code of the deck) narrow the list together with format and search.
+  (Хайлендер, XL, Мем, Сыр, Концепт; any of the selected, matched against the
+  deck's `tags`) narrow the list together with format and search.
   Sorts: `newest` (default), `fun`, `reliable` (the lower bound of the
   interval, then the win rate; a deck without it goes last), `distant` (least
   like the meta first). Each key breaks ties by the next; decks equal on all
