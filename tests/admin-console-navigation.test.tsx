@@ -50,7 +50,10 @@ assert.match(overviewHtml, /Открыть Telegram/);
 assert.match(overviewHtml, /1\s284/);
 assert.match(overviewHtml, /Истекает за 7 дней/);
 assert.match(overviewHtml, /-4%/);
-assert.equal((overviewHtml.match(/<li><button type="button"/g) ?? []).length, 4);
+assert.match(overviewHtml, /Новые за 30 дней/);
+assert.match(overviewHtml, /<button[^>]*>Новые за 7 дней/);
+assert.match(overviewHtml, /<button[^>]*>Платящие/);
+assert.match(overviewHtml, /<button[^>]*>Ручной доступ/);
 assert.match(renderToStaticMarkup(<OverviewAlerts alerts={[]} onNavigate={noop} onOpenSegment={noop} />), /role="status"[^>]*>.*Всё спокойно/);
 
 console.log('admin console navigation and overview assertions passed');

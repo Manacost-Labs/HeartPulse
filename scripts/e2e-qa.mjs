@@ -1692,7 +1692,7 @@ for (const [device, viewport] of [
         alerts: [...document.querySelectorAll('.admin-overview-alerts > li')].map(element => ({
           severity: element.className, title: text(element.querySelector('strong')), action: text(element.querySelector('button')),
         })),
-        kpis: [...document.querySelectorAll('.admin-overview-kpis > li > button')].map(element => ({
+        kpis: [...document.querySelectorAll('.admin-overview-kpis > li')].map(element => ({
           label: text(element.querySelector('span')), value: text(element.querySelector('strong')),
         })),
         historyCharts: document.querySelectorAll('.admin-overview-charts .analytics-chart').length,
@@ -1715,7 +1715,7 @@ for (const [device, viewport] of [
     }
     const expectedKpis = [
       { label: 'С доступом сейчас', value: '1' },
-      { label: 'Новые пользователи', value: '2' },
+      { label: 'Новые за 30 дней', value: '2' },
       { label: 'Потеряли доступ', value: '0' },
       { label: 'Истекает за 7 дней', value: '1' },
     ];
@@ -1745,8 +1745,8 @@ for (const [device, viewport] of [
     await page.waitForSelector('.admin-overview-actions button', { timeout: 20_000 });
     await page.evaluate(() => {
       const button = [...document.querySelectorAll('.admin-overview-actions button')]
-        .find(element => element.textContent?.trim() === 'Написать статью');
-      if (!(button instanceof HTMLButtonElement)) throw new Error('Write article quick action is missing');
+        .find(element => element.querySelector('strong')?.textContent?.trim() === 'Статьи');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Articles quick navigation is missing');
       button.click();
     });
     await page.waitForFunction(() => document.querySelector('#admin-section-title')?.textContent?.trim() === 'Статьи');
@@ -2627,7 +2627,7 @@ for (const [device, viewport] of [
 
     for (const removedSection of ['analytics', 'arena-synergies']) {
       await page.goto(`${BASE}/admin?section=${removedSection}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-      await page.waitForFunction(() => document.querySelector('#admin-section-title')?.textContent?.trim() === 'Обзор');
+      await page.waitForFunction(() => document.querySelector('#admin-section-title')?.textContent?.trim() === 'Центр управления');
       const removedSectionState = await page.evaluate(section => ({
         section: new URL(window.location.href).searchParams.get('section'),
         staleNavigation: Boolean(document.querySelector(`[data-section="${section}"]`)),
@@ -3977,6 +3977,9 @@ for (const width of [320, 430]) {
     await page.goto(`${BASE}/admin?section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-parser-control', { timeout: 20_000 });
     await page.waitForSelector('.admin-parser-audit__entry', { timeout: 20_000 });
+    // Audit and schedule load independently; an audit entry does not mean schedule controls are ready.
+    await page.waitForSelector('.admin-parser-schedule__rules summary', { visible: true, timeout: 20_000 });
+    await page.waitForSelector('.admin-parser-schedule__state', { visible: true, timeout: 20_000 });
     await page.click('.admin-parser-audit__details summary');
     const parserControlNarrowState = await page.evaluate(() => {
       const root = document.querySelector('.admin-parser-control');

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
 import { AdminOverviewPage, type AdminOverviewPageProps } from './AdminOverviewPage';
@@ -45,8 +46,12 @@ export const NeedsAttention: Story = {
   play: async ({ canvas, args }) => {
     await expect(await canvas.findByRole('img', { name: 'Регистрации по дням' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Скачать Регистрации по дням: SVG' })).toBeEnabled();
-    await userEvent.click(canvas.getByRole('button', { name: /С доступом сейчас/ }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Платящие' }));
     await expect(args.onOpenSegment).toHaveBeenCalledWith('paying');
+    await userEvent.click(canvas.getByRole('button', { name: 'Ручной доступ' }));
+    await expect(args.onOpenSegment).toHaveBeenCalledWith('manual');
+    await userEvent.click(canvas.getByRole('button', { name: 'Новые за 7 дней' }));
+    await expect(args.onOpenSegment).toHaveBeenCalledWith('new');
   },
 };
 export const AllCalm: Story = { args: { client: client({ ...overview, alerts: [] }) }, play: NeedsAttention.play };
@@ -64,5 +69,49 @@ export const SingleDay: Story = {
   play: async ({ canvas }) => {
     await expect(await canvas.findByRole('img', { name: 'Регистрации по дням' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Скачать Регистрации по дням: SVG' })).toBeEnabled();
+  },
+};
+
+export const Loading: Story = {
+  args: { client: { overview: () => new Promise(() => {}) } },
+  play: async ({ canvas, args }) => {
+    await expect(await canvas.findByRole('status')).toHaveTextContent('Загружаем обзор');
+    await userEvent.click(canvas.getByRole('button', { name: /Пользователи Поиск/ }));
+    await expect(args.onNavigate).toHaveBeenCalledWith('users');
+    await expect(canvas.getByRole('button', { name: /Обновить/ })).toBeDisabled();
+  },
+};
+
+export const Unavailable: Story = {
+  args: { client: { overview: async () => { throw new Error('Нет соединения с сервером'); } } },
+  play: async ({ canvas, args }) => {
+    await expect(await canvas.findByRole('alert')).toHaveTextContent('Нет соединения с сервером');
+    await expect(canvas.queryByText('Собираем данные…')).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole('button', { name: /Данные и парсеры Обновления/ }));
+    await expect(args.onNavigate).toHaveBeenCalledWith('standard-data');
+  },
+};
+
+function RecoveryExample(args: AdminOverviewPageProps) {
+  const [recoveryClient] = useState(() => {
+    let failed = false;
+    return { overview: async () => {
+      if (!failed) { failed = true; throw new Error('Нет соединения с сервером'); }
+      return overview;
+    } };
+  });
+  return <AdminOverviewPage {...args} client={recoveryClient} />;
+}
+
+export const RecoverAfterError: Story = {
+  render: args => <RecoveryExample {...args} />,
+  play: async ({ canvas, args }) => {
+    await expect(await canvas.findByRole('alert')).toHaveTextContent('Нет соединения с сервером');
+    await expect(canvas.queryByText('Собираем данные…')).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole('button', { name: /Пользователи Поиск/ }));
+    await expect(args.onNavigate).toHaveBeenCalledWith('users');
+    await userEvent.click(canvas.getByRole('button', { name: 'Повторить загрузку' }));
+    await expect(await canvas.findByRole('button', { name: 'Платящие' })).toBeVisible();
+    await expect(canvas.queryByRole('alert')).not.toBeInTheDocument();
   },
 };

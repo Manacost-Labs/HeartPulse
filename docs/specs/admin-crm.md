@@ -141,14 +141,27 @@ reason. `GET /api/admin/boosty/analytics` and its `articles=0` option stay.
 `/admin?section=dashboard` («Обзор») is the admin landing page. It reads
 `GET /api/admin/crm/overview`, which the server caches for 60 seconds
 (`?fresh=1`, sent by «Обновить», bypasses the cache). Its cards are «С
-доступом сейчас», «Новые пользователи», «Потеряли доступ» and «Истекает за 7
-дней»; each opens the matching people segment.
+доступом сейчас», «Новые за 30 дней», «Потеряли доступ» and «Истекает за 7
+дней». Counts are separate from their named segment buttons: «Платящие»
+opens provider subscribers, «Ручной доступ» opens manual grants, and
+«Новые за 7 дней» opens the existing seven-day segment (not the 30-day KPI).
+This prevents implying that the destination list has the same population
+as the displayed count. The lapsed and expiring buttons retain their segments.
 
-Two shared line charts below the KPI cards show paying subscribers and new
+Warnings and KPI cards come first; the «Управление сайтом» shortcuts and
+recent events follow, with two shared line charts below them showing paying
+subscribers and new
 registrations by their UTC dates. They use count scales starting at zero,
 keyboard/date selection and local PNG/SVG export. Missing observations remain
 missing; an empty history disables downloads. The KPI segment buttons remain
 separate from chart controls.
+
+Quick navigation does not depend on the overview request: loading and failure
+states still offer the six shortcuts. Initial loading uses LoadingSurface.
+After failure the heading says «Данные обзора недоступны» instead of claiming
+to keep loading, and «Повторить загрузку» retries with fresh data. A failed
+refresh retains the previous data and explicitly labels it as the last
+received answer. See [control-center scope](admin-control-center.md).
 
 Response:
 

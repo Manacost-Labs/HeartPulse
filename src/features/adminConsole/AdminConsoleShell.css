@@ -1,10 +1,27 @@
 /*
- * Admin console frame on the Valyro "manacost" theme. Only the font follows the site (Inter is
- * already self-hosted for the public pages); everything else reads the theme's --ui-* tokens.
+ * Brand overrides stay inside the console; public pages keep their own theme.
+ * Inter is already self-hosted for the public pages.
  */
 .admin-console[data-theme='manacost'] {
   --ui-font-sans: var(--font-body, 'Inter'), system-ui, sans-serif;
   --ui-font-display: var(--ui-font-sans);
+  --ui-fg: #25272c;
+  --ui-fg-subtle: #676b73;
+  --ui-page-bg: #f6f5f2;
+  --ui-border: #e5e3dd;
+  --ui-divider: #e5e3dd;
+  --ui-accent: #9a4f10;
+  --ui-accent-hover: #7c3d08;
+  --ui-accent-text: #87420c;
+  --ui-accent-soft: #fcf0df;
+  --ui-primary: #9a4f10;
+  --ui-primary-hover: #7c3d08;
+  --ui-focus-color: #9a4f10;
+  --ui-radius-lg: 10px;
+  --ui-radius-field: 8px;
+  --ui-radius-button: 8px;
+  --ui-sidebar-item-h: 40px;
+  --ui-sidebar-item-radius: 8px;
   /* Older section and chart styles name the site's decorative fonts; the console reads them as UI text. */
   --font-display: var(--ui-font-sans);
   --font-hs: var(--ui-font-sans);
@@ -12,6 +29,50 @@
   --field-focus-outline: 2px solid var(--ui-focus-color);
   min-height: 100dvh;
 }
+
+/* Scope the inverse palette to navigation: dialogs and section forms keep the light theme. */
+.admin-console .ui-sidebar {
+  --ui-sidebar-bg: #202328;
+  --ui-fg: #fff9ee;
+  --ui-fg-subtle: #aeb0b5;
+  --ui-nav-item-fg: #d9d9dc;
+  --ui-icon-fg: #b6b7bc;
+  --ui-sidebar-icon-fg: #b6b7bc;
+  --ui-hover: #2d3036;
+  --ui-active: #393c42;
+  --ui-divider: #383b40;
+  --ui-sidebar-item-active-bg: #4a3825;
+  --ui-sidebar-item-active-bg-hover: #58412a;
+  --ui-sidebar-item-active-fg: #ffe0ad;
+  --ui-sidebar-item-active-fg-hover: #ffe5bf;
+  --ui-sidebar-item-active-shadow: inset 0 0 0 1px #d49a4b40;
+  --ui-sidebar-item-active-shadow-focus: 0 0 0 2px #f4c783;
+  --ui-focus-color: #f4c783;
+  --ui-focus-ring: 0 0 0 2px #f4c783;
+  background: linear-gradient(180deg, #24282f, #1b1e23);
+}
+
+.admin-console .ui-sidebar__section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.admin-console .ui-sidebar__section-label::after { content: ''; flex: 1; height: 1px; background: var(--ui-divider); }
+.admin-console .ui-sidebar__header { padding-block: 18px; }
+.admin-console .ui-sidebar__nav { gap: 14px; padding: 16px 10px; }
+.admin-console .ui-sidebar__list { gap: 3px; }
+.admin-console .ui-sidebar__item { gap: 10px; font-size: 14px; }
+.admin-console .ui-sidebar__item[data-active] { font-weight: 600; }
+.admin-console .ui-sidebar__icon { width: 28px; height: 28px; border-radius: 7px; background: #ffffff06; }
+.admin-console .ui-sidebar__item:hover .ui-sidebar__icon { color: #fff2dc; background: #ffffff0d; }
+.admin-console .ui-sidebar__item[data-active] .ui-sidebar__icon { color: #ffd08a; background: #edb75f1c; }
+.admin-console .ui-sidebar[data-collapsed] .ui-sidebar__nav { padding-inline: 8px; }
 
 /* After a pointer press the site hides field outlines (src/styles/field-focus.css); keep that rule. */
 html[data-pointer-focus] .admin-console[data-theme='manacost'] {
@@ -40,18 +101,19 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
 .admin-console-brand {
   display: flex;
   align-items: center;
-  gap: var(--ui-space-2);
+  gap: 12px;
   min-width: 0;
-  min-height: 40px;
+  min-height: 52px;
 }
 
 .admin-console-brand__mark {
   flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-accent) url('/arena-logo-icon.webp') center / 22px no-repeat;
+  width: 44px;
+  height: 50px;
+  object-fit: contain;
 }
+
+.admin-console .ui-sidebar[data-collapsed] .admin-console-brand__mark { width: 32px; height: 38px; }
 
 .admin-console-brand__name {
   display: grid;
@@ -61,7 +123,7 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
 
 .admin-console-brand__name strong {
   color: var(--ui-fg);
-  font-size: var(--ui-text-sm);
+  font-size: 19px;
   font-weight: var(--ui-weight-semibold);
 }
 
@@ -74,6 +136,8 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
   white-space: nowrap;
 }
 
+.admin-console-brand__name small { margin-top: 4px; }
+
 .admin-console-brand__close {
   margin-inline-start: auto;
 }
@@ -82,11 +146,16 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
   display: flex;
   align-items: center;
   gap: var(--ui-space-2);
-  min-height: 36px;
-  padding-inline: var(--ui-space-2);
+  min-height: 40px;
+  padding-inline: 12px;
+  border: 1px solid var(--ui-divider);
   border-radius: var(--ui-radius-md);
+  background: #ffffff05;
+  color: #e4e5e8;
   text-decoration: none;
 }
+
+.admin-console .ui-sidebar[data-collapsed] .admin-console-site-link { justify-content: center; padding-inline: 0; }
 
 .admin-console-site-link:hover {
   background: var(--ui-hover);
@@ -108,6 +177,8 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
   min-width: 0;
   padding-inline-end: var(--ui-space-4);
 }
+
+.admin-console-mobile-logo { display: none; flex: none; object-fit: contain; }
 
 .admin-console-crumbs {
   display: flex;
@@ -197,13 +268,13 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
 }
 
 .admin-console-page-head {
-  margin-bottom: var(--ui-space-6);
+  margin-bottom: var(--ui-space-4);
 }
 
 .admin-console-page-head h1 {
   margin: 0;
   color: var(--ui-fg);
-  font-size: var(--ui-text-2xl);
+  font-size: clamp(24px, 2.2vw, 30px);
   font-weight: var(--ui-weight-bold);
   letter-spacing: var(--ui-tracking-display);
   line-height: var(--ui-leading-tight);
@@ -263,6 +334,11 @@ html[data-pointer-focus] .admin-console[data-theme='manacost'] {
 }
 
 @media (max-width: 959px) {
+  .admin-console-mobile-logo { display: block; }
+
+  .admin-console-crumbs > span:first-child,
+  .admin-console-crumbs > svg { display: none; }
+
   .admin-console-search {
     min-width: 0;
   }

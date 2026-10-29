@@ -14,6 +14,7 @@ export function ConsoleTopBar({ active, userLabel, userTitle, onSearch }: {
   return (
     <div className="admin-console-header">
       <AppShellSidebarToggle variant="ghost" />
+      <img className="admin-console-mobile-logo" src="/hearthpulse-logo.webp" width={28} height={32} alt="HearthPulse" />
       <nav className="admin-console-crumbs" aria-label="Расположение">
         <span>{active?.group ?? 'Админка'}</span>
         <ChevronRight size={14} aria-hidden="true" />

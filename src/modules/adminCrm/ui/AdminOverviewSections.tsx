@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, ArrowUpRight, CheckCircle2, Database, Info, Link2, Mail, Newspaper, Trophy, Users } from 'lucide-react';
 import type { AdminCrmSegmentId } from '../api/adminCrmClient';
 import { LineChart } from '../../../shared/ui/analytics/LineChart';
 import {
@@ -37,7 +37,7 @@ export function OverviewAlerts({ alerts, onNavigate, onOpenSegment }: { alerts: 
               <span>{alert.detail}</span>
             </div>
             {action && (
-              <button type="button" className="contest-secondary-button" onClick={() => (
+              <button type="button" className="contest-secondary-button" aria-label={`${action.label}: ${alert.title}`} onClick={() => (
                 action.segment ? onOpenSegment(action.segment as AdminCrmSegmentId) : onNavigate(action.section)
               )}>{action.label}</button>
             )}
@@ -51,41 +51,51 @@ export function OverviewAlerts({ alerts, onNavigate, onOpenSegment }: { alerts: 
 type KpisProps = { overview: AdminCrmOverview } & Pick<Navigate, 'onOpenSegment'>;
 
 export function OverviewKpis({ overview, onOpenSegment }: KpisProps) {
-  const { kpis, series } = overview;
+  const { kpis } = overview;
   const growth = trend(kpis.newUsers30d, kpis.newUsersPrevious30d);
   return (
-    <>
-    <ul className="admin-overview-kpis" aria-label="Главные показатели за 30 дней">
-      <li><button type="button" onClick={() => onOpenSegment('paying')}>
+    <ul className="admin-overview-kpis" aria-label="Показатели аудитории">
+      <li>
         <span>С доступом сейчас</span>
         <strong>{kpis.payingNow.toLocaleString('ru-RU')}</strong>
         <small>платят {kpis.payingProvider.toLocaleString('ru-RU')} · вручную {kpis.manualAccess.toLocaleString('ru-RU')}</small>
-      </button></li>
-      <li><button type="button" onClick={() => onOpenSegment('new')}>
-        <span>Новые пользователи</span>
+        <div className="admin-overview-kpi-links">
+          <button type="button" onClick={() => onOpenSegment('paying')}>Платящие <ArrowUpRight size={14} aria-hidden="true" /></button>
+          <button type="button" onClick={() => onOpenSegment('manual')}>Ручной доступ <ArrowUpRight size={14} aria-hidden="true" /></button>
+        </div>
+      </li>
+      <li>
+        <span>Новые за 30 дней</span>
         <strong>{kpis.newUsers30d.toLocaleString('ru-RU')}</strong>
         <small>
           {growth
             ? <><b className={`is-${growth.direction}`}>{growth.percent > 0 ? '+' : ''}{growth.percent}%</b> к прошлым 30 дням</>
             : 'за 30 дней'}
         </small>
-      </button></li>
-      <li><button type="button" onClick={() => onOpenSegment('lapsed')}>
+      <button type="button" onClick={() => onOpenSegment('new')}>Новые за 7 дней <ArrowUpRight size={14} aria-hidden="true" /></button>
+      </li>
+      <li>
         <span>Потеряли доступ</span>
         <strong>{kpis.lapsed30d.toLocaleString('ru-RU')}</strong>
         <small>за 30 дней, можно вернуть</small>
-      </button></li>
-      <li><button type="button" onClick={() => onOpenSegment('expiring')}>
+      <button type="button" onClick={() => onOpenSegment('lapsed')}>Потерявшие доступ <ArrowUpRight size={14} aria-hidden="true" /></button>
+      </li>
+      <li>
         <span>Истекает за 7 дней</span>
         <strong>{kpis.expiringSoon.toLocaleString('ru-RU')}</strong>
         <small>ручной доступ, стоит продлить</small>
-      </button></li>
+      <button type="button" onClick={() => onOpenSegment('expiring')}>Истекающие доступы <ArrowUpRight size={14} aria-hidden="true" /></button>
+      </li>
     </ul>
+  );
+}
+
+export function OverviewCharts({ overview: { series } }: { overview: AdminCrmOverview }) {
+  return (
     <div className="admin-overview-charts">
       <LineChart title="Платящие подписчики по дням" subtitle="Активный оплаченный доступ · 30 дней, UTC" points={overviewChartPoints(series.days, series.paying)} unit="count" domain={{ minimum: 0 }} />
       <LineChart title="Регистрации по дням" subtitle="Новые пользователи · 30 дней, UTC" points={overviewChartPoints(series.days, series.newUsers)} unit="count" domain={{ minimum: 0 }} color="#28704a" />
     </div>
-    </>
   );
 }
 
@@ -116,22 +126,26 @@ export function OverviewActivityFeed({ overview, onOpenPerson }: { overview: Adm
   );
 }
 
-const QUICK_ACTIONS: ReadonlyArray<{ section: string; label: string }> = [
-  { section: 'users', label: 'Найти человека и выдать доступ' },
-  { section: 'articles', label: 'Написать статью' },
-  { section: 'mailing', label: 'Сделать рассылку' },
-  { section: 'contests', label: 'Запустить конкурс' },
-  { section: 'referrals', label: 'Создать рекламную ссылку' },
-  { section: 'standard-data', label: 'Проверить данные и парсеры' },
+const QUICK_ACTIONS = [
+  { section: 'users', label: 'Пользователи', detail: 'Поиск, доступ и карточка клиента', icon: Users },
+  { section: 'articles', label: 'Статьи', detail: 'Публикации и редактирование', icon: Newspaper },
+  { section: 'mailing', label: 'Рассылки', detail: 'Письма, аудитории и отправки', icon: Mail },
+  { section: 'contests', label: 'Конкурсы', detail: 'Заявки и победители', icon: Trophy },
+  { section: 'referrals', label: 'Реферальные ссылки', detail: 'Кампании и привлечённые пользователи', icon: Link2 },
+  { section: 'standard-data', label: 'Данные и парсеры', detail: 'Обновления, источники и очереди', icon: Database },
 ];
 
 export function OverviewQuickActions({ onNavigate }: Pick<Navigate, 'onNavigate'>) {
   return (
     <section className="admin-overview-panel" aria-labelledby="admin-overview-actions">
-      <h3 id="admin-overview-actions">Быстрые действия</h3>
+      <h3 id="admin-overview-actions">Управление сайтом</h3>
       <div className="admin-overview-actions">
         {QUICK_ACTIONS.map(action => (
-          <button key={action.section} type="button" onClick={() => onNavigate(action.section)}>{action.label}</button>
+          <button key={action.section} type="button" onClick={() => onNavigate(action.section)}>
+            <span className="admin-overview-action-icon"><action.icon size={18} aria-hidden="true" /></span>
+            <span><strong>{action.label}</strong><small>{action.detail}</small></span>
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </button>
         ))}
       </div>
     </section>
