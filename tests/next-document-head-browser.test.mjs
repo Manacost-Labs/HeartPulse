@@ -27,7 +27,7 @@ test('every Next document carries the site head tags, analytics and field focus 
 
     assert.match(tag(/<meta name="google-site-verification"[^>]*>/),
       /content="aGEyRvNTeG7FHSUUER0Tsfyyyd3sdRywc4qLycYIcpo"/, 'Search Console ownership meta tag');
-    assert.match(tag(/<meta name="theme-color"[^>]*>/), /content="#081a33"/);
+    assert.match(tag(/<meta name="theme-color"[^>]*>/), /content="#741a1a"/);
     assert.match(tag(/<meta name="color-scheme"[^>]*>/), /content="light"/);
     assert.match(tag(/<meta name="author"[^>]*>/), /content="Manacost"/);
     for (const [file, size] of [['favicon-16.png', '16x16'], ['favicon-32.png', '32x32'], ['favicon-96.png', '96x96']]) {

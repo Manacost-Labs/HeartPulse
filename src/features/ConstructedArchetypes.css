@@ -364,10 +364,13 @@
 .archetypes-ledger__header span:first-child { color: #fff0c8; font-weight: 900; text-transform: uppercase; }
 .archetypes-list { display: grid; }
 
-/* About 90 rows of nested grids: rows away from the viewport skip style,
+/* About 190 rows of nested grids: rows away from the viewport skip style,
    layout and paint (phone TBT 555 -> 200 ms at CPU x4). The intrinsic size is
-   the content height (measured row minus padding and border) per breakpoint;
-   `auto` then keeps each row's real height once it has rendered. */
+   the mean content height (measured row minus padding and border) per
+   breakpoint; `auto` then keeps each row's real height once it has rendered.
+   The mean keeps the sum of the guesses at the length of the list: an estimate
+   that is too small makes the page grow, and the scrollbar jump, as the list
+   is scrolled (a 390 px phone drifted by 3500 px with the old sizes). */
 .archetype-row {
   display: grid;
   grid-template-columns: 34px 52px minmax(185px, 1.2fr) minmax(390px, 1.5fr) auto;
@@ -377,7 +380,7 @@
   padding: 0.7rem 0.8rem;
   border-bottom: 1px solid rgba(92, 54, 24, 0.18);
   content-visibility: auto;
-  contain-intrinsic-size: auto 65px;
+  contain-intrinsic-size: auto 67px;
 }
 
 .archetype-row:last-child { border-bottom: 0; }
@@ -816,7 +819,7 @@
 @media (max-width: 1120px) {
   .archetypes-hero { grid-template-columns: 1fr; }
   .archetypes-hero__summary { max-width: 620px; }
-  .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; contain-intrinsic-size: auto 107px; }
+  .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; contain-intrinsic-size: auto 117px; }
   .archetype-row__metrics { grid-column: 1 / -1; grid-row: 2; }
   .archetype-row__open { grid-column: 4; grid-row: 1; }
   .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -852,7 +855,7 @@
     gap: 0.55rem;
     min-height: 0;
     padding: 0.75rem 0.55rem;
-    contain-intrinsic-size: auto 152px;
+    contain-intrinsic-size: auto 168px;
   }
   .archetype-row__class { width: 44px; height: 44px; }
   .archetype-row__identity h2 { font-size: 1rem; }
