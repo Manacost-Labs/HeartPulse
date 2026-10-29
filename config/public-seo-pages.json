@@ -112,8 +112,8 @@
     "/classes": {
       "policyRouteId": "winrates",
       "navigationRouteId": "winrates",
-      "title": "Лучшие классы Арены Hearthstone, {year} | HearthPulse",
-      "description": "Рейтинг классов Арены Hearthstone по проценту побед на текущем патче, данные HSReplay и Firestone. Обновление каждые 6 часов, доступ по подписке.",
+      "title": "Винрейт классов Арены Hearthstone, {year} | HearthPulse",
+      "description": "Лучшие классы Арены Hearthstone (хс): винрейты всех 11 классов на текущем патче по данным HSReplay и Firestone. Обновление каждые 6 часов, по подписке.",
       "sitemap": true
     },
     "/tierlist": {

@@ -294,8 +294,8 @@ the queries the site wants to answer.
 - «хс» appears only next to the game's name («Hearthstone (хс)»): alone it
   also means Honkai: Star Rail.
 - Titles are static with the year, no teaser exists to date them:
-  «Тир-лист Арены Hearthstone (хс), {year}», «Лучшие классы Арены Hearthstone,
-  {year}», «Легендарки Арены Hearthstone, {year}». The descriptions are at most
+  «Тир-лист Арены Hearthstone (хс), {year}», «Винрейт классов Арены Hearthstone,
+  {year}» (начало «Винрейт классов» ждёт клиентская навигация в `scripts/e2e-qa.mjs`), «Легендарки Арены Hearthstone, {year}». The descriptions are at most
   160 characters and say that access is by subscription.
 - The `Dataset` of `/classes/` and `/tierlist/` has `isAccessibleForFree: false`
   and a description that names the same sources, the same interval and the

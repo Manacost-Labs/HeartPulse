@@ -889,7 +889,7 @@ const STANDALONE_HS = /(?<![\p{L}\p{N}])хс(?![\p{L}\p{N}])/iu;
 const ARENA_PAGES = [
   { path: '/tierlist/', title: `Тир-лист Арены Hearthstone (хс), ${YEAR} | HearthPulse`,
     question: 'Что показывает тир-лист Арены Hearthstone (хс)?', sources: ['HSReplay', 'HearthArena', 'Firestone'], dataset: true },
-  { path: '/classes/', title: `Лучшие классы Арены Hearthstone, ${YEAR} | HearthPulse`,
+  { path: '/classes/', title: `Винрейт классов Арены Hearthstone, ${YEAR} | HearthPulse`,
     question: 'Какой класс выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: true },
   { path: '/legendaries/', title: `Легендарки Арены Hearthstone, ${YEAR} | HearthPulse`,
     question: 'Какую легендарку выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: false },
