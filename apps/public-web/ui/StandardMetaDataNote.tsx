@@ -3,10 +3,16 @@ import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
 import { standardMetaPeriodLabel } from '@/src/features/standardMetaFilterModel';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
 
-/** HSGuru's own page, linked only when the teaser names a plain https address. */
+const HSGURU_HOSTS = new Set(['hsguru.com', 'www.hsguru.com']);
+
+/**
+ * HSGuru's own page, linked only when the teaser names an https address on
+ * HSGuru: the link is labelled «HSGuru», so any other host stays plain text.
+ */
 function sourceHref(sourceUrl: string): string | null {
   try {
-    return new URL(sourceUrl).protocol === 'https:' ? sourceUrl : null;
+    const url = new URL(sourceUrl);
+    return url.protocol === 'https:' && HSGURU_HOSTS.has(url.hostname) ? sourceUrl : null;
   } catch {
     return null;
   }

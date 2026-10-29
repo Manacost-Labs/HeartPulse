@@ -275,6 +275,14 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.doesNotMatch(noLeader.description, /Лидер/);
     assert.match(noLeader.description, new RegExp(`^Мета Хартстоуна \\(хс\\) на (${date}): тир-лист колод Стандарта\\. Винрейт и популярность архетипов\\. Данные HSGuru\\.$`));
 
+    // A row without a winrate is never the leader; a source outside HSGuru is not linked as «HSGuru».
+    state.meta = { ...metaTeaser(updatedAt, [['Без винрейта', null, 5000], ['Зоолок', 61, 14800]]),
+      sourceUrl: 'https://evil.example/meta' };
+    const foreign = await page('/standard/meta/');
+    assert.ok(foreign.description.includes('Лидер — Зоолок, 61% побед.'), foreign.description);
+    assert.ok(foreign.text.includes('источник HSGuru.'), 'the source is still named');
+    assert.ok(!foreign.html.includes('<a href="https://evil.example'), 'a foreign source address is not a link');
+
     // Older than a week: no month in the title, «обновлено» and the date in the description, the line stays.
     state.meta = metaTeaser('2026-09-01T09:00:00.000Z', TOP_ROWS);
     const stale = await page('/standard/meta/');
