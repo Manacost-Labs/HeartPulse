@@ -111,7 +111,6 @@
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
 }
 
 .media-lightbox__action {
@@ -295,11 +294,4 @@
   .media-lightbox__caption { height: 3rem; }
   .media-lightbox__caption span,
   .media-lightbox__caption p { display: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .media-lightbox__button,
-  .media-lightbox__action {
-    transition: none;
-  }
 }

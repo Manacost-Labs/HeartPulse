@@ -318,11 +318,11 @@ Protected behavior includes:
   `card-modal-shell`). The shared content lightboxes on `ModalSurface zoom`
   open with a zoom from the pressed thumbnail and close back into it
   (`docs/specs/public-client-navigation.md`, modals).
-- `MediaLightbox` motion: a page turn slides the picture track by `--motion-base` scaled to the
-  distance left (never under `--motion-instant`; a key press takes `--motion-fast`), a double tap
-  zooms over `--motion-base` and a key or wheel zoom is instant; a drag, pinch and pan write
-  `transform` straight to the picture, nothing else is animated, and `will-change` is set only on a
-  picture that is zoomed or being dragged. Under `prefers-reduced-motion` a swipe is read but does not
+- `MediaLightbox` motion: a page turn by a button or a swipe slides the picture track by
+  `--motion-base` scaled to the distance left (never under `--motion-instant`), the ← → keys turn
+  the page at once, a double tap zooms over `--motion-base` and a key or wheel zoom is instant; a
+  drag, pinch and pan write `transform` straight to the picture, nothing else is animated, and
+  `will-change` is set only on a picture that is zoomed or being dragged. Under `prefers-reduced-motion` a swipe is read but does not
   carry the picture, a page turn and the closing only fade (`--motion-fast`), and no picture flies.
 - Battlegrounds related-card and hero-power reveals.
 - Golden card base/golden two-layer animation.
