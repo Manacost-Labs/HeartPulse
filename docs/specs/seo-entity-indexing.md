@@ -180,14 +180,21 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
 
 - Indexable: HTTP 200, `index, follow` with the preview directives
   (`policy.robots`), self-canonical, the JSON-LD below and a unique title.
-- Below the threshold, every Wild archetype and the legacy
-  `/standard/meta/:format/:archetypeSlug/` family: `noindex, follow`, canonical
-  as before, no JSON-LD. The route inventory keeps the listing level
-  (`constructed-archetype-detail`: `index`, `sitemap: true`, `server-ssr`;
-  `standard-meta-legacy-detail`: `noindex-follow`) and
-  `apps/public-web/lib/publicArchetypeRoute.ts` narrows it per page. The nginx
-  `X-Robots-Tag: noindex, follow` on both families stays until the nginx slice
-  (#298), so nothing is indexed before that.
+- Below the threshold and every Wild archetype: `noindex, follow`, self
+  canonical, no JSON-LD. The route inventory keeps the listing level
+  (`constructed-archetype-detail`: `index`, `sitemap: true`, `server-ssr`) and
+  `apps/public-web/lib/publicArchetypeRoute.ts` narrows it per page.
+- The legacy `/standard/meta/:format/:archetypeSlug/` family is not a page any
+  more (E9 S3b, #298): nginx answers one `301` to the same slug under
+  `/standard/archetypes/…`, with or without the slash, keeping the query
+  string (inventory `standard-meta-legacy-detail`: `kind: redirect`,
+  `expectedStatus: 301`). A Next response served without nginx names the
+  `archetypes` URL as its canonical and stays `noindex, follow` without JSON-LD.
+- nginx puts no `X-Robots-Tag` on a successful Standard archetype, so the
+  page's meta robots decide; a header the app sends passes through unchanged.
+  It keeps `noindex, follow` on Wild (a second layer until Wild's own phase)
+  and `noindex, nofollow` on every `4xx`/`5xx`
+  (`$arena_next_archetype_robots_header` in `deploy/nginx/arena-seo-map.conf`).
 - Every archetype page, indexable or not, renders the server-side summary
   (`apps/public-web/ui/ArchetypeSeoSummary.tsx`, passed to
   `ArchetypeDetailPageClient` as `children`, so the client bundle only grows by

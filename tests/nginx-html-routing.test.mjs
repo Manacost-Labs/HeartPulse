@@ -495,6 +495,14 @@ for (const route of inventory.routes) {
     assert.match(nicknameAlias?.body || '', /proxy_intercept_errors\s+off;/);
     continue;
   }
+  if (route.id === 'standard-meta-legacy-detail') {
+    // E9 S3b: the old archetype family is answered by nginx alone, with or without the slash; the
+    // runtime checks below pin the target, the query string and the single hop.
+    assert.equal(route.expectedStatus, 301, `${route.id} inventory redirect status`);
+    expectRegexAction(path, 'return 301', `${route.id} permanent redirect`);
+    expectRegexAction(`${path}/`, 'return 301', `${route.id} permanent redirect with the slash`);
+    continue;
+  }
   if (route.kind === 'redirect') {
     assert.equal(route.expectedStatus, 302, `${route.id} inventory redirect status`);
     expectRegexAction(path, 'proxy_pass http://127.0.0.1:3101;', route.id);
@@ -723,6 +731,7 @@ function requestNginx(port, path, method = 'GET', extraHeaders = {}) {
         resolveRequest({
           status: response.statusCode,
           headers: response.headers,
+          headersDistinct: response.headersDistinct,
           body: rawBody.toString('utf8'),
           rawBody,
         });
@@ -987,10 +996,27 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next archetype detail</title>',
     }],
-    ['/standard/meta/standard/tempo-mage/', {
+    // A Standard archetype below the indexing threshold: the page says noindex in its meta,
+    // and an upstream header (if the app ever sends one) must reach the client untouched.
+    ['/standard/archetypes/standard/weak-mage/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, follow' },
+      body: '<!doctype html><title>Next weak archetype detail</title>',
+    }],
+    ['/standard/archetypes/wild/tempo-mage/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
-      body: '<!doctype html><title>Next legacy meta detail</title>',
+      body: '<!doctype html><title>Next wild archetype detail</title>',
+    }],
+    ['/standard/archetypes/standard/missing-mage/', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next archetype missing</title>',
+    }],
+    ['/standard/archetypes/wild/missing-mage/', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next wild archetype missing</title>',
     }],
     ['/guides-archive/', {
       status: 200,
@@ -1158,7 +1184,7 @@ async function startCardSeoUpstream() {
     const pathname = incomingUrl.pathname;
     const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
       ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
-      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1492,12 +1518,73 @@ http {
     // The barrier was a JavaScript response; after a second one its line would be readable.
     assert.equal((await ownerLogAfterBarrier()).trim().split('\n').length, ownerEvents.length,
       'JavaScript responses must not enter the HTML ownership log');
-    for (const path of ['/standard/archetypes/standard/tempo-mage/', '/standard/meta/standard/tempo-mage/']) {
-      const detail = await requestNginx(port, path);
-      assert.equal(detail.status, 200, `${path} must reach Next`);
-      assert.match(detail.body, /Next (?:archetype|legacy meta) detail/);
-      assert.equal(detail.headers['x-robots-tag'], 'noindex, follow');
+    // Archetype details (E9 S3b): the page decides for Standard (its meta robots follow the indexing
+    // rule), nginx keeps only Wild and every error out of the index.
+    const standardArchetype = await requestNginx(port, '/standard/archetypes/standard/tempo-mage/');
+    assert.equal(standardArchetype.status, 200, 'a Standard archetype must reach Next');
+    assert.match(standardArchetype.body, /Next archetype detail/);
+    assert.equal(standardArchetype.headers['x-robots-tag'], undefined,
+      'nginx must not put noindex on a Standard archetype: its page decides');
+    const weakArchetype = await requestNginx(port, '/standard/archetypes/standard/weak-mage/');
+    assert.equal(weakArchetype.status, 200);
+    assert.deepEqual(weakArchetype.headersDistinct['x-robots-tag'], ['noindex, follow'],
+      'a header the app sends passes through once, not hidden and not doubled');
+    const wildArchetype = await requestNginx(port, '/standard/archetypes/wild/tempo-mage/');
+    assert.equal(wildArchetype.status, 200);
+    assert.match(wildArchetype.body, /Next wild archetype detail/);
+    assert.equal(wildArchetype.headers['x-robots-tag'], 'noindex, follow',
+      'Wild stays noindex at the edge too (phase 2)');
+    for (const path of ['/standard/archetypes/standard/missing-mage/', '/standard/archetypes/wild/missing-mage/']) {
+      const missing = await requestNginx(port, path);
+      assert.equal(missing.status, 404, `${path} keeps the Next 404`);
+      assert.match(missing.body, /missing/);
+      assert.equal(missing.headers['x-robots-tag'], 'noindex, nofollow', `${path} 404 is noindex, nofollow`);
     }
+    // Not a Standard or Wild format, an unsafe slug or a slug over 120 characters never reaches Next.
+    for (const path of ['/standard/archetypes/arena/tempo-mage/', '/standard/archetypes/standard/Tempo-Mage/',
+      `/standard/archetypes/standard/${'a'.repeat(121)}/`, '/standard/meta/arena/tempo-mage/',
+      '/standard/meta/standard/Tempo-Mage', `/standard/meta/standard/${'a'.repeat(121)}`]) {
+      const invalid = await requestNginx(port, path);
+      assert.equal(invalid.status, 404, `${path} is a real 404`);
+      assert.equal(invalid.headers['x-robots-tag'], 'noindex, nofollow', `${path} 404 is noindex, nofollow`);
+      assert.equal(invalid.headers.location, undefined, `${path} must not redirect`);
+    }
+    // The old /standard/meta/<format>/<slug> family has one permanent hop to /standard/archetypes/...,
+    // with or without the slash, and the query string travels with it.
+    for (const [from, to] of [
+      ['/standard/meta/standard/tempo-mage', '/standard/archetypes/standard/tempo-mage/'],
+      ['/standard/meta/standard/tempo-mage/', '/standard/archetypes/standard/tempo-mage/'],
+      ['/standard/meta/wild/tempo-mage', '/standard/archetypes/wild/tempo-mage/'],
+      ['/standard/meta/wild/tempo-mage/', '/standard/archetypes/wild/tempo-mage/'],
+      ['/standard/meta/standard/tempo-mage?utm_source=yandex&yclid=123', '/standard/archetypes/standard/tempo-mage/?utm_source=yandex&yclid=123'],
+      ['/standard/meta/standard/tempo-mage/?utm_source=yandex', '/standard/archetypes/standard/tempo-mage/?utm_source=yandex'],
+    ]) {
+      const legacy = await requestNginx(port, from);
+      assert.equal(legacy.status, 301, `${from} must redirect permanently`);
+      const target = new URL(legacy.headers.location);
+      assert.equal(`${target.pathname}${target.search}`, to, `${from} goes straight to the archetype URL`);
+      assert.match(legacy.headers['cache-control'] || '', /no-store/, `${from} redirect stays easy to roll back`);
+      assert.equal(legacy.headers['x-robots-tag'], 'noindex, follow', `${from} redirect is noindex`);
+      // One hop: the target answers by itself and does not redirect again.
+      const landed = await requestNginx(port, `${target.pathname}${target.search}`);
+      assert.equal(landed.status, 200, `${from} lands on a page, not on a second redirect`);
+      assert.equal(landed.headers.location, undefined);
+    }
+    // A well-formed slug that the app does not know redirects once and then gets the app's 404.
+    const legacyMissing = await requestNginx(port, '/standard/meta/standard/missing-mage/');
+    assert.equal(legacyMissing.status, 301);
+    assert.equal(new URL(legacyMissing.headers.location).pathname, '/standard/archetypes/standard/missing-mage/');
+    const legacyHead = await requestNginx(port, '/standard/meta/standard/tempo-mage', 'HEAD');
+    assert.equal(legacyHead.status, 301);
+    assert.equal(new URL(legacyHead.headers.location).pathname, '/standard/archetypes/standard/tempo-mage/');
+    assert.equal(legacyHead.body, '');
+    // The archetype URL without a slash still gets its slash in one hop, query kept, without noindex.
+    const archetypeSlash = await requestNginx(port, '/standard/archetypes/standard/tempo-mage?period=7d');
+    assert.equal(archetypeSlash.status, 301);
+    const archetypeSlashTarget = new URL(archetypeSlash.headers.location);
+    assert.equal(`${archetypeSlashTarget.pathname}${archetypeSlashTarget.search}`, '/standard/archetypes/standard/tempo-mage/?period=7d');
+    assert.equal(archetypeSlash.headers['x-robots-tag'], undefined,
+      'the slash redirect of an archetype carries no forced noindex');
     for (const path of ['/cosmetics/', '/cosmetics/heroes/', '/cosmetics/coins/', '/cosmetics/pets/']) {
       const listing = await requestNginx(port, path);
       assert.equal(listing.status, 200, `${path} must reach Next`);

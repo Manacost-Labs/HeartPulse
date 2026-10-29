@@ -134,14 +134,15 @@ test('Next archetype details isolate access and load builds before independent o
       if (/^\/api\/constructed-archetypes\/(?!teaser\/)/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
     });
     // The strong Standard archetype is the only one offered to search engines; every page carries the summary.
+    // The old `meta` family is redirected by nginx; served without it (here) it names the archetype URL as canonical.
     const NOINDEX = 'noindex, follow';
-    for (const [path, width, h1, robots, graph] of [
+    for (const [path, width, h1, robots, graph, canonicalPath = path] of [
       ['/standard/archetypes/wild/thief-priest/', 1440, 'Воровской Жрец', NOINDEX, false],
-      ['/standard/meta/wild/thief-priest/', 390, 'Воровской Жрец', NOINDEX, false],
+      ['/standard/meta/wild/thief-priest/', 390, 'Воровской Жрец', NOINDEX, false, '/standard/archetypes/wild/thief-priest/'],
       ['/standard/archetypes/standard/zoolock/', 1440, 'Зоолок', INDEXABLE_ROBOTS, true],
       ['/standard/archetypes/standard/zoolock/', 390, 'Зоолок', INDEXABLE_ROBOTS, true],
       ['/standard/archetypes/standard/weak-warlock/', 390, 'Слабый Чернокнижник', NOINDEX, false],
-      ['/standard/meta/standard/zoolock/', 1440, 'Зоолок', NOINDEX, false],
+      ['/standard/meta/standard/zoolock/', 1440, 'Зоолок', NOINDEX, false, '/standard/archetypes/standard/zoolock/'],
     ]) {
       await page.setViewport({ width, height: 900 });
       const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
@@ -164,7 +165,7 @@ test('Next archetype details isolate access and load builds before independent o
       assert.equal(document.main, 1, path);
       assert.equal(document.overflow, false, `${path} at ${width}px`);
       assert.deepEqual(document.accessibility, [], path);
-      assert.equal(document.canonical, `https://hearthpulse.net${path}`);
+      assert.equal(document.canonical, `https://hearthpulse.net${canonicalPath}`);
       assert.equal(document.robots, robots, path);
       assert.equal(document.graphs, graph ? 1 : 0, `${path} JSON-LD`);
       assert.match(document.summary?.heading ?? '', /^Насколько силён /, `${path} shows the summary`);

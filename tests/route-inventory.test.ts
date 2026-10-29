@@ -136,8 +136,8 @@ assert.equal(
   '^[a-z0-9][a-z0-9-]{0,119}$',
   'archetype detail slugs must use the parser-compatible bounded contract',
 );
-// E9 S3a: the archetype listing is indexable per page (the page narrows it to strong Standard archetypes);
-// the old family stays noindex until nginx redirects it (S3b).
+// E9 S3a/S3b: the archetype listing is indexable per page (the page narrows it to strong Standard archetypes);
+// the old /standard/meta/<format>/<slug> family is one permanent redirect to it.
 const archetypeDetail = byId.get('constructed-archetype-detail');
 assert.deepEqual(
   [archetypeDetail?.indexPolicy, archetypeDetail?.canonicalPolicy, archetypeDetail?.sitemap, archetypeDetail?.htmlStrategy],
@@ -146,9 +146,10 @@ assert.deepEqual(
 );
 const legacyArchetypeDetail = byId.get('standard-meta-legacy-detail');
 assert.deepEqual(
-  [legacyArchetypeDetail?.indexPolicy, legacyArchetypeDetail?.sitemap],
-  ['noindex-follow', false],
-  'the old archetype family stays out of the index',
+  [legacyArchetypeDetail?.kind, legacyArchetypeDetail?.expectedStatus, legacyArchetypeDetail?.indexPolicy,
+    legacyArchetypeDetail?.canonicalPolicy, legacyArchetypeDetail?.sitemap],
+  ['redirect', 301, 'noindex-follow', 'none', false],
+  'the old archetype family is a permanent redirect that stays out of the index and of the sitemap',
 );
 const cardIdPattern = byId.get('standard-card-detail')?.pathParameters?.cardId?.pattern;
 assert.ok(cardIdPattern, 'card detail inventory declares its bounded segment contract');
