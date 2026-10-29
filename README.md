@@ -324,6 +324,7 @@ npm run build-storybook
 | `npm run qa:ci` | Сборка и browser QA против Next.js с QA-бэкендом (деплой-гейт) |
 | `npm run budget:next` | Контроль размеров JS и CSS каждой публичной страницы Next.js ([бюджеты](docs/runbooks/next-bundle-budgets.md)) |
 | `npm run agent:integrate` | READY → PR → auto-merge через merge queue ([runbook](docs/runbooks/agent-integration.md)) |
+| `npm run ci:flake-report` | Красные прогоны `ci.yml`, flaky-тесты и длительность по событиям ([runbook](docs/runbooks/ci-flake-report.md)) |
 | `npm run changelog:assemble` | Сборка фрагментов `changelog.d/` в `CHANGELOG.md` |
 | `npm run scrape` | Ручной запуск scraper в разработке |
 | `npm run security:gitleaks` | Локальная проверка истории и рабочего дерева |

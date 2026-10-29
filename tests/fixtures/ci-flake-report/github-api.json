@@ -1,0 +1,1320 @@
+{
+ "repository": "acme/widgets",
+ "runs": {
+  "total_count": 16,
+  "workflow_runs": [
+   {
+    "id": 116,
+    "name": "Validate and deploy application",
+    "event": "push",
+    "head_branch": "main",
+    "head_sha": "p116",
+    "status": "in_progress",
+    "conclusion": null,
+    "run_attempt": 1,
+    "created_at": "2026-10-27T16:00:00Z",
+    "run_started_at": "2026-10-27T16:00:00Z",
+    "updated_at": "2026-10-27T16:01:00Z",
+    "actor": {
+     "login": "github-merge-queue[bot]"
+    },
+    "pull_requests": [],
+    "html_url": "https://github.com/acme/widgets/actions/runs/116"
+   },
+   {
+    "id": 115,
+    "name": "Validate and deploy application",
+    "event": "push",
+    "head_branch": "main",
+    "head_sha": "p115",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T15:30:00Z",
+    "run_started_at": "2026-10-27T15:30:00Z",
+    "updated_at": "2026-10-27T15:33:00Z",
+    "actor": {
+     "login": "github-merge-queue[bot]"
+    },
+    "pull_requests": [],
+    "html_url": "https://github.com/acme/widgets/actions/runs/115"
+   },
+   {
+    "id": 114,
+    "name": "Validate and deploy application",
+    "event": "merge_group",
+    "head_branch": "gh-readonly-queue/main/pr-51-g114",
+    "head_sha": "g114",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T15:00:00Z",
+    "run_started_at": "2026-10-27T15:00:00Z",
+    "updated_at": "2026-10-27T15:12:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [],
+    "html_url": "https://github.com/acme/widgets/actions/runs/114"
+   },
+   {
+    "id": 113,
+    "name": "Validate and deploy application",
+    "event": "merge_group",
+    "head_branch": "gh-readonly-queue/main/pr-50-g113",
+    "head_sha": "g113",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T14:40:00Z",
+    "run_started_at": "2026-10-27T14:40:00Z",
+    "updated_at": "2026-10-27T14:50:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [],
+    "html_url": "https://github.com/acme/widgets/actions/runs/113"
+   },
+   {
+    "id": 112,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/pr-51",
+    "head_sha": "h112",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T14:25:00Z",
+    "run_started_at": "2026-10-27T14:25:00Z",
+    "updated_at": "2026-10-27T14:31:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 51
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/112"
+   },
+   {
+    "id": 111,
+    "name": "Validate and deploy application",
+    "event": "merge_group",
+    "head_branch": "gh-readonly-queue/main/pr-51-g111",
+    "head_sha": "g111",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T14:15:00Z",
+    "run_started_at": "2026-10-27T14:15:00Z",
+    "updated_at": "2026-10-27T14:23:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [],
+    "html_url": "https://github.com/acme/widgets/actions/runs/111"
+   },
+   {
+    "id": 110,
+    "name": "Validate and deploy application",
+    "event": "merge_group",
+    "head_branch": "gh-readonly-queue/main/pr-50-g110",
+    "head_sha": "g110",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T14:00:00Z",
+    "run_started_at": "2026-10-27T14:00:00Z",
+    "updated_at": "2026-10-27T14:10:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [],
+    "html_url": "https://github.com/acme/widgets/actions/runs/110"
+   },
+   {
+    "id": 109,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/mixed",
+    "head_sha": "s109",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T13:30:00Z",
+    "run_started_at": "2026-10-27T13:30:00Z",
+    "updated_at": "2026-10-27T13:38:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 72
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/109"
+   },
+   {
+    "id": 108,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/slow",
+    "head_sha": "s108",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T13:00:00Z",
+    "run_started_at": "2026-10-27T13:00:00Z",
+    "updated_at": "2026-10-27T13:15:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 71
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/108"
+   },
+   {
+    "id": 107,
+    "name": "Validate and deploy application",
+    "event": "push",
+    "head_branch": "main",
+    "head_sha": "s107",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T12:30:00Z",
+    "run_started_at": "2026-10-27T12:30:00Z",
+    "updated_at": "2026-10-27T12:34:00Z",
+    "actor": {
+     "login": "github-merge-queue[bot]"
+    },
+    "pull_requests": [],
+    "html_url": "https://github.com/acme/widgets/actions/runs/107"
+   },
+   {
+    "id": 106,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/chrome",
+    "head_sha": "s106",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T12:00:00Z",
+    "run_started_at": "2026-10-27T12:00:00Z",
+    "updated_at": "2026-10-27T12:09:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 70
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/106"
+   },
+   {
+    "id": 105,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "dependabot/npm_and_yarn/tanstack/react-table-9.3.1",
+    "head_sha": "s105",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T11:30:00Z",
+    "run_started_at": "2026-10-27T11:30:00Z",
+    "updated_at": "2026-10-27T11:35:00Z",
+    "actor": {
+     "login": "dependabot[bot]"
+    },
+    "pull_requests": [
+     {
+      "number": 69
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/105"
+   },
+   {
+    "id": 104,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/superseded",
+    "head_sha": "s104",
+    "status": "completed",
+    "conclusion": "cancelled",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T11:00:00Z",
+    "run_started_at": "2026-10-27T11:00:00Z",
+    "updated_at": "2026-10-27T11:02:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 68
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/104"
+   },
+   {
+    "id": 103,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/rerun",
+    "head_sha": "s103",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 2,
+    "created_at": "2026-10-27T10:00:00Z",
+    "run_started_at": "2026-10-27T10:30:00Z",
+    "updated_at": "2026-10-27T10:36:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 67
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/103"
+   },
+   {
+    "id": 102,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/same-sha",
+    "head_sha": "s101",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T09:20:00Z",
+    "run_started_at": "2026-10-27T09:20:00Z",
+    "updated_at": "2026-10-27T09:27:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 66
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/102"
+   },
+   {
+    "id": 101,
+    "name": "Validate and deploy application",
+    "event": "pull_request",
+    "head_branch": "feature/same-sha",
+    "head_sha": "s101",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_attempt": 1,
+    "created_at": "2026-10-27T09:00:00Z",
+    "run_started_at": "2026-10-27T09:00:00Z",
+    "updated_at": "2026-10-27T09:08:00Z",
+    "actor": {
+     "login": "dev"
+    },
+    "pull_requests": [
+     {
+      "number": 66
+     }
+    ],
+    "html_url": "https://github.com/acme/widgets/actions/runs/101"
+   }
+  ]
+ },
+ "attempts": {
+  "103/1": {
+   "id": 103,
+   "name": "Validate and deploy application",
+   "event": "pull_request",
+   "head_branch": "feature/rerun",
+   "head_sha": "s103",
+   "status": "completed",
+   "conclusion": "failure",
+   "run_attempt": 1,
+   "created_at": "2026-10-27T10:00:00Z",
+   "run_started_at": "2026-10-27T10:00:00Z",
+   "updated_at": "2026-10-27T10:09:00Z",
+   "actor": {
+    "login": "dev"
+   },
+   "pull_requests": [
+    {
+     "number": 67
+    }
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/103"
+  }
+ },
+ "jobs": {
+  "115/1": {
+   "total_count": 1,
+   "jobs": [
+    {
+     "id": 11501,
+     "name": "Browser suite (shard 1/2)",
+     "conclusion": "success",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "success"
+      }
+     ]
+    }
+   ]
+  },
+  "114/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 11401,
+     "name": "Browser suite (shard 1/2)",
+     "conclusion": "success",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "success"
+      }
+     ]
+    },
+    {
+     "id": 11402,
+     "name": "Registry suites (shard 1/2)",
+     "conclusion": "success",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered non-browser shard",
+       "conclusion": "success"
+      }
+     ]
+    }
+   ]
+  },
+  "113/1": {
+   "total_count": 1,
+   "jobs": [
+    {
+     "id": 11301,
+     "name": "Browser suite (shard 2/2)",
+     "conclusion": "success",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "success"
+      }
+     ]
+    }
+   ]
+  },
+  "112/1": {
+   "total_count": 1,
+   "jobs": [
+    {
+     "id": 11201,
+     "name": "Registry suites (shard 1/2)",
+     "conclusion": "success",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered non-browser shard",
+       "conclusion": "success"
+      }
+     ]
+    }
+   ]
+  },
+  "111/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 11101,
+     "name": "Registry suites (shard 1/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered non-browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 11199,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "110/1": {
+   "total_count": 3,
+   "jobs": [
+    {
+     "id": 11001,
+     "name": "Browser suite (shard 2/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 11002,
+     "name": "Browser quarantine (non-blocking)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run quarantined browser tests",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 11099,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "109/1": {
+   "total_count": 3,
+   "jobs": [
+    {
+     "id": 10901,
+     "name": "Browser suite (shard 1/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10902,
+     "name": "Registry suites (shard 2/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered non-browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10999,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "108/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 10801,
+     "name": "Browser suite (shard 1/2)",
+     "conclusion": "timed_out",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10899,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "107/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 10701,
+     "name": "Registry suites (shard 1/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install identity TLS regression tools",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10799,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "106/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 10601,
+     "name": "Browser suite (shard 2/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10699,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "105/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 10501,
+     "name": "Typecheck, lint and static gates",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run release-blocking static checks",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10599,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "104/1": {
+   "total_count": 1,
+   "jobs": [
+    {
+     "id": 10401,
+     "name": "Typecheck, lint and static gates",
+     "conclusion": "cancelled",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      }
+     ]
+    }
+   ]
+  },
+  "103/2": {
+   "total_count": 1,
+   "jobs": [
+    {
+     "id": 10305,
+     "name": "Browser suite (shard 1/2)",
+     "conclusion": "success",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "success"
+      }
+     ]
+    }
+   ]
+  },
+  "103/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 10301,
+     "name": "Browser suite (shard 1/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10399,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  },
+  "102/1": {
+   "total_count": 1,
+   "jobs": [
+    {
+     "id": 10201,
+     "name": "Browser suite (shard 2/2)",
+     "conclusion": "success",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "success"
+      }
+     ]
+    }
+   ]
+  },
+  "101/1": {
+   "total_count": 2,
+   "jobs": [
+    {
+     "id": 10101,
+     "name": "Browser suite (shard 2/2)",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Run registered browser shard",
+       "conclusion": "failure"
+      }
+     ]
+    },
+    {
+     "id": 10199,
+     "name": "CI required",
+     "conclusion": "failure",
+     "steps": [
+      {
+       "name": "Set up job",
+       "conclusion": "success"
+      },
+      {
+       "name": "Checkout repository",
+       "conclusion": "success"
+      },
+      {
+       "name": "Install locked dependencies",
+       "conclusion": "success"
+      },
+      {
+       "name": "Require every validation job to pass",
+       "conclusion": "failure"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "annotations": {
+  "11501": [
+   {
+    "annotation_level": "notice",
+    "title": "",
+    "message": "The ubuntu-latest label will migrate to Ubuntu 26",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "11401": [
+   {
+    "annotation_level": "notice",
+    "title": "",
+    "message": "The ubuntu-latest label will migrate to Ubuntu 26",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "warning",
+    "title": "FLAKY test",
+    "message": "tests/queue-flaky-browser.test.mjs failed once (tests/queue-flaky-browser.test.mjs exited with code 1) and passed on the single retry",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "warning",
+    "title": "FLAKY test",
+    "message": "tests/other-browser.test.mjs failed once (tests/other-browser.test.mjs exited with code 1) and passed on the single retry",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "11402": [
+   {
+    "annotation_level": "notice",
+    "title": "",
+    "message": "The ubuntu-latest label will migrate to Ubuntu 26",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "11301": [
+   {
+    "annotation_level": "notice",
+    "title": "",
+    "message": "The ubuntu-latest label will migrate to Ubuntu 26",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "warning",
+    "title": "FLAKY test",
+    "message": "tests/queue-flaky-browser.test.mjs failed once (tests/queue-flaky-browser.test.mjs exited with code 1) and passed on the single retry",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "11201": [
+   {
+    "annotation_level": "notice",
+    "title": "",
+    "message": "The ubuntu-latest label will migrate to Ubuntu 26",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "11101": [
+   {
+    "annotation_level": "failure",
+    "title": "Test failed",
+    "message": "tests/queue-real.test.mjs: tests/queue-real.test.mjs exited with code 1",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "11001": [
+   {
+    "annotation_level": "failure",
+    "title": "Test failed",
+    "message": "tests/queue-flaky-browser.test.mjs: tests/queue-flaky-browser.test.mjs exited with code 1",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "11002": [
+   {
+    "annotation_level": "failure",
+    "title": "Test failed",
+    "message": "tests/quarantined-browser.test.mjs: tests/quarantined-browser.test.mjs exited with code 1",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10901": [
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10902": [
+   {
+    "annotation_level": "failure",
+    "title": "Test failed",
+    "message": "tests/real-contract.test.ts: tests/real-contract.test.ts exited with code 1",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10801": [
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "The job running on runner GitHub Actions 7 has exceeded the maximum execution time of 15 minutes.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10701": [
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10601": [
+   {
+    "annotation_level": "failure",
+    "title": "Test failed",
+    "message": "tests/chrome-browser.test.mjs: tests/chrome-browser.test.mjs exited with code 1",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10501": [
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "src/shared/ui/analytics/DataTable.tsx(3,22): error TS2724: '\"@tanstack/react-table\"' has no exported member named 'getCoreRowModel'.",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10305": [
+   {
+    "annotation_level": "notice",
+    "title": "",
+    "message": "The ubuntu-latest label will migrate to Ubuntu 26",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10301": [
+   {
+    "annotation_level": "failure",
+    "title": "Test failed",
+    "message": "tests/rerun-browser.test.mjs: tests/rerun-browser.test.mjs exited with code 1",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10201": [
+   {
+    "annotation_level": "notice",
+    "title": "",
+    "message": "The ubuntu-latest label will migrate to Ubuntu 26",
+    "path": ".github",
+    "start_line": 1
+   }
+  ],
+  "10101": [
+   {
+    "annotation_level": "failure",
+    "title": "Test failed",
+    "message": "tests/queue-flaky-browser.test.mjs: tests/queue-flaky-browser.test.mjs exited with code 1",
+    "path": ".github",
+    "start_line": 1
+   },
+   {
+    "annotation_level": "failure",
+    "title": "",
+    "message": "Process completed with exit code 1.",
+    "path": ".github",
+    "start_line": 1
+   }
+  ]
+ },
+ "logs": {
+  "10901": "launching\nTimeoutError: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!\n",
+  "10902": "##[group]Run sudo apt-get update\nsudo apt-get install -y nginx openssl\nassertion failed\n",
+  "10801": "...\n",
+  "10701": "##[group]Run sudo apt-get update\nsudo apt-get install -y nginx openssl\nE: Unable to locate package nginx\n",
+  "10601": "x\nTimeoutError: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!\n",
+  "10101": "plain failure\n"
+ }
+}

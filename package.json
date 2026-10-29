@@ -179,6 +179,7 @@
     "release:create": "node scripts/create-release.mjs",
     "changelog:post": "node scripts/post-arena-changelog.mjs",
     "changelog:assemble": "node scripts/changelog-assemble.mjs",
+    "ci:flake-report": "node scripts/ci-flake-report.mjs",
     "lint:module-boundaries": "node scripts/check-module-boundaries.mjs",
     "test:client-identity-guest-auth": "tsx tests/client-identity-guest-auth.test.ts",
     "test:client-identity-session": "tsx tests/client-identity-session.test.ts",
