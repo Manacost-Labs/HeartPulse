@@ -165,6 +165,39 @@ No new dependency, database migration or public JSON API is introduced.
   how to reach detail pages.
 - Focused tests, full project gates, browser review and production smoke pass.
 
+## JSON-LD of statistics pages
+
+The `Dataset` nodes of `config/public-seo-structured-data.json` (meta,
+archetype catalog, matchups, Vicious Gold, arena classes and tier list) say
+only what the page itself shows:
+
+- A date or a window in the markup comes from the data, never from the clock
+  of the server. `dateModified` is the `updatedAt` of the public teaser the
+  page prints (`<SeoStructuredData data={teaser}>`), written as a full ISO
+  instant, the same value as the `<time datetime>` of the data line. A page
+  with no public date (no teaser, an unreadable date, a date more than a day
+  ahead) has no `dateModified`; stale data keeps its real date. The date goes
+  on `Dataset` and `CollectionPage` nodes. `temporalCoverage` is not written at
+  all: no source names the window it covers, and a sliding 30 days would be a
+  guess. It returns when a source supplies the bounds.
+- `/standard/meta/` has its own `Dataset` (the only page with a public teaser
+  and a fresh date) linked from its `CollectionPage` through `about`.
+- Every `Dataset` has `isBasedOn` with the name and address of the original
+  source (HSGuru, Vicious Syndicate, HSReplay, HearthArena, Firestone) and
+  `variableMeasured` with metric names only, never values. The meta
+  `isBasedOn` address is the teaser's `sourceUrl` when it is an https address on
+  HSGuru, otherwise the registry one. The graph carries no numbers of the
+  teaser, no deck codes and no paid fields.
+- `creator` and `publisher` of a `Dataset` point at `{"@id":
+  "https://hearthpulse.net/#org"}`, and the builder adds that `Organization`
+  node (`organization` in the registry: name, url, logo) to the graph of every
+  page with a `Dataset`: Google does not resolve an `@id` from another
+  document. `license` stays the site terms.
+- There is no `about.gameMode` (not a schema.org property): the mode is in the
+  name and the keywords. Contents lists without a URL per item are not
+  `ItemList`s, so the tier-list, legendaries and Battlegrounds tier-list pages
+  have none, and no registry node holds a hard-coded `numberOfItems`.
+
 ## Documentation impact
 
 - This specification records the new sitemap segment and page-quality contract.

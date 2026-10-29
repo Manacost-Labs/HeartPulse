@@ -19,7 +19,7 @@ export const generateMetadata = seoStaticPageMetadata('/standard/meta', 'HearthP
 export default async function Page() {
   const teaser = await loadPublicStandardMetaTeaser();
   return <>
-    <SeoStructuredData path="/standard/meta" />
+    <SeoStructuredData path="/standard/meta" data={teaser?.data} />
     <StandardMetaPageClient initialTeaser={teaser}>
       <StandardMetaDataNote teaser={teaser} />
     </StandardMetaPageClient>

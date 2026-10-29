@@ -5,6 +5,7 @@ import http from 'node:http';
 import { join } from 'node:path';
 import test from 'node:test';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
+import { CONTROL_WARRIOR_DECK_CODE, metaExternalRoutes } from './helpers/browserMetaFixture.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
 // Large image, full snippet and video previews, as the shared URL policy
@@ -92,8 +93,9 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
     for (const [path, nodes] of Object.entries(structuredData)) {
       const response = await fetch(`${runtime.nextOrigin}${path === '/' ? '/' : `${path}/`}`);
       assert.equal(response.status, 200, path);
+      const types = nodes.map(node => node['@type']);
       assert.deepEqual(jsonLdGraph(await response.text())?.['@graph'].map(node => node['@type']),
-        nodes.map(node => node['@type']), `${path} JSON-LD`);
+        types.includes('Dataset') ? ['Organization', ...types] : types, `${path} JSON-LD`);
     }
 
     // /articles/ is prerendered, so every query gets the same HTML with the
@@ -475,4 +477,173 @@ test('the meta page stays prerendered with ISR', () => {
   const manifest = JSON.parse(readFileSync('apps/public-web/.next/prerender-manifest.json', 'utf8'));
   assert.equal(manifest.routes['/standard/meta']?.initialRevalidateSeconds, 300,
     '/standard/meta must stay ISR: its metadata reads the same cached teaser as the page');
+});
+
+// ── JSON-LD from the data of the page (E9 S2a) ──
+// Real Next on a fake Express: the date, the source and the organization of the graph are
+// what a search engine reads from the same HTML the reader gets.
+
+const DATA_DATE = '2026-10-28T23:00:04.000Z';
+const HSGURU_META = 'https://www.hsguru.com/meta';
+const ORGANIZATION = {
+  '@type': 'Organization', '@id': 'https://hearthpulse.net/#org', name: 'Manacost', url: 'https://hearthpulse.net/',
+  logo: { '@type': 'ImageObject', url: 'https://hearthpulse.net/assets/arena_icon.webp' },
+};
+
+/** Runs `scenario` against real Next reading a fake Express; `page(path)` returns the HTML and the JSON-LD graph. */
+async function withFakeExpress(scenario) {
+  assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
+  const state = { meta: null, catalog: null, detail: null };
+  const hits = {};
+  const express = startFakeExpress(state);
+  express.on('request', request => {
+    const { pathname } = new URL(request.url, 'http://fixture');
+    hits[pathname] = (hits[pathname] ?? 0) + 1;
+  });
+  express.listen(0, '127.0.0.1');
+  await once(express, 'listening');
+  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+  const page = async path => {
+    if (path === '/standard/meta/') {
+      assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
+    }
+    const response = await fetch(`${next.origin}${path}`);
+    assert.equal(response.status, 200, path);
+    const html = await response.text();
+    return { html, graph: jsonLdGraph(html)?.['@graph'] };
+  };
+  try {
+    await scenario({ state, hits, page });
+  } finally {
+    await next.close();
+    express.closeAllConnections();
+    await new Promise(resolve => express.close(resolve));
+  }
+}
+
+const nodeOfType = (graph, type) => graph.find(node => node['@type'] === type);
+
+test('the meta page describes its teaser as a dataset dated by the teaser, from HSGuru, published by the site', { timeout: 180_000 }, async () => {
+  await withFakeExpress(async ({ state, page }) => {
+    state.meta = metaTeaser(DATA_DATE, TOP_ROWS);
+    const { html, graph } = await page('/standard/meta/');
+    assert.deepEqual(graph.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'CollectionPage', 'Dataset']);
+    assert.deepEqual(graph[0], ORGANIZATION);
+    const collection = nodeOfType(graph, 'CollectionPage');
+    assert.deepEqual(nodeOfType(graph, 'Dataset'), {
+      '@type': 'Dataset', '@id': 'https://hearthpulse.net/standard/meta/#dataset', url: 'https://hearthpulse.net/standard/meta/',
+      name: 'Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов',
+      description: 'Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.',
+      inLanguage: 'ru', breadcrumb: { '@id': 'https://hearthpulse.net/standard/meta/#breadcrumb' },
+      dateModified: DATA_DATE, license: 'https://hearthpulse.net/terms/',
+      creator: { '@id': 'https://hearthpulse.net/#org' }, publisher: { '@id': 'https://hearthpulse.net/#org' },
+      isBasedOn: { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META },
+      variableMeasured: [
+        { '@type': 'PropertyValue', name: 'Винрейт', unitText: '%' },
+        { '@type': 'PropertyValue', name: 'Популярность', unitText: '%' },
+        { '@type': 'PropertyValue', name: 'Число игр' },
+      ],
+      keywords: ['Hearthstone', 'мета Стандарта', 'архетипы', 'винрейт', 'тир-лист колод'],
+      about: { '@type': 'VideoGame', name: 'Hearthstone' },
+    });
+    assert.equal(collection.dateModified, DATA_DATE);
+    assert.deepEqual(collection.about, { '@id': 'https://hearthpulse.net/standard/meta/#dataset' });
+    // The line the reader sees carries the same instant.
+    assert.match(html, new RegExp(`<time datetime="${DATA_DATE}">`, 'i'));
+    // Names of metrics, no values: no row of the teaser reaches the graph.
+    assert.doesNotMatch(JSON.stringify(graph), /Зоолок|Граб|Н'зот|\b(61|58\.2|57\.4|14800|5400|258)\b|gameMode|temporalCoverage|\{\{/);
+
+    // Data older than a week keeps its true date: the graph never pretends to be fresher than the teaser.
+    state.meta = metaTeaser('2026-09-01T09:00:00.000Z', TOP_ROWS);
+    const stale = (await page('/standard/meta/')).graph;
+    assert.equal(nodeOfType(stale, 'Dataset').dateModified, '2026-09-01T09:00:00.000Z');
+
+    // The source address comes from the teaser, but only an https address on HSGuru is believed.
+    state.meta = { ...metaTeaser(DATA_DATE, TOP_ROWS), sourceUrl: 'https://www.hsguru.com/meta?format=1&min_games=100' };
+    assert.equal(nodeOfType((await page('/standard/meta/')).graph, 'Dataset').isBasedOn.url,
+      'https://www.hsguru.com/meta?format=1&min_games=100');
+    state.meta = { ...metaTeaser(DATA_DATE, TOP_ROWS), sourceUrl: 'https://evil.example/meta' };
+    const foreign = await page('/standard/meta/');
+    assert.equal(nodeOfType(foreign.graph, 'Dataset').isBasedOn.url, HSGURU_META);
+    assert.ok(!JSON.stringify(foreign.graph).includes('evil.example'), 'a foreign address is not named as the source');
+
+    // No public date (no teaser, no date, a date from the future): a normal page, a dataset, and no dateModified anywhere.
+    const noDate = [null, metaTeaser(null, TOP_ROWS), metaTeaser(new Date(Date.now() + 72 * HOUR).toISOString(), TOP_ROWS)];
+    for (const teaser of noDate) {
+      state.meta = teaser;
+      const { graph: bare } = await page('/standard/meta/');
+      assert.deepEqual(bare.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'CollectionPage', 'Dataset']);
+      assert.doesNotMatch(JSON.stringify(bare), /dateModified/);
+      assert.deepEqual(nodeOfType(bare, 'Dataset').isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META });
+    }
+  });
+});
+
+test('the catalog dataset is dated by the catalog and the page asks the API once', { timeout: 180_000 }, async () => {
+  await withFakeExpress(async ({ state, hits, page }) => {
+    state.catalog = { updatedAt: DATA_DATE, labels: ['Зоолок', 'Мурлоки', 'Контроль Воин'] };
+    const { graph } = await page('/standard/archetypes/');
+    assert.equal(hits['/api/constructed-archetypes/teaser'], 1, 'title, page and JSON-LD share one read');
+    assert.deepEqual(graph.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'Dataset']);
+    const dataset = nodeOfType(graph, 'Dataset');
+    assert.equal(dataset.dateModified, DATA_DATE, 'the date of the catalog, not the day of the request');
+    assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META });
+    assert.deepEqual(dataset.variableMeasured.map(variable => variable.name), ['Винрейт', 'Популярность', 'Число игр']);
+    assert.deepEqual(dataset.creator, { '@id': 'https://hearthpulse.net/#org' });
+    assert.doesNotMatch(JSON.stringify(graph), /PAID_BUILD_CODE|deckCode|Зоолок|gameMode|temporalCoverage|P7D/);
+    const wild = (await page('/standard/archetypes/?format=wild')).graph;
+    assert.equal(nodeOfType(wild, 'Dataset').dateModified, DATA_DATE);
+
+    state.catalog = { updatedAt: null, labels: ['Зоолок'] };
+    const undated = (await page('/standard/archetypes/')).graph;
+    assert.deepEqual(undated.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'Dataset']);
+    assert.doesNotMatch(JSON.stringify(undated), /dateModified/);
+    state.catalog = null;
+    assert.doesNotMatch(JSON.stringify((await page('/standard/archetypes/')).graph), /dateModified/);
+  });
+});
+
+test('statistics pages without a public date carry no date, and the tier-list contents lists are gone', { timeout: 180_000 }, async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  try {
+    const graphOf = async path => jsonLdGraph(await (await fetch(`${runtime.nextOrigin}${path}`)).text())['@graph'];
+    for (const path of ['/standard/matchups/', '/standard/vicious-gold/', '/classes/', '/tierlist/']) {
+      const graph = await graphOf(path);
+      assert.deepEqual(graph[0], ORGANIZATION, `${path} defines the organization`);
+      const dataset = nodeOfType(graph, 'Dataset');
+      assert.ok(dataset.isBasedOn && dataset.variableMeasured.length > 0, `${path} names its source and metrics`);
+      assert.deepEqual(dataset.creator, { '@id': 'https://hearthpulse.net/#org' }, `${path} creator`);
+      assert.doesNotMatch(JSON.stringify(graph), /dateModified|temporalCoverage|P7D|gameMode|\{\{/, `${path} has no invented date or window`);
+    }
+    assert.equal(nodeOfType(await graphOf('/classes/'), 'Dataset').description.includes('11'), false);
+    for (const path of ['/tierlist/', '/legendaries/', '/battlegrounds/tier-list/']) {
+      const graph = await graphOf(path);
+      assert.equal(graph.some(node => node['@type'] === 'ItemList'), false, `${path} has no contents list`);
+      assert.doesNotMatch(JSON.stringify(graph), /numberOfItems/, `${path} hard-codes no size`);
+    }
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('the datasets take their date from what the real backend serves: the fetch time of the HSGuru fixture', { timeout: 180_000 }, async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, externalRoutes: metaExternalRoutes });
+  try {
+    // The meta page is prerendered: mark it stale so the next request reads the fixture.
+    assert.equal((await fetch(`${runtime.nextOrigin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
+    for (const [path, types] of [
+      ['/standard/meta/', ['Organization', 'BreadcrumbList', 'CollectionPage', 'Dataset']],
+      ['/standard/archetypes/', ['Organization', 'BreadcrumbList', 'Dataset']],
+    ]) {
+      const html = await (await fetch(`${runtime.nextOrigin}${path}`)).text();
+      const graph = jsonLdGraph(html)['@graph'];
+      assert.deepEqual(graph.map(node => node['@type']), types, path);
+      const dataset = nodeOfType(graph, 'Dataset');
+      assert.equal(dataset.dateModified, '2026-10-25T12:00:00.000Z', `${path} is dated by the fixture's fetched_at`);
+      assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META }, path);
+      assert.equal(JSON.stringify(graph).includes(CONTROL_WARRIOR_DECK_CODE), false, `${path} carries no deck code`);
+    }
+  } finally {
+    await runtime.close();
+  }
 });

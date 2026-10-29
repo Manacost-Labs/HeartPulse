@@ -37,8 +37,8 @@
 |---|---|---|---|
 | Локальные detail pages статей ещё не существуют и потому не входят в sitemap | `/articles` пока ведёт на внешние материалы | Нельзя честно публиковать Article URL без полного локального текста | P1 |
 | Versioned robots/noindex contract требует production rollout | Release v2 и deploy уже блокируют runtime drift, но активный legacy release ещё не переведён на managed contract | До разрешённого rollout production может продолжить старую index policy | P0 |
-| Schema Dataset использует дату запроса, а не дату данных | `src/seo/structuredData.ts` | Недостоверный `dateModified` и freshness | P1 |
-| Счётчики ItemList могут быть захардкожены | `config/public-seo-structured-data.json` | Schema расходится с видимым содержимым | P1 |
+| ~~Schema Dataset использует дату запроса, а не дату данных~~ Сделано, S2a (#295): `dateModified` из `updatedAt` данных страницы, без публичной даты поля нет | `src/seo/structuredData.ts` | Недостоверный `dateModified` и freshness | P1 |
+| ~~Счётчики ItemList могут быть захардкожены~~ Сделано, S2a (#295): оглавления без URL убраны, счётчиков в реестре нет | `config/public-seo-structured-data.json` | Schema расходится с видимым содержимым | P1 |
 | Нет внутренних страниц авторов и редакционной политики | Публичные маршруты | Недостаточный E-E-A-T для аналитического продукта | P1 |
 | Статьи в `server/data/articles.json` в основном ведут на внешний домен | `/articles` | Нельзя честно разметить локальную страницу как полную Article | P1 |
 | `llms.txt` описывает в основном Arena | `public/llms.txt` | Standard/BG/FAQ и методология плохо представлены AI-поиску | P2 |
@@ -66,7 +66,7 @@
 Порядок для меты и статистики ведёт эпик E9 «SEO: мета и статистика» (#292); срезы идут по очереди.
 
 1. **Сделано, S1 (#294):** title и description меты Стандарта, каталога архетипов и страницы архетипа несут дату данных (месяц и год в title, полная дата в description), живые числа из бесплатного тизера и «данные HSGuru». HSGuru больше не стоит в начале title меты. Под метой видна строка с датой, срезом и источником. Шаблоны лежат в реестре `config/public-seo-pages.json` (`dataTitle`/`dataDescription`), статичные title и description остаются запасным вариантом без даты и чисел.
-2. S2a (#295) и S2b (#296): JSON-LD с датами из данных, `Dataset` меты, крошки каталога и карточки карты.
+2. **Сделано, S2a (#295):** JSON-LD страниц статистики с датой из данных (`Dataset.dateModified` = `updatedAt` тизера меты и каталога, без публичной даты поля нет), `Dataset` меты, `isBasedOn` и `variableMeasured` у всех наборов, узел `Organization` `#org`; убраны `about.gameMode`, скользящий `temporalCoverage` и `ItemList`-оглавления с зашитым числом. S2b (#296): крошки каталога и карточки карты.
 3. S3a–S3c (#297–#299): индексация архетипов Стандарта (предикат, SSR-текст), снятие `noindex` в nginx с 301 с семейства `/standard/meta/…`, sitemap-сегмент архетипов.
 4. Закрыть `SEO-301/302`: публичный teaser paywall и автоматический тест, доказывающий отсутствие закрытых чисел, deck codes и subscriber payload в HTML/JSON-LD.
 5. Хабы кластеров (`SEO-404`) и тексты для тир-листов Арены и Полей сражений — после решения владельца, что из статистики бесплатно (#310).
@@ -192,7 +192,7 @@ FAQ-разметка остаётся семантической, но план 
 | SEO-203 | P0 | Генерировать sitemap index и сегменты | SEO-201, SEO-202 | Готовы static + Standard + Wild-only + BG library + heroes; будущие articles публикуются только как 200 canonical URL |
 | SEO-204 | P0 | Использовать реальный `lastmod` | Data publication metadata | Для всех текущих entity segments действует единый semantic-hash change-only contract |
 | SEO-205 | P1 | Добавить динамические OG-изображения | SEO-201 | 1200×630, русское имя, режим и бренд; fallback проверен; image URL отдаёт 200 и корректный MIME |
-| SEO-206 | P1 | Устранить hard-coded ItemList counts | SEO-101 | Count/position строятся из публичного snapshot и совпадают с HTML |
+| SEO-206 | P1 | Устранить hard-coded ItemList counts | SEO-101 | Count/position строятся из публичного snapshot и совпадают с HTML. **Сделано, S2a (#295):** `ItemList`-оглавления `/tierlist`, `/legendaries`, `/battlegrounds/tier-list` без URL у элементов убраны, в реестре нет `numberOfItems`; динамические списки (каталог карт) считают от данных |
 
 Текущий статус фазы 2: `SEO-201` завершён для SSR detail pages Standard/Wild-карт. В `SEO-202` завершены hero и minion/spell details active/archive. `SEO-203/204` публикует static, Standard, Wild-only, BG minion/spell и hero segments через единый runtime index; каждый сегмент проходит отдельные ворота полноты, canonical/indexability и LKG.
 
@@ -204,7 +204,7 @@ FAQ-разметка остаётся семантической, но план 
 |---|---|---|---|---|
 | SEO-301 | P0 | Реализовать paywall structured data и публичный teaser contract | SEO-003, SEO-101 | Schema соответствует Google, selector существует, закрытая статистика отсутствует в HTML/JSON-LD |
 | SEO-302 | P0 | Ввести snapshot-тест на утечку тарифа | SEO-301 | Анонимный HTML всех gated routes не содержит закрытые значения, deck codes или payload API |
-| SEO-303 | P1 | Исправить `Dataset` | Publication metadata | Реальная дата, охват, источник, методология, creator, license/usage terms; validator без ошибок |
+| SEO-303 | P1 | Исправить `Dataset` | Publication metadata | Реальная дата, охват, источник, методология, creator, license/usage terms; validator без ошибок. **Сделано частично, S2a (#295):** дата из данных (нет даты — нет поля), охват не выводится, пока источник не называет окно; `isBasedOn`, `variableMeasured`, `creator`/`publisher` с узлом `Organization` `#org`, `Dataset` меты. Остаются методология и `license` (решение владельца) |
 | SEO-304 | P1 | Добавить card entity schema | SEO-201 | Валидный `CreativeWork`/`Thing`, стабильный `@id`, русское и английское имя, ID и дополнение |
 | SEO-305 | P1 | Добавить авторов и Article schema | Полные локальные статьи | Schema только на локальных article pages; внешние статьи остаются ItemList links |
 | SEO-306 | P1 | Сверить FAQPage с видимым FAQ | Контент-владелец | Ни одного скрытого/устаревшего вопроса в schema; тест JSON-LD ↔ DOM |
