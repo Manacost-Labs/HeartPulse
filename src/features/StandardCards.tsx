@@ -149,7 +149,7 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
   return (
     <aside className="constructed-cards__tooltip" style={{ left, top, width }} role="tooltip">
       <div className="constructed-cards__tooltip-header"><strong>{cardName(card)}</strong><span>Статистика · {rankLabel}</span></div>
-      {statsAccess ? <StatsRows stats={card.stats} compact /> : (
+      {statsAccess ? <StatsRows stats={card.stats} /> : (
         <div className="constructed-cards__stats-locked-preview">
           <div aria-hidden="true" inert><LockedStatsRows /></div>
           <StatsUnlockNotice {...gate} compact />
@@ -267,7 +267,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
     <>
       <div className="constructed-cards__table-wrap">
         <TableSurface title="Карты" density="compact"><table className="constructed-cards__table is-compact">
-          <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>{STAT_CAPTIONS.deckPopularity} {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>{STAT_CAPTIONS.deckWinrate} {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
+          <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>{STAT_CAPTIONS.deckPopularity} {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>{STAT_CAPTIONS.deckWinrate} {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>{STAT_CAPTIONS.timesPlayed} {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
           <tbody>
             {cards.map((card, index) => (
               <tr key={card.card_id}>
@@ -292,7 +292,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
                 ><ConstructedCardTile name={cardName(card)} cost={card.mana_cost ?? null} artwork={publicResourceUrl(card.images?.horizontal)} rarity={card.rarity} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
-                <td data-label={STAT_CAPTIONS.deckPopularity} data-tour-id={index === 0 ? 'cards-statistics' : undefined}>{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label={STAT_CAPTIONS.deckWinrate}>{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
+                <td data-label={STAT_CAPTIONS.deckPopularity} data-tour-id={index === 0 ? 'cards-statistics' : undefined}>{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label={STAT_CAPTIONS.deckWinrate}>{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label={STAT_CAPTIONS.timesPlayed}>{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
               </tr>
             ))}
           </tbody>

@@ -28,7 +28,7 @@ export const CONSTRUCTED_CARD_HISTORY_METRICS: ReadonlyArray<{
 }> = [
   { id: 'deckPopularity', label: CONSTRUCTED_CARD_METRICS.deckPopularity.label, shortLabel: constructedCardMetricCaption('deckPopularity'), unit: 'percent' },
   { id: 'deckWinrate', label: CONSTRUCTED_CARD_METRICS.deckWinrate.label, shortLabel: constructedCardMetricCaption('deckWinrate'), unit: 'percent' },
-  { id: 'timesPlayed', label: CONSTRUCTED_CARD_METRICS.timesPlayed.label, shortLabel: 'Партии', unit: 'count' },
+  { id: 'timesPlayed', label: CONSTRUCTED_CARD_METRICS.timesPlayed.label, shortLabel: constructedCardMetricCaption('timesPlayed'), unit: 'count' },
   { id: 'winrateWhenPlayed', label: CONSTRUCTED_CARD_METRICS.winrateWhenPlayed.label, shortLabel: constructedCardMetricCaption('winrateWhenPlayed'), unit: 'percent' },
 ];
 

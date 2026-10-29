@@ -14,8 +14,10 @@ const meta = {
   // The block lays itself out by its own width, so a story picks one: 420px by default, a desktop column with `statsWidth`.
   decorators: [
     (Story, { parameters }) => (
-      <div className="constructed-card-detail__statistics" style={{ width: `min(${parameters.statsWidth ?? 420}px, calc(100vw - 32px))`, padding: 16 }}>
-        <Story />
+      <div className="constructed-cards">
+        <div className="constructed-card-detail__statistics" style={{ width: `min(${parameters.statsWidth ?? 420}px, calc(100vw - 32px))`, padding: 16 }}>
+          <Story />
+        </div>
       </div>
     ),
   ],

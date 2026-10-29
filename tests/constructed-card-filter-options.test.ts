@@ -67,7 +67,7 @@ const entitledStatisticSorts = statisticSortOptions(true);
 assert.deepEqual(entitledStatisticSorts.map(option => option.label), [
   'Популярность',
   'Винрейт колод',
-  'Партий в выборке',
+  'Партий',
 ], 'the sort menu must use the card page metric names, in their short form where a phone trigger is narrow');
 assert.ok(entitledStatisticSorts.every(option => option.disabled === false));
 assert.doesNotMatch(entitledStatisticSorts.map(option => option.label).join(' '), /🔒|Алмаз/,

@@ -1,15 +1,35 @@
 import type React from 'react';
 import FilterSelect from './ConstructedCardFilterSelect';
-import { LOCKED_STATS_PLACEHOLDER, StatsRows, StatsUnlockNotice, type StatsGateProps } from './ConstructedCardStats';
-import { CONSTRUCTED_CARD_METRIC_HINTS } from './constructedCardMetricHints';
-import type { CardStats } from './constructedCardRecord';
+import { LOCKED_STATS_PLACEHOLDER, StatsUnlockNotice, type StatsGateProps } from './ConstructedCardStats';
+import '../shared/ui/LoadingSurface.css';
+import { LoadingBlock } from '../shared/ui/LoadingSurface';
+import { CONSTRUCTED_CARD_DETAIL_METRICS } from './constructedCardDetailMetrics';
+import { number, percent, type CardStats } from './constructedCardRecord';
 
-// The statistics block of the card page. The card list shares only the rows and
-// the notice (`ConstructedCardStats`), so it carries none of this.
+// The statistics block of the card page. The card list shares only the hover
+// summary and the notice (`ConstructedCardStats`), so it carries none of this.
 
-/** The card page's rows: each metric with its one-sentence explanation under the value. */
+const COUNTS = new Set(['averageTurnPlayed', 'averageCopies', 'timesPlayed']);
+
+/**
+ * The card page's rows: each metric with its one-sentence explanation under the
+ * value. A metric that gains a comparison line takes one more `dd` between its
+ * value and hint; the cell lays out any number of lines.
+ */
 export function CardStatsRows({ stats, pending = false }: { stats: CardStats | null; pending?: boolean }) {
-  return <StatsRows stats={stats} pending={pending} hints={CONSTRUCTED_CARD_METRIC_HINTS} />;
+  return (
+    <dl className="constructed-cards__stats" aria-busy={pending || undefined} aria-label={pending ? 'Загружаем статистику' : undefined}>
+      {CONSTRUCTED_CARD_DETAIL_METRICS.map(({ id, label, hint }) => (
+        <div key={id} className="constructed-cards__stat">
+          <dt>{label}</dt>
+          <dd className="constructed-cards__stat-value">
+            {pending ? <LoadingBlock className="constructed-cards__stat-pending" /> : (COUNTS.has(id) ? number : percent)(stats?.[id as keyof CardStats])}
+          </dd>
+          <dd className="constructed-cards__stat-hint">{hint}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 export type StatisticsFormatOption = { id: string; label: string; icon: string };

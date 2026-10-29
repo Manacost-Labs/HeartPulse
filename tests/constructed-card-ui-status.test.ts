@@ -219,7 +219,7 @@ test('the card page names each metric in plain Russian and explains it under the
 });
 
 test('the hover summary in the card list keeps the same names without the explanations', () => {
-  const html = renderToStaticMarkup(React.createElement(StatsRows, { stats: cardStats, compact: true }));
+  const html = renderToStaticMarkup(React.createElement(StatsRows, { stats: cardStats }));
   assert.deepEqual(elements(html).filter(element => element.tag === 'dt').map(element => element.text), [
     'Популярность', 'Винрейт колод с картой', 'Винрейт, если сыграна', 'Винрейт, если взята', 'Оставляют в муллигане',
     'Партий в выборке',

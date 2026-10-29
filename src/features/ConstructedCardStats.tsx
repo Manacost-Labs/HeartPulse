@@ -1,6 +1,4 @@
 import { LockKeyhole } from 'lucide-react';
-import '../shared/ui/LoadingSurface.css';
-import { LoadingBlock } from '../shared/ui/LoadingSurface';
 import { CONSTRUCTED_CARD_METRICS, type ConstructedCardMetricId } from './constructedCardMetrics';
 import { number, percent, type CardStats, type StandardCardsProps } from './constructedCardRecord';
 
@@ -20,46 +18,16 @@ export const LOCKED_STATS_PLACEHOLDER: CardStats = {
 
 export type StatsGateProps = Pick<StandardCardsProps, 'statsAccessLoading' | 'statsAccessUnavailable' | 'authUser' | 'onRefreshSubscription'>;
 
-type MetricRow = { id: ConstructedCardMetricId; format: (stats: CardStats | null) => string };
+const LIST_METRICS: ConstructedCardMetricId[] = ['deckPopularity', 'deckWinrate', 'winrateWhenPlayed', 'winrateWhenDrawn', 'keepPercentage', 'timesPlayed'];
 
-const percentOf = (key: keyof CardStats) => (stats: CardStats | null) => percent(stats?.[key]);
-const numberOf = (key: keyof CardStats) => (stats: CardStats | null) => number(stats?.[key]);
-
-const COMPACT_ROWS: MetricRow[] = [
-  { id: 'deckPopularity', format: percentOf('deckPopularity') },
-  { id: 'deckWinrate', format: percentOf('deckWinrate') },
-  { id: 'winrateWhenPlayed', format: percentOf('winrateWhenPlayed') },
-  { id: 'winrateWhenDrawn', format: percentOf('winrateWhenDrawn') },
-  { id: 'keepPercentage', format: percentOf('keepPercentage') },
-  { id: 'timesPlayed', format: numberOf('timesPlayed') },
-];
-
-const DETAIL_ROWS: MetricRow[] = [
-  ...COMPACT_ROWS.slice(0, 5),
-  { id: 'openingHandWinrate', format: percentOf('openingHandWinrate') },
-  { id: 'averageTurnPlayed', format: numberOf('averageTurnPlayed') },
-  { id: 'averageCopies', format: numberOf('averageCopies') },
-  COMPACT_ROWS[5],
-];
-
-/**
- * The card's numbers. The card page passes `hints` and prints a one-line
- * explanation under each value; the hover summary (`compact`) keeps the names
- * only. A metric that gains a comparison line takes one more `dd` between its
- * value and hint; the cell lays out any number of lines. The hints come from
- * the card page's own module so the card list does not carry them.
- */
-export function StatsRows({ stats, compact = false, pending = false, hints }: {
-  stats: CardStats | null; compact?: boolean; pending?: boolean; hints?: Record<ConstructedCardMetricId, string>;
-}) {
+/** The hover summary in the card list: the six metrics the list shows, names only. */
+export function StatsRows({ stats }: { stats: CardStats | null }) {
   return (
-    <dl className={`constructed-cards__stats${compact ? ' constructed-cards__stats--compact' : ''}`}
-      aria-busy={pending || undefined} aria-label={pending ? 'Загружаем статистику' : undefined}>
-      {(compact ? COMPACT_ROWS : DETAIL_ROWS).map(({ id, format }) => (
+    <dl className="constructed-cards__stats constructed-cards__stats--compact">
+      {LIST_METRICS.map(id => (
         <div key={id} className="constructed-cards__stat">
           <dt>{CONSTRUCTED_CARD_METRICS[id].label}</dt>
-          <dd className="constructed-cards__stat-value">{pending ? <LoadingBlock className="constructed-cards__stat-pending" /> : format(stats)}</dd>
-          {hints && <dd className="constructed-cards__stat-hint">{hints[id]}</dd>}
+          <dd className="constructed-cards__stat-value">{id === 'timesPlayed' ? number(stats?.[id]) : percent(stats?.[id])}</dd>
         </div>
       ))}
     </dl>
@@ -86,5 +54,5 @@ export function StatsUnlockNotice({ statsAccessLoading, authUser, onRefreshSubsc
 }
 
 export function LockedStatsRows() {
-  return <StatsRows stats={LOCKED_STATS_PLACEHOLDER} compact />;
+  return <StatsRows stats={LOCKED_STATS_PLACEHOLDER} />;
 }
