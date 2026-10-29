@@ -84,10 +84,10 @@ export default async function CardPage(props: Props) {
       isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
       additionalProperty: cardProperties(card, format),
     },
+    // The words and the link of the breadcrumb the page itself shows (`StandardCardDetail`); the format step has no link there.
     breadcrumbs: [
-      { name: 'Главная', item: `${ORIGIN}/` },
-      { name: 'Карты Hearthstone', item: `${ORIGIN}/standard/cards/` },
-      { name: FORMAT_NAMES[format], item: `${ORIGIN}/standard/cards/${format}/` },
+      { name: 'Карты', item: `${ORIGIN}/standard/cards/${format}/` },
+      { name: format === 'standard' ? 'Стандарт' : 'Вольный', item: `${ORIGIN}/standard/cards/${format}/` },
       { name: card.name.ru, item: canonical },
     ],
   });

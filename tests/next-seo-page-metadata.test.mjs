@@ -120,7 +120,7 @@ const crumbs = breadcrumb => breadcrumb.itemListElement.map(({ '@type': type, po
 test('a card page describes the card, its site and its path in one JSON-LD graph', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
-    for (const [format, formatName, formatLabel] of [['standard', 'Стандарт', 'Стандарте'], ['wild', 'Вольный формат', 'Вольном формате']]) {
+    for (const [format, formatName, formatLabel, crumbName] of [['standard', 'Стандарт', 'Стандарте', 'Стандарт'], ['wild', 'Вольный формат', 'Вольном формате', 'Вольный']]) {
       const path = `/standard/cards/${format}/CARD_QA_0002/`;
       const canonical = `https://hearthpulse.net${path}`;
       const response = await fetch(`${runtime.nextOrigin}${path}`);
@@ -157,21 +157,22 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
         ],
       }, `${format} CreativeWork`);
       assert.equal(breadcrumb['@id'], `${canonical}#breadcrumb`);
+      const listing = `https://hearthpulse.net/standard/cards/${format}/`;
       assert.deepEqual(crumbs(breadcrumb), [
-        { type: 'ListItem', position: 1, name: 'Главная', item: 'https://hearthpulse.net/' },
-        { type: 'ListItem', position: 2, name: 'Карты Hearthstone', item: 'https://hearthpulse.net/standard/cards/' },
-        { type: 'ListItem', position: 3, name: formatName, item: `https://hearthpulse.net/standard/cards/${format}/` },
-        { type: 'ListItem', position: 4, name: 'Публичная карта 2', item: canonical },
+        { type: 'ListItem', position: 1, name: 'Карты', item: listing },
+        { type: 'ListItem', position: 2, name: crumbName, item: listing },
+        { type: 'ListItem', position: 3, name: 'Публичная карта 2', item: canonical },
       ], `${format} breadcrumbs`);
 
-      // The reader's own breadcrumb leads to the same place: the listing of the card's format, then the card.
+      // The trail is the one the page shows: the same words in the same order, and the same link where the page has one.
       const visible = html.match(/<nav\b[^>]*aria-label="Breadcrumb"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
       assert.ok(visible, `${format} card page shows its breadcrumb`);
-      assert.equal(new URL(visible.match(/<a\b[^>]*href="([^"]*)"/)[1], 'https://hearthpulse.net').pathname,
-        `/standard/cards/${format}/`, `${format} visible breadcrumb link`);
-      const shown = visibleText(visible).split('/');
-      assert.equal(shown.at(-1), 'Публичная карта 2', `${format} visible breadcrumb ends with the card`);
-      assert.ok(formatName.startsWith(shown.at(-2)), `${format} visible breadcrumb names the same format`);
+      const shown = [...visible.matchAll(/<(a|span|strong)\b([^>]*)>([^<]*)<\/\1>/g)]
+        .filter(([, tag,, text]) => !(tag === 'span' && text === '/'))
+        .map(([, tag, attributes, text]) => ({ name: decoded(text), href: tag === 'a' ? attributes.match(/href="([^"]*)"/)[1] : null }));
+      assert.deepEqual(crumbs(breadcrumb).map(crumb => crumb.name), shown.map(crumb => crumb.name), `${format} names`);
+      assert.ok(shown[0].href, `${format} the first visible step links to the listing`);
+      assert.equal(crumbs(breadcrumb)[0].item, new URL(shown[0].href, 'https://hearthpulse.net').href, `${format} link`);
     }
   } finally {
     await runtime.close();
@@ -182,20 +183,21 @@ test('a card library listing shows its path above the same list of cards', async
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
     const home = { name: 'Главная', item: 'https://hearthpulse.net/' };
-    const library = { name: 'Карты Hearthstone', item: 'https://hearthpulse.net/standard/cards/' };
+    const library = { name: 'Карты', item: 'https://hearthpulse.net/standard/cards/' };
     const listings = [
       // The library root lists the Standard cards under its own canonical URL and has no format step.
       ['/standard/cards/', [home, library], 'https://hearthpulse.net/standard/cards/standard/blizzard%3A12345/'],
       ['/standard/cards/standard/', [home, library, { name: 'Стандарт', item: 'https://hearthpulse.net/standard/cards/standard/' }],
         'https://hearthpulse.net/standard/cards/standard/blizzard%3A12345/'],
-      ['/standard/cards/wild/', [home, library, { name: 'Вольный формат', item: 'https://hearthpulse.net/standard/cards/wild/' }],
+      ['/standard/cards/wild/', [home, library, { name: 'Вольный', item: 'https://hearthpulse.net/standard/cards/wild/' }],
         'https://hearthpulse.net/standard/cards/wild/blizzard%3A12345/'],
     ];
     for (const [path, trail, firstCard] of listings) {
       const canonical = `https://hearthpulse.net${path}`;
       const response = await fetch(`${runtime.nextOrigin}${path}`);
       assert.equal(response.status, 200, path);
-      const graph = entityGraph(await response.text(), path);
+      const html = await response.text();
+      const graph = entityGraph(html, path);
       assert.deepEqual(graph.map(node => node['@type']), ['CollectionPage', 'BreadcrumbList'], `${path} graph`);
       const { mainEntity: list, ...collection } = graph[0];
       assert.deepEqual(collection, {
@@ -206,6 +208,13 @@ test('a card library listing shows its path above the same list of cards', async
       }, `${path} CollectionPage`);
       assert.equal(graph[1]['@id'], `${canonical}#breadcrumb`, `${path} breadcrumb id`);
       assert.deepEqual(crumbs(graph[1]), trail.map((crumb, index) => ({ type: 'ListItem', position: index + 1, ...crumb })), `${path} breadcrumbs`);
+
+      // The page shows no breadcrumb: its steps are named with the words it does show.
+      assert.match(html, /<a\b[^>]*href="\/"[^>]*>Главная<\/a>/, `${path} shows the home link`);
+      assert.equal(html.match(/<h1\b[^>]*>([^<]*)<\/h1>/)?.[1], trail[1].name, `${path} heading`);
+      if (trail.length === 3) {
+        assert.equal(html.match(/<button\b[^>]*aria-label="([^"]*)"[^>]*aria-pressed="true"/)?.[1], trail[2].name, `${path} format switch`);
+      }
 
       assert.equal(list['@type'], 'ItemList');
       assert.equal(list.numberOfItems, 3000, `${path} counts the whole catalog`);

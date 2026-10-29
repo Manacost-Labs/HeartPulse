@@ -44,17 +44,21 @@ Each included detail page must return:
   fragment `#card` or `#hero` and an `image` when the page has a picture. One
   builder, `buildEntityStructuredData` in `shared/entitySeoStructuredData.ts`,
   serves the Express documents and the Next.js pages;
-- breadcrumbs of a Standard or Wild card, with absolute canonical URLs and a
-  trailing slash: «Главная» (`/`) › «Карты Hearthstone» (`/standard/cards/`) ›
-  «Стандарт» or «Вольный формат» (`/standard/cards/<format>/`) › the card.
-  The Express fallback document keeps its shorter path (home › library of the
-  format › card);
-- a card library listing (`/standard/cards/`, `/standard/cards/<format>/`) is
-  a `CollectionPage` `<canonical>#collection` with `inLanguage`, `isPartOf`,
-  the `ItemList` of the current page (`numberOfItems` is the catalog total,
-  positions run through the pages) and a `BreadcrumbList`: home › library
-  (› format, except on the library root, which has no format step of its own).
-  `buildCollectionStructuredData` builds it;
+- a `BreadcrumbList` repeats the words and links of the breadcrumb the page
+  shows. A Standard or Wild card shows «Карты» (a link to
+  `/standard/cards/<format>/`) / «Стандарт» or «Вольный» / the card name, so its
+  list has those three steps with absolute canonical URLs and a trailing slash:
+  the first two lead to `/standard/cards/<format>/` (the format step has no
+  link of its own on the page) and the third is the card. The Express fallback
+  document keeps its own shorter path (home › library of the format › card);
+- a card library listing (`/standard/cards/`, `/standard/cards/<format>/`)
+  shows no breadcrumb, so its steps take the words the page does show: «Главная»
+  (footer link), «Карты» (heading) and «Стандарт» or «Вольный» (format switch).
+  It is a `CollectionPage` `<canonical>#collection` with `inLanguage`,
+  `isPartOf`, the `ItemList` of the current page (`numberOfItems` is the
+  catalog total, positions run through the pages) and a `BreadcrumbList`: home ›
+  «Карты» (`/standard/cards/`) (› format, except on the library root, which has
+  no format step of its own). `buildCollectionStructuredData` builds it;
 - ordinary `<a href>` links back to the owning library and to complementary
   tier-list or meta pages;
 - HearthPulse as the site brand, without implying ownership of Hearthstone or

@@ -29,11 +29,12 @@ export async function CardCatalogPage({ format, pathname, searchParams }: { form
   const query = await catalogSearch(searchParams);
   const catalog = await loadPublicCatalog(format, query);
   const canonical = `${ORIGIN}${pathname}`;
+  // The page shows no breadcrumb, so the steps use its own words: the footer link «Главная», the heading «Карты» and the format switch.
   const breadcrumbs = [
     { name: 'Главная', item: `${ORIGIN}/` },
-    { name: 'Карты Hearthstone', item: `${ORIGIN}${CATALOG_ROOT}` },
+    { name: 'Карты', item: `${ORIGIN}${CATALOG_ROOT}` },
     // The library root lists the Standard cards under its own canonical URL: it has no format step of its own.
-    ...(pathname === CATALOG_ROOT ? [] : [{ name: format === 'wild' ? 'Вольный формат' : 'Стандарт', item: canonical }]),
+    ...(pathname === CATALOG_ROOT ? [] : [{ name: format === 'wild' ? 'Вольный' : 'Стандарт', item: canonical }]),
   ];
   const structured = buildCollectionStructuredData({
     canonical, origin: ORIGIN, name: 'Карты Hearthstone', breadcrumbs,
