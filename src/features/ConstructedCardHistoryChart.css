@@ -137,7 +137,6 @@
 .constructed-card-history__body > *,
 .constructed-card-history__toolbar > *,
 .constructed-card-history__content > * { min-width: 0; }
-.constructed-card-history__label-short { display: none; }
 .constructed-card-history__body .ui-segmented-control__item[data-active] { color: #fff0c4; }
 .constructed-card-history__body .ui-segmented-control__item { padding-inline: 12px; font-weight: 700; }
 .constructed-card-history__body .ui-segmented-control__item:disabled { opacity: 0.42; cursor: not-allowed; }
@@ -223,9 +222,9 @@
   .constructed-card-history__disclosure span { display: none; }
   .constructed-card-history__body { padding: 0.6rem 0.62rem 0.7rem; }
   .constructed-card-history__metrics { width: 100%; }
-  .constructed-card-history__label-long { display: none; }
-  .constructed-card-history__label-short { display: inline; }
-  .constructed-card-history__metrics .ui-segmented-control__item { flex: 1 1 0; min-width: 0; padding-inline: 4px; white-space: normal; text-align: center; line-height: 1.1; }
+  /* Four labels share the phone width by their own size and wrap by words, so none is cut. The kit's padding
+     is more specific than the old selector, which never applied. */
+  .constructed-card-history__body .constructed-card-history__metrics[data-size] .ui-segmented-control__item { flex: 1 1 auto; min-width: min-content; padding-inline: 4px; white-space: normal; text-align: center; line-height: 1.1; }
   .constructed-card-history__state { grid-template-columns: auto minmax(0, 1fr); }
   .constructed-card-history__state p { grid-column: 1 / -1; text-align: left; }
 }

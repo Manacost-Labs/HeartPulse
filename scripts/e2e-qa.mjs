@@ -4299,7 +4299,9 @@ for (const [device, viewport] of [
     await page.waitForSelector(loadedRows, { timeout: 20_000 });
     await verify('after the period change');
     if (device === 'desktop') {
-      // Keyboard reaches the switch and draws a ring on it.
+      // Keyboard reaches the switch and draws a ring on it. The period select hands focus back to its trigger on
+      // the next frame; moving focus before that would be undone.
+      await page.waitForFunction(() => document.activeElement?.matches('.constructed-card-detail__statistics-controls .constructed-cards__filter-trigger'), { timeout: 5_000 });
       await page.focus('.constructed-card-detail__statistics-format button:first-child');
       await page.keyboard.press('Tab');
       const focus = await page.evaluate(() => {

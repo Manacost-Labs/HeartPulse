@@ -22,7 +22,7 @@ export type ConstructedCardMetricId =
 export const CONSTRUCTED_CARD_METRICS: Record<ConstructedCardMetricId, { label: string; shortLabel?: string }> = {
   deckPopularity: { label: 'Популярность' },
   deckWinrate: { label: 'Винрейт колод с картой', shortLabel: 'Винрейт колод' },
-  winrateWhenPlayed: { label: 'Винрейт, если сыграна' },
+  winrateWhenPlayed: { label: 'Винрейт, если сыграна', shortLabel: 'Если сыграна' },
   winrateWhenDrawn: { label: 'Винрейт, если взята' },
   keepPercentage: { label: 'Оставляют в муллигане' },
   openingHandWinrate: { label: 'Винрейт из стартовой руки' },

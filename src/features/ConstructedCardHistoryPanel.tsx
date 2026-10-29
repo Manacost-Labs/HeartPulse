@@ -80,9 +80,7 @@ export default function ConstructedCardHistoryPanel({
         <SegmentedControl
           className="constructed-card-history__metrics" size="sm" aria-label="Показатель графика" value={metric}
           onValueChange={value => setMetric(value as ConstructedCardHistoryMetric)}
-          options={CONSTRUCTED_CARD_HISTORY_METRICS.map(item => ({ value: item.id, ariaLabel: item.shortLabel, label: item.phoneLabel
-            ? <><span className="constructed-card-history__label-long">{item.shortLabel}</span><span className="constructed-card-history__label-short">{item.phoneLabel}</span></>
-            : item.shortLabel }))}
+          options={CONSTRUCTED_CARD_HISTORY_METRICS.map(item => ({ value: item.id, label: item.shortLabel }))}
         />
         <div className="constructed-card-history__ranges">
           <CalendarDays size={16} aria-hidden="true" />
