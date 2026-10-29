@@ -11,7 +11,7 @@
  *            the tests of those modules and of every module that depends on
  *            them, transitively, plus the changed test files;
  * - `all`    anything else: shared runtime, tooling, CI, dependencies, configs,
- *            or a file that cannot be attributed to a module.
+ *            a composition root, or a file that cannot be attributed to a module.
  *
  * Any doubt resolves to `all`, which is the old behaviour of the pull request
  * run, so a wrong answer can only cost minutes, never hide a failure.
@@ -32,6 +32,13 @@ const CODE_ROOTS = [
   '.github', '.storybook', 'apps', 'config', 'database', 'deploy',
   'public', 'scripts', 'server', 'shared', 'src', 'tests',
 ];
+// They wire every route and module together, so the few tests the catalog
+// attributes to them cannot stand for what a change to them can break.
+const COMPOSITION_ROOTS = new Set([
+  'server/index.ts',
+  'src/features/DeferredRoutes.tsx',
+  'src/features/Battlegrounds.tsx',
+]);
 const TEST_FILE_PATTERN = /\.(?:test|spec)\.(?:ts|tsx|js|mjs|cjs|sh)$/;
 
 function isInside(candidate, root) {
@@ -128,6 +135,7 @@ export function selectAffectedTests({ changedFiles, registry, inventory, catalog
     const file = cleanPath(raw);
     if (file === null) return everything(`unrecognised path: ${String(raw)}`);
     if (isInside(file, '.github')) return everything(`CI or repository tooling changed: ${file}`);
+    if (COMPOSITION_ROOTS.has(file)) return everything(`composition root changed: ${file}`);
     if (isDocumentation(file)) continue;
     documentationOnly = false;
     if (isInside(file, 'tests') && TEST_FILE_PATTERN.test(file) && !registeredFiles.has(file)) {

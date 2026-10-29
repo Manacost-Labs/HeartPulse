@@ -92,9 +92,31 @@ start or wait for it; `CI required` and the deployment do not depend on it
 ## Tests affected by a pull request
 
 `scripts/ci-affected-tests.mjs` answers which registered test files a change
-can affect. It is not wired into `ci.yml` yet: the pull request run still runs
-everything, and `merge_group` and `main` always will. Use it to reproduce what
-a pull request run would select:
+can affect. The `plan` job of `ci.yml` (`scripts/ci-test-plan.mjs`) uses it on
+`pull_request` only:
+
+- `subset`: the registry and browser jobs run only the selected files
+  (`--only-files` gets the engine's JSON unchanged), in as many shards as they
+  need: a selection of k of n runnable files gets `ceil(k × full / n)` of the
+  full 2 registry and 9 browser shards. A job with no selected file is skipped.
+- `none` (documentation only): neither test job runs; `build`, `storybook`,
+  `validate` and the observatory still do.
+- `all`, a non-zero exit, a timeout, an output that was not written, does not
+  parse or names a file outside the registry: every shard runs, as before.
+  An empty diff is the engine's `none`; a list that was never written is `all`.
+
+`merge_group`, a push to `main` and `workflow_dispatch` always run every shard
+(2 registry, 9 browser) without asking the engine, so a test a narrowed pull
+request skipped still runs before `main`. `CI required` accepts a skipped test
+job only on `pull_request` and only when the plan gave that job no shard; a
+failed `plan` job fails it. To run everything for a pull request, start the
+workflow by hand (`gh workflow run ci.yml --ref <branch>`).
+
+Composition roots (`server/index.ts`, `src/features/DeferredRoutes.tsx`,
+`src/features/Battlegrounds.tsx`) wire every route together, so a change to
+one of them is always `all`.
+
+Use the engine to reproduce what a pull request run selects:
 
 ```bash
 # two commits (the base is compared at its merge-base with the head);
@@ -123,7 +145,7 @@ registry order) and `affectedModules`:
 - `all`: anything else. That is `package*.json`, `.npmrc`, `.github/**`,
   `scripts/**`, `config/**`, `tests/test-suites.json`, test helpers and
   fixtures, the shared roots (`src/shared`, `server/shared`, `shared`),
-  tsconfig, Next and Storybook configs, a file outside every module, a path
+  tsconfig, Next and Storybook configs, a composition root, a file outside every module, a path
   that is not a clean relative path, a test file missing from
   `tests/test-suites.json`, or a changed module with no registered test. Every
   registered file is selected.
