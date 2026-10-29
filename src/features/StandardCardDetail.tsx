@@ -26,7 +26,6 @@ import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
 import { cardSupportsStandardStatistics } from './constructedCardFormats';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { loadConstructedCardDetail } from './constructedCardDetailPrefetch';
-import FilterSelect from './ConstructedCardFilterSelect';
 import DeckListView, {
   type DeckListCard,
   type DeckListSideboard,
@@ -85,7 +84,9 @@ import {
   type ConstructedDeck,
   type StandardCardsProps,
 } from './constructedCardRecord';
-import { LockedStatsPanel, PendingStatsRows, StatsRows, statisticsPending } from './ConstructedCardStats';
+import {
+  CardStatsRows, LockedStatsPanel, PendingStatsRows, STATISTICS_FORMATS, StatisticsControls, StatisticsHead, statisticsPending,
+} from './ConstructedCardStatistics';
 
 type ResolvedConstructedDeck = {
   ok: boolean;
@@ -649,26 +650,16 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           facts={cardIdentityFacts(card, format)}
         />
         <div className={`constructed-card-detail__statistics${serverStatsAccess || statsPending || statsAccessUnavailable ? '' : ' is-locked'}`}>
-          <div data-tour-id="card-statistics"><h2>Статистика · {rankLabel}</h2><span>{statsFormatLabel} · {periodLabel}{serverStatsAccess ? ` · обновлено ${formatDate(card.statsUpdatedAt)}` : statsPending || statsAccessUnavailable ? '' : ' · тариф «Алмаз»'}</span></div>
-          <div className="constructed-card-detail__statistics-controls" aria-label="Выбор статистики карты">
-            <div className="constructed-card-detail__statistics-format" role="group" aria-label="Формат статистики">
-              {standardStatisticsAvailable && <button type="button" aria-pressed={statsFormat === 'standard'} onClick={() => changeStatistics({ format: 'standard' })}><img src="/card-format-standard.webp" alt="" />Стандарт</button>}
-              <button type="button" aria-pressed={statsFormat === 'wild'} onClick={() => changeStatistics({ format: 'wild' })}><img src="/assets/card-format-wild-128.webp" alt="" />Вольный</button>
-            </div>
-            <FilterSelect
-              label="Ранг"
-              value={rank}
-              onChange={value => changeStatistics({ rank: value as ConstructedCardRank })}
-              options={CONSTRUCTED_CARD_RANK_OPTIONS.map(option => ({ value: option.id, label: option.label }))}
-            />
-            <FilterSelect
-              label="Период"
-              value={period}
-              onChange={value => changeStatistics({ period: value as ConstructedCardPeriod })}
-              options={constructedCardPeriodOptions(currentPatch).map(option => ({ value: option.id, label: option.label }))}
-            />
-          </div>
-          {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : statsPending ? <PendingStatsRows />
+          <StatisticsHead rankLabel={rankLabel} scope={`${statsFormatLabel} · ${periodLabel}`}
+            note={serverStatsAccess ? `обновлено ${formatDate(card.statsUpdatedAt)}` : statsPending || statsAccessUnavailable ? '' : 'тариф «Алмаз»'} />
+          <StatisticsControls
+            formats={standardStatisticsAvailable ? [STATISTICS_FORMATS.standard, STATISTICS_FORMATS.wild] : [STATISTICS_FORMATS.wild]}
+            format={statsFormat} onFormatChange={value => changeStatistics({ format: value as CardFormat })}
+            rank={rank} rankOptions={CONSTRUCTED_CARD_RANK_OPTIONS.map(option => ({ value: option.id, label: option.label }))}
+            onRankChange={value => changeStatistics({ rank: value as ConstructedCardRank })}
+            period={period} periodOptions={constructedCardPeriodOptions(currentPatch).map(option => ({ value: option.id, label: option.label }))}
+            onPeriodChange={value => changeStatistics({ period: value as ConstructedCardPeriod })} />
+          {serverStatsAccess ? <><CardStatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : statsPending ? <PendingStatsRows />
             : <LockedStatsPanel {...{ statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }} />}
         </div>
       </section>

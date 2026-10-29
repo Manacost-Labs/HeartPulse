@@ -65,11 +65,19 @@ import {
   type StandardCardsProps,
 } from './constructedCardRecord';
 import { LockedStatsRows, StatsRows, StatsUnlockNotice, type StatsGateProps } from './ConstructedCardStats';
+import { constructedCardMetricCaption } from './constructedCardMetrics';
 import { CardCatalogSkeleton } from './CardCatalogSkeleton';
 import { useViewEntrance } from '../components/transitions/useViewEntrance';
 import { useListTransition } from '../components/transitions/useListTransition';
 
 type ViewMode = 'gallery' | 'table';
+
+// Gallery tiles, table columns and the sort menu have little room: the short form of the shared metric names.
+const STAT_CAPTIONS = {
+  deckPopularity: constructedCardMetricCaption('deckPopularity'),
+  deckWinrate: constructedCardMetricCaption('deckWinrate'),
+  timesPlayed: constructedCardMetricCaption('timesPlayed'),
+};
 
 type ConstructedCardPeriodDescriptor = {
   id: ConstructedCardPeriod;
@@ -105,8 +113,8 @@ function preloadImage(url: string | null | undefined): void {
 }
 
 function sortMetric(card: CardRecord, sort: string): { label: string; value: string } {
-  if (sort === 'winrate') return { label: 'Победы колод', value: percent(card.stats?.deckWinrate) };
-  if (sort === 'games') return { label: 'Сыграно партий', value: number(card.stats?.timesPlayed) };
+  if (sort === 'winrate') return { label: STAT_CAPTIONS.deckWinrate, value: percent(card.stats?.deckWinrate) };
+  if (sort === 'games') return { label: STAT_CAPTIONS.timesPlayed, value: number(card.stats?.timesPlayed) };
   if (sort === 'mana') return { label: 'Мана', value: number(card.mana_cost) };
   if (sort === 'attack') return { label: 'Атака', value: number(card.attack) };
   if (sort === 'health') return { label: 'Здоровье', value: number(card.health) };
@@ -117,7 +125,7 @@ function sortMetric(card: CardRecord, sort: string): { label: string; value: str
     return { label: 'Механики', value: count ? number(count) : 'Нет данных' };
   }
   if (sort === 'name') return { label: 'Название', value: card.name?.en || cardName(card) };
-  return { label: 'В % колод', value: percent(card.stats?.deckPopularity) };
+  return { label: STAT_CAPTIONS.deckPopularity, value: percent(card.stats?.deckPopularity) };
 }
 
 function cardMechanicKeys(card: CardRecord): string[] {
@@ -143,7 +151,7 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
       <div className="constructed-cards__tooltip-header"><strong>{cardName(card)}</strong><span>Статистика · {rankLabel}</span></div>
       {statsAccess ? <StatsRows stats={card.stats} compact /> : (
         <div className="constructed-cards__stats-locked-preview">
-          <div aria-hidden="true" inert><LockedStatsRows compact /></div>
+          <div aria-hidden="true" inert><LockedStatsRows /></div>
           <StatsUnlockNotice {...gate} compact />
         </div>
       )}
@@ -259,7 +267,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
     <>
       <div className="constructed-cards__table-wrap">
         <TableSurface title="Карты" density="compact"><table className="constructed-cards__table is-compact">
-          <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
+          <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>{STAT_CAPTIONS.deckPopularity} {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>{STAT_CAPTIONS.deckWinrate} {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
           <tbody>
             {cards.map((card, index) => (
               <tr key={card.card_id}>
@@ -284,7 +292,7 @@ function CardTable({ cards, search, format, period, rank, sort, direction, navig
                 ><ConstructedCardTile name={cardName(card)} cost={card.mana_cost ?? null} artwork={publicResourceUrl(card.images?.horizontal)} rarity={card.rarity} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
-                <td data-label="В % колод" data-tour-id={index === 0 ? 'cards-statistics' : undefined}>{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label="Победы колод">{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
+                <td data-label={STAT_CAPTIONS.deckPopularity} data-tour-id={index === 0 ? 'cards-statistics' : undefined}>{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label={STAT_CAPTIONS.deckWinrate}>{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
               </tr>
             ))}
           </tbody>

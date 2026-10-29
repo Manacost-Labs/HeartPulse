@@ -18,26 +18,18 @@
 .card-detail-skeleton__copy .loading-block:first-child { width: 7rem; height: 1.4rem; margin-top: 0.5rem; }
 .card-detail-skeleton__copy .loading-block { height: 1.17rem; }
 .card-detail-skeleton__copy .loading-block:last-child { width: 70%; }
-.card-detail-skeleton__stats-title { width: min(60%, 16rem); height: 34.8px; }
-.card-detail-skeleton__stats-period { width: min(35%, 10rem); height: 0.8rem; }
-.card-detail-skeleton__format { height: 48px; }
-.card-detail-skeleton__select { height: 61.9px; }
-/* Blurred locked rows with the unlock notice over them. */
-.card-detail-skeleton__stats { height: 204.9px; margin-top: 0.65rem; }
+/* The statistics block is built from the real head, control and metric classes
+   (it sizes itself by its own width); these are its text and control lines. */
+.card-detail-skeleton__stats-title { width: min(60%, 16rem); height: 1.6675rem; }
+.card-detail-skeleton__stats-line { width: 11rem; max-width: 100%; height: 1.0125rem; }
+.card-detail-skeleton__control { height: var(--statistics-control-height); }
+/* The locked page keeps its rows inside the gate, which adds this offset. */
+.card-detail-skeleton__stats { margin-top: 0.65rem; }
+@container card-statistics (width < 37.5rem) {
+  .card-detail-skeleton__stats { max-height: 20rem; overflow: hidden; }
+}
 
-@media (max-width: 900px) {
-  .card-detail-skeleton__format { grid-column: 1 / -1; }
-  .card-detail-skeleton__stats { height: 332.3px; }
-}
-/* The statistics title wraps to two lines in the narrow column. */
-@media (max-width: 820px) {
-  .card-detail-skeleton__stats-title { height: 69.6px; }
-}
 @media (max-width: 640px) {
   .card-detail-skeleton__art { max-height: 430px; }
-  .card-detail-skeleton__format { grid-column: auto; }
   .card-detail-skeleton__name .loading-block:first-child { height: 2rem; }
-}
-@media (max-width: 400px) {
-  .card-detail-skeleton__stats { height: 373px; }
 }

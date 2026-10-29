@@ -5,6 +5,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EMPTY_CONSTRUCTED_CARD_FILTERS, constructedCardCatalogUrl } from '../src/modules/constructedCards/model/catalogQuery';
 import { loadConstructedCardDetail } from '../src/features/constructedCardDetailPrefetch';
+import fc from 'fast-check';
+import { number, percent } from '../src/features/constructedCardRecord';
 import { buttons, elements, headings, importWithoutStyles, labelled, links, visibleText } from './helpers/renderedMarkup';
 import {
   constructedCardDataNotice,
@@ -172,3 +174,73 @@ assert.match(standardCardsSource, /serverStatsAccess && \(\s*<ConstructedCardHis
   'the history chart must follow the server-side statistics entitlement');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');
+
+test('numbers group thousands with a no-break space and keep the Russian decimal comma', () => {
+  assert.equal(number(2697), '2\u00a0697');
+  assert.equal(number(1234567), '1\u00a0234\u00a0567');
+  assert.equal(number(999), '999');
+  assert.equal(number(5.45), '5,45');
+  assert.equal(number(0), '0');
+  assert.equal(number(null), 'Нет данных');
+  assert.equal(percent(1.88), '1,88%');
+  assert.equal(percent(18.4), '18,4%');
+  assert.equal(percent(undefined), 'Нет данных');
+});
+
+test('a grouped number never holds a narrow or breaking space', () => {
+  fc.assert(fc.property(fc.integer({ min: 0, max: 1_000_000_000 }), value => {
+    const shown = number(value);
+    return !/[\u202f\u2009 ]/.test(shown) && shown.replaceAll('\u00a0', '') === String(value);
+  }));
+});
+
+const { StatsRows } = await importWithoutStyles<typeof import('../src/features/ConstructedCardStats')>(
+  new URL('../src/features/ConstructedCardStats', import.meta.url));
+const { CardStatsRows, StatisticsControls } = await importWithoutStyles<typeof import('../src/features/ConstructedCardStatistics')>(
+  new URL('../src/features/ConstructedCardStatistics', import.meta.url));
+const cardStats = {
+  deckPopularity: 1.88, deckWinrate: 39.12, averageCopies: 1.95, timesPlayed: 2697, winrateWhenPlayed: 43.86,
+  winrateWhenDrawn: 43.95, keepPercentage: 92.84, openingHandWinrate: 42.65, averageTurnsInHand: 2.2, averageTurnPlayed: 5.45,
+};
+
+test('the card page names each metric in plain Russian and explains it under the value', () => {
+  const html = renderToStaticMarkup(React.createElement(CardStatsRows, { stats: cardStats }));
+  assert.deepEqual(elements(html).filter(element => element.tag === 'dt').map(element => element.text), [
+    'Популярность', 'Винрейт колод с картой', 'Винрейт, если сыграна', 'Винрейт, если взята', 'Оставляют в муллигане',
+    'Винрейт из стартовой руки', 'Обычно разыгрывают на ходу', 'Копий в колоде', 'Партий в выборке',
+  ]);
+  assert.ok(visibleText(html).startsWith('Популярность 1,88% В скольких колодах выборки есть карта '
+    + 'Винрейт колод с картой 39,12% Доля побед колод, в которых есть карта'));
+  // `visibleText` folds the no-break space into a plain one; the markup below keeps it.
+  assert.ok(visibleText(html).endsWith('Партий в выборке 2 697 Объём выборки'));
+  assert.ok(html.includes('2\u00a0697'), 'the sample size keeps its digits together');
+  assert.equal(elements(html).filter(element => element.attrs.title !== undefined).length, 0,
+    'the explanations are printed, not hidden in a tooltip');
+});
+
+test('the hover summary in the card list keeps the same names without the explanations', () => {
+  const html = renderToStaticMarkup(React.createElement(StatsRows, { stats: cardStats, compact: true }));
+  assert.deepEqual(elements(html).filter(element => element.tag === 'dt').map(element => element.text), [
+    'Популярность', 'Винрейт колод с картой', 'Винрейт, если сыграна', 'Винрейт, если взята', 'Оставляют в муллигане',
+    'Партий в выборке',
+  ]);
+  assert.ok(!visibleText(html).includes('В скольких колодах'));
+});
+
+test('the statistics switch gives every offered format its own pressed-state segment', () => {
+  const html = renderToStaticMarkup(React.createElement(StatisticsControls, {
+    formats: [
+      { id: 'standard', label: 'Стандарт', icon: '/a.webp' },
+      { id: 'wild', label: 'Вольный', icon: '/b.webp' },
+      { id: 'arena', label: 'Арена', icon: '/c.webp' },
+    ],
+    format: 'wild', onFormatChange: () => undefined,
+    rank: 'legend', rankOptions: [{ value: 'legend', label: 'Легенда' }], onRankChange: () => undefined,
+    period: '1d', periodOptions: [{ value: '1d', label: 'Последний день' }], onPeriodChange: () => undefined,
+  }));
+  assert.equal(labelled(html, 'Формат статистики')?.attrs.role, 'group');
+  const segments = elements(html).filter(element => element.tag === 'button' && element.attrs['aria-pressed'] !== undefined);
+  assert.deepEqual(segments.map(segment => [segment.name, segment.attrs['aria-pressed']]),
+    [['Стандарт', 'false'], ['Вольный', 'true'], ['Арена', 'false']]);
+  assert.ok(visibleText(html).startsWith('Формат Стандарт Вольный Арена Ранг Легенда Период Последний день'));
+});
