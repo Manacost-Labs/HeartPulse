@@ -81,8 +81,10 @@ validation and artifact instead of running CI again (exact SHA and tree;
 see [DEPLOYMENT.md](../../DEPLOYMENT.md#automatic-deployment-from-main)).
 `CI required` also passes on such a push, where the validation jobs are
 skipped by design. The job `Browser quarantine (non-blocking)` runs the
-registry's quarantined flaky tests with `continue-on-error: true`; `CI required`
-and the deployment do not depend on it (see the Quarantine section of
+registry's quarantined flaky tests with `continue-on-error: true` on
+`pull_request` and `workflow_dispatch` only, so the merge queue run does not
+start or wait for it; `CI required` and the deployment do not depend on it
+(see the Quarantine section of
 [phase0-test-discovery.md](../architecture/phase0-test-discovery.md#quarantine)).
 
 ## GitHub settings (owner applies; agents never change them)
