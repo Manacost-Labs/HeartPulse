@@ -60,9 +60,10 @@ workflow whose head SHA and tree equal the pushed commit, whose `CI required`
 job finished with `success` and which still holds `hs-arena-release-<sha>`.
 The run need not be completed: only `CI required` is awaited, so any
 non-blocking job of the merge-queue run (none today) and the delay before
-GitHub marks the run completed do not hold the deployment. The push waits up to 150 seconds while
-`CI required` of such a run has not finished; a finished run whose `CI required` is not
-`success` (or is missing) is not reused. When a run qualifies, the push skips
+GitHub marks the run completed do not hold the deployment. The push waits up
+to 150 seconds while `CI required` of such a run has not finished; a finished
+run whose `CI required` is not `success` (or is missing) is not reused.
+When a run qualifies, the push skips
 validation and deploys that run's artifact; the release, its SHA and the
 deployer gate are unchanged. Any doubt, including a failed lookup or a failed
 read of the run's jobs, validates the push in full. A non-blocking
