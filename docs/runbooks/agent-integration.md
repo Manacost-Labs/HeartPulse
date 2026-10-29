@@ -77,7 +77,9 @@ the changed-file gates the queue base:
 `${{ github.event.merge_group.base_sha }}`. Deployment stays on `push` to
 `main`: the queue fast-forwards `main` to the tested group commit. The queue
 run also packages the immutable release, so that push reuses the queue run's
-validation and artifact instead of running CI again (exact SHA and tree;
+validation and artifact instead of running CI again (exact SHA and tree, and
+the queue run's `CI required` job succeeded; the run itself may still be
+finishing its non-blocking jobs;
 see [DEPLOYMENT.md](../../DEPLOYMENT.md#automatic-deployment-from-main)).
 `CI required` also passes on such a push, where the validation jobs are
 skipped by design. The job `Browser quarantine (non-blocking)` runs the
