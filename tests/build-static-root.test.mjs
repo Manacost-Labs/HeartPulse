@@ -103,6 +103,7 @@ const LLMS_SECTIONS = [
   { urls: ['/heroes/', '/library/'], sources: ['HSReplay', 'Firestone'], open: true, paid: true },
   { urls: ['/faq/'], sources: [], open: true, paid: false },
   { urls: ['/articles/'], sources: [], open: true, paid: false },
+  { urls: ['/developers/api/'], sources: [], open: true, paid: false },
 ];
 
 function llmsEntries(llms) {
@@ -156,6 +157,11 @@ test('llms.txt tells a crawler what each section offers, from where, and what ne
       if (section.update) assert.ok(entry.includes(section.update), `${section.urls[0]} must say: ${section.update}`);
       assert.equal(/по подписке/i.test(entry), section.paid, `${section.urls[0]}: subscription mention`);
       assert.equal(/открыт|без подписки/i.test(entry), section.open, `${section.urls[0]}: free access mention`);
+    }
+
+    // Each paid mode names the Boosty level that opens it, not one level for all.
+    for (const level of ['«Алмаз»', '«Любитель Арены»', '«Таверна Боба»']) {
+      assert.ok(llms.includes(level), `llms.txt must name the subscription level ${level}`);
     }
 
     // Promises of the old file that the anonymous HTML does not keep.
