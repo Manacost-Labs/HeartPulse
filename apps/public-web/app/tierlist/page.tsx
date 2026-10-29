@@ -2,6 +2,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { TierListPageClient } from '@/apps/public-web/ui/TierListPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { SeoPageIntro } from '@/apps/public-web/ui/SeoPageIntro';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 // Prerendered and cheap to prefetch: the data loads in the browser, and nginx
@@ -12,6 +13,8 @@ export const generateMetadata = seoStaticPageMetadata('/tierlist', 'HearthPulse 
 export default function Page() {
   return <>
     <SeoStructuredData path="/tierlist" />
-    <TierListPageClient />
+    <TierListPageClient>
+      <SeoPageIntro path="/tierlist" />
+    </TierListPageClient>
   </>;
 }

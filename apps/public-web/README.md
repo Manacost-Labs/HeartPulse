@@ -40,6 +40,7 @@ is a separate administrator workspace and retains its permission gate.
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
+| `ui/SeoPageIntro.tsx` | Server-rendered text of a page whose data is closed to a guest (`/tierlist/`, `/classes/`, `/legendaries/`), from `config/public-seo-page-copy.json`; passed to the client page as `children` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
 | `lib/publicFirstPaintRead.ts` | `readFirstPaintJson()`: a server read that only improves the first paint; `null` after 600 ms or on any failure, so the page falls back to its browser request |
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |

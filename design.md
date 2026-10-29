@@ -220,6 +220,7 @@ and provides a selector and a popularity filter to reduce crowded clusters.
 - Main titles and important summaries may sit inside a red framed panel.
 - Filters remain parchment with red selected states.
 - Tier grid, source switching, card preview, lightbox and export behavior are protected.
+- The tier list, classes and legendaries pages end with a plain explanatory text (`apps/public-web/ui/SeoPageIntro.tsx`, own `SeoPageIntro.css`): body type, question headings in Arena red display type, a hairline parchment rule above it, a bulleted list for scales. No panel, card or badge: the page's data and the paywall stay the focus, and the text must never print a figure.
 
 ## Battlegrounds Pages
 
@@ -455,6 +456,7 @@ Rules:
 
 ## Changelog
 
+- **2026-10-29** — Added the plain server-rendered methodology text under the Arena tier list, classes and legendaries pages (`SeoPageIntro`).
 - **2026-10-29** — Removed the white bands at the edges of a scrolled page: the `html` backdrop is the `--arena-rail-red` token and `.bg-wood` is parchment instead of pale blue, `theme-color` follows the red rail, and the archetype rows and meta cards reserve measured heights.
 - **2026-10-04** — Performance wave 3: one LoadingSurface, server-rendered public previews with a 600 ms budget, sidebar prefetch, quicker fade-through, popover mobile drawer, shared hover and overlay motion.
 - **2026-10-04** — Performance wave 2: lighter parchment/fonts/banners with early LCP preloads, a split and lighter card catalogue, bfcache-restorable public pages with viewer re-verification, reserved paywall height and lazy paid Battlegrounds views.

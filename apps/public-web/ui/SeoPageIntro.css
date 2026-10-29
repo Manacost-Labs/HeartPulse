@@ -1,0 +1,45 @@
+/* The server-rendered text under a page whose data is closed to a guest: how to read the page, where its data comes from. */
+.seo-page-intro {
+  max-inline-size: 72rem;
+  margin: 1.75rem auto 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--arena-paper-line);
+  color: var(--arena-ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.seo-page-intro h2 {
+  margin: 1.5rem 0 0.5rem;
+  color: var(--arena-red);
+  font-family: var(--font-hs);
+  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.4rem);
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.seo-page-intro h2:first-child {
+  margin-top: 0;
+}
+
+.seo-page-intro p,
+.seo-page-intro ul {
+  max-inline-size: 68ch;
+  margin: 0 0 0.75rem;
+}
+
+.seo-page-intro ul {
+  padding-inline-start: 1.25rem;
+  list-style: disc;
+}
+
+.seo-page-intro li + li {
+  margin-top: 0.25rem;
+}
+
+.seo-page-intro a {
+  color: var(--arena-red);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

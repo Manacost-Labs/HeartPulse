@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { TierList } from '@/src/features/DeferredRoutes';
 import { useArenaCompanionIds, useArenaTierList,
@@ -12,7 +12,8 @@ const EMPTY_DATA: TierlistData = {
   sections: [], cards: {}, updatedAt: null, source: 'hsreplay',
 };
 
-export function TierListPageClient() {
+/** `children` is server-rendered content (the page's text) shown below the page, inside the shell's `<main>`. */
+export function TierListPageClient({ children }: { children?: ReactNode }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'arena');
   const tierlist = useArenaTierList(access.user?.id, allowed);
@@ -36,5 +37,6 @@ export function TierListPageClient() {
       authUser={access.user} subscriptionStatus={access.subscription}
       subscriptionLoading={pending} onRefreshSubscription={access.refresh}
       accessGranted={allowed} />
+    {children}
   </PublicPageShell>;
 }
