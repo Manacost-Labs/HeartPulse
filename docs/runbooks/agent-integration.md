@@ -234,3 +234,5 @@ Storybook, `next dev`, watchers and browsers are started only for the check
 that needs them and stopped before the handoff (`kill %1`, `TaskStop`, or the
 port's owning PID from `ss -ltnp`). A session that ends with a listening dev
 server is not finished.
+
+<!-- probe #254: docs-only PR run -->
