@@ -42,6 +42,34 @@ async function waitOrExplain(page, predicate, label) {
   }
 }
 
+/**
+ * Ждёт, пока элемент перестанет двигаться по экрану: плавная прокрутка к месту или карточке и перерисовка после
+ * закрытия карточки заканчиваются. Нажатие по координатам, взятым посреди прокрутки, попадает в другую строку.
+ */
+async function settle(page, handle) {
+  await page.waitForFunction(node => new Promise(resolve => {
+    let last = '';
+    let still = 0;
+    const tick = () => {
+      const box = node.isConnected ? node.getBoundingClientRect() : null;
+      const now = box ? [scrollX, scrollY, box.left, box.top, box.width, box.height].join('|') : '';
+      still = box && now === last ? still + 1 : 0;
+      last = now;
+      if (still >= 12) resolve(true);
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  }), {}, handle);
+}
+
+/** Нажимает, когда элемент виден и стоит на месте. */
+async function clickSteady(page, selector) {
+  const handle = await page.waitForSelector(selector, { visible: true });
+  await settle(page, handle);
+  await handle.click();
+  await handle.dispose();
+}
+
 test('the leaderboards page renders the table on the server, switches modes, jumps to places, searches and opens a player', { timeout: 240000 }, async () => {
   const pilot = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
@@ -80,7 +108,8 @@ test('the leaderboards page renders the table on the server, switches modes, jum
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);
       assert.deepEqual(state.violations, [], `axe at ${width}px`);
       const small = await page.$$eval('.leaderboards-chip, .leaderboards-select, .leaderboards-search, .leaderboards-jump, .leaderboards-summary__jump', nodes => nodes
-        .filter(node => node.getBoundingClientRect().height < 42).map(node => node.textContent));
+        .filter(node => node.getBoundingClientRect().height < 42)
+        .map(node => `${node.textContent || node.className}: ${node.getBoundingClientRect().height.toFixed(1)}px of ${innerWidth}px viewport, ${node.ownerDocument.fonts.status}`));
       assert.deepEqual(small, [], `touch targets at ${width}px`);
       if (screenshots) await page.screenshot({ path: join(screenshots, `leaderboards-${width}.png`), fullPage: true });
     }
@@ -100,7 +129,7 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     assert.deepEqual(await page.$$eval('.leaderboards-table tbody tr:nth-child(-n+5) .leaderboards-streamer', nodes => nodes.map(node => node.getAttribute('href'))),
       ['/streamers/moquaitv/', '/streamers/ramses/'], 'catalog streamers get a badge linking their page');
 
-    await page.click('.leaderboards-summary__jump:first-of-type');
+    await clickSteady(page, '.leaderboards-summary__jump:first-of-type');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent === '100');
     assert.equal(new URL(page.url()).searchParams.get('rank'), '100', 'a threshold jumps to its place');
     await page.type(role('textbox', 'К месту'), '1234');
@@ -116,18 +145,18 @@ test('the leaderboards page renders the table on the server, switches modes, jum
       - document.querySelector('.global-utility-header').getBoundingClientRect().bottom)), 0,
       'deep in the table the mode, region and search bar stays on screen right under the site search');
 
-    await page.click(mode('Стандарт'));
+    await clickSteady(page, mode('Стандарт'));
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'TrueBench');
     assert.equal(new URL(page.url()).search, '', 'the default selection keeps the URL clean');
     assert.deepEqual(await page.$$eval('.leaderboards-table thead th', nodes => nodes.map(node => node.textContent)),
       ['Место', 'Игрок', 'За сутки'], 'Standard has no rating column');
 
-    await page.click(mode('Арена'));
+    await clickSteady(page, mode('Арена'));
     await findByRole(page, 'heading', 'Данные собираются');
     assert.equal(await page.$('.leaderboards-table'), null, 'a mode without seasons shows no stale table');
     if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-collecting-1440.png') });
 
-    await page.click(mode('Поля сражений'));
+    await clickSteady(page, mode('Поля сражений'));
     await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN',
       'Battlegrounds after a collecting mode');
     assert.equal(new URL(page.url()).searchParams.get('rank'), null, 'another table forgets the place');
@@ -139,7 +168,7 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tbody td:nth-child(2)')?.textContent === 'XQN');
 
     // Историю открывает вся строка, не только ник: нажимаем по рейтингу.
-    await page.click('.leaderboards-table tbody tr:first-child td:last-child');
+    await clickSteady(page, '.leaderboards-table tbody tr:first-child td:last-child');
     await page.waitForSelector('.leaderboards-player__seasons li');
     const card = await page.$eval('.leaderboards-player', node => node.textContent ?? '');
     assert.match(card, /XQN[\s\S]*Лучшее место — 1[\s\S]*Сезон 19 по дням[\s\S]*1 место · 20\u00a0104/, 'best place and the day chart of the season');
@@ -153,13 +182,13 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     assert.ok(cardBox.left >= tableBox.right, 'on a laptop the card stands beside the table');
     if (screenshots) await page.screenshot({ path: join(screenshots, 'leaderboards-player-1440.png') });
 
-    await page.click('.leaderboards-player__head button[aria-pressed]');
+    await clickSteady(page, '.leaderboards-player__head button[aria-pressed]');
     await page.waitForSelector('.leaderboards-player__head button[aria-pressed="true"]');
-    await page.click('.leaderboards-player__close');
+    await clickSteady(page, '.leaderboards-player__close');
     await page.waitForFunction(() => !document.querySelector('.leaderboards-player'));
-    await page.click('.leaderboards-pages button:nth-child(4)');
+    await clickSteady(page, '.leaderboards-pages button:nth-child(4)');
     await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td')?.textContent === '51', 'the second page');
-    await page.click('.leaderboards-me');
+    await clickSteady(page, '.leaderboards-me');
     await page.waitForFunction(() => document.querySelector('.leaderboards-table tr[data-target] td')?.textContent?.trim() === '1');
     assert.match(new URL(page.url()).search, /rank=1&player=XQN/, '«to my name» opens my place and card');
     // Плавная прокрутка к месту проносит карточку под липкой панелью: жмём, когда кнопка уже сверху.
@@ -167,10 +196,10 @@ test('the leaderboards page renders the table on the server, switches modes, jum
       const box = document.querySelector('.leaderboards-player__close')?.getBoundingClientRect();
       return Boolean(box && document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest('.leaderboards-player__close'));
     }, { timeout: 5000 });
-    await page.click('.leaderboards-player__close');
+    await clickSteady(page, '.leaderboards-player__close');
     await page.waitForFunction(() => !document.querySelector('.leaderboards-player'));
 
-    await page.click('.leaderboards-pages button:nth-child(4)');
+    await clickSteady(page, '.leaderboards-pages button:nth-child(4)');
     await waitOrExplain(page, () => document.querySelector('.leaderboards-table tbody td')?.textContent === '51',
       'the second page again after «to my name»');
     assert.match(new URL(page.url()).search, /page=2/);
