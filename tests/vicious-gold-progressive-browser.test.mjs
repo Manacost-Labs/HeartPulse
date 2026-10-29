@@ -109,6 +109,8 @@ test('Vicious Gold shows its summary before the deck builds arrive', async () =>
     assert.ok(mobile.navTargets.length > 0 && mobile.navTargets.every(height => height >= 44),
       'mobile section links must keep 44px touch targets');
 
+    // The report fades in (opacity transition); contrast is only meaningful once it has finished.
+    await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState === 'finished'));
     await page.addScriptTag({ path: axePath });
     const violations = await page.evaluate(async () => {
       const result = await globalThis.axe.run(document.querySelector('.vsgold'));
