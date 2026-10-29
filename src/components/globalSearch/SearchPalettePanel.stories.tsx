@@ -7,7 +7,7 @@ import { paletteGroups, type PaletteEntry, type SearchArchetype, type SearchArti
 
 const recent: PaletteEntry[] = [
   { kind: 'page', id: 'page:tierlist', label: 'Тир-лист', meta: 'Арена', path: '/tierlist/' },
-  { kind: 'archetype', id: 'archetype:standard:summoner-mage', label: 'Манашторм Маг', meta: 'Стандарт', path: '/standard/meta/standard/summoner-mage/', classKey: 'mage' },
+  { kind: 'archetype', id: 'archetype:standard:summoner-mage', label: 'Манашторм Маг', meta: 'Стандарт', path: '/standard/archetypes/standard/summoner-mage/', classKey: 'mage' },
 ];
 const archetypes: SearchArchetype[] = [
   { slug: 'control-warrior', archetypeLabel: 'Контроль Воин', archetype: 'Control Warrior', classKey: 'warrior', format: 'standard' },
@@ -59,7 +59,7 @@ export const QueryResults: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('group', { name: 'Архетипы' })).toBeVisible();
     const link = canvas.getByRole('option', { name: /Контроль Воин/ });
-    await expect(link).toHaveAttribute('href', '/standard/meta/standard/control-warrior/');
+    await expect(link).toHaveAttribute('href', '/standard/archetypes/standard/control-warrior/');
     await userEvent.click(link);
     await expect(args.onRun).toHaveBeenCalledWith(expect.objectContaining({ id: 'archetype:standard:control-warrior' }));
   },

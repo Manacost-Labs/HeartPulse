@@ -22,12 +22,15 @@
 подписчик и администратор — полный каталог через защищённый API. Начальные
 фильтры `format` и `class` передаются из запроса в серверную разметку и
 клиентскую гидратацию одинаково. Next.js-страницы
-`/standard/archetypes/:format/:archetypeSlug/` и старые ссылки
-`/standard/meta/:format/:archetypeSlug/` получают только публичный teaser
+`/standard/archetypes/:format/:archetypeSlug/` получают только публичный teaser
 от Express без cookie посетителя. Сервер явно отбирает публичные поля перед
 передачей их в HTML; код колоды, история и аналитика туда не попадают.
 Некорректный формат, slug или отсутствующий архетип возвращают настоящий 404.
-Обе семьи сохраняют собственный canonical. После проверки
+У архетипа один URL — `/standard/archetypes/:format/:archetypeSlug/` (E9 S3b,
+issue 298). Старое семейство `/standard/meta/:format/:archetypeSlug/` (со
+слэшем и без него) nginx отвечает одним `301` на тот же slug в `archetypes` с
+сохранением query; Next.js страницу старого семейства не отдаёт, а если её всё
+же отдали без nginx, её canonical указывает на `archetypes`. После проверки
 доступа клиент загружает полные данные из прежнего защищённого API.
 
 Индексация страниц архетипа (E9 S3a, #297) решается для каждой страницы, а не
@@ -41,14 +44,19 @@
   `robots` `index, follow, max-image-preview:large, max-snippet:-1,
   max-video-preview:-1`, self-canonical и JSON-LD (`Organization`,
   `BreadcrumbList`, `ItemPage`, `Dataset`);
-- архетип Стандарта ниже порога, любой архетип Вольного формата и вся старая
-  семья `/standard/meta/…` отдают `noindex, follow` и не несут JSON-LD;
+- архетип Стандарта ниже порога и любой архетип Вольного формата отдают
+  `noindex, follow` и не несут JSON-LD; старое семейство `/standard/meta/…`
+  redirect, а не страница (см. выше);
 - запись `constructed-archetype-detail` в `publicRouteInventory.json` описывает
   маршрут (`index`, `sitemap: true`), а страница сужает её предикатом; запись
-  `standard-meta-legacy-detail` остаётся `noindex-follow`;
-- заголовок `X-Robots-Tag: noindex, follow`, который nginx ставит на оба
-  семейства (`deploy/nginx/arena-seo-map.conf`), остаётся сильнее: индекс
-  открывает отдельный срез (#298), поэтому до него страницы не попадают в выдачу.
+  `standard-meta-legacy-detail` — `kind: redirect`, `expectedStatus: 301`,
+  `noindex-follow`;
+- заголовок `X-Robots-Tag` на страницы архетипов nginx больше не навязывает
+  (E9 S3b, #298): ответ `200` для архетипа Стандарта идёт без заголовка, и
+  решает meta `robots` страницы (для слабых архетипов — `noindex, follow`).
+  Для Вольного формата nginx оставляет `noindex, follow` («два слоя»: Вольный —
+  вторая фаза), для любой ошибки `4xx`/`5xx` — `noindex, nofollow`.
+  Заголовок, который отправит само приложение, nginx пропускает без изменений.
 
 Что попадает в HTML страницы архетипа: публичный teaser архетипа и публичный
 каталог его формата (те же отобранные поля, `builds` всегда пустой) и ничего

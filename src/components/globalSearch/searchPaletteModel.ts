@@ -101,7 +101,7 @@ export function archetypeEntry(item: SearchArchetype): PaletteEntry {
     id: `archetype:${item.format}:${item.slug}`,
     label: item.archetypeLabel || item.archetype,
     meta: item.format === 'wild' ? 'Вольный' : 'Стандарт',
-    path: `/standard/meta/${item.format}/${item.slug}/`,
+    path: `/standard/archetypes/${item.format}/${item.slug}/`,
     classKey: item.classKey,
   };
 }

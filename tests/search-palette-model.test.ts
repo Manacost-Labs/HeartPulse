@@ -25,10 +25,10 @@ test('pages match every word of the query in their name or mode, ignoring case a
   assert.equal(matchPages('админ', true).length, 1);
 });
 
-test('archetypes link to their meta pages by format', () => {
+test('archetypes link to their own pages by format', () => {
   const entry = archetypeEntry({ slug: 'summoner-mage', archetypeLabel: 'Манашторм Маг', archetype: 'Summoner Mage', classKey: 'mage', format: 'wild' });
   assert.deepEqual(entry, { kind: 'archetype', id: 'archetype:wild:summoner-mage', label: 'Манашторм Маг', meta: 'Вольный',
-    path: '/standard/meta/wild/summoner-mage/', classKey: 'mage' });
+    path: '/standard/archetypes/wild/summoner-mage/', classKey: 'mage' });
 });
 
 test('recent picks are newest first, unique, bounded and only same-site', () => {

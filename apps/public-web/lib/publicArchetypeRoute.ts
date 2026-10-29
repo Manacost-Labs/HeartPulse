@@ -37,7 +37,10 @@ export async function archetypeDetailMetadata(params: ArchetypeRouteParams, fami
   const pathname = `/standard/${family}/${format}/${slug}`;
   const policy = await resolvePublicUrlPolicy(pathname, '');
   const { title, description } = archetypeDetailSeoText(detail, Date.now(), await loadArchetypeFormatCatalog(format));
-  const canonical = policy.canonicalUrl ?? `https://hearthpulse.net${pathname}/`;
+  // nginx redirects the old `meta` family to `archetypes`; a page served without it still names the one real URL.
+  const canonical = family === 'meta'
+    ? `https://hearthpulse.net/standard/archetypes/${format}/${slug}/`
+    : policy.canonicalUrl ?? `https://hearthpulse.net${pathname}/`;
   return {
     title, description, alternates: { canonical },
     // The route is indexable; a single page is only when its archetype is (and only in the family that is canonical).

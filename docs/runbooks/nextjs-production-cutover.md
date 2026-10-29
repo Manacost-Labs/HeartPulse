@@ -72,7 +72,8 @@ The snippet preserves canonical slash redirects, forwards card catalogs and
 details plus gallery, FAQ, privacy, terms, developer API documentation, articles,
 contests, Arena classes, Arena tier list, Arena legendary groups, Standard
 matchups, Standard meta, fun decks, Vicious Gold, the archetype catalog and
-its detail/legacy-meta URLs, the guides archive and guide details, the
+its detail URLs (the legacy `/standard/meta/:format/:slug/` family is a single
+`301` to them, see below), the guides archive and guide details, the
 Battlegrounds hero catalog and details, library listings and all supported
 current/archive card details, cosmetics catalogs and details, the Battlegrounds
 tier list and builders, the device-connection page, and home
@@ -169,6 +170,62 @@ HTML remains in the same immutable artifact, so restoring both files returns
 these routes to Vite/Express. Retain the previous application release and the
 encrypted data backup for the normal release rollback procedure in
 [DEPLOYMENT.md](../../DEPLOYMENT.md).
+
+### Archetype details: robots headers and the legacy URL family (E9 S3b)
+
+`/standard/archetypes/:format/:slug/` is indexed page by page: the page's meta
+robots follow the indexing rule, and nginx adds no `X-Robots-Tag` to a
+successful Standard archetype. Wild keeps `noindex, follow` and every error
+`noindex, nofollow` (`$arena_next_archetype_robots_header` in the SEO map).
+`/standard/meta/:format/:slug/`, with or without the slash, is one `301` to the
+same slug under `archetypes` that keeps the query string (also from a
+non-canonical host or scheme, through `$arena_canonical_edge_path`).
+
+Install (origin only; the edge installer `deploy/install-hearthpulse-edge-nginx.sh`
+does not carry these two files and needs no run). From the merge commit, with
+backups, as in the order above:
+
+```bash
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+sudo cp -a /etc/nginx/snippets/arena-html-routing.conf /etc/nginx/snippets/arena-html-routing.conf.bak-$STAMP
+sudo cp -a /etc/nginx/conf.d/31-arena-seo-map.conf /etc/nginx/conf.d/31-arena-seo-map.conf.bak-$STAMP
+sudo install -m 0644 -o root -g root deploy/nginx/arena-seo-map.conf /etc/nginx/conf.d/31-arena-seo-map.conf
+sudo install -m 0644 -o root -g root deploy/nginx/arena-html-routing.conf /etc/nginx/snippets/arena-html-routing.conf
+sudo nginx -t && sudo systemctl reload nginx   # on an error restore both backups
+```
+
+Check on the live origin (`<standard>` is a slug that passes the indexing rule,
+`<weak>` one below the threshold):
+
+```bash
+H=https://hearthpulse.net/standard
+# 200 and no X-Robots-Tag
+curl -sI $H/archetypes/standard/<standard>/ | grep -iE '^(HTTP|x-robots-tag)'
+# index, follow, max-image-preview:large, ...
+curl -s $H/archetypes/standard/<standard>/ | grep -o '<meta name="robots"[^>]*>'
+# noindex, follow
+curl -s $H/archetypes/standard/<weak>/ | grep -o '<meta name="robots"[^>]*>'
+# X-Robots-Tag: noindex, follow
+curl -sI $H/archetypes/wild/<slug>/ | grep -i '^x-robots-tag'
+# one 301 to /standard/archetypes/standard/<standard>/?utm_source=x
+curl -sI "$H/meta/standard/<standard>?utm_source=x" \
+  | grep -iE '^(HTTP|location)'
+# 404 and X-Robots-Tag: noindex, nofollow
+curl -sI $H/archetypes/standard/no-such-slug/ \
+  | grep -iE '^(HTTP|x-robots-tag)'
+```
+
+Roll back on `5xx` for `/standard/archetypes/*`, a redirect chain longer than
+one hop, or an indexable response for Wild or a `404`:
+
+1. Fast, without CI: copy both `.bak-$STAMP` files back over the installed ones,
+   `sudo nginx -t && sudo systemctl reload nginx`. The `noindex, follow` header
+   returns for the whole family and the `301` from the legacy family goes away
+   (the legacy page answers `200` again with its canonical on `archetypes`).
+   The redirect is sent with `no-store`, so browsers do not keep it.
+2. Full: revert the pull request through the merge queue (this also restores the
+   previous contract hash in `ci.yml`), then install both snippets from the
+   revert commit as above and re-run the deploy job.
 
 ## Prove the Vite HTML drain
 

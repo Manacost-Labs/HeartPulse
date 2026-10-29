@@ -42,6 +42,8 @@ function substituteRouteParameters(route) {
 
 function expectedCanonicalPath(route, pathname) {
   if (pathname === '/') return '/';
+  // The old archetype family has no page of its own: the edge sends it to the archetype URL in the same hop.
+  if (route.id === 'standard-meta-legacy-detail') return '/standard/archetypes/standard/example/';
   return ['static', 'listing', 'detail'].includes(route.kind) ? `${pathname}/` : pathname;
 }
 
@@ -155,6 +157,24 @@ http {
       assert.equal(location.origin, inventory.canonicalOrigin, `${route.id} canonical origin`);
       assert.equal(location.pathname, expectedCanonicalPath(route, pathname), `${route.id} canonical path in one hop`);
       assert.equal(location.search, query, `${route.id} query preservation`);
+    }
+
+    for (const [path, expected] of [
+      ['/standard/meta/standard/zoolock', '/standard/archetypes/standard/zoolock/'],
+      ['/standard/meta/standard/zoolock/', '/standard/archetypes/standard/zoolock/'],
+      ['/standard/meta/wild/zoolock', '/standard/archetypes/wild/zoolock/'],
+      ['/standard/archetypes/standard/zoolock', '/standard/archetypes/standard/zoolock/'],
+      ['/standard/archetypes/wild/zoolock/', '/standard/archetypes/wild/zoolock/'],
+      // Not a valid archetype address: keeps its shape, as every unknown path does.
+      ['/standard/meta/arena/zoolock', '/standard/meta/arena/zoolock'],
+      ['/standard/meta/standard/Zoolock', '/standard/meta/standard/Zoolock'],
+    ]) {
+      const response = await requestRedirect(port, 'www.arena.hs-manacost.ru', `${path}?utm_source=contract`);
+      assert.equal(response.status, 301, `${path} edge redirect status`);
+      const location = new URL(response.location);
+      assert.equal(location.origin, inventory.canonicalOrigin);
+      assert.equal(location.pathname, expected, `${path} reaches the archetype URL in one hop`);
+      assert.equal(location.search, '?utm_source=contract', `${path} keeps its query`);
     }
 
     const maximumProfile = await requestRedirect(

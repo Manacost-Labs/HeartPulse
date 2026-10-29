@@ -813,7 +813,8 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       assertLength(other, name);
     }
     assert.equal(weak.canonical, 'https://hearthpulse.net/standard/archetypes/standard/weak-warlock/');
-    assert.equal(legacy.canonical, 'https://hearthpulse.net/standard/meta/standard/zoolock/', 'the old family keeps its own canonical');
+    assert.equal(legacy.canonical, 'https://hearthpulse.net/standard/archetypes/standard/zoolock/',
+      'the old family names the archetype URL, the one real address (nginx redirects it there)');
     assert.ok(weak.text.includes('Выборка архетипа меньше 1 000 игр, поэтому его винрейт ненадёжен'));
     assert.ok(wild.text.includes('в Вольном формате') && wild.links.at(-1) === '/standard/archetypes/?format=wild');
     for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy], ['strong', strong]]) {
