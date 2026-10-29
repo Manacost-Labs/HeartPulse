@@ -15,16 +15,17 @@ import {
  */
 export function readFunDecksQuery(search: string): FunDecksView {
   const params = new URLSearchParams(search);
-  const list = (name: string) => (params.get(name) ?? '').split(',').map(item => item.trim().toLowerCase()).filter(Boolean);
   const format = params.get('format');
   const sort = params.get('sort');
-  const classes = list('class');
-  const tags = list('tag');
+  const chosen = <Item extends string>(items: ReadonlyArray<{ id: Item }>, name: string) => {
+    const wanted = (params.get(name) ?? '').toLowerCase().split(',');
+    return items.map(item => item.id).filter(id => wanted.includes(id));
+  };
   return {
     ...DEFAULT_FUN_DECKS_VIEW,
     format: format === 'standard' || format === 'wild' ? format as FunDecksFormat : 'all',
-    classes: FUN_DECK_CLASSES.map(item => item.id).filter(id => classes.includes(id)),
-    tags: FUN_DECK_TAGS.map(tag => tag.id).filter(id => tags.includes(id)),
+    classes: chosen(FUN_DECK_CLASSES, 'class'),
+    tags: chosen(FUN_DECK_TAGS, 'tag'),
     sort: FUN_DECKS_SORTS.find(item => item.id === sort)?.id ?? 'newest',
   };
 }

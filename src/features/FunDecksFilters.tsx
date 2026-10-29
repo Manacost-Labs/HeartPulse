@@ -1,4 +1,4 @@
-import { RotateCcw, Search } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import {
   FUN_DECK_CLASSES,
   FUN_DECK_TAGS,
@@ -77,7 +77,7 @@ export function FunDecksFilters({ filters, query, counts, filtered, resultText, 
           <p role="status">{resultText}</p>
           {filtered ? (
             <button type="button" onClick={onReset}>
-              <RotateCcw aria-hidden="true" />
+              <RefreshCw aria-hidden="true" />
               Сбросить фильтры
             </button>
           ) : null}

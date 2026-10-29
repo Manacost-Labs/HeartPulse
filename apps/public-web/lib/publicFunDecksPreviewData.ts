@@ -29,6 +29,10 @@ function httpsUrl(value: unknown): string | null {
   try { return source && new URL(source).protocol === 'https:' ? source : null; } catch { return null; }
 }
 
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length <= 60).slice(0, 12) : [];
+}
+
 function count(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new InvalidSelection();
   return value;
@@ -45,6 +49,7 @@ function deck(raw: unknown): FunDeckRow {
     winRate: optionalNumber(row.winRate), winRateCiLow: optionalNumber(row.winRateCiLow), winRateCiHigh: optionalNumber(row.winRateCiHigh),
     variants: optionalNumber(row.variants), sourceTitle: optionalText(row.sourceTitle, 200), games: optionalNumber(row.games),
     reasons: Array.isArray(row.reasons) ? row.reasons.filter((reason): reason is string => typeof reason === 'string') : [],
+    why: strings(row.why), tags: strings(row.tags),
     url: httpsUrl(row.url), firstSeenAt: optionalText(row.firstSeenAt, 64), lastSeenAt: optionalText(row.lastSeenAt, 64),
     ...(render ? { render: { imageUrl: text(render.imageUrl, 500), previewImageUrl: text(render.previewImageUrl, 500) } } : {}),
   };

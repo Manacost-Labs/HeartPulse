@@ -39,7 +39,7 @@ function funDecks(variant) {
     streamer: pick(variant, 'Стример с длинным псевдонимом', null),
     funScore: 0.71 - index * 0.01, maxMetaSimilarity: 0.31, nearestArchetype: 'Mech Mage', nearestArchetypeLabel: 'Мех-маг',
     winRate: 52.4, winRateCiLow: 46.1, winRateCiHigh: 58.6, variants: 0, sourceTitle: null, games: 1240 + index,
-    reasons: ['highlander_shape', 'concept_title'],
+    reasons: ['highlander_shape', 'concept_title'], why: ['Хайлендер', 'Концепт'], tags: ['highlander', 'concept'],
     url: 'https://www.hsguru.com/decks/fixture',
     firstSeenAt: `2026-10-${String(19 - index).padStart(2, '0')}T10:00:00.000Z`, lastSeenAt: NOW,
   }));

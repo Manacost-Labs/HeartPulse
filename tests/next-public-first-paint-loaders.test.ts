@@ -184,12 +184,14 @@ assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false);
 {
   // The interval, the source title and the Russian archetype name reach the guest's first view; a response without them gives nulls.
   const newer = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), winRateCiLow: 41.5, winRateCiHigh: 67.2, variants: 1,
-    sourceTitle: 'STD Deck 2', nearestArchetypeLabel: 'Вихлепых Друид' }] })?.decks[0];
+    sourceTitle: 'STD Deck 2', nearestArchetypeLabel: 'Вихлепых Друид', why: ['Концепт'], tags: ['concept'] }] })?.decks[0];
   assert.deepEqual([newer?.winRateCiLow, newer?.winRateCiHigh, newer?.variants, newer?.sourceTitle, newer?.nearestArchetypeLabel],
     [41.5, 67.2, 1, 'STD Deck 2', 'Вихлепых Друид']);
+  assert.deepEqual([newer?.why, newer?.tags], [['Концепт'], ['concept']], 'the reasons and the filter tags reach the guest\'s first view');
   const older = funPreview?.decks[0];
   assert.deepEqual([older?.winRateCiLow, older?.winRateCiHigh, older?.variants, older?.sourceTitle, older?.nearestArchetypeLabel],
     [null, null, null, null, null]);
+  assert.deepEqual([older?.why, older?.tags], [[], []]);
   assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), winRateCiLow: '41.5' }] }), null,
     'a response with a malformed number is not a selection');
 }

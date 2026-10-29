@@ -18,6 +18,10 @@ export type FunDeckRow = {
   sourceTitle?: string | null;
   games: number | null;
   reasons: string[];
+  /** Russian reasons the deck is fun, most interesting first; the API's `funDeckWhy`. Absent in an older response. */
+  why?: string[];
+  /** The filter tags (`FUN_DECK_TAGS` ids) the deck carries. */
+  tags?: string[];
   url: string | null;
   firstSeenAt: string | null;
   lastSeenAt: string | null;
@@ -54,29 +58,29 @@ export const FUN_DECKS_SORTS: ReadonlyArray<{ id: FunDecksSortMode; label: strin
   { id: 'distant', label: 'Дальше от меты' },
 ];
 
-/** The filter chips: the tag and the reason code of the API it stands for. */
-export const FUN_DECK_TAGS: ReadonlyArray<{ id: FunDeckTagId; label: string; reason: string }> = [
-  { id: 'highlander', label: 'Хайлендер', reason: 'highlander_shape' },
-  { id: 'xl', label: 'XL', reason: 'xl_shape' },
-  { id: 'meme', label: 'Мем', reason: 'meme_low_winrate' },
-  { id: 'cheese', label: 'Сыр', reason: 'cheese_high_winrate' },
-  { id: 'concept', label: 'Концепт', reason: 'concept_title' },
+/** The filter chips; `shown` is the tag's reason on a card when it differs from the chip. */
+export const FUN_DECK_TAGS: ReadonlyArray<{ id: FunDeckTagId; label: string; shown?: string }> = [
+  { id: 'highlander', label: 'Хайлендер' },
+  { id: 'xl', label: 'XL', shown: 'XL-колода' },
+  { id: 'meme', label: 'Мем' },
+  { id: 'cheese', label: 'Сыр' },
+  { id: 'concept', label: 'Концепт' },
 ];
 
 /** Hero classes by the lower-case Latin key of `className`, listed in the order of their Russian names. */
 export const FUN_DECK_CLASSES: ReadonlyArray<{ id: string; label: string; color: string; icon: string }> = [
-  { id: 'warrior', label: 'Воин', color: '#8e342f', icon: '/class_icon/ui/warrior-64.webp' },
-  { id: 'druid', label: 'Друид', color: '#8b4d25', icon: '/class_icon/ui/druid-64.webp' },
-  { id: 'priest', label: 'Жрец', color: '#6e6862', icon: '/class_icon/ui/priest-64.webp' },
-  { id: 'mage', label: 'Маг', color: '#326c97', icon: '/class_icon/ui/mage-64.webp' },
-  { id: 'hunter', label: 'Охотник', color: '#3f792f', icon: '/class_icon/ui/hunter-64.webp' },
-  { id: 'demonhunter', label: 'Охотник на демонов', color: '#556d24', icon: '/class_icon/ui/demonhunter-64.webp' },
-  { id: 'paladin', label: 'Паладин', color: '#a77816', icon: '/class_icon/ui/paladin-64.webp' },
-  { id: 'rogue', label: 'Разбойник', color: '#55545b', icon: '/class_icon/ui/rogue-64.webp' },
-  { id: 'deathknight', label: 'Рыцарь смерти', color: '#397b87', icon: '/class_icon/ui/deathknight-64.webp' },
-  { id: 'warlock', label: 'Чернокнижник', color: '#694477', icon: '/class_icon/ui/warlock-64.webp' },
-  { id: 'shaman', label: 'Шаман', color: '#345aa0', icon: '/class_icon/ui/shaman-64.webp' },
-];
+  ['warrior', 'Воин', '#8e342f'],
+  ['druid', 'Друид', '#8b4d25'],
+  ['priest', 'Жрец', '#6e6862'],
+  ['mage', 'Маг', '#326c97'],
+  ['hunter', 'Охотник', '#3f792f'],
+  ['demonhunter', 'Охотник на демонов', '#556d24'],
+  ['paladin', 'Паладин', '#a77816'],
+  ['rogue', 'Разбойник', '#55545b'],
+  ['deathknight', 'Рыцарь смерти', '#397b87'],
+  ['warlock', 'Чернокнижник', '#694477'],
+  ['shaman', 'Шаман', '#345aa0'],
+].map(([id, label, color]) => ({ id, label, color, icon: `/class_icon/ui/${id}-64.webp` }));
 
 /** Decks a guest sees; the rest of the selection is for Diamond subscribers. */
 export const FUN_DECKS_FREE_PREVIEW_COUNT = 3;
@@ -97,87 +101,35 @@ type Key = (deck: FunDeckRow) => number | null;
 const newestKey: Key = deck => timestamp(deck.firstSeenAt);
 const funKey: Key = deck => deck.funScore ?? 0;
 
-/** Larger first (`direction` -1) or smaller first (1); a missing number goes last either way. */
-function byNumber(key: Key, direction: 1 | -1) {
-  return (left: FunDeckRow, right: FunDeckRow): number => {
-    const a = key(left);
-    const b = key(right);
-    if (a === null || b === null) return a === b ? 0 : a === null ? 1 : -1;
-    return (a - b) * direction;
-  };
-}
-
-const KEYS_BY_SORT: Record<FunDecksSortMode, Array<ReturnType<typeof byNumber>>> = {
-  newest: [byNumber(newestKey, -1), byNumber(funKey, -1)],
-  fun: [byNumber(funKey, -1), byNumber(newestKey, -1)],
-  reliable: [byNumber(deck => deck.winRateCiLow ?? null, -1), byNumber(deck => deck.winRate, -1),
-    byNumber(funKey, -1), byNumber(newestKey, -1)],
-  distant: [byNumber(deck => deck.maxMetaSimilarity, 1), byNumber(funKey, -1), byNumber(newestKey, -1)],
+/** Each sort's keys in turn, larger first (-1) or smaller first (1); a missing number goes last either way. */
+const KEYS_BY_SORT: Record<FunDecksSortMode, Array<[Key, 1 | -1]>> = {
+  newest: [[newestKey, -1], [funKey, -1]],
+  fun: [[funKey, -1], [newestKey, -1]],
+  reliable: [[deck => deck.winRateCiLow ?? null, -1], [deck => deck.winRate, -1], [funKey, -1], [newestKey, -1]],
+  distant: [[deck => deck.maxMetaSimilarity, 1], [funKey, -1], [newestKey, -1]],
 };
 
 /** The page's order. A key breaks ties by the next one; decks equal on all of them keep the order the API sent. */
 export function orderFunDecks(decks: FunDeckRow[], sortMode: FunDecksSortMode): FunDeckRow[] {
   const keys = KEYS_BY_SORT[sortMode] ?? KEYS_BY_SORT.newest;
   return [...decks].sort((left, right) => {
-    for (const compare of keys) {
-      const difference = compare(left, right);
-      if (difference) return difference;
+    for (const [key, direction] of keys) {
+      const a = key(left);
+      const b = key(right);
+      if (a !== b) return a === null ? 1 : b === null ? -1 : (a - b) * direction;
     }
     return 0;
   });
 }
 
-const REASON_LABELS: Record<string, string> = {
-  meta_core_outlier: 'Далеко от меты',
-  low_meta_overlap: 'Мало общего с метой',
-  concept_title: 'Концепт',
-  rare_archetype_name: 'Редкий архетип',
-  highlander_shape: 'Хайлендер',
-  xl_shape: 'XL-колода',
-  meme_low_winrate: 'Мем',
-  cheese_high_winrate: 'Сыр',
-};
-
-/** Card packages that make a deck unusual. The neutral packages (quest, XL, …) explain nothing on their own. */
-const PACKAGE_NAMES: Record<string, string> = {
-  reno_highlander: 'Рено',
-  odd_even: 'Чёт/нечёт',
-  mechathun: 'Меха-К\'тун',
-  togwaggle_mill: 'Вихлепых',
-  cthun: 'К\'тун',
-  whizbang: 'Чудастер',
-  sathrovarr: 'Сатроварр',
-  yogg_package: 'Йогг-Сарон',
-  steal_package: 'Кража карт',
-};
-
-/** What makes a deck unusual first, how far it is from the meta last. */
-const WHY_ORDER = ['package', 'highlander_shape', 'xl_shape', 'concept_title', 'meme_low_winrate',
-  'cheese_high_winrate', 'rare_archetype_name', 'meta_core_outlier', 'low_meta_overlap'];
-
-/** The filter tags a deck carries, from every reason code it has. */
-export function funDeckTags(deck: Pick<FunDeckRow, 'reasons'>): FunDeckTagId[] {
-  return FUN_DECK_TAGS.filter(tag => deck.reasons.includes(tag.reason)).map(tag => tag.id);
-}
-
 /**
- * Up to three Russian reasons the deck is "fun", in the order of
- * `WHY_ORDER`; a tag the reader filters by comes first, so the card always
- * shows why it matched. The API's internal codes (score arithmetic, rejection
- * reasons) and unknown ones never reach the page.
+ * Up to three of the deck's reasons; one the reader filters by comes first,
+ * so the card always shows why it matched.
  */
-export function funDeckWhy(deck: Pick<FunDeckRow, 'reasons'>, pinned: readonly FunDeckTagId[] = []): string[] {
-  const pinnedReasons = new Set(FUN_DECK_TAGS.filter(tag => pinned.includes(tag.id)).map(tag => tag.reason));
-  const found = new Map<string, string>();
-  for (const reason of deck.reasons) {
-    // Own keys only: a code such as "valueOf" must not find a label on Object.prototype.
-    if (Object.hasOwn(REASON_LABELS, reason)) found.set(reason, REASON_LABELS[reason]);
-    const name = reason.startsWith('pkg:') && Object.hasOwn(PACKAGE_NAMES, reason.slice(4)) ? PACKAGE_NAMES[reason.slice(4)] : '';
-    if (name && !found.has('package')) found.set('package', `Пакет: ${name}`);
-  }
-  if (deck.reasons.includes('card_package') && !found.has('package')) found.set('package', 'Пакет карт');
-  const rank = (code: string) => (pinnedReasons.has(code) ? 0 : 1000) + WHY_ORDER.indexOf(code);
-  return [...found.entries()].sort(([a], [b]) => rank(a) - rank(b)).slice(0, WHY_TAGS_SHOWN).map(([, label]) => label);
+export function funDeckWhy(deck: Pick<FunDeckRow, 'why'>, pinned: readonly FunDeckTagId[] = []): string[] {
+  const first = FUN_DECK_TAGS.filter(tag => pinned.includes(tag.id)).map(tag => tag.shown ?? tag.label);
+  const why = deck.why ?? [];
+  return [...why.filter(label => first.includes(label)), ...why.filter(label => !first.includes(label))].slice(0, WHY_TAGS_SHOWN);
 }
 
 /** The 95% interval of the win rate, when the dataset has one that holds together. */
@@ -225,7 +177,7 @@ export function selectFunDecks(decks: FunDeckRow[], view: FunDecksView, hasFullA
   const needle = view.query.trim().toLocaleLowerCase('ru-RU');
   return open.filter(deck => {
     if (view.classes.length && !view.classes.includes(funDeckClassId(deck))) return false;
-    if (view.tags.length && !funDeckTags(deck).some(tag => view.tags.includes(tag))) return false;
+    if (view.tags.length && !deck.tags?.some(tag => view.tags.includes(tag as FunDeckTagId))) return false;
     if (!needle) return true;
     return [deck.title, deck.sourceTitle, classLabel(deck), deck.streamer, deck.nearestArchetype, deck.nearestArchetypeLabel]
       .filter(Boolean).join(' ').toLocaleLowerCase('ru-RU').includes(needle);

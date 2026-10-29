@@ -98,14 +98,14 @@ const detail = {
   analysis: null,
 };
 
-// Six decks; the second and fifth are priests. The interval, the reasons and the Russian archetype name are what concept-v7 sends.
+// Six decks; the second and fifth are priests. The interval, the reasons (`why`, `tags`) and the Russian archetype name are what the API sends.
 const FUN_DECK_FIXTURE = [
-  { className: 'Mage', reasons: ['meme_low_winrate', 'concept_title'], interval: [30, 66], games: 20 },
-  { className: 'Priest', reasons: ['highlander_shape', 'pkg:reno_highlander', 'card_package', 'meta_core_outlier'], interval: [46, 62], games: 30 },
-  { className: 'Druid', reasons: ['cheese_high_winrate'], interval: [44, 56], games: 250 },
-  { className: 'Warlock', reasons: ['low_meta_overlap', 'title_mismatch_vs_nearest'], interval: [20, 82], games: 50 },
-  { className: 'Priest', reasons: ['highlander_shape', 'xl_shape', 'concept_title', 'standard_balance_boost'], interval: [40, 64], games: 60 },
-  { className: 'Shaman', reasons: ['xl_shape'], interval: [38, 68], games: 70 },
+  { className: 'Mage', why: ['Концепт', 'Мем'], tags: ['meme', 'concept'], interval: [30, 66], games: 20 },
+  { className: 'Priest', why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], tags: ['highlander'], interval: [46, 62], games: 30 },
+  { className: 'Druid', why: ['Сыр'], tags: ['cheese'], interval: [44, 56], games: 250 },
+  { className: 'Warlock', why: ['Мало общего с метой'], tags: [], interval: [20, 82], games: 50 },
+  { className: 'Priest', why: ['Хайлендер', 'XL-колода', 'Концепт'], tags: ['highlander', 'xl', 'concept'], interval: [40, 64], games: 60 },
+  { className: 'Shaman', why: ['XL-колода'], tags: ['xl'], interval: [38, 68], games: 70 },
 ];
 const funDecks = {
   fetchedAt: '2026-07-26T10:15:12.000Z',
@@ -127,7 +127,9 @@ const funDecks = {
     variants: 0,
     sourceTitle: `STD Fun ${index + 1}`,
     games: fixture.games,
-    reasons: fixture.reasons,
+    reasons: [],
+    why: fixture.why,
+    tags: fixture.tags,
     url: null,
     firstSeenAt: `2026-07-26T0${index + 1}:00:00.000Z`,
     lastSeenAt: '2026-07-26T10:00:00.000Z',
@@ -194,7 +196,7 @@ const fixtureFetch = (async (input: RequestInfo | URL) => {
   } else if (url.pathname === '/api/fun-decks') {
     // `dataset=legacy`: the selection as served before concept-v7, without the interval and the other new fields.
     payload = new URLSearchParams(window.location.search).get('dataset') === 'legacy'
-      ? { ...funDecks, decks: funDecks.decks.map(deck => ({ ...deck, winRateCiLow: undefined, winRateCiHigh: undefined, variants: undefined, sourceTitle: undefined, nearestArchetypeLabel: undefined })) }
+      ? { ...funDecks, decks: funDecks.decks.map(deck => ({ ...deck, winRateCiLow: undefined, winRateCiHigh: undefined, variants: undefined, sourceTitle: undefined, nearestArchetypeLabel: undefined, why: undefined, tags: undefined })) }
       : funDecks;
   } else if (url.pathname === '/api/deck/resolve') {
     payload = {

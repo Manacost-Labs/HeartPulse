@@ -118,16 +118,16 @@ const funDeck = (title: string, extra: Partial<FunDeckRow> = {}): FunDeckRow => 
 });
 // Five decks; the third has no interval, as in a dataset from before concept-v7.
 const FUN_FIXTURE: FunDeckRow[] = [
-  funDeck('Рено Жрец', { className: 'Priest', reasons: ['highlander_shape', 'pkg:reno_highlander', 'card_package', 'meta_core_outlier'],
+  funDeck('Рено Жрец', { className: 'Priest', why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], tags: ['highlander'],
     funScore: 0.8, maxMetaSimilarity: 0.12, winRate: 54, winRateCiLow: 47, winRateCiHigh: 61, games: 47, firstSeenAt: '2026-10-03T00:00:00Z',
     nearestArchetype: 'Mecha\'thun Priest', nearestArchetypeLabel: 'Меха-К\'тун Жрец' }),
-  funDeck('Мем Маг', { className: 'Mage', format: 'Wild', reasons: ['meme_low_winrate', 'concept_title'], funScore: 0.9,
+  funDeck('Мем Маг', { className: 'Mage', format: 'Wild', why: ['Концепт', 'Мем'], tags: ['meme', 'concept'], funScore: 0.9,
     maxMetaSimilarity: 0.4, winRate: 40, winRateCiLow: 28, winRateCiHigh: 53, games: 80, firstSeenAt: '2026-10-05T00:00:00Z' }),
-  funDeck('Сырный Разбойник', { className: 'Rogue', reasons: ['cheese_high_winrate', 'xl_shape', 'meta_core_outlier', 'standard_balance_boost'],
+  funDeck('Сырный Разбойник', { className: 'Rogue', why: ['XL-колода', 'Сыр', 'Далеко от меты'], tags: ['xl', 'cheese'],
     funScore: 0.7, maxMetaSimilarity: 0.2, winRate: 70, winRateCiLow: 55, winRateCiHigh: 82, games: 60, firstSeenAt: '2026-10-04T00:00:00Z' }),
-  funDeck('Без интервала Друид', { className: 'Druid', format: 'Wild', reasons: ['low_meta_overlap'], funScore: 0.6,
+  funDeck('Без интервала Друид', { className: 'Druid', format: 'Wild', why: ['Мало общего с метой'], tags: [], funScore: 0.6,
     maxMetaSimilarity: 0.35, winRate: 90, games: 20, firstSeenAt: '2026-10-02T00:00:00Z' }),
-  funDeck('Хайлендер Жрец', { className: 'Priest', format: 'Wild', reasons: ['highlander_shape', 'xl_shape', 'concept_title', 'pkg:reno_highlander', 'meta_core_outlier'],
+  funDeck('Хайлендер Жрец', { className: 'Priest', format: 'Wild', why: ['Пакет: Рено', 'Хайлендер', 'XL-колода', 'Концепт', 'Далеко от меты'], tags: ['highlander', 'xl', 'concept'],
     funScore: 0.85, maxMetaSimilarity: 0.05, winRate: 52, winRateCiLow: 45, winRateCiHigh: 59, games: 200, firstSeenAt: '2026-10-01T00:00:00Z' }),
 ];
 const titles = (decks: FunDeckRow[]) => decks.map(deck => deck.title);
@@ -149,21 +149,14 @@ test('decks equal on every sort key keep the order the API sent', () => {
   for (const { id } of FUN_DECKS_SORTS) assert.deepEqual(titles(orderFunDecks(twins, id)), ['Второй по списку', 'Первый по списку'], id);
 });
 
-test('every deck carries up to three Russian reasons and never an internal code', () => {
+test('a card shows up to three of the deck\'s reasons, the ones the reader filters by first', () => {
   const why = (index: number, pinned: Parameters<typeof funDeckWhy>[1] = []) => funDeckWhy(FUN_FIXTURE[index], pinned);
   assert.deepEqual(why(0), ['Пакет: Рено', 'Хайлендер', 'Далеко от меты']);
   assert.deepEqual(why(1), ['Концепт', 'Мем']);
-  assert.deepEqual(why(2), ['XL-колода', 'Сыр', 'Далеко от меты'], 'the score arithmetic code standard_balance_boost is not shown');
-  assert.deepEqual(why(3), ['Мало общего с метой']);
   assert.deepEqual(why(4), ['Пакет: Рено', 'Хайлендер', 'XL-колода'], 'five reasons, three shown');
   assert.deepEqual(why(4, ['concept']), ['Концепт', 'Пакет: Рено', 'Хайлендер'], 'a tag the reader filters by is always on the card');
-  const reasons = (...codes: string[]) => funDeckWhy({ reasons: codes });
-  assert.deepEqual(reasons('card_package', 'pkg:a_package_from_the_future'), ['Пакет карт']);
-  assert.deepEqual(reasons('card_package', 'pkg:odd_even', 'rare_archetype_name'), ['Пакет: Чёт/нечёт', 'Редкий архетип']);
-  assert.deepEqual(reasons('title_mismatch_vs_nearest', 'standard_balance_boost', 'wild_concept_boost', 'xl_hl_diversity_tax',
-    'neutral_package', 'pkg:quest_package', 'pkg:xl_package', 'a_code_from_the_future'), []);
-  assert.deepEqual(funDeckWhy({ reasons: [] }), []);
-  assert.deepEqual(reasons('valueOf', 'constructor', 'pkg:toString', 'pkg:constructor'), [], 'a code named like an Object method is not a reason');
+  assert.deepEqual(why(4, ['xl', 'concept']), ['XL-колода', 'Концепт', 'Пакет: Рено'], 'the chip "XL" is the card\'s "XL-колода"');
+  assert.deepEqual(funDeckWhy(funDeck('Из старого ответа')), [], 'a response from before the reasons were sent shows none');
 });
 
 test('the win rate interval and the few-games note appear only when the data supports them', () => {
@@ -208,8 +201,6 @@ test('the filters and the sort live in the address as a shareable link', () => {
 
 // Property tests: the selection logic holds for any decks, not only the fixture above.
 const CLASS_IDS = FUN_DECK_CLASSES.map(item => item.id);
-const REASON_CODES = ['meta_core_outlier', 'low_meta_overlap', 'concept_title', 'card_package', 'pkg:odd_even', 'pkg:xl_package', 'neutral_package',
-  'rare_archetype_name', 'highlander_shape', 'xl_shape', 'meme_low_winrate', 'cheese_high_winrate', 'title_mismatch_vs_nearest', 'standard_balance_boost'];
 const maybe = <T>(arbitrary: fc.Arbitrary<T>) => fc.option(arbitrary, { nil: null });
 const deckArbitrary = fc.record({
   code: fc.string({ minLength: 1, maxLength: 6 }),
@@ -220,9 +211,9 @@ const deckArbitrary = fc.record({
   ciLow: maybe(fc.integer({ min: 0, max: 100 })),
   winRate: maybe(fc.integer({ min: 0, max: 100 })),
   day: fc.integer({ min: 1, max: 5 }),
-  reasons: fc.array(fc.constantFrom(...REASON_CODES), { maxLength: 6 }),
-}).map(({ code, format, className, funScore, similarity, ciLow, winRate, day, reasons }) => funDeck(`${format}-${code}`, {
-  deckCode: code, format, className, funScore, maxMetaSimilarity: similarity, winRate, reasons,
+  tags: fc.subarray(FUN_DECK_TAGS.map(tag => tag.id)),
+}).map(({ code, format, className, funScore, similarity, ciLow, winRate, day, tags }) => funDeck(`${format}-${code}`, {
+  deckCode: code, format, className, funScore, maxMetaSimilarity: similarity, winRate, tags,
   winRateCiLow: ciLow, winRateCiHigh: ciLow === null ? null : 100, firstSeenAt: `2026-10-0${day}T00:00:00Z`,
 }));
 // Decks with distinct identities.
@@ -272,14 +263,16 @@ test('property: a filter never adds a deck, and a guest never sees more than the
   }));
 });
 
-test('property: the reasons on a card are at most three, from the dictionary, and never a code', () => {
-  assertProperty(fc.property(fc.array(fc.oneof(fc.constantFrom(...REASON_CODES), fc.string()), { maxLength: 8 }),
-    fc.subarray(FUN_DECK_TAGS.map(tag => tag.id)), (reasons, pinned) => {
-      const why = funDeckWhy({ reasons }, pinned);
-      assert.ok(why.length <= 3);
-      assert.equal(new Set(why).size, why.length, 'no reason twice');
-      for (const label of why) assert.doesNotMatch(label, /[A-Za-z]{3,}|_/, `"${label}" looks like an internal code`);
-    }));
+test('property: a card shows at most three of the deck\'s reasons, pinned ones first', () => {
+  const labels = ['Пакет: Рено', 'Хайлендер', 'XL-колода', 'Концепт', 'Мем', 'Сыр', 'Редкий архетип', 'Далеко от меты', 'Мало общего с метой'];
+  assertProperty(fc.property(fc.shuffledSubarray(labels), fc.subarray(FUN_DECK_TAGS.map(tag => tag.id)), (why, pinned) => {
+    const shown = funDeckWhy({ why }, pinned);
+    assert.ok(shown.length <= 3);
+    assert.ok(shown.every(label => why.includes(label)), 'only the deck\'s own reasons');
+    const pinnedHere = why.filter(label => FUN_DECK_TAGS.some(tag => pinned.includes(tag.id) && (tag.shown ?? tag.label) === label));
+    assert.ok(pinnedHere.slice(0, 3).every(label => shown.includes(label)), 'a tag the reader filters by is always on the card');
+    if (pinnedHere.length) assert.ok(pinnedHere.includes(shown[0]), 'and comes first');
+  }));
 });
 
 test('property: a view survives the trip through the address', () => {

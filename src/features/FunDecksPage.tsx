@@ -8,7 +8,6 @@ import {
   Copy,
   ExternalLink,
   RefreshCw,
-  RotateCcw,
   Search,
   TriangleAlert,
 } from 'lucide-react';
@@ -420,7 +419,7 @@ export default function FunDecksPage({
           </p>
           {filtered ? (
             <button type="button" onClick={reset}>
-              <RotateCcw aria-hidden="true" />
+              <RefreshCw aria-hidden="true" />
               Сбросить фильтры
             </button>
           ) : null}

@@ -1,4 +1,5 @@
 import { decodeDeckDefinition } from './deckBuilderResolve.js';
+import { funDeckWhy } from './funDeckWhy.js';
 
 export type FunDeckRow = {
   title: string;
@@ -20,6 +21,9 @@ export type FunDeckRow = {
   sourceTitle: string | null;
   games: number | null;
   reasons: string[];
+  /** Russian reasons the deck is fun, most interesting first, and the filter tags it carries (see `funDeckWhy`). */
+  why: string[];
+  tags: string[];
   url: string | null;
   candidateSourceId: string | null;
   firstSeenAt: string | null;
@@ -110,6 +114,7 @@ export function normalizeFunDeckRow(row: unknown): FunDeckRow {
   const deckCode = text(item.deck_code);
   const recordStats = statsFromRecord(item.record);
   const interval = winRateInterval(item.win_rate_ci_low, item.win_rate_ci_high);
+  const reasons = stringList(item.reasons);
   return {
     title: text(item.title) || 'Без названия',
     deckCode,
@@ -126,7 +131,8 @@ export function normalizeFunDeckRow(row: unknown): FunDeckRow {
     variants: countOrNull(item.variants),
     sourceTitle: text(item.source_title) || null,
     games: numberOrNull(item.games) ?? recordStats?.games ?? null,
-    reasons: stringList(item.reasons),
+    reasons,
+    ...funDeckWhy(reasons),
     url: text(item.url) || null,
     candidateSourceId: text(item.candidate_source_id) || null,
     firstSeenAt: text(item.first_seen_at) || null,

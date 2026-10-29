@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import express from 'express';
+import fc from 'fast-check';
 import {
   createAdminFunDecksRouter,
   createPublicFunDecksRouter,
   normalizeFunDecksPayload,
   normalizePublicFunDecksPayload,
 } from '../server/adminFunDecksRoutes.js';
+import { funDeckWhy } from '../server/funDeckWhy.js';
+import { assertProperty } from './helpers/propertyRuns.js';
 
 const normalized = normalizeFunDecksPayload({
   source_id: 'hsguru_fun_decks',
@@ -92,6 +95,34 @@ for (const title of ['Only a lower bound', 'Bounds reversed', 'Bounds out of ran
 }
 assert.deepEqual([byTitle('Numbers as text')?.winRateCiLow, byTitle('Numbers as text')?.winRateCiHigh, byTitle('Numbers as text')?.variants], [40.7, 66.9, 3]);
 assert.deepEqual([byTitle('Not a count')?.variants, byTitle('Negative count')?.variants], [null, null]);
+
+// What a deck says about itself: Russian reasons in order of interest and its filter tags, never an internal code.
+const said = (...reasons: string[]) => funDeckWhy(reasons);
+assert.deepEqual(said('highlander_shape', 'pkg:reno_highlander', 'card_package', 'meta_core_outlier'),
+  { why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], tags: ['highlander'] });
+assert.deepEqual(said('meme_low_winrate', 'concept_title'), { why: ['Концепт', 'Мем'], tags: ['meme', 'concept'] });
+assert.deepEqual(said('cheese_high_winrate', 'xl_shape', 'meta_core_outlier', 'standard_balance_boost'),
+  { why: ['XL-колода', 'Сыр', 'Далеко от меты'], tags: ['xl', 'cheese'] }, 'the score arithmetic code standard_balance_boost says nothing');
+assert.deepEqual(said('low_meta_overlap'), { why: ['Мало общего с метой'], tags: [] });
+assert.deepEqual(said('highlander_shape', 'xl_shape', 'concept_title', 'pkg:reno_highlander', 'meta_core_outlier').why,
+  ['Пакет: Рено', 'Хайлендер', 'XL-колода', 'Концепт', 'Далеко от меты'], 'every reason is sent; the page shows the first three');
+assert.deepEqual(said('card_package', 'pkg:a_package_from_the_future').why, ['Пакет карт']);
+assert.deepEqual(said('card_package', 'pkg:odd_even', 'rare_archetype_name').why, ['Пакет: Чёт/нечёт', 'Редкий архетип']);
+assert.deepEqual(said('title_mismatch_vs_nearest', 'standard_balance_boost', 'wild_concept_boost', 'xl_hl_diversity_tax',
+  'neutral_package', 'pkg:quest_package', 'pkg:xl_package', 'a_code_from_the_future'), { why: [], tags: [] });
+assert.deepEqual(said(), { why: [], tags: [] });
+assert.deepEqual(said('valueOf', 'constructor', 'pkg:toString', 'pkg:constructor'), { why: [], tags: [] }, 'a code named like an Object method is no reason');
+assertProperty(fc.property(fc.array(fc.oneof(fc.constantFrom('concept_title', 'card_package', 'pkg:odd_even', 'pkg:xl_package', 'xl_shape',
+  'meta_core_outlier', 'standard_balance_boost'), fc.string()), { maxLength: 8 }), reasons => {
+  const { why, tags } = funDeckWhy(reasons);
+  assert.equal(new Set(why).size, why.length, 'no reason twice');
+  for (const label of why) assert.doesNotMatch(label, /[A-Za-z]{3,}|_/, `"${label}" looks like an internal code`);
+  assert.ok(tags.length <= 5 && tags.every(tag => ['highlander', 'xl', 'meme', 'cheese', 'concept'].includes(tag)));
+}));
+const withReasons = normalizeFunDecksPayload({ data: { structured: { rows: [
+  { title: 'Reasoned', deck_code: 'R'.repeat(24), format: 'Standard', reasons: ['concept_title', 'xl_shape'] },
+] } } }).decks[0];
+assert.deepEqual([withReasons.reasons, withReasons.why, withReasons.tags], [['concept_title', 'xl_shape'], ['XL-колода', 'Концепт'], ['xl', 'concept']]);
 
 const publicPayload = normalizePublicFunDecksPayload({
   source_id: 'hsguru_fun_decks',

@@ -12,8 +12,7 @@ export function score(value: number | null): string {
 }
 
 function metaDistance(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  return `${Math.round((1 - Math.max(0, Math.min(1, value))) * 100)}%`;
+  return score(value === null ? null : 1 - value);
 }
 
 /** Why the deck is fun: up to three reasons and the nearest meta archetype. */
