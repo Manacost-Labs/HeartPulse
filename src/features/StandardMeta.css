@@ -465,9 +465,12 @@
     linear-gradient(135deg, rgba(255, 248, 220, 0.88), rgba(230, 199, 142, 0.66)),
     var(--arena-parchment-texture) center / cover;
   box-shadow: inset 0 0 0 1px rgba(255, 250, 229, 0.46), 0 3px 8px rgba(75, 43, 18, 0.1);
+  /* `auto` keeps the real height of a card that has been rendered, so a card
+     that scrolls away does not shrink or grow back to a guess; the guess is the
+     measured content height of a card (the phone's is set below). */
   content-visibility: auto;
   contain: layout paint style;
-  contain-intrinsic-size: 280px;
+  contain-intrinsic-size: auto 193px;
 }
 
 .standard-meta-card::after {
@@ -911,6 +914,7 @@
 }
 
 @media (max-width: 720px) {
+  .standard-meta-card { contain-intrinsic-size: auto 300px; }
   .standard-meta__masthead {
     min-height: 0;
     gap: 0.65rem;

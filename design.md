@@ -76,6 +76,7 @@ Primary goals:
 | Role | Value | Usage |
 |---|---|---|
 | Parchment | `#ead6a7`, `#f7e8bf` | page canvas, quiet panels |
+| Rail red | `--arena-rail-red` (`#741a1a`) | the average tone of the red rail texture. It is the `html` background: what a rubber-band bounce, a scroll lock or an unpainted gap shows behind the page, which begins and ends with a red rail. It is also the `theme-color` (`apps/public-web/app/layout.tsx`), so the phone's status bar and the top bar read as one band. A token, never a light blue or white colour |
 | Ink | `#30251c` | primary text |
 | Muted ink | `#735e49` | descriptions and metadata |
 | Wood | `#2e160b`, `#5f371d` | rules, frames, depth |
@@ -387,6 +388,7 @@ Rules:
   (`.arena-paid-view`), so the footer does not jump when the gate or the paid
   view arrives.
 - Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
+- Every `content-visibility: auto` row or card carries `contain-intrinsic-size: auto <median content height>` per breakpoint, measured in the browser. An estimate that is too small makes the page grow, and the scrollbar jump, as the list is scrolled; without `auto` the box snaps back to the guess when it scrolls away.
 - Do not add JS for effects achievable in CSS.
 - Editorial covers load a `/api/article-cover?w=` WebP variant through
   `srcset` and a measured `sizes`. Only the first `/articles/` cover, the
@@ -428,9 +430,11 @@ Rules:
 4. Broad surface selectors must stay below route root hooks.
 5. Existing `dist/` may be owned by the production user; do not delete or replace it unless deployment is explicitly requested.
 6. The former root `Design.md` compatibility pointer has been retired to [`docs/design/legacy-summary.md`](docs/design/legacy-summary.md) and is no longer authoritative. This file is the only canonical design specification; do not reintroduce a root-level file whose name differs from it only by case.
+7. The `html` background is visible whenever the page is displaced or unpainted (overscroll bounce, scroll lock, a texture still loading). The browser paints one flat colour there, so it is the `--arena-rail-red` token; the pale blue it once had showed as a white band above the header and below the footer. A shell whose `background` shorthand resets the colour (the Battlegrounds shell) sets `background-color` to parchment so the red never shows through.
 
 ## Changelog
 
+- **2026-10-29** — Removed the white bands at the edges of a scrolled page: the `html` backdrop is the `--arena-rail-red` token and `.bg-wood` is parchment instead of pale blue, `theme-color` follows the red rail, and the archetype rows and meta cards reserve measured heights.
 - **2026-10-04** — Performance wave 3: one LoadingSurface, server-rendered public previews with a 600 ms budget, sidebar prefetch, quicker fade-through, popover mobile drawer, shared hover and overlay motion.
 - **2026-10-04** — Performance wave 2: lighter parchment/fonts/banners with early LCP preloads, a split and lighter card catalogue, bfcache-restorable public pages with viewer re-verification, reserved paywall height and lazy paid Battlegrounds views.
 - **2026-10-04** — Performance wave 1: edge-cached immutable static files, canonical trailing-slash links everywhere, resized WebP article covers with srcset, and per-page RUM dimensions.

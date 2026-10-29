@@ -763,8 +763,13 @@
 @layer base {
   html {
     scroll-behavior: auto;
-    /* Soften the dark wood behind the rubber-band overscroll on mobile */
-    background-color: #eef4fb;
+    /* What shows behind the page: the bounce past either end (macOS trackpads,
+       iOS), a page held by a scroll lock, and any gap before a route paints.
+       The browser paints one flat colour there, so it is the red of the rails
+       the page begins and ends with (the phone's top bar, the footer): the
+       former pale blue read as a white band above the search header and below
+       the footer. */
+    background-color: var(--arena-rail-red);
   }
 
   body {
@@ -834,7 +839,7 @@
     position: relative;
     isolation: isolate;
     overflow-x: clip;
-    background-color: #eef4fb;
+    background-color: var(--arena-parchment);
   }
   .bg-wood::before {
     content: "";

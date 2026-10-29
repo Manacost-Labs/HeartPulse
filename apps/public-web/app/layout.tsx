@@ -31,7 +31,11 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = { themeColor: '#081a33', colorScheme: 'light' };
+// The phone's status bar and toolbar take this colour: `--arena-rail-red`
+// (src/styles/tokens.css), the tone of the red rail that `.arena-mobile-topbar`
+// paints, so the browser chrome and the top bar read as one band. A `<meta>`
+// cannot read tokens; `tests/page-headers-browser.test.mjs` keeps them in step.
+export const viewport: Viewport = { themeColor: '#741a1a', colorScheme: 'light' };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const runtimeConfig = JSON.stringify(await loadRuntimeClientConfig()).replace(/</g, '\\u003c');

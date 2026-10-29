@@ -19,6 +19,11 @@
   --arena-red: #7b151b;
   --arena-red-dark: #4d0b10;
   --arena-red-soft: #a43835;
+  /* The average tone of /wallpaper/arena-rail-red.jpg: every red rail (the
+     phone's top bar, the footer, the sidebar) paints this under its texture.
+     It is also the backdrop behind the page and the `theme-color` of the
+     document (apps/public-web/app/layout.tsx must repeat the value). */
+  --arena-rail-red: #741a1a;
   --arena-gold: #d9ab49;
   --arena-gold-light: #f1d27e;
   --arena-wood-dark: #2e160b;

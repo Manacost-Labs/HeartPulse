@@ -22,6 +22,9 @@
   background:
     linear-gradient(90deg, rgba(45, 20, 11, 0.2), transparent 10%, transparent 90%, rgba(45, 20, 11, 0.2)),
     var(--arena-parchment-texture) center top / 865px auto repeat;
+  /* The shorthand above resets the colour: until the texture has loaded the
+     page would show the `html` backdrop (the red rail) through. */
+  background-color: var(--arena-parchment);
 }
 
 /* The legacy application shell paints a fixed blue dashboard veil through
