@@ -112,10 +112,12 @@ shards skip the quarantine.
 
 CI runs the quarantine in the job `Browser quarantine (non-blocking)`
 (`npm run test:suite -- browser --retry-failed-once --continue-on-failure
---quarantine only`) on push, pull request and merge-queue runs. The job has
-`continue-on-error: true` and neither `CI required` nor the deployment needs
-it, so a red quarantine is visible in the run and its step summary but never
-blocks a merge or a release. Local `npm test` still runs quarantined files.
+--quarantine only`) on pull request and `workflow_dispatch` runs only: the
+merge queue and `main` neither start nor wait for it, and flake data comes from
+pull requests. The job has `continue-on-error: true` and neither `CI required`
+nor the deployment needs it, so a red quarantine is visible in the run and its
+step summary but never blocks a merge or a release. Local `npm test` still
+runs quarantined files.
 
 - **Add**: open an issue `flaky: <test>` with the evidence (run links), add the
   entry with that issue URL, and run `npm run test:registry`.
