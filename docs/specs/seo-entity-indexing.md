@@ -113,7 +113,10 @@ absent-card probe only while the card API reports `X-Data-Cache: LKG`.
   from `standardMetaPeriodLabel`.
 - An archetype page is not a registry page: its formula is in
   `apps/public-web/lib/seoDataValues.ts` (`archetypeDetailSeoText`) and is used
-  by `apps/public-web/lib/publicArchetypeRoute.ts`.
+  by `apps/public-web/lib/publicArchetypeRoute.ts`. Given the public catalog of
+  the page's format it also tells a name shared with another row apart: the
+  title becomes «Чистый Паладин (Pure Paladin) — колода Hearthstone, …» (the
+  English name; the slug when that is the name too). See «Archetype pages».
 - `/standard/meta` shows the same date, slice and source as a server-rendered
   line below the meta page (`apps/public-web/ui/StandardMetaDataNote.tsx`,
   passed to the client page as `children`).
@@ -164,6 +167,55 @@ No new dependency, database migration or public JSON API is introduced.
 - Tier-list and library hubs retain unique intent-aligned metadata and explain
   how to reach detail pages.
 - Focused tests, full project gates, browser review and production smoke pass.
+
+## Archetype pages (E9 S3a)
+
+`/standard/archetypes/:format/:archetypeSlug/` is an indexable detail type, but
+page by page. The rule is `isIndexableArchetype`
+(`shared/constructedArchetypeIndexing.ts`), the single reader of which is the
+page's metadata and JSON-LD today and the sitemap source of the Express server
+tomorrow: format Standard, at least `INDEXABLE_ARCHETYPE_MIN_GAMES` (1000)
+games, at least one build and a popularity above zero. At the 2026-10-29
+catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
+
+- Indexable: HTTP 200, `index, follow` with the preview directives
+  (`policy.robots`), self-canonical, the JSON-LD below and a unique title.
+- Below the threshold, every Wild archetype and the legacy
+  `/standard/meta/:format/:archetypeSlug/` family: `noindex, follow`, canonical
+  as before, no JSON-LD. The route inventory keeps the listing level
+  (`constructed-archetype-detail`: `index`, `sitemap: true`, `server-ssr`;
+  `standard-meta-legacy-detail`: `noindex-follow`) and
+  `apps/public-web/lib/publicArchetypeRoute.ts` narrows it per page. The nginx
+  `X-Robots-Tag: noindex, follow` on both families stays until the nginx slice
+  (#298), so nothing is indexed before that.
+- Every archetype page, indexable or not, renders the server-side summary
+  (`apps/public-web/ui/ArchetypeSeoSummary.tsx`, passed to
+  `ArchetypeDetailPageClient` as `children`, so the client bundle only grows by
+  the pass-through): a question heading («Насколько силён <Архетип> в Стандарте
+  сейчас»), an answer in the first 40–60 words (winrate, popularity, games and
+  builds as of the `<time datetime>` date, the HSGuru period), the comparison
+  with the median winrate of the format and of the class (rows of the public
+  catalog with at least 1000 games; a median over fewer than 5 or 3 rows is not
+  printed), the place by games, how to read the numbers («от N игр»), the
+  «Источник: HSGuru» link, a sentence that builds and deck codes are for
+  subscribers (no values) and 4–6 links to archetypes of the same class
+  (indexable first). 150–250 words. The word «лидер» is not used: a ranking
+  word needs a sample threshold. Builds, deck codes, history, analysis and the
+  numbers of `featuredBuild` never reach the HTML or the RSC payload; the
+  sentinel test in `tests/next-seo-page-metadata.test.mjs` fails on any of them.
+- JSON-LD only for an indexable archetype, built by `archetypeStructuredDataGraph`
+  (`src/seo/archetypeStructuredData.ts`) through the same finishing step as the
+  registry pages (`seoStructuredDataGraphOf`): `Organization` `#org`,
+  `BreadcrumbList` («Архетипы» › the archetype; the format step of the visible
+  trail has no address of its own and is left out), `ItemPage` (title and
+  description of the meta, `dateModified` = `updatedAt`) and `Dataset`
+  (`isBasedOn` = the teaser's HSGuru `sourceUrl`; `variableMeasured` carries
+  the teaser's winrate, popularity and games as they are, a metric the source
+  lacks is omitted). This is the one place where a `Dataset` has values: they
+  are the open numbers of this single entity, repeated verbatim in the visible
+  text, and the test checks that each is in the public teaser. `isAccessibleForFree`
+  is not written: the numbers it describes are free, and the paid parts are not
+  described at all.
 
 ## JSON-LD of statistics pages
 

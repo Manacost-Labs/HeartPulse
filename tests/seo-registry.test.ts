@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import fc from 'fast-check';
 import routeInventory from '../src/shared/seo/publicRouteInventory.json';
 import { TABS } from '../src/app/routing/navigationRoutes';
 import {
@@ -19,6 +20,10 @@ import {
 } from '../apps/public-web/lib/seoDataValues';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { publicArchetypeTeaser } from '../apps/public-web/lib/publicArchetypeTeaserData';
+import { archetypeSeoFacts } from '../apps/public-web/lib/archetypeSeoSummary';
+import { INDEXABLE_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
+import { archetypeStructuredDataGraph } from '../src/seo/archetypeStructuredData';
+import { assertProperty } from './helpers/propertyRuns';
 
 const pages = publicSeoPages();
 const policyRouteIds = new Set(routeInventory.routes.map(route => route.id));
@@ -352,5 +357,161 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   assert.ok(archetypeDetailSeoText(detailOf({}, { archetypeLabel: 'Нечто '.repeat(25).trim() }), NOW).description.includes('HSGuru'));
 }
 
+
+// ── Archetype pages: which are indexable, how two of the same name differ, what the summary compares with, the JSON-LD (E9 S3a) ──
+{
+  const facts = (overrides: Record<string, unknown> = {}) =>
+    ({ format: 'standard', games: 5000, deckCount: 3, popularity: 4.2, ...overrides }) as Parameters<typeof isIndexableArchetype>[0];
+
+  // The pilot rule, edge by edge.
+  assert.equal(INDEXABLE_ARCHETYPE_MIN_GAMES, 1000);
+  assert.equal(isIndexableArchetype(facts()), true);
+  assert.equal(isIndexableArchetype(facts({ games: 1000 })), true, 'exactly the threshold is enough');
+  assert.equal(isIndexableArchetype(facts({ games: 999 })), false, 'one game below it is not');
+  assert.equal(isIndexableArchetype(facts({ deckCount: 0 })), false, 'an archetype without a build is a placeholder');
+  assert.equal(isIndexableArchetype(facts({ popularity: 0 })), false, 'nobody plays it');
+  assert.equal(isIndexableArchetype(facts({ popularity: null })), false, 'no share of games is no evidence');
+  assert.equal(isIndexableArchetype(facts({ format: 'wild' })), false, 'Wild is never indexed');
+  assert.equal(isIndexableArchetype(facts({ games: Number.NaN })), false);
+  assert.equal(isIndexableArchetype(facts({ games: Number.POSITIVE_INFINITY })), false, 'a broken number is not a sample');
+
+  const anyFacts = fc.record({
+    format: fc.oneof(fc.constantFrom('standard', 'wild', ''), fc.string({ maxLength: 8 })),
+    games: fc.oneof(fc.nat(200_000), fc.double()),
+    deckCount: fc.integer({ min: -2, max: 60 }),
+    popularity: fc.option(fc.double({ min: -1, max: 100, noNaN: true }), { nil: null }),
+  });
+  // More games never take an archetype out of the index.
+  assertProperty(fc.property(anyFacts, fc.nat(1_000_000), (row, extra) => {
+    if (isIndexableArchetype(row)) assert.equal(isIndexableArchetype({ ...row, games: row.games + extra }), true);
+  }));
+  // Wild, and anything that is not Standard, never is, whatever its numbers.
+  assertProperty(fc.property(anyFacts, row => {
+    assert.equal(isIndexableArchetype({ ...row, format: 'wild' }), false);
+    if (row.format !== 'standard') assert.equal(isIndexableArchetype(row), false);
+  }));
+  // Each part of the rule is needed on its own.
+  assertProperty(fc.property(anyFacts, row => {
+    if (row.games < INDEXABLE_ARCHETYPE_MIN_GAMES || row.deckCount <= 0 || !(row.popularity! > 0)) {
+      assert.equal(isIndexableArchetype(row), false);
+    }
+  }));
+
+  const STAMP = '2026-10-28T23:00:00.000Z';
+  const CLOCK = Date.parse('2026-10-29T10:00:00Z');
+  const row = (slug: string, label: string, english: string, overrides: Record<string, unknown> = {}) => ({
+    slug, archetype: english, archetypeLabel: label, translated: true, classKey: 'paladin', format: 'standard', games: 5000,
+    winrate: 51, popularity: 3, turns: 8, durationMinutes: 7, climbingSpeed: 1, deckCount: 2,
+    sourceUrl: `https://www.hsguru.com/archetype/${encodeURIComponent(english)}`, ...overrides,
+  });
+  const catalogOf = (rows: ReturnType<typeof row>[]) => publicArchetypeCatalog({
+    format: 'standard', formatLabel: 'Стандарт', patch: '36.6.3', period: 'patch_36.6.3', minimumGames: 10, updatedAt: STAMP, items: rows,
+  }, 'standard')!;
+  const detailOf = (item: ReturnType<typeof row>) => publicArchetypeTeaser({
+    format: 'standard', formatLabel: 'Стандарт', patch: '36.6.3', minimumGames: 10, updatedAt: STAMP, item: { ...item, builds: [] },
+    featuredBuild: null,
+  }, 'standard', item.slug);
+
+  // Two slugs with one Russian name get different titles; a name nobody shares keeps the plain one.
+  const pure = row('pure-paladin', 'Чистый Паладин', 'Pure Paladin');
+  const archmage = row('archmage-paladin', 'Чистый Паладин', 'Archmage Paladin', { games: 598 });
+  const zoolock = row('zoolock', 'Зоолок', 'Zoolock', { classKey: 'warlock' });
+  const names = catalogOf([pure, archmage, zoolock]);
+  assert.equal(archetypeDetailSeoText(detailOf(pure), CLOCK, names).title,
+    'Чистый Паладин (Pure Paladin) — колода Hearthstone, октябрь 2026');
+  assert.equal(archetypeDetailSeoText(detailOf(archmage), CLOCK, names).title,
+    'Чистый Паладин (Archmage Paladin) — колода Hearthstone', 'the longer name gives up the month first');
+  assert.equal(archetypeDetailSeoText(detailOf(zoolock), CLOCK, names).title, 'Зоолок — колода Hearthstone, октябрь 2026 | HearthPulse');
+  assert.equal(archetypeDetailSeoText(detailOf(pure), CLOCK, null).title, 'Чистый Паладин — колода Hearthstone, октябрь 2026 | HearthPulse',
+    'without a catalog the title is the plain name');
+  assert.equal(archetypeDetailSeoText(detailOf(pure), CLOCK, names).description, archetypeDetailSeoText(detailOf(pure), CLOCK, null).description,
+    'the description does not change');
+  // The slug tells apart what the English name does not: the same name twice, or the name equal to the Russian one.
+  const sameEnglish = catalogOf([row('bwonsamdi-dk', 'Бвонсамди', 'Bwonsamdi'), row('bwonsamdi-dk-2', 'Бвонсамди', 'Bwonsamdi')]);
+  assert.deepEqual(sameEnglish.items.map(item => archetypeDetailSeoText(detailOf(item as ReturnType<typeof row>), CLOCK, sameEnglish).title.split(' — ')[0]),
+    ['Бвонсамди (bwonsamdi-dk)', 'Бвонсамди (bwonsamdi-dk-2)']);
+  const untranslated = catalogOf([row('murloc', 'Murloc', 'Murloc'), row('murloc-2', 'Murloc', 'Murloc Pirate')]);
+  assert.equal(archetypeDetailSeoText(detailOf(untranslated.items[0] as ReturnType<typeof row>), CLOCK, untranslated).title.split(' — ')[0],
+    'Murloc (murloc)');
+
+  // Property: whatever the catalog, no two rows with one name share a title, and every title fits and keeps its words.
+  const label = fc.constantFrom('Чистый Паладин', 'Зоолок', 'Охотник на демонов Бездны на возвещении', 'Разбойник на скрытности и прямом уроне');
+  const english = fc.constantFrom('Pure Paladin', 'Zoolock', 'Void Soul DH', 'Contraband Face Hunter', 'Чистый Паладин', 'Harold C\'Thun Warlock');
+  const catalogRows = fc.array(fc.tuple(label, english), { minLength: 1, maxLength: 8 })
+    .map(pairs => pairs.map(([name, englishName], index) => row(`a${index}`, name, englishName)));
+  assertProperty(fc.property(catalogRows, rows => {
+    const catalog = catalogOf(rows);
+    const titles = catalog.items.map(item => archetypeDetailSeoText(detailOf(item as ReturnType<typeof row>), CLOCK, catalog).title);
+    catalog.items.forEach((item, index) => {
+      assert.ok(titles[index].length <= 65 && titles[index].includes('Hearthstone'), titles[index]);
+      catalog.items.forEach((other, otherIndex) => {
+        if (otherIndex > index && other.archetypeLabel === item.archetypeLabel) assert.notEqual(titles[index], titles[otherIndex]);
+      });
+    });
+  }));
+
+  // What the summary compares with, by hand: the sample is the rows with a winrate over 1000 games.
+  const mk = (slug: string, classKey: string, winrate: number | null, games: number, deckCount = 2) =>
+    row(slug, slug.toUpperCase(), slug, { classKey, winrate, games, deckCount });
+  const pool = catalogOf([mk('a', 'paladin', 55, 9000), mk('b', 'paladin', 52, 5000), mk('c', 'paladin', 50, 3000), mk('d', 'paladin', 46, 1200),
+    mk('e', 'mage', 53, 8000), mk('f', 'mage', 49, 2000), mk('g', 'mage', 51, 999), mk('h', 'paladin', 60, 100), mk('i', 'hunter', null, 5000), mk('j', 'paladin', null, 4000, 0)]);
+  const target = detailOf(pool.items[1] as ReturnType<typeof row>).item;
+  assert.deepEqual(archetypeSeoFacts(target, pool).formatComparison, { archetypes: 6, median: 51, delta: 1 }, 'a, b, c, d, e, f: 46 49 50 52 53 55');
+  assert.deepEqual(archetypeSeoFacts(target, pool).classComparison, { archetypes: 4, median: 51, delta: 1 }, 'paladins a, b, c, d');
+  assert.deepEqual(archetypeSeoFacts(target, pool).gamesPlace, { place: 3, of: 10 }, 'a and e have more games');
+  assert.deepEqual(archetypeSeoFacts(target, pool).neighbours.map(item => item.slug), ['a', 'c', 'd', 'j', 'h'],
+    'the class, indexable pages by games first (j has more games than d but no build), the page itself never');
+  const hunter = detailOf(pool.items[8] as ReturnType<typeof row>).item;
+  assert.equal(archetypeSeoFacts(hunter, pool).classComparison, null, 'no winrate, no comparison');
+  assert.equal(archetypeSeoFacts(target, catalogOf(pool.items.slice(0, 4) as ReturnType<typeof row>[])).formatComparison, null,
+    'a median of four rows is not printed');
+  assert.deepEqual(archetypeSeoFacts(target, null), { formatComparison: null, classComparison: null, gamesPlace: null, neighbours: [] });
+  assert.equal(archetypeSeoFacts(target, catalogOf([mk('x', 'mage', 50, 5000)])).gamesPlace, null, 'a catalog without the page cannot place it');
+  const ranked = archetypeSeoFacts(target, catalogOf(Array.from({ length: 12 }, (_, index) => mk(`p${index}`, 'paladin', 50, 2000 + index))));
+  assert.equal(ranked.neighbours.length, 6, 'at most six links');
+
+  // The graph of an indexable archetype: the teaser's numbers as they are, the date of the data, no paid word.
+  const graphFacts = {
+    family: 'archetypes' as const, format: 'standard' as const, slug: 'pure-paladin', label: 'Чистый Паладин', englishName: 'Pure Paladin',
+    formatLabel: 'Стандарт', period: 'Баны', title: 'Чистый Паладин — колода Hearthstone, октябрь 2026 | HearthPulse',
+    description: 'Чистый Паладин в Стандарте (хс) на 29 октября 2026.', winrate: 51.2, popularity: 1.7, games: 53208,
+    dateModified: '2026-10-29T11:00:03.937811+00:00', sourceUrl: 'https://www.hsguru.com/archetype/Pure%20Paladin',
+  };
+  const graph = await archetypeStructuredDataGraph(graphFacts);
+  const URL_OF = 'https://hearthpulse.net/standard/archetypes/standard/pure-paladin/';
+  assert.deepEqual(graph?.['@graph'].map(node => node['@type']), ['Organization', 'BreadcrumbList', 'ItemPage', 'Dataset']);
+  const [organization, breadcrumb, page, dataset] = graph!['@graph'];
+  assert.equal(organization['@id'], 'https://hearthpulse.net/#org');
+  assert.deepEqual(breadcrumb, {
+    '@type': 'BreadcrumbList', '@id': `${URL_OF}#breadcrumb`,
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Архетипы', item: 'https://hearthpulse.net/standard/archetypes/' },
+      { '@type': 'ListItem', position: 2, name: 'Чистый Паладин', item: URL_OF },
+    ],
+  });
+  assert.deepEqual(page, {
+    '@type': 'ItemPage', '@id': `${URL_OF}#page`, url: URL_OF, name: 'Чистый Паладин — колода Hearthstone, октябрь 2026',
+    description: graphFacts.description, inLanguage: 'ru', dateModified: '2026-10-29T11:00:03.937Z',
+    isPartOf: { '@type': 'WebSite', '@id': 'https://hearthpulse.net/#website', name: 'HearthPulse', url: 'https://hearthpulse.net/' },
+    mainEntity: { '@id': `${URL_OF}#dataset` }, breadcrumb: { '@id': `${URL_OF}#breadcrumb` },
+  });
+  assert.deepEqual(dataset.variableMeasured, [
+    { '@type': 'PropertyValue', name: 'Винрейт', unitText: '%', value: 51.2 },
+    { '@type': 'PropertyValue', name: 'Популярность', unitText: '%', value: 1.7 },
+    { '@type': 'PropertyValue', name: 'Число игр', value: 53208 },
+  ]);
+  assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Pure Paladin', url: 'https://www.hsguru.com/archetype/Pure%20Paladin' });
+  assert.equal(dataset.dateModified, '2026-10-29T11:00:03.937Z', 'the date of the data, as the page prints it');
+  assert.deepEqual([dataset.creator, dataset.publisher], [{ '@id': 'https://hearthpulse.net/#org' }, { '@id': 'https://hearthpulse.net/#org' }]);
+  assert.equal(dataset.license, 'https://hearthpulse.net/terms/');
+  assert.doesNotMatch(JSON.stringify(graph), /deckCode|builds|history|analysis|AAE/i);
+  // A metric the source lacks is left out, not written as null; no date and no source address, none written.
+  const sparse = await archetypeStructuredDataGraph({ ...graphFacts, winrate: null, popularity: null, dateModified: null, sourceUrl: null });
+  assert.deepEqual(sparse!['@graph'][3].variableMeasured, [{ '@type': 'PropertyValue', name: 'Число игр', value: 53208 }]);
+  assert.equal(JSON.stringify(sparse).includes('dateModified'), false);
+  assert.equal(JSON.stringify(sparse).includes('isBasedOn'), false);
+  // The old family is noindex: no graph.
+  assert.equal(await archetypeStructuredDataGraph({ ...graphFacts, family: 'meta' }), null);
+}
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);

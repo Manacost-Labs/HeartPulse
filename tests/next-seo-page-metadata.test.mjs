@@ -647,3 +647,204 @@ test('the datasets take their date from what the real backend serves: the fetch 
     await runtime.close();
   }
 });
+
+// ── Archetype pages: robots by rule, the summary text, the JSON-LD, nothing paid (E9 S3a) ──
+// Real Next on a fake Express whose upstream answers carry deck codes, builds, history and
+// analysis, as the real one does for a subscriber: none of it may reach any HTML a guest gets.
+
+const PAID_MARKERS = ['AAEBAZSentinelPaidDeckCode0123456789', 'PRIVATE_HISTORY', 'PRIVATE_ANALYSIS', 'PRIVATE_ACCOUNT', 'PRIVATE_FEATURED_DECK'];
+const DECK_CODE = /AAE[A-Za-z0-9+/=]{12,}/;
+
+const catalogRow = (format, slug, label, english, classKey, games, winrate, popularity, deckCount) => ({
+  slug, format, classKey, archetype: english, archetypeLabel: label, translated: true, games, winrate, popularity,
+  turns: 8, durationMinutes: 7, climbingSpeed: 1, deckCount, sourceUrl: `https://www.hsguru.com/archetype/${encodeURIComponent(english)}`,
+  builds: [{ deckCode: PAID_MARKERS[0], games: 100, winrate: 50 }],
+});
+// Ten rows have a winrate over 1000 games (median 51,25); five of them are warlocks (median 52).
+const STANDARD_ROWS = [
+  catalogRow('standard', 'zoolock', 'Зоолок', 'Zoolock', 'warlock', 14800, 61.24, 20.4, 3),
+  catalogRow('standard', 'cube-warlock', 'Куб Чернокнижник', 'Cube Warlock', 'warlock', 9000, 55.5, 8, 2),
+  catalogRow('standard', 'handlock', 'Ханделок', 'Handlock', 'warlock', 5000, 52, 5, 2),
+  catalogRow('standard', 'wincon-warlock', 'Вин-кон Чернокнижник', 'Wincon Warlock', 'warlock', 2000, 49, 2, 1),
+  catalogRow('standard', 'anyfin-warlock', 'Анифин Чернокнижник', 'Anyfin Warlock', 'warlock', 1200, 47.5, 1, 1),
+  catalogRow('standard', 'weak-warlock', 'Слабый Чернокнижник', 'Weak Warlock', 'warlock', 500, 50, 0.2, 0),
+  catalogRow('standard', 'nzoth-warlock', 'Н\'зот Чернокнижник', 'Nzoth Warlock', 'warlock', 258, 57.4, 0, 0),
+  catalogRow('standard', 'mage-a', 'Маг А', 'Mage A', 'mage', 7000, 53, 6, 2),
+  catalogRow('standard', 'mage-b', 'Маг Б', 'Mage B', 'mage', 3000, 50, 3, 2),
+  catalogRow('standard', 'rogue-a', 'Разбойник А', 'Rogue A', 'rogue', 2500, 48, 2, 1),
+  catalogRow('standard', 'hunter-a', 'Охотник А', 'Hunter A', 'hunter', 4000, 51.5, 4, 2),
+  catalogRow('standard', 'pure-paladin', 'Чистый Паладин', 'Pure Paladin', 'paladin', 53208, 51, 1.7, 86),
+  catalogRow('standard', 'archmage-paladin', 'Чистый Паладин', 'Archmage Paladin', 'paladin', 598, 49, 0, 5),
+];
+const WILD_ROWS = [
+  catalogRow('wild', 'zoolock', 'Зоолок', 'Zoolock', 'warlock', 20000, 58, 10, 3),
+  ...['a', 'b', 'c', 'd'].map((letter, index) => catalogRow('wild', `wild-${letter}`, `Вольный ${letter}`, `Wild ${letter}`, 'warlock', 3000 - index * 100, 50, 1, 1)),
+];
+
+function startArchetypeExpress(state) {
+  return http.createServer((request, response) => {
+    const url = new URL(request.url, 'http://fixture');
+    const detail = url.pathname.match(/^\/api\/constructed-archetypes\/teaser\/(standard|wild)\/([a-z0-9-]+)$/);
+    const rowsOf = format => (format === 'wild' ? WILD_ROWS : STANDARD_ROWS);
+    let status = 200;
+    let payload = { error: 'fixture has no data' };
+    if (url.pathname === '/api/auth/me') payload = { user: null };
+    else if (url.pathname === '/api/constructed-archetypes/teaser') {
+      const format = url.searchParams.get('format') === 'wild' ? 'wild' : 'standard';
+      if (state.catalogOk) {
+        payload = { format, formatLabel: format === 'wild' ? 'Вольный' : 'Стандарт', patch: 'black_empire_ban', period: 'black_empire_ban',
+          minimumGames: 50, updatedAt: state.updatedAt, coverage: {}, items: rowsOf(format) };
+      } else status = 503;
+    } else if (detail) {
+      const item = rowsOf(detail[1]).find(row => row.slug === detail[2]);
+      if (!item) status = 404;
+      else payload = {
+        format: detail[1], formatLabel: detail[1] === 'wild' ? 'Вольный' : 'Стандарт', patch: 'black_empire_ban', minimumGames: 50,
+        updatedAt: state.updatedAt, account: 'PRIVATE_ACCOUNT', item,
+        featuredBuild: { games: 2216, winrate: 57.1, updatedAt: null, sampleRank: 'all', samplePeriod: 'past_30_days', deckCode: 'PRIVATE_FEATURED_DECK' },
+        history: [{ recordedAt: 'PRIVATE_HISTORY' }], analysis: { private: 'PRIVATE_ANALYSIS' },
+      };
+    } else status = 503;
+    response.setHeader('Content-Type', 'application/json');
+    response.writeHead(status).end(JSON.stringify(payload));
+  });
+}
+
+const countWords = text => text.split(/\s+/).filter(token => /[\p{L}\p{N}]/u.test(token)).length;
+const numbersIn = (value, found = []) => {
+  if (typeof value === 'number') found.push(value);
+  else if (Array.isArray(value)) value.forEach(item => numbersIn(item, found));
+  else if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) if (key !== 'position') numbersIn(child, found);
+  }
+  return found;
+};
+
+test('archetype pages: only a strong Standard archetype is indexable; every page carries the summary and nothing paid', { timeout: 180_000 }, async () => {
+  assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
+  const state = { catalogOk: true, updatedAt: new Date(Date.now() - 3 * HOUR).toISOString() };
+  const express = startArchetypeExpress(state);
+  express.listen(0, '127.0.0.1');
+  await once(express, 'listening');
+  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+  const fetched = [];
+  const page = async path => {
+    const response = await fetch(`${next.origin}${path}`);
+    assert.equal(response.status, 200, path);
+    const html = await response.text();
+    fetched.push([path, html]);
+    const summary = html.match(/<section class="archetype-seo-summary"[\s\S]*?<\/section>/)?.[0] ?? '';
+    return {
+      html, summary, text: visibleText(summary).replaceAll(' ', ' '),
+      robots: html.match(/<meta name="robots" content="([^"]*)"/)?.[1],
+      canonical: html.match(/<link rel="canonical" href="([^"]*)"/)?.[1],
+      title: decoded(html.match(/<title>([^<]*)<\/title>/)?.[1] ?? ''),
+      graphs: [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map(match => JSON.parse(match[1]))
+        .filter(data => Array.isArray(data['@graph'])),
+      links: [...summary.matchAll(/<a href="([^"]+)"/g)].map(match => match[1]),
+    };
+  };
+  try {
+    // The strong archetype: indexable, self-canonical, a graph and a summary with the numbers of its teaser.
+    const strong = await page('/standard/archetypes/standard/zoolock/');
+    assert.equal(strong.robots, 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+    assert.equal(strong.canonical, 'https://hearthpulse.net/standard/archetypes/standard/zoolock/');
+    assert.match(strong.title, new RegExp(`^Зоолок — колода Hearthstone, (${MONTH_NAMES}) \\d{4} \\| HearthPulse$`));
+    assert.equal((strong.html.match(/<h1[\s>]/g) ?? []).length, 1);
+    assert.equal((strong.html.match(/<main[\s>]/g) ?? []).length, 1);
+    assert.ok(strong.summary.includes('<h2 id="archetype-seo-summary-title">'), 'a question heading, labelling the section');
+    assert.ok(strong.text.trim().startsWith('Насколько силён Зоолок в Стандарте сейчас'));
+    const words = countWords(strong.text);
+    assert.ok(words >= 150 && words <= 250, `the summary has ${words} words`);
+    const lead = strong.text.split('Как читать')[0];
+    for (const expected of ['Зоолок — архетип класса Чернокнижник в Стандарте Hearthstone', 'По данным HSGuru на ',
+      ' МСК за период «Баны»', 'винрейт — 61,2%', 'популярность — 20,4%', 'в выборке 14 800 игр', 'известно 3 сборки']) {
+      assert.ok(lead.includes(expected), `the answer says «${expected}»`);
+    }
+    assert.ok(countWords(lead.split('Медианный')[0]) <= 60, 'the answer comes in the first 60 words');
+    for (const expected of ['Медианный винрейт 10 архетипов Стандарта с выборкой от 1 000 игр — 51,3%, а Зоолок выше медианы на 10 п. п.',
+      'Среди 5 архетипов класса Чернокнижник с выборкой от 1 000 игр медиана — 52%, а он выше медианы на 9,2 п. п.',
+      'По числу игр он на 2-м месте из 13 архетипов Стандарта.', 'В каталог входят архетипы с выборкой от 50 игр',
+      'доступны по подписке HearthPulse']) {
+      assert.ok(strong.text.includes(expected), `the text says «${expected}»`);
+    }
+    assert.doesNotMatch(strong.text, /лидер/i, '«лидер» needs its own sample threshold');
+    assert.match(strong.summary, new RegExp(`<time datetime="${state.updatedAt}">`, 'i'), 'the date is machine-readable');
+    assert.ok(strong.summary.includes('<a href="https://www.hsguru.com/archetype/Zoolock" rel="noopener noreferrer">HSGuru</a>'));
+    // Four to six links to the class: pages that can be indexed first, then the rest by games; then the catalog.
+    assert.deepEqual(strong.links.filter(href => href.startsWith('/standard/archetypes/standard/')).map(href => href.split('/')[4]), [
+      'cube-warlock', 'handlock', 'wincon-warlock', 'anyfin-warlock', 'weak-warlock', 'nzoth-warlock']);
+    assert.equal(strong.links.at(-1), '/standard/archetypes/');
+    assert.ok(strong.text.includes('Куб Чернокнижник — 55,5%'));
+
+    // The graph: the site, the path, the page and the dataset, with the teaser's numbers as they are.
+    assert.equal(strong.graphs.length, 1, 'one JSON-LD script');
+    const graph = strong.graphs[0]['@graph'];
+    assert.deepEqual(graph.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'ItemPage', 'Dataset']);
+    assert.deepEqual(crumbs(nodeOfType(graph, 'BreadcrumbList')), [
+      { type: 'ListItem', position: 1, name: 'Архетипы', item: 'https://hearthpulse.net/standard/archetypes/' },
+      { type: 'ListItem', position: 2, name: 'Зоолок', item: 'https://hearthpulse.net/standard/archetypes/standard/zoolock/' },
+    ]);
+    const dataset = nodeOfType(graph, 'Dataset');
+    assert.deepEqual(dataset.variableMeasured.map(({ name, value }) => [name, value]),
+      [['Винрейт', 61.24], ['Популярность', 20.4], ['Число игр', 14800]]);
+    assert.equal(dataset.dateModified, state.updatedAt, 'dated by the teaser, like the <time> of the text');
+    assert.equal(nodeOfType(graph, 'ItemPage').dateModified, state.updatedAt);
+    assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Zoolock', url: 'https://www.hsguru.com/archetype/Zoolock' });
+    const teaserItem = STANDARD_ROWS[0];
+    for (const value of numbersIn(graph)) {
+      assert.ok(Object.values(teaserItem).includes(value), `${value} in the JSON-LD is a number of the public teaser`);
+      assert.ok(JSON.stringify(teaserItem).includes(JSON.stringify(value)), `${value} is written as the teaser writes it`);
+    }
+
+    // Not strong enough, Wild and the old family: noindex, follow, no graph, the same summary.
+    const weak = await page('/standard/archetypes/standard/weak-warlock/');
+    const wild = await page('/standard/archetypes/wild/zoolock/');
+    const legacy = await page('/standard/meta/standard/zoolock/');
+    for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy]]) {
+      assert.equal(other.robots, 'noindex, follow', `${name} robots`);
+      assert.deepEqual(other.graphs, [], `${name} has no JSON-LD`);
+      assert.ok(countWords(other.text) >= 80, `${name} has the summary`);
+    }
+    assert.equal(weak.canonical, 'https://hearthpulse.net/standard/archetypes/standard/weak-warlock/');
+    assert.equal(legacy.canonical, 'https://hearthpulse.net/standard/meta/standard/zoolock/', 'the old family keeps its own canonical');
+    assert.ok(weak.text.includes('Выборка архетипа меньше 1 000 игр, поэтому его винрейт ненадёжен'));
+    assert.ok(wild.text.includes('в Вольном формате') && wild.links.at(-1) === '/standard/archetypes/?format=wild');
+    for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy], ['strong', strong]]) {
+      assert.equal((other.html.match(/<h1[\s>]/g) ?? []).length, 1, `${name} has one H1`);
+    }
+
+    // Two slugs with one Russian name: different titles; a name nobody shares keeps the plain one.
+    const pure = await page('/standard/archetypes/standard/pure-paladin/');
+    const archmage = await page('/standard/archetypes/standard/archmage-paladin/');
+    assert.match(pure.title, /^Чистый Паладин \(Pure Paladin\) — колода Hearthstone/);
+    assert.match(archmage.title, /^Чистый Паладин \(Archmage Paladin\) — колода Hearthstone/);
+    assert.notEqual(pure.title, archmage.title);
+    assert.ok(pure.title.length <= 65 && archmage.title.length <= 65);
+    assert.equal(archmage.robots, 'noindex, follow');
+    assert.equal(pure.robots, strong.robots);
+
+    // Without the catalog the page keeps its own numbers, its robots and its graph; the extras go.
+    state.catalogOk = false;
+    const alone = await page('/standard/archetypes/standard/pure-paladin/');
+    assert.equal(alone.robots, strong.robots);
+    assert.equal(alone.graphs.length, 1);
+    assert.match(alone.title, /^Чистый Паладин — колода Hearthstone/);
+    assert.ok(alone.text.includes('в выборке 53 208 игр'));
+    assert.ok(!alone.text.includes('Медианный') && !alone.text.includes('Другие архетипы'));
+    assert.deepEqual(alone.links.slice(-1), ['/standard/archetypes/'], 'the catalog link stays');
+    state.catalogOk = true;
+
+    // Nothing paid in any of these documents, RSC payload included.
+    assert.ok(fetched.length >= 7);
+    for (const [path, html] of fetched) {
+      for (const marker of PAID_MARKERS) assert.ok(!html.includes(marker), `${path} leaks ${marker}`);
+      assert.doesNotMatch(html, DECK_CODE, `${path} carries a deck code`);
+      assert.ok(html.includes('self.__next_f'), `${path} includes the RSC payload the check covers`);
+    }
+  } finally {
+    await next.close();
+    express.closeAllConnections();
+    await new Promise(resolve => express.close(resolve));
+  }
+});
