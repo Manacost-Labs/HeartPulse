@@ -922,7 +922,7 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/classes/#dataset",
         "name": "Винрейт классов Арены Hearthstone",
-        "description": "Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone, обновление каждые 6 часов. Значения доступны по подписке; на открытой странице — описание того, как читать рейтинг, откуда берутся данные и как часто они обновляются.",
+        "description": "Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. Значения доступны по подписке; на открытой странице — описание того, как читать рейтинг, откуда берутся данные и как они обновляются.",
         "url": "https://hearthpulse.net/classes/",
         "isAccessibleForFree": false,
         "isBasedOn": [
@@ -978,7 +978,7 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/tierlist/#dataset",
         "name": "Тир-лист карт Арены Hearthstone",
-        "description": "Тир-лист карт Арены Hearthstone по классам с оценками от S до F по данным HSReplay, HearthArena и Firestone, обновление каждые 6 часов. Оценки доступны по подписке; на открытой странице — описание шкалы, источников и частоты обновления.",
+        "description": "Тир-лист карт Арены Hearthstone по классам с оценками от S до F по данным HSReplay, HearthArena и Firestone. Оценки доступны по подписке; на открытой странице — описание шкалы, источников и обновления данных.",
         "url": "https://hearthpulse.net/tierlist/",
         "isAccessibleForFree": false,
         "isBasedOn": [

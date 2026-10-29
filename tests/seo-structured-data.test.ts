@@ -210,8 +210,8 @@ test('the contents lists of the tier lists are gone, and no description counts t
   assert.deepEqual(await types('/legendaries/'), ['BreadcrumbList']);
   assert.deepEqual(await types('/battlegrounds/tier-list/'), ['BreadcrumbList', 'CollectionPage']);
   const classes = byType((await seoStructuredDataGraph('/classes/'))!['@graph'], 'Dataset')!;
-  assert.equal(classes.description, 'Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone, обновление каждые 6 часов. '
-    + 'Значения доступны по подписке; на открытой странице — описание того, как читать рейтинг, откуда берутся данные и как часто они обновляются.');
+  assert.equal(classes.description, 'Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. '
+    + 'Значения доступны по подписке; на открытой странице — описание того, как читать рейтинг, откуда берутся данные и как они обновляются.');
 });
 
 test('lists describe what the page shows: true counts, distinct targets', async () => {
@@ -253,8 +253,8 @@ const pageCopyText = (path: string) => seoPageCopy(path)!.sections.flatMap(secti
 
 test('a closed Arena dataset says it is for subscribers and names only what the page text explains', async () => {
   for (const [path, sources, phrases] of [
-    ['/classes', ['HSReplay', 'Firestone'], ['винрейт', 'каждые 6 часов', 'по подписке']],
-    ['/tierlist', ['HSReplay', 'HearthArena', 'Firestone'], ['от S до F', 'каждые 6 часов', 'по подписке']],
+    ['/classes', ['HSReplay', 'Firestone'], ['винрейт', 'обновляются автоматически', 'по подписке']],
+    ['/tierlist', ['HSReplay', 'HearthArena', 'Firestone'], ['от S до F', 'обновляются автоматически', 'по подписке']],
   ] as const) {
     const dataset = byType((await seoStructuredDataGraph(path))!['@graph'], 'Dataset')!;
     assert.equal(dataset.isAccessibleForFree, false, `${path} is not free`);
@@ -264,7 +264,7 @@ test('a closed Arena dataset says it is for subscribers and names only what the 
       assert.ok(text.includes(source), `${path} text names ${source}`);
     }
     for (const phrase of phrases) assert.ok(text.includes(phrase), `${path} text says «${phrase}»`);
-    assert.doesNotMatch(String(dataset.description).replace('каждые 6 часов', ''), /\d|%|миллион|тысяч/, `${path} dataset states no figures`);
+    assert.doesNotMatch(String(dataset.description), /\d|%|миллион|тысяч|каждые\s+\S+\s+час|раз\s+в\s+(?:сутки|день|час)/i, `${path} dataset states no figure or update frequency`);
   }
 });
 

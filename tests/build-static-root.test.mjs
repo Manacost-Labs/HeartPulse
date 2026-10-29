@@ -96,9 +96,9 @@ const LLMS_SECTIONS = [
   { urls: ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/'], sources: ['HSReplay'], open: true, paid: true },
   { urls: ['/standard/patches/'], sources: ['hs-manacost.ru'], update: 'раз в сутки', open: true, paid: false },
   { urls: ['/standard/radar/'], sources: ['HSGuru', 'HSReplay', 'Reddit'], update: 'два раза в сутки', open: true, paid: false },
-  { urls: ['/classes/'], sources: ['HSReplay', 'Firestone'], update: 'каждые 6 часов', open: false, paid: true },
-  { urls: ['/tierlist/'], sources: ['HSReplay', 'HearthArena', 'Firestone'], update: 'каждые 6 часов', open: false, paid: true },
-  { urls: ['/legendaries/'], sources: ['HSReplay', 'Firestone'], update: 'каждые 6 часов', open: false, paid: true },
+  { urls: ['/classes/'], sources: ['HSReplay', 'Firestone'], update: 'автоматическое, частота зависит от источника', open: false, paid: true },
+  { urls: ['/tierlist/'], sources: ['HSReplay', 'HearthArena', 'Firestone'], update: 'автоматическое, частота зависит от источника', open: false, paid: true },
+  { urls: ['/legendaries/'], sources: ['HSReplay', 'Firestone'], update: 'автоматическое, частота зависит от источника', open: false, paid: true },
   { urls: ['/battlegrounds/tier-list/', '/battlegrounds/strategies/'], sources: ['HSReplay', 'Firestone'], update: 'раз в сутки', open: false, paid: true },
   { urls: ['/heroes/', '/library/'], sources: ['HSReplay', 'Firestone'], open: true, paid: true },
   { urls: ['/faq/'], sources: [], open: true, paid: false },
@@ -165,7 +165,8 @@ test('llms.txt tells a crawler what each section offers, from where, and what ne
     }
 
     // Promises of the old file that the anonymous HTML does not keep.
-    for (const stale of ['с количеством игр', 'датой последнего обновления', 'по всем 11 классам', '00:15', '06:15', '12:15', '18:15']) {
+    // «каждые 6 часов» is the scraper's schedule, not how often the datasets behind the Arena pages change.
+    for (const stale of ['с количеством игр', 'датой последнего обновления', 'по всем 11 классам', '00:15', '06:15', '12:15', '18:15', 'каждые 6 часов']) {
       assert.ok(!llms.includes(stale), `llms.txt must not promise "${stale}"`);
     }
   } finally {

@@ -886,6 +886,8 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
 
 const wordCount = text => text.split(/\s+/).filter(word => /[\p{L}\p{N}]/u.test(word)).length;
 const STANDALONE_HS = /(?<![\p{L}\p{N}])хс(?![\p{L}\p{N}])/iu;
+// A promise of how often the data changes: the scraper's schedule is not the refresh rate of what the page shows.
+const FIGURE_OR_FREQUENCY = /\d|%|каждые\s+\S+\s+час|раз\s+в\s+(?:сутки|день|час|неделю)|ежедневн|ежечасн|несколько\s+раз/iu;
 const ARENA_PAGES = [
   { path: '/tierlist/', title: `Тир-лист Арены Hearthstone (хс), ${YEAR} | HearthPulse`,
     question: 'Что показывает тир-лист Арены Hearthstone (хс)?', sources: ['HSReplay', 'HearthArena', 'Firestone'], dataset: true },
@@ -935,11 +937,11 @@ describe('a closed Arena page explains itself in the HTML: questions, sources, u
       assert.ok(headings.includes(page.question), `${page.path} answers «${page.question}»`);
 
       for (const source of page.sources) assert.ok(text.includes(source), `${page.path} names ${source}`);
-      assert.ok(text.includes('каждые 6 часов'), `${page.path} says how often the data is collected`);
+      assert.ok(text.includes('Данные обновляются автоматически'), `${page.path} says the data refreshes by itself`);
       assert.ok(text.includes('по подписке с уровня «Любитель Арены»'), `${page.path} says who gets the data`);
 
-      // Statistics belong to subscribers: the one figure is the update interval, and «хс» always follows the game's name.
-      assert.doesNotMatch(text.replace('каждые 6 часов', ''), /\d|%/, `${page.path} text carries no figure`);
+      // Statistics belong to subscribers: not one figure, no update frequency, and «хс» always follows the game's name.
+      assert.doesNotMatch(text, FIGURE_OR_FREQUENCY, `${page.path} text carries no figure and promises no update frequency`);
       assert.doesNotMatch(text.replaceAll('Hearthstone (хс)', ''), STANDALONE_HS, `${page.path} uses «хс» only next to Hearthstone`);
 
       // Every link of the text leads to a page that exists.
@@ -953,15 +955,22 @@ describe('a closed Arena page explains itself in the HTML: questions, sources, u
       if (dataset) {
         assert.equal(dataset.isAccessibleForFree, false, `${page.path} dataset is for subscribers`);
         for (const source of page.sources) assert.ok(dataset.description.includes(source), `${page.path} dataset names ${source}`);
-        assert.ok(dataset.description.includes('каждые 6 часов'), `${page.path} dataset gives the update interval the text gives`);
+        assert.ok(dataset.description.includes('обновл'), `${page.path} dataset speaks of updates as the text does`);
+        assert.doesNotMatch(dataset.description, FIGURE_OR_FREQUENCY, `${page.path} dataset states no figure or frequency`);
       }
+      // The snippet promises no frequency either (the classes description counts the classes, which is not statistics).
+      assert.doesNotMatch(description.replace('всех 11 классов', ''), FIGURE_OR_FREQUENCY, `${page.path} description states no figure or frequency`);
     });
   }
 
-  it('the tier list explains every grade of its scale', async () => {
+  it('the tier list explains every grade of its scale, who stops at E, and what «Без тира» is', async () => {
     const text = visibleText(await (await fetch(`${runtime.nextOrigin}/tierlist/`)).text());
     for (const line of ['S — «Отлично»', 'A — «Хорошо»', 'B — «Выше среднего»', 'C — «Средне»', 'D — «Ниже среднего»', 'E — «Плохо»', 'F — «Ужасно»']) {
       assert.ok(text.includes(line), `the tier list explains ${line}`);
     }
+    // HSReplay never gives F (server/hsreplayArenasmith.ts), and a card without Arenasmith Score is no grade at all.
+    assert.ok(text.includes('у HSReplay буква выводится из Arenasmith Score, и там она заканчивается на E'), 'the HSReplay scale ends at E');
+    assert.ok(text.includes('группу «Без тира»: это не оценка, а отметка об отсутствии данных'), '«Без тира» is not a grade');
+    assert.doesNotMatch(text, /одну из семи оценок/, 'not every card gets one of seven grades');
   });
 });

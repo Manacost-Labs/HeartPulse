@@ -113,14 +113,14 @@
       "policyRouteId": "winrates",
       "navigationRouteId": "winrates",
       "title": "Винрейт классов Арены Hearthstone, {year} | HearthPulse",
-      "description": "Лучшие классы Арены Hearthstone (хс): винрейты всех 11 классов на текущем патче по данным HSReplay и Firestone. Обновление каждые 6 часов, по подписке.",
+      "description": "Лучшие классы Арены Hearthstone (хс): винрейты всех 11 классов на текущем патче по данным HSReplay и Firestone. Доступ по подписке.",
       "sitemap": true
     },
     "/tierlist": {
       "policyRouteId": "tierlist",
       "navigationRouteId": "tierlist",
       "title": "Тир-лист Арены Hearthstone (хс), {year} | HearthPulse",
-      "description": "Тир-лист карт Арены Hearthstone по классам: оценки от S до F по данным HSReplay, HearthArena и Firestone. Обновление каждые 6 часов, доступ по подписке.",
+      "description": "Тир-лист карт Арены Hearthstone по классам: оценки от S до F по данным HSReplay, HearthArena и Firestone. Данные обновляются автоматически, доступ по подписке.",
       "sitemap": true
     },
     "/legendaries": {
