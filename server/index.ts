@@ -7354,6 +7354,9 @@ if (staticSitemapArtifact) {
       // Called per refresh, after start-up has created the service below.
       loadCosmeticsCatalog: (kind, query) => cosmeticsDataService.loadCatalog(kind, query),
       getGuidesDatabase: oldGuidesDatabase,
+    }, {
+      // The catalog the archetype pages open on, so a listed page is one the page itself finds.
+      loadCatalog: format => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format),
     }),
     staticUrls: staticSitemapArtifact.urls,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,

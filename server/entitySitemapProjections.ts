@@ -9,6 +9,7 @@ import {
   type BattlegroundLibraryKind,
 } from './battlegroundLibrarySeoRoutes.js';
 import { projectPublicBattlegroundHero } from './battlegroundSeoRoutes.js';
+import { isIndexableArchetype, type ArchetypeIndexingFacts } from '../shared/constructedArchetypeIndexing.js';
 import type { SitemapSemanticEntry } from './entitySitemapStore.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -127,4 +128,94 @@ export function projectBattlegroundHeroSitemapCatalog(
     entries.set(key, { key, location: `${origin}/heroes/${hero.dbfId}/`, semanticHash });
   }
   return [...entries.values()].sort((left, right) => left.key.localeCompare(right.key, 'en'));
+}
+
+/**
+ * One archetype of the catalog the archetype pages open on, with what the
+ * sitemap needs to know of that catalog: when its data was produced and for
+ * which period.
+ */
+export type ArchetypeSitemapRow = {
+  item: unknown;
+  updatedAt: string | null;
+  period: string | null;
+};
+
+/** The page route's own idea of a slug (`apps/public-web/lib/publicArchetypeRoute.ts`). */
+const ARCHETYPE_PAGE_SLUG = /^[a-z0-9-]{1,90}$/;
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** What the indexing rule reads of a catalog row: the same fields the page reads of its teaser item. */
+export function archetypeIndexingFacts(item: unknown): ArchetypeIndexingFacts {
+  const row = asRecord(item);
+  return {
+    format: typeof row.format === 'string' ? row.format : '',
+    games: typeof row.games === 'number' ? row.games : Number.NaN,
+    deckCount: finiteNumber(row.deckCount) ?? 0,
+    popularity: finiteNumber(row.popularity),
+  };
+}
+
+/** The slug of a catalog row, when the page route would serve it. */
+export function archetypePageSlug(item: unknown): string | null {
+  const slug = asRecord(item).slug;
+  return typeof slug === 'string' && ARCHETYPE_PAGE_SLUG.test(slug) ? slug : null;
+}
+
+function catalogDataDay(updatedAt: unknown): string {
+  const time = typeof updatedAt === 'string' ? Date.parse(updatedAt) : Number.NaN;
+  if (!Number.isFinite(time)) throw new Error('Archetype sitemap catalog has no data date');
+  return new Date(time).toISOString().slice(0, 10);
+}
+
+/**
+ * Sitemap entries of the Standard archetype pages that are indexable. The rows
+ * come filtered by `isIndexableArchetype`; a row the rule keeps out is a wiring
+ * mistake, and the whole candidate is rejected instead of listing a `noindex`
+ * page. The semantic hash covers what the page prints of the archetype (names,
+ * numbers, period), so `lastmod` moves with the catalog's data date only when
+ * one of them changed. Builds, deck codes and history are not read.
+ */
+export function projectConstructedArchetypeSitemapCatalog(
+  rows: unknown[],
+  originValue?: string,
+): SitemapSemanticEntry[] {
+  if (!Array.isArray(rows)) return [];
+  const origin = canonicalSitemapOrigin(originValue);
+  return rows.map(raw => {
+    const row = asRecord(raw);
+    const item = asRecord(row.item);
+    const slug = archetypePageSlug(item);
+    if (!slug || !isIndexableArchetype(archetypeIndexingFacts(item))) {
+      throw new Error('Archetype sitemap catalog contains a page that is not indexable');
+    }
+    const publicFacts = {
+      slug,
+      archetype: item.archetype ?? null,
+      archetypeLabel: item.archetypeLabel ?? null,
+      classKey: item.classKey ?? null,
+      games: item.games,
+      winrate: item.winrate ?? null,
+      popularity: item.popularity ?? null,
+      turns: item.turns ?? null,
+      durationMinutes: item.durationMinutes ?? null,
+      climbingSpeed: item.climbingSpeed ?? null,
+      deckCount: item.deckCount ?? null,
+      sourceUrl: item.sourceUrl ?? null,
+      period: row.period ?? null,
+    };
+    return {
+      key: slug,
+      location: `${origin}/standard/archetypes/standard/${slug}/`,
+      semanticHash: createHash('sha256').update(JSON.stringify(publicFacts)).digest('hex'),
+      dataDate: catalogDataDay(row.updatedAt),
+    };
+  }).sort((left, right) => left.key.localeCompare(right.key, 'en'));
 }

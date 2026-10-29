@@ -29,7 +29,14 @@ type StoreOptions = {
   segment?: SitemapSegment;
   canonicalOrigin?: string;
   now?: () => number;
-  collapseRatio?: number;
+  /**
+   * Smallest share of the last known good entries a candidate may keep; `null`
+   * turns the check off. Archetypes default to off: their number follows the
+   * catalog's period (72 can become 40 after a patch and grow back), so a drop
+   * is a change of the data, not a truncation, and `minimumEntryCount` alone
+   * guards that segment.
+   */
+  collapseRatio?: number | null;
   minimumEntryCount?: number;
 };
 
@@ -55,7 +62,7 @@ export class SemanticSitemapStore {
   private readonly segment: SitemapSegment;
   private readonly origin: string;
   private readonly now: () => number;
-  private readonly collapseRatio: number;
+  private readonly collapseRatio: number | null;
   private readonly minimumEntryCount: number;
 
   constructor(options: StoreOptions) {
@@ -66,7 +73,9 @@ export class SemanticSitemapStore {
     this.recovery = recoveryFilename(this.filename);
     this.origin = normalizedOrigin(options.canonicalOrigin);
     this.now = options.now ?? Date.now;
-    this.collapseRatio = Math.max(0.5, Math.min(0.95, options.collapseRatio ?? 0.9));
+    const defaultRatio = this.segment === 'archetypes' ? null : 0.9;
+    const ratio = options.collapseRatio === undefined ? defaultRatio : options.collapseRatio;
+    this.collapseRatio = ratio === null ? null : Math.max(0.5, Math.min(0.95, ratio));
     this.minimumEntryCount = Math.max(1, Math.min(MAX_SITEMAP_ENTRIES, Math.floor(options.minimumEntryCount ?? 1)));
   }
 
@@ -94,7 +103,8 @@ export class SemanticSitemapStore {
       );
     }
     const current = this.readLastKnownGood();
-    if (current && current.entryCount >= 2 && entries.length < Math.ceil(current.entryCount * this.collapseRatio)) {
+    if (this.collapseRatio !== null && current && current.entryCount >= 2
+      && entries.length < Math.ceil(current.entryCount * this.collapseRatio)) {
       throw new SitemapCandidateRejectedError(
         `Sitemap candidate count collapse: ${entries.length}/${current.entryCount}`,
       );
@@ -102,13 +112,21 @@ export class SemanticSitemapStore {
 
     const previousByKey = new Map(current?.entries.map(entry => [entry.key, entry]) ?? []);
     const today = new Date(this.now()).toISOString().slice(0, 10);
-    const nextEntries: StoredSitemapEntry[] = entries.map(entry => {
+    // A source that states the date of its data dates a change by it; the day
+    // the server noticed the change is the fallback. The date never lies ahead
+    // of today and never moves an entry's lastmod back.
+    const changedOn = (dataDate: string | undefined, previous: StoredSitemapEntry | undefined): string => {
+      if (dataDate === undefined) return today;
+      const notAhead = dataDate < today ? dataDate : today;
+      return previous?.lastmod && previous.lastmod > notAhead ? previous.lastmod : notAhead;
+    };
+    const nextEntries: StoredSitemapEntry[] = entries.map(({ dataDate, ...entry }) => {
       const previous = previousByKey.get(entry.key);
-      if (!previous) return entry;
+      if (!previous) return dataDate === undefined ? entry : { ...entry, lastmod: changedOn(dataDate, previous) };
       if (previous.semanticHash === entry.semanticHash) {
         return { ...entry, ...(previous.lastmod ? { lastmod: previous.lastmod } : {}) };
       }
-      return { ...entry, lastmod: today };
+      return { ...entry, lastmod: changedOn(dataDate, previous) };
     });
 
     if (current && JSON.stringify(current.entries) === JSON.stringify(nextEntries)) {

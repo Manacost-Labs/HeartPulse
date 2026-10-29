@@ -65,6 +65,11 @@ const sitemapSpellIds = Array.from({ length: 50 }, (_value, index) => 20_000 + i
 const sitemapHeroIds = Array.from({ length: 80 }, (_value, index) => 30_000 + index);
 const sitemapCosmeticIds = Array.from({ length: 500 }, (_value, index) => `HERO_${index + 1}`);
 const sitemapGuideSlugs = Array.from({ length: 500 }, (_value, index) => `guide-${index + 1}`);
+// The archetype segment holds about 70 URLs on real data; 40 is enough to tell the five samples apart.
+const sitemapArchetypeSlugs = Array.from(
+  { length: 40 },
+  (_value, index) => `monitor-deck-${String(index + 1).padStart(2, '0')}`,
+);
 
 sitemapCardIds[0] = 'blizzard:12345';
 sitemapWildCardIds[0] = 'blizzard:67890';
@@ -206,6 +211,7 @@ const server = http.createServer((req, res) => {
       `${origin}/sitemaps/battleground-heroes.xml`,
       `${origin}/sitemaps/cosmetics.xml`,
       `${origin}/sitemaps/guides-archive.xml`,
+      ...(seoFailure === 'index-without-archetypes' ? [] : [`${origin}/sitemaps/archetypes.xml`]),
     ]));
     return;
   }
@@ -257,12 +263,21 @@ const server = http.createServer((req, res) => {
     '/sitemaps/battleground-heroes.xml': sitemapHeroIds.map(dbfId => `${origin}/heroes/${dbfId}/`),
     '/sitemaps/cosmetics.xml': sitemapCosmeticIds.map(cardId => `${origin}/cosmetics/heroes/${cardId}/`),
     '/sitemaps/guides-archive.xml': sitemapGuideSlugs.map(slug => `${origin}/guides-archive/${slug}/`),
+    '/sitemaps/archetypes.xml': [
+      ...(seoFailure === 'archetypes-small' ? sitemapArchetypeSlugs.slice(0, 29) : sitemapArchetypeSlugs)
+        .map(slug => `${origin}/standard/archetypes/standard/${slug}/`),
+      ...(seoFailure === 'archetypes-meta-family' ? [`${origin}/standard/meta/standard/monitor-deck-99/`] : []),
+      ...(seoFailure === 'archetypes-wild' ? [`${origin}/standard/archetypes/wild/monitor-deck-99/`] : []),
+      ...(seoFailure === 'archetypes-query' ? [`${origin}/standard/archetypes/standard/monitor-deck-99/?format=wild`] : []),
+    ],
   };
   if (additionalSitemaps[requestUrl.pathname]) {
     res.writeHead(200, {
       'Content-Type': 'application/xml; charset=utf-8',
       ETag: `${compressedSitemapEtag ? 'W/' : ''}"sha256-${'b'.repeat(64)}"`,
-      'X-Sitemap-Source': 'catalog',
+      'X-Sitemap-Source': requestUrl.pathname === '/sitemaps/archetypes.xml' && seoFailure === 'archetypes-lkg'
+        ? 'last-known-good'
+        : 'catalog',
     });
     res.end(xmlUrlset(additionalSitemaps[requestUrl.pathname]));
     return;
@@ -308,6 +323,30 @@ const server = http.createServer((req, res) => {
     const canonical = `${origin}${requestUrl.pathname}`;
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
     res.end(cardHtml(origin, dbfId, { canonical }));
+    return;
+  }
+  const archetypeMatch = requestUrl.pathname.match(/^\/standard\/archetypes\/standard\/(monitor-deck-\d{2})\/$/);
+  if (archetypeMatch) {
+    const slug = archetypeMatch[1];
+    const canonical = `${origin}${requestUrl.pathname}`;
+    // The 30th archetype is the fourth of five samples: neither first, middle nor last.
+    const broken = seoFailure === 'archetype-page-4' && slug === 'monitor-deck-30';
+    const robots = seoFailure === 'archetype-meta-noindex' || broken
+      ? 'noindex, follow'
+      : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+    const graph = seoFailure === 'archetype-jsonld-other-page'
+      ? [{ '@type': 'ItemPage', url: `${origin}/standard/archetypes/standard/someone-else/` }]
+      : [{ '@type': 'BreadcrumbList' }, { '@type': 'ItemPage', url: canonical, mainEntity: { '@id': `${canonical}#dataset` } }];
+    const jsonLd = seoFailure === 'archetype-jsonld-missing'
+      ? ''
+      : seoFailure === 'archetype-jsonld-invalid'
+        ? '<script type="application/ld+json">{broken</script>'
+        : `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })}</script>`;
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'X-Robots-Tag': seoFailure === 'archetype-header-noindex' ? 'noindex, follow' : 'index, follow',
+    });
+    res.end(`<!doctype html><html><head><title>${slug}</title><meta name="robots" content="${robots}"/><link rel="canonical" href="${seoFailure === 'archetype-canonical' ? `${origin}/standard/meta/standard/${slug}/` : canonical}"/>${jsonLd}</head><body><main><h1>${slug}</h1></main></body></html>`);
     return;
   }
   const editorialMatch = requestUrl.pathname.match(/^\/(?:cosmetics\/heroes|guides-archive)\/([A-Za-z0-9_-]+)\/$/);
@@ -370,9 +409,11 @@ try {
     battlegroundHeroes: 80,
     cosmetics: 500,
     guidesArchive: 500,
+    archetypes: 40,
   });
   assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
-  assert.equal(seoCheck.sampledDetails, 21);
+  assert.equal(seoCheck.sampledDetails, 26,
+    'seven segments sample first, middle and last; archetypes sample five');
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200]);
 
@@ -518,6 +559,18 @@ try {
     ['malformed-comment', /XML|well-formed|comment/i],
     ['trailing-xml-garbage', /XML|well-formed|trailing/i],
     ['unexpected-xml-structure', /XML|structure|url/i],
+    ['index-without-archetypes', /exact public segment set/i],
+    ['archetypes-small', /archetype sitemap has invalid entry count 29/i],
+    ['archetypes-meta-family', /archetype sitemap contains a non-canonical URL/i],
+    ['archetypes-wild', /archetype sitemap contains a non-canonical URL/i],
+    ['archetypes-query', /archetype sitemap contains a non-canonical URL/i],
+    ['archetype-header-noindex', /sample archetypes entity monitor-deck-01: X-Robots-Tag is noindex/i],
+    ['archetype-meta-noindex', /sample archetypes entity monitor-deck-01: index robots metadata is missing/i],
+    ['archetype-page-4', /sample archetypes entity monitor-deck-30: index robots metadata is missing/i],
+    ['archetype-canonical', /sample archetypes entity monitor-deck-01: canonical mismatch/i],
+    ['archetype-jsonld-missing', /sample archetypes entity monitor-deck-01: JSON-LD is missing/i],
+    ['archetype-jsonld-invalid', /sample archetypes entity monitor-deck-01: JSON-LD is invalid/i],
+    ['archetype-jsonld-other-page', /sample archetypes entity monitor-deck-01: JSON-LD does not describe the page/i],
   ]) {
     seoFailure = mode;
     await assert.rejects(
@@ -526,6 +579,13 @@ try {
       `${mode} must fail the crawl contract`,
     );
   }
+  seoFailure = null;
+
+  seoFailure = 'archetypes-lkg';
+  const lkgArchetypes = await runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 });
+  assert.equal(lkgArchetypes.status, 'ok', 'a last-known-good archetype segment is still a valid, visible state');
+  assert.equal(lkgArchetypes.checks.find(check => check.label === 'SEO crawl contract').sitemapSources.archetypes,
+    'last-known-good');
   seoFailure = null;
 
   seoFailure = 'comment-loc';
