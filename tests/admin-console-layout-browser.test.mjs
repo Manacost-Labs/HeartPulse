@@ -71,7 +71,7 @@ test('admin sections open without moving their content, sticky panels follow the
     assert.ok(preview.top >= 0 && preview.top <= 40, `preview stays at the top of the scrolled area (offset ${preview.top}px)`);
 
     // Side sheets portal into the console's layer host: they take the theme instead of the public
-    // site's gold buttons, and their buttons fit their labels.
+    // site's palette, and their buttons fit their labels.
     await openSection(page, 'Пользователи');
     await page.waitForSelector('.admin-people-row .admin-crm-open', { visible: true });
     // Sections the console keeps hidden hold their own names; open the person from the visible table.
@@ -92,7 +92,7 @@ test('admin sections open without moving their content, sticky panels follow the
       };
     });
     assert.equal(sheet.inHost, true, 'the client card renders inside the console layer host');
-    assert.equal(sheet.primaryBackground, 'rgb(42, 119, 191)', 'the main action uses the console primary colour');
+    assert.equal(sheet.primaryBackground, 'rgb(154, 79, 16)', 'the main action uses the console primary colour');
     assert.deepEqual(sheet.clipped, [], 'no button in the client card cuts its label');
   } finally {
     if (browser) await browser.close();
