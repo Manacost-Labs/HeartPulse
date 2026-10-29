@@ -105,6 +105,126 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
   }
 });
 
+/** The graph of the single entity JSON-LD script a Next detail or listing page renders for its path. */
+function entityGraph(html, path) {
+  const scripts = [...html.matchAll(/<script\b(?=[^>]*type="application\/ld\+json")(?=[^>]*data-server-entity-jsonld)([^>]*)>([\s\S]*?)<\/script>/g)];
+  assert.equal(scripts.length, 1, `${path} must render exactly one entity JSON-LD script`);
+  assert.match(scripts[0][1], new RegExp(`data-entity-path="${path}"`), `${path} JSON-LD is scoped to its path`);
+  const document = JSON.parse(scripts[0][2]);
+  assert.equal(document['@context'], 'https://schema.org');
+  return document['@graph'];
+}
+
+const crumbs = breadcrumb => breadcrumb.itemListElement.map(({ '@type': type, position, name, item }) => ({ type, position, name, item }));
+
+test('a card page describes the card, its site and its path in one JSON-LD graph', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  try {
+    for (const [format, formatName, formatLabel] of [['standard', 'Стандарт', 'Стандарте'], ['wild', 'Вольный формат', 'Вольном формате']]) {
+      const path = `/standard/cards/${format}/CARD_QA_0002/`;
+      const canonical = `https://hearthpulse.net${path}`;
+      const response = await fetch(`${runtime.nextOrigin}${path}`);
+      assert.equal(response.status, 200, path);
+      const html = await response.text();
+      const graph = entityGraph(html, path.slice(0, -1));
+      assert.deepEqual(graph.map(node => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList'], `${format} graph`);
+      const [page, card, breadcrumb] = graph;
+
+      assert.deepEqual(page, {
+        '@type': 'WebPage', '@id': `${canonical}#webpage`, url: canonical,
+        name: `Публичная карта 2 — карта Hearthstone (${formatName}, CARD_QA_0002) | HearthPulse`,
+        description: `Публичная карта 2: Боевой клич: возьмите карту. Статистика и колоды с картой в ${formatLabel} на HearthPulse.`,
+        inLanguage: 'ru',
+        isPartOf: { '@type': 'WebSite', '@id': 'https://hearthpulse.net/#website', name: 'HearthPulse', url: 'https://hearthpulse.net/' },
+        primaryImageOfPage: { '@type': 'ImageObject', contentUrl: 'https://hearthpulse.net/arena-logo-icon.webp' },
+        mainEntity: { '@id': `${canonical}#card` },
+        breadcrumb: { '@id': `${canonical}#breadcrumb` },
+      }, `${format} WebPage`);
+      assert.deepEqual(card, {
+        '@type': 'CreativeWork', '@id': `${canonical}#card`, url: canonical,
+        name: 'Публичная карта 2', alternateName: 'Public Card 2', identifier: 'CARD_QA_0002',
+        image: 'https://hearthpulse.net/arena-logo-icon.webp',
+        description: `Публичная карта 2: Боевой клич: возьмите карту. Статистика и колоды с картой в ${formatLabel} на HearthPulse.`,
+        inLanguage: 'ru', isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
+        additionalProperty: [
+          { '@type': 'PropertyValue', name: 'Формат', value: formatName },
+          { '@type': 'PropertyValue', name: 'Мана', value: 2 },
+          { '@type': 'PropertyValue', name: 'Тип', value: 'Существо' },
+          { '@type': 'PropertyValue', name: 'Редкость', value: 'Обычная' },
+          { '@type': 'PropertyValue', name: 'Дополнение', value: 'Основной набор' },
+          { '@type': 'PropertyValue', name: 'Атака', value: 2 },
+          { '@type': 'PropertyValue', name: 'Здоровье', value: 3 },
+        ],
+      }, `${format} CreativeWork`);
+      assert.equal(breadcrumb['@id'], `${canonical}#breadcrumb`);
+      assert.deepEqual(crumbs(breadcrumb), [
+        { type: 'ListItem', position: 1, name: 'Главная', item: 'https://hearthpulse.net/' },
+        { type: 'ListItem', position: 2, name: 'Карты Hearthstone', item: 'https://hearthpulse.net/standard/cards/' },
+        { type: 'ListItem', position: 3, name: formatName, item: `https://hearthpulse.net/standard/cards/${format}/` },
+        { type: 'ListItem', position: 4, name: 'Публичная карта 2', item: canonical },
+      ], `${format} breadcrumbs`);
+
+      // The reader's own breadcrumb leads to the same place: the listing of the card's format, then the card.
+      const visible = html.match(/<nav\b[^>]*aria-label="Breadcrumb"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
+      assert.ok(visible, `${format} card page shows its breadcrumb`);
+      assert.equal(new URL(visible.match(/<a\b[^>]*href="([^"]*)"/)[1], 'https://hearthpulse.net').pathname,
+        `/standard/cards/${format}/`, `${format} visible breadcrumb link`);
+      const shown = visibleText(visible).split('/');
+      assert.equal(shown.at(-1), 'Публичная карта 2', `${format} visible breadcrumb ends with the card`);
+      assert.ok(formatName.startsWith(shown.at(-2)), `${format} visible breadcrumb names the same format`);
+    }
+  } finally {
+    await runtime.close();
+  }
+});
+
+test('a card library listing shows its path above the same list of cards', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  try {
+    const home = { name: 'Главная', item: 'https://hearthpulse.net/' };
+    const library = { name: 'Карты Hearthstone', item: 'https://hearthpulse.net/standard/cards/' };
+    const listings = [
+      // The library root lists the Standard cards under its own canonical URL and has no format step.
+      ['/standard/cards/', [home, library], 'https://hearthpulse.net/standard/cards/standard/blizzard%3A12345/'],
+      ['/standard/cards/standard/', [home, library, { name: 'Стандарт', item: 'https://hearthpulse.net/standard/cards/standard/' }],
+        'https://hearthpulse.net/standard/cards/standard/blizzard%3A12345/'],
+      ['/standard/cards/wild/', [home, library, { name: 'Вольный формат', item: 'https://hearthpulse.net/standard/cards/wild/' }],
+        'https://hearthpulse.net/standard/cards/wild/blizzard%3A12345/'],
+    ];
+    for (const [path, trail, firstCard] of listings) {
+      const canonical = `https://hearthpulse.net${path}`;
+      const response = await fetch(`${runtime.nextOrigin}${path}`);
+      assert.equal(response.status, 200, path);
+      const graph = entityGraph(await response.text(), path);
+      assert.deepEqual(graph.map(node => node['@type']), ['CollectionPage', 'BreadcrumbList'], `${path} graph`);
+      const { mainEntity: list, ...collection } = graph[0];
+      assert.deepEqual(collection, {
+        '@type': 'CollectionPage', '@id': `${canonical}#collection`, url: canonical, name: 'Карты Hearthstone',
+        inLanguage: 'ru',
+        isPartOf: { '@type': 'WebSite', '@id': 'https://hearthpulse.net/#website', name: 'HearthPulse', url: 'https://hearthpulse.net/' },
+        breadcrumb: { '@id': `${canonical}#breadcrumb` },
+      }, `${path} CollectionPage`);
+      assert.equal(graph[1]['@id'], `${canonical}#breadcrumb`, `${path} breadcrumb id`);
+      assert.deepEqual(crumbs(graph[1]), trail.map((crumb, index) => ({ type: 'ListItem', position: index + 1, ...crumb })), `${path} breadcrumbs`);
+
+      assert.equal(list['@type'], 'ItemList');
+      assert.equal(list.numberOfItems, 3000, `${path} counts the whole catalog`);
+      assert.equal(list.itemListElement.length, 60, `${path} lists the cards of the page`);
+      assert.deepEqual(list.itemListElement[0], { '@type': 'ListItem', position: 1, name: 'Публичная карта 1', url: firstCard }, `${path} first card`);
+    }
+
+    // The second page keeps the listing's identity and continues the positions.
+    const second = entityGraph(await (await fetch(`${runtime.nextOrigin}/standard/cards/standard/?page=2`)).text(), '/standard/cards/standard/');
+    assert.equal(second[0]['@id'], 'https://hearthpulse.net/standard/cards/standard/#collection');
+    assert.equal(second[0].mainEntity.numberOfItems, 3000);
+    assert.equal(second[0].mainEntity.itemListElement[0].position, 61);
+    assert.equal(second[0].mainEntity.itemListElement.at(-1).position, 120);
+    assert.equal(second[1].itemListElement.length, 3);
+  } finally {
+    await runtime.close();
+  }
+});
+
 test('every SEO registry page takes its title, description and share metadata from the registry', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {

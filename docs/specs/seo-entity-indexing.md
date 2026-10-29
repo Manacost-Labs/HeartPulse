@@ -38,7 +38,23 @@ Each included detail page must return:
 - a unique title, description and H1 derived from public entity data;
 - server-rendered visible facts and an entity image;
 - JSON-LD containing `WebPage`, the described `CreativeWork`, and a
-  `BreadcrumbList` matching visible navigation;
+  `BreadcrumbList` matching visible navigation. The `WebPage` has
+  `@id` `<canonical>#webpage`, `inLanguage: "ru"` and `isPartOf` pointing at
+  the site node `https://hearthpulse.net/#website`; the entity has the
+  fragment `#card` or `#hero` and an `image` when the page has a picture. One
+  builder, `buildEntityStructuredData` in `shared/entitySeoStructuredData.ts`,
+  serves the Express documents and the Next.js pages;
+- breadcrumbs of a Standard or Wild card, with absolute canonical URLs and a
+  trailing slash: «Главная» (`/`) › «Карты Hearthstone» (`/standard/cards/`) ›
+  «Стандарт» or «Вольный формат» (`/standard/cards/<format>/`) › the card.
+  The Express fallback document keeps its shorter path (home › library of the
+  format › card);
+- a card library listing (`/standard/cards/`, `/standard/cards/<format>/`) is
+  a `CollectionPage` `<canonical>#collection` with `inLanguage`, `isPartOf`,
+  the `ItemList` of the current page (`numberOfItems` is the catalog total,
+  positions run through the pages) and a `BreadcrumbList`: home › library
+  (› format, except on the library root, which has no format step of its own).
+  `buildCollectionStructuredData` builds it;
 - ordinary `<a href>` links back to the owning library and to complementary
   tier-list or meta pages;
 - HearthPulse as the site brand, without implying ownership of Hearthstone or

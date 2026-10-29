@@ -4,6 +4,10 @@ import { constructedCardPath, type CardFormat } from '@/src/modules/constructedC
 import { loadPublicCatalog } from '@/apps/public-web/lib/publicCatalog';
 import { LegacyCardPage } from './LegacyCardPage';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
+import { buildCollectionStructuredData } from '@/shared/entitySeoStructuredData';
+
+const ORIGIN = 'https://hearthpulse.net';
+const CATALOG_ROOT = '/standard/cards/';
 
 export type CatalogSearch = Promise<Record<string, string | string[] | undefined>>;
 async function catalogSearch(searchParams: CatalogSearch) {
@@ -24,11 +28,20 @@ export async function catalogMetadata(format: CardFormat, pathname: string, sear
 export async function CardCatalogPage({ format, pathname, searchParams }: { format: CardFormat; pathname: string; searchParams: CatalogSearch }) {
   const query = await catalogSearch(searchParams);
   const catalog = await loadPublicCatalog(format, query);
-  const canonical = `https://hearthpulse.net${pathname}`;
-  const structured = { '@context': 'https://schema.org', '@type': 'CollectionPage', '@id': canonical, url: canonical, name: 'Карты Hearthstone', mainEntity: {
-    '@type': 'ItemList', numberOfItems: catalog.pagination.total,
-    itemListElement: catalog.cards.map((card, index) => ({ '@type': 'ListItem', position: (catalog.pagination.page - 1) * catalog.pagination.perPage + index + 1, name: card.name.ru, url: `https://hearthpulse.net${constructedCardPath(format, card.card_id)}/` })),
-  } };
+  const canonical = `${ORIGIN}${pathname}`;
+  const breadcrumbs = [
+    { name: 'Главная', item: `${ORIGIN}/` },
+    { name: 'Карты Hearthstone', item: `${ORIGIN}${CATALOG_ROOT}` },
+    // The library root lists the Standard cards under its own canonical URL: it has no format step of its own.
+    ...(pathname === CATALOG_ROOT ? [] : [{ name: format === 'wild' ? 'Вольный формат' : 'Стандарт', item: canonical }]),
+  ];
+  const structured = buildCollectionStructuredData({
+    canonical, origin: ORIGIN, name: 'Карты Hearthstone', breadcrumbs,
+    mainEntity: {
+      '@type': 'ItemList', numberOfItems: catalog.pagination.total,
+      itemListElement: catalog.cards.map((card, index) => ({ '@type': 'ListItem', position: (catalog.pagination.page - 1) * catalog.pagination.perPage + index + 1, name: card.name.ru, url: `${ORIGIN}${constructedCardPath(format, card.card_id)}/` })),
+    },
+  });
   return <>
     <PageBannerPreload />
     <script type="application/ld+json" data-server-entity-jsonld data-entity-path={pathname}
