@@ -196,7 +196,7 @@ jobs:
       # Every shard reports its own result; one failure must not hide the others.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2]
 
     steps:
       - name: Checkout repository
@@ -278,8 +278,9 @@ jobs:
   browser-quarantine:
     name: Browser quarantine (non-blocking)
     needs: [build, storybook]
+    # Flake data comes from pull requests; the merge queue and main do not wait for or pay for it.
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}
+    if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && needs.build.result == 'success' && needs.storybook.result == 'success' }}
     continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 20

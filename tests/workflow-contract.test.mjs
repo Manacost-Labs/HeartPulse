@@ -167,6 +167,7 @@ const shardsOf = job => {
   return list;
 };
 const shardList = shardsOf('browser-tests');
+assert.deepEqual(shardsOf('test-suites'), [1, 2], 'the registry suites run in two shards: a third only added runner minutes outside the critical path');
 assert.match(
   ciJobs['browser-tests'],
   /- name: Run registered browser shard\s+run: npm run test:suite -- browser --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --retry-failed-once --continue-on-failure --quarantine exclude$/m,
@@ -176,8 +177,16 @@ assert.match(
 // CI required or the deployment (both need lists are asserted exactly above).
 const quarantineJob = ciJobs['browser-quarantine'];
 assert.match(quarantineJob, /^ {4}name: Browser quarantine \(non-blocking\)$/m);
-assert.ok(quarantineJob.includes("    needs: [build, storybook]\n    # Explicit: the implicit success() also fails on the skipped reuse job upstream.\n    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}\n    continue-on-error: true\n"),
-  'the quarantine job tests the built outputs and its failure never fails the run');
+assert.match(quarantineJob, /^ {4}needs: \[build, storybook\]$/m, 'the quarantine job tests the built outputs');
+assert.match(quarantineJob, /^ {4}continue-on-error: true$/m, 'a quarantine failure never fails the run');
+const quarantineIf = quarantineJob.match(/^ {4}if: (.+)$/m)?.[1];
+assert.ok(quarantineIf, 'the quarantine job needs an explicit if');
+assert.ok(quarantineIf.includes("!cancelled() && ") && quarantineIf.includes("needs.build.result == 'success' && needs.storybook.result == 'success'"),
+  'the quarantine job runs after both builds even though the reuse job upstream was skipped');
+// Flake data comes from pull requests: the merge queue and main must not pay runner minutes for the quarantine.
+assert.ok(quarantineIf.includes("github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'"),
+  'the quarantine job runs only for pull_request and workflow_dispatch');
+assert.ok(!/merge_group|github\.event_name == 'push'/.test(quarantineIf), 'the quarantine job never runs in merge_group or on push');
 assert.ok(quarantineJob.includes(buildOutputsName), 'the quarantine job must download the validated build outputs');
 assert.match(quarantineJob, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/,
   'quarantined archetype and skeleton tests serve the Storybook build');
