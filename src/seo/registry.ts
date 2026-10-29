@@ -1,11 +1,29 @@
 import rawRegistry from '../../config/public-seo-pages.json';
+import { assertSeoDataTemplate } from './dataTemplate';
+
+/**
+ * Tokens the data templates (`dataTitle`, `dataDescription`) may use; the
+ * values come from the page's own anonymous teaser (apps/public-web/lib/seoDataValues.ts).
+ * - `month`: «октябрь 2026», the month of the data (absent when the data is older than a week)
+ * - `asOf`: « на 29 октября 2026» or «, обновлено 20 октября 2026» with its own leading separator
+ * - `leader`: the leading archetype of the meta with its winrate
+ * - `archetypes`: «193 архетипа»
+ * - `format`: the catalog's format in the genitive case, «Стандарта»
+ */
+export const SEO_DATA_TOKENS = ['month', 'asOf', 'leader', 'archetypes', 'format'] as const;
 
 export type PublicSeoPage = {
   pathname: string;
   policyRouteId: string;
   navigationRouteId?: string;
+  /** Static title: the fallback of a page without data. Only `{year}` is allowed. */
   title: string;
+  /** Static description: the fallback of a page without data. Only `{year}` is allowed. */
   description: string;
+  /** Title with live data (`SEO_DATA_TOKENS`), used while the page has fresh data. Unrendered template. */
+  dataTitle?: string;
+  /** Description with live data (`SEO_DATA_TOKENS`). Unrendered template. */
+  dataDescription?: string;
   sitemap: boolean;
 };
 
@@ -49,6 +67,16 @@ function validateRegistry(value: unknown): readonly PublicSeoPage[] {
       || typeof page.sitemap !== 'boolean') {
       throw new Error(`Invalid SEO registry page: ${pathname}`);
     }
+    if ((page.dataTitle === undefined) !== (page.dataDescription === undefined)) {
+      throw new Error(`SEO registry page needs both dataTitle and dataDescription: ${pathname}`);
+    }
+    if (page.dataTitle !== undefined) {
+      if (typeof page.dataTitle !== 'string' || typeof page.dataDescription !== 'string') {
+        throw new Error(`Invalid SEO data templates: ${pathname}`);
+      }
+      assertSeoDataTemplate(page.dataTitle, SEO_DATA_TOKENS, `${pathname} dataTitle`);
+      assertSeoDataTemplate(page.dataDescription, SEO_DATA_TOKENS, `${pathname} dataDescription`);
+    }
     if (page.navigationRouteId !== undefined) {
       if (typeof page.navigationRouteId !== 'string' || !page.navigationRouteId.trim()) {
         throw new Error(`Invalid navigation route id for SEO page: ${pathname}`);
@@ -65,6 +93,7 @@ function validateRegistry(value: unknown): readonly PublicSeoPage[] {
       ...(page.navigationRouteId ? { navigationRouteId: page.navigationRouteId } : {}),
       title: renderSeoTemplate(page.title.trim()),
       description: renderSeoTemplate(page.description.trim()),
+      ...(page.dataTitle ? { dataTitle: page.dataTitle.trim(), dataDescription: page.dataDescription?.trim() } : {}),
       sitemap: page.sitemap,
     });
   });

@@ -72,6 +72,31 @@ absent-card probe only while the card API reports `X-Data-Cache: LKG`.
   the prerendered ones and the noindex `/connect` and `/admin`, takes its title
   and description from the registry, which
   `tests/next-seo-page-metadata.test.mjs` checks.
+- Pages with a free teaser (`/standard/meta`, `/standard/archetypes`) carry the
+  date of their data in the snippet. Their registry entries hold the static
+  `title` and `description` (only `{year}` allowed; the text without data) and
+  the templates `dataTitle` and `dataDescription` with the tokens listed in
+  `SEO_DATA_TOKENS` (`src/seo/registry.ts`). `[ … ]` marks an optional group
+  that drops out when its value is missing or the text exceeds 65 characters
+  (title) or 160 (description), last group first
+  (`src/seo/dataTemplate.ts`). `generateMetadata` renders them with values built
+  by `apps/public-web/lib/seoDataValues.ts` from the same cached teaser loader
+  the page uses, so metadata adds no second Express read. Without a teaser or a
+  readable date it falls back to the static text.
+- The date of the data is the teaser's `updatedAt` in Moscow time
+  (`apps/public-web/lib/seoDataDate.ts`), never the server clock. The title
+  carries the month («октябрь 2026»), the description the full date («на 29
+  октября 2026»). Data older than seven days loses the month in the title and
+  says «обновлено <дата>» in the description. The meta description names a
+  leader only for a teaser row with at least 1000 games and never prints the
+  sample size (the guest total is a sum of three rows). The period label comes
+  from `standardMetaPeriodLabel`.
+- An archetype page is not a registry page: its formula is in
+  `apps/public-web/lib/seoDataValues.ts` (`archetypeDetailSeoText`) and is used
+  by `apps/public-web/lib/publicArchetypeRoute.ts`.
+- `/standard/meta` shows the same date, slice and source as a server-rendered
+  line below the meta page (`apps/public-web/ui/StandardMetaDataNote.tsx`,
+  passed to the client page as `children`).
 - Contract tests live in the existing entity sitemap and SEO route test files.
 
 No new dependency, database migration or public JSON API is introduced.

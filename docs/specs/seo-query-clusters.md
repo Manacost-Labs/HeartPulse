@@ -16,12 +16,14 @@ third-party data source.
   strategy, minion, spell and trinket tiers. It does not target the builder.
 - `/battlegrounds/strategies` owns `конструктор стратегий БГ`, supported by
   composing and visualising a plan. It does not rank strategies.
-- `/standard/meta` owns `HSGuru мета Hearthstone на русском`, supported by deck
-  tiers, win rate and popularity. It does not target HSGuru navigation or imply
-  affiliation.
+- `/standard/meta` owns `мета Hearthstone` and `мета хартстоун` with the month of
+  the data, supported by deck tiers, win rate and popularity. HSGuru is named
+  only as the source in the description and on the page, never at the start of
+  the title; it does not target HSGuru navigation or imply affiliation.
 - `/standard/archetypes` owns the Hearthstone archetype catalogue, supported by
-  archetype pages and HSGuru-sourced deck lists. It does not own the broad meta
-  tier-list intent.
+  archetype pages and HSGuru-sourced win rates. Deck codes are paid and the
+  snippet does not promise them. It does not own the broad meta tier-list
+  intent.
 - `/standard/matchups` owns the Hearthstone matchup matrix, supported by HSGuru
   statistics. It does not own the broad meta tier-list intent.
 

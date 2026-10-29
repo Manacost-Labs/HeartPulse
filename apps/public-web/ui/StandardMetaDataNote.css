@@ -1,0 +1,15 @@
+/* The server-rendered line under the meta page: which data the numbers on it come from. */
+.standard-meta-data-note {
+  max-inline-size: 72rem;
+  margin: 1.25rem auto 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--arena-paper-line);
+  color: var(--arena-ink);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.standard-meta-data-note a {
+  color: inherit;
+  text-decoration: underline;
+}
