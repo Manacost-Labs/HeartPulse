@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { Legendaries } from '@/src/features/DeferredRoutes';
 import { useArenaLegendaries, type LegendariesData } from '@/src/modules/arenaLegendaries/public';
@@ -9,7 +9,8 @@ import { navigate, navigateTab } from './navigation';
 
 const EMPTY_DATA: LegendariesData = { groups: [], updatedAt: null, source: 'hsreplay.net' };
 
-export function LegendariesPageClient() {
+/** `children` is server-rendered content (the page's text) shown below the page, inside the shell's `<main>`. */
+export function LegendariesPageClient({ children }: { children?: ReactNode }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'arena');
   const legendaries = useArenaLegendaries(access.user?.id, allowed);
@@ -32,5 +33,6 @@ export function LegendariesPageClient() {
       authUser={access.user} subscriptionStatus={access.subscription}
       subscriptionLoading={pending} onRefreshSubscription={access.refresh}
       accessGranted={allowed} />
+    {children}
   </PublicPageShell>;
 }

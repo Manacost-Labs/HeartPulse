@@ -112,22 +112,22 @@
     "/classes": {
       "policyRouteId": "winrates",
       "navigationRouteId": "winrates",
-      "title": "Винрейт классов — Арена Hearthstone {year} | HearthPulse",
-      "description": "Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.",
+      "title": "Винрейт классов Арены Hearthstone, {year} | HearthPulse",
+      "description": "Лучшие классы Арены Hearthstone (хс): винрейты всех 11 классов на текущем патче по данным HSReplay и Firestone. Доступ по подписке.",
       "sitemap": true
     },
     "/tierlist": {
       "policyRouteId": "tierlist",
       "navigationRouteId": "tierlist",
-      "title": "Тир-лист Арены Hearthstone {year} | HearthPulse",
-      "description": "Тир-лист карт Арены Hearthstone по классам: оценки от S до F для текущего патча по данным HearthArena и HSReplay.",
+      "title": "Тир-лист Арены Hearthstone (хс), {year} | HearthPulse",
+      "description": "Тир-лист карт Арены Hearthstone по классам: оценки от S до F по данным HSReplay, HearthArena и Firestone. Данные обновляются автоматически, доступ по подписке.",
       "sitemap": true
     },
     "/legendaries": {
       "policyRouteId": "legendaries",
       "navigationRouteId": "legendaries",
-      "title": "Легендарки на Арене Hearthstone — Лучшие группы | HearthPulse",
-      "description": "Какую легендарную карту выбрать на Арене? Все группы первого выбора с процентом побед для каждого класса. Обновляется автоматически с Manacost.",
+      "title": "Легендарки Арены Hearthstone, {year} | HearthPulse",
+      "description": "Какую легендарку выбрать на Арене Hearthstone? Группы первого выбора с процентом побед по классам, данные HSReplay и Firestone. Доступ по подписке.",
       "sitemap": true
     },
     "/articles": {

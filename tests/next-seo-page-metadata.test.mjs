@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
-import test from 'node:test';
+import test, { after, before, describe, it } from 'node:test';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { CONTROL_WARRIOR_DECK_CODE, metaExternalRoutes } from './helpers/browserMetaFixture.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
@@ -878,4 +878,99 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     express.closeAllConnections();
     await new Promise(resolve => express.close(resolve));
   }
+});
+
+// ── Text of the closed Arena pages (E9 S4a) ──
+// A guest gets the page frame and a paywall; the text below is all a search engine
+// and a reader without JavaScript find in the HTML. It is checked in the HTML Next serves.
+
+const wordCount = text => text.split(/\s+/).filter(word => /[\p{L}\p{N}]/u.test(word)).length;
+const STANDALONE_HS = /(?<![\p{L}\p{N}])хс(?![\p{L}\p{N}])/iu;
+// A promise of how often the data changes: the scraper's schedule is not the refresh rate of what the page shows.
+const FIGURE_OR_FREQUENCY = /\d|%|каждые\s+\S+\s+час|раз\s+в\s+(?:сутки|день|час|неделю)|ежедневн|ежечасн|несколько\s+раз/iu;
+const ARENA_PAGES = [
+  { path: '/tierlist/', title: `Тир-лист Арены Hearthstone (хс), ${YEAR} | HearthPulse`,
+    question: 'Что показывает тир-лист Арены Hearthstone (хс)?', sources: ['HSReplay', 'HearthArena', 'Firestone'], dataset: true },
+  { path: '/classes/', title: `Винрейт классов Арены Hearthstone, ${YEAR} | HearthPulse`,
+    question: 'Какой класс выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: true },
+  { path: '/legendaries/', title: `Легендарки Арены Hearthstone, ${YEAR} | HearthPulse`,
+    question: 'Какую легендарку выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: false },
+];
+
+describe('a closed Arena page explains itself in the HTML: questions, sources, update schedule and no statistics', { timeout: 180_000 }, () => {
+  let runtime;
+  let frameWords;
+  before(async () => {
+    runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+    const missing = await fetch(`${runtime.nextOrigin}/no-such-page-for-arena-text/`);
+    assert.equal(missing.status, 404);
+    frameWords = wordCount(visibleText(await missing.text()));
+  });
+  after(async () => { await runtime?.close(); });
+
+  for (const page of ARENA_PAGES) {
+    it(page.path, async () => {
+      const response = await fetch(`${runtime.nextOrigin}${page.path}`);
+      assert.equal(response.status, 200, page.path);
+      const html = await response.text();
+
+      assertOnce(html, /<title>([^<]*)<\/title>/g, page.title, `${page.path} title`);
+      const description = decoded(html.match(/<meta name="description" content="([^"]*)"/)[1]);
+      assert.ok(description.length <= 160, `${page.path} description is ${description.length} characters`);
+      assert.ok(description.includes('Hearthstone'), `${page.path} description names the game`);
+
+      // One block, in <main>, after the H1.
+      assert.equal(html.split('class="seo-page-intro"').length - 1, 1, `${page.path} renders the text once`);
+      const at = html.indexOf('class="seo-page-intro"');
+      assert.ok(html.indexOf('<main') < html.indexOf('<h1') && html.indexOf('<h1') < at && at < html.indexOf('</main>'),
+        `${page.path} text sits in <main> below the H1`);
+      const block = html.match(/<section class="seo-page-intro">([\s\S]*?)<\/section>/)[1];
+      const text = visibleText(block);
+
+      const words = wordCount(text);
+      assert.ok(words >= 250 && words <= 400, `${page.path} text is ${words} words`);
+      assert.ok(wordCount(visibleText(html)) - frameWords >= 150, `${page.path} has 150 words more than the 404 frame`);
+
+      const headings = [...block.matchAll(/<h2>(.*?)<\/h2>/g)].map(match => decoded(match[1]));
+      assert.ok(headings.length >= 4, `${page.path} has ${headings.length} headings`);
+      assert.ok(headings.every(heading => heading.endsWith('?')), `${page.path} headings are questions: ${headings.join(' | ')}`);
+      assert.ok(headings.includes(page.question), `${page.path} answers «${page.question}»`);
+
+      for (const source of page.sources) assert.ok(text.includes(source), `${page.path} names ${source}`);
+      assert.ok(text.includes('Данные обновляются автоматически'), `${page.path} says the data refreshes by itself`);
+      assert.ok(text.includes('по подписке с уровня «Любитель Арены»'), `${page.path} says who gets the data`);
+
+      // Statistics belong to subscribers: not one figure, no update frequency, and «хс» always follows the game's name.
+      assert.doesNotMatch(text, FIGURE_OR_FREQUENCY, `${page.path} text carries no figure and promises no update frequency`);
+      assert.doesNotMatch(text.replaceAll('Hearthstone (хс)', ''), STANDALONE_HS, `${page.path} uses «хс» only next to Hearthstone`);
+
+      // Every link of the text leads to a page that exists.
+      const links = [...block.matchAll(/<a href="([^"]+)"/g)].map(match => match[1]);
+      assert.ok(links.length >= 2, `${page.path} links to related pages`);
+      for (const link of links) assert.equal((await fetch(`${runtime.nextOrigin}${link}`)).status, 200, `${page.path} links to ${link}`);
+
+      // The dataset in the markup claims no more than the text above explains.
+      const dataset = jsonLdGraph(html)['@graph'].find(node => node['@type'] === 'Dataset');
+      assert.equal(Boolean(dataset), page.dataset, `${page.path} dataset`);
+      if (dataset) {
+        assert.equal(dataset.isAccessibleForFree, false, `${page.path} dataset is for subscribers`);
+        for (const source of page.sources) assert.ok(dataset.description.includes(source), `${page.path} dataset names ${source}`);
+        assert.ok(dataset.description.includes('обновл'), `${page.path} dataset speaks of updates as the text does`);
+        assert.doesNotMatch(dataset.description, FIGURE_OR_FREQUENCY, `${page.path} dataset states no figure or frequency`);
+      }
+      // The snippet promises no frequency either (the classes description counts the classes, which is not statistics).
+      assert.doesNotMatch(description.replace('всех 11 классов', ''), FIGURE_OR_FREQUENCY, `${page.path} description states no figure or frequency`);
+    });
+  }
+
+  it('the tier list explains every grade of its scale, who stops at E, and what «Без тира» is', async () => {
+    const text = visibleText(await (await fetch(`${runtime.nextOrigin}/tierlist/`)).text());
+    for (const line of ['S — «Отлично»', 'A — «Хорошо»', 'B — «Выше среднего»', 'C — «Средне»', 'D — «Ниже среднего»', 'E — «Плохо»', 'F — «Ужасно»']) {
+      assert.ok(text.includes(line), `the tier list explains ${line}`);
+    }
+    // HSReplay never gives F (server/hsreplayArenasmith.ts), and a card without Arenasmith Score is no grade at all.
+    assert.ok(text.includes('у HSReplay буква выводится из Arenasmith Score, и там она заканчивается на E'), 'the HSReplay scale ends at E');
+    assert.ok(text.includes('группу «Без тира»: это не оценка, а отметка об отсутствии данных'), '«Без тира» is not a grade');
+    assert.doesNotMatch(text, /одну из семи оценок/, 'not every card gets one of seven grades');
+  });
 });

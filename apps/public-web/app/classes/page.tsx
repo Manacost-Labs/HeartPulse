@@ -2,6 +2,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { ClassesPageClient } from '@/apps/public-web/ui/ClassesPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { SeoPageIntro } from '@/apps/public-web/ui/SeoPageIntro';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 // Prerendered and cheap to prefetch: the data loads in the browser, and nginx
@@ -12,6 +13,8 @@ export const generateMetadata = seoStaticPageMetadata('/classes', 'HearthPulse â
 export default function Page() {
   return <>
     <SeoStructuredData path="/classes" />
-    <ClassesPageClient />
+    <ClassesPageClient>
+      <SeoPageIntro path="/classes" />
+    </ClassesPageClient>
   </>;
 }

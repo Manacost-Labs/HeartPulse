@@ -2,6 +2,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { LegendariesPageClient } from '@/apps/public-web/ui/LegendariesPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { SeoPageIntro } from '@/apps/public-web/ui/SeoPageIntro';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 // Prerendered and cheap to prefetch: the data loads in the browser, and nginx
@@ -12,6 +13,8 @@ export const generateMetadata = seoStaticPageMetadata('/legendaries', 'HearthPul
 export default function Page() {
   return <>
     <SeoStructuredData path="/legendaries" />
-    <LegendariesPageClient />
+    <LegendariesPageClient>
+      <SeoPageIntro path="/legendaries" />
+    </LegendariesPageClient>
   </>;
 }

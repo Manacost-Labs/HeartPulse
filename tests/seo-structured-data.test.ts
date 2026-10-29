@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { seoPageForExactPath } from '../src/seo/registry';
+import { parseSeoPageCopy, seoCopyPieces, seoPageCopy } from '../src/seo/pageCopy';
 import { seoStructuredDataGraph } from '../src/seo/structuredData';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData';
 import { normalizePublicPathname } from '../src/shared/seo/publicUrlPolicy';
@@ -209,7 +210,8 @@ test('the contents lists of the tier lists are gone, and no description counts t
   assert.deepEqual(await types('/legendaries/'), ['BreadcrumbList']);
   assert.deepEqual(await types('/battlegrounds/tier-list/'), ['BreadcrumbList', 'CollectionPage']);
   const classes = byType((await seoStructuredDataGraph('/classes/'))!['@graph'], 'Dataset')!;
-  assert.equal(classes.description, 'Актуальные винрейты классов в режиме Арена Hearthstone на основе данных HSReplay и Firestone.');
+  assert.equal(classes.description, 'Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. '
+    + 'Значения доступны по подписке; на открытой странице — описание того, как читать рейтинг, откуда берутся данные и как они обновляются.');
 });
 
 test('lists describe what the page shows: true counts, distinct targets', async () => {
@@ -243,4 +245,53 @@ test('pages without an entry, and the source registry itself, are left alone', a
   await seoStructuredDataGraph('/classes');
   const dataset = registry.pages['/classes'].find(node => node['@type'] === 'Dataset')!;
   assert.equal(dataset.dateModified, undefined, 'building a graph must not mutate the registry');
+});
+
+// ── Text of the closed Arena pages (E9 S4a) ──
+
+const pageCopyText = (path: string) => seoPageCopy(path)!.sections.flatMap(section => [section.question, ...section.body.flat()]).join('\n');
+
+test('a closed Arena dataset says it is for subscribers and names only what the page text explains', async () => {
+  for (const [path, sources, phrases] of [
+    ['/classes', ['HSReplay', 'Firestone'], ['винрейт', 'обновляются автоматически', 'по подписке']],
+    ['/tierlist', ['HSReplay', 'HearthArena', 'Firestone'], ['от S до F', 'обновляются автоматически', 'по подписке']],
+  ] as const) {
+    const dataset = byType((await seoStructuredDataGraph(path))!['@graph'], 'Dataset')!;
+    assert.equal(dataset.isAccessibleForFree, false, `${path} is not free`);
+    const text = pageCopyText(path);
+    for (const source of sources) {
+      assert.ok(String(dataset.description).includes(source), `${path} dataset names ${source}`);
+      assert.ok(text.includes(source), `${path} text names ${source}`);
+    }
+    for (const phrase of phrases) assert.ok(text.includes(phrase), `${path} text says «${phrase}»`);
+    assert.doesNotMatch(String(dataset.description), /\d|%|миллион|тысяч|каждые\s+\S+\s+час|раз\s+в\s+(?:сутки|день|час)/i, `${path} dataset states no figure or update frequency`);
+  }
+});
+
+test('page copy splits a paragraph into text and links', () => {
+  assert.deepEqual(seoCopyPieces('Смотрите [рейтинг классов](/classes/) и [FAQ](/faq/).'), [
+    { text: 'Смотрите ' }, { text: 'рейтинг классов', href: '/classes/' }, { text: ' и ' }, { text: 'FAQ', href: '/faq/' }, { text: '.' },
+  ]);
+  assert.deepEqual(seoCopyPieces('Без ссылок'), [{ text: 'Без ссылок' }]);
+});
+
+test('page copy is accepted only for a registry page, with question headings and links to registry pages', () => {
+  const page = (section: unknown, path = '/classes') => ({ schemaVersion: 1, pages: { [path]: { sections: [section] } } });
+  const section = { question: 'Какой класс выбрать?', body: ['Текст.', ['Один', 'Два']] };
+  assert.deepEqual(parseSeoPageCopy(page(section))['/classes'].sections, [section]);
+  assert.deepEqual(parseSeoPageCopy({ schemaVersion: 1, pages: {} }), {});
+  const rejected: Array<[string, unknown]> = [
+    ['an unknown page', page(section, '/no-such-page')],
+    ['a heading that is no question', page({ ...section, question: 'Классы Арены' })],
+    ['a blank heading', page({ ...section, question: ' ' })],
+    ['a section without a body', page({ ...section, body: [] })],
+    ['an empty paragraph', page({ ...section, body: [' '] })],
+    ['an empty list', page({ ...section, body: [[]] })],
+    ['a blank list item', page({ ...section, body: [['Один', '']] })],
+    ['a link to an unknown page', page({ ...section, body: ['См. [раздел](/no-such-page/).'] })],
+    ['a link without the trailing slash', page({ ...section, body: ['См. [классы](/classes).'] })],
+    ['an unsupported version', { schemaVersion: 2, pages: {} }],
+    ['no pages', { schemaVersion: 1 }],
+  ];
+  for (const [name, raw] of rejected) assert.throws(() => parseSeoPageCopy(raw), /SEO page copy|Unsupported/, name);
 });
