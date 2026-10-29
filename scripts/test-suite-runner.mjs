@@ -377,6 +377,33 @@ export function planShards(items, total, durations, fileOf = item => item) {
   return shards;
 }
 
+/**
+ * Reads the list given to `--only-files`: either the JSON printed by
+ * `scripts/ci-affected-tests.mjs` (its `files` map, or a bare `{ suite: [...] }`
+ * map, or an array of paths) or plain text with one path per line. Returns the
+ * set of allowed test paths; suites are not distinguished because a file
+ * belongs to exactly one suite.
+ */
+export function parseOnlyFiles(text) {
+  const trimmed = String(text).trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    let parsed;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch (error) {
+      throw new Error(`--only-files is not valid JSON: ${error.message}`);
+    }
+    const list = Array.isArray(parsed)
+      ? parsed
+      : Object.values(isRecord(parsed.files) ? parsed.files : parsed).flat();
+    if (!list.every(entry => typeof entry === 'string')) {
+      throw new Error('--only-files must list test paths as strings');
+    }
+    return new Set(list);
+  }
+  return new Set(trimmed.split('\n').map(line => line.trim()).filter(Boolean));
+}
+
 function formatSeconds(milliseconds) {
   return `${(milliseconds / 1000).toFixed(1)}s`;
 }
@@ -423,6 +450,9 @@ function isRetryable(error) {
  * with every failing file named, so one CI run reports all of them.
  * `quarantine` (`'exclude'` or `'only'`) drops or keeps just the registry's
  * quarantined files before sharding; `null` runs every selected file.
+ * `onlyFiles` (a set of test paths) keeps just those files of the selected
+ * suites, before the quarantine filter and before sharding; `null` keeps all.
+ * Nothing left to run is a success that says so.
  */
 export async function runTestRegistry(registry, options) {
   const {
@@ -438,6 +468,7 @@ export async function runTestRegistry(registry, options) {
     retryFailedOnce = false,
     continueOnFailure = false,
     quarantine = null,
+    onlyFiles = null,
     summaryPath = null,
     annotations = false,
     clock = () => performance.now(),
@@ -449,12 +480,22 @@ export async function runTestRegistry(registry, options) {
   if (quarantine !== null && !QUARANTINE_MODES.includes(quarantine)) throw new Error(`unknown quarantine mode: ${quarantine}`);
 
   const quarantinedSet = new Set(validated.quarantined);
-  const selected = registry.suites
+  const inSelectedSuites = registry.suites
     .filter(suite => selectedSuites.has(suite.id))
-    .flatMap(suite => suite.files.map(testFile => ({ suiteId: suite.id, testFile })))
+    .flatMap(suite => suite.files.map(testFile => ({ suiteId: suite.id, testFile })));
+  const requested = onlyFiles === null
+    ? inSelectedSuites
+    : inSelectedSuites.filter(({ testFile }) => onlyFiles.has(testFile));
+  if (onlyFiles !== null) {
+    logger(`[test-suite] ONLY-FILES selected ${requested.length} of ${inSelectedSuites.length} files in the suites`);
+  }
+  const selected = requested
     .filter(({ testFile }) => quarantine === null || quarantinedSet.has(testFile) === (quarantine === 'only'));
   if (quarantine) {
     logger(`[test-suite] QUARANTINE ${quarantine} files=${selected.length} quarantined=${quarantinedSet.size}`);
+  }
+  if (onlyFiles !== null && selected.length === 0) {
+    logger('[test-suite] ONLY-FILES selected 0 files; nothing to run');
   }
   const planned = shard
     ? planShards(selected, shard.total, durations, item => item.testFile)[shard.index - 1]
@@ -558,7 +599,7 @@ function printValidationSummary(validated) {
   );
 }
 
-const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once] [--continue-on-failure] [--quarantine <exclude|only>]';
+const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once] [--continue-on-failure] [--quarantine <exclude|only>] [--only-files <file>]';
 
 /** Parses runner arguments; exported for the CLI contract tests. */
 export function parseRunnerArguments(args) {
@@ -585,6 +626,8 @@ export function parseRunnerArguments(args) {
       options.continueOnFailure = true;
     } else if (flag === '--quarantine' && QUARANTINE_MODES.includes(rest[0]) && !options.quarantine) {
       options.quarantine = rest.shift();
+    } else if (flag === '--only-files' && rest.length > 0 && !rest[0].startsWith('--') && options.onlyFilesPath === undefined) {
+      options.onlyFilesPath = rest.shift();
     } else {
       throw new Error(USAGE);
     }
@@ -612,6 +655,7 @@ async function main() {
     retryFailedOnce: options.retryFailedOnce,
     continueOnFailure: options.continueOnFailure,
     quarantine: options.quarantine,
+    onlyFiles: options.onlyFilesPath ? parseOnlyFiles(readFileSync(options.onlyFilesPath, 'utf8')) : null,
     summaryPath: process.env.GITHUB_STEP_SUMMARY || null,
     annotations: process.env.GITHUB_ACTIONS === 'true',
   });

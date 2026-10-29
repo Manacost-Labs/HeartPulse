@@ -490,6 +490,7 @@
         "tests/test-discovery.test.mjs",
         "tests/test-suite-runner.test.mjs",
         "tests/ci-flake-report.test.mjs",
+        "tests/ci-affected-tests.test.mjs",
         "tests/workflow-contract.test.mjs"
       ]
     },
