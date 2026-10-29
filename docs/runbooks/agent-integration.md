@@ -145,10 +145,10 @@ registry order) and `affectedModules`:
 - `all`: anything else. That is `package*.json`, `.npmrc`, `.github/**`,
   `scripts/**`, `config/**`, `tests/test-suites.json`, test helpers and
   fixtures, the shared roots (`src/shared`, `server/shared`, `shared`),
-  tsconfig, Next and Storybook configs, a composition root, a file outside every module, a path
-  that is not a clean relative path, a test file missing from
-  `tests/test-suites.json`, or a changed module with no registered test. Every
-  registered file is selected.
+  tsconfig, Next and Storybook configs, a composition root, a file outside
+  every module, a path that is not a clean relative path, a test file missing
+  from `tests/test-suites.json`, or a changed module with no registered test.
+  Every registered file is selected.
 
 `--only-files <file>` accepts that JSON (or a plain list of paths; `./tests/a.test.ts`,
 backslashes and absolute paths inside the checkout are normalised) and keeps
