@@ -142,6 +142,7 @@
 .constructed-card-history__body .ui-segmented-control__item:disabled { opacity: 0.42; cursor: not-allowed; }
 
 .constructed-card-history__toolbar {
+  container: card-history / inline-size;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -227,6 +228,20 @@
   .constructed-card-history__body .constructed-card-history__metrics[data-size] .ui-segmented-control__item { flex: 1 1 auto; min-width: min-content; padding-inline: 4px; white-space: normal; text-align: center; line-height: 1.1; }
   .constructed-card-history__state { grid-template-columns: auto minmax(0, 1fr); }
   .constructed-card-history__state p { grid-column: 1 / -1; text-align: left; }
+}
+
+/* Segments of the switches above the chart are 44px tall where a finger is the pointer (50px track, 3px padding). */
+@media (max-width: 720px), (pointer: coarse) {
+  .constructed-card-history__body { --ui-control-h-sm: 50px; }
+}
+/* Too narrow for the four metrics in one row: two rows of two. The kit's thumb slides along one row only, so
+   the chosen segment is drawn on the segment itself. */
+@container card-history (width < 20rem) {
+  .constructed-card-history__metrics[data-size] { height: auto; }
+  .constructed-card-history__metrics .ui-segmented-control__viewport { flex-wrap: wrap; }
+  .constructed-card-history__metrics .ui-segmented-control__thumb { display: none; }
+  .constructed-card-history__body .constructed-card-history__metrics[data-size] .ui-segmented-control__item { flex: 1 0 50%; min-width: 0; min-height: 44px; overflow-wrap: anywhere; }
+  .constructed-card-history__metrics .ui-segmented-control__item[data-active] { background: var(--ui-segmented-control-thumb-bg); }
 }
 
 .constructed-card-history__pending { margin: 0.75rem 0.8rem 0.85rem; }
