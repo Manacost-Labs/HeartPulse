@@ -109,6 +109,10 @@ test('Vicious Gold shows its summary before the deck builds arrive', async () =>
     assert.ok(mobile.navTargets.length > 0 && mobile.navTargets.every(height => height >= 44),
       'mobile section links must keep 44px touch targets');
 
+    // RouteTransition fades the report in (opacity 0.6 to 1 over 220 ms) when it replaces its skeleton;
+    // axe blends text colours with the page behind a half-faded section, so check once it has settled.
+    await page.waitForFunction(() => document.querySelector('.vsgold')
+      .getAnimations({ subtree: true }).every(animation => animation.playState === 'finished'));
     await page.addScriptTag({ path: axePath });
     const violations = await page.evaluate(async () => {
       const result = await globalThis.axe.run(document.querySelector('.vsgold'));
