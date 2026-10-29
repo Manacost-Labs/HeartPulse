@@ -1,3 +1,4 @@
+// probe #254: one-module PR run
 import type { ReactNode } from 'react';
 import { pluralRu } from '../../../shared/text/pluralRu';
 import {
