@@ -466,4 +466,14 @@ assert.throws(
   /early mode requires partial data/,
 );
 
+// The public teaser may carry the games of the whole slice: a count, or nothing.
+const sampleOf = (totalGames: unknown) => parseStandardMetaApiResponse({ ...candidate(), totalGames }).data.totalGames;
+assert.equal(sampleOf(4_500), 4_500);
+assert.equal(sampleOf(0), 0);
+assert.equal(sampleOf(undefined), undefined);
+assert.equal('totalGames' in parseStandardMetaApiResponse(candidate()).data, false);
+for (const bad of [-1, 4_500.5, '4500', Number.MAX_SAFE_INTEGER + 1]) {
+  assert.throws(() => sampleOf(bad), /totalGames must be a non-negative integer/, `total ${String(bad)}`);
+}
+
 console.log('standard meta versioned runtime contract tests passed');

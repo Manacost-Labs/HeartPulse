@@ -126,6 +126,16 @@ try {
   assert.equal(teaserBody.rank, 'diamond_legend');
   assert.equal(teaserBody.items.length, 3);
   assert.deepEqual(teaserBody.items.map((item: any) => item.id), ['meta-1', 'meta-2', 'meta-3']);
+  // The games of all five rows of the slice (1000 + 950 + 900 + 850 + 800), not of the three shown.
+  assert.equal(teaserBody.totalGames, 4_500, 'the teaser reports the whole slice sample');
+  assert.deepEqual(Object.keys(teaserBody).sort(), [
+    'availablePeriods', 'coin', 'currentPatchPeriod', 'currentPeriod', 'format', 'formatLabel', 'items', 'minGames',
+    'period', 'rank', 'rankLabel', 'source', 'sourceId', 'sourceUrl', 'totalGames', 'translationSource', 'updatedAt',
+  ], 'the total is the only field added to the teaser');
+  // A subscriber's table of the same slice adds up to the number the guest is told.
+  const fullBody = await (await fetch(`${origin}/standard-meta?format=standard&rank=diamond_legend&period=patch_36.0.3`,
+    { headers: { 'X-Test-Access': 'allowed' } })).json() as any;
+  assert.deepEqual(fullBody.items.map((item: any) => item.games), [1_000, 950, 900, 850, 800]);
   calls.length = 0;
 
   const denied = await fetch(`${origin}/admin/standard-meta`);

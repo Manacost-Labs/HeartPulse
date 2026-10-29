@@ -30,8 +30,10 @@ export function createTeaserHandler(dependencies: SliceSource): RequestHandler {
       );
       response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
       response.set('X-Content-Type-Options', 'nosniff');
+      // The sample is the games of every row of the slice, not of the three shown.
       return response.json({
         ...envelope.data,
+        totalGames: envelope.quality.sampleSize ?? undefined,
         items: envelope.data.items.slice(0, 3),
       });
     } catch (error) {

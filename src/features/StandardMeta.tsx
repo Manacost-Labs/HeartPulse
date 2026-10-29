@@ -87,6 +87,8 @@ type MetaPayload = {
   sourceUrl: string;
   translationSource: string;
   updatedAt: string | null;
+  /** Games of the whole slice, sent with the teaser: its three rows are not the sample. A full list is summed up. */
+  totalGames?: number;
   items: MetaItem[];
 };
 
@@ -431,16 +433,16 @@ type StandardMetaPageProps = {
 };
 
 /**
- * The banner's totals. Until the slice lands (`items` null) each value is a
+ * The banner's totals. Until the slice lands (`data` null) each value is a
  * placeholder, not a dash: one change from placeholder to number.
  * `data-teaser` lets a remembered subscriber's server HTML hide the guest
  * preview's totals before hydration (PublicPageBanner.css).
  */
-function MetaSummary({ items, hasFullAccess }: { items: MetaItem[] | null; hasFullAccess: boolean }) {
+function MetaSummary({ data, hasFullAccess }: { data: MetaPayload | null; hasFullAccess: boolean }) {
   return (
     <dl className="traditional-mode-banner__summary" aria-label="Сводка меты" data-teaser={hasFullAccess ? undefined : ''}>
-      <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{items ? items.length : <LoadingValue />}</dd></div>
-      <div><dt>Игр в выборке</dt><dd>{items ? items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU') : <LoadingValue wide />}</dd></div>
+      <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{data ? data.items.length : <LoadingValue />}</dd></div>
+      <div><dt>Игр в выборке</dt><dd>{data ? (data.totalGames ?? data.items.reduce((sum, item) => sum + (item.games ?? 0), 0)).toLocaleString('ru-RU') : <LoadingValue wide />}</dd></div>
     </dl>
   );
 }
@@ -592,7 +594,7 @@ function StandardMetaContent({
     <>
       <section className="traditional-mode-banner">
         <StandardMetaSearchIntro />
-        <MetaSummary items={summaryReady ? data.items : null} hasFullAccess={hasFullAccess} />
+        <MetaSummary data={summaryReady ? data : null} hasFullAccess={hasFullAccess} />
       </section>
 
       <section className="standard-meta__controls" aria-label="Фильтры меты" data-page-still data-tour-id="meta-filters">
