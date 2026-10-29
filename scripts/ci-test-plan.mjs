@@ -57,6 +57,24 @@ function everyShard(reason) {
 }
 
 /**
+ * A selection the shards can trust: `files` lists every registry suite, each
+ * only with registered files of that suite; `none` selects nothing and
+ * `subset` selects something. Anything else would be read as "skip the tests".
+ */
+function isWellFormed(selection, registry, registered) {
+  const files = selection?.files;
+  if (!['all', 'subset', 'none'].includes(selection?.mode)) return false;
+  if (!files || typeof files !== 'object' || Array.isArray(files)) return false;
+  const suiteIds = registry.suites.map(suite => suite.id);
+  if (Object.keys(files).sort().join('\n') !== [...suiteIds].sort().join('\n')) return false;
+  if (!suiteIds.every(id => Array.isArray(files[id]) && files[id].every(file => registered.get(file) === id))) return false;
+  const selectedCount = suiteIds.reduce((total, id) => total + files[id].length, 0);
+  if (selection.mode === 'none') return selectedCount === 0;
+  if (selection.mode === 'subset') return selectedCount > 0;
+  return true;
+}
+
+/**
  * The plan for one run, from the engine's exit status and the text it wrote
  * (`null` when it wrote nothing). Pure: the caller runs the engine.
  */
@@ -73,13 +91,11 @@ export function planTestShards({ event, status, output, registry }) {
     return everyShard('affected-test selection is not JSON; running everything');
   }
   const registered = new Map(registry.suites.flatMap(suite => suite.files.map(file => [file, suite.id])));
-  const files = selection?.files;
-  const lists = files && typeof files === 'object' && !Array.isArray(files) ? Object.values(files) : null;
-  if (!['all', 'subset', 'none'].includes(selection?.mode) || lists === null
-    || !lists.every(list => Array.isArray(list) && list.every(file => registered.has(file)))) {
+  if (!isWellFormed(selection, registry, registered)) {
     return everyShard('affected-test selection is malformed; running everything');
   }
   if (selection.mode === 'all') return everyShard(String(selection.reason));
+  const lists = Object.values(selection.files);
 
   const quarantined = new Set((registry.quarantine ?? []).map(entry => entry.file));
   const runnable = file => !quarantined.has(file);

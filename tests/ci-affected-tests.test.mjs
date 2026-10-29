@@ -603,6 +603,12 @@ test('any failure of the selection runs everything on a pull request', () => {
     [0, '{"mode": "none"}', 'affected-test selection is malformed; running everything'],
     [0, '{"mode": "maybe", "files": {}}', 'affected-test selection is malformed; running everything'],
     [0, engineOutput('subset', { unit: ['tests/unregistered.test.ts'] }), 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('subset'), 'affected-test selection is malformed; running everything'],
+    [0, '{"mode": "subset", "reason": "r", "files": {}}', 'affected-test selection is malformed; running everything'],
+    [0, '{"mode": "subset", "reason": "r", "files": {"unit": ["tests/u1.test.ts"]}}', 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('subset', { unit: ['tests/b1-browser.test.mjs'] }), 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('subset', { extra: ['tests/u1.test.ts'] }), 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('none', { unit: ['tests/u1.test.ts'] }), 'affected-test selection is malformed; running everything'],
   ]) {
     assert.deepEqual(plan('pull_request', status, output), { mode: 'all', reason, ...FULL_PLAN_SHARDS }, String(output));
   }
