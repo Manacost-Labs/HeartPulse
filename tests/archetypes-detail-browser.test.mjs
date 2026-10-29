@@ -236,8 +236,13 @@ try {
   await page.click('.deck-builder__class-card[aria-label^="Маг:"]');
   await page.waitForSelector('.deck-builder__gallery .deck-builder__card');
   await page.click('.deck-builder__gallery .deck-builder__card');
-  await new Promise(resolve => setTimeout(resolve, 400));
-  assert.equal(await page.$eval('.deck-builder__deck-counter strong', node => node.textContent), '1');
+  await page.waitForFunction(() => document.querySelector('.deck-builder__deck-counter strong')?.textContent === '1');
+  // The draft is written after a short debounce: reload only once the page says
+  // it is saved and the browser really holds the added card, not after a fixed pause.
+  await page.waitForFunction(() => {
+    const draft = JSON.parse(localStorage.getItem('manacost:deck-builder:draft:v1') || '{"entries":[]}');
+    return draft.entries.length === 1 && document.querySelector('.deck-builder__workspace-header')?.textContent?.includes('черновик сохранён');
+  });
   await page.goto(fixture('deck-builder'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.deck-builder--workspace');
   assert.equal(

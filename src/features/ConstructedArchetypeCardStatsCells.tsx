@@ -163,7 +163,7 @@ function CardStatsListItem({ row, phases, sortedPhase, scales, onOpen }: {
       <div className="constructed-card-stats__row">
         {row.cardId
           ? <button type="button" className="card-stat-open" onClick={() => onOpen(row)}
-              aria-label={`${row.cardName}, ${row.cost ?? 'неизвестная стоимость'} маны. Открыть полную карту`}>{tile}</button>
+              aria-label={`${row.cost ?? '?'} ${row.cardName}. Открыть полную карту`}>{tile}</button>
           : tile}
         <button type="button" className="constructed-card-stats__lead" aria-expanded={open} onClick={() => setOpen(value => !value)}
           aria-label={`${row.cardName}: все этапы`}>

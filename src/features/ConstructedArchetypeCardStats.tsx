@@ -79,7 +79,7 @@ function CardStatsTable({ rows, phases, sort, scales, rowKeys, onSort, onOpen, o
                 onMouseLeave={onPreviewEnd}
                 onFocus={event => onPreview(row, event.currentTarget)}
                 onBlur={onPreviewEnd}
-                aria-label={`${row.cardName}, ${row.cost ?? 'неизвестная стоимость'} маны. Открыть полную карту`}
+                aria-label={`${row.cost ?? '?'} ${row.cardName}. Открыть полную карту`}
               >{name}</button>
             ) : name}
           </span>

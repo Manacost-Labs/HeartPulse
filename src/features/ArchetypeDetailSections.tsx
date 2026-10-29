@@ -221,7 +221,7 @@ function MulliganCard({
         rect: event.currentTarget.getBoundingClientRect(),
       })}
       onBlur={onPreviewEnd}
-      aria-label={`Показать полную карту «${name}»`}
+      aria-label={`${finite(row.cost) ?? '—'} ${name} ${row.card_type || 'Карта Hearthstone'}. Показать полную карту`}
     >
       {body}
     </button>
@@ -253,7 +253,7 @@ export function ArchetypeMulliganPanel({
         type="button"
         data-mulligan-sort={key}
         data-active={active ? 'true' : undefined}
-        aria-label={`${label}. ${active ? `Сортировка ${sort.direction === 'asc' ? 'по возрастанию' : 'по убыванию'}` : 'Сортировать'}`}
+        aria-label={`${hint ? `${label} ${hint}` : label}. ${active ? `Сортировка ${sort.direction === 'asc' ? 'по возрастанию' : 'по убыванию'}` : 'Сортировать'}`}
         onClick={() => changeSort(key)}
       >
         <span>{label}</span>
