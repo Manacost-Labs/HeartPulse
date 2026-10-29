@@ -5,9 +5,8 @@ import {
   STANDARD_META_COINS,
   resolveStandardMetaDefaultPeriod,
   standardMetaPeriodLabel,
-  standardMetaPeriodTitle,
 } from '../src/features/standardMetaFilterModel.js';
-import { latestStandardMetaBanPeriod, type StandardMetaPeriod } from '../shared/standardMetaPeriods.js';
+import { latestStandardMetaBanPeriod, STANDARD_META_PERIOD_TITLES, type StandardMetaPeriod } from '../shared/standardMetaPeriods.js';
 
 const metaSource = readFileSync(
   new URL('../src/features/StandardMeta.tsx', import.meta.url),
@@ -32,8 +31,7 @@ assert.deepEqual(
   ['black_empire_ban', 'black_empire', 'patch_36.6.3', 'past_day', 'past_week'],
 );
 assert.equal(standardMetaPeriodLabel('black_empire_ban'), 'После банов');
-assert.equal(standardMetaPeriodTitle('black_empire_ban'), 'Тёмная империя, с патча банов');
-assert.equal(standardMetaPeriodTitle('black_empire'), undefined);
+assert.deepEqual(STANDARD_META_PERIOD_TITLES, { black_empire_ban: 'Тёмная империя, с патча банов' });
 assert.deepEqual(STANDARD_META_COINS.map(option => [option.id, option.label]),
   [['any_player', 'Любая'], ['going_first', 'Ходит первым'], ['on_coin', 'С монеткой']]);
 // The coin filter is part of the request and of its identity.

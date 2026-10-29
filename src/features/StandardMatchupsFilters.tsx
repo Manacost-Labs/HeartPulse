@@ -3,7 +3,8 @@ import {
   type StandardMatchupsAvailable, type StandardMatchupsRank, type StandardMatchupsSlice,
 } from '../modules/standardMatchups/public';
 import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
-import { orderStandardMetaPeriods, standardMetaPeriodLabel, standardMetaPeriodTitle } from './standardMetaFilterModel';
+import { STANDARD_META_PERIOD_TITLES } from '../../shared/standardMetaPeriods';
+import { orderStandardMetaPeriods, standardMetaPeriodLabel } from './standardMetaFilterModel';
 import './StandardMatchupsFilters.css';
 
 export const STANDARD_MATCHUPS_RANK_LABEL: Record<StandardMatchupsRank, string> = {
@@ -46,7 +47,7 @@ export function StandardMatchupsFilters({ slice, period, available, onChange }: 
         <select value={selectedPeriod} disabled={!periods.length}
           onChange={event => onChange({ period: event.target.value || null })}>
           {periods.length
-            ? periods.map(option => <option key={option} value={option} title={standardMetaPeriodTitle(option)}>{standardMetaPeriodLabel(option)}</option>)
+            ? periods.map(option => <option key={option} value={option} title={STANDARD_META_PERIOD_TITLES[option]}>{standardMetaPeriodLabel(option)}</option>)
             : <option value={selectedPeriod}>{selectedPeriod ? standardMetaPeriodLabel(selectedPeriod as StandardMetaPeriod) : 'После банов'}</option>}
         </select>
       </label>

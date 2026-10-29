@@ -10,6 +10,14 @@ export type StandardMetaRetiredPeriod = 'violet_hold' | 'most_wanted';
 export type StandardMetaPeriod = StandardMetaRollingPeriod | 'black_empire' | 'black_empire_ban'
   | StandardMetaRetiredPeriod | `patch_${string}`;
 
+/**
+ * The full name of a window whose short label needs one: the tooltip of its option on the archetype and matchup
+ * filters. The meta page does not read it (its bundle has no room, so it stays out of standardMetaFilterModel).
+ */
+export const STANDARD_META_PERIOD_TITLES: Readonly<Partial<Record<StandardMetaPeriod, string>>> = {
+  black_empire_ban: 'Тёмная империя, с патча банов',
+};
+
 export const STANDARD_META_ROLLING_PERIODS: readonly StandardMetaRollingPeriod[] = [
   'past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days',
 ];

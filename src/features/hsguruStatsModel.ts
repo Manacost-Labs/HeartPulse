@@ -1,6 +1,6 @@
 import { pluralRu } from '../shared/text/pluralRu';
-import { standardMetaPeriodLabel, standardMetaPeriodTitle } from './standardMetaFilterModel';
-import type { StandardMetaPeriod } from '../../shared/standardMetaPeriods';
+import { standardMetaPeriodLabel } from './standardMetaFilterModel';
+import { STANDARD_META_PERIOD_TITLES, type StandardMetaPeriod } from '../../shared/standardMetaPeriods';
 import type { ConstructedCardStat } from './ConstructedArchetypeCardStatsCells';
 
 // The archetype page's HSGuru slice: /api/constructed-archetype-stats (docs/specs/archetype-hsguru-stats.md).
@@ -81,7 +81,7 @@ export function hsguruOptions(field: HsguruSliceField, slice: HsguruSlice, slice
         : [...new Set([...PERIODS, ...slices.map(entry => entry.period), slice.period])]
           .map(period => ({ id: period, label: hsguruPeriodLabel(period) }));
   return base.map(option => {
-    const title = field === 'period' ? standardMetaPeriodTitle(option.id) : undefined;
+    const title = field === 'period' ? STANDARD_META_PERIOD_TITLES[option.id as StandardMetaPeriod] : undefined;
     return { ...option, collected: collected.has(option.id), ...(title ? { title } : {}) };
   });
 }

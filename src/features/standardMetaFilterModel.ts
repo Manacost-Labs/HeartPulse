@@ -50,15 +50,6 @@ export function standardMetaPeriodLabel(period: StandardMetaPeriod): string {
   return PERIOD_LABELS[period] ?? period;
 }
 
-/** Windows whose short label needs the full name: it goes into the option's tooltip. */
-const PERIOD_TITLES: Partial<Record<StandardMetaPeriod, string>> = {
-  black_empire_ban: 'Тёмная империя, с патча банов',
-};
-
-export function standardMetaPeriodTitle(period: string): string | undefined {
-  return PERIOD_TITLES[period as StandardMetaPeriod];
-}
-
 /** HSGuru's coin filter: whose turn the archetype's games started on. */
 export const STANDARD_META_COINS: ReadonlyArray<{ id: StandardMetaCoin; label: string }> = [
   { id: 'any_player', label: 'Любая' },
