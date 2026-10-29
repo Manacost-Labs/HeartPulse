@@ -96,6 +96,17 @@ assert.equal(await loadStandardMetaTeaserSeed(async () => null), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => ({ items: 'broken' })), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3',
   [metaItem(1), metaItem(2), metaItem(3), metaItem(4)])), null, 'more than the top three is not a teaser');
+// The games of the whole slice reach the page; nothing else the teaser might carry does.
+const sampledSeed = await loadStandardMetaTeaserSeed(async () => ({
+  ...metaPayload('patch_36.6.3'), totalGames: 4_500, deckCodes: ['PAID'],
+}));
+assert.equal(sampledSeed?.data.totalGames, 4_500);
+assert.deepEqual(Object.keys(sampledSeed?.data ?? {}).filter(key => !(key in metaPayload('patch_36.6.3'))), ['totalGames']);
+assert.equal(metaSeed?.data.totalGames, undefined, 'a teaser without the total stays without it');
+for (const totalGames of [-1, 4_500.5, '4500']) {
+  assert.equal(await loadStandardMetaTeaserSeed(async () => ({ ...metaPayload('patch_36.6.3'), totalGames })), null,
+    `a total of ${JSON.stringify(totalGames)} is not a count of games`);
+}
 
 // Archetypes: whitelisted catalog without builds (deck codes are paid data).
 const catalogRaw = {

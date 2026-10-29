@@ -60,6 +60,8 @@ export type StandardMetaData = {
   sourceUrl: string;
   translationSource: string;
   updatedAt: string | null;
+  /** Games of the whole slice. Only the public teaser carries it: its three rows are not the sample. */
+  totalGames?: number;
   items: StandardMetaItem[];
 };
 
@@ -154,6 +156,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   }
   const updatedAt = data.updatedAt === null ? null : dataString(data.updatedAt, 'updatedAt', 64);
   if (updatedAt !== null && !Number.isFinite(Date.parse(updatedAt))) invalid('updatedAt must be an ISO date or null');
+  const totalGames = games(data.totalGames ?? null, 'totalGames');
   const rawAvailablePeriods = data.availablePeriods ?? DEFAULT_PERIODS;
   if (!Array.isArray(rawAvailablePeriods) || rawAvailablePeriods.length > 12) {
     invalid('availablePeriods must be an array with at most 12 entries');
@@ -197,6 +200,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
     translationSource: dataString(data.translationSource, 'translationSource', 120, true),
     updatedAt,
     items,
+    ...(totalGames === null ? {} : { totalGames }),
   };
 }
 

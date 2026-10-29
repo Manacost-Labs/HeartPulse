@@ -19,11 +19,14 @@ const metaItem = index => ({
   translated: true, classKey: 'mage', winrate: 50 + index, popularity: 3 + index, games: 1000 * index,
   turns: 8, durationMinutes: 7, climbingSpeed: 1,
 });
+// Express answers the teaser with the games of the whole slice, which has more rows than the three it shows.
+const metaTotalGames = 52_500;
 const metaTeaser = period => ({
   format: 'standard', formatLabel: 'Стандарт', rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда', period,
   availablePeriods: ['past_day', 'past_week', 'patch_36.6.3'], currentPeriod: 'patch_36.6.3',
   currentPatchPeriod: 'patch_36.6.3', coin: 'any_player', minGames: 100, source: 'hsguru', sourceUrl: '',
-  translationSource: '', updatedAt: '2026-10-03T10:00:00.000Z', items: [metaItem(1), metaItem(2), metaItem(3)],
+  translationSource: '', updatedAt: '2026-10-03T10:00:00.000Z', totalGames: metaTotalGames,
+  items: [metaItem(1), metaItem(2), metaItem(3)],
 });
 const archetype = (slug, games) => ({
   slug, archetype: slug, archetypeLabel: `Архетип ${slug}`, translated: true, classKey: 'priest', format: 'standard',
@@ -45,6 +48,10 @@ const funDecks = {
   decks: [funDeck('FREE_DECK_C', '2026-09-20'), funDeck('PAID_DECK_OLD', '2026-08-01'), funDeck('FREE_DECK_A', '2026-10-02'),
     funDeck('FREE_DECK_B', '2026-10-01'), funDeck('PAID_DECK_OLDEST', '2026-07-01')],
 };
+
+// A value of the meta banner's summary by its visible caption.
+const summaryValue = (page, caption) => page.$$eval('#root dl[aria-label="Сводка меты"] > div', (rows, wanted) => (
+  rows.find(row => row.querySelector('dt')?.textContent === wanted)?.querySelector('dd')?.textContent ?? null), caption);
 
 async function listen(server) {
   server.listen(0, '127.0.0.1');
@@ -103,6 +110,8 @@ test('public previews render on the server and hydrate without a guest data requ
     const metaHtml = await (await fetch(`${origin}/standard/meta/`, { headers: { Cookie: 'session=guest-fixture' } })).text();
     assert.equal(metaHtml.match(/class="standard-meta-card"/g)?.length, 3, 'the three teaser archetypes are in the HTML');
     assert.match(metaHtml, /В предпросмотре<\/dt><dd>3<\/dd>/, 'the summary counts the teaser, not a placeholder zero');
+    // 1 000 + 2 000 + 3 000 are the shown rows; the sample is the slice's.
+    assert.match(metaHtml, /Игр в выборке<\/dt><dd>52\s500<\/dd>/, 'the guest sample is the whole slice, not the three shown rows');
     assert.doesNotMatch(metaHtml, /data-arrive/, 'server-rendered data does not fade in');
     // The chart is part of the document with its stylesheet: no loader before it and no unstyled reveal.
     assert.match(metaHtml, /class="standard-meta-chart"/);
@@ -151,6 +160,7 @@ test('public previews render on the server and hydrate without a guest data requ
       assert.equal(await page.$('#root [data-loading-surface="panel"]'), null,
         `${path} shows no loader for server-rendered data`);
       if (path === '/standard/meta/') {
+        assert.match(await summaryValue(page, 'Игр в выборке'), /^52\s500$/, 'hydration keeps the slice sample');
         // The collapsed chart is server-rendered; its plot loads when opened.
         await page.click('#root .standard-meta-chart__header-actions button');
         await page.waitForSelector('#root .standard-meta-map .ui-scatter-chart__point', { visible: true });
@@ -193,6 +203,7 @@ test('public previews render on the server and hydrate without a guest data requ
     await page.waitForSelector('#root .standard-meta-card', { visible: true });
     assert.ok(browserReads.length >= 1, 'the browser loads the teaser the server could not');
     assert.match(await page.$eval('#root .traditional-mode-banner__summary dd', node => node.textContent), /^3$/);
+    assert.match(await summaryValue(page, 'Игр в выборке'), /^52\s500$/, 'the teaser the browser loads itself shows the slice sample too');
     assert.deepEqual(errors, []);
     await page.close();
     state.stall = false;
