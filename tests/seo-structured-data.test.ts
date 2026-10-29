@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { seoPageForExactPath } from '../src/seo/registry';
 import { seoStructuredDataGraph } from '../src/seo/structuredData';
+import { buildEntityStructuredData } from '../shared/entitySeoStructuredData';
 import { normalizePublicPathname } from '../src/shared/seo/publicUrlPolicy';
 
 const registry = JSON.parse(readFileSync('config/public-seo-structured-data.json', 'utf8')) as {
@@ -98,6 +99,18 @@ test('lists describe what the page shows: true counts, distinct targets', async 
       assert.equal(new Set(targets).size, targets.length, `${path} ${node['@type']} repeats a URL`);
     }
   }
+});
+
+test('an entity page names its primary image only when it has a picture', () => {
+  const options = {
+    canonical: 'https://hearthpulse.net/standard/cards/standard/CARD_1/', title: 'Карта', description: 'Описание',
+    origin: 'https://hearthpulse.net', entityFragment: 'card' as const, entity: { name: 'Карта' },
+    breadcrumbs: [{ name: 'Главная', item: 'https://hearthpulse.net/' }, { name: 'Карта', item: 'https://hearthpulse.net/standard/cards/standard/CARD_1/' }],
+  };
+  const bare = buildEntityStructuredData({ ...options, image: null })['@graph'] as Array<Record<string, unknown>>;
+  assert.equal('primaryImageOfPage' in bare[0], false);
+  const pictured = buildEntityStructuredData({ ...options, image: 'https://hearthpulse.net/card.png' })['@graph'] as Array<Record<string, unknown>>;
+  assert.deepEqual(pictured[0].primaryImageOfPage, { '@type': 'ImageObject', contentUrl: 'https://hearthpulse.net/card.png' });
 });
 
 test('pages without an entry, and the source registry itself, are left alone', async () => {
