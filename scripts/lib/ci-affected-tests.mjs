@@ -132,9 +132,9 @@ export function selectAffectedTests({ changedFiles, registry, inventory, catalog
     if (isDocumentation(file)) continue;
     documentationOnly = false;
     if (isInside(file, 'tests') && TEST_FILE_PATTERN.test(file) && !registeredFiles.has(file)) {
-      // An unregistered test file is excluded from CI or removed together with
-      // its registry entry, and a registry edit is `all` on its own.
-      continue;
+      // A new, renamed or excluded test file that the registry does not list:
+      // the selection cannot tell what it covers, so it runs everything.
+      return everything(`test file is not in the test registry: ${file}`);
     }
     if (registeredFiles.has(file)) {
       changedTests.add(file);

@@ -121,8 +121,9 @@ registry order) and `affectedModules`:
   `scripts/**`, `config/**`, `tests/test-suites.json`, test helpers and
   fixtures, the shared roots (`src/shared`, `server/shared`, `shared`),
   tsconfig, Next and Storybook configs, a file outside every module, a path
-  that is not a clean relative path, or a changed module with no registered
-  test. Every registered file is selected.
+  that is not a clean relative path, a test file missing from
+  `tests/test-suites.json`, or a changed module with no registered test. Every
+  registered file is selected.
 
 `--only-files <file>` accepts that JSON (or a plain list of paths) and keeps
 only those files of the chosen suites, before the quarantine filter and before

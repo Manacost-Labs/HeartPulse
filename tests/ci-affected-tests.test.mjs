@@ -220,10 +220,14 @@ test('untrustworthy paths select everything', () => {
   }
 });
 
-test('a test file that is not in the registry selects nothing by itself', () => {
-  const selection = selectMini(['tests/production-auth-e2e.test.mjs']);
-  assert.equal(selection.mode, 'none');
-  assert.deepEqual(selectedFiles(selection), []);
+test('a test file that is not in the registry selects everything and names the file', () => {
+  for (const file of ['tests/production-auth-e2e.test.mjs', 'tests/brand-new.test.ts', 'tests/nested/other.spec.tsx']) {
+    const selection = selectMini([file]);
+    assert.equal(selection.mode, 'all', file);
+    assert.equal(selection.reason, `test file is not in the test registry: ${file}`);
+    assert.deepEqual(selectedFiles(selection).sort(), everyRegisteredFile(miniConfigs.registry).sort());
+  }
+  assert.equal(selectMini(['docs/a.md', 'tests/brand-new.test.ts']).mode, 'all');
 });
 
 // --- properties on the real configuration of this repository ---------------
@@ -283,6 +287,7 @@ const globalFile = fc.oneof(
   pathSegment.map(name => `server/shared/${name}.ts`),
   pathSegment.map(name => `shared/${name}.ts`),
   pathSegment.map(name => `unknown-dir/${name}.bin`),
+  pathSegment.map(name => `tests/unregistered-${name}.test.ts`),
 );
 const registeredTestFile = fc.constantFrom(...allRegistered);
 const anyChangedFile = fc.oneof(
