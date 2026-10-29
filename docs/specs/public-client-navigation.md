@@ -376,10 +376,22 @@ until then route entrances, list items and modal sheets fade.
    lightbox chunk), preloaded on hover, focus and touch
    (`src/shared/ui/lightboxIntent.ts`). Without a visible, loaded origin
    the lightbox only fades.
+   A lightbox of several pictures is `MediaLightbox`
+   (`src/components/ModalSurface/MediaLightbox.tsx`; the gallery and the
+   media of a card page), the same `ModalSurface zoom` with its own gestures
+   (`swipeClose={false}`): the picture track slides over `--motion-base` on a
+   page turn (arrows, keys, swipe), a swipe down closes with the backdrop
+   dimming in proportion, a pinch and a double tap zoom, a zoomed picture pans
+   within its edges. The closing flies the picture on show back into its own
+   thumbnail (the trigger with the same `data-lightbox-src`), or fades when
+   that is off screen. The neighbours of the picture on show are mounted
+   beside it and preloaded; `ModalSurface` offers `closingTargets` for this.
 6. Reduced motion: no route entrance (as before); views drop the old view at
    once and fade the new one in (160 ms); list items and view entrances fade
    without travel; modals keep the existing reduced-motion rule (no
-   animation), and a zooming lightbox only fades (`--motion-fast`).
+   animation), and a zooming lightbox only fades (`--motion-fast`); so does
+   `MediaLightbox` for paging, swiping and closing (a swipe is read but does
+   not carry the picture).
 
 Verification: `tests/transition-presets.test.ts` (preset choice, entering
 frames, reduced motion, modal docking), `ViewSwitch.stories.tsx` (no motion on

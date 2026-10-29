@@ -44,8 +44,8 @@ assert.doesNotMatch(deferredStyles, /\.profile-workspace|\.login-page|\.account-
   'DeferredRoutes CSS must not regain identity-owned account, profile or login selectors');
 assert.match(
   gallerySource,
-  /<ModalSurface[\s\S]*className="gallery-lightbox"/,
-  'gallery lightboxes must reuse the shared focus-trapped modal surface',
+  /<MediaLightbox\b/,
+  'the gallery lightbox must be the shared MediaLightbox, which brings the focus-trapped modal surface',
 );
 assert.doesNotMatch(
   gallerySource,

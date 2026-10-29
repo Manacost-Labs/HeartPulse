@@ -1,0 +1,21 @@
+{
+  "reason": "Общий MediaLightbox (листание, жесты, зум; E19 L1 #283). Галерея: оболочка окна, листание, подписи и стили ≈ 2,5 КБ gzip JS и ≈ 1,4 КБ CSS; жесты (Pointer Events, зум, панорама) — отдельный чанк ≈ 3,2 КБ gzip, он грузится на простое и в бюджет первой загрузки не входит. Оболочку лениво не загрузить: первый кадр открытия уже играет зум из миниатюры, без ожидания чанка. Мёртвые правила .gallery-lightbox* удалены из route-parchment.css и DeferredRoutes.css (≈ 0,5 КБ gzip CSS). Каталог и архетипы: ModalSurface и lightboxMotion получили точки расширения (закрытие в миниатюру показанной картинки, отключаемый встроенный свайп) — ≈ +190 Б в каждом маршруте с lightbox, +320 Б в каталоге карт сверх этого из-за ConstructedCardLightbox на общем окне; допуск уже выбран, не хватает 37–53 Б. Фан-колоды (/standard/fun-decks/): те же точки расширения ModalSurface ≈ +200 Б; после #316 (approval fun-decks-why-20261029.json) запас маршрута ~107 Б, в merge queue не хватило 96 Б (200 404 > 200 308).",
+  "routes": {
+    "/gallery/": {
+      "jsGzipBytes": 2560,
+      "cssGzipBytes": 512
+    },
+    "/standard/archetypes/": {
+      "jsGzipBytes": 128
+    },
+    "/standard/cards/": {
+      "jsGzipBytes": 128
+    },
+    "/standard/cards/standard/": {
+      "jsGzipBytes": 128
+    },
+    "/standard/fun-decks/": {
+      "jsGzipBytes": 128
+    }
+  }
+}

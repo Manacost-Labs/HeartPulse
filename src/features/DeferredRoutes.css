@@ -1338,97 +1338,6 @@
   font-size: 1.3rem;
 }
 
-.gallery-lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  padding: 22px;
-}
-
-.gallery-lightbox-backdrop {
-  position: absolute;
-  inset: 0;
-  border: 0;
-  background: rgba(2, 6, 14, 0.84);
-}
-
-.gallery-lightbox-panel {
-  position: relative;
-  display: flex;
-  width: min(1120px, 96vw);
-  max-height: 94vh;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid rgba(242, 209, 122, 0.28);
-  border-radius: 8px;
-  background: #08111f;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46);
-}
-
-.gallery-lightbox-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.gallery-lightbox-head strong {
-  display: block;
-  color: #fff7d6;
-  font-family: var(--font-display);
-  font-size: 1rem;
-}
-
-.gallery-lightbox-head span {
-  color: #93a4bb;
-  font-size: 0.82rem;
-}
-
-.gallery-lightbox-head > div:last-child {
-  display: flex;
-  gap: 8px;
-}
-
-.gallery-icon-action {
-  display: inline-grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.88);
-  color: #dbe7f6;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.gallery-lightbox-panel > img {
-  display: block;
-  width: 100%;
-  max-height: calc(94vh - 118px);
-  object-fit: contain;
-  background: #02060e;
-}
-
-.gallery-lightbox-caption {
-  padding: 12px 14px;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
-  color: #aebbd0;
-}
-
-.gallery-lightbox-caption p {
-  margin: 0 0 4px;
-}
-
-.gallery-lightbox-caption span {
-  color: #f2d17a;
-  font-size: 0.84rem;
-}
-
 @media (max-width: 720px) {
   .gallery-intro {
     align-items: flex-start;
@@ -1441,14 +1350,6 @@
 
   .gallery-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .gallery-lightbox {
-    padding: 10px;
-  }
-
-  .gallery-lightbox-head {
-    align-items: flex-start;
   }
 }
 

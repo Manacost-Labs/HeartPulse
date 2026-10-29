@@ -3791,11 +3791,11 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/constructed-card-decks-${device}.png`, fullPage: false });
     await page.click('.constructed-card-detail__visual-button');
-    await page.waitForSelector('.constructed-card-lightbox');
+    await page.waitForSelector('[role="dialog"]');
     const constructedLightboxState = await page.evaluate(() => ({
-      dialog: document.querySelector('.constructed-card-lightbox')?.getAttribute('role'),
-      media: document.querySelectorAll('.constructed-card-lightbox__media img, .constructed-card-lightbox__media video').length,
-      navigation: document.querySelectorAll('.constructed-card-lightbox__actions button').length,
+      dialog: document.querySelector('[role="dialog"]')?.getAttribute('role'),
+      media: document.querySelectorAll('[role="dialog"] [data-slot="current"] img[data-lightbox-media], [role="dialog"] [data-slot="current"] video').length,
+      navigation: document.querySelectorAll('[role="dialog"] button[aria-label="Предыдущая картинка"], [role="dialog"] button[aria-label="Следующая картинка"]').length,
       bodyLocked: document.body.style.overflow === 'hidden',
       bodyFixed: document.body.style.position === 'fixed',
       rootInert: document.getElementById('root')?.inert === true,
@@ -3811,9 +3811,9 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/constructed-card-lightbox-${device}.png`, fullPage: false });
     await page.keyboard.press('ArrowRight');
-    await page.waitForFunction(() => document.querySelector('.constructed-card-lightbox__footer span')?.textContent?.startsWith('2 из '));
+    await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] span')].some(counter => counter.textContent?.startsWith('2 из ')));
     await page.keyboard.press('Escape');
-    await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+    await page.waitForSelector('[role="dialog"]', { hidden: true });
     await page.waitForFunction(() => document.activeElement?.classList.contains('constructed-card-detail__visual-button'));
     const restoredLightboxState = await page.evaluate(() => ({
       rootInert: document.getElementById('root')?.inert === true,
@@ -3826,12 +3826,12 @@ for (const [device, viewport] of [
       failures.push(`constructed card lightbox [${device}]: page isolation was not restored (${JSON.stringify(restoredLightboxState)})`);
     }
     await page.click('.constructed-card-detail__gallery button.is-contain');
-    await page.waitForSelector('.constructed-card-lightbox');
+    await page.waitForSelector('[role="dialog"]');
     const relatedArtLightboxState = await page.evaluate(() => ({
-      title: document.querySelector('#constructed-card-lightbox-title')?.textContent?.trim() || '',
-      description: document.querySelector('.constructed-card-lightbox__footer p')?.textContent?.trim() || '',
-      source: document.querySelector('.constructed-card-lightbox__actions a')?.getAttribute('href') || '',
-      imageFit: getComputedStyle(document.querySelector('.constructed-card-lightbox__media img')).objectFit,
+      title: document.getElementById(document.querySelector('[role="dialog"]')?.getAttribute('aria-labelledby') ?? '')?.textContent?.trim() || '',
+      description: document.querySelector('[role="dialog"] p:not([role="status"])')?.textContent?.trim() || '',
+      source: document.querySelector('[role="dialog"] a[target="_blank"]')?.getAttribute('href') || '',
+      imageFit: getComputedStyle(document.querySelector('[role="dialog"] [data-slot="current"] img[data-lightbox-media]')).objectFit,
     }));
     if (!relatedArtLightboxState.title.includes('полный арт')
       || !relatedArtLightboxState.description.includes('CARD_QA_TOKEN_1, CARD_QA_TOKEN_2')
@@ -3841,7 +3841,7 @@ for (const [device, viewport] of [
       failures.push(`constructed related full-art lightbox [${device}]: wiki metadata or uncropped media regressed (${JSON.stringify(relatedArtLightboxState)})`);
     }
     await page.keyboard.press('Escape');
-    await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+    await page.waitForSelector('[role="dialog"]', { hidden: true });
     await page.waitForFunction(() => document.activeElement?.closest('.constructed-card-detail__gallery'));
     const constructedDetailViolationCount = await auditAccessibility(page, `constructed card detail [${device}]`, '.constructed-card-detail');
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }));
