@@ -28,7 +28,15 @@ This slice must not open private API responses to indexing or shared caches.
 - `deploy/nginx/hearthpulse-shadow-app.conf` must forward origin cache headers
   unchanged while preventing its own proxy cache from storing application
   responses.
-- `public/robots.txt` describes the same public crawler boundary.
+- `public/robots.txt` describes the same public crawler boundary. Its one
+  `Clean-param` line folds advertising labels (`utm_*`, `yclid`, `fbclid`,
+  `gclid`, `ref`) for Yandex; a parameter that changes what a page shows
+  (`format`, `period`, `q`, `class`, the faceted and deep-link parameters of
+  `queryPolicies`) never belongs there.
+- `public/llms.txt` is the AI-search index of the sections: canonical links,
+  the data source, the refresh interval confirmed by a timer or config, and
+  what is open versus subscription-only. It promises no figures that a guest's
+  HTML does not contain.
 
 ## Code and configuration rules
 

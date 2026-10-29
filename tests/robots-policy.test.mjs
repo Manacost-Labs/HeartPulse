@@ -27,6 +27,14 @@ function parseGroups(source) {
   return groups;
 }
 
+// Clean-param is cross-section: Yandex reads it wherever it stands in the file.
+function cleanParamDirectives(source) {
+  return source.split(/\r?\n/)
+    .map(rawLine => rawLine.replace(/\s+#.*$/, '').trim())
+    .filter(line => /^clean-param\s*:/i.test(line))
+    .map(line => line.slice(line.indexOf(':') + 1).trim().split(/\s+/));
+}
+
 const groups = parseGroups(robots);
 const wildcard = groups.find(group => group.userAgent === '*');
 assert.ok(wildcard, 'robots.txt must define a wildcard crawler policy');
@@ -93,6 +101,42 @@ assert.deepEqual(sitemapLines, ['Sitemap: https://hearthpulse.net/sitemap.xml'],
   'robots.txt must expose the canonical sitemap exactly once');
 assert.doesNotMatch(robots, /^\s*noindex\s*:/im,
   'robots.txt does not support a noindex directive');
+
+// Yandex Clean-param: advertising labels are folded into the clean URL, while
+// every parameter that changes what a page shows must stay distinct.
+const cleanParams = cleanParamDirectives(robots);
+assert.equal(cleanParams.length, 1, 'robots.txt must carry exactly one Clean-param line');
+assert.deepEqual(cleanParams[0], [
+  'utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&fbclid&gclid&ref',
+  '/',
+], 'Clean-param folds the advertising labels on every path');
+const cleanedParameters = cleanParams[0][0].split('&');
+const routeInventory = JSON.parse(readFileSync(join(projectRoot, 'src/shared/seo/publicRouteInventory.json'), 'utf8'));
+const functionalParameters = new Set([
+  'format', 'period', 'q', 'class',
+  ...routeInventory.queryPolicies.flatMap(policy => policy.parameters),
+]);
+for (const parameter of functionalParameters) {
+  assert.ok(!cleanedParameters.includes(parameter),
+    `Clean-param must not fold ${parameter}: it changes what the page shows`);
+}
+
+// Adding Clean-param leaves the crawl policy and the sitemap pointer as they were.
+assert.deepEqual(wildcard.rules, [
+  { type: 'allow', value: '/' },
+  { type: 'allow', value: '/api/article-cover' },
+  { type: 'allow', value: '/api/card-image/' },
+  { type: 'allow', value: '/api/public-resource/' },
+  { type: 'disallow', value: '/api' },
+  { type: 'disallow', value: '/health' },
+  { type: 'disallow', value: '/metrics' },
+  { type: 'disallow', value: '/_internal' },
+  { type: 'allow', value: '/assets/' },
+  { type: 'allow', value: '/class_icon/' },
+  { type: 'allow', value: '/main_assets/' },
+  { type: 'allow', value: '/wallpaper/' },
+  { type: 'allow', value: '/fonts/' },
+], 'the wildcard Allow/Disallow policy is unchanged');
 
 for (const authParameter of ['login', 'profile', 'auth', 'code', 'state', 'returnTo', 'user_code']) {
   assert.match(seoMap, new RegExp(`(?:^|\\W)${authParameter}(?:\\W|$)`),

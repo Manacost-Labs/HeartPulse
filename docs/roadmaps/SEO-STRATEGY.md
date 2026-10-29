@@ -41,7 +41,7 @@
 | ~~Счётчики ItemList могут быть захардкожены~~ Сделано, S2a (#295): оглавления без URL убраны, счётчиков в реестре нет | `config/public-seo-structured-data.json` | Schema расходится с видимым содержимым | P1 |
 | Нет внутренних страниц авторов и редакционной политики | Публичные маршруты | Недостаточный E-E-A-T для аналитического продукта | P1 |
 | Статьи в `server/data/articles.json` в основном ведут на внешний домен | `/articles` | Нельзя честно разметить локальную страницу как полную Article | P1 |
-| `llms.txt` описывает в основном Arena | `public/llms.txt` | Standard/BG/FAQ и методология плохо представлены AI-поиску | P2 |
+| ~~`llms.txt` описывает в основном Arena~~ (исправлено в #303; методологии как страницы всё ещё нет) | `public/llms.txt` | Методология и редакционная политика не оформлены страницей, ссылаться на неё нельзя | P2 |
 
 ### Реализовано после аудита
 
@@ -60,6 +60,7 @@
 - Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Standard card `lastmod` теперь хранится по semantic hash публичной SSR-проекции; первый обход дату намеренно не выставляет.
 - Standard, уникальные Wild-карты, BG minions/spells из active+archive и объединённые solo/Duos heroes подключены к отдельным runtime segments. Будущие локальные articles остаются вне sitemap до появления полного материала.
 - `SEO-602` (code slice): versioned external workflow каждые пять минут проверяет robots, точный sitemap index, границы и уникальность XML, все static/entity segments, deterministic SSR samples каждого типа, canonical redirect, JSON-LD identity, noindex `404` и отсутствие private payload. Search Console/Яндекс baseline и операторский paging ещё не подключены.
+- `SEO-604` (E9 S5, #303): `public/llms.txt` переписан под весь сайт: Стандарт и Вольный, Арена, Поля сражений, справочники, FAQ и статьи со ссылками на канонические URL. Для каждого раздела указаны источник, частота обновления (только та, что подтверждается таймерами и конфигом) и граница бесплатно/по подписке; обещания чисел и дат на закрытых страницах убраны, есть дата редакции, ссылки на sitemap и условия. В `public/robots.txt` добавлена межсекционная директива Яндекса `Clean-param` для меток `utm_*`, `yclid`, `fbclid`, `gclid`, `ref`; функциональные параметры (`format`, `period`, `q`, `class` и параметры из `queryPolicies`) в неё не входят, правила `Allow`/`Disallow` и `Sitemap` не менялись. Политика AI-ботов (`SEO-606`) и RSL остаются решением владельца.
 
 ### Ближайший порядок P0 SEO
 
@@ -258,7 +259,7 @@ Lab Lighthouse используется для диагностики, но не
 | SEO-601 | P0 | Настроить dashboard Search Console + Яндекс Вебмастер | SEO-002 | Еженедельно видны coverage, sitemap, crawl, queries, CTR, CWV и ручные санкции |
 | SEO-602 | P0 | Добавить SEO synthetic monitor | SEO-106 | Проверяет representative URLs, robots, status, canonical, sitemap lag и schema parse |
 | SEO-603 | P1 | Настроить алерты на падение indexable count/traffic | SEO-601 | Порог учитывает сезонность; есть owner и runbook, а не только уведомление |
-| SEO-604 | P2 | Обновить `llms.txt` и AI-readable summaries | SEO-402, SEO-404 | Покрыты Standard/Arena/BG/FAQ, источники, дата, методология и canonical URLs |
+| SEO-604 | P2 | Обновить `llms.txt` и AI-readable summaries | SEO-402, SEO-404 | Покрыты Standard/Arena/BG/FAQ, источники, дата, методология и canonical URLs. **Сделано для `llms.txt` (#303)**; методология и AI-readable summaries — вместе с `SEO-605` |
 | SEO-605 | P2 | Добавить короткие фактологические summaries | SEO-402 | Ответы с датой/выборкой и ссылками на первичные страницы; без маркетинговых неподтверждённых claims |
 | SEO-606 | P2 | Принять политику AI crawler access | Legal/product decision | Явное решение по каждому классу crawler, отражённое в robots и политике использования |
 
