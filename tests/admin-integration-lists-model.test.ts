@@ -54,6 +54,24 @@ const accounts = [
   account('nick-only', { telegramId: '', telegramHasAccess: false, hasAccess: false, accessState: 'contact-only' }),
   account('banned', { telegramHasAccess: false, hasAccess: false, accessState: 'blocked', blockedAt: '2026-09-01T00:00:00.000Z' }),
 ];
+const failedMembership = account('check-error', {
+  accessState: 'checkable', telegramHasAccess: false, hasAccess: true,
+  chats: [{ chatId: '-100', ok: false, error: 'Bad Request: PARTICIPANT_ID_INVALID' }],
+});
+assert.deepEqual(telegramAccess(failedMembership), { tone: 'warn', label: 'Проверка не удалась' });
+assert.deepEqual(telegramAccess({ ...failedMembership, hasAccess: false }), telegramAccess(failedMembership),
+  'site access must not change the result of the Telegram membership check');
+assert.deepEqual(telegramAccess({ ...failedMembership, chats: [], checkedAt: '' }), { tone: 'muted', label: 'Ещё не проверялся' });
+assert.deepEqual(telegramAccess({ ...failedMembership, chats: [], stale: true }), { tone: 'warn', label: 'Проверка устарела' });
+assert.deepEqual(telegramAccess({ ...failedMembership, chats: [{ chatId: '-100', status: 'left', ok: true }] }),
+  { tone: 'muted', label: 'Нет в VIP-группах' });
+assert.deepEqual(telegramAccess({ ...failedMembership, chats: [] }), { tone: 'warn', label: 'Нет результата проверки' });
+assert.deepEqual(telegramAccess({ ...failedMembership, chats: [{ chatId: '-100', status: 'left' }, ...failedMembership.chats] }),
+  { tone: 'warn', label: 'Проверка не удалась' });
+assert.deepEqual(telegramAccess({ ...failedMembership, chats: [{ chatId: '-100', status: 'restricted', isMember: false }] }),
+  { tone: 'muted', label: 'Нет в VIP-группах' });
+assert.deepEqual(telegramAccess({ ...failedMembership, chats: [{ chatId: '-100', status: 'restricted' }] }),
+  { tone: 'warn', label: 'Нет результата проверки' });
 assert.deepEqual(telegramFilterOptions(accounts).map(option => [option.id, option.count]), [
   ['all', 4], ['access', 1], ['checkable', 1], ['contact-only', 1], ['stale', 1], ['blocked', 1],
 ]);
@@ -61,8 +79,8 @@ assert.deepEqual(ids(filterTelegramAccounts(accounts, { search: '', access: 'sta
 assert.deepEqual(ids(filterTelegramAccounts(accounts, { search: 'NICK', access: 'all' })), ['nick-only']);
 assert.deepEqual(ids(filterTelegramAccounts(accounts, { search: '', access: 'access' })), ['member']);
 
-assert.deepEqual(telegramAccess(accounts[0]), { tone: 'ok', label: 'Есть доступ' });
-assert.deepEqual(telegramAccess(accounts[1]), { tone: 'muted', label: 'Нет в VIP-группах' });
+assert.deepEqual(telegramAccess(accounts[0]), { tone: 'ok', label: 'Доступ подтверждён' });
+assert.deepEqual(telegramAccess(accounts[1]), { tone: 'warn', label: 'Проверка устарела' });
 assert.deepEqual(telegramAccess(accounts[2]), { tone: 'warn', label: 'Telegram не привязан' });
 assert.deepEqual(telegramAccess(accounts[3]), { tone: 'bad', label: 'Заблокирован' });
 assert.deepEqual(telegramAccess(account('other', { telegramHasAccess: false, hasAccess: false, accessState: 'no-access' })), { tone: 'muted', label: 'Нет доступа' });
@@ -70,9 +88,14 @@ assert.deepEqual(telegramAccess(account('other', { telegramHasAccess: false, has
 assert.deepEqual(chatStateLabel({ chatId: '-1', status: 'member', isMember: true }), { member: true, label: 'состоит' });
 assert.deepEqual(chatStateLabel({ chatId: '-1', status: 'left' }), { member: false, label: 'вышел из группы' });
 assert.deepEqual(chatStateLabel({ chatId: '-1', ok: false, error: 'Bad Request: chat not found' }), { member: false, label: 'бот не видит эту группу' });
-assert.deepEqual(chatStateLabel({ chatId: '-1', ok: false, error: 'timeout' }), { member: false, label: 'ошибка проверки: timeout' });
+assert.deepEqual(chatStateLabel({ chatId: '-1', ok: false, error: 'timeout' }), { member: false, label: 'ошибка проверки' });
+assert.deepEqual(chatStateLabel({ chatId: '-1', ok: false, error: 'Bad Request: member not found' }), { member: false, label: 'не удалось проверить участника' });
+assert.deepEqual(chatStateLabel({ chatId: '-1', ok: false, error: 'Bad Request: PARTICIPANT_ID_INVALID' }), { member: false, label: 'не удалось проверить участника' });
+assert.deepEqual(chatStateLabel({ chatId: '-1', status: 'member' }), { member: true, label: 'состоит' });
+assert.deepEqual(chatStateLabel({ chatId: '-1', status: 'restricted', isMember: false }), { member: false, label: 'не состоит' });
+assert.deepEqual(chatStateLabel({ chatId: '-1', status: 'restricted' }), { member: false, label: 'членство не подтверждено' });
 assert.deepEqual(chatStateLabel({ chatId: '-1', hasAccess: true }), { member: true, label: 'состоит' });
-assert.deepEqual(chatStateLabel({ chatId: '-1' }), { member: false, label: 'не состоит' });
+assert.deepEqual(chatStateLabel({ chatId: '-1' }), { member: false, label: 'статус неизвестен' });
 
 const broken = { chatId: '-5077378176', ok: false, error: 'Bad Request: chat not found' };
 assert.deepEqual(unreadableTelegramChats([
