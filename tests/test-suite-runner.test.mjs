@@ -7,12 +7,14 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import {
   discoverTestFiles,
+  parseOnlyFiles,
   parseRunnerArguments,
   parseShard,
   planShards,
@@ -844,5 +846,158 @@ test('the quarantine run reports retry-passes and failures as failures in its su
     const markdown = readFileSync(summaryPath, 'utf8');
     assert.match(markdown, /^### Test suites: browser · quarantine \(non-blocking\)$/m);
     assert.match(markdown, /Reported failures: 2 \(FAIL 1 \+ FLAKY 1;/);
+  });
+});
+
+test('parses --only-files as a path and rejects it without one or twice', () => {
+  assert.equal(parseRunnerArguments(['--suite', 'unit', '--only-files', 'picked.json']).onlyFilesPath, 'picked.json');
+  assert.equal(parseRunnerArguments(['--suite', 'unit']).onlyFilesPath, undefined);
+  for (const args of [
+    ['--suite', 'unit', '--only-files'],
+    ['--suite', 'unit', '--only-files', '--shard', '1/2'],
+    ['--suite', 'unit', '--only-files', 'a.json', '--only-files', 'b.json'],
+  ]) {
+    assert.throws(() => parseRunnerArguments(args), /usage:/, args.join(' '));
+  }
+});
+
+test('reads --only-files from the selection JSON, a bare suite map, an array or one path per line', () => {
+  const expected = ['tests/a.test.ts', 'tests/b.test.mjs'];
+  const selection = JSON.stringify({
+    mode: 'subset',
+    reason: 'x',
+    files: { unit: ['tests/a.test.ts'], browser: ['tests/b.test.mjs'], contract: [] },
+  });
+  assert.deepEqual([...parseOnlyFiles(selection)], expected);
+  assert.deepEqual([...parseOnlyFiles(JSON.stringify({ unit: ['tests/a.test.ts'], browser: ['tests/b.test.mjs'] }))], expected);
+  assert.deepEqual([...parseOnlyFiles(JSON.stringify(expected))], expected);
+  assert.deepEqual([...parseOnlyFiles('tests/a.test.ts\n\n  tests/b.test.mjs  \n')], expected);
+  assert.deepEqual([...parseOnlyFiles('')], []);
+  assert.deepEqual([...parseOnlyFiles('{"files":{"unit":[]}}')], []);
+  assert.throws(() => parseOnlyFiles('{"files": '), /not valid JSON/);
+});
+
+test('--only-files spells the same file the same way: ./, backslashes, doubled slashes and absolute paths', () => {
+  const root = '/work/checkout';
+  const spellings = [
+    './tests/a.test.ts', 'tests/a.test.ts', '././tests/a.test.ts', 'tests//a.test.ts', 'tests\\a.test.ts',
+    '.\\tests\\a.test.ts', '/work/checkout/tests/a.test.ts', ' ./tests/a.test.ts ',
+  ];
+  assert.deepEqual([...parseOnlyFiles(spellings.join('\n'), root)], ['tests/a.test.ts']);
+  assert.deepEqual([...parseOnlyFiles(JSON.stringify({ files: { unit: spellings } }), root)], ['tests/a.test.ts']);
+  assert.deepEqual([...parseOnlyFiles('./tests/a.test.ts')], ['tests/a.test.ts']);
+  assert.deepEqual([...parseOnlyFiles('/elsewhere/tests/a.test.ts', root)], ['/elsewhere/tests/a.test.ts']);
+});
+
+test('a ./-prefixed path in --only-files still selects the registered file', async () => {
+  await withRepository(async repositoryRoot => {
+    const files = ['tests/u0.test.ts', 'tests/u1.test.ts'];
+    for (const file of files) writeFixture(repositoryRoot, file);
+    const executed = [];
+    await runTestRegistry(registry(files), {
+      repositoryRoot,
+      suiteIds: ['unit'],
+      onlyFiles: parseOnlyFiles('./tests/u1.test.ts\n', repositoryRoot),
+      spawnImpl: (command, args) => {
+        executed.push(args.at(-1));
+        return completedChild();
+      },
+      logger: () => {},
+    });
+    assert.deepEqual(executed, ['tests/u1.test.ts']);
+  });
+  assert.throws(() => parseOnlyFiles('{"files":{"unit":[1]}}'), /strings/);
+});
+
+test('only-files keeps just the listed files of the selected suites, before quarantine and sharding', async () => {
+  await withRepository(async repositoryRoot => {
+    const unitFiles = ['tests/u0.test.ts', 'tests/u1.test.ts'];
+    const browserFiles = Array.from({ length: 6 }, (_, index) => `tests/b${index}.test.mjs`);
+    for (const file of [...unitFiles, ...browserFiles]) writeFixture(repositoryRoot, file);
+    const fixture = registry([], {
+      suites: [{ id: 'unit', files: unitFiles }, { id: 'browser', files: browserFiles }],
+      quarantine: ['tests/b1.test.mjs'].map(file => ({
+        file, issue: 'https://github.com/Manacost-Labs/HeartPulse/issues/2', reason: 'flaky',
+      })),
+    });
+    const onlyFiles = new Set([
+      'tests/u1.test.ts', 'tests/b1.test.mjs', 'tests/b2.test.mjs', 'tests/b4.test.mjs', 'tests/not-registered.test.ts',
+    ]);
+    const run = async options => {
+      const executed = [];
+      const messages = [];
+      const summary = await runTestRegistry(fixture, {
+        repositoryRoot,
+        spawnImpl: (command, args) => {
+          executed.push(args.at(-1));
+          return completedChild();
+        },
+        logger: message => messages.push(message),
+        ...options,
+      });
+      return { executed, messages, summary };
+    };
+
+    const browserOnly = await run({ suiteIds: ['browser'], onlyFiles });
+    assert.deepEqual(browserOnly.executed, ['tests/b1.test.mjs', 'tests/b2.test.mjs', 'tests/b4.test.mjs']);
+    assert.ok(
+      browserOnly.messages.includes('[test-suite] ONLY-FILES selected 3 of 6 files in the suites'),
+      browserOnly.messages.join('\n'),
+    );
+
+    const blocking = await run({ suiteIds: ['unit', 'browser'], onlyFiles, quarantine: 'exclude' });
+    assert.deepEqual(blocking.executed, ['tests/u1.test.ts', 'tests/b2.test.mjs', 'tests/b4.test.mjs']);
+
+    const quarantined = await run({ suiteIds: ['unit', 'browser'], onlyFiles, quarantine: 'only' });
+    assert.deepEqual(quarantined.executed, ['tests/b1.test.mjs']);
+
+    const shardsRun = [];
+    for (let index = 1; index <= 2; index += 1) {
+      shardsRun.push(...(await run({ suiteIds: ['browser'], onlyFiles, shard: { index, total: 2 } })).executed);
+    }
+    assert.deepEqual(shardsRun.sort(), ['tests/b1.test.mjs', 'tests/b2.test.mjs', 'tests/b4.test.mjs']);
+
+    const everything = await run({ suiteIds: ['browser'] });
+    assert.deepEqual(everything.executed, browserFiles);
+  });
+});
+
+test('only-files with nothing for the suite succeeds without running a test and says so', async () => {
+  await withRepository(async repositoryRoot => {
+    const files = ['tests/u0.test.ts', 'tests/u1.test.ts'];
+    for (const file of files) writeFixture(repositoryRoot, file);
+    const summaryPath = path.join(repositoryRoot, 'summary.md');
+    const messages = [];
+    let spawned = 0;
+    const summary = await runTestRegistry(registry(files), {
+      repositoryRoot,
+      suiteIds: ['unit'],
+      onlyFiles: new Set(['tests/elsewhere.test.mjs']),
+      summaryPath,
+      spawnImpl: () => {
+        spawned += 1;
+        return completedChild();
+      },
+      logger: message => messages.push(message),
+    });
+    assert.equal(spawned, 0);
+    assert.equal(summary.executed, 0);
+    assert.ok(messages.includes('[test-suite] ONLY-FILES selected 0 files; nothing to run'), messages.join('\n'));
+    assert.match(readFileSync(summaryPath, 'utf8'), /Executed 0 of 0 selected files/);
+  });
+});
+
+test('the runner CLI exits successfully when --only-files selects nothing', () => {
+  withRepository(directory => {
+    const listPath = path.join(directory, 'none.json');
+    writeFileSync(listPath, JSON.stringify({ mode: 'none', reason: 'only documentation changed', files: { unit: [] } }));
+    const result = spawnSync(
+      process.execPath,
+      ['scripts/test-suite-runner.mjs', '--suite', 'unit', '--only-files', listPath],
+      { cwd: new URL('..', import.meta.url), encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /ONLY-FILES selected 0 files; nothing to run/);
+    assert.match(result.stdout, /SUMMARY executed=0 /);
   });
 });

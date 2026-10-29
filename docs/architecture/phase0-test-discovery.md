@@ -21,8 +21,10 @@ No branch-wide merge or unverified cherry-pick is part of this slice.
 - Validate discovery and its own contract: `npm run test:discovery`.
 - Run every classified authored test: `npm test`.
 - Run selected suites: `npm run test:suite -- <id>[,<id>...]`, optionally with
-  `--shard <index>/<total>`, `--retry-failed-once`, `--continue-on-failure`
-  and `--quarantine <exclude|only>`.
+  `--shard <index>/<total>`, `--retry-failed-once`, `--continue-on-failure`,
+  `--quarantine <exclude|only>` and `--only-files <file>` (keep only the files
+  listed in the output of `scripts/ci-affected-tests.mjs`, see
+  [agent-integration.md](../runbooks/agent-integration.md#tests-affected-by-a-pull-request)).
 - Run the release gate: `npm run verify:release`.
 
 ## Discovery contract

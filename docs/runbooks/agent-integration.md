@@ -89,6 +89,53 @@ start or wait for it; `CI required` and the deployment do not depend on it
 (see the Quarantine section of
 [phase0-test-discovery.md](../architecture/phase0-test-discovery.md#quarantine)).
 
+## Tests affected by a pull request
+
+`scripts/ci-affected-tests.mjs` answers which registered test files a change
+can affect. It is not wired into `ci.yml` yet: the pull request run still runs
+everything, and `merge_group` and `main` always will. Use it to reproduce what
+a pull request run would select:
+
+```bash
+# two commits (the base is compared at its merge-base with the head);
+# run it inside the repository: the import graph takes about 2.5 s
+node scripts/ci-affected-tests.mjs --base origin/main --head HEAD
+# or a list of paths, one per line; --output writes the JSON to a file
+node scripts/ci-affected-tests.mjs --files-from changed.txt --output selection.json
+# run only the selected files of a suite
+node scripts/test-suite-runner.mjs --suite unit --only-files selection.json
+```
+
+The JSON has `mode`, `reason`, `files` (selected test files per suite, in
+registry order) and `affectedModules`:
+
+- `none`: only `docs/**`, `changelog.d/**`, or Markdown outside `.github`,
+  `.storybook`, `apps`, `config`, `database`, `deploy`, `public`, `scripts`,
+  `server`, `shared`, `src` and `tests`. No file is selected.
+- `subset`: every changed file is in a module root of
+  `config/module-boundaries.json`, in a legacy area of
+  `config/architecture-catalog.json`, or is a registered test. Selected are
+  the catalog `tests` of the changed modules and of every module that
+  `scripts/agent-impact.mjs` reports as affected (modules that import them in
+  the import graph, and modules that declare a dependency on those; the
+  closure code is shared in `scripts/lib/module-impact.mjs`), plus the changed
+  test files. A changed legacy file also reaches the modules that import it.
+- `all`: anything else. That is `package*.json`, `.npmrc`, `.github/**`,
+  `scripts/**`, `config/**`, `tests/test-suites.json`, test helpers and
+  fixtures, the shared roots (`src/shared`, `server/shared`, `shared`),
+  tsconfig, Next and Storybook configs, a file outside every module, a path
+  that is not a clean relative path, a test file missing from
+  `tests/test-suites.json`, or a changed module with no registered test. Every
+  registered file is selected.
+
+`--only-files <file>` accepts that JSON (or a plain list of paths; `./tests/a.test.ts`,
+backslashes and absolute paths inside the checkout are normalised) and keeps
+only those files of the chosen suites, before the quarantine filter and before
+sharding. A suite with nothing selected exits 0 and prints
+`ONLY-FILES selected 0 files; nothing to run`. A wrong `subset` is caught by
+the full `merge_group` run, so the tool errs towards `all`: if it fails, treat
+the failure as `all`. A tool exit code other than 0 means "run everything".
+
 ## GitHub settings (owner applies; agents never change them)
 
 Apply in this order, only after `main` contains the `merge_group` trigger and
